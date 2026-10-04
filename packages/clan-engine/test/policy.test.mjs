@@ -178,3 +178,19 @@ test("the measurable goals are the categories counted; a saved version's retired
   for (const k of RETIRED_FIELDS) assert.equal(k in old.values, false);
   assert.equal(validate({ nonsense: 1 }).ok, false);
 });
+
+test("war intent is explicit, unknown for legacy/new policies and independent of scoring", () => {
+  assert.equal(defaults().war_intent, "unknown");
+  assert.equal(validate({ war_enabled: true }).values.war_intent, "unknown");
+  assert.equal(
+    validate({ war_intent: "participating", war_enabled: false }).values
+      .war_intent,
+    "participating",
+  );
+  assert.equal(
+    validate({ war_intent: "not_participating", war_enabled: true }).values
+      .war_intent,
+    "not_participating",
+  );
+  assert.equal(validate({ war_intent: true }).ok, false);
+});

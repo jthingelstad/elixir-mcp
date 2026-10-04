@@ -616,6 +616,13 @@ export function createHandler({
           return json(200, { ok: true });
         }
       }
+      // Core context keeps the existing person/session Clan audience and
+      // requires verified membership. It is not an agent or public API door.
+      if (method === "GET" && rest === "/policy/context") {
+        if (who.verified !== true)
+          return json(403, { error: "gate", reason: "unverified" });
+        return json(200, await manage.policyContext(tag, who));
+      }
       if (method === "GET" && rest === "/policy")
         return json(200, await manage.policyView(tag, who, token));
       if (method === "POST" && rest === "/policy")

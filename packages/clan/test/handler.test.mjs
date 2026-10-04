@@ -417,3 +417,33 @@ test("two verified tags in one clan: both rows are yours", async () => {
     ["#ALT", "#20QQL8CCRU"],
   );
 });
+
+test("core policy context refuses cross-clan, unverified, revoked and agent access before reading", async () => {
+  let reads = 0;
+  const door = { players: [player({ clan_role: "member" })] };
+  const h = harness({
+    door,
+    manage: {
+      policyContext: async () => {
+        reads++;
+        return { status: "unknown" };
+      },
+    },
+  });
+  const { sessionCookie } = await signIn(h);
+  const cookies = cookieHeader(sessionCookie);
+  const call = (tag) =>
+    h.handler(req("GET", `/api/clans/${tag}/policy/context`, { cookies }));
+  assert.equal((await call("2PQRJ8LV")).statusCode, 200);
+  assert.equal((await call("PYLQ2")).statusCode, 403);
+  assert.equal(reads, 1);
+  h.mcp.state.players = [
+    player({ claim_status: "unverified", clan_role: "member" }),
+  ];
+  assert.equal((await call("2PQRJ8LV")).statusCode, 403);
+  h.mcp.state.players = [player({ clan_tag: "#PYLQ2" })];
+  assert.equal((await call("2PQRJ8LV")).statusCode, 403);
+  h.mcp.state.principal = { kind: "agent" };
+  assert.equal((await call("PYLQ2")).statusCode, 403);
+  assert.equal(reads, 1);
+});

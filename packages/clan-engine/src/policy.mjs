@@ -22,7 +22,7 @@
  * every field in it has the value.
  */
 
-export const POLICY_SCHEMA_VERSION = 2;
+export const POLICY_SCHEMA_VERSION = 3;
 
 /**
  * The smallest clan a policy engages with (Jamie, 2026-09-25): as a clan
@@ -49,7 +49,7 @@ export const GROUPS = [
   {
     key: "about",
     title: "What this clan is for",
-    why: "What the clan does is the tabs you turn on: Clan Wars, ranked play, donations, trophy road. Playing together is said here, since the game cannot measure it. How strict the clan is sets where a starting point puts the minimums and the clocks.",
+    why: "The category tabs choose what counts: Clan Wars, ranked play, donations, trophy road. Clan War participation records intent separately. Playing together is said here, since the game cannot measure it. How strict the clan is sets where a starting point puts the minimums and the clocks.",
   },
   {
     key: "war",
@@ -197,6 +197,22 @@ const weightWhy =
 /** @type {Record<string, {group:string,label:string,unit:string,type:"integer"|"number"|"boolean"|"enum",min?:number,max?:number,options?:Array<{value:string,label:string}>,default:any,why:string,when?:Array<Record<string, any>>}>} */
 export const FIELDS = {
   // ---- what the clan is for: the category tabs, and one thing unmeasured
+  war_intent: {
+    group: "about",
+    label: "Clan War participation",
+    unit: "intent",
+    type: "enum",
+    options: [
+      { value: "unknown", label: "Not specified" },
+      { value: "participating", label: "We participate in Clan Wars" },
+      {
+        value: "not_participating",
+        label: "We do not participate in Clan Wars",
+      },
+    ],
+    default: "unknown",
+    why: "What the leaders intend for Clan Wars, independent of whether war decks count toward minimums or Elder. Not specified is unknown; scoring settings and starting points never choose this for you. This setting records intent; it does not change scheduled messages yet.",
+  },
   goal_together: {
     group: "about",
     label: "Playing together",

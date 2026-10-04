@@ -86,7 +86,10 @@ export function Policy({ clan }) {
     invalidatePreview();
   };
   const fill = (goals, posture, key) => {
-    setDraft(policyFromGoals(goals, posture));
+    setDraft((d) => ({
+      ...policyFromGoals(goals, posture),
+      war_intent: d.war_intent,
+    }));
     invalidatePreview();
     setErrors({});
     trackEvent("clan.policy_preset", key);

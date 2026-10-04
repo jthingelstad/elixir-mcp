@@ -98,3 +98,9 @@ test("a pitch drafted from the goals is valid, names no clan, and needs a goal",
     }
   assert.equal(pitchFromGoals([], "standard"), null);
 });
+
+test("starting points never infer war intent from counted categories", () => {
+  for (const goals of [[], ["war"], ["climbing"], ["together"]])
+    for (const posture of ["relaxed", "standard", "strict"])
+      assert.equal(policyFromGoals(goals, posture).war_intent, "unknown");
+});

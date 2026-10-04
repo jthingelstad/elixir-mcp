@@ -2112,3 +2112,50 @@ test("unverified: a verified Leader sees no notice; an unverified member has not
   assert.equal(pme.selected.verified, false);
   assert.equal(pme.selected.unlock, null);
 });
+
+test("core policy context is narrow, current and explicitly unknown until intent is saved", async () => {
+  const h = harness({ part: partClan() });
+  const who = { player_tag: "#20QQL8CCRU", role: "member", verified: true };
+  const legacy = await h.manage.policyContext("#2PQRJ8LV", who);
+  assert.equal(legacy.status, "unknown");
+  assert.equal(legacy.reason, "war_intent_unspecified");
+  assert.deepEqual(
+    Object.keys(legacy).sort(),
+    [
+      "schema_version",
+      "clan_tag",
+      "status",
+      "reason",
+      "war_intent",
+      "policy_version",
+      "policy_saved_at",
+      "read_at",
+    ].sort(),
+  );
+  const prior = await h.ledger.currentPolicy("#2PQRJ8LV");
+  await h.ledger.savePolicy("#2PQRJ8LV", {
+    values: {
+      ...prior.values,
+      war_intent: "participating",
+      war_enabled: false,
+    },
+    by: who.player_tag,
+    at: NOW.toISOString(),
+  });
+  const current = await h.manage.policyContext("#2PQRJ8LV", who);
+  assert.equal(current.status, "known");
+  assert.equal(current.war_intent, "participating");
+  assert.ok(current.policy_version > legacy.policy_version);
+  h.clock.t += 1000;
+  const refreshed = await h.manage.policyContext("#2PQRJ8LV", who);
+  assert.notEqual(refreshed.read_at, current.read_at);
+  assert.equal(refreshed.policy_version, current.policy_version);
+  assert.equal(
+    (await h.manage.policyContext("#PYLQ2", who)).reason,
+    "no_policy",
+  );
+  await assert.rejects(
+    h.manage.policyContext("#2PQRJ8LV", { ...who, verified: false }),
+    (e) => e.status === 403,
+  );
+});
