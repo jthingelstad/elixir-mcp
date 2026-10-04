@@ -4565,5 +4565,10 @@ Served App-Jtolsefy.js exactly matches the build, SHA256
 This execution has no Jamie browser session; real-clan signed-in inspection
 remains the parent's read-only browser lane. No real Policy, classification,
 message, award, preference or paid draft was changed for QA. The clean tree's
-lease was released after read-back. This receipt lands through a green
-notes-only PR; no deployment follows it.
+lease was released after read-back.
+
+A final consistency check found that the new war table displayed the stored
+zero-based section index as a human week number. The display now adds one,
+matching Actions; a regression pins section 3 to W4. Recorded counters and
+calendar bounds are unchanged. The receipt PR includes this narrow display
+correction, and its green merge is deployed through the normal lane.
