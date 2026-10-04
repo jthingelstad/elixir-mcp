@@ -342,11 +342,15 @@ export async function projectPlayerSnapshot(
   const prev = prevRows[0];
   const { rows: latestRows } = await db.query(
     `${SNAPSHOT_BASELINE}
-     where player_tag = $1 and profile_observed_at < $2::timestamptz
+     where player_tag = $1 and snapshot_kind = 'daily'
+       and profile_observed_at < $2::timestamptz
      order by profile_observed_at desc limit 1`,
     [playerTag, fetchedAt],
   );
   const latest = latestRows[0];
+  // Auxiliary rows preserve reset boundaries rather than a current counter:
+  // pre_reset can keep 60 after the real profile fell to 4. Its later stamp
+  // must not become the next poll's baseline and invent another reset.
   // The arena is a SHARED column and the roster writes it at its own
   // cadence, emitting arena_changed itself (series.mjs): the arena
   // baseline is the newest observation of either writer, so a move the
@@ -382,7 +386,10 @@ export async function projectPlayerSnapshot(
         fetchedAt,
         receiptId,
         kind: extra,
-        moments,
+        // These rows preserve the same observation at a reset boundary.
+        // Only the daily projection compares it with the prior profile;
+        // after its upsert the auxiliary baseline can be an older game day.
+        moments: false,
       });
     }
   }

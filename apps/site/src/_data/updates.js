@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Reset snapshots preserve one counter observation",
+    body: "Extra weekly and season-reset snapshots preserve recorded counters without announcing another donation reset from an older baseline. Weekly high-water marks and Clan award inputs are unchanged. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Review Clan drafts before recording delivery",
     body: "Message copying and action decisions wait while a voice draft loads. Text over the game's field limits stays editable with a reminder to shorten before copying. Review and send the finished words, then record delivery. Contracts unchanged.",
   },
