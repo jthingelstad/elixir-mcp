@@ -4956,3 +4956,19 @@ run early as QA, and positive output waits for leaders to set intent.
 Confirmed-help verification passed: 1,807 Node cases, 85 existing skips,
 435 Vitest cases and zero failures. Required CI will validate the final copy
 before the combined UI/help deployment.
+
+Setup/help deployment receipt: PRs #286 and #287 shipped together from
+78960bb3c8adc55391977b2e66158b9e99f363ca; required CI 37226416975 passed
+at 19:02:41Z (2:02 PM CT). Deployment completed at 19:07:51Z
+(14:07 CT), observed from the deployment log.
+No migrations ran. All 43 smoke checks passed; scoped elixir acceptance ran
+191 cases with zero failures, 16 expected skips and 152 distinct calls.
+Published UI asset App-DFEbwNSx.js matched the merged build byte-for-byte and
+contained Draft agreement, the intent navigation and Prepare policy. The live
+policy guide includes the exact war-deck-check gate and 60-second bound, with
+the obsolete “scheduled messages yet” copy removed. Public health was good;
+MCP 11.2.0 and JSON API 3.0.0 unchanged. The lease was released after readback.
+No policy values, grants, member decisions, messages or early routines changed.
+The next QA pass prioritizes independently observed awards-place display and
+current-season announcement-target clarity, followed by context restoration
+and ordinary-member/Elder journeys.
