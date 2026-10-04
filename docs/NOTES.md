@@ -4599,4 +4599,15 @@ This final receipt is notes-only and does not cause another deployment.
 
 Real-account QA found a pending removal interpreting time since the last captured battle as battle-free time despite later positive lifetime profile-counter intervals. No real member data is committed. Clan now batches private current-roster profile observations (daily profile stamps, never roster/reset stamps), uses positive intervals as possible activity bounds, and holds removal on missing/noncomparable baseline or an unmeasured tail. No freshness tolerance or policy values were invented. This conservatively holds ordinary removals pending an explicit freshness rule.
 
-Cached list/detail/history and Board inbox reads independently recheck removal admission; stale words/model drafts/completion/reopening are withheld, while explicit leadership decline remains available. Model pre/post checks bind current evidence. Fresh evaluation only withdraws unsupported pending recommendations with current evidence in their audit log; conditional withdrawal preserves competing human decisions. An IAM-only, preview/digest-checked `reconcile_removal` lane can repair one real pending incident without a manual leader decision or running awards, messages or other policy actions. Synthetic regressions cover missing captures, bracket/threshold ambiguity, unknown counters/tails, cached Actions, draft races and audited repair. Contracts and schema unchanged. Deployment/read-back pending.
+Cached list/detail/history and Board inbox reads independently recheck removal admission; stale words/model drafts/completion/reopening are withheld, while explicit leadership decline remains available. Model pre/post checks bind current evidence. Fresh evaluation only withdraws unsupported pending recommendations with current evidence in their audit log; conditional withdrawal preserves competing human decisions. An IAM-only, preview/digest-checked `reconcile_removal` lane can repair one real pending incident without a manual leader decision or running awards, messages or other policy actions. Synthetic regressions cover missing captures, bracket/threshold ambiguity, unknown counters/tails, cached Actions, draft races and audited repair. Contracts and schema unchanged.
+
+Release validation receipt: PR271 passed its required validate check,
+including full verify, the Lambda build and browser journeys. Local full
+verify passed; Clan UI had 102 checks and the web app 272. Focused desktop
+and mobile removal journeys passed with axe. Independent source review
+findings are closed: default copy/draft/reopen/completion admission,
+final-read evidence fingerprinting, and durable/reconstructed withdrawal
+audit all have synthetic regressions. No public tool or JSON API operation
+changed; contracts remain MCP 11.1.0 / JSON API 3.0.0. Detailed operational
+verification remains private. This notes-only validation receipt needs no
+further deployment.
