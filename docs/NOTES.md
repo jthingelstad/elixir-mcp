@@ -4730,3 +4730,16 @@ friendly, 2v2, events, tournaments and war duels, but a finite nonpaginated log
 does not guarantee a time window or completeness. Side-mode progression is not
 a no-play counter. This release preserves removal freshness/admission guards;
 it records observations without treating unchanged counters as all-mode proof.
+
+Validation receipt: PR279 passed required validate, including full verify,
+the Lambda build and all browser journeys. Local full verify passed; the
+focused ingest lane passed 33 checks, including isolated admitted-receipt,
+fact/point accounting and delayed-delivery regressions. The pinned reset
+snapshots keep their original observations while the daily row advances.
+Deployment completed with no new migrations (201 applied), unchanged
+vocabulary, all 43 smoke checks and full read-only MCP acceptance: 1,134
+cases, zero failures, 376 existing skips and 514 distinct calls. No new
+acceptance failure or waiver was added. Served documentation and versions,
+healthy public status and all seven active Lambda ZIP hashes matched the
+release build. Detailed operational and audit-preservation evidence remains
+private. This notes-only receipt needs no further deployment.
