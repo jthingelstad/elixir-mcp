@@ -197,6 +197,13 @@ export function Policy({ clan }) {
         <h2 className="panel__head m-0">Draft agreement</h2>
         <div className="panel__body grid gap-2">
           <p className="m-0">
+            Clan War participation:{" "}
+            {view.fields.war_intent.options.find(
+              (option) => option.value === draft.war_intent,
+            )?.label ?? "Not specified"}
+            . This intent is separate from scoring.
+          </p>
+          <p className="m-0">
             Counted categories:{" "}
             {countedCategories(draft)
               .map((c) => CATEGORY_LABELS[c])
@@ -319,14 +326,38 @@ export function Policy({ clan }) {
         </div>
         <div className="panel__body grid gap-5">
           {current.key === "about" ? (
-            <About
-              view={view}
-              tabs={tabs}
-              stateOf={stateOf}
-              onFill={fill}
-              onOpen={setTab}
-              disabled={busy || conflict}
-            />
+            <>
+              <Field
+                name="war_intent"
+                f={view.fields.war_intent}
+                value={draft.war_intent}
+                error={errors.war_intent}
+                disabled={!view.can_edit || busy || conflict}
+                onChange={(value) => set("war_intent", value)}
+              />
+              <About
+                view={view}
+                tabs={tabs}
+                stateOf={stateOf}
+                onFill={fill}
+                onOpen={setTab}
+                disabled={busy || conflict}
+              />
+            </>
+          ) : null}
+          {current.key === "war" ? (
+            <p className="page-head__note m-0">
+              Counting war decks for scoring is separate from whether this clan
+              plans to play Clan Wars.{" "}
+              <button
+                type="button"
+                className="btn--text"
+                onClick={() => setTab("about")}
+              >
+                Set Clan War participation in About
+              </button>
+              .
+            </p>
           ) : null}
           {(() => {
             // One group of the open tab: its help once, then its fields; a
@@ -336,7 +367,9 @@ export function Policy({ clan }) {
               if (!g || !applies(g.when, draft)) return null;
               const keysHere = fieldsOf({ groups: [gk] }).filter(
                 (k) =>
-                  k !== current.switch && applies(view.fields[k].when, draft),
+                  k !== current.switch &&
+                  k !== "war_intent" &&
+                  applies(view.fields[k].when, draft),
               );
               const off = current.switch && draft[current.switch] !== true;
               return (

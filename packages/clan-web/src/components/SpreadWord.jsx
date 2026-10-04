@@ -63,6 +63,20 @@ export function SpreadWord({ me, clan, roster, navigate }) {
           <a href={`${base}/recruit`} onClick={go(`${base}/recruit`)}>
             Open Recruit ›
           </a>
+          {LEADERS.has(clan.role) ? (
+            <>
+              <p className="m-0">
+                Leaders can prepare and save the policy now; operational
+                management still waits for {MIN_MEMBERS} members.
+              </p>
+              <a
+                href={`${base}/manage/policy`}
+                onClick={go(`${base}/manage/policy`)}
+              >
+                Prepare policy
+              </a>
+            </>
+          ) : null}
         </div>
       </div>
     );

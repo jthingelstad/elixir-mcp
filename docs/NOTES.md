@@ -4914,3 +4914,24 @@ compatible with successful current read_at. This is a consumer freshness rule;
 policy_saved_at remains provenance and the hub supplies no implicit TTL. The
 consumer still ships under its own repository’s rules, with no early live
 routine or message as QA. This receipt-only follow-up requires no redeploy.
+
+## 2026-10-04 - War intent setup navigation
+
+Jamie’s signed-in QA preserved saved policy and discarded all trial edits.
+Bounded follow-up polish puts explicit intent in Draft agreement, moves the
+question before About’s starting points, links from Clan Wars scoring back to
+About, and gives small-clan leaders/co-leaders Prepare policy beside Recruit.
+Member/elder navigation and operational size gates remain unchanged. Synthetic
+UI regressions verify local intent changes, scoring independence, navigation,
+and no Save call; no live policy values are edited.
+
+The help replaces the temporary “scheduled messages yet” sentence with
+conditional policy-aware scheduling behavior. It does not claim Discord
+consumer PR #18 has deployed or that every agent enables that behavior; parent
+rollout confirmation is still required for such a claim. MCP 11.2.0 and JSON
+API 3.0.0 are unchanged: UI copy/navigation only, with no grants or schemas.
+
+Full setup-polish verification passed: 1,807 Node tests, 85 existing skips,
+435 Vitest tests and zero failures after format/lint/knip/TypeScript checks.
+The 15 focused policy/navigation cases passed. Required CI remains the merge
+gate; deployment will use scoped elixir acceptance for the updated help corpus.
