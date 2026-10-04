@@ -5182,3 +5182,22 @@ new-document referrer cases, and full npm run verify: 1,808 Node cases,
 85 existing skips, 442 Vitest cases, zero failures. Required CI, production
 smoke and activation/build readback remain release gates. Roster routing,
 filter state and the product's three-section structure are unchanged.
+
+Search-referrer deployment receipt: PR #294 merged as
+d0d62e4d3b1d761355e5f0dae2d5b5845922fd5b after required validate run
+37233613403 passed, including 135 browser journeys. Deployment completed at
+20:59:24Z (3:59 PM CT), observed from the completed log. Zero new migrations
+ran (202 applied), and the 47-role/29-alias f72062c reference snapshot stayed
+unchanged. All 43 smoke checks passed. Tool acceptance was intentionally
+omitted for web measurement hygiene with no tool contract/operation change.
+
+Live readback at 21:00:33Z proved the Clan shell activates index-Cx78YXWt.js
+and its queries-C6Ky9QE0.js referrer-normalizer dependency. Both matched the
+merged build byte-for-byte; normalizer SHA-256 was
+b713b491dff3551e79bca36be7a014c7802ed40b7ccbf9fd65b37330e74f5a4d.
+The App-BpIA4l9Q.js role/UI chunk remained byte-identical, the public Updates
+entry was served, and health was green. MCP 11.2.0 and JSON API 3.0.0 were
+unchanged. The clean production lease was released after readback.
+No live analytics beacon, member decision, setting/policy edit, award grant,
+clan message or paid model call was used for QA. This receipt changes only
+NOTES; it goes through its own required green CI and has no redeploy.
