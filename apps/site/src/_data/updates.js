@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Keep your place while reviewing clan records",
+    body: "Closed Actions and roster search survive detail pages, browser history and refresh. Current members’ names in Award races, Standing and The week open their existing recorded activity, whose battle-mode names now match battle detail. Denied reads explain access, History labels its recent membership window, and You here distinguishes recorded battle counts from proof of inactivity. Member and Elder permissions stay the same. MCP 11.2.0; JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Award places include the donation tiebreak",
     body: "Award races now display the place after season donations break equal-point ties. A shared-place marker appears only when both values tie, including a tie at the last displayed row. Viewing an older season keeps the current update button clearly labeled with its target season. Award decisions and saved grants stay unchanged. MCP 11.2.0; JSON API 3.0.0 unchanged.",
   },

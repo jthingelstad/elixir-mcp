@@ -67,3 +67,5 @@ export {
   type WriteFailure,
 } from "./WriteError.tsx";
 export { useClock, ZoneProvider } from "./Zone.tsx";
+
+export { MODE_LABEL } from "./battle-mode.ts";

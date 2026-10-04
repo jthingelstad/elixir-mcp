@@ -181,6 +181,21 @@ describe("loadTinylytics", () => {
     expect(beacons[0]).not.toContain("secret");
   });
 
+  test("a direct roster search reports the sanitized route without its free text", async () => {
+    await load("/clan/2PQRJ8LV?find=Private%20search");
+    expect(embeds()).toEqual([]);
+    expect(beacons).toHaveLength(1);
+    expect(beacons[0]).not.toMatch(/Private|search|find=/);
+    expect(new URL(beacons[0]).searchParams.get("path")).toBe("/clan");
+    window.history.pushState(
+      {},
+      "",
+      "/clan/2PQRJ8LV/members/uq8lp2r9c?find=Private%20search",
+    );
+    expect(beacons).toHaveLength(2);
+    expect(beacons[1]).not.toMatch(/Private|search|find=|uq8lp2r9c/);
+  });
+
   test("an ordinary start loads the embed and bridges as well", async () => {
     await load("/console/account/overview");
     expect(embeds()).toEqual([

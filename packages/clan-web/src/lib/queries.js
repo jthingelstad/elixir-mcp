@@ -166,10 +166,7 @@ export const useMyPlace = () =>
 export const useHistory = (tag) =>
   useQuery({
     queryKey: keys.history(tag),
-    queryFn: async () => {
-      const r = await manageApi.history(tag);
-      return r.ok ? r.data : { cards: [], holds: [], timeline: [] };
-    },
+    queryFn: payload(() => manageApi.history(tag)),
   });
 
 export const usePolicy = (tag) =>

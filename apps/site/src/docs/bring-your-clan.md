@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Elixir Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-04; Clan browsing context and read clarity, contracts unchanged"
 ---
 
 # Bring your clan
@@ -84,6 +84,18 @@ inactivity clock, no awards. Every member can still read the roster,
 **You here** (their own numbers) and [The week](/docs/clan-week).
 Members are shown a line to send the leaders, for clan chat or a
 message, and the leaders are shown where to start.
+
+**You here** labels weekly battle counts as recorded captures. Zero recorded
+battles does not prove inactivity. Weeks before roster recording began are
+marked; their counts do not establish membership or complete observation.
+
+## Reads and access
+
+Member and Elder pages keep their existing role permissions. Leaders' management
+controls stay with leaders; an Elder sees only the manual awards that permit
+Elders to choose. A denied read explains the access requirement rather than
+waiting indefinitely. An unavailable read says it could not be read, and does
+not claim an empty record or permit a decision.
 
 ## Signing out
 

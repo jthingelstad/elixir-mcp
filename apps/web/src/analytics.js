@@ -63,7 +63,12 @@ export function loadTinylytics() {
   // built from the ROUTE (analyticsLocation), never from the raw URL.
   const app = appPath(window.location.pathname) ?? "";
   if (app.startsWith("/signin")) return;
-  if (PRIVATE_RECORD.test(app)) {
+  // A roster search is the reader's free text. Report its route through
+  // the sanitized bridge, including direct loads, never the raw query.
+  const clanSearch =
+    window.location.pathname.startsWith("/clan/") &&
+    new URLSearchParams(window.location.search).has("find");
+  if (PRIVATE_RECORD.test(app) || clanSearch) {
     landing();
     return;
   }

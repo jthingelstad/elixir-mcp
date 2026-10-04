@@ -4,6 +4,7 @@ import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
 import { TooFew } from "../components/TooFew.jsx";
 import { PageHead } from "../components/PageHead.jsx";
+import { MemberLink } from "../components/MemberLink.jsx";
 import { RoleChip } from "../components/RoleChip.jsx";
 
 /** Each group as the canvas draws it: its chip, the 3px bar on its head
@@ -68,7 +69,7 @@ const points = (war) =>
 /** One group of members, its own panel: who is in it, each with their war
  *  decks per race when the clan counts war, and their evidence. Your row
  *  is marked and always shows, even while the group is closed. */
-function Group({ status, rows, you, war }) {
+function Group({ status, rows, you, war, clan, navigate }) {
   const s = STATUS[status];
   const long = rows.length > LONG;
   const [open, setOpen] = useState(!long);
@@ -105,7 +106,13 @@ function Group({ status, rows, you, war }) {
                         className={mine ? "font-semibold" : "font-medium"}
                         title={r.player_tag}
                       >
-                        {r.name}
+                        <MemberLink
+                          clanTag={clan.clan_tag}
+                          playerTag={r.player_tag}
+                          navigate={navigate}
+                        >
+                          {r.name}
+                        </MemberLink>
                       </span>
                       {mine ? (
                         <span className="chip chip--info ml-2">you</span>
@@ -389,6 +396,8 @@ export function Standing({ clan, who, navigate }) {
               <Group
                 key={status}
                 status={status}
+                clan={clan}
+                navigate={navigate}
                 rows={rows}
                 you={who?.player_tag}
                 war={war}

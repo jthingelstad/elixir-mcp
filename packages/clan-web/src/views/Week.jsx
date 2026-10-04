@@ -1,3 +1,4 @@
+import { MemberLink } from "../components/MemberLink.jsx";
 import { Fresh } from "@elixir-mcp/ui";
 import { CATEGORY_LABELS } from "@elixir-mcp/clan-engine";
 import { useWeek } from "../lib/queries.js";
@@ -64,7 +65,7 @@ const raceName = (w) =>
     : null;
 
 /** One group of the people who took part, each with what they did. */
-function Group({ label, tone, people, asked, name }) {
+function Group({ label, tone, people, asked, name, clan, navigate }) {
   if (!people.length) return null;
   return (
     <div className="panel__body grid gap-2 border-b border-line-row last:border-b-0">
@@ -76,7 +77,13 @@ function Group({ label, tone, people, asked, name }) {
             className="inline-flex items-center gap-2 min-h-7 px-2.5 rounded-chip bg-panel-raised text-[13px]"
             title={p.joined_during ? "Joined this week" : undefined}
           >
-            {p.name ?? p.player_tag}
+            <MemberLink
+              clanTag={clan.clan_tag}
+              playerTag={p.player_tag}
+              navigate={navigate}
+            >
+              {p.name ?? p.player_tag}
+            </MemberLink>
             <span className={`font-mono text-[12px] ${TONE[tone]}`}>
               {asked ? `${n(p.value)}/${asked}` : n(p.value)}
             </span>
@@ -92,7 +99,7 @@ function Group({ label, tone, people, asked, name }) {
 
 /** An area of the week: what the clan did together, then everyone who
  *  took part. War splits into every deck asked and partway. */
-function Area({ a }) {
+function Area({ a, clan, navigate }) {
   const asked = a.war?.decks_asked ?? null;
   const race = raceName(a.war);
   const note = a.war ? warLine(a.war) : "";
@@ -113,6 +120,8 @@ function Area({ a }) {
       ) : asked ? (
         <>
           <Group
+            clan={clan}
+            navigate={navigate}
             label="Every deck asked"
             tone="ok"
             people={a.participants.filter((p) => p.all_decks)}
@@ -120,6 +129,8 @@ function Area({ a }) {
             name={`${a.label}: played every deck asked`}
           />
           <Group
+            clan={clan}
+            navigate={navigate}
             label="Partway"
             tone="warn"
             people={a.participants.filter((p) => !p.all_decks)}
@@ -129,6 +140,8 @@ function Area({ a }) {
         </>
       ) : (
         <Group
+          clan={clan}
+          navigate={navigate}
           label="Took part"
           tone="dim"
           people={a.participants}
@@ -319,6 +332,15 @@ export function Week({ clan, week, navigate }) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
+  if (state.forbidden)
+    return (
+      <>
+        {head()}
+        <div className="callout callout--warn" role="alert">
+          <span>Your current clan access does not allow this week.</span>
+        </div>
+      </>
+    );
   if (state.error)
     return (
       <>
@@ -382,7 +404,7 @@ export function Week({ clan, week, navigate }) {
       <div className="grid gap-4 items-start wide:grid-cols-5">
         <div className="grid gap-4 min-w-0 wide:col-span-3">
           {highlighted.map((a) => (
-            <Area key={a.key} a={a} />
+            <Area key={a.key} a={a} clan={clan} navigate={navigate} />
           ))}
           {d.highlight.basis === "policy" && highlighted.length === 0 ? (
             <p className="page-head__note m-0">
@@ -396,7 +418,7 @@ export function Week({ clan, week, navigate }) {
               </summary>
               <div className="grid gap-4">
                 {rest.map((a) => (
-                  <Area key={a.key} a={a} />
+                  <Area key={a.key} a={a} clan={clan} navigate={navigate} />
                 ))}
               </div>
             </details>

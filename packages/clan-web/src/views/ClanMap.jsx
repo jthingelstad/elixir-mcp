@@ -17,7 +17,17 @@ export function ClanMap({ clan }) {
   const { state } = useClanMap(clan.clan_tag);
   const now = useMinute();
   const d = state.data;
-  if (state.forbidden || state.signedOut) return null;
+  if (state.forbidden || state.signedOut)
+    return (
+      <Page clan={clan}>
+        <div className="callout callout--warn" role="alert">
+          <span>
+            The clan map is available to verified current members. Check your
+            clan access or sign in again.
+          </span>
+        </div>
+      </Page>
+    );
   if (state.error === "social_off")
     return (
       <Page clan={clan}>

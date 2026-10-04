@@ -55,6 +55,18 @@ export function Policy({ clan }) {
       setBaseVersion(view.current.version);
     }
   }, [view, baseVersion]);
+  if (policy.isError)
+    return (
+      <div className="callout callout--warn" role="alert">
+        <span>
+          {policy.error?.status === 403
+            ? "Policy is unavailable for your current clan access."
+            : policy.error?.status === 401
+              ? "Your session expired. Sign in again."
+              : "Elixir did not answer the policy read. Try again in a minute."}
+        </span>
+      </div>
+    );
   if (!view || !draft) return <p className="page__lede">Loading the policy…</p>;
   const conflict = baseVersion !== view.current.version;
 

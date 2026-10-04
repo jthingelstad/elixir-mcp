@@ -47,6 +47,7 @@ export function RosterTable({
   onMore,
   clanTag,
   navigate,
+  search = "",
 }) {
   // Captured once per mount; a clock read during render is unstable.
   const [mounted] = useState(() => Date.now());
@@ -106,7 +107,12 @@ export function RosterTable({
                     >
                       {clanTag ? (
                         <Link
-                          to={memberPath(clanTag, m.player_tag)}
+                          to={
+                            memberPath(clanTag, m.player_tag) +
+                            (search
+                              ? `?${new URLSearchParams({ find: search })}`
+                              : "")
+                          }
                           navigate={navigate}
                         >
                           {m.name ?? m.player_tag}
@@ -405,7 +411,7 @@ function Comings({ roster, clan, history, navigate }) {
 
 /** The one page. Reads /api/roster once per mount; the API caches it per
  *  session for a few minutes, and "Check again" is rate-limited there. */
-export function Clan({ me, clan, navigate }) {
+export function Clan({ me, clan, navigate, search }) {
   const others = (me.clans ?? []).filter((c) => c.clan_tag !== clan.clan_tag);
 
   const tag = clan.clan_tag;
@@ -413,7 +419,8 @@ export function Clan({ me, clan, navigate }) {
   const state = { ...gated.state, roster: gated.state.data };
   const load = gated.load;
   const [all, setAll] = useState(false);
-  const [find, setFind] = useState("");
+  const [localFind, setFind] = useState("");
+  const find = search ?? localFind;
 
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -500,7 +507,18 @@ export function Clan({ me, clan, navigate }) {
                     <input
                       type="search"
                       value={find}
-                      onChange={(e) => setFind(e.target.value)}
+                      onChange={(e) => {
+                        const next = e.target.value.slice(0, 100);
+                        if (navigate && search != null)
+                          navigate(
+                            clanPath(tag) +
+                              (next
+                                ? `?${new URLSearchParams({ find: next })}`
+                                : ""),
+                            { replace: true },
+                          );
+                        else setFind(next);
+                      }}
                       placeholder="Find a member"
                       aria-label="Find a member"
                       className="w-[150px] border-0 bg-transparent text-ink outline-none [font:inherit]"
@@ -524,6 +542,7 @@ export function Clan({ me, clan, navigate }) {
                 ) : (
                   <RosterTable
                     clanTag={clan.clan_tag}
+                    search={find}
                     navigate={navigate}
                     members={found}
                     limit={limit}
