@@ -142,7 +142,8 @@ export async function projectPlayerBadges(
  * The profile's write on the snapshot row, one kind (the series half;
  * Phase 2 splits it out so the archive backfill writes exactly what the
  * live path writes, with no baselines and no moments). Returns the
- * rows written (0 or 1).
+ * fact rows written (0 or 1). A newer unchanged profile still advances
+ * its observation stamp, without earning another fact.
  */
 export async function upsertProfileSnapshot(
   db,
@@ -301,6 +302,21 @@ export async function upsertProfileSnapshot(
       intOrNull(payload.kingTowerLevel),
     ],
   );
+  if (written === 0) {
+    // The facts guard above also rejects an older profile. Only a newer
+    // unchanged read reaches this update: its admitted payload and receipt
+    // are in the same transaction in pipeline.mjs. Do not substitute the
+    // poll-state stamp (which may describe a skipped projection), or credit
+    // this timestamp-only write as a fact. Shared roster values stay put.
+    await db.query(
+      `update player_snapshot_daily
+       set profile_observed_at = $4,
+           observed_at = greatest(observed_at, $4::timestamptz)
+       where player_tag = $1 and snapshot_date = $2 and snapshot_kind = $3
+         and profile_observed_at < $4::timestamptz`,
+      [playerTag, day, kind, fetchedAt],
+    );
+  }
   return written;
 }
 

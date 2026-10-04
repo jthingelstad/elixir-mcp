@@ -233,14 +233,19 @@ test("two writers on one row: a roster write after a profile write moves trophie
   assert.equal(row.profile_observed_at.toISOString(), iso(t1));
   assert.equal(row.observed_at.toISOString(), iso(t1));
 
-  // The identical profile again: nothing, frozen counters included.
+  // The identical profile again: no new facts, but a genuine new observation.
+  const repeatAt = "2026-09-16T19:10:00Z";
   const s2 = await projectPlayerSnapshot(ctx.db, {
     playerTag: P,
     payload: profile(),
-    fetchedAt: "2026-09-16T19:10:00Z",
+    fetchedAt: repeatAt,
   });
   assert.equal(s2.written, 0);
   assert.equal(s2.frozen, 0);
+  assert.equal(s2.facts, 0);
+  row = await memberRow(P, "2026-09-16");
+  assert.equal(row.profile_observed_at.toISOString(), iso(repeatAt));
+  assert.equal(row.observed_at.toISOString(), iso(repeatAt));
 
   // A roster poll half an hour later: trophies move, wins do not, the
   // profile stamp stays.
@@ -253,7 +258,7 @@ test("two writers on one row: a roster write after a profile write moves trophie
   assert.equal(row.trophies, 7060);
   assert.equal(row.wins, 12345);
   assert.equal(row.observed_at.toISOString(), iso(t2));
-  assert.equal(row.profile_observed_at.toISOString(), iso(t1));
+  assert.equal(row.profile_observed_at.toISOString(), iso(repeatAt));
   assert.equal(row.clan_tag, CLAN);
 
   // A profile poll observed BETWEEN the two (delayed): its lifetime
