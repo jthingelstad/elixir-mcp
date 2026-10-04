@@ -5259,3 +5259,36 @@ index-only scan with no heap fetches and boat-bounded primary-key lookups
 for both weekly aggregates. Full validation, required CI, Clan-family
 acceptance and a bounded live readback are the release gates. MCP 11.2.1;
 JSON API 3.0.0 and response shapes are unchanged.
+
+## 2026-10-04 - 11.2.1 participation deployment and bounded readback
+
+PR #298 merged as 93c2bb49 after required validate completed green at
+21:58:17Z, including all 135 browser journeys. Local validation passed
+1,815 Node tests and 442 UI tests, with the existing 85 retired-scope skips.
+Deployment completion was observed at 22:02:07Z (5:02 PM CT): zero migrations
+ran (202 applied), the unchanged reference vocabulary imported, all 43 smoke
+checks passed, and Clan acceptance completed 135 cases with zero failures,
+20 expected skips and 88 distinct recorded-only calls. No failure verdict
+or new known-failure entry was needed.
+
+One nonexecuting diagnostic invocation inspected both canonical weekly
+queries. The broad current-member read now uses the existing player/time
+index-only path; the narrower former-member read chooses its selective
+bitmap path. Both retain bounded battle and exact participant-key
+predicates. An initial readback assertion expected both production paths to
+be index-only; that expectation was too broad. The saved plans and one
+recorded-only profile established the intended broad-scan correction without
+forcing the former-member planner choice or repeating the diagnostics.
+The real profile ran once with explain:false, returned successfully, and
+showed short weekly aggregate reads. Its exact production telemetry remains
+private. Acceptance may have warmed the record, so this is a warm readback,
+not a first-load ceiling or a cause for the browser-observed remainder.
+
+All seven Lambda bundles matched the merged build and were Active with
+Successful updates. Public health was green; tools.json served MCP 11.2.1,
+the integration document served JSON API 3.0.0, and the new participation
+update was visible. The clean production lease was released after readback.
+No policy values, member roles, decisions, award grants, clan messages,
+live fetches or paid model calls were used for QA. Issue #296 remains open
+for browser Network/Server-Timing evidence if the additional delay recurs.
+This is a notes-only receipt and requires no redeploy or sibling change.
