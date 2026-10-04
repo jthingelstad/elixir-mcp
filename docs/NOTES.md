@@ -4267,3 +4267,43 @@ current Timeline item and this alters no public result shape. Full verification,
 CI/browser checks, deploy/smoke and full read-only acceptance are the release
 gates because the shared ingest projector changed. No historical ledger cleanup
 is included; new observations are fixed, old evidence is not rewritten.
+
+
+## 2026-10-04: reset boundary fix deployed; Timeline evidence foundation
+
+Reset release PR261 (6515b37449c1947d6ec4f064ffc169d51676b0a0) deployed after
+validate run 37165974361. Stack UPDATE_COMPLETE read at 00:55:36.395Z
+(7:55 PM CT, Oct3); web API LastModified 00:55:19Z, Active/Successful,
+CodeSha256 matched the local release zip. Full acceptance: 1,133 cases,
+0 failed, 375 existing documented skips, 512 distinct calls. Smoke passed,
+health.ok true, public updates served the reset entry. No migrations ran;
+contracts 11.0.2 / JSON API 3.0.0 unchanged. The pre-reset/season-roll
+regression preserves snapshot facts, weekly high-water and award assessments.
+
+Jamie's approved second stage adds read-only evidence to Timeline sessions
+and crossings. Nullable 0201 columns freeze a logical event origin before
+late proof, stamp the evidence attachment revision/observation time, and
+avoid history rewrites, copied payloads, constraints or indexes. Migration timed at 0.81 ms on 19,000 invented scratch rows, all rows
+preserved and no history fill. Live read-only
+tables census: player_event 18,999 rows / 10,035,200 bytes; no backfill.
+Legacy origins resolve at read time without provenance in their identity.
+Exact canonical session references reuse the existing 30-minute sitting,
+boat-defense and late-capture predicates, through the end/rung the story's
+revision describes, in time/ID order. Evidence version hashes membership;
+bounded anchors and unknown capture completeness remain explicit.
+
+The existing elixir_timeline gains bounded evidence arguments and optional
+item/page metadata (MCP 11.1.0). No /api/v1 operation mirrors Timeline, so
+JSON API remains 3.0.0. Browser evidence reads resolve the same authorized
+subjects/window and never move a read pointer. Existing private attested
+visibility, retained-history policy and public battle pages remain the
+boundaries. No selected-event Action creation, message draft/delivery, award
+or production business write is part of this stage. Review identified and closed cache/focus, duplicate-after-proof and
+concurrent-capture seams: proof resolves from the canonical origin group,
+and the paged membership fingerprint/page share one SQL statement snapshot.
+Readers refresh on a mismatch. Each game reference carries its canonical
+mode/outcome/crowns/trophy change: ranked progress is never relabelled as
+Trophy Road evidence. Existing ranked proof selects a winning pathOfLegend
+battle stamped with the prior league; no mixed-mode causal join was added.
+Invented fixtures cover ranked and arena references separately. Validation
+and release receipts follow after their observed results.

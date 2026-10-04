@@ -34,6 +34,104 @@ const RATE = {
 };
 const COUNT = { type: "integer" };
 const NULLABLE_INT = { type: ["integer", "null"] };
+/** 11.1.0: proof references are separate from a story's growth. */
+const TIMELINE_EVIDENCE = {
+  type: "object",
+  properties: {
+    kind: { type: "string", enum: ["session", "crossing"] },
+    version: {
+      type: "string",
+      description:
+        "Pins the exact canonical reference membership or crossing attachment; refresh the item when it changes.",
+    },
+    observed_at: ISO,
+    observed_at_basis: {
+      type: "string",
+      enum: ["recorded_observation", "recorded_capture", "legacy_window"],
+      description:
+        "Legacy rows retain the original observation window; the old attachment time was not recorded.",
+    },
+    count: COUNT,
+    status: {
+      type: "string",
+      enum: ["recorded_only", "proved", "unknown", "unavailable"],
+    },
+    completeness: {
+      type: "string",
+      enum: ["recorded_sitting", "anchor_bound", "proved_crossing", "unknown"],
+    },
+    capture_completeness: { type: "string", enum: ["unknown"] },
+    attachment_revision: { type: "integer", minimum: 1 },
+    open: { type: "boolean" },
+    from: ISO,
+    through: ISO,
+    observation_window: { type: "object", properties: { from: ISO, to: ISO } },
+  },
+  required: [
+    "kind",
+    "version",
+    "observed_at",
+    "count",
+    "status",
+    "completeness",
+  ],
+};
+const TIMELINE_EVIDENCE_PAGE = {
+  ...TIMELINE_EVIDENCE,
+  properties: {
+    ...TIMELINE_EVIDENCE.properties,
+    item_id: { type: "string" },
+    offset: COUNT,
+    limit: COUNT,
+    next_offset: NULLABLE_INT,
+    battles: {
+      type: "array",
+      maxItems: 25,
+      items: {
+        type: "object",
+        properties: {
+          battle_id: { type: "string" },
+          at: ISO,
+          type: { type: "string" },
+          mode_group: {
+            type: "string",
+            description:
+              "This game's canonical mode; ranked progress is not Trophy Road progress.",
+          },
+          outcome: { type: ["string", "null"] },
+          crowns: NULLABLE_INT,
+          trophy_change: NULLABLE_INT,
+          short_id: { type: "string" },
+          url: { type: "string" },
+          relation: {
+            type: "string",
+            enum: ["constituent", "proved_crossing"],
+          },
+        },
+        required: [
+          "battle_id",
+          "at",
+          "type",
+          "mode_group",
+          "outcome",
+          "crowns",
+          "trophy_change",
+          "short_id",
+          "url",
+          "relation",
+        ],
+      },
+    },
+  },
+  required: [
+    ...TIMELINE_EVIDENCE.required,
+    "item_id",
+    "offset",
+    "limit",
+    "next_offset",
+    "battles",
+  ],
+};
 /** A Path of Legends season result as the API carries it; null when the
  *  player has none. */
 const POL_RESULT = {
@@ -2928,6 +3026,7 @@ export const OUTPUT_SCHEMAS = {
   elixir_timeline: {
     type: "object",
     properties: {
+      evidence: TIMELINE_EVIDENCE_PAGE,
       applied: { type: "object" },
       window: {
         type: "object",
@@ -2949,7 +3048,7 @@ export const OUTPUT_SCHEMAS = {
               type: "integer",
               minimum: 1,
               description:
-                "9.15.0: how far the story has grown; 1 for a moment that never grows. A sitting's is its battles counted from its first (a standout's, up to the last rung this window learned), so a higher revision under a told id is the same story grown: update it, never retell it.",
+                "9.15.0: how far the story has grown; 1 for a moment; a late proof changes evidence.version while the story revision stays 1. A sitting's is its battles counted from its first (a standout's, up to the last rung this window learned), so a higher revision under a told id is the same story grown: update it, never retell it.",
             },
             at: ISO,
             observed_at: {
@@ -2962,6 +3061,7 @@ export const OUTPUT_SCHEMAS = {
             kind: { type: "string" },
             section: { type: "string" },
             text: { type: "string" },
+            evidence: TIMELINE_EVIDENCE,
             facts: { type: "object" },
           },
           required: [

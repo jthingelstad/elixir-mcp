@@ -3,6 +3,7 @@ import {
   ITEM_KINDS,
   buildTimeline,
   subjectsFor,
+  readTimelineEvidence,
 } from "../../activity/entries.mjs";
 import { resolveInstant } from "../../time.mjs";
 import {
@@ -34,7 +35,7 @@ const PAGE_CHAR_BUDGET = 40_000;
 
 export const elixir_timeline = {
   description:
-    "Your timeline: what happened to the players and clans you track since your read pointer, as ITEMS newest first plus one summary ENTRY per subject (a person's: the players and clans they track; an agent's: its clan). Items are named moments with an instant: battle sessions, badges, arena and ranked moves, new bests, card and form unlocks, joins, departures, role changes, war moments, quiet rungs, returns. Facts, never advice; nothing announces the time (game_clock does). Omit from to read from your pointer (none: 24 hours; cap 30 days); mark_read moves it to the window end, false is a dry run.",
+    "Your newest-first timeline for tracked players and clans: named moments plus subject summaries. Sessions, crossings, badges, unlocks, roster/war and attested facts keep their provenance and visibility. Omit from to start at your pointer (default 24 hours, cap 30 days); mark_read false keeps it. evidence_item_id reads one visible item's ordered canonical games with mode/result provenance and version-pinned pages; evidence reads always keep every pointer. Facts, never advice; game_clock supplies timing.",
   inputSchema: {
     type: "object",
     properties: {
@@ -46,6 +47,25 @@ export const elixir_timeline = {
       // (from, to] at the millisecond it serves (7.1.5, Gym #273).
       from: { type: "string", description: WINDOW_OBSERVED_FROM_DESC },
       to: { type: "string", description: WINDOW_OBSERVED_TO_DESC },
+      evidence_item_id: {
+        type: "string",
+        pattern: "^tl_[a-f0-9]{20}$",
+        description:
+          "Read canonical game evidence for one visible item in this window. Always keeps the read pointer; use the original from/to. expected_evidence_version is required after the first page. Constituent games page independently of the newsfeed.",
+      },
+      evidence_offset: {
+        type: "integer",
+        minimum: 0,
+        maximum: 10000,
+        default: 0,
+      },
+      evidence_limit: { type: "integer", minimum: 1, maximum: 25, default: 25 },
+      expected_evidence_version: {
+        type: "string",
+        maxLength: 64,
+        description:
+          "Pin the item's evidence version across pages; changed evidence asks you to reread the item.",
+      },
       mark_read: {
         type: "boolean",
         default: true,
@@ -353,7 +373,53 @@ export const elixir_timeline = {
     // A member read never moves the pointer: it served one member's items
     // and would carry the reader past everything it filtered out (Gym
     // #271: 73 items skipped, three of them clan moments).
-    const marking = args.mark_read !== false && !memberTag;
+    let evidence;
+    if (args.evidence_item_id) {
+      const item = all.find((it) => it.id === args.evidence_item_id);
+      evidence = await readTimelineEvidence(ctx.db, item, {
+        offset: args.evidence_offset ?? 0,
+        limit: args.evidence_limit ?? 25,
+        expectedVersion: args.expected_evidence_version,
+      });
+      if (evidence.error)
+        throw new ToolFailure(
+          "bad_request",
+          `Timeline evidence: ${evidence.error}; reread the authorized item and its original window.`,
+          { reason: evidence.error },
+        );
+    }
+    if (evidence)
+      return {
+        applied: appliedBlock({
+          window: { ...built.window, source },
+          mark_read: false,
+          evidence_item_id: args.evidence_item_id,
+          evidence_offset: evidence.offset,
+          evidence_limit: evidence.limit,
+          expected_evidence_version: args.expected_evidence_version ?? null,
+        }),
+        window: built.window,
+        read_to: pointerMs === null ? null : new Date(pointerMs).toISOString(),
+        timeline: [all.find((it) => it.id === args.evidence_item_id)],
+        timeline_more: 0,
+        timeline_more_to: null,
+        entries: [],
+        quiet: [],
+        subjects: subjects.length,
+        next_cursor: built.window.to,
+        has_more: false,
+        evidence,
+        notes: notes(
+          "Read-only evidence for this visible item. References are canonical, ordered by play time then ID. Results belong to their own mode; ranked progress is not Trophy Road progress. Capture completeness remains unknown. Refresh the item when its evidence version changes. This read keeps every notification pointer.",
+        ),
+        docs: FEED_DOCS,
+        meta: responseMeta({
+          as_of: new Date().toISOString(),
+          timezone_applied: tz,
+        }),
+      };
+    const marking =
+      args.mark_read !== false && !memberTag && !args.evidence_item_id;
     // The pointer only moves forward; read_to reports the one STORED (Gym
     // #251: a past `to` echoed a move that never happened).
     let storedMs = null;
@@ -437,6 +503,7 @@ export const elixir_timeline = {
       read_to: marking ? iso(storedMs ?? endMs) : iso(pointerMs),
       timeline,
       timeline_more: remaining,
+      ...(evidence ? { evidence } : {}),
       entries,
       quiet: built.quiet,
       subjects: subjects.length,

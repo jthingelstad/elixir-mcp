@@ -1,3 +1,4 @@
+import { playerEventOriginSql } from "@elixir-mcp/record/event-origin";
 /**
  * Player snapshot projector — DESIGN §4.5.
  *
@@ -766,17 +767,17 @@ export async function arenaChangedMoment(
  */
 export async function pinArenaMoment(db, { playerTag, arenaName, fetchedAt }) {
   const { rows } = await db.query(
-    `select e.event_id, e.arena_to, e.window_start
+    `select e.event_id, e.arena_to, e.window_start, e.battle_id
        from player_event e
        join arena a on a.arena_id = e.arena_to
       where e.player_tag = $1 and e.event_type = 'arena_changed'
-        and e.battle_id is null and a.name = $2
+        and a.name = $2 and e.window_end <= $3::timestamptz
         and e.window_end > $3::timestamptz - interval '24 hours'
       order by e.event_id desc limit 1`,
     [playerTag, arenaName, fetchedAt],
   );
   const moment = rows[0];
-  if (!moment) return null;
+  if (!moment || moment.battle_id) return null;
   const battles = await windowBattles(db, {
     playerTag,
     since: moment.window_start.toISOString(),
@@ -790,14 +791,18 @@ export async function pinArenaMoment(db, { playerTag, arenaName, fetchedAt }) {
   });
   if (!promotion) return null;
   const { rowCount } = await db.query(
-    `update player_event
-        set battle_id = $2, floor = $3, occurred_at = $4::timestamptz, timing = 'exact'
+    `update player_event w
+        set origin_event_id = ${playerEventOriginSql("w")},
+            evidence_version = coalesce(evidence_version, 1) + 1,
+            evidence_observed_at = $5::timestamptz,
+            battle_id = $2, floor = $3, occurred_at = $4::timestamptz, timing = 'exact'
       where event_id = $1 and battle_id is null`,
     [
       moment.event_id,
       promotion.battle_id,
       promotion.arena_floor ?? null,
       promotion.battle_time,
+      fetchedAt,
     ],
   );
   return rowCount > 0 ? moment.event_id : null;

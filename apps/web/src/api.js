@@ -154,6 +154,8 @@ export const api = {
       "GET",
       `${home(agent)}/activity/calls/${encodeURIComponent(request_id)}`,
     ),
+  timelineEvidence: (params, agent) =>
+    request("GET", `${home(agent)}/timeline?${new URLSearchParams(params)}`),
   myTimeline: (agent) => request("GET", `${home(agent)}/timeline`),
   // A POST: claiming spends a one-time credential, so it must not be
   // reachable by a link scanner, a prefetch, or a cross-site top-level

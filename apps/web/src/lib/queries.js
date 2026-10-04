@@ -149,6 +149,16 @@ export const useMyTimeline = (enabled = true) => {
   });
 };
 
+export const useTimelineEvidence = (params) => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: [...scopedKey(agent, "feed-evidence"), params],
+    staleTime: 0,
+    queryFn: payload(() => api.timelineEvidence(params, agent)),
+    enabled: Boolean(params),
+  });
+};
+
 export const useSessions = () =>
   useQuery({ queryKey: keys.sessions, queryFn: payload(api.sessions) });
 

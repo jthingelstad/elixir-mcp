@@ -24,6 +24,11 @@
  * narrated. State facts are a diff of the latest snapshot at each end.
  */
 
+import {
+  playerEventOriginSql,
+  playerEventProofSql,
+} from "@elixir-mcp/record/event-origin";
+import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { createHash } from "node:crypto";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import {
@@ -198,23 +203,6 @@ const moment = (namespace, ...parts) => ({ key: [namespace, ...parts] });
  * (event-payloads.mjs), within the day before the row; a roster move
  * also at the same instant, as the dedupe keys it.
  */
-const SAME_PLAYER_EVENT = [
-  "card_id",
-  "badge_name",
-  "level",
-  "prior_level",
-  "max_level",
-  "arena_from",
-  "arena_to",
-  "arena_to_name",
-  "league_from",
-  "league_to",
-  "value_before",
-  "value_after",
-  "step",
-  "battle_id",
-  "floor",
-];
 const SAME_CLAN_EVENT = [
   "player_tag",
   "role_before",
@@ -236,11 +224,7 @@ async function firstEventIds(db, ledger, rows) {
   const text =
     ledger === "player_event"
       ? `select w.event_id::text as event_id,
-                (select min(e.event_id) from player_event e
-                  where e.player_tag = w.player_tag and e.event_type = w.event_type
-                    and e.window_end between w.window_end - interval '1 day' and w.window_end
-                    and e.event_id <= w.event_id
-                    and ${sameRow(SAME_PLAYER_EVENT)})::text as first_id
+                (${playerEventOriginSql("w")})::text as first_id
            from player_event w where w.event_id = any($1::bigint[])`
       : `select w.event_id::text as event_id,
                 (select min(e.event_id) from clan_event e
@@ -296,14 +280,18 @@ async function sittingAnchors(db, sittings) {
               and ${OWN_BATTLE_SQL}
             order by bp.battle_time desc limit 1) prev
         where w.steps < ${SITTING_WALK_STEPS}
-     ), anchor as (select i, min(cur) as anchor from walk group by i)
-     select s.i, a.anchor,
-            (select count(distinct bp.battle_id)::int
-               from battle_participant bp join battle b on b.battle_id = bp.battle_id
-              where bp.player_tag = s.p
-                and bp.battle_time >= a.anchor and bp.battle_time <= s.upto
-                and ${OWN_BATTLE_SQL}) as battles
-       from s join anchor a on a.i = s.i`,
+     ), anchor as (select i, min(cur) as anchor, max(steps) as steps from walk group by i)
+     select s.i, a.anchor, a.steps, refs.battles, refs.fingerprint, refs.observed_at
+       from s join anchor a on a.i = s.i
+       cross join lateral (
+         select count(*)::int as battles,
+                md5(string_agg(r.battle_id, ',' order by r.battle_time, r.battle_id)) as fingerprint,
+                max(r.created_at) as observed_at
+           from (select distinct b.battle_id, b.battle_time, b.created_at
+                   from battle_participant bp join battle b on b.battle_id = bp.battle_id
+                  where bp.player_tag = s.p and bp.battle_time >= a.anchor
+                    and bp.battle_time <= s.upto and ${OWN_BATTLE_SQL}) r
+       ) refs`,
     [
       sittings.map((_, i) => i),
       sittings.map((x) => x.player_tag),
@@ -313,7 +301,13 @@ async function sittingAnchors(db, sittings) {
   );
   const out = new Array(sittings.length);
   for (const r of rows)
-    out[r.i] = { anchor: iso(r.anchor), battles: r.battles };
+    out[r.i] = {
+      anchor: iso(r.anchor),
+      battles: r.battles,
+      complete: r.steps < SITTING_WALK_STEPS,
+      fingerprint: r.fingerprint,
+      observed_at: iso(r.observed_at),
+    };
   return out;
 }
 /** The story of one sitting: its id from the anchor, its revision. */
@@ -321,6 +315,185 @@ const sittingStory = (playerTag, anchored, fallbackStart) => ({
   key: ["sitting", playerTag, anchored?.anchor ?? fallbackStart],
   revision: Math.max(1, anchored?.battles ?? 1),
 });
+/** Server-only provenance. Evidence requests resolve an authorized item first;
+ * a caller cannot supply a player, bounds or a battle as authority. */
+const EVIDENCE = Symbol("evidence source");
+const evidenceVersion = (...parts) =>
+  `ev_${createHash("sha256").update(JSON.stringify(parts)).digest("hex").slice(0, 24)}`;
+const CROSSINGS = new Set([
+  "arena_changed",
+  "ranked_promotion",
+  "best_trophies_band",
+  "career_wins_step",
+]);
+function crossingEvidence(row, origin) {
+  if (!CROSSINGS.has(row.event_type)) return {};
+  const ref = row.payload?.promoted_by ?? row.payload?.crossed_by;
+  const observedAt = iso(row.evidence_observed_at ?? row.window_end);
+  const evidence = {
+    kind: "crossing",
+    attachment_revision: row.evidence_version ?? 1,
+    status: ref?.battle_id ? "proved" : "unknown",
+    version: evidenceVersion(
+      origin ?? row.origin_event_id ?? row.event_id,
+      row.evidence_version ?? 1,
+      ref?.battle_id ?? null,
+    ),
+    observed_at: observedAt,
+    observed_at_basis:
+      row.observed_at_basis ??
+      (row.evidence_observed_at ? "recorded_observation" : "legacy_window"),
+    observation_window: {
+      from: iso(row.origin_window_start ?? row.window_start),
+      to: iso(row.origin_window_end ?? row.window_end),
+    },
+    count: ref?.battle_id ? 1 : 0,
+    completeness: ref?.battle_id ? "proved_crossing" : "unknown",
+  };
+  return {
+    evidence,
+    [EVIDENCE]: {
+      kind: "crossing",
+      battleId: ref?.battle_id ?? null,
+      playerTag: row.player_tag,
+      origin: origin ?? row.origin_event_id ?? row.event_id,
+    },
+  };
+}
+function sessionEvidence(playerTag, anchored, through, open) {
+  const evidence = {
+    kind: "session",
+    status: "recorded_only",
+    version: evidenceVersion(
+      playerTag,
+      anchored?.anchor,
+      through,
+      anchored?.fingerprint,
+    ),
+    observed_at: anchored?.observed_at ?? through,
+    observed_at_basis: "recorded_capture",
+    count: anchored?.battles ?? 0,
+    completeness: anchored?.complete ? "recorded_sitting" : "anchor_bound",
+    capture_completeness: "unknown",
+    open: Boolean(open),
+    from: anchored?.anchor ?? through,
+    through,
+  };
+  return {
+    evidence,
+    [EVIDENCE]: { kind: "session", playerTag, from: evidence.from, through },
+  };
+}
+
+/** Exact ordered constituent game references, in bounded pages. This reads
+ * canonical rows, never a payload copy, and never a notification pointer. */
+export async function readTimelineEvidence(
+  db,
+  item,
+  { offset = 0, limit = 25, expectedVersion } = {},
+) {
+  if (
+    !Number.isInteger(offset) ||
+    offset < 0 ||
+    offset > 10000 ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 25
+  )
+    return { error: "invalid_page" };
+  if (offset > 0 && !expectedVersion) return { error: "version_required" };
+  const source = item?.[EVIDENCE];
+  if (!source || !item.evidence) return { error: "evidence_unavailable" };
+  if (expectedVersion && expectedVersion !== item.evidence.version)
+    return { error: "evidence_changed" };
+  let records;
+  if (source.kind === "session") {
+    // Fingerprint and page share one statement snapshot. A capture admitted
+    // after the item was built must cause a refresh, never shift offsets
+    // under the old evidence version.
+    const {
+      rows: [current],
+    } = await db.query(
+      `with records as materialized (
+         select distinct b.battle_id, b.battle_time, b.type, b.event_tag, bp.outcome, bp.crowns, bp.trophy_change
+           from battle_participant bp join battle b on b.battle_id = bp.battle_id
+          where bp.player_tag = $1 and bp.battle_time >= $2::timestamptz
+            and bp.battle_time <= $3::timestamptz and ${OWN_BATTLE_SQL}
+       )
+       select md5(string_agg(battle_id, ',' order by battle_time, battle_id)) as fingerprint,
+              count(*)::int as count,
+              (select coalesce(jsonb_agg(p order by p.battle_time, p.battle_id), '[]'::jsonb)
+                 from (select * from records
+                       order by battle_time, battle_id limit $4 offset $5) p) as page
+         from records`,
+      [source.playerTag, source.from, source.through, limit, offset],
+    );
+    if (
+      evidenceVersion(
+        source.playerTag,
+        source.from,
+        source.through,
+        current.fingerprint,
+      ) !== item.evidence.version ||
+      current.count !== item.evidence.count
+    )
+      return { error: "evidence_changed" };
+    records = current.page;
+  } else {
+    const { rows } = await db.query(
+      `with origin as (select $1::bigint as id),
+            proof as (select p.* from origin o left join lateral (${playerEventProofSql("o.id")}) p on true)
+       select p.evidence_version, p.battle_id as proof_battle_id,
+              b.battle_id, b.battle_time, b.type, b.event_tag, bp.outcome, bp.crowns, bp.trophy_change
+         from proof p left join battle b on b.battle_id = p.battle_id
+         left join battle_participant bp on bp.battle_id = b.battle_id and bp.player_tag = $2`,
+      [source.origin, source.playerTag],
+    );
+    const current = rows[0];
+    if (
+      evidenceVersion(
+        source.origin,
+        current?.evidence_version ?? 1,
+        current?.proof_battle_id ?? null,
+      ) !== item.evidence.version
+    )
+      return { error: "evidence_changed" };
+    records = offset === 0 && current?.battle_id ? rows : [];
+  }
+  const links = await battleLinks(
+    db,
+    records.map((r) => r.battle_id),
+  );
+  const battles = records.map((r) => ({
+    battle_id: r.battle_id,
+    at: iso(r.battle_time),
+    type: r.type,
+    mode_group: modeGroupOf(r.type, r.event_tag),
+    outcome: r.outcome,
+    crowns: r.crowns,
+    trophy_change: r.trophy_change,
+    ...links.get(r.battle_id),
+    relation: source.kind === "session" ? "constituent" : "proved_crossing",
+  }));
+  return {
+    item_id: item.id,
+    ...item.evidence,
+    ...(source.kind === "crossing" &&
+    source.battleId &&
+    offset === 0 &&
+    !battles.length
+      ? { status: "unavailable", completeness: "unknown" }
+      : {}),
+    offset,
+    limit,
+    battles,
+    next_offset:
+      offset + battles.length < item.evidence.count && battles.length > 0
+        ? offset + battles.length
+        : null,
+  };
+}
+
 /** Optional per-query timings for the ops preview (perf is a plain object). */
 async function timed(perf, name, fn) {
   if (!perf) return fn();
@@ -501,11 +674,14 @@ async function playerLedger(db, tag, fromMs, toMs) {
   const { rows } = await db.query(
     `select ${PLAYER_EVENT_COLUMNS}
        from player_event
-      where player_tag = $1 and window_end >= ${ts(fromMs + 1)} and window_end < ${ts(toMs + 1)}
+      where player_tag = $1 and coalesce(evidence_observed_at, window_end) >= ${ts(fromMs + 1)} and coalesce(evidence_observed_at, window_end) < ${ts(toMs + 1)}
       order by event_id`,
     [tag],
   );
-  return hydratePlayerEvents(db, rows);
+  return (await hydratePlayerEvents(db, rows)).filter((r) => {
+    const observed = new Date(r.evidence_observed_at ?? r.window_end).getTime();
+    return observed > fromMs && observed <= toMs;
+  });
 }
 
 /**
@@ -932,6 +1108,7 @@ export async function buildPlayerEntry(
       section: "battles",
       facts: sessionFacts(s),
       [STORY]: sittingStory(tag, anchored[i], s.started_at),
+      ...sessionEvidence(tag, anchored[i], s.ended_at, s.open),
     });
   const momentRows = ledger.filter(
     (r) =>
@@ -947,11 +1124,12 @@ export async function buildPlayerEntry(
       at: iso(r.occurred_at ?? r.window_end),
       // When a poll saw it, which is what selects it into a window (Gym
       // #118); `at` is when it happened.
-      observed_at: iso(r.window_end),
+      observed_at: iso(r.evidence_observed_at ?? r.window_end),
       kind: r.event_type,
       section: sectionOfKind(r.event_type),
       facts: decorate(r.event_type, r.payload, arenaNames),
       [STORY]: ledgerStory("player_event", firstIds, r),
+      ...crossingEvidence(r, firstIds.get(String(r.event_id))),
     });
   for (const c of clanChanges) {
     const kind = c.kind === "joined" ? "clan_joined" : "clan_left";
@@ -1588,7 +1766,7 @@ export async function buildClanEntry(
         and cm.clan_tag = $1 and cm.left_observed_at is null
        join player p on p.player_tag = pe.player_tag
       where pe.event_type = any($2::text[])
-        and pe.window_end >= ${ts(fromMs + 1)} and pe.window_end < ${ts(toMs + 1)}
+        and coalesce(pe.evidence_observed_at, pe.window_end) >= ${ts(fromMs + 1)} and coalesce(pe.evidence_observed_at, pe.window_end) < ${ts(toMs + 1)}
       order by pe.event_id`,
       [tag, PLAYER_MOMENT_KINDS],
     ),
@@ -1596,14 +1774,21 @@ export async function buildClanEntry(
   // The same moment written twice in the ledger is one moment in the
   // entry too, as in the items (Gym #250: "Aaqib Javed -> Master 2"
   // twice in the standouts and the summary while the items said it once).
-  const moments = (await hydratePlayerEvents(db, momentRows)).filter(
-    ((seen) => (m) => {
-      const key = `${m.player_tag}|${m.event_type}|${JSON.stringify(m.payload ?? null)}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })(new Set()),
-  );
+  const moments = (await hydratePlayerEvents(db, momentRows))
+    .filter((m) => {
+      const observed = new Date(
+        m.evidence_observed_at ?? m.window_end,
+      ).getTime();
+      return observed > fromMs && observed <= toMs;
+    })
+    .filter(
+      ((seen) => (m) => {
+        const key = `${m.player_tag}|${m.event_type}|${JSON.stringify(m.payload ?? null)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })(new Set()),
+    );
   const arenaNames = await arenaNamesFor(
     db,
     moments
@@ -1860,7 +2045,7 @@ export async function buildClanEntry(
   const memberItems = memberRows.map((m) => ({
     ...subject,
     at: iso(m.occurred_at ?? m.window_end),
-    observed_at: iso(m.window_end),
+    observed_at: iso(m.evidence_observed_at ?? m.window_end),
     kind: m.event_type,
     section: "standouts",
     facts: {
@@ -1869,6 +2054,7 @@ export async function buildClanEntry(
       ...decorate(m.event_type, m.payload, arenaNames),
     },
     [STORY]: ledgerStory("player_event", memberFirstIds, m),
+    ...crossingEvidence(m, memberFirstIds.get(String(m.event_id))),
   }));
   // Newest first before the cap (Jamie, 2026-09-23: the timeline is a
   // stream of what is new), so what a busy window drops is the oldest,
@@ -1895,6 +2081,12 @@ export async function buildClanEntry(
         ...sessionFacts(sess),
       },
       [STORY]: sittingStory(memberTag, memberAnchored[i], sess.started_at),
+      ...sessionEvidence(
+        memberTag,
+        memberAnchored[i],
+        sess.ended_at,
+        sess.open,
+      ),
     });
   for (const [i, sess] of standoutSessions.entries())
     items.push({
@@ -1914,6 +2106,12 @@ export async function buildClanEntry(
         sess.player_tag,
         standoutAnchored[i],
         sess.started_at,
+      ),
+      ...sessionEvidence(
+        sess.player_tag,
+        standoutAnchored[i],
+        iso(Math.max(...sess.newly.map((n) => n.at))),
+        sess.open,
       ),
     });
   if (comprehensive) {
@@ -2182,6 +2380,12 @@ export async function buildTimeline(
     });
     const e = built.entry;
     const said =
+      built.items.some(
+        (it) =>
+          it.evidence?.kind === "crossing" &&
+          it.evidence.status === "proved" &&
+          it.evidence.attachment_revision > 1,
+      ) ||
       e.battles.played > 0 ||
       e.notables.length > 0 ||
       e.clan.changes.length > 0 ||
@@ -2238,6 +2442,16 @@ export async function buildTimeline(
     const key = dedupeKey(it);
     const kept = seen.get(key);
     if (kept) {
+      if (
+        it.evidence &&
+        kept.evidence &&
+        it.evidence.observed_at > kept.evidence.observed_at
+      )
+        Object.assign(kept, {
+          evidence: it.evidence,
+          [EVIDENCE]: it[EVIDENCE],
+          observed_at: it.observed_at,
+        });
       // The collapsed row's story is the lower ledger row's, whichever
       // of the two came first by instant (#111).
       const [a, b] = [kept[STORY]?.key, it[STORY]?.key];
@@ -2266,6 +2480,24 @@ export async function buildTimeline(
     };
   };
   items = items.map(told);
+  // A late proof and its original observation are one moment. Keep the
+  // latest evidence under the original id, including legacy duplicate rows.
+  const origins = new Map();
+  items = items.filter((it) => {
+    if (!it.evidence || it.evidence.kind !== "crossing") return true;
+    const key = `${it.subject_tag}|${it.id}`;
+    const kept = origins.get(key);
+    if (!kept) {
+      origins.set(key, it);
+      return true;
+    }
+    if (
+      it.evidence.observed_at > kept.evidence.observed_at ||
+      (it.evidence.status === "proved" && kept.evidence.status !== "proved")
+    )
+      Object.assign(kept, it);
+    return false;
+  });
   // The caller's filter (kinds, sections, a member) applies BEFORE the
   // cap (Gym #244: the cap counted items the filter then removed, so a
   // filtered reader got 18 of 50 items and a busy-window note).

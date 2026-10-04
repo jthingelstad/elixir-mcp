@@ -16,7 +16,11 @@ import {
 } from "@elixir-mcp/contracts";
 import { normalizeScope } from "@elixir-mcp/auth";
 import { firstAnswer } from "../first-answer.mjs";
-import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
+import {
+  buildTimeline,
+  subjectsFor,
+  readTimelineEvidence,
+} from "@elixir-mcp/tools/activity/entries";
 
 import { json, UUID_RE, ID_RE } from "../http.mjs";
 import { senderRef } from "@elixir-mcp/outbox/notify";
@@ -782,8 +786,20 @@ export function accountRoutes({
         `select activity_seen_at, timezone from account where account_id = $1`,
         [account.accountId],
       );
-      const toMs = Date.now();
-      const fromMs = toMs - 7 * 86_400_000;
+      const q = event.queryStringParameters ?? {};
+      const evidenceRead = Boolean(q.evidence_item_id);
+      const toMs = evidenceRead ? Date.parse(q.to ?? "") : Date.now();
+      const fromMs = evidenceRead
+        ? Date.parse(q.from ?? "")
+        : toMs - 7 * 86_400_000;
+      if (
+        !Number.isFinite(fromMs) ||
+        !Number.isFinite(toMs) ||
+        fromMs >= toMs ||
+        toMs - fromMs > 7 * 86_400_000 ||
+        toMs > Date.now() + 1000
+      )
+        return json(400, { error: "invalid_window" });
       const subjects = await subjectsFor(db, account.accountId);
       const built = await buildTimeline(db, subjects, {
         fromMs,
@@ -794,6 +810,27 @@ export function accountRoutes({
         // The console is a browser session: the person, interactively.
         interactive: true,
       });
+      if (evidenceRead) {
+        const evidence = await readTimelineEvidence(
+          db,
+          built.timeline.find((it) => it.id === q.evidence_item_id),
+          {
+            offset:
+              q.evidence_offset === undefined ? 0 : Number(q.evidence_offset),
+            limit:
+              q.evidence_limit === undefined ? 25 : Number(q.evidence_limit),
+            expectedVersion: q.expected_evidence_version,
+          },
+        );
+        return json(
+          evidence.error
+            ? evidence.error === "evidence_changed"
+              ? 409
+              : 404
+            : 200,
+          evidence,
+        );
+      }
       return json(200, {
         ...built,
         read_to: rows[0]?.activity_seen_at?.toISOString() ?? null,

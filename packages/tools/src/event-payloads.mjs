@@ -1,3 +1,7 @@
+import {
+  playerEventOriginSql,
+  playerEventProofSql,
+} from "@elixir-mcp/record/event-origin";
 /**
  * The event ledgers' facts from their typed columns (0124; schema review
  * 1.8): the inverse of packages/ingest/src/event-columns.mjs. A reader
@@ -87,6 +91,41 @@ async function describeBattles(db, pairs) {
 }
 
 export async function hydratePlayerEvents(db, rows) {
+  const crossings = rows.filter((r) =>
+    [
+      "arena_changed",
+      "ranked_promotion",
+      "best_trophies_band",
+      "career_wins_step",
+    ].includes(r.event_type),
+  );
+  if (crossings.length) {
+    const { rows: resolved } = await db.query(
+      `with origin as (select w.event_id, ${playerEventOriginSql("w")} as id from player_event w where event_id = any($1::bigint[]))
+       select o.event_id, o.id as origin_event_id, original.window_start as origin_window_start, original.window_end as origin_window_end, p.* from origin o
+         join player_event original on original.event_id = o.id
+         left join lateral (${playerEventProofSql("o.id")}) p on true`,
+      [crossings.map((r) => String(r.event_id))],
+    );
+    const proofs = new Map(resolved.map((r) => [String(r.event_id), r]));
+    for (const row of crossings) {
+      const proof = proofs.get(String(row.event_id));
+      if (!proof) continue;
+      row.origin_event_id = proof.origin_event_id;
+      row.origin_window_start = proof.origin_window_start;
+      row.origin_window_end = proof.origin_window_end;
+      if (proof.battle_id)
+        Object.assign(row, {
+          battle_id: proof.battle_id,
+          floor: proof.floor,
+          occurred_at: proof.occurred_at,
+          timing: proof.timing,
+          evidence_version: proof.evidence_version,
+          evidence_observed_at: proof.evidence_observed_at,
+          observed_at_basis: proof.observed_at_basis,
+        });
+    }
+  }
   const cardIds = [...new Set(rows.map((r) => r.card_id).filter(Boolean))];
   const cards = new Map();
   if (cardIds.length) {
@@ -197,7 +236,7 @@ export async function hydratePlayerEvents(db, rows) {
 /** Column list for a player_event read, so every reader selects the
  *  same set (the JSON column is not in it). */
 export const PLAYER_EVENT_COLUMNS =
-  "event_id, player_tag, event_type, timing, window_start, window_end, occurred_at, " +
+  "event_id, player_tag, event_type, timing, window_start, window_end, occurred_at, origin_event_id, evidence_version, evidence_observed_at, " +
   "card_id, badge_name, level, prior_level, max_level, arena_from, arena_to, arena_to_name, " +
   "league_from, league_to, value_before, value_after, step, battle_id, floor";
 
