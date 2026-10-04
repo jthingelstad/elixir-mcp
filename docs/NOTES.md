@@ -5132,3 +5132,33 @@ were visually checked. An incomplete synthetic model-status envelope was
 corrected before the final leader-control run. No production settings were
 changed. Required CI, smoke and published-build readback are release gates;
 tool acceptance is not needed for these private UI changes.
+
+Role-entry deployment receipt: Scout PR #290 merged as
+e43c04b7e7a16d2dd5b0f4f1213e1f153e6acdb3 after required validate run
+37231471212 passed (127 browser journeys). Settings PR #291 merged as
+a98f42ac19d28b77a9d8e5f5616f9cbb67d59c14 after required validate run
+37232002765 passed (135 browser journeys). They deployed together from the
+latter green main at 20:33:49Z (3:33 PM CT), observed from the completed log.
+Zero new migrations ran (202 applied); the 47-role/29-alias f72062c reference
+snapshot was unchanged. All 43 smoke checks passed. Tool acceptance was
+intentionally omitted for private UI role/presentation changes.
+
+Public readback at 20:34:01Z matched App-BpIA4l9Q.js byte-for-byte to the
+merged build (SHA-256
+c37305feef011e7bb7c1d6569f8c739e691eae5e25bd1c974047aa33c29cc84c).
+The Scout requirement and Player tag label, Social writer-role explanation
+and recording-summary refusal were served; Bring your clan and Clan policy
+guides carried the changed copy. Public health was green; MCP 11.2.0 and
+JSON API 3.0.0 remained unchanged. The production lease was released after
+readback. This receipt has no runtime change and needs no redeploy.
+
+The focused usability pass kept the existing three-section structure and
+actual business state. Live-account findings came from a Leader journey;
+Member/Elder and co-leader role observations used isolated synthetic
+fixtures, with no live role changes, setting/policy edits, award grants,
+member decisions, clan messages, scout requests or paid model calls.
+Larger History pagination is tracked in #292: the existing source exposes
+the newest twenty roster events, not full membership history. PR #289
+clarifies that window; browsing older recorded changes is a separate bounded
+query/pagination follow-up, not a data-loss finding. Season aggregates and
+Timeline-selected Actions were not warranted as small repairs in this pass.
