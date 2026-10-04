@@ -109,7 +109,7 @@ const makeView = () => {
         awards: awards.map((a) => ({
           ...a,
           state: a.computed ? "live" : "manual",
-          rows: [],
+          rows: [] as Record<string, unknown>[],
         })),
       },
       {
@@ -460,7 +460,7 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(page, responses);
     await page.goto("/clan/2PQRJ8LV/awards");
     const prepare = page.getByRole("button", {
-      name: "Send current update to clan",
+      name: "Send season 136 update to clan",
       exact: true,
     });
     await prepare.click();
@@ -577,5 +577,98 @@ for (const size of ["wide", "@narrow"]) {
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+  });
+}
+
+for (const size of ["wide", "@narrow"]) {
+  test(`award places reflect donation tiebreak and current update names its season ${size}`, async ({
+    page,
+  }) => {
+    const data = makeView();
+    Object.assign(data, { can_send: true });
+    const points = data.seasons[0].awards.find(
+      (award) => award.award_id === "points",
+    );
+    if (!points) throw new Error("Missing points fixture");
+    points.rows = [
+      {
+        player_tag: "#P1",
+        name: "Higher donor",
+        points: 8650,
+        donations: 1978,
+        rank: 4,
+        place: 4,
+        tied: true,
+        place_tied: false,
+      },
+      {
+        player_tag: "#P2",
+        name: "Lower donor",
+        points: 8650,
+        donations: 684,
+        rank: 4,
+        place: 5,
+        tied: true,
+        place_tied: false,
+      },
+      {
+        player_tag: "#P3",
+        name: "Shared place",
+        points: 8000,
+        donations: 500,
+        rank: 6,
+        place: 6,
+        tied: true,
+        place_tied: true,
+      },
+    ];
+    const writes: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/api/") && request.method() !== "GET")
+        writes.push(request.method() + " " + new URL(request.url()).pathname);
+    });
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await mockApi(
+      page,
+      signedIn({ "GET /api/clan/clans/2PQRJ8LV/awards": [200, data] }),
+    );
+    await page.goto("/clan/2PQRJ8LV/awards");
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/awards$/);
+    await expect(
+      page.getByRole("heading", { name: "Award races", exact: true }),
+    ).toBeVisible();
+    for (const [name, place] of [
+      ["Higher donor", "4"],
+      ["Lower donor", "5"],
+      ["Shared place", "6="],
+    ] as const) {
+      await expect(
+        page.getByRole("row").filter({ hasText: name }).locator("td").first(),
+      ).toHaveText(place);
+    }
+    await page.screenshot({
+      path: `/tmp/elixir-awards-live-places-${size.replace("@", "")}.png`,
+      fullPage: true,
+    });
+    await page.getByRole("combobox", { name: "Season" }).selectOption("135");
+    await expect(
+      page.getByRole("button", { name: "Send season 136 update to clan" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "This prepares the current season 136 update, while you are viewing season 135.",
+      ),
+    ).toBeVisible();
+    await page.screenshot({
+      path: `/tmp/elixir-awards-places-${size.replace("@", "")}.png`,
+      fullPage: true,
+    });
+    expect(errors).toEqual([]);
+    expect(
+      writes.filter((write) =>
+        /awards\/(update|grants)|actions\/.+\/decide/.test(write),
+      ),
+    ).toEqual([]);
   });
 }

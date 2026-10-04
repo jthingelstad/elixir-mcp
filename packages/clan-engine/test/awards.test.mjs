@@ -54,6 +54,38 @@ test("a season whose first section is not in the record is held, never judged", 
 
 // ---- season points podium ---------------------------------------------------
 
+test("shared podium place is resolved before display clipping without changing grants due", () => {
+  const members = [member("#AAA"), member("#BBB")];
+  const input = {
+    participation: participation(members),
+    config,
+    now: NOW,
+    grants: [],
+  };
+  const full = evaluateAwards({ ...input, row_limit: 50 });
+  const clipped = evaluateAwards({ ...input, row_limit: 1 });
+  const row = award(clipped, 135, "season_champ").rows[0];
+  assert.equal(row.place, 1);
+  assert.equal(row.place_tied, true);
+  assert.deepEqual(clipped.grants_due, full.grants_due);
+  const split = run([
+    member("#AAA"),
+    member("#BBB", { donations: [300, 300, 300, 300, 300, 300] }),
+  ]);
+  assert.deepEqual(
+    award(split, 135, "season_champ").rows.map((r) => [
+      r.rank,
+      r.tied,
+      r.place,
+      r.place_tied,
+    ]),
+    [
+      [1, true, 1, false],
+      [1, true, 2, false],
+    ],
+  );
+});
+
 test("Season Champion: points order, donations tiebreak, ties named, podium of three", () => {
   const r = run([
     member("#AAA", { war: [16, 16, 16, 16, 16, 8] }), // 16000

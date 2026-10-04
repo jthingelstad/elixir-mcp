@@ -4960,7 +4960,7 @@ before the combined UI/help deployment.
 Setup/help deployment receipt: PRs #286 and #287 shipped together from
 78960bb3c8adc55391977b2e66158b9e99f363ca; required CI 37226416975 passed
 at 19:02:41Z (2:02 PM CT). Deployment completed at 19:07:51Z
-(14:07 CT), observed from the deployment log.
+(2:07 PM CT), observed from the deployment log.
 No migrations ran. All 43 smoke checks passed; scoped elixir acceptance ran
 191 cases with zero failures, 16 expected skips and 152 distinct calls.
 Published UI asset App-DFEbwNSx.js matched the merged build byte-for-byte and
@@ -4972,3 +4972,30 @@ No policy values, grants, member decisions, messages or early routines changed.
 The next QA pass prioritizes independently observed awards-place display and
 current-season announcement-target clarity, followed by context restoration
 and ordinary-member/Elder journeys.
+
+## 2026-10-04 - Award place display and current update target
+
+Independent signed-in playthrough found equal-points rows showing a shared
+points rank even when season donations had already resolved distinct award
+places. The engine's place and grant decisions were correct; the UI read the
+primary points rank and points-tie flag. It now displays the resolved place
+and a derived shared-place flag computed before the display row limit. Closed
+seasons continue to display immutable saved grants. The donation value shown
+is the same recorded season total used by the existing tiebreak; there is no
+new counter or window. Held rows have neither a place nor a shared-place flag.
+
+The current update button names its current open season and explains that
+season when the reader has selected an older one. Its request, retry identity,
+Action creation and permission rules are unchanged. Synthetic engine/UI and
+desktop/mobile journeys cover split ties, true ties, display clipping, closed
+grants and historical-season target clarity without award or Action writes.
+MCP 11.2.0 and JSON API 3.0.0 are unchanged: this is a private Clan display
+correction, with no MCP or public JSON API response change. Deployment needs
+smoke and changed-surface readback; no tool-family acceptance is required.
+
+Award-display verification passed: 1,808 Node cases, 85 existing skips,
+437 Vitest cases and zero failures; both desktop/mobile rendered journeys
+passed without page errors or award/Action writes. Full typechecking caught
+and resolved the new fixture's initially inferred empty-array type. A parallel
+local build competed for the shared app output; rerunning the browser lane
+sequentially passed. Required CI is the merge gate.

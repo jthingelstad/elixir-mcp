@@ -142,6 +142,99 @@ const view = () => ({
 });
 
 describe("awards", () => {
+  test("resolved podium places split points ties by season donations and share only equal-in-both places", async () => {
+    const d = view();
+    const originalGrants = structuredClone(d.grants);
+    const due = vi.spyOn(manageApi, "grantAward");
+    d.seasons[0].awards[0].rows = [
+      {
+        player_tag: "#P1",
+        name: "Higher donor",
+        points: 8650,
+        donations: 1978,
+        rank: 4,
+        place: 4,
+        tied: true,
+        place_tied: false,
+      },
+      {
+        player_tag: "#P2",
+        name: "Lower donor",
+        points: 8650,
+        donations: 684,
+        rank: 4,
+        place: 5,
+        tied: true,
+        place_tied: false,
+      },
+      {
+        player_tag: "#P3",
+        name: "Shared A",
+        points: 8000,
+        donations: 500,
+        rank: 6,
+        place: 6,
+        tied: true,
+        place_tied: true,
+      },
+      {
+        player_tag: "#P4",
+        name: "Shared B",
+        points: 8000,
+        donations: 500,
+        rank: 6,
+        place: 6,
+        tied: true,
+        place_tied: true,
+      },
+      {
+        player_tag: "#P5",
+        name: "Clipped shared place",
+        points: 7000,
+        donations: 300,
+        rank: 8,
+        place: 8,
+        tied: true,
+        place_tied: true,
+      },
+    ];
+    vi.spyOn(manageApi, "awards").mockResolvedValue({ ok: true, data: d });
+    renderWithProviders(<Awards clan={poap} />);
+    for (const [name, place] of [
+      ["Higher donor", "4"],
+      ["Lower donor", "5"],
+      ["Shared A", "6="],
+      ["Shared B", "6="],
+      ["Clipped shared place", "8="],
+    ]) {
+      const row = (await screen.findByText(name)).closest("tr");
+      expect(row.querySelector("td").textContent).toBe(place);
+    }
+    expect(screen.getByText(/1,978 donated/)).toBeTruthy();
+    expect(screen.getByText(/684 donated/)).toBeTruthy();
+    expect(d.grants).toEqual(originalGrants);
+    expect(due).not.toHaveBeenCalled();
+  });
+
+  test("viewing an old season names the current update target without creating an Action", async () => {
+    const d = { ...view(), can_send: true };
+    const update = vi.spyOn(manageApi, "awardsUpdate");
+    vi.spyOn(manageApi, "awards").mockResolvedValue({ ok: true, data: d });
+    renderWithProviders(<Awards clan={poap} />);
+    fireEvent.change(await screen.findByRole("combobox", { name: "Season" }), {
+      target: { value: "135" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Send season 136 update to clan" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /current season 136 update, while you are viewing season 135/,
+      ),
+    ).toBeTruthy();
+    expect(update).not.toHaveBeenCalled();
+    expect(screen.getByText("Ada")).toBeTruthy();
+  });
   test("shows the live race as provisional, the closed season's grants, and grants a pick by hand from the roster", async () => {
     vi.spyOn(manageApi, "awards").mockResolvedValue({
       ok: true,
@@ -369,7 +462,7 @@ describe("awards", () => {
       screen.queryByRole("button", { name: "edit the awards" }),
     ).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Send current update to clan" }),
+      screen.queryByRole("button", { name: "Send season 136 update to clan" }),
     ).toBeNull();
   });
 });
@@ -447,7 +540,7 @@ test("current update retries retain their request identity and a later intention
     });
   renderWithProviders(<Awards clan={poap} />);
   const button = await screen.findByRole("button", {
-    name: "Send current update to clan",
+    name: "Send season 136 update to clan",
   });
   fireEvent.click(button);
   await screen.findByRole("alert");
@@ -470,6 +563,6 @@ test("manual-only awards do not offer a current computed update", async () => {
   renderWithProviders(<Awards clan={poap} who={{ role: "leader" }} />);
   await screen.findByRole("combobox", { name: "Season" });
   expect(
-    screen.queryByRole("button", { name: "Send current update to clan" }),
+    screen.queryByRole("button", { name: "Send season 136 update to clan" }),
   ).toBeNull();
 });
