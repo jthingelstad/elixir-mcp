@@ -266,6 +266,104 @@ test.describe("signed in", () => {
     await mockApi(page, signedIn());
   });
 
+  test("@narrow a welcome draft waits for review before copying and recording delivery", async ({
+    page,
+  }) => {
+    const action = {
+      card_id: "w1",
+      number: 37,
+      type: "welcome",
+      label: "Welcome",
+      status: "proposed",
+      can_act: true,
+      audience: { kind: "elders" },
+      player_tag: "#M1",
+      player_name: "Zed",
+      raised_at: "2026-09-12T20:00:00Z",
+      copy: "Welcome, Zed!",
+      evidence: { joined_at: "2026-09-12T20:00:00Z" },
+      log: [],
+    };
+    const deliveries: unknown[] = [];
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/clan/clans/2PQRJ8LV/actions/37": [
+          200,
+          {
+            clan_tag: "#2PQRJ8LV",
+            action,
+            model: { set: true },
+            decline_reasons: [],
+          },
+        ],
+        "POST /api/clan/clans/2PQRJ8LV/actions/w1/decide": (route) => {
+          deliveries.push(route.request().postDataJSON());
+          return [200, {}];
+        },
+      }),
+    );
+    let finishDraft: () => void = () => {};
+    const waiting = new Promise<void>((resolve) => {
+      finishDraft = resolve;
+    });
+    await page.route(
+      "**/api/clan/clans/2PQRJ8LV/actions/w1/draft",
+      async (route) => {
+        await waiting;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            line: "Glad you joined, Zed!",
+            model: "fixture",
+          }),
+        });
+      },
+    );
+    await page.goto("/clan/2PQRJ8LV/actions/37");
+    const editor = page.getByLabel("Chat message", { exact: true });
+    const copy = page.getByRole("button", { name: "Copy the chat message" });
+    const welcomed = page.getByRole("button", { name: "Welcomed" });
+    await page.getByRole("button", { name: "Draft in our voice" }).click();
+    await expect(editor).toBeDisabled();
+    await expect(copy).toBeDisabled();
+    await expect(welcomed).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Skip", exact: true }),
+    ).toBeDisabled();
+    expect(deliveries).toEqual([]);
+    await accessible(page, "pending welcome draft");
+    finishDraft();
+    await expect(editor).toHaveValue("Glad you joined, Zed!");
+    await expect(copy).toBeEnabled();
+    await expect(welcomed).toBeEnabled();
+    await editor.fill("x".repeat(121));
+    await expect(copy).toBeDisabled();
+    await expect(
+      page.getByText("Shorten to 120 characters before copying."),
+    ).toBeVisible();
+    await editor.fill("Welcome aboard, Zed! Glad you're here.");
+    await expect(copy).toBeEnabled();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await accessible(page, "reviewed welcome draft");
+    await welcomed.click();
+    await expect
+      .poll(() => deliveries)
+      .toEqual([
+        {
+          status: "done",
+          reason: null,
+          note: null,
+          sent: { line: "Welcome aboard, Zed! Glad you're here." },
+        },
+      ]);
+  });
+
   test("choose a clan, read its roster, walk the rail, file feedback", async ({
     page,
   }) => {

@@ -335,12 +335,25 @@ describe("clan leader messages", () => {
       target: { value: "A title that runs far too long" },
     });
     expect(screen.getByText("30/24")).toBeTruthy();
+    const copyTitle = screen.getByRole("button", { name: "Copy the title" });
+    expect(copyTitle.disabled).toBe(true);
+    fireEvent.click(copyTitle);
+    expect(write).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("Shorten to 24 characters before copying."),
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Copy the message" }));
     await waitFor(() =>
       expect(write).toHaveBeenCalledWith(
         "Sleepy is now an Elder. Thank you for showing up for the clan.",
       ),
     );
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Our new Elder" },
+    });
+    expect(copyTitle.disabled).toBe(false);
+    fireEvent.click(copyTitle);
+    await waitFor(() => expect(write).toHaveBeenCalledWith("Our new Elder"));
   });
 
   test("an announcement is marked sent without a reason, with the words as edited", async () => {
@@ -399,6 +412,67 @@ describe("clan leader messages", () => {
 });
 
 describe("the clan's model on a Leader Message", () => {
+  test("a pending leader-message draft blocks delivery, then records the reviewed words", async () => {
+    vi.spyOn(manageApi, "action").mockResolvedValue(
+      one({
+        model: { set: true },
+        open: [
+          {
+            ...removal,
+            type: "rules_announcement",
+            copy: null,
+            message: { title: "Our rules", body: "Old wording." },
+          },
+        ],
+      }),
+    );
+    let reply;
+    vi.spyOn(manageApi, "draftLeaderMessage").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          reply = resolve;
+        }),
+    );
+    const decide = vi
+      .spyOn(manageApi, "decideAction")
+      .mockResolvedValue({ ok: true });
+    renderWithProviders(
+      <ActionDetail number={37} clan={clan} who={{ role: "coLeader" }} />,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Draft in our voice" }),
+    );
+    const sent = screen.getByRole("button", { name: "Sent" });
+    expect(sent.disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Skip" }).disabled).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Copy the title" }).disabled,
+    ).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Copy the message" }).disabled,
+    ).toBe(true);
+    fireEvent.click(sent);
+    expect(decide).not.toHaveBeenCalled();
+    reply({
+      ok: true,
+      data: { title: "New rules", body: "Draft wording.", model: "stub" },
+    });
+    await screen.findByDisplayValue("Draft wording.");
+    expect(sent.disabled).toBe(false);
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Reviewed wording." },
+    });
+    fireEvent.click(sent);
+    await waitFor(() =>
+      expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "a1", {
+        status: "done",
+        reason: null,
+        note: null,
+        sent: { title: "New rules", body: "Reviewed wording." },
+      }),
+    );
+  });
+
   test("a leader drafts it in the clan's voice, sees what to check, and can put back what they had", async () => {
     vi.spyOn(manageApi, "action").mockResolvedValue(
       one({
@@ -492,7 +566,53 @@ describe("the clan's model on a Leader Message", () => {
 });
 
 describe("editable clan chat", () => {
+  test("recording delivery locks the reviewed words and a lost reply unlocks without retrying", async () => {
+    vi.spyOn(manageApi, "action").mockResolvedValue(
+      one({
+        model: { set: true },
+        open: [{ ...removal, type: "welcome", copy: "Welcome!" }],
+      }),
+    );
+    let fail;
+    const decide = vi.spyOn(manageApi, "decideAction").mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          fail = reject;
+        }),
+    );
+    renderWithProviders(
+      <ActionDetail number={37} clan={clan} who={{ role: "leader" }} />,
+    );
+    const editor = await screen.findByLabelText("Chat message");
+    fireEvent.change(editor, { target: { value: "My reviewed welcome" } });
+    const welcomed = screen.getByRole("button", { name: "Welcomed" });
+    fireEvent.click(welcomed);
+    expect(editor.disabled).toBe(true);
+    expect(welcomed.disabled).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Copy the chat message" }).disabled,
+    ).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Draft in our voice" }).disabled,
+    ).toBe(true);
+    expect(screen.getByLabelText("Draft tone").disabled).toBe(true);
+    fail(new Error("lost reply"));
+    await screen.findByText(/action's outcome is unknown.*check its log/);
+    expect(editor.value).toBe("My reviewed welcome");
+    expect(editor.disabled).toBe(false);
+    expect(welcomed.disabled).toBe(false);
+    expect(
+      screen.getByRole("button", { name: "Draft in our voice" }).disabled,
+    ).toBe(false);
+    expect(decide).toHaveBeenCalledTimes(1);
+  });
+
   test("pending drafting locks the editor and an empty previous field can be restored", async () => {
+    const decide = vi
+      .spyOn(manageApi, "decideAction")
+      .mockResolvedValue({ ok: true });
+    const write = vi.fn().mockResolvedValue();
+    Object.assign(navigator, { clipboard: { writeText: write } });
     vi.spyOn(manageApi, "action").mockResolvedValue(
       one({
         model: { set: true },
@@ -514,9 +634,20 @@ describe("editable clan chat", () => {
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
     expect(editor.disabled).toBe(true);
     expect(screen.getByLabelText("Draft tone").disabled).toBe(true);
+    const copy = screen.getByRole("button", { name: "Copy the chat message" });
+    const welcomed = screen.getByRole("button", { name: "Welcomed" });
+    expect(copy.disabled).toBe(true);
+    expect(welcomed.disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Skip" }).disabled).toBe(true);
+    fireEvent.click(copy);
+    fireEvent.click(welcomed);
+    expect(write).not.toHaveBeenCalled();
+    expect(decide).not.toHaveBeenCalled();
     reply({ ok: true, data: { line: "Welcome aboard!", model: "stub" } });
     await screen.findByDisplayValue("Welcome aboard!");
     expect(editor.disabled).toBe(false);
+    expect(copy.disabled).toBe(false);
+    expect(welcomed.disabled).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
     expect(
       screen.getByRole("button", { name: "Put back what I had" }).disabled,
@@ -606,6 +737,12 @@ describe("editable clan chat", () => {
     ).toBe(false);
     expect(draft).toHaveBeenCalledTimes(1);
     expect(decide).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Complete" }).disabled).toBe(
+      false,
+    );
+    expect(
+      screen.getByRole("button", { name: "Copy the chat message" }).disabled,
+    ).toBe(false);
   });
 
   test("an elder can edit a welcome but cannot use the clan's model", async () => {

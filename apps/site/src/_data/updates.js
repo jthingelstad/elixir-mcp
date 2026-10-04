@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-10-04",
+    title: "Review Clan drafts before recording delivery",
+    body: "Message copying and action decisions wait while a voice draft loads. Text over the game's field limits stays editable with a reminder to shorten before copying. Review and send the finished words, then record delivery. Contracts unchanged.",
+  },
+  {
     date: "2026-10-03",
     title: "Bounded battle reads for Clan participation",
     body: "Weekly participation reads check boat defenses against the requested battles without scanning unrelated history. The Week and You Here keep the same member and former-member counts. MCP 11.0.2; JSON API unchanged.",
