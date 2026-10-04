@@ -4656,3 +4656,16 @@ remove doubled punctuation. Policy documents save/replay and Preview's
 observation/read-audit writes; holds shield eligibility without resetting or
 subtracting elapsed time. No Policy, member decision, message or award writes
 are part of this patch. MCP 11.1.0 / JSON API 3.0.0 and schema unchanged.
+
+Validation receipt: PR274 passed its required validate check, including full
+verify, the Lambda build and browser journeys. Local full verify passed on
+the rebased source; Clan UI had 104 checks and the web app 272. All four
+focused desktop/mobile fixture journeys passed with axe, including stacked
+closed warnings, local evidence/audit timestamps and the four Board triage
+labels. Synthetic engine/admission and scratch-record regressions cover
+protected roles, recent captured play, positive brackets, roster-only and
+absent profile days, and automatic boat-defense exclusion. Detailed
+operational verification remains private. MCP acceptance was omitted because
+only private Clan behavior and docs changed, with no existing public tool
+or JSON API operation changed. This notes-only receipt needs no
+further deployment.
