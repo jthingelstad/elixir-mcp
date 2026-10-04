@@ -56,7 +56,10 @@ export function judgmentReasons(v, boundaries, policy = null) {
             ? "battle log is not recorded, so inactivity cannot be measured"
             : "battle log is not recorded, so standing cannot be judged"
           : dimension === "removal"
-            ? "no recorded battle or observed join anchors the clock"
+            ? (v.facts?.activity_evidence?.reason ??
+              (v.facts?.days_idle == null
+                ? "no recorded battle or observed join anchors the clock"
+                : "comparable profile observations do not cover the policy window"))
             : boundaries.length === 0
               ? "no closed weekly review yet"
               : (weights.war ?? 0) > 0 && v.facts?.war?.fidelity === "unknown"
@@ -146,14 +149,14 @@ export function cardFacts(v, policy) {
   facts.push(
     {
       key: "last_battle",
-      label: "Last battle",
+      label: "Last captured battle",
       value: f.last_battle_time
-        ? `${f.days_idle} days ago`
+        ? `${f.activity_evidence?.captured_battle_age_days ?? "unknown"} days ago; capture does not prove inactivity`
         : f.joined_observed_at
           ? `none recorded since joining ${f.observed_days} days ago`
           : "unknown",
       window: "record",
-      fidelity: f.last_battle_time ? "daily" : "unknown",
+      fidelity: "partial",
     },
     {
       key: "tenure",
@@ -182,7 +185,7 @@ export function cardRationale(type, v, policy, verdicts) {
     const r = v.removal;
     const slots = verdicts?.roster?.open_slots ?? verdicts?.band?.open_slots;
     return {
-      headline: `${r.days_idle} battle-free days: at risk at ${r.at_risk_days}, an action at ${r.at_risk_days + r.confirm_days}${r.grace_days ? ` (${r.grace_days} grace days for meeting the minimums with ${slots} open slots)` : ""}.`,
+      headline: `${Number(r.activity_evidence?.counter_quiet_days ?? 0).toFixed(2)} days with no recorded battle or profile counter increase through ${r.activity_evidence?.measured_through ?? "an unknown observation"}: at risk at ${r.at_risk_days}, an action at ${r.at_risk_days + r.confirm_days}${r.grace_days ? ` (${r.grace_days} grace days for meeting the minimums with ${slots} open slots)` : ""}.`,
       clauses: [
         "at_risk_days",
         "confirm_days",
@@ -381,7 +384,7 @@ export function describePolicy(policy) {
 
   if (policy.removal_enabled) {
     const lines = [
-      `A member with no battle for ${plural(policy.at_risk_days, "day")} is at risk; after ${plural(policy.at_risk_days + policy.confirm_days, "day")} the leaders decide on removal.`,
+      `Measured quiet for ${plural(policy.at_risk_days, "day")} is at risk; after ${plural(policy.at_risk_days + policy.confirm_days, "day")} the leaders decide on removal. Recorded battles and profile counter increases reset the clock; missing observations hold the recommendation.`,
     ];
     if (policy.contribution_grace_max_days > 0)
       lines.push(
@@ -417,17 +420,14 @@ export function describePolicy(policy) {
  * through the game's filter rules (`chat.mjs`: a hyphenated name is written
  * with a space) and clipped at a sentence: 200 characters, a welcome 120.
  */
-export function inGameCopy(
-  kind,
-  { name, days_idle = null, phrase = "", welcome = null } = {},
-) {
+export function inGameCopy(kind, { name, phrase = "", welcome = null } = {}) {
   const who = String(name ?? "a member")
     .replace(/[&+]/g, " ")
     .trim();
   const text = {
     promotion: `Congrats ${who}, promoted to Elder${phrase ? `: ${phrase}` : ""}.`,
     demotion: `${who} moves from Elder back to Member for now. It can come back.`,
-    removal: `${who} was removed for inactivity (${days_idle === null ? "a long stretch" : `${Math.round(days_idle)} days`} without a battle). Welcome back any time you are playing again.`,
+    removal: `${who} was removed under the clan's activity policy. Welcome back any time you are playing again.`,
     welcome: welcome?.returning
       ? `Welcome back, ${who}! Glad to have you with us again.`
       : welcome?.fact

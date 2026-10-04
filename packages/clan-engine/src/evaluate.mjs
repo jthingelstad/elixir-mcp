@@ -285,7 +285,12 @@ export function evaluate({
     }
     const removalJudgment = !policy.removal_enabled
       ? "off"
-      : f.minimums.log_recorded === false || f.days_idle === null
+      : f.minimums.log_recorded === false ||
+          f.days_idle === null ||
+          f.activity_evidence.status !== "ready" ||
+          (rState === "recommended" &&
+            f.activity_evidence.counter_quiet_days <
+              policy.at_risk_days + confirmDays)
         ? "held"
         : "ready";
 
@@ -380,6 +385,7 @@ export function evaluate({
         grace_days: graceDays,
         shielded,
         cooldown_until: cooldown.removal,
+        activity_evidence: f.activity_evidence,
       },
       hold: hold ? { ...hold, active: onHold } : null,
       actionable,
@@ -453,10 +459,10 @@ function withdrawReason(type, m) {
     return "A leader already decided this; it waits for the record to show the change.";
   if (type === "removal") {
     if (m.removal.shielded === "hold") return "The member is on hold.";
+    if (m.judgment.removal !== "ready")
+      return `Inactivity is not established. ${m.facts.activity_evidence?.reason ?? "Comparable profile observations do not cover the policy window."}`;
     if (m.removal.state === "none" || m.removal.state === "watch")
       return "The member played; the inactivity clock reset.";
-    if (m.judgment.removal !== "ready")
-      return "The evidence went stale; the clock is held.";
     return "The removal no longer qualifies under the policy.";
   }
   if (type === "promotion") {

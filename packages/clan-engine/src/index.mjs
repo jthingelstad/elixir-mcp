@@ -1,5 +1,6 @@
 export * from "./policy.mjs";
 export * from "./facts.mjs";
+export * from "./inactivity.mjs";
 export * from "./standing.mjs";
 export * from "./evaluate.mjs";
 export * from "./render.mjs";

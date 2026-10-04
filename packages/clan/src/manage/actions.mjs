@@ -117,14 +117,19 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
   }
 
   /** Withdraw an open action, saying why. */
-  async function withdrawAction(clanTag, card, reason) {
-    await ledger.putCard(clanTag, {
-      ...card,
+  async function withdrawAction(clanTag, card, reason, detail = null) {
+    const changed = await ledger.updateCardIf(clanTag, card, {
       status: "withdrawn",
       withdrawn_at: new Date(now()).toISOString(),
       withdraw_reason: reason,
+      withdraw_detail: detail,
     });
-    await logAction(clanTag, card.card_id, "withdrawn", { text: reason });
+    if (!changed) return false;
+    await logAction(clanTag, card.card_id, "withdrawn", {
+      text: reason,
+      detail,
+    });
+    return true;
   }
 
   /** An action's log: the stored entries, with what an action raised
@@ -138,9 +143,12 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
           : String(a.seq ?? "").localeCompare(String(b.seq ?? ""));
     const entries = [...(stored ?? [])].sort(order);
     const have = new Set(entries.map((e) => e.kind));
-    const base = entries.some((e) => e.kind === "raised")
-      ? []
-      : reconstructedLog(card).filter((e) => !have.has(e.kind));
+    const base = reconstructedLog(card).filter(
+      (e) =>
+        !have.has(e.kind) &&
+        (e.kind === "withdrawn" ||
+          !entries.some((entry) => entry.kind === "raised")),
+    );
     for (const reopening of card.reopenings ?? []) {
       const decline = reopening.decline;
       if (
@@ -269,6 +277,15 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
         )
       ),
     log: logOf(c, stored),
+    ...(c.type === "removal" && c.removal_safety?.status !== "ready"
+      ? {
+          copy: null,
+          channel: null,
+          can_draft: false,
+          can_reopen: false,
+          can_complete: false,
+        }
+      : {}),
   });
 
   const logsByCard = async (clanTag, cards = null) => {

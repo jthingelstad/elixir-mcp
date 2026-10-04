@@ -128,7 +128,14 @@ function harness({ players = [player()] } = {}) {
     ...createTestAccount(),
     recruit: createRecruitService({ ledger, mcp, model, now }),
     model,
-    drafts: createDrafts({ ledger, model, now }),
+    drafts: createDrafts({
+      ledger,
+      model,
+      now,
+      // This suite isolates prompt/privacy behavior; admission races are
+      // exercised through the real Manage guard in removal-safety.test.
+      requireRemovalSafety: async () => ({ evidence_version: "fixture-proof" }),
+    }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,

@@ -5,6 +5,7 @@
   "type": "module",
   "description": "The record's data functions over Postgres and its clock, shared by every service: MCP tools and /api/v1 operations are adapters over these.",
   "exports": {
+    "./clan-activity-evidence": "./src/clan-activity-evidence.mjs",
     "./badge-names": "./src/badge-names.mjs",
     "./battle-links": "./src/battle-links.mjs",
     "./boat-defense-sql": "./src/boat-defense-sql.mjs",

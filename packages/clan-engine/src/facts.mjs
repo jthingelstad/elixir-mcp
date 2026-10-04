@@ -14,6 +14,7 @@
  */
 
 import { setMinimums } from "./policy.mjs";
+import { inactivityEvidence } from "./inactivity.mjs";
 
 const DAY_MS = 86400_000;
 
@@ -189,16 +190,12 @@ export function factsAt(participation, policy, at, { trophies = null } = {}) {
           ? results.every((r) => r === true)
           : results.some((r) => r === true);
 
-    const lastBattle = m.last_battle_time
-      ? Date.parse(m.last_battle_time)
-      : null;
-    // The inactivity anchor is the LATER of the last battle and the join:
-    // a battle log recorded before the membership is not activity here.
-    const anchor = Math.max(lastBattle ?? -Infinity, joined ?? -Infinity);
-    const daysIdle = Number.isFinite(anchor) ? (atMs - anchor) / DAY_MS : null;
+    const activity = inactivityEvidence(m, atMs);
+    const daysIdle = activity.days_since_possible_activity;
 
     return {
       player_tag: m.player_tag,
+      activity_evidence: activity,
       name: m.name,
       role: m.role ?? "member",
       joined_observed_at: m.joined_observed_at,

@@ -440,6 +440,8 @@ function LeaderMessage({
 
 /** What a draft refusal means, in a leader's words. */
 const DRAFT_ERROR = {
+  removal_evidence_held:
+    "Current evidence does not establish inactivity. Removal words are withheld; reload the action.",
   draft_changed:
     "The action's context changed. Reload it before drafting or sending these words.",
   departure_unconfirmed:
@@ -581,7 +583,12 @@ export function ActionCard(props) {
   const version =
     a.draft_context_version ??
     `${a.card_id}:${a.status}:${a.outcome?.classification}:${a.decided_at}`;
-  return <BoundActionCard key={version} {...props} />;
+  return (
+    <BoundActionCard
+      key={`${version}:${a.removal_safety?.status}:${a.removal_safety?.evidence_version}`}
+      {...props}
+    />
+  );
 }
 
 function BoundActionCard({
@@ -605,6 +612,8 @@ function BoundActionCard({
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState(false);
   const open = action.status === "proposed";
+  const removalHeld =
+    action.type === "removal" && action.removal_safety?.status === "held";
   const departureCopy =
     action.type === "departure" && action.status === "done" && !!action.copy;
   const mine = action.audience?.kind === "member";
@@ -624,6 +633,7 @@ function BoundActionCard({
     );
   const onDraft =
     !contextInvalid &&
+    !removalHeld &&
     action.type !== "awards_standings" &&
     model?.set &&
     !model.refused &&
@@ -637,7 +647,9 @@ function BoundActionCard({
             action.draft_context_version ?? null,
           );
           if (!r.ok) {
-            if (r.data?.error === "draft_changed") {
+            if (
+              ["draft_changed", "removal_evidence_held"].includes(r.data?.error)
+            ) {
               setContextInvalid(true);
               onChanged?.();
             }
@@ -674,12 +686,20 @@ function BoundActionCard({
             : {}),
         ...extra,
       });
-      if (!r.ok)
+      if (!r.ok) {
+        if (r.data?.error === "removal_evidence_held") {
+          setContextInvalid(true);
+          onChanged?.();
+          return setError(
+            "Current evidence does not establish inactivity. Removal words and completion are withheld; reload the action.",
+          );
+        }
         return setError(
           r.data?.error === "action_closed"
             ? "This action was already taken or withdrawn."
             : "That did not work.",
         );
+      }
       trackEvent(
         "clan.action_decided",
         `${action.type}:${extra.classification ?? status}`,
@@ -710,9 +730,11 @@ function BoundActionCard({
             "action_changed",
             "action_not_declined",
             "action_already_delivered",
+            "removal_evidence_held",
           ].includes(r.data?.error)
         )
           onChanged?.();
+        if (r.data?.error === "removal_evidence_held") setContextInvalid(true);
         return setError(
           r.data?.error === "leaders_only" || r.data?.error === "unverified"
             ? "Only verified clan leadership can reopen a declined action."
@@ -788,6 +810,35 @@ function BoundActionCard({
             View member activity
           </Link>
         ) : null}
+        {removalHeld ? (
+          <div className="callout callout--warn" role="alert">
+            <strong>Removal held: inactivity is not established.</strong>
+            <p>{action.removal_safety.reason}</p>
+            {action.removal_safety.latest_activity_interval ? (
+              <p>
+                The profile counter increased by{" "}
+                {
+                  action.removal_safety.latest_activity_interval
+                    .counter_increase
+                }{" "}
+                between{" "}
+                {action.removal_safety.latest_activity_interval.observed_from}{" "}
+                and {action.removal_safety.latest_activity_interval.observed_to}
+                .
+                {action.removal_safety.latest_activity_interval
+                  .no_battles_captured
+                  ? " No battles from that interval were captured."
+                  : ""}{" "}
+                The exact battle time and mode are unknown.
+              </p>
+            ) : null}
+            <p>
+              Checked {action.removal_safety.checked_at}. Removal copy, drafting
+              and completion are withheld. The saved evidence and log below are
+              historical; leadership may still explicitly decline.
+            </p>
+          </div>
+        ) : null}
         <div className="text-[14.5px] leading-[1.6] text-ink-body">
           {action.type === "departure" ? (
             <div>
@@ -847,7 +898,12 @@ function BoundActionCard({
               Tell the clan with a Clan Leader Message, then mark it sent.
             </div>
           ) : (
-            <div>{ev.rationale?.headline}</div>
+            <div>
+              {action.type === "removal"
+                ? "Saved rationale at the time this Action was raised: "
+                : ""}
+              {ev.rationale?.headline}
+            </div>
           )}
         </div>
         {open && (action.type === "promotion" || action.type === "demotion") ? (
@@ -888,7 +944,10 @@ function BoundActionCard({
             </button>
           </div>
         ) : null}
-        {!contextInvalid && action.copy && (open || departureCopy) ? (
+        {!contextInvalid &&
+        !removalHeld &&
+        action.copy &&
+        (open || departureCopy) ? (
           (["welcome", "removal"].includes(action.type) &&
             action.can_act !== false) ||
           (departureCopy && action.can_draft) ? (
@@ -951,7 +1010,7 @@ function BoundActionCard({
       </div>
       {(open && action.can_act) || action.can_reopen || sheet || error ? (
         <div className="grid gap-3 border-t border-line-soft bg-ground-chrome px-5 py-3.5">
-          {action.can_reopen ? (
+          {action.can_reopen && !removalHeld ? (
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
@@ -1069,7 +1128,9 @@ function BoundActionCard({
                 <button
                   type="button"
                   className="btn btn--primary"
-                  disabled={busy}
+                  disabled={
+                    busy || action.can_complete === false || removalHeld
+                  }
                   onClick={() => decide("done")}
                 >
                   Complete
