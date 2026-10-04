@@ -329,7 +329,9 @@ function ChatMessage({
       <div className="page-head__note">
         {kind === "removal"
           ? "Use this only after you decide and make the change in the game. Drafting does not remove anyone."
-          : "Make the welcome your own, then copy and send it in the game."}
+          : kind === "departure"
+            ? "The leader's confirmed classification guides this draft. Review it, then copy and send it in the game."
+            : "Make the welcome your own, then copy and send it in the game."}
       </div>
       <MessageField
         label="Chat message"
@@ -438,6 +440,10 @@ function LeaderMessage({
 
 /** What a draft refusal means, in a leader's words. */
 const DRAFT_ERROR = {
+  draft_changed:
+    "The action's context changed. Reload it before drafting or sending these words.",
+  departure_unconfirmed:
+    "Confirm Kicked or Left before drafting a departure message.",
   no_model_key: "The clan has no model key yet (Manage ▸ Settings).",
   model_key_refused:
     "Anthropic stopped accepting the clan's key. Add it again in Settings.",
@@ -570,7 +576,15 @@ export function ActionLog({ action, clan, onChanged }) {
 }
 
 /** One action, open or closed, with its buttons and its log. */
-export function ActionCard({
+export function ActionCard(props) {
+  const a = props.action;
+  const version =
+    a.draft_context_version ??
+    `${a.card_id}:${a.status}:${a.outcome?.classification}:${a.decided_at}`;
+  return <BoundActionCard key={version} {...props} />;
+}
+
+function BoundActionCard({
   action,
   clan,
   who,
@@ -584,12 +598,15 @@ export function ActionCard({
   const [declining, setDeclining] = useState(false);
   const [deciding, setBusy] = useState(false);
   const [drafting, setDrafting] = useState(false);
-  const busy = deciding || drafting;
+  const [contextInvalid, setContextInvalid] = useState(false);
+  const busy = deciding || drafting || contextInvalid;
   const reopenRequest = useRef(null);
   const reopenPending = useRef(false);
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState(false);
   const open = action.status === "proposed";
+  const departureCopy =
+    action.type === "departure" && action.status === "done" && !!action.copy;
   const mine = action.audience?.kind === "member";
   const ev = action.evidence ?? {};
   // The words as the person edits them, sent with a completion so what
@@ -606,24 +623,31 @@ export function ActionCard({
       action.messages_sent?.some((r) => r.part === m.part),
     );
   const onDraft =
+    !contextInvalid &&
     action.type !== "awards_standings" &&
     model?.set &&
     !model.refused &&
-    action.can_act !== false &&
+    (action.can_act !== false || (departureCopy && action.can_draft)) &&
     ["leader", "coLeader"].includes(who?.role)
       ? async (note) => {
           const r = await manageApi.draftLeaderMessage(
             clan.clan_tag,
             action.card_id,
             note,
+            action.draft_context_version ?? null,
           );
-          if (!r.ok)
+          if (!r.ok) {
+            if (r.data?.error === "draft_changed") {
+              setContextInvalid(true);
+              onChanged?.();
+            }
             return {
               error:
                 DRAFT_ERROR[r.data?.error] ??
                 r.data?.message ??
                 "The model did not answer. Your words are unchanged; check Settings before requesting another draft.",
             };
+          }
           trackEvent(
             "clan.model_drafted",
             action.copy ? "clan_chat" : "leader_message",
@@ -762,7 +786,7 @@ export function ActionCard({
         <div className="text-[14.5px] leading-[1.6] text-ink-body">
           {action.type === "departure" ? (
             <div>
-              Left the clan {ago(ev.left_at)} ({ev.left_at?.slice(0, 10)})
+              Departure observed {ago(ev.left_at)} ({ev.left_at?.slice(0, 10)})
               {ev.removal_state && ev.removal_state !== "none"
                 ? ` · was ${ev.removal_state.replaceAll("_", " ")} on the clock`
                 : ""}
@@ -770,10 +794,13 @@ export function ActionCard({
                 ? ` · ${Math.round(ev.days_idle)} days since their last battle`
                 : ""}
               {ev.tenure_days != null
-                ? ` · ${ev.tenure_days} days in the clan`
+                ? ` · recorded tenure ${ev.tenure_days} days`
                 : ""}
-              . A leave and a kick look the same in the record; say which so the
-              clan&rsquo;s history knows.
+              {departureCopy
+                ? `. A leader confirmed ${action.outcome?.classification === "member_kicked" ? "Kicked" : "Left"}.`
+                : action.outcome?.classification === "ignored"
+                  ? ". A leader marked this departure Ignore."
+                  : ". A leave and a kick look the same in the roster observation; confirm which so the clan's history knows."}
             </div>
           ) : action.type === "welcome" ? (
             <div>
@@ -847,9 +874,19 @@ export function ActionCard({
             ))}
           </div>
         ) : null}
-        {action.copy && open ? (
-          ["welcome", "removal"].includes(action.type) &&
-          action.can_act !== false ? (
+        {contextInvalid ? (
+          <div className="callout callout--warn" role="alert">
+            The action&rsquo;s context changed. Older words are withheld. Reload
+            the action before drafting or sending.
+            <button type="button" className="btn btn--sm" onClick={onChanged}>
+              Reload action
+            </button>
+          </div>
+        ) : null}
+        {!contextInvalid && action.copy && (open || departureCopy) ? (
+          (["welcome", "removal"].includes(action.type) &&
+            action.can_act !== false) ||
+          (departureCopy && action.can_draft) ? (
             <ChatMessage
               kind={action.type}
               value={line}
@@ -875,7 +912,7 @@ export function ActionCard({
               />
             ))}
           </div>
-        ) : action.message && open ? (
+        ) : !contextInvalid && action.message && open ? (
           <LeaderMessage
             message={action.message}
             value={words}
@@ -890,7 +927,11 @@ export function ActionCard({
             {action.status === "withdrawn"
               ? `${action.withdraw_reason ?? "Withdrawn"} · ${action.withdrawn_at?.slice(0, 10) ?? ""}`
               : `${action.decided_by_name ?? action.decided_by ?? ""} · ${action.decided_at?.slice(0, 10) ?? ""}`}
-            {action.outcome?.verified_at ? " · confirmed by the record" : ""}
+            {action.outcome?.verified_at
+              ? action.type === "departure"
+                ? " · confirmed by a leader"
+                : " · confirmed by the record"
+              : ""}
             {action.outcome?.flagged_at ? " · no change seen" : ""}
           </div>
         ) : null}

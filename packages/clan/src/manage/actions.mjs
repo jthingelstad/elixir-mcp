@@ -16,6 +16,34 @@ import {
   priorActions,
   reconstructedLog,
 } from "@elixir-mcp/clan-engine";
+import { createHash } from "node:crypto";
+
+/** Only an explicit, dated leader decision explains an observed departure. */
+export const confirmedDeparture = (c) =>
+  c.type === "departure" &&
+  c.status === "done" &&
+  !!c.decided_by &&
+  Number.isFinite(Date.parse(c.decided_at)) &&
+  ["member_kicked", "member_left"].includes(c.outcome?.classification);
+
+/** Bind a draft to the action it was requested for, without exposing its
+ * private evidence in the version. Draft log entries do not change it. */
+export const draftContextVersion = (c) =>
+  createHash("sha256")
+    .update(
+      JSON.stringify([
+        c.card_id,
+        c.type,
+        c.status,
+        c.player_tag,
+        c.player_name,
+        c.evidence,
+        c.outcome,
+        c.decided_at,
+        c.decided_by,
+      ]),
+    )
+    .digest("hex");
 
 export function createActionStore({ ledger, now = () => Date.now() }) {
   const person = (who) => ({
@@ -165,6 +193,12 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
   /** The words an action carries into the game: a clan chat line, or a
    *  Clan Leader Message (title and message) for leaders to send. */
   function wordsFor(c) {
+    if (confirmedDeparture(c))
+      return {
+        channel: "clan_chat",
+        copy: inGameCopy("farewell", { name: c.player_name }),
+        message: null,
+      };
     const channel = ACTION_TYPES[c.type]?.channel ?? null;
     if (channel === "clan_chat")
       return {
@@ -203,6 +237,21 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
     audience: audienceOf(c),
     label: ACTION_TYPES[c.type]?.label ?? c.type,
     ...wordsFor(c),
+    draft_context_version: draftContextVersion(c),
+    can_draft:
+      !!who &&
+      who.verified !== false &&
+      ["leader", "coLeader"].includes(who.role) &&
+      ((c.status === "proposed" &&
+        [
+          "welcome",
+          "removal",
+          "promotion",
+          "demotion",
+          "awards_announcement",
+          "rules_announcement",
+        ].includes(c.type)) ||
+        confirmedDeparture(c)),
     // An unverified player sees its own actions and takes none of them.
     can_act:
       c.status === "proposed" &&

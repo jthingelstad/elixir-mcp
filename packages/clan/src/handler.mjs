@@ -556,6 +556,7 @@ export function createHandler({
           await drafts.leaderMessage(tag, who, token, draft[1], {
             note: body.note ?? null,
             clanName: clan.name ?? null,
+            expectedDraftVersion: body.expected_draft_version ?? null,
           }),
         );
       }

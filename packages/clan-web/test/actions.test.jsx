@@ -1,9 +1,16 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { ActionDetail, Actions } from "../src/views/Actions.jsx";
 import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
+import { ActionCard } from "../src/components/ActionCard.jsx";
 
 afterEach(() => {
   cleanup();
@@ -521,7 +528,7 @@ describe("the clan's model on a Leader Message", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
     await waitFor(() =>
-      expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "r1", "warm"),
+      expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "r1", "warm", null),
     );
     expect(await screen.findByDisplayValue("Our way, in brief")).toBeTruthy();
     expect(screen.getByText(/Drafted by claude-sonnet-5/)).toBeTruthy();
@@ -697,7 +704,7 @@ describe("editable clan chat", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
     await screen.findByDisplayValue("Glad you joined, Sleepy!");
-    expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "a1", null);
+    expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "a1", null, null);
     expect(decide).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("Put back what I had"));
     await screen.findByDisplayValue("Welcome aboard, Sleepy!");
@@ -759,6 +766,131 @@ describe("editable clan chat", () => {
     expect(
       screen.queryByRole("button", { name: "Draft in our voice" }),
     ).toBeNull();
+  });
+
+  test("confirmed departure drafts bind to the classification and discard old words and late results", async () => {
+    const action = {
+      ...removal,
+      type: "departure",
+      status: "done",
+      label: "Departure",
+      can_act: false,
+      can_draft: true,
+      draft_context_version: "left-version",
+      outcome: {
+        classification: "member_left",
+        verified_at: "2026-09-25T12:00:00Z",
+      },
+      copy: "Thanks for your time, Sleepy.",
+    };
+    const props = {
+      action,
+      clan,
+      who: { role: "leader" },
+      model: { set: true },
+      reasons: [],
+    };
+    let finish;
+    const draft = vi.spyOn(manageApi, "draftLeaderMessage").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const decide = vi.spyOn(manageApi, "decideAction");
+    const { rerender } = renderWithProviders(<ActionCard {...props} />);
+    fireEvent.change(screen.getByLabelText("Chat message"), {
+      target: { value: "Old left words" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "a1", null, "left-version");
+    expect(
+      screen.getByRole("button", { name: "Copy the chat message" }).disabled,
+    ).toBe(true);
+    rerender(
+      <ActionCard
+        {...props}
+        action={{
+          ...action,
+          draft_context_version: "kick-version",
+          outcome: { classification: "member_kicked" },
+          copy: "Wishing you well, Sleepy.",
+        }}
+      />,
+    );
+    expect(screen.getByDisplayValue("Wishing you well, Sleepy.")).toBeTruthy();
+    await act(async () =>
+      finish({
+        ok: true,
+        data: {
+          line: "Stale left draft",
+          model: "fake",
+          draft_context_version: "left-version",
+        },
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByDisplayValue("Stale left draft")).toBeNull(),
+    );
+    expect(screen.queryByText("Put back what I had")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Kicked", exact: true }),
+    ).toBeNull();
+    expect(decide).not.toHaveBeenCalled();
+    rerender(
+      <ActionCard
+        {...props}
+        action={{
+          ...action,
+          status: "proposed",
+          can_act: true,
+          can_draft: false,
+          draft_context_version: "unknown-version",
+          outcome: null,
+          copy: null,
+        }}
+      />,
+    );
+    expect(screen.queryByLabelText("Chat message")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Draft in our voice" }),
+    ).toBeNull();
+  });
+
+  test("a context refusal withholds stale copy and restoration even when refreshing fails", async () => {
+    const changed = vi.fn();
+    const draft = vi
+      .spyOn(manageApi, "draftLeaderMessage")
+      .mockResolvedValueOnce({
+        ok: true,
+        data: { line: "Old draft", model: "fake" },
+      })
+      .mockResolvedValueOnce({ ok: false, data: { error: "draft_changed" } });
+    renderWithProviders(
+      <ActionCard
+        action={{ ...removal, draft_context_version: "old" }}
+        clan={clan}
+        who={{ role: "leader" }}
+        reasons={[]}
+        model={{ set: true }}
+        onChanged={changed}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    await screen.findByDisplayValue("Old draft");
+    expect(screen.getByText("Put back what I had")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    await screen.findByText(/Older words are withheld/);
+    expect(screen.queryByLabelText("Chat message")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Copy the chat message" }),
+    ).toBeNull();
+    expect(screen.queryByText("Put back what I had")).toBeNull();
+    expect(screen.getByRole("button", { name: "Complete" }).disabled).toBe(
+      true,
+    );
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(draft).toHaveBeenCalledTimes(2);
   });
 });
 

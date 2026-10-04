@@ -6,8 +6,10 @@
  *  - the uses are a closed list (`PURPOSES`); nothing about a member is
  *    ever one of them;
  *  - a request carries clan-level facts only: the game's numbers for the
- *    clan, what it is for, how it runs, its own words. Never a member's
- *    name or numbers;
+ *    clan, what it is for, how it runs, its own words. A welcome may carry
+ *    its frozen recorded return or career detail; a confirmed departure
+ *    its leader classification and recorded tenure. Never identity,
+ *    private notes, removal rationale or broader member history;
  *  - every answer is checked here and handed to a person to edit and
  *    save. Nothing a model writes is saved or sent by itself.
  *
@@ -23,7 +25,7 @@ import {
   chatWarnings,
   clipChat,
 } from "./chat.mjs";
-import { LEADER_MESSAGE } from "./render.mjs";
+import { inGameCopy, LEADER_MESSAGE } from "./render.mjs";
 
 /** What a clan's model may write. */
 export const PURPOSES = {
@@ -411,18 +413,65 @@ export function leaderMessageFromDraft(
   };
 }
 
-/** Short chat copy for an existing action. Its evidence and member details
- * stay in Clan; the model receives only the message's purpose and clan voice. */
+/** Project only the typed detail already approved for a welcome. Never
+ * forward free-form fact text or extras from the action/profile. Profile
+ * freshness was checked when the action froze this detail; its timestamp
+ * remains provenance, not a claim that the value is current at draft time. */
+const observationStamp = (value) => {
+  const time = typeof value === "string" ? Date.parse(value) : NaN;
+  return Number.isFinite(time) ? new Date(time).toISOString() : null;
+};
+
+function frozenWelcome(welcome) {
+  const source_as_of = observationStamp(welcome?.source_as_of);
+  if (welcome?.returning === true) return { returning: true, source_as_of };
+  if (!source_as_of || !Number.isSafeInteger(welcome?.value)) return null;
+  const value = welcome.value;
+  let fact;
+  if (welcome.kind === "career_wins" && value >= 1000)
+    fact = `${(Math.floor(value / 1000) * 1000).toLocaleString("en-US")}+ career wins.`;
+  else if (welcome.kind === "best_trophies" && value > 0)
+    fact = `Recorded best: ${value.toLocaleString("en-US")} trophies.`;
+  return fact ? { fact, source_as_of } : null;
+}
+
+function frozenDeparture(departure) {
+  const confirmed_at = observationStamp(departure?.confirmed_at);
+  if (
+    !confirmed_at ||
+    !["member_kicked", "member_left"].includes(departure?.classification)
+  )
+    return null;
+  return {
+    classification: departure.classification,
+    confirmed_at,
+    observed_left_at: observationStamp(departure.observed_left_at),
+    tenure_days:
+      Number.isSafeInteger(departure.tenure_days) && departure.tenure_days > 0
+        ? departure.tenure_days
+        : null,
+  };
+}
+
+/** Short chat copy for an existing action. Welcomes use one frozen detail;
+ * departures their confirmed classification and recorded tenure. Identity
+ * and all other member evidence stay local. */
 export function chatMessageRequest({
   kind,
   clanName = null,
   voice = null,
   goals = [],
   note = null,
+  welcome = null,
+  departure = null,
 } = {}) {
-  if (!["welcome", "removal"].includes(kind))
+  if (!["welcome", "removal", "departure"].includes(kind))
     throw new Error(`no chat draft for ${kind}`);
   const max = kind === "welcome" ? WELCOME_MAX : CHAT_MAX;
+  const detail = kind === "welcome" ? frozenWelcome(welcome) : null;
+  const confirmed = kind === "departure" ? frozenDeparture(departure) : null;
+  if (kind === "departure" && !confirmed)
+    throw new Error("departure is not confirmed");
   const lines = [`The clan: ${clanName ?? "a Clash Royale clan"}.`];
   if (voice?.tagline || voice?.about)
     lines.push(
@@ -437,8 +486,38 @@ export function chatMessageRequest({
   lines.push(
     kind === "welcome"
       ? "Welcome a new member. Write {name} for them. Be friendly and make no promises or demands."
-      : "Prepare a kind clan-chat message to use only AFTER a leader decides and carries out removal for inactivity. Write {name} for the member. Say they are welcome back when playing again. Do not advise whether to remove them, invent a reason, or shame them.",
+      : kind === "departure"
+        ? confirmed.classification === "member_left"
+          ? "A leader explicitly confirmed that the member left. Write a friendly farewell thanking {name} for their time in the clan and wishing them well. Do not describe a kick or invent why they left."
+          : "A leader explicitly confirmed that the member was kicked. Write a brief, respectful departure message for {name}, without blame or an invented reason. Do not describe a voluntary leave or infer inactivity, and make no promises about returning."
+        : "Prepare a kind clan-chat message to use only AFTER a leader decides and carries out removal for inactivity. Write {name} for the member. Say they are welcome back when playing again. Do not advise whether to remove them, invent a reason, or shame them.",
   );
+  if (detail)
+    lines.push(
+      "Frozen context approved for this welcome:",
+      detail.returning
+        ? "This is a recorded return to the clan. Welcome them back."
+        : `Include this recorded career fact without changing its meaning: ${detail.fact}`,
+      detail.source_as_of
+        ? `Source observed at ${detail.source_as_of}.`
+        : "The source observation time is unknown.",
+      "This context was frozen with the action. Do not claim it is current, newly achieved or a recent milestone. The observation timestamp is provenance only; do not put it in the chat line.",
+    );
+  if (confirmed) {
+    lines.push(
+      `Classification source: explicit leader confirmation at ${confirmed.confirmed_at}.`,
+      confirmed.observed_left_at
+        ? `The roster departure was observed at ${confirmed.observed_left_at}.`
+        : "The roster departure observation time is unknown.",
+    );
+    if (confirmed.tenure_days)
+      lines.push(
+        `Frozen predeparture context: recorded tenure ${confirmed.tenure_days} days. Its metric observation time is not stored. This is recorded context, not proof of their full or exact time in the clan.`,
+      );
+    lines.push(
+      "The raw roster observation did not distinguish kick from leave; only the leader confirmation does. Timestamps are provenance, not chat copy. Private decision notes and internal removal rationale are not supplied and must not be invented.",
+    );
+  }
   if (note && !Object.hasOwn(CHAT_TONES, note))
     throw new Error("invalid chat tone");
   if (note) lines.push(`The tone: ${CHAT_TONES[note]}.`);
@@ -448,7 +527,9 @@ export function chatMessageRequest({
     system: [
       "Write one short Clash Royale clan-chat line in the clan's voice. A person edits it and sends it in the game; nothing is posted automatically.",
       `Keep it within ${max - 30} characters, leaving room for the member's name. Use {name} exactly once.`,
-      "Never judge a member or write a score, rank, number, rule, reward, or event. Use only the clan context supplied. Write in English unless asked otherwise.",
+      detail || confirmed
+        ? "Never judge a member or invent a score, rank, number, rule, reward or event. Use only the clan context and the supplied frozen message context; no other personal facts. Write in English unless asked otherwise."
+        : "Never judge a member or write a score, rank, number, rule, reward, or event. Use only the clan context supplied. Write in English unless asked otherwise.",
       "Plain text only: no links, emoji, markdown, @mentions, '&', 'phone', or hyphens inside words. Answer by calling write_chat_message.",
     ].join("\n"),
     prompt: lines.join("\n"),
@@ -466,9 +547,14 @@ export function chatMessageRequest({
 }
 
 /** Put the name back locally and retain the same game limits and warnings. */
-export function chatMessageFromDraft(input, { kind, name = null } = {}) {
-  if (!["welcome", "removal"].includes(kind))
+export function chatMessageFromDraft(
+  input,
+  { kind, name = null, welcome = null, departure = null } = {},
+) {
+  if (!["welcome", "removal", "departure"].includes(kind))
     throw new Error(`no chat draft for ${kind}`);
+  if (kind === "departure" && !frozenDeparture(departure))
+    throw new Error("departure is not confirmed");
   const max = kind === "welcome" ? WELCOME_MAX : CHAT_MAX;
   const who = chatSafe(name ?? "a member");
   let line = String(input?.line ?? "")
@@ -477,8 +563,10 @@ export function chatMessageFromDraft(input, { kind, name = null } = {}) {
   if (!line)
     line =
       kind === "welcome"
-        ? `Welcome to the clan, ${who}!`
-        : `${who} was removed for inactivity. Welcome back when you are playing again.`;
+        ? inGameCopy("welcome", { name: who, welcome: frozenWelcome(welcome) })
+        : kind === "departure"
+          ? inGameCopy("farewell", { name: who })
+          : `${who} was removed for inactivity. Welcome back when you are playing again.`;
   else if (!line.includes(who)) line = `${who}: ${line}`;
   line = clipChat(chatSafe(line), max);
   return { line, warnings: chatWarnings(line, max) };
