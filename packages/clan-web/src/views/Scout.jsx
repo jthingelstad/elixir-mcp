@@ -7,6 +7,8 @@ import { trackEvent } from "../analytics.js";
  * their statistics; once the clan has a policy, also whether they would
  * meet its minimums today and where its inactivity clock would put them.
  */
+const SCOUT_ROLES = new Set(["leader", "coLeader", "elder"]);
+
 const MINIMUM_UNIT = {
   war: "war decks",
   ranked: "ranked battles",
@@ -48,6 +50,12 @@ export function Scout({ clan }) {
     }
   };
   useEffect(() => () => window.clearTimeout(timer.current), []);
+  if (!SCOUT_ROLES.has(clan.role))
+    return (
+      <div className="callout callout--warn" role="alert">
+        <span>Scout is for elders, co-leaders and the leader.</span>
+      </div>
+    );
   const r = state.result;
   const p = r?.profile;
   const a = r?.policy_answer;
@@ -61,17 +69,19 @@ export function Scout({ clan }) {
           if (tag.trim()) read(tag.trim());
         }}
       >
-        <input
-          className="input"
-          placeholder="#TAG from the game"
-          value={tag}
-          onChange={(e) => setTag(e.target.value)}
-          style={{ flex: "1 1 220px" }}
-          autoCapitalize="characters"
-        />
+        <label className="grid gap-1.5" style={{ flex: "1 1 220px" }}>
+          <span className="field-label">Player tag</span>
+          <input
+            className="input"
+            placeholder="#TAG from the game"
+            value={tag}
+            onChange={(e) => setTag(e.target.value)}
+            autoCapitalize="characters"
+          />
+        </label>
         <button
           type="submit"
-          className="btn btn--primary"
+          className="btn btn--primary self-end"
           disabled={state.loading}
         >
           {state.loading ? "Reading…" : "Scout"}
