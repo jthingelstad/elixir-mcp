@@ -4886,3 +4886,31 @@ findings; assignment move-and-restore and credential revoke-and-restore remain
 refused. Live acceptance will test the existing ungranted principal’s refusal;
 positive context/grant tests use scratch data, with no extra QA grants. The
 Discord routine consumer remains a separate coordinated slice.
+
+Deployment receipt: PR #284 merged as efa4ccd76aebedbc16c6527aac7759b24c0a2deb
+after required validate 37223186681 passed at 18:13:46Z (1:13 PM CT), including
+full build/browser checks. The lease-protected platform deployment finished at
+18:21:55Z (1:21 PM CT), observed from its log. Migration 0202 ran once. All
+43 smoke checks passed; full acceptance ran 1,135 cases with zero failures,
+376 expected retired-criterion skips and 515 distinct calls. The ungranted
+acceptance principal was refused as required. No acceptance finding is owed.
+
+Actual DB eligibility preview at 18:22:43Z (1:22 PM CT) qualified exactly the
+three approved configured candidates, each matching the approved operator owner,
+with a primary assignment, one live MCP read credential and current verified
+owner membership. Zero existing grants preceded the explicit fingerprint-bound
+apply; exactly three were created, and a subsequent read found three active
+grants with no writes. Existing configured credentials then returned the exact
+eight-field context on contract 11.2.0 at 18:23:37-38Z (1:23 PM CT). Private
+identities and context values stay out of this public receipt. No policy intent,
+standard scopes, routine messages or member decisions changed.
+
+Public status was healthy; tools.json published 11.2.0 and the JSON API remained
+3.0.0. All seven Lambda functions were Active/Successful and their CodeSha256
+matched the local merged deployment ZIPs. The production lease was released
+after those readbacks. The consumer handoff fixtures are on main; Discord
+consumer PR #18 owns routine gating and selects a 60-second read-to-fire limit,
+compatible with successful current read_at. This is a consumer freshness rule;
+policy_saved_at remains provenance and the hub supplies no implicit TTL. The
+consumer still ships under its own repository’s rules, with no early live
+routine or message as QA. This receipt-only follow-up requires no redeploy.

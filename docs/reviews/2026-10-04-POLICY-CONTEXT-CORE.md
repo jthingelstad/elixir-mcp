@@ -1,6 +1,6 @@
 # Issue 283: core policy context draft
 
-Status: approved bounded agent implementation; not deployed yet. [Canonical issue](https://github.com/jthingelstad/elixir-mcp/issues/283).
+Status: hub deployed as efa4ccd7; exactly three eligible bounded grants verified. Discord consumer remains a separate slice. [Canonical issue](https://github.com/jthingelstad/elixir-mcp/issues/283).
 Priority remains season readiness, policy connection, then Ladder/invitation.
 
 ## Core preparation
@@ -62,8 +62,9 @@ startup, before planning and immediately before firing an affected routine.
 Only a known result for the assigned clan from that successful refresh can be
 used for that phase. Defer the affected routine on unknown, error or failed
 refresh; do not infer a value from scoring, preset, clan assignment or policy age.
-The maximum permitted read-to-fire age and clock-skew treatment still need
-coordination with the consumer; this core schema does not invent a TTL or grant.
+Discord consumer PR #18 selects a maximum read-to-fire age of 60 seconds,
+compatible with the current read timestamp; its own gate validates freshness
+and clock skew. This core schema supplies no implicit TTL or grant.
 
 ### Read-only agent verification basis
 
@@ -135,3 +136,16 @@ actual owner against the approved operator account. No intent values, routine
 messages or member decisions are written. The negative live acceptance case
 requires the ungranted acceptance principal to be refused; no additional QA
 principal is granted private policy access. Positive paths remain synthetic.
+
+## Deployment verification
+
+PR #284 merged after full local verification and required CI. The deployment
+passed 43 smoke checks and full acceptance (1,135 cases, zero failures, 376
+expected skips). Actual metadata-only DB verification qualified the three
+approved configured candidates and matched their actual owner to the current
+approved operator account. An explicit fingerprint-bound apply created exactly
+three grants from zero; readback confirmed three active grants, and each
+existing configured credential successfully read exactly eight context fields
+on 11.2.0. No private identities/context values are published in this receipt.
+JSON API 3.0.0, policy values and standard scopes remain unchanged.
+See the dated NOTES entry for observed times and production bundle checks.
