@@ -140,7 +140,8 @@ for (const size of ["wide", "@narrow"])
         await page
           .getByRole("combobox", { name: "Show" })
           .selectOption("closed");
-      await page.locator('a[href="/clan/2PQRJ8LV/actions/33"]').last().click();
+      const detail = `/clan/2PQRJ8LV/actions/33${entry === "closed" ? "?show=closed" : ""}`;
+      await page.locator(`a[href="${detail}"]`).last().click();
       await page
         .getByRole("button", { name: "Reopen action", exact: true })
         .click();
@@ -195,9 +196,9 @@ for (const size of ["wide", "@narrow"])
           page.getByText("No action taken yet.", { exact: true }),
         ).toBeVisible();
       else {
-        await page
-          .getByRole("combobox", { name: "Show" })
-          .selectOption("closed");
+        await expect(page.getByRole("combobox", { name: "Show" })).toHaveValue(
+          "closed",
+        );
         await expect(
           page.getByText("No closed actions in the last 30 days.", {
             exact: true,
