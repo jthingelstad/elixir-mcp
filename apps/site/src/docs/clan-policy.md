@@ -7,17 +7,20 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-04 against contract 11.2.0"
 ---
 
 # Write how your clan runs
 
-**Clan War participation** on About records the leaders' intent: participating,
+**Clan War participation** appears first on About and in the **Draft agreement**
+summary. The **Clan Wars** scoring tab links back to this question. It records
+the leaders' intent: participating,
 not participating, or not specified. It is separate from **Count Clan Wars**,
 which controls scoring and minimums. Existing policies start as not specified;
 starting points and category switches never infer or overwrite intent. Only
-leaders and co-leaders save it. This setting records intent; it does not change
-scheduled messages yet.
+leaders and co-leaders save it. When policy-aware scheduling is enabled for
+the clan’s agent, saved intent governs its war-dependent messages. Not specified
+or unavailable context makes those messages wait; unrelated messages continue.
 
 Every clan runs differently, so Elixir Clan has no rules of its own. The
 clan's **policy** says what it counts, how Elder works, how long a quiet
@@ -29,7 +32,8 @@ awards.
 
 The leader and co-leaders, under **Manage ▸ Policy**, once their player
 is [verified](/docs/verify). Leaders can prepare and save a policy at any
-clan size. Operational reviews, Actions, standing and awards remain paused
+clan size; the small-clan roster page offers leaders **Prepare policy** alongside
+**Open Recruit**. Operational reviews, Actions, standing and awards remain paused
 below 10 members and resume at 10. Saving below ten creates no announcement
 Action. Policy is Elixir's agreement for the clan, not a game setting.
 Every member reads an active policy on

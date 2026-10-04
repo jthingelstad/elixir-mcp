@@ -70,6 +70,31 @@ describe("spread the word", () => {
     expect(screen.getByRole("link", { name: "Open Recruit ›" })).toBeTruthy();
   });
 
+  test("small-clan leaders can prepare policy, while members keep the recruiting path", () => {
+    for (const role of ["leader", "coLeader", "elder", "member"]) {
+      const navigate = vi.fn();
+      renderWithProviders(
+        <SpreadWord
+          me={me({ set: false, active: false })}
+          clan={clan(role)}
+          roster={roster(1)}
+          navigate={navigate}
+        />,
+      );
+      expect(screen.getByRole("link", { name: "Open Recruit ›" })).toBeTruthy();
+      const link = screen.queryByRole("link", { name: "Prepare policy" });
+      if (["leader", "coLeader"].includes(role)) {
+        expect(link.getAttribute("href")).toBe("/clan/2PQRJ8LV/manage/policy");
+        fireEvent.click(link);
+        expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/manage/policy");
+        expect(
+          screen.getByText(/operational management still waits for 10 members/),
+        ).toBeTruthy();
+      } else expect(link).toBeNull();
+      cleanup();
+    }
+  });
+
   test("with an active policy, anyone can bring clanmates in", () => {
     renderWithProviders(
       <SpreadWord

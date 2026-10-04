@@ -5,6 +5,7 @@ import {
   fireEvent,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Policy } from "../src/views/Policy.jsx";
@@ -44,6 +45,50 @@ const render = async (data = view) => {
 };
 
 describe("policy: tabs along the top", () => {
+  test("the draft summary follows explicit intent, and scoring links to the question before presets without saving", async () => {
+    const save = vi.spyOn(manageApi, "savePolicy");
+    const { container } = await render();
+    const summary = screen
+      .getByRole("heading", { name: "Draft agreement" })
+      .closest("section");
+    expect(
+      within(summary).getByText(/Clan War participation: Not specified/),
+    ).toBeTruthy();
+    const intent = screen.getByLabelText(/Clan War participation/);
+    const presetHeading = screen.getByRole("heading", {
+      name: "Start from what the clan is for",
+    });
+    expect(
+      intent.compareDocumentPosition(presetHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(container.querySelectorAll("#f-war_intent").length).toBe(1);
+    fireEvent.change(intent, { target: { value: "participating" } });
+    expect(
+      within(summary).getByText(
+        /Clan War participation: We participate in Clan Wars/,
+      ),
+    ).toBeTruthy();
+    open("Clan Wars");
+    expect(screen.getByLabelText("Count Clan Wars").checked).toBe(false);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Set Clan War participation in About",
+      }),
+    );
+    expect(screen.getByLabelText(/Clan War participation/).value).toBe(
+      "participating",
+    );
+    fireEvent.change(screen.getByLabelText(/Clan War participation/), {
+      target: { value: "not_participating" },
+    });
+    expect(
+      within(summary).getByText(
+        /Clan War participation: We do not participate in Clan Wars/,
+      ),
+    ).toBeTruthy();
+    expect(save).not.toHaveBeenCalled();
+  });
   test("war intent starts unknown, survives presets and is saved independently of scoring", async () => {
     const save = vi
       .spyOn(manageApi, "savePolicy")
