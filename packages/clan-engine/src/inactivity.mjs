@@ -65,9 +65,17 @@ export function inactivityEvidence(member, at) {
     reason = "Profile observations are missing inside the measured window.";
   else if (tail > 0)
     reason = "Time after the latest profile counter observation is unmeasured.";
+  // This describes only the measured narrow counter window. It preserves
+  // factual triage and the optional away question; it is never removal proof.
+  const counterWindowMeasured = reason === null;
+  // No current source establishes absence of own-player battle activity
+  // across every mode. Even an exact-time flat counter must hold removal.
+  // Never accept a caller-supplied coverage flag in place of a source contract.
+  reason ??= "Absence of battle activity across every mode is not established.";
   return {
-    status: reason ? "held" : "ready",
+    status: "held",
     reason,
+    counter_window_measured: counterWindowMeasured,
     measured_through: Number.isFinite(latest)
       ? new Date(latest).toISOString()
       : null,
@@ -97,6 +105,6 @@ export function inactivityEvidence(member, at) {
       Number.isFinite(latest)
         ? Math.max(0, (latest - quietSince) / DAY)
         : null,
-    note: "Counter evidence describes counted play between profile observations. Missing captures and unmeasured time do not establish inactivity; no exact battle time or mode is inferred.",
+    note: "Counter evidence describes counted play between profile observations. Flat counters, missing captures and unmeasured time do not establish absence of battle activity across every mode; no exact battle time or mode is inferred.",
   };
 }

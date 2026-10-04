@@ -44,6 +44,37 @@ const render = async (data = view) => {
 };
 
 describe("policy: tabs along the top", () => {
+  test("preview holds a threshold-crossed removal without all-mode proof", async () => {
+    vi.spyOn(manageApi, "previewPolicy").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        current: null,
+        draft: {
+          boundaries: [],
+          band: null,
+          members: [
+            {
+              player_tag: "#8QCV",
+              name: "Example",
+              promotion: "none",
+              demotion: "none",
+              removal: "recommended",
+              removal_judgment: "held",
+              removal_triage: { status: "evidence_held" },
+              actionable: { removal: false },
+            },
+          ],
+        },
+      },
+    });
+    await render();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Preview the last reviews" }),
+    );
+    expect(await screen.findByText("removal evidence held")).toBeTruthy();
+    expect(screen.queryByText("removal recommended")).toBeNull();
+  });
   test("leaders prepare a small clan's policy without starting operational reviews", async () => {
     const save = vi
       .spyOn(manageApi, "savePolicy")

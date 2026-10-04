@@ -4743,3 +4743,45 @@ acceptance failure or waiver was added. Served documentation and versions,
 healthy public status and all seven active Lambda ZIP hashes matched the
 release build. Detailed operational and audit-preservation evidence remains
 private. This notes-only receipt needs no further deployment.
+
+## 2026-10-04 - All-mode absence holds ordinary removal
+
+Jamie defines inactivity as no own-player battle activity in any mode. A fresh
+flat narrow counter, even with zero unmeasured tail, does not establish that
+absence. The shared inactivity guard now always holds ordinary removal under
+the current source contract. Recommendation, copy, draft, direct completion and
+fresh reopening use that guard; schema 3 invalidates legacy cached eligibility.
+Caller-supplied coverage flags cannot grant permission. Positive captured play
+and counter brackets, protected roles, factual clock displays, optional away
+questions, and completed/declined history remain intact. Policy preview, scouting,
+Standing, away prompts and generated policy prose describe the same boundary.
+
+Synthetic tests cover exact observation time, one millisecond, one hour and
+thirty hours later, stale eligible caches, spoofed coverage, draft/completion/
+reopen refusals and historical evidence preservation. Model orchestration units
+inject their guard explicitly; they do not fabricate source coverage. A bounded
+independent read-only consistency trace found no admission bypass and identified
+the display surfaces corrected in this change. No live member decision is QA.
+
+PR #279 proves a strictly newer successful unchanged profile read advances an
+existing daily observation stamp, preserving shared roster values and returning
+zero added snapshot facts. Normal admission and projection commit with the
+receipt/content identity in one transaction; rejected, duplicate and skipped
+projections cannot freshen it. The daily row remains mutable and carries no
+receipt/hash binding or immutable per-admission counter tuple. Original fetched
+time is not ingest time; rebuild callers also use original observation time.
+Future proof needs receipt-bound validated counter observations, comparable
+source coverage and honest baselines, gaps and tails. Tuple binding alone cannot
+prove coverage of every mode. No such coverage, backfill or freshness allowance
+is introduced here. Timestamp-only updates have zero added facts; new daily rows
+can legitimately add facts.
+
+MCP 11.1.1 and JSON API 3.0.0 remain unchanged: only private Clan behavior and
+copy change. Deploy acceptance scope is none because no public tool or JSON API
+operation changes; full local verify, CI site/browser checks, deploy smoke and
+served build/ZIP/health readback are the gates. Deployment receipt follows.
+
+Validation: full `npm run verify` passed after allowing local scratch PostgreSQL
+access (the sandbox attempt was blocked with EPERM). Updated generated-policy
+and browser preview regressions also passed in focused reruns: ten render tests
+and 105 Clan UI tests. CI will run the complete browser/site lanes.

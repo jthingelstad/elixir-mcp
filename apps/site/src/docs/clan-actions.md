@@ -174,8 +174,8 @@ an existing object still fails without starting another model call.
 ## The inactivity clock
 
 When the clan turns on **Suggest removals**, recorded battles and profile
-counter increases inform a clock: **getting quiet**, then **at risk**, then a
-removal action once they have stayed at risk for the days the clan set.
+counter increases inform a clock: **getting quiet**, then **at risk**. Crossing
+the policy's time threshold alone does not admit a removal Action.
 The leader, co-leaders, members on a hold and, unless the clan allows
 it, Elders are shown as **Protected** on Board and are never put up for removal. When the
 record cannot establish the required quiet window, removal eligibility holds.
@@ -186,16 +186,25 @@ exact battle time or mode. The latest possible play in that bracket protects
 the member; the age of the last captured battle is historical evidence, not
 "battle-free days."
 
-A removal needs comparable profile counter observations covering the policy
-window. Roster-only daily rows are not profile observations; missing days
+A removal needs proof of no own-player battle activity in **every mode** over
+the policy window. Logging in and collecting rewards do not count as battle
+activity. The current counters and bounded battle log do not establish that
+absence, so recommendations remain **Evidence held**, even when evaluation
+is exactly at the latest profile observation. Flat counters never override it.
+
+Comparable profile counter observations remain useful evidence, with their
+scope stated. Roster-only daily rows are not profile observations; missing days
 remain gaps and never establish quiet time across them. Missing baselines,
 null or decreasing counters, ambiguous timestamps,
 failed current reads and time after the latest profile observation hold it.
 There is no implicit freshness allowance for that unmeasured tail; in normal
-operation this holds removals until an explicit freshness rule is agreed.
-An unchanged profile poll need not advance the snapshot's profile timestamp.
-The counter only describes the play it counts, never proof that every game
-mode was observed.
+operation this also holds removals. A proposed freshness allowance cannot
+replace the missing all-mode proof. Successful admitted unchanged profile
+reads advance the existing daily profile stamp without earning a new fact for
+that timestamp-only update. The counter only describes the play it counts,
+never proof that every game mode was observed. Captured activity, positive
+counter intervals and optional away questions remain visible; an away question
+does not grant removal permission.
 
 Every removal list/detail read checks current evidence independently of the
 saved evaluation. Held Actions show a warning and withhold removal copy,

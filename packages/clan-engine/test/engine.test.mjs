@@ -659,7 +659,7 @@ test("a declined card blocks re-nomination until the cooldown lapses; a complete
   });
   assert.equal(
     v2.members.find((m) => m.player_tag === "#X").actionable.removal,
-    true,
+    false,
   );
   // Completed three days ago: past the 48-hour outcome window.
   const done = [{ ...declined[0], status: "done" }];
@@ -671,7 +671,7 @@ test("a declined card blocks re-nomination until the cooldown lapses; a complete
   });
   assert.equal(
     v3.members.find((m) => m.player_tag === "#X").actionable.removal,
-    true,
+    false,
   );
   // Completed an hour ago and the member still on the roster (the kick
   // not polled yet): no new removal until the window passes (2026-09-25).
@@ -690,7 +690,7 @@ test("a declined card blocks re-nomination until the cooldown lapses; a complete
   const r4 = v4.members.find((m) => m.player_tag === "#X");
   assert.equal(r4.actionable.removal, false, "waits for the record");
   assert.ok(r4.removal.cooldown_until);
-  // One the record never confirmed (flagged) may be raised again.
+  // A flagged outcome does not supply the missing all-mode absence proof.
   const v5 = evaluate({
     participation: participation([...others, idle]),
     policy,
@@ -699,7 +699,7 @@ test("a declined card blocks re-nomination until the cooldown lapses; a complete
   });
   assert.equal(
     v5.members.find((m) => m.player_tag === "#X").actionable.removal,
-    true,
+    false,
   );
 });
 
@@ -747,15 +747,21 @@ test("reconcile: raise for actionable verdicts without an open card, withdraw op
     raise.filter((r) => r.type === "removal"),
     [],
   );
-  assert.equal(withdraw.length, 1);
-  assert.equal(withdraw[0].card.card_id, "c1");
-  assert.match(withdraw[0].reason, /played/);
+  assert.equal(withdraw.length, 2);
+  assert.match(
+    withdraw.find((w) => w.card.card_id === "c1").reason,
+    /battle was captured/,
+  );
+  assert.match(
+    withdraw.find((w) => w.card.card_id === "c2").reason,
+    /Inactivity is not established/,
+  );
   const fresh = reconcileCards(v, []);
   assert.deepEqual(
     fresh.raise
       .filter((r) => r.type === "removal")
       .map((r) => `${r.player_tag}:${r.type}`),
-    ["#IDLE:removal"],
+    [],
   );
 });
 
@@ -817,7 +823,7 @@ test("a clan that does not count Clan Wars is reviewed at the end of each whole 
   );
 });
 
-test("Elders can be carded for inactivity when the policy says so; leadership never is", () => {
+test("including Elders does not bypass all-mode proof; role protection remains", () => {
   const others = Array.from({ length: 10 }, (_, i) => member(`#O${i}`));
   const elder = member("#E", {
     role: "elder",
@@ -839,7 +845,9 @@ test("Elders can be carded for inactivity when the policy says so; leadership ne
     now: NOW,
   });
   assert.equal(find(included, "#E").removal.state, "recommended");
-  assert.equal(find(included, "#E").actionable.removal, true);
+  assert.equal(find(included, "#E").actionable.removal, false);
+  assert.equal(find(included, "#E").removal.triage.status, "evidence_held");
+  assert.equal(find(shielded, "#E").removal.triage.status, "protected");
   assert.equal(find(included, "#C").removal.shielded, "role");
 });
 

@@ -389,7 +389,7 @@ export function describePolicy(policy) {
 
   if (policy.removal_enabled) {
     const lines = [
-      `Measured quiet for ${plural(policy.at_risk_days, "day")} is at risk; after ${plural(policy.at_risk_days + policy.confirm_days, "day")} the leaders decide on removal. Recorded battles and profile counter increases reset the clock; missing observations hold the recommendation.`,
+      `Measured counter quiet for ${plural(policy.at_risk_days, "day")} reaches the at-risk clock; ${plural(policy.at_risk_days + policy.confirm_days, "day")} is the removal threshold. Crossing it cannot raise a removal Action without proof of no battle activity across every mode. That proof is currently unavailable, so removal stays held even with fresh flat counters. Recorded battles and positive counter intervals protect activity; missing observations remain uncertainty.`,
     ];
     if (policy.contribution_grace_max_days > 0)
       lines.push(

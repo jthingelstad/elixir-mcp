@@ -896,8 +896,10 @@ function BoundActionCard({
             </div>
           ) : action.type === "away" ? (
             <div>
-              You have not played in {Math.floor(ev.days_idle ?? 0)} days. Going
-              to be away? Mark it to shield removal eligibility while active
+              The recorded activity clock is {Math.floor(ev.days_idle ?? 0)}{" "}
+              days. This does not establish no play across every battle mode.
+              Going to be away? Mark it to shield removal eligibility while
+              active
               {ev.away_max_days ? ` (up to ${ev.away_max_days} days)` : ""}.
             </div>
           ) : action.type === "awards_announcement" ? (

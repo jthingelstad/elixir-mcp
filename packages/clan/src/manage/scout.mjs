@@ -205,9 +205,11 @@ function policyAnswer({
       policy.removal_enabled && daysIdle !== null
         ? {
             days_idle: daysIdle,
+            reason:
+              "Recorded battle age does not establish absence of battle activity across every mode.",
             state:
               daysIdle >= policy.at_risk_days + policy.confirm_days
-                ? "would_be_recommended"
+                ? "evidence_held"
                 : daysIdle >= policy.at_risk_days
                   ? "at_risk"
                   : daysIdle >= policy.watch_days

@@ -271,7 +271,9 @@ function You({ you, who }) {
         {you.inactivity ? (
           <div className="callout callout--warn">
             <span>
-              You have not played in {Math.floor(you.days_idle)} days.
+              The last recorded activity marker is {Math.floor(you.days_idle)}{" "}
+              days old. This does not establish no play across every battle
+              mode.
             </span>
           </div>
         ) : null}

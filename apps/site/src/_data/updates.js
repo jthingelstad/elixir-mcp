@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Flat counters cannot authorize removal",
+    body: "Removal recommendations, words, drafting, completion and reopening stay held while absence of battle activity across every mode is unproved—even at the exact profile observation time. Captured play and positive counter intervals still protect members; role protections, optional away questions and historical Actions remain available. No freshness allowance is adopted. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Unchanged profile reads keep an honest observation time",
     body: "Successful admitted profile reads update their observation time even when the recorded values stay the same. They earn no new facts or collector points, preserve newer roster values and cannot regress on older deliveries. This does not prove absence of battle activity in every mode; Clan removal checks and freshness rules are unchanged. Contract 11.1.1; JSON API 3.0.0 unchanged.",
   },

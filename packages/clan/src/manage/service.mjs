@@ -476,7 +476,7 @@ export function createManageService({
       !participation &&
       !small &&
       cached &&
-      cached.removal_evidence_schema === 2 &&
+      cached.removal_evidence_schema === 3 &&
       cached.policy_version === policy.version &&
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
@@ -715,7 +715,7 @@ export function createManageService({
         },
         cards,
         {
-          text: `${days} battle-free days, at risk from ${m.removal.at_risk_days}: asked whether they are away.`,
+          text: `${days} days of measured counter quiet, at risk from ${m.removal.at_risk_days}: asked whether they are away.`,
           detail: { clauses: ["away_suggestions_enabled", "at_risk_days"] },
         },
       );
@@ -873,7 +873,7 @@ export function createManageService({
     // The snapshot is what the pages read; keep it small.
     const snapshot = {
       ...verdicts,
-      removal_evidence_schema: 2,
+      removal_evidence_schema: 3,
       members: verdicts.members.map((m) => ({
         ...m,
         trail: m.trail.slice(-4),
@@ -1286,6 +1286,8 @@ export function createManageService({
             promotion: m.promotion.state,
             demotion: m.demotion.state,
             removal: m.removal.state,
+            removal_judgment: m.judgment.removal,
+            removal_triage: m.removal.triage,
             actionable: m.actionable,
             trail: m.trail.slice(-4).map((t) => ({
               at: t.at,
@@ -2053,6 +2055,7 @@ export function createManageService({
                     ? "at_risk"
                     : mine.removal.state,
               days_idle: mine.facts.days_idle,
+              inactivity_evidence: mine.facts.activity_evidence,
               hold: myHold ? { until: myHold.until ?? null } : null,
             }
           : null,

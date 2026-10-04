@@ -214,9 +214,11 @@ export function Policy({ clan }) {
           <p className="m-0">
             Removal suggestions are{" "}
             {draft.removal_enabled
-              ? `on: at risk after ${draft.at_risk_days} days since recorded play, an Action after ${draft.at_risk_days + draft.confirm_days} days before contribution grace or holds`
+              ? `on: the at-risk clock is ${draft.at_risk_days} days, the removal threshold ${draft.at_risk_days + draft.confirm_days} days before contribution grace or holds`
               : "off"}
-            . Recorded gaps remain uncertainty, not proof of no play.
+            . A removal Action also requires proof of no battle activity across
+            every mode. That proof is currently unavailable; fresh flat counters
+            and recorded gaps cannot establish it.
           </p>
           <p className="page-head__note m-0">
             Example: an expectation about participation is checked against
@@ -610,7 +612,11 @@ function Preview({ preview }) {
     if (bits.length) return bits.join(", ");
     if (m.promotion !== "none") return `promotion ${m.promotion}`;
     if (m.demotion !== "none") return `demotion ${m.demotion}`;
-    if (m.removal !== "none") return `removal ${m.removal.replace("_", " ")}`;
+    if (m.removal !== "none") {
+      if (m.removal_triage?.status === "protected") return "removal protected";
+      if (m.removal_judgment === "held") return "removal evidence held";
+      return `removal ${m.removal.replace("_", " ")}`;
+    }
     return "—";
   };
   const none = {
