@@ -5263,7 +5263,7 @@ JSON API 3.0.0 and response shapes are unchanged.
 ## 2026-10-04 - 11.2.1 participation deployment and bounded readback
 
 PR #298 merged as 93c2bb49 after required validate completed green at
-21:58:17Z, including all 135 browser journeys. Local validation passed
+21:58:16Z, including all 135 browser journeys. Local validation passed
 1,815 Node tests and 442 UI tests, with the existing 85 retired-scope skips.
 Deployment completion was observed at 22:02:07Z (5:02 PM CT): zero migrations
 ran (202 applied), the unchanged reference vocabulary imported, all 43 smoke
