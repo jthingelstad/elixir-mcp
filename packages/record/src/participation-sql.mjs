@@ -20,6 +20,15 @@
 
 import { notBoatDefense } from "./boat-defense-sql.mjs";
 
+// The player/time cover has no side. Retrieve it only for the boat
+// predicate by participant primary key, so ordinary rows stay index-only.
+// battle_id + player_tag is unique; this is the same row's exact side.
+const OWN_BATTLES = notBoatDefense("bp", {
+  lookupByKey: true,
+  side: `(select own.side from battle_participant own
+          where own.battle_id = bp.battle_id and own.player_tag = bp.player_tag)`,
+});
+
 export const MEMBERS_SQL = `select cm.player_tag, p.name, cm.role, cm.joined_observed_at,
        (select max(bp.battle_time) from battle_participant bp
         where bp.player_tag = cm.player_tag) as last_battle,
@@ -62,15 +71,16 @@ export function participationQueries({
       // Battles per member per ISO week, ranked counted beside all, in
       // one pass index-only on battle_participant_player_time_cover (0100
       // carries type); boat defenses are not the member's battle (0171),
-      // and only boat rows look up their side, by primary key. Force the
-      // bounded scalar lookup: EXISTS can hash a full battle-table scan.
+      // and the boat predicate looks up participant side and battle by
+      // primary key. Keep the bounded scalar lookup: EXISTS can hash a
+      // full battle-table scan.
       name: "battles_by_week",
       text: `select bp.player_tag, date_trunc('week', bp.battle_time) as week_start,
                     count(*)::int as battles,
                     count(*) filter (where bp.type = any($3))::int as ranked_battles
              from battle_participant bp
              where bp.player_tag = any($1) and bp.battle_time >= $2
-               and ${notBoatDefense("bp", { lookupByKey: true })}
+               and ${OWN_BATTLES}
              group by bp.player_tag, date_trunc('week', bp.battle_time)`,
       values: [tags, from, rankedTypes],
     },
@@ -121,7 +131,7 @@ export function participationQueries({
              from battle_participant bp
              where bp.player_tag = any($1) and bp.battle_time >= $2
                and bp.clan_tag = $3
-               and ${notBoatDefense("bp", { lookupByKey: true })}
+               and ${OWN_BATTLES}
              group by bp.player_tag, date_trunc('week', bp.battle_time)`,
       values: [formerTags, from, clanTag, rankedTypes],
     },

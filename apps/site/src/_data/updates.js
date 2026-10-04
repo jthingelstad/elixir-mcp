@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Clan participation reads less history",
+    body: "Weekly participation can read ordinary battles from the existing covering index and inspect participant sides only when checking boat defenses. Awards, Standing and The week keep the same recorded battle and ranked counts, with fewer broad database reads. MCP 11.2.1; JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Keep roster searches out of new-tab analytics",
     body: "Opening a searched roster member in another tab keeps the search out of analytics referrers as well as page addresses. Same-origin referrers use the existing normalized page routes; external referrers are unchanged. MCP 11.2.0; JSON API 3.0.0 unchanged.",
   },
