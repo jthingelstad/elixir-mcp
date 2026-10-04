@@ -4935,3 +4935,24 @@ Full setup-polish verification passed: 1,807 Node tests, 85 existing skips,
 435 Vitest tests and zero failures after format/lint/knip/TypeScript checks.
 The 15 focused policy/navigation cases passed. Required CI remains the merge
 gate; deployment will use scoped elixir acceptance for the updated help corpus.
+
+## 2026-10-04 - Confirmed war-deck-check help
+
+Setup polish PR #286 merged as ca0faa3f after required validate 37225764889
+passed its full site/browser lane; it has not yet been deployed. Parent then
+confirmed Discord PR #18 deployed on all three instances as 0.3.1+61a9d22, with
+239 tests and CI green, healthy MCP 11.2.0 connections, and unknown intent
+deferring without new model calls or run consumption. Issue #283 is closed.
+
+The Policy field help and site guidance now name the exact live routine: the
+scheduled war-deck check requires explicit participating intent, the right war
+phase and a successful fresh read; not participating skips it, while unknown,
+unavailable or stale context defers it. The consumer’s final read-to-fire bound
+is 60 seconds. No claim is made that all agent content is policy-driven. This
+copy ships with the already-merged UI polish; no policy values, grants, scopes
+or contracts change. MCP 11.2.0; JSON API 3.0.0 unchanged. No live routine is
+run early as QA, and positive output waits for leaders to set intent.
+
+Confirmed-help verification passed: 1,807 Node cases, 85 existing skips,
+435 Vitest cases and zero failures. Required CI will validate the final copy
+before the combined UI/help deployment.
