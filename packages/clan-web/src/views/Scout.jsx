@@ -188,7 +188,8 @@ export function Scout({ clan }) {
                   {a.inactivity.state.replaceAll("_", " ")}
                 </span>{" "}
                 <span className="page-head__note">
-                  {a.inactivity.days_idle} days since the last recorded battle
+                  {a.inactivity.days_idle} days since the last recorded battle.{" "}
+                  {a.inactivity.reason}
                 </span>
               </div>
             ) : null}

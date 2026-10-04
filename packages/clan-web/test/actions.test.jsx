@@ -334,7 +334,9 @@ describe("actions", () => {
       />,
     );
     await waitFor(() =>
-      expect(screen.getByText(/You have not played in 6 days/)).toBeTruthy(),
+      expect(
+        screen.getByText(/The recorded activity clock is 6 days/),
+      ).toBeTruthy(),
     );
     fireEvent.click(screen.getByRole("link", { name: "Mark me away" }));
     expect(navigate).toHaveBeenCalledWith("/clan/you/away");

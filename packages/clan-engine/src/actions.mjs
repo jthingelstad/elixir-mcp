@@ -257,14 +257,18 @@ export function welcomeContext(member, joinedAt, asOf, now) {
 
 /**
  * Members to ask "going to be away?": a member or elder whose own
- * inactivity clock is at risk or past it, judged ready, and not already on
- * a hold. Leadership sets its own holds.
+ * recorded clock is at risk or past it, with a measured counter window and
+ * not already on a hold. This optional question is not an absence proof or
+ * removal admission. Leadership sets its own holds.
  */
 export function awayCandidates(verdicts) {
   return verdicts.members.filter(
     (m) =>
       !LEADERSHIP.has(m.role) &&
-      m.judgment.removal === "ready" &&
+      m.judgment.removal !== "off" &&
+      m.facts.minimums.log_recorded !== false &&
+      m.facts.days_idle !== null &&
+      m.facts.activity_evidence.counter_window_measured &&
       (m.removal.state === "at_risk" || m.removal.state === "recommended") &&
       !m.hold?.active,
   );

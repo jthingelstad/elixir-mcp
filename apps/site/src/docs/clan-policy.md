@@ -108,6 +108,8 @@ Under **Manage**, beside the policy:
 - **Board**: every member as the policy reads them today, grouped as
   actionable, building, held or clear. Group links jump to the members;
   held promotion and demotion counts are separate from removal evidence.
+  Removal evidence stays held until absence of battle activity in every mode
+  can be established; even perfectly fresh flat profile counters are insufficient.
   Open a member for their evidence,
   a note, and a **hold**, which shields removal eligibility for a member
   who said they will be away, until a date or until cleared.

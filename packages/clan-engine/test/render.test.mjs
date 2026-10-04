@@ -62,7 +62,7 @@ test("held and unknown judgments explain the missing evidence without changing t
     "Demotion held: war record incomplete in the review window.",
   ]);
   assert.deepEqual(reasons("#ANCHOR"), [
-    "Removal held: no recorded battle or observed join anchors the clock.",
+    "Removal held: Absence of battle activity across every mode is not established.",
   ]);
   const noReviews = evaluate({
     participation: participation([member("#NEW")], { war_weeks: [] }),
@@ -223,7 +223,14 @@ test("how it works here is written from the policy, and leaves out what the clan
     text,
     /Any one of: 1 war deck or 5 ranked battles, over 2 weeks/,
   );
-  assert.match(text, /Measured quiet for 5 days is at risk; after 8 days/);
+  assert.match(
+    text,
+    /Measured counter quiet for 5 days reaches the at-risk clock; 8 days is the removal threshold/,
+  );
+  assert.match(
+    text,
+    /cannot raise a removal Action without proof of no battle activity across every mode/,
+  );
   assert.match(text, /Elders are not removed for inactivity/);
   assert.doesNotMatch(text, /percentile|median|margin|score|slot/i);
   // A clan that only lets leaders choose Elders, counts nothing and does

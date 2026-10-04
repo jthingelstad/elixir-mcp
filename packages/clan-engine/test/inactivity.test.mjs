@@ -56,7 +56,7 @@ test("a threshold-straddling increase cannot supply an exact last-play time", ()
   assert.equal(v.actionable.removal, false);
 });
 
-test("complete flat counters covering the threshold can qualify; a tail, short baseline or malformed observation holds", () => {
+test("flat counters cannot qualify at the exact observation time or afterward without all-mode absence proof", () => {
   const m = member("#SYNTHETIC", {
     lastBattleDaysAgo: 20,
     war: [0, 0, 0, 0, 0, 0],
@@ -67,7 +67,24 @@ test("complete flat counters covering the threshold can qualify; a tail, short b
       policy: EXAMPLE_POLICY,
       now: NOW,
     }).members[0];
-  assert.equal(judge().actionable.removal, true);
+  assert.equal(judge().actionable.removal, false);
+  const exact = inactivityEvidence(m, NOW);
+  assert.equal(exact.unmeasured_tail_hours, 0);
+  assert.equal(exact.counter_quiet_days, 20);
+  assert.equal(exact.status, "held");
+  assert.match(exact.reason, /across every mode is not established/);
+  for (const elapsed of [1, 3600_000, 30 * 3600_000]) {
+    const at = new Date(NOW.getTime() + elapsed);
+    const later = evaluate({
+      participation: participation([m]),
+      policy: EXAMPLE_POLICY,
+      now: at,
+    }).members[0];
+    assert.equal(later.actionable.removal, false);
+    assert.equal(later.judgment.removal, "held");
+    assert.equal(later.removal.triage.status, "evidence_held");
+    assert.equal(later.facts.activity_evidence.counter_quiet_days, 20);
+  }
   for (const observations of [
     [],
     [row(0, 100)],
