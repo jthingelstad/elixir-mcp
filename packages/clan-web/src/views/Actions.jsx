@@ -74,7 +74,7 @@ function Refused({ state, query, head }) {
 /** One line of the list: the kind's mark, the number and what, who it
  *  is about and its comments, and when (or how it closed); the whole line
  *  opens the action's own page. */
-function ActionRow({ action, clan, navigate }) {
+function ActionRow({ action, clan, navigate, scope }) {
   const n = action.number;
   const open = action.status === "proposed";
   const comments = (action.log ?? []).filter(
@@ -118,7 +118,7 @@ function ActionRow({ action, clan, navigate }) {
         {line}
       </li>
     );
-  const href = actionPath(clan, n);
+  const href = actionPath(clan, n) + (scope === "closed" ? "?show=closed" : "");
   return (
     <li data-action={action.card_id}>
       <a
@@ -137,7 +137,7 @@ function ActionRow({ action, clan, navigate }) {
 }
 
 /** A list of actions in its own panel: its name, its count, its lines. */
-function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
+function ActionList({ id, title, tone, actions, clan, navigate, foot, scope }) {
   return (
     <section className="panel overflow-hidden" aria-labelledby={id}>
       <div className="panel__head">
@@ -151,6 +151,7 @@ function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
           <ActionRow
             key={a.card_id}
             action={a}
+            scope={scope}
             clan={clan}
             navigate={navigate}
           />
@@ -170,8 +171,9 @@ function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
  * actions was too long). Each line opens the action's own page. The saved
  * evaluation keeps processing quick; a refresh re-reads the record.
  */
-export function Actions({ clan, who, navigate }) {
-  const [scope, setScope] = useState("open");
+export function Actions({ clan, who, navigate, scope: routeScope }) {
+  const [localScope, setScope] = useState("open");
+  const scope = routeScope ?? localScope;
   const { state, query, load } = useActions(clan.clan_tag);
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -199,6 +201,17 @@ export function Actions({ clan, who, navigate }) {
       }
     />
   );
+  if (state.forbidden)
+    return (
+      <>
+        {head}
+        <div className="callout callout--warn" role="alert">
+          <span>
+            These Actions are unavailable for your current clan access.
+          </span>
+        </div>
+      </>
+    );
   if (state.error) return <Refused state={state} query={query} head={head} />;
   if (!d)
     return (
@@ -234,7 +247,14 @@ export function Actions({ clan, who, navigate }) {
           <select
             className="input w-auto"
             value={scope}
-            onChange={(e) => setScope(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (navigate && routeScope != null)
+                navigate(
+                  `${clanPath(clan.clan_tag)}/actions${next === "closed" ? "?show=closed" : ""}`,
+                );
+              else setScope(next);
+            }}
           >
             <option value="open">Open ({open.length})</option>
             <option value="closed">Closed</option>
@@ -262,6 +282,7 @@ export function Actions({ clan, who, navigate }) {
         {scope === "closed" &&
           (d.recent.length ? (
             <ActionList
+              scope="closed"
               id="actions-closed"
               title="Closed in the last 30 days"
               tone="chip--mute"
@@ -327,7 +348,7 @@ function CopyLink({ path }) {
  * the action is for can open it; anyone else is told there is no such
  * action here, the same answer as a number that does not exist.
  */
-export function ActionDetail({ clan, who, number, navigate }) {
+export function ActionDetail({ clan, who, number, navigate, scope }) {
   const { state, query } = useAction(clan.clan_tag, number);
   const invalidate = useInvalidate();
   const changed = () => {
@@ -339,7 +360,7 @@ export function ActionDetail({ clan, who, number, navigate }) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
-  const list = `${clanPath(clan.clan_tag)}/actions`;
+  const list = `${clanPath(clan.clan_tag)}/actions${scope === "closed" ? "?show=closed" : ""}`;
   const head = (
     <PageHead
       clan={clan}
@@ -357,7 +378,7 @@ export function ActionDetail({ clan, who, number, navigate }) {
             navigate(list);
           }}
         >
-          ‹ All actions
+          {scope === "closed" ? "‹ Closed actions" : "‹ All actions"}
         </a>
         <CopyLink path={actionPath(clan, number)} />
       </div>
@@ -373,6 +394,17 @@ export function ActionDetail({ clan, who, number, navigate }) {
             It is not one of this clan&rsquo;s actions, or it is for someone
             else to take.
           </p>
+        </div>
+      </>
+    );
+  if (state.forbidden)
+    return (
+      <>
+        {head}
+        <div className="callout callout--warn" role="alert">
+          <span>
+            These Actions are unavailable for your current clan access.
+          </span>
         </div>
       </>
     );

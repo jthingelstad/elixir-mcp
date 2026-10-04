@@ -88,11 +88,12 @@ export function clanFromPath(path, clans = []) {
 function useNav() {
   const nav = useNavigate();
   return useCallback(
-    (to) => {
+    (to, options = {}) => {
       const [pathname, qs] = String(to).split("?");
       return nav({
         to: pathname,
         search: qs ? Object.fromEntries(new URLSearchParams(qs)) : {},
+        ...options,
       });
     },
     [nav],
@@ -179,7 +180,10 @@ export function ClansPage() {
 export function ClanPage() {
   const { me } = useSession();
   const navigate = useNav();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const actionScope = search.show === "closed" ? "closed" : "open";
+  const rosterSearch =
+    typeof search.find === "string" ? search.find.slice(0, 100) : "";
   const parsed = parseClanPath(pathname);
   if (!me?.ok || !parsed) return null;
   const clan = clanFromPath(pathname, me.clans);
@@ -195,6 +199,7 @@ export function ClanPage() {
         key={`${clan.clan_tag}-${parsed.tab}`}
         clan={clan}
         playerTag={tagOf(parsed.tab)}
+        rosterSearch={rosterSearch}
         navigate={navigate}
       />
     );
@@ -218,6 +223,7 @@ export function ClanPage() {
         clan={clan}
         who={who}
         number={Number(parsed.tab)}
+        scope={actionScope}
         navigate={navigate}
       />
     );
@@ -227,7 +233,13 @@ export function ClanPage() {
     (parsed.section === "manage" && (parsed.tab ?? "inbox") === "inbox")
   )
     return (
-      <Actions key={clan.clan_tag} clan={clan} who={who} navigate={navigate} />
+      <Actions
+        key={clan.clan_tag}
+        clan={clan}
+        who={who}
+        scope={actionScope}
+        navigate={navigate}
+      />
     );
   if (
     parsed.section === "awards" ||
@@ -258,7 +270,15 @@ export function ClanPage() {
         <ClanMap key={clan.clan_tag} clan={clan} />
       </Suspense>
     );
-  return <Clan key={clan.clan_tag} me={me} clan={clan} navigate={navigate} />;
+  return (
+    <Clan
+      key={clan.clan_tag}
+      me={me}
+      clan={clan}
+      search={rosterSearch}
+      navigate={navigate}
+    />
+  );
 }
 
 export function YouPage() {

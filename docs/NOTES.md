@@ -5013,3 +5013,52 @@ public health was good. MCP 11.2.0 and JSON API 3.0.0 unchanged. The production
 lease is released; no award grants, member decisions or clan messages were
 made as QA.
 
+## 2026-10-04 - Clan browsing context and role playthrough
+
+Independent Leader-account playthrough found Closed Actions resetting to Open
+on return, roster search lost after activity, plain member names on related
+views, raw battle-mode identifiers and misleading membership-history reach.
+The bounded fix puts the Actions filter and roster search in the route,
+retains a contextual Closed return and canonical copied Action links, and
+uses existing member activity from current-member names in Award races,
+Standing and The week. Unknown mode names remain recorded names; known groups
+share the Battle page's labels through the family UI package. Direct search
+loads use sanitized analytics without the search text or member drilldown tag.
+
+History reads the existing roster recent_events projection, capped at twenty;
+its UI now labels the recent window separately from recording-start provenance.
+No older-history feature, data loss claim or new timeline implementation is
+introduced. Role fixtures uncovered denied-read branches stuck loading or
+blank; explicit access/unavailable messages now preserve those refusals.
+Healthy read-only policy and existing Elder manual-award permissions remain.
+
+Member/Elder tests use isolated synthetic session/API fixtures; live Jamie
+players are Leaders, so they do not prove ordinary-role UI paths. Desktop and
+mobile journeys include existing permitted reads, no leader controls, current
+member links, empty recorded activity, no-action responses, under-ten gates,
+map privacy context and denied/unavailable reads. Business writes are watched
+and refused by fixtures; no live roles, policy values, grants, member decisions,
+messages or paid model calls change. MCP 11.2.0 and JSON API 3.0.0 unchanged;
+no contract, private permission rule or three-section structure changes.
+
+History failures now stay failures rather than becoming empty arrays; desktop
+and mobile tests distinguish failed reads from an empty recent window. The
+You here source takes recorded capture counts from participation, whose absent
+capture bucket is zero. Its UI labels recorded counts, marks weeks before or
+crossing first roster recording and explains that zero proves neither no play
+nor membership. Counts, observed dates and all policy/award calculations stay
+unchanged; no coverage is invented. This is the bounded presentation repair
+for the independently observed pre-recording weeks, rather than clipping
+history or substituting unknown for the API's actual recorded count.
+
+Final browse-context verification passed: 1,808 Node tests, 85 existing skips,
+438 Vitest tests and zero failures after format/lint/knip/TypeScript checks.
+All sixteen focused desktop/mobile rendered journeys passed. Ordinary Member
+and Elder fixtures read personal Timeline without advancing read pointers,
+preserve policy read-only controls, verify allowed manual-award buttons and
+exercise current-member links, map privacy context, small-clan gates, empty
+captures and denied/unavailable reads. Four rendered map accessibility checks
+had no serious/critical WCAG violations. Synthetic fixture correction resolved
+an incomplete management envelope before the final History failure check.
+Required CI remains the merge gate; no tool acceptance is necessary because
+only private app presentation/navigation and shared display labels change.

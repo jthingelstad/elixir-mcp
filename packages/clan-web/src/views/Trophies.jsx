@@ -18,6 +18,17 @@ export function Trophies({ clan, who }) {
       <span className="page-head__note">{clan.name ?? clan.clan_tag}</span>
     </div>
   );
+  if (state.forbidden)
+    return (
+      <>
+        {head}
+        <div className="callout callout--warn" role="alert">
+          <span>
+            Award history is unavailable for your current clan access.
+          </span>
+        </div>
+      </>
+    );
   if (state.error === "too_few_members") {
     const d = query.data?.data ?? {};
     return (

@@ -2,6 +2,7 @@ import { Fresh, ago } from "@elixir-mcp/ui";
 import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useAwards } from "../lib/queries.js";
+import { MemberLink } from "../components/MemberLink.jsx";
 import { TooFew } from "../components/TooFew.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { trackEvent } from "../analytics.js";
@@ -22,6 +23,12 @@ export function Awards({ clan, navigate }) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
+  if (state.forbidden)
+    return (
+      <div className="callout callout--warn" role="alert">
+        <span>Awards are unavailable for your current clan access.</span>
+      </div>
+    );
   if (state.error === "too_few_members") {
     const d = query.data?.data ?? {};
     return <TooFew members={d.members} min={d.min_members} />;
@@ -164,6 +171,7 @@ export function Awards({ clan, navigate }) {
               canRevoke={d.can_edit}
               clan={clan}
               candidates={d.members}
+              navigate={navigate}
               previousGrants={d.grants.filter(
                 (g) =>
                   g.award_id === a.award_id && g.season_id === selected - 1,
@@ -299,6 +307,7 @@ function AwardPanel({
   canRevoke = false,
   clan,
   candidates = [],
+  navigate,
   previousGrants = [],
   onChange,
 }) {
@@ -391,7 +400,18 @@ function AwardPanel({
               <ul style={{ margin: 0, paddingLeft: "18px" }}>
                 {rows.map((r) => (
                   <li key={r.player_tag}>
-                    <strong>{r.name ?? r.player_tag}</strong>{" "}
+                    <strong>
+                      <MemberLink
+                        clanTag={clan.clan_tag}
+                        playerTag={r.player_tag}
+                        navigate={navigate}
+                        current={candidates.some(
+                          (member) => member.player_tag === r.player_tag,
+                        )}
+                      >
+                        {r.name ?? r.player_tag}
+                      </MemberLink>
+                    </strong>{" "}
                     <span className="tag">{r.player_tag}</span>
                     {r.note ? ` — ${r.note}` : ""}{" "}
                     <span className="page-head__note">
@@ -578,7 +598,18 @@ function AwardPanel({
                               : `${position(r)}${sharesPlace(r) ? "=" : ""}`}
                       </td>
                       <td>
-                        <strong>{r.name ?? r.player_tag}</strong>{" "}
+                        <strong>
+                          <MemberLink
+                            clanTag={clan.clan_tag}
+                            playerTag={r.player_tag}
+                            navigate={navigate}
+                            current={candidates.some(
+                              (member) => member.player_tag === r.player_tag,
+                            )}
+                          >
+                            {r.name ?? r.player_tag}
+                          </MemberLink>
+                        </strong>{" "}
                         <span className="tag">{r.player_tag}</span>
                         {season.closed && grant ? (
                           <span

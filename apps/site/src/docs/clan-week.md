@@ -7,7 +7,7 @@ order: 2
 navTitle: "The week"
 icon: calendar-range
 lede: "A report on each closed week of the clan: what the clan did in Clan Wars, donations, ranked play and battles, who took part, and who came and went."
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-04; Clan browsing context and read clarity, contracts unchanged"
 ---
 
 # The week in your clan
@@ -36,7 +36,8 @@ far**.
 | Battles | battles played, and by how many members |
 
 Each area names the members who took part, with their number, and
-marks those who joined that week; Clan Wars sets apart those who played
+links their names to existing clan-scoped recorded activity, and marks those
+who joined that week; Clan Wars sets apart those who played
 every deck asked. An area with nothing recorded is left out, never shown
 as zero. Trophy counts are not part of the week.
 

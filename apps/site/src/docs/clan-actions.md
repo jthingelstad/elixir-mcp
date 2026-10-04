@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-04; removal evidence safety, contracts unchanged"
+reviewed: "2026-10-04; Clan browsing context and read clarity, contracts unchanged"
 ---
 
 # Actions
@@ -21,12 +21,16 @@ game, and the action's log keeps what happened.
 
 ## Inspect a member's recorded activity
 
-Roster names and member Actions link to **View member activity**, a private
+Roster names, current members in Award races, Standing and The week, and
+member Actions link to **View member activity**, a private
 read for a current member of a clan you belong to. It shows four ISO weeks
 of clan-scoped recorded battle counts and observed donation counters, the
 recorded war weeks' deck usage and points, and paged battles grouped into
 recorded sessions. Each battle opens its existing full detail page. ISO
 weeks and war weeks stay distinct; decks are never assigned to war days.
+Battle modes use the same names as the battle detail page; an unrecognized
+mode retains its recorded name. Roster search is kept when opening activity,
+returning to the roster or refreshing the page.
 
 Battle detail is clipped to the member's current observed stint and only
 battles whose participant names this clan. A returning player's earlier
@@ -86,6 +90,11 @@ a week past the join.
 
 Actions shows one **Open** list by default. Choose **Closed** to see the most
 recent decisions from the last 30 days; older decisions remain in History.
+The chosen list is kept in the address: browser Back, Forward and refresh
+restore it, and a Closed Action opened from that list links back to Closed.
+History’s membership section shows recent recorded roster changes, capped
+at the newest twenty events, rather than the entire history since roster
+recording began. Earlier changes are not listed in that section.
 
 | Action | The choices |
 |---|---|

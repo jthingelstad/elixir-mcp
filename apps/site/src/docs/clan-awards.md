@@ -87,6 +87,10 @@ shows recorded donations in descending order,
 unknown totals last; its pass-or-fail eligibility still depends only on decks
 and the configured allowed misses. No donation total changes attendance eligibility.
 
+Current members' names in Award races open their existing clan-scoped recorded
+activity. A previous recipient who has left stays a saved name, without a
+current-member activity link.
+
 **Award history** is every member's page: their own trophy case, what the
 clan awards, and each season's winners, place by place. It shows only
 decided seasons, never a live race.

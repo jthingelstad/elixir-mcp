@@ -464,20 +464,33 @@ const CLASS_LABEL = {
 };
 
 function History({ clan, navigate }) {
-  const { data } = useHistory(clan.clan_tag);
+  const { data, isError } = useHistory(clan.clan_tag);
+  if (isError)
+    return (
+      <div className="callout callout--warn" role="alert">
+        <span>
+          History could not be read. Check your clan access or try again.
+        </span>
+      </div>
+    );
   if (!data) return <p className="page__lede">Loading…</p>;
   const timeline = data.timeline ?? [];
   return (
     <>
       <div className="label" style={{ margin: "0 0 8px" }}>
-        Membership
+        Recent membership changes
         {data.timeline_since
-          ? ` · as the record saw it since ${data.timeline_since.slice(0, 10)}`
+          ? ` · roster recording since ${data.timeline_since.slice(0, 10)}`
           : ""}
       </div>
+      <p className="page-head__note">
+        This is the recent roster-event window, with up to twenty recorded
+        changes. Earlier changes are not listed here; the recording start is not
+        the beginning of this list.
+      </p>
       {timeline.length === 0 ? (
         <p className="page__lede" style={{ margin: "0 0 18px" }}>
-          No join, leave or role change on record yet.
+          No join, leave or role change in the recent roster-event window.
         </p>
       ) : (
         <div

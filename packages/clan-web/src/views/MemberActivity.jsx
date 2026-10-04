@@ -1,4 +1,4 @@
-import { Link, useClock } from "@elixir-mcp/ui";
+import { Link, useClock, MODE_LABEL } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMemberActivity } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
@@ -21,7 +21,12 @@ export function recordedSessions(battles) {
   return sessions;
 }
 
-export function MemberActivity({ clan, playerTag, navigate }) {
+export function MemberActivity({
+  clan,
+  playerTag,
+  navigate,
+  rosterSearch = "",
+}) {
   const { zone: askedZone } = useClock();
   const zone = askedZone ?? "UTC";
   const [pages, setPages] = useState([{ cursor: null, to: null }]);
@@ -43,7 +48,15 @@ export function MemberActivity({ clan, playerTag, navigate }) {
       : "Unknown";
   const head = (
     <>
-      <Link to={clanPath(clan.clan_tag)} navigate={navigate}>
+      <Link
+        to={
+          clanPath(clan.clan_tag) +
+          (rosterSearch
+            ? `?${new URLSearchParams({ find: rosterSearch })}`
+            : "")
+        }
+        navigate={navigate}
+      >
         Back to {clan.name ?? "clan"}
       </Link>
       <div className="page-head mt-3">
@@ -279,8 +292,11 @@ export function MemberActivity({ clan, playerTag, navigate }) {
                               stamp(b.battle_time)
                             )}
                           </td>
-                          <td>
-                            {b.game_mode?.name ?? b.mode_group ?? "Unknown"}
+                          <td title={b.game_mode?.name ?? undefined}>
+                            {MODE_LABEL[b.mode_group] ??
+                              b.game_mode?.name ??
+                              b.mode_group ??
+                              "Unknown"}
                           </td>
                           <td>{b.outcome ?? "Unknown"}</td>
                           <td>

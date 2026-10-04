@@ -4,6 +4,7 @@ import { useParams } from "@tanstack/react-router";
 import { answered } from "@elixir-mcp/client";
 import {
   DeckGrid,
+  MODE_LABEL,
   Icon,
   Link,
   NavigateProvider,
@@ -26,17 +27,6 @@ import { tagPath } from "../lib/tag-url.js";
  * tags and the share image read too - so the page never derives a
  * number the record does not hold.
  */
-
-/** How a mode reads to a person; the chip's square carries its colour. */
-export const MODE_LABEL = {
-  ladder: "Trophy Road",
-  ranked: "Path of Legends",
-  war: "War",
-  casual: "Friendly",
-  challenge: "Challenge",
-  event: "Event",
-  tournament: "Tournament",
-};
 
 const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "—");
 const fixed = (n, d) => (typeof n === "number" ? n.toFixed(d) : "—");

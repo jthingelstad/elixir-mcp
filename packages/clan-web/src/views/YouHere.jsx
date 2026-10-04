@@ -173,6 +173,15 @@ export function YouHere({ clan, navigate }) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
+  if (state.forbidden)
+    return (
+      <>
+        {head}
+        <div className="callout callout--warn" role="alert">
+          <span>Your current clan access does not allow this record.</span>
+        </div>
+      </>
+    );
   if (state.error)
     return (
       <>
@@ -430,13 +439,18 @@ export function YouHere({ clan, navigate }) {
 
           <section className="panel" aria-labelledby="you-weeks">
             <Head id="you-weeks" title="Week by week" />
+            <p className="page-head__note px-4">
+              Battle counts are recorded captures, not proof of all play. Zero
+              recorded battles does not prove inactivity. Weeks before roster
+              recording began do not establish membership in this clan.
+            </p>
             <div tabIndex={0} className="table__scroll">
               <table className="table">
                 <thead>
                   <tr>
                     <th>Week</th>
-                    <th>Battles</th>
-                    <th>Ranked</th>
+                    <th>Recorded battles</th>
+                    <th>Recorded ranked battles</th>
                     <th>Donations</th>
                   </tr>
                 </thead>
@@ -447,6 +461,15 @@ export function YouHere({ clan, navigate }) {
                         {w.complete
                           ? `Week of ${date(w.from)}`
                           : "This week, so far"}
+                        {Date.parse(w.from) <
+                        Date.parse(y.time_here.recording_since) ? (
+                          <span className="block page-head__note">
+                            {Date.parse(w.to) <=
+                            Date.parse(y.time_here.recording_since)
+                              ? "Before roster recording"
+                              : "Roster recording began during this week"}
+                          </span>
+                        ) : null}
                       </td>
                       <td>{n(w.battles)}</td>
                       <td>{n(w.ranked_battles)}</td>

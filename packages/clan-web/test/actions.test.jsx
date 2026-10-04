@@ -420,8 +420,13 @@ describe("actions", () => {
     expect(screen.getByRole("link", { name: "History ›" })).toBeTruthy();
     const links = screen
       .getAllByRole("link")
-      .filter((l) => /\/actions\/\d+$/.test(l.getAttribute("href")));
+      .filter((l) =>
+        /\/actions\/\d+\?show=closed$/.test(l.getAttribute("href")),
+      );
     expect(links).toHaveLength(1);
+    expect(links[0].getAttribute("href")).toBe(
+      "/clan/2PQRJ8LV/actions/5?show=closed",
+    );
     expect(links[0].textContent).toMatch(/#5.*Promote to Elder.*Completed/);
     // The list decides nothing: that is on the action's page.
     expect(screen.queryByRole("button", { name: "Complete" })).toBeNull();
