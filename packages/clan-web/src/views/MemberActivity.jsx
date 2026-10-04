@@ -165,7 +165,7 @@ export function MemberActivity({ clan, playerTag, navigate }) {
                   {d.war_weeks.map((w) => (
                     <tr key={`${w.season_id}-${w.section_index}`}>
                       <td>
-                        S{w.season_id} W{w.section_index}
+                        S{w.season_id} W{w.section_index + 1}
                         {w.attribution_unknown ? " · attribution unknown" : ""}
                         {w.is_colosseum
                           ? " · Colosseum"

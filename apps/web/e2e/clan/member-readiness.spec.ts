@@ -35,7 +35,7 @@ for (const width of [390, 1280]) {
           donations: 14,
         },
       ],
-      war_weeks: [{ season_id: 136, section_index: 4, decks: 0, points: 0 }],
+      war_weeks: [{ season_id: 136, section_index: 3, decks: 0, points: 0 }],
       coverage: {
         available: true,
         intervals: [

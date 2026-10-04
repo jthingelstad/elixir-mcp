@@ -29,7 +29,7 @@ const data = {
       donations: 12,
     },
   ],
-  war_weeks: [],
+  war_weeks: [{ season_id: 136, section_index: 3, decks: 0, points: 0 }],
   battles: [],
   next_cursor: "next",
   coverage: { available: false, intervals: [] },
@@ -42,6 +42,7 @@ test("member evidence retains unknowns and continues past an empty filtered page
   await screen.findByRole("heading", { name: /Test member · Activity/ });
   expect(screen.getByText(/No recorded activity is not proof/)).toBeTruthy();
   expect(screen.getByText(/Coverage could not be read/)).toBeTruthy();
+  expect(screen.getByText("S136 W4")).toBeTruthy();
   expect(
     screen.getByText(/No clan battles recorded on this page/),
   ).toBeTruthy();
