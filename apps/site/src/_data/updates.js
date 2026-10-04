@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Saved war intent guides the scheduled war-deck check",
+    body: "The Discord agent’s scheduled war-deck check now follows saved participation intent. Participating permits it only in the right war phase after a fresh policy read; not participating skips it, and unspecified or unavailable context makes it wait. The agent refreshes before planning and firing. Other agent content keeps its own rules. Contract 11.2.0; JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Find war intent before setting up scoring",
     body: "The policy draft summary shows explicit Clan War participation intent, and its question now comes first in About. Clan Wars scoring links back to it without changing the draft. Small-clan leaders can open Prepare policy from the roster while operational management still waits for ten members. All edits remain local until Save. Contract 11.2.0; JSON API 3.0.0 unchanged.",
   },

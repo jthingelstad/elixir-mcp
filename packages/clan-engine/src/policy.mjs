@@ -211,7 +211,7 @@ export const FIELDS = {
       },
     ],
     default: "unknown",
-    why: "What the leaders intend for Clan Wars, independent of whether war decks count toward minimums or Elder. Not specified is unknown; scoring settings and starting points never choose this for you. When policy-aware scheduling is enabled for the clan’s agent, saved intent governs its war-dependent messages. Not specified or unavailable context makes those messages wait; unrelated messages continue.",
+    why: "What the leaders intend for Clan Wars, independent of whether war decks count toward minimums or Elder. Not specified is unknown; scoring settings and starting points never choose this for you. For the Discord agent’s scheduled war-deck check, participating allows the check only in the appropriate war phase after a fresh policy read succeeds. Not participating skips it; not specified, unavailable or stale context defers it.",
   },
   goal_together: {
     group: "about",

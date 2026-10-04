@@ -18,9 +18,15 @@ the leaders' intent: participating,
 not participating, or not specified. It is separate from **Count Clan Wars**,
 which controls scoring and minimums. Existing policies start as not specified;
 starting points and category switches never infer or overwrite intent. Only
-leaders and co-leaders save it. When policy-aware scheduling is enabled for
-the clan’s agent, saved intent governs its war-dependent messages. Not specified
-or unavailable context makes those messages wait; unrelated messages continue.
+leaders and co-leaders save it.
+
+The Discord agent’s scheduled **war-deck check** uses this saved intent.
+Participating permits the check only in the appropriate war phase after a
+fresh policy read succeeds. Not participating suppresses the check; not
+specified, unavailable or stale context defers it. The agent refreshes before
+planning and immediately before firing, and the final read must be no more
+than 60 seconds old. This gate applies to the scheduled war-deck check; other
+agent content retains its own rules.
 
 Every clan runs differently, so Elixir Clan has no rules of its own. The
 clan's **policy** says what it counts, how Elder works, how long a quiet
