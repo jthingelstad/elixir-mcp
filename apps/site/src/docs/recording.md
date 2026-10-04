@@ -73,6 +73,11 @@ recording stops only when no reason remains anywhere. A clan's scope settles
 up or down to the widest remaining reason; a player's scope only ever widens.
 History is never deleted when a recording stops.
 
+Extra pre-reset and season-roll snapshots preserve the same profile observation.
+They do not emit a second donation-reset event; the daily projection records the
+counter change once. Weekly high-water marks and award inputs are unchanged.
+
+
 ## Scope: what is actually polled
 
 | Subject | `activity` | `comprehensive` |

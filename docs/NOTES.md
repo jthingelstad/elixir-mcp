@@ -4240,3 +4240,30 @@ facts rather than copied battle payloads. This remains a recommendation;
 no new Timeline bridge, contracts, global relationship store, provider call or
 production message was implemented. Paid drafting remains mocked until an
 explicit bounded generation decision.
+
+
+## 2026-10-04 - Emit reset observations once across auxiliary snapshots
+
+The reproduced season-roll defect is a real counter reset (60 to 4), followed by
+a spurious 52-to-9 reset from an older daily baseline. The same daily observation
+was projected into an auxiliary boundary row with moment emission enabled after
+the daily row had already been overwritten. Auxiliary rows now preserve the
+observation with moments disabled; the daily projection alone emits its changes.
+Moment comparisons also use the ordinary daily profile, excluding auxiliary
+high-water rows whose later stamps could invent another reset after an unchanged
+poll. No snapshot writes, weekly high-water rule, participation query or award
+logic changes.
+
+A scratch regression covers daily, pre_reset and season_roll observations, a real
+fall followed by increasing counters, and repeated polls. The original path failed
+with duplicate events; the fix emits one 60-to-4 reset. All snapshot fact fields
+(excluding separate row identities/creation stamps) match a no-moment control.
+Actual participation SQL retains donations 60 and pure award results match.
+Fixtures use invented tags/names; no production data or award/message writes.
+
+This closes the reset-emission follow-up recorded above before the October 5
+season boundary. MCP 11.0.2 and JSON API are unchanged: donation_reset is not a
+current Timeline item and this alters no public result shape. Full verification,
+CI/browser checks, deploy/smoke and full read-only acceptance are the release
+gates because the shared ingest projector changed. No historical ledger cleanup
+is included; new observations are fixed, old evidence is not rewritten.
