@@ -20,7 +20,8 @@
     "./standings-sql": "./src/standings-sql.mjs",
     "./war-clock": "./src/war-clock.mjs",
     "./war-membership": "./src/war-membership.mjs",
-    "./attested-facts": "./src/attested-facts.mjs"
+    "./attested-facts": "./src/attested-facts.mjs",
+    "./event-origin": "./src/event-origin.mjs"
   },
   "scripts": {
     "test": "node --test"

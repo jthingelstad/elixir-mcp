@@ -179,12 +179,71 @@ backfill, a log polled late) is a late capture: counted in the entry's
 
 ### Telling the story
 
+Evidence is separate from story growth: an existing
+moment may gain proof under the same `id` and `revision`. Compare its
+`evidence.version` before describing the new proof; this is an update to
+that moment, not another achievement.
+
 Post once per `id`. When a later read serves an `id` you have told at a
 higher `revision`, the story grew: update it, or say "and now...", and
 never retell it. The same `id` at the same or a lower `revision` is a
 story you have told; say nothing. Keep the ids you have told, with the
 revision you told each at, and a timeline read through overlapping
 windows, a member read, or a read after a restart never repeats itself.
+
+### Recorded evidence
+
+The Console's **View games** and **View crossing** open a read-only evidence
+panel. Sessions list exact canonical games in play order (time, then game
+ID), 25 per page, with links to their existing public battle pages. These
+are the games from the anchored sitting through the item's end; a clan
+standout ends at the last rung this read learned. This can reach before the
+read window. The evidence count describes that scope, while the item's
+session facts continue to describe its original read window.
+
+Every supported item carries `evidence.kind`, `version`, `observed_at`,
+`count` and `completeness`. `observed_at_basis` distinguishes recorded
+capture/observation time from `legacy_window`: old rows retain the original
+observation window because their proof attachment time was not recorded. A sitting says `recorded_only`: actual capture
+completeness is **unknown**, even when all its recorded games are listed.
+`anchor_bound` means the 200-step search may omit its beginning. `open` says
+whether the sitting was still open at this read. Boat defenses and games
+captured more than a day late remain outside these sessions.
+
+A crossing says `proved` only when its canonical game establishes it.
+Otherwise it says `unknown`; it never substitutes the nearest game. A
+roster-observed arena move can later gain proof: its original logical
+origin is frozen before enrichment, its ID stays the same, and its evidence
+revision and observation time advance when the proof arrives. Existing
+legacy rows resolve their origin without a historical rewrite.
+
+An agent passes `evidence_item_id` to `elixir_timeline`, with the original
+`from` and `to`, `evidence_offset` (default 0), `evidence_limit` (1–25), and
+`expected_evidence_version` from the item (required after the first page).
+An evidence read returns that one item and its page, without full summary
+entries, so even a busy feed has room for supporting game facts. The optional response `evidence`
+contains `battles` with canonical `battle_id`, `at`, `type`, `mode_group`,
+`outcome`, `crowns`, `trophy_change`, `url`, `short_id` and
+`relation` (`constituent` or `proved_crossing`), plus `next_offset` or null.
+A changed version asks the reader to refresh the item before continuing;
+an unavailable or no longer visible item returns no evidence. Evidence
+reads always keep the read pointer, including when `mark_read` is omitted.
+Paging constituent games does not change the newsfeed's cap or ordering.
+The membership fingerprint and page share one database snapshot; concurrent
+capture asks for a refresh instead of silently shifting game offsets.
+
+Each result belongs to that game's mode. A ranked win and its +30 progress
+are ranked evidence, not Trophy Road progress. Current profile trophies,
+another mode's results and broader season statistics are separate context;
+they do not prove that milestone. Evidence offers concise canonical facts
+to authorized MCP agents as well as people, without changing posting behavior.
+
+Evidence remains subject to the reader's existing visible Timeline subjects.
+Private attested facts retain their existing membership and role checks and
+do not gain game links. References use retained canonical history; no battle
+payload or extra history copy is stored. The Console's seven-day view is a
+read window, not a new retention policy. This panel does not create an
+Action, draft a message, send a notification, or grant an award.
 
 ### The `facts` keys, by kind
 

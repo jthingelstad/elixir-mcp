@@ -7,6 +7,11 @@
  * 'estimated' with a [window_start, window_end] bracket.
  */
 
+import {
+  playerEventOriginSql,
+  playerEventProofSql,
+} from "@elixir-mcp/record/event-origin";
+
 import { playerEventColumns, clanEventColumns } from "./event-columns.mjs";
 
 const EVENT_TYPES = {
@@ -48,7 +53,7 @@ export async function emitEvent(
   const contract = EVENT_TYPES[type];
   if (!contract)
     throw new Error(
-      `unknown event type: ${type} (known: ${Object.keys(EVENT_TYPES).join(", ")})`,
+      `unknown event type: ${type} (known: ${Object.keys(EVENT_TYPES).join(", ")}) returning event_id`,
     );
   const { table, tagColumn } = TABLE_BY_STREAM[contract.stream];
   // A type is estimated when its emitter normally only knows the window;
@@ -62,10 +67,10 @@ export async function emitEvent(
       ? playerEventColumns(type, payload)
       : clanEventColumns(type, payload);
   const names = Object.keys(columns);
-  await db.query(
+  const { rows } = await db.query(
     `insert into ${table} (${tagColumn}, event_type, timing, occurred_at, window_start, window_end, receipt_id,
        ${names.join(", ")})
-     values ($1, $2, $3, $4, $5, $6, $7, ${names.map((_, i) => `$${8 + i}`).join(", ")})`,
+     values ($1, $2, $3, $4, $5, $6, $7, ${names.map((_, i) => `$${8 + i}`).join(", ")}) returning event_id`,
     [
       tag,
       type,
@@ -77,4 +82,16 @@ export async function emitEvent(
       ...names.map((n) => columns[n]),
     ],
   );
+  if (contract.stream === "player")
+    await db.query(
+      `with origin as (select w.event_id, ${playerEventOriginSql("w")} as id from player_event w where event_id = $1),
+       resolved as (select o.*, p.* from origin o left join lateral (${playerEventProofSql("o.id")}) p on true)
+       update player_event w set origin_event_id = r.id,
+         evidence_version = coalesce(r.evidence_version, 1),
+         evidence_observed_at = coalesce(r.evidence_observed_at, w.window_end),
+         battle_id = coalesce(r.battle_id, w.battle_id), floor = coalesce(r.floor, w.floor),
+         occurred_at = coalesce(r.occurred_at, w.occurred_at), timing = coalesce(r.timing, w.timing)
+         from resolved r where w.event_id = r.event_id`,
+      [rows[0].event_id],
+    );
 }
