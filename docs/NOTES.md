@@ -4452,4 +4452,39 @@ copy, Actions/policy docs and What's new. MCP and JSON API contracts, profile
 credentials, sealed-key derivation, model relay/accounting and delivery state
 are unchanged. Deterministic regressions use fake model responses only; no
 paid model call, live classification or message is an acceptance fixture.
-Observed validation and deployment receipts follow after release.
+Validation and release receipt: PR266 merged as
+db0852bf27a86bcfe957aaf3ec3180ef5c57bbaf at 03:56:04Z (10:56 PM CT on October 3).
+Validate run 37175253827 passed full verify, the Lambda build and all 98 browser
+journeys. Local full verify passed; 27 focused prompt/service checks and four
+desktop/mobile departure journeys passed. Privacy checks exclude identities,
+free-form evidence and private reasons, exercise both confirmed paths and
+unconfirmed/ignored refusals, and reject stale or in-flight changed context.
+The failed-refresh UI regression withholds old copy/restore and blocks decisions
+without needing new data to arrive. Security and journey reviews found no
+remaining blockers. The old Settings disclosure assertion was corrected to
+the approved context boundary; screenshot review also corrected the closed
+departure display to identify a leader confirmation instead of asking again.
+
+Recovery inspection before deployment found no lease or deployment log and
+AWS still on the preceding verified bundle. The process listing was unavailable;
+no uncertain deployment was repeated. The clean merged commit then deployed
+once through cloud-engineer under the session lease. CloudFormation reports
+UPDATE_COMPLETE at 03:59:33.141Z (10:59 PM CT on October 3); the web Lambda is
+Active/Successful, LastModified 03:59:16Z. Its CodeSha256 matches the built ZIP:
+6U36ckHjmfxMkEO4PLZs/trucu45rp+CajSXo4pAQUA=.
+
+The platform lane ran zero migrations (201 already applied) and retained the
+47-role/29-alias f72062c vocabulary. All 43 smoke checks passed. MCP acceptance
+was deliberately not rerun: this changes the private Clan draft path and its
+UI/docs, not a tool or published JSON API operation. Deterministic Clan tests
+cover the behavior; a paid draft or real classification is not a live fixture.
+Published contracts remain MCP 11.1.0 / JSON API 3.0.0.
+
+Read-back at 04:01:29.684Z (11:01 PM CT on October 3) confirmed public health,
+the Actions/policy docs, the update page and the app shell. Served
+App-BXeV3fLz.js exactly matches the merged build, and the matching web bundle
+contains the frozen-context and stale/unconfirmed refusal paths. The clean
+tree's lease was released after read-back. No real draft, classification,
+message, delivery record or paid model call was used for acceptance. This
+receipt lands through its own green PR; no deployment follows a notes-only
+merge.
