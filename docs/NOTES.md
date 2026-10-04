@@ -4687,3 +4687,20 @@ relay requires an account opt-in. Policy text changes only with Jamie's word,
 so Guard queued one decision: approve concise corrected wording, including
 whether to name the optional Clan own-key model flow in general terms. No
 runtime, privacy, IAM or production state changed while that decision is open.
+
+### 2026-10-04 — Board evidence clarity
+
+Board counts held promotion and demotion evidence separately from removal
+triage, including unknown tenure without counting protected removal as held.
+Members may be counted in multiple dimensions. Group links and named,
+keyboard-scrollable tables improve navigation at normal desktop and narrow
+widths; long labels wrap, and an expanded member panel spans the table.
+Protected-Elder help now matches the current Board semantics.
+
+Removal guards, policies, awards and member decisions are unchanged. A separate
+inactivity evidence/freshness recommendation was prepared from the admitted
+profile cadence, successful unchanged reads and policy-window semantics;
+no allowance or counter-only admission rule is adopted. Seasonal readiness
+remains the priority. Schema and contracts unchanged: MCP 11.1.0 / JSON API
+3.0.0. No existing public tool or JSON API operation changed, so deployment
+does not opt into MCP acceptance.

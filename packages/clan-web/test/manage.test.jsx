@@ -31,19 +31,27 @@ test("Board distinguishes all four removal triage labels without describing prot
       policy_version: 1,
       boundaries: [],
       band: null,
-      policy: { ranks_elder: false, removal: true },
+      policy: { ranks_elder: true, removal: true },
       board: statuses.map((status, i) => ({
         player_tag: `#SYNTH${i}`,
         name: `Invented ${i}`,
-        role: i === 0 ? "leader" : "member",
+        role: i === 0 ? "elder" : "member",
         bucket: i === 2 ? "held" : i === 3 ? "actionable" : "clear",
         judgment: {
-          promotion: "off",
-          demotion: "not_applicable",
+          promotion:
+            i === 0
+              ? "not_applicable"
+              : i === 1
+                ? "unknown"
+                : i === 2
+                  ? "held"
+                  : "ready",
+          demotion: i === 0 ? "held" : "not_applicable",
           removal: status === "eligible" ? "ready" : "held",
         },
         judgment_reasons: [],
         promotion: { state: "none" },
+        demotion: { state: "none" },
         removal: {
           state: "none",
           triage: { status, reason: `Explanation ${i}` },
@@ -69,6 +77,14 @@ test("Board distinguishes all four removal triage labels without describing prot
   expect(screen.getByLabelText("Removal triage").textContent).toMatch(
     /Protected 1 · Not currently a removal candidate 1 · Evidence held 1 · Eligible 1/,
   );
+  expect(screen.getByLabelText("Elder evidence held").textContent).toMatch(
+    /Promotion 2 · Demotion 1/,
+  );
+  const groups = screen.getByRole("navigation", { name: "Board groups" });
+  expect(groups.querySelector('a[href="#board-held"]').textContent).toBe(
+    "Evidence held · 1",
+  );
+  expect(screen.getByRole("region", { name: "Clear members" })).toBeTruthy();
   expect(screen.getByText("Explanation 0")).toBeTruthy();
   expect(screen.getByText("Explanation 1")).toBeTruthy();
   expect(screen.queryByText("held · activity unknown")).toBeNull();

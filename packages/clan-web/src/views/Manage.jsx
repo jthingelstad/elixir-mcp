@@ -1,5 +1,5 @@
 import { Fresh, ago } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useHistory, useManage } from "../lib/queries.js";
 import { MemberSheet } from "../components/MemberSheet.jsx";
 import { ActionLog, CopyLine } from "../components/ActionCard.jsx";
@@ -208,6 +208,23 @@ export function Manage({ clan, tab, navigate, who }) {
       {tabs}
       {evidenceLine}
       <BandLine band={d.band} roster={d.roster} />
+      {d.policy?.ranks_elder ? (
+        <p className="page-head__note" aria-label="Elder evidence held">
+          Elder evidence held: Promotion{" "}
+          {
+            d.board.filter((m) =>
+              ["held", "unknown"].includes(m.judgment.promotion),
+            ).length
+          }
+          {" · "}Demotion{" "}
+          {
+            d.board.filter((m) =>
+              ["held", "unknown"].includes(m.judgment.demotion),
+            ).length
+          }
+          . A member can have held evidence for more than one kind of action.
+        </p>
+      ) : null}
       {d.policy?.removal ? (
         <p className="page-head__note" aria-label="Removal triage">
           Removal:{" "}
@@ -219,71 +236,117 @@ export function Manage({ clan, tab, navigate, who }) {
             .join(" · ")}
         </p>
       ) : null}
+      <nav aria-label="Board groups" className="mb-4 flex flex-wrap gap-2">
+        {Object.entries(BUCKET_LABEL).map(([bucket, label]) => {
+          const count = d.board.filter((m) => m.bucket === bucket).length;
+          return count ? (
+            <a key={bucket} className="chip" href={`#board-${bucket}`}>
+              {label} · {count}
+            </a>
+          ) : null;
+        })}
+      </nav>
+      <p className="page-head__note lg:hidden">
+        Scroll a member table sideways to see every column.
+      </p>
       {["actionable", "building", "held", "clear"].map((bucket) => {
         const rows = d.board.filter((m) => m.bucket === bucket);
         if (!rows.length) return null;
         return (
-          <section key={bucket} style={{ marginBottom: "22px" }}>
-            <div className="label" style={{ marginBottom: "8px" }}>
+          <section
+            key={bucket}
+            id={`board-${bucket}`}
+            aria-labelledby={`board-${bucket}-title`}
+            className="mb-6 scroll-mt-4"
+          >
+            <h2 id={`board-${bucket}-title`} className="label mb-2">
               {BUCKET_LABEL[bucket]} · {rows.length}
-            </div>
-            <div tabIndex={0} className="table__scroll">
-              <table className="table">
+            </h2>
+            <div
+              tabIndex={0}
+              role="region"
+              aria-label={`${BUCKET_LABEL[bucket]} members`}
+              className="table__scroll"
+            >
+              <table className="table table-fixed min-w-[760px]">
                 <thead>
                   <tr>
-                    <th>Member</th>
-                    <th>Role</th>
-                    {d.policy?.ranks_elder ? <th>Elder</th> : null}
-                    {d.policy?.removal ? <th>Removal</th> : null}
-                    <th>Evidence</th>
+                    <th className="w-1/5">Member</th>
+                    <th className="w-[14%]">Role</th>
+                    {d.policy?.ranks_elder ? (
+                      <th className="w-[14%]">Elder</th>
+                    ) : null}
+                    {d.policy?.removal ? (
+                      <th className="w-[18%]">Removal</th>
+                    ) : null}
+                    <th className="w-[17%]">Evidence</th>
                     <th>Judgment</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((m) => (
-                    <tr
-                      key={m.player_tag}
-                      data-you={
-                        m.player_tag === who.player_tag ? "true" : undefined
-                      }
-                    >
-                      <td>
-                        <button
-                          type="button"
-                          className="btn--text"
-                          onClick={() =>
-                            setOpen(open === m.player_tag ? null : m.player_tag)
-                          }
-                        >
-                          {m.name ?? m.player_tag}
-                        </button>{" "}
-                        <span className="tag">{m.player_tag}</span>
-                        {m.hold?.active !== false && m.hold ? (
-                          <span
-                            className="chip chip--info"
-                            style={{ marginLeft: "6px" }}
-                            title={m.hold.note ?? undefined}
+                    <Fragment key={m.player_tag}>
+                      <tr
+                        data-you={
+                          m.player_tag === who.player_tag ? "true" : undefined
+                        }
+                      >
+                        <td className="table__td--wrap">
+                          <button
+                            type="button"
+                            className="btn--text"
+                            aria-expanded={open === m.player_tag}
+                            onClick={() =>
+                              setOpen(
+                                open === m.player_tag ? null : m.player_tag,
+                              )
+                            }
                           >
-                            {m.hold.kind === "away" ? "away" : "hold"}
-                            {m.hold.until
-                              ? ` · ${m.hold.until.slice(0, 10)}`
-                              : ""}
-                          </span>
+                            {m.name ?? m.player_tag}
+                          </button>{" "}
+                          <span className="tag block">{m.player_tag}</span>
+                          {m.hold?.active !== false && m.hold ? (
+                            <span
+                              className="chip chip--info"
+                              style={{ marginLeft: "6px" }}
+                              title={m.hold.note ?? undefined}
+                            >
+                              {m.hold.kind === "away" ? "away" : "hold"}
+                              {m.hold.until
+                                ? ` · ${m.hold.until.slice(0, 10)}`
+                                : ""}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td>
+                          <RoleChip role={m.role} label={m.role} />
+                        </td>
+                        {d.policy?.ranks_elder ? (
+                          <td className="table__td--wrap">{elderCell(m)}</td>
                         ) : null}
-                        {sheet(m)}
-                      </td>
-                      <td>
-                        <RoleChip role={m.role} label={m.role} />
-                      </td>
-                      {d.policy?.ranks_elder ? <td>{elderCell(m)}</td> : null}
-                      {d.policy?.removal ? <td>{removalCell(m)}</td> : null}
-                      <td style={{ whiteSpace: "normal", maxWidth: "320px" }}>
-                        {m.phrase || <span className="nil">—</span>}
-                      </td>
-                      <td className="max-w-[280px] min-w-[180px] whitespace-normal">
-                        {judgmentCell(m)}
-                      </td>
-                    </tr>
+                        {d.policy?.removal ? (
+                          <td className="table__td--wrap">{removalCell(m)}</td>
+                        ) : null}
+                        <td className="table__td--wrap">
+                          {m.phrase || <span className="nil">—</span>}
+                        </td>
+                        <td className="table__td--wrap">{judgmentCell(m)}</td>
+                      </tr>
+                      {open === m.player_tag ? (
+                        <tr>
+                          <td
+                            className="table__td--wrap"
+                            colSpan={
+                              4 +
+                              Number(Boolean(d.policy?.ranks_elder)) +
+                              Number(Boolean(d.policy?.removal))
+                            }
+                          >
+                            {sheet(m)}
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

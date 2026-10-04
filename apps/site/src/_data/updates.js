@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Board makes held evidence easier to navigate",
+    body: "Promotion and demotion evidence counts are separate from removal triage. Jump to a Board group, read wrapped member labels and scroll narrow tables within the page. Policy help describes excluded Elders as Protected. Removal checks and freshness rules are unchanged. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Removal triage separates protection from missing evidence",
     body: "Board distinguishes protected members, members who are not currently removal candidates, held evidence and eligible recommendations. Roster-only rows are not profile observations; missing days remain gaps. Closed Action warnings preserve the audit without suggesting a new decline, and evidence timestamps use your local clock. Policy explains how saving replays reviews and how an active hold shields eligibility without subtracting time. Removal checks remain strict, with no freshness allowance adopted. Contracts unchanged.",
   },

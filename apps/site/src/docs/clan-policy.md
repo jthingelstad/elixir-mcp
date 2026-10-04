@@ -106,7 +106,9 @@ saying how the clan runs the first time, and what changed after.
 Under **Manage**, beside the policy:
 
 - **Board**: every member as the policy reads them today, grouped as
-  actionable, building, held or clear. Open a member for their evidence,
+  actionable, building, held or clear. Group links jump to the members;
+  held promotion and demotion counts are separate from removal evidence.
+  Open a member for their evidence,
   a note, and a **hold**, which shields removal eligibility for a member
   who said they will be away, until a date or until cleared.
 - **History**: the joins, leaves and role changes the record saw, with

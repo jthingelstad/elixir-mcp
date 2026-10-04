@@ -6,6 +6,8 @@ for (const size of ["wide", "@narrow"])
   test(`withdrawn removal warning and Board triage remain readable without decision controls ${size}`, async ({
     page,
   }) => {
+    if (size === "wide")
+      await page.setViewportSize({ width: 1100, height: 900 });
     const writes: string[] = [];
     page.on("request", (r) => {
       if (
@@ -68,6 +70,8 @@ for (const size of ["wide", "@narrow"])
       page,
       signedIn({
         "GET /api/clan/me": [200, { ...ME, selected: ME.clans[0] }],
+        "GET /api/clan/clans/2PQRJ8LV/members/SYNTH0/notes": [200, []],
+        "GET /api/clan/clans/2PQRJ8LV/members/SYNTH0/grants": [200, []],
         "GET /api/clan/clans/2PQRJ8LV/actions/45": [
           200,
           { action: card, decline_reasons: [], model: { set: true } },
@@ -80,20 +84,28 @@ for (const size of ["wide", "@narrow"])
             boundaries: [],
             band: null,
             roster: { size: 4, open_slots: 46 },
-            policy: { ranks_elder: false, removal: true },
+            policy: { ranks_elder: true, removal: true },
             board: statuses.map((status, i) => ({
               player_tag: `#SYNTH${i}`,
               name: `Invented ${i}`,
-              role: i === 0 ? "leader" : "member",
+              role: i === 0 ? "elder" : "member",
               bucket: i === 2 ? "held" : i === 3 ? "actionable" : "clear",
               phrase: "Recorded contribution",
               judgment: {
-                promotion: "off",
-                demotion: "not_applicable",
+                promotion:
+                  i === 0
+                    ? "not_applicable"
+                    : i === 1
+                      ? "unknown"
+                      : i === 2
+                        ? "held"
+                        : "ready",
+                demotion: i === 0 ? "held" : "not_applicable",
                 removal: status === "eligible" ? "ready" : "held",
               },
               judgment_reasons: [],
               promotion: { state: "none" },
+              demotion: { state: "none" },
               removal: {
                 state: "none",
                 triage: { status, reason: `Explanation ${i}` },
@@ -143,6 +155,34 @@ for (const size of ["wide", "@narrow"])
     await expect(page.getByLabel("Removal triage")).toContainText(
       "Protected 1 · Not currently a removal candidate 1 · Evidence held 1 · Eligible 1",
     );
+    await expect(page.getByLabel("Elder evidence held")).toContainText(
+      "Promotion 2 · Demotion 1",
+    );
+    const groups = page.getByRole("navigation", { name: "Board groups" });
+    await groups.getByRole("link", { name: "Clear · 2" }).click();
+    await expect(page).toHaveURL(/#board-clear$/);
+    await expect(
+      page.getByRole("heading", { name: "Clear · 2" }),
+    ).toBeInViewport();
+    const pageFits = await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    );
+    expect(pageFits).toBe(true);
+    const table = page.getByRole("region", { name: "Clear members" });
+    if (size === "wide")
+      expect(await table.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(
+        true,
+      );
+    else {
+      expect(await table.evaluate((e) => e.scrollWidth > e.clientWidth)).toBe(
+        true,
+      );
+      await table.focus();
+      await page.keyboard.press("ArrowRight");
+      await expect
+        .poll(() => table.evaluate((e) => e.scrollLeft))
+        .toBeGreaterThan(0);
+    }
     for (const label of [
       "Protected",
       "Not currently a removal candidate",
@@ -158,6 +198,18 @@ for (const size of ["wide", "@narrow"])
       path: `/tmp/elixir-triage-board-${size}.png`,
       fullPage: true,
     });
+    await table.evaluate((e) => {
+      e.scrollLeft = 0;
+    });
+    await page.getByRole("button", { name: "Invented 0", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Invented 0", exact: true }),
+    ).toHaveAttribute("aria-expanded", "true");
+    const sheet = page.getByPlaceholder("A leader note (leaders see these)");
+    await expect(sheet).toBeVisible();
+    expect(await sheet.evaluate((e) => e.closest("td")?.colSpan)).toBe(6);
+    await page.getByRole("button", { name: "Invented 0", exact: true }).click();
+    await expect(sheet).toHaveCount(0);
     expect(writes).toEqual([]);
   });
 
