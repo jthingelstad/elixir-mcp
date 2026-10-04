@@ -9,6 +9,8 @@ inside the V1/V2 build-order section, or at the top Decisions block, of
 
 ## Product and scope
 
+- **War intent is separate from scoring** — leaders explicitly set participation intent; legacy and new policies remain unknown until chosen, and presets never infer it. A minimal core read stays inside the existing Elixir Clan person/session audience and requires current verified membership. Agent transport, grants and private-policy audience expansion require separate coordination before deployment. (2026-10-04; Jamie-authorized issue #283 core draft)
+
 - **Inactivity means no battle activity in any mode** — logging in and collecting rewards do not count. A flat narrow profile counter, even evaluated at its exact observation time, cannot admit an ordinary removal recommendation, draft, completion or reopening while all-mode absence proof is unresolved. Positive activity remains protective, factual evidence and historical Actions stay visible, and role protections stand. Thirty hours is accepted as a freshness direction only; it is not an adopted eligibility allowance and cannot replace mode coverage. (2026-10-04; Jamie)
 
 - **Rookie's first clan season** — the season-points podium's ranking, donation tiebreaks and shared places, restricted to the first recorded clan join within the selected observed season. A prior-season join with no war does not extend eligibility and a returning stint does not reset it. Unknown current counters still hold a decision; irrelevant previous counters do not. Saved grants stay final. Supersedes the pending prior-season/no-war exception in the Actions/Awards review. (2026-10-03; Jamie's first-clan-season requirement, engineering alignment)

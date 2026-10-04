@@ -4814,3 +4814,28 @@ remaining issue. Production lease released after readback. This receipt is
 notes-only and requires no redeploy. Immutable receipt-bound counter tuples
 and a verified all-mode coverage contract remain future evidence work;
 ordinary removal stays held without them.
+
+## 2026-10-04 - Issue 283 core policy context draft
+
+The bounded season-readiness read found healthy capture/queues, an enabled
+morning rule and successful current receipt. The current season remains open;
+complete provisional coverage is not final closure evidence. The latest-week
+guard requires observed closure and a recent week, retains frozen plans and
+existing sent/skipped cards, and avoids historical weekly backfill. Fourteen
+synthetic award-update/weekly tests passed. No grants, decisions, messages or
+game requests were generated for verification; existing UI/runtime matched the
+previously shipped build. Private read results remain outside the public repo.
+
+The next slice is a draft for explicit war intent independent of scoring and
+a minimal current verified-member core read. Existing values remain unknown,
+no policies or grants are changed in production, and agent transport remains
+blocked on access/contract coordination. See
+`docs/reviews/2026-10-04-POLICY-CONTEXT-CORE.md` and canonical issue #283.
+MCP 11.1.1 and JSON API 3.0.0 remain unchanged; private policy schema 3/context
+schema 1 are internal. Do not deploy this draft before coordinated review.
+
+Core draft validation: full `npm run verify` passed with zero failures; focused
+engine/service tests passed 347 cases, Clan UI passed 106, the private-state
+import boundary passed, and the independent read-only consistency trace found
+no access expansion. Agent consumer/gating tests remain future work because
+that transport and gate are not implemented in this core slice.

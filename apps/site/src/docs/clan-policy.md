@@ -12,6 +12,13 @@ reviewed: "2026-10-01 against contract 9.17.1"
 
 # Write how your clan runs
 
+**Clan War participation** on About records the leaders' intent: participating,
+not participating, or not specified. It is separate from **Count Clan Wars**,
+which controls scoring and minimums. Existing policies start as not specified;
+starting points and category switches never infer or overwrite intent. Only
+leaders and co-leaders save it. This setting records intent; it does not change
+scheduled messages yet.
+
 Every clan runs differently, so Elixir Clan has no rules of its own. The
 clan's **policy** says what it counts, how Elder works, how long a quiet
 member has, and which [actions](/docs/clan-actions) to raise. Until a

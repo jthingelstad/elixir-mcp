@@ -1172,6 +1172,37 @@ export function createManageService({
 
     /** The policy editor's data: fields with help, groups, current values,
      *  versions, and whether the clan is big enough for a policy at all. */
+    /** Minimal private core read; no evaluation, roster read or durable write.
+     * The router resolves current membership; this refuses unverified callers
+     * too. Policy age is provenance, not a guessed context freshness limit. */
+    async policyContext(clanTag, who) {
+      if (
+        who?.verified !== true ||
+        !["member", "elder", "coLeader", "leader"].includes(who.role)
+      )
+        throw new ManageError(403, "unverified");
+      const policy = await policyFor(clanTag);
+      const intent = ["participating", "not_participating"].includes(
+        policy.values.war_intent,
+      )
+        ? policy.values.war_intent
+        : "unknown";
+      return {
+        schema_version: 1,
+        clan_tag: clanTag,
+        status: policy.set && intent !== "unknown" ? "known" : "unknown",
+        reason: !policy.set
+          ? "no_policy"
+          : intent === "unknown"
+            ? "war_intent_unspecified"
+            : null,
+        war_intent: policy.set ? intent : "unknown",
+        policy_version: policy.set ? policy.version : null,
+        policy_saved_at: policy.saved_at,
+        read_at: new Date(now()).toISOString(),
+      };
+    },
+
     async policyView(clanTag, who, token = null) {
       const policy = await policyFor(clanTag);
       const members = await currentSize(clanTag, token);

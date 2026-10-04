@@ -44,6 +44,25 @@ const render = async (data = view) => {
 };
 
 describe("policy: tabs along the top", () => {
+  test("war intent starts unknown, survives presets and is saved independently of scoring", async () => {
+    const save = vi
+      .spyOn(manageApi, "savePolicy")
+      .mockResolvedValue({ ok: true, status: 200, data: { version: 1 } });
+    await render();
+    const intent = () => screen.getByLabelText(/Clan War participation/);
+    expect(intent().value).toBe("unknown");
+    fireEvent.change(intent(), { target: { value: "not_participating" } });
+    fireEvent.click(screen.getByRole("button", { name: "A war clan" }));
+    expect(intent().value).toBe("not_participating");
+    open("Clan Wars");
+    expect(screen.getByLabelText("Count Clan Wars").checked).toBe(true);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save this clan's policy" }),
+    );
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1].war_intent).toBe("not_participating");
+    expect(save.mock.calls[0][1].war_enabled).toBe(true);
+  });
   test("preview holds a threshold-crossed removal without all-mode proof", async () => {
     vi.spyOn(manageApi, "previewPolicy").mockResolvedValue({
       ok: true,
