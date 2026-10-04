@@ -5062,3 +5062,11 @@ had no serious/critical WCAG violations. Synthetic fixture correction resolved
 an incomplete management envelope before the final History failure check.
 Required CI remains the merge gate; no tool acceptance is necessary because
 only private app presentation/navigation and shared display labels change.
+
+The existing reopen browser fixture also now uses the contextual Closed URL
+and asserts Back restores Closed directly, rather than masking a reset with
+another filter selection. All four reopen journeys passed, preserving decline
+logs and previously sent words. The final pre-push repository gate again
+passed with 1,808 Node cases, 438 Vitest cases, 85 existing skips and zero
+failures. The old exact-href selector is superseded by the new route context;
+this is a fixture update for intended behavior, not a rerun around a failure.
