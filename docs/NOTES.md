@@ -4999,3 +4999,17 @@ passed without page errors or award/Action writes. Full typechecking caught
 and resolved the new fixture's initially inferred empty-array type. A parallel
 local build competed for the shared app output; rerunning the browser lane
 sequentially passed. Required CI is the merge gate.
+
+Award-display deployment receipt: PR #288 merged as
+dbf50bacdfa7b039207471761537d332c72d89c9 after required validate
+37228287002 passed at 19:32:07Z (2:32 PM CT). Deployment completed at
+19:34:53Z (2:34 PM CT), observed from the completed log. No migrations ran;
+all 43 smoke checks passed. Tool acceptance was intentionally omitted because
+no MCP/public JSON API surface changed. At 19:36:18Z, published UI asset
+App-8tmbHdgo.js matched the merged build, SHA-256
+24044674459930e66cf87bfb6c8c81cc6ab92cb3576a6273b42bec4234950ffa.
+The live Awards guide names resolved places and the current-season target;
+public health was good. MCP 11.2.0 and JSON API 3.0.0 unchanged. The production
+lease is released; no award grants, member decisions or clan messages were
+made as QA.
+
