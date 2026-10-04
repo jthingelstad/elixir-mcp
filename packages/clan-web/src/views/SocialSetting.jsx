@@ -9,6 +9,8 @@ import { trackEvent } from "../analytics.js";
  * everyone here; members' own places are theirs and stay, shown in their
  * other clans. Recruit is not affected.
  */
+const LEADERS = new Set(["leader", "coLeader"]);
+
 export function SocialSetting({ clan }) {
   const { state } = useSocial(clan.clan_tag);
   const invalidate = useInvalidate();
@@ -31,23 +33,29 @@ export function SocialSetting({ clan }) {
         {d.enabled ? "It is on." : "It is off."}
         {d.set_by_name ? ` Last set by ${d.set_by_name}.` : ""}
       </p>
-      <button
-        type="button"
-        className="btn w-fit"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          const r = await manageApi.setSocial(clan.clan_tag, !d.enabled);
-          setBusy(false);
-          if (r.ok)
-            trackEvent("clan.social_set", r.data.enabled ? "on" : "off");
-          invalidate(keys.social(clan.clan_tag));
-          invalidate(keys.map(clan.clan_tag));
-          invalidate(keys.me);
-        }}
-      >
-        {d.enabled ? "Turn social features off" : "Turn social features on"}
-      </button>
+      {LEADERS.has(clan.role) ? (
+        <button
+          type="button"
+          className="btn w-fit"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const r = await manageApi.setSocial(clan.clan_tag, !d.enabled);
+            setBusy(false);
+            if (r.ok)
+              trackEvent("clan.social_set", r.data.enabled ? "on" : "off");
+            invalidate(keys.social(clan.clan_tag));
+            invalidate(keys.map(clan.clan_tag));
+            invalidate(keys.me);
+          }}
+        >
+          {d.enabled ? "Turn social features off" : "Turn social features on"}
+        </button>
+      ) : (
+        <p className="page-head__note m-0">
+          Only the leader and co-leaders can change this setting.
+        </p>
+      )}
     </div>
   );
 }

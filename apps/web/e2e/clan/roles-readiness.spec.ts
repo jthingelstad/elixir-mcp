@@ -568,3 +568,88 @@ for (const size of ["wide", "@narrow"])
       }
       expect(reads).toBe(0);
     });
+
+for (const size of ["wide", "@narrow"])
+  for (const role of ["member", "elder"] as const)
+    test(`${role} direct Settings entry preserves Social reads without leader controls ${size}`, async ({
+      page,
+    }) => {
+      const errors: string[] = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      let writes = 0;
+      const routes = roleRoutes(role);
+      routes[`GET ${apiBase}/social`] = [200, { enabled: true }];
+      routes[`GET ${apiBase}/sharing`] = [403, { error: "leaders_only" }];
+      routes[`GET ${apiBase}/model`] = [403, { error: "leaders_only" }];
+      routes[`PUT ${apiBase}/social`] = () => {
+        writes++;
+        return [403, { error: "leaders_only" }];
+      };
+      await mockApi(page, routes);
+      await page.goto(`${base}/manage/settings`);
+      await expect(page.getByText("It is on.", { exact: false })).toBeVisible();
+      await expect(
+        page.getByText(
+          "Only the leader and co-leaders can change this setting.",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Turn social features/ }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("alert").filter({
+          hasText: "The recording summary is for the leader and co-leaders.",
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("alert").filter({
+          hasText: "The clan’s model is for the leader and co-leaders.",
+        }),
+      ).toBeVisible();
+      await page.screenshot({
+        path: `/tmp/elixir-${role}-settings-${size.replace("@", "")}.png`,
+        fullPage: true,
+      });
+      expect(errors).toEqual([]);
+      expect(writes).toBe(0);
+    });
+
+for (const size of ["wide", "@narrow"])
+  for (const role of ["leader", "coLeader"] as const)
+    test(`${role} Settings entry keeps its existing Social control ${size}`, async ({
+      page,
+    }) => {
+      const first = {
+        ...ME.clans[0]!,
+        role,
+        role_label: role === "leader" ? "Leader" : "Co-leader",
+      };
+      const me = { ...ME, clans: [first], selected: first };
+      await mockApi(
+        page,
+        signedIn({
+          "GET /api/clan/me": [200, me],
+          [`GET ${apiBase}/social`]: [200, { enabled: true }],
+          [`GET ${apiBase}/sharing`]: [200, { types: {} }],
+          [`GET ${apiBase}/model`]: [
+            200,
+            { set: false, models: [], uses: { recent: [] }, per_day: 20 },
+          ],
+        }),
+      );
+      await page.goto(`${base}/manage/settings`);
+      await expect(
+        page.getByRole("button", {
+          name: "Turn social features off",
+          exact: true,
+        }),
+      ).toBeEnabled();
+      await expect(
+        page.getByText(
+          "Only the leader and co-leaders can change this setting.",
+          { exact: true },
+        ),
+      ).toHaveCount(0);
+      await expect(page.getByRole("alert")).toHaveCount(0);
+    });

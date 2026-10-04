@@ -5108,3 +5108,27 @@ and mobile forms were visually checked. Required CI and production smoke plus
 published-build readback remain the release gates; tool acceptance is not
 needed for this private UI change. Ordinary-role observations use isolated
 synthetic fixtures, not live role changes.
+
+## 2026-10-04 - Settings direct-route role clarity
+
+The continued ordinary-role fixture pass reproduced a Settings mismatch:
+GET social is a permitted current-member read, but its switch was rendered
+for Members and Elders even though setEnabled permits only leaders and
+co-leaders. Four desktop/mobile before-fix journeys reproduced the missing
+read-only explanation. The UI now keeps the allowed status and exposes the
+switch only to those existing writer roles. A forbidden recording-summary
+read also explains its leader audience instead of leaving an empty section.
+The model's existing refusal remains. No server permissions, policy values,
+map visibility, location data, model configuration or three-section structure
+change. Testing uses isolated synthetic fixtures, with no production setting
+writes or paid model calls. MCP 11.2.0 and JSON API 3.0.0 are unchanged.
+
+Final Settings verification passed eight desktop/mobile role journeys and
+full npm run verify: 1,808 Node cases, 85 existing skips, 438 Vitest cases,
+zero failures. Member/Elder entry preserves the permitted Social read with
+no write control, recording-summary/model refusals are explicit, and leader
+and co-leader controls remain. Rendered Member/Elder desktop/mobile views
+were visually checked. An incomplete synthetic model-status envelope was
+corrected before the final leader-control run. No production settings were
+changed. Required CI, smoke and published-build readback are release gates;
+tool acceptance is not needed for these private UI changes.
