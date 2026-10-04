@@ -14,6 +14,7 @@ import {
   CLAN,
   JAMIE,
 } from "../lib.mjs";
+import { validateArgs } from "../../packages/tools/src/validate.mjs";
 
 /** The per-day war fields retired 2026-09-25 (Jamie: weekly aggregates
  *  only; a war day's rollover cannot be placed reliably at scale). */
@@ -38,6 +39,97 @@ const read = (ctx, tool, args) =>
     .then((r) => answered(r, `${tool} ${JSON.stringify(args)}`));
 
 export const contracts = [
+  {
+    id: "timeline-canonical-evidence",
+    tools: ["elixir_timeline"],
+    run: async (ctx) => {
+      const sourceArgs = {
+        days: 1,
+        mark_read: false,
+        kinds: ["battle_session", "arena_changed", "ranked_promotion"],
+        verbosity: "compact",
+      };
+      let feed = answered(
+        await ctx.read("elixir_timeline", sourceArgs),
+        "Timeline evidence source",
+      );
+      let item = feed.timeline.find((x) => x.evidence?.count > 0);
+      if (!item) {
+        feed = answered(
+          await ctx.read("elixir_timeline", { ...sourceArgs, days: 7 }),
+          "Timeline evidence source (seven days)",
+        );
+        item = feed.timeline.find((x) => x.evidence?.count > 0);
+      }
+      if (!item)
+        return {
+          skip: "No naturally recorded visible game evidence in the bounded seven-day window; scratch fixtures cover this conditional page.",
+        };
+      const readEvidence = () =>
+        ctx.read("elixir_timeline", {
+          from: feed.window.from,
+          to: feed.window.to,
+          kinds: ["battle_session", "arena_changed", "ranked_promotion"],
+          evidence_item_id: item.id,
+          expected_evidence_version: item.evidence.version,
+          evidence_limit: 25,
+        });
+      let detail = await readEvidence();
+      const changed = (result) =>
+        result.isError &&
+        result.body?.error?.hint?.reason === "evidence_changed";
+      if (changed(detail)) {
+        const now = Date.now();
+        const fixedArgs = { ...sourceArgs };
+        delete fixedArgs.days;
+        feed = answered(
+          await ctx.read("elixir_timeline", {
+            ...fixedArgs,
+            from: new Date(now - 7 * 86400000).toISOString(),
+            to: new Date(now).toISOString(),
+          }),
+          "Timeline evidence refresh",
+        );
+        item = feed.timeline.find((x) => x.evidence?.count > 0);
+        if (!item)
+          return {
+            skip: "Canonical evidence changed and no natural fixture remains in the bounded refresh window.",
+          };
+        detail = await readEvidence();
+        if (changed(detail))
+          return {
+            skip: "Canonical evidence changed during both bounded reads; supported version conflict, not a frozen fixture.",
+          };
+      }
+      const body = answered(detail, "canonical Timeline evidence");
+      eq(body.applied.mark_read, false, "evidence is always read-only");
+      eq(body.read_to, feed.read_to, "evidence preserves the pointer");
+      eq(body.evidence.version, item.evidence.version, "pinned version");
+      ok(body.evidence.battles.length > 0, "canonical references served");
+      ok(body.evidence.battles.length <= 25, "bounded first page");
+      for (const field of [
+        "battle_id",
+        "at",
+        "type",
+        "mode_group",
+        "outcome",
+        "crowns",
+        "trophy_change",
+        "short_id",
+        "url",
+        "relation",
+      ])
+        everyRowHas(body.evidence.battles, field, "canonical game evidence");
+      const schema = ctx.tools.get("elixir_timeline")?.outputSchema;
+      // Schema validation runs for this dynamic read, just as it does for
+      // catalogue argument sets. No production identities enter the catalogue.
+      if (schema) {
+        const error = validateArgs(schema, body, "Timeline evidence result");
+        ok(!error, `outputSchema: ${error}`);
+      }
+      return { ms: detail.ms };
+    },
+  },
   {
     id: "recorder-cards-facts",
     tools: ["cards_card"],

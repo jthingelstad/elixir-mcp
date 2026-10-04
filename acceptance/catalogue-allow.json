@@ -12,6 +12,9 @@
   "elixir_changelog": {
     "tools_added": "on an entry only when a version added tools"
   },
+  "elixir_timeline": {
+    "short_id": "Only a nonempty canonical evidence page carries game short IDs. The dynamic contract reads naturally visible evidence within seven days; a quiet window has none. Invented scratch fixtures pin this conditional field; no production event is manufactured."
+  },
   "players_names": {
     "in_corpus": "on unknown[] rows, present only when a tag is unknown"
   },

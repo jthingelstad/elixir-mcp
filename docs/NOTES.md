@@ -4307,3 +4307,48 @@ Trophy Road evidence. Existing ranked proof selects a winning pathOfLegend
 battle stamped with the prior league; no mixed-mode causal join was added.
 Invented fixtures cover ranked and arena references separately. Validation
 and release receipts follow after their observed results.
+
+## 2026-10-04 - Timeline evidence 11.1.0 deployed and acceptance audited
+
+PR [#262](https://github.com/jthingelstad/elixir-mcp/pull/262) merged as
+`4e8ee01c7cbe20299bbfac32b151d9d1817a2f2e`. Full local verification passed;
+required validate run 37168209087 passed, including all 92 browser journeys,
+with no failed or flaky checks. Invented fixtures cover stable late-proof origin,
+canonical mode separation, exact ordered 25-plus-5 paging, bounded/open sittings,
+cross-account refusals, pointer preservation and a capture-between-reads conflict.
+Mobile/desktop evidence panels passed keyboard/focus and accessibility checks.
+Two independent final reviews found no remaining blocker.
+
+Deployment used clean green main under the session lease. CloudFormation
+UPDATE_COMPLETE was read at **01:36:47.621Z (8:36 PM CT, October 3)**.
+The web Lambda LastModified was 01:36:30Z, Active/Successful; CodeSha256
+matched the local release zip. The migrate door ran exactly one migration,
+0201, with no backfill. The vocabulary import retained 47 roles/29 aliases.
+All **43 smoke checks passed**. Public health was green; the Timeline docs,
+What's new entry and Console evidence chunk were served, and the chunk bytes
+matched the release build. MCP is **11.1.0**; JSON API remains **3.0.0**.
+
+The initial full live acceptance reported 1,133 cases, one failure and
+376 documented skips. Its sole failure was the docs audit: ordinary Timeline
+samples did not contain the conditional evidence-page `short_id`, and the
+declared output enum value `anchor_bound` was mistaken for a field. The follow-up
+recognizes declared output enum vocabulary, samples naturally visible canonical
+evidence dynamically and validates its schema, bounds and unchanged pointer.
+Discovery is bounded to seven days; a quiet window skips explicitly. Only the
+documented evidence_changed conflict gets one fresh read; other refusals fail.
+The conditional short_id exception records that absence, with invented scratch
+fixtures retaining field coverage. Unit regressions still reject a truly missing
+field and an unexpected refusal. This changes acceptance only, not the runtime.
+
+The complete read-only live recheck passed: **1,134 cases, zero failures,
+376 documented skips, 514 distinct calls**. No failure was waived or marked known.
+The finalized dynamic contract also passed separately after its quiet/race guards;
+all 14 harness unit checks passed. A natural ranked promotion returned one proved
+crossing reference, mode_group ranked, and the read pointer stayed unchanged.
+This verifies the foundation's mode provenance; screenshots alone did not prove
+an incorrect milestone join. No automatic agent post, Action, draft, award,
+historical ledger rewrite or other production business write was made for release
+acceptance. Canonical game capture completeness stays explicitly unknown.
+
+The acceptance correction and this receipt land through their own green PR.
+No redeploy follows: deployed production code remains PR262's release commit.

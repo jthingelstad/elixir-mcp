@@ -216,6 +216,7 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
           Object.keys(ctx.tools.get(tool)?.inputSchema?.properties ?? {}),
         );
         const enums = enumValues(ctx.tools.get(tool)?.inputSchema);
+        enumValues(ctx.tools.get(tool)?.outputSchema, enums);
         describedWords(ctx.tools.get(tool)?.inputSchema, enums);
         const allow = new Set(allowFor(tool));
         const toolNames = await allToolNames(ctx);
@@ -256,6 +257,7 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
         const allEnums = new Set();
         for (const t of ctx.tools.values()) {
           enumValues(t.inputSchema, allEnums);
+          enumValues(t.outputSchema, allEnums);
           describedWords(t.inputSchema, allEnums);
         }
         const allArgs = new Set();

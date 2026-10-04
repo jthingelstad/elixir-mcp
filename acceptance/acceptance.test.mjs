@@ -15,6 +15,107 @@ import { shapeCatalogue } from "./catalogue.mjs";
 import { identities } from "./checks/identities.mjs";
 import { noteTokens, notesNameFields, deepKeys } from "./lib.mjs";
 import { runSuite, SUITES } from "./run.mjs";
+import { buildCatalogueCases } from "./checks/catalogue.mjs";
+import { contracts } from "./checks/contracts.mjs";
+
+const evidenceContract = contracts.find(
+  (x) => x.id === "timeline-canonical-evidence",
+);
+test("evidence acceptance skips a quiet bounded window without making a game", async () => {
+  const calls = [];
+  const result = await evidenceContract.run({
+    read: async (_tool, args) => {
+      calls.push(args);
+      return { body: { timeline: [] } };
+    },
+  });
+  assert.match(result.skip, /No naturally recorded/);
+  assert.deepEqual(
+    calls.map((x) => x.days),
+    [1, 7],
+  );
+  assert(calls.every((x) => x.mark_read === false));
+});
+test("evidence acceptance refreshes a capture race once, but fails other refusals", async () => {
+  const calls = [];
+  const feed = {
+    timeline: [
+      { id: "invented", evidence: { count: 1, version: "ev_invented" } },
+    ],
+    window: { from: "2026-10-03T00:00:00Z", to: "2026-10-04T00:00:00Z" },
+    read_to: null,
+  };
+  const changed = {
+    isError: true,
+    body: {
+      error: { code: "bad_request", hint: { reason: "evidence_changed" } },
+    },
+  };
+  const result = await evidenceContract.run({
+    read: async (_tool, args) => {
+      calls.push(args);
+      return args.evidence_item_id ? changed : { body: feed };
+    },
+  });
+  assert.match(result.skip, /both bounded reads/);
+  assert.equal(calls.filter((x) => x.evidence_item_id).length, 2);
+  assert(
+    calls
+      .filter((x) => !x.evidence_item_id)
+      .every((x) => x.mark_read === false),
+  );
+  await assert.rejects(
+    () =>
+      evidenceContract.run({
+        read: async (_tool, args) =>
+          args.evidence_item_id
+            ? {
+                isError: true,
+                body: {
+                  error: {
+                    code: "bad_request",
+                    hint: { reason: "evidence_unavailable" },
+                  },
+                },
+              }
+            : { body: feed },
+      }),
+    /refused bad_request/,
+  );
+});
+
+test("docs audit distinguishes conditional output vocabulary from unserved fields", async () => {
+  const cases = buildCatalogueCases({
+    tools: { example_tool: { sets: [{ args: {} }], p95_ms: 1 } },
+  });
+  let markdown = "Completeness can be `anchor_bound`; games carry `short_id`.";
+  const body = { docs: "example", games: [{ short_id: "invented" }] };
+  const ctx = {
+    tools: new Map([
+      [
+        "example_tool",
+        {
+          inputSchema: { properties: {} },
+          outputSchema: {
+            type: "object",
+            properties: {
+              completeness: { enum: ["anchor_bound", "recorded_sitting"] },
+            },
+          },
+        },
+      ],
+    ]),
+    allTools: new Set(["example_tool"]),
+    cache: new Map([["example", { body }]]),
+    read: async (tool) =>
+      tool === "elixir_docs" ? { body: { markdown }, ms: 1 } : { body, ms: 1 },
+  };
+  await cases.find((x) => x.id === "example_tool#0").run(ctx);
+  const audit = cases.find((x) => x.id === "example_tool#docs");
+  await audit.run(ctx);
+  markdown += " Plus `invented_missing_field`.";
+  await assert.rejects(() => audit.run(ctx), /invented_missing_field/);
+});
 
 function fakeDoor(answers) {
   const fetchImpl = async (_url, init) => {
