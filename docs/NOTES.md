@@ -4669,3 +4669,21 @@ operational verification remains private. MCP acceptance was omitted because
 only private Clan behavior and docs changed, with no existing public tool
 or JSON API operation changed. This notes-only receipt needs no
 further deployment.
+
+### 2026-10-04 — Guard the Door privacy-contract review
+
+The weekly security sweep reviewed `4c51d61f..ba4ed6d9` against the current
+roles, agents, integrations, connections, privacy and limits contracts. The
+public status read was healthy; invalid MCP and REST credentials both refused
+with 401; the five signed collectors used the one 1 request/second budget with
+a 10% live reserve. Full local verification and read-only deployed acceptance
+completed without a boundary failure. The deployed stack remains
+`UPDATE_COMPLETE` with `ClanInternal=true`.
+
+The review found a policy-text mismatch in `privacy.md`: its 2026-09-28
+statement that Elixir models write editorial mail and read feedback is retired,
+and its wording implies every sign-in enrolls a newsletter recipient while the
+relay requires an account opt-in. Policy text changes only with Jamie's word,
+so Guard queued one decision: approve concise corrected wording, including
+whether to name the optional Clan own-key model flow in general terms. No
+runtime, privacy, IAM or production state changed while that decision is open.
