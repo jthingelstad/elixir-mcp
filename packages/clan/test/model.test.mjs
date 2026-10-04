@@ -13,6 +13,7 @@ import { createMemoryLedger } from "@elixir-mcp/clan-state";
 import { createRecruitService } from "@elixir-mcp/clan/manage/recruit.mjs";
 import { fetchRoster } from "@elixir-mcp/clan/manage/service.mjs";
 import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
+import { draftContextVersion } from "@elixir-mcp/clan/manage/actions.mjs";
 import {
   USES_PER_DAY,
   createModelService,
@@ -536,7 +537,7 @@ test("model: welcome and removal chat drafts disclose no member evidence and lea
         {},
       )
     ).status,
-    400,
+    409,
   );
   assert.equal(
     (await api(h, c, "POST", "/api/clans/GQ08RJPL/actions/welcome/draft", {}))
@@ -573,6 +574,203 @@ test("model: unverified leaders and verified elders cannot spend on either chat 
     }
     assert.equal(h.anthropic.state.calls.length, 0);
   }
+});
+
+test("model: welcome drafting uses only its frozen detail with the original provenance", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const welcome = {
+    kind: "career_wins",
+    value: 12456,
+    fact: "12,000+ career wins.",
+    source_as_of: "2026-09-24T12:00:00Z",
+    private_note: "Private evidence",
+  };
+  const card = {
+    card_id: "frozen",
+    type: "welcome",
+    status: "proposed",
+    player_tag: BEA,
+    player_name: "Secretname",
+    evidence: {
+      joined_at: "2026-09-25T10:00:00Z",
+      welcome,
+      score: 0.1234,
+      notes: "Private evidence",
+    },
+  };
+  await h.ledger.putCard("#2PQRJ8LV", card);
+  h.clock.t += 2 * 86400000;
+  h.anthropic.state.write = (key, request) => ({
+    ok: true,
+    model: request.model,
+    input: { line: "Welcome, {name}! 12,000+ career wins." },
+  });
+  const response = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/frozen/draft",
+    { expected_draft_version: draftContextVersion(card) },
+  );
+  assert.equal(response.status, 200, JSON.stringify(response.body));
+  assert.match(response.body.line, /Secretname.*12,000\+ career wins/);
+  assert.equal(response.body.draft_context_version, draftContextVersion(card));
+  const request = h.anthropic.state.calls.at(-1)[2];
+  assert.match(request.prompt, /12,000\+ career wins/);
+  assert.match(request.prompt, /2026-09-24T12:00:00.000Z/);
+  assert.doesNotMatch(
+    JSON.stringify(request),
+    /Secretname|8QCV|Private evidence|0\.1234|12456/,
+  );
+  assert.deepEqual(await h.ledger.card("#2PQRJ8LV", card.card_id), card);
+  assert.equal(
+    h.mcp.calls.filter(([name]) => name === "players_profile").length,
+    0,
+  );
+});
+
+test("model: confirmed kick and leave guide departure drafts; unconfirmed and ignored do not spend", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  for (const classification of ["member_left", "member_kicked"]) {
+    const card = {
+      card_id: classification,
+      type: "departure",
+      status: "done",
+      player_tag: BEA,
+      player_name: "Secretname",
+      decided_by: ADA,
+      decided_at: "2026-09-25T11:00:00Z",
+      decision_note: "Private reason",
+      outcome: { classification, verified_at: "2026-09-25T11:00:00Z" },
+      evidence: {
+        left_at: "2026-09-24T12:00:00Z",
+        tenure_days: 38,
+        days_idle: 999,
+        removal_state: "recommended",
+        phrase: "Private evidence",
+      },
+    };
+    await h.ledger.putCard("#2PQRJ8LV", card);
+    h.anthropic.state.write = (key, request) => ({
+      ok: true,
+      model: request.model,
+      input: { line: "Wishing you well, {name}." },
+    });
+    const response = await api(
+      h,
+      c,
+      "POST",
+      `/api/clans/2PQRJ8LV/actions/${classification}/draft`,
+      { expected_draft_version: draftContextVersion(card) },
+    );
+    assert.equal(response.status, 200, JSON.stringify(response.body));
+    assert.equal(response.body.line, "Wishing you well, Secretname.");
+    const request = h.anthropic.state.calls.at(-1)[2];
+    assert.match(
+      request.prompt,
+      classification === "member_left" ? /member left/ : /member was kicked/,
+    );
+    assert.match(request.prompt, /recorded tenure 38 days/);
+    assert.doesNotMatch(
+      JSON.stringify(request),
+      /Secretname|8QCV|Private reason|Private evidence|999|recommended/,
+    );
+    assert.deepEqual(await h.ledger.card("#2PQRJ8LV", card.card_id), card);
+  }
+  const writes = h.anthropic.state.calls.filter(
+    ([type]) => type === "write",
+  ).length;
+  for (const extra of [
+    { status: "proposed" },
+    {
+      status: "done",
+      decided_by: ADA,
+      decided_at: "2026-09-25T11:00:00Z",
+      outcome: { classification: "ignored" },
+    },
+    { status: "done", outcome: { classification: "member_left" } },
+  ]) {
+    await h.ledger.putCard("#2PQRJ8LV", {
+      card_id: "unknown",
+      type: "departure",
+      ...extra,
+    });
+    const response = await api(
+      h,
+      c,
+      "POST",
+      "/api/clans/2PQRJ8LV/actions/unknown/draft",
+      {},
+    );
+    assert.equal(response.status, 409);
+    assert.equal(response.body.error, "departure_unconfirmed");
+  }
+  assert.equal(
+    h.anthropic.state.calls.filter(([type]) => type === "write").length,
+    writes,
+  );
+});
+
+test("model: a stale context refuses before spending and a confirmation change during a draft rejects its result", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const card = {
+    card_id: "changing",
+    type: "departure",
+    status: "done",
+    decided_by: ADA,
+    decided_at: "2026-09-25T11:00:00Z",
+    outcome: { classification: "member_left" },
+    evidence: {},
+  };
+  await h.ledger.putCard("#2PQRJ8LV", card);
+  const stale = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/changing/draft",
+    { expected_draft_version: "old" },
+  );
+  assert.equal(stale.body.error, "draft_changed");
+  assert.equal(
+    h.anthropic.state.calls.filter(([type]) => type === "write").length,
+    0,
+  );
+  h.anthropic.state.write = async (key, request) => {
+    await h.ledger.putCard("#2PQRJ8LV", {
+      ...card,
+      outcome: { classification: "member_kicked" },
+    });
+    return {
+      ok: true,
+      model: request.model,
+      input: { line: "A stale farewell" },
+    };
+  };
+  const changed = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/changing/draft",
+    { expected_draft_version: draftContextVersion(card) },
+  );
+  assert.equal(changed.status, 409);
+  assert.equal(changed.body.error, "draft_changed");
+  assert.equal(
+    h.anthropic.state.calls.filter(([type]) => type === "write").length,
+    1,
+  );
+  assert.equal(
+    (await h.ledger.actionLog("#2PQRJ8LV", card.card_id)).filter(
+      (entry) => entry.kind === "drafted",
+    ).length,
+    0,
+  );
 });
 
 test("model: an uncertain dispatch is counted and tells a leader to check uses before another draft", async () => {

@@ -80,17 +80,19 @@ export function Model({ clan }) {
     <div className="grid max-w-[720px] gap-4">
       <p className="page__lede m-0">
         Elixir Clan pays for no model. With your clan&rsquo;s own Anthropic key,
-        a model drafts the recruiting pitch in Recruit and messages on open
-        Actions: welcomes, promotions, demotions, awards, policy announcements
-        and a chat line after a removal decision. It never decides what should
-        happen to a member. It is told the game&rsquo;s numbers for the clan,
-        what the clan is for, how it runs and its own words. Member-level
-        evidence and stored member details stay local. Keep member details out
-        of a Leader Message note; chat drafts use fixed tone choices. Everything
-        it writes is a draft you review and edit, then save or copy into the
-        game. Nothing is posted automatically. Drafts use the clan’s saved
-        recruiting words as its voice; add those in Recruit and choose the tone
-        on the action.
+        a model drafts the recruiting pitch in Recruit and messages on Actions:
+        welcomes, promotions, demotions, awards, policy announcements and a chat
+        line after a removal decision. It never decides what should happen to a
+        member. It is told the game&rsquo;s numbers for the clan, what the clan
+        is for, how it runs and its own words. Member names, tags and private
+        notes stay local. Welcome drafts can use the Action&rsquo;s frozen
+        return or recorded career detail. Departure drafts use a leader&rsquo;s
+        confirmed Kicked or Left classification and recorded tenure when known,
+        without private reasons. Keep member details out of a Leader Message
+        note; chat drafts use fixed tone choices. Everything it writes is a
+        draft you review and edit, then save or copy into the game. Nothing is
+        posted automatically. Drafts use the clan’s saved recruiting words as
+        its voice; add those in Recruit and choose the tone on the action.
       </p>
 
       {d.set ? (

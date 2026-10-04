@@ -1,8 +1,11 @@
 /**
- * Words for an existing open action, through the clan's own model. Leader
+ * Words for an existing action, through the clan's own model. Leader
  * Messages retain their existing context; welcome and removal chat copy
- * receives clan voice/goals and a fixed tone only. Member evidence stays
- * local and names are substituted after the answer. A person reviews,
+ * receives clan voice/goals and a fixed tone. Welcomes additionally use
+ * their frozen return or career detail; all other member evidence stays
+ * local. Confirmed departures use classification and recorded tenure,
+ * never private decision reasons. Names are substituted after the answer.
+ * A person reviews,
  * edits and sends; drafting only adds a log entry, never a decision.
  */
 
@@ -17,7 +20,11 @@ import {
   leaderMessageRequest,
 } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
-import { createActionStore } from "./actions.mjs";
+import {
+  confirmedDeparture,
+  createActionStore,
+  draftContextVersion,
+} from "./actions.mjs";
 
 const LEADERS = new Set(["leader", "coLeader"]);
 const KIND = {
@@ -27,6 +34,7 @@ const KIND = {
   rules_announcement: "rules",
   welcome: "welcome",
   removal: "removal",
+  departure: "departure",
 };
 
 export function createDrafts({ ledger, model, now = () => Date.now() }) {
@@ -37,16 +45,22 @@ export function createDrafts({ ledger, model, now = () => Date.now() }) {
       who,
       token,
       cardId,
-      { note = null, clanName = null } = {},
+      { note = null, clanName = null, expectedDraftVersion = null } = {},
     ) {
-      if (!LEADERS.has(who.role)) throw new ManageError(403, "leaders_only");
+      if (!LEADERS.has(who.role) || who.verified === false)
+        throw new ManageError(403, "leaders_only");
       if (!model) throw new ManageError(404, "not_found");
       const card = await ledger.card(clanTag, cardId);
       if (!card) throw new ManageError(404, "no_action");
-      if (card.status !== "proposed")
+      const version = draftContextVersion(card);
+      if (expectedDraftVersion && expectedDraftVersion !== version)
+        throw new ManageError(409, "draft_changed");
+      if (card.type === "departure" && !confirmedDeparture(card))
+        throw new ManageError(409, "departure_unconfirmed");
+      if (card.status !== "proposed" && !confirmedDeparture(card))
         throw new ManageError(409, "action_closed");
       const kind = KIND[card.type];
-      const chat = ["welcome", "removal"].includes(kind);
+      const chat = ["welcome", "removal", "departure"].includes(kind);
       if (chat && note != null && !Object.hasOwn(CHAT_TONES, note))
         throw new ManageError(400, "bad_draft_tone");
       if (
@@ -98,6 +112,16 @@ export function createDrafts({ ledger, model, now = () => Date.now() }) {
         voice: pitch?.values ?? null,
         goals: policy ? declaredGoals(policy.values) : [],
         note: chat ? note : anonymous(note),
+        welcome: kind === "welcome" ? ev.welcome : null,
+        departure:
+          kind === "departure"
+            ? {
+                classification: card.outcome.classification,
+                confirmed_at: card.decided_at,
+                observed_left_at: ev.left_at,
+                tenure_days: ev.tenure_days,
+              }
+            : null,
       };
       const request = chat
         ? chatMessageRequest(context)
@@ -118,20 +142,33 @@ export function createDrafts({ ledger, model, now = () => Date.now() }) {
                     }
                   : null,
           });
+      const unchanged = async () => {
+        const current = await ledger.card(clanTag, cardId);
+        if (!current || draftContextVersion(current) !== version)
+          throw new ManageError(409, "draft_changed");
+      };
+      await unchanged();
       const answer = await model.write(clanTag, who, token, request);
+      await unchanged();
       const draft = (chat ? chatMessageFromDraft : leaderMessageFromDraft)(
         answer.input,
         {
           kind,
           name: card.player_name ?? null,
           awards: ev.awards ?? [],
+          welcome: kind === "welcome" ? ev.welcome : null,
+          departure: context.departure,
         },
       );
       await logAction(clanTag, card.card_id, "drafted", {
         by: person(who),
         text: `Drafted ${chat ? "a clan-chat line" : "a Leader Message"} in the clan's voice (${answer.model}).`,
       });
-      return { ...draft, model: answer.model };
+      return {
+        ...draft,
+        model: answer.model,
+        draft_context_version: version,
+      };
     },
   };
 }

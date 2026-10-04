@@ -114,7 +114,12 @@ without a policy:
   lets a model draft the recruiting pitch in Recruit and, on an open
   action, the Clan Leader Message for a promotion, demotion, awards
   announcement or policy-change announcement, plus welcome and post-decision
-  removal chat lines. Saved recruiting words provide the clan's voice.
-  Action evidence and member details stay local; chat drafts use fixed tone choices. Keep member details out of a Leader
+  removal chat lines, plus a departure message after a leader confirms
+  Kicked or Left. Saved recruiting words provide the clan's voice. Welcome
+  drafts may use the Action's frozen recorded return or career detail;
+  departure drafts use the confirmed classification and recorded tenure when
+  known, with provenance and uncertainty. Names, tags, private notes, internal
+  rationale and broader member history stay local; chat drafts use fixed tone
+  choices. Keep member details out of a Leader
   Message note. Everything it writes is a draft a leader edits
   and copies into the game. It never makes or completes a decision.

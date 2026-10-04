@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Clan voice drafts keep their recorded context",
+    body: "Welcome drafts use the Action's saved return or career detail. After a leader confirms Kicked or Left, departure drafts use that confirmation and recorded tenure when known. Changed context clears older drafts; names, private notes and removal reasons stay local. Review and send the words yourself. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Timeline evidence explains its milestone window",
     body: "A sitting summary can include games played after its standout milestone. The evidence panel now explains both counts and time spans. Timeline sentences wrap to keep game controls visible on desktop, and Close returns you to the original row after a long evidence list. Contracts unchanged.",
   },

@@ -92,6 +92,133 @@ test("chat drafts restore names locally, keep game limits, and flag scoring lang
   );
 });
 
+test("welcome prompts preserve frozen approved facts and provenance, never arbitrary evidence", () => {
+  const stamp = "2026-09-24T12:00:00Z";
+  for (const [welcome, expected] of [
+    [{ returning: true, source_as_of: stamp }, /recorded return/],
+    [
+      { kind: "career_wins", value: 12456, source_as_of: stamp },
+      /12,000\+ career wins/,
+    ],
+    [
+      { kind: "best_trophies", value: 9000, source_as_of: stamp },
+      /Recorded best: 9,000 trophies/,
+    ],
+  ]) {
+    const frozen = {
+      ...welcome,
+      fact: "Secretname #8QCV private note score 0.1234",
+      private_note: "hidden",
+    };
+    const request = chatMessageRequest({ kind: "welcome", welcome: frozen });
+    assert.match(request.prompt, expected);
+    assert.match(request.prompt, /2026-09-24T12:00:00.000Z/);
+    assert.match(
+      request.prompt,
+      /not claim it is current, newly achieved or a recent milestone/,
+    );
+    assert.doesNotMatch(
+      JSON.stringify(request),
+      /Secretname|8QCV|private note|hidden|0\.1234|12456/,
+    );
+    assert.deepEqual(frozen, {
+      ...welcome,
+      fact: "Secretname #8QCV private note score 0.1234",
+      private_note: "hidden",
+    });
+  }
+  for (const welcome of [
+    null,
+    { fact: "Unsupported private text" },
+    { kind: "career_wins", value: 999, source_as_of: stamp },
+    { kind: "best_trophies", value: -1, source_as_of: stamp },
+    { kind: "best_trophies", value: 9000, source_as_of: "Secretname" },
+    { kind: "score", value: 9000, source_as_of: stamp },
+  ]) {
+    const request = chatMessageRequest({ kind: "welcome", welcome });
+    assert.doesNotMatch(
+      request.prompt,
+      /Frozen context|Unsupported private text|Secretname|9,000/,
+    );
+  }
+  assert.match(
+    chatMessageFromDraft(
+      {},
+      { kind: "welcome", name: "Newcomer", welcome: { returning: true } },
+    ).line,
+    /Welcome back, Newcomer/,
+  );
+  assert.match(
+    chatMessageFromDraft(
+      {},
+      {
+        kind: "welcome",
+        name: "Newcomer",
+        welcome: { kind: "career_wins", value: 12456, source_as_of: stamp },
+      },
+    ).line,
+    /12,000\+ career wins/,
+  );
+});
+
+test("departure prompts trust explicit confirmation, preserve observation uncertainty and omit private rationale", () => {
+  for (const classification of ["member_left", "member_kicked"]) {
+    const departure = {
+      classification,
+      confirmed_at: "2026-09-25T12:00:00Z",
+      observed_left_at: "2026-09-24T12:00:00Z",
+      tenure_days: 38,
+      days_idle: 999,
+      removal_state: "recommended",
+      phrase: "Secretname Private evidence",
+      decision_note: "Private reason",
+    };
+    const request = chatMessageRequest({ kind: "departure", departure });
+    assert.match(
+      request.prompt,
+      /explicit leader confirmation at 2026-09-25T12:00:00.000Z/,
+    );
+    assert.match(request.prompt, /observed at 2026-09-24T12:00:00.000Z/);
+    assert.match(request.prompt, /recorded tenure 38 days/);
+    assert.match(request.prompt, /metric observation time is not stored/);
+    assert.match(request.prompt, /raw roster observation did not distinguish/);
+    assert.match(
+      request.prompt,
+      classification === "member_left"
+        ? /member left.*friendly farewell/
+        : /member was kicked.*respectful departure/,
+    );
+    assert.doesNotMatch(
+      JSON.stringify(request),
+      /999|recommended|Secretname|Private evidence|Private reason/,
+    );
+    const output = chatMessageFromDraft(
+      {},
+      { kind: "departure", name: "Member", departure },
+    );
+    assert.doesNotMatch(output.line, /inactivity|kicked|removed/);
+    assert.ok(output.line.length <= 200);
+  }
+  for (const departure of [
+    null,
+    { classification: "member_left" },
+    { classification: "ignored", confirmed_at: "2026-09-25T12:00:00Z" },
+  ])
+    assert.throws(
+      () => chatMessageRequest({ kind: "departure", departure }),
+      /not confirmed/,
+    );
+  const missing = chatMessageRequest({
+    kind: "departure",
+    departure: {
+      classification: "member_left",
+      confirmed_at: "2026-09-25T12:00:00Z",
+    },
+  });
+  assert.match(missing.prompt, /observation time is unknown/);
+  assert.doesNotMatch(missing.prompt, /recorded tenure/);
+});
+
 test("the default model is the first preferred one the key reaches", () => {
   assert.equal(
     chooseModel(["claude-haiku-4-5-20251001", "claude-sonnet-5"]),

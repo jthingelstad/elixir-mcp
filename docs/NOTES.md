@@ -4417,3 +4417,39 @@ single bounded page and succeeded. The clean-tree lease was released after
 these checks. This receipt lands through its own green PR; no deploy follows
 the notes-only merge. No Action, draft, delivery record, agent post, paid model
 call or other production business write was used for acceptance.
+
+## 2026-10-04 - Frozen welcome and confirmed departure context in voice drafts
+
+Jamie authorized the frozen Action context for the LLM version of welcome
+messages, and clarified that explicit leader-confirmed Kicked/Left is trusted
+application state. Raw roster departures still do not distinguish the cause.
+Welcomes now project only their typed recorded return or career detail with
+the original source observation time. Profile freshness remains the check at
+Action creation; drafting does not refresh or claim a newly achieved milestone.
+Arbitrary fact text, names, tags and extra evidence are not forwarded.
+
+The existing Kicked/Left/Ignore decision stays immutable. Done departures with
+a dated, identified leader confirmation can draft respectful chat copy; open,
+ignored or incomplete confirmations cannot. The projection includes the
+confirmed classification/time, observed departure time and positive recorded
+tenure when known. Tenure's metric observation time is not stored, and it is
+not proof of exact or entire membership. Private decision notes, inactivity,
+removal state, participation rationale and broader personal history stay local.
+No confirmation or other production business state is changed by this work.
+
+Draft context versions bind the displayed Action, request and returned words.
+Stale requests refuse before dispatch; a change during the model call rejects
+its result without logging a successful draft. Keyed editors clear previous
+words and restoration state on a context change. A stale-context refusal
+immediately withholds old words and disables decisions even if refresh fails.
+Names are still restored locally, tones remain fixed choices, and drafting
+does not complete an Action, certify delivery or post a message.
+
+The targeted consistency trace amended the existing decision and followed its
+unrealized/contradicted paths through orchestration, pure prompt/output guards,
+the authenticated Clan handler, Action shaping and editor, Settings privacy
+copy, Actions/policy docs and What's new. MCP and JSON API contracts, profile
+credentials, sealed-key derivation, model relay/accounting and delivery state
+are unchanged. Deterministic regressions use fake model responses only; no
+paid model call, live classification or message is an acceptance fixture.
+Observed validation and deployment receipts follow after release.

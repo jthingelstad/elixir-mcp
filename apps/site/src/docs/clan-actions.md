@@ -114,9 +114,24 @@ Leader Message, welcome or removal action offers leaders and co-leaders
 **Draft in our voice**. It uses the
 clan's Anthropic key to draft a promotion, demotion, awards announcement
 or policy-change announcement, a welcome, or a chat line to use after a
-removal decision. The action's member name and evidence stay local: Clan
-puts the name back into the model's placeholder. The model never decides
-whether to promote, demote or remove anyone.
+removal decision. After a leader confirms **Kicked** or **Left**, the departure
+Action can also draft a respectful departure message or farewell. An observed
+departure alone does not say which happened; an unconfirmed or ignored
+departure has no voice draft.
+
+The model may use the welcome Action's frozen return or recorded career
+detail with its original observation time. Freshness was checked when that
+detail was saved; drafting does not fetch a new profile or turn a career total
+into a newly reached milestone. For a confirmed departure it receives the
+leader's classification and confirmation time, the observed departure time,
+and recorded tenure when known. Tenure's metric observation time is not stored;
+it does not prove the member's exact or entire time in the clan.
+
+Member names, tags, private decision notes, inactivity rationale, scores and
+broader history stay local. Clan puts the name back into the model's
+placeholder. The model never decides whether to promote, demote or remove
+anyone. Drafts are bound to the Action's context: a changed confirmation or
+frozen detail clears older words and rejects an in-flight result.
 
 The clan's saved words in **Recruit** supply its voice. Choose a fixed tone for a chat line, or add a short Leader Message note
 without member details; review and edit the answer.
