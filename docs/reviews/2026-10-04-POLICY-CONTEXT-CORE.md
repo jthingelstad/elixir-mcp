@@ -40,6 +40,50 @@ scope/discovery/MCP or JSON API change needs a contract and privacy review; do
 not expose the full private policy or relax the public-tool import boundary.
 No security grants are written in this slice.
 
+### Contract handoff
+
+The canonical machine-readable shape is
+`packages/contracts/clan-policy-context.schema.json`; synthetic examples are
+`packages/contracts/test/fixtures/clan-policy-context.json`. Service tests compare
+the actual core read against these examples. The context schema version is
+independent of the saved policy schema and the MCP/JSON API versions. A consumer
+must reject an unsupported context schema, a different clan, a malformed result,
+or an unsuccessful read. An unknown result never means not participating.
+
+`policy_version` identifies the saved revision within one clan; it is null only
+when no policy exists. It does not prove permission or current membership.
+`policy_saved_at` describes that revision's save, and an old saved revision may
+still be current. `read_at` is generated after the current policy read completes.
+The existing HTTP envelope is `Cache-Control: no-store`. There is no cached or
+last-known policy fallback on read failure, and reading creates no policy.
+
+For the pending Discord consumer, obtain a successful new authorized read at
+startup, before planning and immediately before firing an affected routine.
+Only a known result for the assigned clan from that successful refresh can be
+used for that phase. Defer the affected routine on unknown, error or failed
+refresh; do not infer a value from scoring, preset, clan assignment or policy age.
+The maximum permitted read-to-fire age and clock-skew treatment still need
+coordination with the consumer; this core schema does not invent a TTL or grant.
+
+### Read-only agent verification basis
+
+The existing IAM account inventory was read on 2026-10-04. It exposes active
+service-token names, account status and role, but no agent public identity,
+ownership link or verified current clan membership. The read-only profiler can
+resolve a service-token name and enforce a tool's principal boundary; its result
+contains timing/query summaries, not the owner or verified claims. Those reads
+cannot establish the three Discord agents' actual owner/membership authorization.
+The authenticated person's existing `/api/me` can show their owned agents and
+claims, but no authorized person-session read was available in this review.
+
+The before/after audience of this draft is therefore unchanged: current verified
+people who already pass Clan's person/session membership gate. Agents and
+integrations remain refused. Allowing an assigned agent to read even this narrow
+context would add an agent reader to private Clan policy. Any proposed door must
+separately approve that access and enforce the actual owner, current verified
+membership, current assignment and revocation on each read. No inference or
+production grant was used to fill the missing ownership evidence.
+
 ## Next slice, pending coordination
 
 Settle the agent transport, assignment/owner authorization, minimal discovery

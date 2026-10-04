@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Elixir Clan minimal policy context, schema 1",
+  "description": "Private core context. This schema grants no access and declares no MCP tool. read_at times a successful current policy read; policy_saved_at is save provenance, not freshness. HTTP failures have no usable context.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "clan_tag",
+    "status",
+    "reason",
+    "war_intent",
+    "policy_version",
+    "policy_saved_at",
+    "read_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "clan_tag": {
+      "type": "string",
+      "pattern": "^#[0289PYLQGRJCUV]{3,12}$"
+    },
+    "status": {
+      "enum": ["known", "unknown"]
+    },
+    "reason": {
+      "enum": [null, "no_policy", "war_intent_unspecified"]
+    },
+    "war_intent": {
+      "enum": ["unknown", "participating", "not_participating"]
+    },
+    "policy_version": {
+      "type": ["integer", "null"],
+      "minimum": 1
+    },
+    "policy_saved_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "status": {
+          "const": "known"
+        },
+        "reason": {
+          "const": null
+        },
+        "war_intent": {
+          "enum": ["participating", "not_participating"]
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    {
+      "properties": {
+        "status": {
+          "const": "unknown"
+        },
+        "reason": {
+          "const": "no_policy"
+        },
+        "war_intent": {
+          "const": "unknown"
+        },
+        "policy_version": {
+          "const": null
+        },
+        "policy_saved_at": {
+          "const": null
+        }
+      }
+    },
+    {
+      "properties": {
+        "status": {
+          "const": "unknown"
+        },
+        "reason": {
+          "const": "war_intent_unspecified"
+        },
+        "war_intent": {
+          "const": "unknown"
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  ]
+}
