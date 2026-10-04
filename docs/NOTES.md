@@ -4704,3 +4704,11 @@ no allowance or counter-only admission rule is adopted. Seasonal readiness
 remains the priority. Schema and contracts unchanged: MCP 11.1.0 / JSON API
 3.0.0. No existing public tool or JSON API operation changed, so deployment
 does not opt into MCP acceptance.
+
+Validation receipt: PR277 passed required validate, including full verify,
+the Lambda build and the complete browser suite. Local full verify passed
+(Clan UI 104 checks, web app 272); four focused desktop/mobile fixture
+journeys passed with axe, group navigation, desktop fit, narrow keyboard
+scrolling and opening/closing the full-row member panel. Detailed operational
+verification remains private. This notes-only receipt needs no further
+deployment.
