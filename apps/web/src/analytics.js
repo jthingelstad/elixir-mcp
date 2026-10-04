@@ -131,6 +131,21 @@ export function analyticsLocation(
   return { path: page, url: url.toString() };
 }
 
+// A new document can carry a same-origin roster search or record address
+// in document.referrer. Normalize it as a route before a manual beacon,
+// just as in-document navigation already does; external referrers stay.
+function documentReferrer() {
+  if (!document.referrer) return "";
+  try {
+    const from = new URL(document.referrer);
+    return from.origin === window.location.origin
+      ? (analyticsLocation(from.pathname, from.origin)?.url ?? "")
+      : document.referrer;
+  } catch {
+    return "";
+  }
+}
+
 function bridgeRouteChanges() {
   let last = analyticsLocation();
   const beacon = (next, referrer) => {
@@ -155,7 +170,7 @@ function bridgeRouteChanges() {
       return;
     }
     if (next.url === last?.url) return;
-    const referrer = last ? last.url : document.referrer;
+    const referrer = last ? last.url : documentReferrer();
     last = next;
     beacon(next, referrer);
   };
@@ -166,10 +181,11 @@ function bridgeRouteChanges() {
   };
   window.addEventListener("popstate", send);
   // The document hit the embed is not allowed to record on a private
-  // record: the same normalized page, by beacon, with the real referrer.
+  // record: the same normalized page, by beacon, with same-origin referrers
+  // normalized too.
   return {
     landing: () => {
-      if (last) beacon(last, document.referrer);
+      if (last) beacon(last, documentReferrer());
     },
   };
 }
