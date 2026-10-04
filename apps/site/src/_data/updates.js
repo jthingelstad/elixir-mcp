@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Unchanged profile reads keep an honest observation time",
+    body: "Successful admitted profile reads update their observation time even when the recorded values stay the same. They earn no new facts or collector points, preserve newer roster values and cannot regress on older deliveries. This does not prove absence of battle activity in every mode; Clan removal checks and freshness rules are unchanged. Contract 11.1.1; JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Board makes held evidence easier to navigate",
     body: "Promotion and demotion evidence counts are separate from removal triage. Jump to a Board group, read wrapped member labels and scroll narrow tables within the page. Policy help describes excluded Elders as Protected. Removal checks and freshness rules are unchanged. Contracts unchanged.",
   },

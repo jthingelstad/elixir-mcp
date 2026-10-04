@@ -253,6 +253,14 @@ either source; "wins on day D" is the day's last profile read, and a day the
 roster wrote with no profile poll carries the roster's columns and null
 elsewhere, with `profile_observed_at` null to say so.
 
+A successful admitted profile read advances `profile_observed_at` even when
+the projected values are unchanged. This is an observation, with no new fact
+or collector-point credit; it preserves newer roster values, and an older
+delivery cannot move the stamp backward. A recent unchanged profile is not
+proof of no battle activity in every mode. Profile counters and the API's
+limited battle-log history have different scopes; logging in or collecting
+rewards does not establish battle activity either.
+
 `clans_roster` carries the clan's own `type` (`open`, `inviteOnly`,
 `closed`), `location_id` (the API's location code) and `description` as the
 last roster poll carried them (`null` before 2026-09-17), at both

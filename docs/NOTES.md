@@ -4712,3 +4712,21 @@ journeys passed with axe, group navigation, desktop fit, narrow keyboard
 scrolling and opening/closing the full-row member panel. Detailed operational
 verification remains private. This notes-only receipt needs no further
 deployment.
+
+### 2026-10-04 — Successful unchanged profile observations
+
+An admitted unchanged profile advances its existing daily profile stamp in the
+receipt's projection transaction, without new-fact or collector-point credit.
+Older deliveries cannot regress it, and newer roster values stay intact. No
+schema, API shape, polling cadence, recording scope or permissions change.
+Contract 11.1.1; JSON API 3.0.0 unchanged, with unchanged response shapes.
+Shared ingest changes require full read-only MCP acceptance at deployment.
+
+Jamie defines inactivity as no battle activity in any mode. Logging in or
+collecting rewards does not count. The accepted 30-hour freshness direction is
+not an adopted eligibility allowance: per-mode counter coverage and a reliable
+absence proof remain unresolved. The observed battle-log families include
+friendly, 2v2, events, tournaments and war duels, but a finite nonpaginated log
+does not guarantee a time window or completeness. Side-mode progression is not
+a no-play counter. This release preserves removal freshness/admission guards;
+it records observations without treating unchanged counters as all-mode proof.
