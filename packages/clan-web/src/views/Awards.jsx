@@ -125,7 +125,12 @@ export function Awards({ clan, navigate }) {
         d.seasons[0].awards.some(
           (a) => a.state !== "off" && a.state !== "manual",
         ) ? (
-          <CurrentUpdate clan={clan} navigate={navigate} />
+          <CurrentUpdate
+            clan={clan}
+            navigate={navigate}
+            seasonId={d.seasons[0].season_id}
+            viewingSeason={selected}
+          />
         ) : null}
       </div>
       {season ? (
@@ -198,7 +203,7 @@ export function Awards({ clan, navigate }) {
   );
 }
 
-function CurrentUpdate({ clan, navigate }) {
+function CurrentUpdate({ clan, navigate, seasonId, viewingSeason }) {
   const request = useRef(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
@@ -240,8 +245,14 @@ function CurrentUpdate({ clan, navigate }) {
           }
         }}
       >
-        {busy ? "Preparing update…" : "Send current update to clan"}
+        {busy ? "Preparing update…" : `Send season ${seasonId} update to clan`}
       </button>
+      {viewingSeason !== seasonId ? (
+        <p className="page-head__note m-0">
+          This prepares the current season {seasonId} update, while you are
+          viewing season {viewingSeason}.
+        </p>
+      ) : null}
       {error ? (
         <p className="field-error" role="alert">
           {error}
@@ -309,6 +320,19 @@ function AwardPanel({
             a.player_tag.localeCompare(b.player_tag),
         )
       : sourceRows;
+  const pointsKind = ["season_points_podium", "rookie_podium"].includes(
+    award.kind,
+  );
+  const position = (row) => row.place ?? row.rank;
+  const shared = new Map();
+  for (const row of rows) {
+    const place = position(row);
+    if (place != null) shared.set(place, (shared.get(place) ?? 0) + 1);
+  }
+  const sharesPlace = (row) =>
+    pointsKind
+      ? (row.place_tied ?? shared.get(position(row)) > 1)
+      : (row.tied ?? shared.get(position(row)) > 1);
   return (
     <div className="panel">
       <div className="panel__head" style={{ gap: "8px", flexWrap: "wrap" }}>
@@ -549,9 +573,9 @@ function AwardPanel({
                           ? "—"
                           : award.kind === "perfect_attendance"
                             ? "✓"
-                            : r.rank == null
+                            : position(r) == null
                               ? "—"
-                              : `${r.rank}${r.tied ? "=" : ""}`}
+                              : `${position(r)}${sharesPlace(r) ? "=" : ""}`}
                       </td>
                       <td>
                         <strong>{r.name ?? r.player_tag}</strong>{" "}

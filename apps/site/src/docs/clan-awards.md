@@ -7,7 +7,7 @@ order: 5
 navTitle: "Awards"
 icon: award
 lede: "A clan names its own awards, and Clan decides them from the record when each war season closes. Every member has a trophy case; leaders announce the winners in the game."
-reviewed: "2026-10-03; private Clan awards repair, contracts unchanged"
+reviewed: "2026-10-04; resolved award places and explicit update season, contracts unchanged"
 ---
 
 # Awards and trophies
@@ -80,7 +80,10 @@ so later capture or configuration changes do not rewrite the podium.
 
 **Award races** shows the selected season's provisional races or final saved grants, with award setup for leaders.
 Equal points use known season donations to break ties, and equal in both share
-a place. The attendance list shows recorded donations in descending order,
+a place. The displayed place includes this donation tiebreak; `=` means a
+shared place after both values match. The season donation totals shown alongside
+point ties are the same totals used to decide the place. The attendance list
+shows recorded donations in descending order,
 unknown totals last; its pass-or-fail eligibility still depends only on decks
 and the configured allowed misses. No donation total changes attendance eligibility.
 
@@ -106,8 +109,10 @@ Older Actions already waiting stay available for leaders to decide.
 These updates do not grant awards and work separately from the final season
 announcement setting. Nothing posts automatically.
 
-**Current progress.** A verified leader or co-leader can choose **Send current
-update to clan** during the newest recorded open season. It freezes the fresh
+**Current progress.** A verified leader or co-leader can choose **Send season
+[number] update to clan** during the newest recorded open season. The button
+names that current season even when viewing a previous season, and a note
+explains the target beside it. It freezes the fresh
 provisional standings and their as-of time into one Action for review, editing
 and copying. It grants no award and posts nothing to the game. A lost response
 can be retried to recover the same Action; a deliberate later request creates

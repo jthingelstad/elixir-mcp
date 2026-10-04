@@ -399,6 +399,11 @@ function pointsPodium(participation, members, season, params, filter) {
       place = i + 1;
     r.place = place;
   });
+  // A points tie can be split by donations. Resolve the shared-place flag
+  // before row_limit clips the display, including ties at the last shown row.
+  const places = new Map();
+  for (const r of rows) places.set(r.place, (places.get(r.place) ?? 0) + 1);
+  for (const r of rows) r.place_tied = places.get(r.place) > 1;
   const podium = rows.filter((r) => r.place <= params.podium);
   return { rows, podium };
 }
@@ -659,6 +664,7 @@ export function evaluateAwards({
                     official_rank: null,
                     place: null,
                     tied: false,
+                    place_tied: false,
                   }))
               : [],
           note: "Required season points, donations or rookie history are unknown, so this award is not judged.",
