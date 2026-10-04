@@ -4385,5 +4385,35 @@ of league detail did not invalidate the stored promotion proof.
 The complete 02:32-02:38Z web Lambda log window contained 70 events and seven
 Timeline requests, all HTTP 200 (1,643-2,639 ms), with no error or timeout
 identifying the initial browser 502. That transient remains unattributed; no
-server retry or speculative timeout change follows this evidence. Validation
-and deployment receipts follow after their observed results.
+server retry or speculative timeout change follows this evidence.
+
+Validation and release receipt: PR264 merged as
+456b031a87df7a290cd96275e26b2a560b84f7cf at 03:10:13Z (10:10 PM CT on October 3),
+after validate run 37173023193 passed the full verify, Lambda build and all
+94 browser journeys. Local full verify, six focused browser journeys and all
+seven scratch-database evidence checks also passed. Independent journey and
+security reviews found no blockers. Additional rendered checks at 390 and
+1280 pixels confirmed the Timeline title/URL, ten canonical links, readable
+scope text, no panel overflow and no console/page errors. Screenshots contain
+only invented game fixtures and stay outside the repository.
+
+The clean merged commit deployed through cloud-engineer under the session
+lease. CloudFormation reports UPDATE_COMPLETE at 03:11:36.569Z (10:11 PM CT on
+October 3). The web Lambda is Active/Successful, LastModified 03:11:21Z, and
+its CodeSha256 equals the built ZIP:
+KM2n92gC+C7hYnFlXvU3ort9OAjcoN11IyVMS4uNOT8=.
+The changed docs corpus required the platform lane; 201 migrations were
+already applied and zero ran. Vocabulary remained 47 roles/29 aliases from
+f72062c. All 43 smoke checks passed. MCP acceptance was deliberately not rerun:
+this follow-up changes Console presentation and documentation, without any
+MCP/JSON shape, predicate or business behavior change; PR263's complete live
+acceptance receipt remains above. Contracts stay MCP 11.1.0 / JSON API 3.0.0.
+
+Read-back at 03:13:23.622Z (10:13 PM CT on October 3) found the new Timeline docs
+explanation and update page, the Console shell, healthy public status, and
+exact served bytes for Usage-BK7TAZZ5.js, useLocation-DMjKzXab.js and
+index-PV_eR86b.css. A throttled stack-event timestamp read was retried as a
+single bounded page and succeeded. The clean-tree lease was released after
+these checks. This receipt lands through its own green PR; no deploy follows
+the notes-only merge. No Action, draft, delivery record, agent post, paid model
+call or other production business write was used for acceptance.
