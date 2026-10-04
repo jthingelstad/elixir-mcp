@@ -117,7 +117,7 @@ export function reconstructedLog(card) {
         at: card.withdrawn_at ?? card.raised_at,
         by: SYSTEM,
         text: card.withdraw_reason ?? null,
-        detail,
+        detail: { ...card.withdraw_detail, ...detail },
       }),
     );
   if (card.status === "done" || card.status === "declined")

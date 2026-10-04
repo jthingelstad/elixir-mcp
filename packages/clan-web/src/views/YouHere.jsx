@@ -341,10 +341,9 @@ export function YouHere({ clan, navigate }) {
                   {c.inactivity && c.inactivity.state !== "none" ? (
                     <div className="callout callout--warn">
                       <span>
-                        You have not played in{" "}
-                        {Math.floor(c.inactivity.days_idle)} days; this clan
-                        counts a member at risk from {c.inactivity.at_risk_days}
-                        .
+                        {c.inactivity.judgment === "held"
+                          ? `Activity is uncertain. ${c.inactivity.activity_evidence?.reason ?? "Comparable observations do not cover the policy window."}`
+                          : `The observed activity clock is ${Math.floor(c.inactivity.days_idle)} days; this clan counts a member at risk from ${c.inactivity.at_risk_days}.`}
                       </span>
                     </div>
                   ) : null}

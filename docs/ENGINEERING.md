@@ -607,7 +607,7 @@ common session refresh invalidates them without colliding with the root
 account envelope. There is no separate frontend wrapper or build.
 Clan maintenance uses the IAM-only `{clan_maintenance}` migrate op,
 with bounded kind-specific reads, unchanged reply pointers and digest-checked,
-explicit feedback responses. Sealed key items have no maintenance read path.
+explicit feedback responses. Targeted removal reconciliation previews one pending card and current profile evidence, then permits only an audited system withdrawal with the same card/policy/evidence digest under incident-repair authority. Sealed key items have no maintenance read path.
 
 ## Approved history cleanup and cache identity
 

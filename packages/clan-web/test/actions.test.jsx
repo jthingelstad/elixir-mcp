@@ -92,6 +92,121 @@ const view = (extra = {}) => ({
 });
 
 describe("actions", () => {
+  test("held removal evidence is prominent; stale copy, drafts, completion and reopening are withheld while explicit decline stays available", async () => {
+    const decide = vi
+      .spyOn(manageApi, "decideAction")
+      .mockResolvedValue({ ok: true, data: {} });
+    const draft = vi.spyOn(manageApi, "draftLeaderMessage");
+    const reopen = vi.spyOn(manageApi, "reopenAction");
+    renderWithProviders(
+      <ActionCard
+        action={{
+          ...removal,
+          can_complete: false,
+          can_reopen: true,
+          removal_safety: {
+            status: "held",
+            reason:
+              "Time after the latest profile counter observation is unmeasured.",
+            checked_at: "2026-10-04T08:00:00Z",
+            latest_activity_interval: {
+              counter_increase: 1,
+              observed_from: "2026-10-02T01:00:00Z",
+              observed_to: "2026-10-03T02:00:00Z",
+              no_battles_captured: true,
+            },
+          },
+        }}
+        clan={clan}
+        who={{ role: "leader" }}
+        reasons={["not_now", "evidence_wrong"]}
+        model={{ set: true }}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /inactivity is not established/,
+    );
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /counter increased by 1/,
+    );
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /No battles from that interval were captured/,
+    );
+    expect(screen.queryByLabelText("Chat message")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Copy/ })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Draft in our voice" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Reopen action" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Complete" }).disabled).toBe(
+      true,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Decline" }));
+    fireEvent.change(screen.getByLabelText("Why decline"), {
+      target: { value: "evidence_wrong" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Decline" }));
+    await waitFor(() =>
+      expect(decide).toHaveBeenCalledWith(clan.clan_tag, "a1", {
+        status: "declined",
+        reason: "evidence_wrong",
+        note: null,
+      }),
+    );
+    expect(draft).not.toHaveBeenCalled();
+    expect(reopen).not.toHaveBeenCalled();
+  });
+
+  test("a current safety change with unchanged frozen Action context discards edited words and an in-flight draft", async () => {
+    let resolve;
+    vi.spyOn(manageApi, "draftLeaderMessage").mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolve = r;
+        }),
+    );
+    const props = {
+      clan,
+      who: { role: "leader" },
+      reasons: [],
+      model: { set: true },
+    };
+    const action = {
+      ...removal,
+      draft_context_version: "same-frozen-evidence",
+      removal_safety: { status: "ready", evidence_version: "old-proof" },
+    };
+    const rendered = renderWithProviders(
+      <ActionCard {...props} action={action} />,
+    );
+    fireEvent.change(screen.getByLabelText("Chat message"), {
+      target: { value: "Edited unsafe words" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    rendered.rerender(
+      <ActionCard
+        {...props}
+        action={{
+          ...action,
+          removal_safety: {
+            status: "held",
+            evidence_version: "new-proof",
+            reason: "New play was observed.",
+          },
+          can_complete: false,
+        }}
+      />,
+    );
+    await act(async () =>
+      resolve({ ok: true, data: { line: "Late unsafe draft", model: "fake" } }),
+    );
+    expect(screen.queryByLabelText("Chat message")).toBeNull();
+    expect(screen.queryByDisplayValue("Late unsafe draft")).toBeNull();
+    expect(screen.queryByText("Put back what I had")).toBeNull();
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /New play was observed/,
+    );
+  });
   test("an action shows what raised it, its earlier history, and can be completed and commented on", async () => {
     vi.spyOn(manageApi, "action").mockResolvedValue(one());
     const decide = vi

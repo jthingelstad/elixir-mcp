@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Missing battle captures cannot justify removal",
+    body: "Positive profile-counter intervals protect members even when battle details are missing. Removal Actions check current evidence separately from saved evaluations; unknown capture and unmeasured time hold the recommendation and withhold removal words, drafting, completion and reopening. Original evidence and audit history stay recorded; leadership can still explicitly decline. No freshness allowance is assumed. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Prepare clan rules and inspect member activity",
     body: "Verified leaders can prepare Policy before a clan reaches ten members; operational management stays paused until then. The editor explains minimums, preset effects and save timing, clears stale previews and protects newer versions. Roster names and member Actions link to clan-scoped recorded battles, session groups, weekly contributions, war usage and capture evidence. Award races and Award history distinguish current standings from earned records. Switching clans keeps navigation current. Contracts unchanged.",
   },

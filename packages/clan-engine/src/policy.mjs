@@ -521,7 +521,7 @@ export const FIELDS = {
   watch_days: {
     group: "removal",
     label: "Getting quiet",
-    unit: "battle-free days",
+    unit: "days of measured quiet",
     type: "integer",
     min: 1,
     max: 60,
@@ -532,12 +532,12 @@ export const FIELDS = {
   at_risk_days: {
     group: "removal",
     label: "At risk",
-    unit: "battle-free days",
+    unit: "days of measured quiet",
     type: "integer",
     min: 1,
     max: 90,
     default: 7,
-    why: "Counted from the last battle, or from the join for a member who has not battled since.",
+    why: "Recorded battles and positive profile-counter intervals reset the clock. Missing counter coverage holds removal; a capture gap does not prove inactivity.",
     when: [{ removal_enabled: true }],
   },
   confirm_days: {

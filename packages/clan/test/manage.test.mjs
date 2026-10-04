@@ -76,11 +76,35 @@ function harness({
   const clock = { t: NOW.getTime() };
   const now = () => clock.t;
   const mcp = door({ players, part, ...rest });
+  const activity = { part };
   const { identity, store } = createTestAccount();
   const manage = createManageService({
     ledger,
     mcp,
     now,
+    activityFor: async (_tag, tags) =>
+      new Map(
+        (activity.part?.members ?? [])
+          .filter((m) => tags.includes(m.player_tag))
+          .map((m) => [
+            m.player_tag,
+            {
+              ...m,
+              activity_evidence: {
+                ...m.activity_evidence,
+                observations: m.activity_evidence.observations.map(
+                  (r, i, rows) =>
+                    i === rows.length - 1
+                      ? {
+                          ...r,
+                          profile_observed_at: new Date(now()).toISOString(),
+                        }
+                      : r,
+                ),
+              },
+            },
+          ]),
+      ),
     log: { warn() {}, error() {} },
   });
   const handler = createHandler({
@@ -94,7 +118,7 @@ function harness({
     now,
     log: { warn() {}, error() {} },
   });
-  return { clock, mcp, store, ledger, manage, handler };
+  return { clock, mcp, store, ledger, manage, handler, activity };
 }
 
 const others = Array.from({ length: 10 }, (_, i) => member(`#O${i}`));
@@ -127,7 +151,7 @@ const api = async (h, cookies, method, path, body) => {
   return { status: r.statusCode, body: r.body ? JSON.parse(r.body) : null };
 };
 
-test("manage: a leader opens Manage; one participation read, cards raised, cached for minutes", async () => {
+test("manage: cached verdicts retain fresh removal admission checks", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
   const r = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
@@ -139,17 +163,20 @@ test("manage: a leader opens Manage; one participation read, cards raised, cache
   assert.equal(removal.length, 1);
   assert.equal(removal[0].player_tag, "#8QCV");
   assert.equal(removal[0].status, "proposed");
-  assert.match(removal[0].evidence.rationale.headline, /20 battle-free days/);
+  assert.match(
+    removal[0].evidence.rationale.headline,
+    /20.00 days with no recorded battle or profile counter increase/,
+  );
   assert.ok(removal[0].evidence.facts.find((f) => f.key === "last_battle"));
   assert.equal(
     h.mcp.calls.filter((c) => c[0] === "clans_participation").length,
-    1,
+    2,
   );
   const again = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
   assert.equal(again.body.cached, true);
   assert.equal(
     h.mcp.calls.filter((c) => c[0] === "clans_participation").length,
-    1,
+    3,
   );
   assert.ok(
     again.body.board.find((m) => m.player_tag === "#8QCV").bucket ===
@@ -270,6 +297,7 @@ test("cards: auto-withdraw when the member plays; done removal verified when the
     ],
     { clan_tag: "#2PQRJ8LV" },
   );
+  h.activity.part = played;
   h.mcp.callTool = ((orig) => (token, name, args) =>
     name === "clans_participation"
       ? Promise.resolve({ ok: true, body: played })
@@ -952,7 +980,7 @@ test("cards: the inbox carries paste-ready in-game copy, clan-chat safe", async 
   const removal = r.body.inbox.find((c) => c.type === "removal");
   assert.match(
     removal.copy,
-    /^Sleepy was removed for inactivity \(20 days without a battle\)/,
+    /^Sleepy was removed under the clan's activity policy/,
   );
   assert.ok(removal.copy.length <= 200);
   assert.doesNotMatch(removal.copy, /[&]|\+\d/);
@@ -1166,10 +1194,15 @@ test("actions: a leader's action carries a log of what raised it; completing and
   const raised = removal.log[0];
   assert.equal(raised.kind, "raised");
   assert.deepEqual(raised.by, { system: "elixir-clan" });
-  assert.match(raised.text, /20 battle-free days/);
+  assert.match(
+    raised.text,
+    /20.00 days with no recorded battle or profile counter increase/,
+  );
   assert.equal(raised.detail.policy_version, 1);
   assert.deepEqual(raised.detail.clauses, ["at_risk_days", "confirm_days"]);
-  assert.ok(raised.detail.facts.some((f) => f.startsWith("Last battle:")));
+  assert.ok(
+    raised.detail.facts.some((f) => f.startsWith("Last captured battle:")),
+  );
   assert.deepEqual(raised.detail.prior, []);
   // Anyone who may see it can comment, before or after it closes.
   const said = await api(

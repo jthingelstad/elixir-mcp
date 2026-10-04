@@ -29,6 +29,7 @@ import {
   memberActivityWarBounds,
 } from "@elixir-mcp/record/member-activity";
 import { warMembershipEvidence } from "@elixir-mcp/record/war-membership";
+import { clanActivityEvidence } from "@elixir-mcp/record/clan-activity-evidence";
 import {
   writeClanFactInClan,
   removeClanFactInClan,
@@ -162,7 +163,12 @@ export function createClanRequest({
       login: async () => redirect(appUrl),
       logout: signout,
     });
-    const manage = createManageService({ ledger, mcp, appUrl });
+    const manage = createManageService({
+      ledger,
+      mcp,
+      appUrl,
+      activityFor: (tag, tags) => clanActivityEvidence(db, tag, tags),
+    });
     const awards = createAwardsService({
       ledger,
       membershipFor: (tag, participation) =>
@@ -199,7 +205,11 @@ export function createClanRequest({
       manage,
       awards,
       model,
-      drafts: createDrafts({ ledger, model }),
+      drafts: createDrafts({
+        ledger,
+        model,
+        requireRemovalSafety: manage.requireRemovalSafety,
+      }),
       recruit: createRecruitService({ ledger, mcp, model }),
       scout: createScout({ mcp }),
       social: createSocialService({ ledger, geo: diskGeo() }),

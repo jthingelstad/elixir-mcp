@@ -24,6 +24,7 @@ import {
   judgmentReasons,
   diff as policyDiff,
   evaluate,
+  inactivityEvidence,
   nextSteps,
   participationPhrase,
   ranksElder,
@@ -56,6 +57,7 @@ import {
 import { newId } from "@elixir-mcp/clan-state";
 import { createActionStore } from "./actions.mjs";
 import { createSharing } from "./sharing.mjs";
+import { createHash } from "node:crypto";
 
 export const EVALUATION_TTL_MS = 5 * 60_000;
 const PARTICIPATION_WEEKS = 8;
@@ -149,6 +151,7 @@ async function fetchNames(mcp, token, tags) {
 export function createManageService({
   ledger,
   mcp,
+  activityFor = null,
   now = () => Date.now(),
   /** Where Elixir Clan's app is, for the links in its email */
   appUrl = "https://elixir.poapkings.com/clan",
@@ -158,6 +161,149 @@ export function createManageService({
     if (!isLeader(who) || who.verified === false)
       throw new ManageError(403, "leaders_only");
   };
+
+  /** Private evidence is read afresh even when participation/verdicts are cached.
+   * A failed proof read holds removal; it never borrows cached observations. */
+  async function activityForMembers(clanTag, members) {
+    let evidence = new Map();
+    let read = false;
+    if (activityFor) {
+      try {
+        evidence = await activityFor(
+          clanTag,
+          members.map((m) => m.player_tag),
+        );
+        read = true;
+      } catch {
+        // Other management remains available; removal fails closed.
+      }
+    }
+    return members.map((m) => ({
+      ...m,
+      ...(evidence.get(m.player_tag) ?? {}),
+      activity_evidence: evidence.get(m.player_tag)?.activity_evidence ?? {
+        current_member: read ? false : null,
+        unavailable: !read,
+        observations: [],
+      },
+    }));
+  }
+
+  async function removalSafety(clanTag, cards, token = null) {
+    const removals = cards.filter((c) => c.type === "removal");
+    const result = new Map();
+    if (!removals.length) return result;
+    const policy = await requirePolicy(clanTag);
+    const members = await activityForMembers(clanTag, removals);
+    const t = now();
+    const plausible = [];
+    const evidenceVersion = (member) =>
+      createHash("sha256")
+        .update(
+          JSON.stringify([
+            policy.version,
+            member.role,
+            member.joined_observed_at,
+            member.last_battle_time,
+            member.activity_evidence,
+          ]),
+        )
+        .digest("hex");
+    for (const [i, c] of removals.entries()) {
+      const proof = inactivityEvidence(members[i], t);
+      const ready =
+        policy.values.removal_enabled &&
+        proof.status === "ready" &&
+        proof.counter_quiet_days >=
+          policy.values.at_risk_days + policy.values.confirm_days;
+      const safety = {
+        ...proof,
+        status: "held",
+        checked_at: new Date(t).toISOString(),
+        reason:
+          proof.reason ??
+          "Comparable current evidence does not establish inactivity under the policy.",
+        evidence_version: evidenceVersion(members[i]),
+      };
+      result.set(c.card_id, safety);
+      if (ready) plausible.push(c);
+    }
+    // Only a fully measured candidate needs the expensive participation read.
+    // Apply the actual current minimums/grace, role, hold and cooldown rules.
+    if (plausible.length) {
+      try {
+        const part = await fetchParticipation(mcp, token, clanTag);
+        const fresh = {
+          ...part,
+          members: await activityForMembers(clanTag, part.members),
+        };
+        const holds = await ledger.holds(clanTag);
+        const decisions = (await ledger.cards(clanTag)).filter(
+          (c) =>
+            ["done", "declined"].includes(c.status) &&
+            !plausible.some((p) => p.card_id === c.card_id),
+        );
+        const verdicts = evaluate({
+          participation: fresh,
+          policy: policy.values,
+          now: new Date(now()),
+          holds,
+          decisions,
+          policy_version: policy.version,
+        });
+        if (part.members.length >= MIN_MEMBERS)
+          for (const c of plausible) {
+            const verdict = verdicts.members.find(
+              (m) => m.player_tag === c.player_tag,
+            );
+            if (verdict?.actionable.removal)
+              result.set(c.card_id, {
+                ...result.get(c.card_id),
+                ...verdict.facts.activity_evidence,
+                checked_at: new Date(now()).toISOString(),
+                status: "ready",
+                reason: null,
+                evidence_version: evidenceVersion(
+                  fresh.members.find((m) => m.player_tag === c.player_tag),
+                ),
+              });
+          }
+      } catch {
+        // Never retain a preliminary approval after a current read failed.
+      }
+    }
+    return result;
+  }
+
+  async function requireRemovalSafety(clanTag, card, token = null) {
+    if (card.type !== "removal") return null;
+    const safety = (await removalSafety(clanTag, [card], token)).get(
+      card.card_id,
+    );
+    if (safety.status !== "ready")
+      throw new ManageError(
+        409,
+        "removal_evidence_held",
+        safety.reason,
+        safety,
+      );
+    return safety;
+  }
+
+  function shapeSafeAction(card, logs, who, safety) {
+    const shaped = shapeAction({ ...card, removal_safety: safety }, logs, who);
+    if (card.type !== "removal") return shaped;
+    const ready = safety?.status === "ready";
+    return {
+      ...shaped,
+      removal_safety: safety,
+      can_complete: shaped.can_act && ready,
+      can_draft: shaped.can_draft && ready,
+      can_reopen: shaped.can_reopen && ready,
+      // Explicitly remove the static Copy fallback as well as model drafting.
+      ...(!ready ? { copy: null, channel: null } : {}),
+    };
+  }
 
   /** The clan's saved policy, or the starting values with `set: false`
    *  (a draft for the editor, never something to judge by). */
@@ -330,13 +476,18 @@ export function createManageService({
       !participation &&
       !small &&
       cached &&
+      cached.removal_evidence_schema === 1 &&
       cached.policy_version === policy.version &&
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
       return { verdicts: cached, policy, cached: true };
 
-    const part =
+    const fetched =
       participation ?? (await fetchParticipation(mcp, token, clanTag));
+    const part = {
+      ...fetched,
+      members: await activityForMembers(clanTag, fetched.members),
+    };
     // Too small to judge: remember the size and stop, before any card moves.
     if (!participation) {
       await noteSize(clanTag, part.members.length, t);
@@ -387,7 +538,18 @@ export function createManageService({
     const open = cards.filter((c) => c.status === "proposed");
     const { raise, withdraw } = reconcileCards(verdicts, open);
     for (const { card, reason } of withdraw)
-      await withdrawAction(clanTag, card, reason);
+      await withdrawAction(
+        clanTag,
+        card,
+        reason,
+        card.type === "removal"
+          ? {
+              activity_evidence:
+                verdicts.members.find((m) => m.player_tag === card.player_tag)
+                  ?.facts.activity_evidence ?? null,
+            }
+          : null,
+      );
     for (const { player_tag, type, verdict } of raise) {
       const raised_at = new Date(t).toISOString();
       const facts = cardFacts(verdict, policy.values);
@@ -411,6 +573,7 @@ export function createManageService({
             rationale,
             phrase: participationPhrase(verdict, policy.values),
             days_idle: verdict.removal.days_idle,
+            activity_evidence: verdict.facts.activity_evidence,
             standing: verdict.standing,
           },
         },
@@ -710,6 +873,7 @@ export function createManageService({
     // The snapshot is what the pages read; keep it small.
     const snapshot = {
       ...verdicts,
+      removal_evidence_schema: 1,
       members: verdicts.members.map((m) => ({
         ...m,
         trail: m.trail.slice(-4),
@@ -723,6 +887,7 @@ export function createManageService({
   return {
     policyFor,
     evaluateClan,
+    requireRemovalSafety,
 
     noteSize,
 
@@ -749,8 +914,12 @@ export function createManageService({
       const hold = holds.find((h) => h.player_tag === who.player_tag) ?? null;
       let clan = null;
       if (active) {
+        const measured = {
+          ...part,
+          members: await activityForMembers(clanTag, part.members),
+        };
         const verdicts = evaluate({
-          participation: part,
+          participation: measured,
           policy: policy.values,
           now: new Date(t),
           holds: holds.map((h) => ({
@@ -795,6 +964,8 @@ export function createManageService({
                     : mine.removal.state,
                 days_idle: mine.facts.days_idle,
                 at_risk_days: policy.values.at_risk_days,
+                judgment: mine.judgment.removal,
+                activity_evidence: mine.facts.activity_evidence,
               }
             : null,
         };
@@ -915,6 +1086,7 @@ export function createManageService({
         .sort((a, b) => (closedAt(a) < closedAt(b) ? 1 : -1))
         .slice(0, 30);
       const byCard = await logsByCard(clanTag, [...open, ...recent]);
+      const safety = await removalSafety(clanTag, [...open, ...recent], token);
       return {
         clan_tag: clanTag,
         evaluated_at: verdicts.evaluated_at,
@@ -922,8 +1094,12 @@ export function createManageService({
         as_of: verdicts.as_of,
         freshness_seconds: verdicts.freshness_seconds,
         policy_version: policy.version,
-        open: open.map((c) => shapeAction(c, byCard.get(c.card_id), who)),
-        recent: recent.map((c) => shapeAction(c, byCard.get(c.card_id), who)),
+        open: open.map((c) =>
+          shapeSafeAction(c, byCard.get(c.card_id), who, safety.get(c.card_id)),
+        ),
+        recent: recent.map((c) =>
+          shapeSafeAction(c, byCard.get(c.card_id), who, safety.get(c.card_id)),
+        ),
         decline_reasons: DECLINE_REASONS,
       };
     },
@@ -931,7 +1107,7 @@ export function createManageService({
     /** One action by its number ("take a look at action 37"), open or
      *  closed, for anyone who may see it; anyone else is told there is no
      *  such action. */
-    async actionByNumber(clanTag, who, number) {
+    async actionByNumber(clanTag, who, number, token = null) {
       await requirePolicy(clanTag);
       let card = await ledger.cardByNumber(clanTag, number);
       if (!card) {
@@ -940,12 +1116,16 @@ export function createManageService({
         card = all.find((c) => c.number === number);
       }
       if (!card || !canAct(card, who)) throw new ManageError(404, "no_action");
+      const safety = (await removalSafety(clanTag, [card], token)).get(
+        card.card_id,
+      );
       return {
         clan_tag: clanTag,
-        action: shapeAction(
+        action: shapeSafeAction(
           card,
           await ledger.actionLog(clanTag, card.card_id),
           who,
+          safety,
         ),
         decline_reasons: DECLINE_REASONS,
       };
@@ -1084,9 +1264,13 @@ export function createManageService({
           ? await fetchRoster(mcp, token, clanTag)
           : null;
       const at = new Date(now());
+      const measured = {
+        ...r.body,
+        members: await activityForMembers(clanTag, r.body.members),
+      };
       const under = (values, version) => {
         const v = evaluate({
-          participation: r.body,
+          participation: measured,
           policy: values,
           now: at,
           policy_version: version,
@@ -1132,10 +1316,13 @@ export function createManageService({
       const holds = await ledger.holds(clanTag);
       const holdByTag = new Map(holds.map((h) => [h.player_tag, h]));
       const byCard = await logsByCard(clanTag);
+      const safety = await removalSafety(clanTag, cards, token);
       const inbox = cards
         .filter((c) => c.status === "proposed" && canAct(c, who))
         .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1))
-        .map((c) => shapeAction(c, byCard.get(c.card_id), who));
+        .map((c) =>
+          shapeSafeAction(c, byCard.get(c.card_id), who, safety.get(c.card_id)),
+        );
       const board = verdicts.members.map((m) => ({
         player_tag: m.player_tag,
         name: m.name,
@@ -1188,10 +1375,13 @@ export function createManageService({
       const allCards = await ledger.cards(clanTag);
       await numberActions(clanTag, allCards);
       const byCard = await logsByCard(clanTag);
+      const safety = await removalSafety(clanTag, allCards, token);
       const cards = allCards
         .filter((c) => c.status !== "proposed")
         .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1))
-        .map((c) => shapeAction(c, byCard.get(c.card_id), who));
+        .map((c) =>
+          shapeSafeAction(c, byCard.get(c.card_id), who, safety.get(c.card_id)),
+        );
       // The membership timeline: Elixir's recent join / leave / role
       // events, each leave carrying what this ledger says about it, and
       // a welcome line a leader can paste for a join.
@@ -1359,6 +1549,7 @@ export function createManageService({
       who,
       cardId,
       { request_id, expected_decided_at } = {},
+      token = null,
     ) {
       if (who.verified === false) throw new ManageError(403, "unverified");
       if (!LEADERS.has(who.role)) throw new ManageError(403, "leaders_only");
@@ -1383,6 +1574,7 @@ export function createManageService({
           throw new ManageError(409, "action_not_declined");
         if ((card.decided_at ?? null) !== expected_decided_at)
           throw new ManageError(409, "action_changed");
+        await requireRemovalSafety(clanTag, card, token);
         if (
           card.evidence?.messages?.length &&
           card.evidence.messages.every((m) =>
@@ -1462,6 +1654,7 @@ export function createManageService({
         status = "done";
       } else if (status !== "done" && status !== "declined")
         throw new ManageError(400, "bad_status");
+      if (status === "done") await requireRemovalSafety(clanTag, card, token);
       if (
         status === "done" &&
         card.evidence?.messages?.some(

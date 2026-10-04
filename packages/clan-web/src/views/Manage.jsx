@@ -321,6 +321,8 @@ function elderCell(m) {
 
 function removalCell(m) {
   const r = m.removal;
+  if (m.judgment.removal === "held")
+    return <span className="chip chip--warn">held · activity unknown</span>;
   if (r.days_idle === null) return <span className="nil">unknown</span>;
   const tone =
     r.state === "recommended"

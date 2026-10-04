@@ -21,6 +21,7 @@ import { makeRegistry } from "@elixir-mcp/tools";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { normalizeTag } from "@elixir-mcp/contracts";
 import { warMembershipEvidence } from "@elixir-mcp/record/war-membership";
+import { clanActivityEvidence } from "@elixir-mcp/record/clan-activity-evidence";
 const registry = makeRegistry();
 const answer = async (fn) => {
   try {
@@ -191,6 +192,7 @@ export async function runClanEvaluation({
       manage: createManageService({
         ledger,
         mcp,
+        activityFor: (tag, tags) => clanActivityEvidence(db, tag, tags),
         appUrl: "https://elixir.poapkings.com/clan",
       }),
       awards: createAwardsService({

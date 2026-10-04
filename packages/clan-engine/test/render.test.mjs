@@ -141,7 +141,10 @@ test("rationales name the policy clauses that fired", () => {
   });
   const m = v.members.find((x) => x.player_tag === "#X");
   const r = cardRationale("removal", m, policy, v);
-  assert.match(r.headline, /20 battle-free days/);
+  assert.match(
+    r.headline,
+    /20.00 days with no recorded battle or profile counter increase/,
+  );
   assert.deepEqual(r.clauses, ["at_risk_days", "confirm_days"]);
 });
 
@@ -206,7 +209,7 @@ test("how it works here is written from the policy, and leaves out what the clan
     text,
     /Any one of: 1 war deck or 5 ranked battles, over 2 weeks/,
   );
-  assert.match(text, /no battle for 5 days is at risk; after 8 days/);
+  assert.match(text, /Measured quiet for 5 days is at risk; after 8 days/);
   assert.match(text, /Elders are not removed for inactivity/);
   assert.doesNotMatch(text, /percentile|median|margin|score|slot/i);
   // A clan that only lets leaders choose Elders, counts nothing and does

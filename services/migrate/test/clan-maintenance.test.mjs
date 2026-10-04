@@ -6,11 +6,87 @@ import {
   createPostgresStore,
 } from "@elixir-mcp/clan-state/postgres";
 import { clanMaintenance } from "../src/ops-clan-maintenance.mjs";
+import { defaults } from "@elixir-mcp/clan-engine";
 let scratch;
 before(async () => {
   scratch = await scratchDb("clan_maintenance");
 });
 after(async () => scratch?.drop());
+test("targeted removal reconciliation previews current proof, refuses stale evidence and only appends an audited system withdrawal", async () => {
+  const db = scratch.db,
+    clan = "#PYL",
+    tag = "#9QY";
+  const ledger = createPostgresLedger(db);
+  await db.query("insert into clan(clan_tag) values($1)", [clan]);
+  await db.query("insert into player(player_tag) values($1)", [tag]);
+  await db.query(
+    "insert into clan_membership(clan_tag,player_tag,role,joined_observed_at) values($1,$2,'member',now()-interval '30 days')",
+    [clan, tag],
+  );
+  await db.query(
+    `insert into player_snapshot_daily(player_tag,snapshot_date,snapshot_kind,battle_count,profile_observed_at)
+    values($1,current_date-2,'daily',100,now()-interval '2 days'),($1,current_date-1,'daily',101,now()-interval '1 day')`,
+    [tag],
+  );
+  await ledger.savePolicy(clan, {
+    values: { ...defaults(), removal_enabled: true },
+    by: "#LEAD",
+  });
+  const card = {
+    card_id: "synthetic-removal",
+    number: 45,
+    type: "removal",
+    status: "proposed",
+    player_tag: tag,
+    raised_at: new Date().toISOString(),
+    policy_version: 1,
+    evidence: {
+      rationale: { headline: "8.02 battle-free days." },
+      days_idle: 8.02,
+    },
+  };
+  await ledger.putCard(clan, card);
+  const spec = {
+    lane: "reconcile_removal",
+    clan_tag: clan,
+    card_id: card.card_id,
+  };
+  const preview = await clanMaintenance(scratch.url, spec);
+  assert.equal(preview.applied, false);
+  assert.equal((await ledger.card(clan, card.card_id)).status, "proposed");
+  assert.equal((await ledger.actionLog(clan, card.card_id)).length, 0);
+  await db.query(
+    "update player_snapshot_daily set battle_count=102 where player_tag=$1 and snapshot_date=current_date-1",
+    [tag],
+  );
+  await assert.rejects(
+    clanMaintenance(scratch.url, {
+      ...spec,
+      apply: true,
+      expected_sha256: preview.expected_sha256,
+    }),
+    /changed/,
+  );
+  const fresh = await clanMaintenance(scratch.url, spec);
+  const result = await clanMaintenance(scratch.url, {
+    ...spec,
+    apply: true,
+    expected_sha256: fresh.expected_sha256,
+  });
+  assert.equal(result.status, "withdrawn");
+  const saved = await ledger.card(clan, card.card_id);
+  assert.deepEqual(saved.evidence, card.evidence);
+  assert.equal(saved.decided_by, undefined);
+  const log = await ledger.actionLog(clan, card.card_id);
+  assert.equal(log.length, 1);
+  assert.equal(log[0].kind, "withdrawn");
+  assert.deepEqual(log[0].by, { system: "elixir-clan" });
+  assert.equal(
+    log[0].detail.activity_evidence.latest_activity_interval.counter_increase,
+    2,
+  );
+  await assert.rejects(clanMaintenance(scratch.url, spec), /pending removal/);
+});
 test("private queue reads are bounded, oldest first, and do not mark replies seen or return sealed keys", async () => {
   const ledger = createPostgresLedger(scratch.db);
   for (let n = 0; n < 4; n++)

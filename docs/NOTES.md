@@ -4593,3 +4593,10 @@ claim that the site lane updated Lambda. Public status remains successful.
 The lease was released after read-back. Signed-in real-clan inspection remains
 in the parent browser; business state and paid calls were not QA fixtures.
 This final receipt is notes-only and does not cause another deployment.
+
+
+### 2026-10-04 — removal eligibility respects uncaptured activity
+
+Real-account QA found a pending removal interpreting time since the last captured battle as battle-free time despite later positive lifetime profile-counter intervals. No real member data is committed. Clan now batches private current-roster profile observations (daily profile stamps, never roster/reset stamps), uses positive intervals as possible activity bounds, and holds removal on missing/noncomparable baseline or an unmeasured tail. No freshness tolerance or policy values were invented. This conservatively holds ordinary removals pending an explicit freshness rule.
+
+Cached list/detail/history and Board inbox reads independently recheck removal admission; stale words/model drafts/completion/reopening are withheld, while explicit leadership decline remains available. Model pre/post checks bind current evidence. Fresh evaluation only withdraws unsupported pending recommendations with current evidence in their audit log; conditional withdrawal preserves competing human decisions. An IAM-only, preview/digest-checked `reconcile_removal` lane can repair one real pending incident without a manual leader decision or running awards, messages or other policy actions. Synthetic regressions cover missing captures, bracket/threshold ambiguity, unknown counters/tails, cached Actions, draft races and audited repair. Contracts and schema unchanged. Deployment/read-back pending.

@@ -93,6 +93,9 @@ function ActionRow({ action, clan, navigate }) {
         <span className="text-[12.5px] text-ink-dim">
           {about(action)}
           {comments ? ` · ${comments} comment${comments === 1 ? "" : "s"}` : ""}
+          {action.removal_safety?.status === "held"
+            ? " · Held: inactivity not established"
+            : ""}
         </span>
       </span>
       <span className="shrink-0 self-center">

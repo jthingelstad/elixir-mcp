@@ -15,8 +15,9 @@ reviewed: "2026-10-01 against contract 9.17.1"
 A clan on Elixir Clan writes down what it counts, in its
 [policy](/docs/clan-policy), and **Standing** reads every member against
 it. It is participation, not skill: wins, win rates and trophies won are
-not weighed, and inactivity is measured from battles played, never from
-time online. Standing appears once the clan has a policy and at least
+not weighed. Inactivity uses recorded battles and profile-counter observations;
+positive uncaptured play resets the possible-activity bound, and unknown
+coverage holds removal ([Actions](/docs/clan-actions#the-inactivity-clock)). Standing appears once the clan has a policy and at least
 10 members.
 
 ## What a clan can count
@@ -94,7 +95,7 @@ Once the clan has a policy, every member's **Standing** page shows:
 - **Their own line**: where they stand, the evidence in a player's
   terms ("100% war decks over 4 war weeks, 12 ranked battles, ~213
   donations a week"), their war decks race by race when the clan counts
-  war, what would move them, the days since their last battle, and any
+  war, what would move them, the observed activity clock and its uncertainty, and any
   hold a leader has set.
 
 When the clan ranks Elder and the policy lets members see where everyone
@@ -116,7 +117,7 @@ Nobody sees a score, a percentile or a rank; the leaders' board shows
 the band's size and how full it is.
 
 **Nobody below co-leader ever sees a removal action or who is on the
-inactivity clock.** A member sees only their own days since a battle.
+inactivity clock.** A member sees only their own observed activity clock and its uncertainty.
 
 ## When it is read
 

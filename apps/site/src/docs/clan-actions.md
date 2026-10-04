@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-03; Clan Actions review, contracts unchanged"
+reviewed: "2026-10-04; removal evidence safety, contracts unchanged"
 ---
 
 # Actions
@@ -38,7 +38,7 @@ coverage reads remain unknown. Profile-counter intervals ending in the last
 seven days can show missing battles, but do not prove that the entire
 displayed window was observed. No recorded battle is not proof of no play.
 Saved Action evidence retains its original timestamp and policy version;
-the activity view is a new read, not a change to the recommendation.
+the activity view is a new read. Removal eligibility is checked separately against current profile observations, including for older saved Actions.
 
 ## The kinds
 
@@ -173,12 +173,35 @@ an existing object still fails without starting another model call.
 
 ## The inactivity clock
 
-When the clan turns on **Suggest removals**, a member's days since their
-last battle run a clock: **getting quiet**, then **at risk**, then a
+When the clan turns on **Suggest removals**, recorded battles and profile
+counter increases inform a clock: **getting quiet**, then **at risk**, then a
 removal action once they have stayed at risk for the days the clan set.
 The leader, co-leaders, members on a hold and, unless the clan allows
 it, Elders stop at at risk and are never put up for removal. When the
 record cannot see a member's battles, the clock waits.
+
+A positive lifetime battle-counter increase proves play between two profile
+observations, even if no battle details were captured. It does not supply an
+exact battle time or mode. The latest possible play in that bracket protects
+the member; the age of the last captured battle is historical evidence, not
+"battle-free days."
+
+A removal needs comparable profile counter observations covering the policy
+window. Missing baselines, null or decreasing counters, ambiguous timestamps,
+failed current reads and time after the latest profile observation hold it.
+There is no implicit freshness allowance for that unmeasured tail; in normal
+operation this holds removals until an explicit freshness rule is agreed.
+An unchanged profile poll need not advance the snapshot's profile timestamp.
+The counter only describes the play it counts, never proof that every game
+mode was observed.
+
+Every removal list/detail read checks current evidence independently of the
+saved evaluation. Held Actions show a warning and withhold removal copy,
+model drafting, completion and reopening. Leadership can still explicitly
+Decline an open Action. Drafting checks before and after the model request;
+a new observation invalidates an older draft. Fresh evaluation withdraws an
+unsupported pending recommendation with an audited system reason; its number,
+original evidence, log and earlier leader decisions remain recorded.
 
 Two things pause it:
 

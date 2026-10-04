@@ -70,6 +70,10 @@ export function member(tag, opts = {}) {
     lastBattleDaysAgo = 0.5,
   } = opts;
   const joined = new Date(NOW.getTime() - tenureDays * DAY).toISOString();
+  const last =
+    lastBattleDaysAgo === null
+      ? null
+      : new Date(NOW.getTime() - lastBattleDaysAgo * DAY).toISOString();
   return {
     player_tag: tag,
     name,
@@ -83,6 +87,24 @@ export function member(tag, opts = {}) {
         ? null
         : new Date(NOW.getTime() - lastBattleDaysAgo * DAY).toISOString(),
     days_since_battle: lastBattleDaysAgo,
+    // Private Clan proof beside the public tool fixture. These tests
+    // deliberately observe the counter at NOW, leaving no unknown tail.
+    activity_evidence: {
+      current_member: true,
+      observations: [
+        {
+          profile_observed_at: new Date(
+            Math.min(
+              Date.parse(joined),
+              last ? Date.parse(last) : NOW.getTime(),
+            ) - DAY,
+          ).toISOString(),
+          battle_count: 0,
+        },
+        ...(last ? [{ profile_observed_at: last, battle_count: 1 }] : []),
+        { profile_observed_at: NOW.toISOString(), battle_count: last ? 1 : 0 },
+      ],
+    },
     battles,
     ranked_battles: ranked,
     donations,

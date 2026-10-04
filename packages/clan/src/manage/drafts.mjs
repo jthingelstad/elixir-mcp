@@ -37,7 +37,12 @@ const KIND = {
   departure: "departure",
 };
 
-export function createDrafts({ ledger, model, now = () => Date.now() }) {
+export function createDrafts({
+  ledger,
+  model,
+  requireRemovalSafety = null,
+  now = () => Date.now(),
+}) {
   const { logAction, person } = createActionStore({ ledger, now });
   return {
     async leaderMessage(
@@ -59,6 +64,17 @@ export function createDrafts({ ledger, model, now = () => Date.now() }) {
         throw new ManageError(409, "departure_unconfirmed");
       if (card.status !== "proposed" && !confirmedDeparture(card))
         throw new ManageError(409, "action_closed");
+      let removalVersion = null;
+      const removalProof = async () => {
+        if (card.type !== "removal") return;
+        if (!requireRemovalSafety)
+          throw new ManageError(409, "removal_evidence_held");
+        const proof = await requireRemovalSafety(clanTag, card, token);
+        if (removalVersion && proof.evidence_version !== removalVersion)
+          throw new ManageError(409, "draft_changed");
+        removalVersion = proof.evidence_version;
+      };
+      await removalProof();
       const kind = KIND[card.type];
       const chat = ["welcome", "removal", "departure"].includes(kind);
       if (chat && note != null && !Object.hasOwn(CHAT_TONES, note))
@@ -146,6 +162,7 @@ export function createDrafts({ ledger, model, now = () => Date.now() }) {
         const current = await ledger.card(clanTag, cardId);
         if (!current || draftContextVersion(current) !== version)
           throw new ManageError(409, "draft_changed");
+        await removalProof();
       };
       await unchanged();
       const answer = await model.write(clanTag, who, token, request);

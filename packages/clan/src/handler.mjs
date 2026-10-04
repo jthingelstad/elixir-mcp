@@ -647,14 +647,19 @@ export function createHandler({
       // One action by its number, for "take a look at action 37".
       const byNumber = /^\/actions\/([0-9]{1,7})$/.exec(rest);
       if (method === "GET" && byNumber) {
-        const view = await manage.actionByNumber(tag, who, Number(byNumber[1]));
+        const view = await manage.actionByNumber(
+          tag,
+          who,
+          Number(byNumber[1]),
+          token,
+        );
         if (model && ["leader", "coLeader"].includes(who.role))
           view.model = await model.summary(tag);
         return json(200, view);
       }
       const reopen = /^\/actions\/([A-Za-z0-9_-]+)\/reopen$/.exec(rest);
       if (method === "POST" && reopen)
-        return json(200, await manage.reopen(tag, who, reopen[1], body));
+        return json(200, await manage.reopen(tag, who, reopen[1], body, token));
       const decide = /^\/actions\/([A-Za-z0-9_-]+)\/decide$/.exec(rest);
       const sentMessage =
         /^\/actions\/([A-Za-z0-9_-]+)\/messages\/([0-9]{1,3})\/sent$/.exec(

@@ -6,7 +6,9 @@ import { createHash } from "node:crypto";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import { createFeedbackService } from "@elixir-mcp/clan/feedback.mjs";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
-import { reconstructedLog } from "@elixir-mcp/clan-engine";
+import { reconstructedLog, inactivityEvidence } from "@elixir-mcp/clan-engine";
+import { clanActivityEvidence } from "@elixir-mcp/record/clan-activity-evidence";
+import { createActionStore } from "@elixir-mcp/clan/manage/actions.mjs";
 const digest = (body) =>
   createHash("sha256").update(JSON.stringify(body)).digest("hex");
 const id = (value) => {
@@ -26,6 +28,7 @@ export async function clanMaintenance(databaseUrl, spec) {
       "morning",
       "action_log",
       "policies",
+      "reconcile_removal",
     ].includes(lane)
   )
     throw new Error("unknown Clan maintenance lane");
@@ -40,6 +43,7 @@ export async function clanMaintenance(databaseUrl, spec) {
     "morning",
     "action_log",
     "policies",
+    "reconcile_removal",
   ].includes(lane);
   const clanTag = clanLane ? normalizeTag(spec.clan_tag) : null;
   if (clanLane && !clanTag)
@@ -47,6 +51,8 @@ export async function clanMaintenance(databaseUrl, spec) {
   const cardId = spec.card_id ? id(spec.card_id) : null;
   if (lane === "action_log" && !cardId)
     throw new Error("action log needs a card id");
+  if (lane === "reconcile_removal" && !cardId)
+    throw new Error("removal reconciliation needs a card id");
   const cursor = spec.cursor ?? "";
   if (
     typeof cursor !== "string" ||
@@ -58,6 +64,67 @@ export async function clanMaintenance(databaseUrl, spec) {
   await db.connect();
   try {
     const ledger = createPostgresLedger(db);
+    if (lane === "reconcile_removal") {
+      await db.query("begin");
+      await db.query("select body from clan_state where pk=$1 for update", [
+        `card#${clanTag}#${cardId}`,
+      ]);
+      const card = await ledger.card(clanTag, cardId);
+      if (!card || card.type !== "removal" || card.status !== "proposed")
+        throw new Error("only a pending removal can be reconciled");
+      const evidence = (
+        await clanActivityEvidence(db, clanTag, [card.player_tag])
+      ).get(card.player_tag) ?? {
+        activity_evidence: { current_member: false, observations: [] },
+      };
+      const policy = await ledger.currentPolicy(clanTag);
+      const expected = digest([card, policy, evidence]);
+      if (spec.expected_sha256 && spec.expected_sha256 !== expected)
+        throw new Error(
+          "removal or recorded evidence changed; preview it again",
+        );
+      const proof = inactivityEvidence(evidence, Date.now());
+      if (proof.status !== "held")
+        throw new Error(
+          "current activity evidence is not held; use the normal policy evaluation",
+        );
+      const reason = `Inactivity is not established. ${proof.reason}`;
+      if (spec.apply !== true) {
+        await db.query("rollback");
+        return {
+          lane,
+          clan_tag: clanTag,
+          card_id: cardId,
+          applied: false,
+          expected_sha256: expected,
+          reason,
+          activity_evidence: proof,
+        };
+      }
+      if (!/^[a-f0-9]{64}$/.test(spec.expected_sha256 ?? ""))
+        throw new Error("removal reconciliation needs the preview digest");
+      const changed = await createActionStore({ ledger }).withdrawAction(
+        clanTag,
+        card,
+        reason,
+        {
+          activity_evidence: proof,
+          source: "current recorded profile counters",
+          prior_policy_version: card.policy_version,
+        },
+      );
+      if (!changed) throw new Error("removal changed; preview it again");
+      await db.query("commit");
+      return {
+        lane,
+        clan_tag: clanTag,
+        card_id: cardId,
+        applied: true,
+        status: "withdrawn",
+        reason,
+        activity_evidence: proof,
+      };
+    }
     // Each read is a bounded page. Cursor is the actual index key; totals
     // count the whole matching inventory, including rows before the page.
     async function page(partition, prefix) {
@@ -239,12 +306,15 @@ export async function clanMaintenance(databaseUrl, spec) {
       const logTruncated = stored.length > 3;
       stored.length = Math.min(stored.length, 3);
       const kinds = new Set(stored.map((e) => e.kind));
-      const log = stored.some((e) => e.kind === "raised")
-        ? stored
-        : [
-            ...reconstructedLog(card).filter((e) => !kinds.has(e.kind)),
-            ...stored,
-          ].sort((a, b) => a.at.localeCompare(b.at));
+      const log = [
+        ...reconstructedLog(card).filter(
+          (e) =>
+            !kinds.has(e.kind) &&
+            (e.kind === "withdrawn" ||
+              !stored.some((entry) => entry.kind === "raised")),
+        ),
+        ...stored,
+      ].sort((a, b) => a.at.localeCompare(b.at));
       items.push({ card, log, log_limit: 3, log_truncated: logTruncated });
     }
     return {
