@@ -4611,3 +4611,31 @@ audit all have synthetic regressions. No public tool or JSON API operation
 changed; contracts remain MCP 11.1.0 / JSON API 3.0.0. Detailed operational
 verification remains private. This notes-only validation receipt needs no
 further deployment.
+
+### 2026-10-04 — Elixir Operator production receipt
+
+At 09:48Z, the public status endpoint was healthy: last fetch/admission age
+27 seconds, 10 battles in the trailing hour, zero capture gaps and dead
+letters, and no queued, leased, or dead ledger jobs. All five active
+collectors were signed v3.0.6 and heartbeating within a minute. The global
+budget was at 1,246 fetches in 24 hours (1.6% of the 77,760 bulk share), with
+53 measured fetches and 10 useful admissions in the current hour; this is
+normal session-clock polling, not pressure. The read-only `{stats}` receipt
+reported zero battle-log gaps and zero fetch errors in the hour; its two
+24-hour current-river-race 404s did not produce a held or dead job. All
+Elixir alarms were quiet. `ClanInternal` remains true, and the sole policy
+clan's 2026-10-03 morning receipt completed on its first attempt.
+
+The previous 05:20Z efficiency row and 05:30Z activity row both completed;
+the latter wrote no archetype re-stamps. A bounded 24-hour door census found
+one 25.2-second Clan draft 502 at 19:15Z on October 3, with no repeat in the
+window and ordinary successful requests immediately afterward. It is a watch,
+not a source-change or deploy candidate without a repeatable cause.
+
+The Discord preview containers are running and their update/editor lanes are
+advancing naturally, but two secondary instances report an unresolved ask
+channel from their October 3 boot. This is a host Discord binding/permission
+gap, not an Elixir service fault. A `run` queue note asks Jamie to restore
+each affected bot's configured ask-channel access or binding, then restart
+only that instance and confirm its next natural ask turn. No restart, prompt
+change, live write, migration, lease, or deploy was performed in this run.
