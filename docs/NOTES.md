@@ -5226,3 +5226,36 @@ No product contract, game record, policy, decision or model behavior changes.
 MCP 11.2.0 and JSON API 3.0.0 remain unchanged. This private diagnostic
 extension requires local validation, required CI, deployment smoke and one
 bounded plan read; no tool-family acceptance is needed for the diagnostic.
+
+## 2026-10-04 - 11.2.1: keep weekly participation on its covering index
+
+PR #297 merged as 4609749e after required validate (including 135 browser
+journeys), with 1,814 Node tests and 442 UI tests passing locally and 85
+retired-scope skips. Its diagnostic deployment ran zero migrations (202
+applied) and passed all 43 smoke checks. The deployed migrate bundle matched
+the merged build and was Active/Successful. Health was green; the clean
+production lease was released after one bounded, nonexecuting canonical
+plan read. That read confirmed the retained scalar battle primary-key
+lookup from PR #257 alongside a participant bitmap heap scan. The current
+player/time cover lacks side; visibility estimates were fully covered.
+The same clan's earlier and later warm Awards reads had the same query
+count but different database durations. Exact production telemetry stays
+private. The additional browser-observed time remains unaccounted for;
+server evidence does not establish a cause for that remainder.
+
+Weekly current and former-member aggregates now retrieve side by the
+participant primary key only inside the existing scalar boat predicate.
+Ordinary rows can stay on the existing covering index. The participant key
+is unique by battle and player, so the predicate receives the same side;
+its NULL/type/unknown-battle behavior is preserved. No index build,
+migration, maintenance write, database capacity change or planner forcing.
+The shared canonical seam also supplies the operator diagnostic.
+
+PostgreSQL controls reproduce the old whole-battle scan and the remaining
+uncovered-side participant heap scan. Count equivalence includes both boat
+sides, unknown/missing boat evidence, NULL side/type and former-member clan
+scope. A wide, fully visible synthetic fixture checks the repaired
+index-only scan with no heap fetches and boat-bounded primary-key lookups
+for both weekly aggregates. Full validation, required CI, Clan-family
+acceptance and a bounded live readback are the release gates. MCP 11.2.1;
+JSON API 3.0.0 and response shapes are unchanged.
