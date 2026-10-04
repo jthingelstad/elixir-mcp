@@ -143,3 +143,8 @@ trophies and the ranked standing, so the two sides of it are not one series.
 - **A heavy aggregation can return `query_timeout`** rather than a partial
   answer. Retry after a few seconds, or narrow `from`/`to`; lowering `limit`
   only reduces output, not scan cost. Keep the request id if it persists.
+
+An assigned agent with an explicit private-context grant uses `clans_context`
+for its clan’s declared war intent and policy revision. It accepts no clan tag;
+game reads and clan assignment alone do not grant this private access. See
+[Agent context](/docs/clan-policy#agent-context).

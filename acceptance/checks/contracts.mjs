@@ -40,6 +40,19 @@ const read = (ctx, tool, args) =>
 
 export const contracts = [
   {
+    id: "clans-context-ungranted",
+    tools: ["clans_context"],
+    run: async (ctx) => {
+      const r = await ctx.read("clans_context", {});
+      ok(
+        r.isError === true && r.body?.error?.code === "not_entitled",
+        "The acceptance agent has no private-context grant; game scope cannot authorize policy reads.",
+      );
+      ok(!r.body?.context, "Refusal exposes no private context.");
+      return { ms: r.ms };
+    },
+  },
+  {
     id: "timeline-canonical-evidence",
     tools: ["elixir_timeline"],
     run: async (ctx) => {

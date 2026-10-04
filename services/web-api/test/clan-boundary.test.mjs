@@ -46,6 +46,14 @@ test("MCP and public tool code cannot import private Clan state", async () => {
       if (/\bclan_state\b/.test(text)) bad.push(path.relative(ROOT, file));
       for (const spec of await imports(file)) {
         if (
+          spec === "@elixir-mcp/auth/clan-context" &&
+          path.relative(ROOT, file) !==
+            "packages/tools/src/tools/clan-context.mjs"
+        )
+          bad.push(
+            `${path.relative(ROOT, file)}: unapproved minimal reader import`,
+          );
+        if (
           ["@elixir-mcp/clan", "@elixir-mcp/clan-state"].includes(
             packageOf(spec),
           )

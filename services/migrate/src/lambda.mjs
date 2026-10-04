@@ -1,4 +1,5 @@
 import { clanMaintenance } from "./ops-clan-maintenance.mjs";
+import { clanContextOp } from "./ops-clan-context.mjs";
 /** The migrate Lambda — the ONLY thing that applies schema migrations in
  *  the cloud (docs/ENGINEERING.md). Invoked by the deploy script between code
  *  upload and flip. The build packages db/migrations alongside the bundle. */
@@ -108,6 +109,14 @@ export async function handler(event) {
 }
 
 async function dispatch(event) {
+  if (event?.clan_context) {
+    const result = await clanContextOp(
+      process.env.DATABASE_URL,
+      event.clan_context,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.clan_maintenance) {
     const result = await clanMaintenance(
       process.env.DATABASE_URL,

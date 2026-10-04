@@ -21,7 +21,8 @@
     "@elixir-mcp/docs": "0.1.0",
     "@elixir-mcp/ingest": "0.1.0",
     "@elixir-mcp/ledger": "0.1.0",
-    "@elixir-mcp/record": "0.1.0"
+    "@elixir-mcp/record": "0.1.0",
+    "@elixir-mcp/auth": "0.1.0"
   },
   "devDependencies": {
     "pg": "^8.13.0"

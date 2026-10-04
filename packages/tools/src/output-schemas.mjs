@@ -17,6 +17,8 @@
  * as they are touched.
  */
 
+import clanContextSchema from "../../contracts/clan-policy-context.schema.json" with { type: "json" };
+
 const ISO = { type: "string", description: "ISO 8601 UTC instant." };
 /** A subject's last-observed name beside its tag (6.4.0). */
 const NAME = {
@@ -526,6 +528,18 @@ const ROSTER_REST_ONLY =
   "On /api/v1 and the console only (9.17.0): a full clan's agent read would pass the result cap with it.";
 
 export const OUTPUT_SCHEMAS = {
+  clans_context: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      context: clanContextSchema,
+      applied: { type: "object" },
+      notes: { type: "array", items: { type: "string" } },
+      docs: { type: "string" },
+      meta: { type: "object" },
+    },
+    required: ["context", "applied", "notes", "docs", "meta"],
+  },
   // ---- 6.14.0: the 22 tools that rested on recorded shape baselines in the
   // acceptance suite (acceptance/shapes/). Drafted from live answers on
   // 2026-09-21 and reviewed against the handlers for what is conditional;

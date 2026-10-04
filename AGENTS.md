@@ -282,7 +282,9 @@ in `packages/clan-web`, and adapters in `services/web-api/src/clan.mjs` and
 `services/jobs/src/clan.mjs`. The internal reader uses only the authenticated
 person and recorded facts; membership, verification and role remain current
 checks. Never import private Clan state or business services into MCP or public
-game tools; `services/web-api/test/clan-boundary.test.mjs` pins that boundary.
+game tools. The approved `clans_context` exception calls only the credential-bound
+minimal reader in `@elixir-mcp/auth/clan-context`, which projects eight fields
+after explicit grants and current owner/assignment/verified-membership checks; `services/web-api/test/clan-boundary.test.mjs` pins that boundary.
 
 Migration 0196 and the frozen digest-bound import preserved durable records and
 sealed model keys, excluding obsolete sessions and logins. The four root owners

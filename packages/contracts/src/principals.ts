@@ -39,6 +39,7 @@ export const PERSON_ONLY_TOOLS: readonly string[] = ["elixir_my_players"];
  * it would return an empty window forever, which is worse than absent.
  */
 export const AGENT_ONLY_TOOLS: readonly string[] = [
+  "clans_context",
   "elixir_nickname",
   "elixir_timeline",
   // An integration tracks nothing (it adds no subjects; claims refuses it).
@@ -54,6 +55,7 @@ export const AGENT_ONLY_TOOLS: readonly string[] = [
  * either (Jamie, 2026-09-25: the identity tools are agent-only).
  */
 export const NOT_FOR_PERSONS: readonly string[] = [
+  "clans_context",
   "elixir_identify",
   "elixir_my_identities",
 ];

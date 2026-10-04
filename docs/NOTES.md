@@ -4863,3 +4863,26 @@ passed all 44 cases. Independent read-only privacy/consistency review found no
 material findings. Initial draft CI validate passed at 17:12:15Z (12:12 PM CT)
 on 30691787; the handoff commit needs its own CI. Keep PR #284 draft pending
 transport/access/consumer coordination; no merge/deploy in this slice.
+
+## 2026-10-04 - Approved bounded agent policy context
+
+Jamie approved the exact private-context audience at 17:37:48Z (12:37 PM CT).
+The implementation adds the credential/agent/actual-owner/clan-bound grant,
+current verified-membership checks, durable ownership/assignment revocation,
+a metadata-only preview/fingerprint-guarded IAM op and the agent/service-only
+clans_context tool. Standard scopes and full private-policy audiences stay
+unchanged. The context remains eight fields, explicit intent stays independent
+of scoring, and no intent values or routine messages are selected automatically.
+MCP 11.2.0; JSON API 3.0.0 unchanged. Migration 0202 adds empty permission
+storage and bounded revocation triggers, with no seed/backfill. Actual grants
+are pending DB eligibility preview after deployment; only the three configured
+candidates may receive them, and verification failure remains ungranted.
+
+Approved extension verification passed: 1,807 Node cases, 85 existing
+skips, 433 Vitest cases and zero failures after format, lint, knip and
+TypeScript checks. The 29 focused authorization/migration/boundary cases passed.
+Independent read-only privacy/consistency review found no material remaining
+findings; assignment move-and-restore and credential revoke-and-restore remain
+refused. Live acceptance will test the existing ungranted principal’s refusal;
+positive context/grant tests use scratch data, with no extra QA grants. The
+Discord routine consumer remains a separate coordinated slice.
