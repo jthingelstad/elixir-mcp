@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
 import { profileTool } from "../src/ops-profile.mjs";
+import { explainParticipation } from "../src/ops-diagnostics.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -122,4 +123,29 @@ test("profile_tool's session is read-only, so a handler cannot write through it"
   } finally {
     await db.end();
   }
+});
+
+test("selected participation plans use real PostgreSQL EXPLAIN without runtime fields or bound identifiers", async () => {
+  const result = await explainParticipation(SCRATCH_URL, {
+    clan_tag: "#2PQRJ8LV",
+    weeks: 8,
+    analyze: false,
+    queries: ["battles_by_week"],
+  });
+  assert.equal(result.analyze, false);
+  assert.equal(result.plans.length, 1);
+  assert.ok(result.plans[0].nodes.length > 0);
+  assert.ok(
+    result.indexes.some(
+      (index) => index.indexname === "battle_participant_player_time_cover",
+    ),
+  );
+  assert.doesNotMatch(
+    JSON.stringify(result),
+    /#2PQRJ8LV|Actual Rows|Index Cond/,
+  );
+  assert.deepEqual(
+    await explainParticipation("unused", { queries: ["battles_by_week"] }),
+    { error: "selected_queries_require_analyze_false" },
+  );
 });
