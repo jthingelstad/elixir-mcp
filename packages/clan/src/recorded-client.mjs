@@ -8,6 +8,7 @@ const READS = new Set([
   "players_names",
   "players_profile",
   "battles_query",
+  "elixir_coverage",
   "live_fetch",
 ]);
 export function createRecordedClient({

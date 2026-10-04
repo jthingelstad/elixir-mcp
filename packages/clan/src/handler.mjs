@@ -38,6 +38,7 @@ export function createHandler({
   feedback = null,
   /** the clan's Social section: the clan map (`manage/social.mjs`) */
   social = null,
+  memberActivity = null,
   /** Verified player tags of the product's maintainer(s): MaintainerTags. */
   maintainerTags = [],
   now = () => Date.now(),
@@ -185,6 +186,10 @@ export function createHandler({
       selected,
       person,
     );
+    return json(200, await decorateMe(body, selected, person));
+  }
+
+  async function decorateMe(body, selected, person = null) {
     if (feedback && person)
       body.feedback_unseen = await feedback.unseen(person).catch(() => 0);
     // Which pages the selected clan's policy turns on (nothing in clan
@@ -209,7 +214,7 @@ export function createHandler({
         })
         .catch(() => 0);
     }
-    return json(200, body);
+    return body;
   }
 
   /** The feedback routes: a person's own, and the maintainer's lane. */
@@ -262,14 +267,13 @@ export function createHandler({
       session.verifyAck = notice.key;
     }
     const selected = await selectionFor(session, gated.gate);
+    const person = personFor(gated.gate);
     return json(
       200,
-      meBody(
-        session,
-        gated.gate,
-        gated.checkedAt,
+      await decorateMe(
+        meBody(session, gated.gate, gated.checkedAt, selected, person),
         selected,
-        personFor(gated.gate),
+        person,
       ),
     );
   }
@@ -305,7 +309,20 @@ export function createHandler({
         clan_tag: chosen.clan_tag,
         chosen_at: new Date(now()).toISOString(),
       });
-    return json(200, meBody(session, gated.gate, gated.checkedAt, chosen));
+    return json(
+      200,
+      await decorateMe(
+        meBody(
+          session,
+          gated.gate,
+          gated.checkedAt,
+          chosen,
+          personFor(gated.gate),
+        ),
+        chosen,
+        personFor(gated.gate),
+      ),
+    );
   }
 
   async function roster(event) {
@@ -481,6 +498,15 @@ export function createHandler({
       method === "GET" || method === "DELETE" ? {} : parseBody(event);
     if (body === null) return json(400, { error: "bad_request" });
     try {
+      const activity = /^\/members\/([0-9A-Za-z]{3,12})\/activity$/.exec(rest);
+      if (memberActivity && method === "GET" && activity)
+        return json(
+          200,
+          await memberActivity(tag, token, activity[1], {
+            cursor: event.queryStringParameters?.cursor ?? null,
+            to: event.queryStringParameters?.to ?? null,
+          }),
+        );
       // Social (2026-09-26): the clan map for the clan's members; the
       // switch is read by every member and set by leaders.
       if (social && rest === "/social") {
@@ -601,6 +627,7 @@ export function createHandler({
             body.values ?? {},
             body.note ?? null,
             token,
+            body.expected_version ?? null,
           ),
         );
       if (method === "POST" && rest === "/policy/preview")
@@ -796,7 +823,7 @@ export function createHandler({
   async function dispatch(event, method, path) {
     try {
       if (
-        (manage || awards || recruit || social) &&
+        (manage || awards || recruit || social || memberActivity) &&
         path.startsWith("/api/clans/")
       ) {
         const answered = await manageRoute(event, method, path);

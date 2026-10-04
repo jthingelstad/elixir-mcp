@@ -212,6 +212,8 @@ export function harness(opts = {}) {
     mcp,
     identity,
     store,
+    memberActivity: opts.memberActivity ?? null,
+    manage: opts.manage ?? null,
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,

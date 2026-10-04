@@ -56,6 +56,7 @@ export function analyticsLocation(
       rest[1] = "detail";
     }
     if (rest[0] === "week" && rest[1]) url.searchParams.set("id", rest.pop());
+    if (rest[0] === "members" && rest[1]) rest[1] = "detail";
     page = `${CLAN}${rest.length ? `/${rest.join("/")}` : ""}`;
   } else if (
     (segments[0] === "feedback" && segments[1]) ||

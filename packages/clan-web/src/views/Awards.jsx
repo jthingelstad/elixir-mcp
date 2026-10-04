@@ -63,9 +63,9 @@ export function Awards({ clan, navigate }) {
     <div className="grid gap-5">
       <PageHead
         clan={clan}
-        crumb="Awards"
-        title="Awards"
-        lede="The season’s races and the clan’s recorded awards."
+        crumb="Award races"
+        title="Award races"
+        lede="Current season standings and award setup. Award history keeps the earned record."
         navigate={navigate}
       />
       <p className="page-head__note m-0">
@@ -189,8 +189,8 @@ export function Awards({ clan, navigate }) {
           <p className="page__lede m-0">
             Grants are recorded after a season closes; a manual award records
             who chose it and why. Members can read the races and saved grants
-            here and in Trophies; nothing is published outside the signed-in
-            app.
+            here and in Award history; nothing is published outside the
+            signed-in app.
           </p>
         </div>
       </section>

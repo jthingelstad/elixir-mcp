@@ -7,6 +7,7 @@ import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
  * connected Postgres client, and the same recorded facts the public doors
  * read. There is no internal OAuth grant or HTTP round trip. */
 import { createHandler } from "@elixir-mcp/clan/handler.mjs";
+import { createMemberActivity } from "@elixir-mcp/clan/member-activity.mjs";
 import { createAccountContext } from "@elixir-mcp/clan/account.mjs";
 import { createRecordedClient } from "@elixir-mcp/clan/recorded-client.mjs";
 import {
@@ -23,6 +24,10 @@ import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
 import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
 import { myPlayers } from "@elixir-mcp/record/players";
+import {
+  memberActivityWeeks,
+  memberActivityWarBounds,
+} from "@elixir-mcp/record/member-activity";
 import { warMembershipEvidence } from "@elixir-mcp/record/war-membership";
 import {
   writeClanFactInClan,
@@ -198,6 +203,11 @@ export function createClanRequest({
       recruit: createRecruitService({ ledger, mcp, model }),
       scout: createScout({ mcp }),
       social: createSocialService({ ledger, geo: diskGeo() }),
+      memberActivity: createMemberActivity({
+        mcp,
+        weeklyCounts: (...args) => memberActivityWeeks(db, ...args),
+        warBounds: (weeks) => memberActivityWarBounds(db, weeks),
+      }),
       feedback: createFeedbackService({ ledger, notify }),
       maintainerTags,
       appUrl,
@@ -218,7 +228,9 @@ export function createClanRequest({
     // Their only shared metadata write is an atomic, monotonic observation.
     const pureView =
       method === "GET" &&
-      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|me)$/.test(path);
+      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|me|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
+        path,
+      );
     const lock =
       clan && !pureView
         ? `clan-state:${normalizeTag(clan) ?? account.accountId}`

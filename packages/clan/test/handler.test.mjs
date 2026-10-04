@@ -11,6 +11,45 @@ import {
 } from "./fakes.mjs";
 import { mountedPath, shapeRoster } from "@elixir-mcp/clan/handler.mjs";
 
+test("clan selection returns capabilities for the newly selected clan, including when returning from a small clan", async () => {
+  const h = harness({
+    door: {
+      players: [
+        player(),
+        player({
+          player_tag: "#9QY",
+          relationship: "alt",
+          is_primary: false,
+          clan_tag: "#PYLQ2",
+        }),
+      ],
+    },
+    manage: {
+      policySummary: async (tag) => ({
+        set: true,
+        active: tag === "#2PQRJ8LV",
+        version: tag === "#2PQRJ8LV" ? 3 : 1,
+      }),
+      openActionCount: async (tag) => (tag === "#2PQRJ8LV" ? 4 : 0),
+    },
+  });
+  const { sessionCookie } = await signIn(h);
+  const cookies = cookieHeader(sessionCookie);
+  for (const tag of ["#PYLQ2", "#2PQRJ8LV"]) {
+    const r = await h.handler(
+      req("POST", "/api/select", {
+        cookies,
+        body: JSON.stringify({ clan_tag: tag }),
+      }),
+    );
+    const d = JSON.parse(r.body);
+    assert.equal(r.statusCode, 200);
+    assert.equal(d.selected.clan_tag, tag);
+    assert.equal(d.policy.active, tag === "#2PQRJ8LV");
+    assert.equal(d.open_actions, tag === "#2PQRJ8LV" ? 4 : 0);
+  }
+});
+
 test("roster: names the primary's clan explicitly, marks your row, groups by role, reads for this request", async () => {
   const members = [
     {

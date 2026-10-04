@@ -36,6 +36,7 @@ import { You } from "./views/You.jsx";
 import { Away } from "./views/Away.jsx";
 import { Recruit } from "./views/Recruit.jsx";
 import { Trophies } from "./views/Trophies.jsx";
+import { MemberActivity } from "./views/MemberActivity.jsx";
 import { Awards } from "./views/Awards.jsx";
 import { ActionDetail, Actions } from "./views/Actions.jsx";
 import { YouHere } from "./views/YouHere.jsx";
@@ -67,7 +68,7 @@ import { MaintainItem, MaintainQueue } from "./views/Maintain.jsx";
  *  action's number (`/clan/<TAG>/actions/37`). */
 export function parseClanPath(path) {
   const m =
-    /^\/([^/]+)(?:\/(manage|me|week|actions|standing|trophies|awards|recruit|map)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
+    /^\/([^/]+)(?:\/(manage|me|week|actions|standing|trophies|awards|recruit|map|members)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
       appPath(path) ?? "",
     );
   const tag = m ? tagOf(m[1]) : null;
@@ -188,6 +189,15 @@ export function ClanPage() {
     name: clan.acting_as_name,
     role: clan.role,
   };
+  if (parsed.section === "members" && tagOf(parsed.tab))
+    return (
+      <MemberActivity
+        key={`${clan.clan_tag}-${parsed.tab}`}
+        clan={clan}
+        playerTag={tagOf(parsed.tab)}
+        navigate={navigate}
+      />
+    );
   if (parsed.section === "me")
     return <YouHere key={clan.clan_tag} clan={clan} navigate={navigate} />;
   // The week in the clan: the latest closed week, or one by its id.

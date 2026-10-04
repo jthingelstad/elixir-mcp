@@ -39,8 +39,14 @@ export const manageApi = {
     get(`${clanBase(tag)}/manage${refresh ? "?refresh=1" : ""}`),
   history: (tag) => get(`${clanBase(tag)}/history`),
   policy: (tag) => get(`${clanBase(tag)}/policy`),
-  savePolicy: (tag, values, note) =>
-    post(`${clanBase(tag)}/policy`, { values, note }),
+  savePolicy: (tag, values, note, expectedVersion = null) =>
+    post(`${clanBase(tag)}/policy`, {
+      values,
+      note,
+      ...(expectedVersion !== null
+        ? { expected_version: expectedVersion }
+        : {}),
+    }),
   previewPolicy: (tag, values) =>
     post(`${clanBase(tag)}/policy/preview`, { values }),
   // Actions (2026-09-25): what waits for you, with each action's log.
@@ -82,6 +88,14 @@ export const manageApi = {
   trophies: (tag) => get(`${clanBase(tag)}/trophies`),
   // "You here": the member's own numbers and place in this clan.
   memberView: (tag) => get(`${clanBase(tag)}/me`),
+  memberActivity: (tag, playerTag, cursor = null, to = null) => {
+    const q = new URLSearchParams();
+    if (cursor) q.set("cursor", cursor);
+    if (to) q.set("to", to);
+    return get(
+      `${clanBase(tag)}/members/${String(playerTag).replace(/^#/, "")}/activity${q.size ? `?${q}` : ""}`,
+    );
+  },
   // The week in the clan: the latest closed week, or one by its ISO id.
   week: (tag, week) =>
     get(

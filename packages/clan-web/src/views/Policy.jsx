@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, usePolicy } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
-import { TooFew } from "../components/TooFew.jsx";
-import { PRESETS, policyFromGoals, tabStart } from "@elixir-mcp/clan-engine";
+import {
+  PRESETS,
+  countedCategories,
+  CATEGORY_LABELS,
+  policyFromGoals,
+  tabStart,
+} from "@elixir-mcp/clan-engine";
 
 /** Whether a group or field applies under the draft (engine `applies`). */
 const applies = (when, values) =>
@@ -34,6 +39,8 @@ export function Policy({ clan }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [note, setNote] = useState("");
+  const [baseVersion, setBaseVersion] = useState(null);
+  const revision = useRef(0);
 
   const policy = usePolicy(clan.clan_tag);
   const view = policy.data ?? null;
@@ -43,21 +50,13 @@ export function Policy({ clan }) {
   const invalidate = useInvalidate();
   const load = () => invalidate(keys.clan(clan.clan_tag));
   useEffect(() => {
-    if (view) setDraft(view.current.values);
-  }, [view]);
+    if (view && baseVersion === null) {
+      setDraft(view.current.values);
+      setBaseVersion(view.current.version);
+    }
+  }, [view, baseVersion]);
   if (!view || !draft) return <p className="page__lede">Loading the policy…</p>;
-  // Below the smallest clan a policy engages with there is nothing to set.
-  if (view.big_enough === false)
-    return (
-      <div className="grid gap-4">
-        {view.set ? (
-          <p className="page-head__note m-0">
-            {`Version ${view.current.version} is kept and picks up again when the clan has ${view.min_members} members.`}
-          </p>
-        ) : null}
-        <TooFew members={view.members} min={view.min_members} />
-      </div>
-    );
+  const conflict = baseVersion !== view.current.version;
 
   const tabs = view.tabs;
   const fieldsOf = (t) =>
@@ -68,8 +67,15 @@ export function Policy({ clan }) {
     (k) => draft[k] !== view.current.values[k],
   );
   // The first save is a policy even with nothing changed.
-  const canSave = !view.set || changed.length > 0;
-  const set = (key, value) => setDraft((d) => ({ ...d, [key]: value }));
+  const canSave = !conflict && (!view.set || changed.length > 0);
+  const invalidatePreview = () => {
+    revision.current += 1;
+    setPreview(null);
+  };
+  const set = (key, value) => {
+    invalidatePreview();
+    setDraft((d) => ({ ...d, [key]: value }));
+  };
   const current = tabs.find((t) => t.key === tab) ?? tabs[0];
 
   /** A tab's switch: turning it on fills the tab from the clan's posture. */
@@ -77,11 +83,11 @@ export function Policy({ clan }) {
     setDraft((d) =>
       on ? { ...d, ...tabStart(d, t.key) } : { ...d, [t.switch]: false },
     );
-    setPreview(null);
+    invalidatePreview();
   };
   const fill = (goals, posture, key) => {
     setDraft(policyFromGoals(goals, posture));
-    setPreview(null);
+    invalidatePreview();
     setErrors({});
     trackEvent("clan.policy_preset", key);
   };
@@ -99,9 +105,11 @@ export function Policy({ clan }) {
   const doPreview = async () => {
     setBusy(true);
     setMessage("");
+    const atRevision = revision.current;
     const r = await manageApi.previewPolicy(clan.clan_tag, draft);
     setBusy(false);
     if (!r.ok) return failed(r, "Preview failed.");
+    if (revision.current !== atRevision) return;
     setErrors({});
     trackEvent("clan.policy_previewed");
     setPreview(r.data);
@@ -109,9 +117,25 @@ export function Policy({ clan }) {
   const save = async () => {
     setBusy(true);
     setMessage("");
-    const r = await manageApi.savePolicy(clan.clan_tag, draft, note || null);
+    const r = await manageApi.savePolicy(
+      clan.clan_tag,
+      draft,
+      note || null,
+      baseVersion,
+    );
     setBusy(false);
-    if (!r.ok) return failed(r, "Save failed.");
+    if (!r.ok) {
+      if (r.data?.error === "policy_changed") {
+        load();
+        return failed(
+          r,
+          "A newer policy was saved. Your draft is kept; load the latest version before saving.",
+        );
+      }
+      return failed(r, "Save failed.");
+    }
+    setBaseVersion(r.data.version);
+    setDraft(r.data.values ?? draft);
     setErrors({});
     setPreview(null);
     setNote("");
@@ -131,6 +155,77 @@ export function Policy({ clan }) {
 
   return (
     <div className="grid gap-4">
+      <p className="page__lede m-0">
+        Policy is Elixir’s agreement for {clan.name ?? clan.clan_tag}. It is not
+        a setting in Clash Royale. You choose the expectations; the recorded
+        evidence suggests Actions, and a leader decides what to do in the game.
+      </p>
+      {view.big_enough === false ? (
+        <div className="callout" role="note">
+          <span>
+            This clan has {view.members} members. Leaders can prepare and save
+            its policy now. Operational reviews, Actions, standing and awards
+            stay paused until {view.min_members} members; saving below that size
+            creates no announcement Action.
+          </span>
+        </div>
+      ) : null}
+      {conflict ? (
+        <div className="callout callout--warn" role="alert">
+          <span>
+            A newer policy version is available. Your unsaved draft is kept.{" "}
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                invalidatePreview();
+                setDraft(view.current.values);
+                setBaseVersion(view.current.version);
+                setErrors({});
+                setMessage("");
+              }}
+            >
+              Load latest policy and discard my draft
+            </button>
+          </span>
+        </div>
+      ) : null}
+      <section className="panel">
+        <h2 className="panel__head m-0">Draft agreement</h2>
+        <div className="panel__body grid gap-2">
+          <p className="m-0">
+            Counted categories:{" "}
+            {countedCategories(draft)
+              .map((c) => CATEGORY_LABELS[c])
+              .join(", ") || "none"}
+            . Elders are{" "}
+            {draft.elder_mode === "categories"
+              ? "ranked by counted participation"
+              : "chosen by leaders by hand"}
+            .
+          </p>
+          <p className="m-0">
+            Minimums use {draft.minimums_window_weeks} weeks and require{" "}
+            {draft.minimums_rule === "any" ? "any one" : "all"} of the enabled
+            thresholds above zero. They affect Elder eligibility and inactivity
+            grace; with no thresholds set, everyone meets them. Each category’s
+            score window is separate.
+          </p>
+          <p className="m-0">
+            Removal suggestions are{" "}
+            {draft.removal_enabled
+              ? `on: at risk after ${draft.at_risk_days} days since recorded play, an Action after ${draft.at_risk_days + draft.confirm_days} days before contribution grace or holds`
+              : "off"}
+            . Recorded gaps remain uncertainty, not proof of no play.
+          </p>
+          <p className="page-head__note m-0">
+            Example: an expectation about participation is checked against
+            recorded weeks. If the policy warrants it, Elixir raises a
+            recommendation. A leader reviews the evidence and makes the
+            decision; Elixir never kicks or promotes a member.
+          </p>
+        </div>
+      </section>
       {view.set ? (
         <p className="page-head__note m-0">
           {`Version ${view.current.version}, saved ${view.current.saved_at?.slice(0, 10)} by ${view.current.saved_by_name ?? view.current.saved_by}.`}{" "}
@@ -143,7 +238,7 @@ export function Policy({ clan }) {
             This clan has no policy yet, so nothing in clan management runs: no
             actions, no standing, no inactivity clock, no awards. Start from
             what the clan is for, or turn on the tabs for what it does, and
-            save; members then see how the clan runs on their Standing page.
+            save. Operational management starts at ten members.
           </span>
         </div>
       )}
@@ -210,7 +305,7 @@ export function Policy({ clan }) {
                 className="size-4 shrink-0"
                 aria-label={view.fields[current.switch].label}
                 checked={draft[current.switch] === true}
-                disabled={!view.can_edit}
+                disabled={!view.can_edit || busy || conflict}
                 onChange={(e) => flip(current, e.target.checked)}
               />
               <span>{view.fields[current.switch].label}</span>
@@ -225,6 +320,7 @@ export function Policy({ clan }) {
               stateOf={stateOf}
               onFill={fill}
               onOpen={setTab}
+              disabled={busy || conflict}
             />
           ) : null}
           {(() => {
@@ -261,7 +357,7 @@ export function Policy({ clan }) {
                         }
                         value={draft[k]}
                         error={errors[k]}
-                        disabled={!view.can_edit}
+                        disabled={!view.can_edit || busy || conflict}
                         onChange={(v) => set(k, v)}
                       />
                     ))
@@ -312,7 +408,9 @@ export function Policy({ clan }) {
           <div className="panel__body grid gap-2.5">
             <div className="page-head__note">
               {!view.set
-                ? "Saving creates version 1: clan management starts from it."
+                ? view.big_enough === false
+                  ? "Saving prepares version 1; operational management stays paused until 10 members."
+                  : "Saving creates version 1: clan management starts from it."
                 : changed.length
                   ? `${changed.length} setting${changed.length === 1 ? "" : "s"} changed: ${changed.map((k) => view.fields[k].label).join(", ")}.`
                   : "No changes."}
@@ -321,7 +419,7 @@ export function Policy({ clan }) {
               <button
                 type="button"
                 className="btn"
-                disabled={busy || !canSave}
+                disabled={busy || !canSave || view.big_enough === false}
                 onClick={doPreview}
               >
                 Preview the last reviews
@@ -342,7 +440,14 @@ export function Policy({ clan }) {
               </button>
             </div>
             {message ? <div className="notice">{message}</div> : null}
-            {preview ? <Preview preview={preview} /> : null}
+            <p className="page-head__note m-0">
+              Edits stay local until Save. The new version applies at the next
+              evaluation, including recorded reviews; pending recommendations
+              can change. Completed decisions and saved award grants stay as
+              recorded. Awards have their own setup. Preview uses recorded facts
+              only, with no LLM, and does not apply holds or decision cooldowns.
+            </p>
+            {preview && !conflict ? <Preview preview={preview} /> : null}
           </div>
         </div>
       ) : null}
@@ -369,7 +474,7 @@ export function Policy({ clan }) {
 }
 
 /** The About tab: where to start, and what the clan does at a glance. */
-function About({ view, tabs, stateOf, onFill, onOpen }) {
+function About({ view, tabs, stateOf, onFill, onOpen, disabled }) {
   return (
     <>
       {view.can_edit ? (
@@ -377,7 +482,10 @@ function About({ view, tabs, stateOf, onFill, onOpen }) {
           <h2 className="label m-0">Start from what the clan is for</h2>
           <p className="page__lede m-0">
             Pick a starting point and every tab is filled from it, yours to
-            change before you save.
+            change before you save. Every preset turns on removal suggestions,
+            welcomes, departure questions and announcements. Review those tabs
+            before saving. How strict seeds starting values; changing it alone
+            does not retune existing fields.
             {view.set
               ? " It replaces the whole draft; the changed settings and the preview show what would move."
               : ""}
@@ -388,6 +496,7 @@ function About({ view, tabs, stateOf, onFill, onOpen }) {
                 key={p.key}
                 type="button"
                 className="btn btn--sm"
+                disabled={disabled}
                 onClick={() => onFill(p.goals, p.posture, p.key)}
               >
                 {p.label}
@@ -473,13 +582,7 @@ function Field({ name, f, help = true, value, error, disabled, onChange }) {
           value={value}
           disabled={disabled}
           onChange={(e) =>
-            onChange(
-              e.target.value === ""
-                ? ""
-                : f.type === "integer"
-                  ? parseInt(e.target.value, 10)
-                  : parseFloat(e.target.value),
-            )
+            onChange(e.target.value === "" ? "" : Number(e.target.value))
           }
           aria-invalid={Boolean(error)}
         />

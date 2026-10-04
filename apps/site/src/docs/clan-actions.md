@@ -19,6 +19,27 @@ make it, with the evidence, the rule that raised it, and the words to
 send when there are any. Someone decides it, makes the change in the
 game, and the action's log keeps what happened.
 
+## Inspect a member's recorded activity
+
+Roster names and member Actions link to **View member activity**, a private
+read for a current member of a clan you belong to. It shows four ISO weeks
+of clan-scoped recorded battle counts and observed donation counters, the
+recorded war weeks' deck usage and points, and paged battles grouped into
+recorded sessions. Each battle opens its existing full detail page. ISO
+weeks and war weeks stay distinct; decks are never assigned to war days.
+
+Battle detail is clipped to the member's current observed stint and only
+battles whose participant names this clan. A returning player's earlier
+stint and other-clan play do not enter these counts. Donation counters are
+unknown for a week that starts before the current observed stint. Earlier
+war weeks are omitted; weekly totals crossing the stint or fixed read
+boundary remain unknown rather than being split into days. Missing or failed
+coverage reads remain unknown. Profile-counter intervals ending in the last
+seven days can show missing battles, but do not prove that the entire
+displayed window was observed. No recorded battle is not proof of no play.
+Saved Action evidence retains its original timestamp and policy version;
+the activity view is a new read, not a change to the recommendation.
+
 ## The kinds
 
 | Action | Goes to | Words to send |

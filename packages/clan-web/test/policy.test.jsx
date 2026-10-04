@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Policy } from "../src/views/Policy.jsx";
+import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
 import { FIELDS, GROUPS, TABS, defaults } from "@elixir-mcp/clan-engine";
 
@@ -31,11 +38,50 @@ const render = async (data = view) => {
     status: 200,
     data,
   });
-  renderWithProviders(<Policy clan={clan} />);
+  const rendered = renderWithProviders(<Policy clan={clan} />);
   await screen.findByRole("tablist", { name: "Policy" });
+  return rendered;
 };
 
 describe("policy: tabs along the top", () => {
+  test("leaders prepare a small clan's policy without starting operational reviews", async () => {
+    const save = vi
+      .spyOn(manageApi, "savePolicy")
+      .mockResolvedValue({ ok: true, status: 200, data: { version: 1 } });
+    await render({ ...view, members: 1, big_enough: false });
+    expect(
+      screen.getByText(/Leaders can prepare and save its policy now/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Preview the last reviews" }).disabled,
+    ).toBe(true);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Save this clan's policy" }),
+    );
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(clan.clan_tag, defaults(), null, 0),
+    );
+  });
+  test("an edit invalidates a prior preview and minimums have their own tab", async () => {
+    vi.spyOn(manageApi, "previewPolicy").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        current: null,
+        draft: { members: [], boundaries: [], band: null },
+      },
+    });
+    await render();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Preview the last reviews" }),
+    );
+    await screen.findByText(/Nobody’s verdict|Nobody.s verdict/);
+    fireEvent.change(screen.getByLabelText(/How strict/), {
+      target: { value: "strict" },
+    });
+    expect(screen.queryByText(/Nobody’s verdict|Nobody.s verdict/)).toBeNull();
+    expect(screen.getByRole("tab", { name: /^Minimums/ })).toBeTruthy();
+  });
   test("one tab at a time, each category switched on or off; a preset fills every tab", async () => {
     const save = vi
       .spyOn(manageApi, "savePolicy")
@@ -119,4 +165,38 @@ describe("policy: tabs along the top", () => {
         .getAttribute("aria-selected"),
     ).toBe("true");
   });
+});
+
+test("refetch preserves an edited draft; a newer version requires explicit discard", async () => {
+  const { queryClient } = await render();
+  fireEvent.change(screen.getByLabelText(/How strict/), {
+    target: { value: "strict" },
+  });
+  await act(async () =>
+    queryClient.setQueryData(keys.policy(clan.clan_tag), {
+      ...view,
+    }),
+  );
+  expect(screen.getByLabelText(/How strict/).value).toBe("strict");
+  await act(async () =>
+    queryClient.setQueryData(keys.policy(clan.clan_tag), {
+      ...view,
+      set: true,
+      current: { ...view.current, version: 1 },
+    }),
+  );
+  expect(screen.getByLabelText(/How strict/).value).toBe("strict");
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Save as new version" }).disabled,
+    ).toBe(true),
+  );
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "Load latest policy and discard my draft",
+    }),
+  );
+  expect(screen.getByLabelText(/How strict/).value).toBe(
+    view.current.values.posture,
+  );
 });

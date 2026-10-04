@@ -1061,7 +1061,7 @@ const smallClan = (n) =>
     name: "Example Clan",
   });
 
-test("below 10 members Elixir Clan is a statistics view: the roster works, no policy can be created", async () => {
+test("below 10 members leaders prepare policy while operational management stays paused", async () => {
   const h = harness({ part: smallClan(6), policy: null });
   const cookies = await leader(h);
   const roster = await api(h, cookies, "GET", "/api/roster?clan=2PQRJ8LV");
@@ -1074,13 +1074,13 @@ test("below 10 members Elixir Clan is a statistics view: the roster works, no po
   const save = await api(h, cookies, "POST", "/api/clans/2PQRJ8LV/policy", {
     values: EXAMPLE_POLICY,
   });
-  assert.equal(save.status, 409);
-  assert.deepEqual(save.body, {
-    error: "too_few_members",
-    members: 6,
-    min_members: 10,
-  });
-  assert.equal(await h.ledger.currentPolicy("#2PQRJ8LV"), null);
+  assert.equal(save.status, 200);
+  assert.equal((await h.ledger.currentPolicy("#2PQRJ8LV")).version, 1);
+  assert.deepEqual(await h.ledger.cards("#2PQRJ8LV"), []);
+  assert.equal(
+    (await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage")).body.error,
+    "too_few_members",
+  );
   const preview = await api(
     h,
     cookies,
@@ -1098,6 +1098,18 @@ test("below 10 members Elixir Clan is a statistics view: the roster works, no po
   const me = await api(h, cookies, "GET", "/api/me");
   assert.equal(me.body.policy.members, 6);
   assert.equal(me.body.policy.active, false);
+});
+
+test("policy save refuses an older browser version and retains the current version", async () => {
+  const h = harness({ part: partClan() });
+  const cookies = await leader(h);
+  const r = await api(h, cookies, "POST", "/api/clans/2PQRJ8LV/policy", {
+    values: EXAMPLE_POLICY,
+    expected_version: 0,
+  });
+  assert.equal(r.status, 409);
+  assert.equal(r.body.error, "policy_changed");
+  assert.equal((await h.ledger.currentPolicy("#2PQRJ8LV")).version, 1);
 });
 
 test("a clan with a policy that falls below 10 pauses, keeps its policy, and resumes at 10", async () => {

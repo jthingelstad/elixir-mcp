@@ -7,7 +7,7 @@
  * Nothing here runs for a clan until a leader or co-leader has saved its
  * policy (Jamie, 2026-09-25): every management call refuses with
  * `409 no_policy` before then, and the policy editor is the one way in.
- * Nor below MIN_MEMBERS (10, as Clan Wars): no policy can be created, and
+ * Below MIN_MEMBERS (10, as Clan Wars), leaders can prepare a policy, but
  * a saved one pauses, kept, with `409 too_few_members`, until the clan is
  * back at that size. The size is the latest roster or participation read,
  * kept as one number in the ledger so the gate costs no Elixir read.
@@ -155,7 +155,8 @@ export function createManageService({
 }) {
   const isLeader = (who) => LEADERS.has(who.role);
   const requireLeader = (who) => {
-    if (!isLeader(who)) throw new ManageError(403, "leaders_only");
+    if (!isLeader(who) || who.verified === false)
+      throw new ManageError(403, "leaders_only");
   };
 
   /** The clan's saved policy, or the starting values with `set: false`
@@ -1024,17 +1025,24 @@ export function createManageService({
       };
     },
 
-    async savePolicy(clanTag, who, input, note, token = null) {
+    async savePolicy(
+      clanTag,
+      who,
+      input,
+      note,
+      token = null,
+      expectedVersion = null,
+    ) {
       requireLeader(who);
       const members = await currentSize(clanTag, token);
-      if (members !== null && members < MIN_MEMBERS)
-        throw tooFewMembers(members);
       const checked = validate(input);
       if (!checked.ok)
         throw Object.assign(new ManageError(400, "invalid_policy"), {
           errors: checked.errors,
         });
       const prior = await policyFor(clanTag);
+      if (expectedVersion !== null && expectedVersion !== prior.version)
+        throw new ManageError(409, "policy_changed");
       const before = prior.set ? prior.values : {};
       const saved = await ledger.savePolicy(clanTag, {
         values: checked.values,
@@ -1043,7 +1051,9 @@ export function createManageService({
         note,
       });
       const changes = policyDiff(before, checked.values);
-      await announceRules(clanTag, saved, prior.set ? changes : null);
+      // Preparing policy never activates management below ten members.
+      if (members !== null && members >= MIN_MEMBERS)
+        await announceRules(clanTag, saved, prior.set ? changes : null);
       return { ...saved, changes };
     },
 
