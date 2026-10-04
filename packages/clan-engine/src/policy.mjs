@@ -579,7 +579,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "Off, an inactive Elder is shown at risk but never gets a removal action. Leaders and co-leaders never do.",
+    why: "Off, Elders are shown as Protected on Board and never get a removal action. Leaders and co-leaders are always protected.",
     when: [{ removal_enabled: true }],
   },
   away_max_days: {

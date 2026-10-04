@@ -177,7 +177,7 @@ When the clan turns on **Suggest removals**, recorded battles and profile
 counter increases inform a clock: **getting quiet**, then **at risk**, then a
 removal action once they have stayed at risk for the days the clan set.
 The leader, co-leaders, members on a hold and, unless the clan allows
-it, Elders stop at at risk and are never put up for removal. When the
+it, Elders are shown as **Protected** on Board and are never put up for removal. When the
 record cannot establish the required quiet window, removal eligibility holds.
 
 A positive lifetime battle-counter increase proves play between two profile
@@ -210,6 +210,10 @@ Board distinguishes **Protected**, **Not currently a removal candidate**,
 do not become removal cases just because some coverage is incomplete. These
 labels keep evidence quality separate from relevance; they do not relax the
 current-evidence checks on an Action.
+Board counts held promotion and demotion evidence separately from removal
+evidence; one member can appear in more than one count. Choose a Board group
+to jump to its members. On a narrow screen, scroll the table sideways to read
+every column.
 
 Two things shield removal eligibility while active:
 
