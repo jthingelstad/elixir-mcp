@@ -105,7 +105,8 @@ co-leaders can send one, it has a title of up to 24 characters and a
 body of up to 180, and it stays in every member's inbox. A clan chat
 line is for the chat. Edit welcomes (up to 120 characters) and removal
 messages (up to 200) before copying them into the game. Each field counts
-characters and warns about known chat-filter problems. Nothing is ever
+characters and warns about known chat-filter problems. Copying a field waits
+until its text fits; your edits stay in place to shorten. Nothing is ever
 posted for the clan automatically.
 
 With the clan's own model set up under **Manage ▸ Settings**, an open
@@ -122,6 +123,8 @@ without member details; review and edit the answer.
 **Put back what I had** restores your previous words. Elders can edit and
 copy welcomes without using the clan's model. Completing a welcome records
 the words as edited. Drafting completes no action and sends no game message.
+While a draft is loading, copying and action decisions wait for it to finish.
+Review the returned words before sending and marking the action complete.
 
 When a call's outcome is unknown, that attempt counts toward the daily
 limit. Check the use log in Settings before requesting another draft;

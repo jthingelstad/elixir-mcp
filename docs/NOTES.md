@@ -4162,3 +4162,44 @@ MCP **11.0.2**. JSON API remains unchanged. The production lease was released
 and the runtime worktree was clean. No RDS resize, index, migration, new IAM
 permission, new credential, model invocation, award or delivery action was
 introduced. This receipt is notes only and needs no further deployment.
+
+
+## 2026-10-04 - Keep Clan message review ahead of delivery
+
+The existing draft editor locked its fields, but copying and the parent Action
+decisions remained available while a draft was pending. A leader could record
+delivery using the previous words before the draft arrived. Action decisions
+now wait alongside the editor, copy, tone and restore controls, and unlock on
+both successful and failed replies. Editors and drafting also wait during the
+completion request. Each field keeps over-limit edits visible and offers a
+shorten reminder; its copy control waits until the text fits, independently of
+the other field. This does not truncate personal wording or record delivery.
+
+Regression checks reproduced both original defects before the fix. Deferred
+provider mocks cover welcome and co-leader Leader Message review/completion;
+failed draft and completion replies preserve edits, unlock controls and never
+automatically retry. Unknown completion outcomes ask the leader to reload the
+Action and check its log before retrying.
+Mobile/browser fixtures use no provider or real production Actions. Contracts
+remain MCP 11.0.2 / JSON API unchanged. The release runs normal full verify, CI
+and smoke. Public tool acceptance is omitted because only the private UI and
+its documentation changed. No migrations, IAM, paid drafts or game messages.
+
+Timeline direction remains a product recommendation, not a new runtime feature:
+a leader selects one recorded moment, adds why it matters, then prepares short
+clan chat through the existing review/copy flow. Existing welcome Actions already
+use join context, and awards/promotion Actions provide recognition. Timeline has
+recorded arenas, ranked promotions, personal-best bands, badges and career-win
+steps that could support a later explicit selection. Preserve event evidence,
+observation time and visibility; let the leader supply significance and personal
+context. Do not automatically score importance, broadcast or create Actions for
+every event. No generic Timeline-to-message bridge ships in this refinement.
+
+The first full gate found an unrelated date-dependent ingest assertion in
+`profile-refresh.test.mjs`: on Sunday 2026-10-04, the next-day counter drop
+enters additional reset snapshots and sees two donation-reset moments rather
+than one. The complete stateful file reproduced it independently. Its original
+Tuesday scenario now uses a fixed 2026-09-15 day alongside its already-mocked
+clock. No production ingest logic changed. Follow-up: inspect duplicate moment
+emission across the extra reset-snapshot writer in a dedicated reset-window
+regression; the fixed non-reset scenario does not claim that issue is repaired.

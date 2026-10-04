@@ -126,7 +126,10 @@ async function events(type) {
 // scenario's day for the whole file: every poll is 0.5-14 hours old
 // whenever the test runs. Only Date is mocked; timers and SQL now()
 // (stamps, never compared with a poll) keep the real clock.
-const day = new Date().toISOString().slice(0, 10);
+// Keep the original Tuesday scenario as well as its clock: a Sunday/Monday
+// wall-clock anchor enters extra reset snapshots, changing this scenario's
+// event counts. Calendar reset-window behavior is a separate test concern.
+const day = "2026-09-15";
 const at = (hhmmss) => `${day}T${hhmmss}Z`;
 const logAt = (hhmmss) => `${day.replaceAll("-", "")}T${hhmmss}.000Z`;
 

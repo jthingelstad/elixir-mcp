@@ -169,6 +169,7 @@ function MessageField({
           type="button"
           className="btn btn--sm ml-auto"
           aria-label={`Copy the ${label.toLowerCase()}`}
+          disabled={disabled || over}
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(value);
@@ -201,6 +202,11 @@ function MessageField({
           onChange={(e) => onChange(e.target.value)}
         />
       )}
+      {over ? (
+        <div className="page-head__note text-warn" role="status">
+          Shorten to {max} characters before copying.
+        </div>
+      ) : null}
       {warnings.length ? (
         <div className="page-head__note text-warn" role="status">
           The game may blank or garble this: {warnings.join("; ")}.
@@ -211,7 +217,14 @@ function MessageField({
 }
 
 /** A draft always requires a person's click, with one-click restoration. */
-function DraftControls({ value, onChange, onDraft, onBusy, chat = false }) {
+function DraftControls({
+  value,
+  onChange,
+  onDraft,
+  onBusy,
+  chat = false,
+  disabled = false,
+}) {
   const [ask, setAsk] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [said, setSaid] = useState("");
@@ -247,7 +260,7 @@ function DraftControls({ value, onChange, onDraft, onBusy, chat = false }) {
             className="input flex-[1_1_200px]"
             aria-label="Draft tone"
             value={ask}
-            disabled={drafting}
+            disabled={drafting || disabled}
             onChange={(e) => setAsk(e.target.value)}
           >
             <option value="">The clan's own voice</option>
@@ -264,14 +277,14 @@ function DraftControls({ value, onChange, onDraft, onBusy, chat = false }) {
             placeholder="What should it say? (optional)"
             value={ask}
             maxLength={300}
-            disabled={drafting}
+            disabled={drafting || disabled}
             onChange={(e) => setAsk(e.target.value)}
           />
         )}
         <button
           type="button"
           className="btn btn--sm"
-          disabled={drafting}
+          disabled={drafting || disabled}
           onClick={draft}
         >
           {drafting ? "Drafting…" : "Draft in our voice"}
@@ -286,7 +299,7 @@ function DraftControls({ value, onChange, onDraft, onBusy, chat = false }) {
         <button
           type="button"
           className="btn--text justify-self-start"
-          disabled={drafting}
+          disabled={drafting || disabled}
           onClick={() => {
             onChange(previous);
             setPrevious(null);
@@ -301,7 +314,14 @@ function DraftControls({ value, onChange, onDraft, onBusy, chat = false }) {
 }
 
 /** Editable chat copy; completion remains a separate human decision. */
-function ChatMessage({ kind, value, onChange, onDraft }) {
+function ChatMessage({
+  kind,
+  value,
+  onChange,
+  onDraft,
+  onBusy,
+  disabled = false,
+}) {
   const [drafting, setDrafting] = useState(false);
   return (
     <div className="grid gap-2.5 rounded-block border border-line-soft bg-ground-sunken p-4">
@@ -317,7 +337,7 @@ function ChatMessage({ kind, value, onChange, onDraft }) {
         onChange={onChange}
         max={kind === "welcome" ? WELCOME_MAX : CHAT_MAX}
         rows={3}
-        disabled={drafting}
+        disabled={drafting || disabled}
         copyKind="clan_chat"
       />
       {onDraft ? (
@@ -325,7 +345,11 @@ function ChatMessage({ kind, value, onChange, onDraft }) {
           value={value}
           onChange={onChange}
           onDraft={onDraft}
-          onBusy={setDrafting}
+          onBusy={(pending) => {
+            setDrafting(pending);
+            onBusy?.(pending);
+          }}
+          disabled={disabled}
           chat
         />
       ) : null}
@@ -342,6 +366,8 @@ function LeaderMessage({
   value = null,
   onChange = null,
   onDraft = null,
+  onBusy = null,
+  disabled = false,
 }) {
   const [own, setOwn] = useState({
     title: message?.title ?? "",
@@ -378,7 +404,7 @@ function LeaderMessage({
         value={title}
         onChange={setTitle}
         max={LEADER_MESSAGE.title}
-        disabled={drafting}
+        disabled={drafting || disabled}
       />
       <MessageField
         label="Message"
@@ -386,7 +412,7 @@ function LeaderMessage({
         onChange={setBody}
         max={LEADER_MESSAGE.body}
         rows={3}
-        disabled={drafting}
+        disabled={drafting || disabled}
       />
       {clean ? (
         <span className="flex items-center gap-2 text-[12.5px] text-ok">
@@ -399,7 +425,11 @@ function LeaderMessage({
           value={words}
           onChange={change}
           onDraft={onDraft}
-          onBusy={setDrafting}
+          onBusy={(pending) => {
+            setDrafting(pending);
+            onBusy?.(pending);
+          }}
+          disabled={disabled}
         />
       ) : null}
     </div>
@@ -552,7 +582,9 @@ export function ActionCard({
   const [reason, setReason] = useState("not_now");
   const [note, setNote] = useState("");
   const [declining, setDeclining] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [deciding, setBusy] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const busy = deciding || drafting;
   const reopenRequest = useRef(null);
   const reopenPending = useRef(false);
   const [error, setError] = useState("");
@@ -600,32 +632,42 @@ export function ActionCard({
         }
       : null;
   const decide = async (status, extra = {}) => {
+    if (busy) return;
     setBusy(true);
     setError("");
-    const r = await manageApi.decideAction(clan.clan_tag, action.card_id, {
-      status,
-      reason:
-        status === "declined" && LEADER_TYPES.has(action.type) ? reason : null,
-      note: note || null,
-      ...(status === "done" && action.message
-        ? { sent: { title: words.title, body: words.body } }
-        : status === "done" && action.copy && action.type === "welcome"
-          ? { sent: { line } }
-          : {}),
-      ...extra,
-    });
-    setBusy(false);
-    if (!r.ok)
-      return setError(
-        r.data?.error === "action_closed"
-          ? "This action was already taken or withdrawn."
-          : "That did not work.",
+    try {
+      const r = await manageApi.decideAction(clan.clan_tag, action.card_id, {
+        status,
+        reason:
+          status === "declined" && LEADER_TYPES.has(action.type)
+            ? reason
+            : null,
+        note: note || null,
+        ...(status === "done" && action.message
+          ? { sent: { title: words.title, body: words.body } }
+          : status === "done" && action.copy && action.type === "welcome"
+            ? { sent: { line } }
+            : {}),
+        ...extra,
+      });
+      if (!r.ok)
+        return setError(
+          r.data?.error === "action_closed"
+            ? "This action was already taken or withdrawn."
+            : "That did not work.",
+        );
+      trackEvent(
+        "clan.action_decided",
+        `${action.type}:${extra.classification ?? status}`,
       );
-    trackEvent(
-      "clan.action_decided",
-      `${action.type}:${extra.classification ?? status}`,
-    );
-    onChanged?.();
+      onChanged?.();
+    } catch {
+      setError(
+        "The action's outcome is unknown. Your words are unchanged. Reload the action to check its log before trying again.",
+      );
+    } finally {
+      setBusy(false);
+    }
   };
   const reopen = async () => {
     if (reopenPending.current) return;
@@ -813,6 +855,8 @@ export function ActionCard({
               value={line}
               onChange={setLine}
               onDraft={onDraft}
+              onBusy={setDrafting}
+              disabled={deciding}
             />
           ) : (
             <CopyLine text={action.copy} />
@@ -837,6 +881,8 @@ export function ActionCard({
             value={words}
             onChange={setWords}
             onDraft={onDraft}
+            onBusy={setDrafting}
+            disabled={deciding}
           />
         ) : null}
         {!open ? (
