@@ -12,7 +12,13 @@ import { useSharing } from "../lib/queries.js";
 export function Sharing({ clan }) {
   const { state } = useSharing(clan.clan_tag);
   const d = state.data;
-  if (state.forbidden || state.signedOut) return null;
+  if (state.signedOut) return null;
+  if (state.forbidden)
+    return (
+      <div className="callout callout--warn" role="alert">
+        <span>The recording summary is for the leader and co-leaders.</span>
+      </div>
+    );
   if (state.error)
     return (
       <p className="page-head__note m-0">

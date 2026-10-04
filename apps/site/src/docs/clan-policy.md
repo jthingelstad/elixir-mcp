@@ -152,7 +152,9 @@ without a policy:
   only to the leaders.
 - **Social**: the clan map, where members add a city or region and see
   each other's local time. Only the clan's signed-in members see it, and
-  nothing of it goes to Elixir.
+  nothing of it goes to Elixir. Only the leader and co-leaders can change
+  whether the clan's social features are on; other members opening Settings
+  directly can read that status without a switch.
 - **The clan's own model**: an Anthropic key of the clan's own, which
   lets a model draft the recruiting pitch in Recruit and, on an open
   action, the Clan Leader Message for a promotion, demotion, awards
