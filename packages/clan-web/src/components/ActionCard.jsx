@@ -1,4 +1,4 @@
-import { Fresh, Icon, ago } from "@elixir-mcp/ui";
+import { Fresh, Icon, Link, ago } from "@elixir-mcp/ui";
 import {
   CHAT_MAX,
   CHAT_TONES,
@@ -9,7 +9,7 @@ import {
 import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
-import { CLAN } from "../lib/base.js";
+import { CLAN, memberPath } from "../lib/base.js";
 import { MemberSheet } from "./MemberSheet.jsx";
 import { RoleChip } from "./RoleChip.jsx";
 
@@ -783,6 +783,11 @@ function BoundActionCard({
         )}
       </div>
       <div className="grid gap-4 px-5 py-[18px]">
+        {action.player_tag ? (
+          <Link to={memberPath(clan.clan_tag, action.player_tag)}>
+            View member activity
+          </Link>
+        ) : null}
         <div className="text-[14.5px] leading-[1.6] text-ink-body">
           {action.type === "departure" ? (
             <div>

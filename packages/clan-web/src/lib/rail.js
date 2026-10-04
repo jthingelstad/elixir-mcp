@@ -64,14 +64,14 @@ export function railItems(me) {
     if (set)
       items.push({
         key: "trophies",
-        label: "Trophies",
-        icon: "award",
+        label: "Award history",
+        icon: "history",
         to: `${base}/trophies`,
       });
     if (set)
       items.push({
         key: "awards",
-        label: "Awards",
+        label: "Award races",
         icon: "award",
         to: `${base}/awards`,
       });
@@ -180,6 +180,7 @@ export function railItems(me) {
  *  own pages come before a clan's tag. */
 export function railKey(path) {
   const app = appPath(path) ?? "";
+  if (/^\/[^/]+\/members\/[a-z0-9]+$/i.test(app)) return "clan";
   if (app === "/clans") return "clans";
   if (app === "/you") return "you";
   if (app.startsWith("/you/away")) return "away";

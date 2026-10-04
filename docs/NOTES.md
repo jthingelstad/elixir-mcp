@@ -4488,3 +4488,49 @@ tree's lease was released after read-back. No real draft, classification,
 message, delivery record or paid model call was used for acceptance. This
 receipt lands through its own green PR; no deployment follows a notes-only
 merge.
+
+
+## 2026-10-04 — Prepare Policy and inspect bounded member evidence
+
+Jamie authorized implementation and release of Clan readiness changes after
+read-only review. Verified leaders can prepare/save a versioned Policy below
+ten members. Operational evaluations, Actions, standing and awards retain
+the ten-member gate; a preparation save does not announce rules. Policy is
+an Elixir agreement, not a game setting. The editor explains shared minimums,
+preset switches, strictness as a seed, preview limits and future save impact.
+Edits invalidate preview; refresh preserves a draft; version conflicts retain
+it until explicit discard. Saves compare the editor's expected version.
+Selection returns the same selected-clan capabilities as the session read,
+so switching back restores navigation without reloading.
+
+Roster and recommendation links open a current-member activity view. Own-clan
+admission precedes player history; battle facts additionally require that clan
+and the current observed stint. Counts use canonical participant timestamps,
+not global participation totals. ISO rows show effective clipped bounds and
+omit earlier weeks. Cumulative donations in a joined-midweek period remain
+unknown; retained peaks cannot prove current-stint attribution. War counters
+use recorded policy-calendar bounds; earlier periods are omitted and boundary
+or fixed-read overlaps have unknown totals. Coverage intervals and recorded
+battle pages remain distinct evidence; absent captures never prove inactivity.
+Page session groups use the canonical less-than-thirty-minute boundary.
+Opponent identities, decks and account extras are excluded from this projection.
+Award races and Award history now name the separate views; saved grants and
+historical standings are retained. No migration or public contract change:
+MCP 11.1.0 / JSON API 3.0.0.
+
+Two independent source reviews identified the same-day rejoin, unclipped
+weekly-counter and exact-thirty-minute boundaries; fixes have targeted
+regressions. Acceptance uses scratch records and browser fixtures, without
+real policy, classification, message, award, preference or paid-model writes.
+A subsequent aggregate view should remain small: weekly war decks/points;
+mode-separated distinct recorded battles and known member denominators;
+observed donation peaks with reset/coverage disclosure. Every metric needs
+its period, membership scope and capture basis, with member drill-down.
+War seasons and monthly ladder seasons remain distinct. This is a proposal,
+not a new dashboard or evaluation rule.
+
+Local gate triage also repaired an existing clock-dependent identity fixture:
+its `pub` plus a short time remainder violated the public-ID minimum length
+at a modulo boundary. Distinct fixed valid fixture IDs remove that clock
+failure. The new query-cache regression waits for TanStack's notification
+before asserting a version conflict; it does not bypass conflict behavior.

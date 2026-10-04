@@ -21,9 +21,11 @@ awards.
 ## Who writes it
 
 The leader and co-leaders, under **Manage ▸ Policy**, once their player
-is [verified](/docs/verify). A clan needs at least 10 members to save
-one; a policy saved before the clan fell below 10 is kept and picks up
-again at 10. Every member reads how the clan runs on
+is [verified](/docs/verify). Leaders can prepare and save a policy at any
+clan size. Operational reviews, Actions, standing and awards remain paused
+below 10 members and resume at 10. Saving below ten creates no announcement
+Action. Policy is Elixir's agreement for the clan, not a game setting.
+Every member reads an active policy on
 [Standing](/docs/standing), under **How it works here**.
 
 ## Starting points
@@ -42,7 +44,10 @@ tab is filled from it, yours to change before you save:
 **How strict** (relaxed, standard or strict) sets where the minimums
 and clocks start. **Playing together** can be said but is never
 measured: the game does not say who plays with whom. On a saved policy,
-a starting point replaces the whole draft.
+a starting point replaces the whole draft. Every preset enables removal
+suggestions, welcomes, departure questions and announcements; review those
+tabs before saving. Changing How strict alone does not retune fields already
+in the draft.
 
 ## The tabs
 
@@ -50,7 +55,8 @@ a starting point replaces the whole draft.
 |---|---|
 | About | what the clan is for, and how strict |
 | Clan Wars, Ranked play, Donations, Trophy road | whether each is counted, its window (trophy road has none) and its minimum |
-| Elder | by hand or by participation, each category's weight, days in the clan before a promotion, the window and rule for the minimums, the band, how many reviews a promotion or demotion needs and how long a declined one waits, what members see, and the window for checking a completed action |
+| Elder | by hand or by participation, each category's weight, days in the clan before a promotion, the band, how many reviews a promotion or demotion needs and how long a declined one waits, what members see, and the window for checking a completed action |
+| Minimums | the shared window and any-one/all rule for enabled thresholds above zero; these affect Elder eligibility and inactivity grace, separately from category score windows |
 | Inactivity | **Suggest removals**: the getting quiet, at risk and removal days, grace for meeting the minimums, whether Elders can get removal actions, how long members may mark themselves away, and whether to ask quiet members |
 | Arrivals and departures | **Ask about departures** and **Suggest welcoming newcomers** |
 | Announcements | **Announce each season's awards** and **Tell the clan when the rules change** |
@@ -65,7 +71,10 @@ band mean.
 **Preview the last reviews** reads the clan's record and shows what the
 last four reviews would have said under the draft, beside the current
 policy: the Elder band before and after, and each member who would read
-differently. Nothing is saved or raised by a preview.
+differently. No policy, Action, award or decision is saved or raised by a
+preview, and no model is called. The member-count observation is updated.
+Holds and decision cooldowns are not applied in this comparison, so it is
+not an exact forecast of pending Actions. Editing any setting clears it.
 
 ## Saving
 
@@ -73,7 +82,11 @@ Saving makes a new version; the first is version 1. Add a line on why,
 if you like; the versions list keeps who saved each and when. A setting
 out of range is refused, with the tab that holds it opened and the
 field marked. The clan is read afresh under the new version, which can
-raise or withdraw actions.
+raise or withdraw pending Actions at the next evaluation, including reviews
+of recorded weeks. Completed decisions and saved award grants stay as
+recorded; awards have a separate setup. A stale browser version is refused
+instead of overwriting a newer policy, and unsaved edits survive a refetch.
+No policy save changes game settings, kicks a member or sends a message.
 
 When **Tell the clan when the rules change** is on, a save raises
 **Tell the clan how it runs** for the leaders: a Clan Leader Message

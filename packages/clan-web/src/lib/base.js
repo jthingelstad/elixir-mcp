@@ -45,3 +45,6 @@ export function tagOf(segment) {
 
 /** A clan's page: the tag without its #. */
 export const clanPath = (tag) => `${CLAN}/${String(tag).replace(/^#/, "")}`;
+
+export const memberPath = (clanTag, playerTag) =>
+  `${clanPath(clanTag)}/members/${String(playerTag).replace(/^#/, "").toLowerCase()}`;

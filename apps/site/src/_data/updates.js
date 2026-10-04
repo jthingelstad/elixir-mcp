@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-04",
+    title: "Prepare clan rules and inspect member activity",
+    body: "Verified leaders can prepare Policy before a clan reaches ten members; operational management stays paused until then. The editor explains minimums, preset effects and save timing, clears stale previews and protects newer versions. Roster names and member Actions link to clan-scoped recorded battles, session groups, weekly contributions, war usage and capture evidence. Award races and Award history distinguish current standings from earned records. Switching clans keeps navigation current. Contracts unchanged.",
+  },
+  {
+    date: "2026-10-04",
     title: "Clan voice drafts keep their recorded context",
     body: "Welcome drafts use the Action's saved return or career detail. After a leader confirms Kicked or Left, departure drafts use that confirmation and recorded tenure when known. Changed context clears older drafts; names, private notes and removal reasons stay local. Review and send the words yourself. Contracts unchanged.",
   },

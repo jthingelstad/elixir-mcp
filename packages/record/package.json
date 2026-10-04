@@ -12,6 +12,7 @@
     "./game-clock": "./src/game-clock.mjs",
     "./gateway-cards": "./src/gateway-cards.mjs",
     "./mode-filter": "./src/mode-filter.mjs",
+    "./member-activity": "./src/member-activity.mjs",
     "./participation-sql": "./src/participation-sql.mjs",
     "./players": "./src/players.mjs",
     "./recorded-profile": "./src/recorded-profile.mjs",

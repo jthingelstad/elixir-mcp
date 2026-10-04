@@ -1,11 +1,11 @@
-import { Fresh, Icon, ZoneProvider, ago, useClock } from "@elixir-mcp/ui";
+import { Fresh, Icon, Link, ZoneProvider, ago, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useRoster } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
 import { SpreadWord, spreadState } from "../components/SpreadWord.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
-import { CLAN, clanPath } from "../lib/base.js";
+import { CLAN, clanPath, memberPath } from "../lib/base.js";
 
 const ROLE_ORDER = ["leader", "coLeader", "elder", "member"];
 const GROUP = {
@@ -40,7 +40,14 @@ const ordinal = (k) => {
 /** The roster, grouped by role, your row marked. Every column is what the
  *  tool answered; a null is shown as a dash, never as zero. `limit` shows
  *  the first rows in role order and offers the rest. */
-export function RosterTable({ members, now, limit = null, onMore }) {
+export function RosterTable({
+  members,
+  now,
+  limit = null,
+  onMore,
+  clanTag,
+  navigate,
+}) {
   // Captured once per mount; a clock read during render is unstable.
   const [mounted] = useState(() => Date.now());
   const at = now ?? mounted;
@@ -97,7 +104,16 @@ export function RosterTable({ members, now, limit = null, onMore }) {
                           : "font-medium text-ink"
                       }
                     >
-                      {m.name ?? m.player_tag}
+                      {clanTag ? (
+                        <Link
+                          to={memberPath(clanTag, m.player_tag)}
+                          navigate={navigate}
+                        >
+                          {m.name ?? m.player_tag}
+                        </Link>
+                      ) : (
+                        (m.name ?? m.player_tag)
+                      )}
                     </span>
                     {m.you ? (
                       <span className="chip chip--info px-2 py-0 text-[11px]">
@@ -507,6 +523,8 @@ export function Clan({ me, clan, navigate }) {
                   </p>
                 ) : (
                   <RosterTable
+                    clanTag={clan.clan_tag}
+                    navigate={navigate}
                     members={found}
                     limit={limit}
                     onMore={() => setAll(true)}

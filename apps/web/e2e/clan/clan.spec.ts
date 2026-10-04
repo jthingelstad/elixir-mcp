@@ -473,7 +473,7 @@ test.describe("signed in", () => {
       /^Actions/,
       /^Board/,
       /^Standing/,
-      /^Trophies/,
+      /^Award history/,
       /^Away/,
     ])
       await expect(rail.getByRole("link", { name })).toHaveCount(0);
@@ -494,9 +494,14 @@ test.describe("signed in", () => {
               members: 6,
               min_members: 10,
               big_enough: false,
-              current: { set: false, values: {}, version: 0 },
-              groups: [],
-              fields: {},
+              current: {
+                set: false,
+                values: policyFromGoals([], "standard"),
+                version: 0,
+              },
+              tabs: TABS,
+              groups: GROUPS,
+              fields: FIELDS,
               versions: [],
             },
           ],
@@ -506,14 +511,17 @@ test.describe("signed in", () => {
     );
     await page.goto("/clan/2PQRJ8LV");
     const rail = page.locator(".rail");
-    for (const name of [/^Actions/, /^Board/, /^Standing/, /^Trophies/])
+    for (const name of [/^Actions/, /^Board/, /^Standing/, /^Award history/])
       await expect(rail.getByRole("link", { name })).toHaveCount(0);
     await rail.getByRole("link", { name: /^Policy/ }).click();
     await expect(page).toHaveURL(/\/manage\/policy$/);
     await expect(
-      page.getByText("Clan management starts at 10 members"),
+      page.getByText(/Leaders can prepare and save its policy now/),
     ).toBeVisible();
-    await expect(page.getByText(/This clan has 6\./)).toBeVisible();
+    await expect(page.getByText(/This clan has 6 members/)).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Save this clan's policy" }),
+    ).toBeEnabled();
   });
 
   test("the policy editor is tabs along the top: one at a time, each switched on or off", async ({

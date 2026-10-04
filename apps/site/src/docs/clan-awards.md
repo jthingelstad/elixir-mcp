@@ -40,7 +40,7 @@ Awards follow Clan Wars seasons as the record saw them. A season is
 judged once it has **closed** (every week finished, its Colosseum week
 last or the next season begun) and Clan holds it **whole** (unique sections
 from zero through an observed final Colosseum week, with no gaps). The first reading after that writes the
-season's winners: the morning run, or anyone opening Trophies or the
+season's winners: the morning run, or anyone opening Award history or the
 awards page. A season still being fought shows on the awards page as
 provisional, with nothing granted. Missing evidence holds the affected award,
 not every award in the season: points need the possible contenders' counters,
@@ -78,13 +78,13 @@ so later capture or configuration changes do not rewrite the podium.
 
 ## Where members see them
 
-**Awards** shows the selected season's provisional races or final saved grants.
+**Award races** shows the selected season's provisional races or final saved grants, with award setup for leaders.
 Equal points use known season donations to break ties, and equal in both share
 a place. The attendance list shows recorded donations in descending order,
 unknown totals last; its pass-or-fail eligibility still depends only on decks
 and the configured allowed misses. No donation total changes attendance eligibility.
 
-**Trophies** is every member's page: their own trophy case, what the
+**Award history** is every member's page: their own trophy case, what the
 clan awards, and each season's winners, place by place. It shows only
 decided seasons, never a live race.
 
@@ -92,7 +92,7 @@ decided seasons, never a live race.
 
 **Weekly progress.** After a war week is recorded as closed, the normal
 morning evaluation gives leaders one Action with provisional standings through
-that completed week. Opening Awards or Trophies can also raise it. Only the
+that completed week. Opening Award races or Award history can also raise it. Only the
 newest observed closed week of the newest recorded season is eligible, and
 its observed finish must be within the last seven days. A finished Colosseum
 uses the final season path. Later open

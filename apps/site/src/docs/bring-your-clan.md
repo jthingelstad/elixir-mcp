@@ -71,7 +71,7 @@ its next roster poll.
 ## Ten members
 
 Clan management starts at **10 members**. Below that, like Clan Wars,
-the policy, actions, standing and awards wait: Clan shows the roster
+leaders can prepare and save Policy; actions, standing and awards wait. Clan shows the roster
 and every member's numbers, Recruit works for everyone and Scout for
 elders and up. A policy saved before the clan dropped below 10 is kept
 and picks up again at 10.

@@ -172,7 +172,7 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(page, responses);
     await page.goto("/clan/2PQRJ8LV/manage/awards");
     await expect(
-      page.getByRole("heading", { name: "Awards", exact: true }),
+      page.getByRole("heading", { name: "Award races", exact: true }),
     ).toBeVisible();
     await page.getByRole("combobox", { name: "Season" }).selectOption("135");
     await expect(page.getByText("80 war decks", { exact: true })).toBeVisible();

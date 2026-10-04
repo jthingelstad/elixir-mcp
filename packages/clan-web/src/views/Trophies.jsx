@@ -14,7 +14,7 @@ export function Trophies({ clan, who }) {
   const { state, query } = useTrophies(clan.clan_tag);
   const head = (
     <div className="page-head items-center">
-      <h1 className="page__title">Trophies</h1>
+      <h1 className="page__title">Award history</h1>
       <span className="page-head__note">{clan.name ?? clan.clan_tag}</span>
     </div>
   );

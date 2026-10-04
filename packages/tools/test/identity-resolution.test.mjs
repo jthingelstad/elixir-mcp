@@ -71,7 +71,7 @@ before(async () => {
         kind === "person" ? email : null,
         kind,
         owner,
-        kind === "person" ? null : `pub${Date.now() % 1e8}`,
+        kind === "person" ? null : "pubagent01",
       ],
     );
     return { accountId: rows[0].account_id, kind };
@@ -274,7 +274,7 @@ test("an agent with no clan is told what would fix it, in terms it can act on", 
   const { rows } = await db.query(
     `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
      values (null, 'approved', 'leader', 'agent', $1, $2) returning account_id`,
-    [person.accountId, `pub${(Date.now() % 1e8) + 1}`],
+    [person.accountId, "pubagent02"],
   );
   const orphan = { accountId: rows[0].account_id, kind: "agent" };
   await assert.rejects(

@@ -44,6 +44,17 @@ export const keys = {
   actions: (tag) => ["me", "clan", "record", tag, "actions"],
   action: (tag, number) => ["me", "clan", "record", tag, "actions", number],
   memberView: (tag) => ["me", "clan", "record", tag, "me"],
+  memberActivity: (tag, player, cursor, to) => [
+    "me",
+    "clan",
+    "record",
+    tag,
+    "member",
+    player,
+    "activity",
+    cursor,
+    to,
+  ],
   week: (tag, week) => ["me", "clan", "record", tag, "week", week ?? "latest"],
   memberNotes: (tag, player) => [
     "me",
@@ -175,6 +186,11 @@ export const useStanding = (tag) =>
 
 export const useMemberView = (tag) =>
   useGated(keys.memberView(tag), () => manageApi.memberView(tag));
+
+export const useMemberActivity = (tag, player, cursor = null, to = null) =>
+  useGated(keys.memberActivity(tag, player, cursor, to), () =>
+    manageApi.memberActivity(tag, player, cursor, to),
+  );
 
 export const useWeek = (tag, week) =>
   useGated(keys.week(tag, week), () => manageApi.week(tag, week));
