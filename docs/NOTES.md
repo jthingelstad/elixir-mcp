@@ -5070,3 +5070,21 @@ logs and previously sent words. The final pre-push repository gate again
 passed with 1,808 Node cases, 438 Vitest cases, 85 existing skips and zero
 failures. The old exact-href selector is superseded by the new route context;
 this is a fixture update for intended behavior, not a rerun around a failure.
+
+
+Browse-context deployment receipt: PR #289 merged as
+`d469ca7991d9edc4468d76e80b23f8f906429133` after required validate run
+37230564361 passed, including 123 browser journeys. Deployment completed at
+20:12:55Z (3:12 PM CT), observed from the completed log. No migrations ran;
+all 43 smoke checks passed. Tool acceptance was intentionally omitted for
+private presentation/navigation and shared display-label changes.
+
+Public readback at 20:15:14Z matched served App-gcKemUdE.js byte-for-byte to
+the merged build (SHA-256
+`2fae6d5f4516d69b95e2e080bc67acf6f5ddf35e81dccb4a72c595f1e4983e8f`).
+Closed-action context, recorded-count labels, pre-roster qualification and
+explicit History read failures were present. Actions, Week, Awards and
+Bring your clan guides served the changed copy; public health was green.
+MCP 11.2.0 and JSON API 3.0.0 are unchanged. The production lease was released
+after readback. No policy values, grants, member decisions, clan messages or
+paid model calls changed during verification.
