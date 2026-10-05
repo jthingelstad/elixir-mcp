@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-05",
+    title: "Check final standings during race standby",
+    body: "Elixir checks the final log once after an unfinished recorded colosseum season's scheduled end, even when the next race is not available yet. This gives final standings and Clan award inputs a chance to arrive during standby. Only recorded API results can establish closure. MCP 11.2.3; JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-05",
     title: "Capture final race results after rollover",
     body: "Once Elixir records a newer river race, it schedules one catch-up for the preceding race log if final closure is still missing. Final standings and Clan award inputs can then arrive without waiting for the next daily poll. The calendar alone never finalizes a race. MCP 11.2.2; JSON API 3.0.0 unchanged.",
   },

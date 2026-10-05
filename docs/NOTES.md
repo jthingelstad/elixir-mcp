@@ -5388,3 +5388,35 @@ The deployment-generated vocabulary snapshot changes only its source
 commit to the currently committed standalone reference; roles, aliases
 and vocabulary version are unchanged. Acceptance and receipt bookkeeping
 need no runtime redeploy.
+
+## 2026-10-05 - 11.2.3: check the final log during current-race standby
+
+The watch's first post-rollover current-race job completed without a new
+API admission. One existing read-only diagnostics receipt showed only
+current-race HTTP 404 errors; the canonical race clock documents this
+standby interval. The unchanged 404 hold can therefore delay the newer
+race observation that 11.2.2 used to make final-log closure due.
+
+The planner now also owes one normal log check after the canonical season
+end of its latest observed unfinished colosseum. Calendar time schedules
+only a read; neither the planner nor this watch writes factual closure.
+The existing API log projector remains authoritative, the current-race 404
+hold is unchanged, and budget/live reserve, stopped scope, plan/admission
+suppression and bounded retry rules still apply. No manual fetch, forcejob,
+policy edit, award grant, freepass or message is performed. MCP 11.2.3;
+JSON API 3.0.0 and response shapes unchanged; no new schema or infrastructure.
+
+The scratch-PostgreSQL regression covers standby, no observed race,
+pre-boundary refusal, one budgeted plan, preserved current-race 404 hold,
+no fabricated closure, post-boundary admission, closed/ordinary weeks and
+stopped scope. Full verification and required CI gate the release, followed
+by smoke and recorded-only War/Clan acceptance. Exact production identifiers
+and telemetry remain in private watch receipts.
+
+The isolated retries confirmed that Gym 311.4 and 314.3 still compared
+pre-rollover race evidence with newer roster/calendar state during the
+canonical 404 standby. Their controls now run after a race observation
+inside the nominal period/day being compared. Both equality assertions
+remain, and synthetic harness controls explicitly defer stale evidence,
+reject fresh wrong trophies/section and accept fresh agreement. These are
+conditional evidence checks, not known failures or removed controls.

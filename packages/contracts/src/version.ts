@@ -7,4 +7,4 @@
  * a major), because its callers are programs. serverInfo.version is
  * `${CONTRACT_VERSION}+tools.<fingerprint>` computed by the server.
  */
-export const CONTRACT_VERSION = "11.2.2";
+export const CONTRACT_VERSION = "11.2.3";

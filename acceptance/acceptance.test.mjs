@@ -467,3 +467,51 @@ test("catalogue drops live_fetch and keeps a live: true call as its recorded rea
     { args: { player_tag: "#J2RGCRVG" }, calls: 2 },
   ]);
 });
+
+test("rollover trophy acceptance defers a prior-period race and still rejects fresh disagreement", async () => {
+  const criterion = SUITES.gym.find((c) => c.id === "311.4");
+  const w = {
+    period: {
+      source_observed_at: "2026-10-05T09:37:00Z",
+      period_start_nominal: "2026-10-05T10:00:00Z",
+    },
+    standings: [{ participant_clan_tag: "#J2RGCRVG", clan_war_trophies: 1 }],
+  };
+  const read = async (tool) => ({
+    body: tool === "war_current" ? w : { clan_war_trophies: 2 },
+    ms: 0,
+  });
+  assert.match((await criterion.run({ read })).skip, /SKIPPED/);
+  w.period.source_observed_at = "2026-10-05T10:01:00Z";
+  await assert.rejects(() => criterion.run({ read }), /clan_war_trophies/);
+  w.standings[0].clan_war_trophies = 2;
+  assert.equal((await criterion.run({ read })).skip, undefined);
+});
+
+test("rollover clock acceptance defers standby and still rejects a fresh wrong section", async () => {
+  const criterion = SUITES.gym.find((c) => c.id === "314.3");
+  const g = {
+    day_started_at: "2026-10-05T10:00:00Z",
+    day_kind: "training",
+    section_index: 0,
+    next_war_day_opens_at: "2026-10-08T10:00:00Z",
+    week_ends_at: "2026-10-12T10:00:00Z",
+    period_index: 0,
+  };
+  const w = {
+    day_kind: g.day_kind,
+    section_index: 3,
+    next_war_day_opens_at: g.next_war_day_opens_at,
+    period: {
+      source_observed_at: "2026-10-05T09:37:00Z",
+      week_end_nominal: g.week_ends_at,
+      period_index: g.period_index,
+    },
+  };
+  const read = async (tool) => ({ body: tool === "game_clock" ? g : w, ms: 0 });
+  assert.match((await criterion.run({ read })).skip, /SKIPPED/);
+  w.period.source_observed_at = "2026-10-05T10:01:00Z";
+  await assert.rejects(() => criterion.run({ read }), /section_index/);
+  w.section_index = 0;
+  assert.equal((await criterion.run({ read })).skip, undefined);
+});
