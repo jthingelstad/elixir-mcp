@@ -5539,3 +5539,30 @@ including multiple FreePasses per season, are preserved. The game reset/timezone
 and external Inbox usage remain unknown; no capacity gate or automatic resend
 was added. The deploy lease is released. This notes-only receipt is gated in
 its own PR and requires no redeploy.
+
+## 2026-10-05 - The season-roll race 404 no longer holds a race for a day
+
+The deploy of the matchmaking change failed acceptance on
+`ground/war-standings-agree-with-the-game`: `war_current` served S136
+section 3 while the game was on S137 section 0, and the record's last
+race poll was 09:37:40Z. The planner's 404 hold (2026-09-19, a day
+between reads of a subject the API answers 404 for) took the season
+roll's 404 for a clan with no race: every recorded race answered 404
+from about 10:00 to 10:09Z, so every recorded race was held until the
+next day, through S137's first training day. This is the first season
+roll since the hold shipped; 11.2.3's note above saw the hold could
+delay the new race and left it unchanged.
+
+A `currentriverrace` 404 within six hours of the clan's last admitted
+race now keeps the race's own cadence (the starvation floor included,
+so a race unread past it is planned at the next tick). A 404 that
+outlasts six hours, or a clan that never admitted a race, keeps the
+daily hold, so the 2026-09-19 fetch saving stands. The scratch-PostgreSQL
+regression covers the roll gap, a clan with no race for two days, and a
+gap that outlasts six hours; it fails without the change.
+
+The other two acceptance failures in that run, `gym/316.4` and
+`catalogue/battles_performance#notes`, both read King Thing's
+`season: current`, which was under three hours old. No code changed for
+them.
+

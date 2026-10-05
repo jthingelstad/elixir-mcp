@@ -1254,6 +1254,66 @@ test("an observed race rollover owes one log closure read within the existing bu
   );
 });
 
+test("a race 404 at the season roll keeps the race's cadence; a lasting one is held", async () => {
+  // 2026-10-05: the last race admitted at 09:37:40Z, every race answered
+  // 404 from 10:00 to 10:09Z, and the daily hold kept them all unread
+  // until the next day. A 404 soon after a recorded race is the roll gap.
+  const rolled = "#8PQRJ8LV";
+  const raceless = "#LPQRJ8LV";
+  const notFoundAt = new Date("2026-10-05T10:05:00Z");
+  const at = new Date("2026-10-05T10:40:00Z");
+  await db.query("delete from job");
+  const {
+    rows: [gateway],
+  } = await db.query(
+    "insert into gateway(owner_account_id,name,status) values($1,'season-roll-gap','active') returning gateway_id",
+    [accountId],
+  );
+  for (const [clan, admitted] of [
+    [rolled, new Date("2026-10-05T09:37:40Z")],
+    [raceless, new Date("2026-10-03T09:37:40Z")],
+  ]) {
+    await db.query("insert into clan(clan_tag) values($1)", [clan]);
+    await db.query(
+      "insert into recording(subject_type,subject_tag,requested_by) values('clan',$1,$2)",
+      [clan, accountId],
+    );
+    await setState(clan, "currentriverrace", { admitted, planned: notFoundAt });
+    await db.query(
+      "insert into collector_fetch_error(gateway_id,endpoint,entity_key,fetched_at,http_status,error_kind) values($1,'currentriverrace',$2,$3,404,'http')",
+      [gateway.gateway_id, clan, notFoundAt],
+    );
+  }
+  const raceDue = async (clan, now) =>
+    (await eligibleNow(db, now)).some(
+      (row) => row.subject_tag === clan && row.endpoint === "currentriverrace",
+    );
+  assert.equal(
+    await raceDue(rolled, at),
+    true,
+    "a race 404 25 minutes after the last race is read again on cadence",
+  );
+  assert.equal(
+    await raceDue(raceless, at),
+    false,
+    "a clan with no race for two days keeps the daily hold",
+  );
+  // The gap outlasts six hours: the race is gone, and the hold applies.
+  await db.query(
+    "insert into collector_fetch_error(gateway_id,endpoint,entity_key,fetched_at,http_status,error_kind) values($1,'currentriverrace',$2,$3,404,'http')",
+    [gateway.gateway_id, rolled, new Date("2026-10-05T15:40:00Z")],
+  );
+  await setState(rolled, "currentriverrace", {
+    admitted: new Date("2026-10-05T09:37:40Z"),
+    planned: new Date("2026-10-05T15:40:00Z"),
+  });
+  assert.equal(
+    await raceDue(rolled, new Date("2026-10-05T16:40:00Z")),
+    false,
+    "a 404 six hours after the last race is held for the day",
+  );
+});
+
 test("an unfinished recorded colosseum owes one post-season log check while current race is 404", async () => {
   const clan = "#9PQRJ8LV";
   const roll = new Date("2026-10-05T10:00:00Z");
