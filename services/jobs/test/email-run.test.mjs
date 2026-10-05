@@ -395,3 +395,127 @@ test("the milestone window reaches back to the last clean look, never more than 
     now.getTime() - 26 * h,
   );
 });
+
+test("rollover mail binds closed-race identity and uses the covered season before, at and after Monday's boundary", async () => {
+  const NO_RACE = "#2GQ0QG0G";
+  await db.query(
+    `insert into clan (clan_tag, name) values ($1, 'No race recorded')`,
+    [NO_RACE],
+  );
+  await db.query(
+    `insert into account_clan (account_id, clan_tag, scope) values ($1, $2, 'comprehensive')`,
+    [acct.old, NO_RACE],
+  );
+  await db.query(
+    `insert into recording (subject_type, subject_tag, status, scope, requested_by) values ('clan', $1, 'active', 'comprehensive', $2)`,
+    [NO_RACE, acct.old],
+  );
+  await db.query(
+    `insert into war_week (clan_tag, season_id, section_index, is_colosseum, started_observed_at, finished_observed_at, closed_at)
+    values ($1, 136, 3, true, '2026-09-28T10:00:00Z', '2026-10-05T09:38:05Z', '2026-10-05T09:38:04Z'),
+           ($1, 137, 0, false, '2026-10-05T10:00:00Z', null, null)`,
+    [CLAN],
+  );
+  await db.query(
+    `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, participant_name, fame, rank, trophy_change)
+    values ($1, 136, 3, $1, 'Example', 12345, 1, 100)`,
+    [CLAN],
+  );
+  await db.query(
+    `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used)
+    values ($1, 136, 3, $2, 2345, 16)`,
+    [CLAN, NEW_TAG],
+  );
+  const week = lastGameWeek(new Date("2026-10-05T14:00:00Z"));
+  const direct = await buildClan({
+    db,
+    account: {
+      accountId: acct.old,
+      timezone: "UTC",
+      kind: "person",
+      role: "member",
+    },
+    clanTag: CLAN,
+    week,
+    season: 137,
+  });
+  assert.deepEqual([direct.week.season, direct.week.war_week], [136, 4]);
+  assert.deepEqual(
+    [direct.war.rank, direct.war.fame, direct.war.trophy_change],
+    [1, 12345, 100],
+  );
+  assert.equal(direct.war.raced[0].points, 2345);
+  const run = async (at) => {
+    const { out, enqueue } = sink();
+    const result = await runEmail({
+      db,
+      kind: "clan_report",
+      accountId: acct.old,
+      now: new Date(at),
+      enqueue,
+      secret: "s",
+    });
+    assert.equal(result.failed, 0, JSON.stringify(result));
+    return { result, out };
+  };
+  const before = await run("2026-10-05T09:59:59.999Z");
+  assert.equal(before.out.length, 2);
+  assert.ok(before.out.every((m) => /Sep 21 – 28 · Season 136/.test(m.html)));
+  const boundary = await run("2026-10-05T10:00:00Z");
+  assert.equal(boundary.out.length, 2);
+  assert.ok(
+    boundary.out.every((m) => /Sep 28 – Oct 5 · Season 136/.test(m.html)),
+  );
+  assert.ok(boundary.out.some((m) => /river race week 4/.test(m.html)));
+  const facts = (
+    await db.query(
+      `select facts from email_issue where kind='clan_report' and period_key=$1 order by subject_key`,
+      [week.key],
+    )
+  ).rows;
+  assert.ok(facts.every((r) => r.facts.week.season === 136));
+  const again = await run("2026-10-05T14:00:00Z");
+  assert.equal(again.result.already_sent, 2);
+  assert.equal(again.result.composed, 0);
+  assert.equal(again.out.length, 0);
+  assert.deepEqual(
+    (
+      await db.query(
+        `select facts from email_issue where kind='clan_report' and period_key=$1 order by subject_key`,
+        [week.key],
+      )
+    ).rows,
+    facts,
+  );
+});
+
+test("Tuesday Arena and Wednesday friends mail keep the same previous covered season after rollover", async () => {
+  const BATTLE = `deed${"0".repeat(60)}`;
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class) values ($1, '2026-10-01T12:00:00Z', 'PvP', 'pvp')`,
+    [BATTLE],
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class, crowns, trophy_change, starting_trophies)
+    values ($1, $2, 0, '2026-10-01T12:00:00Z', 'win', 'PvP', 'pvp', 1, 29, 2000)`,
+    [BATTLE, OLD_TAG],
+  );
+  for (const [kind, at] of [
+    ["arena_week", "2026-10-06T14:00:00Z"],
+    ["tracking_report", "2026-10-07T14:00:00Z"],
+  ]) {
+    const { out, enqueue } = sink();
+    const result = await runEmail({
+      db,
+      kind,
+      accountId: acct.old,
+      now: new Date(at),
+      enqueue,
+      secret: "s",
+    });
+    assert.equal(result.failed, 0, JSON.stringify(result));
+    assert.equal(out.length, 1, JSON.stringify(result));
+    assert.match(out[0].html, /Sep 28 – Oct 5 · Season 136/);
+    assert.doesNotMatch(out[0].html, /Sep 28 – Oct 5 · Season 137/);
+  }
+});

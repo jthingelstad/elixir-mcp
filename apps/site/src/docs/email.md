@@ -33,7 +33,11 @@ history, and their old unsubscribe links still work.
 The reports cover the **game week**: Monday 10:00 UTC to Monday 10:00
 UTC, the day every clan's war, donation reset and season roll share.
 Whichever day a report lands, it covers the week that closed on Monday,
-so Tuesday's and Wednesday's mail agree with each other. Everything
+so Tuesday's and Wednesday's mail agree with each other. The season label
+belongs to that covered week, even after a new season starts. A clan report
+with a closed race names that race's own season and river race week together;
+a report without a closed race uses the season just before the covered week's
+Monday boundary. Existing sent emails stay as originally archived. Everything
 sends at 14:00 UTC. The rule is at most one email of a kind about one
 subject a day: one clan report for each clan you track (two clans, two
 reports on Monday), and one of every other kind per account. Milestone

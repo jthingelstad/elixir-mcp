@@ -5607,3 +5607,36 @@ the same current-member set. The interpreter's `sum_eq` takes
 amendments are recorded on the cases. `gym/316.4` and the
 `battles_performance` notes check need S137 ladder battles and are left
 as they are.
+
+## 2026-10-05 — weekly mail labels the covered season
+
+The weekly runner passed send-time game_clock season context into every
+weekly builder. At a season rollover, the clan builder selected the correct
+closed race and its week from war_history but combined that week with the new
+send-time season in its header. The archived report preserved this mismatch;
+its race facts were not the cause.
+
+Clan, Arena and friends reports now read the clock just before their completed
+Monday 10:00Z period boundary. A clan report with a selected closed race binds
+its header's season and week to that race. Rendering also pairs the recorded
+race identity for older queued facts, without mutating facts or archived sent
+mail. Existing issue/send idempotency and completed rollover/awards state stay
+unchanged. No resend, forced job, grants, policy write or business-data repair
+is part of this release. No migration or backfill. MCP 11.2.3 and JSON API 3.0.0
+remain unchanged; live MCP acceptance is omitted because no tool behavior or
+reader shape changed (ship skill's mail scope).
+
+Scratch regressions exercise the instant before/at the Monday boundary, the
+later Monday send and frozen issue retry, closed-race identity despite a newer
+unfinished race, no-race fallback, and Tuesday Arena/Wednesday friends coverage.
+The renderer regression keeps selected race season/week together for stored
+mismatched facts and proves those facts are not rewritten.
+
+A separate member-count lead was checked with the canonical activity preview
+for the exact covered window: membership endpoint counts changed while its
+join/departure event lists were empty. The two sources use the same (from,to]
+boundaries, so this is not a demonstrated different-window defect. Cross-clan
+stale-membership closure can update membership without an old-clan event, but
+the exact record cause was not established in the bounded read. That evidence
+gap is reported separately; this release neither invents events nor repairs
+history or changes membership counts.

@@ -149,7 +149,16 @@ export async function runEmail({
       },
     };
     {
-      const season = await seasonOf(db, recipients[0], now);
+      // Weekly mail describes the completed period, not the send-time season.
+      // The Monday boundary belongs to the next week/season on game_clock.
+      const seasonAt = [
+        "clan_report",
+        "arena_week",
+        "tracking_report",
+      ].includes(kind)
+        ? new Date(lastGameWeek(now).to.getTime() - 1)
+        : now;
+      const season = await seasonOf(db, recipients[0], seasonAt);
       if (kind === "clan_report") await runClans(run, recipients, season);
       else await runPerAccount(run, recipients, season);
     }
