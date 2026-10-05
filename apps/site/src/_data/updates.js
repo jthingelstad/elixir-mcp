@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-10-05",
+    title: "Capture final race results after rollover",
+    body: "Once Elixir records a newer river race, it schedules one catch-up for the preceding race log if final closure is still missing. Final standings and Clan award inputs can then arrive without waiting for the next daily poll. The calendar alone never finalizes a race. MCP 11.2.2; JSON API 3.0.0 unchanged.",
+  },
+  {
     date: "2026-10-04",
     title: "Clan participation reads less history",
     body: "Weekly participation can read ordinary battles from the existing covering index and inspect participant sides only when checking boat defenses. Awards, Standing and The week keep the same recorded battle and ranked counts, with fewer broad database reads. MCP 11.2.1; JSON API 3.0.0 unchanged.",
