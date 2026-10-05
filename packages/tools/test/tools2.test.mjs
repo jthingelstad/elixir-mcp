@@ -1702,7 +1702,14 @@ test("elixir_send_feedback notifies the owner through the door's notify hook; ow
   assert.ok(still.body.feedback_id);
 });
 
-test("3.17.0: every instant-windowed tool says its season, crossings fire only when crossed, and season bounds the player battle tools", async () => {
+test("3.17.0: every instant-windowed tool says its season, crossings fire only when crossed, and season bounds the player battle tools", async (t) => {
+  // Relative windows need a stable clock: a real season rollover made the
+  // supposedly clean three-day window cross a boundary in CI.
+  t.mock.timers.enable({
+    apis: ["Date"],
+    now: new Date("2026-09-10T12:00:00Z"),
+  });
+  await ensureSeason(db, "2026-09");
   // The record's seasons back to July, so a 60-day window crosses two
   // rolls (Aug 3 and Sep 7 at 10:00Z) and a 3-day one crosses none.
   await ensureSeason(db, "2026-07");
@@ -1720,6 +1727,23 @@ test("3.17.0: every instant-windowed tool says its season, crossings fire only w
   const clean = await call("battles_decks", { days: 3 });
   assert.deepEqual(clean.body.applied.window.crosses, []);
   assert.ok(!clean.body.notes.some((n) => /^Window spans/.test(n)));
+
+  const beforeRoll = await call("battles_decks", {
+    from: "2026-09-07T09:59:00Z",
+    to: "2026-09-07T09:59:59Z",
+  });
+  assert.equal(beforeRoll.isError, false);
+  assert.deepEqual(beforeRoll.body.applied.window.crosses, []);
+  const acrossRoll = await call("battles_decks", {
+    from: "2026-09-07T09:59:00Z",
+    to: "2026-09-07T10:00:01Z",
+  });
+  assert.equal(acrossRoll.isError, false);
+  assert.equal(acrossRoll.body.applied.window.crosses.length, 1);
+  assert.equal(
+    acrossRoll.body.applied.window.crosses[0].at,
+    "2026-09-07T10:00:00.000Z",
+  );
 
   // Unbounded: no season to start in, every roll on record crossed.
   const all = await call("battles_query", {});
