@@ -166,7 +166,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
     week: {
       label: week.label,
       key: week.key,
-      season,
+      season: war.present ? war.season : season,
       war_week: war.present ? war.week : null,
     },
     clan: {

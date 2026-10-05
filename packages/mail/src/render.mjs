@@ -856,7 +856,7 @@ function clan(f, c) {
       c.shell({
         kind: "clan_report",
         title: `${esc(f.clan.name)} this week`,
-        subtitle: `${esc(f.week.label)} · Season ${f.week.season}${f.week.war_week != null ? `, river race week ${f.week.war_week}` : ""} · <a href="${c.T(clanUrl(tag))}" style="font-family:${MONO};color:${M.faint};text-decoration:none;">${esc(tag)}</a>`,
+        subtitle: `${esc(f.week.label)} · Season ${war?.season ?? f.week.season}${(war?.week ?? f.week.war_week) != null ? `, river race week ${war?.week ?? f.week.war_week}` : ""} · <a href="${c.T(clanUrl(tag))}" style="font-family:${MONO};color:${M.faint};text-decoration:none;">${esc(tag)}</a>`,
         preheader,
         body,
         turnOff: "the clan report",

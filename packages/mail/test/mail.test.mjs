@@ -707,3 +707,24 @@ test("collector upgrade notices escape release text and distinguish unknown hist
     /installation mechanism on this host was not reported/,
   );
 });
+
+test("a clan header keeps a selected closed race's season and week together across rollover, including stored facts", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
+  );
+  facts.week = {
+    ...facts.week,
+    label: "Sep 28 – Oct 5",
+    season: 137,
+    war_week: 1,
+  };
+  facts.war = { ...facts.war, season: 136, week: 4 };
+  const before = structuredClone(facts);
+  const { html } = renderMail("clan_report", facts, links);
+  assert.match(html, /Sep 28 – Oct 5 · Season 136, river race week 4/);
+  assert.doesNotMatch(html, /Season 137/);
+  assert.deepEqual(facts, before);
+  facts.war = { present: false };
+  facts.week.war_week = null;
+  assert.match(renderMail("clan_report", facts, links).html, /Season 137/);
+});
