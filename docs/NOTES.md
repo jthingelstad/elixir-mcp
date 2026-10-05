@@ -5420,3 +5420,33 @@ inside the nominal period/day being compared. Both equality assertions
 remain, and synthetic harness controls explicitly defer stale evidence,
 reject fresh wrong trophies/section and accept fresh agreement. These are
 conditional evidence checks, not known failures or removed controls.
+
+### 11.2.3 deployment and gate receipt
+
+PR #303 merged as 301fc2d2 after green required validation. Local full
+verification passed 1,819 Node tests and 442 UI tests, with 85 existing
+skips. The repaired boundary/freshness controls retain the known-bad
+captures and explicitly reject fresh wrong data.
+
+The production Lambdas updated at 10:41Z (5:41 AM CT); read-back at
+10:45Z (5:45 AM CT) found all seven bundles equal to this merged build,
+Active with Successful updates. The clean deploy ran zero new migrations,
+passed all 43 smoke checks and the recorded-only War/Clan gate: 250 cases,
+zero failures, 34 explained skips, 131 distinct calls. The three failures
+from the preceding 11.2.2 gate are closed by the documented evidence
+conditions, with each regression/control retained and tested.
+
+The normal planner and collector loop admitted the final river log on its
+first attempt; the exact job, clan and closure receipts remain private.
+MCP then served the final recorded week closed, and the participation read
+contained all four weeks of that season with recorded closure. Neither
+clock nor planner wrote a closure fact. The pre-morning saved award state
+still requires its natural scheduled evaluation; this watch did not invoke
+it or create grants, freepasses, Actions, policies or messages.
+
+Public health was green with no queued, leased or dead jobs. tools.json
+served MCP 11.2.3, the integration document served JSON API 3.0.0, and the
+standby update was visible. The vocabulary import changed only the test
+snapshot's source commit to the newly committed standalone-reference
+rollover documentation; roles, aliases and vocabulary version are unchanged.
+This release/snapshot receipt is gated as its own PR and needs no redeploy.
