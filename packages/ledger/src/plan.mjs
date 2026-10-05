@@ -444,6 +444,18 @@ async function selectEligible(db, now) {
                ) previous on true
                where previous.finished_observed_at is null
              ) end as race_rollover_at,
+             -- At season rollover currentriverrace can be 404 before its
+             -- new race exists. An observed unfinished colosseum also owes
+             -- one log check after its canonical season's nominal end.
+             -- Scheduling that check never establishes factual closure.
+             case when ps.endpoint = 'riverracelog' then (
+               select s.ends_at
+               from (select season_id, is_colosseum, finished_observed_at
+                     from war_week where clan_tag = ps.subject_tag
+                     order by season_id desc, section_index desc limit 1) latest
+               join season s on s.war_season_id = latest.season_id
+               where latest.is_colosseum and latest.finished_observed_at is null
+             ) end as season_log_close_at,
              exists (select 1 from claim c
                      where c.player_tag = ps.subject_tag) as directly_tracked,
              -- A clan someone asked us to record, as opposed to one we read
@@ -487,7 +499,7 @@ async function selectEligible(db, now) {
     select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
            yield_bph, hint, period_type, last_read_at, refresh_requested_at, empty_streak,
            directly_tracked, clan_tracked, last_not_found_at,
-           retry_at, race_rollover_at
+           retry_at, race_rollover_at, season_log_close_at
     from state`,
   );
 
@@ -526,13 +538,18 @@ async function selectEligible(db, now) {
       : nowMs - referenceMs >= dueAfterMs(row, now);
     const rolloverMs = r.race_rollover_at?.getTime() ?? null;
     // One catch-up after the recorder sees the new race, never an inferred
-    // calendar close. The existing plan/admission watermark suppresses another
+    // calendar close: a season-end check still needs an unfinished recorded
+    // colosseum. The existing plan/admission watermark suppresses another
     // catch-up for the same observation; failed fetches keep their normal retry.
+    const seasonEndMs = r.season_log_close_at?.getTime() ?? null;
     const raceClosureDue =
       r.endpoint === "riverracelog" &&
-      rolloverMs !== null &&
-      rolloverMs <= nowMs &&
-      referenceMs < rolloverMs;
+      ((rolloverMs !== null &&
+        rolloverMs <= nowMs &&
+        referenceMs < rolloverMs) ||
+        (seasonEndMs !== null &&
+          seasonEndMs <= nowMs &&
+          referenceMs < seasonEndMs));
     const due = cadenceDue || retry || raceClosureDue;
     // Would the rule without the reader cap have made it due? Only the
     // difference is attributable to the cap (the metric that proves it).

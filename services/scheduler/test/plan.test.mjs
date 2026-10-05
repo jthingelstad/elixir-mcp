@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { ensureSeason } from "../../../packages/record/src/season.mjs";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import {
   planTick,
@@ -1250,5 +1251,126 @@ test("an observed race rollover owes one log closure read within the existing bu
     (await logDue()).length,
     0,
     "retired recording never gains automatic closure work",
+  );
+});
+
+test("an unfinished recorded colosseum owes one post-season log check while current race is 404", async () => {
+  const clan = "#9PQRJ8LV";
+  const roll = new Date("2026-10-05T10:00:00Z");
+  const after = new Date("2026-10-05T10:08:00Z");
+  const prior = new Date("2026-10-05T07:07:40Z");
+  await db.query("delete from job");
+  await ensureSeason(db, "2026-09");
+  await db.query("insert into clan(clan_tag) values($1)", [clan]);
+  await db.query(
+    "insert into recording(subject_type,subject_tag,requested_by) values('clan',$1,$2)",
+    [clan, accountId],
+  );
+  await freshenCards(after);
+  await setState(clan, "clan", { admitted: after, planned: after });
+  await setState(clan, "currentriverrace", { admitted: prior, planned: after });
+  await setState(clan, "riverracelog", { admitted: prior, planned: prior });
+  const {
+    rows: [gateway],
+  } = await db.query(
+    "insert into gateway(owner_account_id,name,status) values($1,'rollover-standby','active') returning gateway_id",
+    [accountId],
+  );
+  await db.query(
+    "insert into collector_fetch_error(gateway_id,endpoint,entity_key,fetched_at,http_status,error_kind) values($1,'currentriverrace',$2,$3,404,'http')",
+    [gateway.gateway_id, clan, after],
+  );
+  const logDue = async (at = after) =>
+    (await eligibleNow(db, at)).filter(
+      (row) => row.subject_tag === clan && row.endpoint === "riverracelog",
+    );
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "the calendar without an observed race creates no closure work",
+  );
+  await db.query(
+    "insert into war_week(clan_tag,season_id,section_index,is_colosseum,started_observed_at) values($1,136,3,true,'2026-09-28T10:03:00Z')",
+    [clan],
+  );
+  assert.equal(
+    (await logDue(new Date(roll.getTime() - 1))).length,
+    0,
+    "never before the nominal season end",
+  );
+  assert.equal(
+    (await logDue()).length,
+    1,
+    "a recorded unfinished colosseum owes a log check despite current-race standby",
+  );
+  assert.equal((await logDue()).length, 1, "reading eligibility is pure");
+  assert.equal(
+    (await eligibleNow(db, after)).some(
+      (row) => row.subject_tag === clan && row.endpoint === "currentriverrace",
+    ),
+    false,
+    "the current-race 404 hold remains intact",
+  );
+  await db.query("update budget_state set tokens=1, settled_at=$1", [after]);
+  assert.equal(
+    (await planTick(db, after)).jobs.length,
+    0,
+    "preserves the live reserve",
+  );
+  await db.query("update budget_state set tokens=2, settled_at=$1", [after]);
+  assert.deepEqual((await planTick(db, after)).jobs, [
+    { endpoint: "riverracelog", entity_key: clan, lane: "bulk" },
+  ]);
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "one planned post-season check suppresses another",
+  );
+  const {
+    rows: [week],
+  } = await db.query(
+    "select finished_observed_at from war_week where clan_tag=$1",
+    [clan],
+  );
+  assert.equal(
+    week.finished_observed_at,
+    null,
+    "planning never fabricates closure",
+  );
+  await setState(clan, "riverracelog", { admitted: after, planned: prior });
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "a post-boundary admission already served the check",
+  );
+  await setState(clan, "riverracelog", { admitted: prior, planned: prior });
+  await db.query(
+    "update war_week set finished_observed_at=$2 where clan_tag=$1",
+    [clan, after],
+  );
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "a closed colosseum owes no extra check",
+  );
+  await db.query(
+    "update war_week set finished_observed_at=null, is_colosseum=false where clan_tag=$1",
+    [clan],
+  );
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "an ordinary week never creates a season-end check",
+  );
+  await db.query("update war_week set is_colosseum=true where clan_tag=$1", [
+    clan,
+  ]);
+  await db.query("update recording set status='stopped' where subject_tag=$1", [
+    clan,
+  ]);
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "stopped recordings remain excluded",
   );
 });

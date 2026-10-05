@@ -18499,6 +18499,9 @@
   },
   {
     "id": "311.4",
+    "when": {
+      "gte": ["w.period.source_observed_at", "w.period.period_start_nominal"]
+    },
     "feedback": 311,
     "stability": "live",
     "control": true,
@@ -18523,7 +18526,7 @@
         ]
       }
     ],
-    "amended": "Amended for 9.1.0 (Jamie 2026-09-25): the war clan_score alias is gone, so its equality with clan_war_trophies is no longer asserted; the rest of the case stands."
+    "amended": "Amended for 9.1.0 (Jamie 2026-09-25): the war clan_score alias is gone, so its equality with clan_war_trophies is no longer asserted; the rest of the case stands. 2026-10-05: compare current trophies only after the race record has an observation in the current nominal period; a pre-rollover race in documented 404 standby is older evidence than the refreshed roster. The fresh-record equality control remains."
   },
   {
     "id": "312.1",
@@ -18807,6 +18810,8 @@
   },
   {
     "id": "314.3",
+    "amended": "2026-10-05: compare the observed race with today’s policy clock only after a race observation in that day. Documented post-rollover 404 standby can leave the prior race on record. All fresh-record equality assertions remain.",
+    "when": { "gte": ["w.period.source_observed_at", "g.day_started_at"] },
     "feedback": 314,
     "stability": "live",
     "control": true,
