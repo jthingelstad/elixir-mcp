@@ -17842,6 +17842,10 @@
     "id": "305.3",
     "feedback": 305,
     "stability": "live",
+    "amended": "2026-10-05: a newly started season has not crossed a donation reset. Require this live seasonal reset note only after a full week; frozen reset and clean-window controls remain, and the captured 16-day regression still bites.",
+    "when": {
+      "gte": ["applied.window.season_age_days", 7]
+    },
     "tool": "clans_members_timeline",
     "args": {
       "season": "current",
