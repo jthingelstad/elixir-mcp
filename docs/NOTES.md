@@ -5321,3 +5321,10 @@ normal retry timing, immediate-predecessor scope and stopped-recording
 refusal. Full validation, required CI, smoke and War/Clan acceptance gate
 the release. No schema migration or new infrastructure. MCP 11.2.2;
 JSON API 3.0.0 and response shapes are unchanged.
+
+The first required CI run crossed a real season boundary and exposed a
+wall-clock-dependent clean-window assertion in the existing tool suite.
+That fixture now fixes its clock and explicitly checks windows immediately
+before and across a season boundary. This is a test correction; no tool
+runtime or business semantics changed. Required CI must pass on the repaired
+branch before merge or deploy.
