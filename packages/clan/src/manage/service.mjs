@@ -52,7 +52,9 @@ import {
   welcomeContext,
   actionsWaitingMail,
   ACTIONS_MAIL_KIND,
-  LEADER_MESSAGE,
+  actionDelivery,
+  deliveryWords,
+  CHAT_MAX,
 } from "@elixir-mcp/clan-engine";
 import { newId } from "@elixir-mcp/clan-state";
 import { createActionStore } from "./actions.mjs";
@@ -1514,20 +1516,17 @@ export function createManageService({
       const prior = card.messages_sent?.find((m) => m.part === part);
       if (!prior && card.status !== "proposed")
         throw new ManageError(409, "action_closed");
-      if (
-        !prior &&
-        (typeof body.title !== "string" ||
-          typeof body.body !== "string" ||
-          !body.title.trim() ||
-          !body.body.trim() ||
-          body.title.length > LEADER_MESSAGE.title ||
-          body.body.length > LEADER_MESSAGE.body)
-      )
-        throw new ManageError(400, "bad_message");
+      let reviewed;
+      if (!prior) {
+        try {
+          reviewed = deliveryWords(card, body, part);
+        } catch {
+          throw new ManageError(400, "bad_message");
+        }
+      }
       const receipt = prior ?? {
         part,
-        title: body.title.trim(),
-        body: body.body.trim(),
+        ...reviewed,
         sent_at: new Date(now()).toISOString(),
         sent_by: who.player_tag,
         sent_by_name: who.name ?? null,
@@ -1537,13 +1536,20 @@ export function createManageService({
       let next = prior
         ? card
         : { ...card, messages_sent: [...(card.messages_sent ?? []), receipt] };
-      if (!prior) await ledger.putCard(clanTag, next);
+      if (!prior) {
+        const saved = await ledger.updateCardIf(clanTag, card, {
+          messages_sent: next.messages_sent,
+        });
+        if (!saved) throw new ManageError(409, "action_changed");
+        next = saved;
+      }
       const logs = await ledger.actionLog(clanTag, cardId);
       if (
         !logs.some((e) => e.kind === "message_sent" && e.detail?.part === part)
       ) {
         await ledger.appendActionLog(clanTag, {
           card_id: cardId,
+          entry_id: `message_sent_${part}`,
           kind: "message_sent",
           at: receipt.sent_at,
           by: {
@@ -1570,7 +1576,13 @@ export function createManageService({
               r.part === part ? { ...r, shared: true } : r,
             ),
           };
-          await ledger.putCard(clanTag, next);
+          const current = await ledger.card(clanTag, cardId);
+          next =
+            (await ledger.updateCardIf(clanTag, current, {
+              messages_sent: current.messages_sent.map((r) =>
+                r.part === part ? { ...r, shared: true } : r,
+              ),
+            })) ?? current;
         }
       }
       return next;
@@ -1677,6 +1689,7 @@ export function createManageService({
           throw new ManageError(403, "leaders_only");
         throw new ManageError(404, "no_action");
       }
+      if (who.verified === false) throw new ManageError(403, "unverified");
       // A decided action is frozen; a withdrawn one cannot be resurrected.
       if (card.status !== "proposed")
         throw new ManageError(409, "action_closed");
@@ -1704,18 +1717,47 @@ export function createManageService({
       )
         throw new ManageError(400, "bad_reason");
       const decided_at = new Date(now()).toISOString();
+      const delivery = actionDelivery(card);
+      let reviewed = null;
+      if (status === "done" && delivery && !card.evidence?.messages) {
+        // Old clients could complete without reviewed words. Preserve that
+        // compatibility, but label suggested copy rather than claiming edits.
+        if (!sent && !card.delivery) {
+          reviewed = {
+            channel: "leader_message",
+            ...delivery.parts[0]?.options.leader_message,
+            word_source: "suggested",
+          };
+        } else {
+          try {
+            reviewed = deliveryWords(card, sent);
+          } catch {
+            throw new ManageError(400, "bad_message");
+          }
+        }
+      } else if (status === "done" && card.type === "welcome" && sent?.line) {
+        if (
+          typeof sent.line !== "string" ||
+          !sent.line.trim() ||
+          sent.line.length > CHAT_MAX
+        )
+          throw new ManageError(400, "bad_message");
+        reviewed = { channel: "clan_chat", lines: [sent.line] };
+      }
       const decided = {
         ...card,
         status,
         decided_at,
         decided_by: who.player_tag,
         decided_by_name: who.name ?? null,
+        decided_by_role: who.role,
         decline_reason: status === "declined" ? reason : null,
         // The leader's word, in their own words, bounded like a note.
         decision_note:
           typeof note === "string" && note.trim()
             ? note.trim().slice(0, 280)
             : null,
+        ...(reviewed ? { sent: reviewed } : {}),
         ...(card.type === "departure"
           ? {
               outcome: {
@@ -1730,13 +1772,16 @@ export function createManageService({
             }
           : {}),
       };
-      await ledger.putCard(clanTag, decided);
-      const channel = shapeAction(card, [], who).channel;
+      if (!(await ledger.updateCardIf(clanTag, card, decided)))
+        throw new ManageError(409, "action_changed");
+      const completedWords = shapeAction(decided, [], who);
+      const channel = reviewed?.channel ?? completedWords.channel;
       await logAction(
         clanTag,
         card.card_id,
         status === "done" ? "completed" : "declined",
         {
+          at: decided_at,
           by: person(who),
           text: decided.decision_note,
           detail: {
@@ -1744,6 +1789,10 @@ export function createManageService({
             classification: decided.outcome?.classification ?? null,
             // Completing a leader-message action says the message was sent.
             ...(status === "done" && channel ? { channel } : {}),
+            ...(reviewed ? { sent: reviewed } : {}),
+            ...(completedWords.delivery_channels?.length
+              ? { delivery_channels: completedWords.delivery_channels }
+              : {}),
           },
         },
       );
@@ -1751,7 +1800,9 @@ export function createManageService({
       // the decision, and the log says what happened. The answer carries
       // the outcome so the page can say when this sign-in cannot share.
       const shared = await sharing
-        .afterDecision(clanTag, token, who, card, decided, { sent })
+        .afterDecision(clanTag, token, who, card, decided, {
+          sent: reviewed ?? sent,
+        })
         .catch((e) => {
           console.warn(
             JSON.stringify({ level: "warn", sharing_failed: e.message }),

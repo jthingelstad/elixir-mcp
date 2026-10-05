@@ -449,12 +449,12 @@ export function inGameCopy(kind, { name, phrase = "", welcome = null } = {}) {
  * mail a leader or co-leader sends to every member's Inbox, durable where
  * clan chat is not. The game takes a title of at most 24 characters and a
  * message of about 180 (observed in the game; nothing in the API), so both
- * are held under that. Whether it uses clan chat's filter is not observed,
- * so it gets the same rules (`chat.mjs`).
+ * are held under that. Delivered Leader Messages can also be masked, but
+ * identical filter rules are not established. The known chat warnings
+ * (`chat.mjs`) reduce known risks; they do not guarantee readable delivery.
  */
 export const LEADER_MESSAGE = { title: 24, body: 180 };
 
-const filterSafe = chatSafe;
 const clip = clipChat;
 
 /** Join items into a line that fits, saying how many did not. */
@@ -478,19 +478,19 @@ export function fitList(items, max, sep = "; ") {
  *  - rules: how the clan runs (first version) or what changed.
  */
 export function leaderMessage(kind, data = {}) {
-  const name = filterSafe(data.name ?? "a member");
+  const name = chatSafe(data.name ?? "a member");
   let title;
   let body;
   if (kind === "promotion") {
     title = "Congrats, new Elder!";
-    body = `${name} is now an Elder${data.phrase ? `: ${filterSafe(data.phrase)}` : ""}. Thank you for showing up for the clan.`;
+    body = `${name} is now an Elder${data.phrase ? `: ${chatSafe(data.phrase)}` : ""}. Thank you for showing up for the clan.`;
   } else if (kind === "demotion") {
     title = "Elder update";
     body = `${name} moves from Elder back to Member for now. Keep playing and it can come back.`;
   } else if (kind === "awards") {
     title = `Season ${data.season_id} awards`;
     const lines = (data.awards ?? []).map(
-      (a) => `${filterSafe(a.name)}: ${a.winners.map(filterSafe).join(", ")}`,
+      (a) => `${chatSafe(a.name)}: ${a.winners.map(chatSafe).join(", ")}`,
     );
     body = lines.length
       ? fitList(lines, LEADER_MESSAGE.body - " Well played!".length)
@@ -500,19 +500,19 @@ export function leaderMessage(kind, data = {}) {
   } else if (kind === "rules") {
     if (data.first) {
       title = "How our clan runs";
-      body = `We now run the clan with Elixir Clan${data.goals ? `: ${filterSafe(data.goals)}` : ""}. Sign in with Elixir to see how it works and where you stand.`;
+      body = `We now run the clan with Elixir Clan${data.goals ? `: ${chatSafe(data.goals)}` : ""}. Sign in with Elixir to see how it works and where you stand.`;
     } else {
       title = "Our clan rules changed";
       body = `We changed ${fitList(
-        (data.changes ?? []).map((c) => filterSafe(c)),
+        (data.changes ?? []).map((c) => chatSafe(c)),
         120,
         ", ",
       ).replace(/\.$/, "")}. See How it works here in Elixir Clan.`;
     }
   } else return null;
   return {
-    title: clip(filterSafe(title), LEADER_MESSAGE.title),
-    body: clip(filterSafe(body), LEADER_MESSAGE.body),
+    title: clip(chatSafe(title), LEADER_MESSAGE.title),
+    body: clip(chatSafe(body), LEADER_MESSAGE.body),
   };
 }
 
@@ -524,9 +524,9 @@ export function awardAnnouncementParts(grants) {
   const awardsOf = (rows) => {
     const groups = new Map();
     for (const g of rows) {
-      const name = filterSafe(g.name ?? g.award_id);
+      const name = chatSafe(g.name ?? g.award_id);
       const winners = groups.get(name) ?? [];
-      const winner = filterSafe(g.player_name ?? g.player_tag);
+      const winner = chatSafe(g.player_name ?? g.player_tag);
       // An abnormal name can be longer than one message. The recorded
       // player tag names the recipient exactly without silently clipping.
       winners.push(
@@ -569,16 +569,16 @@ export function awardAnnouncementParts(grants) {
 /**
  * Lines that bring people in (round 5, 2026-09-25), for clan chat: a member
  * inviting their leaders to set the clan up, and anyone inviting clanmates
- * once it is. Plain, filter-safe, within clan chat's 200 characters, and
+ * once it is. Plain, with known chat warnings addressed, within 200 characters, and
  * without a link (chat is plain text and the filter is wary of links; the
  * page offers the link to copy separately for Discord or a message).
  */
 export function inviteCopy(kind, { clanName = null } = {}) {
-  const clan = clanName ? filterSafe(clanName) : "our clan";
+  const clan = clanName ? chatSafe(clanName) : "our clan";
   const text = {
     leaders: `Leaders: I use Elixir Clan to see our clan's numbers. Set up how ${clan} runs there and we all see how Elder works and where we stand. Sign in with Elixir.`,
     clanmates: `I check where I stand in ${clan} on Elixir Clan. Sign in with Elixir to see yours and how the clan runs.`,
   }[kind];
   if (!text) return null;
-  return clip(filterSafe(text), CHAT_MAX);
+  return clip(chatSafe(text), CHAT_MAX);
 }

@@ -15,6 +15,7 @@
 
 import {
   AWARD_KINDS,
+  actionDelivery,
   defaultAwards,
   describeAward,
   evaluateAwards,
@@ -247,6 +248,10 @@ export function createAwardsService({
             parts: plan.parts.length,
             message: part.message,
           },
+          delivery: actionDelivery({
+            type: "awards_standings",
+            evidence: { message: part.message },
+          }),
         },
         cards,
         {

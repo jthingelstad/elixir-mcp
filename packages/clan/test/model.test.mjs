@@ -387,6 +387,12 @@ test("model: a leader drafts an open action's Leader Message in the clan's voice
   assert.ok(log.some((e) => e.kind === "drafted"));
   const s = await api(h, c, "GET", MODEL);
   assert.equal(s.body.uses.recent[0].purpose, "leader_message");
+  const chat = await api(h, c, "POST", path, { channel: "clan_chat" });
+  assert.equal(chat.status, 200, JSON.stringify(chat.body));
+  assert.deepEqual(chat.body.lines, [
+    "A new Elder and a toast: Three cheers for Secretname, our newest Elder. See you in war!",
+  ]);
+  assert.doesNotMatch(h.anthropic.state.calls.at(-1)[2].prompt, /Secretname/);
   // A closed action, or one without a Leader Message, is not drafted.
   const closed = await api(
     h,

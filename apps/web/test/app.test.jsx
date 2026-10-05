@@ -331,9 +331,14 @@ test("an empty body is still a success", async () => {
     json: async () => ({}),
     text: async () => "",
   }));
+  sessionStorage.setItem("clan-delivery:private-draft", "Reviewed words");
+  sessionStorage.setItem("elixir-trail", "Retain unrelated state");
   const res = await api.signOut();
   expect(res.ok).toBe(true);
   expect(res.data).toEqual({});
+  expect(sessionStorage.getItem("clan-delivery:private-draft")).toBeNull();
+  expect(sessionStorage.getItem("elixir-trail")).toBe("Retain unrelated state");
+  sessionStorage.removeItem("elixir-trail");
 });
 
 test("the Overview opens on the battle-activity graphic, with a chip per tracked player and a link to the record", async () => {

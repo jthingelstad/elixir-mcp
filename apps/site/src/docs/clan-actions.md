@@ -48,14 +48,15 @@ the activity view is a new read. Removal eligibility is checked separately again
 
 | Action | Goes to | Words to send |
 |---|---|---|
-| Promote to Elder | the leader and co-leaders | a Clan Leader Message |
-| Demote to Member | the leader and co-leaders | a Clan Leader Message |
+| Promote to Elder | the leader and co-leaders | clan chat |
+| Demote to Member | the leader and co-leaders | clan chat |
 | Remove from the clan | the leader and co-leaders | a line for clan chat |
 | Departure: kicked, left, or ignore? | the leader and co-leaders | none |
 | Welcome a newcomer | elders, co-leaders and the leader | a line for clan chat |
 | Going to be away? | the quiet member alone | none |
-| Announce the season's awards | the leader and co-leaders | a Clan Leader Message |
-| Tell the clan how it runs | the leader and co-leaders | a Clan Leader Message |
+| Share award progress | the leader and co-leaders | clan chat, with a durable Inbox alternative |
+| Announce the season's awards | the leader and co-leaders | clan chat, with a durable Inbox alternative |
+| Tell the clan how it runs | the leader and co-leaders | clan chat, with a durable Inbox alternative |
 
 Every kind is off until the policy turns it on. Promotions and
 demotions come with ranking Elder by participation
@@ -105,7 +106,7 @@ recording began. Earlier changes are not listed in that section.
 | Going to be away? | **Mark me away**, or **I'm not away** |
 
 Make the change in the game, then mark the action. For a promotion
-that means promoting the member and sending the Clan Leader Message;
+that means promoting the member and sending the reviewed message;
 they go together, as one action. Once decided, the decision stands; an
 action someone else already decided says so.
 
@@ -128,19 +129,54 @@ after every part is marked sent. **Skip remaining messages** closes the update
 while keeping parts already sent. A failed Elixir recording can be retried by
 the original sender without sending the game message again.
 
+Each part records its chosen channel and exact reviewed words. An interrupted
+reply asks you to check the saved receipt before retrying; it never resends
+the game message. Mixed chat and Inbox deliveries keep their separate receipts.
+**Review later · leave open** returns to the list without completing or
+declining an Action. It does not schedule a send or change a clan decision.
+
 ## The words to send
 
 A Clan Leader Message is the game's leader message: only the leader and
 co-leaders can send one, it has a title of up to 24 characters and a
-body of up to 180, and it stays in every member's inbox. A clan chat
-line is for the chat. Edit welcomes (up to 120 characters) and removal
+body of up to 180, and appears in members' Inbox, separate from chat.
+New routine messages default to **Clan chat**, where members normally talk.
+For award progress, final award announcements and important rule changes,
+choose **Durable Leader Message · Inbox** when you want members to keep it.
+Welcomes remain chat. Edit welcomes (up to 120 characters) and removal
 messages (up to 200) before copying them into the game. Each field counts
 characters and warns about known chat-filter problems. Copying a field waits
 until its text fits; your edits stay in place to shorten. Nothing is ever
 posted for the clan automatically.
 
+Every chat field is a separate send, bounded to 200 characters; a long heading
+and body can require two fields. A merged game chat bubble does not establish
+a larger single-message limit. Channel choices keep separate edit buffers in
+this browser tab, including across reloads and ordinary refetches. A changed
+Action context starts a new draft; closing the Action or signing out clears
+its local draft words. Copying records no delivery.
+
+Leaders report a limit of **one Leader Message per day**. Elixir cannot see
+sends outside these Actions or determine the reset rule, so it never predicts
+remaining capacity or disables delivery from completion history. Choose which
+important message to send first and leave the others open until the game allows
+another. Approximate reports describe busy chat aging out in a day or two and
+Inbox messages lasting longer; these are not retention guarantees.
+
+Check the game text after sending. A delivered Inbox message can have its body
+masked with asterisks, and may have consumed the daily slot. Known text warnings
+cannot guarantee readable delivery or identify every filter trigger. Elixir
+cannot verify game delivery or readability and never automatically resends.
+
+Older saved Actions retain their original delivery suggestion and words. An
+open older Inbox Action can explicitly switch its presentation to chat before
+the person marks it sent. Completed decisions and saved receipts are immutable;
+a missing historical channel is never interpreted as today's chat default.
+Historical decisions that did not supply edited words are not presented as
+proof of the exact text sent.
+
 With the clan's own model set up under **Manage ▸ Settings**, an open
-Leader Message, welcome or removal action offers leaders and co-leaders
+message, welcome or removal action offers leaders and co-leaders
 **Draft in our voice**. It uses the
 clan's Anthropic key to draft a promotion, demotion, awards announcement
 or policy-change announcement, a welcome, or a chat line to use after a
@@ -163,7 +199,7 @@ placeholder. The model never decides whether to promote, demote or remove
 anyone. Drafts are bound to the Action's context: a changed confirmation or
 frozen detail clears older words and rejects an in-flight result.
 
-The clan's saved words in **Recruit** supply its voice. Choose a fixed tone for a chat line, or add a short Leader Message note
+The clan's saved words in **Recruit** supply its voice. Choose a fixed tone for a welcome, removal or farewell line, or add a short message note
 without member details; review and edit the answer.
 **Put back what I had** restores your previous words. Elders can edit and
 copy welcomes without using the clan's model. Completing a welcome records
@@ -274,6 +310,6 @@ already marked sent. Completed, withdrawn and fully delivered Actions cannot
 be reopened. Reopening keeps the original evidence and does not send a message.
 
 New award updates use compact game copy; as-of times and coverage remain in
-the app for review. Each ordered part fits the existing Clan Leader Message
-fields. Review and edit the words you actually send before marking that part
+the app for review. Each ordered part defaults to bounded chat fields, with an
+explicit Inbox alternative. Review and edit the words you actually send before marking that part
 sent; saved receipts and older frozen suggestions retain their original words.

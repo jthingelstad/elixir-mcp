@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-05",
+    title: "Clan messages start in chat",
+    body: "New routine Actions start with clan chat. Award updates, final awards and important rule announcements also offer a durable Inbox message. Switching channels keeps your edits, and sent receipts preserve the channel and reviewed words. Review later leaves the Action open; the app explains the reported daily Inbox limit and masked text without predicting availability or resending. Existing decisions and receipts stay intact. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-05",
     title: "A race still matchmaking is not a collector error",
     body: "For a minute or two after a season rolls, the Clash Royale API answers for a new river race that has no clans yet. Elixir still sets that answer aside and reads the race again soon, but it no longer counts it as a rejected fetch on the collector's page, the status page or the weekly collector mail. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
   },

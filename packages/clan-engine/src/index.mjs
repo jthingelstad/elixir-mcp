@@ -8,6 +8,7 @@ export * from "./awards.mjs";
 export * from "./departures.mjs";
 export * from "./recruit.mjs";
 export * from "./actions.mjs";
+export * from "./delivery.mjs";
 export * from "./goals.mjs";
 export * from "./member.mjs";
 export * from "./chat.mjs";

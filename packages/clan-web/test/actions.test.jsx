@@ -12,9 +12,11 @@ import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
 import { ActionCard } from "../src/components/ActionCard.jsx";
 import { ZoneProvider } from "@elixir-mcp/ui";
+import { actionDelivery } from "@elixir-mcp/clan-engine";
 
 afterEach(() => {
   cleanup();
+  sessionStorage.clear();
   vi.restoreAllMocks();
 });
 
@@ -481,6 +483,265 @@ describe("actions", () => {
 });
 
 describe("clan leader messages", () => {
+  const announcement = {
+    ...removal,
+    card_id: "rules",
+    number: 46,
+    type: "rules_announcement",
+    label: "Tell the clan how it runs",
+    channel: "leader_message",
+    copy: null,
+    message: { title: "Our rules", body: "Review our clan rules." },
+    evidence: { version: 4 },
+    log: [],
+  };
+
+  test("chat-first copy preserves independent edited buffers across channel switching, refetch and reload", async () => {
+    const card = {
+      ...announcement,
+      delivery: actionDelivery(announcement, { fresh: true }),
+    };
+    vi.spyOn(manageApi, "action").mockResolvedValue(one({ open: [card] }));
+    const decide = vi.spyOn(manageApi, "decideAction");
+    const props = {
+      number: 46,
+      clan,
+      who: { role: "leader", player_tag: "#LEADER" },
+    };
+    const first = renderWithProviders(<ActionDetail {...props} />);
+    await screen.findByLabelText("Chat message");
+    expect(screen.queryByLabelText("Title")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Chat message"), {
+      target: { value: "Reviewed chat words." },
+    });
+    fireEvent.change(screen.getByLabelText("Delivery channel"), {
+      target: { value: "leader_message" },
+    });
+    await screen.findByText(/Reported limit: one Leader Message per day/);
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Reviewed Inbox words." },
+    });
+    fireEvent.change(screen.getByLabelText("Delivery channel"), {
+      target: { value: "clan_chat" },
+    });
+    expect(screen.getByLabelText("Chat message").value).toBe(
+      "Reviewed chat words.",
+    );
+    await act(async () =>
+      first.queryClient.invalidateQueries({
+        queryKey: keys.actions(clan.clan_tag),
+      }),
+    );
+    expect(screen.getByLabelText("Chat message").value).toBe(
+      "Reviewed chat words.",
+    );
+    first.unmount();
+    renderWithProviders(<ActionDetail {...props} />);
+    expect((await screen.findByLabelText("Chat message")).value).toBe(
+      "Reviewed chat words.",
+    );
+    fireEvent.change(screen.getByLabelText("Delivery channel"), {
+      target: { value: "leader_message" },
+    });
+    expect(screen.getByLabelText("Message").value).toBe(
+      "Reviewed Inbox words.",
+    );
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  test("each selected channel enforces its own limits while preserving invalid edits for shortening", async () => {
+    const card = {
+      ...announcement,
+      delivery: actionDelivery(announcement, { fresh: true }),
+    };
+    vi.spyOn(manageApi, "action").mockResolvedValue(one({ open: [card] }));
+    renderWithProviders(
+      <ActionDetail number={46} clan={clan} who={{ role: "leader" }} />,
+    );
+    fireEvent.change(await screen.findByLabelText("Chat message"), {
+      target: { value: "x".repeat(201) },
+    });
+    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "Copy the chat message" }).disabled,
+    ).toBe(true);
+    fireEvent.change(screen.getByLabelText("Delivery channel"), {
+      target: { value: "leader_message" },
+    });
+    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(false);
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "x".repeat(181) },
+    });
+    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Delivery channel"), {
+      target: { value: "clan_chat" },
+    });
+    expect(screen.getByLabelText("Chat message").value.length).toBe(201);
+    fireEvent.change(screen.getByLabelText("Chat message"), {
+      target: { value: "Shortened." },
+    });
+    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(false);
+  });
+
+  test("an interrupted mixed-channel update recovers saved words without duplicate receipts or a game resend", async () => {
+    const card = {
+      ...announcement,
+      card_id: "mixed",
+      type: "awards_standings",
+      evidence: {
+        scope: "current",
+        season_id: 136,
+        messages: [
+          {
+            part: 1,
+            message: { title: "Season 136", body: "Points: Ada, Bob." },
+          },
+          {
+            part: 2,
+            message: { title: "Season 136", body: "Attendance: Cy, Dee." },
+          },
+        ],
+      },
+    };
+    card.delivery = actionDelivery(card, { fresh: true });
+    vi.spyOn(manageApi, "action").mockImplementation(async () =>
+      one({ open: [structuredClone(card)] }),
+    );
+    const sent = vi
+      .spyOn(manageApi, "messageSent")
+      .mockImplementation(async (_tag, _id, part, words) => {
+        card.messages_sent = [
+          ...(card.messages_sent ?? []),
+          { part, ...words, shared: true, sent_by_name: "Example" },
+        ];
+        if (part === 1) throw new Error("reply lost");
+        return { ok: true, data: card };
+      });
+    const decide = vi
+      .spyOn(manageApi, "decideAction")
+      .mockResolvedValue({ ok: true, data: {} });
+    renderWithProviders(
+      <ActionDetail
+        number={46}
+        clan={clan}
+        who={{ role: "leader", player_tag: "#LEADER" }}
+      />,
+    );
+    const fields = await screen.findAllByLabelText("Chat message");
+    fireEvent.change(fields[0], { target: { value: "Reviewed first chat." } });
+    fireEvent.change(fields[1], {
+      target: { value: "Keep this second edit." },
+    });
+    const first = screen.getByRole("button", { name: "Mark message 1 sent" });
+    fireEvent.click(first);
+    fireEvent.click(first);
+    await screen.findByText("Sent in clan chat");
+    expect(screen.getByText("Reviewed first chat.")).toBeTruthy();
+    expect(sent).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("button", { name: "Complete update" }).disabled,
+    ).toBe(true);
+    expect(screen.getByLabelText("Chat message").value).toBe(
+      "Keep this second edit.",
+    );
+    fireEvent.change(screen.getByLabelText("Delivery channel for message 2"), {
+      target: { value: "leader_message" },
+    });
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Reviewed second Inbox." },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Mark message 2 sent" }),
+    );
+    await screen.findByText("Sent as a Leader Message");
+    expect(
+      screen.getByRole("button", { name: "Complete update" }).disabled,
+    ).toBe(false);
+    expect(card.messages_sent.map((r) => r.channel)).toEqual([
+      "clan_chat",
+      "leader_message",
+    ]);
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  test("the list distinguishes chat and competing inbox Actions without claiming a reset or capacity", async () => {
+    vi.spyOn(manageApi, "actions").mockResolvedValue(
+      view({
+        open: [
+          announcement,
+          { ...announcement, card_id: "awards", number: 47, label: "Awards" },
+          { ...removal, number: 48, channel: "clan_chat" },
+        ],
+        recent: [
+          {
+            ...announcement,
+            number: 45,
+            status: "done",
+            decided_at: "2026-10-05T11:46:18Z",
+          },
+          {
+            ...announcement,
+            number: 44,
+            status: "declined",
+            decided_at: "2026-10-05T11:47:18Z",
+          },
+        ],
+      }),
+    );
+    renderWithProviders(<Actions clan={clan} who={{ role: "leader" }} />);
+    await screen.findByText(/2 Actions need Leader Messages/);
+    expect(
+      screen.getByText(/Latest completion in Elixir: Action #45/),
+    ).toBeTruthy();
+    expect(screen.getByText(/records a decision, not the game/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /#48.*Clan chat/ })).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: /#46.*Leader Message/ }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText(/Latest completion in Elixir: Action #44/),
+    ).toBeNull();
+  });
+
+  test("review later leaves the Action open and warns about masked delivery without disabling a human send", async () => {
+    vi.spyOn(manageApi, "action").mockResolvedValue(
+      one({ open: [announcement] }),
+    );
+    const decide = vi.spyOn(manageApi, "decideAction");
+    const sent = vi.spyOn(manageApi, "messageSent");
+    const navigate = vi.fn();
+    renderWithProviders(
+      <ActionDetail
+        number={46}
+        clan={clan}
+        who={{ role: "leader" }}
+        navigate={navigate}
+      />,
+    );
+    await screen.findByText(/A delivered message can be masked/);
+    expect(screen.getByText(/cannot see sends/)).toBeTruthy();
+    expect(screen.getByText(/does not guarantee/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(false);
+    expect(
+      screen.getByRole("button", { name: "Copy the message" }).disabled,
+    ).toBe(false);
+    fireEvent.click(
+      screen.getByRole("link", { name: "Review later · leave open" }),
+    );
+    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/actions");
+    expect(decide).not.toHaveBeenCalled();
+    expect(sent).not.toHaveBeenCalled();
+  });
+
+  test("chat-only Actions do not show an inbox quota", async () => {
+    vi.spyOn(manageApi, "actions").mockResolvedValue(
+      view({ open: [{ ...removal, channel: "clan_chat", number: 48 }] }),
+    );
+    renderWithProviders(<Actions clan={clan} who={{ role: "leader" }} />);
+    await screen.findByRole("link", { name: /#48/ });
+    expect(screen.queryByText(/Leader Message availability/)).toBeNull();
+  });
+
   test("a promotion comes with its Clan Leader Message, counted against the game's limits and copyable", async () => {
     vi.spyOn(manageApi, "action").mockResolvedValue(
       one({
@@ -512,7 +773,7 @@ describe("clan leader messages", () => {
     );
     await waitFor(() => expect(screen.getByText("20/24")).toBeTruthy());
     expect(
-      screen.getByText(/promote Sleepy, send this Clan Leader Message/),
+      screen.getByText(/promote Sleepy, send the reviewed message/),
     ).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "A title that runs far too long" },
@@ -586,6 +847,7 @@ describe("clan leader messages", () => {
         reason: null,
         note: null,
         sent: {
+          channel: "leader_message",
           title: "Our rules",
           body: "We now run the clan with Elixir Clan.",
         },
@@ -651,7 +913,11 @@ describe("the clan's model on a Leader Message", () => {
         status: "done",
         reason: null,
         note: null,
-        sent: { title: "New rules", body: "Reviewed wording." },
+        sent: {
+          channel: "leader_message",
+          title: "New rules",
+          body: "Reviewed wording.",
+        },
       }),
     );
   });
@@ -704,7 +970,13 @@ describe("the clan's model on a Leader Message", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
     await waitFor(() =>
-      expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "r1", "warm", null),
+      expect(draft).toHaveBeenCalledWith(
+        "#2PQRJ8LV",
+        "r1",
+        "warm",
+        null,
+        "leader_message",
+      ),
     );
     expect(await screen.findByDisplayValue("Our way, in brief")).toBeTruthy();
     expect(screen.getByText(/Drafted by claude-sonnet-5/)).toBeTruthy();
@@ -1210,6 +1482,7 @@ test("one update contains editable messages and explicit delivery progress; copy
     card_id: "update",
     number: 41,
     type: "awards_standings",
+    channel: "leader_message",
     copy: null,
     label: "Share award standings",
     evidence: {
@@ -1270,6 +1543,9 @@ test("one update contains editable messages and explicit delivery progress; copy
   await waitFor(() => expect(write).toHaveBeenCalled());
   expect(sent).not.toHaveBeenCalled();
   expect(decide).not.toHaveBeenCalled();
+  expect(
+    screen.getByText(/Each part has its own delivery choice/),
+  ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Mark message 1 sent" }));
   await waitFor(() =>
     expect(
@@ -1373,4 +1649,30 @@ describe("reopening declined actions", () => {
     await screen.findByText("Declined");
     expect(screen.queryByRole("button", { name: "Reopen action" })).toBeNull();
   });
+});
+
+test("changing acting player loads that player's own words and restores the first player's buffer", () => {
+  const action = {
+    ...removal,
+    type: "rules_announcement",
+    channel: "clan_chat",
+    draft_context_version: "frozen",
+    evidence: { message: { title: "Rules", body: "Reviewed rules." } },
+  };
+  action.delivery = actionDelivery(action, { fresh: true });
+  const props = { action, clan, who: { player_tag: "#FIRST", role: "leader" } };
+  const { rerender } = renderWithProviders(<ActionCard {...props} />);
+  fireEvent.change(screen.getByLabelText("Chat message"), {
+    target: { value: "First player's edits" },
+  });
+  rerender(
+    <ActionCard {...props} who={{ player_tag: "#SECOND", role: "coLeader" }} />,
+  );
+  expect(screen.queryByDisplayValue("First player's edits")).toBeNull();
+  fireEvent.change(screen.getByLabelText("Chat message"), {
+    target: { value: "Second player's edits" },
+  });
+  rerender(<ActionCard {...props} />);
+  expect(screen.getByDisplayValue("First player's edits")).toBeTruthy();
+  expect(screen.queryByDisplayValue("Second player's edits")).toBeNull();
 });
