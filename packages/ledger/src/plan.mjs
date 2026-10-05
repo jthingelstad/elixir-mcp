@@ -270,6 +270,15 @@ const IN_FLIGHT_SUPPRESSION_MINUTES = 15;
 // subject is due once a day and never starved; a requested refresh and
 // the pre-reset watcher still cut through.
 const NOT_FOUND_BACKOFF_MINUTES = 1440;
+// Except a race that was there moments ago. Every recorded race answers
+// 404 for a while at the season roll, between the closed season's
+// stand-by and the next race (9 to 77 minutes measured, 2026-07 to
+// 2026-10, cr-agent-api-docs clans.md). On 2026-10-05 that 404 held
+// every recorded race until the next day, through S137's first training
+// day. A race 404 within this long of the clan's last admitted
+// race keeps the race's own cadence; a 404 that outlasts it is a clan
+// with no race, and the daily hold applies.
+const RACE_ROLL_GAP_MINUTES = 360;
 export const BUCKET_CAP_SECONDS = 300; // small carryover; never a quota multiplier
 
 /** A daily leaderboard is read once per board-day, and the board-day
@@ -566,7 +575,13 @@ async function selectEligible(db, now) {
       admittedMs < windowStartMs &&
       plannedMs < windowStartMs;
     const notFoundMs = r.last_not_found_at ? r.last_not_found_at.getTime() : 0;
-    const notFound = notFoundMs > admittedMs;
+    const notFound =
+      notFoundMs > admittedMs &&
+      !(
+        r.endpoint === "currentriverrace" &&
+        admittedMs > 0 &&
+        notFoundMs - admittedMs < RACE_ROLL_GAP_MINUTES * MINUTE
+      );
     if (notFound && !forcedPreReset && !requested) {
       if (
         nowMs - notFoundMs < NOT_FOUND_BACKOFF_MINUTES * MINUTE ||
