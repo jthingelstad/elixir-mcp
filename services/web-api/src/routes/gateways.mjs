@@ -6,6 +6,7 @@ import {
   resolveGatewayCard,
 } from "@elixir-mcp/record/gateway-cards";
 
+import { chargedRejectionSql } from "@elixir-mcp/ingest/admission";
 import { UUID_RE, json } from "../http.mjs";
 import {
   RELEASE_SIGNED_SQL,
@@ -105,7 +106,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         `select (fetched_at at time zone 'UTC')::date::text as day,
                 count(*)::int as fetches,
                 count(*) filter (where admission = 'admitted')::int as admitted,
-                count(*) filter (where admission = 'rejected')::int as rejected
+                count(*) filter (where ${chargedRejectionSql()})::int as rejected
          from api_receipt
          where gateway_id = $1
            and fetched_at > now() - interval '30 days'

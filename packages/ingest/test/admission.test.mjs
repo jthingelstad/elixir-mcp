@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { admit } from "../src/admission.mjs";
+import { RACE_MATCHMAKING, admit } from "../src/admission.mjs";
 import { fixture } from "./helpers.mjs";
 
 test("all fixture payloads admit", async () => {
@@ -69,6 +69,27 @@ test("riverrace periodIndex/sectionIndex cross-check enforced", async () => {
   const result = admit("currentriverrace", corrupted);
   assert.equal(result.ok, false);
   assert.ok(result.errors.includes("periodIndex:section-cross-check-failed"));
+});
+
+test("a race in matchmaking is refused with RACE_MATCHMAKING alone (S137 roll, 2026-10-05)", () => {
+  // The whole body the API served for about two minutes after the season
+  // roll's 404, before the bracket was drawn.
+  const result = admit(
+    "currentriverrace",
+    { periodIndex: 0, sectionIndex: 0, state: "matchmaking" },
+    "#J2RGCRVG",
+  );
+  assert.deepEqual(result, { ok: false, errors: [RACE_MATCHMAKING] });
+});
+
+test("matchmaking excuses only a race with no clan", async () => {
+  const rr = await fixture("currentriverrace/war_day.json");
+  const result = admit("currentriverrace", {
+    ...rr,
+    state: "matchmaking",
+    clans: [],
+  });
+  assert.deepEqual(result, { ok: false, errors: ["clans:missing"] });
 });
 
 test("identity binding: a payload about someone else never admits (sol-6 F4)", async () => {

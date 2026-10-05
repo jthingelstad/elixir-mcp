@@ -8,6 +8,7 @@ import {
   RELEASE_SIGNED_SQL,
   signatureState,
 } from "@elixir-mcp/collector-door/signature";
+import { chargedRejectionSql } from "@elixir-mcp/ingest/admission";
 import { silentSince } from "@elixir-mcp/ingest/fleet";
 
 const CREDIT_DIVISOR = 10;
@@ -34,7 +35,7 @@ export async function buildCollector({ db, account, week, now = new Date() }) {
   const { rows: per } = await db.query(
     `select gateway_id,
             count(*)::int as fetches,
-            count(*) filter (where admission = 'rejected')::int as rejected,
+            count(*) filter (where ${chargedRejectionSql()})::int as rejected,
             coalesce(sum(api_bytes), 0)::bigint as api_bytes,
             coalesce(sum(coalesce(observed, 0) - coalesce(filtered, 0)), 0)::bigint as kept,
             coalesce(sum(coalesce(filtered, 0)), 0)::bigint as filtered,

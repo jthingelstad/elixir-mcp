@@ -5450,3 +5450,31 @@ standby update was visible. The vocabulary import changed only the test
 snapshot's source commit to the newly committed standalone-reference
 rollover documentation; roles, aliases and vocabulary version are unchanged.
 This release/snapshot receipt is gated as its own PR and needs no redeploy.
+
+## 2026-10-05 - A matchmaking race is not charged to the collector
+
+crprobe recorded the S136 -> S137 roll (cr-agent-api-docs PR #4). After the
+404, `currentriverrace` answered `200` for about two minutes with only
+`{"periodIndex":0,"sectionIndex":0,"state":"matchmaking"}`: no `clan`.
+None of the 8,447 archived race payloads (since 2026-03-07) had that state.
+
+Admission already refused that body (no `clan.tag`, no `clans`), so the
+projector never ran it and freshness held. The planner reads the race again
+soon, which is still the behavior we want. But the refusal counted as a
+`rejected` fetch against the collector that made it, even though the API
+caused it. Now `admitRiverrace` refuses a race with `state: "matchmaking"`
+and no `clan` with the one error `state:matchmaking` (`RACE_MATCHMAKING`).
+`chargedRejectionSql()` (ingest `admission.mjs`) is every rejection but
+that one, and is used by the three counts that charge a collector: the
+collector's own page (`routes/gateways.mjs`), the public capture chart
+(`routes/public.mjs`) and the weekly collector mail (`build-collector.mjs`).
+web-api now depends on `@elixir-mcp/ingest` for it. The payload-keys note on
+`state` no longer says "always 'full'".
+
+`admission_errors` is `text[]` since 0123/0125, not the `jsonb` of 0001;
+the first predicate was written against 0001 and the pipeline test caught it.
+
+Not changed: a `live: true` race read that lands in matchmaking still says
+"a payload our admission rejected" (`tools/shared.mjs`), and the receipt
+stays `rejected`. No contract or JSON API version moves. Ingest is shared
+code, so the deploy runs the whole acceptance suite (ship skill, Scope).

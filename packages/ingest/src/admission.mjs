@@ -68,7 +68,28 @@ function admitClan(payload, errors) {
   });
 }
 
+/** The one refusal that is the API's state rather than a bad fetch. A
+ *  race exists for a minute or two before its bracket is drawn: the
+ *  whole body is periodIndex, sectionIndex and state "matchmaking", with
+ *  no clan (recorded at the S137 season roll, 2026-10-05,
+ *  cr-agent-api-docs/clans.md). It is still refused, so freshness holds
+ *  and the clan is read again soon, but it is never charged to the
+ *  collector that fetched it (chargedRejectionSql). */
+export const RACE_MATCHMAKING = "state:matchmaking";
+
+/** SQL: an api_receipt rejection charged to its collector, every
+ *  rejection but RACE_MATCHMAKING. `alias` is the receipt's table alias,
+ *  if the query has one. */
+export function chargedRejectionSql(alias = "") {
+  const c = alias ? `${alias}.` : "";
+  return `(${c}admission = 'rejected' and ${c}admission_errors is distinct from array['${RACE_MATCHMAKING}']::text[])`;
+}
+
 function admitRiverrace(payload, errors) {
+  if (payload?.state === "matchmaking" && payload?.clan === undefined) {
+    errors.push(RACE_MATCHMAKING);
+    return;
+  }
   if (!tagOk(payload?.clan?.tag)) errors.push("clan.tag:invalid");
   if (!Array.isArray(payload?.clans) || payload.clans.length === 0)
     errors.push("clans:missing");
