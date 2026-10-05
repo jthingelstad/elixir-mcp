@@ -5328,3 +5328,42 @@ That fixture now fixes its clock and explicitly checks windows immediately
 before and across a season boundary. This is a test correction; no tool
 runtime or business semantics changed. Required CI must pass on the repaired
 branch before merge or deploy.
+
+## 2026-10-05 - Queued privacy wording decision
+
+The Guard the Door run queued this precise Jamie decision at 10:20:49Z on
+October 4: approve a concise privacy-page correction that removes the retired
+editorial-AI claim and states that Buttondown enrollment is opt-in; if the
+live Clan own-key model flow should be disclosed there, approve its exact
+general wording. This is a product-policy decision, not an operational
+incident; no privacy page or live behavior changed while it waits for Jamie.
+
+## 2026-10-05 - Elixir Operator production receipt
+
+At 09:47Z, the public status endpoint was healthy: the last fetch and
+admission were 268 seconds old, 19 battles had arrived in the trailing hour,
+the 24-hour capture audit had 1,053 polls and zero gaps, and there were no
+queued, leased, dead, or email-DLQ jobs. The five active signed v3.0.6
+collectors had all heartbeated within 15 seconds; the sixth collector is
+explicitly draining, not silent. The fleet had used 1,505 fetches in 24 hours
+(1.9% of its 77,760 bulk share), with 63 useful admissions from 116 measured
+fetches in the current hour.
+
+The read-only `{stats}` receipt found zero battle-log gaps and fetch errors in
+the last hour; its only 24-hour errors were two current-river-race 404s that
+left no dead or held job. All Elixir alarms were quiet, OAuth discovery served,
+and `ClanInternal` was true. The 05:20Z efficiency and 05:30Z activity jobs
+completed: October 4 recorded zero lost battles, and the activity run wrote no
+archetype re-stamps. The hourly operational sweep reported no silent
+collectors, no dead jobs, and no collector fetch error in the latest run.
+
+No lease, production write, deploy, restart, or collector action was performed
+in this run.
+
+All three Discord preview containers were up, connected as their expected
+agent principals, and within their configured budget lanes; their natural event
+cursors advanced. POAP KINGS had one bound channel. Ship It! and Elixir Kings
+both remained at `channels_ok: 0`, so a `run` queue note asks Jamie to restore
+each configured ask-channel binding or permission, restart only the repaired
+instance, and wait for its next natural ask turn. No routine was run early and
+no backlog was replayed.
