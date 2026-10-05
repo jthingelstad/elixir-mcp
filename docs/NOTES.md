@@ -5509,3 +5509,33 @@ UI, receipts, sharing, docs and reference; no sibling product changes are needed
 Full verify, required CI and built desktop/mobile journeys gate the change.
 Deploy acceptance is omitted because no MCP reader contract or game-record tool
 changes; public read-back and the existing smoke suite verify the deployment.
+
+### Chat-first delivery deployment receipt
+
+PR #306 merged as 7db9dc1b on the required green validate check (reviewed
+PR head 30848e2a). The combined checkout passed 1,829 Node tests and 449 UI
+tests, with 85 existing skips. All 139 built desktop/mobile journeys passed,
+including leader/co-leader mixed-channel delivery, channel-buffer reloads,
+interrupted receipts, history, accessibility and phone-width checks. Seven
+focused delivery regressions cover exact words, concurrent receipts/audit
+repair, interrupted completion and legacy semantics. The consistency reviewer
+found no remaining blocker after the four fixes; acting-player changes also
+have a UI regression.
+
+The clean, leased cloud-engineer deploy updated the changed Lambda code at
+12:55Z (7:55 AM CT), ran zero new migrations, imported the unchanged vocabulary
+from standalone-reference PR #5 (466ee88), and passed all 43 smoke checks.
+Read-back completed at 13:02Z (8:02 AM CT): all seven deployed artifact content
+fingerprints matched this merged build, every Lambda was Active with Successful
+updates, and the served app shell and delivery UI chunk matched the build.
+Public health was green; Clan docs and both the chat-delivery and concurrent
+ingestion update entries were served. MCP stayed 11.2.3; JSON API stayed 3.0.0.
+The read-only MCP acceptance suite was intentionally not rerun for these
+internal Clan writer/UI changes, whose public reader shapes are unchanged.
+
+No production grants, FreePasses, decisions, policy edits, forced/requeued
+jobs or game messages were used for QA. Existing history and award cardinality,
+including multiple FreePasses per season, are preserved. The game reset/timezone
+and external Inbox usage remain unknown; no capacity gate or automatic resend
+was added. The deploy lease is released. This notes-only receipt is gated in
+its own PR and requires no redeploy.
