@@ -195,7 +195,7 @@ same measurement.
 | Clan roster, tracked | every 15 minutes while members are in the game (three or more seen this hour); hourly once nobody has been for an hour, unless the roster is churning (three or more joins, departures or promotions a day); every 4 hours once nobody has been seen for a day | floor 2 days |
 | Clan roster, incidental | a clan read only because a recorded player is in it: every 4 hours while members are in the game, every 12 hours when idle, daily when nobody has been seen for a day. Their profile polls carry their clan tag, so membership history is never lost, only coarser | floor 2 days |
 | Current river race | every 30 minutes on war days, every 2 hours on training days (the API names the day) | floor 2 hours |
-| River race log | daily | floor 2 days |
+| River race log | daily, plus one catch-up after a newer recorded race when the preceding race lacks final closure | floor 2 days |
 | Card catalog | daily, one fetch for everyone | – |
 
 Subjects added together are de-phased by a stable per-subject offset so a

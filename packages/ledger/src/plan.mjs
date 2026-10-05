@@ -65,6 +65,7 @@ export const CADENCE = {
   currentriverrace: { every: 30, floor: 120 },
   // Daily log poll: backfill at enrollment IS the first poll; thereafter
   // it heals gaps and delivers final standings (rank/trophyChange).
+  // A newer observed race also owes one closure catch-up (selectEligible).
   riverracelog: { every: 1440, floor: 2880 },
   // Daily global catalog: one fetch serves every tenant (get_card_catalog,
   // level normalization backfills). Missing this starved prod of maxLevel
@@ -99,7 +100,8 @@ export const CADENCE = {
  *    profile polls carry their clan tag, so membership history is never
  *    lost, only coarser. Unknown liveliness (a row never stamped) takes
  *    the active branch: discovery, not dormancy.
- *  - riverracelog / cards: fixed cadences unchanged — flat and cheap.
+ *  - riverracelog / cards: fixed nominal cadences; observed race closure
+ *    catch-up is selected separately.
  */
 const DAY = 86_400_000;
 /** Membership events per hour (joins, departures, role changes; EWMA on
@@ -426,6 +428,22 @@ async function selectEligible(db, now) {
       select ps.subject_tag, ps.endpoint, ps.last_planned_at, ps.last_admitted_at,
              ps.yield_bph, ps.hint, ps.period_type, ps.last_read_at,
              ps.refresh_requested_at, ps.empty_streak, ps.retry_at,
+             -- A newly observed race leaves its predecessor unfinished until
+             -- the river log captures closure. Do not wait for the daily log
+             -- cadence after that observation; inspect only the latest pair.
+             case when ps.endpoint = 'riverracelog' then (
+               select latest.started_observed_at
+               from (select season_id, section_index, started_observed_at
+                     from war_week where clan_tag = ps.subject_tag
+                     order by season_id desc, section_index desc limit 1) latest
+               join lateral (
+                 select finished_observed_at from war_week
+                 where clan_tag = ps.subject_tag
+                   and (season_id, section_index) < (latest.season_id, latest.section_index)
+                 order by season_id desc, section_index desc limit 1
+               ) previous on true
+               where previous.finished_observed_at is null
+             ) end as race_rollover_at,
              exists (select 1 from claim c
                      where c.player_tag = ps.subject_tag) as directly_tracked,
              -- A clan someone asked us to record, as opposed to one we read
@@ -469,7 +487,7 @@ async function selectEligible(db, now) {
     select subject_tag, endpoint, last_planned_at, last_admitted_at, reference,
            yield_bph, hint, period_type, last_read_at, refresh_requested_at, empty_streak,
            directly_tracked, clan_tracked, last_not_found_at,
-           retry_at
+           retry_at, race_rollover_at
     from state`,
   );
 
@@ -506,12 +524,22 @@ async function selectEligible(db, now) {
     const cadenceDue = anchoredDaily
       ? referenceMs < boardDayStartMs(nowMs)
       : nowMs - referenceMs >= dueAfterMs(row, now);
-    const due = cadenceDue || retry;
+    const rolloverMs = r.race_rollover_at?.getTime() ?? null;
+    // One catch-up after the recorder sees the new race, never an inferred
+    // calendar close. The existing plan/admission watermark suppresses another
+    // catch-up for the same observation; failed fetches keep their normal retry.
+    const raceClosureDue =
+      r.endpoint === "riverracelog" &&
+      rolloverMs !== null &&
+      rolloverMs <= nowMs &&
+      referenceMs < rolloverMs;
+    const due = cadenceDue || retry || raceClosureDue;
     // Would the rule without the reader cap have made it due? Only the
     // difference is attributable to the cap (the metric that proves it).
     const dueUncapped = anchoredDaily
       ? due
       : retry ||
+        raceClosureDue ||
         nowMs - referenceMs >= dueAfterMs({ ...row, last_read_at: null }, now);
     const admittedMs = r.last_admitted_at ? r.last_admitted_at.getTime() : 0;
     const plannedMs = r.last_planned_at ? r.last_planned_at.getTime() : 0;
@@ -552,7 +580,7 @@ async function selectEligible(db, now) {
         cadenceDue &&
         sessionWaitMinutes(r) === SESSION_FOLLOWUP_MINUTES,
       // Due only because a failed fetch owed a retry (0188).
-      retry: retry && !cadenceDue && !starved,
+      retry: retry && !cadenceDue && !raceClosureDue && !starved,
       readCapped: due && !dueUncapped && !starved && readCapApplies(row, now),
       overdueMs,
       expectedYield:

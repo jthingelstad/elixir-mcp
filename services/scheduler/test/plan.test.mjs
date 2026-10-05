@@ -1125,3 +1125,130 @@ test("a retained player profile still respects the API's 404 hold", async () => 
     true,
   );
 });
+
+test("an observed race rollover owes one log closure read within the existing bulk budget", async () => {
+  const clan = "#2PQRJ8LV";
+  await db.query("delete from job");
+  await db.query(
+    "insert into clan(clan_tag) values($1) on conflict do nothing",
+    [clan],
+  );
+  await db.query(
+    "insert into recording(subject_type,subject_tag,requested_by) values('clan',$1,$2)",
+    [clan, accountId],
+  );
+  await freshenCards(NOW);
+  for (const endpoint of ["clan", "currentriverrace"])
+    await setState(clan, endpoint, { admitted: NOW, planned: NOW });
+  await setState(clan, "riverracelog", {
+    admitted: min(180),
+    planned: min(180),
+  });
+  await db.query(
+    `insert into war_week(clan_tag,season_id,section_index,is_colosseum,started_observed_at)
+    values($1,136,2,false,$2),($1,136,3,true,$3)`,
+    [clan, min(14 * 1440), min(7 * 1440)],
+  );
+  const logDue = async (at = NOW) =>
+    (await eligibleNow(db, at)).filter(
+      (r) => r.subject_tag === clan && r.endpoint === "riverracelog",
+    );
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "an unfinished race or the clock alone does not accelerate log capture",
+  );
+  await db.query(
+    `insert into war_week(clan_tag,season_id,section_index,is_colosseum,started_observed_at)
+    values($1,137,0,false,$2)`,
+    [clan, new Date(NOW.getTime() + 60_000)],
+  );
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "a future observation is not a rollover",
+  );
+  await db.query(
+    "update war_week set started_observed_at=$2 where clan_tag=$1 and season_id=137 and section_index=0",
+    [clan, min(2)],
+  );
+  assert.equal(
+    (await logDue()).length,
+    1,
+    "the newer observed race makes its unfinished predecessor's log due",
+  );
+  assert.equal(
+    (await logDue()).length,
+    1,
+    "the status read never consumes the obligation",
+  );
+  await setTokens(1);
+  assert.equal(
+    (await planTick(db, NOW)).jobs.length,
+    0,
+    "the live reserve is preserved",
+  );
+  await setTokens(2);
+  const first = await planTick(db, NOW);
+  assert.deepEqual(first.jobs, [
+    { endpoint: "riverracelog", entity_key: clan, lane: "bulk" },
+  ]);
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "planning suppresses another catch-up for that observed rollover",
+  );
+  const retryAt = new Date(NOW.getTime() + 15 * 60_000);
+  await db.query(
+    "update poll_state set retry_at=$2, retry_tries=1 where subject_tag=$1 and endpoint='riverracelog'",
+    [clan, retryAt],
+  );
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "failed catch-up waits for its retry time",
+  );
+  const retried = await logDue(retryAt);
+  assert.equal(retried.length, 1);
+  assert.equal(
+    retried[0].retry,
+    true,
+    "the existing bounded retry path handles failure",
+  );
+  await db.query(
+    "update poll_state set retry_at=null, retry_tries=0 where subject_tag=$1 and endpoint='riverracelog'",
+    [clan],
+  );
+  await setState(clan, "riverracelog", { admitted: min(1), planned: min(1) });
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "a log read after the observation has already served the catch-up",
+  );
+  await setState(clan, "riverracelog", {
+    admitted: min(180),
+    planned: min(180),
+  });
+  await db.query(
+    "update war_week set finished_observed_at=$2 where clan_tag=$1 and season_id=136 and section_index=3",
+    [clan, min(1)],
+  );
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "an older incomplete history row does not trigger a read when the immediate predecessor is closed",
+  );
+  await db.query(
+    "update war_week set finished_observed_at=null where clan_tag=$1 and season_id=136 and section_index=3",
+    [clan],
+  );
+  await db.query(
+    "update recording set status='stopped' where subject_type='clan' and subject_tag=$1",
+    [clan],
+  );
+  assert.equal(
+    (await logDue()).length,
+    0,
+    "retired recording never gains automatic closure work",
+  );
+});

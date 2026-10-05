@@ -5292,3 +5292,32 @@ No policy values, member roles, decisions, award grants, clan messages,
 live fetches or paid model calls were used for QA. Issue #296 remains open
 for browser Network/Server-Timing evidence if the additional delay recurs.
 This is a notes-only receipt and requires no redeploy or sibling change.
+
+## 2026-10-05 - 11.2.2: capture closure after an observed race rollover
+
+The read-only season-transition watch found a recorder readiness gap:
+only the river-log projector writes final week closure, while the planner
+polled that log daily. A successful pre-closure log read could leave a
+season provisional past the natural Clan evaluation even after the current
+race moved on. Existing private receipts and canonical source established
+that gap; exact production telemetry and identifiers remain private.
+
+The canonical planner now inspects only the latest two recorded war weeks
+for each actively recorded clan's river-log row. If the newer race has a
+nonfuture observed start and its immediate predecessor lacks closure, one
+log catch-up is due until a plan or admission passes that observation.
+The ordinary global bulk allowance, live reserve, fairness ordering,
+not-found hold, in-flight watermark and bounded retry path still apply.
+An older incomplete history row, an unobserved calendar boundary, a future
+observation or a stopped recording cannot trigger this catch-up. No manual
+fetch, force/requeue job, policy edit, award grant or message is needed.
+The existing ingest remains the only authority for closure from the API;
+this rule never marks a race closed or fabricates missing evidence.
+
+A PostgreSQL regression failed on the old daily-only planner, then passed
+with the observed-rollover rule. It checks status-read purity, existing
+budget/live reserve, one planned catch-up, post-observation admission,
+normal retry timing, immediate-predecessor scope and stopped-recording
+refusal. Full validation, required CI, smoke and War/Clan acceptance gate
+the release. No schema migration or new infrastructure. MCP 11.2.2;
+JSON API 3.0.0 and response shapes are unchanged.
