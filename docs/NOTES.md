@@ -5640,3 +5640,31 @@ stale-membership closure can update membership without an old-clan event, but
 the exact record cause was not established in the bounded read. That evidence
 gap is reported separately; this release neither invents events nor repairs
 history or changes membership counts.
+
+### Deployment and gate receipt
+
+PR #311 merged as 89288a0c after required `validate` passed on 78447451.
+Local `npm run verify` passed 1,833 Node tests and 449 UI tests, with 85
+existing skips; the integrated acceptance unit suite passed 209 cases with
+the same 85 skips. CI also passed all 139 built browser journeys. The mail
+renderer passed 27 tests and the scratch email runner passed 11, including
+the new rollover regressions. Live MCP acceptance was omitted for this
+mail-only change, as described above.
+
+The platform deployed at 14:48Z (9:48 AM CT), with zero new migrations and
+all 43 smoke checks passing. Readback at 14:54Z (9:54 AM CT) verified all
+seven deployed Lambda bundles against the local build; each was Active with
+a Successful update. Public health was ok, the application shell matched,
+and /updates and /docs/email served the covered-season change. Public
+versions remain MCP 11.2.3 and JSON API 3.0.0.
+
+The two original sent-email archive objects retained their ETags, lengths
+and modification timestamps across deployment. No email was resent and no
+rollover, awards or other business state was written. The separate
+membership/event evidence gap remains unconfirmed and outside this fix.
+
+Vocabulary import refreshed the snapshot's source commit to 5ff5e82f,
+whose reference change only corrected probe-command documentation. The 47
+roles, 29 aliases and 2026-09-25 vocabulary version are unchanged. This
+receipt and source-pointer refresh are gated in a follow-up PR and require
+no redeploy.
