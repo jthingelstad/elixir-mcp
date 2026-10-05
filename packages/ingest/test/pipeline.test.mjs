@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
+import { chargedRejectionSql } from "../src/admission.mjs";
 import { processResult } from "../src/pipeline.mjs";
 import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
 
@@ -166,6 +167,44 @@ test("rejected payload gets a receipt with errors; no projection; freshness NOT 
     `select 1 from poll_state where subject_tag = '#J2RGCRVG' and endpoint = 'clan'`,
   );
   assert.equal(ps.rows.length, 0, "freshness advances on admission only");
+});
+
+test("a matchmaking race is refused, holds freshness, and is not charged to the collector", async () => {
+  const result = await processResult(
+    ctx.db,
+    message({
+      endpoint: "currentriverrace",
+      entityKey: "#J2RGCRVG",
+      payload: { periodIndex: 0, sectionIndex: 0, state: "matchmaking" },
+      fetchedAt: "2026-10-05T10:09:01Z",
+    }),
+  );
+  assert.equal(result.outcome, "rejected");
+  const {
+    rows: [race],
+  } = await ctx.db.query(
+    `select admission, admission_errors, ${chargedRejectionSql()} as charged
+     from api_receipt where endpoint = 'currentriverrace'`,
+  );
+  assert.equal(race.admission, "rejected");
+  assert.deepEqual(race.admission_errors, ["state:matchmaking"]);
+  assert.equal(race.charged, false, "the API's state, not the collector's");
+  const ps = await ctx.db.query(
+    `select 1 from poll_state
+     where subject_tag = '#J2RGCRVG' and endpoint = 'currentriverrace'
+       and last_admitted_at is not null`,
+  );
+  assert.equal(ps.rows.length, 0, "freshness holds, so the race is read again");
+  // A real refusal is still charged (the clan count-mismatch above).
+  const {
+    rows: [clan],
+  } = await ctx.db.query(
+    `select count(*) filter (where admission = 'rejected')::int as rejected,
+            count(*) filter (where ${chargedRejectionSql("r")})::int as charged
+     from api_receipt r where r.endpoint = 'clan'`,
+  );
+  assert.ok(clan.rejected > 0);
+  assert.equal(clan.charged, clan.rejected);
 });
 
 test("valid clan payload projects roster and advances freshness", async () => {

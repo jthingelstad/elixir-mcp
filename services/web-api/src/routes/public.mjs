@@ -6,6 +6,7 @@ import {
   BUCKET_CAP_SECONDS,
 } from "@elixir-mcp/ledger/plan";
 
+import { chargedRejectionSql } from "@elixir-mcp/ingest/admission";
 import { json } from "../http.mjs";
 import {
   RELEASE_SIGNED_SQL,
@@ -90,7 +91,7 @@ export function publicRoutes({ deadLetters }) {
                     coalesce(g.card_name, 'unnamed') as name,
                     count(*)::int as fetches,
                     count(*) filter (where r.admission = 'admitted')::int as admitted,
-                    count(*) filter (where r.admission = 'rejected')::int as rejected
+                    count(*) filter (where ${chargedRejectionSql("r")})::int as rejected
              from api_receipt r
              join gateway g on g.gateway_id = r.gateway_id
              where r.fetched_at >= ${truncSql("$since$")}

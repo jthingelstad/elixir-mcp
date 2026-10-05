@@ -363,7 +363,9 @@ export const PAYLOAD_KEYS = {
   },
 
   currentriverrace: {
-    state: dropped("always 'full' (cr-agent-api-docs/models/river-race.md)"),
+    state: dropped(
+      "'full' on every admitted race; 'matchmaking' (a race not yet matched, with no clan) is refused at admission as RACE_MATCHMAKING and not charged to the collector (cr-agent-api-docs/models/river-race.md)",
+    ),
     periodIndex: to("war_period_anchor.period_index"),
     periodType: to("poll_state.period_type"),
     sectionIndex: to("war_week.section_index (with the inferred season)"),
