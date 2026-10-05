@@ -170,7 +170,9 @@
     "calls": {
       "r": {
         "tool": "war_rivals",
-        "args": {}
+        "args": {
+          "rival_tags": ["#QUGRGLU2"]
+        }
       },
       "w": {
         "tool": "war_history",
@@ -189,7 +191,8 @@
       {
         "has": "w.standings[?clan_tag=#QUGRGLU2].fame"
       }
-    ]
+    ],
+    "amended": "Amended 2026-10-05: the r call names Happy Win (rival_tags) instead of reading the current bracket. S137's first race recorded a new bracket, so the default read no longer held Happy Win and the frozen case failed on a change of bracket, not of record."
   },
   {
     "id": "nc.errors.subject",
@@ -21317,9 +21320,18 @@
         ]
       },
       {
-        "eq": ["decks_today.counts.participants", "member_count"]
+        "sum_eq": [
+          [
+            "decks_today.counts.participants",
+            {
+              "count": "members_not_in_race"
+            }
+          ],
+          "member_count"
+        ]
       }
-    ]
+    ],
+    "amended": "Amended 2026-10-05: participants equals member_count only once every member is in the race roster. S137's first race listed 23 of 48; the game leaves out members not seen since the race began, and war_current names them in members_not_in_race. Both come from the same current-member set, so participants plus members_not_in_race is member_count on every race day."
   },
   {
     "id": "341.2",

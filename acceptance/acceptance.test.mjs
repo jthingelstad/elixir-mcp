@@ -403,6 +403,15 @@ test("gym.json loads: unique ids, every finding has a control, the verbs are kno
     /numeric list/,
   );
   assertOne({ sum_eq: [["weeks[0].a", 3], "s.n"] }, body, body);
+  assertOne({ sum_eq: [[{ count: "weeks" }, 2], "s.n"] }, body, body);
+  assert.throws(
+    () => assertOne({ sum_eq: [[{ count: "weeks" }], "s.n"] }, body, body),
+    /count weeks = 2, s.n = 4/,
+  );
+  assert.throws(
+    () => assertOne({ sum_eq: [[{ count: "s.n" }], "s.n"] }, body, body),
+    /a part is absent \(count s.n\)/,
+  );
   assertOne({ sorted_asc: [["weeks[].a"]] }, body, body);
   assertOne({ notes_match: "war day \\d" }, body, body);
   assert.throws(

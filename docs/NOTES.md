@@ -5592,3 +5592,18 @@ No control was changed or marked known here. Public health was ok with
 no dead jobs, and /updates served the entry. This receipt is gated as
 its own PR and needs no redeploy.
 
+
+## 2026-10-05 - Two Gym controls hold after a new race starts
+
+Two of the four acceptance failures after S137's first race was recorded
+were controls written against S136's state. `gym/82.4` read the current
+bracket, which no longer holds Happy Win; it now names Happy Win with
+`rival_tags`. `gym/341.1` asserted race-roster participants equal
+`member_count`, which the game breaks at every race start (23 of 48 this
+morning, the rest not seen since the race began); it now asserts
+participants plus `members_not_in_race` equal `member_count`, both from
+the same current-member set. The interpreter's `sum_eq` takes
+`{"count": path}` for a list's length. Both cases pass live and their
+amendments are recorded on the cases. `gym/316.4` and the
+`battles_performance` notes check need S137 ladder battles and are left
+as they are.
