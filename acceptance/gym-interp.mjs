@@ -11,8 +11,9 @@
  * element where key equals value). With `calls`, the first segment is
  * an alias (`r.rivals[...]`, `w.standings[...]`).
  *
- * Verbs: has, absent, eq, neq, lt, lte, gt, gte, count_eq, sum_gte, all, sum_eq (paths
- * and literals; a fanned total `list[].field` is summed, 87.1; a total
+ * Verbs: has, absent, eq, neq, lt, lte, gt, gte, count_eq, sum_gte, all, sum_eq (paths,
+ * literals and `{"count": path}`, a list's length, 341.1; a fanned total
+ * `list[].field` is summed, 87.1; a total
  * that is a list of parts is their sum, 301.1; a decimal compares to
  * 0.005, 96.1), contains
  * (a scalar list holds a value, 85.6), sorted_desc, sorted_asc,
@@ -226,12 +227,21 @@ export function assertOne(spec, scope, root) {
       const [parts, total] = arg;
       const vals = parts.flatMap((p) => {
         if (typeof p === "number") return [p];
+        // {"count": path} is a list's length (341.1: the members in a
+        // race's roster plus members_not_in_race are the members).
+        if (p && typeof p === "object" && "count" in p) {
+          const list = at(p.count);
+          return [Array.isArray(list) ? list.length : undefined];
+        }
         const v = at(p);
         return Array.isArray(v) ? v : [v];
       });
+      const named = parts
+        .map((p) => (p && typeof p === "object" ? `count ${p.count}` : p))
+        .join(", ");
       ok(
         vals.every((v) => v !== undefined),
-        `sum_eq: a part is absent (${parts.join(", ")})`,
+        `sum_eq: a part is absent (${named})`,
       );
       if (vals.some((v) => v === null)) return;
       const sum = vals.reduce((x, y) => x + y, 0);
@@ -257,7 +267,7 @@ export function assertOne(spec, scope, root) {
       const decimal = !Number.isInteger(sum) || !Number.isInteger(want);
       ok(
         decimal ? Math.abs(sum - want) <= 0.005 : sum === want,
-        `sum_eq: ${parts.join(" + ")} = ${sum}, ${total} = ${want}`,
+        `sum_eq: ${named.replaceAll(", ", " + ")} = ${sum}, ${total} = ${want}`,
       );
       return;
     }

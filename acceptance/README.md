@@ -57,7 +57,8 @@ written - nothing is hand-translated. The vocabulary:
   the first element where key equals value; with `calls`, the first
   segment is an alias (`r.rivals[?clan_tag=#QUGRGLU2].mean_fame`).
 - **verbs**: `has`, `absent`, `eq`, `neq`, `lt`, `lte`, `gt`, `gte`,
-  `count_eq`, `sum_eq` (paths and literals), `sorted_desc`, `sorted_asc`
+  `count_eq`, `sum_eq` (paths, literals and `{"count": path}`, a list's
+  length), `sorted_desc`, `sorted_asc`
   (each listed path in its own order), `notes_match`, `notes_not_match`,
   `every_row_has`. An `eq` right-hand side that parses as a path is read
   as one. The notes verbs also read a refusal's `error.message` and
