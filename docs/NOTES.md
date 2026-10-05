@@ -5566,3 +5566,29 @@ The other two acceptance failures in that run, `gym/316.4` and
 `season: current`, which was under three hours old. No code changed for
 them.
 
+### Deployment and gate receipt
+
+The matchmaking change (PR #305, 7176f673) deployed first, at about
+12:40Z (7:40 AM CT): its acceptance run failed the three cases named
+above. PR #308 merged as 811b04cf after green required validation and
+deployed at about 13:45Z (8:45 AM CT), with zero new migrations. The
+normal planner read POAP KINGS' race at 13:47:39Z (8:47 AM CT): S137
+section 0, training day 1, a new bracket. No live fetch, requeue or op
+write was used to get it there.
+
+Acceptance with the CR API key reachable: 1,135 cases, 4 failed, 384
+skipped; `ground/war-standings-agree-with-the-game` now passes. The four
+failures are live controls written against S136's state:
+
+- `gym/82.4` expects Happy Win (S136 bracket) in `war_rivals`; the
+  current race has a new bracket.
+- `gym/341.1` expects `decks_today.counts.participants` to equal
+  `member_count`; the game's new race roster has 23 of 48 members, the
+  other 25 named in `members_not_in_race` (not seen since the race began).
+- `gym/316.4` and `catalogue/battles_performance#notes` read King Thing's
+  `season: current`, which has no ladder battles yet.
+
+No control was changed or marked known here. Public health was ok with
+no dead jobs, and /updates served the entry. This receipt is gated as
+its own PR and needs no redeploy.
+
