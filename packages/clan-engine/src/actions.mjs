@@ -25,12 +25,12 @@ export const ACTION_TYPES = {
   promotion: {
     label: "Promote to Elder",
     audience: "leaders",
-    channel: "leader_message",
+    channel: "clan_chat",
   },
   demotion: {
     label: "Demote to Member",
     audience: "leaders",
-    channel: "leader_message",
+    channel: "clan_chat",
   },
   removal: {
     label: "Remove from the clan",
@@ -51,17 +51,17 @@ export const ACTION_TYPES = {
   awards_standings: {
     label: "Share this week’s award standings",
     audience: "leaders",
-    channel: "leader_message",
+    channel: "clan_chat",
   },
   awards_announcement: {
     label: "Announce the season's awards",
     audience: "leaders",
-    channel: "leader_message",
+    channel: "clan_chat",
   },
   rules_announcement: {
     label: "Tell the clan how it runs",
     audience: "leaders",
-    channel: "leader_message",
+    channel: "clan_chat",
   },
 };
 
@@ -127,13 +127,25 @@ export function reconstructedLog(card) {
         by: {
           tag: card.decided_by ?? null,
           name: card.decided_by_name ?? null,
-          role: null,
+          role: card.decided_by_role ?? null,
         },
         text: card.decision_note ?? null,
         detail: {
           ...detail,
           reason: card.decline_reason ?? null,
           classification: card.outcome?.classification ?? null,
+          ...(card.sent ? { channel: card.sent.channel, sent: card.sent } : {}),
+          ...(card.messages_sent?.length
+            ? {
+                delivery_channels: [
+                  ...new Set(
+                    card.messages_sent.map(
+                      (r) => r.channel ?? "leader_message",
+                    ),
+                  ),
+                ],
+              }
+            : {}),
         },
       }),
     );

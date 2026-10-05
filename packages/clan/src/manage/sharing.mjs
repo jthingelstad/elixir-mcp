@@ -51,7 +51,7 @@ const SHARE_TYPES = {
   },
   clan_message: {
     label: "Messages to the clan",
-    why: "Clan Leader Messages sent with a promotion, a demotion or an announcement, and welcome lines in clan chat.",
+    why: "Reviewed clan-chat lines or Leader Messages sent with a promotion, a demotion or an announcement, and welcome lines in clan chat.",
     sees: "Everyone verified in the clan.",
   },
   award_standing: {
@@ -66,6 +66,8 @@ const LEADERS = new Set(["leader", "coLeader"]);
 /** The words the person actually sent, when they edited them; else the
  *  action's own. Bounded as the game bounds them. */
 function sentMessage(card, sent) {
+  if (sent?.channel === "leader_message")
+    return { channel: "leader_message", title: sent.title, body: sent.body };
   const own =
     card.evidence?.message ??
     leaderMessage(card.type, {
@@ -75,7 +77,22 @@ function sentMessage(card, sent) {
   const title = String(sent?.title ?? own?.title ?? "").trim();
   const body = String(sent?.body ?? own?.body ?? "").trim();
   if (!body) return null;
-  return { title: title.slice(0, 24) || undefined, body: body.slice(0, 200) };
+  return {
+    channel: "leader_message",
+    title: title.slice(0, 24) || undefined,
+    body: body.slice(0, 200),
+  };
+}
+
+// One fact per actual chat send, preserving the existing 200-character
+// public contract. A merged chat bubble is not one game message.
+function chatFacts(ref, at, lines) {
+  return lines.map((body, i) => ({
+    type: "clan_message",
+    ref: `${ref}:chat:${i + 1}`,
+    occurred_at: at,
+    detail: { channel: "clan_chat", body },
+  }));
 }
 
 /** The facts a completed action attests, before the clan's switches. */
@@ -90,12 +107,22 @@ export function factsOfAction(
   if (card.evidence?.messages) {
     return (decided.messages_sent ?? [])
       .filter((r) => r.part === message_part)
-      .map((r) => ({
-        type: "clan_message",
-        ref: `${ref}:message:${r.part}`,
-        occurred_at: r.sent_at,
-        detail: { channel: "leader_message", title: r.title, body: r.body },
-      }));
+      .flatMap((r) =>
+        r.channel === "clan_chat"
+          ? chatFacts(`${ref}:message:${r.part}`, r.sent_at, r.lines)
+          : [
+              {
+                type: "clan_message",
+                ref: `${ref}:message:${r.part}`,
+                occurred_at: r.sent_at,
+                detail: {
+                  channel: "leader_message",
+                  title: r.title,
+                  body: r.body,
+                },
+              },
+            ],
+      );
   }
   if (card.type === "departure") {
     const c = decided.outcome?.classification;
@@ -142,23 +169,29 @@ export function factsOfAction(
       "rules_announcement",
     ].includes(card.type)
   ) {
-    const m = sentMessage(card, sent);
-    if (m)
+    const actual = decided.sent ?? sent;
+    const m =
+      actual?.channel === "clan_chat" ? null : sentMessage(card, actual);
+    if (actual?.channel === "clan_chat")
+      facts.push(...chatFacts(`${ref}:message`, at, actual.lines));
+    else if (m)
       facts.push({
         type: "clan_message",
         ref: `${ref}:message`,
         occurred_at: at,
-        detail: { channel: "leader_message", ...m },
+        detail: m,
       });
   }
-  if (card.type === "welcome" && sent?.line)
+  if (card.type === "welcome" && (sent?.line || sent?.lines))
     facts.push({
       type: "clan_message",
       ref: `${ref}:message`,
       occurred_at: at,
       detail: {
         channel: "clan_chat",
-        body: String(sent.line).trim().slice(0, 200),
+        body: sent.lines
+          ? sent.lines.join("\n")
+          : String(sent.line).trim().slice(0, 200),
       },
     });
   if (card.type === "awards_announcement")

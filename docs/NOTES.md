@@ -5478,3 +5478,34 @@ Not changed: a `live: true` race read that lands in matchmaking still says
 "a payload our admission rejected" (`tools/shared.mjs`), and the receipt
 stays `rejected`. No contract or JSON API version moves. Ingest is shared
 code, so the deploy runs the whole acceptance suite (ship skill, Scope).
+
+## 2026-10-05 — chat-first Clan Action delivery
+
+Jamie's direction makes chat the ordinary conversation lane and Inbox an
+explicit durable choice for selected award/rules announcements. New routine
+Actions freeze chat copy and available alternatives when raised; pre-existing
+Actions keep their original Inbox defaults and saved evidence. Missing legacy
+channel never means today's chat default. Single and segmented human receipts
+snapshot channel and exact reviewed text; each chat send is bounded to 200 and
+shared as a separate fact under the existing public contract. Mixed receipt
+history stays explicit. No migration, backfill or destructive schema operation.
+
+Separate browser-tab edit buffers survive channel switching and reloads, bound
+to the acting player and context, and clear on closure or successful sign-out.
+An interrupted receipt prompts a recorded-state check, never a game resend;
+conditional card updates preserve other decisions/receipts. Review later is
+navigation only. Inbox guidance states the user-reported daily limit, unknown
+external usage/reset and delivered-but-masked possibility; there is no capacity
+automation or filter-safe guarantee. The standalone reference records general
+observations with uncertainty, without private production payloads.
+
+Manual awards and their cardinality are unchanged, including multiple
+FreePasses in one season. No grant is inferred from a comment; Jamie reports
+his existing S136 awards and manual pass designation complete. This engineering
+run performs no production grants, decisions, policy edits, forced jobs or
+message sends. MCP 11.2.3 and JSON API 3.0.0 shapes/versions remain unchanged.
+The targeted consistency trace covers Action generation/read shaping, drafting,
+UI, receipts, sharing, docs and reference; no sibling product changes are needed.
+Full verify, required CI and built desktop/mobile journeys gate the change.
+Deploy acceptance is omitted because no MCP reader contract or game-record tool
+changes; public read-back and the existing smoke suite verify the deployment.

@@ -43,7 +43,18 @@ export const api = {
     request("POST", "/api/me/sessions/revoke", { everywhere: true }),
   dismissRefusal: (body, agent) =>
     request("POST", `${home(agent)}/connections/refusals/dismiss`, body),
-  signOut: () => request("POST", "/api/session/signout", {}),
+  signOut: async () => {
+    const result = await request("POST", "/api/session/signout", {});
+    if (result.ok) {
+      try {
+        for (const key of Object.keys(sessionStorage))
+          if (key.startsWith("clan-delivery:")) sessionStorage.removeItem(key);
+      } catch {
+        /* Draft storage is optional. */
+      }
+    }
+    return result;
+  },
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
   emailPrefs: () => request("GET", "/api/me/email"),
   setEmailPref: (kind, enabled) =>

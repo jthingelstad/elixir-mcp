@@ -583,6 +583,7 @@ export function createHandler({
             note: body.note ?? null,
             clanName: clan.name ?? null,
             expectedDraftVersion: body.expected_draft_version ?? null,
+            channel: body.channel ?? null,
           }),
         );
       }

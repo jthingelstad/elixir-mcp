@@ -105,7 +105,7 @@ its observed finish must be within the last seven days. A finished Colosseum
 uses the final season path. Later open
 weeks are excluded. Missing evidence withholds places; attendance names the
 number recorded on track, and manual picks remain human choices. Each part
-is editable and ready to copy into a Clan Leader Message. All parts belong to
+is editable and defaults to clan chat, with an explicit durable Inbox alternative. All parts belong to
 the same Action; mark each sent only after sharing it in the game. Saved weekly
 snapshots and completed or declined Actions stay unchanged. Retrying a timely
 update recovers its original Action, without creating historical backfill.
@@ -124,8 +124,9 @@ a new snapshot. Each part records its own sent receipt before the whole update
 can be completed.
 
 **In the game.** When the clan turns on **Announce each season's
-awards**, the leaders get an [action](/docs/clan-actions) with a Clan
-Leader Message naming the winners, to send in the game themselves.
+awards**, the leaders get an [action](/docs/clan-actions) naming the winners,
+defaulting to clan chat with an explicit durable Leader Message alternative,
+to send in the game themselves.
 Long lists are split into numbered, game-sized messages that name every recipient;
 send every part. Later manual choices update pending copy or create new copy if
 the earlier message was sent. Taking back a manual choice removes it from pending

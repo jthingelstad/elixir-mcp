@@ -7,6 +7,7 @@
 
 import {
   ACTION_TYPES,
+  actionDelivery,
   SYSTEM,
   audienceOf,
   canAct,
@@ -41,6 +42,7 @@ export const draftContextVersion = (c) =>
         c.outcome,
         c.decided_at,
         c.decided_by,
+        ...(c.delivery ? [c.delivery] : []),
       ]),
     )
     .digest("hex");
@@ -85,6 +87,9 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
       ...card,
       number: await ledger.nextActionNumber(clanTag),
       audience: audienceOf(card),
+      ...(actionDelivery(card, { fresh: true })
+        ? { delivery: actionDelivery(card, { fresh: true }) }
+        : {}),
     };
     await ledger.putCard(clanTag, action);
     await logAction(clanTag, action.card_id, "raised", {
@@ -142,12 +147,15 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
           ? 1
           : String(a.seq ?? "").localeCompare(String(b.seq ?? ""));
     const entries = [...(stored ?? [])].sort(order);
-    const have = new Set(entries.map((e) => e.kind));
     const base = reconstructedLog(card).filter(
       (e) =>
-        !have.has(e.kind) &&
-        (e.kind === "withdrawn" ||
-          !entries.some((entry) => entry.kind === "raised")),
+        !entries.some(
+          (entry) =>
+            entry.kind === e.kind &&
+            (e.kind !== "declined" ||
+              !card.reopenings?.length ||
+              entry.at >= card.decided_at),
+        ),
     );
     for (const reopening of card.reopenings ?? []) {
       const decline = reopening.decline;
@@ -207,6 +215,30 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
         copy: inGameCopy("farewell", { name: c.player_name }),
         message: null,
       };
+    const delivery = actionDelivery(c);
+    if (delivery) {
+      const delivered = [
+        ...new Set(
+          (c.messages_sent ?? []).map((r) => r.channel ?? "leader_message"),
+        ),
+      ];
+      const channel =
+        c.sent?.channel ??
+        (c.status !== "proposed" && delivered.length
+          ? delivered.length === 1
+            ? delivered[0]
+            : null
+          : delivery.channel);
+      const first = delivery.parts[0]?.options[channel];
+      return {
+        channel,
+        delivery,
+        delivery_channels: delivered,
+        copy: channel === "clan_chat" ? (first?.lines?.[0] ?? null) : null,
+        message: channel === "leader_message" ? (first ?? null) : null,
+        messages: c.evidence?.messages ?? null,
+      };
+    }
     const channel = ACTION_TYPES[c.type]?.channel ?? null;
     if (channel === "clan_chat")
       return {

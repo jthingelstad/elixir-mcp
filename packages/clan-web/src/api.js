@@ -61,12 +61,19 @@ export const manageApi = {
   messageSent: (tag, id, part, body) =>
     post(`${clanBase(tag)}/actions/${id}/messages/${part}/sent`, body),
   // A Leader Message in the clan's voice, by the clan's own model.
-  draftLeaderMessage: (tag, id, note, expectedDraftVersion = null) =>
+  draftLeaderMessage: (
+    tag,
+    id,
+    note,
+    expectedDraftVersion = null,
+    channel = null,
+  ) =>
     post(`${clanBase(tag)}/actions/${id}/draft`, {
       note,
       ...(expectedDraftVersion
         ? { expected_draft_version: expectedDraftVersion }
         : {}),
+      ...(channel ? { channel } : {}),
     }),
   commentAction: (tag, id, text) =>
     post(`${clanBase(tag)}/actions/${id}/comments`, { text }),

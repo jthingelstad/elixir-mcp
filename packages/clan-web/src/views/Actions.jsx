@@ -1,7 +1,12 @@
 import { Fresh, Icon, ago } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { keys, useAction, useActions, useInvalidate } from "../lib/queries.js";
-import { ActionCard, STATUS, TypeIcon } from "../components/ActionCard.jsx";
+import {
+  ActionCard,
+  LeaderMessageNotice,
+  STATUS,
+  TypeIcon,
+} from "../components/ActionCard.jsx";
 import { TooFew } from "../components/TooFew.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { trackEvent } from "../analytics.js";
@@ -92,6 +97,13 @@ function ActionRow({ action, clan, navigate, scope }) {
         </span>
         <span className="text-[12.5px] text-ink-dim">
           {about(action)}
+          {action.status !== "proposed" && action.delivery_channels?.length > 1
+            ? " · Clan chat and Inbox"
+            : action.channel === "leader_message"
+              ? " · Leader Message"
+              : action.channel === "clan_chat"
+                ? " · Clan chat"
+                : ""}
           {comments ? ` · ${comments} comment${comments === 1 ? "" : "s"}` : ""}
           {action.removal_safety?.status === "held"
             ? " · Held: inactivity not established"
@@ -229,6 +241,13 @@ export function Actions({ clan, who, navigate, scope: routeScope }) {
   );
   const history = `${clanPath(clan.clan_tag)}/manage/history`;
   const leads = LEADERS.has(who?.role ?? clan.role);
+  const leaderMessages = open.filter((a) => a.channel === "leader_message");
+  const lastLeaderCompletion = [...d.recent]
+    .filter(
+      (a) =>
+        a.channel === "leader_message" && a.status === "done" && a.decided_at,
+    )
+    .sort((a, b) => b.decided_at.localeCompare(a.decided_at))[0];
   return (
     <>
       {head}
@@ -260,6 +279,20 @@ export function Actions({ clan, who, navigate, scope: routeScope }) {
             <option value="closed">Closed</option>
           </select>
         </label>
+        {scope === "open" && leaderMessages.length > 0 ? (
+          <LeaderMessageNotice count={leaderMessages.length}>
+            {lastLeaderCompletion ? (
+              <p className="page-head__note mb-0">
+                <Fresh
+                  label={`Latest completion in Elixir: Action #${lastLeaderCompletion.number}`}
+                  ts={lastLeaderCompletion.decided_at}
+                />{" "}
+                This records a decision, not the game&rsquo;s remaining message
+                capacity.
+              </p>
+            ) : null}
+          </LeaderMessageNotice>
+        ) : null}
         {scope === "open" &&
           (open.length === 0 ? (
             <div className="empty">

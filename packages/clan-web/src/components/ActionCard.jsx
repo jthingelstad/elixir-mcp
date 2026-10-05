@@ -5,11 +5,14 @@ import {
   WELCOME_MAX,
   LEADER_MESSAGE,
   chatWarnings,
+  actionDelivery,
+  chatLines,
+  deliveryWords,
 } from "@elixir-mcp/clan-engine";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
-import { CLAN, memberPath } from "../lib/base.js";
+import { CLAN, clanPath, memberPath } from "../lib/base.js";
 import { MemberSheet } from "./MemberSheet.jsx";
 import { RoleChip } from "./RoleChip.jsx";
 
@@ -237,7 +240,11 @@ function DraftControls({
       if (r.error) return setSaid(r.error);
       setPrevious(value);
       onChange(
-        r.line !== undefined ? r.line : { title: r.title, body: r.body },
+        r.lines
+          ? { lines: r.lines }
+          : r.line !== undefined
+            ? r.line
+            : { title: r.title, body: r.body },
       );
       setSaid(
         `Drafted by ${r.model}.${r.warnings?.length ? ` Check: ${r.warnings.join("; ")}.` : ""} Edit it, then copy and send.`,
@@ -362,6 +369,232 @@ function ChatMessage({
  *  each within the game's limit, edited before copying. The card holds
  *  the words (`value`/`onChange`) so completing the action can say what
  *  was sent; on its own it keeps them itself. */
+export function LeaderMessageNotice({ count = 1, children }) {
+  return (
+    <div className="rounded-control border border-line-soft bg-panel-raised p-3 text-[13px] leading-[1.5]">
+      <strong>Leader Message availability: check in the game</strong>
+      <p className="my-1">
+        Reported limit: one Leader Message per day. Elixir cannot see sends
+        outside these Actions or determine when the game resets the limit.
+        {count > 1
+          ? ` ${count} Actions need Leader Messages. Choose which to send first; leave the others open for later.`
+          : " If the game will not let you send this one yet, leave the Action open for later."}{" "}
+        Ordinary clan chat uses a different channel.
+      </p>
+      <p className="my-1">
+        After sending, check the Inbox text. A delivered message can be masked
+        with asterisks and may have used the daily slot. Do not automatically
+        resend it. Elixir cannot verify delivery or readability.
+      </p>
+      {children}
+    </div>
+  );
+}
+
+/** Separate edit buffers survive channel changes and reloads in this tab.
+ * They are bound to the acting player and frozen context, never a receipt. */
+function useDeliveryDraft(action, clan, who, part = 1) {
+  const delivery = actionDelivery(action);
+  const options = delivery?.parts.find((m) => m.part === part)?.options;
+  const prefix = `clan-delivery:${clan.clan_tag}:${action.card_id}:${who?.player_tag ?? ""}:`;
+  const key = `${prefix}${action.draft_context_version ?? action.raised_at}:${part}`;
+  const [draft, setDraft] = useState(() => {
+    const initial = options
+      ? { channel: delivery.channel, options: structuredClone(options) }
+      : null;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(key));
+      if (
+        saved &&
+        options &&
+        Object.hasOwn(options, saved.channel) &&
+        Object.keys(options).every((channel) =>
+          Object.hasOwn(saved.options ?? {}, channel),
+        ) &&
+        Array.isArray(saved.options.clan_chat?.lines) &&
+        saved.options.clan_chat.lines.every(
+          (line) => typeof line === "string",
+        ) &&
+        (!options.leader_message ||
+          (typeof saved.options.leader_message?.title === "string" &&
+            typeof saved.options.leader_message?.body === "string"))
+      )
+        return saved;
+    } catch {
+      /* Storage is optional; the on-screen editor still works. */
+    }
+    return initial;
+  });
+  useEffect(() => {
+    if (
+      action.status !== "proposed" ||
+      action.messages_sent?.some((r) => r.part === part)
+    ) {
+      try {
+        for (const savedKey of Object.keys(sessionStorage))
+          if (savedKey.startsWith(prefix) && savedKey.endsWith(`:${part}`))
+            sessionStorage.removeItem(savedKey);
+      } catch {
+        /* Storage is optional. */
+      }
+    }
+  }, [prefix, action.status, action.messages_sent, part]);
+  const change = (value) => {
+    setDraft(value);
+    try {
+      sessionStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      /* Storage is optional. */
+    }
+  };
+  const words = draft
+    ? { channel: draft.channel, ...draft.options[draft.channel] }
+    : null;
+  let valid = true;
+  if (words) {
+    try {
+      deliveryWords(action, words, part);
+    } catch {
+      valid = false;
+    }
+  }
+  return { draft, change, words, valid };
+}
+
+function DeliveryComposer({
+  draft,
+  onChange,
+  onDraft = null,
+  onBusy = null,
+  disabled = false,
+  part = null,
+}) {
+  const channel = draft.channel;
+  const words = draft.options[channel];
+  const edit = (value) =>
+    onChange({ ...draft, options: { ...draft.options, [channel]: value } });
+  return (
+    <div className="grid gap-3">
+      {Object.keys(draft.options).length > 1 ? (
+        <label className="grid gap-1">
+          <span className="field-label">Delivery channel</span>
+          <select
+            className="input w-full"
+            aria-label={
+              part ? `Delivery channel for message ${part}` : "Delivery channel"
+            }
+            disabled={disabled}
+            value={channel}
+            onChange={(e) => onChange({ ...draft, channel: e.target.value })}
+          >
+            <option value="clan_chat">Clan chat</option>
+            {draft.options.leader_message ? (
+              <option value="leader_message">
+                Durable Leader Message · Inbox
+              </option>
+            ) : null}
+          </select>
+          <span className="page-head__note">
+            Chat reaches the clan conversation. Inbox is separate and useful for
+            important messages members may want to keep.
+          </span>
+        </label>
+      ) : null}
+      {channel === "leader_message" ? (
+        <>
+          <LeaderMessageNotice />
+          <LeaderMessage
+            message={words}
+            value={words}
+            onChange={edit}
+            onDraft={onDraft}
+            onBusy={onBusy}
+            disabled={disabled}
+          />
+        </>
+      ) : (
+        <div className="grid gap-2.5 rounded-block border border-line-soft bg-ground-sunken p-4">
+          <strong className="text-[13.5px]">Clan chat</strong>
+          <p className="page-head__note m-0">
+            Send in the clan&rsquo;s chat, where members normally talk. Each
+            field below is a separate send. Check the text after sending; the
+            game may mask it. Copying does not send or complete this Action.
+          </p>
+          {words.lines.map((line, i) => (
+            <MessageField
+              key={i}
+              label={
+                words.lines.length > 1
+                  ? `Chat message ${i + 1}`
+                  : "Chat message"
+              }
+              value={line}
+              max={CHAT_MAX}
+              rows={3}
+              copyKind="clan_chat"
+              disabled={disabled}
+              onChange={(value) =>
+                edit({
+                  lines: words.lines.map((old, n) => (n === i ? value : old)),
+                })
+              }
+            />
+          ))}
+          {onDraft ? (
+            <DraftControls
+              value={words}
+              onDraft={onDraft}
+              onBusy={onBusy}
+              disabled={disabled}
+              onChange={(value) =>
+                edit(
+                  value?.lines
+                    ? value
+                    : {
+                        lines:
+                          typeof value === "string"
+                            ? [value]
+                            : chatLines(value),
+                      },
+                )
+              }
+            />
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SentWords({ receipt }) {
+  return (
+    <div className="grid gap-1 text-[13.5px]">
+      <strong>
+        {receipt.channel === "clan_chat"
+          ? "Sent in clan chat"
+          : "Sent as a Leader Message"}
+      </strong>
+      {receipt.word_source === "suggested" ? (
+        <span className="page-head__note">
+          Suggested words; the original decision did not supply edited text.
+        </span>
+      ) : null}
+      {receipt.channel === "clan_chat" ? (
+        receipt.lines.map((line, i) => (
+          <p className="m-0 whitespace-pre-wrap break-words" key={i}>
+            {line}
+          </p>
+        ))
+      ) : (
+        <>
+          <strong>{receipt.title}</strong>
+          <p className="m-0 whitespace-pre-wrap break-words">{receipt.body}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
 function LeaderMessage({
   message,
   value = null,
@@ -398,7 +631,8 @@ function LeaderMessage({
       </div>
       <div className="page-head__note">
         In the game, Clan → the leader message button; only leaders and
-        co-leaders can send one, and it stays in every member&rsquo;s Inbox.
+        co-leaders can send one. It appears in members&rsquo; Inbox, separate
+        from clan chat.
       </div>
       <MessageField
         label="Title"
@@ -416,9 +650,9 @@ function LeaderMessage({
         disabled={drafting || disabled}
       />
       {clean ? (
-        <span className="flex items-center gap-2 text-[12.5px] text-ok">
-          <Icon name="circle-check" size={14} />
-          Nothing the game&rsquo;s chat filter is known to block.
+        <span className="page-head__note">
+          No known text warnings. This does not guarantee the game will display
+          it unchanged.
         </span>
       ) : null}
       {onDraft ? (
@@ -586,7 +820,7 @@ export function ActionCard(props) {
     `${a.card_id}:${a.status}:${a.outcome?.classification}:${a.decided_at}`;
   return (
     <BoundActionCard
-      key={`${version}:${a.removal_safety?.status}:${a.removal_safety?.evidence_version}`}
+      key={`${props.clan.clan_tag}:${props.who?.player_tag}:${version}:${a.removal_safety?.status}:${a.removal_safety?.evidence_version}`}
       {...props}
     />
   );
@@ -621,13 +855,10 @@ function BoundActionCard({
     action.type === "departure" && action.status === "done" && !!action.copy;
   const mine = action.audience?.kind === "member";
   const ev = action.evidence ?? {};
+  const delivery = useDeliveryDraft(action, clan, who);
   // The words as the person edits them, sent with a completion so what
   // the clan shares with Elixir is what was said in the game.
   const [line, setLine] = useState(action.copy ?? "");
-  const [words, setWords] = useState({
-    title: action.message?.title ?? "",
-    body: action.message?.body ?? "",
-  });
   const grouped = ev.messages?.length > 0;
   const allSent =
     grouped &&
@@ -648,6 +879,7 @@ function BoundActionCard({
             action.card_id,
             note,
             action.draft_context_version ?? null,
+            ...(delivery.words ? [delivery.words.channel] : []),
           );
           if (!r.ok) {
             if (
@@ -682,14 +914,15 @@ function BoundActionCard({
             ? reason
             : null,
         note: note || null,
-        ...(status === "done" && action.message
-          ? { sent: { title: words.title, body: words.body } }
+        ...(status === "done" && delivery.words && !grouped
+          ? { sent: delivery.words }
           : status === "done" && action.copy && action.type === "welcome"
             ? { sent: { line } }
             : {}),
         ...extra,
       });
       if (!r.ok) {
+        onChanged?.();
         if (r.data?.error === "removal_evidence_held") {
           setContextInvalid(true);
           onChanged?.();
@@ -709,6 +942,7 @@ function BoundActionCard({
       );
       onChanged?.();
     } catch {
+      onChanged?.();
       setError(
         "The action's outcome is unknown. Your words are unchanged. Reload the action to check its log before trying again.",
       );
@@ -905,7 +1139,8 @@ function BoundActionCard({
           ) : action.type === "awards_announcement" ? (
             <div>
               Season {ev.season_id} is closed and its awards are granted. Tell
-              the clan with a Clan Leader Message, then mark it sent.
+              the clan in chat or choose a durable Inbox message, then mark it
+              sent.
               {ev.parts > 1
                 ? ` Message ${ev.part} of ${ev.parts}; send every part to name all recipients.`
                 : ""}
@@ -928,7 +1163,8 @@ function BoundActionCard({
               {ev.changes?.length
                 ? `Policy version ${ev.version} changed: ${ev.changes.join(", ")}.`
                 : `Policy version ${ev.version}: the clan's first.`}{" "}
-              Tell the clan with a Clan Leader Message, then mark it sent.
+              Tell the clan in chat or choose a durable Inbox message, then mark
+              it sent.
             </div>
           ) : (
             <div>
@@ -943,8 +1179,8 @@ function BoundActionCard({
           <div className="rounded-control bg-panel-raised px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-ink-body">
             <b className="text-ink">In the game:</b>{" "}
             {action.type === "promotion" ? "promote" : "demote"}{" "}
-            {action.player_name ?? action.player_tag}, send this Clan Leader
-            Message, then mark it complete. They go together.
+            {action.player_name ?? action.player_tag}, send the reviewed
+            message, then mark it complete. They go together.
           </div>
         ) : null}
         {LEADER_TYPES.has(action.type) && ev.facts?.length ? (
@@ -980,6 +1216,7 @@ function BoundActionCard({
         {!contextInvalid &&
         !removalHeld &&
         action.copy &&
+        !delivery.draft &&
         (open || departureCopy) ? (
           (["welcome", "removal"].includes(action.type) &&
             action.can_act !== false) ||
@@ -996,6 +1233,28 @@ function BoundActionCard({
             <CopyLine text={action.copy} />
           )
         ) : null}
+        {open && delivery.draft ? (
+          <>
+            <a
+              className="btn w-fit"
+              href={`${clanPath(clan.clan_tag)}/actions`}
+              onClick={(e) => {
+                if (!navigate || e.metaKey || e.ctrlKey || e.shiftKey) return;
+                e.preventDefault();
+                navigate(`${clanPath(clan.clan_tag)}/actions`);
+              }}
+            >
+              Review later · leave open
+            </a>
+            {grouped && ev.messages.length > 1 ? (
+              <p className="page-head__note m-0">
+                Each part has its own delivery choice. If using the Inbox, wait
+                until the game allows another Leader Message. Sent receipts stay
+                saved while you wait.
+              </p>
+            ) : null}
+          </>
+        ) : null}
         {grouped ? (
           <div className="grid gap-4">
             {ev.messages.map((m) => (
@@ -1009,16 +1268,16 @@ function BoundActionCard({
               />
             ))}
           </div>
-        ) : !contextInvalid && action.message && open ? (
-          <LeaderMessage
-            message={action.message}
-            value={words}
-            onChange={setWords}
+        ) : !contextInvalid && delivery.draft && open ? (
+          <DeliveryComposer
+            draft={delivery.draft}
+            onChange={delivery.change}
             onDraft={onDraft}
             onBusy={setDrafting}
-            disabled={deciding}
+            disabled={busy || action.can_act === false}
           />
         ) : null}
+        {!open && action.sent ? <SentWords receipt={action.sent} /> : null}
         {!open ? (
           <div className="page-head__note">
             {action.status === "withdrawn"
@@ -1121,7 +1380,7 @@ function BoundActionCard({
                 <button
                   type="button"
                   className="btn btn--primary"
-                  disabled={busy || (grouped && !allSent)}
+                  disabled={busy || (grouped ? !allSent : !delivery.valid)}
                   onClick={() => decide("done")}
                 >
                   {grouped ? "Complete update" : "Sent"}
@@ -1162,7 +1421,10 @@ function BoundActionCard({
                   type="button"
                   className="btn btn--primary"
                   disabled={
-                    busy || action.can_complete === false || removalHeld
+                    busy ||
+                    action.can_complete === false ||
+                    removalHeld ||
+                    !delivery.valid
                   }
                   onClick={() => decide("done")}
                 >
@@ -1255,9 +1517,40 @@ function BoundActionCard({
 /** Each delivery is a person's explicit receipt; copying remains independent. */
 function UpdateMessage({ message, action, clan, who, onChanged }) {
   const receipt = action.messages_sent?.find((r) => r.part === message.part);
-  const [words, setWords] = useState(message.message);
+  const delivery = useDeliveryDraft(action, clan, who, message.part);
   const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (receipt) setError("");
+  }, [receipt]);
+  const record = async (words) => {
+    if (pending.current) return;
+    pending.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const r = await manageApi.messageSent(
+        clan.clan_tag,
+        action.card_id,
+        message.part,
+        words,
+      );
+      if (!r.ok)
+        setError(
+          "The receipt is unconfirmed here. Reload to check the saved receipt before trying again. Do not resend the game message.",
+        );
+      onChanged?.();
+    } catch {
+      setError(
+        "The receipt is unconfirmed here. Reload to check the saved receipt before trying again. Do not resend the game message.",
+      );
+      onChanged?.();
+    } finally {
+      pending.current = false;
+      setBusy(false);
+    }
+  };
   return (
     <section className="grid gap-2 border-t border-line-row pt-3">
       <div className="label">
@@ -1269,84 +1562,38 @@ function UpdateMessage({ message, action, clan, who, onChanged }) {
             Sent by {receipt.sent_by_name ?? receipt.sent_by} ·{" "}
             {receipt.sent_at}
           </p>
-          <strong>{receipt.title}</strong>
-          <p className="m-0">{receipt.body}</p>
+          <SentWords receipt={receipt} />
           {receipt.shared === false && receipt.sent_by === who?.player_tag ? (
-            <button
-              className="btn btn--sm w-fit"
-              type="button"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                setError("");
-                try {
-                  const r = await manageApi.messageSent(
-                    clan.clan_tag,
-                    action.card_id,
-                    message.part,
-                    { title: receipt.title, body: receipt.body },
-                  );
-                  if (!r.ok)
-                    setError(
-                      "The sent receipt is saved; recording it in Elixir is still unconfirmed.",
-                    );
-                  else onChanged?.();
-                } catch {
-                  setError(
-                    "The sent receipt is saved; recording it in Elixir is still unconfirmed.",
-                  );
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Retry recording in Elixir
-            </button>
+            <>
+              <p className="page-head__note m-0">
+                The sent receipt is saved. Retry only records it in Elixir; it
+                does not resend in the game.
+              </p>
+              <button
+                className="btn btn--sm w-fit"
+                type="button"
+                disabled={busy}
+                onClick={() => record(receipt)}
+              >
+                Retry recording in Elixir
+              </button>
+            </>
           ) : null}
         </>
       ) : action.status === "proposed" ? (
         <>
-          <LeaderMessage
-            message={message.message}
-            value={words}
-            onChange={setWords}
+          <DeliveryComposer
+            draft={delivery.draft}
+            onChange={delivery.change}
+            part={message.part}
+            disabled={busy || !action.can_act}
           />
           {action.can_act ? (
             <button
               className="btn w-fit"
               type="button"
-              disabled={
-                busy ||
-                !words.title.trim() ||
-                !words.body.trim() ||
-                words.title.length > 24 ||
-                words.body.length > 180
-              }
-              onClick={async () => {
-                setBusy(true);
-                setError("");
-                try {
-                  const r = await manageApi.messageSent(
-                    clan.clan_tag,
-                    action.card_id,
-                    message.part,
-                    words,
-                  );
-                  if (!r.ok) {
-                    setError(
-                      "Delivery was not confirmed here. Retry to recover the saved receipt.",
-                    );
-                    return;
-                  }
-                  onChanged?.();
-                } catch {
-                  setError(
-                    "Delivery was not confirmed here. Retry to recover the saved receipt.",
-                  );
-                } finally {
-                  setBusy(false);
-                }
-              }}
+              disabled={busy || !delivery.valid}
+              onClick={() => record(delivery.words)}
             >
               {busy ? "Recording…" : `Mark message ${message.part} sent`}
             </button>
@@ -1356,7 +1603,9 @@ function UpdateMessage({ message, action, clan, who, onChanged }) {
         <>
           <strong>{message.message.title}</strong>
           <p className="m-0">{message.message.body}</p>
-          <span className="page-head__note">Not marked sent.</span>
+          <span className="page-head__note">
+            Saved suggestion · not marked sent.
+          </span>
         </>
       )}
       {error ? (

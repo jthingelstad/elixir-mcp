@@ -10,11 +10,12 @@
  */
 
 import {
-  ACTION_TYPES,
+  actionDelivery,
   CHAT_TONES,
   chatMessageFromDraft,
   chatMessageRequest,
   chatSafe,
+  chatLines,
   declaredGoals,
   leaderMessageFromDraft,
   leaderMessageRequest,
@@ -50,7 +51,12 @@ export function createDrafts({
       who,
       token,
       cardId,
-      { note = null, clanName = null, expectedDraftVersion = null } = {},
+      {
+        note = null,
+        clanName = null,
+        expectedDraftVersion = null,
+        channel = null,
+      } = {},
     ) {
       if (!LEADERS.has(who.role) || who.verified === false)
         throw new ManageError(403, "leaders_only");
@@ -77,12 +83,18 @@ export function createDrafts({
       await removalProof();
       const kind = KIND[card.type];
       const chat = ["welcome", "removal", "departure"].includes(kind);
+      const delivery = actionDelivery(card);
+      if (
+        channel &&
+        !Object.hasOwn(
+          delivery?.parts[0]?.options ?? { clan_chat: true },
+          channel,
+        )
+      )
+        throw new ManageError(400, "bad_message");
       if (chat && note != null && !Object.hasOwn(CHAT_TONES, note))
         throw new ManageError(400, "bad_draft_tone");
-      if (
-        !kind ||
-        (!chat && ACTION_TYPES[card.type]?.channel !== "leader_message")
-      )
+      if (!kind || (!chat && !actionDelivery(card)))
         throw new ManageError(400, "no_leader_message");
       const [policy, pitch] = await Promise.all([
         ledger.currentPolicy(clanTag),
@@ -179,10 +191,13 @@ export function createDrafts({
       );
       await logAction(clanTag, card.card_id, "drafted", {
         by: person(who),
-        text: `Drafted ${chat ? "a clan-chat line" : "a Leader Message"} in the clan's voice (${answer.model}).`,
+        text: `Drafted ${chat || channel === "clan_chat" ? "clan-chat words" : "a Leader Message"} in the clan's voice (${answer.model}).`,
       });
       return {
         ...draft,
+        ...(!chat && channel === "clan_chat"
+          ? { lines: chatLines(draft) }
+          : {}),
         model: answer.model,
         draft_context_version: version,
       };

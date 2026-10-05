@@ -1246,7 +1246,14 @@ test("actions: a leader's action carries a log of what raised it; completing and
     cookies,
     "POST",
     `/api/clans/2PQRJ8LV/actions/${action.card_id}/decide`,
-    { status: "done", note: "Promoted after the message." },
+    {
+      status: "done",
+      note: "Promoted after the message.",
+      sent: {
+        channel: "clan_chat",
+        ...action.delivery.parts[0].options.clan_chat,
+      },
+    },
   );
   assert.equal(done.status, 200);
   await api(
@@ -1499,23 +1506,21 @@ test("actions: an action from before logs were kept gets its log reconstructed f
 
 // ---- Clan Leader Messages (Jamie, 2026-09-25) ---------------------------------
 
-test("leader messages: a promotion carries its own Clan Leader Message, within the game's limits", async () => {
+test("delivery: new promotions default to frozen clan chat, within the game's limits", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
   const view = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/actions");
-  const withMessage = view.body.open.filter(
-    (a) => a.channel === "leader_message",
-  );
+  const withMessage = view.body.open.filter((a) => a.channel === "clan_chat");
   assert.ok(
     withMessage.length >= 1,
     JSON.stringify(view.body.open.map((a) => a.type)),
   );
   for (const a of withMessage) {
     assert.ok(["promotion", "demotion"].includes(a.type), a.type);
-    assert.ok(a.message.title.length <= 24, a.message.title);
-    assert.ok(a.message.body.length <= 180, a.message.body);
-    assert.match(a.message.body, new RegExp(a.player_name));
-    assert.equal(a.copy, null);
+    assert.equal(a.message, null);
+    assert.ok(a.copy.length <= 200, a.copy);
+    assert.match(a.copy, new RegExp(a.player_name));
+    assert.deepEqual(Object.keys(a.delivery.parts[0].options), ["clan_chat"]);
   }
   const removal = view.body.open.find((a) => a.type === "removal");
   assert.equal(removal, undefined);
@@ -1532,8 +1537,12 @@ test("leader messages: saving a policy tells the clan how it runs, and a newer v
     await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/actions")
   ).body.open.find((a) => a.type === "rules_announcement");
   assert.equal(first.label, "Tell the clan how it runs");
-  assert.equal(first.message.title, "How our clan runs");
-  assert.ok(first.message.body.length <= 180);
+  assert.equal(first.channel, "clan_chat");
+  assert.equal(
+    first.delivery.parts[0].options.leader_message.title,
+    "How our clan runs",
+  );
+  assert.ok(first.delivery.parts[0].options.leader_message.body.length <= 180);
   await api(h, cookies, "POST", "/api/clans/2PQRJ8LV/policy", {
     values: {
       ...EXAMPLE_POLICY,
@@ -1556,13 +1565,19 @@ test("leader messages: saving a policy tells the clan how it runs, and a newer v
     cookies,
     "POST",
     `/api/clans/2PQRJ8LV/actions/${open.card_id}/decide`,
-    { status: "done" },
+    {
+      status: "done",
+      sent: {
+        channel: "clan_chat",
+        ...open.delivery.parts[0].options.clan_chat,
+      },
+    },
   );
   assert.equal(done.status, 200);
   const log = await h.ledger.actionLog("#2PQRJ8LV", open.card_id);
   // Completed as a Leader Message, then the message shared with Elixir.
   const completed = log.find((e) => e.kind === "completed");
-  assert.equal(completed.detail.channel, "leader_message");
+  assert.equal(completed.detail.channel, "clan_chat");
   assert.equal(log.at(-1).kind, "shared");
   // Declining an announcement needs no reason either.
   await api(h, cookies, "POST", "/api/clans/2PQRJ8LV/policy", {
@@ -1743,7 +1758,13 @@ test("sharing: always on, nothing to switch; a completed promotion is shared as 
     cookies,
     "POST",
     `/api/clans/2PQRJ8LV/actions/${target.card_id}/decide`,
-    { status: "done" },
+    {
+      status: "done",
+      sent: {
+        channel: "clan_chat",
+        ...target.delivery.parts[0].options.clan_chat,
+      },
+    },
   );
   assert.equal(done.status, 200, JSON.stringify(done.body));
   assert.equal(h.mcp.state.facts.length, 2);
@@ -1777,7 +1798,13 @@ test("sharing: a sign-in without the capability is logged and answered, never bl
     cookies,
     "POST",
     `/api/clans/2PQRJ8LV/actions/${promotion.card_id}/decide`,
-    { status: "done" },
+    {
+      status: "done",
+      sent: {
+        channel: "clan_chat",
+        ...promotion.delivery.parts[0].options.clan_chat,
+      },
+    },
   );
   assert.equal(done.status, 200, "the decision stands");
   assert.equal(done.body.shared[0].code, "insufficient_scope");

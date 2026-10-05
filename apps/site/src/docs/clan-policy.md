@@ -115,7 +115,7 @@ rewriting previous decisions. Awards keep their separate setup and frozen
 historical plans.
 
 When **Tell the clan when the rules change** is on, a save raises
-**Tell the clan how it runs** for the leaders: a Clan Leader Message
+**Tell the clan how it runs** for the leaders: chat copy with an explicit durable Inbox alternative,
 saying how the clan runs the first time, and what changed after.
 
 ## The leaders pages
@@ -157,7 +157,7 @@ without a policy:
   directly can read that status without a switch.
 - **The clan's own model**: an Anthropic key of the clan's own, which
   lets a model draft the recruiting pitch in Recruit and, on an open
-  action, the Clan Leader Message for a promotion, demotion, awards
+  action, the reviewed message (clan chat or a Clan Leader Message) for a promotion, demotion, awards
   announcement or policy-change announcement, plus welcome and post-decision
   removal chat lines, plus a departure message after a leader confirms
   Kicked or Left. Saved recruiting words provide the clan's voice. Welcome
@@ -165,8 +165,8 @@ without a policy:
   departure drafts use the confirmed classification and recorded tenure when
   known, with provenance and uncertainty. Names, tags, private notes, internal
   rationale and broader member history stay local; chat drafts use fixed tone
-  choices. Keep member details out of a Leader
-  Message note. Everything it writes is a draft a leader edits
+  choices for welcomes, removals and farewells. Keep member details out of a
+  message note. Everything it writes is a draft a leader edits
   and copies into the game. It never makes or completes a decision.
 
 ## Agent context
