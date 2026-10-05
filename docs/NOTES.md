@@ -5367,3 +5367,24 @@ both remained at `channels_ok: 0`, so a `run` queue note asks Jamie to restore
 each configured ask-channel binding or permission, restart only the repaired
 instance, and wait for its next natural ask turn. No routine was run early and
 no backlog was replayed.
+
+## 2026-10-05 - 11.2.2 production gate and rollover acceptance triage
+
+PR #302 merged after repaired full validation and 135 browser checks.
+The clean production deploy ran no new migrations and passed smoke.
+The first War/Clan gate found three rollover-sensitive cases: the live
+current-season donation-note check assumed a reset had already occurred,
+and two cross-read controls compared the preceding recorded race with a
+new calendar section or a newer roster trophy total. These are triaged
+separately; no manual fetch, job operation or business write is used to
+make the records agree.
+
+Gym 305.3 now requires at least one full week of the current season before
+expecting a donation-reset note. The frozen reset/clean-window controls
+remain, and its original 16-day known-bad capture must still fail.
+Gym 311.4 and 314.3 remain unchanged for an isolated retry after normal
+recording catches up. Final live receipts and their verdicts follow.
+The deployment-generated vocabulary snapshot changes only its source
+commit to the currently committed standalone reference; roles, aliases
+and vocabulary version are unchanged. Acceptance and receipt bookkeeping
+need no runtime redeploy.
