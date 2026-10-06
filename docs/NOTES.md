@@ -6167,3 +6167,24 @@ and read-back. MCP acceptance remains outside this private Clan view's scope.
 Final screenshot review found Season's proposed icon name was absent from the
 shared kit; it now uses the existing calendar-days icon. The final source is
 revalidated before release.
+
+Release receipt: PR #327 merged as `3a4158d1` after validate run
+`37478411198` passed on final head `10c9c831`, including all 169 browser
+journeys with no flaky-test report. The standard leased deployment used
+`--verify-reference-seed`: all 47 roles and 29 aliases matched exactly, zero
+migrations ran (202 applied), and all 43 smoke checks passed. Read-back
+verified at 14:35Z (9:35 AM CT) found all seven Lambda artifacts identical to
+the local release, Active/Successful, public health healthy, and the exact app
+shell, Season docs and update live. MCP 11.2.3 and JSON API 3.0.0 are unchanged.
+
+Live signed-out checks at 390/1280 pixels confirmed the docs' Week link through
+Back/reload, the Season deep link's sign-in landing and anonymous API 401 with
+no totals, no document overflow and no production write. Initial browser fetch
+errors were traced exactly to runTinylytics after the harness blocked its
+collector POSTs; disabling only that telemetry embed kept the run read-only
+and left zero application errors or write attempts. Signed-in member behavior,
+real counter/calendar integration and business-write absence were proved with
+fixtures and scratch databases, not manufactured live activity. No MCP tool
+behavior changed, so MCP acceptance was not run. The production lease is
+released; private test/release evidence is preserved outside Git. This
+notes-only receipt needs no redeployment.
