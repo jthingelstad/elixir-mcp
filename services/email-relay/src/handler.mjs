@@ -116,14 +116,18 @@ export function makeHandler({
         validated.msg.issue_key ?? "",
         out?.message_id ?? "",
       );
-    // Mailing list: enrollment rides a login send, but only when the
+    // Mailing list: enrollment rides an approved login or verified welcome, but only when the
     // ACCOUNT opted in — the sending VPC Lambda has the database and
     // stamps msg.newsletter (issue #27). Signing in is not an affirmative
     // marketing choice, so an unflagged login enrolls nothing.
     // Best-effort AFTER the send: an enrollment failure must never retry
     // the batch (that would resend the login email) and Buttondown's own
     // unsubscribe state is never fought.
-    if (validated.msg.kind === "login" && validated.msg.newsletter && enroll) {
+    if (
+      ["login", "welcome"].includes(validated.msg.kind) &&
+      validated.msg.newsletter &&
+      enroll
+    ) {
       try {
         await enroll(validated.msg.to);
       } catch {

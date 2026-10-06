@@ -139,7 +139,7 @@ test("the code step polls and signs in when the link was opened elsewhere", asyn
   });
   fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
   await screen.findByLabelText("6-digit code");
-  expect(screen.getByText(/signs this screen in too/)).toBeTruthy();
+  expect(screen.getByText(/confirm this screen/)).toBeTruthy();
   await vi.advanceTimersByTimeAsync(4100);
   expect(polls).toBe(1);
   expect(onAuthed).not.toHaveBeenCalled();

@@ -1,12 +1,12 @@
 ---
 slug: your-account
 title: "Your account"
-description: "Your Elixir account: asking for access, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you track, your time zone, your tier, what stays private, and how to have the account removed."
+description: "Your Elixir account: creating an account, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you track, your time zone, your tier, what stays private, and how to have the account removed."
 section: start
 order: 3
 navTitle: "Your account"
 icon: user-round
-lede: "One account, opened by hand, signed in with an email and no password. It holds your players, your time zone and your tier, and it shows nobody your address."
+lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your tier, and it shows nobody your address."
 console: ["Your profile and tier", "/console/account/profile", "Console ▸ Profile"]
 reviewed: "2026-10-01 against contract 9.17.1"
 ---
@@ -18,18 +18,21 @@ the emails and your own AI agent all act as the same person. The
 account is an email address, the players you track and a few settings.
 There is no password.
 
-## Asking for access
+## Create your account
 
-Accounts are opened by hand while the recorder grows. Ask at
-[/console/signin?request](/console/signin?request) with your email, your
-player tag and, if you like, a note. Whatever happened to an earlier
-request, the answer on the page is the same, and an email comes when the
-account opens; there is no need to check back.
+Anyone can create a free ordinary member account at
+[/console/signin?signup](/console/signin?signup). Enter your email and verify
+the code or link we send. The account opens after verification, not when you
+submit an address. Repeated submissions do not create extra accounts.
+Existing denied or disabled accounts do not reopen through signup, and no
+privileged role is granted.
 
-When the account opens, the player you asked with is already on it as
-your **primary player**, and its clan is recorded with it. The welcome
-email links to the [Quickstart](/docs/quickstart), which goes on from
-there to connecting your own agent.
+Then add your player in [Console ▸ Tracking](/console/account/tracking), read
+your recorded play in [Ladder](/ladder), or follow [Bring your clan](/docs/bring-your-clan).
+A collector is not required to join. Collector approval, recording allowances
+and the fleet's shared fetch budget are separate from signup and unchanged.
+Your account includes product news and reports under the existing mail policy;
+each mail has a way to stop it. See [Privacy](/docs/privacy) and [Emails](/docs/email).
 
 ## Signing in
 

@@ -840,7 +840,7 @@ test("inline HTML in a doc survives the markdown renderer", { skip }, () => {
   assert.ok(html.slice(open, close).includes("<style>"));
 });
 
-test("asking for access is one door, and it is in the app", { skip }, () => {
+test("signup is one email door, and it is in the app", { skip }, () => {
   // The static half used to carry its own copy of the request form —
   // its own fetch, its own error strings — and it broke silently: the
   // POST landed, and the success path set `.hidden` on a form with
@@ -861,7 +861,7 @@ test("asking for access is one door, and it is in the app", { skip }, () => {
 
   // Every call to action goes to the one door, deep-linked to the
   // asking half of it.
-  const TARGET = 'href="/console/signin?request"';
+  const TARGET = 'href="/console/signin?signup"';
   for (const page of ["index.html", "examples/play/index.html"]) {
     assert.ok(read(page).includes(TARGET), `${page} has no way to ask`);
   }
@@ -1305,11 +1305,12 @@ test(
     const tiles = [...doc.querySelectorAll(".home-tile")];
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__product").textContent),
-      ["Ladder", "Clan", "Friends", "Emails", "Your AI"],
+      ["Console", "Ladder", "Clan", "Friends", "Emails", "Your AI"],
     );
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__cta").getAttribute("href")),
       [
+        "/console/account/tracking",
         "/ladder",
         "/docs/bring-your-clan",
         "/docs/follow-a-friend",

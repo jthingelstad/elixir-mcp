@@ -1,7 +1,7 @@
 ---
 slug: quickstart
 title: "Connect a client"
-description: "From nothing to a working connection: request access, add your player, then connect Claude.ai, Claude Desktop, Claude Code, or any MCP client to https://elixir.poapkings.com/mcp, with the exact steps for each and an honest note on ChatGPT."
+description: "From nothing to a working connection: verify your email, add your player, then connect Claude.ai, Claude Desktop, Claude Code, or any MCP client to https://elixir.poapkings.com/mcp, with the exact steps for each and an honest note on ChatGPT."
 section: start
 order: 2
 navTitle: "Quickstart"
@@ -13,28 +13,32 @@ reviewed: "2026-09-25 against contract 9.1.0"
 # Connect a client
 
 Three things happen once, in this order: an account, a recorded player, a
-connected client. Most of the elapsed time is waiting for two emails.
+connected client. Your account needs one email verification; an agent is optional.
 
 ## 1. Get an account
 
-Accounts are approved by hand. Ask on the sign-in card, at
-[/console/signin?request](/console/signin?request), with your email and your Clash Royale
-player tag. You will get an email when you are approved. Then sign in at the same
-place: enter your email, then the
-six-digit code from the mail (15 minutes, five attempts). The mail also
-carries a one-click link; either works.
+Anyone can create a free ordinary member account at
+[/console/signin?signup](/console/signin?signup). Enter your email, then verify
+the six-digit code or one-click link (15 minutes, five code attempts).
+Signing in and creating an account use the same form. No invitation or
+collector is required. Restricted accounts stay restricted.
 
 ## 2. Track your player
 
-The player tag you asked with is already on your account when it opens:
-approval tracks it as your **primary**, which is what every tool means when
-you omit `player_tag`, and records its clan. Tracking **is** recording: the
-scheduler starts fetching your profile and battle log at its next tick, and
-history builds from there. More players go on **Account → Tracking**. Track alts and
-friends the same way and mark the relationship; every tier holds 50 players. See
+Open [Console ▸ Tracking](/console/account/tracking) and add your Clash Royale
+player tag. Your first player is your **primary**, which is what every tool
+means when you omit `player_tag`. Tracking **is** recording: the scheduler
+starts fetching your profile and battle log at its next tick, and history
+builds from there. Add alts and friends the same way and mark the relationship;
+the existing [tier limits](/docs/roles) still apply. See
 [Recording and coverage](/docs/recording) for what gets fetched and how often.
 
-You can connect a client while capture is still pending.
+Read your personal record in [Ladder](/ladder). For your clan, add your primary
+or an alt and follow [Bring your clan](/docs/bring-your-clan): private actions
+still require verified membership and the appropriate game role. You can
+connect an agent while capture is pending. Running a collector is optional
+and still requires separate operator approval; it does not multiply the
+shared fetch budget.
 
 ## 3. Connect
 

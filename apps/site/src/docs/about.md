@@ -37,7 +37,7 @@ record into a conversation: *"how has my ladder win rate trended since I
 swapped Cannon for Musketeer?"* is a real, answerable question here. MCP is
 one way to use Elixir; you do not need an agent to use the recorder.
 
-**How you use it:** request access, add your player tag — adding *is*
+**How you use it:** verify your email, add your player tag — adding *is*
 recording, there is no separate opt-in. Open your record, follow a friend,
 or bring your clan. To connect an agent, use
 `https://elixir.poapkings.com/mcp` with Claude or another MCP client. The

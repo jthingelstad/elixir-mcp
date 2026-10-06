@@ -226,7 +226,7 @@ test("the answer's shape is the same for an unknown address, and a foreign poll 
   const body = parse(ask);
   assert.equal(body.ok, true);
   assert.match(body.poll_id, /^[A-Za-z0-9_-]{32,}$/);
-  assert.match(body.message, /If your account is approved/);
+  assert.match(body.message, /Check your email/);
   const poll = await handler(
     event({
       path: "/api/auth/poll",

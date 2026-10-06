@@ -92,8 +92,8 @@ record of who was in it.
 
 Every tier has at least one activity clan slot (member and leader one,
 family three, partner ten; [Roles](/docs/roles)), and the first is meant for
-your own clan: it is what approval spends when your access request is
-granted, so the clan you play in is being followed from your first sign-in. Comprehensive is the upgrade, and
+your own clan: add it in Console ▸ Tracking after signing in. Signup itself
+starts no recording. Comprehensive is the upgrade, and
 it costs proportionally more to run — the member tier has none, so
 `elixir_track_clan`, which defaults to `comprehensive`, needs
 `scope: "activity"` there.

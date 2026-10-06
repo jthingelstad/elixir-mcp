@@ -273,7 +273,7 @@ allowance on a fresh read instead of waiting for the schedule.
 
 ## Access: entitlements, not permissions
 
-- A **claim** on your tag (trust-based; accounts are owner-approved)
+- A **claim** on your tag (trust-based; accounts open after email verification)
   gives your agent your full history — including battles recorded
   before you joined.
 - **Universal game reads**: all recorded game data — battles, profiles,

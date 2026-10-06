@@ -60,6 +60,7 @@ export async function resolveSession(
        and s.account_id = a.account_id
        and a.email_hash = $2
        and a.status = 'approved'
+       and a.kind = 'person'
        and s.revoked_at is null
        and s.sliding_expires_at > now()
        and s.absolute_expires_at > now()

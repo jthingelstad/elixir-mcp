@@ -205,7 +205,9 @@ describe("the landing page", () => {
     expect(screen.getByText(/An Elixir account/)).toBeTruthy();
     expect(screen.getByText(/2\. Your player/)).toBeTruthy();
     expect(
-      screen.getByRole("link", { name: /Request access/ }).getAttribute("href"),
+      screen
+        .getByRole("link", { name: /Create your account/ })
+        .getAttribute("href"),
     ).toContain("elixir.poapkings.com");
     expect(
       screen

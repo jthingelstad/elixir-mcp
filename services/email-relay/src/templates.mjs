@@ -123,13 +123,13 @@ export function renderEmail(msg) {
   }
   if (msg.kind === "welcome") {
     return {
-      subject: "Your Elixir access is approved",
+      subject: "Your Elixir account is ready",
       text:
         `You're in.\n\n` +
         `Elixir keeps the Clash Royale history the game doesn't, and reads it back:\n` +
         `in the console, inside your clan, in a short email each week, or to your own AI agent.\n\n` +
-        `The player you asked with is already being recorded, and their clan with them.\n` +
-        `Sign in at ${SIGNIN_BASE} and it is waiting. Connect your agent to\n` +
+        `Add your player in Console ▸ Tracking to start your record. If a player is already on your account, its recording stays in place.\n` +
+        `Open ${SITE}/console/account/tracking to get started. Your agent is optional; connect it to\n` +
         `${SITE}/mcp and ask what the game itself can't answer.\n\n` +
         `The five-minute version: ${SITE}/docs/quickstart\n\n` +
         `${DISCLAIMER}\n`,
@@ -137,15 +137,15 @@ export function renderEmail(msg) {
         kind: "welcome",
         pixel: pixelPath("welcome"),
         title: "You’re in.",
-        subtitle: "Your Elixir access is approved",
+        subtitle: "Your Elixir account is ready",
         preheader:
-          "You’re in. Your player is already being recorded, and their clan with them.",
+          "You’re in. Start your record in Console, read it in Ladder and open Clan with the same account.",
         body: [
           p(
             "Elixir keeps the Clash Royale history the game doesn&rsquo;t, and reads it back: in the console, inside your clan, in a short email each week, or to your own AI agent.",
           ),
           p(
-            "The player you asked with is already being recorded, and their clan with them. Sign in and it is waiting.",
+            "Add your player in Console ▸ Tracking to start your record. If a player is already on your account, its recording stays in place. Sign in and it is waiting.",
           ),
           h2("What comes next"),
           rows([
