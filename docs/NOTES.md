@@ -6097,3 +6097,19 @@ Scope review confirms the existing first-answer response and saved-data read
 tools are unchanged; no new access, API, authorization or award/delivery writes.
 MCP 11.2.3 and JSON API 3.0.0 remain unchanged. No tool response changed, so
 MCP acceptance is outside this Console/site release's scope.
+
+Release receipt: PR #325 merged as `9d807151` after validate run
+`37470421385` passed on `45e9f64f`, including all 161 browser journeys.
+The standard leased deployment used `--verify-reference-seed`: the same 47
+roles and 29 aliases matched exactly, zero migrations ran (202 applied), and
+all 43 smoke checks passed. Read-back verified at 13:33Z (8:33 AM CT) found
+all seven Lambda bundles identical to the local release artifacts, all
+Active/Successful, and public health healthy. The new update, recorder-first
+Quickstart and exact app shell are live; MCP 11.2.3 and JSON API 3.0.0 remain
+unchanged. Signed-out live browser checks at 390 and 1280 pixels confirmed
+Quickstart's browser opening and connection deep link through reload, home
+signup and Clan's signup destination, with no horizontal overflow and every
+non-read request blocked. Signed-in capture states were proved with fixtures
+and scratch data, not live business writes. MCP acceptance was not run because
+no tool behavior changed. The lease is released and private QA/release evidence
+is preserved outside Git. This notes-only receipt requires no redeployment.
