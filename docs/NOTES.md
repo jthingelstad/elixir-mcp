@@ -5992,3 +5992,18 @@ their September 1–6 fixture window for compact, pre-reset and member-limit
 assertions. This preserves the tested result/limit behavior without coupling
 it to today's date. No runtime or deployed behavior changed; the failed run
 was diagnosed rather than blindly retried.
+## 2026-10-06 — invitation playthrough and later award announcements
+
+Jamie is reviewing retained battles separately; that evidence stays untouched.
+The next bounded release follows the first visit from public landing through
+email verification, Console, Ladder and Clan, correcting demonstrated next-step
+and authentication/quota confusion without restyling Actions or Awards.
+
+Read-only Clan maintenance evidence distinguishes the reported repeated award
+announcement: the completed action covered the automatic season grants, while
+the later action covered a manual grant saved after completion. Its notification
+was sent the following morning. No duplicate grant or repeated automatic winner
+announcement was found. Both use the same generic label, so this release will
+explain later award receipts explicitly. Completed actions, grants, decisions
+and delivery receipts are preserved; diagnosis sent no announcements and made
+no status changes. No MCP or JSON API contract change is planned.
