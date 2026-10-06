@@ -5929,3 +5929,33 @@ metadata-only updates, immutable import binding, failures, invalid requests,
 and exclusive dispatch. Production comparison/export remains pending this
 release's required CI, lease and smoke; no retained-day classification is
 claimed here.
+
+### 2026-10-06 — September 13 retained-ID comparison, 09:45 UTC
+
+The private operator bundle from green ce720d41 was installed in the standard
+pre-migration deployment stage at 09:43:01 UTC. The exact reference preview
+then stopped the pipeline before migrations/import: four source tiers carry
+more decimal precision than PostgreSQL's numeric(4,1) column. No business or
+reference row changed. The preview now performs the writer's exact numeric
+coercion in the read-only transaction; a real fractional scratch insert pins
+that equality. Both follow-up source reviews cleared the fix.
+
+After 43 production smoke checks passed and all seven deployed Lambda
+artifacts matched green main, the authorized retained-day read exported 8,621
+canonical battles in 18 sequential bounded pages, 09:45:16–09:45:32 UTC. The
+approved manifest and frozen protected-list digests were verified before the
+first query. All 8,621 IDs matched the 245,520 protected identities; zero were
+outside. Public statistics immediately before and after reported the same
+8,621 day rows and 247,052 total battles. Row creation timestamps ranged from
+2026-09-13T00:12:47.475898Z to 2026-10-02T14:12:39.989655Z, all before original
+purge approval/execution. Results, participant tags and page-hash receipts
+remain private operator artifacts, outside this public repository.
+
+The disputed peak belongs to the approved protected remainder. This does not
+classify each battle as positively wanted: the protected set combined 160,099
+positive and 85,421 unresolved dispositions, and the original per-battle reason
+labels were not retained after the approved evidence cleanup. The export uses
+per-page repeatable-read snapshots; stable bracketing counts support coverage
+but are not a single transaction over the whole day. No new deletion, restore,
+backfill, schema change, live fetch or archive mutation was performed. Standard
+release completion follows the numeric-coercion guard fix on green CI.

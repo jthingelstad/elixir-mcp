@@ -208,6 +208,19 @@ test("a source or caller change after preview cannot change the frozen refresh p
   assert.deepEqual(sent[0].reference_seed_preview, spec);
   assert.deepEqual(sent[1].card_roles_import, spec);
 });
+
+test("preview uses the writer's PostgreSQL numeric precision for fractional source tiers", async () => {
+  const value = structuredClone(spec);
+  value.roles[0].tier = 6.51;
+  await cardRolesImport(url, value);
+  const before = await snapshot();
+  assert.equal(before.roles[0].tier, 6.5);
+  const preview = await cardRolesImport(url, { ...value, preview: true });
+  assert.equal(preview.identical, true);
+  assert.equal(preview.changed_rows, 0);
+  assert.equal(preview.live_sha256, preview.proposed_sha256);
+  assert.deepEqual(await snapshot(), before);
+});
 test("a query failure rolls back without leaking internal details", async () => {
   const queries = [];
   let ended = false;
