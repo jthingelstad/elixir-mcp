@@ -5668,3 +5668,23 @@ whose reference change only corrected probe-command documentation. The 47
 roles, 29 aliases and 2026-09-25 vocabulary version are unchanged. This
 receipt and source-pointer refresh are gated in a follow-up PR and require
 no redeploy.
+
+## 2026-10-06 — invitation readiness: public accounts, governed recording
+
+Jamie prioritized Elixir invitation readiness and explicitly separated public
+signup from collector admission. This bounded release will verify an email
+before creating an ordinary member account, keep denied/disabled accounts
+blocked, and keep collector approval, tier quotas and the shared rate budget.
+The existing site layout will explain Console, Ladder and Clan with a next
+step for each. Signup, interrupted authentication, repeats and concurrent
+quota boundaries will be verified with fixtures and scratch databases, never
+production business writes. No announcements, policy changes or awards.
+
+Queued owner notes were reviewed during preflight and remain separate:
+
+- Security review (2026-10-04): privacy wording about retired editorial AI,
+  Buttondown opt-in and the own-key model flow awaits Jamie's product wording.
+  This release will not change enrollment policy or model-key access.
+- Operator preview (2026-10-05): two Discord instances reported healthy MCP
+  connections but no ask channels. Channel/permission repair and any restart
+  belong to that operator follow-up; no routines or backlog will be replayed.
