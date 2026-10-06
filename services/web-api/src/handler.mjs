@@ -17,6 +17,7 @@ import { randomUUID } from "node:crypto";
 import pg from "pg";
 import {
   approvedAccount,
+  openVerifiedAccount,
   createSession,
   resolveSession,
   sessionSeenFrom,
@@ -216,9 +217,14 @@ export function makeHandler({
   async function mintSessionResponse(
     db,
     hash,
-    { event = null, extra = {} } = {},
+    { event = null, extra = {}, verifiedEmail = null } = {},
   ) {
+    const opened = verifiedEmail
+      ? await openVerifiedAccount(db, { emailHash: hash, email: verifiedEmail })
+      : null;
     const account = await approvedAccount(db, hash);
+    if (account && account.kind !== "person")
+      return json(403, { error: "not_approved" });
     if (!account) {
       // A VALID code for an account that is not approved yet is not the
       // same failure as a bad code, and telling the two apart is safe:
@@ -241,6 +247,14 @@ export function makeHandler({
       seen: event ? sessionSeenFrom(event) : null,
     });
     await logEvent(db, account.account_id, "signed_in");
+    if (opened) {
+      // After proof only. The existing welcome/outbox and enrollment flag
+      // preserve mail policy; a courtesy-mail outage must not undo sign-in.
+      await sendWelcomeEmail({
+        email: verifiedEmail,
+        newsletter: opened.newsletter_opt_in === true,
+      }).catch(() => console.error("signup_welcome_queue_failed"));
+    }
     // The second chance at approval-time tracking: at the decision we may
     // not have fetched the requested player yet, so their clan was not
     // knowable. It no-ops once account.onboarded_at is set (0065).

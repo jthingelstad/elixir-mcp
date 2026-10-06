@@ -40,7 +40,7 @@ export function Landing({ error }) {
             <p className="page__lede" style={{ margin: "4px 0 0" }}>
               Elixir is the account system; there is no separate sign-up here.{" "}
               <a href={ELIXIR_LINKS.requestAccess}>
-                Request access at elixir.poapkings.com
+                Create your account at elixir.poapkings.com
               </a>{" "}
               if you do not have one yet.
             </p>

@@ -54,15 +54,16 @@ export async function startMagicLogin(
 }
 
 /** Link path: single-use conditional burn. Returns the row or null. */
-export async function redeemMagicToken(db, token) {
+export async function redeemMagicToken(db, token, { purpose = null } = {}) {
   const value = validMagicToken(token);
   if (!value) return null;
   const { rows } = await db.query(
     `update magic_login
      set used_at = now()
      where token_hash = $1 and used_at is null and expires_at > now()
+       and ($2::text is null or purpose = $2)
      returning token_hash, email_hash, purpose, context, poll_id_hash, started_from`,
-    [sha256hex(value)],
+    [sha256hex(value), purpose],
   );
   return rows[0] ?? null;
 }

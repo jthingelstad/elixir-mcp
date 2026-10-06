@@ -4,41 +4,9 @@ import { api } from "../api.js";
 import { consumeLoginToken } from "../url-hygiene.js";
 import { CONSOLE } from "../lib/console.js";
 
-/**
- * Sign in, or ask to — one card, six states.
- *
- * Email, then code, and two escapes from the code step that this page
- * spent a long time without: a typo in the address left you waiting for
- * mail that was never coming, and a spent code had no way back.
- *
- * Two more exist because both used to render as "expired or already
- * used", which is only one of them. A LINK that is expired says so and
- * says nothing is wrong with the account. An account whose access
- * request is still WAITING now gets its own answer, because sending
- * somebody round a loop that cannot work is worse than telling them the
- * gate is deliberate.
- *
- * THE HANDOFF (0083, 2026-09-12). The screen that asks for the email
- * keeps asking whether the link has been opened somewhere else - the
- * phone's mail app, another browser - and signs itself in when it has.
- * Before this, clicking the link on the phone left the desktop tab on
- * the code step, waiting for a code the click had already spent. And a
- * screen that opens a link from a different address than the one that
- * asked is shown the asking screen's country and time and asked whether
- * to sign that one in too: somebody who clicks a link they never
- * requested is the person best placed to say no.
- *
- * THE SIXTH IS THE ACCESS REQUEST, moved here 2026-09-10 because the
- * two doors are one decision: you are either signing in or asking to.
- * It lived on the static home page as a second implementation with its
- * own fetch and its own error strings, and it BROKE SILENTLY — the POST
- * landed, the row was created, and the success path set `.hidden` on a
- * form carrying inline `display: flex` and on a `.notice` whose class
- * sets `display: flex`, neither of which a `hidden` attribute can beat.
- * The page did not move. A visitor could not tell the difference between
- * "sent" and "did nothing", so they went away. Here the result is state,
- * and state renders.
- */
+/** One email door for sign-in and public member signup. Email verification
+ * opens a new account; collector admission and recording quotas are separate.
+ * Link/code redemption and the cross-device confirmation remain single-use. */
 const card = {
   maxWidth: "440px",
   margin: "40px auto 0",
@@ -86,22 +54,14 @@ function Eyebrow({ icon, tone, children }) {
   );
 }
 
-/** The home page's "Request access" button is a link to /signin?request,
- *  so a visitor who came to ask lands on the asking half rather than on
- *  a sign-in form for the account they are trying to get. A query, not a
- *  path: /signin is the one route this app owns here, and everything
- *  under it must keep reporting nothing to analytics. */
-const initialStep = () =>
-  new URLSearchParams(window.location.search).has("request")
-    ? "request"
-    : "email";
-
 export function SignIn({ onAuthed }) {
   const [email, setEmail] = useState("");
-  // email | request | code | redeeming | expired | pending
-  const [step, setStep] = useState(initialStep);
-  const [playerTag, setPlayerTag] = useState("");
-  const [note, setNote] = useState("");
+  // email | code | redeeming | expired | pending | handoff
+  const [step, setStep] = useState("email");
+  const submitting = useRef(false);
+  const creating =
+    new URLSearchParams(window.location.search).has("signup") ||
+    new URLSearchParams(window.location.search).has("request");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -134,6 +94,16 @@ export function SignIn({ onAuthed }) {
     if (!token) return;
     setStep("redeeming");
     api.redeemToken(token).then((res) => {
+      if (!res.ok && (res.error || res.status >= 500)) {
+        setError(
+          writeErrorText({
+            status: res.status,
+            transport: res.error,
+            data: res.data,
+          }),
+        );
+        return setStep("link_error");
+      }
       if (!res.ok)
         return setStep(
           res.data?.error === "not_approved" ? "pending" : "expired",
@@ -171,37 +141,28 @@ export function SignIn({ onAuthed }) {
 
   async function sendEmail(e) {
     e?.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setError("");
     setBusy(true);
     const res = await api.sendLoginEmail(email);
+    submitting.current = false;
     setBusy(false);
-    setAsked(res.ok ? res.data : null);
+    if (!res.ok) {
+      setError(
+        res.data?.error === "bad_request"
+          ? "Enter a valid email address."
+          : writeErrorText({
+              status: res.status,
+              transport: res.error,
+              data: res.data,
+            }),
+      );
+      return;
+    }
+    setAsked(res.data);
+    setCode("");
     setStep("code");
-  }
-
-  /** The API answers 200 identically for a new request, a repeat, a
-   *  denied one and an already-approved address — deliberately, so this
-   *  form cannot be used to ask who has an account. So the confirmation
-   *  is the same card the pending state uses: true for all four, and one
-   *  copy instead of two that drift. */
-  async function sendRequest(e) {
-    e?.preventDefault();
-    setError("");
-    setBusy(true);
-    const res = await api.requestAccess({
-      email,
-      player_tag: playerTag,
-      note,
-    });
-    setBusy(false);
-    if (res.ok) return setStep("pending");
-    setError(
-      res.data?.error === "invalid_tag"
-        ? "That doesn't look like a CR tag."
-        : res.data?.error === "rate_limited"
-          ? "Too many requests — try again shortly."
-          : "Something went wrong — try again.",
-    );
   }
 
   if (step === "redeeming")
@@ -281,14 +242,16 @@ export function SignIn({ onAuthed }) {
       </div>
     );
 
-  if (step === "expired")
+  if (step === "expired" || step === "link_error")
     return (
       <div style={{ ...card, borderColor: "var(--warn-edge)" }}>
         <Eyebrow icon="circle-dashed" tone="warn">
-          link expired
+          {step === "link_error" ? "sign-in interrupted" : "link expired"}
         </Eyebrow>
         <h1 className="page__title" style={{ fontSize: "26px" }}>
-          That link is expired or already used
+          {step === "link_error"
+            ? "Sign-in did not finish"
+            : "That link is expired or already used"}
         </h1>
         <p
           style={{
@@ -299,8 +262,10 @@ export function SignIn({ onAuthed }) {
             textWrap: "pretty",
           }}
         >
-          Links are single-use, and they do not last long. Nothing is wrong with
-          your account.
+          {step === "link_error"
+            ? "Elixir did not confirm this sign-in. Request a new email to continue."
+            : "Links are single-use, and they do not last long. Nothing is wrong with your account."}
+          {step === "link_error" && <span role="alert">{error}</span>}
         </p>
         <button
           className="btn btn--primary"
@@ -319,10 +284,10 @@ export function SignIn({ onAuthed }) {
     return (
       <div style={card}>
         <Eyebrow icon="circle-dashed" tone="accent-bright">
-          waiting on us
+          account access
         </Eyebrow>
         <h1 className="page__title" style={{ fontSize: "26px" }}>
-          Your request is in
+          Account access is unavailable
         </h1>
         <p
           style={{
@@ -333,8 +298,8 @@ export function SignIn({ onAuthed }) {
             textWrap: "pretty",
           }}
         >
-          Access is granted by hand while the corpus grows. You will get an
-          email when your account opens — no need to check back.
+          This account cannot sign in. Contact Elixir if you think this is a
+          mistake. A new email request does not remove an account restriction.
         </p>
         <div
           style={{
@@ -347,89 +312,6 @@ export function SignIn({ onAuthed }) {
           Meanwhile, <a href={`${CONSOLE}/data/dashboard`}>the data page</a> and{" "}
           <a href="/docs">the docs</a> need no account.
         </div>
-      </div>
-    );
-
-  if (step === "request")
-    return (
-      <div style={card}>
-        <h1 className="page__title" style={{ fontSize: "28px" }}>
-          Request access
-        </h1>
-        <p
-          style={{
-            fontSize: "14.5px",
-            lineHeight: 1.6,
-            color: "var(--ink-dim)",
-            margin: "8px 0 20px",
-            textWrap: "pretty",
-          }}
-        >
-          Access is granted by hand while the recorder grows. Tell us who you
-          are in the arena: once you are approved, that player is on your
-          account and its clan is recorded.
-        </p>
-        <form onSubmit={sendRequest}>
-          <label className="field-label" htmlFor="request-email">
-            Email
-          </label>
-          <input
-            id="request-email"
-            type="email"
-            required
-            autoFocus
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={field}
-          />
-          <label className="field-label" htmlFor="request-tag">
-            Your player tag
-          </label>
-          <input
-            id="request-tag"
-            className="mono"
-            required
-            placeholder="#20JJJ2CCRU"
-            value={playerTag}
-            onChange={(e) => setPlayerTag(e.target.value)}
-            style={field}
-          />
-          <label className="field-label" htmlFor="request-note">
-            Anything we should know?{" "}
-            <span style={{ color: "var(--ink-faint)" }}>(optional)</span>
-          </label>
-          <input
-            id="request-note"
-            placeholder="Playing daily, want to run a collector…"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            style={field}
-          />
-          {error && <p className="field-error">{error}</p>}
-          <button
-            className="btn btn--primary"
-            type="submit"
-            disabled={busy}
-            style={primary}
-          >
-            {busy ? "Sending…" : "Request access"}
-          </button>
-        </form>
-        <p className="footnote" style={{ margin: "16px 0 0" }}>
-          Already approved?{" "}
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              setError("");
-              setStep("email");
-            }}
-          >
-            Sign in instead
-          </button>
-          .
-        </p>
       </div>
     );
 
@@ -452,23 +334,34 @@ export function SignIn({ onAuthed }) {
             <span style={{ color: "var(--warn)" }}>{asked.message} </span>
           ) : (
             <>
-              If your account is approved, one is on its way to{" "}
+              Check for a sign-in link or code at{" "}
               <span style={{ color: "var(--ink)" }}>{email}</span>.{" "}
             </>
           )}
           Click the link, or type the code here. Opening the link on another
-          device signs this screen in too.
+          device may ask you to confirm this screen before signing it in too.
         </p>
         <form
           onSubmit={async (e) => {
             e.preventDefault();
+            if (submitting.current) return;
+            submitting.current = true;
             setError("");
             setBusy(true);
             const res = await api.redeemCode(email, code);
+            submitting.current = false;
             setBusy(false);
             if (res.ok) return onAuthed();
             if (res.data?.error === "not_approved") return setStep("pending");
-            setError("Wrong or expired code.");
+            setError(
+              res.status >= 500 || res.error
+                ? writeErrorText({
+                    status: res.status,
+                    transport: res.error,
+                    data: res.data,
+                  })
+                : "Wrong or expired code.",
+            );
           }}
         >
           <label className="field-label" htmlFor="signin-code">
@@ -493,7 +386,11 @@ export function SignIn({ onAuthed }) {
               padding: "14px 13px",
             }}
           />
-          {error && <p className="field-error">{error}</p>}
+          {error && (
+            <p className="field-error" role="alert">
+              {error}
+            </p>
+          )}
           <button
             className="btn btn--primary"
             type="submit"
@@ -537,7 +434,9 @@ export function SignIn({ onAuthed }) {
   return (
     <div style={card}>
       <h1 className="page__title" style={{ fontSize: "28px" }}>
-        Sign in
+        {creating
+          ? "Create your Elixir account"
+          : "Sign in or create an account"}
       </h1>
       <p
         style={{
@@ -548,7 +447,8 @@ export function SignIn({ onAuthed }) {
           textWrap: "pretty",
         }}
       >
-        We email you a link and a six-digit code. No password to keep.
+        We email you a link and a six-digit code. Verify either to open your
+        account. No password, invitation or collector needed.
       </p>
       <form onSubmit={sendEmail}>
         <label className="field-label" htmlFor="signin-email">
@@ -564,7 +464,11 @@ export function SignIn({ onAuthed }) {
           onChange={(e) => setEmail(e.target.value)}
           style={field}
         />
-        {error && <p className="field-error">{error}</p>}
+        {error && (
+          <p className="field-error" role="alert">
+            {error}
+          </p>
+        )}
         <button
           className="btn btn--primary"
           type="submit"
@@ -574,29 +478,15 @@ export function SignIn({ onAuthed }) {
           {busy ? "Sending…" : "Send sign-in email"}
         </button>
       </form>
-      {/* Said here rather than only on the request form, because this is
-          where somebody arrives believing they already have an account —
-          and the honest answer to "why can't I sign in" is usually that
-          the gate is deliberate, not broken. The other door is a step of
-          this card now, not a link back to the static home. */}
       <p
         className="footnote"
         style={{ margin: "16px 0 0", textWrap: "pretty" }}
       >
-        No account yet?{" "}
-        <button
-          type="button"
-          className="link"
-          onClick={() => {
-            setError("");
-            setStep("request");
-          }}
-        >
-          Request access
-        </button>{" "}
-        — it is granted by hand while the corpus grows, on what you can bring to
-        the beta: playing actively, running a collector, connecting an agent and
-        telling us where it struggles.
+        New here? After signing in, add your player under Console ▸ Tracking.
+        Your account includes product news and reports, with a way to stop each.
+        See <a href="/docs/privacy">Privacy</a> and{" "}
+        <a href="/docs/email">Emails</a>. Collectors need separate approval;
+        recording stays within your account's limits.
       </p>
     </div>
   );

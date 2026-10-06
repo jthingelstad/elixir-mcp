@@ -69,8 +69,8 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
   await expect(page.locator(".battle__name").first()).toHaveText(left);
   await expect(page.locator("a.battle__name")).toHaveCount(0);
   await expect(
-    page.getByRole("link", { name: "Request access" }),
-  ).toHaveAttribute("href", "/console/signin?request");
+    page.getByRole("link", { name: "Create your account" }),
+  ).toHaveAttribute("href", "/console/signin?signup");
   await expect(page.getByText(BATTLE.battle.id)).toBeVisible();
   await expect(page.locator(".rail")).toHaveCount(0);
   // The picture and the link, never an embed.
@@ -102,9 +102,9 @@ test("signed in: your side says so, names open the record, another battle stays 
     "href",
     `/console/explore/player/${tag.slice(1)}`,
   );
-  await expect(page.getByRole("link", { name: "Request access" })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole("link", { name: "Create your account" }),
+  ).toHaveCount(0);
   // The session: this battle marked, the other one a link that loads
   // in-app.
   const session = page.getByRole("region", { name: /’s session$/ });

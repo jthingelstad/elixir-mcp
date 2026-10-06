@@ -25,15 +25,15 @@ navActive: home
     <span class="chip chip--ok"><span class="chip__dot"></span>recording now</span>
     <h1 class="home-title">Your Clash Royale,<br />on the record.</h1>
     <p class="home-lede">
-      Elixir keeps every battle, clan week and river race you play, and
+      Track your player and Elixir keeps your battles, clan weeks and river races, and
       reads it back: on your Ladder, inside your clan, in a short weekly
       email, or to your own AI.
     </p>
     <div class="flex flex-wrap items-center gap-3">
-      <a class="btn btn--primary btn--lg" href="/console/signin?request">Request access</a>
+      <a class="btn btn--primary btn--lg" href="/console/signin?signup">Create your account</a>
     </div>
     <p class="footnote m-0">
-      Accounts are granted by hand while the record grows.
+      Free signup. Verify your email, then add your player in Console.
     </p>
   </div>
   <div class="home-art">
@@ -48,6 +48,18 @@ navActive: home
   </div>
   <div class="grid gap-5 wide:grid-cols-3">
     <article class="home-tile">
+      <span class="home-tile__head"><span class="home-tile__icon">{% icon "user-round", 18 %}</span><span class="home-tile__product">Console</span></span>
+      <h3 class="home-tile__question">Start your record here</h3>
+      <p class="home-tile__text">Add your player, alts and friends. Choose what to record, manage your emails and connect an agent if you want one.</p>
+      <ul class="home-tile__sample" aria-label="Your first steps in Console">
+        <li class="home-tile__row">Create your account with an email</li>
+        <li class="home-tile__row">Add your player under Tracking</li>
+        <li class="home-tile__caption">History starts with the first poll; an agent is optional</li>
+      </ul>
+      <a class="home-tile__cta" href="/console/account/tracking">Start in Console ›</a>
+    </article>
+
+    <article class="home-tile">
       <span class="home-tile__head"><span class="home-tile__icon">{% icon "chart-line", 18 %}</span><span class="home-tile__product">Ladder</span></span>
       <h3 class="home-tile__question">How am I actually doing?</h3>
       <p class="home-tile__text">Your battles read back by mode, day, deck and card. Trophy Road and war never share a column. A mirror, not a coach.</p>
@@ -56,7 +68,7 @@ navActive: home
         <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--ranked"></span>Path of Legends</li>
         <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--war"></span>War</li>
         <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--event"></span>Events</li>
-        <li class="home-tile__caption">Season, days played, decks and cards, one mode at a time</li>
+        <li class="home-tile__caption">Add your player in Console, then read the recorded battles here</li>
       </ul>
       <a class="home-tile__cta" href="/ladder">Open Ladder ›</a>
     </article>
@@ -68,7 +80,7 @@ navActive: home
       <ul class="home-tile__sample" aria-label="Two of the calls Clan hands leaders">
         <li class="home-tile__row">{% icon "award", 14 %}<span class="grow">Promote to Elder</span><span class="chip chip--warn">waiting</span></li>
         <li class="home-tile__row">{% icon "user-plus", 14 %}<span class="grow">Welcome a newcomer</span><span class="chip chip--warn">waiting</span></li>
-        <li class="home-tile__caption">Nobody below co-leader sees a removal</li>
+        <li class="home-tile__caption">Add your primary or alt, then verify it to act in your game role</li>
       </ul>
       <a class="home-tile__cta" href="/docs/bring-your-clan">Bring your clan ›</a>
     </article>
@@ -192,17 +204,17 @@ navActive: home
 {#- The FORM LIVES IN THE APP (2026-09-10), on the sign-in card: signing
     in and asking to are one decision, and this half once had a second
     implementation of the same POST that broke silently. This panel
-    posts nothing; it says why the gate exists and links to it. -#}
+    posts nothing; signup and sign-in share one email verification door. -#}
 <section class="panel panel--cta mt-14" id="request" aria-labelledby="home-request">
   <div class="panel__body flex flex-col items-start gap-3 wide:flex-row wide:items-center wide:gap-6">
     <div class="flex min-w-0 flex-auto flex-col gap-1">
-      <h2 class="panel-title m-0" id="home-request">Request access</h2>
+      <h2 class="panel-title m-0" id="home-request">Create your account</h2>
       <p class="footnote m-0">
-        Accounts are granted by hand while the record grows. Tell us who
-        you are in the arena and what you want to record.
+        Free signup. Verify your email, then add your player in Console ▸ Tracking.
+        Collectors are optional and need separate approval; recording has limits.
       </p>
     </div>
-    <a class="btn btn--primary" href="/console/signin?request">Request access</a>
+    <a class="btn btn--primary" href="/console/signin?signup">Create your account</a>
   </div>
 </section>
 </div>

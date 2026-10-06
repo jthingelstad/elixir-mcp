@@ -61,7 +61,7 @@ test("the sign-in code and the welcome wear the one mail shell: the Elixir wordm
     notify_kind: "feedback",
   });
   assert.equal(login.subject, "123456 is your Elixir sign-in code");
-  assert.equal(welcome.subject, "Your Elixir access is approved");
+  assert.equal(welcome.subject, "Your Elixir account is ready");
   for (const [name, m] of [
     ["login", login],
     ["welcome", welcome],
@@ -594,4 +594,39 @@ test("retired direct, outbox and malformed editorial messages are consumed witho
     assert.deepEqual(queued.batchItemFailures, []);
     assert.equal(deleted.length, 1);
   }
+});
+
+test("verified signup welcome carries the explicit enrollment decision; unflagged welcome does not", async () => {
+  const enrolled = [];
+  const handler = makeHandler({
+    send: async () => {},
+    enroll: async (email) => enrolled.push(email),
+  });
+  const result = await handler({
+    Records: [
+      {
+        messageId: "verified",
+        body: JSON.stringify({
+          v: 1,
+          kind: "welcome",
+          to: "new@example.com",
+          newsletter: true,
+        }),
+      },
+      {
+        messageId: "plain",
+        body: JSON.stringify({
+          v: 1,
+          kind: "welcome",
+          to: "off@example.com",
+          newsletter: false,
+        }),
+      },
+    ],
+  });
+  assert.deepEqual(result.batchItemFailures, []);
+  assert.deepEqual(enrolled, ["new@example.com"]);
+  const welcome = renderEmail({ v: 1, kind: "welcome", to: "new@example.com" });
+  assert.match(welcome.text, /Add your player in Console/);
+  assert.doesNotMatch(welcome.text, /already being recorded/);
 });

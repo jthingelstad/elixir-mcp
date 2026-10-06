@@ -80,8 +80,8 @@ export const handler = makeHandler({
     enqueueEmail({ v: 1, kind: "login", to: email, code, token, newsletter }),
   // The template has existed since the gate shipped and nothing ever
   // queued it; approval mailed the owner instead.
-  sendWelcomeEmail: ({ email }) =>
-    enqueueEmail({ v: 1, kind: "welcome", to: email }),
+  sendWelcomeEmail: ({ email, newsletter = false }) =>
+    enqueueEmail({ v: 1, kind: "welcome", to: email, newsletter }),
   deadLetters,
   notifyOwner,
   // Captured tool calls are read back for the console's call record;

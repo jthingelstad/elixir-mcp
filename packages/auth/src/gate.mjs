@@ -1,4 +1,43 @@
 import { canSetRole, isRole, ROLE_ORDER } from "@elixir-mcp/contracts";
+import { emailHash as hashEmail } from "./crypto.mjs";
+
+/** Public email authentication admits new people and ordinary pending members.
+ * Blocked accounts and privileged pending requests retain their existing gate.
+ * The HTTP response never reveals which case the address matched. */
+export async function publicLoginAccount(db, emailHash) {
+  const { rows } = await db.query(
+    `select account_id, status, kind, role, is_owner, newsletter_opt_in
+     from account where email_hash = $1`,
+    [emailHash],
+  );
+  const account = rows[0];
+  if (!account) return { newsletter_opt_in: false };
+  return account.kind === "person" &&
+    (account.status === "approved" ||
+      (account.status === "requested" &&
+        account.role === "member" &&
+        !account.is_owner))
+    ? account
+    : null;
+}
+
+/** Call only with the email frozen in a successfully redeemed web login.
+ * The conflict predicate checks current state, including concurrent denial
+ * or promotion. Repeated verifications cannot change an existing tier. */
+export async function openVerifiedAccount(db, { emailHash, email }) {
+  if (typeof email !== "string" || hashEmail(email) !== emailHash) return;
+  const { rows } = await db.query(
+    `insert into account (email_hash, email, status, role, kind, decided_at)
+     values ($1, $2, 'approved', 'member', 'person', now())
+     on conflict (email_hash) do update
+       set status = 'approved', email = excluded.email, decided_at = now()
+       where account.status = 'requested' and account.role = 'member'
+         and account.kind = 'person' and account.is_owner is not true
+     returning account_id, newsletter_opt_in`,
+    [emailHash, email.trim().toLowerCase()],
+  );
+  return rows[0] ?? null;
+}
 
 /**
  * The access gate. Request-access creates a
@@ -73,7 +112,7 @@ export async function decideAccess(db, { emailHash, decision, actorRole }) {
 
 export async function approvedAccount(db, emailHash) {
   const { rows } = await db.query(
-    `select account_id, email_hash, is_owner, timezone, newsletter_opt_in
+    `select account_id, email_hash, is_owner, timezone, newsletter_opt_in, kind
      from account where email_hash = $1 and status = 'approved'`,
     [emailHash],
   );

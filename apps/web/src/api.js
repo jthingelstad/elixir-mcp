@@ -26,7 +26,6 @@ const home = (agent) =>
 
 export const api = {
   me: (agent) => request("GET", home(agent)),
-  requestAccess: (body) => request("POST", "/api/request-access", body),
   sendLoginEmail: (email) => request("POST", "/api/auth", { email }),
   redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
   redeemCode: (email, code) =>

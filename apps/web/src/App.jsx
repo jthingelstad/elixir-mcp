@@ -1361,8 +1361,8 @@ export function SignInWall({ navigate }) {
       <div className="panel__body text-center">
         <h1 className="page__title mb-2">Sign in first</h1>
         <p className="text-[13px] text-ink-faint">
-          This part of Elixir shows your recorded history. Sign in with the
-          email on your access request.
+          This part of Elixir shows your recorded history. Verify your email to
+          create an account or sign in.
         </p>
         <button
           className="btn mt-2"

@@ -114,12 +114,12 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
   assert.match(parse(req).message, /If your request is approved/);
   assert.equal(ownerNotes.length, 1);
 
-  // 2. Before approval: sign-in mails nothing, same neutral answer.
+  // 2. Ordinary pending members may now verify email without owner approval.
   const preAuth = await handler(
     event({ path: "/api/auth", body: { email: NEWCOMER } }),
   );
   assert.equal(parse(preAuth).ok, true);
-  assert.equal(sentEmails.length, 0, "pending accounts get no magic link");
+  assert.equal(sentEmails.length, 1, "pending members can verify their email");
 
   // 3. Owner signs in and approves from the admin queue.
   const ownerCookie = await signIn(JAMIE);

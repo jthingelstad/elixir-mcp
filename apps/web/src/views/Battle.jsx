@@ -957,8 +957,8 @@ function Invite() {
           mode, your decks, a short email each week.
         </p>
         <div className="share-actions">
-          <a className="btn btn--gold" href={`${CONSOLE}/signin?request`}>
-            Request access
+          <a className="btn btn--gold" href={`${CONSOLE}/signin?signup`}>
+            Create your account
           </a>
           <a className="btn" href="/">
             What is Elixir?

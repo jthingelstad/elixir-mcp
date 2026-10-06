@@ -29,14 +29,14 @@ records, including their history.
 You need two things:
 
 1. **An Elixir account.** Elixir is the account; there is no separate
-   sign-up for Clan. [Your account](/docs/your-account) has how to ask
-   for one.
+   sign-up for Clan. [Your account](/docs/your-account) has how to create
+   one by verifying your email.
 2. **Your player on it.** Your primary player or an alt, under
    **Console ▸ Tracking**. A friend or a player you watch does not
    count: Clan goes by the players that are you.
 
-Then press **Sign in with Elixir** at [/clan](/clan). The first time,
-Elixir asks you to approve it ([Sign in with Elixir](/docs/sign-in-with-elixir)).
+Then open [/clan](/clan). Your existing Elixir session opens it directly;
+a signed-out visit returns there after the common sign-in.
 
 ## Your role here
 

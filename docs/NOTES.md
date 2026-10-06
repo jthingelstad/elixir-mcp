@@ -5688,3 +5688,41 @@ Queued owner notes were reviewed during preflight and remain separate:
 - Operator preview (2026-10-05): two Discord instances reported healthy MCP
   connections but no ask channels. Channel/permission repair and any restart
   belong to that operator follow-up; no routines or backlog will be replayed.
+
+### Implementation and release gate
+
+Draft PR #313 was opened before implementation. The common email sign-in door
+now creates an ordinary approved person/member only after a single-use web
+link or code proves the address. The address comes from server-frozen login
+context, never the redeem payload. Concurrent proofs open one identity and
+queue one welcome; approved accounts keep their tier and opt-out. Denied,
+disabled, non-person and privileged pending accounts remain blocked, including
+a state change after issuance. Web redemption cannot consume an OAuth link.
+Cross-device handoff follows successful minting and rechecks current account
+status and kind. Existing approval/onboarding remains for legacy requests.
+
+The site explains Console, Ladder and Clan using the current layout. Signup
+and sign-in use one form; delivery and verification interruptions remain
+recoverable without automatic resubmission. Welcome and newsletter enrollment
+follow verification using existing enrollment policy, with no enrollment from
+an unverified request and no reactivation of an unsubscribed address.
+
+Scratch regressions cover expired/wrong/replayed tokens, separate concurrent
+proofs, double submission, blocked account changes, mail rate boundaries and
+cross-device collection. Concurrent player/clan writes still enforce 50
+member player slots, one activity-clan slot and zero comprehensive-clan slots;
+collector requests remain pending and provisioning remains owner-only. No
+quota, collector credential, private Clan role or global fetch-budget change.
+No migration, production QA account, mail send, claim, policy or award write.
+
+The focused consistency trace reviewed auth, mail, public docs, signed-out
+Console and Clan landing surfaces. It corrected stale request-access copy,
+preverification newsletter enrollment and the person-account session boundary;
+the regressions guard each. MCP 11.2.3 and JSON API 3.0.0 remain unchanged.
+Live MCP acceptance is omitted because no tool behavior or reader shape
+changed; auth and quota enforcement are exercised against scratch databases.
+
+Local `npm run verify` passed 1,844 Node tests and 449 UI tests, with 85
+existing skips. All 142 built browser journeys passed after updating a legacy
+battle doorway assertion to the new signup URL. Phone and desktop screenshots
+and accessibility checks covered orientation, signup and interruption recovery.

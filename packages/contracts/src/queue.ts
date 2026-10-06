@@ -143,7 +143,7 @@ export interface EmailMessage {
   /** owner_notify: short labelled facts for the body (category, from...).
    *  Never an email address and never more than an excerpt of user text. */
   detail?: Record<string, string>;
-  /** login: the account has affirmatively opted in to the newsletter, so
+  /** login or verified welcome: the account newsletter flag permits enrollment, so
    *  this send is also its enrollment moment. Absent/false means send the
    *  mail and enroll nothing (issue #27) - authenticating is not consent
    *  to marketing, and the relay has no database to ask. */

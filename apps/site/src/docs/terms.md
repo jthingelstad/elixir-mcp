@@ -18,7 +18,7 @@ Supercell is not responsible for it. See Supercell's Fan Content
 Policy: www.supercell.com/fan-content-policy. Voluntary
 [sponsorship](/support) helps with the running costs and buys nothing.
 
-**Access.** Access is by request and is a courtesy. It can be withdrawn,
+**Access.** Ordinary member signup is open after email verification. Access is a courtesy. It can be withdrawn,
 especially for abusing the service or using it against Supercell's
 terms.
 

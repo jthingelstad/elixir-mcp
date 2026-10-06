@@ -13,7 +13,7 @@ lede: "A free hobby service: it keeps what it needs to work, and sells nothing."
 
 **What this is.** Elixir MCP is a free service, built as a hobby, for
 folks who like the game. There is no company behind it, no
-advertising, and nothing here is sold. Access is by request. This page
+advertising, and nothing here is sold. An account opens after you verify your email. This page
 says, in general terms, what the service keeps and why; the details
 move as the service grows.
 

@@ -3,7 +3,7 @@ import {
   emailRef,
   emailHash,
   requestAccess,
-  approvedAccount,
+  publicLoginAccount,
   startMagicLogin,
   redeemMagicToken,
   verifyMagicCode,
@@ -69,6 +69,8 @@ export function authRoutes({
     "POST /api/auth": async (db, event, body) => {
       const ip = viewerIp(event) ?? "unknown";
       const email = String(body.email ?? "").trim();
+      if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        return json(400, { error: "bad_request" });
       const okIp = await checkRateLimit(db, {
         bucket: `auth#${ip}`,
         max: SIGNIN_MAIL_PER_IP_HOUR,
@@ -95,21 +97,23 @@ export function authRoutes({
         });
       }
       if (email.includes("@")) {
-        const account = await approvedAccount(db, emailHash(email));
+        const account = await publicLoginAccount(db, emailHash(email));
         if (account) {
           // Record the address on the way past. Accounts that predate us
           // keeping it fill in the first time their holder signs in,
           // rather than staying unreachable forever. The hash still
           // decided which account this is.
-          await db.query(
-            `update account set email = $2
+          if (account.account_id)
+            await db.query(
+              `update account set email = $2
              where account_id = $1 and email is distinct from $2`,
-            [account.account_id, email.toLowerCase()],
-          );
+              [account.account_id, email.toLowerCase()],
+            );
           authLog("signin_code_issued", { email: emailRef(emailHash(email)) });
           const { token, code } = await startMagicLogin(db, {
             emailHash: emailHash(email),
             purpose: "web",
+            context: { signup_email: email.toLowerCase() },
             pollId,
             startedFrom: {
               ...sessionSeenFrom(event),
@@ -124,21 +128,29 @@ export function authRoutes({
             // Beta participation includes the product emails (0051).
             // Read here because the relay has no database; unsubscribing
             // happens at Buttondown and is never overridden.
-            newsletter: account.newsletter_opt_in === true,
+            newsletter:
+              account.status === "approved" &&
+              account.newsletter_opt_in === true,
           });
         }
       }
       return json(200, {
         ok: true,
         poll_id: pollId,
-        message: "If your account is approved, a sign-in email is on its way.",
+        message:
+          "Check your email for a sign-in link or code. Verifying it opens your account if you are new.",
       });
     },
 
     "POST /api/auth/redeem": async (db, event, body) => {
-      const row = await redeemMagicToken(db, body.token);
+      const row = await redeemMagicToken(db, body.token, { purpose: "web" });
       if (!row || row.purpose !== "web")
         return json(400, { error: "invalid_or_expired" });
+      const minted = await mintSessionResponse(db, row.email_hash, {
+        event,
+        verifiedEmail: row.context?.signup_email,
+      });
+      if (minted.statusCode !== 200) return minted;
       // The screen that asked may be a different one (0083). From the
       // same address the session is handed over now; from a different
       // one this screen is asked first, and the answer rides back on
@@ -166,7 +178,10 @@ export function authRoutes({
               },
             };
       }
-      return mintSessionResponse(db, row.email_hash, { event, extra });
+      return {
+        ...minted,
+        body: JSON.stringify({ authenticated: true, ...extra }),
+      };
     },
 
     // The redeeming screen said yes: the screen that asked may collect.
@@ -270,7 +285,10 @@ export function authRoutes({
         });
       }
       authLog("signin_code_accepted", { email: emailRef(hash) });
-      return mintSessionResponse(db, hash, { event });
+      return mintSessionResponse(db, hash, {
+        event,
+        verifiedEmail: result.row.context?.signup_email,
+      });
     },
 
     "POST /api/session/signout": async (db, event) => {

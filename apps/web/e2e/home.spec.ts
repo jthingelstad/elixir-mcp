@@ -28,6 +28,7 @@ test("front door focuses on recording and has no global statistics request", asy
     page.getByRole("heading", { level: 1, name: /on the record/ }),
   ).toBeVisible();
   await expect(page.locator(".home-tile__product")).toHaveText([
+    "Console",
     "Ladder",
     "Clan",
     "Friends",
@@ -50,6 +51,7 @@ test("@narrow recorder home fits a phone and tablet", async ({ page }) => {
     await page.setViewportSize({ width, height: 860 });
     await page.goto("/");
     for (const name of [
+      "Start in Console ›",
       "Open Ladder ›",
       "Bring your clan ›",
       "Follow a friend ›",
