@@ -275,9 +275,12 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
   );
   assert.ok(body.notes.some((n) => n.includes("profile-derived")));
 
+  // These shape checks use the fixture window; it must not age out at
+  // the game-day reset as a relative last-30-days window would.
   const compact = await call("clans_timeline", {
     verbosity: "compact",
-    days: 30,
+    from: "2026-09-01",
+    to: "2026-09-06",
   });
   assert.equal(compact.isError, false);
   assert.deepEqual(Object.keys(compact.body.series[0]), [
@@ -295,11 +298,13 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
   // (9.2.1; the acceptance catalogue's two-metric seed found it).
   const namedCompact = await call("clans_timeline", {
     verbosity: "compact",
-    days: 30,
+    from: "2026-09-01",
+    to: "2026-09-06",
     metrics: ["members", "members_seen"],
   });
   const namedFull = await call("clans_timeline", {
-    days: 30,
+    from: "2026-09-01",
+    to: "2026-09-06",
     metrics: ["members", "members_seen"],
   });
   assert.deepEqual(Object.keys(namedCompact.body.series[0]).slice(4), [
@@ -311,7 +316,11 @@ test("clans_timeline: the clan's five metrics and the roster aggregates per game
       JSON.stringify(namedFull.body).length + 64,
   );
 
-  const pre = await call("clans_timeline", { kind: "pre_reset" });
+  const pre = await call("clans_timeline", {
+    kind: "pre_reset",
+    from: "2026-09-01",
+    to: "2026-09-06",
+  });
   assert.equal(pre.body.series.length, 1);
   assert.equal(pre.body.series[0].day, "2026-09-06");
 
@@ -368,7 +377,11 @@ test("clans_members_timeline: every member's roster series, the stamps, player_t
   assert.equal(c.last.day, "2026-09-02");
   assert.deepEqual(c.delta, { trophies: 30, donations: 40 });
 
-  const limited = await call("clans_members_timeline", { limit: 2, days: 30 });
+  const limited = await call("clans_members_timeline", {
+    limit: 2,
+    from: "2026-09-01",
+    to: "2026-09-06",
+  });
   assert.equal(limited.body.member_count, 2);
   assert.ok(
     limited.body.notes.some((n) => n.startsWith("More than 2 members")),

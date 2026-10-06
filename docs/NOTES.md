@@ -5984,3 +5984,11 @@ recovery vocabulary, deploy logs and artifact receipts are preserved outside
 all Git checkouts. No battle/history/participant/archive or other business
 record was changed. This completion note changes no runtime or public corpus
 and needs no additional deployment.
+
+The receipt's first validate run exposed an existing clock-dependent scratch
+test: compact/limit reads used days:30 against fixed September 6 fixtures,
+which aged out at the October 6 10:00 UTC game-day reset. The tests now name
+their September 1–6 fixture window for compact, pre-reset and member-limit
+assertions. This preserves the tested result/limit behavior without coupling
+it to today's date. No runtime or deployed behavior changed; the failed run
+was diagnosed rather than blindly retried.
