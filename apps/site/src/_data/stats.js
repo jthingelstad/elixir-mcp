@@ -29,9 +29,9 @@ export default async function stats() {
     return {
       ok: true,
       totals: body.totals,
-      // The Data page draws the cumulative curve from this at BUILD
-      // time: a chart that is true at deploy and needs no JavaScript
-      // beats one that arrives after a fetch, or not at all.
+      fetched_at: new Date().toISOString(),
+      // Current retained rows, grouped by played day and drawn at build time.
+      // This is a published snapshot, not a lifetime ingestion counter.
       series: body.series ?? null,
       series_days: body.series?.battles_daily?.length,
     };
