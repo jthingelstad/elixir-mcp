@@ -21,6 +21,25 @@ const read = (ctx, tool, args = {}) =>
 export const gym = [
   ...filed,
   {
+    // The fixed 220.3 future window became present on 2026-10-06.
+    // Its captured bite stays; this live control follows the clock.
+    id: "220-future-window",
+    tools: ["game_events"],
+    run: async (ctx) => {
+      const from = new Date(Date.now() + 24 * 3600_000).toISOString();
+      const to = new Date(Date.parse(from) + 4 * 24 * 3600_000).toISOString();
+      const body = await read(ctx, "game_events", { from, to });
+      ok(
+        body.notes?.some((note) =>
+          /not (yet )?(begun|started|read)|future|after (now|the latest)/i.test(
+            note,
+          ),
+        ),
+        "a future window explains that it has not been observed yet",
+      );
+    },
+  },
+  {
     // #70 (6.4.0): fit_for splits after sort; the unfieldable rows name
     // what is missing. The invariant half is identities/fit_for-split-after-sort.
     id: "70-fit_for",
