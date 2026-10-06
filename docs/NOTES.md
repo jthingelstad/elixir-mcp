@@ -5796,3 +5796,20 @@ The corpus and What we collect pages also fit on phone and desktop. No
 production battle repair, deletion, reimport, signup or business-state test
 occurred. The clean checkout released its deployment lease. This notes-only
 receipt requires no redeploy.
+
+## 2026-10-06 — share a captured battle with the player's own context
+
+Jamie requested the next bounded Ladder feature: choose a captured battle,
+inspect its recorded facts, add optional personal context, preview and copy
+or share a stable link. Current main already provides public canonical battle
+URLs, factual projections and share images; targeted GitHub issue searches
+found no existing player-context sharing implementation or open duplicate.
+
+The first release composes a message beside an owned primary/alt battle.
+Context is explicitly typed by the player, prominent in the preview and sent
+alongside the existing canonical battle URL. It stays in the browser draft:
+no server storage, public annotation, query/fragment context, private-note
+import, credential or unrelated-history publication. The existing public
+battle boundary is unchanged. Fixture tests cover ownership, cancellation,
+back/edit, repeated actions, clipboard/native-share interruption, missing
+data, canonical URLs and phone/desktop layouts. No production publishing test.
