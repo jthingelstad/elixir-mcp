@@ -68,6 +68,19 @@ export const ACTION_TYPES = {
 /** Actions that judge a member: a decline says why, from the list. */
 export const JUDGING_TYPES = new Set(["promotion", "demotion", "removal"]);
 
+/** Name the saved award scope in both the app and its notification. */
+export function actionLabel(action) {
+  if (action.type === "awards_announcement" && action.evidence?.season_id) {
+    const names = [
+      ...new Set((action.evidence.awards ?? []).map((a) => a.name)),
+    ]
+      .filter(Boolean)
+      .join(", ");
+    return `Announce season ${action.evidence.season_id} awards${names ? `: ${names}` : ""}`;
+  }
+  return ACTION_TYPES[action.type]?.label ?? action.type;
+}
+
 /** Who an action is for: stored on newer actions; derived for older ones. */
 export function audienceOf(action) {
   if (action.audience) return action.audience;

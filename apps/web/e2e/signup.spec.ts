@@ -137,3 +137,92 @@ test("a failed email request stays editable and a failed code request remains re
   await page.getByRole("button", { name: "Use a different address" }).click();
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
 });
+
+for (const width of [390, 1280]) {
+  test(`new account next steps and zero comprehensive slots at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const empty = {
+      ...ME,
+      role: "member",
+      claims: [],
+      recordings: [],
+      entitlements: {
+        player_slots: { used: 0, limit: 50 },
+        activity_clans: { used: 0, limit: 1 },
+        comprehensive_clans: { used: 0, limit: 0 },
+      },
+    };
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/me": [200, empty],
+        "GET /api/me/first-answer": [
+          200,
+          {
+            player: null,
+            clan: null,
+            connection: { active_connections: 0, last_data_read_at: null },
+          },
+        ],
+        "GET /api/clan/me": [
+          200,
+          {
+            signed_in: true,
+            ok: false,
+            reason: "no_primary_player",
+            identities: [],
+            clans: [],
+            primary: null,
+          },
+        ],
+      }),
+    );
+    await page.goto("/console/account/overview");
+    await expect(
+      page.getByText(/Connecting an AI client is optional/),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Add your player", exact: true })
+      .click();
+    await expect(page.getByText(/open your player profile/)).toBeVisible();
+    await expect(
+      page.getByText(/Your first player becomes your primary/),
+    ).toBeVisible();
+    await expect(page.getByText(/no comprehensive clan slots/)).toBeVisible();
+    await expect(page.getByLabel("Scope")).toHaveValue("activity");
+    await expect(
+      page.getByLabel("Scope").locator('option[value="comprehensive"]'),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole("main").getByRole("link", { name: "Verify", exact: true }),
+    ).toHaveAttribute("href", "/console/account/verify");
+    await page.goto("/ladder");
+    await page.getByRole("link", { name: "Go to Tracking" }).click();
+    await expect(page).toHaveURL(/\/console\/account\/tracking$/);
+    await page.goto("/clan");
+    await expect(
+      page.getByRole("heading", { name: "Add your player in Elixir" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Elixir → Tracking ›" }),
+    ).toHaveAttribute(
+      "href",
+      "https://elixir.poapkings.com/console/account/tracking",
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+    const a11y = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(
+      a11y.violations.filter((v) =>
+        ["serious", "critical"].includes(v.impact ?? ""),
+      ),
+    ).toEqual([]);
+  });
+}

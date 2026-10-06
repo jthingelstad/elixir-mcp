@@ -13,13 +13,13 @@
  * Pure: actions, people and the last send in; one email per person out.
  */
 
-import { ACTION_TYPES, canAct } from "./actions.mjs";
+import { ACTION_TYPES, actionLabel, canAct } from "./actions.mjs";
 
 export const ACTIONS_MAIL_KIND = "clan_actions_waiting";
 /** Lines in one email before the rest are counted. */
 export const MAIL_MAX_LINES = 10;
 
-const labelOf = (c) => ACTION_TYPES[c.type]?.label ?? c.type;
+const labelOf = actionLabel;
 const lineOf = (c) =>
   `${Number.isInteger(c.number) ? `#${c.number} ` : ""}${
     c.player_name && ACTION_TYPES[c.type]?.audience !== "member"

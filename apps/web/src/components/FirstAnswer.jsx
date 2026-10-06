@@ -100,6 +100,10 @@ export function FirstAnswer({ claimsKey }) {
               : "You can start with a profile while battle history grows."}
         </span>
       </div>
+      <p className="mb-3 text-[12.5px] text-ink-faint">
+        Ladder and Clan use this same account. Connecting an AI client is
+        optional.
+      </p>
       {error && (
         <div className="callout callout--warn" role="alert">
           <Icon name="circle-dashed" size={17} />

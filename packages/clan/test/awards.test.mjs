@@ -16,6 +16,7 @@ import {
 import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
 import { createScout } from "@elixir-mcp/clan/manage/scout.mjs";
 import { factsOfAction } from "@elixir-mcp/clan/manage/sharing.mjs";
+import { actionsWaitingMail } from "@elixir-mcp/clan-engine";
 import {
   fakeMcp,
   player,
@@ -873,4 +874,26 @@ test("awards: a manual choice after a sent announcement gets separate copy witho
   assert.equal(fresh.length, 1);
   assert.match(fresh[0].evidence.message.body, /Clan Honour: Ben/);
   assert.equal(fresh[0].evidence.grant_refs.length, 1);
+  const view = await api(
+    h,
+    cookies,
+    "GET",
+    `/api/clans/2PQRJ8LV/actions/${fresh[0].number}`,
+  );
+  assert.equal(view.status, 200);
+  assert.equal(
+    view.body.action.label,
+    "Announce season 135 awards: Clan Honour",
+  );
+  const mail = actionsWaitingMail({
+    clanTag: "#2PQRJ8LV",
+    clanName: "Example Clan",
+    appUrl: "https://elixir.test/clan",
+    cards: [sent, fresh[0]],
+    people: [{ player_tag: "#L", role: "leader" }],
+  });
+  assert.equal(mail.length, 1);
+  assert.match(mail[0].subject, /Announce season 135 awards: Clan Honour/);
+  assert.deepEqual(mail[0].card_ids, [fresh[0].card_id]);
+  assert.deepEqual(await h.ledger.card("#2PQRJ8LV", c.card_id), sent);
 });

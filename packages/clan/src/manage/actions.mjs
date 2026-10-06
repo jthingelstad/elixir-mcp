@@ -7,6 +7,7 @@
 
 import {
   ACTION_TYPES,
+  actionLabel,
   actionDelivery,
   SYSTEM,
   audienceOf,
@@ -275,7 +276,7 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
   const shapeAction = (c, stored, who) => ({
     ...c,
     audience: audienceOf(c),
-    label: ACTION_TYPES[c.type]?.label ?? c.type,
+    label: actionLabel(c),
     ...wordsFor(c),
     draft_context_version: draftContextVersion(c),
     can_draft:
