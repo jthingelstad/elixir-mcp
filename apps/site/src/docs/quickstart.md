@@ -1,19 +1,21 @@
 ---
 slug: quickstart
-title: "Connect a client"
-description: "From nothing to a working connection: verify your email, add your player, then connect Claude.ai, Claude Desktop, Claude Code, or any MCP client to https://elixir.poapkings.com/mcp, with the exact steps for each and an honest note on ChatGPT."
+title: "Get started with Elixir"
+description: "Create your account, track your player and read recorded history in Ladder. Clan war history and AI clients are optional, with connection instructions when you want them."
 section: start
 order: 2
 navTitle: "Quickstart"
 icon: rocket
-lede: "Connect your MCP client, tell Elixir what to record, and ask it about Clash Royale history. Five minutes, no key to paste."
-reviewed: "2026-09-25 against contract 9.1.0"
+lede: "Create your account, track your player, and read captured history in Ladder. Add clan war history or an AI client when you want them."
+reviewed: "2026-10-06 against contract 11.2.3"
 ---
 
-# Connect a client
+# Get started with Elixir
 
-Three things happen once, in this order: an account, a recorded player, a
-connected client. Your account needs one email verification; an agent is optional.
+Start with an account and the player you play as. You can read your captured
+record in [Ladder](/ladder) with this account, without connecting an AI client.
+Clan war history and AI clients are optional. The steps below tell you what
+to do next and what the current record can show.
 
 ## 1. Get an account
 
@@ -39,14 +41,25 @@ verification](/docs/verify) separately proves ownership for the features that
 require it. An ordinary member account includes activity clan recording, not
 comprehensive capture of every member. Tracking shows the available slots.
 
-Read your personal record in [Ladder](/ladder). For your clan, add your primary
-or an alt and follow [Bring your clan](/docs/bring-your-clan): private actions
-still require verified membership and the appropriate game role. You can
-connect an agent while capture is pending. Running a collector is optional
-and still requires separate operator approval; it does not multiply the
-shared fetch budget.
+Read your personal record in [Ladder](/ladder). Console's Overview links to
+Tracking while your first capture is pending and to Ladder once a profile or
+recorded battles are available. A profile alone does not establish battle
+history; older retained battles remain useful even when none fall in the last
+30 days. Check Tracking for recording status and coverage rather than treating
+an empty window as proof that you did not play.
+
+If you want clan war history, follow [Bring your clan](/docs/bring-your-clan).
+Private Clan actions still require verified membership and the appropriate game
+role. Running a collector is optional and requires separate operator approval;
+it does not multiply the shared fetch budget.
 
 ## 3. Connect
+
+**Optional:** connect a client if you want an AI agent to ask Elixir about your
+record. You can do this while capture is pending, or keep using Ladder and Clan
+in your browser. A connection authorizes access; it does not prove that a
+successful data read has happened. Console reports observed data reads within
+the last seven days separately from active connections.
 
 The endpoint is the same for every client:
 
@@ -125,11 +138,13 @@ try it and it does, or does not, `elixir_send_feedback` is the place to say so.
 
 ## 4. Ask something
 
+**Optional: ask through an AI client.**
+
 **Account → Overview** shows what is recorded for your primary so far,
-links unfinished setup steps, and offers a first question matched to that
-record. A profile is enough to start; adding a clan is optional. It shows
-connecting a client and that client's first successful data read as separate
-checks: authorizing a connection alone does not confirm a data read.
+links to your next step in Tracking or Ladder, and offers an optional first
+question matched to that record. A profile is enough to start. Active client
+connections and successful data reads in the last seven days are reported
+separately: authorizing a connection alone does not confirm a data read.
 
 **Account → Connections** offers more starter questions matched to it under
 **Try asking…**: a snapshot review when only a profile exists, a seven-day
@@ -153,7 +168,7 @@ Activity** lists every call with its `request_id`.
 - [Tools](/docs/tools): everything the connection can call.
 - [Reading a response](/docs/responses): the `meta` envelope every answer
   carries.
-- [Limits](/docs/limits): what 500 calls a day actually bounds.
+- [Limits](/docs/limits): account quotas and how calls are counted.
 
 ## If something goes wrong
 

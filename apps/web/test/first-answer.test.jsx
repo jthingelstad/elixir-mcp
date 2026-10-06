@@ -150,9 +150,10 @@ test("no player: Overview says so and offers one action, and asks nothing", asyn
   expect(
     await screen.findByText("No players yet — nothing here defaults to you."),
   ).toBeTruthy();
-  // Readiness says which of the five are missing, and nothing on this
-  // page offers a question it has no history to answer.
-  expect(await screen.findByText("0 of 6")).toBeTruthy();
+  expect(
+    await screen.findByText("Start with your player tag in Tracking."),
+  ).toBeTruthy();
+  expect(screen.queryByText(/\d of 6/)).toBeNull();
   expect(screen.getByText("nothing here defaults to you")).toBeTruthy();
   expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
   expect(navigate).not.toHaveBeenCalled();
@@ -162,13 +163,17 @@ test("readiness names what each line is waiting for, not just that it is not don
   respond();
   render(<FirstAnswer claimsKey="a" />);
   await screen.findByText("Add the player you play as");
-  expect(screen.getByText("1 of 6")).toBeTruthy();
-  expect(screen.getByText("arrives on the first poll")).toBeTruthy();
   expect(
-    screen.getByText("0 recorded · a profile is enough to start"),
+    screen
+      .getByRole("link", { name: /Check recording status/ })
+      .getAttribute("href"),
+  ).toBe("/console/account/tracking");
+  expect(screen.getByText("no profile snapshot available yet")).toBeTruthy();
+  expect(
+    screen.getByText("0 in the last 30 days · a profile is enough to start"),
   ).toBeTruthy();
   expect(
-    screen.getByText("optional · your player's clan is offered once we see it"),
+    screen.getByText("no recorded clan war history available"),
   ).toBeTruthy();
   expect(screen.getByText("no connections yet")).toBeTruthy();
 });
@@ -190,7 +195,7 @@ test("readiness carries the window on every number it shows", async () => {
     { clan_tag: "#Y8QRJ0LP", name: "POAP KINGS", war_weeks: 27 },
   );
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByText("6 of 6");
+  await screen.findByRole("link", { name: /Open Ladder/ });
   // A bare "1,284" is a claim; the window makes it a fact.
   expect(
     screen.getByText("1,284 in the last 30 days · 38 in the last 7"),
@@ -199,12 +204,84 @@ test("readiness carries the window on every number it shows", async () => {
   expect(screen.getByText("snapshot 4m ago")).toBeTruthy();
 });
 
-test("a connection that has never read is not the same as no connection", async () => {
+test("an active connection without a recent read is not the same as no connection", async () => {
   // A quiet agent and a broken one look identical from a count alone,
   // which is the whole reason this line carries the last read.
   respond(player, { ...connection, active_connections: 1 });
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByText("1 connected · nothing has read yet");
+  await screen.findByText(
+    "1 connected · no successful data read in the last 7 days",
+  );
+});
+
+test("a browser-only profile leads to Ladder while AI and clan setup stay optional", async () => {
+  respond({ ...player, profile_available: true });
+  render(<FirstAnswer claimsKey="a" />);
+  await screen.findByRole("link", { name: /Open Ladder/ });
+  expect(screen.getByText("Clan war history (optional)")).toBeTruthy();
+  expect(
+    screen.getByText("snapshot recorded · observation time unavailable"),
+  ).toBeTruthy();
+  expect(screen.queryByText("snapshot never")).toBeNull();
+  expect(screen.getByText("AI client connection (optional)")).toBeTruthy();
+  expect(
+    screen.getByRole("heading", { name: "Ask an AI client (optional)" }),
+  ).toBeTruthy();
+  expect(
+    screen.getByText(/You can use Ladder without connecting a client/),
+  ).toBeTruthy();
+  expect(screen.queryByText(/\d of 6/)).toBeNull();
+});
+
+test("older retained battles remain usable when recording stopped and the profile is missing", async () => {
+  respond({
+    ...player,
+    recording_status: "stopped",
+    last_battle_at: "2026-07-01T00:00:00Z",
+  });
+  render(<FirstAnswer claimsKey="a" />);
+  await screen.findByText("older retained battles · none in the last 30 days");
+  expect(
+    screen.getByRole("link", { name: /Open Ladder/ }).getAttribute("href"),
+  ).toBe("/ladder");
+  expect(
+    screen.getByRole("link", { name: /Manage recording/ }).getAttribute("href"),
+  ).toBe("/console/account/tracking");
+  expect(screen.queryByText(/Waiting for the first/)).toBeNull();
+  expect(
+    screen.getByRole("button", {
+      name: "Copy question: Review your retained history",
+    }),
+  ).toBeTruthy();
+});
+
+test("paused recording without capture points to status instead of promising the next poll", async () => {
+  respond({ ...player, recording_status: "paused" });
+  render(<FirstAnswer claimsKey="a" />);
+  await screen.findByRole("link", { name: /Check recording status/ });
+  expect(screen.getByText(/recording paused/)).toBeTruthy();
+  expect(screen.queryByText(/Waiting for the first/)).toBeNull();
+  expect(screen.queryByRole("link", { name: /Open Ladder/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
+});
+
+test("partial capture and connection facts are unavailable rather than invented zeroes", async () => {
+  respond(
+    {
+      ...player,
+      profile_available: true,
+      battles_30d: undefined,
+      battles_7d: undefined,
+    },
+    {},
+  );
+  render(<FirstAnswer claimsKey="a" />);
+  await screen.findByText("recent battle counts unavailable");
+  expect(screen.getByRole("link", { name: /Open Ladder/ })).toBeTruthy();
+  expect(screen.getByText("connection status unavailable")).toBeTruthy();
+  expect(screen.getByText("recent data reads unavailable")).toBeTruthy();
+  expect(screen.queryByText(/0 in the last 30 days/)).toBeNull();
+  expect(screen.queryByText("no connections yet")).toBeNull();
 });
 
 test("successful reads are reported as reads, never as answers", async () => {
@@ -348,9 +425,9 @@ test("Overview links incomplete steps and offers a supported first question with
     value: { writeText: copy },
   });
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByText("3 of 6");
+  await screen.findByRole("link", { name: /Open Ladder/ });
   expect(
-    screen.getByRole("link", { name: /Track your clan/ }).getAttribute("href"),
+    screen.getByRole("link", { name: /Clan recording/ }).getAttribute("href"),
   ).toBe("/console/account/tracking");
   expect(
     screen.getByRole("link", { name: /Connection help/ }).getAttribute("href"),
@@ -366,6 +443,6 @@ test("Overview links incomplete steps and offers a supported first question with
     "Do not infer progress from a single snapshot",
   );
   expect(
-    screen.getByText("a connection alone does not confirm a data read"),
+    screen.getByText(/a connection alone does not confirm a data read/),
   ).toBeTruthy();
 });
