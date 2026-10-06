@@ -5959,3 +5959,24 @@ per-page repeatable-read snapshots; stable bracketing counts support coverage
 but are not a single transaction over the whole day. No new deletion, restore,
 backfill, schema change, live fetch or archive mutation was performed. Standard
 release completion follows the numeric-coercion guard fix on green CI.
+
+### 2026-10-06 — Elixir Operator production receipt
+
+At 09:47Z, `/api/public/status` was healthy: admissions and fetches were 13
+seconds old, 15 battles arrived in the trailing hour, the ledger had no
+queued, leased, dead or starved jobs, the email DLQ was empty, and 1,048
+capture-audit polls in 24 hours had zero gaps. Five signed v3.0.6 collectors
+were actively checking in, with one explicitly draining; the global budget
+used 1.7% of its bulk share (19 of 63 hourly fetches changed the record).
+`{stats}` corroborated zero edge-filter gaps and no fetch errors except three
+expected `currentriverrace` 404 standby reads. The lower session-clock yield
+is paired with zero recorded lost battles in the 05:20Z efficiency receipt,
+so it is a schedule/cost watch rather than a collector incident.
+
+All Elixir alarms were quiet; the 05:20Z efficiency and 05:30Z activity jobs
+completed, with no unexpected archetype restamp. `ClanInternal` is true and
+each of the three bounded morning receipts completed (including two
+`too_few_members` outcomes). OAuth discovery served, and today's read-only
+`npm run acceptance` passed. No production write, deployment, migration or
+lease mutation was performed; a separate interactive `session` lease remained
+held throughout this observation.
