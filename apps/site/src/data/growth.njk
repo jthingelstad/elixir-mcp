@@ -1,30 +1,30 @@
 ---
 layout: data-page.njk
-title: "Growth over time"
-description: "Battles recorded per day by Elixir MCP, bucketed by when they were played rather than when they were collected."
+title: "Retained battles over time"
+description: "Battles currently retained by Elixir, grouped by the UTC day they were played. Removed records are excluded; protected personal and clan history remains."
 permalink: /data/growth/index.html
 canonical: /data/growth
 dataNav: growth
 ---
 {%- set bars = stats.series.battles_daily | dailyBars %}
 <div class="page-head">
-  <h1 class="hero-title" style="margin-bottom: 6px">Growth over time</h1>
+  <h1 class="hero-title" style="margin-bottom: 6px">Retained battles over time</h1>
   <p class="lede" style="margin: 0; max-width: 60ch">
-    Battles recorded per day. Bucketed by when they were
-    <em style="color: var(--ink-body)">played</em>, not when we collected them.
+    Battles currently in the record, grouped by the UTC day they were
+    <em style="color: var(--ink-body)">played</em>.
   </p>
 </div>
 
 {% if not bars.bars %}
 <section class="panel">
-  <div class="panel__head"><span>Battles per day</span></div>
+  <div class="panel__head"><span>Retained battles by played day</span></div>
   <div class="panel__body footnote">The chart is drawn from the daily series at build time; this build had no series to draw from.</div>
 </section>
 {% endif %}
 {% if bars.bars %}
 <section class="panel" style="margin-bottom: 22px">
   <div class="panel__head">
-    <span>Battles per day</span>
+    <span>Retained battles by played day</span>
     <span class="footnote" style="border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; font-weight: 400">{{ bars.days }} days · UTC</span>
   </div>
   <div style="padding: 18px 18px 8px">
@@ -33,7 +33,7 @@ dataNav: growth
         was invisible in it — and that is the day worth seeing. A day
         with no battles keeps its width as a real zero. -#}
     <svg viewBox="0 0 700 168" style="width: 100%; height: auto; display: block" role="img"
-         aria-label="Battles recorded per day, {{ bars.first }} to {{ bars.last }}, peaking at {{ bars.top }} on {{ bars.busiest.day }}">
+         aria-label="Retained battles by played day, {{ bars.first }} to {{ bars.last }}, peaking at {{ bars.top }} on {{ bars.busiest.day }}">
       <line x1="20" x2="640" y1="140" y2="140" stroke="var(--line)"></line>
       <line x1="20" x2="640" y1="76" y2="76" stroke="var(--line-soft)" stroke-dasharray="2 5"></line>
       <line x1="20" x2="640" y1="12" y2="12" stroke="var(--line-soft)" stroke-dasharray="2 5"></line>
@@ -50,17 +50,21 @@ dataNav: growth
     </svg>
   </div>
   <div class="panel__foot" style="font-size: 13px; color: var(--ink-dim)">
-    {{ bars.total | number }} battles over these {{ bars.days }} days, a mean of
+    {{ bars.total | number }} retained battles in this {{ bars.days }}-day window, a mean of
     {{ bars.mean | number }} a day; the busiest was {{ bars.busiest.day }} with
-    {{ bars.busiest.battles | number }}. A backfilled archive lands on the day it was
-    played rather than the day it arrived, so filling a gap changes the past
-    here — which is the point. The newest day is partial.
+    {{ bars.busiest.battles | number }}. The full retained record contains
+    {{ stats.totals.battles | number }} battles across all dates.
+    The newest day is partial.
   </div>
 </section>
 {% endif %}
 
 <p class="footnote" style="max-width: 78ch">
-  Full history is deliberate today; a retention policy comes as the corpus
-  grows, and it will be published here. Per-collector daily charts are in the
+  Removed records are excluded. The cleanup preserved protected personal and
+  clan history, so historical bars remain where those battles are still retained.
+  This chart counts the current record, not everything ever collected.
+  {% if stats.fetched_at %}Snapshot fetched {{ stats.fetched_at | stamp }};
+  refreshed when this site is published. The source can be cached for up to an hour.{% endif %}
+  Per-collector daily charts are in the
   <a href="/console/data/dashboard">console</a>.
 </p>

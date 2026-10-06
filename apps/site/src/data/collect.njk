@@ -35,25 +35,25 @@ dataNav: collect
           <td>Player battle logs</td>
           <td>every 30 min while playing, backing off to at most 2 h (<a href="/docs/recording">the session clock</a>)</td>
           <td>{% if t %}{{ t.oldest_battle | day }}{% else %}{{ n }}{% endif %}</td>
-          <td>full history today</td>
+          <td>retained history</td>
         </tr>
         <tr>
           <td>Player profiles</td>
           <td>daily, and after a session</td>
           <td>&mdash;</td>
-          <td>full history today</td>
+          <td>retained history</td>
         </tr>
         <tr>
           <td>Clans</td>
           <td>tracked clans every 15 min while members are online, backing off when idle</td>
           <td>&mdash;</td>
-          <td>full history today</td>
+          <td>retained history</td>
         </tr>
         <tr>
           <td>River races (clan wars)</td>
           <td>every 30 min on war days, 2 h on training days; the race log daily</td>
           <td>&mdash;</td>
-          <td>full history today</td>
+          <td>retained history</td>
         </tr>
         <tr>
           <td>Decks, cards, matchups</td>
@@ -66,7 +66,8 @@ dataNav: collect
   </div>
   <div class="panel__foot" style="font-size: 13px; color: var(--ink-dim)">
     A player or clan is recorded because an account tracks it (or its
-    clan), a collection names it, or it is on a ranked board. Raw payloads are archived when they
-    are admitted, and kept. Account data is never public.
+    clan). Retired leaderboard-only capture was removed; protected personal and
+    clan history was preserved. Raw payloads are archived when admitted.
+    Account data is never public.
   </div>
 </section>

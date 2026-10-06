@@ -1425,6 +1425,43 @@ test("public stats: no auth needed, cacheable, honest totals and series", async 
   );
 });
 
+test("public battle totals and played-day series exclude removed scratch records", async () => {
+  const read = async () =>
+    parse(
+      await handler(
+        event({ method: "GET", path: "/api/public/stats", body: undefined }),
+      ),
+    );
+  const before = await read();
+  const ids = ["growth-retained-fixture", "growth-removed-fixture"].map(
+    (value) => crypto.createHash("sha256").update(value).digest("hex"),
+  );
+  const sum = (body) =>
+    body.series.battles_daily.reduce((total, row) => total + row.battles, 0);
+  try {
+    for (const id of ids)
+      await db.query(
+        "insert into battle (battle_id, battle_time, type, type_class) values ($1, '2026-09-13T12:00:00Z', 'PvP', 'pvp')",
+        [id],
+      );
+    const added = await read();
+    assert.equal(added.totals.battles, before.totals.battles + 2);
+    assert.equal(sum(added), added.totals.battles);
+    await db.query("delete from battle where battle_id = $1", [ids[1]]);
+    const retained = await read();
+    assert.equal(retained.totals.battles, before.totals.battles + 1);
+    assert.equal(sum(retained), retained.totals.battles);
+    const count = (body) =>
+      body.series.battles_daily.find((row) => row.day === "2026-09-13")
+        ?.battles ?? 0;
+    assert.equal(count(retained), count(before) + 1);
+  } finally {
+    await db.query("delete from battle where battle_id = any($1::text[])", [
+      ids,
+    ]);
+  }
+});
+
 test("activity APIs: own request log, read-only notification view, collector detail", async () => {
   const cookie = bossCookie;
   const reqs = parse(
