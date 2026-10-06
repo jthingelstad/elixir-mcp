@@ -24,6 +24,7 @@ import {
   participation,
   NOW,
   EXAMPLE_POLICY,
+  seasonRecordFixture,
 } from "@elixir-mcp/clan-engine/fixtures";
 
 const DAY = 86400_000;
@@ -70,6 +71,7 @@ function harness({
   players = [player()],
   part,
   policy = EXAMPLE_POLICY,
+  seasonCalendar = null,
   ledger = policy
     ? ledgerWithPolicy(createMemoryLedger(), "#2PQRJ8LV", policy)
     : createMemoryLedger(),
@@ -84,6 +86,7 @@ function harness({
     ledger,
     mcp,
     now,
+    seasonCalendar,
     activityFor: async (_tag, tags) =>
       new Map(
         (activity.part?.members ?? [])
@@ -1732,6 +1735,87 @@ test("week: with no policy, or below 10 members, the busiest areas are highlight
   assert.equal(b.status, 200);
   assert.deepEqual(b.body.policy, { set: true, active: false });
   assert.equal(b.body.highlight.basis, "activity");
+});
+
+// ---- the season record -------------------------------------------------------
+
+for (const [role, claim_status] of [
+  ["leader", "verified"],
+  ["member", "verified"],
+  ["leader", "unverified"],
+]) {
+  test(`season: ${role}/${claim_status} reads the same bounded record without business writes`, async () => {
+    const f = seasonRecordFixture();
+    const h = harness({
+      players: [player({ clan_role: role, claim_status })],
+      part: f.part,
+      policy: null,
+      seasonCalendar: () => f.calendar,
+    });
+    h.clock.t = f.now.getTime();
+    const cookies = await leader(h);
+    const before = structuredClone(h.ledger.items);
+    h.mcp.calls.length = 0;
+    const r = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/season");
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.seasons[1].decks, 84);
+    assert.equal(r.body.seasons[1].contributors, 3);
+    assert.equal(r.body.seasons[1].coverage.former_members, 1);
+    const reads = h.mcp.calls.filter(
+      ([name]) => name === "clans_participation",
+    );
+    assert.equal(reads.length, 1);
+    assert.deepEqual(reads[0][2], { clan_tag: "#2PQRJ8LV", weeks: 8 });
+    assert.deepEqual(
+      h.ledger.items,
+      before,
+      "no policy, evaluation, action, grant or metadata write",
+    );
+    assert.deepEqual(h.mcp.state.facts, []);
+    assert.deepEqual(h.mcp.state.mail, []);
+    assert.ok(
+      !h.mcp.calls.some(([name]) =>
+        ["war_history", "live_fetch"].includes(name),
+      ),
+    );
+  });
+}
+
+test("season: unauthenticated, nonmember and cross-clan requests refuse before participation", async () => {
+  const f = seasonRecordFixture();
+  const h = harness({ part: f.part, seasonCalendar: () => f.calendar });
+  const anon = await api(h, null, "GET", "/api/clans/2PQRJ8LV/season");
+  assert.equal(anon.status, 401);
+  const cookies = await leader(h);
+  h.mcp.calls.length = 0;
+  const other = await api(h, cookies, "GET", "/api/clans/GQ08RJPL/season");
+  assert.equal(other.status, 403);
+  assert.equal(other.body.error, "not_your_clan");
+  assert.ok(!h.mcp.calls.some(([name]) => name === "clans_participation"));
+  const outsider = harness({
+    players: [player({ clan_tag: null })],
+    part: f.part,
+    seasonCalendar: () => f.calendar,
+  });
+  const absent = await api(
+    outsider,
+    await leader(outsider),
+    "GET",
+    "/api/clans/2PQRJ8LV/season",
+  );
+  assert.equal(absent.status, 403);
+  assert.ok(
+    !outsider.mcp.calls.some(([name]) => name === "clans_participation"),
+  );
+});
+
+test("season: a mismatched recorded clan is refused rather than projected", async () => {
+  const f = seasonRecordFixture();
+  f.part.clan_tag = "#GQ08RJPL";
+  const h = harness({ part: f.part, seasonCalendar: () => f.calendar });
+  const r = await api(h, await leader(h), "GET", "/api/clans/2PQRJ8LV/season");
+  assert.equal(r.status, 502);
+  assert.equal(r.body.seasons, undefined);
 });
 
 // ---- sharing with Elixir (door 3) ----------------------------------------------

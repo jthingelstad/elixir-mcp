@@ -5,6 +5,8 @@ import { createSession, revokeSession } from "@elixir-mcp/auth";
 import { writeClanFactInClan } from "@elixir-mcp/record/attested-facts";
 import { makeHandler } from "../src/handler.mjs";
 import { createClanRequest, recordedIdentity } from "../src/clan.mjs";
+import { seasonCalendar } from "@elixir-mcp/record/season";
+import { seasonFromDate, monthForSeasonId } from "@elixir-mcp/record/war-clock";
 
 import { describeIdentity, principalBlock } from "@elixir-mcp/tools/identity";
 
@@ -206,11 +208,11 @@ test("GET evaluations and mutations serialize across O/0 clan aliases", async ()
   }
 });
 
-test("pure week and own-member views do not wait behind the clan's mutation lock", async () => {
+test("pure week, season and own-member views do not wait behind the clan's mutation lock", async () => {
   const key = `clan-state:${CLAN}`;
   await scratch.db.query("select pg_advisory_lock(hashtext($1))", [key]);
   try {
-    for (const page of ["week", "me"]) {
+    for (const page of ["week", "season", "me"]) {
       let timer;
       try {
         const response = await Promise.race([
@@ -236,6 +238,72 @@ test("pure week and own-member views do not wait behind the clan's mutation lock
     }
   } finally {
     await scratch.db.query("select pg_advisory_unlock(hashtext($1))", [key]);
+  }
+});
+
+test("season projects real recorded counters with the canonical calendar and no action or grant writes", async () => {
+  const current = seasonFromDate(Date.now()).seasonId;
+  const calendar = seasonCalendar(monthForSeasonId(current));
+  await scratch.db.query(
+    "insert into recording(subject_type,subject_tag,requested_by,scope) values ('clan',$1,$2,'comprehensive')",
+    [CLAN, accountId],
+  );
+  await scratch.db.query(
+    "insert into war_week(clan_tag,season_id,section_index,started_observed_at) values ($1,$2,0,$3)",
+    [CLAN, current, calendar.starts_at],
+  );
+  await scratch.db.query(
+    "insert into war_participation(clan_tag,season_id,section_index,player_tag,points,decks_used) values ($1,$2,0,$3,750,3)",
+    [CLAN, current, TAG],
+  );
+  const before = (
+    await scratch.db.query(
+      "select pk,sort_key,body from clan_state order by pk",
+    )
+  ).rows;
+  try {
+    const response = await request(
+      "GET",
+      `/api/clan/clans/${CLAN.slice(1)}/season`,
+    );
+    assert.equal(response.statusCode, 200, response.body);
+    const season = data(response).seasons[0];
+    assert.equal(data(response).current_season_id, current);
+    assert.equal(season.from, calendar.starts_at.toISOString());
+    assert.equal(season.to, calendar.ends_at.toISOString());
+    assert.equal(season.races.length, calendar.sections);
+    assert.equal(season.decks, 3);
+    assert.equal(season.points, 750);
+    assert.equal(season.contributors, 1);
+    assert.equal(season.coverage.recorded_sections, 1);
+    assert.match(
+      response.headers["server-timing"],
+      /elixir;dur=\d+;desc="2 calls"/,
+    );
+    const after = (
+      await scratch.db.query(
+        "select pk,sort_key,body from clan_state order by pk",
+      )
+    ).rows;
+    // The existing member gate may refresh the clan's monotonic metadata.
+    // The view must never reconcile business decisions or grants.
+    assert.deepEqual(
+      after.filter((r) => r.pk !== `clan#${CLAN}`),
+      before.filter((r) => r.pk !== `clan#${CLAN}`),
+    );
+    assert.equal(
+      after.some((r) => /action|grant|mail/i.test(r.sort_key)),
+      false,
+    );
+  } finally {
+    await scratch.db.query("delete from war_participation where clan_tag=$1", [
+      CLAN,
+    ]);
+    await scratch.db.query("delete from war_week where clan_tag=$1", [CLAN]);
+    await scratch.db.query(
+      "delete from recording where subject_type='clan' and subject_tag=$1",
+      [CLAN],
+    );
   }
 });
 

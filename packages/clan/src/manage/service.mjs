@@ -48,6 +48,7 @@ import {
   CATEGORY_LABELS,
   memberWeeks,
   weeklyReport,
+  seasonReport,
   welcomesFrom,
   welcomeContext,
   actionsWaitingMail,
@@ -155,6 +156,7 @@ export function createManageService({
   mcp,
   activityFor = null,
   now = () => Date.now(),
+  seasonCalendar = null,
   /** Where Elixir Clan's app is, for the links in its email */
   appUrl = "https://elixir.poapkings.com/clan",
 }) {
@@ -1038,6 +1040,28 @@ export function createManageService({
         freshness_seconds: part.meta?.freshness_seconds ?? null,
         policy: { set: policy.set, active },
         ...report,
+      };
+    },
+
+    /** One recorded read; no evaluation, metadata write or private ledger. */
+    async seasonView(clanTag, who, token) {
+      const t = now();
+      if (!seasonCalendar) throw new ManageError(502, "elixir_unavailable");
+      const part = await fetchParticipation(mcp, token, clanTag);
+      if (part.clan_tag !== clanTag)
+        throw new ManageError(502, "elixir_unavailable");
+      return {
+        clan_tag: clanTag,
+        clan_name: part.name ?? null,
+        as_of: part.meta?.as_of ?? null,
+        freshness_seconds: part.meta?.freshness_seconds ?? null,
+        ...seasonReport(part, {
+          calendar: seasonCalendar(
+            t,
+            (part.war_weeks ?? []).map((w) => w.season_id),
+          ),
+          now: new Date(t),
+        }),
       };
     },
 

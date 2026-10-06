@@ -41,6 +41,7 @@ import { Awards } from "./views/Awards.jsx";
 import { ActionDetail, Actions } from "./views/Actions.jsx";
 import { YouHere } from "./views/YouHere.jsx";
 import { Week } from "./views/Week.jsx";
+import { Season } from "./views/Season.jsx";
 import { VerifyNotice } from "./views/VerifyNotice.jsx";
 import { ELIXIR_LINKS } from "./lib/links.js";
 // The clan map brings Leaflet and the place lists: loaded when opened.
@@ -68,7 +69,7 @@ import { MaintainItem, MaintainQueue } from "./views/Maintain.jsx";
  *  action's number (`/clan/<TAG>/actions/37`). */
 export function parseClanPath(path) {
   const m =
-    /^\/([^/]+)(?:\/(manage|me|week|actions|standing|trophies|awards|recruit|map|members)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
+    /^\/([^/]+)(?:\/(manage|me|week|season|actions|standing|trophies|awards|recruit|map|members)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
       appPath(path) ?? "",
     );
   const tag = m ? tagOf(m[1]) : null;
@@ -212,6 +213,15 @@ export function ClanPage() {
         key={`${clan.clan_tag}-${parsed.tab ?? "latest"}`}
         clan={clan}
         week={parsed.tab ? parsed.tab.toUpperCase() : null}
+        navigate={navigate}
+      />
+    );
+  if (parsed.section === "season")
+    return (
+      <Season
+        key={clan.clan_tag}
+        clan={clan}
+        season={parsed.tab}
         navigate={navigate}
       />
     );

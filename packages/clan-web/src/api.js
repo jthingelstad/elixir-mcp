@@ -108,6 +108,7 @@ export const manageApi = {
     get(
       `${clanBase(tag)}/week${week ? `?week=${encodeURIComponent(week)}` : ""}`,
     ),
+  season: (tag) => get(`${clanBase(tag)}/season`),
   scout: (tag, playerTag) => post(`${clanBase(tag)}/scout`, { tag: playerTag }),
   // Recruiting (2026-09-13): the pitch, the facts, the copy.
   recruit: (tag, refresh = false) =>

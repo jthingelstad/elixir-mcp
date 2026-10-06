@@ -1,5 +1,78 @@
 import { validate } from "../src/policy.mjs";
 
+/** Invented season counters for aggregate/access/UI journeys. */
+export function seasonRecordFixture() {
+  const now = new Date("2026-10-06T12:00:00Z");
+  const calendar = {
+    current_season_id: 137,
+    seasons: [
+      {
+        season_id: 137,
+        from: "2026-10-05T10:00:00Z",
+        to: "2026-11-02T10:00:00Z",
+        sections: 4,
+      },
+      {
+        season_id: 136,
+        from: "2026-09-07T10:00:00Z",
+        to: "2026-10-05T10:00:00Z",
+        sections: 4,
+      },
+    ],
+  };
+  const part = {
+    clan_tag: "#2PQRJ8LV",
+    name: "Example Clan",
+    applied: { window: { from: "2026-08-17T00:00:00Z" } },
+    first_roster_observed_at: "2026-08-01T10:00:00Z",
+    weeks: [],
+    war_weeks: [0, 1, 2, 3]
+      .map((section) => ({
+        season_id: 136,
+        section_index: section,
+        is_colosseum: section === 3,
+        started_observed_at: new Date(
+          Date.parse(calendar.seasons[1].from) + section * 7 * 86400_000,
+        ).toISOString(),
+        finished_observed_at: new Date(
+          Date.parse(calendar.seasons[1].from) +
+            (section + 1) * 7 * 86400_000 -
+            30 * 60_000,
+        ).toISOString(),
+      }))
+      .concat([
+        {
+          season_id: 137,
+          section_index: 0,
+          is_colosseum: false,
+          started_observed_at: calendar.seasons[0].from,
+          finished_observed_at: null,
+        },
+      ]),
+    members: [
+      {
+        player_tag: "#20QQL8CCRU",
+        war_decks: [16, 16, 12, 16, 0],
+        war_points: [3200, 4000, 2700, 4000, 0],
+      },
+      {
+        player_tag: "#UQ8LP2R9C",
+        war_decks: [4, null, 0, 8, null],
+        war_points: [700, null, 0, 1400, null],
+      },
+    ],
+    former_members: [
+      {
+        player_tag: "#VLQV8C8RP",
+        war_decks: [4, 8, 0, 0, null],
+        war_points: [700, 1400, 0, 0, null],
+      },
+    ],
+    meta: { as_of: now.toISOString(), freshness_seconds: 300 },
+  };
+  return { part, calendar, now };
+}
+
 /**
  * A clans_participation answer, built to the tool's shape (values here
  * are invented). Six ISO weeks
