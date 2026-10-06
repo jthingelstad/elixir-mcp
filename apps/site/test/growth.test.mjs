@@ -89,3 +89,25 @@ test("stats loader timestamps the fetched snapshot and preserves the current ret
     else process.env.ELIXIR_SKIP_STATS = skip;
   }
 });
+
+test("the mobile Data disclosure names the current retained-history page", async () => {
+  const render = await RenderPlugin.File(
+    fileURLToPath(new URL("../src/_includes/data-page.njk", import.meta.url)),
+    {
+      config(config) {
+        configure(config);
+        config.addFilter("asset", (url) => url);
+      },
+    },
+  );
+  const html = await render({ dataNav: "growth", content: "Chart" });
+  const document = new JSDOM(html).window.document;
+  assert.equal(
+    document.querySelector(".siterail__head-here").textContent,
+    "Retained history",
+  );
+  assert.equal(
+    document.querySelector('[aria-current="page"]').getAttribute("href"),
+    "/data/growth",
+  );
+});

@@ -5770,6 +5770,9 @@ display window stay out, and the window/full totals and snapshot time are
 distinct. MCP 11.2.3 and JSON API 3.0.0 remain unchanged; live MCP acceptance
 is omitted because only site copy and snapshot presentation change.
 
-Local `npm run verify` passed 1,847 Node tests and 449 UI tests with 85
-existing skips. The focused actual-template tests passed two cases, and the
+Local `npm run verify` passed 1,848 Node tests and 449 UI tests with 85
+existing skips. The focused actual-template tests passed three cases, and the
 scratch web API suite passed 49 including deletion/count reconciliation.
+Phone inspection also found the Data disclosure naming the first page instead
+of the current graph; its actual-template regression now checks the matching
+label and active link. The final full gate passed after this correction.

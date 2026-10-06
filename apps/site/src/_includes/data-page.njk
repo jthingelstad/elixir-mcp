@@ -18,12 +18,11 @@ navActive: data
   { url: "/data/now", label: "Recording now", key: "now", icon: "radio" },
   { url: "/data/machines", label: "For machines", key: "machines", icon: "braces" }
 ] %}
-{%- set here = pages | selectattr("key", "equalto", dataNav) | first %}
 <div class="siterail">
   <aside class="siterail__nav" data-siterail data-open="false">
     <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="data-rail">
       <span class="siterail__head-title">Data</span>
-      <span class="siterail__head-here">{{ here.label if here else "The corpus" }}</span>
+      <span class="siterail__head-here">{% for p in pages %}{% if p.key == dataNav %}{{ p.label }}{% endif %}{% endfor %}</span>
       <span class="siterail__head-meta">{{ pages.length }}<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
     </button>
     <nav class="siterail__list" id="data-rail" aria-label="Data">
