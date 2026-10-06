@@ -5900,3 +5900,32 @@ now must be the sole top-level operation, checked before every other branch;
 actual-handler tests prove mixed/falsy requests never connect. Focused scratch
 coverage also pins 500-row lookahead/resume, UTC midnight boundaries, microsecond
 precision, all participants, oversized-tag refusal, failure rollback and logs.
+
+### 2026-10-06 — Prove reference recoverability before the retention diagnostic release
+
+The audit deploy paused when the standard pipeline's unconditional vocabulary
+refresh conflicted with the initial no-data-write constraint. Jamie clarified
+that ordinary repository-derived reference maintenance is allowed when exact
+live/proposed equality and recoverability are shown; battle/history/participant,
+archive and other business records remain outside mutation authority.
+
+The release now supports `--verify-reference-seed`: normal operator code push,
+then an exclusive IAM-only `reference_seed_preview`, before migrations or the
+ordinary reference import. It reads only card_role, deck_alias and import
+metadata, with a 1,000-row bound, read-only repeatable-read transaction and
+five-second/500 ms statement/lock ceilings. It compares every stored seed
+column with the actual import normalization, emits digests/counts/bounded
+changed field names, and refuses differences. Seed content is fully
+reproducible from the trusted standalone reference Git commit; only ordinary
+source-commit/imported-at metadata can refresh with identical rows/version/counts.
+There is no product editing route for these tables. No supported skip-seed
+option existed, and no IAM expansion or alternate access route is introduced.
+
+Two reviews identified and closed a binding race and falsy-JSON normalization
+seam. Preview and import now share one immutable vocabulary read from one
+Git commit, and preview uses the writer's exact SQL-null coercion. Scratch
+regressions cover precise live-column equality, operator source/alias changes,
+metadata-only updates, immutable import binding, failures, invalid requests,
+and exclusive dispatch. Production comparison/export remains pending this
+release's required CI, lease and smoke; no retained-day classification is
+claimed here.

@@ -245,6 +245,10 @@ test("deploy flags: every known flag parses, anything else is refused", () => {
   assert.equal(parsed.platform, false);
   assert.equal(parseDeployArgs(["--break-glass"]).breakGlass, true);
   assert.equal(parseDeployArgs(["--platform"]).platform, true);
+  assert.equal(
+    parseDeployArgs(["--verify-reference-seed"]).verifyReferenceSeed,
+    true,
+  );
   assert.equal(parseDeployArgs(["--help"]).help, true);
   assert.equal(parseDeployArgs(["-h"]).help, true);
   // 2026-09-25: `--help` was not a flag and an unknown flag was ignored,
@@ -355,7 +359,9 @@ test("deploy lanes: migrations and the stack update run only in the platform lan
   assert.ok(stack < source.indexOf("new UpdateStackCommand("));
   assert.ok(stack < source.indexOf("new ValidateTemplateCommand("));
   // The vocabulary rides every deploy, site lane included.
-  const vocabulary = source.indexOf("import-card-roles.mjs");
+  const vocabulary = source.indexOf(
+    "const vocabulary = verifiedReferenceSeed?.vocabulary",
+  );
   assert.ok(vocabulary > migrate && vocabulary < stack);
   // Both lanes name a bundle by its content.
   assert.match(source, /codeKey\(name, bundleFingerprint\(dir\)\)/);

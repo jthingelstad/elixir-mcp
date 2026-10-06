@@ -19,6 +19,7 @@
 import pg from "pg";
 import { normalizeName, FAMILIES } from "@elixir-mcp/contracts";
 import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
+import { referenceSeedPreview } from "./reference-seed-preview.mjs";
 
 const FAMILY_SET = new Set(FAMILIES.filter((f) => f !== "unclassified"));
 const isUrl = (s) => typeof s === "string" && /https?:\/\//.test(s);
@@ -73,16 +74,42 @@ function validateVocabulary({ roles, aliases }) {
 /** Replace the vocabulary with the file's contents, atomically. Cards the
  *  catalog has not seen are refused: a role for an id the record does
  *  not know is a typo, not a new card (the catalog is fetched daily). */
-export async function cardRolesImport(databaseUrl, spec) {
+export async function cardRolesImport(databaseUrl, spec, client = null) {
+  const preview = Object.hasOwn(spec ?? {}, "preview");
+  if (
+    preview &&
+    (spec.preview !== true ||
+      Object.keys(spec).some(
+        (key) =>
+          ![
+            "roles",
+            "aliases",
+            "roles_version",
+            "source_commit",
+            "preview",
+          ].includes(key),
+      ) ||
+      !Array.isArray(spec.roles) ||
+      !Array.isArray(spec.aliases) ||
+      spec.roles.length > 1000 ||
+      spec.aliases.length > 1000)
+  )
+    return { error: "invalid_reference_preview" };
   const { roles, aliases, roles_version, source_commit } = spec ?? {};
   if (!roles_version || !source_commit)
     throw new Error("card_roles_import needs roles_version and source_commit");
   const problems = validateVocabulary({ roles, aliases });
   if (problems.length)
     throw new Error(`vocabulary refused: ${problems.join("; ")}`);
-  const db = new pg.Client({ connectionString: databaseUrl });
+  const db =
+    client ??
+    new pg.Client({
+      connectionString: databaseUrl,
+      ...(preview ? { connectionTimeoutMillis: 5000 } : {}),
+    });
   await db.connect();
   try {
+    if (preview) return await referenceSeedPreview(db, spec);
     const ids = [
       ...new Set([
         ...roles.map((r) => r.id),

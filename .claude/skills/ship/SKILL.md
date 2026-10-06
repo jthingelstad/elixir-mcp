@@ -168,6 +168,7 @@ satisfy the SDK's provider chain" (ENGINEERING). The only flags
 | `--acceptance=<family>` | that family's cases; `a,b` for several |
 | `--acceptance` (or `ACCEPTANCE=1`) | the whole suite |
 | `--skip-web` | no site build or sync |
+| `--verify-reference-seed` | update only: after operator code push, compare every live reference seed column before migrations/import; require identical seed content and import the same frozen repository snapshot |
 | `--platform` | migrations and the stack update even in the site lane |
 | `--param=Key=Value` | a PRESERVED parameter's first value |
 | `--help`, `-h` | print the flags; deploys nothing |

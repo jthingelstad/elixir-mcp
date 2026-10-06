@@ -10,6 +10,8 @@ export const DEPLOY_USAGE = `usage: AWS_PROFILE=cloud-engineer node infra/script
   (no flags)             update the production stack
   --create               first deploy (GATED)
   --skip-web             code and infrastructure only; no site sync
+  --verify-reference-seed require exact read-only live/seed comparison before
+                         migrations and vocabulary refresh (update only)
   --platform             migrations and the stack update even when no
                          Lambda bundle and not the template changed
                          (deploy-lane.mjs; otherwise that is the site lane)
@@ -30,6 +32,7 @@ export function parseDeployArgs(argv) {
     help: false,
     create: false,
     skipWeb: false,
+    verifyReferenceSeed: false,
     platform: false,
     params: {},
     acceptance: false,
@@ -42,6 +45,7 @@ export function parseDeployArgs(argv) {
     if (arg === "--help" || arg === "-h") out.help = true;
     else if (arg === "--create") out.create = true;
     else if (arg === "--skip-web") out.skipWeb = true;
+    else if (arg === "--verify-reference-seed") out.verifyReferenceSeed = true;
     else if (arg === "--platform") out.platform = true;
     else if (arg === "--acceptance") out.acceptance = true;
     else if (arg === "--break-glass") out.breakGlass = true;
