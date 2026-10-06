@@ -5,6 +5,7 @@
  *  deck with its art, who you met more than once, and your other
  *  players' climbs; each comes from a tool's own answer. */
 import { accountCtx, callTool } from "./ctx.mjs";
+import { MODE_GROUPS } from "@elixir-mcp/contracts";
 import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
 import {
   modeLabel,
@@ -72,23 +73,24 @@ export async function buildArena({ db, account, week, season }) {
   }
   if ((!w || !w.battles) && altRows.length === 0) return null;
 
-  const decks = w?.battles
+  const featuredMode = arenaMode(w);
+  const decks = featuredMode
     ? await tryTool(callTool, ctx, "battles_decks", {
         player_tag: primary.tag,
         ...window,
-        limit: 4,
+        mode: featuredMode,
+        sort: "battles",
+        limit: 1,
       })
     : null;
-  // The week's main deck outside war, drawn with its art: the list row
-  // is compact (card names only), so the deck itself is read once more
-  // by its hash for the cards' ids and forms and the tower troop.
-  const top = (decks?.decks ?? []).find(
-    (d) => d.dominant_mode && d.dominant_mode !== "war",
-  );
+  // The most-used deck in the busiest non-war mode. The reader resolves
+  // equal deck counts by hash; both reads keep this mode and game week.
+  const top = decks?.decks?.[0];
   const topDeck = top
     ? await tryTool(callTool, ctx, "battles_decks", {
         player_tag: primary.tag,
         ...window,
+        mode: featuredMode,
         deck_hash: top.deck_hash,
       })
     : null;
@@ -154,7 +156,7 @@ export async function buildArena({ db, account, week, season }) {
         losses: d.losses,
         level_gap: d.mean_level_gap ?? null,
       })),
-      deck: featuredDeck(top, topDeck?.decks?.[0]),
+      deck: arenaFeaturedDeck(featuredMode, topDeck?.decks?.[0]),
       opponents: {
         distinct: opps?.distinct_opponents ?? 0,
         repeats: (opps?.opponents ?? []).filter((o) => o.battles > 1).length,
@@ -190,6 +192,31 @@ export async function buildArena({ db, account, week, season }) {
     },
     alts: altRows,
   };
+}
+
+/** A positive known mode counter chooses the busiest non-war family.
+ * Equal counts use the contract's stable mode order, not object order. */
+export function arenaMode(window) {
+  let best = null;
+  let most = 0;
+  for (const mode of MODE_GROUPS) {
+    if (mode === "war") continue;
+    const battles = window?.modes?.[mode]?.battles;
+    if (Number.isSafeInteger(battles) && battles > most) {
+      best = mode;
+      most = battles;
+    }
+  }
+  return best;
+}
+
+/** Art and every statistic come from the same mode-filtered full read.
+ * Missing or mixed mode evidence cannot become a mode-labelled card. */
+export function arenaFeaturedDeck(mode, full) {
+  if (!mode || full?.dominant_mode !== mode) return null;
+  const modes = Object.keys(full.modes ?? {});
+  if (modes.length !== 1 || modes[0] !== mode) return null;
+  return featuredDeck(full, full);
 }
 
 /** The record per mode family, from battles_performance's own split. */

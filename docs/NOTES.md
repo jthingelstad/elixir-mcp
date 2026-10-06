@@ -6188,3 +6188,25 @@ fixtures and scratch databases, not manufactured live activity. No MCP tool
 behavior changed, so MCP acceptance was not run. The production lease is
 released; private test/release evidence is preserved outside Git. This
 notes-only receipt needs no redeployment.
+
+
+### 2026-10-06 — Arena featured deck keeps one mode's record
+
+The saved Sep 28–Oct 5 Arena report correctly split four Trophy Road losses
+and two Events losses in its headline, but labelled their combined deck record
+as Trophy Road. Future reports choose the most-used deck in the busiest
+non-war mode from the canonical performance split. Equal mode counts use the
+contract's alphabetical mode order; equal deck counts use the reader's existing
+ascending hash order. Both deck reads carry the same selected mode and exact
+half-open game week. Art, counts, record and mean level gap come from that one
+full mode-filtered row. Missing mode evidence or art omits the card; there is
+no pooled record fallback. Tracking's existing helper behavior is unchanged.
+
+Regression fixtures use real registered readers on scratch PostgreSQL: four
+Trophy Road losses and two Events losses with one deck, distinct decks in the
+busiest mode, a busier war mode, mode/deck ties, exact week endpoints, missing
+counters, mixed/missing mode evidence and missing art. The saved email archive
+is immutable; no resend, live mail run, grant, policy or business action is part
+of this change. The completed Season release is preserved. MCP 11.2.3 and JSON
+API 3.0.0 remain unchanged. No canonical tool behavior changes, so MCP
+acceptance scope is none. Full gates and release read-back follow below.
