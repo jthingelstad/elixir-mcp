@@ -6267,6 +6267,55 @@ and skipped-projection gaps. Migration 0203 took 2 ms on a scratch parent table
 with 435,271 rows (the live catalog estimate); fingerprint and migration digest
 are pinned. Production release and acceptance read-back follow after green CI.
 
+Release receipt: PR #331 merged as `1916ce3f` after validate run
+`37545742929` passed on reviewed head `2835123e`, including all 183 browser
+journeys with no flaky-test report. The canonical leased deployment used
+`--verify-reference-seed --acceptance`: all 47 roles and 29 aliases matched
+exactly, migration 0203 ran (203 total applied), and all 43 smoke checks passed.
+The reference snapshot refresh changes only source-commit metadata to
+`ab340ca8`; its roles, aliases and version remain identical.
+
+Initial full MCP acceptance counted 1,135 cases, four failures and 383 skips.
+Each failure repeated alone and received a test-maintenance verdict:
+
+- `gym/220.3`: its fixed October 6 future window had begun. The historical
+  criterion and captured failing bite remain; a rolling future-window control
+  now checks the same explanation live.
+- `gym/316.4`: a new season's empty 25-row page correctly fits the cap. The
+  existing control now requires the priced retry hint whenever an actual
+  `result_too_large` refusal occurs; a negative fixture still catches its absence.
+- `gym/329.4`: September is no longer the latest progress bucket. The control
+  checks every bucket on the newest snapshot date; ended-bucket controls and
+  historical bites remain, and a negative fixture catches a false current flag.
+- `catalogue/battles_performance#notes`: an empty weekly response cannot carry
+  `week_of`, `trophy_battles` or `trophy_mode_battles`. Scoped allowances document
+  those conditional fields; nonempty output schemas and scratch denominator
+  tests still guard them. The standalone docs check passed with the same fix.
+
+All four repaired areas passed targeted live reruns. No control was deleted,
+no failure was hidden in known.json, and no runtime change was needed. The
+final full acceptance rerun and maintenance verification are recorded below.
+
+Read-back verified at 23:29Z (6:29 PM CT) found all seven Lambda artifacts
+identical to the local release and Active/Successful, public health healthy,
+the exact app shell and capture docs/update live, and unchanged MCP 11.2.3
+and JSON API 3.0.0. Eight production browser states using released assets and
+synthetic read responses at 390/1280 pixels had zero application errors, writes,
+overflow or serious/critical axe findings. Real collector insertions were not
+manufactured: the new membership projection was still empty at catalog
+read-back, so legacy membership remains unknown until normal profile polling.
+No policy, grant, mail, player tracking or other business write was used for
+verification. Private release evidence is preserved outside Git. This
+acceptance/metadata/notes receipt needs no redeployment.
+
+Final full live MCP acceptance passed: 1,136 cases, zero failures, 385 skips
+and 516 distinct calls. Maintenance `npm run verify` passed 1,926 Node and
+474 UI tests, with 85 existing retired-scope skips; historical bites and all
+three new positive/negative acceptance regressions passed. No release work
+remains owed. This slice establishes capture and membership truthfulness;
+the later beta invitation milestones remain separate work.
+
+
 ## 2026-10-06 — Feedback W40 catch-up and current-scope documentation
 
 The Feedback Manager preflight passed from `1916ce3f`: observation and

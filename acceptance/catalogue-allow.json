@@ -64,5 +64,10 @@
   },
   "war_history": {
     "end_of_day_rank": "on days[].standings[] only when a recorded week holds API periodLogs; the sampled historical week can have no day rows"
+  },
+  "battles_performance": {
+    "week_of": "On weekly rows only; an empty current-season weekly response has no rows. Grouping notes still explain the field. Nonempty weekly schemas and denominator invariants are pinned by scratch tests.",
+    "trophy_battles": "On weekly trophy-mode rows only; an empty current-season window has no such rows. The notes explain this conditional denominator, also pinned by the output schema and scratch tests.",
+    "trophy_mode_battles": "Same conditional weekly trophy-mode denominator as trophy_battles; a new season can have no captured trophy-mode rows."
   }
 }

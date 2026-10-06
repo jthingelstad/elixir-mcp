@@ -10867,7 +10867,8 @@
       {
         "notes_match": "(?i)(not (yet )?(begun|started|read)|future|after (now|the latest))"
       }
-    ]
+    ],
+    "needs_fixture": "2026-10-06: this fixed future window has begun. Its captured future-window regression remains under bites; gym/220-future-window tests a rolling future window live."
   },
   {
     "id": "220.4",
@@ -17751,7 +17752,7 @@
         "absent": "w.timeline[?observed_at=2026-09-09T09:01:57.000Z]"
       }
     ],
-    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The original 18 moments restore pax and Ditaka crossings during their September 3-11 tenures and remove VVSBUDGET’s September 9 return before the September 12 join: 19 moments."
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The original 18 moments restore pax and Ditaka crossings during their September 3-11 tenures and remove VVSBUDGET\u2019s September 9 return before the September 12 join: 19 moments."
   },
   {
     "id": "304.3",
@@ -18813,8 +18814,10 @@
   },
   {
     "id": "314.3",
-    "amended": "2026-10-05: compare the observed race with today’s policy clock only after a race observation in that day. Documented post-rollover 404 standby can leave the prior race on record. All fresh-record equality assertions remain.",
-    "when": { "gte": ["w.period.source_observed_at", "g.day_started_at"] },
+    "amended": "2026-10-05: compare the observed race with today\u2019s policy clock only after a race observation in that day. Documented post-rollover 404 standby can leave the prior race on record. All fresh-record equality assertions remain.",
+    "when": {
+      "gte": ["w.period.source_observed_at", "g.day_started_at"]
+    },
     "feedback": 314,
     "stability": "live",
     "control": true,
@@ -19140,7 +19143,11 @@
       {
         "notes_match": "limit of \\d+ should fit"
       }
-    ]
+    ],
+    "when": {
+      "eq": ["error.code", "result_too_large"]
+    },
+    "amended": "2026-10-06: a new season can have no captured battles, so a 25-row request need not exceed the cap. Price the retry whenever this control actually receives result_too_large; ordinary successful pages are covered by the catalogue and scratch protocol tests."
   },
   {
     "id": "322.1",
@@ -20374,23 +20381,15 @@
     },
     "request_id": "12fd7de9-78da-488f-9abb-71531a5d19c6",
     "when": {
-      "has": "snapshot.progress[?key=seasonal-trophy-road-202609].day"
+      "eq": ["day", "snapshot.date"]
     },
     "assert": [
       {
-        "eq": [
-          "snapshot.progress[?key=seasonal-trophy-road-202609].current",
-          true
-        ]
-      },
-      {
-        "eq": [
-          "snapshot.progress[?key=seasonal-trophy-road-202609].day",
-          "snapshot.date"
-        ]
+        "eq": ["current", true]
       }
     ],
-    "amended": "The fix shipped the flag as current (true for a bucket the newest profile read carried), not the proposed in_latest_read (7.2.5)."
+    "amended": "The fix shipped the flag as current (true for a bucket the newest profile read carried), not the proposed in_latest_read (7.2.5). 2026-10-06: September ended at the October rollover. Check every bucket on the newest snapshot date instead of assuming a fixed September key remains current; ended-bucket controls are retained.",
+    "for_each": "snapshot.progress"
   },
   {
     "id": "330.1",
