@@ -6113,3 +6113,21 @@ non-read request blocked. Signed-in capture states were proved with fixtures
 and scratch data, not live business writes. MCP acceptance was not run because
 no tool behavior changed. The lease is released and private QA/release evidence
 is preserved outside Git. This notes-only receipt requires no redeployment.
+
+## 2026-10-06 — the clan season record
+
+Jamie authorized the bounded aggregate season slice after read-only scoping.
+An ordinary member-visible Season view beside The Week will project the existing
+eight-week participation read: recorded war decks, period points, deduplicated
+contributors and chronological race sections for represented current/former
+members. It will distinguish current/open, closed and incomplete records,
+including missing counters, represented population and freshness. A captured
+race section does not establish exhaustive member capture. Donations and battle
+totals wait because the existing current-member fields can cross clan and season
+boundaries. No new ingestion, schema, internal reader permission or policy,
+action, grant or mail behavior is authorized. Existing Clan member access,
+including unverified readers, stays exact; unauthenticated, nonmember and
+cross-clan reads must refuse. Full validation, required green CI, leased deploy
+and fixture/read-only live verification remain release gates. MCP 11.2.3 and
+JSON API 3.0.0 are unchanged; no tool behavior changes, so MCP acceptance scope
+is none.
