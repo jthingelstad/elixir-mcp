@@ -17,6 +17,8 @@ import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
 import { CONSOLE } from "../lib/console.js";
 import { tagPath } from "../lib/tag-url.js";
+import { ladderPlayers } from "../lib/ladder.js";
+import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
 
 /**
  * One battle's public page, /battle/<short id> (design canvas
@@ -359,7 +361,18 @@ function BattleView({ read, me }) {
       <div className="battle__grid battle__grid--three">
         <Meetings read={read} zone={clock.zone} />
         <Sitting read={read} zone={clock.zone} />
-        <Share battle={battle} sides={sides} />
+        <Share
+          battle={battle}
+          sides={sides}
+          own={
+            signedIn &&
+            ladderPlayers(me?.claims).some((p) =>
+              sides.some((side) =>
+                side.players.some((x) => x.player_tag === p.player_tag),
+              ),
+            )
+          }
+        />
       </div>
 
       {signedOut && <Invite />}
@@ -909,7 +922,7 @@ const attr = (s) =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-function Share({ battle, sides }) {
+function Share({ battle, sides, own }) {
   if (!battle.url) return null;
   // Just the picture and the link (Jamie: no embed for a blog).
   const alt = `${namesOf(sides[0])} against ${namesOf(sides[1])}, a Clash Royale battle on Elixir`;
@@ -938,6 +951,13 @@ function Share({ battle, sides }) {
           Anyone with the link can open this page, no account needed: both
           decks, how it ended, and the players’ game names.
         </p>
+        {own && (
+          <PlayerBattleShare
+            key={battle.id}
+            url={battle.url}
+            players={`${namesOf(sides[0])} against ${namesOf(sides[1])}`}
+          />
+        )}
       </div>
     </section>
   );

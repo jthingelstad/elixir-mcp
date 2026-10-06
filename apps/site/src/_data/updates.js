@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-06",
+    title: "Share a battle in your own words",
+    body: "Choose a captured battle from Ladder’s Days played, inspect its record, and add your own context about why it mattered. Preview before copying the message or using your device’s Share sheet. Your words travel alongside the existing public battle link; the link itself keeps showing game facts. Contracts remain MCP 11.2.3 and JSON API 3.0.0.",
+  },
+  {
+    date: "2026-10-06",
     title: "The history chart counts retained battles",
     body: "The public history chart now says what it counts: battles still in Elixir, grouped by when they were played. It separates the displayed window from the full retained total and shows when its published snapshot was fetched. Removed records are excluded; protected personal and clan history remains, so old bars can still be present. Contracts remain MCP 11.2.3 and JSON API 3.0.0.",
   },

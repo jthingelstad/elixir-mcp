@@ -5813,3 +5813,27 @@ import, credential or unrelated-history publication. The existing public
 battle boundary is unchanged. Fixture tests cover ownership, cancellation,
 back/edit, repeated actions, clipboard/native-share interruption, missing
 data, canonical URLs and phone/desktop layouts. No production publishing test.
+
+The implementation follows the existing Ladder primary/alt convention,
+including unverified claims; the message does not attest verified ownership.
+It never imports private nicknames, email or notes. Canonical URLs with query,
+fragment, foreign origin or credentials are refused by the composer. Copy
+and native Share await completion; cancellation/failure keeps a selectable
+preview, and the synchronous pending guard prevents duplicate sends.
+
+Security and delivery consistency reviews found no new access boundary.
+The delivery review found non-wrapping preview actions; the local wrapped
+layout and fixture browser guard now cover native-share-capable screens at
+320, 375, 390 and 1280 pixels. The new share panel fits at all four sizes;
+the whole page fits at 375 and above. Existing global chrome/account controls
+and paired deck tiles overflow at 320 pixels, outside this message-composer
+change; keep that bounded mobile follow-up rather than hide page overflow.
+All publishing journeys use mocked clipboard/native APIs and fixture data.
+No MCP or JSON API shape changed (11.2.3 / 3.0.0), so this frontend/docs deploy
+requires smoke and readback, with no live tool acceptance or business write.
+
+The full pre-push gate passed (format, lint, dead-code/dependency check,
+TypeScript and all workspace/scratch-database tests), including ten new
+component cases. All four new built browser journeys pass; their clipboard
+and native Share operations are fixtures only. Read-only delivery re-review
+confirmed the wrapped preview at all four widths with no new flow blocker.

@@ -114,6 +114,19 @@ link under it. It is what the link shows when it unfurls, and it can be posted
 on its own with the link beside it. Its time is in UTC, since a picture has no
 reader's clock.
 
+In Ladder ▸ Days played, open a night and choose a captured battle. Inspect
+its facts, then choose **Share with your context** for a primary or alt on
+your account. Write up to 500 characters about why it mattered, or leave it
+blank, and preview the message before copying it or opening your device's
+Share sheet. Back keeps your words for editing; Cancel clears the draft.
+Clipboard or sharing interruptions keep the preview available for a manual
+retry or selection/copy.
+
+Your context travels in the shared message alongside the canonical battle
+link. It is not saved on the public page or encoded in its URL; opening the
+link alone shows the recorded game facts. Only words you deliberately type
+join the message, with no private notes or account details added.
+
 ## Mode groups
 
 The `mode` argument on every battle tool takes one of seven groups. Each folds
