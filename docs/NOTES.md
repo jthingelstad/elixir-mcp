@@ -6164,3 +6164,6 @@ remain skipped. `npm run e2e` passed all 169 browser journeys. No flake rerun or
 live business-data write was used as acceptance. The remaining release gate is
 green CI on the finished PR head, followed by the canonical leased deployment
 and read-back. MCP acceptance remains outside this private Clan view's scope.
+Final screenshot review found Season's proposed icon name was absent from the
+shared kit; it now uses the existing calendar-days icon. The final source is
+revalidated before release.
