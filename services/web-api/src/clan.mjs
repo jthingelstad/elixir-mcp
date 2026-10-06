@@ -30,6 +30,8 @@ import {
 } from "@elixir-mcp/record/member-activity";
 import { warMembershipEvidence } from "@elixir-mcp/record/war-membership";
 import { clanActivityEvidence } from "@elixir-mcp/record/clan-activity-evidence";
+import { seasonCalendar } from "@elixir-mcp/record/season";
+import { seasonFromDate, monthForSeasonId } from "@elixir-mcp/record/war-clock";
 import {
   writeClanFactInClan,
   removeClanFactInClan,
@@ -168,6 +170,23 @@ export function createClanRequest({
       mcp,
       appUrl,
       activityFor: (tag, tags) => clanActivityEvidence(db, tag, tags),
+      seasonCalendar: (t, ids) => {
+        const current = seasonFromDate(t).seasonId;
+        return {
+          current_season_id: current,
+          seasons: [...new Set([current, ...ids])]
+            .sort((a, b) => b - a)
+            .map((id) => {
+              const c = seasonCalendar(monthForSeasonId(id));
+              return {
+                season_id: id,
+                from: c.starts_at.toISOString(),
+                to: c.ends_at.toISOString(),
+                sections: c.sections,
+              };
+            }),
+        };
+      },
     });
     const awards = createAwardsService({
       ledger,
@@ -234,11 +253,11 @@ export function createClanRequest({
     )?.[1];
     // Manage/actions GETs can evaluate and reconcile cards. They must
     // serialize with decisions too, and O/0 aliases name the same lock.
-    // These two routes calculate views without reconciling actions or grants.
+    // These routes calculate views without reconciling actions or grants.
     // Their only shared metadata write is an atomic, monotonic observation.
     const pureView =
       method === "GET" &&
-      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|me|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
+      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|season|me|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
         path,
       );
     const lock =

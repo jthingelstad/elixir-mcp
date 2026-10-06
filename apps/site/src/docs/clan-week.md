@@ -26,6 +26,10 @@ week has closed there is nothing to show, and the page says when the
 first one closes. On the latest week a section shows **this week so
 far**.
 
+For war totals and race-by-race progress across a season, open
+[Season](/docs/clan-season) beside The week. It includes the represented
+former members and explains partial capture separately.
+
 ## What it reads
 
 | Area | What the week says |

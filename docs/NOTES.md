@@ -6131,3 +6131,36 @@ cross-clan reads must refuse. Full validation, required green CI, leased deploy
 and fixture/read-only live verification remain release gates. MCP 11.2.3 and
 JSON API 3.0.0 are unchanged; no tool behavior changes, so MCP acceptance scope
 is none.
+
+Implemented as a pure projection behind the existing person/session member gate,
+with the canonical season calendar injected by the web API. One eight-week
+participation call supplies all selectable seasons; selecting another season
+reuses the cached response. No internal reader allowlist, canonical query,
+policy or private business ledger changes. The projection deduplicates player
+representations, includes known former-member counters, separates zero from
+unknown and future races from missing elapsed races, and keeps recorded closure
+separate from completeness. The existing rail, header, tiles and table render
+it; public docs and Updates explain the bounded population and period points.
+
+Focused controls cover four/five-race seasons, returning-player deduplication,
+missing races/counters, open/closed/unconfirmed rollover, late roster recording,
+read-window truncation, all member roles and refusal before cross-clan reads.
+The real scratch-database route confirms calendar bounds and counters with just
+identity plus participation and no action/grant writes. Eight focused browser
+journeys pass at 390/1280 pixels, including deep links, season selection, Back,
+reload, refused/unavailable reads, zero document overflow and no API writes.
+The initial browser check caught a non-focusable horizontal table; the existing
+keyboard-scroll table pattern fixes it, and a keyboard-scroll control now pins
+it. Two test-only setup errors (an ambiguous region selector and a legacy-style
+scratch column name) were corrected against the actual UI/schema. Final full
+gates and deployed read-back follow below.
+The first full test pass found the expected inventories for the site sitemap
+and role-specific rail needed the new Season entry; both controls remain exact
+and were updated, including every role before and after policy setup.
+
+Final local gates passed: `npm run verify` completed formatting, lint, Knip,
+TypeScript, 1,893 Node tests and 468 UI tests; 85 existing retired-scope cases
+remain skipped. `npm run e2e` passed all 169 browser journeys. No flake rerun or
+live business-data write was used as acceptance. The remaining release gate is
+green CI on the finished PR head, followed by the canonical leased deployment
+and read-back. MCP acceptance remains outside this private Clan view's scope.

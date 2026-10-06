@@ -112,6 +112,7 @@ const STATIC_PAGES = [
   "/docs/sign-in-with-elixir",
   "/docs/json-api",
   "/docs/bring-your-clan",
+  "/docs/clan-season",
   "/docs/clan-week",
   "/docs/standing",
   "/docs/clan-actions",

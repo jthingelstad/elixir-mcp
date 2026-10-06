@@ -607,6 +607,8 @@ export function createHandler({
           return json(400, { error: "bad_request" });
         return json(200, await manage.weekView(tag, who, token, { week }));
       }
+      if (method === "GET" && rest === "/season")
+        return json(200, await manage.seasonView(tag, who, token));
       // A member's own away: their page, their word, the policy's cap.
       if (rest === "/me/away") {
         if (method === "GET") return json(200, await manage.myAway(tag, who));

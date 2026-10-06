@@ -45,6 +45,12 @@ export function railItems(me) {
       icon: "book-open",
       to: `${base}/week`,
     });
+    items.push({
+      key: "season",
+      label: "Season",
+      icon: "calendar-range",
+      to: `${base}/season`,
+    });
     // Actions: what waits for you, as who you are in this clan.
     if (set)
       items.push({
@@ -187,7 +193,7 @@ export function railKey(path) {
   if (app.startsWith("/feedback")) return "feedback";
   if (app.startsWith("/maintain")) return "maintain";
   const m =
-    /^\/([^/]+)(?:\/(me|week|actions|standing|trophies|awards|recruit|map|manage)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
+    /^\/([^/]+)(?:\/(me|week|season|actions|standing|trophies|awards|recruit|map|manage)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
       app,
     );
   if (!m || !tagOf(m[1])) return null;
@@ -197,6 +203,7 @@ export function railKey(path) {
     [
       "me",
       "week",
+      "season",
       "actions",
       "standing",
       "trophies",

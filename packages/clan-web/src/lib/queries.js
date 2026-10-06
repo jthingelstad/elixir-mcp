@@ -56,6 +56,7 @@ export const keys = {
     to,
   ],
   week: (tag, week) => ["me", "clan", "record", tag, "week", week ?? "latest"],
+  season: (tag) => ["me", "clan", "record", tag, "season"],
   memberNotes: (tag, player) => [
     "me",
     "clan",
@@ -191,6 +192,9 @@ export const useMemberActivity = (tag, player, cursor = null, to = null) =>
 
 export const useWeek = (tag, week) =>
   useGated(keys.week(tag, week), () => manageApi.week(tag, week));
+
+export const useSeason = (tag) =>
+  useGated(keys.season(tag), () => manageApi.season(tag));
 
 export const useActions = (tag) =>
   useGated(keys.actions(tag), (refresh) => manageApi.actions(tag, refresh));

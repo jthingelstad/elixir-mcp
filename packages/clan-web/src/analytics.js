@@ -55,7 +55,8 @@ export function analyticsLocation(
       url.searchParams.set("id", rest[1]);
       rest[1] = "detail";
     }
-    if (rest[0] === "week" && rest[1]) url.searchParams.set("id", rest.pop());
+    if (["week", "season"].includes(rest[0]) && rest[1])
+      url.searchParams.set("id", rest.pop());
     if (rest[0] === "members" && rest[1]) rest[1] = "detail";
     page = `${CLAN}${rest.length ? `/${rest.join("/")}` : ""}`;
   } else if (
