@@ -90,6 +90,15 @@ surprising documented behaviour and it is encoded, not assumed. Consecutive
   backfill and a deploy together: migrate has reserved concurrency 1, so
   the deploy's migration step gets a 429 and the deploy stops (twice on
   2026-09-22).
+- A release constrained to unchanged reference content uses `--verify-reference-seed`.
+  The existing operator code is pushed first; `reference_seed_preview` compares
+  every stored `card_role` / `deck_alias` column in a bounded read-only snapshot
+  before migrations or the ordinary import. A mismatch stops the release.
+  Preview and import use one frozen vocabulary read from a single trusted Git
+  commit, so a concurrent sibling edit cannot substitute unverified rows.
+  Identical reference content is reproducible from that commit; the normal
+  importer refreshes only its import timestamp and possibly source-commit
+  metadata. These reference tables have no product editing route.
 - **Live diagnostics only through migrate ops.** No psql path reaches the
   private database; the ops (`{explain_*}`, `{vacuum}`, the census ops)
   are the read path, and an EXPLAIN runs the exact SQL the tool serves,

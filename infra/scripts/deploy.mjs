@@ -54,6 +54,12 @@ import { buildAll } from "./build.mjs";
 import { buildParameters, originRotation } from "./parameters.mjs";
 import { DEPLOY_USAGE, parseDeployArgs } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
+import { prepareReferenceSeedRefresh } from "./lib/reference-seed-check.mjs";
+import {
+  readVocabulary,
+  saveVocabularySnapshot,
+} from "./lib/reference-vocabulary.mjs";
+import { importReferenceSeed } from "./lib/reference-seed-import.mjs";
 import { bundleFingerprint, chooseLane, codeKey } from "./lib/deploy-lane.mjs";
 import {
   PRUNE_AFTER_DAYS,
@@ -113,6 +119,12 @@ if (args.unknown.length > 0) {
 }
 const isCreate = args.create;
 const skipWeb = args.skipWeb;
+if (args.verifyReferenceSeed && isCreate) {
+  console.error(
+    "deploy: --verify-reference-seed requires an existing stack; nothing was deployed.",
+  );
+  process.exit(2);
+}
 if (
   args.rotateOriginSecret &&
   (isCreate ||
@@ -268,8 +280,11 @@ if (!isCreate && lane === "platform") {
     { client: lambda, maxWaitTime: 120 },
     { FunctionName: "elixir-mcp-migrate" },
   );
-  await runMigrations("elixir-mcp-migrate");
 }
+const verifiedReferenceSeed = args.verifyReferenceSeed
+  ? await prepareReferenceSeedRefresh(lambda)
+  : null;
+if (!isCreate && lane === "platform") await runMigrations("elixir-mcp-migrate");
 if (!isCreate) {
   // The archetype vocabulary rides every deploy, site lane included
   // (0147): the Lambdas have no internet, so this checkout's sibling
@@ -277,7 +292,10 @@ if (!isCreate) {
   console.error(
     "importing the archetype vocabulary from ../cr-agent-api-docs...",
   );
-  await import("./import-card-roles.mjs");
+  const vocabulary = verifiedReferenceSeed?.vocabulary ?? readVocabulary();
+  saveVocabularySnapshot(vocabulary);
+  if (verifiedReferenceSeed) await verifiedReferenceSeed.refresh();
+  else await importReferenceSeed(lambda, vocabulary);
 }
 
 // 4. Stack (the platform lane) ----------------------------------------------

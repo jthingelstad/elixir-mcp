@@ -110,6 +110,41 @@ export async function handler(event) {
 }
 
 async function dispatch(event) {
+  if (Object.hasOwn(event?.card_roles_import ?? {}, "preview"))
+    return {
+      error: "invalid_reference_preview",
+      reason: "use_reference_seed_preview",
+    };
+  if (
+    Object.hasOwn(event ?? {}, "reference_seed_preview") &&
+    (Object.keys(event).length !== 1 ||
+      !event.reference_seed_preview ||
+      typeof event.reference_seed_preview !== "object" ||
+      Array.isArray(event.reference_seed_preview) ||
+      Object.keys(event.reference_seed_preview).some(
+        (key) =>
+          !["roles", "aliases", "roles_version", "source_commit"].includes(key),
+      ))
+  )
+    return {
+      error: "invalid_reference_preview",
+      reason: "exclusive_preview_required",
+    };
+  if (event?.reference_seed_preview) {
+    const result = await cardRolesImport(process.env.DATABASE_URL, {
+      ...event.reference_seed_preview,
+      preview: true,
+    });
+    console.log(
+      JSON.stringify({
+        op: "reference_seed_preview",
+        identical: result.identical,
+        changed_rows: result.changed_rows,
+        error: result.error,
+      }),
+    );
+    return result;
+  }
   if (
     Object.hasOwn(event ?? {}, "retained_day_audit") &&
     (Object.keys(event).length !== 1 || !event.retained_day_audit)
