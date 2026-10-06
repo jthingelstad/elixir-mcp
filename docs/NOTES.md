@@ -5837,3 +5837,22 @@ TypeScript and all workspace/scratch-database tests), including ten new
 component cases. All four new built browser journeys pass; their clipboard
 and native Share operations are fixtures only. Read-only delivery re-review
 confirmed the wrapped preview at all four widths with no new flow blocker.
+
+### Player-context sharing deployment receipt
+
+PR #316 merged as e8c96ef7 after validate passed on bc3ab84e;
+CI passed all 146 built browser journeys. Local verify passed 1,848 Node
+and 459 UI tests with the existing 85 intentional historical skips.
+The deploy completed by 08:48Z (3:48 AM CT), with zero new migrations and
+all 43 smoke checks passing. No tool contract changed, so live MCP acceptance
+was intentionally omitted rather than perform unrelated heavy reads.
+
+Readback verified all seven Lambda artifacts against the merged build,
+each Active/Successful, healthy public status, unchanged MCP 11.2.3 /
+JSON API 3.0.0, the exact battle docs, current update and application shell.
+The actual deployed UI with fixture API responses previews the canonical
+battle link and deliberately typed message, fits at 375, 390 and 1280 pixels,
+and cancels cleanly. Clipboard/native publishing APIs were guarded; no
+message was published, no private annotation persisted, and no live account
+or business-state test was performed. The deployment lease is released.
+This notes-only receipt needs no additional deployment.
