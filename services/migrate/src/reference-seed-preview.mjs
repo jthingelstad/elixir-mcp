@@ -65,6 +65,15 @@ export async function referenceSeedPreview(db, spec) {
     await db.query("set local statement_timeout = '5s'");
     await db.query("set local lock_timeout = '500ms'");
     await db.query("set local idle_in_transaction_session_timeout = '10s'");
+    // The writer inserts tier into numeric(4,1). Let PostgreSQL perform
+    // that same coercion: JSON numbers can carry finer source precision.
+    const { rows: normalized } = await db.query(
+      `select coalesce(jsonb_agg((r - 'tier') ||
+                jsonb_build_object('tier', (r->>'tier')::numeric(4,1))), '[]'::jsonb) as roles
+       from jsonb_array_elements($1::jsonb) r`,
+      [JSON.stringify(proposed.roles)],
+    );
+    proposed.roles = ordered(normalized[0].roles, "card_id");
     const { rows: rolesRows } = await db.query(
       "select to_jsonb(r) as row from card_role r order by card_id limit 1001",
     );
