@@ -47,7 +47,25 @@ MCP remains 11.2.3 and JSON API remains 3.0.0.
 
 ## Completion
 
-Focused site and JSON API structural tests pass. The complete `npm run verify`
-gate also passes. A green PR, canonical leased deployment and public read-back
-remain. Feedback responses will be written under the same `loop` lease only
-after those receipts exist.
+Focused site and JSON API structural tests passed, followed by the complete
+`npm run verify` gate. PR #332 merged as `f6aa6570` after validate run
+`37547864611` passed on reviewed head `c7b9ce17`.
+
+The canonical deployment ran under the `loop` lease. It applied no migration
+(203 remained applied), verified all 47 card roles and 29 aliases, and passed
+43 smoke checks. MCP acceptance was intentionally omitted because this was a
+documentation and JSON API description correction with no tool behavior,
+shared runtime behavior or contract-shape change. MCP remains 11.2.3 and JSON
+API remains 3.0.0.
+
+Public read-back found all corrected guides, the update, the integration
+OpenAPI document, `/tools.json` and `/api/public/status` at 200. Health was
+green with zero gaps and no dead-letter work. Feedback #365 through #372 was
+then re-read and answered exactly once, oldest first, using compare-and-set
+writes followed by read-back. All eight dispositions were declined with
+item-specific explanations: seven named no requested change, while #370's
+suspected attribution error was refuted by the recorded ids, tags, session
+windows and displayed names. No item was marked done. The final queue had zero
+unanswered items, no oldest age and zero beyond the one-day target. The lease
+was released after production verification; private operational evidence
+remains outside Git.
