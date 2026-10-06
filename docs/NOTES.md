@@ -5726,3 +5726,50 @@ Local `npm run verify` passed 1,844 Node tests and 449 UI tests, with 85
 existing skips. All 142 built browser journeys passed after updating a legacy
 battle doorway assertion to the new signup URL. Phone and desktop screenshots
 and accessibility checks covered orientation, signup and interruption recovery.
+
+### Signup deployment receipt
+
+PR #313 merged as 598d8893 after required validate passed on ccd95d62,
+including all 142 browser journeys. The platform deploy completed by 07:59Z
+(2:59 AM CT), with zero new migrations and all 43 smoke checks passing.
+Readback verified all seven Lambda bundles against the local build, each
+Active/Successful, plus good public health, versions 11.2.3/3.0.0, the app
+shell, signup update and the exact Quickstart document. Live homepage and
+signup at 390 and 1280 pixels fit without horizontal overflow and show the
+public account door. API writes were blocked during browser inspection; no
+form was submitted. The clean deployment checkout released its lease.
+This receipt is included in the separate graph PR; no extra deployment is
+needed solely for the receipt.
+
+## 2026-10-06 — explain the retained history graph after cleanup
+
+Jamie's screenshot showed /data/growth with 215,526 battles in the displayed
+120-day window and a September 13 peak of 8,621. The image was materialized
+and inspected on this executor. Its presence does not demonstrate a purge
+failure: /api/public/stats counts the current canonical battle table directly,
+and sums the same retained rows by played date. At 07:34Z (2:34 AM CT), the
+daily series summed to 247,037, exactly the API's full retained battle total.
+The October 3 purge receipt explicitly preserved 245,520 protected battles
+while removing 410,985 selected retired battles. No stale lifetime counter or
+materialized aggregation was found. The public graph was a published snapshot
+ending October 5, with misleading full-history/retention wording.
+
+This separate release labels the graph as retained battles by played day,
+distinguishes its 120-day window from the full retained record, timestamps
+snapshot retrieval, and explains that historical protected records remain.
+Related corpus and collection-description copy follows the current recording
+scope. Publishing refreshes the snapshot; source data can be cached for an
+hour. No production deletion, reimport, recomputation write or retention-policy
+change is needed or performed. The September peak may remain because its
+battles are retained, rather than because purged data survived.
+
+Scratch regression deletes one fixture battle and proves both the public
+total and daily series exclude it. Actual-template fixtures prove removed
+daily populations become zero, gaps keep their days, old dates outside the
+display window stay out, and the window/full totals and snapshot time are
+distinct. MCP 11.2.3 and JSON API 3.0.0 remain unchanged; live MCP acceptance
+is omitted because only site copy and snapshot presentation change.
+
+Local `npm run verify` passed 1,847 Node tests and 449 UI tests with 85
+existing skips. The focused actual-template tests passed two cases, and the
+scratch web API suite passed 49 including deletion/count reconciliation.
