@@ -12,6 +12,8 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
+import { actionsWaitingMail } from "../../../packages/clan-engine/src/mail.mjs";
+import { actionLabel } from "../../../packages/clan-engine/src/actions.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -175,6 +177,41 @@ test("only the account that verified a player in the clan, with the kind on, is 
   });
   assert.equal(data(again).data.results[0].status, "already_sent_today");
   assert.equal(sent.length, 1);
+});
+
+test("award scope with twelve maximum-length names still passes the real mail door", async () => {
+  const tag = "#2QY8L0VP";
+  await person("award-scope", tag);
+  const card = {
+    card_id: "award-scope",
+    number: 9999999,
+    type: "awards_announcement",
+    status: "proposed",
+    raised_at: "2026-10-06T11:00:00.000Z",
+    evidence: {
+      season_id: 136,
+      awards: Array.from({ length: 12 }, (_, i) => ({
+        name: `${String(i).padStart(2, "0")}${"A".repeat(38)}`,
+      })),
+    },
+  };
+  const [generated] = actionsWaitingMail({
+    clanTag: CLAN,
+    clanName: "Example Clan",
+    appUrl: "https://elixir.poapkings.com/clan",
+    cards: [card],
+    people: [{ player_tag: tag, role: "leader" }],
+  });
+  const r = await mail({ kind: "clan_actions_waiting", messages: [generated] });
+  assert.equal(r.statusCode, 200, r.body);
+  assert.equal(data(r).data.results[0].status, "sent");
+  assert.equal(generated.lines[0], `#9999999 ${actionLabel(card)} (new)`);
+  assert.match(generated.lines[0], /and 10 more awards/);
+  assert.equal(
+    card.evidence.awards.length,
+    12,
+    "saved evidence stays complete",
+  );
 });
 
 test("refusals: a link outside the family, an unknown kind, a bad message, a key without mail:send", async () => {

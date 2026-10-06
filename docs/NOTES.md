@@ -6022,7 +6022,7 @@ action regeneration, grant changes or historical receipt edits. Verification
 and quota enforcement are unchanged. Live acceptance is not needed because no
 MCP/JSON API tool behavior or contracts change.
 
-Final local verification passed 1,879 Node and 459 UI tests, with 85 existing
+Final local verification passed 1,880 Node and 459 UI tests, with 85 existing
 retirement skips, and all 148 built browser journeys. The first browser run
 caught the new inline Verify link lacking an underline, an ambiguous desktop
 test selector, and a generic Clan sign-in return query replacing the remembered
@@ -6032,3 +6032,9 @@ links directly to the common signup form without overriding that return. The
 corrected gate passed without retries. The existing later-manual-grant test
 also verifies that UI and notification labels agree and completed records are
 unchanged. No production business write was used for diagnosis or QA.
+
+Release review found that listing twelve valid 40-character award names could
+exceed the mail door's 160-character line limit. A scratch regression reproduced
+the real door's `invalid_mail` refusal before the fix. The shared label now names
+the first two award types and counts the rest; saved recipient evidence remains
+complete. The real mail door accepts that maximum-name fixture after the fix.
