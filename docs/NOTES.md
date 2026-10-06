@@ -6352,5 +6352,23 @@ recording reason and a future-tense table cleanup. The site and JSON API
 description now match the ratified public-signup and recorder boundaries. A
 source guard rejects those stale promises. This is documentation correction
 only: MCP remains 11.2.3 and JSON API remains 3.0.0. The JSON API structural pin
-is unchanged. Full validation passed. A green PR, canonical leased deployment
-without MCP acceptance, public read-back and the feedback writes follow.
+is unchanged. Full validation passed. PR #332 merged as `f6aa6570` after
+validate run `37547864611` passed on reviewed head `c7b9ce17`.
+
+The canonical deployment ran under the `loop` lease, applied no migration (203
+remained applied), verified all 47 card roles and 29 aliases, and passed 43
+smoke checks. MCP acceptance was intentionally omitted because this correction
+changed documentation and the JSON API description, not tool behavior, shared
+runtime behavior or a contract shape. Public read-back found the corrected
+guides, update, integration OpenAPI document, `/tools.json` and public status
+at 200; health was green with zero gaps and no dead-letter work.
+
+Feedback #365 through #372 was then re-read and answered exactly once, oldest
+first, with compare-and-set writes followed by read-back. All eight were
+declined with item-specific explanations because none named an unshipped
+change; #370's suspected attribution error was refuted by the recorded ids,
+tags, session windows and displayed names. No item was marked done. The final
+queue had zero unanswered items, no oldest age and zero beyond the one-day
+target. The `loop` lease was released after production verification. Private
+operational evidence remains outside Git; this notes-only completion receipt
+does not require another deployment.
