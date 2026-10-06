@@ -1,7 +1,7 @@
 ---
 slug: architecture
 title: "Architecture"
-description: "How Elixir MCP is built: the collector fleet, the recording pipeline, the Postgres corpus, and the authenticated remote MCP server behind one hostname."
+description: "How Elixir MCP is built: the collector fleet, the recording pipeline, the Postgres store, and the authenticated remote MCP server behind one hostname."
 section: build
 order: 5
 navTitle: "Architecture"
@@ -277,7 +277,7 @@ allowance on a fresh read instead of waiting for the schedule.
   gives your agent your full history — including battles recorded
   before you joined.
 - **Universal game reads**: all recorded game data — battles, profiles,
-  timelines, clan rosters and wars — is readable by every approved
+  timelines, clan rosters and wars — is readable by every active
   account, the same posture as the game's own public API (since
   2026-09-05; no membership gate on the clan tools). Your account data
   stays private.

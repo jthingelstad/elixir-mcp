@@ -45,10 +45,9 @@ as a strength or a weakness. Your agent is told to repeat that note. The emails
 keep modes apart the same way: Your week in the Arena gives a record per
 mode, never one record for the week.
 
-One answer pools on purpose: [war deck sets](/docs/war-decks) read a
-deck's record over Trophy Road, Path of Legends and Clan Wars together,
-because a deck is eight cards whatever the mode, and they keep the split
-per mode beside it.
+A deck can appear in more than one mode. `battles_decks` keeps the mode split
+beside its recorded results so the same eight cards are not mistaken for the
+same contest everywhere they were played.
 
 ## Events
 
@@ -58,16 +57,16 @@ carries an event's tag.
 
 `event` is a filter, not one game: every event has its own rules, so a
 rate read over all of them together means little. Read one event at a
-time, by its mode name or tag ([how](/docs/battles#events-are-their-own-group-and-they-do-not-inform-the-meta)).
-Events never feed the meta: it leaves out every battle that carries an
-event tag (a clanmate friendly played under an event's rules included)
-and every deck the player did not choose, such as a draft.
+time, by its mode name or tag ([how](/docs/battles#events-are-their-own-group)).
+The factual tools keep event battles in the `event` group and preserve the
+event tag and how each deck was selected. They do not mix them into Trophy
+Road, Path of Legends or the other mode groups.
 
 ## Clan Wars counts games
 
 A war duel is one battle of up to three games, each with its own deck
 and result. The duel's own result is the games won, first to two; the
-card, meta and war-deck tools count each game on its own. A boat
+battle history and card summaries count each game on its own. A boat
 battle where a rival attacked the clan's boat is not the defending
 member's battle, and it stays out of their wins, losses and rates. [Duels and boat battles](/docs/battles#duels-and-boat-battles)
 has the detail.

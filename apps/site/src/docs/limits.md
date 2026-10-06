@@ -8,7 +8,7 @@ navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."
 console: ["Your budget and what spent it", "/console/account/usage", "Console ▸ Usage"]
-reviewed: "2026-09-28 against contract 9.16.1"
+reviewed: "2026-10-06 against contract 11.2.3 and JSON API 3.0.0"
 ---
 
 # Limits
@@ -42,7 +42,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | OAuth consent emails | `/oauth/authorize` step one | `oauthmail#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with the console's sign-in | silent: the page says "check your email" and no mail is sent |
 | Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with OAuth consent | HTTP 200 with `limited: true` and a message saying the limit was reached; no mail is sent |
 | Sign-in code attempts | code verification | per pending code | 5, then the code is dead | HTTP 400 `{"error":"invalid_or_expired","reason":"attempts_exhausted"}` (console); the OAuth page says "Too many attempts on that code" |
-| Access requests | `POST /api/request-access` | `reqaccess#<ip>` | 5 per hour | HTTP 429 `{"error":"rate_limited"}` |
+| Legacy access requests | `POST /api/request-access` | `reqaccess#<ip>` | 5 per hour | HTTP 429 `{"error":"rate_limited"}` |
 | Role-upgrade requests | `POST /api/me/role-request` | pending state | one pending at a time | HTTP 409 |
 | Feedback | `elixir_send_feedback`, `POST /api/feedback` | none | message 1 to 8,000 chars (the refusal says how long it was) | never metered beyond the daily call quota |
 | Collector door, work | `/api/collector/lease` and `/submit` | `collector-work#<gateway>` | 10,000 per hour | HTTP 429 with `retry-after` and `{"error":"rate_limited","scope":"work","limit_per_hour":10000,"retry_after_s":N,"hint":"…"}` |
@@ -78,7 +78,7 @@ agents' share broken out.
 
 Reads of recorded game data are bounded only by the daily call quota, never by
 tier or by subject. Feedback has no limit of its own. The daily counter fails open:
-if the quota store is unreachable, approved accounts keep working.
+if the quota store is unreachable, active accounts keep working.
 
 ## Retention windows
 

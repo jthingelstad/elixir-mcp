@@ -86,7 +86,7 @@ records that observation but does not start an ongoing clan watch.
 **Name to tag to drill.** `players_search({ query })` resolves a name (your
 nicknames and clanmates rank first), then any player tool with the tag. In
 the other direction, `players_names` resolves up to 100 tags without the
-live lane, and `players_profile({ live: true })` fetches one the corpus has
+live lane, and `players_profile({ live: true })` fetches one the record has
 never named.
 
 **How have I moved.** `players_timeline` for the series itself (trophies by

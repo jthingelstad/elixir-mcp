@@ -1,22 +1,23 @@
 ---
 slug: roles
 title: "Roles and quotas"
-description: "Roles never gate what you can read. Every approved account reads all recorded game data; tiers set how much Elixir MCP records for you and how many calls your agent gets per day."
+description: "Roles never gate what you can read. Every active account reads all recorded game data; tiers set how much Elixir MCP records for you and how many calls your agent gets per day."
 section: policy
 order: 30
 navTitle: "Roles and tiers"
 icon: shield-check
 lede: "What each tier records for you — never what you may read."
 console: ["Your tier", "/console/account/profile", "Console ▸ Profile"]
+reviewed: "2026-10-06 for public member signup, contract 11.2.3"
 ---
 
 # Roles and quotas
 
 Every account sits on a six-rung ladder. One principle above everything:
 **roles never gate what you can read.** All recorded game data — battles,
-snapshots, wars — is open to every approved account, the same
+snapshots, wars — is open to every active account, the same
 posture as the game's own public API. Tiers set the two things that cost
-the service something: **collection** (what Elixir promises to record for
+the service something: **recording** (what Elixir promises to record for
 you) and **call volume** (your daily budgets, including the live lane that
 spends the one shared Clash Royale API budget).
 
@@ -52,8 +53,8 @@ on top of Elixir. Community-scale slots and budgets — and an expectation:
 partners run a collector. At this scale you should be adding capacity to
 the fleet, not only consuming it.
 
-**admin** — runs the console day-to-day: approves access requests,
-answers feedback, provisions platform integrations,
+**admin** — runs the console day-to-day: reviews legacy access and tier-upgrade
+requests, answers feedback, provisions platform integrations,
 revokes connections, and sets roles up to partner. Unlimited quotas,
 exempt from every cap.
 
@@ -142,8 +143,8 @@ Any member, leader or family account operating an active collector gets
 already assumes one), and collector points earn
 daily tool-call credits (1 per 10 points, up to 4× your base; a point is a
 fetch that added something to the record, not every fetch) — the real,
-compounding benefit of running one. Capacity begets collection:
-the fleet is the lever that grows the whole service.
+compounding benefit of running one. Capacity grows the record: the fleet is
+the lever that grows the whole service.
 
 ## Upgrades
 

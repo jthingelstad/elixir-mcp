@@ -6,7 +6,7 @@ section: build
 order: 4
 navTitle: "Run a collector"
 icon: server
-lede: "Volunteer a machine that fetches for the corpus, and what it earns you."
+lede: "Volunteer a machine that fetches for the shared record, and what it earns you."
 console: ["Your collector", "/console/status/collectors", "Console ▸ Collectors"]
 ---
 
@@ -68,7 +68,7 @@ key and the bearer token Elixir MCP issues you.
 
 That is the whole setup. The server tells the running collector
 everything else at launch — pacing, backoff, what to fetch (it even
-sends the exact URL paths) — so collection changes never require you to
+sends the exact URL paths) — so recording-schedule changes never require you to
 update anything. When a new binary IS required, the collector updates
 itself: the server names the exact version and SHA-256 it may install.
 There is no pin and no opt-out; the fleet shares one rate budget and one
@@ -200,9 +200,9 @@ versions were removed. The removed versions were checked absent. This does not
 change ordinary collector operation or the shared rate budget.
 
 
-The retired global recorder's empty tables are removed in a separate database
-migration after the runtime has stopped using them. Personal and clan facts,
-immutable receipt history and the shared collector contract remain.
+Migration 0199 removed the retired global recorder's empty tables after the
+runtime stopped using them. Personal and clan facts, immutable receipt history
+and the shared collector contract remain.
 
 
 ### Collector email

@@ -6266,3 +6266,42 @@ source observation order, rejected/malformed profiles, conflicts, cache expiry
 and skipped-projection gaps. Migration 0203 took 2 ms on a scratch parent table
 with 435,271 rows (the live catalog estimate); fingerprint and migration digest
 are pinned. Production release and acceptance read-back follow after green CI.
+
+## 2026-10-06 — Feedback W40 catch-up and current-scope documentation
+
+The Feedback Manager preflight passed from `1916ce3f`: observation and
+mutation capabilities were available, the shared lease was free, public
+health was good, the collector audit showed zero gaps and dead letters, and
+the public documentation and machine-readable surfaces all returned 200.
+The unanswered queue held eight items. Its oldest item was about 45 hours old,
+and six items exceeded the one-day target.
+
+Five W40 items and two newer W41 items are positive Discord editor signals.
+They praise selective posting, context reads and one player-summary drill; they
+name no requested product change. The remaining W41 data-quality report
+suspected that two nearby `session_standout` stories had been attributed to
+the wrong players. Read-only ledger evidence found different timeline ids,
+different player tags and different session windows; each story's displayed
+name matched its own tag. The identical 9-battle, 8-1, 8-win-streak line was a
+coincidence, so no source change is warranted. Responses remain owed until the
+summary and documentation in this change have shipped and each item has been
+read back under the `loop` lease.
+
+The missed Friday W40 deep pass was caught up once from the exact Chicago
+window, 2026-09-28T05:00:00Z through 2026-10-05T05:00:00Z. Its audit counted
+22,430 calls and 883 errors: acceptance made 17,164 calls and 848 errors, while
+the three Discord previews made 4,512 calls and two errors. The synthesis
+separates that release-gate pressure from natural traffic and records the
+right-sizing cutover without treating calls to retired tools as evidence to
+restore them. W38's dated objective logs, now older than the two-week retention
+window, are preserved verbatim in `AGENT-TEAM/notes/2026-W38.md`; their original
+files are removed with Git history intact.
+
+The current docs still carried approval-gated signup, automatic integration
+enrollment, a retired Collection grant, retired meta-tool behavior, a retired
+recording reason and a future-tense table cleanup. The site and JSON API
+description now match the ratified public-signup and recorder boundaries. A
+source guard rejects those stale promises. This is documentation correction
+only: MCP remains 11.2.3 and JSON API remains 3.0.0. The JSON API structural pin
+is unchanged. Full validation passed. A green PR, canonical leased deployment
+without MCP acceptance, public read-back and the feedback writes follow.

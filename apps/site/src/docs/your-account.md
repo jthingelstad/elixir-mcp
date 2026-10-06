@@ -8,7 +8,7 @@ navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your tier, and it shows nobody your address."
 console: ["Your profile and tier", "/console/account/profile", "Console ▸ Profile"]
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-06 against contract 11.2.3"
 ---
 
 # Your account
@@ -96,7 +96,7 @@ account, what each one is to you and the nicknames you give them are
 yours: what you connect to Elixir as yourself reads them, and nobody
 else does. The game record
 itself (battles, profiles, clans) is public game data, and every
-approved account can read it. The one public line tied to an account is
+active account can read it. The one public line tied to an account is
 a collector's: the public list of collectors names the operator's
 primary player.
 

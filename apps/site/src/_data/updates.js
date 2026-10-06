@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-06",
+    title: "The docs match the recorder's current scope",
+    body: "The public guides now describe verified member signup instead of an approval-gated beta, factual mode reads instead of retired meta tools, the completed retired-table cleanup, and explicit integration resources without recording enrollment. No account, quota, API shape or recording behavior changed. Contracts remain MCP 11.2.3 and JSON API 3.0.0.",
+  },
+  {
+    date: "2026-10-06",
     title: "Missing capture stays unknown",
     body: "Days played keeps captured battles visible and only calls a day quiet when complete observation intervals cover it. Missing, partial and stale coverage no longer becomes a break from play. Clan waits for your membership record instead of telling you to join a clan when observations are missing; an observed absence is dated. Existing verification, roles and actions stay the same. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
   },
