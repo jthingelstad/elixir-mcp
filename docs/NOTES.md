@@ -6210,3 +6210,25 @@ is immutable; no resend, live mail run, grant, policy or business action is part
 of this change. The completed Season release is preserved. MCP 11.2.3 and JSON
 API 3.0.0 remain unchanged. No canonical tool behavior changes, so MCP
 acceptance scope is none. Full gates and release read-back follow below.
+
+Release receipt: PR #329 merged as `0372aa69` after validate run
+`37485691467` passed on reviewed head `c3919d30`; all 169 CI browser
+journeys passed with no flaky-test report. Local `npm run verify` passed
+1,899 Node tests and 468 UI tests, with 85 existing retired-scope skips;
+all 169 local browser journeys and 25 focused email tests passed. The
+canonical leased deployment used `--verify-reference-seed`: all 47 roles
+and 29 aliases matched exactly, zero migrations ran (202 applied), and
+all 43 smoke checks passed. No canonical tool behavior changed, so MCP
+acceptance was not run. MCP 11.2.3 and JSON API 3.0.0 are unchanged.
+
+Read-back verified at 15:23Z (10:23 AM CT) found all seven Lambda artifacts
+identical to the local release, Active/Successful, public health healthy,
+and the exact app shell, Arena docs/update and preserved Season update live.
+A bounded authenticated read of the diagnosed deck in the same game week,
+filtered to Trophy Road, returned four battles, zero wins and four losses,
+with only the ladder mode and its own mean level gap. The original saved
+email archive's SHA-256 is unchanged after deployment. No live email run,
+resend, policy, grant or business action was used for verification; the
+completed Season release remains intact. The production lease is released
+and private evidence is preserved outside Git. This notes-only receipt
+needs no redeployment.
