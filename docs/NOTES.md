@@ -5959,3 +5959,28 @@ per-page repeatable-read snapshots; stable bracketing counts support coverage
 but are not a single transaction over the whole day. No new deletion, restore,
 backfill, schema change, live fetch or archive mutation was performed. Standard
 release completion follows the numeric-coercion guard fix on green CI.
+
+### 2026-10-06 — Retention diagnostic release verified, 09:59 UTC
+
+PRs #318 (bounded retained-day read), #319 (exact reference guard) and #320
+(PostgreSQL tier coercion plus audit results) are merged. Green origin/main
+a01d3386 completed the standard platform deployment with --skip-web and
+--verify-reference-seed. Only MigrateCodeKey changed. The pre-refresh read
+found all 47 card roles and 29 aliases identical to trusted reference commit
+5ff5e82f, with zero changed rows and equal content digest
+0654243ffdceba0fb4de47983592b32b34daad029446e39b07ed379331af9627.
+A post-refresh read confirmed the same digest/content; only imported_at
+advanced to 09:56:39.467529 UTC. The prior reference content is exactly
+reproducible from the pinned Git commit and private recovery snapshot.
+
+Migrations: 202 applied, zero new. Production smoke: 43 passes. All seven
+Lambda artifacts match the exact built main content and are Active/Successful;
+the operator's final code timestamp is 09:56:55 UTC. Final local verification
+passed 1,879 Node and 459 UI checks, with 85 previously approved retirement
+skips; required CI was green. MCP 11.2.3 / JSON API 3.0.0 are unchanged,
+so no unrelated live acceptance sweep ran. The production lease is released.
+Private response pages, hash bindings, aggregate report, reference preview,
+recovery vocabulary, deploy logs and artifact receipts are preserved outside
+all Git checkouts. No battle/history/participant/archive or other business
+record was changed. This completion note changes no runtime or public corpus
+and needs no additional deployment.
