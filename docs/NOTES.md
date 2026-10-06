@@ -5776,3 +5776,23 @@ scratch web API suite passed 49 including deletion/count reconciliation.
 Phone inspection also found the Data disclosure naming the first page instead
 of the current graph; its actual-template regression now checks the matching
 label and active link. The final full gate passed after this correction.
+
+### Retained-history deployment receipt
+
+PR #314 merged as 20c5968d after required validate passed on 4d3f712f;
+CI passed all 142 built browser journeys. The platform deploy completed by
+08:15Z (3:15 AM CT), with zero new migrations and all 43 smoke checks passing.
+Readback verified all seven Lambda bundles, each Active/Successful, healthy
+public status, unchanged MCP 11.2.3 / JSON API 3.0.0, the application shell,
+the update and the exact published /data/growth document.
+
+The rendered live graph at 390 and 1280 pixels fits without horizontal
+overflow and names Retained history in the mobile Data disclosure. Every SVG
+bar reconciles to 215,615 battles in the 120-day window; the published full
+retained total is 247,039, with snapshot fetched 08:14Z (3:14 AM CT). The
+live API total and daily series both sum to 247,040 after a further battle
+arrived. The September 13 peak remains 8,621, consistent with retained rows.
+The corpus and What we collect pages also fit on phone and desktop. No
+production battle repair, deletion, reimport, signup or business-state test
+occurred. The clean checkout released its deployment lease. This notes-only
+receipt requires no redeploy.
