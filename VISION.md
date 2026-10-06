@@ -21,7 +21,8 @@ Current release priorities (Jamie, October 3, 2026):
 2. Ladder working well, with immediate orientation: someone opening Elixir
    understands its purpose and the next step for their own play or clan.
 3. Invitation readiness: check the complete first-use journey before
-   spreading the word. Access remains the approved gated, free beta.
+   spreading the word. Ordinary member signup is public and free; collector
+   admission remains governed separately.
 
 Design and orientation are part of readiness. Keep Drop and the Collector
 working. Database downsizing is optional and waits a couple of weeks for

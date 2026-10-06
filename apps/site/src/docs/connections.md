@@ -8,7 +8,7 @@ navTitle: "Connect an agent"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
 console: ["Manage your clients", "/console/account/connections", "Console ▸ Connections"]
-reviewed: "2026-09-28 against contract 9.16.1"
+reviewed: "2026-10-06 against contract 11.2.3 and JSON API 3.0.0"
 ---
 
 # Users, agents and integrations
@@ -103,8 +103,8 @@ are not listed.
 
 ## An integration
 
-An integration has **no "me" at all**. It reads the corpus on behalf of its own
-users, naming what it wants on every call.
+An integration has **no "me" at all**. It reads explicitly named recorded
+resources on behalf of its own users, naming what it wants on every call.
 
 [Elixir Drop](https://drop.poapkings.com) is the example: it looks up whoever is
 playing, in whatever clan they happen to be in, and has no relationship with any
@@ -174,4 +174,5 @@ rail:
 Create clan agents under **Connections → Agents**. Platform integrations are
 managed under **Admin → Integrations**. Both show a newly issued key once;
 only its hash is stored. See the [integration guide](/docs/integrations) for
-REST resources, permissions and automatic recording enrollment.
+REST resources, permissions and bounded refreshes. An integration does not
+enroll a player or clan for recording.

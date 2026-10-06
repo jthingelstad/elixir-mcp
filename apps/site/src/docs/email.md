@@ -7,13 +7,13 @@ order: 3
 navTitle: "Email"
 icon: mail
 lede: "Six kinds, each a switch and a turn-off link: four weekly reports, milestones and clan actions waiting."
+reviewed: "2026-10-06 for public member signup, contract 11.2.3"
 ---
 
 # Email
 
-Elixir sends six kinds of email. All six are **on by default** for
-every approved account, because taking part in the beta includes the
-product's mail, and all six are **a switch on your account page**
+Elixir sends six kinds of email. All six start **on by default** for an active
+person account, and all six are **a switch on your account page**
 ([Profile → Email](/console/account/profile/email)), with a *turn off* link in every
 issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.

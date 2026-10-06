@@ -18,7 +18,7 @@ and notes; when a note says "decided" or "policy day", this is what it means.
 ## The record
 
 **recorded** — a subject the service is capturing, or has captured: its
-history is in the corpus. Everything recorded is readable by every account.
+history is in the record. Everything recorded is readable by every account.
 
 **tracked** — a subject on *your* account: you asked for it to be recorded
 with `elixir_track_player` or `elixir_track_clan`, and it occupies one of
@@ -36,8 +36,8 @@ and its current clan is what omitting `clan_tag` means. It is never
 reassigned for you: removing it is refused while you track other players
 (make another primary first).
 
-**reason** — why a subject is recorded: claimed, tracked as a clan, collected,
-or recorded by the maintainer. The widest reason wins; the recording stops
+**reason** — why a subject is recorded: claimed, tracked as a clan, or recorded
+by the maintainer. The widest reason wins; the recording stops
 only when no reason remains. See [One recording, many reasons](/docs/recording#added-means-recorded).
 
 **scope** — how deeply a clan is recorded. `activity` polls the roster,

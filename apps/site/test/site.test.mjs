@@ -985,6 +985,39 @@ test(
   },
 );
 
+test("current account and integration copy matches the ratified scope", () => {
+  const source = (rel) => readFileSync(path.join(repoRoot, rel), "utf8");
+  const publicCopy = [
+    "VISION.md",
+    "apps/site/src/docs/roles.md",
+    "apps/site/src/docs/connections.md",
+    "apps/site/src/docs/email.md",
+    "apps/site/src/docs/limits.md",
+    "apps/site/src/docs/your-account.md",
+    "apps/site/src/docs/architecture.md",
+    "apps/site/src/docs/glossary.md",
+    "apps/site/src/docs/operators.md",
+    "apps/site/src/docs/modes.md",
+  ]
+    .map(source)
+    .join("\n");
+  assert.doesNotMatch(
+    publicCopy,
+    /approved gated, free beta|approves access requests|reads the corpus|automatic recording enrollment|taking part in the beta|every\s+approved\s+account|recorded: claimed, tracked as a clan, collected|empty tables are removed in a separate|Events never feed the meta|war deck sets|card, meta and war-deck tools/i,
+  );
+  assert.match(publicCopy, /Ordinary member signup is public and free/);
+  assert.match(publicCopy, /integration does not\s+enroll a player or clan/i);
+
+  const integrationApi = JSON.parse(
+    source("packages/contracts/integration-api.openapi.json"),
+  );
+  assert.doesNotMatch(integrationApi.info.description, /Collection grants/i);
+  assert.match(
+    integrationApi.info.description,
+    /Integrations do not enroll players or clans for recording/,
+  );
+});
+
 test(
   "the published response example is a valid current metadata envelope",
   { skip },
