@@ -151,6 +151,10 @@ function DaysBody({
       ) : null}
 
       <Calendar cal={cal} name={name} season={season} zone={zone} />
+      <p className="footnote">
+        Open a night and choose a captured battle to inspect it and share why it
+        mattered to you.
+      </p>
       <Nights battles={battles} floor={floor} zone={zone} />
     </>
   );
