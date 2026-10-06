@@ -6232,3 +6232,37 @@ resend, policy, grant or business action was used for verification; the
 completed Season release remains intact. The production lease is released
 and private evidence is preserved outside Git. This notes-only receipt
 needs no redeployment.
+
+
+### 2026-10-06 — Capture gaps remain unknown
+
+Days played preserves positive captured battles, including the oldest partially
+read day, and supports zeros only with contiguous comparable complete profile
+intervals covering the whole closed local day and a complete battle read.
+A successful poll, seven-day average, historical gap or unbracketed tail cannot
+establish no play. Quiet stretches count only supported consecutive days;
+today and season-clipped days stay unknown. The shared pure capture rules also
+keep the first-record summary from treating zero captures as proof of no play.
+
+Clan's private initialization reads a durable projection of the latest admitted
+profile membership state and source fetched_at. Normal collector payloads do
+not keep cached JSON; the reader never depends on that cache or its touch time.
+Migration 0203 adds an empty private projection without a historical rewrite; old rows
+remain unknown until a new profile observation. The separate table preserves
+the player identity row's change-only write discipline. Unchanged admitted profiles
+advance the precise evidence stamp without collector fact credit; rejected
+profiles, older replays and same-time conflicts cannot assert absence. A newer
+unprojected admission leaves a gap. Only explicit absence for every own player
+yields a dated absence page. Existing roster roles and verification checks are
+unchanged; friends never establish membership or grants. No policy, action,
+tracking, permission, mail or scheduling change. MCP 11.2.3 and JSON API 3.0.0
+remain unchanged. Ingest changes require full MCP acceptance at deploy.
+Validation passed: full verify counted 1,923 Node and 474 UI tests, with 85
+existing retired-scope skips; all 183 local browser journeys passed. Fourteen
+new desktop/mobile journeys cover never, failed, stale, partial and complete
+capture, observed/missing membership, reload/recheck, axe and overflow. The
+collector regression preserves unchanged identity-row versions and fact credit,
+source observation order, rejected/malformed profiles, conflicts, cache expiry
+and skipped-projection gaps. Migration 0203 took 2 ms on a scratch parent table
+with 435,271 rows (the live catalog estimate); fingerprint and migration digest
+are pinned. Production release and acceptance read-back follow after green CI.

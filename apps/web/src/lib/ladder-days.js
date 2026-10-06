@@ -7,6 +7,7 @@
  * gap longer than half an hour. Nothing here rates a day or a night.
  */
 import { clockTime, fmt, modeLabel } from "./ladder.js";
+import { battleCapture } from "@elixir-mcp/record/capture-state";
 
 /** Every mode group battles_query can name (contracts MODE_GROUPS), in
  *  the order a day lists them: the season's games first, casual last. */
@@ -70,6 +71,46 @@ export function addDays(ymd, n) {
   const d = asUtc(ymd);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
+}
+
+/** Local midnight as an instant, including 23/25-hour DST days. Invalid
+ * account zones use UTC, like localDate. Missing midnights stay unknown. */
+function midnight(ymd, zone) {
+  const base = Date.parse(`${ymd}T00:00:00Z`);
+  let formatter;
+  const options = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  };
+  try {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      ...options,
+      timeZone: zone || "UTC",
+    });
+  } catch {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      ...options,
+      timeZone: "UTC",
+    });
+  }
+  let guess = base;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const p = Object.fromEntries(
+      formatter.formatToParts(guess).map((x) => [x.type, x.value]),
+    );
+    const wall = Date.parse(
+      `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`,
+    );
+    const delta = base - wall;
+    if (!delta) return guess;
+    guess += delta;
+  }
+  return NaN;
 }
 
 /** Monday 0 through Sunday 6. */
@@ -162,6 +203,7 @@ export function seasonCalendar({
   now,
   zone,
   readFrom = null,
+  observationIntervals = [],
 }) {
   const first = localDate(startsAt, zone);
   const end = localDate(endsAt, zone);
@@ -182,7 +224,7 @@ export function seasonCalendar({
   for (let d = first; d <= last; d = addDays(d, 1)) {
     // A capped sweep reached into this day part way, or not at all.
     const unread = floor !== null && d <= floor;
-    const list = unread ? [] : (on.get(d) ?? []);
+    const list = on.get(d) ?? [];
     const state = unread
       ? "unread"
       : d === today
@@ -190,12 +232,27 @@ export function seasonCalendar({
         : d > today
           ? "future"
           : "past";
+    const dayStart = midnight(d, zone);
+    const dayEnd = midnight(addDays(d, 1), zone);
     days.push({
       ymd: d,
       label: dayLabel(d),
       state,
       count: list.length,
       modes: byMode(list),
+      capture: battleCapture({
+        from: dayStart,
+        to: dayEnd,
+        intervals: observationIntervals,
+        recordedBattles: list.length,
+        // A clipped season boundary and a partial sweep leave part of
+        // the day unread. Today's unbracketed tail is always unknown.
+        readComplete:
+          state === "past" &&
+          !unread &&
+          dayStart >= Date.parse(startsAt) &&
+          dayEnd <= Date.parse(endsAt),
+      }),
     });
   }
   const busiest = Math.max(0, ...days.map((d) => d.count));
@@ -205,10 +262,10 @@ export function seasonCalendar({
   return { lead: weekdayIndex(first), days, busiest };
 }
 
-/** "17 of 23": days with a battle, of the days the season has had so
- *  far (today included) that the sweep read. */
+/** Positive captured days, with elapsed season days as calendar context.
+ * The calendar denominator does not measure coverage. */
 export function daysPlayed(days) {
-  const so = days.filter((d) => d.state === "past" || d.state === "today");
+  const so = days.filter((d) => d.state !== "future");
   return { played: so.filter((d) => d.count > 0).length, of: so.length };
 }
 
@@ -239,13 +296,13 @@ export function modeDays(days) {
   );
 }
 
-/** The longest run of whole days with no battle, before today: its
- *  length and its first and last day. Null when there was none. */
+/** The longest run of fully covered quiet days before today.
+ * Unknown days interrupt a run; null means no supported stretch. */
 export function longestBreak(days) {
   let best = null;
   let run = null;
   for (const d of days) {
-    if (d.state === "past" && d.count === 0) {
+    if (d.state === "past" && d.capture?.quiet === true) {
       run = run
         ? { ...run, to: d.ymd, length: run.length + 1 }
         : { from: d.ymd, to: d.ymd, length: 1 };

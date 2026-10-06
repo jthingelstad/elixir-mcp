@@ -341,7 +341,10 @@ test.describe("Ladder days played", () => {
     await page.goto("/ladder/days");
 
     await expect(
-      page.getByRole("heading", { level: 1, name: "17 of 23 days played" }),
+      page.getByRole("heading", {
+        level: 1,
+        name: "17 days with recorded battles",
+      }),
     ).toBeVisible();
     await expect(page).toHaveTitle("Days played - Ladder - Elixir MCP");
     await expect(page.locator(".page__lede")).toContainText(
@@ -356,7 +359,7 @@ test.describe("Ladder days played", () => {
     const tiles = page.locator(".ladder-tile");
     await expect(tiles).toHaveCount(4);
     await expect(tiles.nth(0)).toContainText("17");
-    await expect(tiles.nth(0)).toContainText("of 23 so far");
+    await expect(tiles.nth(0)).toContainText("in 23 season days so far");
     await expect(tiles.nth(1)).toContainText("Trophy Road days");
     await expect(tiles.nth(1)).toContainText("14");
     await expect(tiles.nth(1)).toContainText("34 battles");
@@ -367,8 +370,8 @@ test.describe("Ladder days played", () => {
     await expect(
       tiles.nth(2).getByRole("img", { name: "13 won, 12 lost" }),
     ).toBeVisible();
-    await expect(tiles.nth(3)).toContainText("2 days");
-    await expect(tiles.nth(3)).toContainText("Sep 13 and 14");
+    await expect(tiles.nth(3)).toContainText("Unknown");
+    await expect(tiles.nth(3)).toContainText("No fully covered quiet days");
 
     // Monday the 7th to Sunday, October 4, each day its own cell.
     const days = page.locator(".ladder-cal > li:not(.ladder-day--blank)");
@@ -386,7 +389,7 @@ test.describe("Ladder days played", () => {
     // three attacks and nothing more.
     await expect(days.nth(17).locator(".ladder-day__n")).toHaveText("3");
     await expect(days.nth(22)).toHaveAttribute("aria-current", "date");
-    await expect(days.nth(22)).toContainText("today · nothing yet");
+    await expect(days.nth(22)).toContainText("today · capture incomplete");
     await expect(days.nth(23)).toContainText("to come");
     await expect(page.locator(".panel__foot").first()).toContainText(
       "The season runs Monday, September 7 at 5:00 am to Monday, October 5 at 5:00 am.",
@@ -451,7 +454,10 @@ test.describe("Ladder days played", () => {
     );
     await page.goto("/ladder/days");
     await expect(
-      page.getByRole("heading", { level: 1, name: "17 of 23 days played" }),
+      page.getByRole("heading", {
+        level: 1,
+        name: "17 days with recorded battles",
+      }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Show all 17 nights" }).click();
     await expect(page.locator(".ladder-night")).toHaveCount(17);
@@ -488,7 +494,10 @@ test.describe("Ladder days played", () => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
     await page.goto("/ladder/days");
     await expect(
-      page.getByRole("heading", { level: 1, name: "17 of 23 days played" }),
+      page.getByRole("heading", {
+        level: 1,
+        name: "17 days with recorded battles",
+      }),
     ).toBeVisible();
     await expect(page.locator(".ladder-cal__weekdays")).toBeHidden();
     await expect(page.locator(".ladder-day--future").first()).toBeHidden();

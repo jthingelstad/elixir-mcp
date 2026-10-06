@@ -24,6 +24,8 @@ import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
 import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
 import { myPlayers } from "@elixir-mcp/record/players";
+import { readMembershipCapture } from "@elixir-mcp/record/membership-capture";
+import { membershipCapture } from "@elixir-mcp/record/capture-state";
 import {
   memberActivityWeeks,
   memberActivityWarBounds,
@@ -86,6 +88,10 @@ export function createTracedClanStore(db) {
  * No primary-clan/default-subject query is needed by this private gate. */
 export async function recordedIdentity(db, account) {
   const players = await myPlayers(db, account.accountId);
+  const membership = await readMembershipCapture(
+    db,
+    players.map((player) => player.player_tag),
+  );
   const { rows: clans } = await db.query(
     `select ac.clan_tag, c.name,
             exists (select 1 from claim cl
@@ -107,7 +113,13 @@ export async function recordedIdentity(db, account) {
       },
       clans,
     }),
-    body: { players },
+    body: {
+      players: players.map((player) => ({
+        ...player,
+        membership_capture:
+          membership.get(player.player_tag) ?? membershipCapture(null),
+      })),
+    },
   };
 }
 

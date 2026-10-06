@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-06",
+    title: "Missing capture stays unknown",
+    body: "Days played keeps captured battles visible and only calls a day quiet when complete observation intervals cover it. Missing, partial and stale coverage no longer becomes a break from play. Clan waits for your membership record instead of telling you to join a clan when observations are missing; an observed absence is dated. Existing verification, roles and actions stay the same. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-06",
     title: "Arena decks keep their mode's record",
     body: "Your week in the Arena features the most-used deck in your busiest non-war mode. Its battle count, wins, losses and level gap now describe that mode alone, even when you played the same cards in Events and Trophy Road. Previously sent emails stay archived as sent. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
   },

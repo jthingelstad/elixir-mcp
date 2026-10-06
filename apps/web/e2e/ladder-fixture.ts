@@ -718,6 +718,8 @@ export function explore(
       { tool, is_error: false, body },
     ];
     if (tool === "players_summary") return ok(players_summary);
+    if (tool === "elixir_coverage")
+      return ok({ observation_intervals: [], polls: [] });
     if (tool === "battles_query") {
       const limit = Number(args.limit ?? 25);
       if (limit > fits)

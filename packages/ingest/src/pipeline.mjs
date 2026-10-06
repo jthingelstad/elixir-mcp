@@ -320,6 +320,32 @@ const PROJECTORS = {
         clanTag ? (payload.role ?? null) : null,
       ],
     );
+    // Private membership evidence has its own precise source stamp. Retained
+    // last-known tags cannot represent absence; the cache is not a projection.
+    // Malformed optional clan objects and same-time conflicts remain unknown.
+    const membershipState =
+      payload.clan == null
+        ? "none"
+        : typeof payload.clan === "object" &&
+            !Array.isArray(payload.clan) &&
+            clanTag
+          ? "member"
+          : "unknown";
+    await db.query(
+      `insert into player_profile_membership(player_tag,state,observed_at)
+       values ($1,$2,$3)
+       on conflict (player_tag) do update set
+         state = case when player_profile_membership.observed_at = excluded.observed_at
+                        and player_profile_membership.state is distinct from excluded.state then 'unknown'
+                      else excluded.state end,
+         observed_at = excluded.observed_at
+       where player_profile_membership.observed_at < excluded.observed_at
+          or (player_profile_membership.observed_at = excluded.observed_at
+              and player_profile_membership.state is distinct from excluded.state
+              and player_profile_membership.state <> 'unknown')`,
+      [entityKey, membershipState, fetchedAt],
+    );
+    // This observation stamp earns no collector fact credit.
     // Tenure from the YearsPlayed badge (0024): level = completed years,
     // progress = account age in days. Absent badge = UNKNOWN (verified
     // absent on 4+year accounts too) - never write zero, never null-out

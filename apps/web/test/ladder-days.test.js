@@ -124,6 +124,87 @@ test("the calendar: every season day, each mode its own record, today and the da
   ]);
 });
 
+test("quiet days require whole-day coverage; gaps and the unbracketed tail never form breaks", () => {
+  const interval = (observed_from, observed_to, overrides = {}) => ({
+    observed_from,
+    observed_to,
+    expected_battles: 0,
+    captured_battles: 0,
+    is_complete: true,
+    ...overrides,
+  });
+  const cal = seasonCalendar({
+    battles: [],
+    ...SEASON,
+    now: NOW,
+    zone: CHI,
+    observationIntervals: [
+      interval("2026-09-24T04:00:00Z", "2026-09-26T05:00:00Z"),
+      interval("2026-09-26T05:00:00Z", "2026-09-27T05:00:00Z", {
+        is_complete: false,
+        expected_battles: 3,
+      }),
+      interval("2026-09-27T05:00:00Z", "2026-09-28T05:00:00Z"),
+    ],
+  });
+  const day = (date) => cal.days.find((d) => d.ymd === date);
+  expect(day("2026-09-07").capture.quiet).toBe(false);
+  expect(day("2026-09-24").capture.quiet).toBe(true);
+  expect(day("2026-09-25").capture.quiet).toBe(true);
+  expect(day("2026-09-26").capture.quiet).toBe(false);
+  expect(day("2026-09-27").capture.quiet).toBe(false);
+  expect(day("2026-09-28").capture.quiet).toBe(false);
+  expect(day("2026-09-29").capture.quiet).toBe(false);
+  expect(longestBreak(cal.days)).toEqual({
+    from: "2026-09-24",
+    to: "2026-09-25",
+    length: 2,
+  });
+});
+
+test("a successful poll or a season-clipped day cannot establish zero play", () => {
+  const cal = seasonCalendar({
+    battles: [],
+    ...SEASON,
+    now: NOW,
+    zone: CHI,
+    observationIntervals: [
+      {
+        observed_from: "2026-09-06T00:00:00Z",
+        observed_to: "2026-09-08T05:00:00Z",
+        is_complete: true,
+        expected_battles: 0,
+        captured_battles: 0,
+      },
+    ],
+  });
+  expect(cal.days[0].capture.quiet).toBe(false);
+  expect(longestBreak(cal.days)).toBeNull();
+});
+
+test("quiet-day coverage respects both short and long DST days", () => {
+  const cal = (date, end) =>
+    seasonCalendar({
+      battles: [],
+      startsAt: `${date.slice(0, 7)}-01T00:00:00Z`,
+      endsAt: `${date.slice(0, 7)}-28T00:00:00Z`,
+      now: Date.parse(`${date.slice(0, 7)}-10T12:00:00Z`),
+      zone: CHI,
+      observationIntervals: [
+        {
+          observed_from: `${date}T04:00:00Z`,
+          observed_to: end,
+          is_complete: true,
+          expected_battles: 0,
+          captured_battles: 0,
+        },
+      ],
+    }).days.find((d) => d.ymd === date);
+  expect(cal("2026-03-08", "2026-03-09T05:00:00Z").capture.quiet).toBe(true);
+  expect(cal("2026-11-01", "2026-11-02T05:00:00Z").capture.quiet).toBe(false);
+  expect(cal("2026-11-01", "2026-11-02T06:00:00Z").capture.quiet).toBe(true);
+});
+
 test("a battle in the season's last hours adds that morning's day", () => {
   const cal = seasonCalendar({
     battles: [battle("2026-10-05T08:00:00Z", "ladder", "win")], // 3 am
@@ -148,25 +229,21 @@ test("a capped sweep marks the days it did not reach as not read, never as empty
   });
   const state = (ymd) => cal.days.find((d) => d.ymd === ymd);
   expect(state("2026-09-07").state).toBe("unread");
-  // The oldest day read may be partial, so it is not drawn either.
-  expect(state("2026-09-15")).toMatchObject({ state: "unread", count: 0 });
+  // A partial day retains its positive battle evidence.
+  expect(state("2026-09-15")).toMatchObject({ state: "unread", count: 1 });
   expect(state("2026-09-16").state).toBe("past");
   expect(state("2026-09-19").count).toBe(1);
-  expect(daysPlayed(cal.days)).toEqual({ played: 1, of: 14 });
+  expect(daysPlayed(cal.days)).toEqual({ played: 2, of: 23 });
   // An unread day is not a break.
-  expect(longestBreak(cal.days)).toEqual({
-    from: "2026-09-20",
-    to: "2026-09-28",
-    length: 9,
-  });
+  expect(longestBreak(cal.days)).toBeNull();
 });
 
 test("the longest break is whole days before today, and its span reads as prose", () => {
   const days = [
-    { ymd: "2026-09-07", state: "past", count: 0 },
+    { ymd: "2026-09-07", state: "past", count: 0, capture: { quiet: true } },
     { ymd: "2026-09-08", state: "past", count: 2 },
-    { ymd: "2026-09-09", state: "past", count: 0 },
-    { ymd: "2026-09-10", state: "past", count: 0 },
+    { ymd: "2026-09-09", state: "past", count: 0, capture: { quiet: true } },
+    { ymd: "2026-09-10", state: "past", count: 0, capture: { quiet: true } },
     { ymd: "2026-09-11", state: "today", count: 0 },
     { ymd: "2026-09-12", state: "future", count: 0 },
   ];

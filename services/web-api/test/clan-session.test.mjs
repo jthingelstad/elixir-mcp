@@ -307,7 +307,7 @@ test("season projects real recorded counters with the canonical calendar and no 
   }
 });
 
-test("compact initialization preserves principal and all player relationships with two reads", async () => {
+test("compact initialization preserves principal and all player relationships with three reads", async () => {
   const account = { accountId, kind: "person" };
   for (const hasPrimary of [true, false]) {
     await scratch.db.query(
@@ -331,7 +331,7 @@ test("compact initialization preserves principal and all player relationships wi
     assert.deepEqual(actual.principal, expected);
     assert.equal(actual.body.players.length, 1);
     assert.equal(actual.body.players[0].claim_status, "verified");
-    assert.equal(queries, 2);
+    assert.equal(queries, 3);
   }
   await scratch.db.query(
     "update claim set is_primary=true where account_id=$1",

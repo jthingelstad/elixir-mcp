@@ -65,8 +65,15 @@ its members' battle logs ([comprehensive](/docs/recording)) gives
 fuller battle numbers than one recorded at activity scope, and Clan
 holds back a judgment the record cannot support rather than guess.
 
-If you are not in a clan at all, join one in the game; Elixir sees it on
-its next roster poll.
+When profile or roster observations cannot establish your membership, Clan
+says **Waiting for your clan record** and links to Tracking. A missing clan tag
+or roster role does not prove you are outside a clan.
+
+Only explicit absence in the latest admitted profiles for all your own players
+shows **No clan in your recorded profiles**, dated by those observations. This
+is not a live check: if it is still accurate, join a clan in the game;
+otherwise wait for a fresh profile and clan roster and check again. Friends
+and watched players do not decide your membership or grant roles.
 
 ## Ten members
 
