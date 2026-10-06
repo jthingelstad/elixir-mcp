@@ -1140,7 +1140,8 @@ function BoundActionCard({
             <div>
               Season {ev.season_id} is closed and its awards are granted. Tell
               the clan in chat or choose a durable Inbox message, then mark it
-              sent.
+              sent. This message covers the recipients listed below. An award
+              granted later can have its own announcement.
               {ev.parts > 1
                 ? ` Message ${ev.part} of ${ev.parts}; send every part to name all recipients.`
                 : ""}

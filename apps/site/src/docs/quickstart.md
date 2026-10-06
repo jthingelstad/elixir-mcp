@@ -33,6 +33,12 @@ builds from there. Add alts and friends the same way and mark the relationship;
 the existing [tier limits](/docs/roles) still apply. See
 [Recording and coverage](/docs/recording) for what gets fetched and how often.
 
+Find your tag in Clash Royale by opening your player profile: it appears below
+your name. Email verification opens your Elixir account; [player
+verification](/docs/verify) separately proves ownership for the features that
+require it. An ordinary member account includes activity clan recording, not
+comprehensive capture of every member. Tracking shows the available slots.
+
 Read your personal record in [Ladder](/ladder). For your clan, add your primary
 or an alt and follow [Bring your clan](/docs/bring-your-clan): private actions
 still require verified membership and the appropriate game role. You can

@@ -208,7 +208,7 @@ describe("the landing page", () => {
       screen
         .getByRole("link", { name: /Create your account/ })
         .getAttribute("href"),
-    ).toContain("elixir.poapkings.com");
+    ).toBe("https://elixir.poapkings.com/console/signin?signup");
     expect(
       screen
         .getByRole("link", { name: "Sign in with Elixir" })

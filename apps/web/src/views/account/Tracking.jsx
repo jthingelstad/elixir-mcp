@@ -414,7 +414,19 @@ export function Tracking({ me, refresh, navigate }) {
               </span>
             )}
           </div>
-          <div className="panel__foot">Added means recorded.</div>
+          <div className="panel__foot">
+            Find your player tag in Clash Royale: open your player profile and
+            look below your name.
+            {(me.claims ?? []).length === 0
+              ? " Your first player becomes your primary player."
+              : ""}{" "}
+            Adding a tag starts recording. Proving ownership is a separate step
+            under{" "}
+            <Link className="underline" to={`${CONSOLE}/account/verify`}>
+              Verify
+            </Link>
+            .
+          </div>
         </section>
 
         <section className="panel" style={{ flex: "1 1 300px" }}>
@@ -440,7 +452,12 @@ export function Tracking({ me, refresh, navigate }) {
               value={clanScope}
               onChange={(ev) => setClanScope(ev.target.value)}
             >
-              <option value="comprehensive">comprehensive</option>
+              <option
+                value="comprehensive"
+                disabled={e?.comprehensive_clans?.limit === 0}
+              >
+                comprehensive
+              </option>
               <option value="activity">activity</option>
             </select>
             <button
@@ -467,6 +484,9 @@ export function Tracking({ me, refresh, navigate }) {
           </div>
           <div className="panel__foot">
             Comprehensive records every member; activity records the clan.
+            {e?.comprehensive_clans?.limit === 0
+              ? " Your account includes activity recording, with no comprehensive clan slots."
+              : ""}
           </div>
         </section>
       </div>

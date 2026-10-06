@@ -5992,6 +5992,7 @@ their September 1–6 fixture window for compact, pre-reset and member-limit
 assertions. This preserves the tested result/limit behavior without coupling
 it to today's date. No runtime or deployed behavior changed; the failed run
 was diagnosed rather than blindly retried.
+
 ## 2026-10-06 — invitation playthrough and later award announcements
 
 Jamie is reviewing retained battles separately; that evidence stays untouched.
@@ -6007,3 +6008,27 @@ announcement was found. Both use the same generic label, so this release will
 explain later award receipts explicitly. Completed actions, grants, decisions
 and delivery receipts are preserved; diagnosis sent no announcements and made
 no status changes. No MCP or JSON API contract change is planned.
+
+The rendered phone/desktop playthrough used server-shaped fixture responses for
+signup, email proof and an empty ordinary account. Clan's no-player gate already
+links to Tracking; a preliminary empty chooser fixture did not match the real
+gate and was corrected before drawing conclusions. Tracking lacked player-tag
+instructions and offered comprehensive capture despite a zero-slot entitlement.
+The optional AI readiness list needed an explicit optionality explanation, and
+Clan's create-account link took a newcomer to the homepage instead of signup.
+These are the release's demonstrated changes. Award labels are derived from
+existing saved season/award evidence for both UI and notification mail, with no
+action regeneration, grant changes or historical receipt edits. Verification
+and quota enforcement are unchanged. Live acceptance is not needed because no
+MCP/JSON API tool behavior or contracts change.
+
+Final local verification passed 1,879 Node and 459 UI tests, with 85 existing
+retirement skips, and all 148 built browser journeys. The first browser run
+caught the new inline Verify link lacking an underline, an ambiguous desktop
+test selector, and a generic Clan sign-in return query replacing the remembered
+deep link. The link is now visibly underlined, the selector names the main
+content, and the original remembered deep-link flow is preserved. Clan signup
+links directly to the common signup form without overriding that return. The
+corrected gate passed without retries. The existing later-manual-grant test
+also verifies that UI and notification labels agree and completed records are
+unchanged. No production business write was used for diagnosis or QA.

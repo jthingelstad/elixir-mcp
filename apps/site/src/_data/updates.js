@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-06",
+    title: "Clearer first steps and award announcements",
+    body: "Tracking shows where to find your player tag and distinguishes starting recording from proving ownership. Accounts with no comprehensive clan slots use activity recording, and AI setup is explicitly optional. Clan signup takes you straight to email verification. Award Action titles and notifications name their season and covered awards, so a later manual pick is distinguishable from an earlier completed announcement. Existing grants, decisions and delivery receipts stay intact. Contracts remain MCP 11.2.3 and JSON API 3.0.0.",
+  },
+  {
+    date: "2026-10-06",
     title: "Share a battle in your own words",
     body: "Choose a captured battle from Ladder’s Days played, inspect its record, and add your own context about why it mattered. Preview before copying the message or using your device’s Share sheet. Your words travel alongside the existing public battle link; the link itself keeps showing game facts. Contracts remain MCP 11.2.3 and JSON API 3.0.0.",
   },

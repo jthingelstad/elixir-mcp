@@ -58,6 +58,11 @@ the activity view is a new read. Removal eligibility is checked separately again
 | Announce the season's awards | the leader and co-leaders | clan chat, with a durable Inbox alternative |
 | Tell the clan how it runs | the leader and co-leaders | clan chat, with a durable Inbox alternative |
 
+Award announcement titles name the season and the awards covered by that
+message. A manual award granted after an announcement was completed can raise
+a separate Action for that later recipient; the completed announcement stays
+unchanged. Notification mail uses the same award scope as the Action.
+
 Every kind is off until the policy turns it on. Promotions and
 demotions come with ranking Elder by participation
 ([Standing](/docs/standing)); the others each have a switch of their
