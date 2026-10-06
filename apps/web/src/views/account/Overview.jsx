@@ -507,12 +507,12 @@ export function Overview({ me, navigate }) {
       <div className="mb-6 flex flex-wrap items-end gap-x-6 gap-y-3">
         <div className="min-w-0 flex-auto">
           <h1 className="page__title">
-            {fresh ? "Your account is open" : "Everything is recording"}
+            {fresh ? "Your account is open" : "Your Elixir record"}
           </h1>
           <p className="page__lede">
             {fresh
-              ? "Add the player you play as. Capture starts on the next poll, usually within half an hour."
-              : `${players.length} player${players.length === 1 ? "" : "s"} and ${clanRows.length} clan${clanRows.length === 1 ? "" : "s"} on record. Nothing needs you today.`}
+              ? "Add the player you play as in Tracking to start building your record."
+              : `${players.length} player${players.length === 1 ? "" : "s"}${clans ? ` and ${clanRows.length} clan${clanRows.length === 1 ? "" : "s"}` : ""} tracked. Read your record below or manage capture in Tracking.`}
           </p>
         </div>
         <LivePill me={me} />

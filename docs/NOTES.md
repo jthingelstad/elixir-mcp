@@ -6067,3 +6067,33 @@ authorization, award generation or delivery behavior changes are planned.
 Validation covers browser-only newcomers, existing players, leaders and AI
 connections, plus deep links, back/reload, mobile and accessibility. No MCP or
 JSON API contract changes are planned; acceptance scope is none.
+
+The implemented next step links to Tracking before capture and Ladder once
+a profile or retained battles exist, without counting optional clan/client
+setup. The existing rows, supported questions, clipboard fallback and access
+boundaries remain. Missing profile observation time is now explicitly unknown
+instead of displaying "snapshot never" for a known snapshot; stopped recording,
+older history and unavailable counts remain distinct. Connection status and
+successful reads within the API's seven-day window remain separate. Quickstart
+keeps its existing client-section anchors and opens with browser use.
+
+Gate triage: the first new browser checks misclassified Ladder's saved-data
+POST bridge as a mutation and used an invalid numeric CSS ID selector; the
+guard now allows only the existing primary-player read tools without live
+requests, and the anchor is selected by its ID attribute. A concurrent local
+verification/browser build then collided on the shared site output; final
+gates run sequentially. An existing Clan member-activity 503 error journey
+passed alone after timing out under full-run load: its trace showed the retry
+starting about 6.9 seconds after the first response. Its specific error-text
+assertion now allows ten seconds for the shared client's one quiet retry.
+No permission assertion or expected refusal was removed.
+
+Final local validation passed sequentially: 1,880 Node tests, 463 UI tests,
+85 existing retirement skips and all 161 browser tests. The thirteen added
+browser checks cover six account/capture states at phone and desktop sizes,
+plus Quickstart and its existing deep anchors. Back/reload, next destinations,
+partial capture, seven-day read evidence, overflow and accessibility passed.
+Scope review confirms the existing first-answer response and saved-data read
+tools are unchanged; no new access, API, authorization or award/delivery writes.
+MCP 11.2.3 and JSON API 3.0.0 remain unchanged. No tool response changed, so
+MCP acceptance is outside this Console/site release's scope.

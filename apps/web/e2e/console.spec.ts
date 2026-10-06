@@ -674,11 +674,13 @@ test("@narrow Overview guides a profile-only account through its first successfu
   );
   await page.goto("/console/account/overview");
   const readiness = page.getByRole("region", {
-    name: "What your agent can answer",
+    name: "Your recording",
   });
-  await expect(readiness).toContainText("3 of 6");
   await expect(
-    readiness.getByRole("link", { name: /Track your clan/ }),
+    readiness.getByRole("link", { name: /Open Ladder/ }),
+  ).toHaveAttribute("href", "/ladder");
+  await expect(
+    readiness.getByRole("link", { name: /Clan recording/ }),
   ).toHaveAttribute("href", "/console/account/tracking");
   await expect(
     readiness.getByRole("link", { name: /Connection help/ }),
@@ -701,10 +703,10 @@ test("@narrow Overview guides a profile-only account through its first successfu
   ).toBe(true);
   read = true;
   await page.reload();
-  await expect(readiness).toContainText("4 of 6");
-  await expect(readiness).toContainText(
-    "Your client has successfully read Elixir data.",
-  );
+  await expect(
+    readiness.getByRole("link", { name: /Open Ladder/ }),
+  ).toBeVisible();
+  await expect(readiness).toContainText(/successful data read /);
   await expect(
     readiness.getByRole("link", { name: /Connection help/ }),
   ).toHaveCount(0);
@@ -716,7 +718,7 @@ test("@narrow quickstart keeps long inline credentials and URLs within a phone",
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/docs/quickstart");
   await expect(
-    page.getByRole("heading", { name: "Connect a client", exact: true }),
+    page.getByRole("heading", { name: "Get started with Elixir", exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(

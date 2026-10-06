@@ -483,8 +483,11 @@ for (const size of ["wide", "@narrow"])
       { error: "unavailable" },
     ];
     await page.goto(`${base}/members/uq8lp2r9c`);
+    // The shared client quietly retries a 503 once. In a full concurrent
+    // run its timer can be delayed beyond the default five-second wait.
     await expect(page.getByRole("alert")).toContainText(
       "Activity is unavailable",
+      { timeout: 10_000 },
     );
   });
 

@@ -181,7 +181,7 @@ for (const width of [390, 1280]) {
     );
     await page.goto("/console/account/overview");
     await expect(
-      page.getByText(/Connecting an AI client is optional/),
+      page.getByText(/connecting an AI client are optional/),
     ).toBeVisible();
     await page
       .getByRole("button", { name: "Add your player", exact: true })
