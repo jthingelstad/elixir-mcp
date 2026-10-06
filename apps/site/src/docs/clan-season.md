@@ -5,7 +5,7 @@ description: "Recorded Clan Wars decks, period points and contributors across a 
 section: clan
 order: 2.5
 navTitle: "Season"
-icon: calendar-range
+icon: calendar-days
 lede: "See the recorded season so far or a closed season, and follow its races in order."
 reviewed: "2026-10-06; member-visible season record, contracts unchanged"
 ---

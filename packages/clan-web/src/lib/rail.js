@@ -48,7 +48,7 @@ export function railItems(me) {
     items.push({
       key: "season",
       label: "Season",
-      icon: "calendar-range",
+      icon: "calendar-days",
       to: `${base}/season`,
     });
     // Actions: what waits for you, as who you are in this clan.
