@@ -170,7 +170,9 @@ test("readiness names what each line is waiting for, not just that it is not don
   ).toBe("/console/account/tracking");
   expect(screen.getByText("no profile snapshot available yet")).toBeTruthy();
   expect(
-    screen.getByText("0 in the last 30 days · a profile is enough to start"),
+    screen.getByText(
+      "No battles captured in the last 30 days · capture may be incomplete",
+    ),
   ).toBeTruthy();
   expect(
     screen.getByText("no recorded clan war history available"),

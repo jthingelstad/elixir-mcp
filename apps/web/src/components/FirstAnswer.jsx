@@ -1,4 +1,5 @@
 import { Icon, Link, ago } from "@elixir-mcp/ui";
+import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { CONSOLE } from "../lib/console.js";
 import {
@@ -7,7 +8,7 @@ import {
 } from "./QuestionSuggestions.jsx";
 
 const n = (v) => (Number.isFinite(v) ? v.toLocaleString() : "unknown");
-const hasBattles = (p) => Boolean(p && (p.battles_30d > 0 || p.last_battle_at));
+const hasBattles = hasBattleEvidence;
 
 /** The next useful destination follows saved capture, not optional setup. */
 function nextStep(data) {
@@ -80,7 +81,7 @@ function readiness(data) {
           : captured
             ? `${n(p.battles_30d)} in the last 30 days · ${n(p.battles_7d)} in the last 7`
             : p.battles_30d === 0
-              ? "0 in the last 30 days · a profile is enough to start"
+              ? "No battles captured in the last 30 days · capture may be incomplete"
               : "recent battle counts unavailable",
       action: p ? "Check recording" : null,
       to: `${CONSOLE}/account/tracking`,

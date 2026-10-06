@@ -24,11 +24,13 @@
  */
 
 import { roleLabel, roleRank } from "./roles.mjs";
+import { membershipCapture } from "@elixir-mcp/record/capture-state";
 
 const REFUSALS = {
   not_a_person: "not_a_person",
   no_primary_player: "no_primary_player",
   no_clan: "no_clan",
+  membership_unknown: "membership_unknown",
 };
 
 export function normalizeTag(value) {
@@ -176,6 +178,7 @@ export async function runGate({ mcp, token }) {
     clan_name: p.clan_name ?? null,
     role: p.clan_role ?? null,
     role_label: p.clan_role ? roleLabel(p.clan_role) : null,
+    membership_capture: membershipCapture(p.membership_capture),
   }));
   const base = {
     principal: { kind, subject: principal.subject ?? null },
@@ -186,7 +189,13 @@ export async function runGate({ mcp, token }) {
     return { ok: false, reason: REFUSALS.no_primary_player, ...base };
   const clans = clansOf(identities, principal);
   if (clans.length === 0)
-    return { ok: false, reason: REFUSALS.no_clan, ...base };
+    return {
+      ok: false,
+      reason: own.every((id) => id.membership_capture.state === "none")
+        ? REFUSALS.no_clan
+        : REFUSALS.membership_unknown,
+      ...base,
+    };
 
   const primary =
     identities.find((i) => i.is_primary) ??

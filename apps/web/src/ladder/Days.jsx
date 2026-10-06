@@ -18,7 +18,7 @@ import {
   weekdayOf,
   zoneName,
 } from "../lib/ladder-days.js";
-import { useBattleSweep } from "../lib/queries.js";
+import { useBattleSweep, useToolRead } from "../lib/queries.js";
 import { LadderHead, Loading, ReadError, Record, Tile } from "./common.jsx";
 
 /** Nights a page lists before "Show every night". */
@@ -37,6 +37,9 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export function Days({ player, summary }) {
   const { zone } = useClock();
   const [now] = useState(() => Date.now());
+  const coverage = useToolRead("elixir_coverage", {
+    player_tag: player.player_tag,
+  });
   const sweep = useBattleSweep({
     player_tag: player.player_tag,
     season: "current",
@@ -55,6 +58,7 @@ export function Days({ player, summary }) {
         now,
         zone,
         readFrom: capped ? (battles.at(-1)?.battle_time ?? null) : null,
+        observationIntervals: coverage.data?.observation_intervals ?? [],
       })
     : null;
   const so = cal ? daysPlayed(cal.days) : null;
@@ -66,7 +70,7 @@ export function Days({ player, summary }) {
         player={player}
         page="Days played"
         title={
-          so ? `${fmt(so.played)} of ${fmt(so.of)} days played` : "Days played"
+          so ? `${fmt(so.played)} days with recorded battles` : "Days played"
         }
         lede={`Every day of the ${name}, ${zoneName(zone)}. Each mode keeps its own mark and its own record, so a war day and a Trophy Road night never add up to one number.`}
         observedAt={first?.meta?.source_polls?.player_battlelog?.observed_at}
@@ -88,6 +92,7 @@ export function Days({ player, summary }) {
           total={sweep.data.total}
           floor={summary.data?.trophy_floor?.floor ?? null}
           zone={zone}
+          coverageError={coverage.isError}
         />
       )}
     </div>
@@ -104,6 +109,7 @@ function DaysBody({
   total,
   floor,
   zone,
+  coverageError,
 }) {
   const modes = modeDays(cal.days);
   const gap = longestBreak(cal.days);
@@ -111,7 +117,10 @@ function DaysBody({
   return (
     <>
       <div className="ladder-tiles">
-        <Tile label="Days played" sub={`of ${fmt(so.of)} so far`}>
+        <Tile
+          label="Days with recorded battles"
+          sub={`in ${fmt(so.of)} season days so far`}
+        >
           {fmt(so.played)}
         </Tile>
         {modes.slice(0, 2).map((m) => (
@@ -129,13 +138,23 @@ function DaysBody({
           </Tile>
         ))}
         <Tile
-          label="Longest break"
-          sub={gap ? spanLabel(gap) : "a battle on every day so far"}
+          label="Longest covered quiet stretch"
+          sub={gap ? spanLabel(gap) : "No fully covered quiet days"}
         >
           {gap
             ? `${fmt(gap.length)} ${gap.length === 1 ? "day" : "days"}`
-            : "None"}
+            : "Unknown"}
         </Tile>
+      </div>
+
+      <div className="callout callout--info">
+        <Icon name="info" size={17} />
+        <span>
+          {coverageError ? "Capture coverage could not be checked. " : ""}
+          Recorded battles are evidence of play. Days without them stay unknown
+          unless comparable, complete profile intervals cover the whole day.
+          Gaps and the time since the latest observation are not quiet days.
+        </span>
       </div>
 
       {capped ? (
@@ -145,7 +164,8 @@ function DaysBody({
             This page reads the newest {fmt(battles.length)}
             {total != null ? ` of ${fmt(total)}` : ""} battles this season, so
             the days before {firstRead ? firstRead.label : "the newest"} are
-            marked not read rather than drawn empty.
+            marked partially read rather than drawn empty; any battles already
+            read remain visible.
           </span>
         </div>
       ) : null}
@@ -215,16 +235,20 @@ function Calendar({ cal, name, season, zone }) {
 }
 
 function Day({ day }) {
-  const counted = day.state === "past" || day.state === "today";
+  const counted = day.count > 0 || day.capture.quiet;
   const none =
     day.state === "future"
       ? "to come"
       : day.state === "unread"
-        ? "not read"
+        ? "partially read"
         : day.count === 0
           ? day.state === "today"
-            ? "today · nothing yet"
-            : "no battles"
+            ? "today · capture incomplete"
+            : day.capture.quiet
+              ? "no recorded battles · covered day"
+              : day.capture.coverage === "partial"
+                ? "capture incomplete"
+                : "capture unknown"
           : null;
   return (
     <li

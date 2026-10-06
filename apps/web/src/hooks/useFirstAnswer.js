@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 
 export function useFirstAnswer(claimsKey) {
   const [attempt, setAttempt] = useState(0);
@@ -22,9 +23,7 @@ export function useFirstAnswer(claimsKey) {
         if (
           r.data.player &&
           (!(
-            r.data.player.profile_available ||
-            r.data.player.last_battle_at ||
-            r.data.player.battles_30d > 0
+            r.data.player.profile_available || hasBattleEvidence(r.data.player)
           ) ||
             !r.data.connection.last_data_read_at)
         ) {

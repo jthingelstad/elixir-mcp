@@ -1,5 +1,6 @@
 import { ELIXIR_LINKS } from "../lib/links.js";
 import { CLAN } from "../lib/base.js";
+import { useClock } from "@elixir-mcp/ui";
 
 /**
  * One page per gate refusal, in gate order. Each says exactly what to do
@@ -21,15 +22,23 @@ export const REFUSALS = {
     link: [ELIXIR_LINKS.tracking, "Elixir → Tracking"],
   },
   no_clan: {
-    title: "You are not in a clan",
-    body: "None of your players is in a clan right now, as far as Elixir's record goes. There is no clan page to show.",
+    title: "No clan in your recorded profiles",
+    body: "The latest recorded profiles for your own players show no clan. These are observations, not a live check.",
     action:
-      "Join a clan in the game. Elixir sees it on its next roster poll; check again after that.",
+      "If that is still accurate, join a clan in the game. Otherwise wait for a fresh profile and clan roster, then check again.",
     link: [ELIXIR_LINKS.overview, "Your Elixir account"],
+  },
+  membership_unknown: {
+    title: "Waiting for your clan record",
+    body: "Elixir has not confirmed your players' clan membership yet. Missing profile or roster observations do not mean you are outside a clan.",
+    action:
+      "Check recording under Tracking, then check again after your profile and clan roster have been observed.",
+    link: [ELIXIR_LINKS.tracking, "Elixir → Tracking"],
   },
 };
 
 export function Refused({ reason, me, onRecheck, checking }) {
+  const { stamp } = useClock();
   const page = REFUSALS[reason];
   if (!page) {
     return (
@@ -72,9 +81,11 @@ export function Refused({ reason, me, onRecheck, checking }) {
               {p.claim_status === "verified"
                 ? "verified"
                 : (p.claim_status ?? "unverified")}
-              {p.clan_tag
-                ? ` · in ${p.clan_name ?? p.clan_tag}`
-                : " · not in a clan"}
+              {p.membership_capture?.state === "none"
+                ? ` · no clan observed ${stamp(p.membership_capture.observed_at, { year: true })}`
+                : p.clan_tag
+                  ? ` · recorded clan ${p.clan_name ?? p.clan_tag} · clan record pending`
+                  : " · clan record pending"}
             </li>
           ))}
         </ul>

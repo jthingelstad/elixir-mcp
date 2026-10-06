@@ -37,7 +37,15 @@ test("gate: a person with no players at all", async () => {
 test("gate: an unverified player not in a clan is refused at the clan check, with the players listed", async () => {
   const mcp = fakeMcp({
     players: [
-      player({ claim_status: "unverified", clan_tag: null, clan_role: null }),
+      player({
+        claim_status: "unverified",
+        clan_tag: null,
+        clan_role: null,
+        membership_capture: {
+          state: "none",
+          observed_at: "2026-09-12T12:00:00Z",
+        },
+      }),
     ],
   });
   const g = await runGate({ mcp, token: "t" });
@@ -104,10 +112,75 @@ test("gate: an unverified member has nothing to unlock, so no notice", async () 
 
 test("gate: a verified primary not in a clan", async () => {
   const mcp = fakeMcp({
-    players: [player({ clan_tag: null, clan_role: null })],
+    players: [
+      player({
+        clan_tag: null,
+        clan_role: null,
+        membership_capture: {
+          state: "none",
+          observed_at: "2026-09-12T12:00:00Z",
+        },
+      }),
+    ],
   });
   const g = await runGate({ mcp, token: "t" });
   assert.equal(g.reason, "no_clan");
+});
+
+for (const claim_status of ["verified", "unverified"]) {
+  for (const clan_role of ["leader", "member", null]) {
+    test(`gate: missing membership evidence is pending for ${claim_status}/${clan_role}`, async () => {
+      const mcp = fakeMcp({
+        players: [player({ claim_status, clan_tag: null, clan_role })],
+      });
+      const g = await runGate({ mcp, token: "t" });
+      assert.equal(g.ok, false);
+      assert.equal(g.reason, "membership_unknown");
+      assert.equal(g.identities[0].membership_capture.state, "unknown");
+      assert.equal(g.clans, undefined);
+    });
+  }
+}
+
+test("gate: a profile naming a clan without roster role evidence waits, granting no new role", async () => {
+  const mcp = fakeMcp({
+    players: [
+      player({
+        clan_role: null,
+        membership_capture: {
+          state: "member",
+          observed_at: "2026-09-12T12:00:00Z",
+        },
+      }),
+    ],
+  });
+  const g = await runGate({ mcp, token: "t" });
+  assert.equal(g.reason, "membership_unknown");
+});
+
+test("gate: absence must be observed for every own player; friends do not decide it", async () => {
+  const absent = player({
+    clan_tag: null,
+    clan_role: null,
+    membership_capture: { state: "none", observed_at: "2026-09-12T12:00:00Z" },
+  });
+  const alt = player({
+    player_tag: "#8QCV",
+    relationship: "alt",
+    is_primary: false,
+    clan_tag: null,
+    clan_role: null,
+  });
+  const mcp = fakeMcp({ players: [absent, alt] });
+  assert.equal(
+    (await runGate({ mcp, token: "t" })).reason,
+    "membership_unknown",
+  );
+  alt.membership_capture = absent.membership_capture;
+  assert.equal((await runGate({ mcp, token: "t" })).reason, "no_clan");
+  alt.relationship = "friend";
+  delete alt.membership_capture;
+  assert.equal((await runGate({ mcp, token: "t" })).reason, "no_clan");
 });
 
 test("gate: the happy path names the clan set and the role", async () => {

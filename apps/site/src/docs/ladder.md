@@ -80,14 +80,16 @@ the page gives in your own timezone, as it gives every time.
 your own timezone, from [battles_query](/docs/tools/battles#battles_query):
 the season's battles in compact form, read fifty to a page. A page view
 reads at most twelve pages, the newest 600 battles; past that, the days it
-did not reach are marked "not read", never drawn as days without a battle.
+did not reach are marked "partially read"; any battles already read stay visible.
 
-- **Days played**: the days with at least one battle, of the season's days
-  so far, today included.
+- **Days with recorded battles**: the days with at least one captured battle,
+  today included. The season's elapsed days do not measure capture coverage.
 - **A tile for each of the two modes you played most**: the days you
   played it, its battles and its own record.
-- **Longest break**: the longest run of whole days with no battle before
-  today.
+- **Longest covered quiet stretch**: consecutive whole days before today
+  with no recorded battles, only where complete comparable profile intervals
+  cover every instant of each day. Missing intervals, partial capture and the
+  time since the latest observation remain unknown and break the stretch.
 - **The calendar**: one cell a day, each mode with its own mark and
   record, and the day's battles counted in the corner. A battle after
   midnight counts on the next day.
@@ -97,6 +99,12 @@ did not reach are marked "not read", never drawn as days without a battle.
   for the night. On Trophy Road it shows the trophies you started and
   ended on, and says so when you ended on the floor. Open a night for its
   battles; a battle opens on its own page when the record has one.
+
+The page checks [capture coverage](/docs/recording#completeness) separately.
+A successful poll or a seven-day average does not prove a whole day was captured.
+Empty cells show unknown or incomplete capture unless coverage supports a zero;
+positive battle records remain visible even when capture is incomplete. Today
+and season-clipped days cannot establish a whole quiet day.
 
 A defense of your clan's boat is not your battle, so Days played leaves it
 out, as the season home does.

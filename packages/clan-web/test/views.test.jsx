@@ -197,6 +197,53 @@ describe("the gate pages", () => {
     );
     expect(screen.getByRole("button", { name: /check again/i })).toBeTruthy();
   });
+
+  test("missing observations offer recording help, without claiming no clan or asking anyone to join", () => {
+    renderWithProviders(
+      <Refused reason="membership_unknown" me={me} onRecheck={() => {}} />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "Waiting for your clan record" }),
+    ).toBeTruthy();
+    expect(screen.queryByText(/join a clan/i)).toBeNull();
+    expect(
+      screen
+        .getByRole("link", { name: "Elixir → Tracking ›" })
+        .getAttribute("href"),
+    ).toContain("/console/account/tracking");
+  });
+
+  test("a stale absent-clan observation is dated, not a current membership assertion", () => {
+    renderWithProviders(
+      <Refused
+        reason="no_clan"
+        me={{
+          ...me,
+          identities: [
+            {
+              player_tag: "#8QCV",
+              claim_status: "unverified",
+              clan_tag: "#PYL",
+              clan_name: "Former clan",
+              membership_capture: {
+                state: "none",
+                observed_at: "2026-09-01T12:00:00Z",
+              },
+            },
+          ],
+        }}
+        onRecheck={() => {}}
+      />,
+    );
+    expect(screen.getByText(/no clan observed/).textContent).toContain(
+      "2026-09-01",
+    );
+    expect(screen.queryByText(/recorded clan Former clan/)).toBeNull();
+    expect(
+      screen.getByText(/These are observations, not a live check/),
+    ).toBeTruthy();
+    expect(screen.getByText(/If that is still accurate/)).toBeTruthy();
+  });
 });
 
 describe("the landing page", () => {

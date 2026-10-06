@@ -49,7 +49,8 @@ const cases = [
     role: "member",
     action: "Open Ladder",
     destination: "/ladder",
-    evidence: "0 in the last 30 days · a profile is enough to start",
+    evidence:
+      "No battles captured in the last 30 days · capture may be incomplete",
     question: "Start with your player snapshot",
   },
   {
