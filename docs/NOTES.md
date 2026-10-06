@@ -5745,8 +5745,8 @@ needed solely for the receipt.
 
 Jamie's screenshot showed /data/growth with 215,526 battles in the displayed
 120-day window and a September 13 peak of 8,621. The image was materialized
-and inspected on this executor. Its presence does not demonstrate a purge
-failure: /api/public/stats counts the current canonical battle table directly,
+and inspected on this executor. This comparison alone cannot establish whether purge selection was correct:
+/api/public/stats counts the current canonical battle table directly,
 and sums the same retained rows by played date. At 07:34Z (2:34 AM CT), the
 daily series summed to 247,037, exactly the API's full retained battle total.
 The October 3 purge receipt explicitly preserved 245,520 protected battles
@@ -5760,8 +5760,9 @@ snapshot retrieval, and explains that historical protected records remain.
 Related corpus and collection-description copy follows the current recording
 scope. Publishing refreshes the snapshot; source data can be cached for an
 hour. No production deletion, reimport, recomputation write or retention-policy
-change is needed or performed. The September peak may remain because its
-battles are retained, rather than because purged data survived.
+change was performed in the graph release. Its comparison established what
+rows the graph counts; it did not classify the peak against purge provenance.
+Jamie requested the separate fixed-day retention audit below.
 
 Scratch regression deletes one fixture battle and proves both the public
 total and daily series exclude it. Actual-template fixtures prove removed
@@ -5856,3 +5857,46 @@ and cancels cleanly. Clipboard/native publishing APIs were guarded; no
 message was published, no private annotation persisted, and no live account
 or business-state test was performed. The deployment lease is released.
 This notes-only receipt needs no additional deployment.
+
+
+## 2026-10-06 — fixed-day private retention investigation
+
+Jamie challenged whether the September 13 peak still includes unwanted elite
+capture. Matching the graph to current rows did not establish legitimacy.
+The original approved manifest removed 410,985 selected battles and protected
+245,520: 160,099 positively retained and 85,421 unresolved/protected. Its review
+explicitly disclosed those counts and unknown-provenance protection; exact
+approval is evidenced, not a separate assertion that every unknown was wanted.
+
+The frozen protected-ID/dependency list survives and matches its approved
+SHA-256. Detailed classifications, observer maps and target batch exports were
+removed under the approved post-verification cleanup. Three natural September
+13 battles for a directly tracked player match the protected set, which does
+not classify all 8,621 day rows. The peak predates today's deployments; signup
+and graph deployments ran zero new migrations and no battle restore/backfill.
+
+The existing profiler refused battles_query as not_profilable because its
+class is openWorld, before database connection. No IAM/authentication denial
+or profiler guard change occurred. The audit adds a fixed September 13 UTC
+read through the existing IAM-only migrate operator. Strict allowlisted inputs,
+500-row keyset pages, eight-tag bound, precise timestamps, repeatable-read /
+read-only per page, five-second connection/statement and 500 ms lock limits
+bound the work. Logs carry counts only. No public endpoint, IAM expansion,
+credential, schema/archive/data/business write or live fetch is added.
+
+Jamie explicitly authorized deploying this read-only diagnostic within existing
+operator access. The export is compared locally to the approved protected-ID
+list; outside IDs and elite participants do not by themselves imply unwanted
+capture or reinsertion. Page snapshots are individually consistent, not one
+transaction over the whole export. Creation timestamps support chronology,
+not a complete original retention-reason reconstruction. MCP 11.2.3 / JSON
+API 3.0.0 stay unchanged. No tool serves a changed result, so deployment uses
+scratch tests, required CI, smoke and exact artifact/read-only audit readback
+without an unrelated live tool acceptance sweep.
+
+Review found a mixed-operation dispatch seam: a payload carrying the audit
+and an earlier maintenance key could select that earlier operation. The audit
+now must be the sole top-level operation, checked before every other branch;
+actual-handler tests prove mixed/falsy requests never connect. Focused scratch
+coverage also pins 500-row lookahead/resume, UTC midnight boundaries, microsecond
+precision, all participants, oversized-tag refusal, failure rollback and logs.

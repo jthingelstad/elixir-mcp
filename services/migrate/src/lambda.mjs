@@ -16,6 +16,7 @@ import { migrate } from "./migrate.mjs";
 import { activityPreview, explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 import { profileTool } from "./ops-profile.mjs";
+import { retainedDayAudit } from "./ops-retained-day.mjs";
 
 import {
   seed,
@@ -109,6 +110,30 @@ export async function handler(event) {
 }
 
 async function dispatch(event) {
+  if (
+    Object.hasOwn(event ?? {}, "retained_day_audit") &&
+    (Object.keys(event).length !== 1 || !event.retained_day_audit)
+  )
+    return {
+      error: "invalid_retained_day_audit",
+      reason: "exclusive_op_required",
+    };
+  if (event?.retained_day_audit) {
+    const result = await retainedDayAudit(
+      process.env.DATABASE_URL,
+      event.retained_day_audit,
+    );
+    // Participant tags stay in the private invocation response, not logs.
+    console.log(
+      JSON.stringify({
+        op: "retained_day_audit",
+        rows: result.rows?.length ?? 0,
+        done: result.done,
+        error: result.error,
+      }),
+    );
+    return result;
+  }
   if (event?.clan_context) {
     const result = await clanContextOp(
       process.env.DATABASE_URL,
