@@ -6053,3 +6053,17 @@ Signed-in flows and mail were proved with fixtures and scratch data, not live
 business writes. No tool or JSON API behavior changed, so MCP acceptance was
 not run. The lease is released, the local preview stopped, and private evidence
 is preserved outside Git. A notes-only receipt merge requires no redeployment.
+
+## 2026-10-06 — recorder-first Console onboarding
+
+Jamie authorized a bounded follow-up in the existing layout. Overview's readiness
+score combines capture facts with optional clan/client setup, while its general
+headline claims everything is recording without checking capture. This change
+will replace that score with a next step grounded in the existing first-answer
+response, mark optional setup explicitly, retain connection/read evidence and
+supported AI questions, and open Quickstart with browser-only use. Missing,
+partial, older and stopped capture must remain distinct. No data access, API,
+authorization, award generation or delivery behavior changes are planned.
+Validation covers browser-only newcomers, existing players, leaders and AI
+connections, plus deep links, back/reload, mobile and accessibility. No MCP or
+JSON API contract changes are planned; acceptance scope is none.
