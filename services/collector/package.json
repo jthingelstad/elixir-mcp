@@ -13,6 +13,6 @@
     "@elixir-mcp/collector-door": "0.1.0",
     "@elixir-mcp/ingest": "0.1.0",
     "@elixir-mcp/outbox": "0.1.0",
-    "pg": "^8.13.0"
+    "pg": "^8.23.1"
   }
 }

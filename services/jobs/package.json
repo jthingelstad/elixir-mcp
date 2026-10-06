@@ -8,7 +8,7 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1140.0",
+    "@aws-sdk/client-s3": "^3.1146.0",
     "@elixir-mcp/auth": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0",
     "@elixir-mcp/ingest": "0.1.0",
@@ -16,7 +16,7 @@
     "@elixir-mcp/outbox": "0.1.0",
     "@elixir-mcp/record": "0.1.0",
     "@elixir-mcp/tools": "0.1.0",
-    "pg": "^8.13.0",
+    "pg": "^8.23.1",
     "@elixir-mcp/clan": "0.1.0",
     "@elixir-mcp/clan-state": "0.1.0",
     "@elixir-mcp/collector-door": "0.1.0"
