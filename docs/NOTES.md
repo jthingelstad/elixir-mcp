@@ -6038,3 +6038,18 @@ exceed the mail door's 160-character line limit. A scratch regression reproduced
 the real door's `invalid_mail` refusal before the fix. The shared label now names
 the first two award types and counts the rest; saved recipient evidence remains
 complete. The real mail door accepts that maximum-name fixture after the fix.
+
+Release receipt: PR #323 merged as `e967e072` after validate run
+`37462759134` passed on `5566e5d8`. The standard leased deployment used
+`--verify-reference-seed`: 47 roles and 29 aliases had identical content,
+zero migrations ran (202 applied), and all 43 smoke checks passed. Read-back
+verified at 12:37Z (7:37 AM CT) found all seven Lambda bundles identical to the
+local release artifacts, all Active/Successful, and public health healthy.
+The new update, quickstart instructions and exact app shell are live; MCP
+11.2.3 and JSON API 3.0.0 remain unchanged. Signed-out live browser checks at
+390 and 1280 pixels followed the home signup link and checked Clan's signup
+destination with no horizontal overflow, blocking every non-read request.
+Signed-in flows and mail were proved with fixtures and scratch data, not live
+business writes. No tool or JSON API behavior changed, so MCP acceptance was
+not run. The lease is released, the local preview stopped, and private evidence
+is preserved outside Git. A notes-only receipt merge requires no redeployment.
