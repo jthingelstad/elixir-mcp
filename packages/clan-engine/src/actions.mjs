@@ -73,10 +73,13 @@ export function actionLabel(action) {
   if (action.type === "awards_announcement" && action.evidence?.season_id) {
     const names = [
       ...new Set((action.evidence.awards ?? []).map((a) => a.name)),
-    ]
-      .filter(Boolean)
-      .join(", ");
-    return `Announce season ${action.evidence.season_id} awards${names ? `: ${names}` : ""}`;
+    ].filter(Boolean);
+    // Award names are at most 40 characters. Keep the shared UI/mail label
+    // short enough for the mail door's 160-character line, including its
+    // action number and new marker; the detail retains every recipient.
+    const summary = names.slice(0, 2).join(", ");
+    const more = names.length > 2 ? ` and ${names.length - 2} more awards` : "";
+    return `Announce season ${action.evidence.season_id} awards${summary ? `: ${summary}${more}` : ""}`;
   }
   return ACTION_TYPES[action.type]?.label ?? action.type;
 }
