@@ -6571,3 +6571,24 @@ capture timing; those need a separately approved controlled fresh-person path.
 No sibling, collector scheduling, Clan management or purge changed. The final
 production lease was released after verified read-back. This notes-only receipt
 needs no redeployment.
+
+## 2026-10-06 — tracked-only correction: census first
+
+Jamie decided the right-sizing purge left too much: its protected remainder
+(245,520 battles, 85,421 of them kept only for unknown provenance) and every
+leaderboard-era identity still inflate the record. The correction keeps
+history only when someone tracks it today. Kept players are the recorded now
+(`RECORDED_PLAYERS_SQL`), every claim, and anyone ever seen in a clan
+recorded comprehensively, from roster or war rows ("keep battle information
+for people that WERE members of POAP KINGS"). A battle stays when one of them
+played in it, with its opponents as identities. This is a one-time repair of
+the wrong turn, not a change to the stopped-recording promise in
+`recording.md`, which stands. A battle whose only archived copy sits under an
+untracked observer keeps its database row; that payload goes.
+
+`{tracked_census}` is the read-only first step: per part, one repeatable-read
+transaction counting keep and remove for battles (by month), dependent rows,
+orphaned decks, player and clan tables, receipts and poll rows, plus players
+held only because a tracked player's own clan roster is polled. `keep_tags`
+returns the kept subjects for the archive comparison. No deletion code exists
+yet; the purge waits for Jamie's review of the census numbers.

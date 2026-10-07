@@ -17,6 +17,7 @@ import { activityPreview, explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 import { profileTool } from "./ops-profile.mjs";
 import { retainedDayAudit } from "./ops-retained-day.mjs";
+import { trackedCensus } from "./ops-tracked-census.mjs";
 
 import {
   seed,
@@ -164,6 +165,27 @@ async function dispatch(event) {
         op: "retained_day_audit",
         rows: result.rows?.length ?? 0,
         done: result.done,
+        error: result.error,
+      }),
+    );
+    return result;
+  }
+  if (
+    Object.hasOwn(event ?? {}, "tracked_census") &&
+    (Object.keys(event).length !== 1 || !event.tracked_census)
+  )
+    return { error: "invalid_tracked_census", reason: "exclusive_op_required" };
+  if (event?.tracked_census) {
+    const result = await trackedCensus(
+      process.env.DATABASE_URL,
+      event.tracked_census,
+    );
+    // Kept tags stay in the private invocation response, not logs.
+    console.log(
+      JSON.stringify({
+        op: "tracked_census",
+        part: result.part,
+        elapsed_ms: result.elapsed_ms,
         error: result.error,
       }),
     );
