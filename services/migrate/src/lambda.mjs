@@ -16,9 +16,6 @@ import { migrate } from "./migrate.mjs";
 import { activityPreview, explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 import { profileTool } from "./ops-profile.mjs";
-import { retainedDayAudit } from "./ops-retained-day.mjs";
-import { trackedCensus } from "./ops-tracked-census.mjs";
-import { trackedPurge } from "./ops-tracked-purge.mjs";
 
 import {
   seed,
@@ -76,6 +73,7 @@ import {
 } from "./ops-series.mjs";
 import { duelRoundDecks } from "./ops-duel-rounds.mjs";
 import { rollupRegroup } from "./ops-rollup-regroup.mjs";
+import { rollupFill } from "./ops-rollup-fill.mjs";
 
 /** The function's own application_name (PGAPPNAME in
  *  infra/template.yaml), read once, before any op renames it. */
@@ -143,77 +141,6 @@ async function dispatch(event) {
         identical: result.identical,
         changed_rows: result.changed_rows,
         error: result.error,
-      }),
-    );
-    return result;
-  }
-  if (
-    Object.hasOwn(event ?? {}, "retained_day_audit") &&
-    (Object.keys(event).length !== 1 || !event.retained_day_audit)
-  )
-    return {
-      error: "invalid_retained_day_audit",
-      reason: "exclusive_op_required",
-    };
-  if (event?.retained_day_audit) {
-    const result = await retainedDayAudit(
-      process.env.DATABASE_URL,
-      event.retained_day_audit,
-    );
-    // Participant tags stay in the private invocation response, not logs.
-    console.log(
-      JSON.stringify({
-        op: "retained_day_audit",
-        rows: result.rows?.length ?? 0,
-        done: result.done,
-        error: result.error,
-      }),
-    );
-    return result;
-  }
-  if (
-    Object.hasOwn(event ?? {}, "tracked_census") &&
-    (Object.keys(event).length !== 1 || !event.tracked_census)
-  )
-    return { error: "invalid_tracked_census", reason: "exclusive_op_required" };
-  if (event?.tracked_census) {
-    const result = await trackedCensus(
-      process.env.DATABASE_URL,
-      event.tracked_census,
-    );
-    // Kept tags stay in the private invocation response, not logs.
-    console.log(
-      JSON.stringify({
-        op: "tracked_census",
-        part: result.part,
-        elapsed_ms: result.elapsed_ms,
-        error: result.error,
-      }),
-    );
-    return result;
-  }
-  if (
-    Object.hasOwn(event ?? {}, "tracked_purge") &&
-    (Object.keys(event).length !== 1 || !event.tracked_purge)
-  )
-    return { error: "invalid_tracked_purge", reason: "exclusive_op_required" };
-  if (event?.tracked_purge) {
-    const result = await trackedPurge(
-      process.env.DATABASE_URL,
-      event.tracked_purge,
-    );
-    // Counts and cursors only; batch ids stay in the response.
-    console.log(
-      JSON.stringify({
-        op: "tracked_purge",
-        phase: result.phase,
-        apply: result.apply,
-        selected: result.selected,
-        deleted: result.deleted,
-        done: result.done,
-        elapsed_ms: result.elapsed_ms,
-        error: result.error,
-        reason: result.reason,
       }),
     );
     return result;
@@ -597,6 +524,14 @@ async function dispatch(event) {
     const result = await rollupRegroup(
       process.env.DATABASE_URL,
       event.rollup_regroup === true ? {} : event.rollup_regroup,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.rollup_fill) {
+    const result = await rollupFill(
+      process.env.DATABASE_URL,
+      event.rollup_fill === true ? {} : event.rollup_fill,
     );
     console.log(JSON.stringify(result));
     return result;
