@@ -67,10 +67,10 @@ before(async () => {
     [a.account_id],
   );
   await db.query(
-    `insert into recording (subject_type, subject_tag, requested_by, status, scope)
-     values ('player', '#2002', $1, 'active', 'comprehensive'),
-            ('clan', '#2PPP', $1, 'active', 'comprehensive'),
-            ('player', '#2080', $1, 'stopped', 'comprehensive')`,
+    `insert into recording (subject_type, subject_tag, requested_by, status, scope, origin)
+     values ('player', '#2002', $1, 'active', 'comprehensive', 'ops'),
+            ('clan', '#2PPP', $1, 'active', 'comprehensive', 'claim'),
+            ('player', '#2080', $1, 'stopped', 'comprehensive', 'claim')`,
     [a.account_id],
   );
   await db.query(
@@ -209,4 +209,15 @@ test("the census transaction is read-only", async () => {
     seen.every((s) => /^(begin|set local|with|commit)/.test(s)),
     seen.join("\n"),
   );
+});
+
+test("recordings lists active player recordings no claim explains", async () => {
+  const r = await trackedCensus(SCRATCH_URL, { part: "recordings" });
+  assert.equal(r.error, undefined, r.message);
+  assert.deepEqual(
+    r.rows.map((row) => [row.player_tag, row.clan_tag, row.claims]),
+    [["#2002", "#2QQQ", 0]],
+  );
+  assert.equal(r.rows[0].requested_by_role, "owner");
+  assert.equal(r.rows[0].deep_clan_member_ever, false);
 });

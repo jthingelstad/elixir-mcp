@@ -11,6 +11,7 @@ import pg from "pg";
  *  `keep_tags`, which returns the kept subjects for the archive census. */
 
 const PARTS = [
+  "recordings",
   "subjects",
   "battles",
   "players",
@@ -337,6 +338,42 @@ async function receipts(db) {
   return { by_endpoint: rows, ...poll };
 }
 
+/** Active player recordings no claim explains: who they are, who asked,
+ *  and what keeps them in the record besides the recording itself. */
+async function recordings(db) {
+  const { rows } = await db.query(
+    `select r.subject_tag as player_tag, p.name, r.origin, r.scope,
+            r.created_at, a.kind as requested_by_kind,
+            a.role as requested_by_role,
+            exists (select 1 from clan_membership m
+                     join recording cr on cr.subject_type = 'clan'
+                      and cr.subject_tag = m.clan_tag
+                      and cr.status = 'active' and cr.scope = 'comprehensive'
+                     where m.player_tag = r.subject_tag)
+              as deep_clan_member_ever,
+            p.last_known_clan_tag as clan_tag, c.name as clan_name,
+            exists (select 1 from recording cr
+                     where cr.subject_type = 'clan' and cr.status = 'active'
+                       and cr.scope = 'comprehensive'
+                       and cr.subject_tag = p.last_known_clan_tag)
+              as clan_recorded,
+            (select count(*) from claim cl
+              where cl.player_tag = r.subject_tag)::int as claims,
+            (select count(*) from battle_participant bp
+              where bp.player_tag = r.subject_tag)::int as battles,
+            (select max(bp.battle_time) from battle_participant bp
+              where bp.player_tag = r.subject_tag) as last_battle
+       from recording r
+       join player p on p.player_tag = r.subject_tag
+       left join account a on a.account_id = r.requested_by
+       left join clan c on c.clan_tag = p.last_known_clan_tag
+      where r.subject_type = 'player' and r.status = 'active'
+        and r.origin <> 'claim'
+      order by r.origin, p.name`,
+  );
+  return { rows };
+}
+
 async function keepTags(db) {
   const [row] = await one(
     db,
@@ -347,6 +384,7 @@ async function keepTags(db) {
 }
 
 const RUN = {
+  recordings,
   subjects,
   battles,
   players,
