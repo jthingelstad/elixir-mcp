@@ -6416,3 +6416,38 @@ profile destination, retaining their signup/quota/clipboard/accessibility and
 connection-read controls. The green PR/deploy receipt follows. MCP remains 11.2.3 and JSON API remains 3.0.0: no tool or public
 JSON API response changed, so the canonical deployment does not request MCP
 acceptance; private API, site and browser checks cover this slice.
+
+### First-record release receipt
+
+Runtime PR #335 merged as `f94f13619518213b5bdcdd27a8505a877178ada8`.
+CI run 37551659726 passed on PR head `ceb432f0`, including all 197 browser
+journeys with no flaky-test report. Full local validation passed 1,928 Node
+and 479 UI tests, no failures, with 85 existing structural non-live skips.
+
+The canonical deployment ran under the `session` lease with
+`--verify-reference-seed` and no MCP acceptance: this slice changes the private
+first-answer API, browser and docs, without changing a public tool or JSON API
+response. All 203 migrations were already applied; zero ran. The reference
+preview was identical (47 roles, 29 aliases, zero differences), and all 43
+smoke assertions passed. No production tracking, account, mail or invitation
+write was used as acceptance.
+
+Read-back at 00:33:41Z (7:33:41 PM CT, 2026-10-06)
+confirmed all seven Lambda artifacts match the built release and are Active /
+Successful; public health is green. The served app shell matches the build,
+Quickstart/docs-index/Ladder/Updates carry the new journey, MCP remains 11.2.3
+and JSON API remains 3.0.0, and the capture door refuses unauthenticated reads.
+Ten synthetic capture states against the released production assets at 390px
+and 1280px passed with zero page errors, live writes, overflow or serious/critical
+axe findings. They checked dated profile and older-battle destinations, Back
+and reload, and retained profile navigation after a capture-status read 503.
+
+First-capture timing still has no deterministic bound. Missing or expired error
+receipts cannot establish success, and measured intervals do not prove complete
+history. This receipt covers the first-record journey; a real signup/mail/
+tracking operational round trip remains separate and no tester was invited.
+The adjacent private year-activity graphic still uses its existing successful-
+poll coverage heuristic; it does not feed this journey's evidence state and
+needs a separate correction before a whole-app capture-truthfulness claim.
+No sibling runtime, collector policy, Clan management or purge changed.
+This notes-only receipt needs no redeployment.
