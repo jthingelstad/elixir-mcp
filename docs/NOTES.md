@@ -6618,3 +6618,38 @@ catalog stays out of the retired endpoints: the planner still seeds it.
 The payload archive is deleted from the operator CLI against the
 post-purge `keep_tags`; the cloud-engineer role already holds that
 permission, so no grant was added.
+
+### Correction receipt (2026-10-07, about 11:40 PM to 1:15 AM CT)
+
+PR #342 deployed from green main with 43 smoke checks passing, then
+`{tracked_purge}` ran every phase to `done` with the keep floor at the
+live set (175 players, 3 clans), under the session lease and Jamie's
+approval of the census numbers. No batch failed or retried.
+
+| Phase | Removed |
+| --- | ---: |
+| relabel | 13 recordings labelled claim |
+| receipts | 319,515 retired from replay |
+| battles | 161,820 battles; 371,038 participants, 3,352,689 cards, 17,840 rounds, 366 events |
+| player_rows | 412,585 snapshots, 287,879 rollups, 191,938 badges, 137,749 cards, 11,391 progress, 7,773 events, 1,571 PoL, 758 high-water, 52 activity |
+| clan_rows | 59,416 memberships, 46,276 events, 31,015 war participations, 22,232 attendance days, 12,416 clan days, 2,213 other war rows |
+| players | 341,831 identities |
+| clans | 5,826 identities |
+| decks | 188,817 decks, 1,512,972 deck cards |
+| ledger | 3,618 payload cache rows, 5,274 poll rows |
+
+Battles went from 247,327 to 85,584 (new arrivals included) and players
+to 93,535 (175 full, the rest opponents in kept battles). The archive
+plan against the post-purge `keep_tags` removed 125,288 versions and 4
+delete markers (601,498,918 bytes) with zero errors; a full re-listing
+then selected nothing. Every allowlisted touched table was vacuumed and
+its visibility map is full.
+
+Readback found three leftovers. 1,650 untracked clan poll rows survived
+the ledger phase: a clanless recorded player put a null in its `NOT IN`
+list. The fix (this change) excludes nulls, and the ledger phase is
+rerun. Fifteen clans the census rule would remove stay because a
+remaining row (an opponent's last-known clan) names them. Nine
+opponent rollup rows reappeared within the hour: battle ingest rolls
+up every participant, so this regrows with each new battle until the
+product decides whether opponents keep rollups.
