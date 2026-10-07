@@ -41,12 +41,28 @@ verification](/docs/verify) separately proves ownership for the features that
 require it. An ordinary member account includes activity clan recording, not
 comprehensive capture of every member. Tracking shows the available slots.
 
-Read your personal record in [Ladder](/ladder). Console's Overview links to
-Tracking while your first capture is pending and to Ladder once a profile or
-recorded battles are available. A profile alone does not establish battle
-history; older retained battles remain useful even when none fall in the last
-30 days. Check Tracking for recording status and coverage rather than treating
-an empty window as proof that you did not play.
+Read your personal season in [Ladder](/ladder). Adding a tag opens
+your player's Tracking record. **Player tag saved** means
+the tag is on your account, not that a profile has arrived or ownership has
+been proved. This page checks saved data about once a minute while capture is
+pending; **Check again** reads the record without forcing a game fetch. There
+is no guaranteed first-capture arrival time.
+
+**View recorded profile** opens the saved profile and its dated trophies and
+lifetime counters. **Browse recorded battles** opens captured battles newest
+first, including retained history older than 30 days; **Older battles** reads
+the next page. A profile alone does not establish captured battle history.
+Recorded clan history links to a specific saved war week, independently of
+private Clan actions. AI setup is optional and follows these browser reads.
+
+Capture attempts and saved facts are separate: a recent failed fetch does not
+make a tag invalid or remove retained information. An incomplete measured
+profile interval names its bounds and captured/expected counts; other time
+remains unknown, even after a successful poll. Error receipts have bounded
+retention, so missing error metadata does not establish a successful capture.
+Paused or stopped recording still links to the information already saved.
+Check Tracking for status rather than treating an empty window as proof that
+you did not play.
 
 If you want clan war history, follow [Bring your clan](/docs/bring-your-clan).
 Private Clan actions still require verified membership and the appropriate game

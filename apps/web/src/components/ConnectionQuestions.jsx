@@ -6,7 +6,9 @@ import {
 import { CONSOLE } from "../lib/console.js";
 
 export function ConnectionQuestions({ claimsKey, navigate }) {
-  const { data, loading, error, refresh } = useFirstAnswer(claimsKey);
+  const { data, loading, error, refresh } = useFirstAnswer(claimsKey, {
+    watchConnection: true,
+  });
   const questions = data ? starterQuestions(data) : [];
   return (
     <section

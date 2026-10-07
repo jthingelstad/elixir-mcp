@@ -119,7 +119,7 @@ test(
       ).rows,
     ).toEqual([{ player_tag: "#P0Y" }]);
     await scratch.db.query(
-      "insert into player_snapshot_daily (player_tag,snapshot_date,snapshot_kind,observed_at) values ('#P0Y',current_date,'daily',now())",
+      "insert into player_snapshot_daily (player_tag,snapshot_date,snapshot_kind,observed_at,profile_observed_at) values ('#P0Y',current_date,'daily',now(),now())",
     );
     // Back on Overview, readiness has moved on its own: the snapshot is
     // the evidence, and the line says when it was taken.

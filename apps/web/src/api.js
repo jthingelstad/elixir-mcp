@@ -115,7 +115,11 @@ export const api = {
     }),
   activity: (agent) => request("GET", `${home(agent)}/activity`),
   connections: (agent) => request("GET", `${home(agent)}/connections`),
-  firstAnswer: () => request("GET", "/api/me/first-answer"),
+  firstAnswer: (playerTag) =>
+    request(
+      "GET",
+      `/api/me/first-answer${playerTag ? `?player_tag=${encodeURIComponent(playerTag)}` : ""}`,
+    ),
   revokeConnection: (family_id, agent) =>
     request("POST", `${home(agent)}/connections/revoke`, { family_id }),
   setConnectionScope: (family_id, scope, agent) =>

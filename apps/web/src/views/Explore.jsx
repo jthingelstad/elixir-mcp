@@ -49,7 +49,9 @@ function Freshness({ meta, derived = false }) {
     return <span className="freshness freshness--derived">derived</span>;
   const s = meta?.freshness_seconds;
   if (s === null || s === undefined)
-    return <span className="freshness freshness--never">never polled</span>;
+    return (
+      <span className="freshness freshness--never">poll time unavailable</span>
+    );
   return <span className={freshCls(s)}>polled {agoSeconds(s)}</span>;
 }
 
@@ -67,7 +69,7 @@ function pushRecent(entry) {
 }
 
 /** One bridge call per record — the toolbar shows exactly this call. */
-async function fetchRecord(kind, id) {
+async function fetchRecord(kind, id, cursor) {
   const call = async (tool, args) => {
     const r = await api.explore(tool, args);
     if (!r.ok) throw new Error("request failed");
@@ -81,6 +83,8 @@ async function fetchRecord(kind, id) {
   switch (kind) {
     case "player":
       return call("players_summary", { player_tag: id });
+    case "profile":
+      return call("players_profile", { player_tag: id });
     case "clan":
       return call("clans_roster", { clan_tag: id });
     case "battle":
@@ -115,6 +119,7 @@ async function fetchRecord(kind, id) {
           player_tag: decTag(key),
           verbosity: "compact",
           include_total: true,
+          ...(cursor ? { cursor } : {}),
         });
       if (what === "decks")
         // Compact and bounded, or a busy player's list ran past the
@@ -248,7 +253,7 @@ const BROWSE = {
   },
 };
 
-export function Explore({ me, navigate, path }) {
+export function Explore({ me, navigate, path, search = {} }) {
   // /explore | /explore/<browse> | /explore/:kind/:id(+), under the prefix
   const segs = (appPath(path) ?? "").split("/").filter(Boolean).slice(1); // after 'explore'
   const kind = segs[0] ?? null;
@@ -260,7 +265,14 @@ export function Explore({ me, navigate, path }) {
   if (BROWSE[kind] && !id)
     return <Lookup me={me} navigate={navigate} browse={BROWSE[kind]} />;
   return (
-    <RecordPage key={path} me={me} navigate={navigate} kind={kind} rawId={id} />
+    <RecordPage
+      key={path}
+      me={me}
+      navigate={navigate}
+      kind={kind}
+      rawId={id}
+      search={search}
+    />
   );
 }
 
@@ -725,7 +737,10 @@ function RecordTable({ table }) {
   );
 }
 
-function RecordPage({ me, kind, rawId }) {
+function RecordPage({ me, kind, rawId, search }) {
+  const pageable = kind === "list" && rawId.startsWith("battles:");
+  const cursor =
+    pageable && typeof search?.cursor === "string" ? search.cursor : null;
   const [raw, setRaw] = useState(false);
   const href = `${CONSOLE}/explore/${kind}/${rawId}`;
 
@@ -733,8 +748,8 @@ function RecordPage({ me, kind, rawId }) {
   // you just left is served from the cache, and a saved nickname
   // refetches it. A tool error carries its code on the Error.
   const record = useQuery({
-    queryKey: ["explore", kind, rawId],
-    queryFn: () => fetchRecord(kind, rawId),
+    queryKey: ["explore", kind, rawId, ...(cursor ? [cursor] : [])],
+    queryFn: () => fetchRecord(kind, rawId, cursor),
   });
   const res = record.data;
   const { zone } = useClock();
@@ -779,6 +794,9 @@ function RecordPage({ me, kind, rawId }) {
           {record.error.message}{" "}
           <Link to={`${CONSOLE}/explore`}>Back to lookup</Link>
         </div>
+        <button className="btn btn--sm" onClick={() => record.refetch()}>
+          Try again
+        </button>
       </div>
     );
   }
@@ -843,6 +861,19 @@ function RecordPage({ me, kind, rawId }) {
           <RecordTable table={view.table} />
           {view.note && <div className="panel__note">{view.note}</div>}
         </section>
+      )}
+
+      {pageable && (
+        <nav aria-label="Battle pages" className="my-4 flex flex-wrap gap-4">
+          {cursor && <Link to={href}>Newest battles ›</Link>}
+          {res.body.has_more && res.body.next_cursor && (
+            <Link
+              to={`${href}?cursor=${encodeURIComponent(res.body.next_cursor)}`}
+            >
+              Older battles ›
+            </Link>
+          )}
+        </nav>
       )}
 
       {view.fields && (
@@ -983,6 +1014,44 @@ function buildView(kind, rawId, res, me, zone) {
   const meFirstTag = me?.claims?.find((c) => c.is_primary)?.player_tag;
   const fmt = (t) => stamp(t, zone, { year: true });
 
+  if (kind === "profile") {
+    const tag = decTag(rawId);
+    const snapshot = b.snapshot ?? {};
+    return {
+      kindLabel: "PROFILE",
+      crumb: `profile · ${b.name ?? tag}`,
+      title: `Recorded profile · ${b.name ?? tag}`,
+      tag,
+      sub: `Saved profile from ${snapshot.date ?? "an unknown date"}. These are snapshot facts, not a current-season battle record.`,
+      fields: [
+        { label: "Player tag", value: tag, mono: true },
+        { label: "Profile date", value: snapshot.date ?? "unknown" },
+        {
+          label: "Trophies",
+          value:
+            snapshot.trophies == null
+              ? "unknown"
+              : snapshot.trophies.toLocaleString(),
+        },
+        ...Object.entries(snapshot.lifetime ?? {}).map(([key, value]) => ({
+          label: `Lifetime ${key
+            .replace(/([a-z])([A-Z])/g, "$1 $2")
+            .replaceAll("_", " ")
+            .toLowerCase()}`,
+          value: value == null ? "unknown" : value.toLocaleString(),
+        })),
+      ],
+      tiles: [
+        {
+          label: "recorded battles",
+          value: "browse",
+          href: `${CONSOLE}/explore/list/battles:${encTag(tag)}`,
+        },
+      ],
+      note: "A profile's lifetime counters are separate from the battles Elixir captured. Missing captures remain unknown.",
+    };
+  }
+
   if (kind === "player") {
     const tag = decTag(rawId);
     const yours = tag === meFirstTag;
@@ -1040,6 +1109,11 @@ function buildView(kind, rawId, res, me, zone) {
       sub: "What the recorder holds for this player. Coverage tiles open the underlying records.",
       fields,
       tiles: [
+        {
+          label: "recorded profile",
+          value: "view",
+          href: `${CONSOLE}/explore/profile/${encTag(tag)}`,
+        },
         {
           label: "battles",
           value: "browse",
@@ -1425,7 +1499,9 @@ function buildListView(rawId, res, zone) {
       chip: null,
       sub: b.total_count
         ? `${b.total_count.toLocaleString()} recorded battles match; newest first, 25 per page.`
-        : "Newest first, 25 per page.",
+        : rows.length
+          ? "Newest first, 25 per page."
+          : "No captured battles in this page. Missing capture does not prove no play.",
       table: {
         cols: [
           { label: "TIME" },

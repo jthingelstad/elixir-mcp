@@ -18,6 +18,7 @@ import {
 import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 import { CONSOLE } from "../../lib/console.js";
+import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 
 /**
  * One tracked player or clan: how you track it, and what that is
@@ -188,6 +189,14 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
         </button>
       </div>
 
+      {!isClan && (
+        <FirstAnswer
+          playerTag={wanted}
+          claimsKey={`${wanted}:${claim.is_primary}`}
+          compact
+        />
+      )}
+
       <div style={{ display: "flex", gap: "18px", flexWrap: "wrap" }}>
         <section className="panel" style={{ flex: "1 1 340px" }}>
           <div className="panel__head">How you track it</div>
@@ -311,7 +320,13 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                 className="footnote"
                 style={{ display: "block", marginTop: "4px" }}
               >
-                Queued for a connection to pick up, never email.
+                {isClan
+                  ? "Include this clan in your timeline. Clan report emails are separate."
+                  : "Include this player in your timeline. For friends and watched players, this also controls inclusion in Your friends this week."}{" "}
+                <Link to={`${CONSOLE}/account/profile/email`}>
+                  Email settings
+                </Link>
+                .
               </span>
             </span>
           </div>

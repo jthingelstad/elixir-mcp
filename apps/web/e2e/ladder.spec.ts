@@ -49,6 +49,43 @@ test.describe("Ladder signed out", () => {
 });
 
 test.describe("Ladder signed in", () => {
+  for (const mode of ["war", "event"]) {
+    test(`a browser-only ${mode} player opens on their recorded mode`, async ({
+      page,
+    }) => {
+      const calls: ToolCall[] = [];
+      await mockApi(
+        page,
+        signedIn({
+          "POST /api/explore": explore(calls, {
+            players_summary: summary({
+              [mode]: { battles: 12, wins: 7, losses: 5 },
+            }),
+          }),
+        }),
+      );
+      await page.goto("/ladder");
+      await expect(
+        page.getByRole("navigation", { name: "Mode" }).getByRole("link", {
+          name: mode === "war" ? "War" : "Events",
+          exact: true,
+        }),
+      ).toHaveAttribute("aria-current", "true");
+      await expect
+        .poll(() =>
+          calls.some(
+            (c) => c.tool === "battles_performance" && c.args.mode === mode,
+          ),
+        )
+        .toBe(true);
+      expect(
+        calls.filter(
+          (c) => c.tool === "battles_performance" && c.args.mode === "ladder",
+        ),
+      ).toEqual([]);
+      await accessible(page, `${mode} first record`);
+    });
+  }
   test("the season home: the mode's season, week by week, and the deck played most", async ({
     page,
   }) => {
@@ -91,8 +128,7 @@ test.describe("Ladder signed in", () => {
       "A mirror, not a coach: your record, read back.",
     );
 
-    // Opens on Trophy Road: the summary's last 30 days hold no Path of
-    // Legends, so the mode played most of the two is Trophy Road.
+    // Trophy Road and War tie in this summary; the tab order breaks ties.
     const modes = page.getByRole("navigation", { name: "Mode" });
     await expect(
       modes.getByRole("link", { name: "Trophy Road" }),

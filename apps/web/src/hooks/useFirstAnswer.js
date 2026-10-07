@@ -2,9 +2,14 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 
-export function useFirstAnswer(claimsKey) {
+export function useFirstAnswer(
+  claimsKey,
+  { playerTag, watchConnection = false } = {},
+) {
   const [attempt, setAttempt] = useState(0);
   const [data, setData] = useState(null);
+  const [loadedKey, setLoadedKey] = useState(null);
+  const key = `${claimsKey ?? ""}:${playerTag ?? ""}`;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   useEffect(() => {
@@ -12,20 +17,20 @@ export function useFirstAnswer(claimsKey) {
     let timer;
     setLoading(true);
     setError(false);
-    setData(null);
     api
-      .firstAnswer()
+      .firstAnswer(playerTag)
       .then((r) => {
         if (!r.ok || !r.data.connection || !("player" in r.data))
           throw new Error("unavailable");
         if (!active) return;
         setData(r.data);
+        setLoadedKey(key);
         if (
           r.data.player &&
-          (!(
-            r.data.player.profile_available || hasBattleEvidence(r.data.player)
-          ) ||
-            !r.data.connection.last_data_read_at)
+          ((r.data.player.recording_status === "active" &&
+            (!r.data.player.profile_available ||
+              !hasBattleEvidence(r.data.player))) ||
+            (watchConnection && !r.data.connection.last_data_read_at))
         ) {
           timer = setTimeout(() => {
             if (document.visibilityState === "visible")
@@ -46,7 +51,12 @@ export function useFirstAnswer(claimsKey) {
       clearTimeout(timer);
       window.removeEventListener("focus", onFocus);
     };
-  }, [claimsKey, attempt]);
+  }, [key, playerTag, watchConnection, attempt]);
 
-  return { data, loading, error, refresh: () => setAttempt((n) => n + 1) };
+  return {
+    data: loadedKey === key ? data : null,
+    loading,
+    error,
+    refresh: () => setAttempt((n) => n + 1),
+  };
 }

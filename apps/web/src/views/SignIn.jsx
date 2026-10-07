@@ -298,8 +298,10 @@ export function SignIn({ onAuthed }) {
             textWrap: "pretty",
           }}
         >
-          This account cannot sign in. Contact Elixir if you think this is a
-          mistake. A new email request does not remove an account restriction.
+          This account cannot sign in.{" "}
+          <a href="mailto:admin@poapkings.com">Contact Elixir</a> if you think
+          this is a mistake. A new email request does not remove an account
+          restriction.
         </p>
         <div
           style={{

@@ -644,7 +644,7 @@ test.describe("the static site's bar", () => {
   });
 });
 
-test("@narrow Overview guides a profile-only account through its first successful data read", async ({
+test("@narrow Overview puts the recorded profile before optional AI and tracks its first successful read", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -677,8 +677,12 @@ test("@narrow Overview guides a profile-only account through its first successfu
     name: "Your recording",
   });
   await expect(
-    readiness.getByRole("link", { name: /Open Ladder/ }),
-  ).toHaveAttribute("href", "/ladder");
+    readiness.getByRole("link", { name: /View recorded profile/ }),
+  ).toHaveAttribute("href", "/console/explore/profile/20JJJ2CCRU");
+  await expect(
+    readiness.getByRole("link", { name: /Connection help/ }),
+  ).not.toBeVisible();
+  await readiness.getByText("AI clients (optional)").click();
   await expect(
     readiness.getByRole("link", { name: /Clan recording/ }),
   ).toHaveAttribute("href", "/console/account/tracking");
@@ -691,7 +695,9 @@ test("@narrow Overview guides a profile-only account through its first successfu
       name: "Copy question: Start with your player snapshot",
     })
     .click();
-  await expect(readiness.getByRole("status")).toContainText("Copied");
+  await expect(
+    readiness.getByRole("status").filter({ hasText: "Copied" }),
+  ).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
     "Do not infer progress from a single snapshot",
   );
@@ -704,8 +710,9 @@ test("@narrow Overview guides a profile-only account through its first successfu
   read = true;
   await page.reload();
   await expect(
-    readiness.getByRole("link", { name: /Open Ladder/ }),
+    readiness.getByRole("link", { name: /View recorded profile/ }),
   ).toBeVisible();
+  await readiness.getByText("AI clients (optional)").click();
   await expect(readiness).toContainText(/successful data read /);
   await expect(
     readiness.getByRole("link", { name: /Connection help/ }),

@@ -369,7 +369,20 @@ export function accountRoutes({
     "GET /api/me/first-answer": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      return json(200, await firstAnswer(db, account.accountId));
+      let playerTag = null;
+      const requested = event.queryStringParameters?.player_tag;
+      if (requested != null) {
+        try {
+          playerTag = normalizeTag(String(requested));
+        } catch (err) {
+          if (err instanceof InvalidTagError)
+            return json(400, { error: "invalid_tag" });
+          throw err;
+        }
+      }
+      const data = await firstAnswer(db, account.accountId, playerTag);
+      if (playerTag && !data.player) return json(404, { error: "not_yours" });
+      return json(200, data);
     },
 
     "GET /api/me/connections": async (db, event) => {

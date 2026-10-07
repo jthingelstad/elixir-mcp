@@ -1,7 +1,8 @@
-import { Icon, Link, ago } from "@elixir-mcp/ui";
+import { Icon, Link, ago, stamp, useClock } from "@elixir-mcp/ui";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { CONSOLE } from "../lib/console.js";
+import { recordJourney } from "../lib/record-journey.js";
 import {
   QuestionSuggestions,
   starterQuestions,
@@ -9,34 +10,6 @@ import {
 
 const n = (v) => (Number.isFinite(v) ? v.toLocaleString() : "unknown");
 const hasBattles = hasBattleEvidence;
-
-/** The next useful destination follows saved capture, not optional setup. */
-function nextStep(data) {
-  const p = data.player;
-  if (!p)
-    return {
-      text: "Start with your player tag in Tracking.",
-      action: "Go to Tracking",
-      to: `${CONSOLE}/account/tracking`,
-    };
-  if (p.profile_available || hasBattles(p))
-    return {
-      text:
-        p.recording_status && p.recording_status !== "active"
-          ? "Your retained record is available. Check recording status in Tracking."
-          : "Open your recorded profile or battles in Ladder.",
-      action: "Open Ladder",
-      to: "/ladder",
-    };
-  return {
-    text:
-      p.recording_status === "active"
-        ? "Waiting for the first profile or battle capture. Check recording in Tracking."
-        : "No profile or battles are available yet. Check recording status in Tracking.",
-    action: "Check recording status",
-    to: `${CONSOLE}/account/tracking`,
-  };
-}
 
 /** Readiness is derived from the record, including a successful data read:
  * an OAuth connection alone does not show that the client's setup works. */
@@ -47,10 +20,10 @@ function readiness(data) {
   const captured = hasBattles(p);
   return [
     {
-      label: "Add the player you play as",
+      label: "Player tag saved",
       done: Boolean(p),
       detail: p
-        ? `${p.name ?? "your player"} ${p.player_tag} · primary${p.recording_status ? ` · recording ${p.recording_status}` : ""}`
+        ? `${p.name ?? "your player"} ${p.player_tag} · ${p.is_primary === false ? (p.relationship ?? "tracked") : "primary"}${p.recording_status ? ` · recording ${p.recording_status}` : ""}`
         : "nothing here defaults to you",
       action: p ? "Manage recording" : "Add your player",
       showAction: Boolean(
@@ -123,10 +96,13 @@ function readiness(data) {
   ];
 }
 
-export function FirstAnswer({ claimsKey }) {
-  const { data, loading, error, refresh } = useFirstAnswer(claimsKey);
+export function FirstAnswer({ claimsKey, playerTag, compact = false }) {
+  const { zone } = useClock();
+  const { data, loading, error, refresh } = useFirstAnswer(claimsKey, {
+    playerTag,
+  });
   const steps = data ? readiness(data) : [];
-  const next = data ? nextStep(data) : null;
+  const next = data ? recordJourney(data) : null;
   const questions = data ? starterQuestions(data).slice(0, 1) : [];
   return (
     <section className="mb-6" aria-labelledby="first-answer-title">
@@ -140,29 +116,72 @@ export function FirstAnswer({ claimsKey }) {
             : (next?.text ?? "Recording status is unavailable.")}
         </span>
       </div>
-      <p className="mb-3 text-[12.5px] text-ink-faint">
-        Read your record in Ladder with this account. Clan war history and
-        connecting an AI client are optional.
-      </p>
       {next && (
-        <Link className="mb-3 inline-block text-[12.5px]" to={next.to}>
-          {next.action} ›
-        </Link>
+        <p className="mb-3 font-semibold" role="status">
+          {next.state}
+        </p>
       )}
+      {data?.player?.recording_status === "active" &&
+        (!data.player.profile_available || !hasBattles(data.player)) && (
+          <p className="mb-3 text-[12.5px] text-ink-faint">
+            This page checks again about once a minute while open. Check again
+            reads the saved record; it does not force a game fetch.
+          </p>
+        )}
+      {next?.failedAt && (
+        <p className="mb-3 text-ink-faint">
+          Failed attempt {ago(next.failedAt)}. A failed fetch does not establish
+          that the tag is invalid.
+        </p>
+      )}
+      {next?.partial && (
+        <p className="mb-3 text-ink-body">
+          Incomplete capture between{" "}
+          {stamp(next.partial.observed_from, zone, { year: true })} and{" "}
+          {stamp(next.partial.observed_to, zone, { year: true })}:{" "}
+          {n(next.partial.captured_battles)} of{" "}
+          {n(next.partial.expected_battles)} battles recorded. Other time
+          remains unknown.
+        </p>
+      )}
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        {next && !(compact && next.action === "Check recording status") && (
+          <Link className="btn btn--primary" to={next.to}>
+            {next.action} ›
+          </Link>
+        )}
+        {next?.profile && (
+          <Link to={next.profile.to}>{next.profile.action} ›</Link>
+        )}
+        {data?.clan && !compact && (
+          <Link
+            to={
+              data.clan.latest_week
+                ? `${CONSOLE}/explore/week/${data.clan.clan_tag.replace(/^#/, "")}~${data.clan.latest_week.season_id}~${data.clan.latest_week.section_index}`
+                : `${CONSOLE}/explore/list/weeks:${data.clan.clan_tag.replace(/^#/, "")}`
+            }
+          >
+            {data.clan.latest_week
+              ? "View recorded war week"
+              : "Browse recent war weeks"}{" "}
+            ›
+          </Link>
+        )}
+        <button className="btn btn--sm" onClick={refresh} disabled={loading}>
+          {loading ? "Checking…" : "Check again"}
+        </button>
+      </div>
       {error && (
         <div className="callout callout--warn" role="alert">
           <Icon name="circle-dashed" size={17} />
           <span>
-            Could not check your recorded data.{" "}
-            <button className="btn btn--sm" onClick={refresh}>
-              Check again
-            </button>{" "}
-            Your players below are unaffected.
+            Could not check your recorded data. Use Check again to retry. Your
+            saved players and any previously read evidence are unaffected.
           </span>
         </div>
       )}
       <div className="flex flex-col">
-        {steps.map((s) => (
+        {steps.slice(0, compact ? 3 : 4).map((s) => (
           <div
             key={s.label}
             className="flex items-start gap-3 border-b border-line-row py-3"
@@ -184,25 +203,49 @@ export function FirstAnswer({ claimsKey }) {
           </div>
         ))}
       </div>
-      {questions.length > 0 && (
-        <div className="first-answer mt-4">
-          <h3 className="mb-2 font-semibold">Ask an AI client (optional)</h3>
-          <p className="mb-3 text-ink-body">
-            {data.connection.active_connections > 0
-              ? "Copy this question into your connected AI client. A successful data read will appear above."
-              : "If you want to ask an AI client, connect one and copy this question into that chat. You can use Ladder without connecting a client."}
+      {!compact && data && (
+        <details className="mt-4">
+          <summary className="cursor-pointer text-[13.5px]">
+            AI clients (optional)
+          </summary>
+          <p className="mt-3 text-ink-faint">
+            Read your recorded profile and battles in this browser. Connecting
+            an AI client is optional.
           </p>
-          <QuestionSuggestions
-            key={questions[0].prompt}
-            questions={questions}
-          />
-          <Link
-            className="inline-block pt-3"
-            to={`${CONSOLE}/account/connections`}
-          >
-            More questions and your connections ›
-          </Link>
-        </div>
+          {steps.slice(4).map((s) => (
+            <p className="mt-3" key={s.label}>
+              <span>{s.label}</span>: <span>{s.detail}</span>
+              {(!s.done || s.showAction) && s.action && (
+                <>
+                  {" "}
+                  · <Link to={s.to}>{s.action} ›</Link>
+                </>
+              )}
+            </p>
+          ))}
+          {questions.length > 0 && (
+            <div className="first-answer mt-4">
+              <h3 className="mb-2 font-semibold">
+                Ask an AI client (optional)
+              </h3>
+              <p className="mb-3 text-ink-body">
+                {data.connection.active_connections > 0
+                  ? "Copy this question into your connected AI client. A successful data read will appear above."
+                  : "If you want to ask an AI client, connect one and copy this question into that chat. You can use Ladder without connecting a client."}
+              </p>
+              <QuestionSuggestions
+                key={questions[0].prompt}
+                questions={questions}
+              />
+              <Link
+                className="inline-block pt-3"
+                to={`${CONSOLE}/account/connections`}
+              >
+                More questions and your connections ›
+              </Link>
+            </div>
+          )}
+        </details>
       )}
     </section>
   );

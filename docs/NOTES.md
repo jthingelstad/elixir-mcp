@@ -6372,3 +6372,47 @@ queue had zero unanswered items, no oldest age and zero beyond the one-day
 target. The `loop` lease was released after production verification. Private
 operational evidence remains outside Git; this notes-only completion receipt
 does not require another deployment.
+
+## 2026-10-07 — First-record browser journey
+
+The next beta slice follows the shipped unknown-state foundation from a saved
+player tag to capture progress and a usable browser destination. Adding a tag
+opens its Tracking record, clears an earlier add refusal on successful retry,
+and prevents duplicate in-flight submissions. Readiness distinguishes accepted
+and pending capture, recent failed attempts, paused/stopped recording, retained
+evidence and a measured partial interval. A successful poll alone never proves
+a profile, battle projection or complete observation; there is no capture ETA.
+
+The private first-answer read optionally selects one of the authenticated
+account's existing claims. Foreign tags are refused. It projects only existing
+capture timestamps, bounded error-receipt timestamps and the existing comparable
+profile interval; missing or expired receipts do not prove success. Roster-only
+observations do not become player profiles. Account, data-access, recording,
+collector and production tracking boundaries are unchanged.
+
+The primary action reads a dated profile snapshot or all retained battles,
+including older history and every recorded mode, rather than a possibly empty
+current-season page. Explore supports the existing battle cursor and explicit
+read retry. Clan history points to the exact latest saved war week. AI setup and
+starter questions follow the browser value in an optional disclosure. Ladder's
+existing default now considers War and Events as well as its other modes.
+Notifications names the separate timeline/report controls and links to Email
+settings; public docs describe free verified signup and optional AI, and account
+recovery uses the already-published admin contact route.
+
+Scratch API tests exercise claim isolation, roster-only evidence, admitted-poll
+versus projected-profile state and measured partial capture. Browser journeys
+cover new/returning accounts, empty/pending/profile/older/war-only/failed/partial/
+stopped/paused records, successful retry after an add 503, retained evidence after
+a read 503, destination retry, cursor paging, mobile/wide layouts, Back and reload.
+No real tracking, mail or tester invitation is used for acceptance. Operational
+end-to-end testing remains separate. Full validation passed: 1,928 Node tests
+and 479 UI tests, no failures; 85 existing structural acceptance tests skip
+without a live environment. Review confirms claim/session binding, parameterized
+queries, bounded existing metadata and recorded-only browser reads. Complete
+browser checks passed: 197 journeys, no failures or flaky-test report. Three
+older browser assertions were corrected for the optional AI disclosure and direct
+profile destination, retaining their signup/quota/clipboard/accessibility and
+connection-read controls. The green PR/deploy receipt follows. MCP remains 11.2.3 and JSON API remains 3.0.0: no tool or public
+JSON API response changed, so the canonical deployment does not request MCP
+acceptance; private API, site and browser checks cover this slice.
