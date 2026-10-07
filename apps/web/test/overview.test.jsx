@@ -79,7 +79,8 @@ const ROUTES = {
   "/api/me/battle-activity/20JJJ2CCRU": {
     player_tag: "#20JJJ2CCRU",
     computed_at: new Date(NOW).toISOString(),
-    battles_28d: 80,
+    as_of: new Date(NOW).toISOString(),
+    battles_28d: 80, // deliberately stale nightly count: the summary uses canonical days
     rhythm: new Array(168).fill(0),
     days,
   },
@@ -144,9 +145,7 @@ test("players: you first, then your accounts, friends and the watched, four rows
   ]);
   // The primary's line is its last 28 days, from the activity reading.
   await waitFor(() =>
-    expect(rows[1].textContent).toContain(
-      "80 battles in 28 days · all captured",
-    ),
+    expect(rows[1].textContent).toContain("56 battles recorded in 28 UTC days"),
   );
   expect(rows[2].textContent).toContain("you");
   expect(rows[4].textContent).toContain("friend");

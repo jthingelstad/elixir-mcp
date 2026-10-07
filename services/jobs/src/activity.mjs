@@ -1,27 +1,16 @@
-/** Nightly battle-activity row per recorded player (0084).
+/** Nightly battle-activity metadata per recorded player (0084).
+ * First/last battle, a 28-day count and historical capture-audit marks remain
+ * dated projections. The private console year reads canonical counts and
+ * comparable observation intervals together; it does not use these cached
+ * marks, tracking dates or poll success to establish quiet days.
  *
- *  What the console's year graphic needs beyond the daily rollup (0125,
- *  read live by the route): the days the record itself says are
- *  incomplete, and the row's own dates and 28-day count. The 24x7 rhythm
- *  this job also built (step one of adaptive polling, NOTES 2026-09-12)
- *  retired 2026-09-19: scored against a week of polls it did not place
- *  them, and Jamie called the year the product and the tile not worth
- *  its place. Its columns went in 0150.
+ * Marks cover a capture-audit gap's UTC date and profile intervals whose
+ * lifetime counter moved more than captured battles. Older marks are carried
+ * forward until they leave the year, so they are historical diagnostics, not
+ * a current completeness answer. Everything here is UTC.
  *
- *  Everything here is UTC (AGENTS.md: store UTC, timezone is display).
- *
- *  Not-recorded days are the part that must never read as zero. A day is
- *  marked not recorded when the recorder itself says the record is
- *  incomplete: the UTC day of a capture-audit gap (a battle log that had
- *  rolled past the high-water mark before it was read), and every UTC
- *  day inside a profile-snapshot interval whose lifetime battle counter
- *  moved more than the battles captured (elixir_coverage's own rule,
- *  packages/tools/src/coverage.mjs, applied over the last SNAPSHOT_DAYS
- *  rather than seven). Days before recording began are the reader's to
- *  mark from recorded_from; storing them would make the row a copy of the
- *  recording table. Marks already stored are carried forward, so an
- *  interval that has aged out of the snapshot window keeps its mark until
- *  it leaves the year. */
+ * The 24x7 rhythm retired 2026-09-19 after its proposed adaptive polling did
+ * not place reads reliably; its columns went in 0150. */
 
 import pg from "pg";
 
