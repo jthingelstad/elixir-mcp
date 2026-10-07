@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-07",
+    title: "Read the year’s capture list on a phone",
+    body: "The last two weeks beneath your year of battles now wrap capture labels within the phone's width, keeping UTC dates, recorded counts and win/loss results together. Unknown capture stays explicit. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-07",
     title: "A quiet day needs complete capture",
     body: "Your year of battles now uses comparable profile intervals to distinguish covered quiet days from missing capture. A successful poll cannot turn an empty day into zero. Recorded battles remain visible with incomplete capture, the year reaches today's UTC date even when nightly metadata is stale, and failed refreshes keep the last successful reading with a retry. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
   },

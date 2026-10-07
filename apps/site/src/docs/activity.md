@@ -31,7 +31,8 @@ and battles without a resolved result count toward the volume and toward
 neither side of the share; a day with no decided battle at all keeps the
 neutral purple. Tap or focus a cell and the day's count and record are
 written under the graphic; the list beneath it holds the last two weeks
-as a table.
+as a table. On a phone, capture labels wrap so the date, recorded count and
+win/loss result stay together within the page.
 
 Days in the year graphic are UTC calendar days (midnight to midnight), not
 the 10:00 UTC game days the series tools and the war grid use. The graphic

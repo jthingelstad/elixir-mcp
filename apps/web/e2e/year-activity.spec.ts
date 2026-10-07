@@ -76,6 +76,22 @@ async function sound(page: Page) {
       () => document.documentElement.scrollWidth - innerWidth,
     ),
   ).toBeLessThanOrEqual(0);
+  // A panel can clip an oversized table without overflowing the document.
+  // Check the list's own bounds so every count, capture label and result fits.
+  const list = await page.locator(".activity__table").evaluate((el) => {
+    const table = el.querySelector("table");
+    return table
+      ? {
+          width: table.scrollWidth,
+          available: el.clientWidth,
+          beyond:
+            table.getBoundingClientRect().right -
+            el.getBoundingClientRect().right,
+        }
+      : { width: 0, available: 0, beyond: 0 };
+  });
+  expect(list.width).toBeLessThanOrEqual(list.available + 1);
+  expect(list.beyond).toBeLessThanOrEqual(1);
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa"])
     .analyze();
