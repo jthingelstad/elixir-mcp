@@ -953,7 +953,8 @@
           "p.meta.source_polls.player.observed_at"
         ]
       }
-    ]
+    ],
+    "refuted": "2026-10-07: the approved tracked-only correction removes this unrecorded player's profile and badge row. The retained-holder controls still prove observed_at equals the latest profile poll."
   },
   {
     "id": "91.4",
