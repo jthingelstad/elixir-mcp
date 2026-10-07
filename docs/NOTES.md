@@ -6670,3 +6670,17 @@ their battle list.
 The correction was one-time. `{tracked_census}`, `{tracked_purge}` and
 the September 13 `{retained_day_audit}` left the migrate Lambda in
 PR #345, and `{rollup_fill}` after its run; this receipt is their record.
+
+### Opponent-rollup ruling reaches DECISIONS (2026-10-07)
+
+PR #346's review identified that the ruling above was absent from the ratified
+ledger. The older "ghost entries, never metrics" line now distinguishes factual
+per-player rollups of retained battles, which include every participant, from
+recorded-population metrics and headline counts, which still exclude untracked
+identities. Its old meta exception is explicitly retired by the recorder scope
+decision. Public Recording already allows history from opponents' logs before
+tracking, and Methodology states that game-wide meta has retired.
+
+This is documentation follow-through only: no retention policy, runtime,
+contract, newsletter behavior or production data changes; no deploy or live
+data operation. The completed correction above is not rerun or re-investigated.
