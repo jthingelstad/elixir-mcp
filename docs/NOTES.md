@@ -6492,3 +6492,42 @@ scope, parameterized indexed reads, a single count/interval snapshot and no new
 production mutation or live-fetch path. The operational plan is private and
 unexecuted; existing-owner testing cannot prove new-member creation or first
 capture. Runtime PR and canonical deploy/read-back receipts follow.
+
+
+### Year-evidence deployment and mobile fix-forward
+
+Runtime PR #337 merged as `ea7934e637e6ad983287ea6d663ab92e09070c2c` after
+CI run 37555251531 passed on head `b4696428`: 229 browser journeys, no flaky-test
+report. Canonical deployment completed with 43 smoke assertions passing, all
+203 migrations already applied (zero ran), and an identical reference seed
+(47 roles, 29 aliases; zero differences). No MCP acceptance was requested:
+private account API, browser and docs changed, with no public-tool/API contract
+change. All seven deployed Lambda artifacts matched the release and were Active /
+Successful at 01:16:22Z (8:16:22 PM CT, 2026-10-06). Public health, shell, version,
+Activity/Updates copy and unauthenticated year refusal were verified.
+
+Twenty-four synthetic year states against released assets at 390px and 1280px
+had no page errors, API writes, document overflow or serious/critical axe
+findings. Screenshot review nonetheless caught the list clipped within its
+panel on mobile: the shared table's nowrap cells stretched the capture text and
+hid the win/loss column without overflowing the document. This is a release
+finding, not a clean mobile acceptance. Fix forward applies the existing wrapped
+cell class to the count/capture column; the browser control now also compares
+the table's own scroll width and right edge with its container. Date and result
+columns remain readable. Capture evidence and nightly job behavior do not change.
+The completed deployment lease was released before preparing this fix.
+
+The operational signup/mail/tracking plan remains private and unexecuted. No
+real account, sign-in email, tracking or invitation was used as acceptance.
+Its existing-owner variant has explicit auth/session effects and a one-email
+budget, conditional idempotent tracking and session-only cleanup; it cannot
+prove fresh-member creation or first-capture latency. MCP 11.2.3 / JSON API 3.0.0
+remain unchanged. Fix-forward validation and released read-back follow.
+
+Full local validation of the mobile fix passed: 1,928 Node and 481 UI tests,
+zero failures; 85 existing structural non-live skips. All 32 focused built year
+journeys passed with the new container bounds control. Fresh isolated preview
+screenshots at 390px and 1280px confirmed complete capture text and the win/loss
+column fit; no page errors, writes, overflow or serious/critical axe findings.
+The first standalone preview lacked its served output directory; rebuilding to
+an isolated temporary output resolved that preview setup without a source change.

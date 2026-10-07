@@ -284,7 +284,7 @@ export function ActivityGraph({ data, error, onRetry }) {
             {recent.map((d) => (
               <tr key={d.day}>
                 <td className="mono">{d.day}</td>
-                <td>
+                <td className="table__td--wrap">
                   {d.battles > 0 || d.coverage === "complete"
                     ? d.battles
                     : "unknown"}
