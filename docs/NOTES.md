@@ -6653,3 +6653,20 @@ remaining row (an opponent's last-known clan) names them. Nine
 opponent rollup rows reappeared within the hour: battle ingest rolls
 up every participant, so this regrows with each new battle until the
 product decides whether opponents keep rollups.
+
+### Opponents keep their rollups; the tooling is retired (2026-10-07)
+
+Jamie's call: a battle is the record, and an opponent who is tracked
+later should find the battles Elixir already holds, counted the same by
+every tool. So battle ingest keeps rolling up every participant, and
+the rows that regrew are right. The purge had removed the rollups of
+the opponents on kept battles, which left `players_summary` (rollup
+days) counting fewer of their battles than `battles_query` (raw rows).
+`{rollup_fill}` (PR #345) refilled them through ingest's writer: 95,169
+(player, UTC day) pairs for 93,352 players in one 82 s invocation, and
+its census then read zero. A kept opponent's 30-day record now matches
+their battle list.
+
+The correction was one-time. `{tracked_census}`, `{tracked_purge}` and
+the September 13 `{retained_day_audit}` left the migrate Lambda in
+PR #345, and `{rollup_fill}` after its run; this receipt is their record.

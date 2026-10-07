@@ -73,7 +73,6 @@ import {
 } from "./ops-series.mjs";
 import { duelRoundDecks } from "./ops-duel-rounds.mjs";
 import { rollupRegroup } from "./ops-rollup-regroup.mjs";
-import { rollupFill } from "./ops-rollup-fill.mjs";
 
 /** The function's own application_name (PGAPPNAME in
  *  infra/template.yaml), read once, before any op renames it. */
@@ -524,14 +523,6 @@ async function dispatch(event) {
     const result = await rollupRegroup(
       process.env.DATABASE_URL,
       event.rollup_regroup === true ? {} : event.rollup_regroup,
-    );
-    console.log(JSON.stringify(result));
-    return result;
-  }
-  if (event?.rollup_fill) {
-    const result = await rollupFill(
-      process.env.DATABASE_URL,
-      event.rollup_fill === true ? {} : event.rollup_fill,
     );
     console.log(JSON.stringify(result));
     return result;
