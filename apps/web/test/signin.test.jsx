@@ -50,6 +50,9 @@ test("a waiting access request is not reported as a bad code", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
   expect(await screen.findByText("Account access is unavailable")).toBeTruthy();
   expect(screen.getByText(/cannot sign in/)).toBeTruthy();
+  expect(
+    screen.getByRole("link", { name: "Contact Elixir" }).getAttribute("href"),
+  ).toBe("mailto:admin@poapkings.com");
   // And it does not tell them to try again, because trying again cannot work.
   expect(screen.queryByText("Wrong or expired code.")).toBeNull();
 });

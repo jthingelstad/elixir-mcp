@@ -111,7 +111,7 @@ test("across Elixir: the Ladder, your clan's week and the game, with no number t
   );
   const links = within(across).getAllByRole("link");
   expect(links[0].textContent).toContain("King Thing");
-  expect(links[0].textContent).toContain("Your season ›");
+  expect(links[0].textContent).toContain("This season ›");
   // The clan's tile counts members the record holds, never war decks.
   await waitFor(() =>
     expect(links[1].textContent).toContain("46members on record"),

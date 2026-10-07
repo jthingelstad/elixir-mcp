@@ -83,6 +83,89 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+test("a saved profile survives a failed read through explicit retry, without live fetching", async () => {
+  const explore = vi
+    .spyOn(api, "explore")
+    .mockResolvedValueOnce({ ok: false, status: 503, data: {} })
+    .mockResolvedValueOnce(
+      answer({
+        player_tag: "#P0Y",
+        name: "Example",
+        snapshot: {
+          date: "2026-10-06",
+          trophies: 9001,
+          lifetime: { battle_count: 1234 },
+        },
+      }),
+    );
+  renderWithProviders(
+    <Explore me={{}} navigate={vi.fn()} path="/console/explore/profile/P0Y" />,
+  );
+  await screen.findByText("Could not load this record");
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  await screen.findByRole("heading", { name: "Recorded profile · Example" });
+  expect(screen.getByText("9,001")).toBeTruthy();
+  expect(screen.getByText("Lifetime battle count")).toBeTruthy();
+  expect(
+    screen.getByText(
+      /lifetime counters are separate from the battles Elixir captured/,
+    ),
+  ).toBeTruthy();
+  expect(explore.mock.calls).toEqual([
+    ["players_profile", { player_tag: "P0Y" }],
+    ["players_profile", { player_tag: "P0Y" }],
+  ]);
+});
+
+test("retained battles page through the returned cursor and keep all history and modes", async () => {
+  const explore = vi.spyOn(api, "explore").mockImplementation(async (_, args) =>
+    answer({
+      battles: [],
+      has_more: !args.cursor,
+      next_cursor: args.cursor ? null : "opaque/+cursor=",
+    }),
+  );
+  const navigate = vi.fn();
+  const path = "/console/explore/list/battles:P0Y";
+  const view = renderWithProviders(
+    <Explore me={{}} navigate={navigate} path={path} />,
+  );
+  const older = await screen.findByRole("link", { name: "Older battles ›" });
+  expect(older.getAttribute("href")).toBe(
+    `${path}?cursor=opaque%2F%2Bcursor%3D`,
+  );
+  fireEvent.click(older);
+  expect(navigate).toHaveBeenCalledWith(`${path}?cursor=opaque%2F%2Bcursor%3D`);
+  view.rerender(
+    <Explore
+      me={{}}
+      navigate={navigate}
+      path={path}
+      search={{ cursor: "opaque/+cursor=" }}
+    />,
+  );
+  expect(
+    (
+      await screen.findByRole("link", { name: "Newest battles ›" })
+    ).getAttribute("href"),
+  ).toBe(path);
+  expect(explore.mock.calls).toEqual([
+    [
+      "battles_query",
+      { player_tag: "#P0Y", verbosity: "compact", include_total: true },
+    ],
+    [
+      "battles_query",
+      {
+        player_tag: "#P0Y",
+        verbosity: "compact",
+        include_total: true,
+        cursor: "opaque/+cursor=",
+      },
+    ],
+  ]);
+});
+
 test("a war week is read by name and shows the race: five clans, the days, who fought", async () => {
   const explore = vi
     .spyOn(api, "explore")

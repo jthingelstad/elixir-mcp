@@ -24,7 +24,7 @@ import { CONSOLE } from "../../lib/console.js";
  * writes SUBJECT there but VOCABULARY.md is explicit that the schema's
  * word does not reach the interface, and it is the stricter of the two.
  */
-const TAG_OK = /^#?[0289PYLQGRJCUVOo]{3,12}$/;
+const TAG_OK = /^#?[0289PYLQGRJCUVO]{3,12}$/i;
 
 function freshness(ts, now) {
   const s = secsSince(ts, now);
@@ -41,6 +41,8 @@ export function Tracking({ me, refresh, navigate }) {
   const [filter, setFilter] = useState("all");
   const [tag, setTag] = useState("");
   const [tagErr, setTagErr] = useState("");
+  const [tagInfo, setTagInfo] = useState("");
+  const [tagBusy, setTagBusy] = useState(false);
   const [clanTag, setClanTag] = useState("");
   // Activity is the slot every tier has; comprehensive is an upgrade
   // chosen knowing its cost. The comprehensive default failed a new
@@ -117,8 +119,8 @@ export function Tracking({ me, refresh, navigate }) {
         <div>
           <h1 className="page__title">Tracking</h1>
           <p className="page__lede">
-            Tracked means recorded. Capture starts on the next poll and does not
-            stop until you remove it.
+            Adding a tag requests recording. Saved profiles and battles appear
+            as observations arrive; gaps and unobserved time remain unknown.
           </p>
         </div>
         <div
@@ -382,6 +384,7 @@ export function Tracking({ me, refresh, navigate }) {
             <input
               id="add-player-tag"
               aria-label="Player tag"
+              disabled={tagBusy}
               className="mono"
               placeholder="#20JJJ2CCRU"
               aria-invalid={tagErr ? "true" : undefined}
@@ -389,29 +392,76 @@ export function Tracking({ me, refresh, navigate }) {
               onChange={(ev) => {
                 setTag(ev.target.value);
                 setTagErr("");
+                setTagInfo("");
               }}
               style={{ flex: "1 1 10rem" }}
             />
             <button
               className="btn"
+              disabled={tagBusy}
               onClick={async () => {
+                if (tagBusy) return;
+                setTagErr("");
+                setTagInfo("");
                 if (!TAG_OK.test(tag.trim())) {
                   setTagErr("That doesn't look like a CR tag.");
                   return;
                 }
-                const r = await api.addClaim(tag.trim());
-                if (r.ok) {
-                  setTag("");
-                  refresh();
-                } else setTagErr(r.data?.message ?? "Could not add.");
+                setTagBusy(true);
+                try {
+                  const r = await api.addClaim(tag.trim());
+                  if (r.ok) {
+                    setTagErr("");
+                    setTag("");
+                    const savedTag =
+                      r.data?.player_tag ??
+                      tag
+                        .trim()
+                        .toUpperCase()
+                        .replace(/^#/, "")
+                        .replaceAll("O", "0");
+                    setTagInfo("Your player tag was saved.");
+                    let current;
+                    try {
+                      current = await refresh();
+                    } catch {
+                      /* The add already succeeded. */
+                    }
+                    if (
+                      !current?.claims?.some(
+                        (c) => tagPath(c.player_tag) === tagPath(savedTag),
+                      )
+                    ) {
+                      setTagInfo(
+                        "Your tag was saved, but Tracking could not refresh. Reload this page to continue; you do not need to add it again.",
+                      );
+                      return;
+                    }
+                    navigate(
+                      `${CONSOLE}/account/tracking/${tagPath(savedTag)}`,
+                    );
+                  } else
+                    setTagErr(r.data?.message ?? "Could not add. Try again.");
+                } catch {
+                  setTagErr(
+                    "Elixir did not answer. Check Tracking before retrying; the tag may have been saved.",
+                  );
+                } finally {
+                  setTagBusy(false);
+                }
               }}
             >
-              Track
+              {tagBusy ? "Adding…" : "Track"}
             </button>
             {tagErr && (
               <span className="field-error" style={{ flexBasis: "100%" }}>
                 {tagErr}
               </span>
+            )}
+            {tagInfo && (
+              <p role="status" className="w-full">
+                {tagInfo}
+              </p>
             )}
           </div>
           <div className="panel__foot">

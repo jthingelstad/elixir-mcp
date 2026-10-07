@@ -258,6 +258,12 @@ test("the tracked record holds the controls, and says what stopping costs", asyn
   render(<App />);
   await screen.findByRole("switch", { name: "Notifications" });
   expect(
+    screen.getByText(/controls inclusion in Your friends this week/),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("link", { name: "Email settings" }).getAttribute("href"),
+  ).toBe("/console/account/profile/email");
+  expect(
     within(document.querySelector("main")).getByText("Jamie"),
   ).toBeTruthy();
   expect(screen.getByText("active")).toBeTruthy();

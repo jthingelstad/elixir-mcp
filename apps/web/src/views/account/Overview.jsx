@@ -115,8 +115,8 @@ function Across({ me, clans }) {
         <Tile
           to="/ladder"
           icon="chart-line"
-          title="Ladder · Trophy Road"
-          more="Your season ›"
+          title="Ladder"
+          more="This season ›"
         >
           <span className="text-[13.5px] leading-normal text-ink-body">
             {primary ? (
@@ -124,10 +124,10 @@ function Across({ me, clans }) {
                 <span className="font-semibold text-ink">
                   {nameOf(primary)}
                 </span>
-                &rsquo;s season: battles, record and win rate, week by week.
+                &rsquo;s current season: recorded battles, one mode at a time.
               </>
             ) : (
-              "Your season: battles, record and win rate, week by week."
+              "Your current season: recorded battles, one mode at a time."
             )}
           </span>
         </Tile>

@@ -180,9 +180,11 @@ for (const width of [390, 1280]) {
       }),
     );
     await page.goto("/console/account/overview");
+    await expect(page.getByText("AI clients (optional)")).toBeVisible();
+    await expect(page.getByText("Clan war history (optional)")).toBeVisible();
     await expect(
-      page.getByText(/connecting an AI client are optional/),
-    ).toBeVisible();
+      page.getByRole("link", { name: "Connect your client ›" }),
+    ).not.toBeVisible();
     await page
       .getByRole("button", { name: "Add your player", exact: true })
       .click();

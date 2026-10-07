@@ -110,13 +110,16 @@ export function pickPlayer(players, param) {
 }
 
 /** The mode a page opens on: the one asked for, when it is one; else
- *  Path of Legends when the last 30 days hold more of it than Trophy
- *  Road, else Trophy Road (the Ladder brief: the default is the mode
+ *  the mode with the most recorded battles in the last 30 days
+ *  (the Ladder brief: the default is the mode
  *  played most). `modes` is players_summary's last_30_days.modes. */
 export function pickMode(param, modes) {
   if (MODES.some((m) => m.key === param)) return param;
   const n = (k) => Number(modes?.[k]?.battles ?? 0);
-  return n("ranked") > n("ladder") ? "ranked" : "ladder";
+  return MODES.reduce(
+    (best, m) => (n(m.key) > n(best) ? m.key : best),
+    "ladder",
+  );
 }
 
 /** A player as the page names them: nickname, name, or the tag. */

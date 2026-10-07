@@ -66,7 +66,7 @@ test("account journey: add a player, capture arrives, copy a question, open pers
   });
   global.fetch = vi.fn(async (path, init = {}) => {
     let data;
-    switch (path) {
+    switch (path.split("?")[0]) {
       case "/api/me":
         data = {
           authenticated: true,
@@ -122,6 +122,10 @@ test("account journey: add a player, capture arrives, copy a question, open pers
   fireEvent.change(input, { target: { value: player.player_tag } });
   fireEvent.click(input.parentElement.querySelector("button"));
 
+  await waitFor(() =>
+    expect(window.location.pathname).toBe("/console/account/tracking/2PP0V90Y"),
+  );
+  cleanup();
   captured = true;
   window.history.pushState({}, "", "/console/account/connections");
   render(<App />);
@@ -162,12 +166,12 @@ test("no player: Overview says so and offers one action, and asks nothing", asyn
 test("readiness names what each line is waiting for, not just that it is not done", async () => {
   respond();
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByText("Add the player you play as");
+  await screen.findByText("Player tag saved");
   expect(
     screen
       .getByRole("link", { name: /Check recording status/ })
       .getAttribute("href"),
-  ).toBe("/console/account/tracking");
+  ).toBe("/console/account/tracking/2PP0V90Y");
   expect(screen.getByText("no profile snapshot available yet")).toBeTruthy();
   expect(
     screen.getByText(
@@ -197,7 +201,9 @@ test("readiness carries the window on every number it shows", async () => {
     { clan_tag: "#Y8QRJ0LP", name: "POAP KINGS", war_weeks: 27 },
   );
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByRole("link", { name: /Open Ladder/ });
+  await screen.findByRole("link", {
+    name: /Browse recorded battles/,
+  });
   // A bare "1,284" is a claim; the window makes it a fact.
   expect(
     screen.getByText("1,284 in the last 30 days · 38 in the last 7"),
@@ -216,16 +222,19 @@ test("an active connection without a recent read is not the same as no connectio
   );
 });
 
-test("a browser-only profile leads to Ladder while AI and clan setup stay optional", async () => {
+test("a browser-only profile opens the saved profile while AI and clan setup stay optional", async () => {
   respond({ ...player, profile_available: true });
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByRole("link", { name: /Open Ladder/ });
+  await screen.findByRole("link", {
+    name: /Browse recorded battles|View recorded profile/,
+  });
   expect(screen.getByText("Clan war history (optional)")).toBeTruthy();
   expect(
     screen.getByText("snapshot recorded · observation time unavailable"),
   ).toBeTruthy();
   expect(screen.queryByText("snapshot never")).toBeNull();
   expect(screen.getByText("AI client connection (optional)")).toBeTruthy();
+  fireEvent.click(screen.getByText("AI clients (optional)"));
   expect(
     screen.getByRole("heading", { name: "Ask an AI client (optional)" }),
   ).toBeTruthy();
@@ -244,12 +253,17 @@ test("older retained battles remain usable when recording stopped and the profil
   render(<FirstAnswer claimsKey="a" />);
   await screen.findByText("older retained battles · none in the last 30 days");
   expect(
-    screen.getByRole("link", { name: /Open Ladder/ }).getAttribute("href"),
-  ).toBe("/ladder");
+    screen
+      .getByRole("link", {
+        name: /Browse recorded battles|View recorded profile/,
+      })
+      .getAttribute("href"),
+  ).toBe("/console/explore/list/battles:2PP0V90Y");
   expect(
     screen.getByRole("link", { name: /Manage recording/ }).getAttribute("href"),
   ).toBe("/console/account/tracking");
   expect(screen.queryByText(/Waiting for the first/)).toBeNull();
+  fireEvent.click(screen.getByText("AI clients (optional)"));
   expect(
     screen.getByRole("button", {
       name: "Copy question: Review your retained history",
@@ -263,7 +277,11 @@ test("paused recording without capture points to status instead of promising the
   await screen.findByRole("link", { name: /Check recording status/ });
   expect(screen.getByText(/recording paused/)).toBeTruthy();
   expect(screen.queryByText(/Waiting for the first/)).toBeNull();
-  expect(screen.queryByRole("link", { name: /Open Ladder/ })).toBeNull();
+  expect(
+    screen.queryByRole("link", {
+      name: /Browse recorded battles|View recorded profile/,
+    }),
+  ).toBeNull();
   expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
 });
 
@@ -279,7 +297,11 @@ test("partial capture and connection facts are unavailable rather than invented 
   );
   render(<FirstAnswer claimsKey="a" />);
   await screen.findByText("recent battle counts unavailable");
-  expect(screen.getByRole("link", { name: /Open Ladder/ })).toBeTruthy();
+  expect(
+    screen.getByRole("link", {
+      name: /Browse recorded battles|View recorded profile/,
+    }),
+  ).toBeTruthy();
   expect(screen.getByText("connection status unavailable")).toBeTruthy();
   expect(screen.getByText("recent data reads unavailable")).toBeTruthy();
   expect(screen.queryByText(/0 in the last 30 days/)).toBeNull();
@@ -305,7 +327,7 @@ test("a failed readiness request explains itself and can retry", async () => {
   await screen.findByText(/Could not check your recorded data/);
   respond();
   fireEvent.click(screen.getByRole("button", { name: "Check again" }));
-  await screen.findByText("Add the player you play as");
+  await screen.findByText("Player tag saved");
 });
 
 test("waiting capture can be worked around, then refreshes into a profile-only question", async () => {
@@ -427,10 +449,13 @@ test("Overview links incomplete steps and offers a supported first question with
     value: { writeText: copy },
   });
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByRole("link", { name: /Open Ladder/ });
+  await screen.findByRole("link", {
+    name: /Browse recorded battles|View recorded profile/,
+  });
   expect(
     screen.getByRole("link", { name: /Clan recording/ }).getAttribute("href"),
   ).toBe("/console/account/tracking");
+  fireEvent.click(screen.getByText("AI clients (optional)"));
   expect(
     screen.getByRole("link", { name: /Connection help/ }).getAttribute("href"),
   ).toBe("/docs/quickstart");

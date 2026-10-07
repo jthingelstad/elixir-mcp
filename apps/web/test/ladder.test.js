@@ -123,7 +123,7 @@ test("?player picks one of yours, and anything else reads your primary", () => {
   expect(pickPlayer([], "X")).toBe(null);
 });
 
-test("the mode is the one asked for, else the one played most of the two ladders", () => {
+test("the mode is the one asked for, else the one with the most recorded battles", () => {
   expect(pickMode("war", {})).toBe("war");
   expect(pickMode("bogus", undefined)).toBe("ladder");
   expect(
@@ -132,7 +132,9 @@ test("the mode is the one asked for, else the one played most of the two ladders
       ranked: { battles: 40 },
       war: { battles: 90 },
     }),
-  ).toBe("ranked");
+  ).toBe("war");
+  expect(pickMode(undefined, { event: { battles: 3 } })).toBe("event");
+  expect(pickMode(undefined, { war: { battles: 4 } })).toBe("war");
   expect(
     pickMode(undefined, { ladder: { battles: 3 }, ranked: { battles: 3 } }),
   ).toBe("ladder");

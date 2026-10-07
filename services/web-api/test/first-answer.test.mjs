@@ -11,11 +11,12 @@ const adminUrl =
 const name = `elixir_mcp_test_first_answer_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, handler, cookie, accountId, otherId;
-const read = (authenticated = true) =>
+const read = (authenticated = true, tag = null) =>
   handler({
     rawPath: "/api/me/first-answer",
     requestContext: { http: { method: "GET" } },
     headers: authenticated ? { cookie } : {},
+    queryStringParameters: tag == null ? {} : { player_tag: tag },
   });
 
 before(async () => {
@@ -236,6 +237,7 @@ test("clan questions require a recorded war week for a clan this account added",
     clan_tag: "#P0G",
     name: "Primary clan",
     war_weeks: 1,
+    latest_week: { season_id: 1, section_index: 0 },
   });
   // The count is the readable half: "tracked" says a clan is on record,
   // "3 war weeks" says what it can answer with. It counts the clan's
@@ -244,4 +246,67 @@ test("clan questions require a recorded war week for a clan this account added",
     "insert into war_week (clan_tag,season_id,section_index) values ('#P0G',1,1),('#P0G',2,0)",
   );
   assert.equal(JSON.parse((await read()).body).clan.war_weeks, 3);
+});
+
+test("selected capture state is claim-bound; roster-only data never promises a profile", async () => {
+  assert.equal((await read(true, "#J2RGCRVG")).statusCode, 404);
+  assert.equal((await read(true, "not-a-tag")).statusCode, 400);
+  await db.query(
+    "insert into claim (account_id, player_tag, relationship) values ($1, '#J2RGCRVG', 'alt')",
+    [accountId],
+  );
+  await db.query(
+    "insert into player_snapshot_daily (player_tag,snapshot_date,trophies,roster_observed_at,observed_at) values ('#J2RGCRVG',current_date,8000,now(),now())",
+  );
+  let p = JSON.parse((await read(true, "#J2RGCRVG")).body).player;
+  assert.equal(p.player_tag, "#J2RGCRVG");
+  assert.equal(p.is_primary, false);
+  assert.equal(p.profile_available, false);
+  assert.equal(p.capture_interval.ratio, null);
+  // Existing bounded error metadata, never a payload or an identity claim.
+  const {
+    rows: [g],
+  } = await db.query(
+    "insert into gateway (owner_account_id,name,static_ip) values ($1,'scratch-first-record','127.0.0.1') returning gateway_id",
+    [accountId],
+  );
+  await db.query(
+    "insert into collector_fetch_error (gateway_id,endpoint,entity_key,fetched_at,http_status,error_kind) values ($1,'player','#J2RGCRVG',now() - interval '1 minute',503,'http')",
+    [g.gateway_id],
+  );
+  p = JSON.parse((await read(true, "#J2RGCRVG")).body).player;
+  assert.ok(
+    p.capture_attempts.find((a) => a.endpoint === "player").last_failed_at,
+  );
+  assert.equal(p.profile_available, false);
+  await db.query(
+    "insert into poll_state (subject_tag,endpoint,last_admitted_at) values ('#J2RGCRVG','player',now())",
+  );
+  p = JSON.parse((await read(true, "#J2RGCRVG")).body).player;
+  const attempt = p.capture_attempts.find((a) => a.endpoint === "player");
+  assert.ok(
+    new Date(attempt.last_admitted_at) > new Date(attempt.last_failed_at),
+  );
+  assert.equal(
+    p.profile_available,
+    false,
+    "a successful poll is not a projected profile",
+  );
+  assert.equal(
+    JSON.parse((await read()).body).player.player_tag,
+    "#2PP0V90Y",
+    "default selection stays primary",
+  );
+  await db.query(
+    "update player_snapshot_daily set profile_observed_at=now(), battle_count=110 where player_tag='#J2RGCRVG'",
+  );
+  await db.query(
+    "insert into player_snapshot_daily (player_tag,snapshot_date,profile_observed_at,observed_at,battle_count) values ('#J2RGCRVG',current_date-2,now()-interval '2 days',now()-interval '2 days',100)",
+  );
+  p = JSON.parse((await read(true, "#J2RGCRVG")).body).player;
+  assert.equal(p.profile_available, true);
+  assert.equal(p.capture_interval.expected_battles, 10);
+  assert.equal(p.capture_interval.captured_battles, 1);
+  assert.equal(p.capture_interval.ratio, 0.1);
+  assert.ok(p.capture_interval.observed_from && p.capture_interval.observed_to);
 });

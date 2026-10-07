@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-10-07",
+    title: "From your player tag to your first record",
+    body: "Adding a player opens their saved-tag confirmation and capture progress. Read a dated profile or browse captured battles directly, including older history; pending capture has no guaranteed arrival time, and failed attempts leave saved information available. AI setup follows the browser record and stays optional. Ladder opens on the most-recorded mode, including War and Events. Notifications and account recovery now point to the matching email settings and contact route. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
+  },
+  {
     date: "2026-10-06",
     title: "The docs match the recorder's current scope",
     body: "The public guides now describe verified member signup instead of an approval-gated beta, factual mode reads instead of retired meta tools, the completed retired-table cleanup, and explicit integration resources without recording enrollment. No account, quota, API shape or recording behavior changed. Contracts remain MCP 11.2.3 and JSON API 3.0.0.",

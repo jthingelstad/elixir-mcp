@@ -35,9 +35,14 @@ Elixir tells them apart.
 
 Days played and Decks show every mode on one page, and they still keep
 each mode's mark and record apart. The season home opens on the mode you
-played most: Path of Legends when your last 30
-days hold more of it than Trophy Road, otherwise Trophy Road. The tabs are
+played most in the last 30 days, including War and Events. Ties keep the first
+tab in the order shown; with no recorded battles, Trophy Road is the default. The tabs are
 addresses (`/ladder?mode=ranked`), so a link to one mode stays in it.
+
+Ladder shows the current season. Console's recording summary links a saved
+profile directly to its dated profile view, and retained battles directly to
+the battle browser, including older seasons. It does not use an empty current
+season as proof that those records are missing.
 
 ## Whose season
 
