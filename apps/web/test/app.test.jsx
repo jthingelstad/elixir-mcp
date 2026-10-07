@@ -356,11 +356,14 @@ test("the Overview opens on the battle-activity graphic, with a chip per tracked
     days.push({
       day,
       battles: day === "2026-09-12" ? 4 : 0,
+      coverage:
+        day >= "2026-09-03" && day < "2026-09-13" ? "complete" : "unknown",
       status: day >= "2026-09-03" ? "recorded" : "not_recorded",
     });
   }
   const activity = {
     player_tag: "#20JJJ2CCRU",
+    as_of: "2026-09-13T05:30:00Z",
     computed_at: "2026-09-13T05:30:00Z",
     window_days: 365,
     half_life_days: 28,
@@ -391,20 +394,40 @@ test("the Overview opens on the battle-activity graphic, with a chip per tracked
     "GET /api/me/battle-activity/20JJJ2CCRU": [200, activity],
     "GET /api/me/battle-activity/VJG0J29QP": [
       200,
-      { ...activity, player_tag: "#VJG0J29QP", computed_at: null, days: [] },
+      {
+        ...activity,
+        player_tag: "#VJG0J29QP",
+        computed_at: null,
+        days: days.map((d) => ({
+          ...d,
+          battles: 0,
+          coverage: "unknown",
+          status: "not_recorded",
+        })),
+      },
     ],
   });
   render(<App />);
   // The primary's year is drawn first, without a click.
   expect(
-    await screen.findByRole("button", { name: /^Sat 12 Sep 2026: 4 battles$/ }),
+    await screen.findByRole("button", {
+      name: /^Sat 12 Sep 2026: 4 battles recorded · complete day capture$/,
+    }),
   ).toBeTruthy();
   expect(screen.getByText("Battle activity")).toBeTruthy();
   const alt = screen.getByRole("button", { name: "Big Thing" });
   expect(alt.getAttribute("aria-pressed")).toBe("false");
   fireEvent.click(alt);
-  // The alt has no row yet: the panel says so instead of an empty year.
-  expect(await screen.findByText(/Not computed yet/)).toBeTruthy();
+  // The alt has no nightly row: its unknown evidence renders without leaking
+  // the primary's positive count or inheriting its completeness flags.
+  expect(
+    await screen.findByRole("button", {
+      name: /Sat 12 Sep 2026: capture unknown/,
+    }),
+  ).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: /4 battles recorded/ }),
+  ).toBeNull();
   expect(alt.getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByText("Record ›")).toBeTruthy();
 });

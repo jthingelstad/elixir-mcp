@@ -1,12 +1,12 @@
 ---
 slug: activity
 title: "Battle activity: a year of days"
-description: "The battle-activity graphic on each player you track: a year of UTC days drawn from the record, what a not-recorded day means and why it is never drawn as zero, and how the nightly row behind it is computed."
+description: "A year of recorded battles by UTC day. Complete comparable observations can establish a quiet day; missing or incomplete capture stays unknown."
 section: record
 order: 7
 navTitle: "Coverage"
 icon: calendar-days
-lede: "Every player you track shows a year of days, drawn from what Elixir recorded, with the days it was not watching marked as exactly that."
+lede: "Recorded battles stay visible. Empty days need complete capture before they can mean quiet."
 console: ["See yours on the Overview", "/console/account", "Console ▸ Overview"]
 ---
 
@@ -35,51 +35,51 @@ as a table.
 
 Days in the year graphic are UTC calendar days (midnight to midnight), not
 the 10:00 UTC game days the series tools and the war grid use. The graphic
-is rebuilt nightly from the battle rows by their UTC date, which is the day a
+reads canonical battle rows by their UTC date, which is the day a
 person reads off a calendar; the game day exists to line battles up with the
 season and war clock, and a graphic of "did they play on the 12th" is not a
 war question. A late-night session (after 10:00 UTC, before midnight) is one
 cell here and one game day in `players_timeline`; a session between midnight
 and 10:00 UTC is the next cell here and still the previous game day there.
 
-## Not recorded is not zero
+## Missing capture is not zero
 
-A day with battles in the record is always drawn with its count, whichever
-way the battles arrived: live reads, history imported when the player was
-added, or appearances in other players' logs. The question the colour has
-to answer is only what an empty day means, and the record itself answers
-it: Elixir was watching a player on a day when it admitted a read of that
-player's battle log on the day or within the two days after it (a log
-holds roughly the last 30 battles, so a read that soon still saw the day). An empty
-day inside that coverage is zero. An empty day outside it is hatched,
-"not recorded", because nobody was looking and nothing is known. When you
-started tracking the player colours nothing; the legend names both dates,
-"log read since" and "tracked since".
+A day with battles in the record always shows that positive activity, including
+battles imported on tracking or seen in another player's log. It says how many
+battles were recorded and whether that day's capture is complete, incomplete or
+unknown. A positive count alone does not establish complete capture.
 
-Two marks from the recorder narrow coverage further:
+An empty day means **covered quiet day** only when complete, comparable profile
+observation intervals cover the whole closed UTC day without gaps. The intervals
+compare the change in the profile's lifetime battle counter with canonical
+battles recorded between the observations: the same evidence contract as
+[Completeness](/docs/recording#completeness). Counter resets, missing counters,
+more recorded battles than the counter explains, or unmatched counter increases
+cannot establish completeness. The counter includes some modes the battle log
+may not show; an unmatched increase is incomplete evidence, not proof of a
+missing particular battle.
 
-- **A capture-audit gap.** The UTC day on which a battle-log read found
-  the log had rolled past the newest battle already recorded, so whatever
-  came before the log's oldest entry was never seen. The Status page
-  publishes the same audit as a count. Battles recorded on such a day are
-  drawn and labelled "log rolled past some".
-- **An incomplete coverage interval.** Every UTC day inside a pair of
-  daily profile snapshots whose lifetime battle counter moved more than
-  the battles recorded between them, the rule `elixir_coverage` uses for
-  its completeness estimate (see [Completeness](/docs/recording#completeness)).
-  The lifetime counter includes some modes the log never shows, so this
-  marks generously.
+Other empty days are hatched: **capture incomplete or unknown**, never an
+inactive day or a break from play. A successful battle-log read, a tracking start
+date or a freshness stamp cannot prove a quiet day. Today's UTC day is still
+open, so its complete-day capture is not established. Tap a cell for its dated
+reading; the list beneath the year names the same capture state without colour.
 
-## How it is computed
+## How it is read
 
-The year's counts are the record's daily rollup, read live. A nightly job
-(05:30 UTC) writes one row per recorded player beside it with what the
-rollup cannot say: the not-recorded marks above, the first and last
-battle in the year, and the 28-day count. The row is a projection,
-rebuilt in full every night, never a system of record, and a player
-added today has a graphic after the next run. Retired automatic groups do not
-generate activity records. A personal follow still works when the account
-appeared in an old group; the recording reflects the person following it.
+The window is the last 365 UTC dates through today. Its canonical battle counts
+and observation intervals are read together from one database snapshot, so late
+arrivals repair the count and interval together. Missing nightly metadata does
+not delay the graphic, and stale metadata cannot truncate newer activity. No
+request to the game is needed. The evidence-read timestamp dates the graphic;
+“tracked since” is account context and does not establish coverage.
+
+The nightly activity job still maintains descriptive metadata and historical
+capture-audit marks. Those cached marks and poll-success receipts do not decide
+which empty days are quiet in this graphic. No older capture is manufactured or
+backfilled by viewing the year, and no first-capture arrival time is promised.
+Retired automatic groups do not generate activity records. A personal follow
+still works when the account appeared in an old group.
 
 ## What became of the rhythm
 

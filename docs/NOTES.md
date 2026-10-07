@@ -6451,3 +6451,44 @@ poll coverage heuristic; it does not feed this journey's evidence state and
 needs a separate correction before a whole-app capture-truthfulness claim.
 No sibling runtime, collector policy, Clan management or purge changed.
 This notes-only receipt needs no redeployment.
+
+
+## 2026-10-07 — the private year of battles uses capture evidence
+
+The Overview and Tracking year graphic inferred quiet from a successful log read
+on a day or either of the next two dates. That heuristic could hide missed
+battles; a stale nightly row also truncated newer positives. The private route
+now reads canonical participant counts and profile observation intervals in one
+database snapshot, then applies the existing shared capture contract to each
+whole closed UTC day. Successful polls and cached gap marks establish no zeros.
+The year ends today; its open day stays incomplete or unknown. Late canonical
+arrivals repair both counts and comparable interval measurements together.
+
+Both surfaces preserve positive activity and a successful prior read after a
+refresh fails, name the dated evidence and offer a read-only retry. The Overview
+summary counts recorded battles from the same read and no longer claims “all
+captured” from positive-day flags. Missing nightly metadata does not postpone a
+graphic or promise the next job will produce one. The accessible cell captions
+and mobile table name capture separately from counts and win share.
+
+MCP stays 11.2.3 and JSON API 3.0.0: only a private account API, browser and docs
+change. No migrations, recording enrollment, scheduling, production business
+writes or sibling changes. Scope requires private API/browser acceptance, not
+MCP acceptance. Scratch tests cover canonical late arrivals, stale/no metadata,
+fresh polls without coverage, counter mismatch/reset, open days, UTC/leap/year
+boundaries and claim/session isolation. Full gates and released read-back follow.
+A separate operational signup/mail/tracking plan will be prepared privately for
+review; it is not executed as this change's acceptance.
+
+Full local validation passed: 1,928 Node and 481 UI tests, zero failures;
+85 existing structural non-live acceptance skips. All 229 built browser journeys
+passed, including 32 added year cases, with no flaky-test report. One stale app
+assertion was corrected from “Not computed yet” to the unknown-evidence year,
+retaining player-chip, record-link and cross-player isolation controls. The
+failed-refresh test initially dispatched its synthetic visibility event on the
+document instead of the window; correcting the stimulus made all four controls
+pass without changing query retry behavior. Review confirms claimed-tag/session
+scope, parameterized indexed reads, a single count/interval snapshot and no new
+production mutation or live-fetch path. The operational plan is private and
+unexecuted; existing-owner testing cannot prove new-member creation or first
+capture. Runtime PR and canonical deploy/read-back receipts follow.

@@ -1,16 +1,12 @@
-/**
- * The battle-activity route (0084): the nightly row for one of the
- * account's own players, shaped as a year of UTC days in which a day
- * before recording began or marked by the recorder is `not_recorded`,
- * never zero.
- */
+/** Private year read: canonical positives, comparable closed-day evidence,
+ * independent of polling receipts and nightly projections. */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
-import { shapeDays, coveredDays } from "../src/routes/battle-activity.mjs";
+import { shapeDays } from "../src/routes/battle-activity.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -79,36 +75,39 @@ before(async () => {
       [person],
     )
   ).rows[0].gateway_id;
-  // The record of watching: admitted battle-log reads. Two in July (the
-  // import era), two in September; nothing between.
-  for (const at of [
-    "2026-07-08T10:00:00Z",
-    "2026-07-09T10:00:00Z",
-    "2026-09-08T16:00:00Z",
-    "2026-09-13T04:00:00Z",
+  // A fresh successful log receipt still cannot establish quiet days.
+  await db.query(
+    `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+     values ('player_battlelog', $1, now(), 'h', $2, 'admitted')`,
+    [TAG, gatewayId],
+  );
+  await db.query(
+    `insert into player_activity (player_tag, computed_at, window_days, not_recorded_days, battles_28d)
+     values ($1, now() - interval '20 days', 365, array[$2::date], 999)`,
+    [TAG, day(-27)],
+  );
+  for (const [offset, count] of [
+    [-90, 100],
+    [-88, 100],
+    [-30, 90],
+    [-28, 93],
+    [-26, 98],
+    [1, 100],
   ])
     await db.query(
-      `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
-       values ('player_battlelog', $1, $2, 'h', $3, 'admitted')`,
-      [TAG, at, gatewayId],
+      `insert into player_snapshot_daily (player_tag, snapshot_date, observed_at, profile_observed_at, battle_count)
+       values ($1, $2::date, $3, $3, $4)`,
+      [
+        TAG,
+        day(offset),
+        stamp(offset, offset === -90 ? "23:59:59" : "00:00:00"),
+        count,
+      ],
     );
-  await db.query(
-    `insert into player_activity
-       (player_tag, computed_at, window_days, not_recorded_days, recorded_from,
-        first_battle_at, last_battle_at, battles_28d)
-     values ($1, '2026-09-13T05:30:00Z', 365, '{2026-09-11}'::date[],
-             '2026-09-03T12:00:00Z', '2026-05-14T19:49:00Z', '2026-09-08T15:10:00Z', 3)`,
-    [TAG],
-  );
-  // The year's counts are the daily rollup (0123), not a column.
-  await db.query(
-    `insert into player_daily_battle_rollup (player_tag, day, mode_group, game_mode_id, wins, losses, draws, battles_captured)
-     values ($1, '2026-09-08', 'ladder', 0, 2, 1, 0, 3),
-            ($1, '2026-05-14', 'ladder', 0, 4, 0, 0, 4),
-            ($1, '2026-09-11', 'ladder', 0, 1, 0, 0, 1),
-            ($1, '2026-09-11', 'ranked', 0, 0, 1, 0, 1)`,
-    [TAG],
-  );
+  await battles(TAG, -29, 3, "complete");
+  await battles(TAG, -27, 2, "partial");
+  await battles(TAG, -1, 1, "recent");
+  await battles(TAG, 1, 1, "future");
 });
 after(async () => {
   await db.end();
@@ -118,130 +117,145 @@ after(async () => {
   await admin.end();
 });
 
-test("coveredDays: a log read covers its day and the two before it", () => {
-  const c = coveredDays(["2026-09-10"]);
-  assert.deepEqual([...c].sort(), ["2026-09-08", "2026-09-09", "2026-09-10"]);
+const DAY = 86_400_000;
+const today = Date.parse(new Date().toISOString().slice(0, 10) + "T00:00:00Z");
+const day = (offset) =>
+  new Date(today + offset * DAY).toISOString().slice(0, 10);
+const stamp = (offset, time = "12:00:00") => `${day(offset)}T${time}Z`;
+async function battles(tag, offset, n, prefix) {
+  for (let i = 0; i < n; i++) {
+    const id = `${prefix}-${i}`;
+    await db.query(
+      `insert into battle (battle_id,battle_time,type,type_class) values ($1,$2,'PvP','pvp')`,
+      [id, stamp(offset)],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id,player_tag,side,battle_time,type,type_class,outcome)
+      values ($1,$2,0,$3,'PvP','pvp',$4)`,
+      [id, tag, stamp(offset), i % 2 ? "loss" : "win"],
+    );
+  }
+}
+const byDay = (body) => Object.fromEntries(body.days.map((d) => [d.day, d]));
+const interval = (from, to, expected = 0, captured = expected) => ({
+  observed_from: from,
+  observed_to: to,
+  expected_battles: expected,
+  captured_battles: captured,
+  is_complete: expected >= 0 && expected === captured,
 });
 
-test("shapeDays: battles always drawn; zero only where a log read covers the day; hatched elsewhere; partial on a marked day with battles", () => {
-  const days = shapeDays(
-    {
-      computed_at: new Date("2026-09-13T05:30:00Z"),
-      window_days: 10,
-      days: {
-        "2026-09-09": [4, 3, 1],
-        "2026-09-05": 1,
-        "2026-09-12": [2, 0, 0],
-      },
-      not_recorded_days: ["2026-09-12"],
-    },
-    ["2026-09-09", "2026-09-13"],
+test("year boundaries, leap day, open day, gaps and noncomparable intervals use the shared evidence contract", () => {
+  const row = {
+    as_of: "2025-01-01T12:00:00Z",
+    days: { "2024-12-31": [2, 1, 1] },
+    window_days: 365,
+  };
+  const days = shapeDays(row, [
+    interval("2024-12-29T23:59:59Z", "2025-01-01T00:00:00Z", 2),
+  ]);
+  assert.equal(days[0].day, "2024-01-03");
+  assert.ok(days.some((d) => d.day === "2024-02-29"));
+  const by = byDay({ days });
+  assert.equal(by["2024-12-30"].coverage, "complete");
+  assert.equal(by["2024-12-31"].battles, 2);
+  assert.equal(by["2024-12-31"].coverage, "complete");
+  assert.notEqual(
+    by["2025-01-01"].coverage,
+    "complete",
+    "today is open even if an interval reaches its start",
   );
-  assert.equal(days.length, 10);
-  assert.equal(days[0].day, "2026-09-04");
-  assert.equal(days.at(-1).day, "2026-09-13");
-  const by = Object.fromEntries(days.map((d) => [d.day, d]));
-  assert.equal(by["2026-09-04"].status, "not_recorded", "no read, no battle");
-  assert.deepEqual(
-    by["2026-09-05"],
-    { day: "2026-09-05", battles: 1, status: "recorded" },
-    "a battle is drawn however it arrived; a bare count carries no tallies",
-  );
-  assert.deepEqual(
-    by["2026-09-09"],
-    { day: "2026-09-09", battles: 4, wins: 3, losses: 1, status: "recorded" },
-    "a rebuilt day carries its wins and losses",
-  );
-  assert.equal(by["2026-09-06"].status, "not_recorded", "nothing, unwatched");
-  assert.equal(
-    by["2026-09-07"].status,
-    "recorded",
-    "the 09-09 read reaches back two days",
-  );
-  assert.equal(by["2026-09-07"].battles, 0, "watched, nothing played");
-  assert.equal(by["2026-09-08"].status, "recorded");
-  assert.equal(
-    by["2026-09-10"].status,
-    "not_recorded",
-    "between reads, unwatched",
-  );
-  assert.equal(
-    by["2026-09-11"].status,
-    "recorded",
-    "the 09-13 read reaches it",
-  );
-  assert.deepEqual(by["2026-09-12"], {
-    day: "2026-09-12",
-    battles: 2,
-    wins: 0,
-    losses: 0,
-    status: "recorded",
-    partial: true,
-  });
-  assert.equal(shapeDays(null).length, 0);
+  const closed = {
+    as_of: "2025-01-02T12:00:00Z",
+    window_days: 2,
+    days: { "2025-01-01": 3 },
+  };
+  for (const spans of [
+    [],
+    [interval("2025-01-01T00:00:00Z", "2025-01-02T00:00:00Z")],
+    [interval("2024-12-31T23:59:59Z", "2025-01-02T00:00:00Z", 5, 3)],
+    [interval("2024-12-31T23:59:59Z", "2025-01-02T00:00:00Z", -1, 3)],
+    [
+      interval("2024-12-31T23:59:59Z", "2025-01-01T10:00:00Z"),
+      interval("2025-01-01T10:01:00Z", "2025-01-02T00:00:00Z"),
+    ],
+  ]) {
+    const d = shapeDays(closed, spans)[0];
+    assert.equal(
+      d.battles,
+      3,
+      "positive evidence survives every coverage state",
+    );
+    assert.equal(d.status, "recorded");
+    assert.equal(d.partial, true);
+    assert.notEqual(d.coverage, "complete");
+  }
+  const blank = shapeDays({ ...closed, days: {} }, [])[0];
+  assert.equal(blank.status, "not_recorded");
+  assert.equal(blank.coverage, "unknown");
+  assert.deepEqual(shapeDays(null), []);
 });
 
-test("GET: your own player's year, oldest first, coverage from the log reads", async () => {
+test("GET reads canonical activity through today despite a stale nightly row and fresh poll", async () => {
   const r = await get(`/api/me/battle-activity/${TAG.slice(1)}`);
   assert.equal(r.statusCode, 200, r.body);
-  const body = data(r);
+  const body = data(r),
+    by = byDay(body);
   assert.equal(body.player_tag, TAG);
-  assert.equal(body.computed_at, "2026-09-13T05:30:00.000Z");
   assert.equal(body.days.length, 365);
-  assert.equal(body.days.at(-1).day, "2026-09-13");
-  const by = Object.fromEntries(body.days.map((d) => [d.day, d]));
-  assert.equal(by["2026-05-13"].status, "not_recorded", "nothing, no read");
-  assert.deepEqual(
-    by["2026-05-14"],
-    { day: "2026-05-14", battles: 4, wins: 4, losses: 0, status: "recorded" },
-    "an imported appearance is drawn",
-  );
-  assert.equal(by["2026-06-01"].status, "not_recorded", "no read covers June");
+  assert.equal(body.days.at(-1).day, day(0));
+  assert.equal(by[day(-89)].coverage, "complete");
+  assert.equal(by[day(-89)].battles, 0);
+  assert.equal(by[day(-29)].coverage, "complete");
+  assert.equal(by[day(-29)].battles, 3);
+  assert.equal(by[day(-27)].coverage, "partial");
+  assert.equal(by[day(-27)].battles, 2);
   assert.equal(
-    by["2026-07-07"].status,
-    "recorded",
-    "the 07-09 read reaches back",
+    by[day(-1)].battles,
+    1,
+    "latest positive is not clipped by stale metadata",
   );
-  assert.equal(by["2026-07-07"].battles, 0, "watched in July, nothing played");
-  assert.equal(by["2026-07-10"].status, "not_recorded", "after the July reads");
-  assert.equal(by["2026-09-06"].status, "recorded", "the 09-08 read covers it");
-  assert.deepEqual(by["2026-09-08"], {
-    day: "2026-09-08",
-    battles: 3,
-    wins: 2,
-    losses: 1,
-    status: "recorded",
-  });
-  assert.equal(by["2026-09-09"].status, "not_recorded", "between reads");
-  assert.deepEqual(
-    by["2026-09-11"],
-    {
-      day: "2026-09-11",
-      battles: 2,
-      wins: 1,
-      losses: 1,
-      status: "recorded",
-      partial: true,
-    },
-    "a marked day with battles is partial",
+  assert.equal(
+    by[day(-1)].coverage,
+    "unknown",
+    "fresh poll and future profile cannot cover yesterday",
   );
-  assert.equal(by["2026-09-12"].status, "recorded");
-  assert.equal(body.log_reads_from, "2026-07-08");
-  assert.equal(body.log_read_days, 4);
-  assert.equal("rhythm" in body, false, "the rhythm retired 2026-09-19");
-  assert.equal(body.not_recorded_days, 1);
-  // The hash form is accepted too (a pasted %23 link).
-  const r2 = await get(`/api/me/battle-activity/%23${TAG.slice(1)}`);
-  assert.equal(r2.statusCode, 200);
+  assert.equal(by[day(0)].coverage, "unknown");
+  assert.equal(by[day(0)].status, "not_recorded");
+  assert.equal(body.computed_at.slice(0, 10), day(-20));
+  assert.equal(body.as_of.slice(0, 10), day(0));
+  assert.equal(
+    (await get(`/api/me/battle-activity/%23${TAG.slice(1)}`)).statusCode,
+    200,
+  );
 });
 
-test("GET: a claimed player with no row yet says not computed, with recorded_from from the recording", async () => {
-  const r = await get(`/api/me/battle-activity/${NEW_TAG.slice(1)}`);
-  assert.equal(r.statusCode, 200);
-  const body = data(r);
+test("late canonical arrivals repair counts and intervals together, despite cached gap marks", async () => {
+  await battles(TAG, -27, 3, "late");
+  const d = byDay(data(await get(`/api/me/battle-activity/${TAG.slice(1)}`)))[
+    day(-27)
+  ];
+  assert.equal(d.battles, 5);
+  assert.equal(d.coverage, "complete");
+  assert.equal(d.partial, undefined);
+});
+
+test("no nightly projection or observations gives unknown, while canonical positive activity appears immediately", async () => {
+  const path = `/api/me/battle-activity/${NEW_TAG.slice(1)}`;
+  let body = data(await get(path));
   assert.equal(body.computed_at, null);
-  assert.deepEqual(body.days, []);
+  assert.equal(body.days.length, 365);
+  assert.ok(
+    body.days.every(
+      (d) => d.coverage === "unknown" && d.status === "not_recorded",
+    ),
+  );
   assert.equal(body.recorded_from, "2026-09-03T12:00:00.000Z");
+  await battles(NEW_TAG, -1, 2, "unprojected");
+  body = data(await get(path));
+  assert.equal(byDay(body)[day(-1)].battles, 2);
+  assert.equal(byDay(body)[day(-1)].coverage, "unknown");
+  assert.equal(body.computed_at, null);
 });
 
 test("GET: not yours is 404, a bad tag 400, no session 401", async () => {
@@ -254,6 +268,7 @@ test("GET: not yours is 404, a bad tag 400, no session 401", async () => {
     "not_yours",
   );
   assert.equal((await get(`/api/me/battle-activity/nope!`)).statusCode, 400);
+  assert.equal((await get(`/api/me/battle-activity/%ZZ`)).statusCode, 404);
   assert.equal(
     (await get(`/api/me/battle-activity/${TAG.slice(1)}`, "")).statusCode,
     401,

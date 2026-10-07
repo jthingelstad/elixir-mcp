@@ -254,16 +254,16 @@ function More({ rest, restNarrow }) {
   );
 }
 
-/** The primary's line: its battles in the last 28 days, and whether
- *  every one of those days was watched. The same reading the activity
- *  graph below is drawn from, so it costs nothing more. */
+/** Positive activity from the same canonical evidence read as the year.
+ * A successful poll or a day with some battles cannot establish completeness. */
 function usePrimaryNote(primary) {
   const activity = useBattleActivity(primary?.player_tag ?? null);
   const a = activity.data;
-  if (!a || a.battles_28d == null) return "you";
-  const last = (a.days ?? []).slice(-28);
-  const all = last.length === 28 && last.every((d) => d.status === "recorded");
-  return `${a.battles_28d.toLocaleString()} battle${a.battles_28d === 1 ? "" : "s"} in 28 days${all ? " · all captured" : ""}`;
+  if (!a?.as_of) return "you";
+  const n = (a.days ?? []).slice(-28).reduce((sum, d) => sum + d.battles, 0);
+  return n > 0
+    ? `${n.toLocaleString()} battle${n === 1 ? "" : "s"} recorded in 28 UTC days`
+    : "capture may be incomplete";
 }
 
 function Players({ me, navigate }) {
@@ -435,9 +435,7 @@ function OverviewActivity({ players }) {
   // Keyed on the tag, so switching players shows that player's loading
   // state and never the previous one's graphic.
   const activity = useBattleActivity(tag);
-  const data = activity.error
-    ? { error: activity.error.status }
-    : (activity.data ?? null);
+  const data = activity.data ?? null;
   if (!first) return null;
   const chosen = players.find((p) => p.player_tag === tag) ?? first;
   return (
@@ -473,15 +471,11 @@ function OverviewActivity({ players }) {
           Record ›
         </Link>
       </div>
-      {data === null ? (
-        <p className="activity__empty">Loading…</p>
-      ) : data.error ? (
-        <p className="activity__empty">
-          The activity graphic could not be loaded right now.
-        </p>
-      ) : (
-        <ActivityGraph data={data} />
-      )}
+      <ActivityGraph
+        data={data}
+        error={activity.error}
+        onRetry={activity.refetch}
+      />
     </section>
   );
 }

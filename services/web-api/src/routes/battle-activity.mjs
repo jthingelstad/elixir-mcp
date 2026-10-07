@@ -1,79 +1,90 @@
 import { json } from "../http.mjs";
 import { normalizeTag, InvalidTagError } from "@elixir-mcp/contracts";
+import { battleCapture } from "@elixir-mcp/record/capture-state";
 
-/**
- * Battle activity (0084): the nightly activity row for one of the
- * account's own players, shaped for the console graphic - a year of UTC
- * days. One route, read-only; the row is the jobs Lambda's. The 24x7
- * rhythm it carried retired 2026-09-19.
- *
- * The one rule that matters here: zero means "we were reading this
- * player's log at the time, and nothing was played". Coverage is read
- * from the DATA, not from the recording row (Jamie, 2026-09-13: "rely on
- * the data being present"): a UTC day is covered when a battle-log read
- * for this player was admitted on that day or within the two days after
- * it (a log holds ~25 battles, so a read that soon still saw the day),
- * and not marked by the recorder (a capture-audit gap or an incomplete
- * coverage interval). A day WITH battles is always drawn with them,
- * however they arrived - imported history, appearances in other logs;
- * on a marked day they are flagged partial. The hatched cell is only a
- * day with nothing recorded that no log read covers: unknown, never
- * zero. The recording row's date is a footnote ("tracked since"), never
- * a colour. The first cut anchored on the row and hatched King Thing's
- * history from July; the second labelled it "outside coverage"; a
- * first-battle anchor would have painted a stray May appearance's seven
- * empty weeks as zeros. The log reads are the record of watching.
- */
+/** The claimed player's year of UTC days. Canonical battles and comparable
+ * profile intervals are read in one database snapshot. Poll success, tracking
+ * dates and cached nightly gap marks never establish a quiet day. */
 const DAY_MS = 86_400_000;
-
-function utcDay(at) {
-  return new Date(at).toISOString().slice(0, 10);
-}
-
-/** The year of days ending on the activity row's own day: each with its
- *  count and status. Exported for the route test and the docs example. */
-/** How many days after a UTC day a battle-log read still covers it. */
-const READ_REACH_DAYS = 2;
-
-/** The UTC days a set of battle-log read days covers. */
-export function coveredDays(readDays) {
-  const out = new Set();
-  for (const d of readDays) {
-    const t = Date.parse(d + "T00:00:00Z");
-    for (let k = 0; k <= READ_REACH_DAYS; k += 1)
-      out.add(utcDay(t - k * DAY_MS));
-  }
-  return out;
-}
+const utcDay = (at) => new Date(at).toISOString().slice(0, 10);
 
 export function shapeDays(
   row,
-  readDays = [],
+  intervals = [],
   { windowDays = row?.window_days ?? 365 } = {},
 ) {
   if (!row) return [];
-  const end = Date.parse(utcDay(row.computed_at) + "T00:00:00Z");
-  const covered = coveredDays(readDays);
-  const marked = new Set(row.not_recorded_days ?? []);
-  const counts = row.days ?? {};
+  const asOf = new Date(row.as_of ?? row.computed_at).getTime();
+  const end = Date.parse(utcDay(asOf) + "T00:00:00Z");
   const out = [];
   for (let i = windowDays - 1; i >= 0; i -= 1) {
-    const day = utcDay(end - i * DAY_MS);
-    // A day is [battles, wins, losses] since 2026-09-15; a row the nightly
-    // job has not rebuilt yet still holds the bare count, with no result
-    // tallies to give.
-    const v = counts[day];
+    const from = end - i * DAY_MS;
+    const day = utcDay(from);
+    const v = row.days?.[day];
     const [battles, wins, losses] = Array.isArray(v) ? v : [v ?? 0];
-    const watched = covered.has(day) && !marked.has(day);
+    const capture = battleCapture({
+      from,
+      to: from + DAY_MS,
+      intervals,
+      recordedBattles: battles,
+      readComplete: from + DAY_MS <= asOf,
+    });
     out.push({
       day,
       battles,
       ...(battles > 0 && wins !== undefined ? { wins, losses } : {}),
-      status: battles > 0 || watched ? "recorded" : "not_recorded",
-      ...(battles > 0 && marked.has(day) ? { partial: true } : {}),
+      coverage: capture.coverage,
+      status:
+        capture.has_battles || capture.quiet ? "recorded" : "not_recorded",
+      ...(battles > 0 && capture.coverage !== "complete"
+        ? { partial: true }
+        : {}),
     });
   }
   return out;
+}
+
+/** One query is essential: late canonical arrivals must repair the interval
+ * and daily counts together, never turn an earlier empty projection into zero.
+ * The player's time index bounds the year and each observation interval. */
+async function readEvidence(db, tag, from, asOf) {
+  const {
+    rows: [row],
+  } = await db.query(
+    `with snapshots as (
+       select profile_observed_at as observed_to,
+              lag(profile_observed_at) over w as observed_from,
+              battle_count - lag(battle_count) over w as expected_battles
+       from player_snapshot_daily
+       where player_tag = $1 and snapshot_kind = 'daily'
+         and profile_observed_at is not null and profile_observed_at <= $3::timestamptz
+       window w as (order by snapshot_date)
+     ), measured as (
+       select observed_from, observed_to, expected_battles,
+              (select count(*)::int from battle_participant bp
+               where bp.player_tag = $1 and bp.battle_time > observed_from
+                 and bp.battle_time <= observed_to) as captured_battles
+       from snapshots where observed_from is not null
+         and observed_to > observed_from and observed_to > $2::timestamptz
+     ), daily as (
+       select to_char(battle_time at time zone 'UTC', 'YYYY-MM-DD') as day,
+              count(*)::int as battles,
+              count(*) filter (where outcome = 'win')::int as wins,
+              count(*) filter (where outcome = 'loss')::int as losses
+       from battle_participant
+       where player_tag = $1 and battle_time >= $2::timestamptz
+         and battle_time <= $3::timestamptz group by 1
+     )
+     select (select coalesce(jsonb_agg(to_jsonb(daily)), '[]'::jsonb) from daily) as days,
+            (select coalesce(jsonb_agg(jsonb_build_object(
+              'observed_from', observed_from, 'observed_to', observed_to,
+              'expected_battles', expected_battles, 'captured_battles', captured_battles,
+              'is_complete', case when expected_battles is not null and expected_battles >= 0
+                 and captured_battles <= expected_battles then captured_battles = expected_battles
+                 else null end)), '[]'::jsonb) from measured) as intervals`,
+    [tag, from, asOf],
+  );
+  return row;
 }
 
 export function battleActivityRoutes({ resolveAccount }) {
@@ -81,92 +92,67 @@ export function battleActivityRoutes({ resolveAccount }) {
     "GET /api/me/battle-activity/*": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      const segment = event.rawPath.split("/").pop();
       let tag;
       try {
         tag = normalizeTag(
-          `#${decodeURIComponent(segment ?? "").replace(/^#/, "")}`,
+          `#${decodeURIComponent(event.rawPath.split("/").pop() ?? "").replace(/^#/, "")}`,
         );
       } catch (err) {
-        if (err instanceof InvalidTagError)
+        if (err instanceof InvalidTagError || err instanceof URIError)
           return json(400, { error: "invalid_tag" });
         throw err;
       }
-      // Your own players only: the graphic sits on the tracked record,
-      // and a friend's or a stranger's year is theirs.
       const { rows: claims } = await db.query(
-        `select c.player_tag, p.name from claim c
-           join player p on p.player_tag = c.player_tag
-          where c.account_id = $1 and c.player_tag = $2`,
+        `select c.player_tag, p.name from claim c join player p on p.player_tag = c.player_tag
+         where c.account_id = $1 and c.player_tag = $2`,
         [account.accountId, tag],
       );
-      if (claims.length === 0) return json(404, { error: "not_yours" });
-      const { rows } = await db.query(
-        `select player_tag, computed_at, window_days,
-                array(select to_char(d, 'YYYY-MM-DD') from unnest(not_recorded_days) as d) as not_recorded_days,
-                recorded_from, first_battle_at, last_battle_at, battles_28d
-           from player_activity where player_tag = $1`,
+      if (!claims.length) return json(404, { error: "not_yours" });
+      const {
+        rows: [row],
+      } = await db.query(
+        `select computed_at, recorded_from, first_battle_at, last_battle_at, battles_28d
+         from player_activity where player_tag = $1`,
         [tag],
       );
-      const row = rows[0] ?? null;
-      // The year's daily counts are the daily rollup summed over mode
-      // (0123: player_activity.days retired - it was a nightly copy of
-      // this), so today reads live rather than as of last night.
-      if (row) {
-        const { rows: daily } = await db.query(
-          `select to_char(day, 'YYYY-MM-DD') as day,
-                  sum(battles_captured)::int as battles,
-                  sum(wins)::int as wins, sum(losses)::int as losses
-             from player_daily_battle_rollup
-            where player_tag = $1
-              and day > ($2::timestamptz - make_interval(days => $3))::date
-            group by day`,
-          [tag, row.computed_at, row.window_days],
-        );
-        row.days = Object.fromEntries(
-          daily.map((d) => [d.day, [d.battles, d.wins, d.losses]]),
-        );
-      }
-      // The record of watching: every admitted battle-log read for this
-      // player in the window, by UTC day. Import-era receipts carry the
-      // export's own fetch time, so replayed history is covered by the
-      // reads that produced it.
-      const { rows: reads } = row
-        ? await db.query(
-            `select distinct to_char(fetched_at at time zone 'UTC', 'YYYY-MM-DD') as day
-               from api_receipt
-              where endpoint = 'player_battlelog' and entity_key = $1
-                and admission = 'admitted'
-                and fetched_at > $2::timestamptz - make_interval(days => $3)`,
-            [tag, row.computed_at, row.window_days + READ_REACH_DAYS],
-          )
-        : { rows: [] };
-      const readDays = reads.map((r) => r.day);
+      const asOf = new Date();
+      const windowDays = 365;
+      const from = new Date(
+        Date.parse(utcDay(asOf) + "T00:00:00Z") - (windowDays - 1) * DAY_MS,
+      );
+      const evidence = await readEvidence(db, tag, from, asOf);
+      const days = shapeDays(
+        {
+          as_of: asOf,
+          window_days: windowDays,
+          days: Object.fromEntries(
+            evidence.days.map((d) => [d.day, [d.battles, d.wins, d.losses]]),
+          ),
+        },
+        evidence.intervals,
+      );
       const { rows: rec } = await db.query(
         `select min(created_at) as recorded_from from recording
-          where subject_type = 'player' and subject_tag = $1`,
+         where subject_type = 'player' and subject_tag = $1`,
         [tag],
       );
       return json(200, {
         player_tag: tag,
         name: claims[0].name ?? null,
-        // null until the nightly job has run for this player: the page
-        // says "not computed yet", never an empty year.
+        as_of: asOf.toISOString(),
+        // Nightly metadata stays dated separately from the live evidence read.
         computed_at: row?.computed_at?.toISOString() ?? null,
         recorded_from:
           row?.recorded_from?.toISOString() ??
           rec[0]?.recorded_from?.toISOString() ??
           null,
-        window_days: row?.window_days ?? 365,
+        window_days: windowDays,
         battles_28d: row?.battles_28d ?? null,
         first_battle_at: row?.first_battle_at?.toISOString() ?? null,
         last_battle_at: row?.last_battle_at?.toISOString() ?? null,
-        not_recorded_days: row ? (row.not_recorded_days?.length ?? 0) : null,
-        // The first and last UTC day a log read covered: what the legend
-        // calls "log read since".
-        log_reads_from: readDays.length ? readDays.sort()[0] : null,
-        log_read_days: readDays.length,
-        days: shapeDays(row, readDays),
+        not_recorded_days: days.filter((d) => d.status === "not_recorded")
+          .length,
+        days,
       });
     },
   };

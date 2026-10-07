@@ -100,12 +100,10 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
     notify.error;
   const busy = primary.busy || remove.busy;
   const claim = (me.claims ?? []).find((c) => c.player_tag === wanted);
-  // The nightly activity row, players only: a clan has no year of its own.
+  // Canonical year evidence, players only: a clan has no year of its own.
   const tracked = Boolean(claim);
   const activityQuery = useBattleActivity(tracked ? wanted : null);
-  const activity = activityQuery.error
-    ? { error: activityQuery.error.status }
-    : (activityQuery.data ?? null);
+  const activity = activityQuery.data ?? null;
   const clan = (clans?.clans ?? []).find((c) => c.clan_tag === wanted);
   const rec = me.recordings?.find((r) => r.subject_tag === wanted);
 
@@ -431,20 +429,17 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
       {!isClan && (
         <section className="panel" style={{ marginTop: "18px" }}>
           <div className="panel__head">Battle activity</div>
-          {activity === null ? (
-            <p className="activity__empty">Loading…</p>
-          ) : activity.error ? (
-            <p className="activity__empty">
-              The activity graphic could not be loaded right now.
-            </p>
-          ) : (
-            <ActivityGraph data={activity} />
-          )}
+          <ActivityGraph
+            data={activity}
+            error={activityQuery.error}
+            onRetry={activityQuery.refetch}
+          />
           <p className="footnote" style={{ padding: "0 16px 14px", margin: 0 }}>
-            UTC days from the record, rebuilt nightly. A hatched day is not
-            recorded — before the first battle in the record, or a day the
-            capture audit or the coverage record marks incomplete — and is never
-            shown as zero. <a href="/docs/activity">How this is drawn</a>
+            UTC days from canonical battles and comparable profile intervals. A
+            whole closed day needs complete capture before an empty count means
+            quiet. Hatching means capture is incomplete or unknown; recorded
+            battles remain visible.{" "}
+            <a href="/docs/activity">How this is drawn</a>
           </p>
         </section>
       )}

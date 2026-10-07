@@ -8,10 +8,9 @@ import { useEffect, useRef, useState } from "react";
  * under it retired 2026-09-19 (Jamie: the year is the product; the
  * rhythm was not worth its place, and the scheduler never used it).
  *
- * The rule the whole graphic exists to keep: zero is a day a battle-log
- * read covered and nothing was played. A day with battles is drawn with
- * them however they arrived; the hatched "not recorded" cell is a day
- * with nothing recorded that no log read covers - unknown, never zero.
+ * A whole closed UTC day needs complete comparable observation intervals
+ * before an empty count means quiet. Positive battles always stay visible;
+ * incomplete or missing evidence never means inactivity.
  *
  * Colour carries two things (Jamie, 2026-09-15): the HUE is the day's
  * win share, losses red through to wins blue, and the SHADE is the
@@ -107,21 +106,36 @@ function monthLabels(cols) {
   return labels;
 }
 
-export function ActivityGraph({ data }) {
+export function ActivityGraph({ data, error, onRetry }) {
   const [picked, setPicked] = useState(null);
   const scroller = useRef(null);
   useEffect(() => {
     // Open on the newest weeks; the past is a swipe away.
     const el = scroller.current;
     if (el) el.scrollLeft = el.scrollWidth;
-  }, [data?.computed_at]);
+  }, [data?.computed_at, data?.player_tag]);
+  useEffect(() => setPicked(null), [data?.player_tag]);
 
-  if (!data) return null;
-  if (!data.computed_at)
+  const failedRead = error && (
+    <div className="activity__empty" role="status">
+      <p>
+        {data
+          ? "The latest activity read failed. Showing the last successful read."
+          : "The activity graphic could not be loaded right now. Capture is unknown."}
+      </p>
+      {onRetry && (
+        <button type="button" className="btn btn--ghost" onClick={onRetry}>
+          Retry activity read
+        </button>
+      )}
+    </div>
+  );
+  if (!data) return failedRead || <p className="activity__empty">Loading…</p>;
+  if (!data.as_of && !data.computed_at)
     return (
       <p className="activity__empty">
-        Not computed yet. The activity build runs nightly at 05:30 UTC; the
-        first graphic for this player appears after the next run.
+        Activity evidence is unavailable. Missing capture does not establish
+        that this player did not play.
       </p>
     );
 
@@ -130,8 +144,13 @@ export function ActivityGraph({ data }) {
   const cols = weeks(days);
   const months = monthLabels(cols);
   const withBattles = days.filter((d) => d.battles > 0).length;
-  const coveredDays = days.filter((d) => d.status === "recorded").length;
-  const notRecorded = days.filter((d) => d.status === "not_recorded").length;
+  const quietDays = days.filter(
+    (d) => d.battles === 0 && d.coverage === "complete",
+  ).length;
+  const unknownDays = days.filter(
+    (d) => d.battles === 0 && d.coverage !== "complete",
+  ).length;
+  const selected = days.find((d) => d.day === picked);
   const recent = days.slice(-14).reverse();
 
   const count = (n) => `${n} ${n === 1 ? "battle" : "battles"}`;
@@ -146,12 +165,20 @@ export function ActivityGraph({ data }) {
     if (draws > 0) parts.push(`${draws} ${draws === 1 ? "draw" : "draws"}`);
     return ` · ${parts.join(", ")}`;
   };
+  const evidenceLabel = (d) =>
+    d.coverage === "complete"
+      ? "complete day capture"
+      : d.coverage === "partial"
+        ? "capture incomplete or not comparable"
+        : "capture unknown";
   const cellName = (d) =>
-    d.status === "not_recorded"
-      ? `${dayLabel(d.day)}: not recorded`
-      : `${dayLabel(d.day)}: ${count(d.battles)}${record(d)}${d.partial ? ", log rolled past some" : ""}`;
+    d.battles > 0
+      ? `${dayLabel(d.day)}: ${count(d.battles)} recorded${record(d)} · ${evidenceLabel(d)}`
+      : d.coverage === "complete"
+        ? `${dayLabel(d.day)}: 0 battles · covered quiet day`
+        : `${dayLabel(d.day)}: ${evidenceLabel(d)} · no battles recorded`;
   const cellClass = (d) => {
-    if (d.status === "not_recorded") return "activity__cell--none";
+    if (!d.battles && d.coverage !== "complete") return "activity__cell--none";
     const lvl = `activity__cell--l${level(d.battles, max)}`;
     const bin = shareBin(d);
     return bin === null
@@ -161,6 +188,7 @@ export function ActivityGraph({ data }) {
 
   return (
     <div className="activity">
+      {failedRead}
       <div className="activity__yearwrap">
         <div className="activity__dows" aria-hidden="true">
           {DOW.map((d, i) => (
@@ -207,10 +235,14 @@ export function ActivityGraph({ data }) {
         </div>
       </div>
       <div className="activity__caption" aria-live="polite">
-        {picked
-          ? cellName(days.find((d) => d.day === picked))
-          : `${withBattles} days with battles · ${coveredDays - withBattles} quiet days covered · ${notRecorded} not recorded · tap a day`}
+        {selected
+          ? cellName(selected)
+          : `${withBattles} days with recorded battles · ${quietDays} covered quiet days · ${unknownDays} empty days with capture incomplete or unknown · tap a day`}
       </div>
+      <p className="footnote px-4">
+        Evidence read {data.as_of ?? data.computed_at} · the latest UTC day in
+        this read is still open.
+      </p>
       <div className="activity__legend">
         <span>losses</span>
         {[0, 2, 5, 8, 10].map((w) => (
@@ -231,15 +263,10 @@ export function ActivityGraph({ data }) {
         <span>more</span>
         <span className="activity__legend-gap" />
         <span className="activity__cell activity__cell--none" />
-        <span>not recorded</span>
-        {data.log_reads_from && <span className="activity__legend-gap" />}
-        {data.log_reads_from && (
-          <span>
-            log read since {data.log_reads_from}
-            {data.recorded_from
-              ? ` · tracked since ${data.recorded_from.slice(0, 10)}`
-              : ""}
-          </span>
+        <span>capture incomplete or unknown</span>
+        {data.recorded_from && <span className="activity__legend-gap" />}
+        {data.recorded_from && (
+          <span>tracked since {data.recorded_from.slice(0, 10)}</span>
         )}
       </div>
 
@@ -258,7 +285,12 @@ export function ActivityGraph({ data }) {
               <tr key={d.day}>
                 <td className="mono">{d.day}</td>
                 <td>
-                  {d.status === "not_recorded" ? "not recorded" : d.battles}
+                  {d.battles > 0 || d.coverage === "complete"
+                    ? d.battles
+                    : "unknown"}
+                  <span className="block text-xs text-ink-faint">
+                    {evidenceLabel(d)}
+                  </span>
                 </td>
                 <td className="mono">
                   {d.wins !== undefined && d.battles > 0
