@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
 import { chargedRejectionSql } from "../src/admission.mjs";
 import { processResult } from "../src/pipeline.mjs";
-import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
+import { fixture, fixtureMeta, scratchDb, trackClans } from "./helpers.mjs";
 
 let ctx;
 let gatewayId;
@@ -40,6 +40,7 @@ function message({
 
 before(async () => {
   ctx = await scratchDb("pipeline");
+  await trackClans(ctx.db, ["#J2RGCRVG", "#2GUY2"]);
   const {
     rows: [account],
   } = await ctx.db.query(

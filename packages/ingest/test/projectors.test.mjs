@@ -4,7 +4,7 @@ import { playerEvents, clanEvents } from "./event-rows.mjs";
 
 import { gzipSync } from "node:zlib";
 import { processResult } from "../src/pipeline.mjs";
-import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
+import { fixture, fixtureMeta, scratchDb, trackClans } from "./helpers.mjs";
 
 let ctx;
 let gatewayId;
@@ -25,6 +25,7 @@ function message({ endpoint, entityKey, payload, fetchedAt }) {
 
 before(async () => {
   ctx = await scratchDb("projectors");
+  await trackClans(ctx.db, ["#J2RGCRVG"]);
   const {
     rows: [account],
   } = await ctx.db.query(

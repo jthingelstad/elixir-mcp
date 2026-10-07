@@ -3,12 +3,13 @@ import assert from "node:assert/strict";
 import { clanEvents } from "./event-rows.mjs";
 
 import { ingestClanRoster } from "../src/roster.mjs";
-import { fixture, scratchDb } from "./helpers.mjs";
+import { fixture, scratchDb, trackClans } from "./helpers.mjs";
 
 let ctx;
 
 before(async () => {
   ctx = await scratchDb("roster");
+  await trackClans(ctx.db, ["#J2RGCRVG"]);
 });
 
 after(async () => ctx.drop());
@@ -113,6 +114,7 @@ test("role changes update the open membership row", async () => {
  */
 test("memberList lastSeen is stored, never moves backwards, and survives a junk value", async () => {
   const scratch = await scratchDb("roster_last_seen");
+  await trackClans(scratch.db, ["#J2RGCRVG"]);
   try {
     const at = "2026-09-09T12:00:00.000Z";
     const roster = (members) => ({
@@ -211,6 +213,7 @@ test("memberList lastSeen is stored, never moves backwards, and survives a junk 
 test("the ledger names every roster moment: prev/new role and direction, the departing role and name", async () => {
   const clan = await fixture("clan/roster.json");
   const fresh = await scratchDb("roster_ledger");
+  await trackClans(fresh.db, ["#J2RGCRVG"]);
   try {
     await ingestClanRoster(fresh.db, {
       payload: clan,
@@ -256,5 +259,57 @@ test("the ledger names every roster moment: prev/new role and direction, the dep
     );
   } finally {
     await fresh.drop();
+  }
+});
+
+test("a clan nobody tracks records only its tracked players, read from the whole roster", async () => {
+  const scratch = await scratchDb("roster_untracked");
+  try {
+    const clan = structuredClone(await fixture("clan/roster.json"));
+    clan.tag = "#2QQQ";
+    const [mine] = clan.memberList;
+    const {
+      rows: [a],
+    } = await scratch.db.query(
+      `insert into account (email_hash, status, role)
+       values ('roster-untracked', 'approved', 'member') returning account_id`,
+    );
+    await scratch.db.query("insert into player (player_tag) values ($1)", [
+      mine.tag,
+    ]);
+    await scratch.db.query(
+      `insert into recording (subject_type, subject_tag, requested_by, status, scope)
+       values ('player', $1, $2, 'active', 'comprehensive')`,
+      [mine.tag, a.account_id],
+    );
+    const r = await ingestClanRoster(scratch.db, {
+      payload: clan,
+      observedAt: "2026-10-06T14:40:34Z",
+    });
+    assert.equal(r.members, 49, "liveliness still reads the whole roster");
+    assert.equal(r.joined, 1);
+    const { rows: players } = await scratch.db.query(
+      "select player_tag from player",
+    );
+    assert.deepEqual(
+      players.map((p) => p.player_tag),
+      [mine.tag],
+    );
+    const { rows: open } = await scratch.db.query(
+      "select player_tag from clan_membership where clan_tag = '#2QQQ'",
+    );
+    assert.deepEqual(
+      open.map((m) => m.player_tag),
+      [mine.tag],
+    );
+    // Leaving the roster still closes the tracked player's membership.
+    clan.memberList = clan.memberList.slice(1);
+    const left = await ingestClanRoster(scratch.db, {
+      payload: clan,
+      observedAt: "2026-10-06T15:40:34Z",
+    });
+    assert.equal(left.departed, 1);
+  } finally {
+    await scratch.drop();
   }
 });

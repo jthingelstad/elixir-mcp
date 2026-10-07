@@ -40,6 +40,7 @@
 import { gameDay, inPreResetWindow, normalizeTag } from "@elixir-mcp/contracts";
 import { inSeasonRollWindow } from "@elixir-mcp/record/war-clock";
 import { crTimeToIso } from "./battle-time.mjs";
+import { rosterRecords } from "./roster.mjs";
 import { ensureSeason, parseProgressKey } from "@elixir-mcp/record/season";
 import {
   arenaChangedMoment,
@@ -84,6 +85,14 @@ export async function projectClanSeries(
   const clanTag = normalizeTag(payload.tag);
   const day = gameDay(observedAt);
   let facts = 0;
+  // A clan nobody tracks keeps no day row of its own and writes only its
+  // tracked members' rows (rosterRecords, 2026-10-06).
+  const only = await rosterRecords(
+    db,
+    clanTag,
+    (payload.memberList ?? []).map((m) => normalizeTag(m.tag)),
+  );
+  if (only) writeClanRow = false;
 
   // The rows this one references. The live roster projector has already
   // written both; the backfill and the import arrive here first. ON
@@ -176,6 +185,7 @@ export async function projectClanSeries(
   // series is kept to the hour inside a day, and an active clan's 96
   // polls do not rewrite fifty rows each.
   const members = (payload.memberList ?? [])
+    .filter((m) => !only || only.has(normalizeTag(m.tag)))
     .map((m) => ({
       tag: normalizeTag(m.tag),
       name: m.name ?? null,

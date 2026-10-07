@@ -5,7 +5,7 @@ import { projectClanSeries, projectPlayerProgress } from "../src/series.mjs";
 import { projectPlayerSnapshot } from "../src/snapshots.mjs";
 import { projectRiverRace, projectRiverRaceLog } from "../src/war.mjs";
 import { processResult } from "../src/pipeline.mjs";
-import { fixture, fixtureMeta, scratchDb } from "./helpers.mjs";
+import { fixture, fixtureMeta, scratchDb, trackClans } from "./helpers.mjs";
 
 let ctx;
 let meta;
@@ -14,6 +14,7 @@ let gatewayId;
 before(async () => {
   ctx = await scratchDb("series");
   meta = await fixtureMeta();
+  await trackClans(ctx.db, [CLAN, "#J2RGCRVG"]);
   const {
     rows: [account],
   } = await ctx.db.query(
@@ -1065,4 +1066,44 @@ test("a replay with moments: false projects the profile's rows and writes no mom
     [P, moved.badges[0].name],
   );
   assert.equal(badge.level, moved.badges[0].level, "the badge row moved");
+});
+
+test("a clan nobody tracks writes no day row and only its tracked members' rows", async () => {
+  const OTHER = "#2QQQ";
+  const at = "2026-10-06T12:00:00Z";
+  await ctx.db.query(
+    "insert into player (player_tag) values ($1) on conflict do nothing",
+    [A],
+  );
+  const {
+    rows: [acct],
+  } = await ctx.db.query(
+    "select account_id from account where email_hash = 'test-clan-tracker'",
+  );
+  await ctx.db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, status, scope)
+     values ('player', $1, $2, 'active', 'comprehensive')`,
+    [A, acct.account_id],
+  );
+  const out = await projectClanSeries(ctx.db, {
+    payload: {
+      ...roster({ at, members: [{ tag: A }, { tag: B }] }),
+      tag: OTHER,
+    },
+    observedAt: at,
+  });
+  assert.equal(out.clanRow, 0);
+  const { rows } = await ctx.db.query(
+    `select player_tag from player_snapshot_daily
+      where clan_tag = $1 order by 1`,
+    [OTHER],
+  );
+  assert.deepEqual(
+    rows.map((r) => r.player_tag),
+    [A],
+  );
+  await ctx.db.query(
+    "update recording set status = 'stopped' where subject_tag = $1",
+    [A],
+  );
 });
