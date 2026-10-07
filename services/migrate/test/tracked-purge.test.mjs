@@ -64,7 +64,15 @@ before(async () => {
   );
   for (const tag of ["#2PPP", "#2QQQ", "#2RRC", "#2YYY", "#2UUL"])
     await db.query("insert into clan (clan_tag) values ($1)", [tag]);
-  for (const tag of ["#2000", "#2008", "#2009", "#2022", "#2028", "#2029"])
+  for (const tag of [
+    "#2000",
+    "#2002",
+    "#2008",
+    "#2009",
+    "#2022",
+    "#2028",
+    "#2029",
+  ])
     await db.query("insert into player (player_tag) values ($1)", [tag]);
   await db.query(
     "update player set last_known_clan_tag = '#2QQQ' where player_tag = '#2000'",
@@ -76,6 +84,7 @@ before(async () => {
   await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, status, scope, origin)
      values ('player', '#2000', $1, 'active', 'comprehensive', 'ops'),
+            ('player', '#2002', $1, 'active', 'comprehensive', 'claim'),
             ('clan', '#2PPP', $1, 'active', 'comprehensive', 'claim')`,
     [a.account_id],
   );
@@ -220,6 +229,7 @@ test("every phase to done leaves only what someone tracks", async () => {
   // Opponents in kept battles stay as identities, without profile rows.
   assert.deepEqual(await tags("select player_tag from player order by 1"), [
     "#2000",
+    "#2002",
     "#2008",
     "#2009",
     "#2028",
@@ -264,7 +274,7 @@ test("every phase to done leaves only what someone tracks", async () => {
   );
   assert.deepEqual(
     await tags("select origin from recording where subject_type = 'player'"),
-    ["claim"],
+    ["claim", "claim"],
   );
   const census = await trackedCensus(SCRATCH_URL, { part: "battles" });
   assert.equal(census.remove, 0);

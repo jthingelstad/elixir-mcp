@@ -393,7 +393,10 @@ const RUN = {
               or (ps.endpoint = 'clan' and ps.subject_tag in (
                  select p.last_known_clan_tag from recording r
                    join player p on p.player_tag = r.subject_tag
-                  where r.subject_type = 'player' and r.status = 'active')))`,
+                  where r.subject_type = 'player' and r.status = 'active'
+                    -- A clanless recorded player must not put a null in
+                    -- the list: NOT (x IN (..., null)) is never true.
+                    and p.last_known_clan_tag is not null)))`,
         [PLAYER_ENDPOINTS, CLAN_ENDPOINTS],
       ));
     return { selected: ids.length, deleted, next: ids.at(-1) ?? null };
