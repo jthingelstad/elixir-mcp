@@ -172,8 +172,11 @@ notifies a queue, and a small non-VPC **relay** Lambda reads the object,
 sends it and deletes it. The relay does two jobs with
 deliberately different guarantees: transactional email (sign-in codes,
 sent over Amazon SES since 2026-09-17 — retried hard, dead-lettered
-loudly) and newsletter enrollment at sign-in (Buttondown; best-effort
-and idempotent, and an unsubscribed address is never re-subscribed).
+loudly) and newsletter enrollment (Buttondown; best-effort and idempotent,
+and an unsubscribed address is never re-subscribed). A verified new account's
+welcome carries the product-news choice frozen with its email proof; the
+signup checkbox starts checked. Existing sign-in uses the saved account
+preference, never the checkbox's new-signup default.
 Elixir's servers send nothing to analytics.
 
 ## Recording: record once, entitle many

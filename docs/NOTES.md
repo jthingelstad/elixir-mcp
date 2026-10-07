@@ -6684,3 +6684,38 @@ tracking, and Methodology states that game-wide meta has retired.
 This is documentation follow-through only: no retention policy, runtime,
 contract, newsletter behavior or production data changes; no deploy or live
 data operation. The completed correction above is not rerun or re-investigated.
+
+## 2026-10-07 — beta invitation readiness checklist
+
+- [x] Public signup and one-shot proof: scratch accounts/browser fixtures.
+- [x] Saved tag, pending/failed capture, dated profile and retained battles:
+      scratch readers and browser fixtures, including phone widths.
+- [x] Product-news choice: default checked by Jamie's decision; scratch proof
+      and browser fixtures preserve unchecked new-account/welcome enrollment.
+- [ ] Deep-link return through code, link and cross-device handoff; Back/reload.
+- [ ] Combined empty-account journey: retry/help/feedback/logout and keyboard.
+- [ ] Real inbox delivery and natural first capture: separate controlled
+      operational permission/fixture; fixtures do not establish these.
+- [ ] Actual tester invitations: not sent by this engineering rehearsal.
+
+The product-news slice freezes a strictly boolean choice in the existing
+magic-login context and applies it only on new-account insertion. Redeem
+payloads cannot change it, conflict paths preserve existing account flags,
+and the welcome relay uses the saved flag. The checkbox is default on on the
+shared sign-in/create-account form, with explicit new-account-only wording.
+A per-tab form draft keeps an unchecked choice through interruption/reload;
+resends keep it and successful proof clears the draft. No schema migration,
+report preference, existing account or subscriber rewrite is required.
+MCP 11.2.3 / JSON API 3.0.0 stay unchanged. Independent return-navigation and
+combined recovery rehearsals follow; no real signup, mail, tracking or invite
+is used for acceptance.
+
+The product-news slice passed full `npm run verify`: 1,914 Node tests and 482
+UI tests, with 85 documented acceptance skips; all 233 built-browser journeys
+passed. Scratch cases cover both choices and proof types, forged redemption
+payloads, resend and cross-device collection, both saved preferences on
+approved/pending accounts, and conflicting concurrent proofs. At 390/1280px,
+keyboard choice, interrupted request/reload/resend, overflow and serious/
+critical axe checks pass while the checkbox is visible. Read-only consistency
+review's public-copy and signup accessibility findings are addressed. No tool
+response changes, so deployment needs no MCP acceptance reads.

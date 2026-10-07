@@ -24,17 +24,20 @@ export async function publicLoginAccount(db, emailHash) {
 /** Call only with the email frozen in a successfully redeemed web login.
  * The conflict predicate checks current state, including concurrent denial
  * or promotion. Repeated verifications cannot change an existing tier. */
-export async function openVerifiedAccount(db, { emailHash, email }) {
+export async function openVerifiedAccount(
+  db,
+  { emailHash, email, newsletterOptIn = true },
+) {
   if (typeof email !== "string" || hashEmail(email) !== emailHash) return;
   const { rows } = await db.query(
-    `insert into account (email_hash, email, status, role, kind, decided_at)
-     values ($1, $2, 'approved', 'member', 'person', now())
+    `insert into account (email_hash, email, status, role, kind, decided_at, newsletter_opt_in)
+     values ($1, $2, 'approved', 'member', 'person', now(), $3)
      on conflict (email_hash) do update
        set status = 'approved', email = excluded.email, decided_at = now()
        where account.status = 'requested' and account.role = 'member'
          and account.kind = 'person' and account.is_owner is not true
      returning account_id, newsletter_opt_in`,
-    [emailHash, email.trim().toLowerCase()],
+    [emailHash, email.trim().toLowerCase(), newsletterOptIn === true],
   );
   return rows[0] ?? null;
 }

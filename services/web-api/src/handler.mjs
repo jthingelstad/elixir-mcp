@@ -217,10 +217,19 @@ export function makeHandler({
   async function mintSessionResponse(
     db,
     hash,
-    { event = null, extra = {}, verifiedEmail = null } = {},
+    {
+      event = null,
+      extra = {},
+      verifiedEmail = null,
+      verifiedNewsletter = true,
+    } = {},
   ) {
     const opened = verifiedEmail
-      ? await openVerifiedAccount(db, { emailHash: hash, email: verifiedEmail })
+      ? await openVerifiedAccount(db, {
+          emailHash: hash,
+          email: verifiedEmail,
+          newsletterOptIn: verifiedNewsletter,
+        })
       : null;
     const account = await approvedAccount(db, hash);
     if (account && account.kind !== "person")

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-07",
+    title: "Choose product news when creating your account",
+    body: "Send me Elixir product news is checked by default on the sign-in/create-account form. Uncheck it before asking for your email to open a new account without newsletter enrollment. Your code or link keeps that choice, while existing newsletter choices and unsubscribes stay as they are. Sign-in and welcome mail still arrive; reports have their own controls. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-07",
     title: "Elixir keeps what someone tracks",
     body: "A tracked player's own clan is still read for their membership and role, but when nobody tracks that clan Elixir no longer keeps its other members or its daily numbers; track the clan to keep them. A one-time correction also removes what the retired leaderboard and global capture left behind: battles with no tracked player in them, and the players, clans and raw payloads nobody tracks. Tracked players, everyone who was ever in a comprehensively tracked clan, and their battles stay. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
   },

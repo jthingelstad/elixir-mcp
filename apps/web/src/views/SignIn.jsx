@@ -35,6 +35,18 @@ const primary = {
   fontSize: "15px",
 };
 
+// A form draft, never an account preference. Keep an unchecked choice through
+// an interrupted request/reload; the server freezes it in each emailed proof.
+const PRODUCT_NEWS_DRAFT = "elixir.signup_product_news";
+function finishSignIn(onAuthed) {
+  try {
+    window.sessionStorage.removeItem(PRODUCT_NEWS_DRAFT);
+  } catch {
+    // Storage is optional; email proof still carries the selected choice.
+  }
+  return onAuthed();
+}
+
 function Eyebrow({ icon, tone, children }) {
   return (
     <span
@@ -56,6 +68,13 @@ function Eyebrow({ icon, tone, children }) {
 
 export function SignIn({ onAuthed }) {
   const [email, setEmail] = useState("");
+  const [productNews, setProductNews] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(PRODUCT_NEWS_DRAFT) !== "off";
+    } catch {
+      return true;
+    }
+  });
   // email | code | redeeming | expired | pending | handoff
   const [step, setStep] = useState("email");
   const submitting = useRef(false);
@@ -112,7 +131,7 @@ export function SignIn({ onAuthed }) {
         setHandoff(res.data.handoff);
         return setStep("handoff");
       }
-      onAuthedRef.current();
+      finishSignIn(onAuthedRef.current);
     });
   }, []);
 
@@ -130,7 +149,7 @@ export function SignIn({ onAuthed }) {
       if (stopped) return;
       if (res.ok && res.data?.ready) {
         clearInterval(timer);
-        onAuthedRef.current();
+        finishSignIn(onAuthedRef.current);
       }
     }, 4000);
     return () => {
@@ -145,7 +164,7 @@ export function SignIn({ onAuthed }) {
     submitting.current = true;
     setError("");
     setBusy(true);
-    const res = await api.sendLoginEmail(email);
+    const res = await api.sendLoginEmail(email, productNews);
     submitting.current = false;
     setBusy(false);
     if (!res.ok) {
@@ -221,7 +240,7 @@ export function SignIn({ onAuthed }) {
                   data: r.data,
                 }),
               );
-            onAuthed();
+            finishSignIn(onAuthed);
           }}
         >
           {busy ? "Signing it in…" : "Yes, that was me"}
@@ -235,7 +254,7 @@ export function SignIn({ onAuthed }) {
           className="btn"
           style={{ ...primary, marginTop: "10px" }}
           disabled={busy}
-          onClick={() => onAuthed()}
+          onClick={() => finishSignIn(onAuthed)}
         >
           No, just here
         </button>
@@ -353,7 +372,7 @@ export function SignIn({ onAuthed }) {
             const res = await api.redeemCode(email, code);
             submitting.current = false;
             setBusy(false);
-            if (res.ok) return onAuthed();
+            if (res.ok) return finishSignIn(onAuthed);
             if (res.data?.error === "not_approved") return setStep("pending");
             setError(
               res.status >= 500 || res.error
@@ -466,6 +485,30 @@ export function SignIn({ onAuthed }) {
           onChange={(e) => setEmail(e.target.value)}
           style={field}
         />
+        <label className="mb-2 flex items-start gap-2 text-[13px] text-ink-body">
+          <input
+            type="checkbox"
+            checked={productNews}
+            aria-describedby="signin-product-news-note"
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setProductNews(checked);
+              try {
+                window.sessionStorage.setItem(
+                  PRODUCT_NEWS_DRAFT,
+                  checked ? "on" : "off",
+                );
+              } catch {
+                // A resend in this mounted form still keeps the choice.
+              }
+            }}
+          />
+          Send me Elixir product news
+        </label>
+        <p id="signin-product-news-note" className="footnote mb-4">
+          For a new account only. Existing newsletter choices stay the same.
+          Sign-in and welcome mail still arrive; reports have separate controls.
+        </p>
         {error && (
           <p className="field-error" role="alert">
             {error}
@@ -485,7 +528,7 @@ export function SignIn({ onAuthed }) {
         style={{ margin: "16px 0 0", textWrap: "pretty" }}
       >
         New here? After signing in, add your player under Console ▸ Tracking.
-        Your account includes product news and reports, with a way to stop each.
+        Product news is your choice above. Reports have their own off switches.
         See <a href="/docs/privacy">Privacy</a> and{" "}
         <a href="/docs/email">Emails</a>. Collectors need separate approval;
         recording stays within your account's limits.
