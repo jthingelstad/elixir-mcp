@@ -27,6 +27,34 @@ function roleDirection(prevRole, newRole) {
   return b > a ? "promoted" : "demoted";
 }
 
+/**
+ * Who a roster poll records (Jamie, 2026-10-06). A clan someone tracks
+ * records every member. Any other clan is read only because a tracked
+ * player is in it, so it records just the tracked players on its roster:
+ * the rest of that clan is not Elixir's to keep. Returns null for "all",
+ * else the set of tags to record.
+ */
+export async function rosterRecords(db, clanTag, tags) {
+  const {
+    rows: [r],
+  } = await db.query(
+    `select (exists (select 1 from recording
+                      where subject_type = 'clan' and status = 'active'
+                        and subject_tag = $1)
+             or exists (select 1 from account_clan where clan_tag = $1))
+              as tracked,
+            array(select t.tag from unnest($2::text[]) as t(tag)
+                   where exists (select 1 from recording r
+                                  where r.subject_type = 'player'
+                                    and r.status = 'active'
+                                    and r.subject_tag = t.tag)
+                      or exists (select 1 from claim c
+                                  where c.player_tag = t.tag)) as recorded`,
+    [clanTag, tags],
+  );
+  return r.tracked ? null : new Set(r.recorded);
+}
+
 export async function ingestClanRoster(
   db,
   { payload, observedAt, windowStart, receiptId },
@@ -60,11 +88,20 @@ export async function ingestClanRoster(
     gameLastSeen: crTimeToIso(m.lastSeen),
   }));
 
+  // Liveliness and departures read the whole roster; writes go only to
+  // the members this clan records.
+  const only = await rosterRecords(
+    db,
+    clanTag,
+    members.map((m) => m.tag),
+  );
+  const recorded = only ? members.filter((m) => only.has(m.tag)) : members;
+
   // One statement for the whole roster, tag-ordered (lock order), and
   // guarded: only when something moves. A roster is polled far more
   // often than a member plays, and an unchanged row rewritten is a dead
   // tuple for nothing - and fifty round trips a poll besides.
-  const ordered = [...members].sort((a, b) =>
+  const ordered = [...recorded].sort((a, b) =>
     a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0,
   );
   const { rowCount: playersChanged } = await db.query(
@@ -120,7 +157,7 @@ export async function ingestClanRoster(
   let departed = 0;
   let roleChanged = 0;
 
-  for (const m of members) {
+  for (const m of recorded) {
     const existing = openByTag.get(m.tag);
     if (!existing) {
       // A player can hold at most one open membership anywhere (partial

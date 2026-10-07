@@ -9,7 +9,12 @@ import { ingestClanRoster } from "../../ingest/src/roster.mjs";
 import { projectRiverRaceLog } from "../../ingest/src/war.mjs";
 import { ingestBattlelog } from "../../ingest/src/battles.mjs";
 import { projectPlayerSnapshot } from "../../ingest/src/snapshots.mjs";
-import { fixture, scratchDb, seedReceipt } from "../../ingest/test/helpers.mjs";
+import {
+  fixture,
+  scratchDb,
+  seedReceipt,
+  trackClans,
+} from "../../ingest/test/helpers.mjs";
 import {
   buildPlayerEntry,
   buildClanEntry,
@@ -28,6 +33,7 @@ let roster;
 
 before(async () => {
   ctx = await scratchDb("activity");
+  await trackClans(ctx.db, [CLAN]);
   const db = ctx.db;
   await db.query(
     `insert into clan (clan_tag, name) values ($1, 'POAP KINGS')`,

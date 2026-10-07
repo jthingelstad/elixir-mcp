@@ -101,10 +101,14 @@ it costs proportionally more to run — the member tier has none, so
 Players you track are always comprehensive. A recorded player's current clan is
 also read for roster and membership tracking — a few times a day, following
 the clan's own liveliness — without a slot and without polling the other
-members.
+members. When nobody tracks that clan, the read keeps only what concerns
+the players you track: their membership and role, their roster row, and the
+clan's name. The other members, and the clan's own daily numbers, are not
+kept (since 2026-10-07). Track the clan to keep them.
 
-**A roster poll records what it carries** (since 2026-09-17). Every clan the
-recorder reads gets one row per game day of its own numbers (clan score, war
+**A tracked clan's roster poll records what it carries** (since 2026-09-17;
+limited to tracked clans since 2026-10-07). Every clan someone tracks gets
+one row per game day of its own numbers (clan score, war
 trophies, member count, required trophies, weekly donations), and every member
 on that roster gets a row in the same daily series a recorded player's profile
 writes — trophies, donations, clan rank, arena and the game's own last-seen —

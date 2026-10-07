@@ -95,6 +95,12 @@ before(async () => {
     [account.account_id],
   );
   gatewayId = gw.gateway_id;
+  // Rosters of a clan nobody records keep only tracked members.
+  await db.query(
+    `insert into recording (subject_type, subject_tag, requested_by, status, scope)
+     values ('clan', '#J2RGCRVG', $1, 'active', 'comprehensive')`,
+    [account.account_id],
+  );
 });
 after(async () => {
   await db.end();

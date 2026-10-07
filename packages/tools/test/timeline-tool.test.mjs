@@ -10,7 +10,12 @@ import { projectRiverRaceLog } from "../../ingest/src/war.mjs";
 import { ingestBattlelog } from "../../ingest/src/battles.mjs";
 import { projectPlayerSnapshot } from "../../ingest/src/snapshots.mjs";
 import { emitEvent } from "../../ingest/src/events.mjs";
-import { fixture, scratchDb, seedReceipt } from "../../ingest/test/helpers.mjs";
+import {
+  fixture,
+  scratchDb,
+  seedReceipt,
+  trackClans,
+} from "../../ingest/test/helpers.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { storyId } from "../src/activity/entries.mjs";
@@ -88,6 +93,7 @@ async function call(name, args = {}) {
 
 before(async () => {
   ctx = await scratchDb("activity_tool");
+  await trackClans(ctx.db, [CLAN]);
   const db = ctx.db;
   await db.query(
     `insert into clan (clan_tag, name) values ($1, 'POAP KINGS')`,

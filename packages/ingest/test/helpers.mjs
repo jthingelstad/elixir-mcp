@@ -76,3 +76,21 @@ export async function seedReceipt(
   );
   return receipt.receipt_id;
 }
+
+/** Record clans so their rosters write every member (rosterRecords). */
+export async function trackClans(db, tags) {
+  const {
+    rows: [account],
+  } = await db.query(
+    `insert into account (email_hash, status, role)
+     values ('test-clan-tracker', 'approved', 'member')
+     on conflict (email_hash) do update set status = excluded.status
+     returning account_id`,
+  );
+  for (const tag of tags)
+    await db.query(
+      `insert into recording (subject_type, subject_tag, requested_by, status, scope)
+       values ('clan', $1, $2, 'active', 'comprehensive')`,
+      [tag, account.account_id],
+    );
+}
