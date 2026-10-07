@@ -18,6 +18,7 @@ import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
 import { profileTool } from "./ops-profile.mjs";
 import { retainedDayAudit } from "./ops-retained-day.mjs";
 import { trackedCensus } from "./ops-tracked-census.mjs";
+import { trackedPurge } from "./ops-tracked-purge.mjs";
 
 import {
   seed,
@@ -187,6 +188,32 @@ async function dispatch(event) {
         part: result.part,
         elapsed_ms: result.elapsed_ms,
         error: result.error,
+      }),
+    );
+    return result;
+  }
+  if (
+    Object.hasOwn(event ?? {}, "tracked_purge") &&
+    (Object.keys(event).length !== 1 || !event.tracked_purge)
+  )
+    return { error: "invalid_tracked_purge", reason: "exclusive_op_required" };
+  if (event?.tracked_purge) {
+    const result = await trackedPurge(
+      process.env.DATABASE_URL,
+      event.tracked_purge,
+    );
+    // Counts and cursors only; batch ids stay in the response.
+    console.log(
+      JSON.stringify({
+        op: "tracked_purge",
+        phase: result.phase,
+        apply: result.apply,
+        selected: result.selected,
+        deleted: result.deleted,
+        done: result.done,
+        elapsed_ms: result.elapsed_ms,
+        error: result.error,
+        reason: result.reason,
       }),
     );
     return result;

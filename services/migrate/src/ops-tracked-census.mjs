@@ -20,7 +20,7 @@ const PARTS = [
   "keep_tags",
 ];
 
-const KEEP_SQL = `
+export const KEEP_SQL = `
   tracked_players as materialized (
     select subject_tag as player_tag from recording
      where subject_type = 'player' and status = 'active'
@@ -64,12 +64,12 @@ const KEEP_SQL = `
       join keep_players k on k.player_tag = bp.player_tag
   )`;
 
-const PLAYER_ENDPOINTS = ["player", "player_battlelog"];
-const CLAN_ENDPOINTS = ["clan", "currentriverrace", "riverracelog"];
-// Global capture that retired on 2026-10-02; the card catalog and game
-// events are reference data and stay.
-const RETIRED_ENDPOINTS = [
-  "globaltournaments",
+export const PLAYER_ENDPOINTS = ["player", "player_battlelog"];
+export const CLAN_ENDPOINTS = ["clan", "currentriverrace", "riverracelog"];
+// Global capture that retired on 2026-10-02; the card catalog, game
+// events and the tournament catalog are reference data the planner still
+// seeds, and stay.
+export const RETIRED_ENDPOINTS = [
   "leaderboard",
   "leaderboards",
   "rankings_clans_loc",
@@ -203,7 +203,7 @@ const IDENTITY_SQL = `, identity_players as materialized (
     union select player_tag from agent_identity
   )`;
 
-const PLAYER_TABLES = [
+export const PLAYER_TABLES = [
   "player_snapshot_daily",
   "player_card",
   "player_badge",
@@ -296,6 +296,15 @@ async function clans(db) {
          where s.clan_tag is not null
            and s.player_tag in (select player_tag from keep_players)
        union select clan_tag from agent_policy_context_grant
+       -- Rivals in a tracked clan's races, and the clans on kept battles,
+       -- keep their names (the purge's rule: nothing left names them).
+       union select w.participant_clan_tag from war_week_clan w
+         where w.clan_tag in (select clan_tag from tracked_clans)
+       union select w.participant_clan_tag from war_period_log w
+         where w.clan_tag in (select clan_tag from tracked_clans)
+       union select bp.clan_tag from battle_participant bp
+         join keep_battles k on k.battle_id = bp.battle_id
+         where bp.clan_tag is not null
      )
      select (select count(*) from clan)::int as clans,
             (select count(*) from clan c

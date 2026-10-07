@@ -6592,3 +6592,29 @@ orphaned decks, player and clan tables, receipts and poll rows, plus players
 held only because a tracked player's own clan roster is polled. `keep_tags`
 returns the kept subjects for the archive comparison. No deletion code exists
 yet; the purge waits for Jamie's review of the census numbers.
+
+### The correction and its guard against regrowth (2026-10-07)
+
+Jamie approved the census numbers and the roster change the same night.
+Thirteen active player recordings carried `ops` or `collection` origins;
+the census `recordings` part showed every one is claimed by at least one
+account and is a current or former member of a comprehensively recorded
+clan, so all stay, relabelled as claims.
+
+**Roster polls of untracked clans.** A recorded player's own clan is still
+polled for that player's membership and role, but when no recording or
+account names the clan, `rosterRecords` limits both roster writers
+(`ingestClanRoster`, `projectClanSeries`) to the tracked players on it,
+and the clan writes no day row. Liveliness and departures still read the
+whole roster. Archive replay goes through the same writers. This narrows
+the 2026-09-17 "a roster poll records what it carries" rule to tracked
+clans; `recording.md` says so.
+
+**`{tracked_purge}`** applies the census rule in keyset batches. Clan and
+player identity rows go only once nothing left names them, which keeps
+the rivals in a tracked clan's races and the clans on kept battles; the
+census `clans` part now counts those as identities too. The tournament
+catalog stays out of the retired endpoints: the planner still seeds it.
+The payload archive is deleted from the operator CLI against the
+post-purge `keep_tags`; the cloud-engineer role already holds that
+permission, so no grant was added.
