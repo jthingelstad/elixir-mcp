@@ -6531,3 +6531,43 @@ screenshots at 390px and 1280px confirmed complete capture text and the win/loss
 column fit; no page errors, writes, overflow or serious/critical axe findings.
 The first standalone preview lacked its served output directory; rebuilding to
 an isolated temporary output resolved that preview setup without a source change.
+
+
+### Final year-evidence release receipt
+
+The mobile fix-forward PR #338 merged as
+`3778aa2a90ecef38c5000fa9bd1b4f595d70fc56`. CI run 37556912062 passed on
+head `7ef975a5`, including all 229 browser journeys with no flaky-test report.
+Full local validation passed 1,928 Node and 481 UI tests, zero failures;
+85 existing structural non-live skips. The 32 focused year controls include
+the table's own container bounds, retaining the UTC/leap/year, evidence,
+failed-read/retry, player isolation, colour and accessibility controls.
+
+Canonical deployment completed under a fresh session lease with
+`--verify-reference-seed`. All 203 migrations were already applied; zero ran.
+The reference seed was identical (47 roles, 29 aliases, zero differences),
+and all 43 smoke assertions passed. No MCP acceptance was requested because
+private account API, browser and documentation changed, with no public tool or
+JSON API contract change. MCP remains 11.2.3 and JSON API remains 3.0.0.
+
+At 01:36:44Z (8:36:44 PM CT, 2026-10-06), all seven Lambda artifacts matched
+the final built release and were Active / Successful. Public health was green,
+the served app shell matched, Activity/Updates carried both the evidence rule
+and phone-list fix, and the private year refused unauthenticated access.
+At 01:37:10Z (8:37:10 PM CT), 24 synthetic year states against released assets
+at 390px and 1280px passed with zero page errors, API writes, document overflow,
+table excess width/right-edge overrun or serious/critical axe findings.
+Released screenshots confirmed full capture labels and win/loss results on
+mobile. This closes the clipping found in #337's screenshot review; its earlier
+receipt preserves the finding. No real signup, email, tracking, new credentials or
+tester invitation was used for acceptance.
+
+The operational round-trip plan is prepared privately and remains unexecuted
+pending parent review. It names the existing owner, exact recipient/player,
+a one-sign-in-email budget, auth/session side effects, conditional duplicate
+tracking, zero incremental capture under the confirmed baseline, and single-
+session cleanup. It explicitly cannot prove new-member creation or first-
+capture timing; those need a separately approved controlled fresh-person path.
+No sibling, collector scheduling, Clan management or purge changed. The final
+production lease was released after verified read-back. This notes-only receipt
+needs no redeployment.
