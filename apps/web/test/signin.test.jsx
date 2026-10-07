@@ -7,7 +7,13 @@
  * however many times they tried it.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  waitFor,
+} from "@testing-library/react";
 import { SignIn } from "../src/views/SignIn.jsx";
 
 function reply(status, body) {
@@ -21,6 +27,7 @@ function reply(status, body) {
 
 beforeEach(() => {
   cleanup();
+  window.sessionStorage.clear();
   window.history.pushState({}, "", "/console/signin");
   reply(200, { ok: true });
 });
@@ -145,7 +152,10 @@ test("a double submission while delivery is pending sends one email request", as
 
 test("signup discloses existing mail policy and the independent collector gate", () => {
   render(<SignIn onAuthed={vi.fn()} />);
-  expect(screen.getByText(/product news and reports/)).toBeTruthy();
+  expect(screen.getByLabelText("Send me Elixir product news").checked).toBe(
+    true,
+  );
+  expect(screen.getByText(/Reports have their own off switches/)).toBeTruthy();
   expect(screen.getByText(/Collectors need separate approval/)).toBeTruthy();
   expect(
     screen.getByRole("link", { name: "Privacy" }).getAttribute("href"),
@@ -162,4 +172,60 @@ test("an interrupted magic-link response offers recovery without calling the lin
   expect(screen.queryByText("That link is expired or already used")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Start again" }));
   expect(screen.getByLabelText("Email")).toBeTruthy();
+});
+
+test("an unchecked new-account choice survives interruption, remount and resend; proof clears only the form draft", async () => {
+  const requests = [];
+  let fail = true;
+  const done = vi.fn();
+  global.fetch = vi.fn(async (path, init) => {
+    const body = JSON.parse(init.body);
+    if (path === "/api/auth") requests.push(body);
+    const status = fail ? 503 : 200;
+    return {
+      ok: status === 200,
+      status,
+      json: async () =>
+        fail ? { message: "Mail request interrupted." } : { ok: true },
+      text: async () =>
+        JSON.stringify(
+          fail ? { message: "Mail request interrupted." } : { ok: true },
+        ),
+    };
+  });
+  render(<SignIn onAuthed={done} />);
+  const choice = screen.getByLabelText("Send me Elixir product news");
+  expect(choice.checked).toBe(true);
+  fireEvent.click(choice);
+  fireEvent.change(screen.getByLabelText("Email"), {
+    target: { value: "fixture@example.com" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
+  expect(await screen.findByText("Mail request interrupted.")).toBeTruthy();
+  cleanup();
+  fail = false;
+  render(<SignIn onAuthed={done} />);
+  expect(screen.getByLabelText("Send me Elixir product news").checked).toBe(
+    false,
+  );
+  fireEvent.change(screen.getByLabelText("Email"), {
+    target: { value: "fixture@example.com" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
+  await screen.findByLabelText("6-digit code");
+  fireEvent.click(screen.getByText("Send another email"));
+  await waitFor(() => expect(requests).toHaveLength(3));
+  expect(requests).toEqual(
+    Array(3).fill({ email: "fixture@example.com", newsletter_opt_in: false }),
+  );
+  fireEvent.change(screen.getByLabelText("6-digit code"), {
+    target: { value: "123456" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  await waitFor(() => expect(done).toHaveBeenCalledOnce());
+  cleanup();
+  render(<SignIn onAuthed={vi.fn()} />);
+  expect(screen.getByLabelText("Send me Elixir product news").checked).toBe(
+    true,
+  );
 });

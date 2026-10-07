@@ -31,8 +31,11 @@ Then add your player in [Console ▸ Tracking](/console/account/tracking), read
 your recorded play in [Ladder](/ladder), or follow [Bring your clan](/docs/bring-your-clan).
 A collector is not required to join. Collector approval, recording allowances
 and the fleet's shared fetch budget are separate from signup and unchanged.
-Your account includes product news and reports under the existing mail policy;
-each mail has a way to stop it. See [Privacy](/docs/privacy) and [Emails](/docs/email).
+New signup has a checked “Send me Elixir product news” box; uncheck it before
+requesting your sign-in email to skip newsletter enrollment. Signing in to an
+existing account preserves its newsletter choice. Sign-in and welcome mail
+still arrive; reports have separate controls. See [Privacy](/docs/privacy) and
+[Emails](/docs/email).
 
 ## Signing in
 

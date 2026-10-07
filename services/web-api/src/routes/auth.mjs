@@ -69,6 +69,11 @@ export function authRoutes({
     "POST /api/auth": async (db, event, body) => {
       const ip = viewerIp(event) ?? "unknown";
       const email = String(body.email ?? "").trim();
+      if (
+        body.newsletter_opt_in !== undefined &&
+        typeof body.newsletter_opt_in !== "boolean"
+      )
+        return json(400, { error: "bad_request" });
       if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
         return json(400, { error: "bad_request" });
       const okIp = await checkRateLimit(db, {
@@ -113,7 +118,10 @@ export function authRoutes({
           const { token, code } = await startMagicLogin(db, {
             emailHash: emailHash(email),
             purpose: "web",
-            context: { signup_email: email.toLowerCase() },
+            context: {
+              signup_email: email.toLowerCase(),
+              signup_news: body.newsletter_opt_in !== false,
+            },
             pollId,
             startedFrom: {
               ...sessionSeenFrom(event),
@@ -125,9 +133,8 @@ export function authRoutes({
             code,
             token,
             purpose: "web",
-            // Beta participation includes the product emails (0051).
-            // Read here because the relay has no database; unsubscribing
-            // happens at Buttondown and is never overridden.
+            // Existing accounts keep their saved choice. A new account's
+            // checkbox is applied only after proof, on the welcome send.
             newsletter:
               account.status === "approved" &&
               account.newsletter_opt_in === true,
@@ -149,6 +156,7 @@ export function authRoutes({
       const minted = await mintSessionResponse(db, row.email_hash, {
         event,
         verifiedEmail: row.context?.signup_email,
+        verifiedNewsletter: row.context?.signup_news !== false,
       });
       if (minted.statusCode !== 200) return minted;
       // The screen that asked may be a different one (0083). From the
@@ -288,6 +296,7 @@ export function authRoutes({
       return mintSessionResponse(db, hash, {
         event,
         verifiedEmail: result.row.context?.signup_email,
+        verifiedNewsletter: result.row.context?.signup_news !== false,
       });
     },
 

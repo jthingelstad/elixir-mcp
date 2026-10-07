@@ -47,8 +47,10 @@ lets you browse the recorded facts directly.
 **Who runs it:** this is a hobby service operated by Jamie Thingelstad
 for the POAP KINGS clan and friends. It is free, and paid tiers are not
 planned (see [Terms](/docs/terms)). Occasional product updates go out on the
-Elixir newsletter (you're enrolled at sign-in; every issue has an
-unsubscribe link, and unsubscribing sticks).
+Elixir newsletter. New signup has a checked “Send me Elixir product news”
+box; uncheck it before requesting your sign-in email to skip enrollment.
+Existing newsletter choices stay the same. Every issue has an unsubscribe
+link, and unsubscribing sticks.
 
 **Inside Elixir:** [Clan](/clan) helps you run your clan: standing, the
 Elder band and the actions leaders decide, using your clan's own policy.

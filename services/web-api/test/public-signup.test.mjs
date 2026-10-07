@@ -34,8 +34,10 @@ function event(p, body, cookie, ip = `198.51.100.${++request}`) {
 }
 const parse = (r) => JSON.parse(r.body);
 const cookieOf = (r) => r.headers["set-cookie"].split(";")[0];
-async function ask(email, ip) {
-  const response = await handler(event("/api/auth", { email }, null, ip));
+async function ask(email, ip, choice = undefined) {
+  const response = await handler(
+    event("/api/auth", { email, newsletter_opt_in: choice }, null, ip),
+  );
   return { response, mail: mails.findLast((m) => m.email === email) };
 }
 async function signup(email) {
@@ -137,6 +139,144 @@ test("public signup creates only a member after email proof; a failed code and a
       .rowCount,
     1,
   );
+});
+
+test("new signup freezes checked and unchecked news choices in code/link proof, ignoring redeem payloads", async () => {
+  for (const choice of [false, true]) {
+    for (const method of ["code", "redeem"]) {
+      const email = `news-${choice}-${method}@example.com`;
+      const { mail } = await ask(email, undefined, choice);
+      assert.equal(mail.newsletter, false);
+      assert.equal(
+        (
+          await db.query("select 1 from account where email_hash=$1", [
+            emailHash(email),
+          ])
+        ).rowCount,
+        0,
+      );
+      const result = await handler(
+        event(`/api/auth/${method}`, {
+          email,
+          code: mail.code,
+          token: mail.token,
+          newsletter_opt_in: !choice,
+        }),
+      );
+      assert.equal(result.statusCode, 200, result.body);
+      const {
+        rows: [account],
+      } = await db.query(
+        "select newsletter_opt_in from account where email_hash=$1",
+        [emailHash(email)],
+      );
+      assert.equal(account.newsletter_opt_in, choice);
+      assert.deepEqual(
+        welcomes.filter((m) => m.email === email),
+        [{ email, newsletter: choice }],
+      );
+    }
+  }
+});
+
+test("unchecked resends, cross-device proof and collection preserve the new account's choice", async () => {
+  const email = "news-handoff@example.com";
+  await ask(email, "198.51.100.171", false);
+  const { mail, response } = await ask(email, "198.51.100.171", false);
+  const redeemed = await handler(
+    event(
+      "/api/auth/redeem",
+      { token: mail.token, newsletter_opt_in: true },
+      null,
+      "198.51.100.172",
+    ),
+  );
+  assert.equal(redeemed.statusCode, 200, redeemed.body);
+  const handoff = parse(redeemed).handoff;
+  assert.equal(handoff.state, "confirm");
+  assert.equal(
+    (
+      await handler(
+        event(
+          "/api/auth/handoff",
+          { confirm: handoff.confirm },
+          cookieOf(redeemed),
+        ),
+      )
+    ).statusCode,
+    200,
+  );
+  const collected = await handler(
+    event(
+      "/api/auth/poll",
+      { poll_id: parse(response).poll_id },
+      null,
+      "198.51.100.171",
+    ),
+  );
+  assert.equal(parse(collected).ready, true);
+  assert.deepEqual(
+    welcomes.filter((m) => m.email === email),
+    [{ email, newsletter: false }],
+  );
+  const later = await ask(email, undefined, true);
+  assert.equal(
+    later.mail.newsletter,
+    false,
+    "default-on subsequent sign-in does not override the saved opt-out",
+  );
+});
+
+test("invalid choice cannot issue mail; existing approved and pending accounts preserve either preference", async () => {
+  const invalid = await ask("news-invalid@example.com", undefined, "false");
+  assert.equal(invalid.response.statusCode, 400);
+  assert.equal(invalid.mail, undefined);
+  for (const status of ["approved", "requested"]) {
+    for (const saved of [false, true]) {
+      const email = `news-existing-${status}-${saved}@example.com`;
+      await db.query(
+        "insert into account (email_hash,email,status,role,kind,newsletter_opt_in) values ($1,$2,$3,'member','person',$4)",
+        [emailHash(email), email, status, saved],
+      );
+      const { mail } = await ask(email, undefined, !saved);
+      assert.equal(mail.newsletter, status === "approved" && saved);
+      const result = await handler(
+        event("/api/auth/code", { email, code: mail.code }),
+      );
+      assert.equal(result.statusCode, 200);
+      const {
+        rows: [account],
+      } = await db.query(
+        "select newsletter_opt_in from account where email_hash=$1",
+        [emailHash(email)],
+      );
+      assert.equal(account.newsletter_opt_in, saved);
+    }
+  }
+});
+
+test("different concurrent signup choices preserve the creator's frozen choice and queue one welcome", async () => {
+  const email = "news-concurrent@example.com";
+  const first = await ask(email, undefined, false);
+  const second = await ask(email, undefined, true);
+  const results = await Promise.all(
+    [first, second].map(({ mail }) =>
+      handler(event("/api/auth/redeem", { token: mail.token })),
+    ),
+  );
+  assert.deepEqual(
+    results.map((r) => r.statusCode),
+    [200, 200],
+  );
+  const sent = welcomes.filter((m) => m.email === email);
+  assert.equal(sent.length, 1);
+  const {
+    rows: [account],
+  } = await db.query(
+    "select newsletter_opt_in from account where email_hash=$1",
+    [emailHash(email)],
+  );
+  assert.equal(account.newsletter_opt_in, sent[0].newsletter);
 });
 
 test("repeated and concurrent link redemption opens one account and one session", async () => {

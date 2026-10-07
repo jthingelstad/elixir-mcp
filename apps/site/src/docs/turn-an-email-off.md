@@ -78,5 +78,11 @@ The product newsletter is not one of the eight. It goes out through a
 separate service, Buttondown, and you leave it with the unsubscribe link
 in any newsletter issue.
 
+For a new account, **Send me Elixir product news** on the sign-in form is
+checked by default. Uncheck it before requesting your email to avoid newsletter
+enrollment. Your email proof preserves the choice; subsequent sign-ins leave
+existing choices and unsubscribes alone. The **Every email** switch controls
+Elixir's reports and notices, not Buttondown or sign-in/welcome mail.
+
 Ultimate Champions (Top 100) and Card of the Week have ended. Their sent
 issues and old unsubscribe links remain available; they cannot be enabled again.

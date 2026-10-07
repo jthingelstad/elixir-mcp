@@ -37,8 +37,13 @@ kind of app only: an Elixir family app you sign in to and allow to see
 it.
 
 **Mail.** Occasional product news goes out through
-[Buttondown](https://buttondown.com), and signing in adds you to that
-list. Elixir also sends reports and notes about your own play, each
+[Buttondown](https://buttondown.com). The sign-in/create-account form has
+**Send me Elixir product news**, checked by default for a new account;
+uncheck it before requesting the email to create your account without
+newsletter enrollment. Email proof keeps that choice. Signing in to an
+existing account leaves its newsletter choice and any unsubscribe intact.
+Sign-in and welcome mail are service mail, independent of this checkbox.
+Elixir also sends reports and notes about your own play, each
 with its own off switch. Every mail has a way to stop it, and a stop is
 never undone by the service. Mail is counted by issue (how many were
 opened, which links were clicked), never by who opened it.

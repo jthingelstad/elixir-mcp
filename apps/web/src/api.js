@@ -26,7 +26,8 @@ const home = (agent) =>
 
 export const api = {
   me: (agent) => request("GET", home(agent)),
-  sendLoginEmail: (email) => request("POST", "/api/auth", { email }),
+  sendLoginEmail: (email, newsletterOptIn = true) =>
+    request("POST", "/api/auth", { email, newsletter_opt_in: newsletterOptIn }),
   redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
   redeemCode: (email, code) =>
     request("POST", "/api/auth/code", { email, code }),

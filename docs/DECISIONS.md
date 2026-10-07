@@ -174,7 +174,7 @@ it is not a target to preserve or recreate over friends or clans.
 - **No public issue page** — "sharing means forwarding the email". (2026-09-18 late; Jamie)
 - **Pixel and utm on all mail** — the pixel names the mail, never the reader; owner notifications carry no pixel. Supersedes the pixel-free promise. (2026-09-18 late; Jamie)
 - **Every send has an id and a record** — the footer links the record and one-click feedback, plus the sponsorship line; the relay logs the send id, never the recipient. (2026-09-19; Jamie)
-- **Mail is composed by calling the tools** — never a second derivation; Buttondown stays Jamie's announcement channel only; newsletter is opt-out. (2026-09-18, 2026-09-07; Jamie)
+- **Mail is composed by calling the tools** — never a second derivation; Buttondown stays Jamie's announcement channel only. New signup shows **Send me Elixir product news**, checked by default; unchecking before the email request prevents that signup's newsletter enrollment. The selected choice rides the server-frozen email proof and applies only to a newly created account; existing accounts and Buttondown unsubscribes are never overwritten by sign-in. Login/welcome service mail and per-kind report preferences are separate. Supersedes signup without a newsletter choice. (2026-09-18, 2026-09-07, 2026-10-07; Jamie: "Yes, we should have a default on checkbox")
 
 ## Web and site
 
