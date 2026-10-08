@@ -255,6 +255,124 @@ test("invalid choice cannot issue mail; existing approved and pending accounts p
   }
 });
 
+// Jamie, 2026-10-08: "Approved: new elixir accounts take the browser's
+// time zone at signup". The zone rides the request, like the news choice.
+async function askZoned(email, timezone, ip) {
+  const response = await handler(
+    event("/api/auth", { email, timezone }, null, ip),
+  );
+  assert.equal(response.statusCode, 200, response.body);
+  return { response, mail: mails.findLast((m) => m.email === email) };
+}
+const zoneOf = async (email) =>
+  (
+    await db.query("select timezone from account where email_hash=$1", [
+      emailHash(email),
+    ])
+  ).rows[0]?.timezone;
+
+test("a new account opens on the signup browser's zone, by code or by link", async () => {
+  for (const method of ["code", "redeem"]) {
+    const email = `zone-new-${method}@example.com`;
+    const { mail } = await askZoned(email, "America/Chicago");
+    assert.equal(await zoneOf(email), undefined, "no account before proof");
+    const result = await handler(
+      event(`/api/auth/${method}`, {
+        email,
+        code: mail.code,
+        token: mail.token,
+        timezone: "Asia/Tokyo",
+      }),
+    );
+    assert.equal(result.statusCode, 200, result.body);
+    assert.equal(await zoneOf(email), "America/Chicago");
+  }
+});
+
+test("a link opened on another device opens the account on the asking browser's zone", async () => {
+  const email = "zone-handoff@example.com";
+  const { mail, response } = await askZoned(
+    email,
+    "Europe/Berlin",
+    "198.51.100.181",
+  );
+  const redeemed = await handler(
+    event(
+      "/api/auth/redeem",
+      { token: mail.token, timezone: "America/New_York" },
+      null,
+      "198.51.100.182",
+    ),
+  );
+  assert.equal(parse(redeemed).handoff.state, "confirm");
+  assert.equal(await zoneOf(email), "Europe/Berlin");
+  await handler(
+    event(
+      "/api/auth/handoff",
+      { confirm: parse(redeemed).handoff.confirm },
+      cookieOf(redeemed),
+    ),
+  );
+  const collected = await handler(
+    event(
+      "/api/auth/poll",
+      { poll_id: parse(response).poll_id },
+      null,
+      "198.51.100.181",
+    ),
+  );
+  assert.equal(parse(collected).ready, true);
+  assert.equal(await zoneOf(email), "Europe/Berlin");
+});
+
+test("a missing, UTC or invalid signup zone leaves the new account on UTC and never refuses the mail", async () => {
+  for (const [i, zone] of [
+    undefined,
+    "",
+    "UTC",
+    "utc",
+    "Mars/Olympus_Mons",
+    "America/Chicago; drop table account",
+    "x".repeat(5000),
+    42,
+    ["America/Chicago"],
+    { tz: "America/Chicago" },
+  ].entries()) {
+    const email = `zone-invalid-${i}@example.com`;
+    const { mail } = await askZoned(email, zone);
+    assert.ok(mail?.code, `mail issued for ${JSON.stringify(zone)}`);
+    const result = await handler(
+      event("/api/auth/code", { email, code: mail.code }),
+    );
+    assert.equal(result.statusCode, 200, result.body);
+    assert.equal(await zoneOf(email), null, JSON.stringify(zone));
+  }
+});
+
+test("signing in to an existing account never changes its zone", async () => {
+  for (const status of ["approved", "requested"]) {
+    for (const saved of [null, "Europe/Oslo"]) {
+      const email = `zone-existing-${status}-${saved ?? "none"}@example.com`;
+      await db.query(
+        "insert into account (email_hash,email,status,role,kind,timezone) values ($1,$2,$3,'member','person',$4)",
+        [emailHash(email), email, status, saved],
+      );
+      for (const method of ["code", "redeem"]) {
+        const { mail } = await askZoned(email, "America/Chicago");
+        const result = await handler(
+          event(`/api/auth/${method}`, {
+            email,
+            code: mail.code,
+            token: mail.token,
+          }),
+        );
+        assert.equal(result.statusCode, 200, result.body);
+        assert.equal(await zoneOf(email), saved, `${status} ${method}`);
+      }
+    }
+  }
+});
+
 test("different concurrent signup choices preserve the creator's frozen choice and queue one welcome", async () => {
   const email = "news-concurrent@example.com";
   const first = await ask(email, undefined, false);

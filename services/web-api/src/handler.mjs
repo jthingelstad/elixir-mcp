@@ -226,6 +226,7 @@ export function makeHandler({
       extra = {},
       verifiedEmail = null,
       verifiedNewsletter = true,
+      verifiedZone = null,
     } = {},
   ) {
     const opened = verifiedEmail
@@ -233,6 +234,7 @@ export function makeHandler({
           emailHash: hash,
           email: verifiedEmail,
           newsletterOptIn: verifiedNewsletter,
+          timezone: verifiedZone,
         })
       : null;
     const account = await approvedAccount(db, hash);

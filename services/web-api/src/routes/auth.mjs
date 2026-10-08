@@ -19,6 +19,7 @@ import {
   revokeAccountSessions,
   signinMailAllowed,
   viewerIp,
+  accountZone,
 } from "@elixir-mcp/auth";
 import { normalizeTag } from "@elixir-mcp/contracts";
 
@@ -121,6 +122,14 @@ export function authRoutes({
             context: {
               signup_email: email.toLowerCase(),
               signup_news: body.newsletter_opt_in !== false,
+              // The asking browser's zone, frozen with the request like
+              // the news choice: a new account opens on it wherever the
+              // link is redeemed (Jamie, 2026-10-08). Profile's check;
+              // a zone it refuses is dropped, never an error.
+              signup_zone:
+                typeof body.timezone === "string"
+                  ? (accountZone(body.timezone) ?? null)
+                  : null,
             },
             pollId,
             startedFrom: {
@@ -157,6 +166,7 @@ export function authRoutes({
         event,
         verifiedEmail: row.context?.signup_email,
         verifiedNewsletter: row.context?.signup_news !== false,
+        verifiedZone: row.context?.signup_zone ?? null,
       });
       if (minted.statusCode !== 200) return minted;
       // The screen that asked may be a different one (0083). From the
@@ -297,6 +307,7 @@ export function authRoutes({
         event,
         verifiedEmail: result.row.context?.signup_email,
         verifiedNewsletter: result.row.context?.signup_news !== false,
+        verifiedZone: result.row.context?.signup_zone ?? null,
       });
     },
 
