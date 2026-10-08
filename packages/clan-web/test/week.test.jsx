@@ -127,6 +127,40 @@ describe("the week in the clan", () => {
     );
   });
 
+  test("the heading and the running week name different weeks; a week before Elixir followed the clan says so", async () => {
+    const report = weeklyReport(part, { roster, policy: null, now: NOW });
+    // Followed three days into the latest closed week: nothing to show.
+    const followed = new Date(
+      Date.parse(report.week.from) + 3 * 86_400_000,
+    ).toISOString();
+    vi.spyOn(manageApi, "week").mockResolvedValue(
+      answer(null, {
+        areas: [],
+        highlight: { basis: "activity", counted: [] },
+        recorded_from: followed,
+      }),
+    );
+    renderWithProviders(<Week clan={clan} week={null} navigate={vi.fn()} />);
+    const lede = await screen.findByText(
+      /^The week of .*, the latest to close: it closed at the Monday reset on /,
+    );
+    expect(lede.textContent).not.toMatch(/[A-Z][a-z]+ \d+ to [A-Z][a-z]+ \d+/);
+    // The running week is the next one, by its own Monday.
+    const soFar = screen.getByRole("heading", {
+      name: "This week so far",
+    }).parentElement;
+    expect(soFar.textContent).toMatch(/the week of \w+ \d+, closes \w+ \d+/);
+    // Never a blank column.
+    const why = screen
+      .getByRole("heading", {
+        name: "Before Elixir followed this clan",
+      })
+      .closest("section");
+    expect(why.textContent).toMatch(
+      /Elixir started following this clan on \w+ \d+, after this week began, so it holds no record of the week\. The first full week it records closes at the Monday reset on \w+ \d+\./,
+    );
+  });
+
   test("its address is on the rail and collapses in analytics", () => {
     expect(railKey("/clan/2PQRJ8LV/week")).toBe("week");
     expect(railKey("/clan/2PQRJ8LV/week/2026-w36")).toBe("week");
