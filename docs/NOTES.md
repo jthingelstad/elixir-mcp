@@ -397,3 +397,11 @@ Spread the word, behind 10 members and an active policy.
   log holds 25 battles; both now say roughly the last 30, as #371 did
   elsewhere.
 - MCP 11.4.0 and JSON API 3.1.0 unchanged.
+- Deployed aa0a33e1 (#372), stack update 21:46Z (4:46 PM CT), platform
+  lane, no acceptance (no tool changed; console, site, mail copy and a
+  data migration). Migrations `{"applied":205,"ran":1}`: 0206 ran.
+  `{account_role: {list}}` afterwards: 25 approved people with
+  `auto_follow_clan` on (24 made before 0205 plus one made since), 8
+  agents and 3 integrations off. No `primary_clan_followed` from the
+  backfill yet at 21:50Z; they come with each primary's next profile
+  admission (Logs Insights on `/aws/lambda/elixir-mcp-collector`).
