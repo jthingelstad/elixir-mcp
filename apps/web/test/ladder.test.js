@@ -67,9 +67,7 @@ test("every Ladder page has a rail position, a title and a docs strip entry", ()
     });
     expect(DOC_LINKS[here.doc], `${path} has no docs strip`).toBeTruthy();
     expect(ladderTitle(path)).toBe(`${p.label} - Ladder - Elixir`);
-    expect(titleFor("ladder", {}, path)).toBe(
-      `${p.label} - Ladder - Elixir`,
-    );
+    expect(titleFor("ladder", {}, path)).toBe(`${p.label} - Ladder - Elixir`);
   }
   for (const [, links] of LADDER_PAGES.map(
     (p) => DOC_LINKS[`ladder:${p.slug}`],
