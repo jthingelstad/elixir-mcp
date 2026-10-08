@@ -3330,3 +3330,30 @@ test("retired personal and admin Collection routes are absent", async () => {
     }
   }
 });
+
+test("admin beta pulse: counts by signup week for an admin, refused to a member", async () => {
+  const res = await handler(
+    event({
+      method: "GET",
+      path: "/api/admin/pulse",
+      cookie: bossCookie,
+      body: undefined,
+    }),
+  );
+  assert.equal(res.statusCode, 200);
+  const pulse = parse(res);
+  assert.equal(pulse.weeks.length, 8);
+  assert.ok(pulse.weeks.every((w) => /^\d{4}-W\d{2}$/.test(w.week)));
+  assert.ok(pulse.totals.signed_up >= 1, "the newcomer signed up this week");
+  assert.ok(!res.body.includes("@"), "no address in the pulse");
+  assert.equal(pulse.opens.measured_here, false);
+  const member = await handler(
+    event({
+      method: "GET",
+      path: "/api/admin/pulse",
+      cookie: memberCookie,
+      body: undefined,
+    }),
+  );
+  assert.equal(member.statusCode, 403);
+});
