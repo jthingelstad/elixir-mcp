@@ -8,8 +8,6 @@
  *     rows("clans_participation", { weeks: 1 }, "members", "player_tag", warDecksThisWeek))
  *   ordered("a rival's counts nest", "war_rivals", {}, "rivals",
  *     ["zero_fame_races", "finished_races", "races_observed"])
- *   sums("considered = exclusions + decided", "battles_meta_decks", { segment: "corpus", limit: 5 },
- *     "excluded.considered", [...parts])
  *
  * Every rule compiles to a case `{ id, run(ctx) }` whose failure names
  * the rows that disagree. Paths are dotted (`snapshot.entries`); a

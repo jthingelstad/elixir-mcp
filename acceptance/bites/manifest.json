@@ -24,15 +24,6 @@
     "expect": "rows lack finished_races"
   },
   {
-    "feedback": 77,
-    "contract": "6.9.0",
-    "why": "a 7-day corpus meta read answered query_timeout",
-    "rule": "answered",
-    "capture": "77-meta-decks-corpus-week.json",
-    "expect": "refused query_timeout",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
     "contract": "6.10.0",
     "why": "in_progress emitted only when true: absent on a closed week the note describes (the acceptance suite's first finding, fixed in 6.13.0)",
     "rule": "notesNameFields",
@@ -114,15 +105,6 @@
     "case": "gym/91.2",
     "captures": ["91-badges_holders-valkyrie-mine.json"],
     "expect": "notes_match /observed_at/"
-  },
-  {
-    "feedback": 92,
-    "contract": "6.19.3",
-    "why": "the Gym's block 92.1: RoyalTournamentRank and its _v2 served under one label; the legacy one read as the rarest",
-    "case": "gym/92.1",
-    "captures": ["92-badges_rarity-corpus.json"],
-    "expect": "neq badges\\[\\?name=RoyalTournamentRank\\]\\.label",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 93,
@@ -213,24 +195,6 @@
     "expect": "princess\\[0\\]: absent"
   },
   {
-    "feedback": 102,
-    "contract": "6.21.1",
-    "why": "the Gym's block 102.1: ranked ratings filed under the under_5000 trophy band with no note",
-    "case": "gym/102.1",
-    "captures": ["102-cards_card-witch-ranked.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 103,
-    "contract": "6.21.1",
-    "why": "the Gym's block 103.1: members.played counted war duels that season excludes",
-    "case": "gym/103.1",
-    "captures": ["103-cards_card-witch-mine.json"],
-    "expect": "sum_eq: members\\.played",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
     "feedback": 104,
     "contract": "6.21.1",
     "why": "the Gym's block 104.1: an eight-card exact-set lookup timed out every time",
@@ -245,42 +209,6 @@
     "case": "gym/105.1",
     "captures": ["105-cards_archetype-evo-royal-hogs.json"],
     "expect": "eq resolved\\.label"
-  },
-  {
-    "feedback": 105,
-    "contract": "6.21.1",
-    "why": "the Gym's block 105.3: the Evo archetype filter returned both forms' rows",
-    "case": "gym/105.3",
-    "captures": ["105-battles_meta_decks-evo-filter.json"],
-    "expect": "count_eq archetypes",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 106,
-    "contract": "6.21.1",
-    "why": "the Gym's block 106.1: history pooled every mode across an 18% to 92% ranked shift, unsaid",
-    "case": "gym/106.1",
-    "captures": ["106-cards_card-witch-corpus.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 107,
-    "contract": "6.21.1",
-    "why": "the Gym's block 107.1: notes promised excluded counts that were never served",
-    "case": "gym/107.1",
-    "captures": ["107-cards_card-witch-player.json"],
-    "expect": "has excluded\\.duels: absent",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 108,
-    "contract": "6.21.1",
-    "why": "the Gym's block 108.1: anchor.decks counted battles beside tools whose decks count identities",
-    "case": "gym/108.1",
-    "captures": ["108-cards_synergy-witch-corpus.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 110,
@@ -313,69 +241,6 @@
     "case": "gym/112.2",
     "captures": ["112-clans_roster-full.json"],
     "expect": "has role_counts: absent"
-  },
-  {
-    "feedback": 114,
-    "contract": "6.22.0",
-    "why": "the Gym's block 114.1: Global 100 ordered by Trophy Road trophies with no word that it is not the board's order",
-    "case": "gym/114.1",
-    "captures": ["114-collections_get-pol-global.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 114,
-    "contract": "6.22.0",
-    "why": "the Gym's block 114.2: US 100 the same",
-    "case": "gym/114.2",
-    "captures": ["114-collections_get-pol-us.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 114,
-    "contract": "6.22.0",
-    "why": "the Gym's block 114.3: top clans ordered by member count, unsaid",
-    "case": "gym/114.3",
-    "captures": ["114-collections_get-top-clans.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 115,
-    "contract": "6.22.0",
-    "why": "the Gym's block 115.1: open_members defined nowhere; it is the member count",
-    "case": "gym/115.1",
-    "captures": ["115-collections_get-clans-to-watch.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 116,
-    "contract": "6.22.0",
-    "why": "the Gym's block 116.1: a board collection read as a fixed cohort",
-    "case": "gym/116.1",
-    "captures": ["114-collections_get-pol-global.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 116,
-    "contract": "6.22.0",
-    "why": "the Gym's block 116.2: browse said nothing of board-synced membership",
-    "case": "gym/116.2",
-    "captures": ["116-collections_browse.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 116,
-    "contract": "6.22.0",
-    "why": "the Gym's block 116.3: a collection segment read did not say which membership it applied",
-    "case": "gym/116.3",
-    "captures": ["116-battles_meta_decks-collection.json"],
-    "expect": "notes_match",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 118,
@@ -626,69 +491,6 @@
     "expect": "."
   },
   {
-    "feedback": 136,
-    "contract": "6.26.0",
-    "why": "the Gym block 136.1 on the answer it read",
-    "case": "gym/136.1",
-    "captures": ["136-1-rankings_clan_ladder.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 136,
-    "contract": "6.26.0",
-    "why": "the Gym block 136.2 on the answer it read",
-    "case": "gym/136.2",
-    "captures": ["136-2-rankings_clan_ladder.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 137,
-    "contract": "6.26.0",
-    "why": "the Gym block 137.1 on the answer it read",
-    "case": "gym/137.1",
-    "captures": ["137-1-rankings_players.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 137,
-    "contract": "6.26.0",
-    "why": "the Gym block 137.2 on the answer it read",
-    "case": "gym/137.2",
-    "captures": ["137-2-rankings_players.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 137,
-    "contract": "6.26.0",
-    "why": "the Gym block 137.3 on the answer it read",
-    "case": "gym/137.3",
-    "captures": ["137-3-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 138,
-    "contract": "6.26.0",
-    "why": "the Gym block 138.1 on the answer it read",
-    "case": "gym/138.1",
-    "captures": ["138-1-rankings_players.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 138,
-    "contract": "6.26.0",
-    "why": "the Gym block 138.2 on the answer it read",
-    "case": "gym/138.2",
-    "captures": ["138-2-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
     "feedback": 140,
     "contract": "6.27.0",
     "why": "the Gym block 140.1 on the answer it read",
@@ -719,42 +521,6 @@
     "case": "gym/142.1",
     "captures": ["142-1-war_history.json"],
     "expect": "."
-  },
-  {
-    "feedback": 144,
-    "contract": "6.29.1",
-    "why": "the Gym block 144.1 on the answer it read",
-    "case": "gym/144.1",
-    "captures": ["144-1-badges_holders.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 144,
-    "contract": "6.29.1",
-    "why": "the Gym block 144.2 on the answer it read",
-    "case": "gym/144.2",
-    "captures": ["144-2-badges_rarity.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 145,
-    "contract": "6.29.1",
-    "why": "the Gym block 145.1 on the answer it read",
-    "case": "gym/145.1",
-    "captures": ["145-1-badges_rarity.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 145,
-    "contract": "6.29.1",
-    "why": "the Gym block 145.2 on the answer it read",
-    "case": "gym/145.2",
-    "captures": ["145-2-badges_holders.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 146,
@@ -813,51 +579,6 @@
     "expect": "."
   },
   {
-    "feedback": 154,
-    "contract": "6.31.1",
-    "why": "the Gym block 154.1 on the answer it read",
-    "case": "gym/154.1",
-    "captures": ["154-1-cards_synergy.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 154,
-    "contract": "6.31.1",
-    "why": "the Gym block 154.2 on the answer it read",
-    "case": "gym/154.2",
-    "captures": ["154-2-cards_synergy.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 154,
-    "contract": "6.31.1",
-    "why": "the Gym block 154.3 on the answer it read",
-    "case": "gym/154.3",
-    "captures": ["154-3-cards_synergy.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 155,
-    "contract": "6.31.1",
-    "why": "the Gym block 155.1 on the answer it read",
-    "case": "gym/155.1",
-    "captures": ["155-1-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 155,
-    "contract": "6.31.1",
-    "why": "the Gym block 155.2 on the answer it read",
-    "case": "gym/155.2",
-    "captures": ["155-2-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
     "feedback": 157,
     "contract": "6.32.0",
     "why": "the Gym block 157.1 on the answer it read",
@@ -896,24 +617,6 @@
     "case": "gym/158.2",
     "captures": ["158-2-players_timeline.json"],
     "expect": "."
-  },
-  {
-    "feedback": 160,
-    "contract": "6.33.0",
-    "why": "the Gym block 160.1 on the answer it read",
-    "case": "gym/160.1",
-    "captures": ["160-1-collections_get.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 160,
-    "contract": "6.33.0",
-    "why": "the Gym block 160.2 on the answer it read",
-    "case": "gym/160.2",
-    "captures": ["160-2-collections_get.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 162,
@@ -1044,78 +747,6 @@
     "expect": "."
   },
   {
-    "feedback": 171,
-    "contract": "6.34.3",
-    "why": "the Gym block 171.1 on the answer it read",
-    "case": "gym/171.1",
-    "captures": ["171-1-battles_meta_decks.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 171,
-    "contract": "6.34.3",
-    "why": "the Gym block 171.2 on the answer it read",
-    "case": "gym/171.2",
-    "captures": ["171-2-battles_meta_decks.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 174,
-    "contract": "6.35.0",
-    "why": "the Gym block 174.1 on the answer it read",
-    "case": "gym/174.1",
-    "captures": ["174-1-rankings_clans.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 174,
-    "contract": "6.35.0",
-    "why": "the Gym block 174.2 on the answer it read",
-    "case": "gym/174.2",
-    "captures": ["174-2-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 175,
-    "contract": "6.35.0",
-    "why": "the Gym block 175.1 on the answer it read",
-    "case": "gym/175.1",
-    "captures": ["175-1-rankings_players.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 175,
-    "contract": "6.35.0",
-    "why": "the Gym block 175.2 on the answer it read",
-    "case": "gym/175.2",
-    "captures": ["175-2-rankings_players.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 176,
-    "contract": "6.35.0",
-    "why": "the Gym block 176.1 on the answer it read",
-    "case": "gym/176.1",
-    "captures": ["176-1-rankings_players.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 177,
-    "contract": "6.35.0",
-    "why": "the Gym block 177.1 on the answer it read",
-    "case": "gym/177.1",
-    "captures": ["177-1-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
     "feedback": 179,
     "contract": "6.36.0",
     "why": "the Gym block 179.1 on the answer it read",
@@ -1188,15 +819,6 @@
     "expect": "."
   },
   {
-    "feedback": 184,
-    "contract": "6.36.2",
-    "why": "the Gym block 184.2 on the answer it read",
-    "case": "gym/184.2",
-    "captures": ["184-2-badges_holders.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
     "feedback": 187,
     "contract": "6.36.4",
     "why": "the Gym block 187.1 on the answer it read",
@@ -1221,57 +843,12 @@
     "expect": "."
   },
   {
-    "feedback": 188,
-    "contract": "6.36.4",
-    "why": "the Gym block 188.1 on the answer it read",
-    "case": "gym/188.1",
-    "captures": ["188-1-battles_meta_decks.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 188,
-    "contract": "6.36.4",
-    "why": "the Gym block 188.2 on the answer it read",
-    "case": "gym/188.2",
-    "captures": ["188-2-battles_meta_cards.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
     "feedback": 189,
     "contract": "6.36.4",
     "why": "the Gym block 189.1 on the answer it read",
     "case": "gym/189.1",
     "captures": ["189-1-players_timeline.json"],
     "expect": "."
-  },
-  {
-    "feedback": 191,
-    "contract": "6.36.5",
-    "why": "the Gym block 191.2 on the answer it read",
-    "case": "gym/191.2",
-    "captures": ["191-2-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 193,
-    "contract": "6.36.7",
-    "why": "the Gym block 193.1 on the answer it read",
-    "case": "gym/193.1",
-    "captures": ["193-1-badges_rarity.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 193,
-    "contract": "6.36.7",
-    "why": "the Gym block 193.3 on the answer it read",
-    "case": "gym/193.3",
-    "captures": ["193-3-badges_rarity.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 195,
@@ -1320,96 +897,6 @@
     "case": "gym/199.3",
     "captures": ["199-3-battles_performance.json"],
     "expect": "."
-  },
-  {
-    "feedback": 201,
-    "contract": "6.36.9",
-    "why": "the Gym block 201.1 on the answer it read",
-    "case": "gym/201.1",
-    "captures": ["201-1-collections_get.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 202,
-    "contract": "6.36.10",
-    "why": "the Gym block 202.1 on the answer it read",
-    "case": "gym/202.1",
-    "captures": ["202-1-battles_meta_decks.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 204,
-    "contract": "6.36.9",
-    "why": "the Gym block 204.1 on the answer it read",
-    "case": "gym/204.1",
-    "captures": ["204-1-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 204,
-    "contract": "6.36.9",
-    "why": "the Gym block 204.2 on the answer it read",
-    "case": "gym/204.2",
-    "captures": ["204-2-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 205,
-    "contract": "6.36.10",
-    "why": "the Gym block 205.1 on the answer it read",
-    "case": "gym/205.1",
-    "captures": ["205-1-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 206,
-    "contract": "6.36.10",
-    "why": "the Gym block 206.1 on the answer it read",
-    "case": "gym/206.1",
-    "captures": ["206-1-cards_synergy.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 208,
-    "contract": "6.36.11",
-    "why": "the Gym block 208.1 on the answer it read",
-    "case": "gym/208.1",
-    "captures": ["208-1-rankings_players.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 208,
-    "contract": "6.36.11",
-    "why": "the Gym block 208.2 on the answer it read",
-    "case": "gym/208.2",
-    "captures": ["208-2-rankings_players.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 209,
-    "contract": "6.36.11",
-    "why": "the Gym block 209.1 on the answer it read",
-    "case": "gym/209.1",
-    "captures": ["209-1-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 209,
-    "contract": "6.36.11",
-    "why": "the Gym block 209.2 on the answer it read",
-    "case": "gym/209.2",
-    "captures": ["209-2-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 219,
@@ -1718,100 +1205,10 @@
   {
     "feedback": 286,
     "contract": "7.1.9",
-    "why": "the Gym block 286.1 on the answer it read",
-    "case": "gym/286.1",
-    "captures": ["286-1-battles_meta_decks.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 286,
-    "contract": "7.1.9",
     "why": "the Gym block 286.2 on the answer it read",
     "case": "gym/286.2",
     "captures": ["286-2-battles_trends.json"],
     "expect": "."
-  },
-  {
-    "feedback": 286,
-    "contract": "7.1.8",
-    "why": "the Gym block 286.3 on the answer it read",
-    "case": "gym/286.3",
-    "captures": ["286-3-battles_meta_decks.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 287,
-    "contract": "7.1.9",
-    "why": "the Gym block 287.1 on the answer it read",
-    "case": "gym/287.1",
-    "captures": ["287-1-battles_trends.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 287,
-    "contract": "7.1.9",
-    "why": "the Gym block 287.2 on the answer it read",
-    "case": "gym/287.2",
-    "captures": ["287-2-cards_synergy.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 288,
-    "contract": "7.1.8",
-    "why": "the Gym block 288.1 on the answer it read",
-    "case": "gym/288.1",
-    "captures": ["288-1-collections_get.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 290,
-    "contract": "7.1.10",
-    "why": "the Gym block 290.1 on the answer it read",
-    "case": "gym/290.1",
-    "captures": ["290-1-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 291,
-    "contract": "7.1.9",
-    "why": "the Gym block 291.1 on the answer it read",
-    "case": "gym/291.1",
-    "captures": ["291-1-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 292,
-    "contract": "7.1.10",
-    "why": "the Gym block 292.1 on the answer it read",
-    "case": "gym/292.1",
-    "captures": ["292-1-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 292,
-    "contract": "7.1.10",
-    "why": "the Gym block 292.2 on the answer it read",
-    "case": "gym/292.2",
-    "captures": ["292-2-rankings_timeline.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 293,
-    "contract": "7.1.9",
-    "why": "the Gym block 293.1 on the answer it read",
-    "case": "gym/293.1",
-    "captures": ["293-1-rankings_clan_ladder.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 294,
@@ -1820,15 +1217,6 @@
     "case": "gym/294.1",
     "captures": ["294-1-clans_roster.json"],
     "expect": "."
-  },
-  {
-    "feedback": 294,
-    "contract": "7.1.9",
-    "why": "the Gym block 294.2 on the answer it read",
-    "case": "gym/294.2",
-    "captures": ["294-2-rankings_clan_ladder.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 296,
@@ -1877,15 +1265,6 @@
     "case": "gym/300.1",
     "captures": ["300-1-battles_trends.json"],
     "expect": "."
-  },
-  {
-    "feedback": 300,
-    "contract": "7.1.12",
-    "why": "the Gym block 300.2 on the answer it read",
-    "case": "gym/300.2",
-    "captures": ["300-2-battles_meta_decks.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   },
   {
     "feedback": 302,
@@ -1946,15 +1325,6 @@
   {
     "feedback": 308,
     "contract": "7.1.18",
-    "why": "the Gym block 308.1 on the answer it read",
-    "case": "gym/308.1",
-    "captures": ["308-1-battles_meta_decks.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 308,
-    "contract": "7.1.18",
     "why": "the Gym block 308.2 on the answer it read",
     "case": "gym/308.2",
     "captures": ["308-2-battles_trends.json"],
@@ -1983,60 +1353,6 @@
     "case": "gym/312.1",
     "captures": ["312-1-war_current.json"],
     "expect": "."
-  },
-  {
-    "feedback": 315,
-    "contract": "7.2.1",
-    "why": "the Gym block 315.2 on the answer it read",
-    "case": "gym/315.2",
-    "captures": ["315-2-battles_meta_cards.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 315,
-    "contract": "7.2.1",
-    "why": "the Gym block 315.3 on the answer it read",
-    "case": "gym/315.3",
-    "captures": ["315-3-battles_meta_cards.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 322,
-    "contract": "7.2.1",
-    "why": "the Gym block 322.1 on the answer it read",
-    "case": "gym/322.1",
-    "captures": ["322-1-collections_get.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 322,
-    "contract": "7.2.1",
-    "why": "the Gym block 322.2 on the answer it read",
-    "case": "gym/322.2",
-    "captures": ["322-2-collections_get.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 322,
-    "contract": "7.2.1",
-    "why": "the Gym block 322.3 on the answer it read",
-    "case": "gym/322.3",
-    "captures": ["322-3-collections_get.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
-  },
-  {
-    "feedback": 322,
-    "contract": "7.2.1",
-    "why": "the Gym block 322.4 on the answer it read",
-    "case": "gym/322.4",
-    "captures": ["322-4-battles_meta_decks.json"],
-    "expect": ".",
-    "retired": "2026-10-02, contract 10.0.0: Jamie retired named recording Collections and collection selectors. Historical capture and criterion preserved; retirement refusals and overlap are covered on scratch databases."
   },
   {
     "feedback": 317,
@@ -2097,29 +1413,10 @@
   {
     "feedback": 324,
     "contract": "7.2.2",
-    "why": "the Gym block 324.1 on the answer it read",
-    "case": "gym/324.1",
-    "captures": ["324-1-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 324,
-    "contract": "7.2.2",
     "why": "the Gym block 324.2 on the answer it read",
     "case": "gym/324.2",
     "captures": ["324-2-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 324,
-    "contract": "7.2.2",
-    "why": "the Gym block 324.3 on the answer it read",
-    "case": "gym/324.3",
-    "captures": ["324-3-cards_synergy.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
+    "expect": "."
   },
   {
     "feedback": 324,
@@ -2135,17 +1432,7 @@
     "why": "the Gym block 325.1 on the answer it read",
     "case": "gym/325.1",
     "captures": ["325-1-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 325,
-    "contract": "7.2.3",
-    "why": "the Gym block 325.2 on the answer it read",
-    "case": "gym/325.2",
-    "captures": ["325-2-cards_synergy.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
+    "expect": "."
   },
   {
     "feedback": 325,
@@ -2153,8 +1440,7 @@
     "why": "the Gym block 325.3 on the answer it read",
     "case": "gym/325.3",
     "captures": ["325-3-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
+    "expect": "."
   },
   {
     "feedback": 326,
@@ -2162,8 +1448,7 @@
     "why": "the Gym block 326.2 on the answer it read",
     "case": "gym/326.2",
     "captures": ["326-2-cards_card.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
+    "expect": "."
   },
   {
     "feedback": 328,
@@ -2260,23 +1545,5 @@
     "case": "gym/340.2",
     "captures": ["340-2-war_rivals.json"],
     "expect": "."
-  },
-  {
-    "feedback": 342,
-    "contract": "7.2.5",
-    "why": "the Gym block 342.2 on the answer it read",
-    "case": "gym/342.2",
-    "captures": ["342-2-rankings_players.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
-  },
-  {
-    "feedback": 344,
-    "contract": "7.2.4",
-    "why": "the Gym block 344.1 on the answer it read",
-    "case": "gym/344.1",
-    "captures": ["344-1-rankings_clan_ladder.json"],
-    "expect": ".",
-    "retired": "2026-10-02: approved global statistics/recommendation retirement; captured evidence retained."
   }
 ]

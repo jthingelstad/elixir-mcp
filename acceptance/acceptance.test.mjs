@@ -158,9 +158,10 @@ test("note tokens: snake_case fields, dotted paths and [] segments; prose left a
     ["finished_early", "scoring_decks"].sort(),
   );
   assert.ok(!tokens.has("applied"), "no underscore, no token");
-  const pointed = noteTokens(["and rankings_clans.rated_players moves too."], {
-    tools: new Set(["rankings_clans"]),
-  });
+  const pointed = noteTokens(
+    ["and war_current.members_not_in_race moves too."],
+    { tools: new Set(["war_current"]) },
+  );
   assert.equal(pointed.size, 0, "another tool's field, pointed at by path");
 });
 
@@ -429,7 +430,6 @@ test("every real case is read-only: no write tool, no live: true", () => {
     .map((c) => c.run.toString())
     .join("\n");
   for (const forbidden of [
-    "collections_edit",
     "elixir_track_player",
     "elixir_track_clan",
     "elixir_nickname",
