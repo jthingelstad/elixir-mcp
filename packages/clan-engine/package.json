@@ -6,6 +6,7 @@
   "description": "The clan-management engine: a pure function of Elixir's record and a clan's policy. No I/O, no clock of its own.",
   "exports": {
     ".": "./src/index.mjs",
+    "./chat": "./src/chat.mjs",
     "./fixtures": "./test/fixture.mjs"
   },
   "main": "./src/index.mjs",

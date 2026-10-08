@@ -16,6 +16,7 @@ import {
   weekBars,
 } from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
+import { BringClanmates } from "../components/BringClanmates.jsx";
 import {
   LadderHead,
   Loading,
@@ -79,6 +80,7 @@ export function Season({ player, mode, modeReady, summary, search }) {
           startsAt={head.startsAt}
         />
       )}
+      <BringClanmates className="mt-6" />
     </div>
   );
 }

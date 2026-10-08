@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@elixir-mcp/record": "0.1.0",
+    "@elixir-mcp/clan-engine": "*",
     "@elixir-mcp/client": "*",
     "@elixir-mcp/contracts": "*",
     "@elixir-mcp/design": "*",

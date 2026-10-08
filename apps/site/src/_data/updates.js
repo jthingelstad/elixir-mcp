@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "Bring your clanmates, and your clan followed on older accounts too",
+    body: "Console ▸ Overview and Ladder's season page now offer Bring your clanmates once your primary player's clan is on record: a line for clan chat that fits the game's 200 characters and steers around its chat filter, a longer note for Discord or a message, and your device's share sheet where it has one. A clanmate who signs up gets their own battle history kept and the clan's week in Monday's email. The link is the plain signup address, the same for everyone, with no invite code. Accounts made before today now have their primary player's clan followed too, on the same rules, from the next read of the player's profile. The Tuesday Arena email and Ladder's signed-out page now say the game's log holds roughly the last 30 battles. MCP 11.4.0 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "Your first ten minutes: your clan followed, your tag checked",
     body: "Once your primary player's profile shows their clan, Elixir now follows that clan for you at activity scope, so your clan's week comes in Monday's email. Only your primary, only a player in a clan, never past your clan slots and never in place of a clan you chose; a clan you stop tracking is not followed again, and the follow moves when your player changes clans. Accounts made before today are unchanged, with the clan one click away on Tracking and now on your player's page too. Adding a tag reads the profile straight away, free: the first capture usually lands within a few minutes with roughly your last 30 battles, and a tag Clash Royale does not know shows Tag not found instead of waiting. Until the first capture lands, Ladder says it is on its way instead of showing an error. Tracking says where to find your tag beside the field. MCP 11.4.0 (elixir_track_player notes); JSON API 3.1.0 unchanged in shape.",
   },

@@ -11,10 +11,13 @@ their shaping functions (`ladder*.js`) live here. Public docs:
   through the Explore bridge (`api.explore`, hooks in
   `src/lib/queries.js` under `["me", "ladder", ...]`), so it is priced
   against the reader's own quota. Pages cache for minutes and never poll.
-  One exception (2026-10-08): before a player's first capture lands,
-  `Pending.jsx` shows "Your first capture is on its way" and polls the
-  Console's capture status (`/api/me/first-answer`, unmetered account
-  state, every 60 s), then refreshes the Ladder reads once when it lands.
+  Two exceptions (2026-10-08), both unmetered account state: before a
+  player's first capture lands, `Pending.jsx` shows "Your first capture
+  is on its way" and polls the Console's capture status
+  (`/api/me/first-answer`, every 60 s), then refreshes the Ladder reads
+  once when it lands; and Bring your clanmates, below the season home,
+  reads the account's home clan from `/api/me/clans` (cached, never
+  polled) to name the clan it invites to.
   A number Ladder needs that no tool returns is a tool change
   (`.claude/skills/tool-change/`), never a client derivation.
 - **Facts, never verdicts.** Everything on a page is something a tool
