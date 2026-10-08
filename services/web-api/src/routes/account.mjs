@@ -28,6 +28,14 @@ import { json, UUID_RE, ID_RE } from "../http.mjs";
 import { senderRef } from "@elixir-mcp/outbox/notify";
 import { loadCallRecord } from "../call-record.mjs";
 
+/** An audit row the daily tool-call limiter charged (`mcpday#`,
+ *  packages/tools/quota.mjs): every call at /mcp and the Console's and
+ *  Ladder's Explore reads. Not /api/v1 (`rest`, metered on its own) and
+ *  not Elixir Clan's reads (surface `web`, client `Clan`), which run with
+ *  the family quota exemption (services/web-api/src/clan.mjs). */
+const CHARGED = `(coalesce(surface, '') <> 'rest'
+  and not (coalesce(surface, '') = 'web' and coalesce(client_name, '') = 'Clan'))`;
+
 export function accountRoutes({
   resolveAccount,
   logEvent,
@@ -612,10 +620,16 @@ export function accountRoutes({
       // near my limit" has to count what the limiter counts.
       // Fourteen days, because the page draws them as a bar per day and
       // a week is too short a run to see a shape in.
+      // Only what the daily limiter charges counts (CHARGED, below): the
+      // log also holds Clan's own reads and /api/v1 calls, which spend no
+      // tool-call budget. web_calls is the Console's and Ladder's share,
+      // so a page can say plainly that its own reads count.
       const { rows: days } = await db.query(
-        `select (created_at at time zone 'UTC')::date::text as day, count(*)::int as calls,
-                count(*) filter (where error_code is not null)::int as errors,
-                count(*) filter (where account_id <> $1)::int as agent_calls
+        `select (created_at at time zone 'UTC')::date::text as day,
+                count(*) filter (where ${CHARGED})::int as calls,
+                count(*) filter (where ${CHARGED} and error_code is not null)::int as errors,
+                count(*) filter (where ${CHARGED} and account_id <> $1)::int as agent_calls,
+                count(*) filter (where ${CHARGED} and surface = 'web')::int as web_calls
          from mcp_call_audit
          where (account_id = $1 or account_id = any(coalesce(
                  (select array_agg(account_id) from account where owned_by_account_id = $1),
@@ -680,7 +694,7 @@ export function accountRoutes({
             `select count(*)::int as calls from mcp_call_audit
               where (account_id = $1 or account_id in (
                        select account_id from account where owned_by_account_id = $1))
-                and created_at >= $2::date`,
+                and created_at >= $2::date and ${CHARGED}`,
             [holder.accountId, today],
           )
         : null;
@@ -700,6 +714,9 @@ export function accountRoutes({
         // leaving somebody to wonder why their own usage looks bigger than
         // their own usage.
         agent_calls_today: days.find((d) => d.day === today)?.agent_calls ?? 0,
+        // The Console's and Ladder's own reads today: they go through the
+        // same tools and spend the same budget (docs/limits).
+        web_calls_today: days.find((d) => d.day === today)?.web_calls ?? 0,
         live_today: live[0]?.count ?? 0,
         live_max: lim(holder.liveDailyQuota ?? q.live_fetches_per_day),
         quota_max: lim(holder.mcpDailyQuota ?? q.mcp_calls_per_day),

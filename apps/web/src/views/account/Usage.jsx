@@ -110,6 +110,8 @@ export function Usage() {
               Your daily budget and where it went. {quota.resets}.
               {usage.agent_calls_today > 0 &&
                 ` Your agents spent ${usage.agent_calls_today.toLocaleString()} of today's calls; they draw on the same budget you do.`}
+              {usage.web_calls_today > 0 &&
+                ` The Console's and Ladder's own reads were ${usage.web_calls_today.toLocaleString()} of them: the pages read through the same tools, and count the same way.`}
             </>
           )}
         </p>
