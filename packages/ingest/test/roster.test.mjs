@@ -21,7 +21,9 @@ test("roster seeds players and opens memberships (clan auto-follow payoff)", asy
     observedAt: "2026-09-03T14:40:34Z",
   });
   assert.equal(result.members, 49);
-  assert.equal(result.joined, 49);
+  // The first read is a baseline (0207): 49 memberships, no joins.
+  assert.equal(result.joined, 0);
+  assert.equal(result.baselined, 49);
   assert.equal(result.departed, 0);
 
   const players = (await ctx.db.query("select count(*)::int n from player"))
@@ -287,7 +289,8 @@ test("a clan nobody tracks records only its tracked players, read from the whole
       observedAt: "2026-10-06T14:40:34Z",
     });
     assert.equal(r.members, 49, "liveliness still reads the whole roster");
-    assert.equal(r.joined, 1);
+    assert.equal(r.joined, 0, "a first read is a baseline");
+    assert.equal(r.baselined, 1);
     const { rows: players } = await scratch.db.query(
       "select player_tag from player",
     );
@@ -311,5 +314,154 @@ test("a clan nobody tracks records only its tracked players, read from the whole
     assert.equal(left.departed, 1);
   } finally {
     await scratch.drop();
+  }
+});
+
+/**
+ * A first sight is a baseline, never a join (0207). The fresh-person
+ * journey on 2026-10-08 read "alex joined ClashCoachAIcom" from the first
+ * roster read of a clan he founded, and auto-follow (0205/0206) turns a
+ * clan read only for its tracked players into a tracked one: diffed
+ * against that one row, every other member would have read as joining.
+ */
+async function baselineScratch(suffix) {
+  const scratch = await scratchDb(suffix);
+  const clan = structuredClone(await fixture("clan/roster.json"));
+  clan.tag = "#2QQQ";
+  const {
+    rows: [a],
+  } = await scratch.db.query(
+    `insert into account (email_hash, status, role)
+     values ($1, 'approved', 'member') returning account_id`,
+    [`baseline-${suffix}`],
+  );
+  const trackPlayer = async (tag, at) => {
+    await scratch.db.query(
+      `insert into player (player_tag) values ($1) on conflict do nothing`,
+      [tag],
+    );
+    await scratch.db.query(
+      `insert into recording (subject_type, subject_tag, requested_by, status, scope, created_at)
+       values ('player', $1, $2, 'active', 'comprehensive', $3)`,
+      [tag, a.account_id, at],
+    );
+  };
+  const trackClan = (at) =>
+    scratch.db.query(
+      `insert into recording (subject_type, subject_tag, requested_by, status, scope, created_at)
+       values ('clan', '#2QQQ', $1, 'active', 'activity', $2)`,
+      [a.account_id, at],
+    );
+  const read = (payload, observedAt, windowStart) =>
+    ingestClanRoster(scratch.db, { payload, observedAt, windowStart });
+  const joins = async () =>
+    (await clanEvents(scratch.db))
+      .filter((e) => e.event_type === "member_joined")
+      .map((e) => e.payload.player_tag);
+  const baseline = async (tag) =>
+    (
+      await scratch.db.query(
+        `select baseline from clan_membership
+          where clan_tag = '#2QQQ' and player_tag = $1 and left_observed_at is null`,
+        [tag],
+      )
+    ).rows[0]?.baseline;
+  return { scratch, clan, trackPlayer, trackClan, read, joins, baseline };
+}
+
+test("first read of a tracked 49-member clan: zero joins; the next read's newcomer is exactly one", async () => {
+  const t = await baselineScratch("baseline_first");
+  try {
+    await t.trackClan("2026-10-08T21:00:00Z");
+    const r1 = await t.read(t.clan, "2026-10-08T21:30:00Z", null);
+    assert.equal(r1.joined, 0);
+    assert.equal(r1.baselined, 49);
+    assert.deepEqual(await t.joins(), [], "no member_joined on a first read");
+    assert.equal(await t.baseline(t.clan.memberList[0].tag), true);
+
+    const next = structuredClone(t.clan);
+    next.memberList.push({ ...t.clan.memberList[0], tag: "#2GUY2PY" });
+    const r2 = await t.read(
+      next,
+      "2026-10-08T21:45:00Z",
+      "2026-10-08T21:30:00Z",
+    );
+    assert.equal(r2.joined, 1);
+    assert.equal(r2.baselined, 0);
+    assert.deepEqual(await t.joins(), ["#2GUY2PY"]);
+    assert.equal(await t.baseline("#2GUY2PY"), false, "an observed join");
+  } finally {
+    await t.scratch.drop();
+  }
+});
+
+test("a clan read for one tracked player that becomes tracked: the rest are a baseline, not 48 joins", async () => {
+  const t = await baselineScratch("baseline_follow");
+  try {
+    const [alex] = t.clan.memberList;
+    await t.trackPlayer(alex.tag, "2026-10-08T21:28:00Z");
+    // The clan's first read, before Elixir follows it: alex only.
+    const r1 = await t.read(t.clan, "2026-10-08T21:30:00Z", null);
+    assert.equal(r1.baselined, 1);
+    assert.equal(await t.baseline(alex.tag), true, "alex was not seen joining");
+    // Elixir follows the primary's clan; the next read records everyone.
+    await t.trackClan("2026-10-08T21:31:00Z");
+    const promoted = structuredClone(t.clan);
+    const other = promoted.memberList.find(
+      (m) => m.tag !== alex.tag && m.role === "member",
+    );
+    other.role = "elder";
+    const r2 = await t.read(
+      promoted,
+      "2026-10-08T21:45:00Z",
+      "2026-10-08T21:30:00Z",
+    );
+    assert.equal(r2.joined, 0, "the previous read could not see them absent");
+    assert.equal(r2.baselined, 48);
+    assert.equal(
+      r2.roleChanged,
+      0,
+      "a role seen for the first time is no change",
+    );
+    assert.deepEqual(await t.joins(), []);
+    // From here on the clan reads whole: a newcomer is a join.
+    const next = structuredClone(promoted);
+    next.memberList.push({ ...t.clan.memberList[1], tag: "#2GUY2PY" });
+    const r3 = await t.read(
+      next,
+      "2026-10-08T22:00:00Z",
+      "2026-10-08T21:45:00Z",
+    );
+    assert.equal(r3.joined, 1);
+    assert.deepEqual(await t.joins(), ["#2GUY2PY"]);
+  } finally {
+    await t.scratch.drop();
+  }
+});
+
+test("a partly read clan: a newly tracked player is a baseline, one tracked before is a join", async () => {
+  const t = await baselineScratch("baseline_partial");
+  try {
+    const [first, second, third] = t.clan.memberList;
+    await t.trackPlayer(first.tag, "2026-10-01T00:00:00Z");
+    await t.trackPlayer(third.tag, "2026-10-01T00:00:00Z");
+    const before = structuredClone(t.clan);
+    before.memberList = before.memberList.filter((m) => m.tag !== third.tag);
+    await t.read(before, "2026-10-02T00:00:00Z", null);
+    // second is tracked after that read; third, tracked since before it,
+    // was seen absent and now appears.
+    await t.trackPlayer(second.tag, "2026-10-02T06:00:00Z");
+    const r = await t.read(
+      t.clan,
+      "2026-10-02T12:00:00Z",
+      "2026-10-02T00:00:00Z",
+    );
+    assert.equal(r.joined, 1);
+    assert.equal(r.baselined, 1);
+    assert.deepEqual(await t.joins(), [third.tag]);
+    assert.equal(await t.baseline(second.tag), true);
+    assert.equal(await t.baseline(third.tag), false);
+  } finally {
+    await t.scratch.drop();
   }
 });

@@ -12,12 +12,6 @@ import { normalizeTag } from "@elixir-mcp/contracts";
 import { emitEvent } from "./events.mjs";
 import { crTimeToIso } from "./battle-time.mjs";
 
-/**
- * Ingest one admitted clan payload. Caller owns the transaction.
- * windowStart (the previous admitted observation) brackets the emitted
- * events honestly; first sight of a clan emits NO events (elixir-bot
- * invariant: the seed observation is silent — there is no diff yet).
- */
 /** The game's four roles in rank order; a change is one of two directions. */
 const ROLE_RANK = { member: 0, elder: 1, coLeader: 2, leader: 3 };
 function roleDirection(prevRole, newRole) {
@@ -55,6 +49,40 @@ export async function rosterRecords(db, clanTag, tags) {
   return r.tracked ? null : new Set(r.recorded);
 }
 
+/**
+ * Which of `tags` the clan's previous read recorded too, so that their
+ * absence from it was observed (0207). A clan that recorded every member
+ * last time saw everyone; one read only for its tracked players saw just
+ * the players tracked since before that read. Returns null for "all".
+ */
+async function seenBefore(db, { prevAll, windowStart, tags }) {
+  if (prevAll) return null;
+  if (!windowStart || tags.length === 0) return new Set();
+  const { rows } = await db.query(
+    `select t.tag from unnest($1::text[]) as t(tag)
+      where exists (select 1 from recording r
+                     where r.subject_type = 'player' and r.status = 'active'
+                       and r.subject_tag = t.tag and r.created_at <= $2)
+         or exists (select 1 from claim c
+                     where c.player_tag = t.tag and c.created_at <= $2)`,
+    [tags, windowStart],
+  );
+  return new Set(rows.map((r) => r.tag));
+}
+
+/**
+ * Ingest one admitted clan payload. Caller owns the transaction.
+ * windowStart (the previous admitted observation) brackets the emitted
+ * events honestly.
+ *
+ * A first sight is a BASELINE, never a join (elixir-bot invariant: the
+ * seed observation is silent, there is no diff yet; 0207 for the rest):
+ * the clan's first read, and any member the previous read did not record
+ * (a clan read only for its tracked players that becomes tracked, a player
+ * tracked since that read). Their row opens with `baseline` set, so
+ * neither the clan's events nor the player's timeline narrate a join, and
+ * a role seen for the first time is not a change.
+ */
 export async function ingestClanRoster(
   db,
   { payload, observedAt, windowStart, receiptId },
@@ -137,13 +165,41 @@ export async function ingestClanRoster(
   const openByTag = new Map(open.map((r) => [r.player_tag, r]));
   const rosterTags = new Set(members.map((m) => m.tag));
   const firstSight = open.length === 0;
+  // Did the previous read record every member? Null before 0207: assume
+  // it recorded what this one does, as the rule was then.
+  const {
+    rows: [scope],
+  } = await db.query(
+    `select roster_recorded_all from clan where clan_tag = $1`,
+    [clanTag],
+  );
+  const recordsAll = only === null;
+  const prevAll = scope?.roster_recorded_all ?? recordsAll;
+  const seen = firstSight
+    ? new Set()
+    : await seenBefore(db, {
+        prevAll,
+        windowStart,
+        tags: recorded
+          .filter((m) => {
+            const o = openByTag.get(m.tag);
+            return !o || o.role !== m.role;
+          })
+          .map((m) => m.tag),
+      });
+  /** The previous read could have seen this member: a change is news. */
+  const observed = (tag) => !firstSight && (seen === null || seen.has(tag));
+  if (scope && scope.roster_recorded_all !== recordsAll)
+    await db.query(
+      `update clan set roster_recorded_all = $2 where clan_tag = $1`,
+      [clanTag, recordsAll],
+    );
   const evidence = (extra) => ({
     roster_size_before: open.length,
     roster_size_after: members.length,
     ...extra,
   });
   const emit = async (type, payload) => {
-    if (firstSight) return;
     await emitEvent(db, type, {
       tag: clanTag,
       payload,
@@ -154,6 +210,7 @@ export async function ingestClanRoster(
   };
 
   let joined = 0;
+  let baselined = 0;
   let departed = 0;
   let roleChanged = 0;
 
@@ -167,11 +224,16 @@ export async function ingestClanRoster(
          where player_tag = $1 and left_observed_at is null and clan_tag <> $3`,
         [m.tag, at, clanTag],
       );
+      const join = observed(m.tag);
       await db.query(
-        `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role)
-         values ($1, $2, $3, $4)`,
-        [clanTag, m.tag, at, m.role],
+        `insert into clan_membership (clan_tag, player_tag, joined_observed_at, role, baseline)
+         values ($1, $2, $3, $4, $5)`,
+        [clanTag, m.tag, at, m.role, !join],
       );
+      if (!join) {
+        baselined += 1;
+        continue;
+      }
       await emit(
         "member_joined",
         evidence({ player_tag: m.tag, name: m.name, role: m.role }),
@@ -183,6 +245,9 @@ export async function ingestClanRoster(
          where clan_tag = $1 and player_tag = $2 and left_observed_at is null`,
         [clanTag, m.tag, m.role],
       );
+      // A role first recorded now (the member was not recorded before)
+      // changed at some unknown time: the row moves, no moment.
+      if (!observed(m.tag)) continue;
       await emit(
         "role_changed",
         evidence({
@@ -210,6 +275,8 @@ export async function ingestClanRoster(
         `select name from player where player_tag = $1`,
         [r.player_tag],
       );
+      // A departure needs no baseline: the open row is the earlier
+      // observation it is diffed against.
       await emit(
         "member_left",
         evidence({
@@ -235,11 +302,13 @@ export async function ingestClanRoster(
   return {
     members: members.length,
     joined,
+    // Memberships opened on a baseline read: first sightings, not joins.
+    baselined,
     departed,
     roleChanged,
     // What this poll added to the record (0077): membership events and
     // member rows that moved (a name, a lastSeen, an hour-stale sighting).
-    facts: joined + departed + roleChanged + playersChanged,
+    facts: joined + baselined + departed + roleChanged + playersChanged,
     activeNow: seenWithin(3600_000),
     seen24h: seenWithin(86_400_000),
   };

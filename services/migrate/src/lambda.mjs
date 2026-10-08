@@ -40,6 +40,7 @@ import {
   ledger,
   warDrift,
   roleHistoryCensus,
+  membershipBaselineCensus,
   battleFidelityCensus,
   modeShapeCensus,
   enumCensus,
@@ -372,6 +373,14 @@ async function dispatch(event) {
     const result = await feedbackRespond(
       process.env.DATABASE_URL,
       event.feedback_respond,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.membership_baseline_census) {
+    const result = await membershipBaselineCensus(
+      process.env.DATABASE_URL,
+      event.membership_baseline_census,
     );
     console.log(JSON.stringify(result));
     return result;

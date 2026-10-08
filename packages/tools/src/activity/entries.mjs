@@ -922,7 +922,7 @@ export async function buildPlayerEntry(
   ]);
 
   const { rows: moves } = await db.query(
-    `select cm.clan_tag, c.name as clan_name, cm.role,
+    `select cm.clan_tag, c.name as clan_name, cm.role, cm.baseline,
             cm.joined_observed_at, cm.left_observed_at
        from clan_membership cm
        left join clan c on c.clan_tag = cm.clan_tag
@@ -935,7 +935,9 @@ export async function buildPlayerEntry(
   const clanChanges = [];
   for (const m of moves) {
     const j = m.joined_observed_at.getTime();
-    if (j > fromMs && j <= toMs)
+    // A baseline row is Elixir's first sight of the player in the clan,
+    // not a join it saw (0207; ingest/roster.mjs): no moment.
+    if (j > fromMs && j <= toMs && !m.baseline)
       clanChanges.push({
         kind: "joined",
         clan_tag: m.clan_tag,

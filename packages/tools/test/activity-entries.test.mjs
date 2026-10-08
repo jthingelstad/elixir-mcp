@@ -520,3 +520,35 @@ test("historical presence keeps event-time membership across departures, gaps, r
     await ctx.db.query("rollback");
   }
 });
+
+test("the player timeline: a first sight in a clan is no join, a join a roster saw is one", async () => {
+  // Runs after the clan entry test above, whose second roster read let
+  // Newcomer join. Every fixture member opened on the first read: a
+  // baseline (0207), which "alex joined ClashCoachAIcom" was on
+  // 2026-10-08.
+  const toMs = Date.now();
+  const kinds = async (tag) => {
+    const { entry, items } = await buildPlayerEntry(ctx.db, {
+      tag,
+      fromMs: FROM,
+      toMs,
+    });
+    return {
+      changes: entry.clan.changes.map((c) => c.kind),
+      items: items
+        .filter((i) => i.kind === "clan_joined")
+        .map((i) => i.facts.clan_tag),
+      notables: entry.notables.filter((n) => n.kind === "clan_joined").length,
+    };
+  };
+  assert.deepEqual(await kinds(PROFILE), {
+    changes: [],
+    items: [],
+    notables: 0,
+  });
+  assert.deepEqual(await kinds("#8PYLQGRJC"), {
+    changes: ["joined"],
+    items: [CLAN],
+    notables: 1,
+  });
+});

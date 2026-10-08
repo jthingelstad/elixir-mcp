@@ -1283,3 +1283,94 @@ export async function roleHistoryCensus(databaseUrl) {
     await db.end();
   }
 }
+
+/**
+ * Membership baseline census ({membership_baseline_census: true}, or
+ * {"membership_baseline_census": {"clan_tag": "#TAG"}}) — read-only
+ * (0207). How many join moments the record holds that were first sights,
+ * not joins Elixir saw:
+ *   first_read_rows: membership rows that opened on their clan's first
+ *     membership observation (the clan's earliest joined_observed_at) and
+ *     are not marked baseline; the player timeline narrated each as
+ *     "joined" inside its window. claimed counts those of players someone
+ *     tracks.
+ *   follow_burst_events: member_joined events from the first read after a
+ *     clan became tracked (a clan recording created inside the event's
+ *     window) about a player who was not tracked before that window: a
+ *     clan read only for its tracked players, diffed whole.
+ * With clan_tag, the same counts for that clan alone. Counts and dates
+ * only; nothing is written.
+ */
+export async function membershipBaselineCensus(databaseUrl, opts = {}) {
+  const clanTag = typeof opts?.clan_tag === "string" ? opts.clan_tag : null;
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set statement_timeout = 120000");
+    await db.query("set default_transaction_read_only = on");
+    const {
+      rows: [firstRead],
+    } = await db.query(
+      `with firsts as (
+         select clan_tag, min(joined_observed_at) as first_at
+           from clan_membership
+          where $1::text is null or clan_tag = $1
+          group by clan_tag)
+       select count(*)::int as rows,
+              count(distinct cm.clan_tag)::int as clans,
+              count(*) filter (where exists (select 1 from claim c
+                                              where c.player_tag = cm.player_tag))::int as claimed,
+              count(*) filter (where cm.joined_observed_at > now() - interval '30 days')::int as last_30_days,
+              count(*) filter (where cm.joined_observed_at > now() - interval '30 days'
+                                 and exists (select 1 from claim c
+                                              where c.player_tag = cm.player_tag))::int as claimed_last_30_days,
+              min(cm.joined_observed_at) as first_at,
+              max(cm.joined_observed_at) as last_at
+         from clan_membership cm
+         join firsts f on f.clan_tag = cm.clan_tag and f.first_at = cm.joined_observed_at
+        where not cm.baseline`,
+      [clanTag],
+    );
+    const {
+      rows: [burst],
+    } = await db.query(
+      `select count(*)::int as events,
+              count(distinct e.clan_tag)::int as clans,
+              min(e.window_end) as first_at,
+              max(e.window_end) as last_at
+         from clan_event e
+        where e.event_type = 'member_joined'
+          and ($1::text is null or e.clan_tag = $1)
+          and exists (select 1 from recording r
+                       where r.subject_type = 'clan' and r.subject_tag = e.clan_tag
+                         and r.created_at > e.window_start
+                         and r.created_at <= e.window_end)
+          and not exists (select 1 from recording r
+                           where r.subject_type = 'player' and r.subject_tag = e.player_tag
+                             and r.created_at <= e.window_start)
+          and not exists (select 1 from claim c
+                           where c.player_tag = e.player_tag
+                             and c.created_at <= e.window_start)`,
+      [clanTag],
+    );
+    const {
+      rows: [joins],
+    } = await db.query(
+      `select count(*)::int as events_30d
+         from clan_event
+        where event_type = 'member_joined'
+          and window_end > now() - interval '30 days'
+          and ($1::text is null or clan_tag = $1)`,
+      [clanTag],
+    );
+    return {
+      note: "Counts only, nothing written. first_read_rows: membership rows opened on their clan's first membership observation and not marked baseline (the player timeline read each as a join). follow_burst_events: member_joined events from the first read after a clan became tracked, about players untracked before that read.",
+      clan_tag: clanTag,
+      first_read_rows: firstRead,
+      follow_burst_events: burst,
+      member_joined: joins,
+    };
+  } finally {
+    await db.end();
+  }
+}
