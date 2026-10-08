@@ -7,7 +7,7 @@ order: 2
 navTitle: "Quickstart"
 icon: rocket
 lede: "Create your account, track your player, and read captured history in Ladder. Add clan war history or an AI client when you want them."
-reviewed: "2026-10-06 against contract 11.2.3"
+reviewed: "2026-10-08 against contract 11.4.0"
 ---
 
 # Get started with Elixir
@@ -29,14 +29,21 @@ collector is required. Restricted accounts stay restricted.
 
 Open [Console ▸ Tracking](/console/account/tracking) and add your Clash Royale
 player tag. Your first player is your **primary**, which is what every tool
-means when you omit `player_tag`. Tracking **is** recording: the scheduler
-starts fetching your profile and battle log at its next tick, and history
-builds from there. Add alts and friends the same way and mark the relationship;
+means when you omit `player_tag`. Tracking **is** recording: Elixir reads
+your profile straight away and your battle log at the scheduler's next tick,
+so the first capture usually lands within a few minutes, with roughly your
+last 30 battles (all the game keeps); history builds from there. Once your
+profile shows your clan, Elixir follows that clan for you at activity scope,
+which is what puts your clan's week in your Monday email ([Your player's
+clan](/docs/recording#your-players-clan)); a player in no clan follows
+nothing. Add alts and friends the same way and mark the relationship;
 the existing [tier limits](/docs/roles) still apply. See
 [Recording and coverage](/docs/recording) for what gets fetched and how often.
 
 Find your tag in Clash Royale by opening your player profile: it appears below
-your name. Email verification opens your Elixir account; [player
+your name. If the game has no player with the tag you typed, your player's
+page says **Tag not found** within minutes: stop tracking it and add the
+right one. Email verification opens your Elixir account; [player
 verification](/docs/verify) separately proves ownership for the features that
 require it. An ordinary member account includes activity clan recording, not
 comprehensive capture of every member. Tracking shows the available slots.
@@ -45,8 +52,9 @@ Read your personal season in [Ladder](/ladder). Adding a tag opens
 your player's Tracking record. **Player tag saved** means
 the tag is on your account, not that a profile has arrived or ownership has
 been proved. This page checks saved data about once a minute while capture is
-pending; **Check again** reads the record without forcing a game fetch. There
-is no guaranteed first-capture arrival time.
+pending; **Check again** reads the record without forcing a game fetch. The
+first capture usually lands within a few minutes; until it does, Ladder says
+it is on its way rather than showing an empty season.
 
 **View recorded profile** opens the saved profile and its dated trophies and
 lifetime counters. **Browse recorded battles** opens captured battles newest

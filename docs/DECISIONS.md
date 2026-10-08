@@ -105,6 +105,7 @@ current rule, never as "was X, now Y".
 - **Roles never gate visibility** — tiers differ only in slots and call volume; 50 player slots at every tier; `contracts/roles.ts` is the one source.
 - **Principals: users, agents, integrations** — an agent's tier is capped at its owner's; `on_behalf_of` grants nothing (explicit tag > on_behalf_of > primary); no `act_as`.
 - **Agents track in the person's pooled slots** — one pool across the person and every agent they own; a subject counts once, a clan at its widest scope; agents track over MCP as watching only, never "me"; an agent keeps the clan it acts for, and its owner can re-point it.
+- **Primary player's clan is followed automatically** — Jamie 2026-10-08: "it should follow it automatically for the primary player assuming they have a clan set (not all players are in a clan)." Activity scope, primary only, only on an admitted profile's clan; never past a slot or in place of a person's own follow, never a clan they stopped tracking; the follow moves with the player; accounts made before 0205 are not backfilled.
 - **Removing your primary is refused while you track others** — choose the new primary first; removing your last player is allowed.
 - **Agent-only tools** — `elixir_identify`, `elixir_my_identities` and `clans_context` are hidden from people and integrations; a personal connection ignores `on_behalf_of`.
 - **Universal reads** — all recorded game data is readable by every account; account data stays private.

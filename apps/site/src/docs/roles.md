@@ -39,7 +39,9 @@ never reach an agent.
 | Agents | 3 | 5 | 10 | 25 | unlimited | unlimited |
 
 **member** — the default. You, a couple of alts, and your clan at
-activity scope (roster + war, no member fan-out).
+activity scope (roster + war, no member fan-out). Elixir fills that clan
+slot with your primary player's clan for you when it is free ([Your
+player's clan](/docs/recording#your-players-clan)).
 
 **leader** — you run a clan. One *comprehensive* watch: every member's
 battles and profile, following membership as it changes. This is the tier

@@ -1,5 +1,6 @@
 import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import { addPlayer, removePlayer } from "@elixir-mcp/claims";
+import { requestFirstRead } from "../../live.mjs";
 import { TAG_RULE_HINT, ToolFailure, appliedBlock, notes } from "../shared.mjs";
 import { RECORDING_DOCS } from "./common.mjs";
 
@@ -106,15 +107,13 @@ export const elixir_track_player = {
     if (!r.ok) {
       throw new ToolFailure("not_found", "Account not found.");
     }
-    if (r.recordingStarted) {
-      await ctx.db.query(
-        `insert into account_event (account_id, kind, detail) values ($1, 'recording_started', $2)`,
-        [
-          ctx.account.accountId,
-          JSON.stringify({ player_tag: tag, via: "mcp" }),
-        ],
-      );
-    }
+    // claims logs recording_started; logging it here too wrote it twice.
+    // A new tag gets one free live read of its profile (live.mjs), so a
+    // tag the game does not have is known in minutes, not at the next
+    // scheduled poll, and the primary player's clan with it.
+    const first = r.added
+      ? await requestFirstRead(ctx.db, ctx.live, tag)
+      : { requested: false };
     return {
       player_tag: tag,
       added: r.added,
@@ -128,8 +127,17 @@ export const elixir_track_player = {
       }),
       notes: notes(
         r.recordingStarted
-          ? "Tracked and recording: first battles land within the hour and history builds from here (the API has no past)."
+          ? "Tracked and recording: the first capture usually lands within a few minutes and brings roughly the last 30 battles with it; history builds from there (the API has no past)."
           : "Tracked; this player was already being recorded, so you share the existing record from here on.",
+        first.not_found
+          ? `Clash Royale answered "not found" for ${tag} on its last read today: check the tag (in the game, open the player's profile; the tag is below the name), and remove it with action remove if it is wrong.`
+          : null,
+        first.requested
+          ? "A first read of this profile is on its way; if Clash Royale has no player with this tag, the Console's capture status says so within minutes."
+          : null,
+        r.clanFollowed
+          ? `Your primary player's clan ${r.clanFollowed} is now followed at activity scope (roster, members coming and going, river races). Stop tracking it with elixir_track_clan action remove and it is not followed again.`
+          : null,
         "Captures appear on your elixir_timeline while notify is on.",
       ),
       docs: RECORDING_DOCS,

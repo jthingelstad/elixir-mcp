@@ -6,6 +6,7 @@ import { tagPath } from "../../lib/tag-url.js";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { CONSOLE } from "../../lib/console.js";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
+import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
 
 /**
  * Tracking — ONE table over both kinds, and a record per tracked thing.
@@ -38,8 +39,6 @@ function freshness(ts, now) {
 export function Tracking({ me, refresh, navigate }) {
   const clansQuery = useMyClans();
   const clans = clansQuery.data ?? null;
-  const [homeBusy, setHomeBusy] = useState(false);
-  const [homeErr, setHomeErr] = useState("");
   const [filter, setFilter] = useState("all");
   const [tag, setTag] = useState("");
   const [tagErr, setTagErr] = useState("");
@@ -319,66 +318,7 @@ export function Tracking({ me, refresh, navigate }) {
         </div>
       )}
 
-      {clans?.home_clan &&
-        !(clans.clans ?? []).some(
-          (c) => c.clan_tag === clans.home_clan.clan_tag,
-        ) && (
-          <div className="callout callout--info" style={{ marginTop: "18px" }}>
-            <Icon name="radar" size={17} />
-            {/* This offered COMPREHENSIVE, which every tier below
-                supporter has no slots for, so the button posted, was
-                refused, and reported nothing — it read as a dead
-                control. Activity is the right default anyway: it is the
-                slot every account has, and it is what "follow my clan"
-                means. Comprehensive is an upgrade you choose knowing
-                what it costs. */}
-            <span>
-              <span style={{ color: "var(--gold)" }}>★</span>{" "}
-              {clans.home_clan.name ?? clans.home_clan.clan_tag} is your
-              player&rsquo;s clan and{" "}
-              <button
-                type="button"
-                className="link"
-                onClick={async () => {
-                  if (homeBusy) return;
-                  setHomeBusy(true);
-                  setHomeErr("");
-                  const res = await api.myClanAction({
-                    action: "add",
-                    clan_tag: clans.home_clan.clan_tag,
-                    scope: "activity",
-                  });
-                  setHomeBusy(false);
-                  // The API's own message names the tier and the slot,
-                  // which is more use than anything this file could
-                  // guess — a refusal that says nothing is what made
-                  // the old button read as broken.
-                  if (!res.ok)
-                    return setHomeErr(
-                      res.data?.message ?? "That did not work. Try again.",
-                    );
-                  loadClans();
-                }}
-              >
-                is not tracked yet, start tracking now!
-              </button>
-              <span
-                style={{
-                  display: "block",
-                  marginTop: "5px",
-                  fontSize: "13px",
-                  color: "var(--ink-dim)",
-                }}
-              >
-                Activity follows the clan itself — its roster, its members
-                coming and going, and its river races. Comprehensive also
-                records every member&rsquo;s battles, which is what builds the
-                clan a full history.
-              </span>
-              {homeErr && <p className="field-error">{homeErr}</p>}
-            </span>
-          </div>
-        )}
+      <HomeClanOffer className="mt-[18px]" />
 
       <div
         style={{
@@ -397,6 +337,7 @@ export function Tracking({ me, refresh, navigate }) {
             <input
               id="add-player-tag"
               aria-label="Player tag"
+              aria-describedby="add-player-tag-hint"
               disabled={tagBusy}
               className="mono"
               placeholder="#20JJJ2CCRU"
@@ -466,6 +407,13 @@ export function Tracking({ me, refresh, navigate }) {
             >
               {tagBusy ? "Adding…" : "Track"}
             </button>
+            <span
+              id="add-player-tag-hint"
+              className="basis-full text-[12.5px] text-ink-faint"
+            >
+              In Clash Royale, open your profile: the tag starting with # is
+              below your name.
+            </span>
             {tagErr && (
               <span className="field-error" style={{ flexBasis: "100%" }}>
                 {tagErr}
@@ -478,11 +426,9 @@ export function Tracking({ me, refresh, navigate }) {
             )}
           </div>
           <div className="panel__foot">
-            Find your player tag in Clash Royale: open your player profile and
-            look below your name.
             {(me.claims ?? []).length === 0
-              ? " Your first player becomes your primary player."
-              : ""}{" "}
+              ? "Your first player becomes your primary player, and Elixir follows its clan for you when it can. "
+              : ""}
             Adding a tag starts recording. Proving ownership is a separate step
             under{" "}
             <Link className="underline" to={`${CONSOLE}/account/verify`}>

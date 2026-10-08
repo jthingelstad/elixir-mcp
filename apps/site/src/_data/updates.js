@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "Your first ten minutes: your clan followed, your tag checked",
+    body: "Once your primary player's profile shows their clan, Elixir now follows that clan for you at activity scope, so your clan's week comes in Monday's email. Only your primary, only a player in a clan, never past your clan slots and never in place of a clan you chose; a clan you stop tracking is not followed again, and the follow moves when your player changes clans. Accounts made before today are unchanged, with the clan one click away on Tracking and now on your player's page too. Adding a tag reads the profile straight away, free: the first capture usually lands within a few minutes with roughly your last 30 battles, and a tag Clash Royale does not know shows Tag not found instead of waiting. Until the first capture lands, Ladder says it is on its way instead of showing an error. Tracking says where to find your tag beside the field. MCP 11.4.0 (elixir_track_player notes); JSON API 3.1.0 unchanged in shape.",
+  },
+  {
+    date: "2026-10-08",
     title: "A real page for a wrong address, and a clearer way in",
     body: "An address that leads nowhere now answers with an Elixir page and a true 404, with the way back to the home page, the docs and the Console, instead of a bare storage error. Ladder, signed out, says what it reads back and offers Create your account, which brings you back to the Ladder page you asked for; Elixir Clan's signup link does the same for Clan. The home page and Ladder link a recorded battle, so you can see one before you sign up. Every browser tab now ends in Elixir, the product-news checkbox sits beside its label, and Updates prints tool names such as players_summary with their underscores. MCP 11.3.0 and JSON API 3.1.0 unchanged.",
   },

@@ -1037,3 +1037,66 @@ test("retired boards are consumed before decompression, archive or any database 
     }
   }
 });
+
+// Jamie, 2026-10-08: the primary player's clan is followed once a
+// profile says which clan it is. After the admission commits, and never
+// from a replay (a replay writes rows, not decisions).
+test("a profile admission follows the primary player's clan; a replay does not", async () => {
+  const profile = await fixture("player/profile.json");
+  const tag = meta["player/profile.json"].entity_key;
+  const {
+    rows: [person],
+  } = await ctx.db.query(
+    `insert into account (email_hash, status, role) values ('auto-follow', 'approved', 'member')
+     returning account_id`,
+  );
+  await ctx.db.query(
+    // As addPlayer leaves it, before the first profile it asked for.
+    `insert into player (player_tag, first_seen_at, last_seen_at)
+     values ($1, now() - interval '1 hour', now() - interval '1 hour')
+     on conflict (player_tag) do update
+       set last_seen_at = least(player.last_seen_at, excluded.last_seen_at)`,
+    [tag],
+  );
+  await ctx.db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship)
+     values ($1, $2, 'unverified', true, 'primary')`,
+    [person.account_id, tag],
+  );
+  const follows = async () =>
+    (
+      await ctx.db.query(
+        `select clan_tag, scope, auto_followed_at is not null as auto
+           from account_clan where account_id = $1`,
+        [person.account_id],
+      )
+    ).rows;
+  const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();
+
+  const replayed = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: profile,
+      fetchedAt: minutesAgo(10),
+    }),
+    { moments: false },
+  );
+  assert.equal(replayed.outcome, "admitted");
+  assert.deepEqual(await follows(), []);
+
+  const live = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: profile,
+      fetchedAt: minutesAgo(5),
+    }),
+  );
+  assert.equal(live.outcome, "admitted");
+  assert.deepEqual(await follows(), [
+    { clan_tag: profile.clan.tag, scope: "activity", auto: true },
+  ]);
+});

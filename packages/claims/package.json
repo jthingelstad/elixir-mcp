@@ -12,7 +12,8 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@elixir-mcp/contracts": "0.1.0"
+    "@elixir-mcp/contracts": "0.1.0",
+    "@elixir-mcp/record": "0.1.0"
   },
   "devDependencies": {
     "pg": "^8.23.1"

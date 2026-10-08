@@ -19,6 +19,7 @@ import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 import { CONSOLE } from "../../lib/console.js";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
+import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
 
 /**
@@ -198,6 +199,9 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
           compact
         />
       )}
+      {/* Adding a tag lands here, so the primary's clan is offered here
+          too when Elixir could not follow it by itself. */}
+      {!isClan && claim.is_primary && <HomeClanOffer className="mb-[18px]" />}
 
       <div style={{ display: "flex", gap: "18px", flexWrap: "wrap" }}>
         <section className="panel" style={{ flex: "1 1 340px" }}>

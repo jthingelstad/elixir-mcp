@@ -11,7 +11,8 @@ const journey = (p) =>
 
 test("saved tags stay pending; profiles and older battles have destinations that actually hold them", () => {
   expect(journey({}).state).toBe("Capture pending");
-  expect(journey({}).text).toContain("no guaranteed arrival time");
+  expect(journey({}).text).toContain("usually lands within a few minutes");
+  expect(journey({}).text).toContain("last 30 battles");
   expect(journey({ profile_available: true }).to).toBe(
     "/console/explore/profile/P0Y",
   );
@@ -73,4 +74,34 @@ test("partial measured evidence stays bounded and complete intervals do not clai
   expect(journey({ recording_status: null }).state).toBe(
     "Recording status unknown",
   );
+});
+
+test("a 404 on the profile, before anything was captured, says the tag was not found", () => {
+  const missing = [
+    {
+      endpoint: "player",
+      last_failed_at: "2026-10-06T11:00:00Z",
+      last_failed_status: 404,
+    },
+  ];
+  const j = journey({ capture_attempts: missing });
+  expect(j.state).toBe("Tag not found");
+  expect(j.notFound).toBe(true);
+  expect(j.text).toContain("We couldn't find #P0Y in Clash Royale");
+  expect(j.to).toBe("/console/account/tracking/P0Y");
+  // Any other failure is only a failed attempt; so is a 404 on a player
+  // the record already holds, or on the battle log alone.
+  expect(
+    journey({
+      capture_attempts: [{ ...missing[0], last_failed_status: 503 }],
+    }).state,
+  ).toBe("Capture attempt failed");
+  expect(
+    journey({ capture_attempts: missing, profile_available: true }).state,
+  ).toBe("Capture attempt failed");
+  expect(
+    journey({
+      capture_attempts: [{ ...missing[0], endpoint: "player_battlelog" }],
+    }).state,
+  ).toBe("Capture attempt failed");
 });

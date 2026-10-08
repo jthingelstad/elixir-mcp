@@ -182,6 +182,10 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     ["claim_challenge", `claim_challenge where account_id = any($1::uuid[])`],
     ["claim", `claim where account_id = any($1::uuid[])`],
     ["account_clan", `account_clan where account_id = any($1::uuid[])`],
+    [
+      "account_clan_declined",
+      `account_clan_declined where account_id = any($1::uuid[])`,
+    ],
     ["player_nickname", `player_nickname where account_id = any($1::uuid[])`],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
     ["agent_identity", `agent_identity where account_id = any($1::uuid[])`],

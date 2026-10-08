@@ -45,6 +45,18 @@ There is no watch step and no approval queue. **Tracked means recorded**:
 tracking a subject on your account is the request to record it, and capture
 starts at the next scheduler tick.
 
+Adding a player also asks for one read of their profile on the live lane,
+free and outside your quota, as [Verify](/docs/verify) does. So the first
+capture usually lands within a few minutes, and the first battle-log read
+brings roughly the last 30 battles with it (the game keeps no more; from
+there the record builds forward). If Clash Royale answers that it has no
+player with that tag (its "Player not found"), the Console says so on the
+player's page instead of waiting: check the tag, which is on the player's
+profile in the game below the name, stop tracking the wrong one and add
+the right one. Any other failed read is only a failed attempt, retried on
+the schedule below. A tag read or refused in the last day is not asked for
+again.
+
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
 | Record a player | `elixir_track_player({ player_tag, relationship? })` | Account → Tracking | `recordings:write` |
@@ -97,8 +109,9 @@ record of who was in it.
 
 Every tier has at least one activity clan slot (member and leader one,
 family three, partner ten; [Roles](/docs/roles)), and the first is meant for
-your own clan: add it in Console ▸ Tracking after signing in. Signup itself
-starts no recording. Comprehensive is the upgrade, and
+your own clan: Elixir follows your primary player's clan in it for you
+([Your player's clan](#your-players-clan)). Signup itself starts no
+recording. Comprehensive is the upgrade, and
 it costs proportionally more to run — the member tier has none, so
 `elixir_track_clan`, which defaults to `comprehensive`, needs
 `scope: "activity"` there.
@@ -141,6 +154,33 @@ primary until you track one. Claims are taken at your word
 (`claim_status: unverified`) until [Verify](/docs/verify) proves one;
 several accounts may track the same player and share the recording.
 
+## Your player's clan
+
+Elixir follows your primary player's clan for you, at activity scope (its
+roster, its members coming and going, its river races), as soon as a read
+of your player's profile shows which clan they are in. That is what puts
+your clan's week in your Monday email. The rules:
+
+- **Only your primary.** An alt, a friend or a player you watch never
+  brings their clan with them.
+- **Only a player in a clan.** A primary in no clan follows nothing, and
+  a primary who leaves their clan leaves your follows as they were.
+- **Never past your slots, never in place of a clan you chose.** If your
+  activity clan slot is already in use, nothing changes; Tracking and
+  your player's page offer the clan instead, one click to follow.
+- **Never back after you stop.** Stop tracking that clan and Elixir does
+  not follow it for you again; you can still track it yourself.
+- **It moves with your player.** When your primary joins another clan (or
+  you make another player primary), the follow Elixir made moves to the
+  new clan, and the old one stops unless someone else records it. A
+  clan you followed or changed yourself is never moved.
+- Already following the clan, at any scope, changes nothing. Agents never
+  follow a clan this way.
+
+Accounts made before 2026-10-08 are not changed; their clan stays one
+click away on Tracking. Each follow Elixir makes is in your account's
+activity log.
+
 `elixir_nickname({ player_tag, nickname })` stores a private label (1 to 40
 characters, `null` clears) that only your account and your agents see;
 `players_search` ranks your nicknames first. It is the one write the website's
@@ -172,7 +212,7 @@ per day, against the game's own lifetime battle counter.
 
 | Subject | Rule | Bounds |
 |---|---|---|
-| Battle log | 30 minutes after a read that delivered battles; after an empty read the wait doubles (60, then 120 minutes) | never past 2 hours; a new subject is read within 30 minutes |
+| Battle log | 30 minutes after a read that delivered battles; after an empty read the wait doubles (60, then 120 minutes) | never past 2 hours; a new subject is read at the next planning tick, usually within a few minutes |
 | Battle log, reader cap | any player resolved by a tool call (yours, or one you named) is polled at least hourly for the next 24 hours | – |
 | Battle log, floor | at least daily regardless, even under a starved budget | – |
 | Profile | once a day; a player somebody tracks directly, every 8 hours; forced once in the hour before the Monday donation reset and before the season rolls | no floor: an idle player owes the record no snapshot |

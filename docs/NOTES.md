@@ -315,3 +315,43 @@ refused 401, and web-api, mcp and jobs show no ERROR, timeout or 5xx line
 since. No clan had opened Settings yet, so no refresh had run, and none
 was started to check it: a refresh reads Anthropic with a clan's own key.
 
+
+## 2026-10-08 — Primary player's clan followed automatically; first ten minutes
+
+The first-ten-minutes assessment that day found no new account following
+a clan: the one-click offer sat on Tracking, and adding a tag lands on
+the player's own page. Jamie: "I like the primary option, go ahead with
+that. And for the product call yes it should follow it automatically for
+the primary player assuming they have a clan set (not all players are in
+a clan)." DECISIONS: "Primary player's clan is followed automatically".
+
+- **Auto-follow** (migration 0205, `followPrimaryClan` in
+  `packages/claims`): runs after `addPlayer` commits and after every
+  admitted player profile (ingest, after its commit; replays and
+  backfills never). Activity scope; the primary only; a clan only from
+  an admitted profile (no clan or no profile yet: nothing). Skips when
+  the clan is already followed at any scope, when the person once
+  stopped tracking it (`account_clan_declined`, written by `removeClan`),
+  or when the pool has no free activity slot: it never displaces a clan,
+  and the one-click offer (Tracking, Overview's link, the primary
+  player's page) stays the fallback. A follow Elixir made
+  (`account_clan.auto_followed_at`) moves when the primary changes clan;
+  one the person made, re-scoped or chose as primary clan is never moved.
+  Each is an `account_event` (`clan_added`/`clan_removed`, `auto: true`)
+  and a `primary_clan_followed` log line.
+- **No backfill.** `account.auto_follow_clan` was added false (constant
+  default, no row written) and then defaulted true, so only accounts made
+  from this deploy on are followed. Open, Jamie's call: turn it on for
+  the accounts made before (one UPDATE; the next profile admission
+  follows).
+- **First read on add:** a new tag asks the live lane for one profile
+  read, at most once a day per tag, so a mistyped tag is named ("Tag not
+  found", `collector_fetch_error.http_status` 404) instead of waiting.
+  Timing copy is now "usually within a few minutes" and "roughly the last
+  30 battles" everywhere (Console, welcome mail, docs, the tool's note;
+  ladder.md said 25).
+- **Ladder pending:** "Your first capture is on its way" until the first
+  battle log lands (`apps/web/src/ladder/AGENTS.md`, the one polling
+  exception).
+- Fixed: adding a player logged `recording_started` twice.
+- MCP 11.4.0 (elixir_track_player notes); JSON API 3.1.0 unchanged in shape.

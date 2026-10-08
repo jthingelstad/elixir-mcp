@@ -24,6 +24,7 @@ import {
   bulkJobWanted,
   RECORDING_CUTOVER_LOCK,
 } from "@elixir-mcp/ledger";
+import { followClanForPlayer } from "@elixir-mcp/claims";
 import { admit } from "./admission.mjs";
 import { ingestBattlelog } from "./battles.mjs";
 import { ingestClanRoster } from "./roster.mjs";
@@ -761,6 +762,21 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
 
     await db.query("commit");
     mark("commit_ms", t);
+    // The primary player's clan (Jamie, 2026-10-08): once a profile says
+    // which clan a person's primary is in, their account follows it. After
+    // the commit, in its own transaction and never thrown: the admission
+    // stands whatever the follow decides. A replay writes rows, not
+    // decisions (deps.moments false), so it follows nothing.
+    if (
+      endpoint === "player" &&
+      admission.ok &&
+      !deps.skipProjection &&
+      deps.moments !== false
+    )
+      await followClanForPlayer(db, entityKey, { via: "profile" }).catch(
+        (err) =>
+          console.error("primary_clan_follow_failed", entityKey, err?.message),
+      );
     timings.total_ms = Date.now() - t0;
     return {
       outcome: admission.ok ? "admitted" : "rejected",

@@ -118,6 +118,23 @@ const cases = [
     state: "Capture attempt failed",
   },
   {
+    name: "profile not found before any capture",
+    player: {
+      ...player,
+      capture_attempts: [
+        {
+          endpoint: "player",
+          last_failed_at: "2026-10-06T23:00:00Z",
+          last_failed_status: 404,
+        },
+      ],
+    },
+    clan: null,
+    action: "Fix the tag",
+    to: "/console/account/tracking/20JJJ2CCRU",
+    state: "Tag not found",
+  },
+  {
     name: "partial capture",
     player: {
       ...player,

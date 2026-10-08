@@ -129,8 +129,13 @@ export function renderEmail(msg) {
         `Elixir keeps the Clash Royale history the game doesn't, and reads it back:\n` +
         `in the console, inside your clan, in a short email each week, or to your own AI agent.\n\n` +
         `Add your player in Console ▸ Tracking to start your record. If a player is already on your account, its recording stays in place.\n` +
-        `Open ${SITE}/console/account/tracking to get started. Your agent is optional; connect it to\n` +
-        `${SITE}/mcp and ask what the game itself can't answer.\n\n` +
+        `The first capture usually lands within a few minutes, with roughly your last 30 battles.\n` +
+        `Open ${SITE}/console/account/tracking to get started.\n\n` +
+        `What comes next\n\n` +
+        `Monday: your clan's week. The river race, who joined and who left. Elixir follows your player's clan for you as soon as it sees it.\n` +
+        `Tuesday: your week in the Arena. Your record by mode, your decks, and who you battled.\n` +
+        `Wednesday: your friends. Follow anyone with a player tag, and hear how they played.\n` +
+        `Your own agent: connect it to ${SITE}/mcp and ask what the game can't answer.\n\n` +
         `The five-minute version: ${SITE}/docs/quickstart\n\n` +
         `${DISCLAIMER}\n`,
       html: shell({
@@ -145,13 +150,13 @@ export function renderEmail(msg) {
             "Elixir keeps the Clash Royale history the game doesn&rsquo;t, and reads it back: in the console, inside your clan, in a short email each week, or to your own AI agent.",
           ),
           p(
-            "Add your player in Console ▸ Tracking to start your record. If a player is already on your account, its recording stays in place. Sign in and it is waiting.",
+            "Add your player in Console ▸ Tracking to start your record. If a player is already on your account, its recording stays in place. The first capture usually lands within a few minutes, with roughly your last 30 battles.",
           ),
           h2("What comes next"),
           rows([
             {
               title: "Monday: your clan&rsquo;s week",
-              text: "The river race, who joined and who left.",
+              text: "The river race, who joined and who left. Elixir follows your player&rsquo;s clan for you as soon as it sees it.",
             },
             {
               title: "Tuesday: your week in the Arena",

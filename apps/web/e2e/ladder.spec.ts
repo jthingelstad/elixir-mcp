@@ -377,6 +377,58 @@ test.describe("Ladder signed in", () => {
     expect(overflow).toBeLessThanOrEqual(0);
     await accessible(page, "ladder narrow");
   });
+  // 2026-10-08: a player just added has nothing on record yet. Ladder
+  // says the first capture is on its way and links to its status, on
+  // every page, with no read error.
+  for (const page_ of ["", "/days", "/decks", "/cards"]) {
+    test(`a player with no capture yet sees it on its way at /ladder${page_}`, async ({
+      page,
+    }) => {
+      const pending = {
+        ...summary({}),
+        last_30_days: { battles: 0, wins: 0, losses: 0, modes: {} },
+        top_deck: null,
+        meta: {
+          as_of: "2026-10-08T12:00:00Z",
+          source_polls: {
+            player_battlelog: { observed_at: null, freshness_seconds: null },
+          },
+        },
+      };
+      await mockApi(
+        page,
+        signedIn({
+          "POST /api/explore": explore([], {
+            players_summary: pending,
+          }),
+          "GET /api/me/first-answer": [
+            200,
+            {
+              as_of: "2026-10-08T12:00:00Z",
+              player: {
+                player_tag: "#20JJJ2CCRU",
+                is_primary: true,
+                recording_status: "active",
+                battles_30d: 0,
+                battlelog_observed_at: null,
+              },
+              connection: { active_connections: 0 },
+              clan: null,
+            },
+          ],
+        }),
+      );
+      await page.goto(`/ladder${page_}`);
+      await expect(
+        page.getByRole("heading", { name: "Your first capture is on its way" }),
+      ).toBeVisible();
+      await expect(page.getByRole("alert")).toHaveCount(0);
+      await expect(
+        page.getByRole("link", { name: "Capture status ›" }),
+      ).toHaveAttribute("href", "/console/account/tracking/20JJJ2CCRU");
+      await accessible(page, `ladder pending ${page_}`);
+    });
+  }
 });
 
 test.describe("Ladder days played", () => {

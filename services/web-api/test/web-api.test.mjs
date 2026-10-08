@@ -180,11 +180,32 @@ test("the full journey: request -> approve -> sign in -> claim -> record", async
   assert.equal(me.recordings[0].status, "active");
 
   // Added = recorded: claiming a SECOND player still starts capture.
+  await db.query(`update budget_state set tokens = 5`);
   const claim = await handler(
     event({ path: "/api/claims", cookie, body: { player_tag: "#2GLQRLC" } }),
   );
   assert.equal(parse(claim).ok, true);
   assert.equal(parse(claim).recording_started, true);
+  // 2026-10-08: one free live read of the new tag's profile, and one
+  // recording_started (the route used to log a second one of its own).
+  assert.equal(parse(claim).first_read, true);
+  assert.equal(parse(claim).not_found, false);
+  const { rows: liveJobs } = await db.query(
+    `select lane from job where endpoint = 'player' and entity_key = '#2GLQRLC'`,
+  );
+  assert.deepEqual(liveJobs, [{ lane: "live" }]);
+  const { rows: started } = await db.query(
+    `select count(*)::int as n from account_event
+      where kind = 'recording_started' and detail->>'player_tag' = '#2GLQRLC'`,
+  );
+  assert.equal(started[0].n, 1);
+  // Adding it again asks for nothing more: the job is open.
+  const again = parse(
+    await handler(
+      event({ path: "/api/claims", cookie, body: { player_tag: "#2GLQRLC" } }),
+    ),
+  );
+  assert.equal(again.first_read, false);
 
   const me2 = parse(
     await handler(

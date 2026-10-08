@@ -9,7 +9,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../../services/migrate/src/migrate.mjs";
-import { addPlayer, removePlayer, reconcileRecording } from "../src/index.mjs";
+import {
+  addPlayer,
+  removePlayer,
+  reconcileRecording,
+  addClan,
+  removeClan,
+  followClanForPlayer,
+} from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -103,6 +110,8 @@ beforeEach(async () => {
   await db.query(`delete from account_clan`);
   await db.query(`delete from recording`);
   await db.query(`delete from account`);
+  await db.query(`delete from player_profile_membership`);
+  await db.query(`update player set last_known_clan_tag = null`);
   alice = await account(`alice-${Math.random()}`, { slots: 10 });
   bob = await account(`bob-${Math.random()}`, { slots: 10 });
 });
@@ -536,4 +545,200 @@ test("a direct clan follow determines recording depth and removal", async () => 
     (await reconcileRecording(db, "clan", CLAN, null)).stopped,
     true,
   );
+});
+
+// ------------------------------------- the primary player's clan (0205)
+// Jamie, 2026-10-08: "it should follow it automatically for the primary
+// player assuming they have a clan set (not all players are in a clan)."
+// Each rule in followPrimaryClan's comment is one test here.
+const OTHER = "#GCYQR9VY";
+const THIRD = "#GJ09RJP8";
+
+/** What the latest admitted profile said: in `clan`, or in none. */
+const profile = async (tag, clan, { retained = clan } = {}) => {
+  await db.query(
+    `insert into player (player_tag, last_known_clan_tag) values ($1, $2)
+     on conflict (player_tag) do update set last_known_clan_tag = excluded.last_known_clan_tag`,
+    [tag, retained],
+  );
+  await db.query(
+    `insert into player_profile_membership (player_tag, state, observed_at)
+     values ($1, $2, now() - interval '1 minute')
+     on conflict (player_tag) do update
+       set state = excluded.state, observed_at = excluded.observed_at`,
+    [tag, clan ? "member" : "none"],
+  );
+};
+
+const follows = async (acct) =>
+  (
+    await db.query(
+      `select clan_tag, scope, auto_followed_at is not null as auto
+         from account_clan where account_id = $1 order by clan_tag`,
+      [acct.accountId],
+    )
+  ).rows;
+
+test("adding a primary in a known clan follows it at activity scope", async () => {
+  await profile(A, CLAN);
+  const r = await addPlayer(db, alice, { tag: A, via: "console" });
+  assert.equal(r.clanFollowed, CLAN);
+  assert.deepEqual(await follows(alice), [
+    { clan_tag: CLAN, scope: "activity", auto: true },
+  ]);
+  assert.equal((await clanRecording(CLAN)).scope, "activity");
+  const { rows: events } = await db.query(
+    `select kind, detail from account_event where account_id = $1 and kind = 'clan_added'`,
+    [alice.accountId],
+  );
+  assert.equal(events.length, 1);
+  assert.equal(events[0].detail.auto, true);
+});
+
+test("a primary whose first profile lands later is followed then", async () => {
+  const r = await addPlayer(db, alice, { tag: A, via: "console" });
+  assert.equal(r.clanFollowed, null, "no profile yet: nothing to follow");
+  assert.deepEqual(await follows(alice), []);
+  await profile(A, CLAN);
+  await followClanForPlayer(db, A);
+  assert.deepEqual(await follows(alice), [
+    { clan_tag: CLAN, scope: "activity", auto: true },
+  ]);
+  const again = await followClanForPlayer(db, A);
+  assert.deepEqual(again, [], "idempotent: already following");
+  assert.equal((await follows(alice)).length, 1);
+});
+
+test("a primary in no clan follows nothing, retained tag or not", async () => {
+  await profile(A, null, { retained: CLAN });
+  await addPlayer(db, alice, { tag: A, via: "console" });
+  await followClanForPlayer(db, A);
+  assert.deepEqual(await follows(alice), []);
+});
+
+test("only the primary: a watched player's clan is never followed", async () => {
+  await profile(A, CLAN);
+  await profile(B, OTHER);
+  await addPlayer(db, alice, { tag: A, via: "console" });
+  await addPlayer(db, alice, { tag: B, via: "console" });
+  await followClanForPlayer(db, B);
+  assert.deepEqual(
+    (await follows(alice)).map((f) => f.clan_tag),
+    [CLAN],
+  );
+});
+
+test("already following the clan, at any scope, changes nothing", async () => {
+  await db.query(`update account set role = 'leader' where account_id = $1`, [
+    alice.accountId,
+  ]);
+  await addClan(db, alice, {
+    tag: CLAN,
+    scope: "comprehensive",
+    via: "console",
+  });
+  await profile(A, CLAN);
+  const r = await addPlayer(db, alice, { tag: A, via: "console" });
+  assert.equal(r.clanFollowed, null);
+  assert.deepEqual(await follows(alice), [
+    { clan_tag: CLAN, scope: "comprehensive", auto: false },
+  ]);
+});
+
+test("a full slot is never displaced", async () => {
+  // A member's one activity slot is taken by a clan they chose.
+  await db.query(
+    `update account set max_player_recordings = null where account_id = $1`,
+    [alice.accountId],
+  );
+  const own = await addClan(db, alice, {
+    tag: OTHER,
+    scope: "activity",
+    via: "console",
+  });
+  assert.equal(own.ok, true);
+  await profile(A, CLAN);
+  const r = await addPlayer(db, alice, { tag: A, via: "console" });
+  assert.equal(r.ok, true, "the add itself always stands");
+  assert.equal(r.clanFollowed, null);
+  assert.deepEqual(await follows(alice), [
+    { clan_tag: OTHER, scope: "activity", auto: false },
+  ]);
+  assert.equal(await clanRecording(CLAN), undefined);
+});
+
+test("a clan the person stopped tracking is never followed again", async () => {
+  await profile(A, CLAN);
+  await addPlayer(db, alice, { tag: A, via: "console" });
+  assert.equal((await follows(alice)).length, 1);
+  await removeClan(db, alice, { tag: CLAN, via: "console" });
+  await followClanForPlayer(db, A);
+  assert.deepEqual(await follows(alice), []);
+  // Tracking it by hand still works, and is the person's own follow.
+  const back = await addClan(db, alice, {
+    tag: CLAN,
+    scope: "activity",
+    via: "console",
+  });
+  assert.equal(back.ok, true);
+  assert.deepEqual(await follows(alice), [
+    { clan_tag: CLAN, scope: "activity", auto: false },
+  ]);
+});
+
+test("a clan change moves Elixir's follow and never the person's", async () => {
+  await db.query(`update account set role = 'family' where account_id = $1`, [
+    alice.accountId,
+  ]);
+  await addClan(db, alice, { tag: THIRD, scope: "activity", via: "console" });
+  await profile(A, CLAN);
+  await addPlayer(db, alice, { tag: A, via: "console" });
+  await profile(A, OTHER);
+  await followClanForPlayer(db, A);
+  assert.deepEqual(await follows(alice), [
+    { clan_tag: OTHER, scope: "activity", auto: true },
+    { clan_tag: THIRD, scope: "activity", auto: false },
+  ]);
+  assert.equal(await clanRecording(CLAN), undefined, "the old clan stops");
+  const { rows: declined } = await db.query(
+    `select clan_tag from account_clan_declined where account_id = $1`,
+    [alice.accountId],
+  );
+  assert.deepEqual(declined, [], "a move is not a decline");
+  // Leaving the clan for none leaves the follow as it was.
+  await profile(A, null, { retained: OTHER });
+  await followClanForPlayer(db, A);
+  assert.equal((await follows(alice)).length, 2);
+});
+
+test("a follow the person changed is theirs and is not moved", async () => {
+  await profile(A, CLAN);
+  await addPlayer(db, alice, { tag: A, via: "console" });
+  await addClan(db, alice, { tag: CLAN, scope: "activity", via: "console" });
+  await profile(A, OTHER);
+  await followClanForPlayer(db, A);
+  assert.deepEqual(await follows(alice), [
+    { clan_tag: CLAN, scope: "activity", auto: false },
+  ]);
+});
+
+test("accounts made before 0205 are not followed (no backfill)", async () => {
+  await db.query(
+    `update account set auto_follow_clan = false where account_id = $1`,
+    [alice.accountId],
+  );
+  await profile(A, CLAN);
+  const r = await addPlayer(db, alice, { tag: A, via: "console" });
+  assert.equal(r.clanFollowed, null);
+  await followClanForPlayer(db, A);
+  assert.deepEqual(await follows(alice), []);
+});
+
+test("every account whose primary it is follows; nobody else", async () => {
+  await profile(A, CLAN);
+  await addPlayer(db, alice, { tag: A, via: "console" });
+  await addPlayer(db, bob, { tag: B, via: "console" });
+  await addPlayer(db, bob, { tag: A, via: "console" });
+  assert.equal((await follows(alice)).length, 1);
+  assert.deepEqual(await follows(bob), [], "A is bob's watched player");
 });

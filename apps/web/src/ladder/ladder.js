@@ -122,6 +122,25 @@ export function pickMode(param, modes) {
   );
 }
 
+/**
+ * The first capture has not landed yet (2026-10-08): nothing of this
+ * player is on record and their battle log has never been read. A page
+ * then has nothing to read back, and an empty mode or a refusal would
+ * read as a fault, so LadderPage shows Pending instead. Taken from the
+ * players_summary read the page already makes: its refusal
+ * `not_recorded`, or an answer whose meta has no recorded_since and no
+ * battle-log poll.
+ */
+export function capturePending(summary) {
+  if (summary?.isError) return summary.error?.code === "not_recorded";
+  const meta = summary?.data?.meta;
+  if (!meta) return false;
+  return (
+    !meta.recorded_since &&
+    meta.source_polls?.player_battlelog?.observed_at == null
+  );
+}
+
 /** A player as the page names them: nickname, name, or the tag. */
 export const playerName = (p) => p?.nickname ?? p?.name ?? p?.player_tag ?? "";
 
