@@ -1,4 +1,4 @@
-import { CardArt, Link } from "@elixir-mcp/ui";
+import { CardArt, Link, noun } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { CONSOLE } from "../lib/console.js";
 import { fmt, ladderHref, modeLabel, pct } from "./ladder.js";
@@ -188,7 +188,7 @@ function YourCards({ body }) {
         than one deck carries all of their battles, so the rows overlap and
         never add up.
         {floor
-          ? ` Cards in fewer than ${fmt(floor)} battles are left out.`
+          ? ` Cards in fewer than ${fmt(floor)} ${noun(floor, "battle")} are left out.`
           : ""}
       </div>
     </section>
@@ -266,7 +266,7 @@ function TheirCards({ read, opponents, mode }) {
       <div className="panel__foot">
         Your record in the battles where the opponent&apos;s deck held the card.
         {floor
-          ? ` Cards met in fewer than ${fmt(floor)} battles are left out.`
+          ? ` Cards met in fewer than ${fmt(floor)} ${noun(floor, "battle")} are left out.`
           : ""}
       </div>
     </section>

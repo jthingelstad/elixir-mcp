@@ -1,4 +1,4 @@
-import { Fresh, Icon } from "@elixir-mcp/ui";
+import { Fresh, Icon, noun } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { manageApi } from "../api.js";
 import { useRecruit } from "../lib/queries.js";
@@ -103,7 +103,7 @@ export function Recruit({ clan, navigate }) {
         <div className="panel__body fields" style={{ rowGap: "6px" }}>
           <span className="label">Members</span>
           <span>
-            {f?.members ?? "?"} members
+            {f?.members ?? "?"} {noun(f?.members, "member")}
             {f ? ` · ${f.open_slots} open` : ""}
           </span>
           <span className="label">To join</span>

@@ -340,7 +340,7 @@ export function Tracking({ me, refresh, navigate }) {
               aria-describedby="add-player-tag-hint"
               disabled={tagBusy}
               className="mono"
-              placeholder="#20JJJ2CCRU"
+              placeholder="#2PYQ8GJ0"
               aria-invalid={tagErr ? "true" : undefined}
               value={tag}
               onChange={(ev) => {

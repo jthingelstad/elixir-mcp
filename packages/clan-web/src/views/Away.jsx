@@ -1,3 +1,4 @@
+import { noun } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useMyAway } from "../lib/queries.js";
@@ -33,7 +34,7 @@ export function Away({ me }) {
     .toISOString()
     .slice(0, 10);
   const ERRORS = {
-    too_long: `At most ${state.max_days} days from today.`,
+    too_long: `At most ${state.max_days} ${noun(state.max_days, "day")} from today.`,
     bad_until: "Pick a date after today.",
     held_by_leader: "A leader has set a hold on you; ask them to change it.",
     away_off: "This clan does not take away notices here.",
@@ -52,7 +53,7 @@ export function Away({ me }) {
         until the day you name. Leaders see it beside your name. Held time is
         not subtracted from elapsed time.
         {state.allowed
-          ? ` Up to ${state.max_days} days at a time.`
+          ? ` Up to ${state.max_days} ${noun(state.max_days, "day")} at a time.`
           : " This clan's policy does not offer it; tell a leader instead."}
       </p>
       {hold ? (

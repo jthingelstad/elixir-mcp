@@ -1,4 +1,4 @@
-import { Fresh, Icon, Link, ago, stamp, useClock } from "@elixir-mcp/ui";
+import { Fresh, Icon, Link, ago, stamp, useClock, noun } from "@elixir-mcp/ui";
 import {
   CHAT_MAX,
   CHAT_TONES,
@@ -1130,10 +1130,10 @@ function BoundActionCard({
                 ? ` · was ${ev.removal_state.replaceAll("_", " ")} on the clock`
                 : ""}
               {ev.days_idle != null
-                ? ` · ${Math.round(ev.days_idle)} days since their last battle`
+                ? ` · ${Math.round(ev.days_idle)} ${noun(Math.round(ev.days_idle), "day")} since their last battle`
                 : ""}
               {ev.tenure_days != null
-                ? ` · recorded tenure ${ev.tenure_days} days`
+                ? ` · recorded tenure ${ev.tenure_days} ${noun(ev.tenure_days, "day")}`
                 : ""}
               {departureCopy
                 ? `. A leader confirmed ${action.outcome?.classification === "member_kicked" ? "Kicked" : "Left"}.`
@@ -1152,7 +1152,10 @@ function BoundActionCard({
               days. This does not establish no play across every battle mode.
               Going to be away? Mark it to shield removal eligibility while
               active
-              {ev.away_max_days ? ` (up to ${ev.away_max_days} days)` : ""}.
+              {ev.away_max_days
+                ? ` (up to ${ev.away_max_days} ${noun(ev.away_max_days, "day")})`
+                : ""}
+              .
             </div>
           ) : action.type === "awards_announcement" ? (
             <div>

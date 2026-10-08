@@ -1,5 +1,5 @@
 import { useWrite } from "@elixir-mcp/client";
-import { ago, Icon, Link, secsSince, WriteError } from "@elixir-mcp/ui";
+import { ago, Icon, Link, secsSince, WriteError, noun } from "@elixir-mcp/ui";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -184,7 +184,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
               {" · "}
               {isClan ? "clan" : "player"}
               {isClan && clan.member_count
-                ? ` · ${clan.member_count} members`
+                ? ` · ${clan.member_count} ${noun(clan.member_count, "member")}`
                 : ""}
               {!isClan && claim.is_primary ? " · your primary" : ""}
             </span>

@@ -1,4 +1,4 @@
-import { Fresh, Icon } from "@elixir-mcp/ui";
+import { Fresh, Icon, noun } from "@elixir-mcp/ui";
 import { useMemberView } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
@@ -296,7 +296,8 @@ export function YouHere({ clan, navigate }) {
                       <h3 className="label m-0">
                         Minimums (
                         {c.minimums.rule === "all" ? "all of" : "any one of"},
-                        over {c.minimums.window_weeks} weeks)
+                        over {c.minimums.window_weeks}{" "}
+                        {noun(c.minimums.window_weeks, "week")})
                       </h3>
                       <ul className="m-0 p-0 list-none grid gap-1">
                         {Object.entries(c.minimums.set).map(([k, need]) => {
@@ -343,8 +344,8 @@ export function YouHere({ clan, navigate }) {
                   {c.tenure_min_days != null && y.time_here.tenure_known ? (
                     <p className="m-0 text-[13.5px] text-ink-dim">
                       {y.time_here.days >= c.tenure_min_days
-                        ? `${y.time_here.days} days in the clan: past the ${c.tenure_min_days} days Elder asks for.`
-                        : `${y.time_here.days} of the ${c.tenure_min_days} days in the clan Elder asks for.`}
+                        ? `${y.time_here.days} ${noun(y.time_here.days, "day")} in the clan: past the ${c.tenure_min_days} ${noun(c.tenure_min_days, "day")} Elder asks for.`
+                        : `${y.time_here.days} of the ${c.tenure_min_days} ${noun(c.tenure_min_days, "day")} in the clan Elder asks for.`}
                     </p>
                   ) : null}
                   {c.inactivity && c.inactivity.state !== "none" ? (
@@ -488,8 +489,8 @@ export function YouHere({ clan, navigate }) {
             <div className="panel__body grid gap-2">
               <p className="m-0">
                 {y.time_here.tenure_known && y.time_here.joined_observed_at
-                  ? `Joined ${date(y.time_here.joined_observed_at)}: ${y.time_here.days} days.`
-                  : `Here since before the record began (${date(y.time_here.recording_since)}): at least ${y.time_here.days ?? "?"} days.`}
+                  ? `Joined ${date(y.time_here.joined_observed_at)}: ${y.time_here.days} ${noun(y.time_here.days, "day")}.`
+                  : `Here since before the record began (${date(y.time_here.recording_since)}): at least ${y.time_here.days ?? "?"} ${noun(y.time_here.days, "day")}.`}
               </p>
               {y.time_here.events
                 .filter((e) => e.type === "role_changed")

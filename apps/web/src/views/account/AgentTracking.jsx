@@ -270,7 +270,7 @@ export function AgentTracking({ agent }) {
           <input
             className="mono flex-[1_1_10rem]"
             aria-label="Player tag"
-            placeholder="#20JJJ2CCRU"
+            placeholder="#2PYQ8GJ0"
             value={playerTag}
             onChange={(ev) => setPlayerTag(ev.target.value)}
           />

@@ -1,3 +1,4 @@
+import { noun } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
@@ -179,7 +180,7 @@ export function Scout({ clan }) {
                         `${x.value ?? "unknown"} ${MINIMUM_UNIT[c]} (needs ${x.needed}${x.note ? `, ${x.note}` : ""})`,
                     )
                     .join(a.minimums.rule === "all" ? " and " : " or ")}
-                  {` in the last ${a.minimums.window_weeks} weeks`}
+                  {` in the last ${a.minimums.window_weeks} ${noun(a.minimums.window_weeks, "week")}`}
                   {a.minimums.bounded_by_log
                     ? "; the log covers less than the window, so this is a lower bound"
                     : ""}
@@ -198,8 +199,8 @@ export function Scout({ clan }) {
                   {a.inactivity.state.replaceAll("_", " ")}
                 </span>{" "}
                 <span className="page-head__note">
-                  {a.inactivity.days_idle} days since the last recorded battle.{" "}
-                  {a.inactivity.reason}
+                  {a.inactivity.days_idle} {noun(a.inactivity.days_idle, "day")}{" "}
+                  since the last recorded battle. {a.inactivity.reason}
                 </span>
               </div>
             ) : null}
@@ -207,7 +208,8 @@ export function Scout({ clan }) {
               <div className="page-head__note">No battle in the log yet.</div>
             ) : (
               <div className="page-head__note">
-                Last {r.log.battles} battles: {r.log.wins} W / {r.log.losses} L
+                Last {r.log.battles} {noun(r.log.battles, "battle")}:{" "}
+                {r.log.wins} W / {r.log.losses} L
                 {r.log.win_rate != null
                   ? ` (${Math.round(r.log.win_rate * 100)}%)`
                   : ""}

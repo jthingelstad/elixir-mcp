@@ -8,6 +8,7 @@ import {
   Markdown,
   useClock,
   WriteError,
+  noun,
 } from "@elixir-mcp/ui";
 import { Integrations } from "./Integrations.jsx";
 import { useEffect, useState, Fragment } from "react";
@@ -354,7 +355,7 @@ function AdminAccounts() {
         text: a.role + (a.pending_role_request ? " · upgrade requested" : ""),
         tone: a.pending_role_request ? "warn" : undefined,
       },
-      `${a.players_tracked ?? 0} players · ${a.clans_tracked ?? 0} clans`,
+      `${a.players_tracked ?? 0} ${noun(a.players_tracked ?? 0, "player")} · ${a.clans_tracked ?? 0} ${noun(a.clans_tracked ?? 0, "clan")}`,
       a.children ? String(a.children) : "—",
     ]);
 
@@ -480,7 +481,7 @@ function AdminAccountDetail({ id }) {
     ["Created", day(a.created_at)],
     [
       "Tracking",
-      `${a.players_tracked ?? 0} players · ${a.clans_tracked ?? 0} clans`,
+      `${a.players_tracked ?? 0} ${noun(a.players_tracked ?? 0, "player")} · ${a.clans_tracked ?? 0} ${noun(a.clans_tracked ?? 0, "clan")}`,
     ],
     ["Runs a collector", a.operator ? "yes" : "no"],
     [

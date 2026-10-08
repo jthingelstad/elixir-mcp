@@ -8,6 +8,7 @@ import {
   stamp,
   useClock,
   WriteError,
+  noun,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { usePublicStats } from "../lib/queries.js";
@@ -231,7 +232,7 @@ const BROWSE = {
     title: "Players",
     lede: "Anyone the record knows — the players it records, and every opponent they have met, known from that battle alone.",
     hint: "Paste a player tag, or type a name or one of your nicknames.",
-    placeholder: "#20JJJ2CCRU",
+    placeholder: "#2PYQ8GJ0",
   },
   clans: {
     title: "Clans & wars",
@@ -447,7 +448,7 @@ function Lookup({ me, navigate, browse }) {
           <input
             className="mono"
             aria-label="Look up a record"
-            placeholder={browse?.placeholder ?? "#20JJJ2CCRU"}
+            placeholder={browse?.placeholder ?? "#2PYQ8GJ0"}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             style={{
@@ -496,7 +497,10 @@ function Lookup({ me, navigate, browse }) {
           >
             <div className="panel__head">
               <span className="panel-title">
-                {matches.found.length} players match
+                {matches.found.length}{" "}
+                {matches.found.length === 1
+                  ? "player matches"
+                  : "players match"}
               </span>
               <span
                 className="mono"
@@ -1523,7 +1527,7 @@ function buildListView(rawId, res, zone) {
       crumb: "decks",
       title: `decks · ${b.name ?? decTag(key)}`,
       tag: decTag(key),
-      sub: `${b.total_battles_in_window?.toLocaleString?.() ?? ""} battles across ${b.decks?.length ?? 0} distinct decks in the window.`,
+      sub: `${b.total_battles_in_window?.toLocaleString?.() ?? ""} ${noun(b.total_battles_in_window, "battle")} across ${b.decks?.length ?? 0} distinct ${noun(b.decks?.length ?? 0, "deck")} in the window.`,
       table: {
         cols: [
           { label: "DECK" },

@@ -7,6 +7,7 @@ import {
   secsSince,
   stampTime,
   useClock,
+  noun,
 } from "@elixir-mcp/ui";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
@@ -338,7 +339,9 @@ function Clans({ clansQuery }) {
   const note = (c) =>
     [
       c.clan_tag === home?.clan_tag ? "your clan" : c.scope,
-      c.member_count ? `${c.member_count} members` : null,
+      c.member_count
+        ? `${c.member_count} ${noun(c.member_count, "member")}`
+        : null,
     ]
       .filter(Boolean)
       .join(" · ");

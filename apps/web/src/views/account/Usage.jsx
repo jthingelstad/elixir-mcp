@@ -1,4 +1,4 @@
-import { Icon, Link, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, useClock, noun } from "@elixir-mcp/ui";
 import { useUsage } from "../../lib/queries.js";
 import { useConsolePath, useScope } from "../../lib/scope.js";
 import { quotaReading } from "../../lib/quota.js";
@@ -179,7 +179,7 @@ export function Usage() {
           {days.map((d) => (
             <span
               key={d.day}
-              title={`${d.day} · ${d.calls.toLocaleString()} calls${d.errors ? ` · ${d.errors} errors` : ""}`}
+              title={`${d.day} · ${d.calls.toLocaleString()} ${noun(d.calls, "call")}${d.errors ? ` · ${d.errors} ${noun(d.errors, "error")}` : ""}`}
               style={{
                 flex: "1 1 0",
                 minWidth: "6px",
