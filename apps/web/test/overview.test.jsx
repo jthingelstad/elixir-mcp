@@ -207,3 +207,36 @@ test("the pill says when the primary was last read, green within the hour", asyn
     "chip--warn",
   );
 });
+
+test("bring your clanmates: named for the primary's clan, a chat line within 200, the plain signup link, and nothing without a clan", async () => {
+  stub(ROUTES);
+  renderWithProviders(<Overview me={ME} navigate={vi.fn()} />);
+  const panel = (
+    await screen.findByRole("heading", { name: "Bring your clanmates" })
+  ).closest("section");
+  expect(panel.textContent).toContain("Anyone in POAP KINGS who signs up");
+  const chat = within(panel)
+    .getByRole("button", { name: "Copy the line for clan chat" })
+    .closest("div");
+  expect(chat.textContent).toContain("the POAP KINGS week");
+  expect(chat.textContent.length).toBeLessThanOrEqual(200);
+  const note = within(panel)
+    .getByRole("button", { name: "Copy the message" })
+    .closest("div");
+  expect(note.textContent).toContain(
+    "https://elixir.poapkings.com/console/signin?signup",
+  );
+  cleanup();
+
+  stub({ ...ROUTES, "/api/me/clans": { ...CLANS, home_clan: null } });
+  renderWithProviders(<Overview me={ME} navigate={vi.fn()} />);
+  await screen.findByRole("heading", { name: /^Clans/ });
+  await waitFor(() =>
+    expect(screen.getByRole("heading", { name: /^Clans/ }).textContent).toBe(
+      "Clans 2",
+    ),
+  );
+  expect(screen.queryByRole("heading", { name: "Bring your clanmates" })).toBe(
+    null,
+  );
+});

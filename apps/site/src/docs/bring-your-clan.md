@@ -1,13 +1,13 @@
 ---
 slug: bring-your-clan
 title: "Bring your clan"
-description: "Getting your clan onto Elixir Clan: what you need before you sign in, how your role here follows your role in the game once your player is verified, when a clan appears, the 10-member threshold, and what happens before the leaders write a policy."
+description: "Getting your clan onto Elixir Clan: what you need before you sign in, inviting your clanmates, how your role here follows your role in the game once your player is verified, when a clan appears, the 10-member threshold, and what happens before the leaders write a policy."
 section: clan
 order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Elixir Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-10-04; Clan browsing context and read clarity, contracts unchanged"
+reviewed: "2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -36,6 +36,28 @@ You need two things:
 
 Then open [/clan](/clan). Your existing Elixir session opens it directly;
 a signed-out visit returns there after the common sign-in.
+
+## Bring your clanmates
+
+Once your primary player's clan is on record, **Console ▸ Overview** and
+Ladder's season page show **Bring your clanmates**, named for the clan:
+
+- **A line for clan chat**, within the game's 200 characters and written
+  around what its chat filter masks. It ends with Elixir's address,
+  elixir.poapkings.com, so the sentence before it still reads if the
+  game ever hides the address.
+- **A longer note for Discord or a message**, ending with the signup
+  link, and your device's share sheet where it has one.
+
+A clanmate who signs up and adds their player gets their own battle
+history kept from then on and, because Elixir follows a new member's
+clan for them ([Your player's clan](/docs/recording#your-players-clan)),
+the clan's week in Monday's email. Elixir is free.
+
+The link is Elixir's plain signup address, the same for everyone: no
+invite code, nothing in it that says who sent it, and nothing records
+who copied or shared a line. Inside Elixir Clan, a clan with a policy
+also has **Spread the word** with the clan's own lines.
 
 ## Your role here
 

@@ -28,12 +28,17 @@ Remove a line in the change that closes it.
 - 2026-10-05: Ship It! and Elixir Kings report `channels_ok: 0`. Restore
   each ask-channel binding or permission, then restart only the repaired
   instance. Jamie (Operator follow-up).
+- 2026-10-08: paste Bring your clanmates' clan-chat line (Console ▸
+  Overview) into clan chat once and say whether `elixir.poapkings.com`
+  at its end survives the chat filter; if it is masked, it comes out of
+  the line (`apps/web/src/lib/invite.js`). Jamie.
 - 2026-09-29: `min_client_version` is 2.0.30 with enforcement on. Raising
   it retires the pre-signing rollback lever. Jamie.
-- 2026-10-07: beta invitations not sent. Open before inviting: a real
-  inbox delivery and a natural first capture (a separately approved
-  controlled fresh-person path); the acceptance plan awaits the exact
-  inbox, player tag and baseline. Jamie.
+- 2026-10-08: the fresh-person journey ran live (Jamie's beta1 test
+  account, tracking a public creator tag #92P2LPLP, clan #GGJG2CCR
+  auto-followed): signup to 30 battles in about 8 minutes, mail in
+  seconds. Inbox placement for a stranger (not a filtered folder) still
+  unproven. Invitations are Jamie's call. Jamie.
 - 2026-10-03: co-leaders' own sign-in, verification and model-status
   read-back, any reviewed historical manual-award reconciliation, and a
   bounded paid drafting attempt remain live checks. Jamie with the
@@ -50,6 +55,8 @@ Remove a line in the change that closes it.
 
 ### Engineering
 
+- 2026-10-08: stop tracking #92P2LPLP on Jamie's beta1 test account
+  after its first weekly mails (by 2026-10-15). Operator.
 - 2026-10-03: optional RDS downsizing (db.t4g.small, 20 GiB) waits a
   couple of weeks of measurements. Operator.
 - 2026-09-28: one rate budget with no per-key pooling; revisit around
@@ -339,11 +346,15 @@ a clan)." DECISIONS: "Primary player's clan is followed automatically".
   one the person made, re-scoped or chose as primary clan is never moved.
   Each is an `account_event` (`clan_added`/`clan_removed`, `auto: true`)
   and a `primary_clan_followed` log line.
-- **No backfill.** `account.auto_follow_clan` was added false (constant
-  default, no row written) and then defaulted true, so only accounts made
-  from this deploy on are followed. Open, Jamie's call: turn it on for
-  the accounts made before (one UPDATE; the next profile admission
-  follows).
+- **Backfill (0206).** `account.auto_follow_clan` was added false
+  (constant default, no row written) and then defaulted true, so at first
+  only accounts made from that deploy on were followed. Jamie, the same
+  day: "Approved: backfill auto_follow_clan for the 35 existing elixir
+  accounts". Migration 0206 turns it on for the approved people made
+  before 0205 (the agents and integrations among the 35 never follow a
+  clan this way); each follow then happens on the primary's next
+  admitted profile, under every rule above. `{account_role: {list}}` now
+  shows `kind` and `auto_follow_clan`.
 - **First read on add:** a new tag asks the live lane for one profile
   read, at most once a day per tag, so a mistyped tag is named ("Tag not
   found", `collector_fetch_error.http_status` 404) instead of waiting.
@@ -355,3 +366,34 @@ a clan)." DECISIONS: "Primary player's clan is followed automatically".
   exception).
 - Fixed: adding a player logged `recording_started` twice.
 - MCP 11.4.0 (elixir_track_player notes); JSON API 3.1.0 unchanged in shape.
+
+## 2026-10-08 — Bring your clanmates; invites carry no referral ids
+
+With a new member's primary clan followed for them (above), each
+clanmate who signs up gets that clan's Monday report, so inviting
+clanmates is how Elixir grows. The only invite tooling was Elixir Clan's
+Spread the word, behind 10 members and an active policy.
+
+- **Bring your clanmates** (`apps/web/src/components/BringClanmates.jsx`,
+  words in `src/lib/invite.js`) on Console ▸ Overview and below Ladder's
+  season home, shown only when `/api/me/clans` names a home clan: a line
+  for clan chat, a longer note for Discord or a message, and
+  `navigator.share` where there is one. Without a clan it draws nothing.
+- The clan-chat line goes through Clan's chat filter (`chatSafe`, now
+  exported as `@elixir-mcp/clan-engine/chat`), stays within 200
+  characters at any clan name (a name too long falls back to "our clan's
+  week"), and is tested against `chatWarnings`. It ends with the bare
+  domain `elixir.poapkings.com`: `chatWarnings` flags only `http(s)://`
+  and `www.`, and whether the game masks a bare domain has not been
+  observed, so the sentence before it stands on its own. Worth one look in
+  clan chat; if it is masked, record it in cr-agent-api-docs and drop it.
+- DECISIONS: "Invites carry no referral ids". The link is
+  `https://elixir.poapkings.com/console/signin?signup` for everyone; the
+  copy buttons send no analytics event.
+- Ladder reads `/api/me/clans` for the panel: account state, not a
+  game number, so it sits beside Pending's first-answer poll as the
+  second non-tool read (`apps/web/src/ladder/AGENTS.md`).
+- The Arena email's coverage note and Ladder's signed-out page said the
+  log holds 25 battles; both now say roughly the last 30, as #371 did
+  elsewhere.
+- MCP 11.4.0 and JSON API 3.1.0 unchanged.

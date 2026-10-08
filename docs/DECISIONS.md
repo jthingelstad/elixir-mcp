@@ -105,7 +105,7 @@ current rule, never as "was X, now Y".
 - **Roles never gate visibility** — tiers differ only in slots and call volume; 50 player slots at every tier; `contracts/roles.ts` is the one source.
 - **Principals: users, agents, integrations** — an agent's tier is capped at its owner's; `on_behalf_of` grants nothing (explicit tag > on_behalf_of > primary); no `act_as`.
 - **Agents track in the person's pooled slots** — one pool across the person and every agent they own; a subject counts once, a clan at its widest scope; agents track over MCP as watching only, never "me"; an agent keeps the clan it acts for, and its owner can re-point it.
-- **Primary player's clan is followed automatically** — Jamie 2026-10-08: "it should follow it automatically for the primary player assuming they have a clan set (not all players are in a clan)." Activity scope, primary only, only on an admitted profile's clan; never past a slot or in place of a person's own follow, never a clan they stopped tracking; the follow moves with the player; accounts made before 0205 are not backfilled.
+- **Primary player's clan is followed automatically** — Jamie 2026-10-08: "it should follow it automatically for the primary player assuming they have a clan set (not all players are in a clan)." Activity scope, primary only, only on an admitted profile's clan; never past a slot or in place of a person's own follow, never a clan they stopped tracking; the follow moves with the player; the approved people made before 0205 were switched on by 0206 (Jamie 2026-10-08: "Approved: backfill auto_follow_clan for the 35 existing elixir accounts").
 - **Removing your primary is refused while you track others** — choose the new primary first; removing your last player is allowed.
 - **Agent-only tools** — `elixir_identify`, `elixir_my_identities` and `clans_context` are hidden from people and integrations; a personal connection ignores `on_behalf_of`.
 - **Universal reads** — all recorded game data is readable by every account; account data stays private.
@@ -114,6 +114,7 @@ current rule, never as "was X, now Y".
 - **The account's address goes only to the family's own apps** — `account:email` is refused at authorize for any non-family client and checked again at `/oauth/userinfo`.
 - **What is kept and counted, SETTLED** — game data is public and recorded; your account is first-party; measurement is aggregate, with no per-recipient open or click, ever; money is voluntary sponsorship that buys nothing.
 - **Product identifiers are not tracking identifiers** — a send id or request id is a pointer its holder can open, so it may appear in links.
+- **Invites carry no referral ids** — an invite line or link is the same for everyone (Elixir's plain signup address): no referral code, invite id or tracking parameter, and nothing records who copied or shared one.
 - **What we never do** — no ads, brokers, selling or sharing, engagement scoring, automation on read state, or commercial targeting from game data.
 - **Analytics is client-side Tinylytics only** — never proxied through our API; the servers send Tinylytics nothing; `/signin` loads no analytics.
 - **The policy pages restate the service in general terms** — short and plain, a free hobby service, contact admin@poapkings.com; the code is the policy, and the pages change only with Jamie's word.

@@ -17,6 +17,7 @@ import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 import { CONSOLE } from "../../lib/console.js";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
+import { BringClanmates } from "../../components/BringClanmates.jsx";
 
 /**
  * Overview REPORTS; Tracking manages.
@@ -523,6 +524,7 @@ export function Overview({ me, navigate }) {
         <div className="flex flex-col gap-4">
           <Clans clansQuery={clansQuery} />
           <Today role={me.role} />
+          <BringClanmates />
         </div>
       </div>
 

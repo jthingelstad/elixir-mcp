@@ -79,6 +79,10 @@ The season home is the current season so far in the chosen mode, from
 The season itself runs first Monday to first Monday at 10:00 UTC, which
 the page gives in your own timezone, as it gives every time.
 
+Below the season, once your primary player's clan is on record, the page
+offers [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates):
+words to invite your clan, the same panel as on Console ▸ Overview.
+
 ## Days played
 
 **Days played**, at `/ladder/days`, lays the season on your calendar in
