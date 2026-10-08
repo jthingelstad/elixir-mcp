@@ -6911,3 +6911,38 @@ and 493 UI tests (85 documented acceptance skips), production bundles,
 and all 275 browser journeys without retries. An isolated old-style
 fallback rehearsal failed at 320px as expected; the repaired 404-art cases
 pass with their original full-page and component bounds intact.
+
+### Deployment and live readback
+
+PR #353 merged on green `validate` run `37759381903`, whose 275 browser
+journeys passed without retries. The canonical deploy from clean main
+`133b2ced087f50568088a5dc2d545e04dad588a9` completed in the platform lane
+under the session lease and `cloud-engineer`. Reference comparison found
+identical 47-role/29-alias content at `ab340ca`; zero migrations ran
+(203 already applied), and all 43 smoke checks passed. Live tool acceptance
+was intentionally omitted because no tool behavior or contract changed.
+MCP 11.2.3 and JSON API 3.0.0 remain current.
+
+At 10:06:00Z (5:06 AM CT), the live app document and seven referenced assets
+matched the exact clean release build byte-for-byte. The entry JavaScript
+`/assets/index-C3RK3_FT.js` has SHA-256
+`b53ec775023e1f92f8cd3b409dc01ac64fbfa6d21c0ea23e6d1871ecb3cb5f23`;
+shared CSS `/assets/index-H3Ur2a7-.css` has
+`c9b0fda3424b85a91971b28d1f18ec3609241bbbf6a136445d34e7f20678722d`;
+the changed battle chunk `/assets/Battle-CbYf6TO0.js` has
+`66e1a7bdc961c9af65d9280ad28513552707876bcfe21aba145e4bd8daa2bb30`.
+Public health was green and Updates carried the small-screen story.
+
+All 19 live-bundle fixture journeys passed without retries, including
+320/375/390/1280px, both breakpoint edges and reserved-width/missing-art
+cases. Page and component bounds, placeholder horizontal/vertical bounds,
+keyboard menus and focus restoration, duel selection and sharing copy/back
+were green, with no serious or critical axe findings or unexpected console
+messages. Expected missing-record and missing-art 404s belonged to their
+explicit fixtures. Visual readback at 320px and 1280px kept four-card rows,
+played order and the paired desktop presentation. Every API, clipboard,
+native-share and telemetry request was intercepted for this rehearsal;
+no real sign-in, mail, reports, invitation or account/game-data write ran.
+
+The production lease is released. This bounded reflow acceptance has no
+remaining blocker. This receipt changes notes only and needs no deployment.
