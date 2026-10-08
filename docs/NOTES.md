@@ -452,3 +452,47 @@ From the fresh-person journey (screenshots 13, 15, 18, 22):
   `first_roster_observed_at`, else `recording_active_since`). Week shape
   is unchanged.
 - No MCP or JSON API change: MCP 11.4.0, JSON API 3.1.0.
+
+## 2026-10-08 — First-read baselines, Tag not found at once, Ladder waits for the battle log
+
+From the fresh-person journey (round 3).
+
+- **A first sight is a baseline, not a join** (migration 0207,
+  `packages/ingest/src/roster.mjs`). The player timeline read
+  `clan_membership` and narrated every row that opened in the window as
+  `clan_joined`, so a clan's first roster read said "alex joined" the clan
+  alex leads; and a clan read only for its tracked players that then
+  became tracked (auto-follow, 0205/0206) diffed its whole roster against
+  one or two rows. `clan_membership.baseline` marks a row opened on a read
+  that could not have seen the player absent (the clan's first read, or the
+  first read that recorded that member; `clan.roster_recorded_all` says
+  which kind the last read was). Baseline rows emit no `member_joined` and
+  `players_timeline` skips them. Not covered: a coverage gap (a clan
+  unread for weeks) still diffs as joins; there is no clean gap concept to
+  key on.
+- **Rows before 0207 are not rewritten.** The read-only op
+  `{"membership_baseline_census": true}` (optionally `{clan_tag}`) counts
+  the open-on-first-read rows still narrated as joins and the
+  `member_joined` events of a follow burst. **Question for Jamie:** clean
+  those up (mark the first-read rows `baseline`, delete the burst
+  `member_joined` events) or leave history as written? The numbers are in
+  the next NOTES entry, after deploy.
+- **Tag not found at once** (`apps/web/src/views/account/TagFix.jsx`):
+  first-answer carries `tracked_since`; the Console polls every 5 s for 3
+  minutes after an add (`nextPoll`). Not found is a `callout--bad` alert
+  with the inline fix (`#fix-tag`: add the right tag, primary stays
+  primary, then stop the typo), and the page shows "tag not found" in
+  place of the green chip and the freshest poll: CR's battle log for an
+  unknown tag is an admitted `200 []`, so `poll_state` looks healthy for
+  a typo. `useNav` carries a URL fragment now.
+- **Ladder pending** holds until the profile AND a battle-log read are in
+  (`capturePending`, `captureLanded`); tests replay both arrival orders.
+- **Stop tracking asks first**: "Stop tracking #TAG? Yes, stop / Cancel".
+- `account_clan_*` text names the clan, and "automatically: #PLAYER's
+  clan" for an auto-follow (it named the player tag as if it were the
+  clan).
+- Copy: `noun(n, one, many)` in the kit for every count that can be 1;
+  the add forms' placeholder is `#2PYQ8GJ0` (not in the corpus), not
+  Jamie's tag.
+- MCP 11.4.1 (timeline baselines, account clan text); JSON API 3.1.0
+  unchanged.
