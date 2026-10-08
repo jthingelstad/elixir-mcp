@@ -46,12 +46,15 @@ export const PURPOSES = {
 /**
  * Models a clan's key may use, the first one the key can reach chosen
  * by default: a writer that is good and inexpensive for short copy, then
- * the rest. A leader may pick any model the key lists.
+ * the rest. A leader may pick any model the key lists, and a clan keeps
+ * the model it saved: this order only names a default when a key is
+ * added. Haiku 5.5 took Haiku 4.5's place on 2026-10-08; a clan that
+ * saved Haiku 4.5 still runs on it.
  */
 export const MODEL_PREFERENCE = [
   "claude-sonnet-5",
   "claude-opus-5-5",
-  "claude-haiku-4-5-20251001",
+  "claude-haiku-5-5",
 ];
 
 /** The default model among the ids a key can reach, or null. */
@@ -192,7 +195,11 @@ export function pitchRequest({
   if (ask) lines.push("", `The leader's note: ${ask}`);
   return {
     purpose: "recruit_pitch",
-    max_tokens: 1200,
+    // The tool's fields allow about 1,400 characters. Haiku 5.5 counts
+    // about 30% more tokens than Haiku 4.5 for the same text, and a pitch
+    // in another language takes more again, so 1200 could cut a full
+    // answer off; a cut-off answer is refused, never a draft.
+    max_tokens: 1600,
     system: PITCH_SYSTEM,
     prompt: lines.join("\n"),
     tool: PITCH_TOOL,

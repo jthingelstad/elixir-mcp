@@ -69,7 +69,7 @@ function fakeAnthropic() {
       if (key !== GOOD && key !== OTHER) return { ok: false, status: 401 };
       return {
         ok: true,
-        models: [
+        models: state.models ?? [
           { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5" },
           { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
         ],
@@ -799,4 +799,100 @@ test("model: an uncertain dispatch is counted and tells a leader to check uses b
   const status = await api(h, c, "GET", MODEL);
   assert.equal(status.body.uses.today, 1);
   assert.equal(status.body.uses.recent[0].code, "outcome_unknown");
+});
+
+const HAIKU_45 = "claude-haiku-4-5-20251001";
+const HAIKU_55 = "claude-haiku-5-5";
+
+test("model: a key that reaches neither Sonnet 5 nor Opus 5.5 gets Haiku 5.5 by default", async () => {
+  const h = harness();
+  h.anthropic.state.models = [
+    { id: HAIKU_45, name: "Claude Haiku 4.5" },
+    { id: HAIKU_55, name: "Claude Haiku 5.5" },
+  ];
+  const c = await signedIn(h);
+  const put = await api(h, c, "PUT", MODEL, { key: GOOD });
+  assert.equal(put.status, 200, JSON.stringify(put.body));
+  assert.equal(put.body.model, HAIKU_55);
+  const r = await api(h, c, "POST", DRAFT, {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(h.anthropic.state.calls.at(-1)[2].model, HAIKU_55);
+});
+
+test("model: a clan that saved Haiku 4.5 keeps it: it validates, drafts on it and is never moved", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  // As saved before Haiku 5.5: the key's list and the choice are the clan's.
+  const stored = await h.ledger.modelKey("#2PQRJ8LV");
+  await h.ledger.saveModelKey("#2PQRJ8LV", { ...stored, model: HAIKU_45 });
+  const s = await api(h, c, "GET", MODEL);
+  assert.equal(s.body.model, HAIKU_45);
+  assert.equal(s.body.usable, true);
+  const chosen = await api(h, c, "PUT", MODEL, { model: HAIKU_45 });
+  assert.equal(chosen.status, 200, JSON.stringify(chosen.body));
+  const r = await api(h, c, "POST", DRAFT, {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(h.anthropic.state.calls.at(-1)[2].model, HAIKU_45);
+  const after = await h.ledger.modelKey("#2PQRJ8LV");
+  assert.equal(after.model, HAIKU_45, "the saved choice is untouched");
+  assert.deepEqual(after.models, stored.models);
+});
+
+test("model: a refusal or a cut-off answer is an error with its own code, never a draft", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const card = {
+    card_id: "promo1",
+    clan_tag: "#2PQRJ8LV",
+    type: "promotion",
+    status: "proposed",
+    player_tag: "#8QCV",
+    player_name: "Secretname",
+    raised_at: "2026-09-25T11:00:00.000Z",
+    evidence: {
+      message: {
+        title: "Congrats, new Elder!",
+        body: "Secretname is an Elder.",
+      },
+    },
+  };
+  await h.ledger.putCard("#2PQRJ8LV", card);
+  const action = "/api/clans/2PQRJ8LV/actions/promo1/draft";
+  for (const [code, status, error] of [
+    ["refusal", 422, "model_refused"],
+    ["max_tokens", 502, "model_cut_off"],
+  ]) {
+    h.clock.t += 60_000;
+    h.anthropic.state.write = () => ({
+      ok: false,
+      status: 200,
+      code,
+      message: `scripted ${code}`,
+      usage: { input_tokens: 600, output_tokens: 1600 },
+    });
+    const pitch = await api(h, c, "POST", DRAFT, {});
+    assert.equal(pitch.status, status, JSON.stringify(pitch.body));
+    assert.equal(pitch.body.error, error);
+    assert.equal(pitch.body.message, `scripted ${code}`);
+    assert.equal(pitch.body.draft, undefined);
+    for (const channel of ["leader_message", "clan_chat"]) {
+      const words = await api(h, c, "POST", action, { channel });
+      assert.equal(words.status, status, JSON.stringify(words.body));
+      assert.equal(words.body.error, error);
+      assert.equal(words.body.title, undefined);
+      assert.equal(words.body.lines, undefined);
+    }
+    const uses = (await api(h, c, "GET", MODEL)).body.uses.recent;
+    assert.equal(uses[0].code, code, "the use log names it");
+    assert.equal(uses[0].ok, false);
+    assert.equal(uses[0].output_tokens, 1600);
+  }
+  assert.equal(
+    (await h.ledger.actionLog("#2PQRJ8LV", "promo1")).filter(
+      (e) => e.kind === "drafted",
+    ).length,
+    0,
+  );
 });

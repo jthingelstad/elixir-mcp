@@ -461,6 +461,14 @@ behavior (the only door route that sees the session cookie is
   before the provider is contacted, so an interrupted claim is never spent
   again. No key, prompt or answer is logged. The sealed model key keeps its
   original derivation and AAD.
+- A model request is one forced tool call with nothing model-specific:
+  no temperature, top_p, top_k, thinking, effort or assistant prefill
+  (the Claude 5 models, Haiku 5.5 included, answer a 400 to each). The
+  answer is the `tool_use` block by type. A `refusal` or `max_tokens`
+  stop is an error (`model_refused`, `model_cut_off`) even with a tool
+  call in it, never a draft: the engine fills missing words with its
+  plain template. `MODEL_PREFERENCE` only names a default when a key is
+  added; a clan's saved model is never moved.
 - Repair is the IAM-only `{clan_maintenance}` migrate op: bounded reads,
   digest-checked feedback responses, and an audited system withdrawal of
   one pending removal under incident authority. Sealed key items have no
