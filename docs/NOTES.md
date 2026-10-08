@@ -6810,3 +6810,24 @@ The final full gate passed 1,914 Node tests and 493 UI tests with 85
 documented acceptance skips; all 265 built-browser journeys passed. The
 signup-choice journeys remain green, and no real account, mail, feedback,
 membership or capture was used for acceptance.
+
+PR #351 merged as `4c6af857` with green `validate` run 37709854887.
+Canonical deployment accepted that exact clean main commit, compared the
+unchanged 47-role/29-alias reference seed identically, ran zero migrations
+(203 already applied) and passed all 43 smoke checks. Live readback at
+01:03:17–01:03:34Z October 8 (8:03 PM CT October 7) matched
+`/assets/index-CqAMWf9u.js` byte-for-byte against the release build. Its
+SHA-256 is `aaf42190c14b7d9db910cda1dc1f2bd2c679f560a02339a48e6378ecd0d93c2b`.
+The live bundle passed feedback Back/Forward/dismissal and keyboard clan-read
+retry at 390/1280px with all APIs intercepted, no unexpected console errors,
+and visual evidence of the phone recovery and restored clan list. Public
+health was green and Updates carried the story. The lease was released.
+
+No further independent blocker was found in this bounded Console/Tracking
+rehearsal; real delivery/capture remains unproven. The prepared controlled
+acceptance plan now puts the unchecked newsletter choice before mail
+submission and distinguishes approved read/claim steps from separate
+preference/cleanup authority. Exact inbox/controller, player tag and baseline
+are still awaited; no real test account, communications, capture setup,
+invitations or destructive cleanup ran. This receipt changes notes only and
+requires no further deployment.
