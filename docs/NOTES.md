@@ -306,3 +306,12 @@ choose it without adding the key again.
   (`models_refreshed_at`, written on key add and each success).
 - No MCP contract or JSON API change (`/api/clan` is Clan's own API).
 
+Shipped as #368 (eac18b80) and deployed 20:31Z (3:31 PM CT): platform
+lane (web-api, mcp, migrate and jobs bundles), migrations ran 0 (204
+applied), smoke 43 ok. No acceptance: no MCP tool or JSON API operation
+changed. Read-back: `/api/public/status` `health.ok` true, `/updates`
+lists the entry, an unsigned `POST /api/clan/<tag>/model/refresh` is
+refused 401, and web-api, mcp and jobs show no ERROR, timeout or 5xx line
+since. No clan had opened Settings yet, so no refresh had run, and none
+was started to check it: a refresh reads Anthropic with a clan's own key.
+
