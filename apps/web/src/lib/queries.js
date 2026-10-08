@@ -45,6 +45,7 @@ export const keys = {
   adminRequests: ["admin", "requests"],
   adminAccounts: ["admin", "accounts"],
   adminUsage: ["admin", "usage"],
+  adminPulse: ["admin", "pulse"],
   adminConnections: ["admin", "connections"],
   adminFeedback: ["admin", "feedback"],
   adminFeedbackPage: (q) => ["admin", "feedback", "queue", q],
@@ -223,6 +224,8 @@ export const useAdminAccounts = adminRead(
   api.adminAccounts,
 );
 export const useAdminUsage = adminRead(keys.adminUsage, api.adminUsage);
+/** The beta pulse: counts by signup week, never a person. */
+export const useAdminPulse = adminRead(keys.adminPulse, api.adminPulse);
 export const useAdminConnections = adminRead(
   keys.adminConnections,
   api.adminConnections,

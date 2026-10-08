@@ -138,6 +138,7 @@ export const api = {
   setPrincipalScope: (account_id, scope) =>
     request("POST", "/api/me/principals/scope", { account_id, scope }),
   adminUsage: () => request("GET", "/api/admin/usage"),
+  adminPulse: () => request("GET", "/api/admin/pulse"),
   adminRequests: () => request("GET", "/api/admin/requests"),
   adminDecide: (email_hash, decision) =>
     request("POST", "/api/admin/decide", { email_hash, decision }),
