@@ -47,7 +47,7 @@ or workflow of its own.
   the outbox bucket under `clan-model/` to the non-VPC email relay, which
   claims each request once before calling the provider; payloads are
   sealed (`src/sealed.mjs`, HKDF domain per purpose); no key, prompt or
-  answer is logged. The sealing secret `elixir-clan/app` keeps its
+  answer is logged. The sealing secret (`clan_sealing_secret` in the app secret) keeps its
   derivation and AAD until its own reviewed rotation (`docs/SECRETS.md`).
 - **`ClanInternal`** (stack parameter, `CLAN_INTERNAL`) is the feature
   switch. Turning it off disables Clan's API and morning run; it never

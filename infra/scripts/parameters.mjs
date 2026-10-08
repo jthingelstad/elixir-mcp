@@ -55,7 +55,6 @@ export const PRESERVED_PARAMETERS = [
   "UnsubscribeKeyInSecret",
   "SecretEpoch",
   "ClanInternal",
-  "ClanModelSecretName",
   "ClanMaintainerTags",
 ];
 

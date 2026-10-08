@@ -28,7 +28,7 @@ Parameters:
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
-    Description: Secrets Manager secret with db_password, session_secret, buttondown_api_token and optionally unsubscribe_secret and session_secret_previous (URL-safe values; docs/SECRETS.md)
+    Description: Secrets Manager secret with db_password, session_secret, buttondown_api_token, clan_sealing_secret when ClanInternal is true, and optionally unsubscribe_secret and session_secret_previous (URL-safe values; docs/SECRETS.md)
   SiteCertificateArn:
     Type: String
     Default: ""
@@ -100,10 +100,6 @@ Parameters:
     Default: "true"
     AllowedValues: ["true", "false"]
     Description: Enable integrated Clan features; disabling does not restore a separate runtime
-  ClanModelSecretName:
-    Type: String
-    Default: elixir-clan/app
-    Description: Existing sealing secret name; preserving it keeps the clan model key readable
   ClanMaintainerTags:
     Type: String
     Default: ""
@@ -817,7 +813,7 @@ Resources:
           CLAN_MODEL_SECRET:
             !If [
               HasInternalClan,
-              !Sub "{{resolve:secretsmanager:${ClanModelSecretName}:SecretString:session_secret}}",
+              !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:clan_sealing_secret}}",
               !Ref AWS::NoValue,
             ]
 
@@ -1005,7 +1001,7 @@ Resources:
           CLAN_MODEL_SECRET:
             !If [
               HasInternalClan,
-              !Sub "{{resolve:secretsmanager:${ClanModelSecretName}:SecretString:session_secret}}",
+              !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:clan_sealing_secret}}",
               !Ref AWS::NoValue,
             ]
 
