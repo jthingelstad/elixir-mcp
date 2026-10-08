@@ -536,3 +536,14 @@ accounts take the browser's time zone at signup".
   missing/UTC/invalid/non-string, existing approved and pending with and
   without a zone); `signin.test.jsx`; `signup-news.spec.ts` on a Chicago
   clock. No MCP or JSON API change: MCP 11.4.1, JSON API 3.1.0.
+- Deployed d66d5dcd (#377), stack update at 22:58Z (5:58 PM CT), CI
+  gate green;
+  migrations 207 applied, none new; smoke 43 ok; acceptance not run (no
+  tool output changed). Read back live, reads only: `/updates` lists the
+  entry, Your account and Privacy carry the new lines, and the sign-in
+  bundle sends `timezone` beside `newsletter_opt_in`. The server half
+  (a new account storing it) is proved by the scratch-database tests
+  only: a live proof would mean creating an account.
+- The same PR gave `responsive-reflow.spec.ts`'s two ten-width loops
+  `test.slow()`: they timed out at 30 s on CI (main 808431b6, and #377
+  twice) while taking about 6 s locally.
