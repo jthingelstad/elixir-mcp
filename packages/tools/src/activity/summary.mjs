@@ -431,9 +431,26 @@ export function itemText(it, timeZone = "UTC") {
     }
     default:
       if (it.kind.startsWith("account_")) {
-        const what = it.kind.slice("account_".length).replaceAll("_", " ");
-        const detail = f.player_tag ?? f.clan_tag ?? f.role ?? f.name ?? "";
-        return `${at} your account: ${what}${detail ? ` (${detail})` : ""}.`;
+        const kind = it.kind.slice("account_".length);
+        const what = kind.replaceAll("_", " ");
+        // A clan event names its clan first: Elixir's follow of the
+        // primary's clan (0205) carries the player it followed for too,
+        // and "clan added (#PLAYER)" named the wrong thing (2026-10-08).
+        const clanKind = kind.startsWith("clan_");
+        const detail =
+          (clanKind
+            ? (f.clan_tag ?? f.player_tag)
+            : (f.player_tag ?? f.clan_tag)) ??
+          f.role ??
+          f.name ??
+          "";
+        const auto =
+          clanKind && f.auto === true
+            ? f.player_tag
+              ? `, automatically: ${f.player_tag}'s clan`
+              : ", automatically"
+            : "";
+        return `${at} your account: ${what}${detail ? ` (${detail}${auto})` : ""}.`;
       }
       return `${at} ${subj}: ${it.kind.replaceAll("_", " ")}.`;
   }
