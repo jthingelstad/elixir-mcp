@@ -56,6 +56,7 @@ import {
   ladderLegal,
   ladderTitle,
 } from "./ladder/ladder.js";
+import { LadderInvite } from "./ladder/Invite.jsx";
 import { LadderRail } from "./ladder/LadderRail.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
@@ -1411,7 +1412,15 @@ export function takeAfterSignIn() {
 
 export function SignInWall({ navigate }) {
   // The path this wall stands in front of, remembered for after.
-  rememberAfterSignIn(window.location.pathname + window.location.search);
+  const here = window.location.pathname + window.location.search;
+  rememberAfterSignIn(here);
+  // The protected URL is already saved above. Replace its wall so
+  // completing proof does not leave a second automatic return in
+  // history (notably an email's ?report=1 feedback redirect).
+  const signIn = () => navigate(`${CONSOLE}/signin`, { replace: true });
+  // Ladder says what it is first: a visitor may not know yet.
+  if (isLadder(window.location.pathname))
+    return <LadderInvite returnTo={here} onSignIn={signIn} />;
   return (
     <div className="panel mx-auto mt-12 max-w-[420px]">
       <div className="panel__body text-center">
@@ -1420,13 +1429,7 @@ export function SignInWall({ navigate }) {
           This part of Elixir shows your recorded history. Verify your email to
           create an account or sign in.
         </p>
-        <button
-          className="btn mt-2"
-          // The protected URL is already saved above. Replace its wall so
-          // completing proof does not leave a second automatic return in
-          // history (notably an email's ?report=1 feedback redirect).
-          onClick={() => navigate(`${CONSOLE}/signin`, { replace: true })}
-        >
+        <button className="btn mt-2" onClick={signIn}>
           Sign in
         </button>
       </div>

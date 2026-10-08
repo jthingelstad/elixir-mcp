@@ -35,16 +35,31 @@ const FRIEND = {
 };
 
 test.describe("Ladder signed out", () => {
-  test("/ladder meets the console's sign-in wall, with no rail", async ({
+  test("/ladder says what it is and offers an account, with no rail", async ({
     page,
   }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-    await page.goto("/ladder");
+    await page.goto("/ladder/decks?mode=ranked");
     await expect(
-      page.getByRole("heading", { name: "Sign in first" }),
+      page.getByRole("heading", { name: "Your season, read back" }),
     ).toBeVisible();
     await expect(page.locator(".rail")).toHaveCount(0);
-    await accessible(page, "ladder sign-in wall");
+    // A new account comes back to the Ladder page it was asked from.
+    await expect(
+      page.getByRole("link", { name: "Create your account" }),
+    ).toHaveAttribute(
+      "href",
+      "/console/signin?signup&return_to=%2Fladder%2Fdecks%3Fmode%3Dranked",
+    );
+    await expect(
+      page.getByRole("link", { name: "How Ladder works" }),
+    ).toHaveAttribute("href", "/docs/ladder");
+    await expect(
+      page.getByRole("link", { name: "See a recorded battle" }),
+    ).toHaveAttribute("href", /^\/battle\/[0-9a-f]{12}$/);
+    await accessible(page, "ladder invite");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
   });
 });
 
