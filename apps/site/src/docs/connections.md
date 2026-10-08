@@ -1,7 +1,7 @@
 ---
 slug: connections
 title: "Users, agents and integrations"
-description: "Three kinds of connection to Elixir MCP, what each one is for, and which you want. A user is you. An agent acts for a clan. An integration serves its own users."
+description: "Three kinds of connection to Elixir, what each one is for, and which you want. A user is you. An agent acts for a clan. An integration serves its own users."
 section: agent
 order: 1
 navTitle: "Connect an agent"
@@ -13,7 +13,7 @@ reviewed: "2026-10-06 against contract 11.2.3 and JSON API 3.0.0"
 
 # Users, agents and integrations
 
-Three different things can connect to Elixir MCP, and the difference is not
+Three different things can connect to Elixir, and the difference is not
 technical trivia — it decides what "me" means, whose data comes back, and who
 pays for the calls.
 
@@ -42,16 +42,16 @@ connection almost everybody wants.
 
 ### Signing in to other Elixir products with this account
 
-Elixir Clan and Elixir Drop sign you in **with Elixir**: the same consent
-page, listing what each asks for. Elixir Clan asks to *Record what you do in
-your clan*, and Elixir Drop to *Know your email address*. Only the Elixir
-family's own apps (a client the maintainer has provisioned for the family,
-with every redirect on a family origin) can ask for either; any other client
-is never granted them, whatever it asks for. Each app learns who you are
-from your Elixir account, so you are the same person there as here. Each is
-listed on Connections like any other client, and disconnecting it there
-ends its access. Your address is never released to any client outside the
-family, which includes every MCP client and agent. See
+Elixir Clan, at `/clan`, is part of Elixir: it uses the same account and
+the same sign-in, so there is nothing to connect. Elixir Drop signs you in
+**with Elixir**: the same consent page, listing what it asks for, including
+*Know your email address*. Only the Elixir family's own apps (a client the
+maintainer has provisioned for the family, with every redirect on a family
+origin) can ask for that; any other client that asks is refused. Drop learns
+who you are from your Elixir account, so you are the same person there as
+here. It is listed on Connections like any other client, and disconnecting
+it there ends its access. Your address is never released to any client
+outside the family, which includes every MCP client and agent. See
 [Sign in with Elixir](/docs/sign-in-with-elixir).
 
 ### Your first question
@@ -137,24 +137,30 @@ refused rather than quietly answering about the wrong subject.
 ## Where things are in the console
 
 The rail groups the console into what you are reading, what we record for
-you, who can call on your behalf, and how the service is running. Its top
-line is the account selector: you, and each agent you own, whose console is
-the same pages scoped to it (below).
+you, who can call on your behalf, and how the service is running. The
+switcher at the top moves between you and each agent you own, whose console
+is the same pages scoped to it (below).
 
 | Page | What it does |
 |---|---|
 | Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; your tier's slot usage |
 | Timeline | what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`; reading it here marks nothing read |
-| Explore | the same read tools in a browser; the one write is nicknames |
+| Explore | the same read tools in a browser (players, clans and wars, decks, war weeks); the one write is nicknames |
 | Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
-| Your record → Activity | your calls with `request_id`, the emails Elixir sent you, and account events |
-| Your record → Usage | seven days of calls and errors, top tools, today's balance with agents broken out |
-| Access → Connections → Clients | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; and one row per agent you own, opening its console. A family app that reads Elixir through the JSON API shows no calls here yet |
-| Access → Connections → Agents | create an agent; per-agent spend, refusals and unread timeline subjects; each opens its console |
-| Access → Profile | your address, the timezone your date windows use and the console prints every time in (UTC until you set one), slot meters, the tier-upgrade request and today's quota |
-| Access → Feedback | what you filed and what the maintainer answered |
-| Service → Status | recording health, budget gauge, capture gaps |
-| Service → Status → Collectors | the fleet, your own collectors, the one-time token reveal, the ladder |
+| Your record → Verify | prove that you control a player by playing one battle with a deck Elixir names |
+| Access → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its console; and **New agent** |
+| Access → Usage | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, and **MCP requests**, every call with its `request_id` |
+| Service → Status | recording health, budget gauge, capture gaps; under it **Collectors** (the fleet, your own collectors, the one-time token reveal) and **Efficiency** (what the battle-log schedule costs and loses) |
+| Send feedback | what you filed and what the maintainer answered |
+
+**Account settings**, in the account menu at the top, has its own rail:
+
+| Page | What it does |
+|---|---|
+| Profile | your address, the timezone your date windows use and the console prints every time in (UTC until you set one), slot meters, the tier-upgrade request and today's quota |
+| Emails from Elixir | a switch for each email, and **All sent**, the emails Elixir sent you |
+| Sign-in and devices | every session that can still act as you, this one marked |
+| Sign-ins | your account events |
 
 An **agent's console** (the account selector, or Open on its row) has its own
 rail:
@@ -163,6 +169,7 @@ rail:
 |---|---|
 | Overview | its clan, its key and when it was first used, its last successful call, where it connects from, anything refusing it, and the address to connect it at |
 | Timeline | its timeline, newest first, the items it reads with `elixir_timeline`; reading it here never moves its pointer |
+| Its record → Tracking | the clans and players it tracks, and which clan it acts for |
 | Its record → Activity | its calls with `request_id`, and its account events |
 | Its record → Usage | its calls as a share of your budget, which it spends |
 | Access → Connections | the clients connected as it, what each may do, and refusals of its key |
@@ -171,7 +178,7 @@ rail:
 
 ## Making one
 
-Create clan agents under **Connections → Agents**. Platform integrations are
+Create clan agents under **Connections → New agent**. Platform integrations are
 managed under **Admin → Integrations**. Both show a newly issued key once;
 only its hash is stored. See the [integration guide](/docs/integrations) for
 REST resources, permissions and bounded refreshes. An integration does not

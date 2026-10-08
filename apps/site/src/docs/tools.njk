@@ -34,7 +34,7 @@ grant includes <code>cr:read</code>, and a client that names no scope asks for i
 alone. The consent page offers every other standard capability as a checkbox:
 unticked on your own connection, and on an agent's connection every write but
 <code>recordings:write</code> starts ticked. If a connected agent
-needs a capability it does not have, Elixir MCP refuses the call and asks the client
+needs a capability it does not have, Elixir refuses the call and asks the client
 to reconnect for that specific permission, or you change the connection's
 capabilities under Account → Connections.</p>
 
@@ -44,18 +44,16 @@ capabilities under Account → Connections.</p>
   {%- endfor %}
 </ul>
 
-<p>Connections created before this boundary shipped remain <code>cr:read</code>-only,
-because that is what their original consent page promised. An agent's key is
-different: it carries the capabilities it was issued with (every one unless its
-owner narrowed them), edited on the agent's own page, and is shown once and
-revocable from the console. Integration keys work only at the
+<p>An agent's key is different: it carries the capabilities it was issued
+with (every one unless its owner narrowed them), edited on the agent's
+Settings page, and is shown once and revocable from the console. Integration keys work only at the
 <a href="/docs/integrations">JSON API</a>, never here.</p>
 
 <h2>What every response carries</h2>
 
 <p>Beside the fields a tool is for, every response carries the same four things:
 <code>applied</code>, the one echo block saying what the tool actually used
-(window, limit, sort, mode, segment, verbosity), on every tool but seven
+(window, limit, sort, mode, segment, verbosity), on every tool but six
 (<code>elixir_my_players</code>, <code>elixir_my_identities</code>,
 <code>elixir_coverage</code>,
 <code>elixir_collectors</code>, <code>elixir_data_insights</code>, and

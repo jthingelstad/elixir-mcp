@@ -50,14 +50,14 @@ Card history reads use the selected players' recorded games before looking up ca
 
 ## Tower troops
 
-A tower troop is the ninth card in a deck identity. The API reports none on river race battles; that absence stays unknown. Two otherwise identical decks with different tower troops have different hashes. `players_collection` lists observed tower troops as `support_cards`; `cards_card` can describe a tower troop and its earliest selected-history play. `cards_catalog` separates API `items` and `supportItems`.
+A tower troop is the ninth card in a deck identity. The API reports none on river race battles; that absence stays unknown. Two otherwise identical decks with different tower troops have different hashes. `players_collection` lists observed tower troops as `support_cards`; `cards_card` can describe a tower troop and its earliest selected-history play. `cards_catalog` lists them under `tower_troops`, apart from `cards`.
 
 ## A card's own page
 
-Every catalog card has a public page at `/cards/<card id>` with its name, art, rarity, cost and forms. Battle links and recorded decks link there. These pages serve catalog facts; Elixir no longer publishes global card statistics, Card of the Week, recommendation scores or corpus comparisons.
+Every deck card has a public page at `/cards/<card id>` with its name, art, rarity, cost and forms; tower troops have none. A battle's page and Ladder's decks link each card there. These pages serve catalog facts only.
 
 Earliest play uses the recorded deck identity for each game or duel round; it does not infer a release date or compare your play with the game as a whole.
 
 Card history counts your own boat attacks and excludes boat defenses, where
 someone else attacked your boat. Earliest play keeps the recorded form; duel
-member counts use each played round. These facts remain unchanged.
+member counts use each played round.

@@ -60,11 +60,16 @@ key and the bearer token Elixir MCP issues you.
    CR_API_TOKEN=your-clash-royale-key
    ELIXIR_API_TOKEN=emcg_...
    ```
-3. **Download the collector binary** for your platform from the
-   repository releases
-   (https://github.com/jthingelstad/elixir-mcp-collector/releases) and
-   run it with the `.env` beside it (`scripts/run-forever.sh` wraps it
-   for launchd/systemd/Synology Task Scheduler).
+3. **Run the installer** for your platform from the directory holding
+   your `.env`. The collector's
+   [README](https://github.com/jthingelstad/elixir-mcp-collector#3-run-it)
+   has the commands for macOS, Windows and Linux: each downloads the
+   installer from the current release with its signed `SHA256SUMS`,
+   checks the signature and the installer's hash, and only then runs it.
+   The installer fetches the right binary, verifies its SHA-256, and
+   registers a service that keeps it running (launchd on macOS, systemd
+   on Linux, a Scheduled Task on Windows). A host without a supervisor,
+   such as a Synology NAS, runs it under `scripts/run-forever.sh`.
 
 That is the whole setup. The server tells the running collector
 everything else at launch — pacing, backoff, what to fetch (it even
@@ -98,8 +103,7 @@ second place to check it: the collector repository's
 publishes the same line, with how to verify a release by hand. If the
 two ever disagree, do not install, and tell the maintainer.
 
-**The signed badge.** From v3.0.4, your collector tells this server,
-on every call, the SHA-256 of the binary it is running and the
+**The signed badge.** Your collector tells this server, on every call, the SHA-256 of the binary it is running and the
 fingerprint of the release key it trusts. The fleet page on
 https://elixir.poapkings.com (Status > Collectors) then marks each
 collector **signed** when that binary is exactly a release this server
@@ -123,7 +127,9 @@ three API routes, and revoking it is instant. Your collector earns
 points, and points earn credits: a point is a fetch that added something
 new to the record (a fetch that found nothing new earns none), and every
 10 points adds +1 to your daily tool-call quota (capped at 4x your tier
-base).
+base). While one of your collectors is active, a member, leader or family
+account also gets 2 more player slots and 1 more activity-scope clan slot
+([Roles](/docs/roles#earn-more-by-running-a-collector)).
 
 ## The door, precisely
 
@@ -152,8 +158,7 @@ to three attempts of at most 20 seconds, backing off from 500 ms, on a
 network failure, a 5xx, or a status in `retry_statuses` (429 today, the
 answer when the site's shared throttle is momentarily full). A 429 whose
 `Retry-After` is longer than the lease can wait, your hourly budget, is
-not retried. A collector release from before `retry_statuses` retries
-network failures and 5xx only.
+not retried.
 A collector that simply stops checking in is **silent**: after an hour
 without a check-in, `elixir_collectors` and the fleet page say `silent`
 (with `silent_since` and `last_seen`) beside the enrolment state under
@@ -186,29 +191,16 @@ out is load-bearing. A client that goes quiet holding leases is
 quarantined automatically and the maintainer told, and one that ignores
 the pacing runs into the door's hourly limits.
 
+## Collector email
+
+Your weekly collector email includes the security status shown in the dashboard.
+Elixir also sends one notice for each collector it observes upgrade to a higher
+released version, with the old and new versions and available release notes.
+Both use your Collector activity email preference. See [email from
+Elixir](/docs/email#collector-upgrade-notices).
+
 ---
 
 *This material is unofficial and is not endorsed by Supercell. For
 more information see Supercell's Fan Content Policy:
 www.supercell.com/fan-content-policy.*
-
-## History cleanup
-
-The reviewed cleanup of retired recording features is complete. Personal and
-clan overlap and retained replay records were verified before original archive
-versions were removed. The removed versions were checked absent. This does not
-change ordinary collector operation or the shared rate budget.
-
-
-Migration 0199 removed the retired global recorder's empty tables after the
-runtime stopped using them. Personal and clan facts, immutable receipt history
-and the shared collector contract remain.
-
-
-### Collector email
-
-Your weekly collector email includes the security status shown in the dashboard.
-Elixir also sends one notice for each collector it observes upgrade to a higher
-released version, with the old and new versions and available release notes.
-Both use your existing Collector activity email preference. See [email from
-Elixir](/docs/email#collector-upgrade-notices).

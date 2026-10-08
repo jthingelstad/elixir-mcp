@@ -22,8 +22,7 @@ history is in the record. Everything recorded is readable by every account.
 
 **tracked** — a subject on *your* account: you asked for it to be recorded
 with `elixir_track_player` or `elixir_track_clan`, and it occupies one of
-your slots. Tracked means recorded; there is no separate watch step. Before
-1.0.0 this was "added". See [Recording](/docs/recording#added-means-recorded).
+your slots. Tracked means recorded; there is no separate watch step. See [Recording](/docs/recording#added-means-recorded).
 
 **claim** — the link between your account and a player tag you track. Claims
 are taken at your word (`claim_status: unverified`); several accounts may
@@ -44,11 +43,11 @@ only when no reason remains. See [One recording, many reasons](/docs/recording#a
 current race and race log; `comprehensive` also records every current
 member's battles and profile, following joins and leaves.
 
-**record** — the history Elixir stores for players and clans people follow, including opponents who appeared in their games. Elixir does not publish game-wide meta statistics.
+**record** — the history Elixir stores for players and clans people follow, including opponents who appeared in their games.
 
 **segment** — the player or clan named for a read: `"mine"` (your clan), `{player_tag}` or `{clan_tag}` (current members). `segment` is required on tools that use it.
 
-**owned card collection** — the cards and forms a player owns, recorded from their profile. Named recording Collections retired in contract 10.0.0.
+**owned card collection** — the cards and forms a player owns, recorded from their profile and read with `players_collection`.
 
 **capture gap** — a stretch the recorder did not see: a burst that rolled off
 the ~30-battle log between polls, a week observed without a standings
@@ -184,23 +183,21 @@ matched.
 badge by the game's internal identifier and carries no display name, so
 `MasterySkeletonWarriors` is served as `label` `Guards Mastery` beside
 its `name` on `players_profile`, `badges_rarity` and `badges_holders`,
-and as `badge_label` on a timeline badge item (4.2.0). Mastery badges
+and as `badge_label` on a timeline badge item. Mastery badges
 resolve the card's internal codename to its shown name; dated badges say
 the month; a versioned identifier says its version (`RoyalTournamentRank_v2`
 is `Royal Tournament Rank (v2)`, a different badge from the original). Say
 `label`. `badges_holders` takes either the identifier or a label that is
-unique; one two badges share is refused with both identifiers (6.20.0).
-A near-miss or a misspelling is refused with the closest badges
-(6.30.0). The original and its `_v2` are held by overlapping sets of
+unique; one two badges share is refused with both identifiers.
+A near-miss or a misspelling is refused with the closest badges. The original and its `_v2` are held by overlapping sets of
 players, so `badges_rarity` quotes each pair as distinct players and how
-many hold both, and `badges_holders` names the other half of a pair
-(6.30.0).
+many hold both, and `badges_holders` names the other half of a pair.
 
 **since** — on a `badges_holders` row, when the record first saw the badge
 at its current level and progress. The row's `observed_at` is the last
 profile poll that read it, as everywhere else. A `since` at the start of
 recording, or just after the player joined, is a first sighting, not when
-the badge was earned (6.20.0).
+the badge was earned.
 
 **kind** — a local enum, five of them: a series point's snapshot kind
 (`daily`, `pre_reset`, `season_roll`); a timeline item's kind
@@ -220,15 +217,14 @@ profile (`best_trophies` its peak); `season_trophies` is the API's legacy
 `leagueStatistics` mirror of Trophy Road, with a frozen best in
 `season_best_trophies`, and NOT the seasonal Trophy Road, which is a
 progress bucket (above) read with `progress_key`; `pol_trophies`
-is the Path of Legends standing carried in that player's own profile. Global leaderboard history has retired.
+is the Path of Legends standing carried in that player's own profile.
 
 **league_number** — the API's own `leagueNumber`, passed through
 unchanged. On a battle row it is the value the battle log carried: the
 API sends one on battles that are not ranked too, so it names a Path of
 Legends league only on a `pathOfLegend` battle, where it is the league the
 battle started in. On a series point it is the league of the player's
-current Path of Legends season result that day (4.0.0; `pol_league`
-before). The record does not interpret the number itself; a timeline
+current Path of Legends season result that day. The record does not interpret the number itself; a timeline
 promotion names the leagues beside it (`from_name`, `to_name`). The profile's
 `path_of_legend` object keeps the API's own `leagueNumber`.
 
@@ -243,7 +239,7 @@ forms plus the tower troop, never levels. See
 [Deck identity and forms](/docs/battles#deck-identity-and-forms).
 
 **form** — which variant of a card was played: `"base"`, `"evolution"` or
-`"hero"`, the one spelling on every card object since 5.0.0 (the API's
+`"hero"`, the one spelling on every card object (the API's
 bit field `evolutionLevel`, 1 = Evolution, 2 = Hero, 3 = both, is decoded
 into it, and into the `forms_available` / `forms_unlocked` sets on the
 catalog and collections). Part of deck identity; never a level. See
@@ -307,7 +303,7 @@ it: a row's `modes` (battles per mode group) and `dominant_mode`,
 `mean_level_gap` and `level_gap_battles`, `trophy_floor`, `partial` with
 `covers` on a clipped week or month, `comparable` on a ranked list. One module computes them for every tool,
 and a note fires only when a control detects a confound. See
-[Methodology](/docs/methodology).
+[The control next to the number](/docs/battles#the-control-next-to-the-number).
 
 **comparable** — `false` on a ranked list (`clans_standings`,
 `battles_decks`) when two rows were played in different
@@ -318,9 +314,7 @@ gaps, or pass `mode`.
 **floor** — the Trophy Road floor a player stood on in a window: a loss ON
 the floor costs nothing (`trophy_change` null), so `net_trophies` counts
 wins in full and those losses at zero. `trophy_floor` names the floor, the
-arena and the losses it absorbed; `floored: true` is the tell. The rating
-floor in historical global-board records is outside Elixir’s current recorder
-scope; global board capture and history tools have retired.
+arena and the losses it absorbed; `floored: true` is the tell.
 
 **manifest** — the recorder's declaration of what every key of every API
 payload becomes: the table and column it lands in, a derived value, or a

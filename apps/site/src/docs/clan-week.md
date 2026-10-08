@@ -40,7 +40,7 @@ former members and explains partial capture separately.
 | Battles | battles played, and by how many members |
 
 Each area names the members who took part, with their number, and
-links their names to existing clan-scoped recorded activity, and marks those
+links their names to their recorded activity in the clan, and marks those
 who joined that week; Clan Wars sets apart those who played
 every deck asked. An area with nothing recorded is left out, never shown
 as zero. Trophy counts are not part of the week.

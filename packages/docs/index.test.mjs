@@ -62,10 +62,7 @@ test("a doc's variables are rendered and its links are absolute", () => {
     );
   }
   const m = DOCS.find((d) => d.slug === "methodology").markdown;
-  assert.match(
-    m,
-    /Game-wide meta statistics and recommendation scores have retired/,
-  );
+  assert.match(m, /Card levels: described, not adjusted for/);
   const a = DOCS.find((d) => d.slug === "agents").markdown;
   assert.match(a, /has \d\d tools/);
   // Three short pages (about, privacy, terms) have no H2s; the rest do.
@@ -105,12 +102,10 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
   );
   // The mode table is rendered from the contract, not typed.
   assert.match(battles.markdown, /`riverRaceDuelColosseum`/);
-  // War decks have their own page (9.8.0: the battle model had grown
-  // past the result cap of elixir_docs with them).
-  const war = DOCS.find((d) => d.slug === "war-decks");
-  assert.deepEqual(
-    war.sections.map((s) => s.slug),
-    [],
+  // The war-deck tools retired, and their page with them.
+  assert.equal(
+    DOCS.find((d) => d.slug === "war-decks"),
+    undefined,
   );
   const clocks = DOCS.find((d) => d.slug === "clocks");
   assert.ok(clocks.sections.some((s) => s.slug === "the-policy-day"));

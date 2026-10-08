@@ -20,9 +20,8 @@ play, and run the clan with its history in front of you.
 
 The focus is recording what you and the people you follow do, sending
 notifications about that record, making it available to your agents, and
-giving you a dashboard where you can explore what happened. Elixir has retired game-wide meta statistics, gameplay recommendations and
-named recording Collections. Your existing primary, alt, friend and watching
-relationships organize the players you follow.
+giving you a dashboard where you can explore what happened. Your primary,
+alt, friend and watching relationships organize the players you follow.
 
 The Clash Royale API only answers "what is true right now" — your last
 ~30 battles, your current trophies. Elixir polls continuously,
@@ -49,7 +48,7 @@ for the POAP KINGS clan and friends. It is free, and paid tiers are not
 planned (see [Terms](/docs/terms)). Occasional product updates go out on the
 Elixir newsletter. New signup has a checked “Send me Elixir product news”
 box; uncheck it before requesting your sign-in email to skip enrollment.
-Existing newsletter choices stay the same. Every issue has an unsubscribe
+Every issue has an unsubscribe
 link, and unsubscribing sticks.
 
 **Inside Elixir:** [Clan](/clan) helps you run your clan: standing, the

@@ -1,7 +1,7 @@
 ---
 slug: clan-policy
 title: "Write how your clan runs"
-description: "Elixir Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Board, History, Awards, Scout and Clan settings."
+description: "Elixir Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Board, History, Scout and Clan settings."
 section: clan
 order: 6
 navTitle: "The policy"
@@ -11,22 +11,6 @@ reviewed: "2026-10-04 against contract 11.2.0"
 ---
 
 # Write how your clan runs
-
-**Clan War participation** appears first on About and in the **Draft agreement**
-summary. The **Clan Wars** scoring tab links back to this question. It records
-the leaders' intent: participating,
-not participating, or not specified. It is separate from **Count Clan Wars**,
-which controls scoring and minimums. Existing policies start as not specified;
-starting points and category switches never infer or overwrite intent. Only
-leaders and co-leaders save it.
-
-The Discord agent’s scheduled **war-deck check** uses this saved intent.
-Participating permits the check only in the appropriate war phase after a
-fresh policy read succeeds. Not participating suppresses the check; not
-specified, unavailable or stale context defers it. The agent refreshes before
-planning and immediately before firing, and the final read must be no more
-than 60 seconds old. This gate applies to the scheduled war-deck check; other
-agent content retains its own rules.
 
 Every clan runs differently, so Elixir Clan has no rules of its own. The
 clan's **policy** says what it counts, how Elder works, how long a quiet
@@ -65,6 +49,20 @@ a starting point replaces the whole draft. Every preset enables removal
 suggestions, welcomes, departure questions and announcements; review those
 tabs before saving. Changing How strict alone does not retune fields already
 in the draft.
+
+**Clan War participation** comes first on About and in the **Draft agreement**
+summary, and the **Clan Wars** tab links back to it. It records the leaders'
+intent: participating, not participating, or not specified, which is where a
+policy starts. It is separate from **Count Clan Wars**, which controls scoring
+and minimums; starting points and category switches never set or change it.
+
+The Discord agent's scheduled **war-deck check** uses this saved intent
+([Agent context](#agent-context)). Participating permits the check only in the
+appropriate war phase after a fresh policy read succeeds. Not participating
+suppresses the check; not specified, unavailable or stale context defers it.
+The agent refreshes before planning and immediately before firing, and the
+final read must be no more than 60 seconds old. This gate applies to the
+scheduled war-deck check; other agent content keeps its own rules.
 
 ## The tabs
 
@@ -111,8 +109,7 @@ boundaries are replayed under the new values; the current Trophy Road figure
 is used when that category counts. A pending recommendation that still
 qualifies retains the evidence and policy version saved when it was raised.
 Current thresholds, grace and waiting periods apply at reevaluation without
-rewriting previous decisions. Awards keep their separate setup and frozen
-historical plans.
+rewriting previous decisions.
 
 When **Tell the clan when the rules change** is on, a save raises
 **Tell the clan how it runs** for the leaders: chat copy with an explicit durable Inbox alternative,
@@ -133,11 +130,13 @@ Under **Manage**, beside the policy:
 - **History**: the joins, leaves and role changes the record saw, with
   how each leave was answered; every action the clan has had, with its
   outcome and who decided it; and the holds.
-- **Awards**: the clan's awards, the season in progress, and leaders'
-  picks ([Awards and trophies](/docs/clan-awards)). Elders see it too.
 - **Scout**: paste an applicant's tag and see their numbers; with a
   policy, also whether they would meet its minimums today. Elders see it
   too, and it works before a policy.
+
+Awards have pages of their own that every member sees, **Award races** and
+**Award history**; the leaders set the awards up and grant leaders' picks on
+Award races ([Awards and trophies](/docs/clan-awards)).
 
 ## Clan settings
 
@@ -151,7 +150,7 @@ without a policy:
   leaves and the award races also to the clan's agent; a member's away
   only to the leaders.
 - **Social**: the clan map, where members add a city or region and see
-  each other's local time. Only the clan's signed-in members see it, and
+  each other's local time. Only the clan's verified members see it, and
   nothing of it goes to Elixir. Only the leader and co-leaders can change
   whether the clan's social features are on; other members opening Settings
   directly can read that status without a switch.
@@ -194,6 +193,4 @@ revision numbers are local to one clan; saved_at is provenance, while read_at
 times this current read. An old saved policy can still be current. Refresh at
 startup, before planning and immediately before firing an affected routine.
 Defer that routine on unknown, a failed refresh, unsupported schema or wrong clan;
-never substitute a cached decision. No routine messages change automatically
-when this hub contract ships; the consumer’s refresh/gating implementation ships
-separately.
+never substitute a cached decision.

@@ -14,8 +14,8 @@ lede: "One row per battle, both sides of it, and the words the numbers are built
 Every battle tool reads the same recorded history and the same row shape. This page is
 the vocabulary those tools share: what a row holds, how modes are grouped,
 what "decided" means, how a deck gets its identity, and how a war week is
-counted. The tools themselves are on [Tools](/docs/tools/battles); the
-statistics on top of them are on [How the numbers are made](/docs/methodology).
+counted. The tools themselves are on [Tools](/docs/tools/battles); how
+level gaps and coverage limits are read is on [How the numbers are made](/docs/methodology).
 
 ## What a battle record holds
 
@@ -34,12 +34,12 @@ answers from the perspective of the tag you asked about:
 | `battle_time_local` | the same instant as ISO 8601 with a UTC offset (`2026-09-09T23:31:47-05:00`), present when a timezone applies (the account's, or the call's `timezone`) |
 | `type` | the API's battle type, exactly as the game names it (`PvP`, `riverRacePvP`, `boatBattle`, ...) |
 | `game_mode` | `{ id, name }` of the game mode, in the game's own naming, event modes included |
-| `arena` | `{ id, name }`, the higher side's arena stamped at battle time (4.0.0: the one arena shape, as on `trophy_floor.arena`); `id` is `null` on a row the id never reached |
+| `arena` | `{ id, name }`, the higher side's arena stamped at battle time (the same shape as `trophy_floor.arena`); `id` is `null` on a row the id never reached |
 | `league_number` | the API's own `leagueNumber` on the battle, passed through unchanged (`null` only when the payload omitted it). The API sends it on battles that are not ranked too (a Trophy Road battle can carry `1`), so it names a Path of Legends league only on a `pathOfLegend` battle, where it is the league the battle started in; elsewhere the record assigns it no meaning |
 | `mode_group` | the contract's fold of `type` and the event tag (`ladder`, `ranked`, `war`, `casual`, `challenge`, `event` or `tournament`): a battle carrying an event tag is `event`, except a clanmate battle (`clanMate`, `clanMate2v2`), which is `casual` even when tagged; otherwise friendlies, clanmate battles, an untagged `unknown` battle and any type the fold does not know yet are `casual`, and there is no `other`. It is the same word `mode` takes as an argument, so no consumer keeps its own copy of the table |
 | `context` | full verbosity: the battle's own facts as the log carried them. `event_tag` names the event a challenge or event battle belongs to (joins `game_events` by tag; a battle can name an event the daily events read never sighted); `tournament_tag` the tournament; `ladder_tournament` and `hosted` the API's own flags; `deck_selection` how the deck was chosen. Compact carries `deck_selection` alone, at the top level |
 | `deck_selection` | `collection` for the player's own deck, `warDeckPick` for a river-race duel deck picked from the player's own war decks (both chosen by the player and kept as stable deck identities); `draft`, `draftCompetitive`, `pick`, `predefined`, `eventDeck` and the like for a deck handed out or drafted on the spot, which has no identity a player will play again. Read it before treating a `deck_hash` as a deck the player owns |
-| `boat` | `boatBattle` rows only: `role`, this row's player's own part (`attacker` or `defender`, 9.19.0), and `side`, the API's `boatBattleSide` as the log that recorded the battle said it for that log's own player, who may be the other side. Compact keeps those two; full adds `towers_before` and `towers_after` (the clan's towers destroyed on this boat before and after the attack) and `remaining` (the boat's towers still standing). Read `role` to know whether the player attacked or defended |
+| `boat` | `boatBattle` rows only: `role`, this row's player's own part (`attacker` or `defender`), and `side`, the API's `boatBattleSide` as the log that recorded the battle said it for that log's own player, who may be the other side. Compact keeps those two; full adds `towers_before` and `towers_after` (the clan's towers destroyed on this boat before and after the attack) and `remaining` (the boat's towers still standing). Read `role` to know whether the player attacked or defended |
 | `me` | the asked-about participant: `outcome` (`win`, `loss`, `draw` or `unresolved`), `crowns`, `trophy_change`, `starting_trophies`, `clan_tag`, `clan_name`, `deck_hash`, `deck`, `elixir`, `tower_hp` |
 | `teammates`, `opponents` | the other participants, each with `player_tag`, `name`, `name_known`, `crowns`, their own `trophy_change` and `starting_trophies`, `deck_hash`, `clan_tag`, `clan_name`, `deck`, `elixir`, `tower_hp` |
 | `clan_tag`, `clan_name` | the clan the player was in at battle time, by tag, and that clan's name as last recorded beside it (`null` for a clan the record does not keep) |
@@ -54,7 +54,7 @@ and each card's `form` (`base`, `evolution` or `hero`) beside the API's raw
 [Deck identity and forms](#deck-identity-and-forms)).
 
 `elixir` is the game's own leaked-elixir counter for **each side**, served
-as one object so its caveat travels on the value (6.0.0): `{ leaked,
+as one object so its caveat travels on the value: `{ leaked,
 opponent_leaked, differential, rounds, caveat }`, or `null` when the game
 did not report it. `leaked` is the side's own counter; `opponent_leaked`
 is the one opponent's on `me` of a head-to-head row (`null` on 2v2, and
@@ -148,9 +148,9 @@ This table is generated from the contract, so it is what the tools accept.
 
 `game_mode.name` is finer than the group: an event mode such as a Chaos or
 Crazy Mode battle carries an event tag, so it is an `event`-group battle
-(6.17.0) with its own mode name, which `battles_query({ game_mode })` can
+with its own mode name, which `battles_query({ game_mode })` can
 filter by substring and `battles_performance({ group_by: "game_mode" })`
-lists. That view is keyed by `(game_mode, type, event_tag)` (9.12.8), so
+lists. That view is keyed by `(game_mode, type, event_tag)`, so
 each event is its own row, with its `event_tag` and `event_title` (the
 title the events read listed; `null` when that read never sighted the
 event). `event_tag` is `null` on a row that is not event content,
@@ -174,12 +174,10 @@ is the same shape with `tournamentTag`. Some events come as the API's own
 `unknown` type with a tag: Royale Shuffle does, and the game lists it under
 Game Modes as a timed event.
 
-Event content is the `event` mode group (6.17.0). `mode: "event"` selects it and
-every other `mode` excludes it. Before this it folded into `casual`, which filed
-the reworked Seasonal Trophy Road as casual play and pooled the September 2026
-2v2 League with ordinary friendlies.
+Event content is the `event` mode group. `mode: "event"` selects it and
+every other `mode` excludes it.
 
-**A clanmate battle is casual, even when it carries an event tag** (9.12.8).
+**A clanmate battle is casual, even when it carries an event tag.**
 About 62% of recorded clanmate friendlies (`clanMate`, `clanMate2v2`) carry
 one, because friends play a friendly under an event's rules; it is still a
 friendly, so its mode group is `casual`. An `unknown` battle is `event` when it
@@ -193,10 +191,10 @@ later. Recurring formats are re-tagged every season - one tag ran exactly
 content must key on `context.event_tag` itself, never on the mode's name.
 `mode: "event"` still pools every event in the window, so an aggregate read
 with it carries a note saying so: split by event before quoting one rate, with
-`battles_performance({ group_by: "game_mode" })`, which gives one row per event
-(9.12.8), or by reading `context.event_tag` on `battles_query` rows. One event
-spread over several game modes is one row per mode there; a per-event row
-across modes is not served yet.
+`battles_performance({ group_by: "game_mode" })`, which gives one row per event,
+or by reading `context.event_tag` on `battles_query` rows. One event
+spread over several game modes is one row per mode there; no row sums one
+event across its modes.
 
 ## Duels and boat battles
 
@@ -204,36 +202,29 @@ Two `war` battle types are shaped differently from a head-to-head battle.
 
 A **duel** (`riverRaceDuel`, `riverRaceDuelColosseum`) is **one row for up to
 three games**. `outcome` is the games won, first to two, not the summed
-crowns: a duel won 0-3, 1-0, 1-0 is a win at 2 crowns to 3 (6.21.0; duels
-recorded before were recomputed from their rounds). `crowns` is summed across
+crowns: a duel won 0-3, 1-0, 1-0 is a win at 2 crowns to 3. `crowns` is summed across
 the rounds, `elixir.leaked` is summed across them, `tower_hp` describes the
 final round only, `deck_hash` is `null` because there is no single deck, the
 decks sit under `deck.rounds[]` one per round, and `rounds_played` says how
 many rounds the row holds.
 
-**`rounds[]` answers for each game** (6.16.0). The API reports every round of a
-duel separately, and until 2026-09-22 Elixir recorded the round DECKS and threw
-the round RESULTS away - which is why this page used to say a duel's tower
-hitpoints "describe the final round only" and that it "has no differential", as
-though those were facts about duels rather than limits of the record. A duel row
-now carries `rounds[]` beside `deck.rounds[]`, on the same round numbers, each
-entry with that game's own `crowns`, `tower_hp` and `elixir` - including a
-per-round `differential`, which the summed top-level counter cannot have. So
-"how did round two go" is answerable: read `rounds[]` rather than the top-level
-values whenever the question is about one game. The history was filled back from
-the payload archive (20,218 rounds across 4,362 duels); a duel older than that
-sweep has an empty `rounds[]`, and every non-duel row has none at all.
+**`rounds[]` answers for each game.** The API reports every round of a duel
+separately. A duel row carries `rounds[]` beside `deck.rounds[]`, on the same
+round numbers, each entry with that game's own `crowns`, `tower_hp` and
+`elixir` - including a per-round `differential`, which the summed top-level
+counter cannot have. So "how did round two go" is answerable: read `rounds[]`
+rather than the top-level values whenever the question is about one game. Some
+older duels have an empty `rounds[]`, and every non-duel row has none at all.
 
-**Each round is a game with its own deck** (9.11.0). A round's eight cards
+**Each round is a game with its own deck.** A round's eight cards
 carry their own `deck_hash`, with no tower troop (the identity every Clan Wars
 battle has), and its own result by that round's crowns against the
-opponent's. `battles_cards` and the selected-history card reader
-count each round as one game, and their rows say how many of their battles
-were rounds (`duel_rounds`). `battles_decks` keeps its rows to battles with
+opponent's. `battles_cards` and `cards_card` count each round as one game.
+`battles_decks` keeps its rows to battles with
 one deck: it itemizes duels under `excluded {duels, no_deck}` and lists their
 round decks apart (`duel_decks`), so `total_battles_in_window +
 excluded.duels + excluded.no_deck` is `battles_performance.battles` over the
-same window (4.1.0). `battles_opponents` counts a duel once however many
+same window. `battles_opponents` counts a duel once however many
 rounds it held.
 
 A **boat battle** (`boatBattle`) is an attack on a static defense, not a
@@ -262,7 +253,7 @@ sides, and they are not alike:
 ## Comparisons, and what a battle proves about its own length
 
 A battle row holds both sides, and most of its numbers only mean something
-as a difference. `me.vs` makes them (6.18.0), each as **me minus the one
+as a difference. `me.vs` makes them, each as **me minus the one
 opponent**:
 
 | field | what it says |
@@ -271,7 +262,7 @@ opponent**:
 | `deck_level` | the level edge in THIS battle, from the cards as played - not a career average |
 | `starting_trophies` | on ladder, what matchmaking paired you with; on river race rows each side's Trophy Road count, which war matchmaking does not pair on |
 | `tower_hp` | hitpoints REMAINING on both sides: a margin of victory only between equal towers |
-| `tower_level` | the tower troop's level edge (6.21.0); a tower one level higher starts with more hitpoints (1,564 more across the three towers at 16 against 15), so when this is not `0`, `tower_hp` carries that starting gap too |
+| `tower_level` | the tower troop's level edge; a tower one level higher starts with more hitpoints (1,564 more across the three towers at 16 against 15), so when this is not `0`, `tower_hp` carries that starting gap too |
 
 `vs` is `null` on 2v2, on duels (whose sides played different decks per
 round) and on boat battles (a defense against an attack), and a field is
@@ -308,7 +299,7 @@ whatever their quality; that is the default shape of the data for anyone
 who plays both, not an edge case. Every aggregate that serves a win rate
 therefore serves the controls beside it:
 
-- `battles_decks` answers a page at a time (9.12.0): each row names its
+- `battles_decks` answers a page at a time: each row names its
   cards in one line (`card_names`, forms prefixed, `tower_troop_name`
   beside it) with its `archetype_label`, `total_decks` counts the whole
   list and `next_offset` starts the next page (null on the last). A row's
@@ -344,13 +335,13 @@ therefore serves the controls beside it:
   on two thirds of a week shaped exactly like the whole ones, and that row
   anchors the trend. Compare partial buckets by `win_rate`, never by
   `battles`, or snap `from`/`to` to Mondays.
-- `players_summary` (3.16.0) carries `last_30_days.modes` (the window's
+- `players_summary` carries `last_30_days.modes` (the window's
   split), `top_deck.modes` and `dominant_mode` on both decks, and
   `trophy_floor` when the window holds ladder battles; the deck
   comparability note fires when the top and best decks were played in
   different modes or at gaps half a level apart, and the floor note when a
   loss touched the floor.
-- `clans_standings` (3.16.0) members carry `modes`, `ladder_battles`,
+- `clans_standings` members carry `modes`, `ladder_battles`,
   `mean_level_gap` (over `level_gap_battles`), `log_recorded` and
   `recorded_since`; the response carries `comparable` (`false` when two
   ranked members' records come predominantly from different modes or from
@@ -358,8 +349,8 @@ therefore serves the controls beside it:
   (`recorded`, or `roster_and_war_only` for an activity-scope clan whose
   members' logs are not recorded, where every count is zero by
   construction for a member whose `log_recorded` is false). `net_trophies`
-  (4.0.0; `trophy_net` before) is `null` when `ladder_battles` is 0.
-- `battles_trends` (3.16.0) weeks carry `modes` and, when the window clips
+  is `null` when `ladder_battles` is 0.
+- `battles_trends` weeks carry `modes` and, when the window clips
   a week, `partial: true` with `covers {from, to}`, the same marks
   `battles_performance` puts on its weekly buckets.
 
@@ -393,9 +384,9 @@ denominator:
   `trophy_change` above), so `trophy_battles` can be lower than the
   trophy-mode battles played, and only losses drop out. `net_trophies` sums
   `trophy_battles`. Divide by `trophy_mode_battles` for a ladder record; a
-  note names the weeks where the two differ (4.1.0).
+  note names the weeks where the two differ.
 
-`battles_trends` counts the selected player or clan members' own battles week by week, every kind except boat defense. Its win rate is `wins / (wins + losses)`; a mode filter keeps different games separate. Clan membership is current at the time of the call, so a historical window describes today's members. There is no corpus segment.
+`battles_trends` counts the selected player or clan members' own battles week by week, every kind except boat defense. Its win rate is `wins / (wins + losses)`; a mode filter keeps different games separate. Clan membership is current at the time of the call, so a historical window describes today's members.
 
 ## Deck identity and forms
 
@@ -413,7 +404,7 @@ set played.
 A card's **form** is what the API encodes as the bit field `evolutionLevel`
 (`1` Evolution, `2` Hero, `3` both, absent or `0` the base card). Every card
 object the tools serve spells it as one word, **`form: "base" | "evolution"
-| "hero"`** (5.0.0; the integer `evolution` key is retired): on a played
+| "hero"`**: on a played
 deck's cards in `battles_query`, `battles_decks` (one deck by `deck_hash`),
 `players_summary`, and on `battles_cards` rows. It is a form discriminator, never a level or a
 progress counter, and forms are never merged: the card readers carry one
@@ -433,7 +424,7 @@ lookups rather than scans of every deck. `battles_query` takes `with_card`
 deck's cards in `battles_decks` are the identity's
 own (ordered by card id, named from the catalog), not one player's copy.
 Card filters match the deck's cards, not the tower troop; a duel matches on
-any one round's deck (9.8.0). An empty `cards` list - some event formats
+any one round's deck. An empty `cards` list - some event formats
 disclose no deck - has no `deck_hash`.
 
 Levels are served on the **in-game 1 to 16 scale** everywhere in the recorded
@@ -460,7 +451,7 @@ consumes one, so four decks is anywhere from two to four battles, and a
 member at `decks_used: 4` on war day 1 with one duel and one 1v1 in their
 log has finished the day.
 
-**War facts are weekly** (9.0.1, 2026-09-25). Every per-member war figure
+**War facts are weekly.** Every per-member war figure
 is the game's own counter for the race week: `decks_used`, `points`,
 `boat_attacks` and `repair_points`. The API does not say which day a war
 deck was played, and each race rolls its day at its own moment in the half
@@ -473,7 +464,7 @@ the one day-sized figure, for the day still being played: the game's own
 `decksUsedToday` counter for the current day, as the last race poll
 recorded it ([Time and clocks](/docs/clocks#the-policy-day)).
 
-**Training days are recorded too** (since 2026-09-24). A member battles
+**Training days are recorded too.** A member battles
 with the same four war decks all week. On a war day each deck can be played
 once and it scores; the three training days before are where members get
 reps in with those decks, up to four a day, for no points. Elixir keeps
@@ -484,8 +475,7 @@ lists a war day has. Training decks earn no points and are not in
 `decks_used`, and a nudge toward decks that score belongs to
 `day_kind: "war"`. No weekly training total is served: it would split the
 week at the rollover from the last training day to war day 1 (above).
-`decks_today` carries `day_in_section` and `training_day` on a training day;
-the separate `training_today` block was removed in 9.1.0.
+`decks_today` carries `day_in_section` and `training_day` on a training day.
 
 `boat_attacks` is counted **inside** `decks_used`, and a
 boat battle scores on a different scale from a 1v1 or a duel: in one
@@ -493,7 +483,7 @@ recorded week the member who spent all four decks on the boat earned 350
 points to the 700-800 of the members who spent four on 1v1s. So a
 points-per-deck figure is not comparable between a row with boat attacks
 and a row without, and whenever any row in a response carries
-`boat_attacks > 0`, a note says so and names who (6.15.0). The record
+`boat_attacks > 0`, a note says so and names who. The record
 holds `boat_attacks` as the game's weekly counter, not per day, so no
 "PvP-only" denominator is served; `decks_used - boat_attacks` is the
 caller's one subtraction for a comparable rate on an unfinished week.
@@ -509,7 +499,7 @@ because that endpoint does not report the former current-day value.
 `war_history` returns one row per recorded week with:
 
 - `in_progress`, true while the week is still being fought and false
-  otherwise (on every row since 6.13.0); on older weeks a `null` `our_rank`
+  otherwise; a `null` `our_rank`
   or `our_fame` means the week was observed without a standings capture, a
   capture gap rather than a zero.
 - `finished_early`, true on a regular week whose boat reached the
@@ -528,8 +518,7 @@ because that endpoint does not report the former current-day value.
   record keeps the larger.
 - `history_starts_at`, the recording horizon, the oldest week the record
   holds for the clan: fewer seasons than requested is coverage, not
-  absence. It rides both paths (6.15.0; the exact-week path used to drop
-  it), and an exact week the record does not hold answers with empty
+  absence. It rides both paths, and an exact week the record does not hold answers with empty
   `weeks` and one note saying which side of the horizon it is on: before
   recording began (unrecorded, not a week the clan sat out), after the
   latest recorded week (not yet played or observed), a section no season
@@ -544,8 +533,7 @@ because that endpoint does not report the former current-day value.
   `createdDate` on the race log), beside `finished`, the close instant the
   record serves: the API's own stamp wherever the record holds one (equal to
   `closed_at`), otherwise when the recorder saw the week closed. `closed_at`
-  is `null` on weeks older than the log the API still served when the
-  column arrived (2026-09-17).
+  is `null` on weeks the record holds without the API's stamp.
 - `our_clan_war_trophies` (the clan's war trophies going into the race) and
   `our_repair_points`, the boat's repair cost that week (see below).
 
@@ -573,13 +561,11 @@ closed-week roster path. The exact week also carries:
   line on the day a boat finishes: POAP KINGS' war day 3 of 136/0 reads
   `progress_end: 10000` where 6811 + 3000 + 323 = 10134 was banked, and
   war day 4's `progress_start` is 10134. `progress_end_banked` beside it
-  (6.15.0) is the banked value on every row - the sum of the row's own
+  is the banked value on every row - the sum of the row's own
   parts on a capped finishing row, `progress_end` itself everywhere else -
   so an iterator walks one field and never sees fame arrive on a day that
   earned nothing; a note names the clamped rows when the week has any.
-  The record has kept the log since 2026-09-17 and the archive backfill
-  filled earlier weeks where a race poll carried it; a week with no log
-  has `days: []`. A section's fourth day closes as the section rolls, so
+  A week the record holds no day log for has `days: []`. A section's fourth day closes as the section rolls, so
   its entry is first seen in the next section's polls and lands a day
   later than the others.
 
@@ -591,7 +577,7 @@ own word for the day (`training`, `warDay`, `colosseum`) beside the policy
 grid's `period.kind`; the two differ only when the race's reset has drifted
 across the boundary. `war_rivals` rows carry each rival's war trophies going
 into the latest race the record holds with them (`clan_war_trophies`), and
-their effort from the day logs (7.1.3): `mean_points` is the rival's points
+their effort from the day logs: `mean_points` is the rival's points
 per finished week, `points_weeks` how many weeks that averages, and
 `points_vs_ours` the rival's points over ours across the weeks the record
 holds both. A rival with `points_weeks` 0 has no day log recorded, not zero
@@ -606,28 +592,22 @@ points-per-deck rate that week.
 **War trophies and repair points.** `clan_war_trophies` is the clan's WAR
 trophies as the race payload carries them during the week, going into that
 race: the week's own `trophy_change` is not included, so after a closed week
-the clan stood at `clan_war_trophies + trophy_change`, the next week's figure
-(6.29.0). The race
-payload spells it `clanScore`, which is the API overloading that key: a
+the clan stood at `clan_war_trophies + trophy_change`, the next week's figure.
+The race payload spells it `clanScore`, which is the API overloading that key: a
 clan's profile carries BOTH `clanScore` (a five- or six-figure strength
 number, ~129,000 for a mid clan) and `clanWarTrophies` (a four-figure war
-ladder), and the race reports the second under the first's name. The same
-overload is already known on the war leaderboard. So this is NOT the figure
+ladder), and the race reports the second under the first's name. So this is NOT the figure
 a clan's profile shows as its score, and joining it to `clans_timeline`'s
 `clan_score` metric is out by about two orders of magnitude - that timeline
 serves `clan_score` and `clan_war_trophies` as separate metrics, and this is
-the latter.
+the latter. `war_history`'s weeks carry it as `our_clan_war_trophies`.
+`repair_points` is what repairing the boat cost: per clan on the standings,
+per member on participation, MAX-merged like every war counter.
 
 **Fame is paid for placement.** A war day's fame (`progress_earned`) is paid
 by the clan's placement that day on points, not by the points: observed 3,000
 for first, 1,800 for second and 1,000 for third. Fame measures where a clan
 placed each day; points measure how much it played.
-
-From 6.19.0 the war surfaces also served it under its old, wrong name
-beside `clan_war_trophies`; 9.1.0 removed that alias, and `war_history`'s
-weeks carry `our_clan_war_trophies`. `repair_points`
-is what repairing the boat cost: per clan on the standings, per member on
-participation, MAX-merged like every war counter.
 
 Which day it is, and why a member can appear with more decks than a day
 holds, is on [Time and clocks](/docs/clocks#the-policy-day).

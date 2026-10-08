@@ -1,22 +1,21 @@
 ---
 layout: base.njk
 title: "Your Clash Royale, on the record"
-description: "Elixir keeps every Clash Royale battle, clan week and river race you play, and reads it back: on your Ladder, inside your clan, in a short weekly email, or to your own AI agent over MCP. Card stats are public."
+description: "Elixir keeps every Clash Royale battle, clan week and river race you play, and reads it back: on your Ladder, inside your clan, in a short weekly email, or to your own AI agent over MCP. The card catalog is public."
 permalink: /index.html
 canonical: /
 navActive: home
 ---
 {#- The front door, as the canvas's Site board draws it (2026-09-29):
-    what Elixir is for a player, then what each part of it does, Drop
-    next door, and what everyone is playing. Below the board, the parts
+    what Elixir is for a player, then what each part of it does, and Drop
+    next door. Below the board, the parts
     the page has always had to carry: the agent transcript (an exchange
     says what the record is FOR), the corpus totals baked from
     /api/public/stats at build, and the gate.
 
     No number on this page is invented. The tiles describe a part of
     Elixir instead of showing a record, because a visitor here has none
-    and the page has nobody's to show; the cards' numbers are the public
-    they do not. -#}
+    and the page has nobody's to show. -#}
 {%- set t = stats.totals %}
 {%- set drop = familyBar.products | selectattr("game") | first %}
 <div data-home>

@@ -26,7 +26,7 @@ member Actions link to **View member activity**, a private
 read for a current member of a clan you belong to. It shows four ISO weeks
 of clan-scoped recorded battle counts and observed donation counters, the
 recorded war weeks' deck usage and points, and paged battles grouped into
-recorded sessions. Each battle opens its existing full detail page. ISO
+recorded sessions. Each battle opens its full detail page. ISO
 weeks and war weeks stay distinct; decks are never assigned to war days.
 Battle modes use the same names as the battle detail page; an unrecognized
 mode retains its recorded name. Roster search is kept when opening activity,
@@ -42,7 +42,8 @@ coverage reads remain unknown. Profile-counter intervals ending in the last
 seven days can show missing battles, but do not prove that the entire
 displayed window was observed. No recorded battle is not proof of no play.
 Saved Action evidence retains its original timestamp and policy version;
-the activity view is a new read. Removal eligibility is checked separately against current profile observations, including for older saved Actions.
+the activity view is a new read. Removal eligibility is always checked
+against current profile observations.
 
 ## The kinds
 
@@ -54,7 +55,7 @@ the activity view is a new read. Removal eligibility is checked separately again
 | Departure: kicked, left, or ignore? | the leader and co-leaders | none |
 | Welcome a newcomer | elders, co-leaders and the leader | a line for clan chat |
 | Going to be away? | the quiet member alone | none |
-| Share award progress | the leader and co-leaders | clan chat, with a durable Inbox alternative |
+| Share this week's award standings | the leader and co-leaders | clan chat, with a durable Inbox alternative |
 | Announce the season's awards | the leader and co-leaders | clan chat, with a durable Inbox alternative |
 | Tell the clan how it runs | the leader and co-leaders | clan chat, with a durable Inbox alternative |
 
@@ -63,10 +64,12 @@ message. A manual award granted after an announcement was completed can raise
 a separate Action for that later recipient; the completed announcement stays
 unchanged. Notification mail uses the same award scope as the Action.
 
-Every kind is off until the policy turns it on. Promotions and
+Every kind but one is off until the policy turns it on. Promotions and
 demotions come with ranking Elder by participation
-([Standing](/docs/standing)); the others each have a switch of their
-own.
+([Standing](/docs/standing)); removals, departures, welcomes, away
+questions and the two announcements each have a switch of their own.
+Award standings have no switch: they come with the clan's
+[awards](/docs/clan-awards#how-they-reach-the-clan).
 
 ## When one appears
 
@@ -91,6 +94,9 @@ a week past the join.
   else is.
 - An **announcement** is raised when a season's awards are decided, or
   when the leaders save a new version of the policy.
+- **Award standings** are raised after a war week closes, when the clan
+  has at least one award set up; a leader can also ask for the current
+  season's standings from Award races.
 
 ## Deciding one
 
@@ -126,8 +132,9 @@ Every action has a log: when it was raised and by which rule and policy
 version, every comment, the decision and the outcome. Anyone who can
 see it can comment, up to 1,000 characters.
 
-An award progress update has one numbered Action containing every message in
-order. Edit and copy a part, send it in the game, then choose **Mark message N
+An award standings update has one numbered Action containing every message in
+order, in compact game copy; as-of times and coverage stay in the app for
+review. Edit and copy a part, send it in the game, then choose **Mark message N
 sent**. Copying alone records no delivery. Each receipt keeps the actual words,
 sender and time; retries preserve it. **Complete update** becomes available
 after every part is marked sent. **Skip remaining messages** closes the update
@@ -140,13 +147,19 @@ the game message. Mixed chat and Inbox deliveries keep their separate receipts.
 **Review later · leave open** returns to the list without completing or
 declining an Action. It does not schedule a send or change a clan decision.
 
+Verified leaders and co-leaders can open a declined Action from **Closed** or
+**History** and choose **Reopen action**. It returns the same numbered Action
+to Open, keeping the original decline in its log and retaining any parts
+already marked sent. Completed, withdrawn and fully delivered Actions cannot
+be reopened. Reopening keeps the original evidence and does not send a message.
+
 ## The words to send
 
 A Clan Leader Message is the game's leader message: only the leader and
 co-leaders can send one, it has a title of up to 24 characters and a
 body of up to 180, and appears in members' Inbox, separate from chat.
-New routine messages default to **Clan chat**, where members normally talk.
-For award progress, final award announcements and important rule changes,
+Routine messages default to **Clan chat**, where members normally talk.
+For award standings, final award announcements and important rule changes,
 choose **Durable Leader Message · Inbox** when you want members to keep it.
 Welcomes remain chat. Edit welcomes (up to 120 characters) and removal
 messages (up to 200) before copying them into the game. Each field counts
@@ -172,13 +185,7 @@ Check the game text after sending. A delivered Inbox message can have its body
 masked with asterisks, and may have consumed the daily slot. Known text warnings
 cannot guarantee readable delivery or identify every filter trigger. Elixir
 cannot verify game delivery or readability and never automatically resends.
-
-Older saved Actions retain their original delivery suggestion and words. An
-open older Inbox Action can explicitly switch its presentation to chat before
-the person marks it sent. Completed decisions and saved receipts are immutable;
-a missing historical channel is never interpreted as today's chat default.
-Historical decisions that did not supply edited words are not presented as
-proof of the exact text sent.
+Completed decisions and saved receipts do not change.
 
 With the clan's own model set up under **Manage ▸ Settings**, an open
 message, welcome or removal action offers leaders and co-leaders
@@ -306,15 +313,3 @@ account that verified the player, only while that player is in the
 clan, and at most once a day per clan. Turn it off on
 [Profile ▸ Email](/console/account/profile/email)
 ([Turn an email off](/docs/turn-an-email-off)).
-
-
-Verified leaders and co-leaders can open a declined Action from **Closed** or
-**History** and choose **Reopen action**. It returns the same numbered Action
-to Open, keeping the original decline in its log and retaining any parts
-already marked sent. Completed, withdrawn and fully delivered Actions cannot
-be reopened. Reopening keeps the original evidence and does not send a message.
-
-New award updates use compact game copy; as-of times and coverage remain in
-the app for review. Each ordered part defaults to bounded chat fields, with an
-explicit Inbox alternative. Review and edit the words you actually send before marking that part
-sent; saved receipts and older frozen suggestions retain their original words.

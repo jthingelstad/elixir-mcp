@@ -1,13 +1,13 @@
 ---
 slug: roles
 title: "Roles and quotas"
-description: "Roles never gate what you can read. Every active account reads all recorded game data; tiers set how much Elixir MCP records for you and how many calls your agent gets per day."
+description: "Roles never gate what you can read. Every active account reads all recorded game data; tiers set how much Elixir MCP records for you and how many tool calls you get per day."
 section: policy
 order: 30
 navTitle: "Roles and tiers"
 icon: shield-check
 lede: "What each tier records for you — never what you may read."
-console: ["Your tier", "/console/account/profile", "Console ▸ Profile"]
+console: ["Your tier", "/console/account/profile", "Account settings ▸ Profile"]
 reviewed: "2026-10-06 for public member signup, contract 11.2.3"
 ---
 
@@ -53,7 +53,7 @@ on top of Elixir. Community-scale slots and budgets — and an expectation:
 partners run a collector. At this scale you should be adding capacity to
 the fleet, not only consuming it.
 
-**admin** — runs the console day-to-day: reviews legacy access and tier-upgrade
+**admin** — runs the Admin console day-to-day: reviews tier-upgrade
 requests, answers feedback, provisions platform integrations,
 revokes connections, and sets roles up to partner. Unlimited quotas,
 exempt from every cap.
@@ -66,8 +66,8 @@ fleet. No admin can change the owner's account — or another admin's.
 
 Not everything that calls Elixir MCP is a person.
 
-**You** are a person. You sign in with your email and connect your agent of
-choice over OAuth; the tools answer about *your* players, your clans, your
+**You** are a person. You sign in with your email and connect the apps you
+choose (Claude, ChatGPT and others) over OAuth; the tools answer about *your* players, your clans, your
 timeline. There is no personal API key. An OAuth connection refreshes itself,
 so a script that runs unattended stays signed in as you, for up to 90 days
 from your consent; then it asks you to consent again
@@ -116,7 +116,7 @@ recording stops only when no account tracks it.
 
 One comprehensive clan watch already records about fifty players, so tracking
 fifty individually costs the service exactly what a single comprehensive slot
-has always cost. And most of them are already recorded anyway — **a recording
+costs. And most of them are already recorded anyway — **a recording
 is shared by everyone watching it**, so tracking a clanmate of a clan already
 being captured is free.
 
@@ -148,9 +148,9 @@ the lever that grows the whole service.
 
 ## Upgrades
 
-Request a tier from **Account ▸ Profile ▸ Ask for more slots** — say
+Request a tier from **Account settings ▸ Profile ▸ Ask for more slots** — say
 what you're building or leading. The maintainer reviews requests by hand; you'll see the outcome
-in your feedback (your agent sees it too, via `elixir_my_feedback`, and
+in your feedback (a connected app sees it too, via `elixir_my_feedback`, and
 your timeline carries an `account_role_changed` item when your role
 changes). Hand-tuned per-account
 overrides exist for cases the ladder doesn't fit — just ask.

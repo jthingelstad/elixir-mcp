@@ -17,12 +17,11 @@ roster as the record sees it, a weekly report, and, once the leaders
 have written how the clan runs, standing, actions and awards. It never
 acts in the game and never decides for anyone; the leaders do. Every
 page is behind sign-in, and only people sign in: an agent cannot use
-Elixir Clan.
+Elixir Clan, apart from one narrow read of the clan's war intent with an
+explicit grant ([Agent context](/docs/clan-policy#agent-context)).
 
 Clan is part of Elixir's shared application, account and storage. Your Elixir
 sign-in opens Clan directly; there is no second consent or Clan account.
-The transfer preserved policies, actions, awards, preferences and private
-records, including their history.
 
 ## Before you sign in
 
@@ -54,7 +53,26 @@ first, or to go on as a member for now.
 
 If two of your players are in the same clan, the higher role counts.
 If your players are in different clans, Clan asks which one to work in
-and remembers it; it can be changed at any time.
+and remembers it; change it at any time under **Clans**.
+
+## Finding your way
+
+The rail down the side lists Clan's pages:
+
+- The clan itself: **Clan** (the roster), **You here** (your own numbers in
+  the clan), [The week](/docs/clan-week) and [Season](/docs/clan-season);
+  once the clan has a policy and 10 members, also [Actions](/docs/clan-actions),
+  [Standing](/docs/standing), **Award history** and **Award races**
+  ([Awards and trophies](/docs/clan-awards)).
+- **Social**: **Map**, where verified members add a city or region and see
+  each other's local time (the leader or a co-leader can turn it off), and
+  **Recruit**, the clan's pitch with copy for a personal note or a
+  recruiting post.
+- **Manage**: Board, History, Policy and Settings for the leader and
+  co-leaders, and Scout for elders too ([the policy](/docs/clan-policy)).
+- **You**: **Players**, the players on your Elixir account that Clan goes
+  by; **Away**, when the clan lets members mark themselves away; and
+  **Feedback**.
 
 ## When the clan is not on Elixir
 
@@ -99,14 +117,12 @@ marked; their counts do not establish membership or complete observation.
 
 ## Reads and access
 
-Member and Elder pages keep their existing role permissions. Leaders' management
-controls stay with leaders; an Elder sees only the manual awards that permit
-Elders to choose. A denied read explains the access requirement rather than
+Each page follows your role. Management controls stay with the leader and
+co-leaders; an Elder can grant only the leaders' picks that allow Elders. A denied read explains the access requirement rather than
 waiting indefinitely. An unavailable read says it could not be read, and does
 not claim an empty record or permit a decision.
 
 ## Signing out
 
-Signing out ends your Elixir browser session across the record and clan tools.
-Your saved policies, action numbers, awards, mail history and private records
-remain. The optional clan model continues to use the clan's own key.
+Signing out ends your Elixir browser session, in Clan and across Elixir.
+The clan's policy, actions and awards stay as they are.

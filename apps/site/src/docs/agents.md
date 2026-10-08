@@ -20,7 +20,7 @@ do never shows up as its. If you have not read
 
 ## Create one
 
-**Connections → Agents → Create agent**, or `POST /api/me/agents` with a session.
+**Connections → New agent → Create agent**, or `POST /api/me/agents` with a session.
 
 Every agent you own has **its own console**: the account selector at the top
 of the console's menu switches between you and each of your agents, and an
@@ -43,8 +43,7 @@ you.
 The response (HTTP 201) carries the agent and its key **once**:
 
 ```json
-{ "agent": { "account_id": "…", "kind": "agent", "public_id": "k3f9x2mq7p",
-             "role": "leader", "status": "approved", "clans": [{ "clan_tag": "#J2RGCRVG", "scope": "comprehensive" }] },
+{ "agent": { "account_id": "…", "public_id": "k3f9x2mq7p", "role": "leader" },
   "token": "svt_…", "note": "This token is shown once. Store it now." }
 ```
 
@@ -53,7 +52,7 @@ capped at `leader`, and it never sits above yours: when your role changes,
 each agent's is clamped to the new one. It spends **your** daily call budget
 and **your** live lane.
 Every tier may create agents (3 / 5 / 10 / 25; owner and admin unlimited);
-over the cap the response is `{"error":"not_entitled","reason":"agent_limit","limit":N}`.
+over the cap the response is HTTP 400 `{"error":"not_entitled","reason":"agent_limit","limit":N}`.
 
 ## Connect it
 
@@ -69,8 +68,9 @@ https://elixir.poapkings.com/a/<public_id>/mcp
 | Headless (a Discord bot, a scheduled job) | `Authorization: Bearer svt_…` on every POST. No OAuth. |
 
 A credential is bound to one door: the key at `/mcp` or at another agent's
-URL answers 403 `wrong_resource`. A suspended agent's key answers 401 like an
-invalid one.
+URL answers 403 `wrong_resource`, and an OAuth token presented anywhere but
+the door it was issued for answers 401 like an invalid one. A suspended
+agent's key answers 401 too.
 
 ## What `initialize` tells it
 
@@ -92,7 +92,7 @@ which needs a self. Omit `clan_tag` anywhere and it means the agent's clan.
 
 ## What an agent tracks
 
-An agent can track clans and players as well (7.1.0): a rival clan it is
+An agent can track clans and players as well: a rival clan it is
 asked to watch, the other clans of a family, a player worth following.
 `elixir_track_clan` and `elixir_track_player` work for it the way they work
 for you, with an agent's meaning. Its players are `watching`, never
@@ -135,7 +135,7 @@ ignores `on_behalf_of`.
 
 ### A complete exchange
 
-Pass the asker's display name beside the id (`display_name`, 3.18.0) and
+Pass the asker's display name beside the id (`display_name`) and
 the refusal does the roster comparison for you: `error.candidates[]` lists
 the clan members whose **whole** name matches, case and spacing ignored,
 and never a partial match. One candidate is one `elixir_identify` call;
@@ -174,8 +174,8 @@ question is fresher than the first.
 newest first, plus one entry per subject. For an agent the subject is the clan
 it represents: its members' sessions and moments, joins and departures, the
 war moments and the presence crossings arrive as items, and the entry
-summarizes the window. A consumer names its own pointer with `reader`
-(3.18.0): a short name (`editor`, `poap-kings-discord`), and from then on
+summarizes the window. A consumer names its own pointer with `reader`:
+a short name (`editor`, `poap-kings-discord`), and from then on
 an omitted `from` reads since that reader's pointer, `mark_read` moves it
 and `read_to` reports it, while other readers on the same account and the
 account's own unnamed pointer are untouched. A headless runtime reads and
@@ -252,7 +252,7 @@ A refused key never reaches the call log, so a runtime still presenting a
 rotated key produces silence, not errors. The agent's page shows, per key,
 `last_used_at` and **the current key has never been used**; per source
 address, refusals in the last seven days with the reason (`revoked_key`,
-`principal_suspended`, `wrong_door`); and `calls_7d`,
+`principal_suspended`, `expired`, `wrong_door`, `wrong_resource`); and `calls_7d`,
 `last_seen` (address, country, client name) and `timeline_pending`. Your own
 Usage breaks the agents' calls out of your daily budget.
 

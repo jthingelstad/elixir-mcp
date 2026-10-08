@@ -6,7 +6,7 @@ eleventyExcludeFromCollections: true
 
 > {{ site.name }} records Clash Royale history the official game API does not keep - battles, progression, clan rosters, and war - and serves it to your own AI agent through an authenticated remote MCP server at {{ site.mcpUrl }}. The official API answers only "what is true right now": a rotating ~30-battle log, no trophy timeline, no season history. This service keeps the record.
 
-Access is approval-gated while the recorder grows; request it at {{ site.url }}/. All recorded GAME data is readable by every approved account, the same posture as the game's public API. ACCOUNT data is private to its owner. Roles never gate what you can read: they set how much the service records for you and how many calls per day your agent gets.
+Sign in with an email address at {{ site.url }}/console/signin; that creates your account. All recorded GAME data is readable by every account, the same posture as the game's public API. ACCOUNT data is private to its owner. Roles never gate what you can read: they set how much the service records for you and how many calls per day your agent gets.
 {% if stats.ok %}
 Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | number }} battles, {{ stats.totals.players_recording | number }} recorded players and {{ stats.totals.clans_recording | number }} recorded clans (plus {{ stats.totals.players | number }} players seen only as opponents or teammates), captured by {{ stats.totals.collectors_active }} collectors, oldest battle {{ stats.totals.oldest_battle | day }}. These figures are baked at build time; {{ site.url }}/api/public/stats is live.
 {% endif %}
@@ -18,7 +18,7 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 - [What we collect]({{ site.url }}/data/collect): each subject, how often it is collected, since when and how long it is kept
 - [Recording now]({{ site.url }}/data/now): the live strip - last battle seen, battles this hour, collectors running
 - [For machines]({{ site.url }}/data/machines): the public JSON and text surfaces, no key needed
-- [Cards]({{ site.url }}/cards): every Clash Royale card and how it is played this season, one mode at a time; each card has its own page at /cards/<card id>
+- [Cards]({{ site.url }}/cards): every Clash Royale card with its catalog facts; each card has its own page at /cards/<card id>
 - [What's new]({{ site.url }}/updates): every user-visible change, newest first, each on its own page
 {% for g in examples %}{% for c in g.cases %}- [Example: {{ c.title }}]({{ site.url }}/examples/{{ c.key }}): {{ c.lede | safe }}
 {% endfor %}{% endfor %}- [The family]({{ site.url }}/family): the POAP KINGS products that read from this hub, and the Clash Royale things we like but are unconnected to
@@ -29,7 +29,7 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 - [Tool registry JSON]({{ site.url }}/tools.json): all {{ tools.count }} tools with groups, descriptions, arguments, and required OAuth capabilities
 - [Public corpus stats JSON]({{ site.url }}/api/public/stats): live totals plus the full-history daily series; no authentication
 - [Public service status JSON]({{ site.url }}/api/public/status): recording health; no authentication
-- [Public cards JSON]({{ site.url }}/api/public/cards): the card catalog and every card's running season by mode; /api/public/cards/<card id> is one card's months and modes; no authentication
+- [Public cards JSON]({{ site.url }}/api/public/cards): the card catalog; /api/public/cards/<card id> is one card's catalog facts; no authentication
 - [Updates feed]({{ site.url }}/feed.xml): RSS 2.0 of what's new, product updates and contract versions
 - [Updates feed, JSON]({{ site.url }}/feed.json): the same items as JSON Feed 1.1
 - [Sitemap]({{ site.url }}/sitemap.xml)
@@ -37,7 +37,7 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 ## MCP connection
 - Endpoint: {{ site.mcpUrl }} (OAuth 2.1; tokens are audience-bound to this resource)
 - Tools: {{ tools.count }} across {{ tools.groups | length }} groups - {% for g in tools.groups %}{{ g.group }} ({{ g.tools | length }}){% if not loop.last %}, {% endif %}{% endfor %}
-- Capabilities: {% for s in tools.scopes %}`{{ s.scope }}` {{ s.title | lower | safe }}{% if not loop.last %}; {% endif %}{% endfor %}
+- Capabilities: {% for s in tools.scopes %}`{{ s.scope }}` {{ s.title | lower | safe }}{% if not s.standard %} (Elixir family apps only, never granted unasked){% endif %}{% if not loop.last %}; {% endif %}{% endfor %}
 - Read tools need only `cr:read`. The {{ tools.writeCount }} state-changing tools each name their own capability, granted only if the client asks for it at connection time.
 {% for g in tools.groups %}
 ### {{ g.group }}
@@ -46,6 +46,9 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 ## Interactive pages (JavaScript application, not in this index)
 - {{ site.url }}/console/data/dashboard: full-history charts over the public stats endpoint
 - {{ site.url }}/console/signin, /console/account, /console/explore, /console/status: require a session
+- {{ site.url }}/ladder: Ladder, one of your players' season read back; requires a session
+- {{ site.url }}/clan: Elixir Clan, on the same Elixir account and session
+- {{ site.url }}/battle/<short id>: one recorded battle, public; its JSON is {{ site.url }}/api/public/battles/<id>
 
 ## Optional
 - [Source repository]({{ site.repo }}): the recorder, MCP server, web app, and infrastructure are public code

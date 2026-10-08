@@ -1,7 +1,7 @@
 ---
 slug: ladder
 title: "Ladder: your season, read back"
-description: "Ladder, at /ladder: one of your players' Clash Royale season as Elixir recorded it, one mode at a time, read from the same tools an agent calls. What each page shows, which tool each number comes from, and what Ladder deliberately leaves out."
+description: "Ladder, at /ladder: one of your players' Clash Royale season as Elixir recorded it, one mode at a time, read from the same tools a connected app calls. What each page shows, which tool each number comes from, and what Ladder deliberately leaves out."
 section: ladder
 order: 1
 navTitle: "Ladder"
@@ -15,13 +15,13 @@ console: ["Open Ladder", "/ladder", "Ladder ▸ Season"]
 The game forgets: its battle log holds your last 25 battles. Elixir keeps
 every battle it records, and **Ladder**, at `/ladder`, reads that record
 back to you as a season: what you played, in which mode, and how it went.
-It is a section of the console, signed in like the rest of it, with its
-own menu down the left.
+It sits beside the Console, signed in like the Console, with its own
+menu down the left.
 
 Ladder is a mirror, not a coach. It shows what happened and leaves the
 conclusion to you: no verdict, no pace, no advice, and no number the tools
 do not return. There is no model behind it; each page is a handful of the
-same tool reads an agent makes, and each one counts against your daily
+same tool reads a connected app makes, and each one counts against your daily
 quota like any other read.
 
 ## One mode at a time
@@ -83,8 +83,8 @@ the page gives in your own timezone, as it gives every time.
 
 **Days played**, at `/ladder/days`, lays the season on your calendar in
 your own timezone, from [battles_query](/docs/tools/battles#battles_query):
-the season's battles in compact form, read fifty to a page. A page view
-reads at most twelve pages, the newest 600 battles; past that, the days it
+the season's battles in compact form, read forty to a page. A page view
+reads at most twelve pages, the newest 480 battles; past that, the days it
 did not reach are marked "partially read"; any battles already read stay visible.
 
 - **Days with recorded battles**: the days with at least one captured battle,
@@ -148,8 +148,8 @@ war deck (which has no tower troop) is its own row.
 **Cards**, at `/ladder/cards`, is one mode's season card by card, with
 the same mode tabs as the season home. An evolution or a hero is a
 different card from its base form, so each keeps its own row, as the tools
-keep it. Each card's name opens its public page, where the card's record
-across everyone Elixir records lives.
+keep it. Each card's name opens its public page, which holds the card's
+catalog facts: rarity, elixir cost and forms.
 
 - **Your cards**: from [battles_cards](/docs/tools/battles#battles_cards)
   with `perspective: mine`: for each card and form, the battles where your
@@ -171,14 +171,13 @@ across everyone Elixir records lives.
 - **A verdict.** Nothing on Ladder rates you, projects a pace ("at this
   rate, Arena 20 by Friday") or suggests a change. A record is evidence;
   what it means is yours to say.
-- **When you play.** The hour-of-day rhythm tile was removed from the
-  console by decision, and Days played follows it: the nights say when you
-  played, and no chart sums them into a habit.
-- **Comparing two decks.** The board's "Compare two decks" has no page
-  yet; each deck's record sits in its own row, and a comparison across
-  rows is only fair within one mode and a similar level gap.
-- **How everyone plays a card.** The card tables show your battles only;
-  how often everyone recorded plays a card is on the card's public page,
-  one click away, and is not copied into a column here.
+- **When you play.** The nights on Days played say when you played, and
+  no chart sums them into an hour-of-day habit.
+- **Comparing two decks.** There is no deck-against-deck page; each deck's
+  record sits in its own row, and a comparison across rows is only fair
+  within one mode and a similar level gap.
+- **How everyone plays a card.** The card tables show your battles only.
+  Elixir keeps no cross-player card statistics; a card's public page holds
+  its catalog facts.
 - **Matchup expectations.** How you should do against a deck is a judgment
   Elixir does not make; what happened against it is on the record.

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "Documentation that describes Elixir as it is",
+    body: "The documentation now describes only what Elixir does today: open signup, Clan inside your Elixir account, Ladder beside the Console, six kinds of email and the card catalog's facts. Retired pages and sections are gone, including War decks, Leaderboards, Card of the Week and Top 100, along with version tags in the prose. elixir_examples now says it has ten examples. MCP 11.2.4; JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "Keep account controls and battle decks within small screens",
     body: "On the smallest phones, the top bar keeps its logo, full product label and account control within the screen. Long account names wrap in the menu. On narrow phones, battle decks stack while keeping their two rows of four cards, and player names have room beside the you badge. Larger phones and desktop keep their paired decks. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
   },

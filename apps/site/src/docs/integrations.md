@@ -12,22 +12,21 @@ lede: "First-party services reading the hub with a service key."
 # Integrations
 
 An integration connects a platform to Elixir. It has no personal player, clan
-identity, or human admin powers. [Elixir Drop](https://drop.poapkings.com) is the
-first consumer: it reads recorded game context and can refresh supplied player
-profiles. People choose which players to record; Drop no longer enrolls them
-automatically. Drop keeps its accounts, scores, XP and badges in Drop.
+identity, or human admin powers. [Elixir Drop](https://drop.poapkings.com) is
+one: it reads the game clock and recorded profiles, and can refresh a supplied
+player's profile. Drop keeps its accounts, scores, XP and badges in Drop.
 
 Agents use MCP. Programs use the **JSON API at
 `https://elixir.poapkings.com/api/v1`**, which admits two kinds of caller:
 
 - **An integration**, by its admin-issued key (the rest of this page).
 - **A person**, by an OAuth grant whose resource is
-  `https://elixir.poapkings.com/api/v1` (scope `cr:read`). This is how the
-  family's own apps read Elixir as the signed-in person; Elixir Clan is the
-  first, and Elixir Drop's sign-in moves here too. `GET /api/v1/me` returns
-  who you are to Elixir and the players you track, and, for a family app
-  whose grant holds `account:email`, your `email` (the capability is offered
-  to the family's own apps only; see
+  `https://elixir.poapkings.com/api/v1` (scope `cr:read`). This is how a
+  family app reads Elixir as the signed-in person; Elixir Drop signs people
+  in this way ([Sign in with Elixir](/docs/sign-in-with-elixir)).
+  `GET /api/v1/me` returns who you are to Elixir and the players you track,
+  and, for a family app whose grant holds `account:email`, your `email` (the
+  capability is offered to the family's own apps only; see
   [Signing a person in](/docs/protocol#signing-a-person-in-with-elixir)).
   `POST /api/v1/me/players` tracks a player for the signed-in person, the
   JSON API's `elixir_track_player`, and needs `recordings:write` on the
@@ -56,11 +55,6 @@ each operation names the callers it admits (`x-principals`).
 
 ## Provisioning and administration
 
-Clan now opens inside Elixir with the same account. Its separate OAuth client
-and service key have retired after a checked transfer of its private records.
-Its policies, action history, awards and preferences remain. Drop's Elixir sign-in, account access and
-authorized personal tracking remain available.
-
 **Admin → Integrations** creates the platform identity, issues a key, sets API
 and refresh budgets.
 Admins can change permissions, revoke or rotate keys, and suspend or resume an
@@ -71,8 +65,8 @@ the consuming platform's server configuration. Never ship it to a browser.
 Send `Authorization: Bearer <key>` on every request. Cookie sessions, MCP
 tokens and agent keys do not authenticate here; the only other credential
 this door takes is a person's OAuth grant for `/api/v1`, above. A REST key
-cannot authenticate to MCP. Legacy MCP integrations remain compatible during
-migration; no new integration should use that transport.
+cannot authenticate to MCP. New integrations use this API, not an MCP
+integration door.
 
 Rotation immediately revokes the previous key. Suspension refuses all keys;
 resumption restores an unrevoked key. Quotas and grants belong to the integration,
@@ -103,129 +97,21 @@ unknown response fields as compatible additions.
 
 ## Versions
 
-- **3.0.0** (2026-10-02): the Collection membership operations and permission are removed. No replacement automatic enrollment is provided. Existing integration keys, read/refresh permissions, budgets and OAuth account access remain. Drop has deployed this retirement. Historical Collection membership was removed in the reviewed October 3 cleanup.
-
 The JSON API carries its own semantic version, the OpenAPI document's
-`info.version`. Its callers are programs, so a removed or renamed response
-field is a major, and an added field or operation is a minor. (MCP versions
-differently: its callers are agents reading the current declaration.) The
-path stays `/api/v1` across majors, because it is also the OAuth audience a
-person's token is issued for.
-
-- **2.10.0** (2026-10-02): `GET /players/{tag}/battles` gives a boat
-  battle's `boat` a `role`, the player's own part (`attacker` or
-  `defender`); `side` stays the recording log's word (MCP 9.19.0).
-  Additive.
-- **2.9.0** (2026-10-01): `GET /players/{tag}/battles` gives each battle
-  its `url`, the battle's public page, and each opponent and teammate their
-  own `trophy_change`, `starting_trophies` and `clan_name`; `me` gains
-  `clan_tag` and `clan_name` (MCP 9.18.0). Additive.
-- **2.8.0** (2026-09-29): `GET /clans/{tag}/war-history` reads a clan's
-  recorded war weeks, the `war_history` result over `seasons` (1 to 12,
-  default 3), for a person's grant or an integration holding `clans:read`.
-  `GET /clans/{tag}/roster` adds `required_trophies` and
-  `donations_per_week` to the clan, and to each member
-  `donations_received_this_week`, `clan_rank`, `previous_clan_rank`,
-  `arena` (`{id, name}`) and `favorite_card_id` (MCP 9.17.0; the agent's
-  roster leaves the member fields out to fit its result cap). Additive.
-- **2.7.1** (2026-09-28): no change to any response.
-  `GET /clans/{tag}/participation` still answers member rows as objects;
-  the `clans_participation` schema it shares with MCP now also describes
-  the agent's table form (MCP 9.16.0), where the rows are arrays named by
-  `columns`.
-- **2.7.0** (2026-09-28): `GET /clans/{tag}/participation` carries
-  each member's place at every war finish (`in_clan_at_war_finish`,
-  `role_at_war_finish`), their `role_changes` in the window, the clan's
-  `role_history_since`, and `former_members` with `former_member_count`:
-  who left inside the window, with the same columns, so a past finish can
-  be replayed with the roster and roles it had. Additive.
-- **2.6.4** (2026-09-27): an unexpected fault answers 500 `internal`
-  with no `Retry-After`; only a database that is briefly unreachable, or
-  a query that timed out, still answers 503 `temporarily_unavailable`
-  with `Retry-After`. Before, every fault was a 503 that invited a retry
-  which could not succeed. The clan fact operations
-  (`POST /clans/{tag}/facts`, `DELETE /clans/{tag}/facts/{ref}`) now declare the
-  `integrationKey` scheme they already accepted, and a person's refusal
-  for a missing scope is now in the usage log like every other call.
-- **2.6.3** (2026-09-27): `POST /profile-refreshes` charges the
-  collector fleet's one global budget when it mints a live fetch. When
-  that budget has no room, it answers 429 `rate_limited` with
-  `Retry-After` and `retry_after_s` at the next scheduler tick, and
-  nothing is charged: no refresh unit, no job, no refresh.
-- **2.6.2** (2026-09-27): an operation that runs a tool (a person's
-  operations, `clans.roster`) races the request's deadline, so a slow or
-  lock-blocked read answers 503 `query_timeout` with `retry_after_s`
-  instead of the request timing out.
-- **2.6.1** (2026-09-27): `POST /clans/{tag}/facts` checks a write that
-  replaces a fact against the fact already there as well as the one sent.
-  A family app's OAuth client is provisioned by Elixir and authenticates
-  at `/oauth/token` with `client_secret_post`; only such a client is
-  first-party.
-- **2.6.0** (2026-09-25): `POST /clans/{tag}/facts` and `DELETE
-  /clans/{tag}/facts/{ref}` also admit an integration holding
-  `facts:write`, for the fact types a family app computes itself: the new
-  `award_standing` (Elixir Clan's award standings for the running
-  season).
-- **2.5.0** (2026-09-25): a `departure_classified` fact is seen by the
-  clan, its agents included, and its `visibility` reads `clan`; it read
-  `leaders` in 2.2.0. Who sees a fact is its type's rule at read time, so
-  the facts already written follow.
-- **2.4.0** (2026-09-25): `POST /clans/{tag}/mail` with the new
-  permission `mail:send`: [a family app's mail](#a-family-apps-mail).
-  Permissions that act on people (`facts:write`, `mail:send`) are granted
-  only when an admin names them; an integration provisioned without a
-  list gets the others.
-- **2.3.0** (2026-09-25): an integration holding the new permission
-  `clans:read` calls `GET /clans/{tag}/participation` and `GET
-  /clans/{tag}/roster`, the two clan reads a person's grant already had,
-  so a family app can evaluate a clan on a schedule (Elixir Clan's
-  morning run). An operation both kinds may call names the integration's
-  permission in `x-integration-permission`.
-- **2.2.0** (2026-09-25): [attested facts](#attested-facts). `POST
-  /clans/{tag}/facts` and `DELETE /clans/{tag}/facts/{ref}` for a person
-  through a family app holding the new scope `clans:attest`, and `POST
-  /players/{tag}/facts` for an integration with the new permission
-  `facts:write`. The OpenAPI `personOAuth` flow now lists every scope a
-  person's grant may hold here.
-- **2.1.0** (2026-09-25): `POST /me/players` tracks a player for the
-  signed-in person (scope `recordings:write`), and `GET /me` carries `email`
-  for a family app whose grant holds `account:email`; together they let
-  Elixir Drop's sign-in move to this API. Deck cards on `GET
-  /players/{tag}/battles` carry `form` (`base`, `evolution` or `hero`) beside
-  the API's raw `evolutionLevel`. The document now says what the operations
-  already did: `weeks` on `GET /clans/{tag}/participation` is 1 to 8,
-  matching the tool (the document said 12, and 9 to 12 were refused 400);
-  `GET /players/{tag}/profile` has its own `operationId` rather than
-  sharing `playerProfile` with `GET /players/{tag}`; and the problem body documents `hint`, `retry_after_s`
-  and the codes the person operations return.
-- **2.0.0** (2026-09-25): `GET /clans/{tag}/participation` no longer carries
-  `war_decks_by_day`, `war_battles_by_day`, `war_days_battled` or
-  `war_scoring_decks`, and `war_decks` answers `null`, not `0`, for a
-  member with no race row that week. Elixir serves war facts as the game's
-  weekly counters: the API does not say which day a deck was played, and a
-  war day's rollover cannot be placed reliably across every clan Elixir
-  records.
-- **1.3.0** (2026-09-24): the players on `GET /me` carry `clan_name` beside
-  `clan_tag`.
-- **1.2.0** (2026-09-23): the person operations: `GET
-  /clans/{tag}/participation`, `GET /clans/{tag}/roster`, `GET
-  /clans/{tag}/live`, `POST /players/names`, `GET /players/{tag}/profile`
-  and `GET /players/{tag}/battles`, each answering with the structured
-  result of the tool it mirrors.
-- **1.1.0** (2026-09-23): people are admitted, by an OAuth grant whose
-  audience is `/api/v1` (every operation names its callers in
-  `x-principals`), and `GET /me` says who the signed-in person is to Elixir
-  and the players they track.
-- **1.0.0** (2026-09-08): integrations by admin-issued key: the game clock,
-  recorded profiles, asynchronous profile refreshes and collection
-  enrollment.
+`info.version`; the current version is **3.0.0**. Its callers are programs, so
+a removed or renamed response field is a major, and an added field or
+operation is a minor. (MCP versions differently: its callers are agents
+reading the current declaration.) The path stays `/api/v1` across majors,
+because it is also the OAuth audience a person's token is issued for. What
+changed in each version is in the OpenAPI document and on
+[Updates](/updates).
 
 ## Attested facts
 
-A family app can tell Elixir what a person did in a clan, and what the
-app's own game produced for a player. Elixir keeps these **attested
-facts** apart from the game record, which only collectors write, and
-labels each with the app, the person's player, their role, and when. They
+Elixir Clan, and a family app through this API, can tell Elixir what a
+person did in a clan; an integration can say what its own game produced for
+a player. Elixir keeps these **attested facts** apart from the game record, which only collectors write, and
+labels each with its source, the person's player, their role, and when. They
 are facts with a named source, never Elixir's judgment, and they appear on
 the [timeline](/docs/timeline) of the readers their type allows.
 
@@ -237,18 +123,17 @@ the [timeline](/docs/timeline) of the readers their type allows.
 | `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
 | `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
 | `personal_record` | player | an integration with `facts:write` | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
-| `award_standing` | clan, about a member | the family app itself, on its integration key with `facts:write` | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
+| `award_standing` | clan, about a member | the app itself (Elixir Clan, or an integration with `facts:write`) | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
 
 "The clan" is anyone whose verified player is in it today, and an agent
 whose owner's player is. A fact for the clan's leaders reaches only a
 person whose verified player leads it: never an agent and never mail.
-A departure's kind is the clan's since 2.5.0: the game already tells the
-whole clan in clan chat that a member was kicked, and its leaders say why
+A departure's kind is the clan's: the game already tells the whole clan in clan chat that a member was kicked, and its leaders say why
 there.
 
-A clan fact is written by a **person**, through a family app (its
-provisioned client) whose grant holds `clans:attest`, with
-`POST /clans/{tag}/facts`. The one exception (2.6.0) is what the app itself
+A clan fact is written by a **person**: in Elixir Clan, or through a family
+app (its provisioned client) whose grant holds `clans:attest`, with
+`POST /clans/{tag}/facts`. The one exception is what the app itself
 computes from its own rules: `award_standing`, where a member stands in one
 of the clan's own awards for a season still running (Elixir Clan writes it
 each morning). An integration holding `facts:write` writes and takes back
@@ -280,9 +165,10 @@ and the same body; its tag is unverified, as everywhere on this API.
 ## A family app's mail
 
 A family app can send people its own mail through Elixir, which holds the
-address, the switch and the unsubscribe. The first is Elixir Clan's
-**clan actions waiting** ([Email](/docs/email)). `POST
-/clans/{tag}/mail` names who each email is for by player tag:
+address, the switch and the unsubscribe. The one kind is Elixir Clan's
+**clan actions waiting** ([Email](/docs/email)), which Clan sends from
+inside Elixir under the same rules. `POST /clans/{tag}/mail` names who each
+email is for by player tag:
 
 ```json
 {
@@ -328,7 +214,7 @@ not carry the old season beyond its explicit end.
 `GET /players/{tag}` performs no live fetch. `observed_at` is the recorder's
 source timestamp, not the time the response was delivered. A known tag without a
 profile observation returns `404 not_recorded`. Names, clan and account age can
-be incomplete; null means unknown, not zero. Recording enrollment is not itself
+be incomplete; null means unknown, not zero. Tracking a player is not itself
 an observation.
 
 When a profile is missing or too old for your product, send:
@@ -372,11 +258,11 @@ These allowances do not increase the collector fleet's shared upstream budget.
 
 | Status | Meaning |
 | --- | --- |
-| 400 | `invalid_json` (checked before authentication; send `{}` on GET), `invalid_tag`, `invalid_members`, `idempotency_key_required`, or `bad_request` for a badly percent-encoded path; on a person's operation also `bad_request` and `result_too_large` from the tool; on a fact write `unknown_fact_type` or `invalid_fact` |
+| 400 | `invalid_json` (checked before authentication; send `{}` on GET), `invalid_tag`, `idempotency_key_required`, or `bad_request` for a badly percent-encoded path; on a person's operation also `bad_request` and `result_too_large` from the tool; on a fact write `unknown_fact_type` or `invalid_fact` |
 | 401 | `unauthenticated`: missing, wrong-purpose, revoked or suspended credential |
 | 403 | Missing permission; `insufficient_scope` when a person's grant lacks the operation's scope; `not_entitled` from a person's tool; on a clan fact `family_apps_only`, `not_in_clan` or `not_permitted` |
 | 404 | Unknown or inaccessible resource (`not_found`); `not_recorded` for missing profile data; `no_subject` on a person's operation with nothing to answer about |
-| 409 | `enrollment_limit` or `idempotency_conflict`; `ref_conflict` when a fact's `ref` already names another type or subject |
+| 409 | `idempotency_conflict`; `ref_conflict` when a fact's `ref` already names another type or subject |
 | 429 | `rate_limited` (also a refresh when the shared CR budget is spent until the next tick), `daily_quota_exceeded` or `refresh_quota_exceeded`; `quota_exceeded` from a person's tool |
 | 500 | `internal`: a fault on Elixir's side that a retry will not fix; no `Retry-After` |
 | 502 | `internal` or `live_unavailable` from a person's tool |

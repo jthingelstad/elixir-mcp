@@ -1,7 +1,7 @@
 ---
 slug: responses
 title: "Reading a response"
-description: "Every Elixir MCP response carries a meta envelope: when it was computed, how far back the record goes, how fresh it is, whether capture was incomplete, and the id of the call that produced it."
+description: "Every Elixir response carries a meta envelope: when it was computed, how far back the record goes, how fresh it is, whether capture was incomplete, and the id of the call that produced it."
 section: agent
 order: 6
 navTitle: "Responses"
@@ -60,8 +60,7 @@ the `elixir_coverage` call that has the whole week. On `battles_compare` it read
 each compared tag, and carries one sentence per incomplete side, each naming
 its tag; a complete side is not mentioned. When it is there, say so in
 the answer. It is the service admitting a gap; an agent that drops it on the
-floor is laundering that admission. (Until 3.14.0 the field was promised and
-never set.)
+floor is laundering that admission.
 
 **`timezone_applied`** — the display timezone used for local labels, when one
 applied: the account's, or the call's own `timezone` argument. Stored
@@ -98,7 +97,7 @@ lane, so every agent on one account reads the same balances.
 
 **`request_id`** — the id of the call that produced this response. Quote it when
 reporting an answer that looks wrong and we can find the exact row. Your own
-call history, with these ids, is on **Account → Activity**.
+call history, with these ids, is under **Usage ▸ MCP requests** in the console.
 
 **`contract_version`** — the tool contract this response was produced under. If
 it differs from what you cached, re-read `tools/list`; `elixir_changelog(since)`
@@ -107,7 +106,7 @@ says what moved.
 ### Beside the envelope
 
 Three keys ride at the top level of every response, next to the fields the
-tool is for, since contract 1.0.0 (`applied` on all but seven tools, which
+tool is for (`applied` on all but six tools, which
 the [Protocol reference](/docs/protocol#argument-conventions) names):
 
 **`applied`** — the one echo block: what the tool actually used. `window`
@@ -117,12 +116,10 @@ the [Protocol reference](/docs/protocol#argument-conventions) names):
 (and `pointer` on `elixir_timeline`);
 read it before you say "your last 30 days". The season-grained tools add
 `window.season`, `window.crosses` and `window.season_age_days`
-([Seasons](/docs/clocks#seasons)). It replaces the old `filters_applied`,
-`window_from`, `window_to`, `window_days` and `limit_applied` keys.
+([Seasons](/docs/clocks#seasons)).
 
 **`notes`** — `notes[]`, one-sentence caveats to repeat when quoting the
-numbers. They replace the fifteen `*_note` keys the 0.x contracts carried;
-`meta.completeness_note` stays in the envelope because it is about capture,
+numbers. `meta.completeness_note` stays in the envelope because it is about capture,
 not about the tool.
 
 **`docs`** — a `page#section` pointer into the documentation where the
@@ -189,7 +186,7 @@ that every battle is present.
 `completeness_last_7_days` covers intervals **ending** in the last seven days;
 one can begin earlier. `average_ratio` is weighted by expected battles and
 excludes intervals whose ratio is unknown. It is a number, three decimals,
-like the interval `ratio` beside it (4.0.0; a string before). `measured_intervals` and
+like the interval `ratio` beside it. `measured_intervals` and
 `unknown_intervals` make that distinction visible. `measured_span` gives the
 first-to-last extent of the intervals behind the ratio and `measured_hours`
 their summed duration, so you can see how much of the week the number actually
@@ -197,9 +194,7 @@ describes: a high `average_ratio` over a few hours describes only those hours.
 Compare `measured_hours` against 168 before reading it as a full week. `incomplete_intervals` counts
 measured intervals with fewer captured than expected battles. Interval
 `is_complete` uses exact counts even when a rounded ratio displays as one.
-(`incomplete_days`, always null because a multi-day interval cannot say
-which day lost battles, was removed at 4.0.0; `average_ratio` became a
-number then.) `unmeasured_tail_hours` gives the age of the unbracketed tail since the latest
+`unmeasured_tail_hours` gives the age of the unbracketed tail since the latest
 profile snapshot; it is not included in `average_ratio`. Older unbracketed
 history remains unknown.
 

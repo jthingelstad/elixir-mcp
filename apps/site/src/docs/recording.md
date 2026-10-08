@@ -43,8 +43,7 @@ Three things worth knowing:
 
 There is no watch step and no approval queue. **Tracked means recorded**:
 tracking a subject on your account is the request to record it, and capture
-starts at the next scheduler tick. (Before contract 1.0.0 the tools said
-"add"; the act is the same.)
+starts at the next scheduler tick.
 
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
@@ -81,7 +80,7 @@ History is never deleted when a recording stops.
 
 Extra pre-reset and season-roll snapshots preserve the same profile observation.
 They do not emit a second donation-reset event; the daily projection records the
-counter change once. Weekly high-water marks and award inputs are unchanged.
+counter change once.
 
 
 ## Scope: what is actually polled
@@ -110,10 +109,9 @@ the clan's own liveliness — without a slot and without polling the other
 members. When nobody tracks that clan, the read keeps only what concerns
 the players you track: their membership and role, their roster row, and the
 clan's name. The other members, and the clan's own daily numbers, are not
-kept (since 2026-10-07). Track the clan to keep them.
+kept. Track the clan to keep them.
 
-**A tracked clan's roster poll records what it carries** (since 2026-09-17;
-limited to tracked clans since 2026-10-07). Every clan someone tracks gets
+**A tracked clan's roster poll records what it carries.** Every clan someone tracks gets
 one row per game day of its own numbers (clan score, war
 trophies, member count, required trophies, weekly donations), and every member
 on that roster gets a row in the same daily series a recorded player's profile
@@ -123,8 +121,8 @@ member with a recorded profile has the profile's lifetime counters on it too,
 and each half is dated by its own observation. The profile's progress buckets
 (the seasonal Trophy Road, 2v2 League, Merge Tactics) are kept as a series of
 their own; a bucket the player has not touched this season writes nothing, and
-the seasonal Trophy Road's entry value (14,000 with best 0) is not a row
-(7.1.3). `players_timeline` reads them with `progress_key` (`all`, or one
+the seasonal Trophy Road's entry value (14,000 with best 0) is not a row.
+`players_timeline` reads them with `progress_key` (`all`, or one
 key such as `seasonal-trophy-road-202609`; an unknown key names the ones the
 record holds).
 
@@ -148,27 +146,9 @@ characters, `null` clears) that only your account and your agents see;
 `players_search` ranks your nicknames first. It is the one write the website's
 Explore page performs.
 
-## Following players and clans
-
-Named recording Collections have retired. Follow players directly and organize them as primary, alt, friend or watching; add clans at the scope you need. Existing direct follows, notification choices and recorded personal and clan history remain. Historical Collection membership has been removed; it does not sustain recording or become a personal follow. Owned card collections remain part of player profiles.
-
-## Leaderboards
-
-Global, regional, clan and game-mode leaderboard capture has stopped,
-including historical Path of Legends final-board backfill. Leaderboard
-appearance and the former board Collections no longer sustain recording.
-Live leaderboard reads are unavailable. Historical board captures have been
-removed from the database and replay archive. The global leaderboard tools are removed.
-
-A recorded player's own profile still supplies their rank information.
-Players continue to be recorded when a person follows them or their clan is
-recorded, regardless of their rank. The retirement cutover reconciles all
-remaining reasons before stopping a recording; its original origin label
-is not a safe way to decide what stays.
-
 ## Events
 
-Elixir records the game event calendar so you can see which modes and challenges were available when your games happened. `game_events` lists daily sightings in a selected window, the first and latest sighting, and days without a read. These are observations, not announced start/end times. The event calendar does not enroll players or publish global rankings.
+Elixir records the game event calendar so you can see which modes and challenges were available when your games happened. `game_events` lists daily sightings in a selected window, the first and latest sighting, and days without a read. These are observations, not announced start/end times.
 
 ## How often a subject is fetched
 
@@ -186,13 +166,9 @@ Why 30 minutes and two hours: a battle is about three minutes, and the
 API's battle log holds your last 30, so a sitting fills it in about 90
 minutes. Read inside a third of that and a session cannot roll past the
 recorder; read at least every two hours and a sitting that starts the
-moment after a read still fits. Before this rule (September 2026) the
-recorder estimated each player's pace and waited up to a day for the
-quiet ones; measured against the game's own lifetime battle counter, that
-lost about 4% of all battles, almost all of them from long sittings that
-started inside a long wait. The console's signed-in
-[Efficiency](/console/status/efficiency) page shows that loss, per day, from the
-same measurement.
+moment after a read still fits. The console's signed-in
+[Efficiency](/console/status/efficiency) page measures what is still lost,
+per day, against the game's own lifetime battle counter.
 
 | Subject | Rule | Bounds |
 |---|---|---|
@@ -207,6 +183,7 @@ same measurement.
 | Current river race | every 30 minutes on war days, every 2 hours on training days (the API names the day) | floor 2 hours |
 | River race log | daily, plus one catch-up after a newer recorded race when the preceding race lacks final closure, or after an unfinished recorded colosseum season’s nominal end while the new race is unavailable | floor 2 days |
 | Card catalog | daily, one fetch for everyone | – |
+| Game events | once per game day, at the first planning tick after 10:00 UTC; one fetch for everyone | – |
 
 Subjects added together are de-phased by a stable per-subject offset so a
 batch does not poll in lockstep; the offset can shorten a battle log's
@@ -273,8 +250,7 @@ rewards does not establish battle activity either.
 
 `clans_roster` carries the clan's own `type` (`open`, `inviteOnly`,
 `closed`), `location_id` (the API's location code) and `description` as the
-last roster poll carried them (`null` before 2026-09-17), at both
-verbosities: the first three things a joiner asks. At full verbosity it
+last roster poll carried them, at both verbosities: the first three things a joiner asks. At full verbosity it
 carries each member's latest profile row as
 `lifetime` (`profile_observed_at`, `best_trophies`, `battle_count`, `wins`, `losses`,
 `three_crown_wins`, `collection_level`, `king_tower_level`,
@@ -283,8 +259,7 @@ the three frozen career counters the profile carries on the player rather
 than the day: `war_day_wins` (the game's own `warDayWins`) and
 `clan_cards_collected` (`clanCardsCollected`), both counters of the retired
 Clan Wars format, frozen since it ended, so 0 on newer accounts and never
-counting a River Race battle or a donation (6.27.0: they used to be
-described as lifetime war wins and donations), and
+counting a River Race battle or a donation, and
 `legacy_trophy_road_high_score` (the best on the old Trophy Road). For war
 results use `battles_performance` with `mode: "war"`; for donations,
 `total_donations`. `players_profile.attributes` carries the same three.
@@ -298,13 +273,12 @@ the last twelve, newest first, keyed by `season_month`; the archive holds
 every recorded player's final since March 2026 and the series tools carry
 the standing at the roll hour (`players_timeline({ kind: "season_roll" })`).
 
-`clans_timeline`'s `members_with_profile` (3.16.0) counts the members with a
+`clans_timeline`'s `members_with_profile` counts the members with a
 profile read on or before that day: the denominator of the profile-derived
 aggregates. A member whose profile was not polled that day counts with their
-latest earlier read (6.36.7), and `members_profile_carried` says how many did.
+latest earlier read, and `members_profile_carried` says how many did.
 A profile's wins and collection level only climb, so the last read is the best
-statement of the day; leaving the member out had moved the average with the
-poll schedule. `members_seen` counts the member rows the roster wrote on
+statement of the day. `members_seen` counts the member rows the roster wrote on
 that day, whatever the clan's `members` said. It reads above `members` on a
 day a member left: their row keeps the clan's tag until the next roster places
 them elsewhere, so the day counts both the leaver and whoever the count
@@ -340,7 +314,7 @@ no record for no activity.
 | `battles` | `recorded_appearances`, `first_recorded`, `last_recorded`, including appearances recorded from other players' logs before the tag was added |
 | `snapshots.first_date` | first daily profile snapshot; timelines exist only from here |
 | `observation_intervals[]` | consecutive profile snapshots bracket an interval; `expected_battles` is the lifetime battle counter's change, `captured_battles` counts recorded battles in `(observed_from, observed_to]`; `is_complete` and `ratio` are `null` with a `note` when the two are not comparable |
-| `completeness_last_7_days` | `average_ratio` weighted by expected battles over intervals ending in the last 7 days; `measured_intervals`, `unknown_intervals`, `incomplete_intervals`; `unmeasured_tail_hours` is the age of the unbracketed tail after the latest profile. `average_ratio` is a number (4.0.0; a three-decimal string before) |
+| `completeness_last_7_days` | `average_ratio` weighted by expected battles over intervals ending in the last 7 days; `measured_intervals`, `unknown_intervals`, `incomplete_intervals`; `unmeasured_tail_hours` is the age of the unbracketed tail after the latest profile |
 
 Two caveats the numbers cannot escape: the lifetime counter includes some
 modes the battle log never shows, so a ratio under 1.0 is an upper bound on
@@ -366,18 +340,18 @@ measures; it never rates.
 
 | Field | Meaning |
 |---|---|
-| `weeks[]` | the ISO weeks covered (`iso_week`, `from`, `to`); battles are bucketed Monday 00:00 UTC to Monday, while `donations` follows the counter's own week, the game days Monday 10:00 UTC to Monday 10:00 UTC; the current week carries `partial: true` with `covers` (the mark every clipped bucket carries; 4.0.0, `complete` before) |
+| `weeks[]` | the ISO weeks covered (`iso_week`, `from`, `to`); battles are bucketed Monday 00:00 UTC to Monday, while `donations` follows the counter's own week, the game days Monday 10:00 UTC to Monday 10:00 UTC; the current week carries `partial: true` with `covers` (the mark every clipped bucket carries) |
 | `war_weeks[]` | the clan's recorded war weeks inside the window with their observed bounds; war weeks run on the game's grid, not ISO weeks |
 | `members[].battles`, `ranked_battles`, `donations` | columns aligned to `weeks[]`, one entry per ISO week in order; `battles` is the member's own battles (a boat defense is not one); `donations` is the highest value the game's weekly counter reached in the week's game days, Monday 10:00 UTC to Monday 10:00 UTC (the counter only climbs until the weekly reset), `null` with no snapshot |
-| `members[].war_decks`, `war_points` | columns aligned to `war_weeks[]`; `war_decks` is the game's count for the race week, never split by war day: the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale (9.0.1). `null` where the member has no race row for the week; `verbosity: "compact"` keeps only `war_decks` |
+| `members[].war_decks`, `war_points` | columns aligned to `war_weeks[]`; `war_decks` is the game's count for the race week, never split by war day: the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale. `null` where the member has no race row for the week; `verbosity: "compact"` keeps only `war_decks` |
 | `members[].joined_observed_at`, `tenure_known`, `days_in_clan_observed` | the start of the member's **current stint** as the record observed it: a member who left and came back counts from the rejoin, except that a rejoin within 7 days of leaving continues the stint before it; `tenure_known` is `false` for a member already present at the first roster poll, whose observed days are a lower bound |
 | `members[].first_joined_at` | the member's first recorded join of this clan, whatever stints followed (`clans_roster.first_observed_in_clan` is the same instant) |
 | `members[].last_battle_time`, `days_since_battle` | the last recorded battle in any clan, and its age |
-| `members[].last_battle_time_in_clan` | the last recorded battle played as a member of this clan (3.16.0) |
-| `members[].log_recorded`, `recorded_since` | whether the member's battle log is recorded at all (the clan's comprehensive scope, or a recording of their own) and their first recorded battle (3.16.0); read `log_recorded` before reading a zero |
-| `basis` | `recorded` when the clan's members' logs are recorded; `roster_and_war_only` for an activity-scope clan, where every battle count is zero by construction for a member whose `log_recorded` is false (3.16.0) |
+| `members[].last_battle_time_in_clan` | the last recorded battle played as a member of this clan |
+| `members[].log_recorded`, `recorded_since` | whether the member's battle log is recorded at all (the clan's comprehensive scope, or a recording of their own) and their first recorded battle; read `log_recorded` before reading a zero |
+| `basis` | `recorded` when the clan's members' logs are recorded; `roster_and_war_only` for an activity-scope clan, where every battle count is zero by construction for a member whose `log_recorded` is false |
 | `recording_active_since`, `first_roster_observed_at` | the recording horizon for the clan |
-| `members[].in_clan_at_war_finish`, `role_at_war_finish` | columns aligned to `war_weeks[]`: whether the member was in the clan at the week's finish (`finished_observed_at`), and in what role (9.13.0). Read from the clan's roster reads on either side of the finish, and served only when the two agree. `null` is unknown, never absent: the week is unfinished, no read follows the finish yet, or the member's place changed between the two reads. A role is also `null` outside the clan, at a finish before `role_history_since`, and where the member's recorded role changes do not chain (an older roster admitted after a newer one leaves an order nothing can settle) |
+| `members[].in_clan_at_war_finish`, `role_at_war_finish` | columns aligned to `war_weeks[]`: whether the member was in the clan at the week's finish (`finished_observed_at`), and in what role. Read from the clan's roster reads on either side of the finish, and served only when the two agree. `null` is unknown, never absent: the week is unfinished, no read follows the finish yet, or the member's place changed between the two reads. A role is also `null` outside the clan, at a finish before `role_history_since`, and where the member's recorded role changes do not chain (an older roster admitted after a newer one leaves an order nothing can settle) |
 | `members[].role_changes` | full verbosity: every role change observed in the window, oldest first, with `role_before`, `role_after`, and the change's bracket: it happened after `window_start` (the read before) and by `observed_at` (the read that showed it) |
 | `role_history_since` | the clan's first live roster read: role changes are recorded from it, since the roster history imported from POAP KINGS' earlier bot carries tenure, not roles |
 | `former_members[]`, `former_member_count` | who left inside the window and has not come back: `role_at_departure`, `joined_observed_at` and `left_observed_at` of the membership that ended, `last_battle_time_in_clan`, and the same columns as `members[]`, whose battles and donations count only what they played and gave in this clan |
@@ -389,12 +363,11 @@ a member with no recorded battle has `days_since_battle: null`. Counts
 cover recorded battles only; `elixir_coverage` per tag says how complete
 a member's log is. `weeks` is 1 to 8 (default 5).
 
-**An agent reads a table** (9.16.0). Over MCP the rows of `members` and
+**An agent reads a table.** Over MCP the rows of `members` and
 `former_members` are arrays, and `columns.members` and
 `columns.former_members` name their entries once, in order: a list of
-fifty objects repeats every key fifty times, and on the eight-week read
-of a full clan with its departures the keys alone pushed the answer past
-the 48,000-character response cap. Two more things are written shorter,
+fifty objects repeats every key fifty times, and the 48,000-character
+response cap has no room for that. Two more things are written shorter,
 and nothing is dropped:
 
 - an instant on a whole second is written without its `.000`
@@ -436,8 +409,11 @@ they are the live lane with the record's shape.
 
 `live_fetch({ path })` is the raw catch-all: one authenticated GET against
 the Clash Royale API through the live lane, recorded on the way back. It
-needs the payload itself, so it answers `live_pending` until one is in
-hand, then `{ path, live: true, live_status, data, meta }`.
+needs the payload itself, so until one is in hand it answers the error
+`live_pending` with `retry_after_s`; once one is, it answers
+`{ path, live: true, live_status, applied, data, notes, docs, meta }`, with
+`data` the raw payload and a note naming the recorded tool that answers the
+same path.
 
 | Allowed `path` | Recorded as |
 |---|---|
@@ -450,28 +426,19 @@ hand, then `{ path, live: true, live_status, data, meta }`.
 lane is spent: a raw battle log cannot fit the 48,000-character delivery cap,
 so the fetch would cost a live call and deliver nothing;
 `battles_query({ player_tag, live: true })` polls the log once and answers in
-the compact recorded shape. Anything else is `bad_request`. The response is
-`{ path, live: true, data, meta }` with `data` the raw payload: card levels
-there are on the API's rarity-relative scale (a maxed legendary reads 8/8),
-while every recorded tool serves the in-game 1 to 16 scale; `cards_catalog`
-carries both maxima. `live_unavailable` is answered only when the lane is
-not configured or the fresh payload was refused at admission.
+the compact recorded shape. Any other path is `bad_request`, and a malformed
+tag in it `invalid_tag`. Card levels in `data` are on the API's
+rarity-relative scale (a maxed legendary reads 8/8), while every recorded
+tool serves the in-game 1 to 16 scale; `cards_catalog` carries both maxima.
+`live_unavailable` is answered only when the lane is not configured or the
+fresh payload was refused at admission.
 
 Live fetches are capped per day by tier (20 / 100 / 250 / 1,000; owner and
-admin unlimited) and an agent spends its owner's allowance. A queued fetch
-is charged once, when it is queued; a fresh read already in hand and the
-follow-up call that finds it are free. Every collector in the fleet picks
-up a queued live fetch first, so the worst-case wait is one check-in
-interval (15 seconds) plus the fetch. Global leaderboard paths are retired and refused before the live lane is spent.
-
-## Retired global capture history
-
-Global leaderboard capture, curated recording Collections and game-wide analysis
-have retired. The reviewed cleanup removed their historical board and Collection
-records and games recorded solely for retired captures from the database and
-replay archive.
-
-Personal, friend and clan overlap was preserved, along with games whose recording
-provenance was unclear. The cleanup used historical requests and archive evidence,
-rather than a player's current ranking or recording origin. A top player whom you
-follow remains part of your own record.
+admin unlimited), and an agent spends its owner's allowance; past the cap a
+call is refused with `quota_exceeded`. A queued fetch is charged once, when
+it is queued; a second ask while it is queued, a fresh read already in hand
+and the follow-up call that finds it are free. When the shared API budget
+has no room for a live read, nothing is queued or charged, and the answer
+is pending with `retry_after_s` at the next scheduler tick. Every collector
+in the fleet picks up a queued live fetch first, so the worst-case wait is
+one check-in interval (15 seconds) plus the fetch.

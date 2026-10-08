@@ -4,7 +4,7 @@ import { ToolFailure, appliedBlock, docsRef, notes } from "../shared.mjs";
 
 export const elixir_examples = {
   description:
-    "Eleven worked examples of what people ask an agent connected to Elixir MCP and what it answers: for players (understand your play, pick a deck, push with evidence, follow friends), clan leaders (win the river race, keep the roster healthy, scout the other clan, write the weekly recap) and builders (answer clanmates in Discord, publish your own stats, run a collector). No arguments: the index. example: one in full with its transcript, what it reads, the tools it calls and the setup. The numbers inside a transcript are illustrative; the tools are real.",
+    "Ten worked examples of what people ask an agent connected to Elixir and what it answers: for players (understand your play, push with evidence, follow friends), clan leaders (win the river race, keep the roster healthy, scout the other clan, write the weekly recap) and builders (answer clanmates in Discord, publish your own stats, run a collector). No arguments: the index. example: one in full with its transcript, what it reads, the tools it calls and the setup. The numbers inside a transcript are illustrative; the tools are real.",
   inputSchema: {
     type: "object",
     properties: {

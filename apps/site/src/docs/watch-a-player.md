@@ -1,7 +1,7 @@
 ---
 slug: watch-a-player
 title: "Watch any player"
-description: "Track any player by tag, friend or not: adding one starts recording, what the record holds before and after, how a watched player shows in your timeline and Wednesday's Your friends this week, your player slots, and how an agent tracks."
+description: "Track any player by tag, friend or not: adding one starts recording, what the record holds before and after, how a watched player shows in your timeline and Wednesday's Your friends this week, your player slots, and how an Elixir agent tracks."
 section: friends
 order: 2
 navTitle: "Watch any player"
@@ -14,14 +14,15 @@ reviewed: "2026-10-01 against contract 9.17.1"
 # Watch any player
 
 You do not need to know a player to track them: a rival, a top player,
-a clanmate's alt. **Watching** is the relationship every added player
-starts with, and it is the whole of what an agent can do.
+a clanmate's alt. **Watching** is the relationship an added player
+starts with (your first player is your primary), and the only one an
+[agent](/docs/agents) can set.
 
 ## Adding a player
 
 **Console ▸ Tracking ▸ Track a player**: enter the tag and press
-**Track**. Through your agent, `elixir_track_player` with the tag; with
-no `relationship` it watches.
+**Track**. Through a [connected app](/docs/connections), `elixir_track_player`
+with the tag; with no `relationship` it watches.
 
 Tracked means recorded. Capture starts on the next poll and carries on
 until you remove the player: the battle log about every 30 minutes
@@ -55,9 +56,10 @@ losses and the modes, with a note when they came back after quiet days,
 joined or left a clan, reached an arena or were promoted. Players with
 nothing recorded all week are named together in one quiet line.
 
-Your agent's opening lists the players you watch with their tags, so
-you can ask about one by name. Every battle the record holds has
-[a public page](/docs/battles#a-battles-page), the link your agent
+The opening a connected app reads lists the players you watch with
+their tags (or counts them, when the list is long), so you can ask about
+one by name. Every battle the record holds has
+[a public page](/docs/battles#a-battles-page), the link a connected app
 hands you for one battle.
 
 ## Agents

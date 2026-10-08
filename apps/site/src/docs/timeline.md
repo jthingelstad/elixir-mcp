@@ -30,12 +30,16 @@ after a month gets a month's timeline (capped at 30 days, and at the newest
 | `from` | string | your read pointer, else 24 hours ago | EXCLUSIVE: items observed after it; an ISO instant, or `YYYY-MM-DD` at local midnight in your timezone; capped at 30 days before `to` |
 | `to` | string | now | INCLUSIVE, compared at the millisecond served; an ISO instant, or a date covering that whole local day |
 | `days`, `weeks` | integer | none | the last N days or weeks ending now: sugar for `from` |
-| `season` | string or number | none | one season's span (`current`, `previous`, `2026-08` or `135`), to now while it runs, as on every windowed tool (9.1.0); still capped at 30 days, and `from`/`to`/`days`/`weeks` given win over it |
+| `season` | string or number | none | one season's span (`current`, `previous`, `2026-08` or `135`), to now while it runs, as on every windowed tool; still capped at 30 days, and `from`/`to`/`days`/`weeks` given win over it |
 | `mark_read` | boolean | `true` | move the read pointer (the reader's, or the account's) to this window's end |
-| `reader` | string | none | this consumer's own pointer, by a short name (`^[a-z0-9][a-z0-9-]{0,31}$`; 3.18.0): an omitted `from` reads since it, `mark_read` moves it, `read_to` reports it; the account's unnamed pointer and every other reader's are untouched |
+| `reader` | string | none | this consumer's own pointer, by a short name (`^[a-z0-9][a-z0-9-]{0,31}$`): an omitted `from` reads since it, `mark_read` moves it, `read_to` reports it; the account's unnamed pointer and every other reader's are untouched |
 | `sections` | string[] | all | keep only items and entry sections in these sections |
 | `kinds` | string[] | all | keep only items of these kinds (the table below, or `account_*`); entries are untouched. A consumer that wakes on a few kinds reads only those |
-| `player_tag` | string | none | keep only items about this player: their moments and sessions, and on a clan's timeline their member moments and sessions; applied before the cap; never moves the read pointer (7.1.5-7.1.7) |
+| `player_tag` | string | none | keep only items about this player: their moments and sessions, and on a clan's timeline their member moments and sessions; applied before the cap; never moves the read pointer |
+| `evidence_item_id` | string | none | one visible item's `id` (`tl_` and 20 hex characters): read that item's recorded games instead of the feed ([Recorded evidence](#recorded-evidence)); pass the original `from` and `to`. Never moves any read pointer |
+| `evidence_offset` | integer | 0 | 0 to 10,000: where the page of games starts |
+| `evidence_limit` | integer | 25 | 1 to 25 games per page |
+| `expected_evidence_version` | string | none | the item's `evidence.version`; required after the first page, so a page never shifts under changed evidence |
 | `verbosity` | `full` \| `compact` | `full` | compact keeps items, entry summaries and player notables, and drops entry sections including clan standouts |
 | `timezone` | IANA zone | the account's | for date-only bounds and the text's times |
 
@@ -44,7 +48,7 @@ timeline_more_to, entries: [...], quiet: [...], subjects, next_cursor,
 has_more, notes, docs, meta }`.
 
 - `timeline` is **newest first** by `at` (when a moment happened), like a
-  newsfeed (7.0.0). A window selects items by `observed_at`, when the record
+  newsfeed. A window selects items by `observed_at`, when the record
   learned them, in `(from, to]`. So an item can happen before `from` (it was
   observed late), and a moment in the window that was observed after `to`
   is in the next one.
@@ -78,7 +82,7 @@ case `reader` below exists for, and a second agent is the better answer.
 
 Without `reader`, `mark_read` moves a single instant on the account, and
 two consumers that both mark move each other's window. With `reader`
-(3.18.0) each consumer names its own pointer and marks it alone; the
+each consumer names its own pointer and marks it alone; the
 account's unnamed pointer stays a person's own client's. A consumer that
 keeps its own cursor still can (`mark_read: false` and its own `from`), but
 `meta.timeline_pending` then counts against a pointer it never moves. The
@@ -91,7 +95,7 @@ Subscriptions are implicit; nothing to configure.
 | Reader | Subjects | On the timeline |
 |---|---|---|
 | a person | every player they track with notify on (primary, alts, friends, watching); every clan they added with notify on | each player's sessions and moments; each clan's roster, war and members' moments |
-| an agent | the clan it represents; any player it tracks explicitly | the clan's items; its members appear **on the clan's timeline**, never as subjects |
+| an agent | every clan it tracks with notify on (the clan it acts for, and any other); every player it tracks with notify on, always `watching`, never "me" | each clan's roster, war and members' moments; each player's sessions and moments. A clan's members appear **on the clan's timeline**, never as subjects of their own |
 | an integration | none | nothing |
 
 The entry's shape follows the subject, not the account: a person who adds a
@@ -105,10 +109,10 @@ subject_name, kind, section, text, facts }`:
 
 | field | what it is |
 |---|---|
-| `id` | the story the item tells (9.15.0): opaque (`tl_` and 20 hex characters), the same in every read and every window. It names the happening, not the reader, so a member's moment has one id on the clan's timeline and on the player's own, and a sitting's `battle_session` and `session_standout` share one. Never a ledger sequence number |
-| `revision` | how far the story has grown (9.15.0): 1 for a moment that never grows. A sitting's is its battles counted from its first battle, which a window can start after (a `session_standout`'s, up to the last rung this window learned), so a sitting told at 20 battles and read again at 40 is the same `id` at a higher `revision` |
+| `id` | the story the item tells: opaque (`tl_` and 20 hex characters), the same in every read and every window. It names the happening, not the reader, so a member's moment has one id on the clan's timeline and on the player's own, and a sitting's `battle_session` and `session_standout` share one. Never a ledger sequence number |
+| `revision` | how far the story has grown: 1 for a moment that never grows. A sitting's is its battles counted from its first battle, which a window can start after (a `session_standout`'s, up to the last rung this window learned), so a sitting told at 20 battles and read again at 40 is the same `id` at a higher `revision` |
 | `at` | when it happened |
-| `observed_at` | when the record observed it, which is what selects it into a window (6.25.0); a polled moment can be observed well after `at` |
+| `observed_at` | when the record observed it, which is what selects it into a window; a polled moment can be observed well after `at` |
 | `subject_tag`, `subject_name` | whose timeline it is on: a player or a clan (a member's moment is on the clan's); `subject_tag` is null on your account's items |
 | `kind`, `section` | what it is (below); `section` is the entry section it belongs to, so `sections` filters items and entries together |
 | `text` | a sentence a person can read |
@@ -118,13 +122,13 @@ subject_name, kind, section, text, facts }`:
 |---|---|---|
 | `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net, `won_in_a_row`, `open` while it may still be going. On a player's own timeline every sitting is an item, a single battle included; a clan's members' ordinary sessions are not items there (see `session_standout`, and `player_tag` below). A reader that moves its pointer sees each sitting once; a member read (`player_tag`) keeps no pointer, so a sitting still being learned can come back with a running total under the same `id` at a higher `revision`: update, never retell. |
 | `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500, `battles` 20 / 40 in one sitting. The session shape plus `crossed` (every rung so far) and `newly` (the rungs this window learned); `at` is the battle that crossed the first new rung. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing; a new rung is the sitting's `id` at a higher `revision`. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
-| `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge's API identifier (`MasterySkeletonWarriors`), `facts.badge_label` the badge as a player says it (`Guards Mastery`, 4.2.0), `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` rides on rows written since 3.9.0); the entry's `badges` counts every level-up |
+| `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge's API identifier (`MasterySkeletonWarriors`), `facts.badge_label` the badge as a player says it (`Guards Mastery`), `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` is absent on the oldest rows); the entry's `badges` counts every level-up |
 | `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |
 | `ranked_promotion` | player, or a clan's member | Path of Legends league went up, by name. `facts.promoted_by` names the promoting battle when the record holds it: the last win played in the league below (a ranked battle is stamped with the league it started in), with `at` at that battle |
 | `best_trophies_band` | player, or a clan's member | a new personal best crossing a 500 band; `facts.band` is the band, `facts.crossed_by` the Trophy Road win whose result first reached it, `at` at that battle |
 | `collection_level_step`, `career_wins_step` | player, or a clan's member | collection level at a step that widens with the level (every 5 below 100, every 50 to 1,000, every 100 above; `facts.step` says which); career wins at a multiple of 1,000. `career_wins_step` carries `facts.step` and, when every win between the two snapshots is on the record (the window's wins reconcile with the lifetime counter), `facts.crossed_by` is the 1,000th win itself, `at` at that battle |
 | `card_unlocked` | player, or a clan's member | a card the player did not have: `facts.card` is the card, `facts.name` the member on a clan's timeline (level-ups are a count in the entry, never items) |
-| `card_form_unlocked` | player, or a clan's member | an Evolution or Hero form the player newly unlocked (9.14.0): `facts.card` is the card, `facts.form` is `evolution` or `hero`, and the text says it as a player does ("unlocked Hero Valkyrie"). One item per form, so a card that gains both at once is two. `at` is the profile read that saw it: the unlock happened **no later than** that, after some earlier read the record may not hold (collectors skip a profile that has not changed), so no earlier bound is served. Recorded from 9.14.0 (2026-09-28) and never backfilled: a form unlocked before then is in `players_collection`'s `forms_unlocked`, never here |
+| `card_form_unlocked` | player, or a clan's member | an Evolution or Hero form the player newly unlocked: `facts.card` is the card, `facts.form` is `evolution` or `hero`, and the text says it as a player does ("unlocked Hero Valkyrie"). One item per form, so a card that gains both at once is two. `at` is the profile read that saw it: the unlock happened **no later than** that, after some earlier read the record may not hold (collectors skip a profile that has not changed), so no earlier bound is served. Recorded from 2026-09-28 and never backfilled: a form unlocked before then is in `players_collection`'s `forms_unlocked`, never here |
 | `clan_joined`, `clan_left` | player | the player moved clans |
 | `member_joined`, `member_left`, `member_role_changed` | clan | who, with the role; a departure is raw, the game cannot tell a leave from a kick (a clan's leaders can, through Elixir Clan: `departure_classified`) |
 | `bracket_observed` | clan | the record's first sight of a new war week: `season_id`, `section_index`, `is_colosseum`, and `rivals[]` - the other four clans with `tag`, `name` and `recorded` (whether the hub records that clan, so a scout knows what it can drill). The week's start *time* is not here; `game_clock` has it |
@@ -132,7 +136,7 @@ subject_name, kind, section, text, facts }`:
 | `week_resolved` | clan | the week finished: fame, rank among the five, war trophy change |
 | `quiet_crossed`, `returned` | player, or a clan's member | a member crossed 5, 10 or 20 recorded-quiet days (never while the silence is ours: `days_since_poll` rides along), or played again after seven or more |
 | `account_*` | your account | feedback answered (`account_feedback_responded`), recordings started or stopped, role changes (`account_role_changed`), connections |
-| `departure_classified`, `role_change_made`, `award_granted`, `award_standing`, `member_away`, `clan_message` | clan | [attested facts](/docs/integrations#attested-facts) (9.2.0): what a person did in the clan through a family app (a leader says a departure was a kick or a leave; a promotion made; the clan's own award; a member away; a Clan Leader Message or clan chat line), and what the app itself computed (`award_standing`, 9.6.0: where a member stands in one of the clan's awards). Section `attested`; `facts` is the fact's detail plus `player_tag` and `name` for the member it is about (and `previous_name` beside a standing's `previous_player_tag`), `attested_by` (`app`, `player_tag`, `name`, `role`; the last three null on the app's own fact) and `visibility`. Shown only to a reader whose verified player (an agent's owner's) is in the clan; an away only to a **person** whose verified player leads it, never to an agent. A departure's kind reaches the clan and its agent (9.3.0). `at` is when it happened; it is selected by when Elixir recorded it |
+| `departure_classified`, `role_change_made`, `award_granted`, `award_standing`, `member_away`, `clan_message` | clan | [attested facts](/docs/integrations#attested-facts): what a person did in the clan through a family app (a leader says a departure was a kick or a leave; a promotion made; the clan's own award; a member away; a Clan Leader Message or clan chat line), and what the app itself computed (`award_standing`: where a member stands in one of the clan's awards). Section `attested`; `facts` is the fact's detail plus `player_tag` and `name` for the member it is about (and `previous_name` beside a standing's `previous_player_tag`), `attested_by` (`app`, `player_tag`, `name`, `role`; the last three null on the app's own fact) and `visibility`. Shown only to a reader whose verified player (an agent's owner's) is in the clan; an away only to a **person** whose verified player leads it, never to an agent. A departure's kind reaches the clan and its agent. `at` is when it happened; it is selected by when Elixir recorded it |
 | `personal_record` | player | an attested fact from a family app's own game (Elixir Drop): `game`, `score`, `previous_best`, `attested_by`. Section `attested` |
 
 A battle a moment names (`promoted_by`, `crossed_by`) is one shape everywhere:
@@ -145,7 +149,7 @@ is the rating; leagues 1-6 carry a win's `+30` and nothing else). The arena mome
 Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000".
 
 Every member moment and every `session_standout` is an item; the response's
-150-item cap bounds them, keeping the newest (7.0.0). The clan entry's `war` is
+150-item cap bounds them, keeping the newest. The clan entry's `war` is
 the calendar's week at the window's end: its fame and place are that week's
 recorded race, and null when the record holds no race for it. Its `decks`
 (who is untouched, partial and finished) is served only when the window
@@ -155,7 +159,7 @@ a closed war day is never split out, because war facts are weekly
 ([Battle model](/docs/battles#war-weeks-points-and-fame)). A window
 that ends before that week's race closed reads the race as it stood then: fame
 and place at the last war day closed by `to`, no `race_finished_at`, and
-`as_of_window_end: true` (7.1.2). Where the record holds no closed day for
+`as_of_window_end: true`. Where the record holds no closed day for
 that week by then (a Colosseum week, or war day 1 still open), fame and place
 are `null`, not 0: `war_history` has the week's days.
 
@@ -175,7 +179,7 @@ clanmates.
 
 A battle the record learned more than a day after it was played (a history
 backfill, a log polled late) is a late capture: counted in the entry's
-`battles.late_captures` and never narrated, whatever the window (7.1.2).
+`battles.late_captures` and never narrated, whatever the window.
 
 ### Telling the story
 
@@ -226,20 +230,23 @@ standing and wider mixed-mode statistics separate from the crossing's evidence.
 Otherwise it says `unknown`; it never substitutes the nearest game. A
 roster-observed arena move can later gain proof: its original logical
 origin is frozen before enrichment, its ID stays the same, and its evidence
-revision and observation time advance when the proof arrives. Existing
-legacy rows resolve their origin without a historical rewrite.
+revision and observation time advance when the proof arrives.
 
 An agent passes `evidence_item_id` to `elixir_timeline`, with the original
 `from` and `to`, `evidence_offset` (default 0), `evidence_limit` (1–25), and
 `expected_evidence_version` from the item (required after the first page).
 An evidence read returns that one item and its page, without full summary
-entries, so even a busy feed has room for supporting game facts. The optional response `evidence`
-contains `battles` with canonical `battle_id`, `at`, `type`, `mode_group`,
+entries, so even a busy feed has room for supporting game facts. The response's `evidence`
+carries `item_id`, the item's evidence fields, `offset`, `limit`, and
+`battles` with canonical `battle_id`, `at`, `type`, `mode_group`,
 `outcome`, `crowns`, `trophy_change`, `url`, `short_id` and
 `relation` (`constituent` or `proved_crossing`), plus `next_offset` or null.
-A changed version asks the reader to refresh the item before continuing;
-an unavailable or no longer visible item returns no evidence. Evidence
-reads always keep the read pointer, including when `mark_read` is omitted.
+A read that cannot be served is refused as `bad_request`, and the message
+names why: `evidence_changed` (refresh the item before continuing),
+`version_required` (a later page without `expected_evidence_version`),
+`evidence_unavailable` (the item is not visible in that window, or carries
+no evidence) or `invalid_page`. Evidence reads always keep the read pointer,
+including when `mark_read` is omitted.
 Paging constituent games does not change the newsfeed's cap or ordering.
 The membership fingerprint and page share one database snapshot; concurrent
 capture asks for a refresh instead of silently shifting game offsets.
@@ -247,14 +254,14 @@ capture asks for a refresh instead of silently shifting game offsets.
 Each result belongs to that game's mode. A ranked win and its +30 progress
 are ranked evidence, not Trophy Road progress. Current profile trophies,
 another mode's results and broader season statistics are separate context;
-they do not prove that milestone. Evidence offers concise canonical facts
-to authorized MCP agents as well as people, without changing posting behavior.
+they do not prove that milestone. Evidence serves the same canonical facts
+to authorized MCP agents as to people.
 
-Evidence remains subject to the reader's existing visible Timeline subjects.
-Private attested facts retain their existing membership and role checks and
-do not gain game links. References use retained canonical history; no battle
-payload or extra history copy is stored. The Console's seven-day view is a
-read window, not a new retention policy. This panel does not create an
+Evidence is limited to the reader's visible timeline subjects. Private
+attested facts keep their membership and role checks and carry no game
+links. References point at canonical history; no battle payload or extra
+history copy is stored. The Console's seven-day view is a read window, not
+a retention limit. This panel does not create an
 Action, draft a message, send a notification, or grant an award.
 
 ### The `facts` keys, by kind
@@ -390,7 +397,7 @@ and the cap and the default exist to prevent it.
 ## One member, and the window's bounds
 
 `player_tag` keeps one player's items: their own moments and sessions, and on
-a clan's timeline their member moments and sessions (7.1.5-7.1.7). It is
+a clan's timeline their member moments and sessions. It is
 applied before the item cap, `applied.player_tag` echoes it, a tag that is
 not one of your players or a member of your clans says so, and a member read
 never moves the read pointer. On a clan's timeline a member's session

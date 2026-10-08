@@ -1,7 +1,7 @@
 ---
 slug: follow-a-friend
 title: "Follow a friend"
-description: "Mark a player you track as a friend: how to add one in the console or through your agent, what a friend gets that a watched player does not (a card of their own, first, in Wednesday's Your friends this week, a name in your agent's opening), nicknames, the notifications switch, and stopping."
+description: "Mark a player you track as a friend: how to add one in the console or through a connected app, what a friend gets that a watched player does not (a card of their own, first, in Wednesday's Your friends this week, a name in your connection's opening), nicknames, the notifications switch, and stopping."
 section: friends
 order: 1
 navTitle: "Follow a friend"
@@ -24,14 +24,15 @@ In the console:
 
 1. **Console ▸ Tracking ▸ Track a player**: enter the tag and press
    **Track**. Added means recorded; capture starts on the next poll.
-2. A new player starts as **watching**. Open the player from the
-   Tracking table, and under **How you track it** set **Relationship**
-   to **friend**.
+2. A new player starts as **watching** (your first is your primary).
+   Open the player from the Tracking table, and under **How you track
+   it** set **Relationship** to **friend**.
 
-Through your agent, `elixir_track_player` takes a `relationship`, so
+Through a [connected app](/docs/connections), `elixir_track_player` takes a `relationship`, so
 "track #TAG as a friend" adds the player as a friend in one call. The
 relationship is set when the player is added: for a player already on
-your account, change it in the console.
+your account, change it in the console. An [agent](/docs/agents) you own
+tracks players as watching only.
 
 A friend takes one of your tier's player slots, the same as a watched
 player.
@@ -43,7 +44,7 @@ player.
 | Recording | the same | the same |
 | Your timeline | yes, while notifications are on | yes, while notifications are on |
 | Wednesday's Your friends this week | a card of their own, first | a card if among the busiest, otherwise a line |
-| Your agent's opening | named under "Friends you follow" | named under "You are also watching" |
+| Your connection's opening | named under "Friends you follow" | named under "You are also watching" |
 
 In **Your friends this week** each friend who played gets a card under
 their name and your nickname for them: the week's battles in each mode
@@ -64,15 +65,15 @@ belong to your primary player and your alts.
 ## Nicknames
 
 Give a friend a nickname on their page (**Nickname**, 1 to 40
-characters) or through your agent with `elixir_nickname`. It is private
-to you, your agent sees it, and Your friends this week uses it. A nickname
+characters) or through a connected app with `elixir_nickname`. It is private
+to you, your connected apps see it, and Your friends this week uses it. A nickname
 stays when you stop tracking the player, and an empty one clears it.
 
 ## The notifications switch
 
 Each tracked player has a **Notifications** switch, on from the start;
-your agent can flip it with `elixir_track_player` and `action:
-"notify_off"` or `"notify_on"`. With it on, the player is a subject of your timeline, which your agent
+a connected app can flip it with `elixir_track_player` and `action:
+"notify_off"` or `"notify_on"`. With it on, the player is a subject of your timeline, which your connected apps
 and the console read. With it off, the player leaves your timeline and
 Wednesday's Your friends this week too, while recording carries on.
 

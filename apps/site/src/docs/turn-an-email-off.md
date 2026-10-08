@@ -6,8 +6,8 @@ section: friends
 order: 5
 navTitle: "Turn an email off"
 icon: bell-off
-lede: "Every kind of email is one switch, all on to start. Turn one off from your profile or from the link at the foot of any issue, and turn it back on the same way."
-console: ["Your email switches", "/console/account/profile/email", "Console ▸ Profile ▸ Email"]
+lede: "Every kind of email is one switch, all on to start. Turn one off from Emails from Elixir or from the link at the foot of any issue, and turn it back on the same way."
+console: ["Your email switches", "/console/account/profile/email", "Account settings ▸ Emails from Elixir"]
 reviewed: "2026-10-02 against contract 9.18.1"
 ---
 
@@ -20,15 +20,15 @@ lands.
 
 ## The switches
 
-**Console ▸ Profile ▸ Email**
+**Account settings ▸ Emails from Elixir**
 ([/console/account/profile/email](/console/account/profile/email)),
-*Emails from Elixir*, lays the four weekly kinds out on your week, each
+reached from the account menu, lays the four weekly kinds out on your week, each
 on the day it arrives in your time zone: the Clan report, Your week in
 the Arena, Your friends this week and Collector activity. The two that come when something happens,
 Milestones and Clan actions waiting, sit below the week. Each has a
 line on what it is and a switch; turn one off and it stops. A kind
 already sent to you links the last one, and the page lists the last
-few emails sent to you, with a link to all of them.
+few emails sent to you, with **All sent** for the rest.
 
 **Every email**, at the top of the page, turns all six off at once,
 or all six back on. While some are on and some are off it says how
@@ -40,15 +40,15 @@ actions waiting** needs a [verified](/docs/verify) player in a clan.
 
 ## From the email itself
 
-Every issue carries a link to turn that kind off, and one to your email
-page. The turn-off link opens a page that asks first: nothing changes
+Every issue carries a link to turn that kind off, and **Manage your
+emails**, which opens Emails from Elixir. The turn-off link opens a page that asks first: nothing changes
 until you press **Turn it off**. Every issue also carries the standard
 one-click unsubscribe, so a mail app that shows its own unsubscribe
 button turns the kind off in one step, with no page.
 
-Either way it can be turned back on from your email page. Every change
-is kept in your account's events, saying whether it came from the
-profile or from a link.
+Either way it can be turned back on from Emails from Elixir. Every change
+is kept in your account's log (**Account settings ▸ Sign-ins**), saying
+whether it came from the page or from a link.
 
 ## One player or one clan
 
@@ -64,7 +64,7 @@ about one subject:
 - **Milestones**: one switch covers your primary and every alt.
 
 To stop them all, turn **Every email** off; turn it back on to have all
-eight again.
+six again.
 
 ## Mail that has no switch
 
@@ -74,7 +74,7 @@ codes are not in the list of emails sent to you.
 
 ## The newsletter
 
-The product newsletter is not one of the eight. It goes out through a
+The product newsletter is not one of the six. It goes out through a
 separate service, Buttondown, and you leave it with the unsubscribe link
 in any newsletter issue.
 
@@ -83,6 +83,3 @@ checked by default. Uncheck it before requesting your email to avoid newsletter
 enrollment. Your email proof preserves the choice; subsequent sign-ins leave
 existing choices and unsubscribes alone. The **Every email** switch controls
 Elixir's reports and notices, not Buttondown or sign-in/welcome mail.
-
-Ultimate Champions (Top 100) and Card of the Week have ended. Their sent
-issues and old unsubscribe links remain available; they cannot be enabled again.
