@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "A new account starts on your own clock",
+    body: "A new account now starts on the time zone of the browser you sign up from, so the Console, Ladder and your emails tell time on your clock from the first visit instead of UTC. If you open the sign-in link on another device, the account still takes the zone of the browser that asked for it. Signing in never changes a zone you already have, and Profile changes it any time. Accounts made before today keep what they have; one with no zone still reads in UTC and is offered your browser's zone in one click. MCP 11.4.1 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title:
       "A wrong tag says so at once, and a first look at a clan is not a wave of joins",
     body: "A tag Clash Royale does not know now shows Tag not found within seconds of adding it, as an error on your player's page with the fix right there: type the right tag and Elixir tracks it instead (as your primary, if the wrong one was), or stop tracking it. The page no longer shows that tag as recording or freshly polled, and Overview's and Ladder's Fix the tag open that spot. Stop tracking now asks once before it stops. Ladder waits for your battle log as well as your profile before it shows your season, so a new player no longer sees an empty season for the first few minutes. The first time Elixir reads a clan's roster no longer reads as everyone joining on your timeline, and an account event about a clan names the clan. Counts read \"1 day\" and \"1 member\", and the example tag in the add forms is nobody's. MCP 11.4.1; JSON API 3.1.0 unchanged.",

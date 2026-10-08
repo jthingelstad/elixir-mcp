@@ -139,6 +139,7 @@ current rule, never as "was X, now Y".
 - **The web lets people explore their record** — useful without an agent; MCP extends it; no general BI platform or global game analysis.
 - **The console switches into an agent** — an agent's console is a place (`/console/agent/<public_id>/…`): configure what it tracks, notifies and acts for; new feedback is filed as you; integrations stay out.
 - **The console tells time in the account's zone** — through the kit's `stamp`/`useClock`, named by zone; day-bucketed charts stay UTC and say so.
+- **A new account starts on its signup browser's zone** — an account with no zone reads in UTC (Jamie, 2026-09-23); since 2026-10-08 a newly created account takes the zone the signup request's browser reported, under Profile's IANA check, frozen with the request like the news choice (Jamie: "Approved: new elixir accounts take the browser's time zone at signup"); sign-in never changes an existing account's zone, and zone-less accounts stay UTC until Profile or the one-click offer sets one.
 - **A battle has a public page** — `/battle/<short id>`, no account needed: names, clans, both decks, towers, how it ended, session and meetings, never a nickname or account data; the left side is the recorded player. Personal share context stays in the browser.
 - **The console /status page is signed-in** — public health is `/data/now` and `/api/public/status`.
 - **Activity year reads log coverage** — a rolled log never draws as zero.

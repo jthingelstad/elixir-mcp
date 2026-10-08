@@ -90,8 +90,9 @@ The season home is the current season so far in the chosen mode, from
 
 The season itself runs first Monday to first Monday at 10:00 UTC, which
 the page gives in your own timezone, as it gives every time, naming the
-zone ("5:00 am CDT"). With no time zone set on your account that is UTC,
-and the page says so.
+zone ("5:00 am CDT"). A new account starts on its signup browser's time
+zone; with no time zone set on your account that is UTC, and the page
+says so.
 
 Below the season, once your primary player's clan is on record, the page
 offers [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates):

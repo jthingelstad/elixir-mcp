@@ -27,7 +27,9 @@ one of the apps). Each one says which app it came from, and only the
 people it is meant for can see it.
 
 **Your account.** Signing in keeps your email address, so the service
-can send you sign-in codes and mail about your account. It also keeps
+can send you sign-in codes and mail about your account. A new account
+also keeps the time zone the signup browser reports, so its times read
+on your clock; change it on Profile. It also keeps
 the records the product is made of: what you claimed and recorded, your
 agents and connected apps and the calls they make, where they connected
 from, and the mail it sent you. You can see these records on your
