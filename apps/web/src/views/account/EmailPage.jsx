@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useWrite } from "@elixir-mcp/client";
 import { Icon, Link, useClock, WriteError } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
@@ -120,6 +121,8 @@ function Switch({ on, label, disabled = false, onFlip }) {
 export function EmailPage() {
   const { zone } = useClock();
   const { data, isLoading } = useEmailPrefs();
+  // Read the clock once per visit, so render stays pure.
+  const [now] = useState(() => new Date());
   const kinds = data?.kinds ?? [];
   // A switch that did not take says so; the list refetches only after
   // one that did (review 2026-09-27 §7.5).
@@ -131,7 +134,7 @@ export function EmailPage() {
   const product = new Map(kinds.map((k) => [k.kind, k.product]));
   const at = weekly[0]?.sends;
   const sendsAt = at ? `${at.time} ${at.zone}` : "14:00 UTC";
-  const today = part(partsIn(zone, new Date(), { weekday: "long" }), "weekday");
+  const today = part(partsIn(zone, now, { weekday: "long" }), "weekday");
   const allOn = kinds.length > 0 && kinds.every((k) => k.enabled);
   const onCount = kinds.filter((k) => k.enabled).length;
 
