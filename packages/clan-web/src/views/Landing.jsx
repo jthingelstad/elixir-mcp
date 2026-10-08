@@ -5,9 +5,18 @@ const ERRORS = {
   elixir_unavailable: "Elixir did not answer. Try again in a minute.",
 };
 
+/** Where a new account comes back to: the Clan address asked for. The
+ *  Console's sign-in honours `return_to` for /clan paths (signedInPath). */
+function signupHref() {
+  const here = window.location.pathname + window.location.search;
+  const to = here.startsWith("/clan") ? here : "/clan";
+  return `/console/signin?signup&return_to=${encodeURIComponent(to)}`;
+}
+
 /** Signed out. The two prerequisites are stated here, before the button,
  *  so nobody discovers them one refusal page at a time. */
 export function Landing({ error }) {
+  const signup = signupHref();
   return (
     <div style={{ maxWidth: "560px", margin: "40px auto 0" }}>
       <p className="eyebrow">ELIXIR CLAN</p>
@@ -17,7 +26,6 @@ export function Landing({ error }) {
         activity, read from the history Elixir records. You see it as who you
         are in the game: leader, co-leader, elder or member.
       </p>
-
       {error ? (
         <div
           className="callout callout--warn"
@@ -29,7 +37,6 @@ export function Landing({ error }) {
           </span>
         </div>
       ) : null}
-
       <div className="panel" style={{ margin: "24px 0" }}>
         <div className="panel__head">
           Before you sign in, you need two things
@@ -38,11 +45,9 @@ export function Landing({ error }) {
           <div>
             <div style={{ fontWeight: 600 }}>1. An Elixir account</div>
             <p className="page__lede" style={{ margin: "4px 0 0" }}>
-              Elixir is the account system; there is no separate sign-up here.{" "}
-              <a href={ELIXIR_LINKS.requestAccess}>
-                Create your account at elixir.poapkings.com
-              </a>{" "}
-              if you do not have one yet.
+              Clan signs in with your Elixir account. No account yet?{" "}
+              <a href={signup}>Create your account</a>: it is free, and brings
+              you back here.
             </p>
           </div>
           <div>
@@ -61,7 +66,6 @@ export function Landing({ error }) {
           Your Elixir sign-in opens your recorded history and clan tools.
         </div>
       </div>
-
       <a
         className="btn btn--primary"
         href="/console/signin"
@@ -69,6 +73,9 @@ export function Landing({ error }) {
         data-tinylytics-event-value="landing"
       >
         Sign in with Elixir
+      </a>{" "}
+      <a className="btn" href={signup}>
+        Create your account
       </a>
     </div>
   );
