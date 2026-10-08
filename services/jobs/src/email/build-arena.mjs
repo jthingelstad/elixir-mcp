@@ -188,7 +188,7 @@ export async function buildArena({ db, account, week, season }) {
           when: weekday(o.last_seen, account.timezone),
         })),
       },
-      coverage: `${w?.battles ?? 0} battles recorded for ${primary.name}; battle log last read ${agoText(freshness)}. The log holds 25 battles, so a long session between reads can leave a gap; missing coverage is unknown, not evidence of absence.`,
+      coverage: `${w?.battles ?? 0} battles recorded for ${primary.name}; battle log last read ${agoText(freshness)}. The log holds roughly the last 30 battles, so a long session between reads can leave a gap; missing coverage is unknown, not evidence of absence.`,
     },
     alts: altRows,
   };
