@@ -11,8 +11,7 @@ the steps that need a value are Jamie's, in the Secrets Manager console.
 | `unsubscribe_secret` | app secret | web-api, jobs, when `UnsubscribeKeyInSecret=true` | Unsubscribe key |
 | `db_password` | app secret; the RDS master password | the six database functions and the `Database` resource | Database password |
 | `buttondown_api_token` | app secret | email-relay | Any other app-secret key |
-| `anthropic_api_key` | app secret | nothing: no template reference and no code reads it (it served the retired editorial mail) | Retirable: Jamie removes the key in the console; no deploy needed |
-| `session_secret` of `elixir-clan/app` | Clan's sealing secret, named by the `ClanModelSecretName` parameter | web-api, email-relay (`CLAN_MODEL_SECRET`, when `ClanInternal=true`): seals Clan's stored model keys | Clan sealing secret |
+| `clan_sealing_secret` | app secret | web-api, email-relay (`CLAN_MODEL_SECRET`, when `ClanInternal=true`): seals Clan's stored model keys | Clan sealing secret |
 | `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api, mcp and collector require it | Origin secret |
 
 **CloudFormation reads a secret only when the resource holding the
@@ -107,9 +106,15 @@ value.
 ## Clan sealing secret
 
 Not rotated. It seals the model keys Clan stores, so a new value would
-leave every sealed key unreadable. Keep `elixir-clan/app` and its value
-until the sealing secret has a reviewed rotation of its own; the
-derivation and AAD must not change with code or storage moves.
+leave every sealed key unreadable. Its value moves between secrets
+unchanged, and the derivation (HKDF salt `elixir-clan`, per-purpose info)
+and AAD must not change with code or storage moves; a new value waits for
+a reviewed rotation that re-seals every stored key.
+
+It was the `session_secret` key of `elixir-clan/app`, the old standalone
+Clan app's secret, until it moved into the app secret as
+`clan_sealing_secret` (2026-10-08). Delete `elixir-clan/app` only after a
+deploy that reads `clan_sealing_secret` has succeeded.
 
 ## Any other app-secret key
 

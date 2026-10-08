@@ -18,8 +18,9 @@ Remove a line in the change that closes it.
 - 2026-09-28: retire `session_secret_previous` on or after 2026-12-27.
   Deploy with `--param=SessionSecretPreviousInSecret=false`, then remove
   the key in the console (`docs/SECRETS.md`). Jamie.
-- 2026-10-08: `anthropic_api_key` in `elixir-mcp/app` is read by nothing
-  and can be removed in the console; no deploy needed. Jamie.
+- 2026-10-08: delete `elixir-clan/app` (keep the default recovery
+  window) once the deploy that reads `elixir-mcp/app:clan_sealing_secret`
+  has succeeded; Jamie copied the value across the same day. Jamie.
 - 2026-10-04: privacy.md still says AI models "write some of the mail"
   and help with feedback, which is the retired editorial claim; also
   decide whether to name Clan's own-key model flow. Product wording,
@@ -134,3 +135,15 @@ shared_buffers stays the engine default. The micro's real limit is EBS
 throughput: about 4.7 MB/s once the byte balance is spent, as the Gym
 sweep did on 2026-09-23. Space heavy sweeps, backfills and full
 acceptance runs; `elixir-mcp-db-ebs-byte-balance` (25%) says when not.
+
+## 2026-10-08 — Clan's sealing secret moves into the app secret
+
+The stack read Clan's sealing secret from `elixir-clan/app`, the old
+standalone Clan app's secret, through the `ClanModelSecretName`
+parameter. It now reads `clan_sealing_secret` from `elixir-mcp/app`, and
+the parameter is gone, so Elixir has one app secret. The value moves
+unchanged: `src/sealed.mjs` derives its keys from the value with a fixed
+salt, so the same value in another secret opens every stored model key.
+`anthropic_api_key` was removed from the app secret the same day (read
+by nothing). Jamie copied the value into `elixir-mcp/app` before the deploy; the old
+secret is deleted after it ("Open and queued").

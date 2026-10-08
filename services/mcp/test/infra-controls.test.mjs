@@ -729,7 +729,7 @@ test("Clan always uses the shared account door and never falls back to the retir
     /ClanApiOriginRequestPolicy|ClanApiDomain|Id: clanapi|Id: clanweb/,
   );
   assert.match(
-    resource(template, "ClanInternal", "ClanModelSecretName"),
+    resource(template, "ClanInternal", "ClanMaintainerTags"),
     /Default: "true"/,
   );
   const shared = resource(
@@ -765,9 +765,8 @@ test("the private model sealing secret is limited to the shared web API and egre
   assert.equal((template.match(/CLAN_MODEL_SECRET:/g) ?? []).length, 2);
   assert.equal(
     (
-      template.match(
-        /\$\{ClanModelSecretName\}:SecretString:session_secret/g,
-      ) ?? []
+      template.match(/\$\{AppSecretName\}:SecretString:clan_sealing_secret/g) ??
+      []
     ).length,
     2,
   );
