@@ -48,6 +48,7 @@ const status = (extra = {}) => ({
   model: "claude-sonnet-5",
   models: [
     { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
+    { id: "claude-haiku-5-5", name: "Claude Haiku 5.5" },
     { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5" },
   ],
   refused_at: null,
@@ -90,6 +91,24 @@ describe("the clan's model", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check and save" }));
     await waitFor(() => expect(set).toHaveBeenCalledWith("#2PQRJ8LV", TYPED));
     await waitFor(() => expect(input.value).toBe(""));
+  });
+
+  test("a clan that saved Haiku 4.5 sees it chosen, beside the key's other models", async () => {
+    vi.spyOn(manageApi, "model").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: status({ model: "claude-haiku-4-5-20251001" }),
+    });
+    const choose = vi.spyOn(manageApi, "chooseModel");
+    renderWithProviders(<Model clan={leaderClan} />);
+    const select = await screen.findByLabelText("Model");
+    expect(select.value).toBe("claude-haiku-4-5-20251001");
+    expect([...select.options].map((o) => o.value)).toEqual([
+      "claude-sonnet-5",
+      "claude-haiku-5-5",
+      "claude-haiku-4-5-20251001",
+    ]);
+    expect(choose).not.toHaveBeenCalled();
   });
 
   test("says why a key is not in use", async () => {

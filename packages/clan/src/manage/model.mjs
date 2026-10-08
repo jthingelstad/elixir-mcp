@@ -190,7 +190,12 @@ export function createModelService({
       return { ok: true, model: chosen };
     },
 
-    /** Choose which of the key's models writes. */
+    /**
+     * Choose which of the key's models writes: any the key listed when it
+     * was added. A clan's saved choice is never changed for it; a model
+     * Anthropic released after the key was added is listed once the key is
+     * added again.
+     */
     async setModel(clanTag, who, model) {
       requireLeader(who);
       const stored = await ledger.modelKey(clanTag);
@@ -286,6 +291,20 @@ export function createModelService({
       if (r.status === 429 || r.status === 529)
         throw new ManageError(429, "anthropic_busy", null, {
           message: "Anthropic is busy. Try again in a minute.",
+        });
+      // An answer that is no draft (`anthropic.mjs`): the model declined,
+      // or stopped before it finished. Never parsed into empty words.
+      if (r.code === "refusal")
+        throw new ManageError(422, "model_refused", null, {
+          message:
+            r.message ??
+            "The model declined to write this draft. Your words are unchanged.",
+        });
+      if (r.code === "max_tokens")
+        throw new ManageError(502, "model_cut_off", null, {
+          message:
+            r.message ??
+            "The model stopped before it finished the draft. Your words are unchanged.",
         });
       throw new ManageError(502, "model_failed", null, {
         message:

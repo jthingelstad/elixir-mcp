@@ -220,11 +220,32 @@ test("departure prompts trust explicit confirmation, preserve observation uncert
 });
 
 test("the default model is the first preferred one the key reaches", () => {
+  assert.deepEqual(MODEL_PREFERENCE, [
+    "claude-sonnet-5",
+    "claude-opus-5-5",
+    "claude-haiku-5-5",
+  ]);
   assert.equal(
-    chooseModel(["claude-haiku-4-5-20251001", "claude-sonnet-5"]),
+    chooseModel(["claude-haiku-5-5", "claude-sonnet-5"]),
     "claude-sonnet-5",
   );
-  assert.equal(chooseModel(["claude-haiku-4-5-20251001"]), MODEL_PREFERENCE[2]);
+  assert.equal(
+    chooseModel(["claude-haiku-5-5", "claude-opus-5-5"]),
+    "claude-opus-5-5",
+  );
+  // A key that reaches neither Sonnet 5 nor Opus 5.5 gets Haiku 5.5, not
+  // the Haiku 4.5 it also lists.
+  assert.equal(
+    chooseModel(["claude-haiku-4-5-20251001", "claude-haiku-5-5"]),
+    "claude-haiku-5-5",
+  );
+  assert.equal(chooseModel(["claude-haiku-5-5"]), MODEL_PREFERENCE[2]);
+  // Haiku 4.5 is no longer preferred, but a key that reaches only it still
+  // gets a model.
+  assert.equal(
+    chooseModel(["claude-haiku-4-5-20251001"]),
+    "claude-haiku-4-5-20251001",
+  );
   assert.equal(chooseModel(["claude-new-thing"]), "claude-new-thing");
   assert.equal(chooseModel(["gpt-x"]), null);
   assert.equal(chooseModel([]), null);

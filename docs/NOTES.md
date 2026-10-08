@@ -219,3 +219,39 @@ Discord agent passing `on_behalf_of` when it relays a member's feedback
 (elixir-mcp-discord). Integrations made before 3.1.0 need
 `feedback:write` granted to use `/api/v1/feedback`.
 
+## 2026-10-08 — Clan's default model: Haiku 5.5 in place of Haiku 4.5
+
+Jamie, 2026-10-08: "Approved: upgrade librarian-thing, elixir-mcp and
+elixir-mcp-discord from Haiku 4.5 to claude-haiku-5-5 per the plan, merge
+and deploy; leave drop, elixir-bot and saved clan choices unchanged".
+
+- `MODEL_PREFERENCE` (`packages/clan-engine/src/words.mjs`) is Sonnet 5,
+  Opus 5.5, Haiku 5.5. It only names the default when a leader adds a key,
+  so a key that reaches neither Sonnet 5 nor Opus 5.5 now starts on Haiku
+  5.5. A key that reaches only Haiku 4.5 still gets it (the `claude-*`
+  fallback).
+- **Saved choices are untouched.** No migration or backfill: a clan that
+  saved `claude-haiku-4-5-20251001` keeps drafting on it, and choosing it
+  again still validates (against the key's own model list). The picker is
+  the key's model list as Anthropic gave it when the key was added, so a
+  clan whose key predates Haiku 5.5 sees it only after adding the key
+  again (which also re-picks the default, as it always has).
+- The request needed no change for Haiku 5.5: one forced tool call, no
+  sampling params, thinking, effort or prefill, and no model-id gate to
+  fix. Forced `tool_choice` runs without thinking, so the budgets cover
+  the tool input only. The pitch goes from 1200 to 1600 `max_tokens`: its
+  fields allow about 1,400 characters, and Haiku 5.5's tokenizer (about
+  30% more tokens than 4.5) plus a non-English pitch could reach 1200.
+  The Leader Message (400) and chat line (250) answers are under 100
+  tokens and keep theirs.
+- `anthropic.mjs` now refuses a `refusal` stop (code `refusal`, Clan
+  error `model_refused`, 422) and a `max_tokens` stop (code `max_tokens`,
+  `model_cut_off`, 502) before reading the tool call, even when one is
+  there: a cut-off call's input is partial, and `chatMessageFromDraft`
+  would have filled an empty line with its plain template. Both are
+  recorded in the clan's use log with their tokens. An answer with no
+  tool call otherwise stays `no_answer` (`model_failed`).
+- No MCP contract or JSON API change. Haiku 5.5 is $0.10 / $0.50 per
+  million tokens in / out (to 100K-token prompts); Clan keeps no price
+  table, only token counts.
+

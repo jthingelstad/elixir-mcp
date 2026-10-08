@@ -9,6 +9,12 @@
  * status and its tokens. Never the key, the prompt or the answer. A
  * refusal carries Anthropic's own error type and message, which name the
  * problem (an invalid key, a low balance, an unknown model), never a key.
+ *
+ * The request is the same for every model: no temperature, top_p or
+ * top_k, no thinking or effort, no assistant prefill. The Claude 5 models
+ * (Haiku 5.5 included) answer a 400 to any of those, and a forced tool
+ * call runs without thinking on the models that think. Nothing here
+ * depends on the model id, so a clan's saved model is sent as it is.
  */
 
 import { timedModel } from "./trace.mjs";
@@ -78,6 +84,13 @@ export function createAnthropicClient({
      * One message answered by one call of `tool`: `{ ok, input, model,
      * usage }`, or a refusal. `system`, `prompt`, `tool` and `max_tokens`
      * come from the engine (`words.mjs`).
+     *
+     * The answer is the `tool_use` block, found by its type: a model may
+     * put a thinking or text block first. A safety refusal
+     * (`stop_reason: "refusal"`, code `refusal`) or a `max_tokens` stop
+     * (code `max_tokens`) is never an answer, even with a tool call in it:
+     * a cut-off call's input is partial, and the engine would fill what is
+     * missing with its plain template, a draft nobody wrote.
      */
     write(key, { model, system, prompt, tool, max_tokens }) {
       return timedModel("messages", async () => {
@@ -97,6 +110,25 @@ export function createAnthropicClient({
           input_tokens: r.body?.usage?.input_tokens ?? null,
           output_tokens: r.body?.usage?.output_tokens ?? null,
         };
+        const stop = r.body?.stop_reason ?? null;
+        if (stop === "refusal")
+          return {
+            ok: false,
+            status: r.status,
+            code: "refusal",
+            message:
+              "The model declined to write this draft. Your words are unchanged; write them yourself or try again.",
+            usage,
+          };
+        if (stop === "max_tokens")
+          return {
+            ok: false,
+            status: r.status,
+            code: "max_tokens",
+            message:
+              "The model ran out of room before it finished the draft. Your words are unchanged; try again.",
+            usage,
+          };
         const use = (r.body?.content ?? []).find(
           (c) => c?.type === "tool_use" && c.name === tool.name,
         );

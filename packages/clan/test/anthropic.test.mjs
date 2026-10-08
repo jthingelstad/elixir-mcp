@@ -103,5 +103,108 @@ test("anthropic: the model list checks a key; refusals and silence are named, ne
     max_tokens: 10,
   });
   assert.equal(empty.ok, false);
-  assert.equal(empty.code, "no_answer");
+  assert.equal(empty.code, "max_tokens");
+  answer = reply(200, { stop_reason: "end_turn", content: [] });
+  const silent = await client.write(KEY, {
+    model: "m",
+    system: "s",
+    prompt: "p",
+    tool: TOOL,
+    max_tokens: 10,
+  });
+  assert.equal(silent.ok, false);
+  assert.equal(silent.code, "no_answer");
+});
+
+/** A client whose every write is answered with `body`; `sent` holds the requests. */
+function scripted(body) {
+  const sent = [];
+  const client = createAnthropicClient({
+    url: "https://anthropic.test",
+    fetch: async (url, init) => {
+      sent.push(JSON.parse(init.body));
+      return reply(200, body);
+    },
+  });
+  const write = () =>
+    client.write(KEY, {
+      model: "claude-haiku-5-5",
+      system: "s",
+      prompt: "p",
+      tool: TOOL,
+      max_tokens: 1600,
+    });
+  return { sent, write };
+}
+
+test("anthropic: Haiku 5.5 is sent no sampling params, thinking, effort or prefill, and its tool call is read after a thinking block", async () => {
+  const { sent, write } = scripted({
+    model: "claude-haiku-5-5",
+    stop_reason: "tool_use",
+    usage: { input_tokens: 650, output_tokens: 160 },
+    content: [
+      { type: "thinking", thinking: "", signature: "sig" },
+      { type: "text", text: "Here it is." },
+      { type: "tool_use", name: "write_pitch", input: { tagline: "Hi" } },
+    ],
+  });
+  const r = await write();
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.input, { tagline: "Hi" }, "the tool_use block, by type");
+  assert.equal(r.model, "claude-haiku-5-5");
+  const body = sent[0];
+  assert.deepEqual(Object.keys(body).sort(), [
+    "max_tokens",
+    "messages",
+    "model",
+    "system",
+    "tool_choice",
+    "tools",
+  ]);
+  for (const k of [
+    "temperature",
+    "top_p",
+    "top_k",
+    "thinking",
+    "output_config",
+  ])
+    assert.equal(k in body, false, k);
+  assert.equal(body.model, "claude-haiku-5-5");
+  assert.equal(body.max_tokens, 1600);
+  assert.deepEqual(body.tool_choice, { type: "tool", name: "write_pitch" });
+  assert.deepEqual(
+    body.messages.map((m) => m.role),
+    ["user"],
+    "no assistant prefill",
+  );
+});
+
+test("anthropic: a refusal or a max_tokens stop is never an answer, even with a tool call in it", async () => {
+  for (const [stop_reason, code] of [
+    ["refusal", "refusal"],
+    ["max_tokens", "max_tokens"],
+  ]) {
+    for (const content of [
+      [],
+      [{ type: "thinking", thinking: "", signature: "sig" }],
+      [
+        { type: "thinking", thinking: "", signature: "sig" },
+        { type: "tool_use", name: "write_pitch", input: {} },
+      ],
+    ]) {
+      const { write } = scripted({
+        model: "claude-haiku-5-5",
+        stop_reason,
+        usage: { input_tokens: 650, output_tokens: 1600 },
+        content,
+      });
+      const r = await write();
+      assert.equal(r.ok, false, `${stop_reason} ${content.length}`);
+      assert.equal(r.code, code);
+      assert.equal(r.status, 200);
+      assert.equal(r.input, undefined, "no input to draft from");
+      assert.ok(r.message);
+      assert.equal(r.usage.output_tokens, 1600, "the tokens are still counted");
+    }
+  }
 });

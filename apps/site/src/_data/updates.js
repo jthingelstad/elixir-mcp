@@ -11,6 +11,12 @@ export default [
   {
     date: "2026-10-08",
     title:
+      "Elixir Clan's model: Haiku 5.5, and clearer answers when a draft fails",
+    body: "When a leader adds the clan's Anthropic key and it cannot reach Claude Sonnet 5 or Opus 5.5, Elixir Clan now starts it on Claude Haiku 5.5 instead of Haiku 4.5. A clan that already chose a model keeps it, Haiku 4.5 included; the list in Manage ▸ Settings is the models your key offered when it was added, so add the key again to see Haiku 5.5 there. If the model declines to write a draft, or runs out of room before it finishes one, you are told which happened and your words stay as they were; a half-finished answer is never offered as a draft. MCP 11.3.0 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
+    title:
       "Send feedback from Ladder and Elixir Clan, and get the answer by email",
     body: "Send feedback now sits at the foot of Ladder's and Elixir Clan's rail as well as the Console's, and Elixir Clan adds Report this beside an action, Standing and the award races, carrying the thing on screen with your note. Clan's separate feedback pages are gone: everything you send is in Console ▸ Feedback, where an item's page shows the whole thread and a Reply answers an answer. When the maintainer answers, the answer comes to your inbox too, unless you have already read it: Answers to your feedback is a new email switch, on by default. MCP 11.3.0 and JSON API 3.1.0 unchanged.",
   },
