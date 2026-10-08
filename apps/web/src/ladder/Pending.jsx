@@ -5,7 +5,7 @@ import { CONSOLE } from "../lib/console.js";
 import { useInvalidate } from "../lib/queries.js";
 import { recordJourney } from "../lib/record-journey.js";
 import { tagPath } from "../lib/tag-url.js";
-import { playerName } from "./ladder.js";
+import { captureLanded, playerName } from "./ladder.js";
 
 /**
  * The first capture is on its way (2026-10-08). A player just added has
@@ -14,14 +14,15 @@ import { playerName } from "./ladder.js";
  * status. The one Ladder view that polls: it reads the Console's
  * first-answer status (an account read, never a tool, so it costs the
  * reader no quota) about once a minute, as FirstAnswer does, and when
- * the battle log has been read it refreshes the Ladder reads once.
+ * the capture has landed (captureLanded: the profile and a battle-log
+ * read) it refreshes the Ladder reads once.
  */
 export function Pending({ player }) {
   const tag = player.player_tag;
   const { data } = useFirstAnswer(tag, { playerTag: tag });
   const invalidate = useInvalidate();
   const p = data?.player;
-  const landed = Boolean(p?.battlelog_observed_at || p?.last_battle_at);
+  const landed = captureLanded(p);
   const refreshed = useRef(false);
   useEffect(() => {
     if (!landed || refreshed.current) return;

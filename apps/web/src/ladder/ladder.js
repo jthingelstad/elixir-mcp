@@ -123,21 +123,55 @@ export function pickMode(param, modes) {
 }
 
 /**
- * The first capture has not landed yet (2026-10-08): nothing of this
- * player is on record and their battle log has never been read. A page
- * then has nothing to read back, and an empty mode or a refusal would
- * read as a fault, so LadderPage shows Pending instead. Taken from the
- * players_summary read the page already makes: its refusal
- * `not_recorded`, or an answer whose meta has no recorded_since and no
- * battle-log poll.
+ * The first capture has not landed yet (2026-10-08). A player just added
+ * has nothing to read back, and an empty mode or a refusal would read as
+ * a fault, so LadderPage shows Pending instead. Taken from the
+ * players_summary read the page already makes.
+ *
+ * The two reads of a first capture land in either order, seconds or
+ * minutes apart, and Pending holds until the battle log is in:
+ *   * battle log first: the summary refuses `not_recorded` until the
+ *     profile lands (it answers from the profile), so pending;
+ *   * profile first (the usual order, within seconds of the add): the
+ *     summary answers with the profile and no battles, and its meta
+ *     already carries recorded_since (the profile snapshot). That is not
+ *     a capture yet: pending until the battle log has been read
+ *     (source_polls.player_battlelog.observed_at), with battles or with
+ *     none (an inactive real player: an empty record is the answer, so
+ *     the page never spins forever).
+ * A typo'd tag never gets a profile (Clash Royale answers 404, and its
+ * battle log for an unknown tag is an empty 200), so it stays pending and
+ * Pending says "Tag not found". History older than the summary's 30 days
+ * (recorded_since before its window) is a record to show, read or not.
  */
 export function capturePending(summary) {
   if (summary?.isError) return summary.error?.code === "not_recorded";
-  const meta = summary?.data?.meta;
+  const data = summary?.data;
+  const meta = data?.meta;
   if (!meta) return false;
-  return (
-    !meta.recorded_since &&
-    meta.source_polls?.player_battlelog?.observed_at == null
+  if (meta.source_polls?.player_battlelog?.observed_at != null) return false;
+  if ((data.last_30_days?.battles ?? 0) > 0) return false;
+  const since = Date.parse(meta.recorded_since ?? "");
+  const from = Date.parse(
+    data.applied?.window?.from ??
+      (meta.as_of
+        ? new Date(Date.parse(meta.as_of) - 30 * 86_400_000).toISOString()
+        : ""),
+  );
+  return !(Number.isFinite(since) && Number.isFinite(from) && since < from);
+}
+
+/**
+ * Pending's side of the same rule, from the Console's first-answer
+ * status: the capture has landed once the profile is in and the battle
+ * log has been read (with battles, or none for an inactive player). A
+ * battle log alone is not enough: the summary still refuses until the
+ * profile lands, and one refresh spent then would leave the page pending.
+ */
+export function captureLanded(player) {
+  return Boolean(
+    player?.profile_available &&
+    (player.battlelog_observed_at || player.last_battle_at),
   );
 }
 

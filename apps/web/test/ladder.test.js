@@ -4,9 +4,10 @@
  * page could invent one: the rate shown for a deck played in several
  * modes, the tile that stands in for a trophy range, the bars' scale.
  */
-import { test, expect } from "vitest";
+import { describe, test, expect } from "vitest";
 import {
   LADDER_PAGES,
+  captureLanded,
   capturePending,
   clockTime,
   dateLabel,
@@ -332,6 +333,7 @@ test("a deck's rate shows only when it is one mode's own", () => {
 
 test("a player with nothing captured yet is pending, never an error or an empty mode", () => {
   const polls = (at) => ({ player_battlelog: { observed_at: at } });
+  const window = { from: "2026-09-08T12:00:00Z", to: "2026-10-08T12:00:00Z" };
   expect(
     capturePending({ isError: true, error: { code: "not_recorded" } }),
   ).toBe(true);
@@ -348,10 +350,13 @@ test("a player with nothing captured yet is pending, never an error or an empty 
       data: { meta: { source_polls: polls("2026-10-08T12:00:00Z") } },
     }),
   ).toBe(false);
-  // Retained history with no poll state is still history.
+  // Retained history older than the summary's window is still history,
+  // with no poll state.
   expect(
     capturePending({
       data: {
+        applied: { window },
+        last_30_days: { battles: 0 },
         meta: {
           recorded_since: "2026-07-01T00:00:00Z",
           source_polls: polls(null),
@@ -359,4 +364,101 @@ test("a player with nothing captured yet is pending, never an error or an empty 
       },
     }),
   ).toBe(false);
+});
+
+// 2026-10-08, the fresh-person journey: Ladder showed an empty season
+// about 4 s after the add, because the profile read had set
+// recorded_since. Each test below replays one real arrival order, as the
+// page sees it: the summary it reads and the first-answer status Pending
+// polls, at each step.
+describe("a first capture, in the order its reads arrive", () => {
+  const window = { from: "2026-09-08T12:05:00Z", to: "2026-10-08T12:05:00Z" };
+  const answered = ({ battles = 0, battlelogAt = null } = {}) => ({
+    data: {
+      applied: { window },
+      last_30_days: { battles },
+      meta: {
+        as_of: "2026-10-08T12:05:00Z",
+        // The profile snapshot alone sets recorded_since (buildMeta).
+        recorded_since: "2026-10-08T00:00:00Z",
+        source_polls: {
+          player: { observed_at: "2026-10-08T12:00:04Z" },
+          player_battlelog: { observed_at: battlelogAt },
+        },
+      },
+    },
+  });
+  const refused = { isError: true, error: { code: "not_recorded" } };
+  const status = (p) => ({
+    recording_status: "active",
+    profile_available: false,
+    battlelog_observed_at: null,
+    last_battle_at: null,
+    battles_30d: 0,
+    ...p,
+  });
+
+  test("profile first, battles later: pending until the battle log is in", () => {
+    // Just added: nothing.
+    expect(capturePending(refused)).toBe(true);
+    expect(captureLanded(status())).toBe(false);
+    // 4 s later the profile lands: the summary answers, recorded_since is
+    // set, and there is still nothing to show.
+    expect(capturePending(answered())).toBe(true);
+    expect(captureLanded(status({ profile_available: true }))).toBe(false);
+    // The battle log lands with 30 battles: the page shows the season.
+    const read = "2026-10-08T12:03:00Z";
+    expect(
+      captureLanded(
+        status({
+          profile_available: true,
+          battlelog_observed_at: read,
+          last_battle_at: "2026-10-08T11:40:00Z",
+          battles_30d: 30,
+        }),
+      ),
+    ).toBe(true);
+    expect(capturePending(answered({ battles: 30, battlelogAt: read }))).toBe(
+      false,
+    );
+  });
+
+  test("battle log first: pending until the profile lands too", () => {
+    const read = "2026-10-08T12:00:03Z";
+    const battles = {
+      battlelog_observed_at: read,
+      last_battle_at: "2026-10-08T11:40:00Z",
+      battles_30d: 30,
+    };
+    // The battle log is in, but the summary answers from the profile and
+    // still refuses: one refresh spent now would leave the page pending.
+    expect(capturePending(refused)).toBe(true);
+    expect(captureLanded(status(battles))).toBe(false);
+    // The profile lands: now it has landed, and the summary answers.
+    expect(captureLanded(status({ ...battles, profile_available: true }))).toBe(
+      true,
+    );
+    expect(capturePending(answered({ battles: 30, battlelogAt: read }))).toBe(
+      false,
+    );
+  });
+
+  test("an inactive real player: an empty battle log read ends pending", () => {
+    const read = "2026-10-08T12:03:00Z";
+    expect(
+      captureLanded(
+        status({ profile_available: true, battlelog_observed_at: read }),
+      ),
+    ).toBe(true);
+    expect(capturePending(answered({ battlelogAt: read }))).toBe(false);
+  });
+
+  test("a typo'd tag never lands: its empty battle log is no capture", () => {
+    // Clash Royale answers the profile 404 and the battle log of an
+    // unknown tag 200 [], which is admitted. No profile, so the summary
+    // keeps refusing and Pending says Tag not found (record-journey.js).
+    const typo = status({ battlelog_observed_at: "2026-10-08T12:00:03Z" });
+    expect(captureLanded(typo)).toBe(false);
+    expect(capturePending(refused)).toBe(true);
+  });
 });
