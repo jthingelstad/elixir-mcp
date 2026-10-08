@@ -16,6 +16,7 @@ import { quotaReading } from "../../lib/quota.js";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 import { CONSOLE } from "../../lib/console.js";
+import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
 
 /**
  * Overview REPORTS; Tracking manages.
@@ -338,22 +339,17 @@ function Clans({ clansQuery }) {
       .join(" · ");
   return (
     <section aria-labelledby="ov-clans" className="panel">
-      <ListHead
-        id="ov-clans"
-        title="Clans"
-        count={clansQuery.isPending ? "" : rows.length}
-      />
-      {clansQuery.isError ? (
-        <p className="field-error m-4">
-          Your clans could not be read just now; try again shortly.
-        </p>
-      ) : clansQuery.isPending ? (
-        <p className="m-4 text-ink-faint">Loading…</p>
-      ) : rows.length === 0 ? (
-        <p className="m-4 text-[13.5px] text-ink-dim">
-          No clans yet. Add your player first: we offer their clan as soon as we
-          see it.
-        </p>
+      <ListHead id="ov-clans" title="Clans" count={clans ? rows.length : ""} />
+      <div className="mx-4">
+        <ClanReadStatus query={clansQuery} />
+      </div>
+      {rows.length === 0 ? (
+        clansQuery.isSuccess && (
+          <p className="m-4 text-[13.5px] text-ink-dim">
+            No clans yet. Add your player first: we offer their clan as soon as
+            we see it.
+          </p>
+        )
       ) : (
         <>
           {ordered.slice(0, WIDE_ROWS).map((c, i) => (
@@ -489,7 +485,8 @@ export function Overview({ me, navigate }) {
   // "Brand new" is derived from the record, not stored: no players, no
   // clans. The greeting and the lede are the only two places the state
   // shows, and both say what to do next rather than that it is empty.
-  const fresh = players.length === 0 && clanRows.length === 0;
+  const fresh =
+    players.length === 0 && clanRows.length === 0 && clansQuery.isSuccess;
 
   return (
     <>

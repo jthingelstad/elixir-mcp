@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "Leave email feedback and recover a missed clan read",
+    body: "Back now leaves a feedback form opened from an email, including after sign-in; Forward returns with the email attached. If your clans cannot be read, Overview and Tracking keep earlier data and offer a read-only retry instead of an empty list or endless loading. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "Sign in and return to the record you opened",
     body: "Player records and public battles keep their place through sign-in. An emailed feedback link opens its form with the email attached, and a login link in another tab keeps the requesting screen's destination available too. Code and approved cross-device sign-in return to the requested record. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
   },

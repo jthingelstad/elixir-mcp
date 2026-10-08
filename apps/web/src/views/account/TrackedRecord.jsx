@@ -19,6 +19,7 @@ import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 import { CONSOLE } from "../../lib/console.js";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
+import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
 
 /**
  * One tracked player or clan: how you track it, and what that is
@@ -34,7 +35,8 @@ import { FirstAnswer } from "../../components/FirstAnswer.jsx";
  * reason the word is "stop" and not "delete".
  */
 export function TrackedRecord({ me, refresh, navigate, tag }) {
-  const { data: clans = null } = useMyClans();
+  const clansQuery = useMyClans();
+  const clans = clansQuery.data ?? null;
   const [nick, setNick] = useState(null);
   const [now] = useState(() => Date.now());
   const invalidate = useInvalidate();
@@ -114,19 +116,20 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   );
 
   if (!claim && !clan) {
-    if (clans === null)
-      return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
     return (
       <>
         {crumb}
-        <div className="empty">
-          <div className="empty__title">You are not tracking that</div>
-          <p className="empty__body" style={{ marginBottom: 0 }}>
-            <span className="mono">{wanted}</span> is not on your account. If
-            you removed it, the history we already recorded is still there —
-            look it up in Explore.
-          </p>
-        </div>
+        <ClanReadStatus query={clansQuery} />
+        {clansQuery.isSuccess && (
+          <div className="empty">
+            <div className="empty__title">You are not tracking that</div>
+            <p className="empty__body" style={{ marginBottom: 0 }}>
+              <span className="mono">{wanted}</span> is not on your account. If
+              you removed it, the history we already recorded is still there —
+              look it up in Explore.
+            </p>
+          </div>
+        )}
       </>
     );
   }
@@ -140,6 +143,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   return (
     <>
       {crumb}
+      {isClan && <ClanReadStatus query={clansQuery} />}
       <div
         style={{
           display: "flex",

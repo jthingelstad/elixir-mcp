@@ -55,6 +55,12 @@ starts at the next scheduler tick. (Before contract 1.0.0 the tools said
 
 Slots are the only gate; see [Limits](/docs/limits).
 
+If your clans cannot be read, Overview and Tracking say so and offer
+**Try again**. A failed read does not mean that you stopped tracking a clan;
+any previously read clans stay available. Trying again reads your saved
+tracking without adding a clan or forcing a game fetch. An empty list is
+shown only when the relevant read succeeds.
+
 ## One recording, many reasons
 
 Every subject has at most one active recording, shared by everyone who wants

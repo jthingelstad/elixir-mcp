@@ -110,7 +110,9 @@ Every email Elixir sends you has its own id, printed in its footer
 ("This email is …"); the id opens that email's record in your account,
 and **Something not right? Send feedback about this email** beside it
 opens the feedback form with that email attached, one click from your
-inbox. [Activity → Emails](/console/account/activity/emails) lists every
+inbox. Back leaves that automatically opened form; Forward returns with the
+email attached. Closing the form sends nothing.
+[Activity → Emails](/console/account/activity/emails) lists every
 product email sent to your account, newest first, the way MCP requests
 lists every call; open one to see the mail as it went out. A report
 about an email carries the mail itself, so nobody has to describe it,

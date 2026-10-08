@@ -51,7 +51,9 @@ If a player or clan record, or an email's feedback link, brought you to
 sign-in, that screen returns to what you opened after your code or approved
 handoff. A link opened in another tab also keeps that context; it does not
 take the requesting tab's destination away. Creating an account from a public
-battle returns to that battle. Back and reload keep the record address.
+battle returns to that battle. Completed sign-in replaces the sign-in step
+in history. Back leaves an automatically opened email-feedback form; Forward
+returns with the email attached. Reload keeps the record address.
 
 A sign-in lasts **thirty days from its last use and ninety days at
 most**. **Console ▸ Profile ▸ Devices** lists every session that can act

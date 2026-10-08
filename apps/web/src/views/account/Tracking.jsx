@@ -5,6 +5,7 @@ import { useInvalidate, useMyClans } from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { CONSOLE } from "../../lib/console.js";
+import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
 
 /**
  * Tracking — ONE table over both kinds, and a record per tracked thing.
@@ -35,7 +36,8 @@ function freshness(ts, now) {
 }
 
 export function Tracking({ me, refresh, navigate }) {
-  const { data: clans = null } = useMyClans();
+  const clansQuery = useMyClans();
+  const clans = clansQuery.data ?? null;
   const [homeBusy, setHomeBusy] = useState(false);
   const [homeErr, setHomeErr] = useState("");
   const [filter, setFilter] = useState("all");
@@ -198,14 +200,25 @@ export function Tracking({ me, refresh, navigate }) {
         </div>
       </div>
 
+      <ClanReadStatus query={clansQuery} />
+
       {rows.length === 0 ? (
-        <div className="empty">
-          <div className="empty__title">Nothing tracked yet</div>
-          <p className="empty__body" style={{ marginBottom: 0 }}>
-            Add the player you play as below. Nothing here defaults to you, and
-            capture starts on the next poll.
-          </p>
-        </div>
+        (clansQuery.isSuccess || filter === "players") && (
+          <div className="empty">
+            <div className="empty__title">
+              {filter === "players"
+                ? "No players tracked"
+                : filter === "clans"
+                  ? "No clans tracked"
+                  : "Nothing tracked yet"}
+            </div>
+            <p className="empty__body" style={{ marginBottom: 0 }}>
+              {filter === "clans"
+                ? "Track a clan below, or add your player to see their clan."
+                : "Add the player you play as below. Nothing here defaults to you, and capture starts on the next poll."}
+            </p>
+          </div>
+        )
       ) : (
         <div className="table__scroll" tabIndex={0}>
           <table className="table" style={{ minWidth: "640px" }}>
