@@ -157,7 +157,7 @@ is the same pages scoped to it (below).
 
 | Page | What it does |
 |---|---|
-| Profile | your address, the timezone your date windows use and the console prints every time in (UTC until you set one), slot meters, the tier-upgrade request and today's quota |
+| Profile | your address, the timezone your date windows use and the console prints every time in (a new account starts on its signup browser's; UTC when it has none), slot meters, the tier-upgrade request and today's quota |
 | Emails from Elixir | a switch for each email, and **All sent**, the emails Elixir sent you |
 | Sign-in and devices | every session that can still act as you, this one marked |
 | Sign-ins | your account events |

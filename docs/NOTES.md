@@ -32,12 +32,6 @@ Remove a line in the change that closes it.
   Overview) into clan chat once and say whether `elixir.poapkings.com`
   at its end survives the chat filter; if it is masked, it comes out of
   the line (`apps/web/src/lib/invite.js`). Jamie.
-- 2026-10-08: should a new account start on its browser's time zone
-  instead of UTC? Today it is UTC until the person sets one (docs: "starts
-  at UTC"; App.jsx, "UTC when none is (Jamie, 2026-09-23)"), so the fresh
-  journey read Ladder in UTC; the Console and Ladder now say so and offer
-  the browser's zone in one click. Saving it at sign-up would also move
-  the days and send times of that person's mail. Product call, Jamie.
 - 2026-09-29: `min_client_version` is 2.0.30 with enforcement on. Raising
   it retires the pre-signing rollback lever. Jamie.
 - 2026-10-08: the fresh-person journey ran live (Jamie's beta1 test
@@ -433,8 +427,8 @@ From the fresh-person journey (screenshots 13, 15, 18, 22):
   the local day is UTC and the lede says "UTC".
 - **The offer, not a default.** `ZoneOffer` (Overview and every Ladder
   head) says times are UTC while the account has no zone and offers the
-  browser's, saved only on the click. Whether to set it at sign-up is
-  queued for Jamie above.
+  browser's, saved only on the click. Whether to set it at sign-up went
+  to Jamie and was approved the same day (below).
 - **Tool calls, not MCP calls.** The Console's and Ladder's reads are
   Explore tool calls and spend the daily budget, so Overview's tile says
   "tool calls today" and how many were the site's own reads
@@ -511,3 +505,34 @@ players; 11 in the last 30 days, 9 claimed); the earliest is from
 1 row). No `member_joined` event came from a follow burst. **Still
 Jamie's call:** mark those 35 rows `baseline` (a one-off ops write) or
 leave them as written.
+
+## 2026-10-08 — a new account starts on its browser's zone
+
+Jamie, the same day, closing the queued item: "Approved: new elixir
+accounts take the browser's time zone at signup".
+
+- **The zone rides the request.** The sign-in form sends
+  `Intl.DateTimeFormat().resolvedOptions().timeZone` as `timezone` on
+  `POST /api/auth` (left out when the browser gives none). The server runs
+  Profile's check (`accountZone` in `packages/auth`, now shared with
+  `POST /api/me/timezone`: empty or UTC is null, an unknown zone is
+  dropped, never a refusal) and freezes the result in the magic login's
+  context as `signup_zone`, beside `signup_news`.
+- **Only a new account takes it.** `openVerifiedAccount` writes it in the
+  insert alone, as it does the news choice: signing in to an existing
+  account, approved or pending, never changes its zone, set or not.
+  Existing zone-less accounts are untouched and stay UTC; `ZoneOffer`
+  still offers them the browser's zone.
+- **Which device.** Code and link both read the frozen context, so a
+  link opened on another device opens the account on the zone of the
+  browser that asked, not the one that redeemed; anything a redeem body
+  carries is ignored, as for the news choice.
+- **Mail.** Weekly kinds still send at 14:00 UTC for everyone; the
+  account zone names their day and time (footer, Emails page) and the
+  clan report's days, which `loadRecipients` already read with UTC only
+  as the null fallback. Nothing in `services/jobs/src/email` assumed a
+  new account was UTC; the welcome mail carries no time.
+- Tests: `public-signup.test.mjs` (new by code and by link, cross-device,
+  missing/UTC/invalid/non-string, existing approved and pending with and
+  without a zone); `signin.test.jsx`; `signup-news.spec.ts` on a Chicago
+  clock. No MCP or JSON API change: MCP 11.4.1, JSON API 3.1.0.

@@ -33,7 +33,8 @@ A collector is not required to join. Collector approval, recording allowances
 and the fleet's shared fetch budget are separate from signup.
 New signup has a checked “Send me Elixir product news” box; uncheck it before
 requesting your sign-in email to skip newsletter enrollment. Signing in to an
-existing account preserves its newsletter choice. Sign-in and welcome mail
+existing account preserves its newsletter choice. A new account also starts
+on your browser's time zone ([Your time zone](#your-time-zone)). Sign-in and welcome mail
 still arrive; reports have separate controls. See [Privacy](/docs/privacy) and
 [Emails](/docs/email).
 
@@ -91,13 +92,17 @@ recording it: see [What Elixir records](/docs/recording).
 
 ## Your time zone
 
-**Account settings ▸ Profile ▸ Timezone** starts at UTC. It sets the times the
-console shows, how a date in a question from a connected app resolves, the
-local times in tool responses and the days your emails name. Storage
-stays in UTC; only the reading changes. Until you choose one, the Console
-and Ladder say their times are UTC and offer your browser's zone in one
-click; nothing sets it for you. A battle's page reads on your account's
-clock when you are signed in, and on your browser's when you are not.
+**Account settings ▸ Profile ▸ Timezone** sets the times the console
+shows, how a date in a question from a connected app resolves, the local
+times in tool responses and the days and times your emails name. Storage
+stays in UTC; only the reading changes. A new account starts on the time
+zone of the browser that asked for its sign-up email, whichever device
+opens the link; if that browser gives none, or gives UTC, the account
+starts at UTC. Signing in never changes a zone you already have: only
+Profile does. An account with no zone reads in UTC, and the Console and
+Ladder say so and offer your browser's zone in one click. A battle's page
+reads on your account's clock when you are signed in, and on your
+browser's when you are not.
 
 ## Your tier
 
