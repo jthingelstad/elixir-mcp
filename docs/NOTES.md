@@ -6760,3 +6760,17 @@ acceptance skips); all 253 built-browser journeys passed. Source review
 confirms the server still owns access and handoff approval; return context
 only selects a validated local destination. This changes private navigation
 and public copy, so no MCP acceptance family is required for deployment.
+
+PR #349 merged as `4fb21c98` with green `validate` run 37706245323.
+Canonical deployment from the clean merged worktree under the `session`
+lease compared 47 reference roles/29 aliases identically, ran zero
+migrations (203 already applied), and passed all 43 smoke checks. Readback
+at 00:24:06–00:24:12Z October 8 (7:24 PM CT October 7) verified player,
+clan, public battle and email-feedback return destinations at 390/1280px
+from the live CloudFront bundle with every API request intercepted.
+Public health was green and Updates carried both signup and return stories.
+MCP 11.2.3 / JSON API 3.0.0 remain unchanged. The lease was released.
+All engineering rehearsal items above are now fixture-proven and deployed;
+real inbox delivery, natural first capture and tester invitations remain
+separate controlled operational steps, not established by these fixtures.
+This release receipt changes notes only and needs no further deployment.
