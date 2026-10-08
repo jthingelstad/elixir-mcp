@@ -977,7 +977,10 @@ function Invite() {
           mode, your decks, a short email each week.
         </p>
         <div className="share-actions">
-          <a className="btn btn--gold" href={`${CONSOLE}/signin?signup`}>
+          <a
+            className="btn btn--gold"
+            href={`${CONSOLE}/signin?signup&return_to=${encodeURIComponent(window.location.pathname + window.location.search)}`}
+          >
             Create your account
           </a>
           <a className="btn" href="/">

@@ -179,8 +179,8 @@ export function FeedbackItem({ id, navigate }) {
  *  line in the message — it used to arrive as ?context=request_id:<id>
  *  and be pasted into the textarea, where nothing could read it back.
  *  ?context= is still honoured: links to it exist. Read once. */
-function prefillFromUrl() {
-  const q = new URLSearchParams(window.location.search);
+function prefillFromUrl(search = window.location.search) {
+  const q = new URLSearchParams(search);
   const context = q.get("context");
   return {
     context: context ? String(context).slice(0, 200) : "",
@@ -290,7 +290,7 @@ function Compose({
   );
 }
 
-export function Feedback() {
+export function Feedback({ search } = {}) {
   const { day, stamp } = useClock();
   const path = useConsolePath();
   // An agent's console lists what the AGENT filed (it files with
@@ -300,7 +300,8 @@ export function Feedback() {
   const feedbackQuery = useMyFeedback();
   const feedback = feedbackQuery.data;
   const items = feedback ? (feedback.feedback ?? feedback.items ?? []) : null;
-  const [prefill] = useState(prefillFromUrl);
+  // Router state can render before the address bar updates on navigation.
+  const [prefill] = useState(() => prefillFromUrl(search));
   const [composing, setComposing] = useState(
     () =>
       Boolean(prefill.context) ||

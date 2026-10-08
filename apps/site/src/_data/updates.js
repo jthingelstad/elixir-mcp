@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-10-08",
+    title: "Sign in and return to the record you opened",
+    body: "Player records and public battles keep their place through sign-in. An emailed feedback link opens its form with the email attached, and a login link in another tab keeps the requesting screen's destination available too. Code and approved cross-device sign-in return to the requested record. MCP 11.2.3 and JSON API 3.0.0 unchanged.",
+  },
+  {
     date: "2026-10-07",
     title: "Choose product news when creating your account",
     body: "Send me Elixir product news is checked by default on the sign-in/create-account form. Uncheck it before asking for your email to open a new account without newsletter enrollment. Your code or link keeps that choice, while existing newsletter choices and unsubscribes stay as they are. Sign-in and welcome mail still arrive; reports have their own controls. MCP 11.2.3 and JSON API 3.0.0 unchanged.",

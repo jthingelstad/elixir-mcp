@@ -44,6 +44,20 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+test("email feedback reads the committed route search before the address bar catches up", async () => {
+  window.history.replaceState(
+    {},
+    "",
+    "/console/account/activity/e/example?report=1",
+  );
+  renderWithProviders(
+    <Feedback search={{ send_id: "5c1c5dbf-0000-4000-8000-000000000001" }} />,
+  );
+  expect(await screen.findByText(/Reporting one email/)).toBeTruthy();
+  expect(screen.getByText("5c1c5dbf")).toBeTruthy();
+  window.history.replaceState({}, "", "/");
+});
+
 test("the list is a table: one line per note, id links to the record", async () => {
   const navigate = vi.fn();
   renderWithProviders(<Feedback navigate={navigate} />);

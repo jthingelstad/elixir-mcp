@@ -107,6 +107,9 @@ game names only, never a nickname or anything of an account, and its link
 unfurls in a chat as the battle itself. The same projection is JSON at
 `/api/public/battles/<short id>`.
 
+If you choose **Create your account** from a battle, sign-in returns to that
+battle so you can continue reading it with your account.
+
 Add `.png` to the link for the battle's picture: the page drawn as one 1200 by
 630 image, with the names left and right, both decks two by four with their
 levels, the elixir numbers, the towers' hitpoints and how it ended, and the
