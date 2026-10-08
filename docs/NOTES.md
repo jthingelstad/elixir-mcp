@@ -6877,14 +6877,14 @@ behavior, so deployment requires the normal full gates, smoke and exact
 bundle/fixture readback, with no live tool acceptance. Final gate and
 deployment receipts follow after verification.
 
-Final local gates passed: 1,914 Node tests and 493 UI tests, with 85
+Initial local gates passed: 1,914 Node tests and 493 UI tests, with 85
 documented acceptance skips; all 272 built-browser journeys passed without
 retries. Production bundles built successfully. The focused battle/share
 and responsive checks passed, with visual readback at 320px and 1280px.
 
 The first CI browser gate failed all three new battle-bound cases while
-269 other journeys passed. A viewport breakpoint had not accounted for
-content width reserved by a classic scrollbar. Reserving 15px reproduced
+269 other journeys passed. Investigation also found a viewport breakpoint
+had not accounted for content width reserved by a classic scrollbar. Reserving 15px reproduced
 deck spill locally. The battle now uses an inline-size container query:
 two 180px panels plus their 14px gap require 374px of actual content.
 The tests also reserve 15px on overlay-scrollbar hosts and cover all three
@@ -6896,3 +6896,18 @@ The corrected tree passed full local verification again (1,914 Node tests,
 275 browser journeys without retries. The paired-phone check uses 440px,
 where both panels fit even with reserved scrollbar space; the stricter
 bounds checks continue to include 420px and both configurations.
+
+The second CI run supplied exact element dimensions: the remaining deck
+bounds failures occurred at 320px because missing mirrored art becomes a
+name placeholder, whose unbroken text spilled from a 34px card. CI has no
+gitignored mirror assets. This was distinct from the reserved-width edge.
+The fallback now wraps inside its frame and scales its font with the card
+width (8–10.5px). The reserved-width cases explicitly return 404 for card
+art and check horizontal and vertical placeholder bounds; all 19 focused
+journeys pass, without weakening the component assertions.
+
+The complete local gates passed on the fallback correction: 1,914 Node
+and 493 UI tests (85 documented acceptance skips), production bundles,
+and all 275 browser journeys without retries. An isolated old-style
+fallback rehearsal failed at 320px as expected; the repaired 404-art cases
+pass with their original full-page and component bounds intact.

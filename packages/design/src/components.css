@@ -5043,9 +5043,10 @@ input[aria-invalid="true"] {
   border-radius: 8px;
   border: 1px dashed var(--line-strong);
   background: var(--panel-raised);
-  font-size: 10.5px;
+  font-size: clamp(8px, calc(var(--card-w) / 5), 10.5px);
   line-height: 1.2;
   text-align: center;
+  overflow-wrap: anywhere;
   color: var(--ink-dim);
 }
 .card-art__form {
