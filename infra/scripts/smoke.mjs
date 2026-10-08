@@ -277,7 +277,7 @@ const deep = await fetch(`${mcpBase}/console/account/overview`);
 const deepHtml = deep.ok ? await deep.text() : "";
 check(
   "spa deep link serves the shell",
-  deep.status === 200 && deepHtml.includes("Elixir MCP"),
+  deep.status === 200 && deepHtml.includes('<div id="root"></div>'),
   String(deep.status),
 );
 // A missing static asset is honestly missing, not a 200 of HTML.

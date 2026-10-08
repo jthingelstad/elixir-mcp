@@ -99,7 +99,7 @@ test.describe("Ladder signed in", () => {
         name: "September season · 24 days in",
       }),
     ).toBeVisible();
-    await expect(page).toHaveTitle("Season - Ladder - Elixir MCP");
+    await expect(page).toHaveTitle("Season - Ladder - Elixir");
     // Times are prose in the account's zone: 10:00Z is 5:00 am Central.
     await expect(page.locator(".page__lede")).toContainText(
       "The season ends Monday, October 5 at 5:00 am.",
@@ -382,7 +382,7 @@ test.describe("Ladder days played", () => {
         name: "17 days with recorded battles",
       }),
     ).toBeVisible();
-    await expect(page).toHaveTitle("Days played - Ladder - Elixir MCP");
+    await expect(page).toHaveTitle("Days played - Ladder - Elixir");
     await expect(page.locator(".page__lede")).toContainText(
       "Every day of the September season, Central time.",
     );
@@ -562,7 +562,7 @@ test.describe("Ladder decks", () => {
         name: "Seven decks, three modes",
       }),
     ).toBeVisible();
-    await expect(page).toHaveTitle("Decks - Ladder - Elixir MCP");
+    await expect(page).toHaveTitle("Decks - Ladder - Elixir");
     await expect(
       page
         .getByRole("navigation", { name: "Ladder sections" })
@@ -715,7 +715,7 @@ test.describe("Ladder cards", () => {
         name: "Cards you played, cards you faced",
       }),
     ).toBeVisible();
-    await expect(page).toHaveTitle("Cards - Ladder - Elixir MCP");
+    await expect(page).toHaveTitle("Cards - Ladder - Elixir");
     await expect(page.locator(".page__lede")).toContainText(
       "Trophy Road, this season.",
     );
