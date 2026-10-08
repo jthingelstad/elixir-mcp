@@ -1,4 +1,4 @@
-import { CardArt, DeckGrid, useClock, noun } from "@elixir-mcp/ui";
+import { CardArt, DeckGrid, useClock } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { fmt, longDay, pct, shortDay, signed } from "./ladder.js";
 import { groupLabel } from "./ladder-days.js";

@@ -6,7 +6,7 @@ import { recordJourney } from "../lib/record-journey.js";
 /** The first minutes after an add, when the first capture (or the game's
  * "not found") usually lands: poll every few seconds, then once a minute.
  * A first-answer read is one account query, no tool and no quota. */
-export const FAST_WINDOW_MS = 3 * 60_000;
+const FAST_WINDOW_MS = 3 * 60_000;
 export const FAST_POLL_MS = 5_000;
 export const SLOW_POLL_MS = 60_000;
 
