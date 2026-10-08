@@ -255,3 +255,14 @@ and deploy; leave drop, elixir-bot and saved clan choices unchanged".
   million tokens in / out (to 100K-token prompts); Clan keeps no price
   table, only token counts.
 
+Shipped as #366 (e159a87e) and deployed 20:09Z (3:09 PM CT): platform
+lane (web-api, mcp, email-relay, migrate and jobs bundles), migrations
+ran 0 (204 applied), stack UPDATE_COMPLETE, smoke 43 ok. No acceptance:
+no MCP tool or JSON API operation changed. Read-back: `/api/public/status`
+`health.ok` true, `/updates` lists the entry, and the four functions show
+no ERROR, timeout or 5xx line since. No Clan model call had run yet (the
+email relay had no invocations), and none was made to check it: a draft
+spends a clan's own key. Open, a product call for Jamie: a key's model
+list is the snapshot from when it was added, so clans with older keys
+see Haiku 5.5 only after adding the key again.
+
