@@ -477,9 +477,6 @@ const DECK_TROPHY_RANGE = {
 /** The seven schemas the call log asked for next (3.18.0): the tools called enough in fourteen days to deserve a declared
  *  shape, permissive below the keys a consumer branches on. */
 
-/** fit_for on the meta tools (6.4.0): the population's rows against
- *  one player's collection. */
-
 /** Each clans_participation row's place at every war finish (9.13.0,
  *  issue #46), aligned to war_weeks[]. */
 const PARTICIPATION_PLACE = {

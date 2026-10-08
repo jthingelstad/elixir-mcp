@@ -333,10 +333,7 @@ export function publicRoutes({ deadLetters }) {
       );
     },
 
-    // The card catalog and one card's record, PUBLIC and sign-in free
-    // (docs/EMAIL.md, the Friday kind): this is where a forwarded Card
-    // of the Week lands, and what the art mirror reads. The same
-    // numbers the tools give, refreshed by the nightly rollup.
+    // The card catalog, PUBLIC and sign-in free.
     "GET /api/public/cards": async (db) => {
       const { readCatalog } = await import("@elixir-mcp/tools/cards");
       const catalog = await readCatalog(db);
