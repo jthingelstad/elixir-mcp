@@ -892,14 +892,22 @@ test("publish: prune only assets the build no longer ships, after they have been
   );
 });
 
-test("CI builds the site once (#73)", async () => {
+test("CI builds the site once per job (#73)", async () => {
   // The site workspace's test builds the merged tree inside `npm run
-  // verify`; validate.yml and the Playwright webServer reuse it.
+  // verify`, so the verify job never builds it again; the e2e job runs on
+  // a runner of its own and builds it once for the Playwright webServer.
   const workflow = await readFile(
     new URL("../../../.github/workflows/validate.yml", import.meta.url),
     "utf8",
   );
-  assert.doesNotMatch(workflow, /^\s*- run: .*build-site\.mjs/m);
+  const job = (name) =>
+    workflow
+      .split(/^ {2}(?=[a-z][\w-]*:\s*$)/m)
+      .find((block) => block.startsWith(`${name}:`)) ?? "";
+  const builds = /^\s*- run: .*build-site\.mjs/gm;
+  assert.equal(job("verify").match(builds)?.length ?? 0, 0);
+  assert.equal(job("e2e").match(builds)?.length ?? 0, 1);
+  assert.equal(workflow.match(builds)?.length ?? 0, 1);
   const playwright = await readFile(
     new URL("../../../apps/web/playwright.config.ts", import.meta.url),
     "utf8",
