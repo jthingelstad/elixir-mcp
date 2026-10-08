@@ -1,4 +1,4 @@
-import { Icon, writeErrorText } from "@elixir-mcp/ui";
+import { Icon, browserZone, writeErrorText } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { consumeLoginToken } from "../url-hygiene.js";
@@ -164,7 +164,7 @@ export function SignIn({ onAuthed }) {
     submitting.current = true;
     setError("");
     setBusy(true);
-    const res = await api.sendLoginEmail(email, productNews);
+    const res = await api.sendLoginEmail(email, productNews, browserZone());
     submitting.current = false;
     setBusy(false);
     if (!res.ok) {
@@ -529,9 +529,10 @@ export function SignIn({ onAuthed }) {
       >
         New here? After signing in, add your player under Console ▸ Tracking.
         Product news is your choice above. Reports have their own off switches.
-        See <a href="/docs/privacy">Privacy</a> and{" "}
-        <a href="/docs/email">Emails</a>. Collectors need separate approval;
-        recording stays within your account's limits.
+        A new account starts on this device's time zone; Profile changes it. See{" "}
+        <a href="/docs/privacy">Privacy</a> and <a href="/docs/email">Emails</a>
+        . Collectors need separate approval; recording stays within your
+        account's limits.
       </p>
     </div>
   );

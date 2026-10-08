@@ -26,8 +26,15 @@ const home = (agent) =>
 
 export const api = {
   me: (agent) => request("GET", home(agent)),
-  sendLoginEmail: (email, newsletterOptIn = true) =>
-    request("POST", "/api/auth", { email, newsletter_opt_in: newsletterOptIn }),
+  // `timezone` is this browser's zone: a NEW account opens on it, an
+  // existing one keeps its own (Jamie, 2026-10-08). Left out when the
+  // browser will not say, and the account starts at UTC.
+  sendLoginEmail: (email, newsletterOptIn = true, timezone = null) =>
+    request("POST", "/api/auth", {
+      email,
+      newsletter_opt_in: newsletterOptIn,
+      ...(timezone ? { timezone } : {}),
+    }),
   redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
   redeemCode: (email, code) =>
     request("POST", "/api/auth/code", { email, code }),
