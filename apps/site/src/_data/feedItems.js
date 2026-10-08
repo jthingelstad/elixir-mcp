@@ -3,11 +3,7 @@
  * one updates stream, product updates and contract versions alike.
  *
  * Each item's id is its own page, /updates/<slug>, which does not move
- * when a newer entry ships. Until 2026-09-27 the GUID was the entry's
- * position in the list (`/updates#<date>-<n>`), so every ship renumbered
- * the rest, readers showed old items as new again, and the fragment
- * pointed at nothing (review 2026-09-27 §7.6). Contract versions were
- * missing too: the feed iterated updates.js, not updatesView.
+ * when a newer entry ships, so readers never see an old item as new.
  */
 import site from "./site.js";
 import updatesView from "./updatesView.js";

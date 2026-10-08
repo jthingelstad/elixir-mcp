@@ -203,8 +203,7 @@ dropdb elixir_mcp_pin
 
 **Time it on data of the right size, never on production.** No psql
 path reaches the private database: take the size from `{tables}` and
-fill a scratch database to it (the 2026-09-18 time-series review built a
-synthetic year). A production clone (built once, 2026-09-16) needs
+fill a scratch database to it (a synthetic year is the usual scale). A production clone (built once, 2026-09-16) needs
 Jamie's go. Live data gets reads and refusal paths only, never a write.
 
 ## Hand-off

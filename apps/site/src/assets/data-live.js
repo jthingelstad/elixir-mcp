@@ -41,7 +41,7 @@
       put("hour", (b.health.battles_last_hour ?? 0).toLocaleString("en-US"));
       put("collectors", (b.collectors || []).length || null);
       // The headline the budget is held to: fetches in the last 24 hours
-      // against the bulk share of the one global bucket (review §4.2).
+      // against the bulk share of the one global bucket.
       const bg = b.budget;
       if (bg && typeof bg.share_24h === "number")
         put("budget", Math.round(bg.share_24h * 100) + "%");
