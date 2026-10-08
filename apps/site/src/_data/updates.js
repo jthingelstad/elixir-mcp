@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "A real page for a wrong address, and a clearer way in",
+    body: "An address that leads nowhere now answers with an Elixir page and a true 404, with the way back to the home page, the docs and the Console, instead of a bare storage error. Ladder, signed out, says what it reads back and offers Create your account, which brings you back to the Ladder page you asked for; Elixir Clan's signup link does the same for Clan. The home page and Ladder link a recorded battle, so you can see one before you sign up. Every browser tab now ends in Elixir, the product-news checkbox sits beside its label, and Updates prints tool names such as players_summary with their underscores. MCP 11.3.0 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "Elixir Clan keeps your key's model list current",
     body: "The models offered in Manage ▸ Settings now stay current without adding the clan's key again: when a leader opens Settings and the list is a day old, Elixir Clan asks Anthropic which models the key can use, the same free check as adding a key. A key added before today gets its first refresh the next time a leader looks, so Claude Haiku 5.5 appears there. Your clan's chosen model never changes by itself: if the key stops offering it, it stays chosen and is marked as not offered, and you pick another when you are ready. A draft that finds its model gone refreshes the list straight away. MCP 11.3.0 and JSON API 3.1.0 unchanged.",
   },
