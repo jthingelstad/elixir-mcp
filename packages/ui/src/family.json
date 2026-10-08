@@ -37,5 +37,9 @@
     "label": "Sign in",
     "path": "/console/signin",
     "icon": "key-round"
+  },
+  "sampleBattle": {
+    "label": "See a recorded battle",
+    "path": "/battle/69dcc4e93f15"
   }
 }

@@ -285,6 +285,24 @@ test("admin view is admin-gated in the UI", async () => {
   expect(await screen.findByText("Sign in first")).toBeTruthy();
 });
 
+test("signed-out Ladder says what it is and offers an account", async () => {
+  window.history.pushState({}, "", "/ladder/cards");
+  global.fetch = mockFetch({
+    "GET /api/me": [200, { authenticated: false }],
+  });
+  render(<App />);
+  expect(await screen.findByText("Your season, read back")).toBeTruthy();
+  expect(screen.queryByText("Sign in first")).toBeNull();
+  expect(
+    screen
+      .getByRole("link", { name: "Create your account" })
+      .getAttribute("href"),
+  ).toBe("/console/signin?signup&return_to=%2Fladder%2Fcards");
+  expect(
+    screen.getByRole("link", { name: "How Ladder works" }).getAttribute("href"),
+  ).toBe("/docs/ladder");
+});
+
 test("the tab title names the page, most specific part first", async () => {
   // A browser tab truncates from the right, so the distinguishing word
   // has to lead or every Elixir tab looks identical.

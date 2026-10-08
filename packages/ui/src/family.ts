@@ -78,6 +78,17 @@ export const FAMILY_SIGN_IN: { label: string; href: string; icon: IconName } = {
   icon: manifest.signIn.icon as IconName,
 };
 
+/** One recorded battle's public page, shown to somebody with no record
+ *  yet so they can see what Elixir keeps before signing up: the home
+ *  page and signed-out Ladder link it. A battle of the maintainer's own
+ *  player (King Thing #20JJJ2CCRU, a war win on 2026-10-01); recorded
+ *  history is kept indefinitely, so the link stays good. Change it here,
+ *  the one place both halves read. */
+export const FAMILY_SAMPLE_BATTLE: { label: string; path: string } = {
+  label: manifest.sampleBattle.label,
+  path: manifest.sampleBattle.path,
+};
+
 /** What the game button says to a screen reader: what it is, and that it
  *  leaves for another host in a new window. */
 export function gameLabel(p: FamilyProduct): string {

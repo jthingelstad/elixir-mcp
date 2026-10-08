@@ -1413,3 +1413,16 @@ test(
       );
   },
 );
+
+test(
+  "the home page shows a recorded battle beside its signup",
+  { skip },
+  () => {
+    // One battle, named once in the kit's family manifest.
+    const html = read("index.html");
+    assert.match(
+      html,
+      /<a class="btn btn--text" href="\/battle\/[0-9a-f]{12}">See a recorded battle<\/a>/,
+    );
+  },
+);
