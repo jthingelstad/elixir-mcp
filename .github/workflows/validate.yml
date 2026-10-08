@@ -23,8 +23,12 @@ concurrency:
 permissions: {}
 
 jobs:
-  validate:
-    name: validate
+  # verify and the journeys run side by side; `validate` passes only when
+  # both did. A job skipped by a failed `needs` reports as skipped, which
+  # a required check would count as passing, so `validate` always runs
+  # and checks each result itself.
+  verify:
+    name: verify
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,16 +60,50 @@ jobs:
       # (#32).
       - run: npm audit --omit=dev --audit-level=low
       - run: npm audit || true
-      # verify builds the site ONCE, in the site workspace's test
+      # verify builds the site in the site workspace's test
       # (build-site.mjs --skip-stats, which keeps CI off the live stats
       # endpoint): the merged tree validates itself there (dead sitemap
-      # entries, dangling llms.txt links, a missing app shell), the site
-      # tests read it, and the journeys below serve the same tree (#73).
+      # entries, dangling llms.txt links, a missing app shell).
       - run: npm run verify
       - run: node infra/scripts/build.mjs
-      # Journeys against the built tree behind the edge's document-or-shell
-      # rule, /api/* answered by route fixtures: the real bundle, the real
-      # router, the real chunks, axe on every page a journey lands on.
+
+  # Journeys against the built tree behind the edge's document-or-shell
+  # rule, /api/* answered by route fixtures: the real bundle, the real
+  # router, the real chunks, axe on every page a journey lands on. Split
+  # across shards, each building the same tree verify builds.
+  e2e:
+    name: e2e (${{ matrix.shard }}/2)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run build
+      - run: node infra/scripts/build-site.mjs --skip-stats
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      - run: npm run e2e -- --shard=${{ matrix.shard }}/2
       # No AWS credentials in validate; production uses the canonical deploy lane.
+
+  validate:
+    name: validate
+    if: always()
+    needs: [verify, e2e]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - env:
+          VERIFY: ${{ needs.verify.result }}
+          E2E: ${{ needs.e2e.result }}
+        run: |
+          echo "verify: $VERIFY, e2e: $E2E"
+          test "$VERIFY" = success && test "$E2E" = success
