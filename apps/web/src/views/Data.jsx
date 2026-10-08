@@ -89,6 +89,9 @@ export function Data() {
   const { data: stats = null, error } = usePublicStats();
   const err = error ? "Could not load corpus stats." : "";
   const [hover, setHover] = useState(null);
+  // Read the clock once per visit: render stays pure, and the axis cannot
+  // shift under a reader between refetches.
+  const [now] = useState(() => new Date());
 
   const t = stats?.totals;
   /**
@@ -104,7 +107,7 @@ export function Data() {
   const mk = (rows, vKey) => {
     const byDay = new Map((rows ?? []).map((d) => [d.day, d[vKey] ?? 0]));
     const out = [];
-    const cursor = new Date();
+    const cursor = new Date(now);
     cursor.setUTCHours(0, 0, 0, 0);
     cursor.setUTCDate(cursor.getUTCDate() - (WINDOW_DAYS - 1));
     for (let i = 0; i < WINDOW_DAYS; i += 1) {
@@ -117,7 +120,7 @@ export function Data() {
   const battles = mk(stats?.series.battles_daily, "battles");
   const players = mk(stats?.series.players_observed_daily, "players");
   const fetches = mk(stats?.series.fetches_daily, "fetches");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = now.toISOString().slice(0, 10);
   const todayIdx = battles.findIndex((d) => d.day === today);
 
   return (
