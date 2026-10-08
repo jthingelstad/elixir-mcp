@@ -212,11 +212,13 @@ export function Battle({ battleRef, me }) {
   // A 300 is an answer too: a hand-cut prefix two battles share.
   const read = env?.ok || env?.status === 300 ? env.data : null;
 
+  const answeredNone = query.isSuccess && !read;
   useEffect(() => {
-    if (!read) return;
+    if (answeredNone) document.title = "No battle at this link - Elixir";
+    if (!read?.sides) return;
     const [l, r] = read.sides;
     document.title = `${namesOf(l)} and ${namesOf(r)} - Battle - Elixir`;
-  }, [read]);
+  }, [read, answeredNone]);
 
   if (query.isPending) return <p className="nil">Loading…</p>;
   if (query.isError)

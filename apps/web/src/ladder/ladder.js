@@ -66,7 +66,7 @@ export function ladderHere(path) {
 }
 
 /** Tab title: the page first, because a tab truncates from the right. */
-export function ladderTitle(path, site = "Elixir MCP") {
+export function ladderTitle(path, site = "Elixir") {
   const page = LADDER_PAGES.find((p) => p.slug === ladderSlug(path));
   return `${page?.label ?? "Season"} - Ladder - ${site}`;
 }

@@ -975,10 +975,20 @@ export function legalRoute(path) {
 }
 
 /** Tab titles. The distinguishing word goes FIRST, because a browser
- *  tab truncates from the right - "Elixir MCP - Status" is useless at
- *  tab width, "Status - Elixir MCP" is not. Sections that own their own
- *  sub-pages (explore records, docs) name the record instead. */
-const SITE = "Elixir MCP";
+ *  tab truncates from the right - "Elixir - Status" is useless at tab
+ *  width, "Status - Elixir" is not. Sections that own their own
+ *  sub-pages (explore records, docs) name the record instead. The site
+ *  is "Elixir" on every surface, the same suffix apps/site's pages and
+ *  a battle's page wear. */
+const SITE = "Elixir";
+const CLAN_PAGES = new Set([
+  "clans",
+  "you",
+  "verify",
+  "feedback",
+  "maintain",
+  "refused",
+]);
 const prettify = (seg) =>
   /^[#%]/.test(seg)
     ? decodeURIComponent(seg)
@@ -988,8 +998,16 @@ const prettify = (seg) =>
 
 export function titleFor(section, sec, path) {
   if (isLadder(path)) return ladderTitle(path, SITE);
+  if (isClan(path)) {
+    // Clan's own pages (/clan/you, /clan/verify...) lead with their
+    // name, a clan's section (/clan/<tag>/<section>) with the section.
+    const [, , first, second] = path.split("/");
+    const lead = CLAN_PAGES.has(first) ? first : first && second;
+    return lead ? `${prettify(lead)} - Clan - ${SITE}` : `Clan - ${SITE}`;
+  }
   const parts = (appPath(path) ?? "").split("/").filter(Boolean);
   if (parts.length === 0) return SITE;
+  if (parts[0] === "signin") return `Sign in - ${SITE}`;
   if (!sec) return SITE;
   if (sec.scoped) {
     const known = sec.pages.find((p) => p.slug === parts[2])?.label;
@@ -1736,6 +1754,10 @@ function Shell() {
 function SharedClanOutlet() {
   const { me } = useMe();
   const navigate = useNav();
+  const { pathname } = useLocation();
+  useEffect(() => {
+    document.title = titleFor("clan", null, pathname);
+  }, [pathname]);
   return (
     <ZoneProvider zone={me?.timezone}>
       <NavigateProvider navigate={navigate}>

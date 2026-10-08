@@ -287,26 +287,29 @@ test("admin view is admin-gated in the UI", async () => {
 
 test("the tab title names the page, most specific part first", async () => {
   // A browser tab truncates from the right, so the distinguishing word
-  // has to lead or every Elixir MCP tab looks identical.
+  // has to lead or every Elixir tab looks identical.
   const { titleFor, SECTIONS } = await import("../src/App.jsx");
   const t = (path) => {
     const section = path.split("/")[2];
     return titleFor(section, SECTIONS[section], path);
   };
-  expect(t("/")).toBe("Elixir MCP");
-  expect(t("/console/status/service")).toBe("Status - Elixir MCP");
-  expect(t("/console/data/dashboard")).toBe("Charts - Data - Elixir MCP");
-  expect(t("/console/admin/collectors")).toBe(
-    "Collectors - Admin - Elixir MCP",
-  );
-  expect(t("/console/status/collectors")).toBe(
-    "Collectors - Status - Elixir MCP",
-  );
+  expect(t("/")).toBe("Elixir");
+  expect(t("/console/status/service")).toBe("Status - Elixir");
+  expect(t("/console/data/dashboard")).toBe("Charts - Data - Elixir");
+  expect(t("/console/admin/collectors")).toBe("Collectors - Admin - Elixir");
+  expect(t("/console/status/collectors")).toBe("Collectors - Status - Elixir");
   // Explore owns its sub-pages, so a record beats the page slug: it is
   // the most specific thing shown.
   expect(t("/console/explore/player/%2320JJJ2CCRU")).toBe(
-    "#20JJJ2CCRU - Explore - Elixir MCP",
+    "#20JJJ2CCRU - Explore - Elixir",
   );
+  // Every surface wears the site's own name, never "Elixir MCP".
+  expect(t("/console/signin")).toBe("Sign in - Elixir");
+  expect(t("/clan")).toBe("Clan - Elixir");
+  expect(t("/clan/you")).toBe("You - Clan - Elixir");
+  expect(t("/clan/J2RGCRVG")).toBe("Clan - Elixir");
+  expect(t("/clan/J2RGCRVG/actions")).toBe("Actions - Clan - Elixir");
+  expect(t("/ladder")).toBe("Season - Ladder - Elixir");
 });
 
 test("an HTML body is a failure however it is numbered", async () => {
