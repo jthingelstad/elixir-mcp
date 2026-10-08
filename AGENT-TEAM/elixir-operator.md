@@ -109,10 +109,10 @@ Establish, with receipts:
   unexplained lease-to-submit surplus, long lease latency, or rising billed
   time with stable admissions instead; RDS `FreeableMemory` /
   `SwapUsage`, `EBSByteBalance%` and the Enhanced Monitoring OS split
-  (on since 2026-09-11). The database is db.t4g.small since 2026-09-23:
-  the micro ran out of EBS byte balance and memory under ordinary
-  pre-launch load, and a heavy batch or a full acceptance gate on every
-  deploy can drain the small's balance too. Anything trending that would
+  (on since 2026-09-11). The database is db.t4g.micro again since
+  2026-10-08 (small from 2026-09-23 until the tracked-only correction
+  shrank the record). The micro's limit is EBS byte balance: a heavy
+  batch, a Gym sweep or a full acceptance gate can drain it, so space them. Anything trending that would
   surprise Jamie at the bill.
 
 ## Action

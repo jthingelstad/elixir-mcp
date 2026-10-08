@@ -137,7 +137,7 @@ parallelism, only a `DeprecationWarning` per overlap (an error in pg 9).
 **Await database queries one at a time.**
 `services/mcp/test/pg-usage.test.mjs` fails on a `Promise.all` that wraps
 `db.query`. Concurrent database work needs a second connection, which is a
-capacity decision about a `db.t4g.small`, not something to reach for
+capacity decision about a `db.t4g.micro`, not something to reach for
 inside a request. Non-database work (S3 calls) still parallelises.
 
 ## Read budgets

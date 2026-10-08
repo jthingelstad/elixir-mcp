@@ -534,7 +534,7 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (#7
       "DbFreeableMemoryAlarm",
       "SiteCertificateExpiryAlarm",
       "FreeableMemory",
-      "157286400",
+      "67108864",
     ],
     ["SiteCertificateExpiryAlarm", "Outputs", "DaysToExpiry", "30"],
   ];

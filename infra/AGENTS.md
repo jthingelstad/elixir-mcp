@@ -2,7 +2,7 @@
 
 One CloudFormation stack (`template.yaml`) in `us-east-1`, profile
 `cloud-engineer`. Seven Lambdas (collector, email-relay, jobs, mcp,
-migrate, scheduler, web-api), RDS PostgreSQL `db.t4g.small` in a NAT-free
+migrate, scheduler, web-api), RDS PostgreSQL `db.t4g.micro` in a NAT-free
 VPC, S3 (payload archive, outbox, web), CloudFront in front of one origin.
 `docs/ENGINEERING.md` has the invariants; the `ship` skill has the loop.
 
