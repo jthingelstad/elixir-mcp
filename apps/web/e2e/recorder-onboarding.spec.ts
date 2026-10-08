@@ -483,7 +483,7 @@ for (const width of [390, 1280]) {
           feedbackSends++;
           return feedbackSends === 1
             ? [503, { message: "Feedback interrupted." }]
-            : [200, { ok: true }];
+            : [200, { ok: true, feedback_id: 9 }];
         },
         "POST /api/session/signout": () => {
           signouts++;
@@ -570,9 +570,11 @@ for (const width of [390, 1280]) {
     await expect(page.getByText("Feedback interrupted.")).toBeVisible();
     await expect(message).toHaveValue("Fixture: help with my new record");
     await page.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(
-      page.getByText("Received — thank you. It is in the list."),
-    ).toBeVisible();
+    await expect(page.getByText(/^Received — thank you\./)).toBeVisible();
+    await expect(page.getByRole("link", { name: "fb_9" })).toHaveAttribute(
+      "href",
+      "/console/account/feedback/9",
+    );
     expect(feedbackSends).toBe(2);
     await page.goBack();
     await expect(recording).toContainText("Captured data available");

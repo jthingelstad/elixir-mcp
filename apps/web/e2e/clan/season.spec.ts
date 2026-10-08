@@ -32,7 +32,6 @@ for (const width of [390, 1280]) {
         clans: [first],
         selected: first,
         open_actions: 0,
-        feedback_unseen: 0,
         policy: { set: false, active: false, members: 3 },
         identities: ME.identities.map((p) => ({
           ...p,

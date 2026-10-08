@@ -364,7 +364,7 @@ test.describe("signed in", () => {
       ]);
   });
 
-  test("choose a clan, read its roster, walk the rail, file feedback", async ({
+  test("choose a clan, read its roster, walk the rail, report a standing", async ({
     page,
   }) => {
     // `vite preview` answers the prefix only with its slash; the edge
@@ -376,8 +376,12 @@ test.describe("signed in", () => {
       page.getByRole("heading", { name: "Your clans" }),
     ).toBeVisible();
     const rail = page.locator(".rail");
-    await expect(rail.getByRole("link", { name: /Feedback/ })).toBeVisible();
-    await expect(rail.getByRole("img", { name: /new repl/ })).toBeVisible();
+    // Feedback is the rail's foot, into Elixir's one record; Clan keeps
+    // no queue of its own (2026-10-08).
+    await expect(
+      rail.getByRole("button", { name: "Send feedback" }),
+    ).toBeVisible();
+    await expect(rail.getByRole("link", { name: /^Feedback/ })).toHaveCount(0);
     await accessible(page, "chooser");
 
     // Picking one is remembered and lands on its page.
@@ -438,14 +442,36 @@ test.describe("signed in", () => {
     await rendered(page);
     await accessible(page, "standing");
 
-    // Feedback: compose and send.
-    await rail.getByRole("link", { name: /^Feedback/ }).click();
-    await expect(page).toHaveURL(/\/feedback$/);
-    await page.getByRole("button", { name: "Send feedback" }).click();
-    await page.getByLabel("Message").fill("The rail is where we are going.");
-    await page.getByRole("button", { name: "Send", exact: true }).click();
-    await rendered(page);
-    await accessible(page, "feedback");
+    // Report this: a standing that reads wrong files a judgment item
+    // pointing at the clan and the policy, read back in the Console.
+    await page.getByRole("button", { name: "Report this" }).click();
+    const sheet = page.getByRole("dialog", { name: "Report this" });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByLabel("Category")).toHaveValue("judgment");
+    await sheet.getByLabel("Message").fill("Zed played every deck last week.");
+    const [sent] = await Promise.all([
+      page.waitForRequest(
+        (r) =>
+          r.method() === "POST" &&
+          new URL(r.url()).pathname === "/api/feedback",
+      ),
+      sheet.getByRole("button", { name: "Send", exact: true }).click(),
+    ]);
+    const body = sent.postDataJSON();
+    expect(body).toMatchObject({
+      message: "Zed played every deck last week.",
+      category: "judgment",
+      area: "clan",
+      context: { path: "/clan/2PQRJ8LV/standing" },
+    });
+    expect(body.refs).toContainEqual({ kind: "clan", ref: "#2PQRJ8LV" });
+    await expect(sheet.getByRole("status")).toContainText("Received");
+    await expect(
+      sheet.getByRole("link", { name: "Read it as fb_41" }),
+    ).toHaveAttribute("href", "/console/account/feedback/41");
+    await accessible(page, "report this");
+    await sheet.getByRole("button", { name: "Close" }).click();
+    await expect(sheet).toHaveCount(0);
   });
 
   test("arriving at another of your clans by URL selects it", async ({

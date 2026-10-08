@@ -319,17 +319,24 @@ function Compose({
         className="panel__body"
         style={{ display: "flex", flexDirection: "column", gap: "10px" }}
       >
-        {sent ? (
+        {sent !== null ? (
           <div className="notice">
             <span>
-              Received — thank you. It is{" "}
-              <Link
-                className="mono"
-                to={path(`${CONSOLE}/account/feedback/${sent}`)}
-              >
-                fb_{sent}
-              </Link>
-              ; the answer comes to your email when it lands.
+              Received — thank you.
+              {sent && (
+                <>
+                  {" "}
+                  It is{" "}
+                  <Link
+                    className="mono"
+                    to={path(`${CONSOLE}/account/feedback/${sent}`)}
+                  >
+                    fb_{sent}
+                  </Link>
+                  .
+                </>
+              )}{" "}
+              The answer comes to your email when it lands.
             </span>
           </div>
         ) : (
@@ -393,7 +400,7 @@ function Compose({
                     ...(followsId ? { follows_id: followsId } : {}),
                   });
                   if (r.ok) {
-                    setSent(String(r.data.feedback_id));
+                    setSent(String(r.data?.feedback_id ?? ""));
                     onSent();
                   } else setFailed(r.data?.message ?? "Could not send that.");
                 }}

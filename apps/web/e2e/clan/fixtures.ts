@@ -52,8 +52,6 @@ export const ME = {
   clans: [FIRST, SECOND],
   selected: null as typeof FIRST | null,
   open_actions: 2,
-  feedback_unseen: 1,
-  maintainer: false,
   // The selected clan's policy: saved, ranking Elder, tracking inactivity.
   policy: {
     set: true,
@@ -270,8 +268,9 @@ export function signedIn(
         },
       },
     ],
-    "GET /api/clan/feedback": [200, { feedback: [] }],
-    "POST /api/clan/feedback": [200, { feedback_id: "abc123" }],
+    // Feedback is Elixir's one record (2026-10-08): Clan files through
+    // the shared door, with the shared session.
+    "POST /api/feedback": [200, { ok: true, feedback_id: 41 }],
     "GET /api/clan/clans/2PQRJ8LV/me/away": [200, { away: null }],
     ...overrides,
   };
