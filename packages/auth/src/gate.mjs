@@ -1,5 +1,6 @@
 import { canSetRole, isRole, ROLE_ORDER } from "@elixir-mcp/contracts";
 import { emailHash as hashEmail } from "./crypto.mjs";
+import { accountZone } from "./zone.mjs";
 
 /** Public email authentication admits new people and ordinary pending members.
  * Blocked accounts and privileged pending requests retain their existing gate.
@@ -23,21 +24,30 @@ export async function publicLoginAccount(db, emailHash) {
 
 /** Call only with the email frozen in a successfully redeemed web login.
  * The conflict predicate checks current state, including concurrent denial
- * or promotion. Repeated verifications cannot change an existing tier. */
+ * or promotion. Repeated verifications cannot change an existing tier.
+ * `timezone` is the zone the signup request's browser reported: like the
+ * newsletter choice it is written only by the insert, so it applies to a
+ * newly created account and never to one that already exists (Jamie,
+ * 2026-10-08). One that fails the Profile check leaves the account on UTC. */
 export async function openVerifiedAccount(
   db,
-  { emailHash, email, newsletterOptIn = true },
+  { emailHash, email, newsletterOptIn = true, timezone = null },
 ) {
   if (typeof email !== "string" || hashEmail(email) !== emailHash) return;
   const { rows } = await db.query(
-    `insert into account (email_hash, email, status, role, kind, decided_at, newsletter_opt_in)
-     values ($1, $2, 'approved', 'member', 'person', now(), $3)
+    `insert into account (email_hash, email, status, role, kind, decided_at, newsletter_opt_in, timezone)
+     values ($1, $2, 'approved', 'member', 'person', now(), $3, $4)
      on conflict (email_hash) do update
        set status = 'approved', email = excluded.email, decided_at = now()
        where account.status = 'requested' and account.role = 'member'
          and account.kind = 'person' and account.is_owner is not true
      returning account_id, newsletter_opt_in`,
-    [emailHash, email.trim().toLowerCase(), newsletterOptIn === true],
+    [
+      emailHash,
+      email.trim().toLowerCase(),
+      newsletterOptIn === true,
+      accountZone(timezone) ?? null,
+    ],
   );
   return rows[0] ?? null;
 }

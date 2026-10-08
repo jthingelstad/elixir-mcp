@@ -14,7 +14,7 @@ import {
   OAUTH_SCOPES,
   OAUTH_SCOPE_DETAILS,
 } from "@elixir-mcp/contracts";
-import { normalizeScope } from "@elixir-mcp/auth";
+import { accountZone, normalizeScope } from "@elixir-mcp/auth";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { firstAnswer } from "../first-answer.mjs";
@@ -351,25 +351,23 @@ export function accountRoutes({
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      const tz = String(body.timezone ?? "").trim();
       // Empty (the console's "UTC (default)") or "UTC" resets to the
       // default; before, "" failed validation and a set zone could never
-      // be cleared (console audit B1, 2026-09-24).
-      if (tz === "" || tz.toUpperCase() === "UTC") {
+      // be cleared (console audit B1, 2026-09-24). Signup runs the same
+      // check on a new account's browser zone (auth accountZone).
+      const tz = accountZone(body.timezone);
+      if (tz === null) {
         await db.query(
           `update account set timezone = null where account_id = $1`,
           [account.accountId],
         );
         return json(200, { ok: true, timezone: null });
       }
-      try {
-        Intl.DateTimeFormat("en-US", { timeZone: tz });
-      } catch {
+      if (tz === undefined)
         return json(400, {
           error: "bad_request",
           message: "Not an IANA timezone.",
         });
-      }
       await db.query(`update account set timezone = $2 where account_id = $1`, [
         account.accountId,
         tz,
