@@ -2893,13 +2893,21 @@
     },
     "request_id": "f215c027-2acf-4df8-a692-a779c391f83c",
     "when": {
-      "neq": ["top_deck.dominant_mode.mode", "best_deck.dominant_mode.mode"]
+      "all": [
+        {
+          "has": "best_deck.dominant_mode.mode"
+        },
+        {
+          "neq": ["top_deck.dominant_mode.mode", "best_deck.dominant_mode.mode"]
+        }
+      ]
     },
     "assert": [
       {
         "notes_match": "NOT comparable across rows"
       }
-    ]
+    ],
+    "amended": "Amended 2026-10-08: the guard also needs a best deck (has best_deck.dominant_mode.mode). best_deck is null when no deck has 10+ battles in the window or the best deck is the top deck (players.mjs), and neq held against the missing side, so the case ran with no two rows to compare and failed at the 9319942d deploy. With no best deck it is SKIPPED; with two decks in different modes the note is still asserted."
   },
   {
     "id": "133.1",
@@ -14679,13 +14687,21 @@
     },
     "request_id": "345a6843-fc31-4dd4-891b-e9abdbf0c736",
     "when": {
-      "neq": ["top_deck.dominant_mode.mode", "best_deck.dominant_mode.mode"]
+      "all": [
+        {
+          "has": "best_deck.dominant_mode.mode"
+        },
+        {
+          "neq": ["top_deck.dominant_mode.mode", "best_deck.dominant_mode.mode"]
+        }
+      ]
     },
     "assert": [
       {
         "notes_match": "NOT comparable across rows"
       }
-    ]
+    ],
+    "amended": "Amended 2026-10-08: the guard also needs a best deck (has best_deck.dominant_mode.mode). best_deck is null when no deck has 10+ battles in the window or the best deck is the top deck (players.mjs), and neq held against the missing side, so the case ran with no two rows to compare and failed at the 9319942d deploy. With no best deck it is SKIPPED; with two decks in different modes the note is still asserted."
   },
   {
     "id": "333.1",
