@@ -16,7 +16,7 @@ The source of truth for what stands, and the files that point agents at it.
 |---|---|---|
 | Decisions | `docs/DECISIONS.md` | itself (no line contradicts another), and everything below |
 | Invariants | `docs/ENGINEERING.md` | DECISIONS, the tests that enforce each invariant |
-| Working notes | `docs/NOTES.md`, `docs/notes/` | reasoning only; never cited as the ledger |
+| Working notes | `docs/NOTES.md` | open items and dated notes; never cited as the ledger |
 | Agent guide | `AGENTS.md` (CLAUDE.md is a symlink) | DECISIONS; points at DECISIONS, not NOTES |
 | Objective runs | `AGENT-TEAM/READING.md`, `README.md`, `WORKFLOW.md`, the four active objective files | DECISIONS; current plumbing in `infra/template.yaml` |
 | Repo skills | `.claude/skills/gym/`, `.claude/skills/consistency/` | DECISIONS; the acceptance and deploy rules |
@@ -47,7 +47,7 @@ is where the war-days gap lived.
 | Participation SQL | `packages/record/src/participation-sql.mjs` | `clans_participation`, `clans_standings`, war tools |
 | Product mail | `services/jobs/src/email/build-*.mjs`, `packages/mail/src/render.mjs`, `packages/mail/fixtures/` | the tools the builder should call; wording in docs |
 | Console | `apps/web/src/views/**`, `apps/web/src/pages/**` | tool semantics, docs wording, privacy (analytics.js) |
-| Web API routes | `services/web-api/src/routes/*.mjs`, `notify.mjs` | the tools, the docs, runtime strings that point at docs |
+| Web API routes | `services/web-api/src/routes/*.mjs`, `packages/outbox/src/notify.mjs` | the tools, the docs, runtime strings that point at docs |
 | Collector quota | `packages/tools/src/quota.mjs`, ingest points | mail, console and docs wording for credits |
 
 ## 4. The JSON API

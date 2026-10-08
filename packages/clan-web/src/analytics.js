@@ -1,10 +1,9 @@
 /**
  * Tinylytics, loaded client-side, the way Elixir's console loads it
  * (apps/web/src/analytics.js there; this file is that one, adapted).
- * Elixir's own site, Yzx8dUUvUPn9AEJpTMeU: on one origin (2026-09-28)
- * Clan's pages report beside the Console's, as /clan/...; site
- * J4GMM7Mti-Quk1gfx6zQ was clan.poapkings.com's. Elixir's CSP allows
- * tinylytics.app for script, connect and img.
+ * Elixir's own site, Yzx8dUUvUPn9AEJpTMeU: Clan's pages report beside
+ * the Console's, as /clan/.... Elixir's CSP allows tinylytics.app for
+ * script, connect and img.
  *
  * Two jobs, kept separate as Elixir learned to: the EMBED records the
  * document load; the ROUTE BRIDGE records pushState navigation as virtual
@@ -103,8 +102,8 @@ function bridgeRouteChanges() {
  * A product event, as Tinylytics counts them: a click on a
  * data-tinylytics-event node, so a programmatic event is a hidden node
  * clicked once. `value` is a bounded label (a card type and status, a
- * category, a route key), never free text, a tag or a URL. The taxonomy is
- * in AGENTS.md; add there when adding here.
+ * category, a route key), never free text, a tag or a URL. The list is in
+ * this package's AGENTS.md; add there when adding here.
  */
 export function trackEvent(event, value) {
   try {

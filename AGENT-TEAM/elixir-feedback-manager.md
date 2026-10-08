@@ -74,8 +74,9 @@ what the record's consumers (including the MCP Discord preview)
 actually asked for, one ranked list of the highest-leverage
 improvements — shipped where within authority, proposed to Jamie as
 single decisions where not. Write `AGENT-TEAM/summaries/<year>-W<week>.md`.
-The same pass rolls dated run logs older than two ISO weeks into their
-weekly file (`AGENT-TEAM/notes/README.md`, "Retention").
+The same pass deletes run logs older than two ISO weeks and summaries
+older than four, after moving anything still open to `docs/NOTES.md`
+(`AGENT-TEAM/notes/README.md`, "Retention").
 
 ## Action
 
@@ -85,10 +86,11 @@ weekly file (`AGENT-TEAM/notes/README.md`, "Retention").
   when schemas or semantics move. The MCP versioning rule is MCP-only:
   its majors track domain shifts, and removing an unreliable field is a
   patch.
-- **Check the JSON API before changing a tool it mirrors.** Six `/api/v1`
-  operations serve a tool's result (`clans_participation`,
-  `clans_roster`, the `live_fetch` clan read, `players_names`,
-  `players_profile`, `battles_query`; the wiring is
+- **Check the JSON API before changing a tool it mirrors.** `/api/v1`
+  operations serve eight tools' results (`clans_participation`,
+  `clans_roster`, `war_history`, the `live_fetch` clan read,
+  `players_names`, `players_profile`, `battles_query`,
+  `elixir_track_player`; the wiring is
   `services/web-api/src/integration-api.mjs`, the contract
   `packages/contracts/integration-api.openapi.json`). The JSON API keeps
   ordinary semver in its own `info.version`, because its callers are
@@ -116,6 +118,6 @@ product manager who actually looked.
 
 ## Consolidated Clan responsibility
 
-Clan Feedback Manager transfers to this existing owner when `ClanInternal=true`; while the switch is false, legacy ownership remains active. Read the switch from the stack before treating either runtime as authoritative.
+Clan feedback belongs to this owner: Clan is part of Elixir, with no separate runtime or owner.
 
 Read `packages/clan/src/feedback.mjs` and shared Feedback/Maintain views. Include the IAM-only `{clan_maintenance:{lane:"feedback"}}` queue, oldest first, following next_cursor, without changing seen pointers. Preserve private clan/member dispute context; hand judgment findings to the Data Auditor with exact policy/evidence/action log context. Replies use lane respond with the freshly read expected_sha256, explicit apply and lease only within the existing authorized feedback procedure. Re-read uncertain responses before retry; attach shipped_in and visible status. Include Clan in the existing weekly synthesis once, never create another weekly publication or invent traffic. Retained cadence is the root owner cadence; assess unanswered items at the next scheduled review, not a separate daily promise.

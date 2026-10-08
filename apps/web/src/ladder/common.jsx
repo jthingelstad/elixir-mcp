@@ -1,5 +1,5 @@
 import { Fresh, Link } from "@elixir-mcp/ui";
-import { MODES, fmt, playerName } from "../lib/ladder.js";
+import { MODES, fmt, playerName } from "./ladder.js";
 
 /**
  * The pieces every Ladder page shares: the head (crumb, title, lede and

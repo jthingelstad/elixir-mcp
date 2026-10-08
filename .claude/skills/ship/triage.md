@@ -35,7 +35,7 @@ with a failure nobody triaged is a gate nobody kept.
   at a time so its timings are honest, and a failure that repeats alone is
   a regression.
 - **Re-seed.** The 48,000-character cap (`MCP_RESULT_MAX_CHARS` in
-  `services/mcp/src/protocol.mjs`) is priced by design: "a priced
+  `packages/tools/src/result-text.mjs`) is priced by design: "a priced
   `result_too_large` is an answer, not a defect" (DECISIONS), and a lower
   full-verbosity page limit is a declined idea. So the seed changes, never
   the cap or the tool. Keep a seed that is the only witness of a field:

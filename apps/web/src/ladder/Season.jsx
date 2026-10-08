@@ -14,7 +14,7 @@ import {
   shortDay,
   signed,
   weekBars,
-} from "../lib/ladder.js";
+} from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
 import {
   LadderHead,
@@ -252,7 +252,7 @@ function WeekBars({ bar }) {
 
 /** players_summary's top_deck: the deck played most over the last 30
  *  days, all modes, with its record per mode. A rate shows only when it
- *  is one mode's own (lib/ladder deckModes). */
+ *  is one mode's own (ladder.js deckModes). */
 function TopDeck({ summary, search, zone, wide }) {
   const deck = summary.data?.top_deck ?? null;
   const decksPage = LADDER_PAGES.some((p) => p.slug === "decks");

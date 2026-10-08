@@ -24,7 +24,7 @@ its own evidence tool (`tools/cr-probe`) for live calls.
 |---|---|
 | Does Elixir's ingest know every field the API sends? | the hub's manifest (`packages/ingest/src/payload-keys.mjs`), the nightly shape census and the full audit's UNCATALOGUED list; Elixir Feedback Manager turns a finding into the change |
 | Does the reference document what the API sends? | **this skill** |
-| What is happening in the game, and what is coming? | the domain objective Understand Clash Royale (`../AGENT-TEAM/understand-clash-royale.md`), which runs this skill for its evidence step |
+| What is happening in the game, and what is coming? | the domain objective Clash Royale Analyst (`../AGENT-TEAM/clash-royale-analyst.md`), which runs this skill for its evidence step |
 
 ## Preflight
 

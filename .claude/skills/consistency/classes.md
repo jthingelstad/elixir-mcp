@@ -88,10 +88,9 @@ superseded.
 
 - Example: ENGINEERING and the objective files sent agents to NOTES.md
   for ratified decisions; a runtime string sent operators to a deleted
-  OPERATORS.md; comments citing `docs/REVIEW-*.md` after the move to
-  `docs/reviews/`.
-- Fix: repoint; when the pointer is in a checksum-immutable migration,
-  add the old-to-new row to `docs/archive/README.md` instead.
+  OPERATORS.md; comments citing a review document after it was deleted.
+- Fix: repoint; a pointer in a checksum-immutable migration stays as
+  written (git history resolves it).
 - Guard: `packages/tools/test/docs-pointers.test.mjs` for `docsRef()`; a
   grep for the old path in the round that moves a file.
 

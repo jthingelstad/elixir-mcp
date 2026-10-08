@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "Elixir's email, rendered from facts: the shell, a renderer per kind, the send ledger, the archive, unsubscribe and delivery.",
   "main": "src/index.mjs",
   "exports": {
     ".": "./src/index.mjs",

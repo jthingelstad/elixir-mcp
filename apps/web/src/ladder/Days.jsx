@@ -1,6 +1,6 @@
 import { Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
-import { clockTime, fmt, longDay, monthName } from "../lib/ladder.js";
+import { clockTime, fmt, longDay, monthName } from "./ladder.js";
 import {
   battlePath,
   battleScore,
@@ -17,7 +17,7 @@ import {
   weekdayLabel,
   weekdayOf,
   zoneName,
-} from "../lib/ladder-days.js";
+} from "./ladder-days.js";
 import { useBattleSweep, useToolRead } from "../lib/queries.js";
 import { LadderHead, Loading, ReadError, Record, Tile } from "./common.jsx";
 

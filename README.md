@@ -5,10 +5,10 @@ Clash Royale history, recorded, and served to your own agent.
 The Clash Royale API only answers "what is true right now": no trophy
 timelines, no battle archive beyond a rotating log of about 30 battles, no
 per-season history. Elixir MCP records those observations continuously and
-keeps them. It records the players and clans its accounts track, the members
-of clans recorded at comprehensive scope, the players on the ranked
-leaderboards, and the members of collections. The record is served through an
-authenticated remote MCP server and a versioned JSON API.
+keeps them. It records the players and clans its accounts track and the
+members of the clans it tracks. The record is served on one origin: the
+Console, Ladder and Elixir Clan in the browser, an authenticated remote MCP
+server for agents, and a versioned JSON API.
 
 - Web: <https://elixir.poapkings.com>
 - MCP: `https://elixir.poapkings.com/mcp`
@@ -26,17 +26,17 @@ An npm workspaces monorepo.
 | Path | What it holds |
 | --- | --- |
 | `apps/site` | The static half of the site (Eleventy): home, docs, updates, and the machine-readable surfaces |
-| `apps/web` | The application half (React): sign-in, explore, account, admin, live data |
+| `apps/web` | The application half (React): the Console, Ladder (`src/ladder`) and the shell Elixir Clan's views run in |
 | `services/` | The Lambdas, each only its door (entry, handler, routes): `collector`, `email-relay`, `jobs`, `mcp`, `migrate`, `scheduler`, `web-api` |
-| `packages/` | What more than one Lambda or app runs, imported by name: `auth`, `claims`, `client`, `collector-door` (the collectors' config, lease and submit), `contracts` (the tool and API contract), `design`, `docs`, `ingest`, `ledger`, `mail`, `outbox`, `record`, `tools` (the tool registry), `ui` |
+| `packages/` | What more than one Lambda or app runs, imported by name: `auth`, `claims`, `client`, `clan`, `clan-engine`, `clan-state`, `clan-web` (Elixir Clan), `collector-door` (the collectors' config, lease and submit), `contracts` (the tool and API contract), `design`, `docs`, `ingest`, `ledger`, `mail`, `outbox`, `record`, `tools` (the tool registry), `ui` |
 | `acceptance/` | The read-only acceptance suite run against the live service |
-| `clients/boards` | A client that keeps the leaderboard collections equal to the boards |
 | `db/migrations` | The ordered schema migrations |
 | `infra/` | The CloudFormation template and the build, deploy and maintenance scripts |
 | `AGENT-TEAM/` | The objective owners that maintain the service |
-| `docs/` | Engineering invariants, the decision ledger, working notes and reviews |
+| `docs/` | Engineering invariants, the decision ledger and the working notes |
 
-For contributors: [AGENTS.md](AGENTS.md) holds the golden rules,
+For contributors: [AGENTS.md](AGENTS.md) holds the golden rules and points to
+each area's own guide (Console, Ladder, Clan, tools, site, infra);
 [docs/ENGINEERING.md](docs/ENGINEERING.md) the build invariants and
 [docs/DECISIONS.md](docs/DECISIONS.md) the ratified decisions.
 `node infra/scripts/build-site.mjs` builds both halves of the site into one

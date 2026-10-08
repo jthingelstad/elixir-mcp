@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 /**
- * Stack parameter discipline — Drop's pattern, must-ported (AGENTS.md).
+ * Stack parameter discipline, Drop's pattern (infra/AGENTS.md).
  *
  * CloudFormation SILENTLY RESETS every parameter you omit on update-stack
  * to its template Default. Hardcoding a literal here is the same bug in a

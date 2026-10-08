@@ -1,7 +1,7 @@
 import { CardArt, Link } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { CONSOLE } from "../lib/console.js";
-import { fmt, ladderHref, modeLabel, pct } from "../lib/ladder.js";
+import { fmt, ladderHref, modeLabel, pct } from "./ladder.js";
 import {
   cameBack,
   cardRows,
@@ -9,7 +9,7 @@ import {
   modeBattles,
   opponentName,
   times,
-} from "../lib/ladder-cards.js";
+} from "./ladder-cards.js";
 import { useToolRead } from "../lib/queries.js";
 import { tagPath } from "../lib/tag-url.js";
 import {

@@ -1,5 +1,5 @@
 /**
- * Ladder's Days page shaping (lib/ladder-days.js): the season's battles
+ * Ladder's Days page shaping (ladder/ladder-days.js): the season's battles
  * laid on the account's calendar and chained into nights. These pin the
  * seams where a day or a night could invent a number: which day a late
  * battle lands on, a boat defense, a day the sweep never reached, a
@@ -24,7 +24,7 @@ import {
   weekdayIndex,
   weekdayLabel,
   zoneName,
-} from "../src/lib/ladder-days.js";
+} from "../src/ladder/ladder-days.js";
 
 const CHI = "America/Chicago";
 const SEASON = {

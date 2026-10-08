@@ -201,6 +201,6 @@ notes and no commits.
 
 ## Consolidated Clan responsibility
 
-Clan Operator transfers to this existing owner when `ClanInternal=true`; while the switch is false, legacy ownership remains active. Read the switch from the stack before treating either runtime as authoritative.
+Clan operation belongs to this owner: Clan is part of Elixir, with no separate runtime or owner.
 
-Read the private policy-clan inventory through `{clan_maintenance:{lane:"clans"}}`, following next_cursor to completion. Inspect bounded `{clan_maintenance:{lane:"morning",clan_tag}}` receipts for completion, attempts and failures, plus the shared morning job logs and mail delivery receipts. No legacy Clan stack or separate deploy is the authority after activation. Distinguish quiet/no-policy clans from failed evaluation, and uncertain paid-model attempts from a retryable job. Never repeat a paid call for verification.
+Read the private policy-clan inventory through `{clan_maintenance:{lane:"clans"}}`, following next_cursor to completion. Inspect bounded `{clan_maintenance:{lane:"morning",clan_tag}}` receipts for completion, attempts and failures, plus the shared morning job logs and mail delivery receipts. Distinguish quiet/no-policy clans from failed evaluation, and uncertain paid-model attempts from a retryable job. Never repeat a paid call for verification.

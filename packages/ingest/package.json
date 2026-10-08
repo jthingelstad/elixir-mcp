@@ -2,7 +2,7 @@
   "name": "@elixir-mcp/ingest",
   "version": "0.1.0",
   "private": true,
-  "description": "Admission boundary + canonical projections: raw CR payloads in, receipts/battles/roster observations out. A library: the collector door's submit (web-api) runs it inline; there is no ingest Lambda.",
+  "description": "Admission boundary + canonical projections: raw CR payloads in, receipts/battles/roster observations out. A library: the collector door's submit (the collector Lambda) runs it inline; there is no ingest Lambda.",
   "type": "module",
   "main": "src/handler.mjs",
   "exports": {

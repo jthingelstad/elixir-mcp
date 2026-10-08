@@ -1,5 +1,5 @@
 /**
- * Ladder's Decks page shaping (lib/ladder-decks.js): battles_decks'
+ * Ladder's Decks page shaping (ladder/ladder-decks.js): battles_decks'
  * answers, every mode and then mode by mode, laid out as the board does.
  * These pin the seams where a deck could pick up a record that is not
  * its own: a deck played in two modes, duel rounds, a war deck with the
@@ -18,7 +18,7 @@ import {
   nameList,
   tableRows,
   tableTitle,
-} from "../src/lib/ladder-decks.js";
+} from "../src/ladder/ladder-decks.js";
 
 const CHI = "America/Chicago";
 const h = (c) => c.repeat(64);

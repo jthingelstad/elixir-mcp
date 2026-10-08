@@ -13,7 +13,7 @@
  * on a page pools across modes: Trophy Road and Path of Legends match
  * by different rules, and war draws opponents from the racing clans.
  */
-import { tagPath } from "./tag-url.js";
+import { tagPath } from "../lib/tag-url.js";
 
 export const LADDER = "/ladder";
 

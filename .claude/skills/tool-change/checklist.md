@@ -58,8 +58,9 @@ only when it does not apply, and say why in the commit message.
   `GROUP_ORDER`. `principals.ts` holds `PERSON_ONLY_TOOLS`,
   `AGENT_ONLY_TOOLS` and `NOT_FOR_PERSONS`. `errors.ts` holds
   `ERROR_CODES` and their classes.
-- `services/mcp/src/protocol.mjs` holds `instructionsFor` (the brief),
-  `MCP_RESULT_MAX_CHARS` and `renderToolResultText()`. `invoker.mjs`
+- `services/mcp/src/protocol.mjs` holds `instructionsFor` (the brief);
+  `packages/tools/src/result-text.mjs` holds `MCP_RESULT_MAX_CHARS` and
+  `renderToolResultText()`. `packages/tools/src/invoker.mjs`
   holds `BUDGETED_TOOLS`, the deadline race and the audit row;
   `tools.mjs` holds the registry's `invoke`, which attaches the
   event-pool note (`EVENT_POOL_NOTE`).
@@ -186,7 +187,7 @@ only when it does not apply, and say why in the commit message.
 - [ ] The behaviour is tested in the concern's file on a scratch
       database. Battles are seeded through `deck-rows.mjs`, and rollups
       are built when the tool reads them.
-- [ ] `npm run build && node --test services/mcp/test/<file>.test.mjs`
+- [ ] `npm run build && node --test packages/tools/test/<file>.test.mjs`
       passes. The full `npm run verify` belongs to `/ship`.
 
 ## Docs

@@ -1,10 +1,10 @@
 /**
- * The V1 tool registry — docs/ENGINEERING.md Declarations (JSON Schema) and
- * handlers live together in the per-group modules under ./tools/ so a
- * schema and its behavior can't drift; this file only assembles the
- * registry (split from one 3,800-line file, review item 8). Handlers
- * throw ToolFailure for structured errors (the closed taxonomy); the
- * invoker renders them as {error, meta} bodies with isError: true.
+ * The tool registry (docs/ENGINEERING.md, Tool conventions). Declarations
+ * (JSON Schema) and handlers live together in the per-group modules under
+ * ./tools/ so a schema and its behavior can't drift; this file only
+ * assembles the registry. Handlers throw ToolFailure for structured errors
+ * (the closed taxonomy); the invoker renders them as {error, meta} bodies
+ * with isError: true.
  */
 
 import {
@@ -25,7 +25,7 @@ import { clansTools } from "./tools/clans.mjs";
 import { liveTools } from "./tools/live.mjs";
 import { playersTools } from "./tools/players.mjs";
 import { warTools } from "./tools/war.mjs";
-import { rankingsTools } from "./tools/rankings.mjs";
+import { game_events } from "./tools/game-events.mjs";
 import { seriesTools } from "./tools/series.mjs";
 import { validateArgs } from "./validate.mjs";
 import { OUTPUT_SCHEMAS } from "./output-schemas.mjs";
@@ -48,7 +48,7 @@ const TOOLS = {
   ...liveTools,
   ...playersTools,
   ...warTools,
-  ...rankingsTools,
+  game_events,
 };
 
 /** The size control a one-size tool publishes (6.2.0, feedback #74).

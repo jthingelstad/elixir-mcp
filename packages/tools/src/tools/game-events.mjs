@@ -1,4 +1,4 @@
-import { resolveInstant } from "../../time.mjs";
+import { resolveInstant } from "../time.mjs";
 import {
   SEASON_ARG_SCHEMA,
   ToolFailure,
@@ -12,7 +12,7 @@ import {
   seasonFieldsForInstants,
   withWindowSugar,
   zoneFor,
-} from "../shared.mjs";
+} from "./shared.mjs";
 import { seasonFromDate } from "@elixir-mcp/record/war-clock";
 const seasonStartOf = (at) => seasonFromDate(at.getTime()).seasonStartMs;
 

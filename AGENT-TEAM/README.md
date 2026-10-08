@@ -35,11 +35,6 @@ Calendar cadence: [generated schedule](SCHEDULE.md), sourced from `automations.t
 Each run works in its own worktree ([WORKFLOW](WORKFLOW.md), "One
 worktree per run").
 
-Renamed 2026-09-29, for names that say what each does: Run Elixir MCP,
-Keep the Record True, Close the Loop, Guard the Door and Keep the Boards.
-The keys, the automation ids and each objective's memory did not change;
-notes and summaries written before then use the old names.
-
 The Elixir Security Reviewer is an independent control: the Operator
 cannot waive its findings, and it never weakens an entitlement or
 privacy boundary to make another objective's work easier. Do not add an
@@ -90,9 +85,8 @@ Cross-cutting work keeps one originating owner through acceptance.
 
 - `CLAUDE.md` / `AGENTS.md` — golden rules; `docs/ENGINEERING.md` is the spec
   of engineering invariants; `docs/DECISIONS.md` is the ratified-decision
-  ledger, one line each; `docs/NOTES.md` holds the current week's working
-  notes and `docs/notes/` the earlier weeks, where each decision's
-  reasoning lives. `AGENT-TEAM/READING.md` selects authoritative product
+  ledger, one line each; `docs/NOTES.md` holds open items and working
+  notes; a decision's reasoning is in git history. `AGENT-TEAM/READING.md` selects authoritative product
   docs for each objective.
 - `packages/contracts` — tool schemas, the collector and mail message
   contracts, error enum, changelog. Version rules in `docs/ENGINEERING.md`

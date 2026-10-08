@@ -6,7 +6,7 @@ import {
   ladderSlug,
   pickMode,
   pickPlayer,
-} from "../lib/ladder.js";
+} from "../ladder/ladder.js";
 import { useToolRead } from "../lib/queries.js";
 import { NoPlayers } from "../ladder/common.jsx";
 import { Cards } from "../ladder/Cards.jsx";

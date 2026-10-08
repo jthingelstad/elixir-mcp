@@ -39,3 +39,6 @@ apps/site/src/assets/cards/
 # Mail previews (node packages/mail/scripts/preview.mjs): rendered
 # fixtures to open or screenshot, never committed.
 packages/mail/.preview/
+
+# Claude Code subagent worktrees (each a full checkout; never part of this one).
+.claude/worktrees/
