@@ -469,6 +469,13 @@ behavior (the only door route that sees the session cookie is
   call in it, never a draft: the engine fills missing words with its
   plain template. `MODEL_PREFERENCE` only names a default when a key is
   added; a clan's saved model is never moved.
+- The key's model list refreshes through `refreshModels`, the key-add
+  read (`keyModels`), at most once in `MODELS_REFRESH_MS` per clan (the
+  attempt is recorded before the read), asked for by the Settings page
+  after it draws, and due at once after a `model_unavailable`. It merges
+  only the list fields into the key item re-read after the call, never
+  `model`. 401/403 sets `refused_at`; any other failure keeps the list
+  and records `models_refresh_error`.
 - Repair is the IAM-only `{clan_maintenance}` migrate op: bounded reads,
   digest-checked feedback responses, and an audited system withdrawal of
   one pending removal under incident authority. Sealed key items have no

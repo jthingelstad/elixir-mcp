@@ -111,6 +111,82 @@ describe("the clan's model", () => {
     expect(choose).not.toHaveBeenCalled();
   });
 
+  test("asks for a refresh after drawing when the list is due, and reloads when it changed", async () => {
+    const read = vi
+      .spyOn(manageApi, "model")
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        data: status({ refresh_due: true, models_refreshed_at: null }),
+      })
+      .mockResolvedValue({
+        ok: true,
+        status: 200,
+        data: status({ models_refreshed_at: "2026-10-08T20:00:00Z" }),
+      });
+    const refresh = vi
+      .spyOn(manageApi, "refreshModels")
+      .mockResolvedValue({ ok: true, status: 200, data: { refreshed: true } });
+    renderWithProviders(<Model clan={leaderClan} />);
+    expect(await screen.findByText("sk-ant-…WXYZ")).toBeTruthy();
+    await waitFor(() => expect(refresh).toHaveBeenCalledWith("#2PQRJ8LV"));
+    expect(await screen.findByText("From Anthropic, 2026-10-08")).toBeTruthy();
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  test("a list that is not due is not refreshed, and a failed refresh leaves the page as it was", async () => {
+    vi.spyOn(manageApi, "model").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: status(),
+    });
+    const refresh = vi.spyOn(manageApi, "refreshModels");
+    renderWithProviders(<Model clan={leaderClan} />);
+    expect(await screen.findByText("sk-ant-…WXYZ")).toBeTruthy();
+    expect(refresh).not.toHaveBeenCalled();
+    cleanup();
+    vi.restoreAllMocks();
+    vi.spyOn(manageApi, "model").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: status({ refresh_due: true }),
+    });
+    const failing = vi
+      .spyOn(manageApi, "refreshModels")
+      .mockRejectedValue(new Error("network"));
+    renderWithProviders(<Model clan={leaderClan} />);
+    expect(await screen.findByText("sk-ant-…WXYZ")).toBeTruthy();
+    await waitFor(() => expect(failing).toHaveBeenCalledTimes(1));
+    expect(screen.getByLabelText("Model").value).toBe("claude-sonnet-5");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("a chosen model the key no longer offers stays chosen and is marked", async () => {
+    vi.spyOn(manageApi, "model").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: status({
+        model: "claude-haiku-4-5-20251001",
+        models: [
+          { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
+          { id: "claude-haiku-5-5", name: "Claude Haiku 5.5" },
+        ],
+      }),
+    });
+    const choose = vi.spyOn(manageApi, "chooseModel");
+    renderWithProviders(<Model clan={leaderClan} />);
+    const select = await screen.findByLabelText("Model");
+    expect(select.value).toBe("claude-haiku-4-5-20251001");
+    const gone = [...select.options].find(
+      (o) => o.value === "claude-haiku-4-5-20251001",
+    );
+    expect(gone.disabled).toBe(true);
+    expect(gone.textContent).toMatch(/not offered by this key now/);
+    expect(screen.getByText(/is not one this key offers now/)).toBeTruthy();
+    expect(choose).not.toHaveBeenCalled();
+  });
+
   test("says why a key is not in use", async () => {
     vi.spyOn(manageApi, "model").mockResolvedValue({
       ok: true,

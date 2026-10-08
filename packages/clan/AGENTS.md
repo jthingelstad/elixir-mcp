@@ -49,6 +49,9 @@ or workflow of its own.
   sealed (`src/sealed.mjs`, HKDF domain per purpose); no key, prompt or
   answer is logged. The sealing secret (`clan_sealing_secret` in the app secret) keeps its
   derivation and AAD until its own reviewed rotation (`docs/SECRETS.md`).
+  The key's model list refreshes itself (`refreshModels`, at most daily,
+  asked for by Settings after it draws); nothing ever changes a clan's
+  saved model.
 - **`ClanInternal`** (stack parameter, `CLAN_INTERNAL`) is the feature
   switch. Turning it off disables Clan's API and morning run; it never
   resumes another runtime.

@@ -129,6 +129,7 @@ current rule, never as "was X, now Y".
 - **Awards live under Clan for every member** — one season selected; weekly progress is one Action with per-message receipts; automation uses only the newest timely closed week and never backfills; after each recorded war-week close, raise a leader Action to share provisional standings, without duplicates and never posted automatically. Manual grants stay flexible (several FreePasses a season is fine).
 - **Rookie means first recorded join this season** — the season-points podium among members whose first recorded join to the clan falls in the selected season; an earlier join or returning stint never qualifies; saved grants stay final.
 - **Clan drafts words; people decide** — the clan's sealed model key drafts welcome, departure, recruiting and leader-message copy from frozen, sourced context; departure drafts need a leader-confirmed kick or leave; drafting never completes or posts an Action.
+- **A clan's model is its own choice** — the key's model list refreshes itself (at most daily, when Settings is opened, and at once after a draft finds its model gone; never from drafting); a refresh or a new default never changes the saved model, a model the key no longer offers stays chosen and marked, and a failed refresh keeps the old list.
 
 ## Web
 
