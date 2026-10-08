@@ -188,7 +188,13 @@ for (const width of [390, 1280]) {
     await page
       .getByRole("button", { name: "Add your player", exact: true })
       .click();
-    await expect(page.getByText(/open your player profile/)).toBeVisible();
+    await expect(
+      page.getByText(/open your profile: the tag starting with #/),
+    ).toBeVisible();
+    await expect(page.getByLabel("Player tag")).toHaveAttribute(
+      "aria-describedby",
+      "add-player-tag-hint",
+    );
     await expect(
       page.getByText(/Your first player becomes your primary/),
     ).toBeVisible();
