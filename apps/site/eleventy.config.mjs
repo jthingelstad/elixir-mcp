@@ -23,6 +23,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import DOC_GROUPS from "./src/_data/docGroups.js";
+import { firstParagraph } from "./src/_lib/plain-text.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -608,19 +609,11 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter("md", (s) => marked.parse(String(s ?? "")));
 
   /** First paragraph of a doc, as plain text, for meta descriptions and
-   *  the docs index. */
-  eleventyConfig.addFilter("firstParagraph", (md) => {
-    const body = String(md ?? "")
-      .split("\n")
-      .filter((l) => !l.startsWith("#"))
-      .join("\n")
-      .trim();
-    const para = body.split(/\n\s*\n/)[0] ?? "";
-    return para
-      .replace(/\s+/g, " ")
-      .replace(/[*`_[\]]/g, "")
-      .trim();
-  });
+   *  the docs index. Markdown's marks come off; an underscore inside a
+   *  word stays, because it is a tool's name (elixir_my_feedback), not
+   *  emphasis: stripping every one printed "elixirmyfeedback" on
+   *  /updates. A link keeps its words and drops its address. */
+  eleventyConfig.addFilter("firstParagraph", (md) => firstParagraph(md));
 
   eleventyConfig.addFilter("clamp", (s, n) => {
     const t = String(s ?? "");

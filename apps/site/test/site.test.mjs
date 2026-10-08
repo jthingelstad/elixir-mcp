@@ -1368,3 +1368,27 @@ test(
     assert.ok(!existsSync(path.join(out, "assets/home-live.js")));
   },
 );
+
+test("a teaser keeps the underscores in a tool's name", async () => {
+  // /updates printed "elixirmyfeedback": the plain-text filter stripped
+  // every underscore as if it were emphasis.
+  const { firstParagraph } = await import(
+    path.join(repoRoot, "apps/site/src/_lib/plain-text.mjs")
+  );
+  assert.equal(
+    firstParagraph("elixir_my_feedback lists yours; reply with follows_id."),
+    "elixir_my_feedback lists yours; reply with follows_id.",
+  );
+  assert.equal(
+    firstParagraph(
+      "# T\n\n_Said_ **plainly**, see [Modes](/docs/modes).\n\nMore.",
+    ),
+    "Said plainly, see Modes.",
+  );
+});
+
+test("the Updates page prints tool names whole", { skip }, () => {
+  const html = read("updates/index.html");
+  assert.ok(html.includes("elixir_my_feedback"));
+  assert.ok(!html.includes("elixirmyfeedback"));
+});
