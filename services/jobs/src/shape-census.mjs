@@ -173,8 +173,8 @@ export async function shapeCensus(databaseUrl, deps = {}) {
       }
       if (!owner) continue;
       await db.query(
-        `insert into feedback (account_id, surface, category, message, context)
-         values ($1, 'recorder', 'data_quality', $2, $3::jsonb)`,
+        `insert into feedback (account_id, surface, area, category, message, context)
+         values ($1, 'recorder', 'recorder', 'data_quality', $2, $3::jsonb)`,
         [
           owner.account_id,
           f.message,

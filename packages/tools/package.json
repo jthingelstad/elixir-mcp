@@ -16,13 +16,15 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",
+    "@elixir-mcp/auth": "0.1.0",
     "@elixir-mcp/claims": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0",
     "@elixir-mcp/docs": "0.1.0",
+    "@elixir-mcp/feedback": "0.1.0",
     "@elixir-mcp/ingest": "0.1.0",
     "@elixir-mcp/ledger": "0.1.0",
-    "@elixir-mcp/record": "0.1.0",
-    "@elixir-mcp/auth": "0.1.0"
+    "@elixir-mcp/outbox": "0.1.0",
+    "@elixir-mcp/record": "0.1.0"
   },
   "devDependencies": {
     "pg": "^8.23.1"

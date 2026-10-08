@@ -1,10 +1,15 @@
-import { responseMeta } from "@elixir-mcp/contracts";
-import { appliedBlock, docsRef, notes } from "../shared.mjs";
+import {
+  FEEDBACK_AREAS,
+  FEEDBACK_STATUSES,
+  responseMeta,
+} from "@elixir-mcp/contracts";
+import { FeedbackError, listMine, markSeen } from "@elixir-mcp/feedback";
+import { ToolFailure, appliedBlock, docsRef, notes } from "../shared.mjs";
 import { FEEDBACK_PAGE_MAX_CHARS } from "./common.mjs";
 
 export const elixir_my_feedback = {
   description:
-    "Your feedback and what happened to it: status (new/seen/planned/done/declined), the maintainer's response, and ship links (shipped_in contract version, related_tools). Results are bounded pages: pass next_offset as offset until null. Only responses delivered on this page are marked seen. Poll only when meta.feedback_responses_pending says something is new.",
+    "Your feedback and what happened to it: status (new/seen/planned/done/declined), the maintainer's response, and ship links (shipped_in contract version, related_tools). Every item you filed anywhere in Elixir is here, wherever you filed it (area). Results are bounded pages: pass next_offset as offset until null. Only responses delivered on this page are marked seen. Poll only when meta.feedback_responses_pending says something is new.",
   inputSchema: {
     type: "object",
     properties: {
@@ -17,11 +22,17 @@ export const elixir_my_feedback = {
       },
       status: {
         type: "string",
-        enum: ["new", "seen", "planned", "done", "declined"],
+        enum: [...FEEDBACK_STATUSES],
       },
       since: {
         type: "string",
         description: "ISO instant; only items filed after this.",
+      },
+      area: {
+        type: "string",
+        enum: [...FEEDBACK_AREAS],
+        description:
+          "Only items about one part of Elixir (11.3.0): mcp, api, console, ladder, clan, mail, docs.",
       },
     },
     additionalProperties: false,
@@ -29,43 +40,33 @@ export const elixir_my_feedback = {
   async handler(ctx, args) {
     const limit = Math.min(Math.max(Number(args.limit ?? 20), 1), 50);
     const offset = Math.max(Number(args.offset ?? 0), 0);
-    const params = [ctx.account.accountId];
-    const where = ["account_id = $1"];
-    if (args.status) {
-      params.push(args.status);
-      where.push(`status = $${params.length}`);
+    let listed;
+    try {
+      listed = await listMine(ctx.db, ctx.account.accountId, {
+        limit,
+        offset,
+        status: args.status ?? null,
+        since: args.since ?? null,
+        area: args.area ?? null,
+      });
+    } catch (err) {
+      if (err instanceof FeedbackError)
+        throw new ToolFailure("bad_request", err.message, err.hint);
+      throw err;
     }
-    if (args.since) {
-      params.push(args.since);
-      where.push(`created_at > $${params.length}`);
-    }
-    const {
-      rows: [{ total }],
-    } = await ctx.db.query(
-      `select count(*)::int as total from feedback where ${where.join(" and ")}`,
-      params,
-    );
-    params.push(limit);
-    const limitParam = params.length;
-    params.push(offset);
-    const offsetParam = params.length;
-    const { rows } = await ctx.db.query(
-      `select feedback_id, surface, category, message, status,
-                response, responded_at, created_at, shipped_in, related_tools,
-                request_id
-         from feedback where ${where.join(" and ")}
-         order by feedback_id desc limit $${limitParam} offset $${offsetParam}`,
-      params,
-    );
-    const mapped = rows.map((r) => ({
+    const { total } = listed;
+    const mapped = listed.items.map((r) => ({
       feedback_id: r.feedback_id,
-      created_at: r.created_at.toISOString(),
+      created_at: r.created_at,
       surface: r.surface,
+      area: r.area,
       category: r.category,
       message: r.message,
+      ...(r.refs.length ? { refs: r.refs } : {}),
+      ...(r.follows_id ? { follows_id: r.follows_id } : {}),
       status: r.status,
       response: r.response,
-      responded_at: r.responded_at?.toISOString() ?? null,
+      responded_at: r.responded_at,
       shipped_in: r.shipped_in,
       related_tools: r.related_tools,
     }));
@@ -77,6 +78,7 @@ export const elixir_my_feedback = {
         offset,
         status: args.status,
         since: args.since,
+        area: args.area,
       }),
       feedback,
       total,
@@ -102,15 +104,11 @@ export const elixir_my_feedback = {
     // A response is acknowledged only after it has made this bounded page.
     // The old account-wide UPDATE could clear the pending hint for replies
     // omitted by limit, and even for a whole result rejected at the wire cap.
-    const deliveredIds = page.map((row) => row.feedback_id);
-    if (deliveredIds.length > 0) {
-      await ctx.db.query(
-        `update feedback set response_seen_at = now()
-           where account_id = $1 and feedback_id = any($2::bigint[])
-             and responded_at is not null and response_seen_at is null`,
-        [ctx.account.accountId, deliveredIds],
-      );
-    }
+    await markSeen(
+      ctx.db,
+      ctx.account.accountId,
+      page.map((row) => row.feedback_id),
+    );
     return body;
   },
 };

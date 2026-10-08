@@ -54,6 +54,8 @@ const AUDITED = {
   clanFactRemove: "clans.facts.remove",
   playerFactWrite: "players.facts.write",
   clanMailSend: "clans.mail.send",
+  sendFeedback: "feedback.send",
+  myFeedback: "feedback.list",
 };
 
 /** The credential scheme each kind of caller presents. */

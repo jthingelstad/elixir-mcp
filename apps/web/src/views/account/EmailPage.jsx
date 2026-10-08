@@ -35,6 +35,10 @@ const ABOUT = {
     what: "When an action in your clan waits for your decision, after Elixir Clan's morning run.",
     note: "only if you can act on it",
   },
+  feedback_answer: {
+    icon: "message-square",
+    what: "When Elixir's maintainer answers feedback you filed, from anywhere in Elixir, and you have not read the answer yet.",
+  },
 };
 
 const SOURCE_ICON = {
@@ -43,6 +47,7 @@ const SOURCE_ICON = {
   Friends: "users-round",
   Cards: "layers",
   Collectors: "server",
+  Account: "user",
 };
 
 const WEEK = [

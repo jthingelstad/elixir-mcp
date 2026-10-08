@@ -46,7 +46,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Role-upgrade requests | `POST /api/me/role-request` | pending state | one pending at a time | HTTP 409 |
 | Verification starts | `POST /api/me/verify` | `verify#<account>`, `verify-tag#<tag>` | 5 per hour per account; 5 per hour per tag | HTTP 429 `{"error":"rate_limited","message":"At most 5 verification starts an hour."}` |
 | Verification live reads | an open challenge's battle-log checks | per tag, last 24 hours | 120, whoever's challenges asked | none: the challenge stays open and the check waits for the player's regular recording |
-| Feedback | `elixir_send_feedback`, `POST /api/feedback` | none | message 1 to 8,000 chars (the refusal says how long it was) | never metered beyond the daily call quota |
+| Feedback | `elixir_send_feedback`, `POST /api/v1/feedback`, a signed-in page's form | none | message 1 to 8,000 chars (the refusal says how long it was) | never metered beyond the daily call quota |
 | Collector door, work | `/api/collector/lease` and `/submit` | `collector-work#<gateway>` | 10,000 per hour | HTTP 429 with `retry-after` and `{"error":"rate_limited","scope":"work","limit_per_hour":10000,"retry_after_s":N,"hint":"…"}` |
 | Collector door, config | `/api/collector/config` | `collector-config#<gateway>` | 120 per hour | same shape, `scope: "config"` |
 | Collector outstanding leases | `/api/collector/lease` | per gateway | 2 unsubmitted | HTTP 429 `{"error":"lease_cap","hint":"At most 2 unsubmitted leases; submit or wait 90s."}` |

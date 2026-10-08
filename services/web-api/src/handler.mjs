@@ -85,6 +85,7 @@ export const AGENT_SCOPED_ROUTES = new Set([
   "GET /api/me/activity/calls/*",
   "GET /api/me/activity",
   "GET /api/me/feedback",
+  "GET /api/me/feedback/*",
   "GET /api/me/usage",
   "GET /api/me/connections",
   "POST /api/me/connections/revoke",

@@ -86,6 +86,7 @@ export const MAIL_SOURCE = {
   collector_activity: { product: "Collectors", when: "Sunday" },
   milestone: { product: "Ladder", when: "Milestone" },
   clan_actions_waiting: { product: "Clan", when: "Actions" },
+  feedback_answer: { product: "Account", when: "Feedback" },
   login: { product: "Account", when: "Sign in" },
   welcome: { product: "Account", when: "Welcome" },
   owner_notify: { product: "Console", when: "Notice" },
@@ -182,6 +183,8 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
       return "You get this when you or one of your players reaches something. Elixir checks every hour.";
     case "clan_actions_waiting":
       return "You get this when an action in your clan waits for your decision.";
+    case "feedback_answer":
+      return "You get this when Elixir's maintainer answers feedback you filed and you have not read the answer yet.";
     case "login":
       return "You get this because someone asked to sign in to Elixir with this address.";
     case "welcome":

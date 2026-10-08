@@ -74,6 +74,47 @@ function warHistoryRoute(clanTag, query) {
   };
 }
 
+/** Feedback over the JSON API (3.1.0), for either caller: the MCP tools,
+ *  so the record, the checks on what attaches and the answers are the
+ *  ones every door shares (@elixir-mcp/feedback). */
+const FEEDBACK_FIELDS = [
+  "message",
+  "category",
+  "context",
+  "request_id",
+  "request_ids",
+  "refs",
+  "follows_id",
+];
+const FEEDBACK_QUERY = ["status", "since", "area"];
+function feedbackRoute(method, query, body) {
+  if (method === "POST")
+    return {
+      operation: "feedback.send",
+      tool: "elixir_send_feedback",
+      args: Object.fromEntries(
+        FEEDBACK_FIELDS.filter((k) => body[k] !== undefined).map((k) => [
+          k,
+          body[k],
+        ]),
+      ),
+    };
+  return {
+    operation: "feedback.list",
+    tool: "elixir_my_feedback",
+    args: {
+      ...Object.fromEntries(
+        FEEDBACK_QUERY.filter((k) => query[k] !== undefined).map((k) => [
+          k,
+          String(query[k]),
+        ]),
+      ),
+      ...(query.limit === undefined ? {} : { limit: Number(query.limit) }),
+      ...(query.offset === undefined ? {} : { offset: Number(query.offset) }),
+    },
+  };
+}
+
 /** The operations a person may call, by method and path: each is one
  *  read the family's apps make, answered with the tool's structured
  *  result (Elixir Clan's reads, plan clan-app-api phases 1-3). */
@@ -178,6 +219,8 @@ function personRoute(db, account, method, path, query, body) {
       run: () => removeClanFact(db, account, clan, ref),
     };
   }
+  if ((method === "GET" || method === "POST") && path === "/api/v1/feedback")
+    return feedbackRoute(method, query, body);
   if (method === "POST" && path === "/api/v1/players/names") {
     if (!Array.isArray(body.player_tags))
       throw new ApiError(400, "bad_request", "player_tags must be an array.");
@@ -715,6 +758,22 @@ export async function integrationApi(db, event, body, deps = {}) {
           const ref = decodeURIComponent(match[2]);
           run = () => removeClanFactAsApp(db, app, clan, ref);
         }
+      } else if (
+        (method === "GET" || method === "POST") &&
+        path === "/api/v1/feedback"
+      ) {
+        // An integration's own feedback (3.1.0), filed as itself.
+        scope = "feedback:write";
+        const route = feedbackRoute(
+          method,
+          event.queryStringParameters ?? {},
+          body,
+        );
+        operation = route.operation;
+        run = () => {
+          toolAudited = true;
+          return runTool(db, account, route, event);
+        };
       } else throw new ApiError(404, "not_found");
       if (!policy.scopes.includes(scope))
         throw new ApiError(403, "insufficient_scope");

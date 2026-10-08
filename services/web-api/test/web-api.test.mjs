@@ -957,6 +957,167 @@ test("feedback: web form + MCP tool land attributed rows; admin triages", async 
   assert.equal(triage.statusCode, 200);
 });
 
+test("0204: one feedback system: a page files with area and refs, the queue filters by area, an answer is a compare-and-set, opening the item reads it", async () => {
+  const get = (path, cookie, query) =>
+    handler({
+      ...event({ method: "GET", path, cookie, body: undefined }),
+      ...(query ? { queryStringParameters: query } : {}),
+    });
+  const filed = parse(
+    await handler(
+      event({
+        path: "/api/feedback",
+        cookie: memberCookie,
+        body: {
+          message: "This rank looks off for me",
+          category: "data_quality",
+          area: "ladder",
+          context: {
+            path: "/ladder/global",
+            season: "2026-10",
+            nested: { x: 1 },
+          },
+          refs: [
+            { kind: "player", ref: "2pp0v90y" },
+            { kind: "call", ref: "44444444-4444-4444-8444-444444444444" },
+          ],
+        },
+      }),
+    ),
+  );
+  assert.equal(filed.ok, true, JSON.stringify(filed));
+  assert.equal(filed.area, "ladder");
+  assert.deepEqual(filed.refs, [{ kind: "player", ref: "#2PP0V90Y" }]);
+  assert.equal(filed.dropped[0].reason, "not_yours", "a call not theirs");
+  const { rows } = await db.query(
+    `select surface, area, context from feedback where feedback_id = $1`,
+    [filed.feedback_id],
+  );
+  assert.equal(rows[0].surface, "web");
+  assert.deepEqual(rows[0].context, {
+    path: "/ladder/global",
+    season: "2026-10",
+  });
+
+  // A page never claims a door's area.
+  const claimed = await handler(
+    event({
+      path: "/api/feedback",
+      cookie: memberCookie,
+      body: { message: "hi", area: "mcp" },
+    }),
+  );
+  assert.equal(claimed.statusCode, 400);
+  const unknown = await handler(
+    event({
+      path: "/api/feedback",
+      cookie: memberCookie,
+      body: { message: "hi", category: "nonsense" },
+    }),
+  );
+  assert.equal(unknown.statusCode, 400);
+  assert.equal(parse(unknown).error, "bad_category");
+
+  const ladder = parse(
+    await get("/api/admin/feedback", bossCookie, { area: "ladder" }),
+  );
+  assert.ok(ladder.feedback.length >= 1);
+  assert.ok(ladder.feedback.every((f) => f.area === "ladder"));
+  assert.ok(ladder.areas.some((a) => a.area === "ladder" && a.unanswered >= 1));
+  assert.equal(
+    (await get("/api/admin/feedback", memberCookie)).statusCode,
+    403,
+  );
+  const item = parse(
+    await get(`/api/admin/feedback/${filed.feedback_id}`, bossCookie),
+  ).feedback;
+  assert.equal(item.from_player, "#2PP0V90Y");
+  assert.deepEqual(item.refs, [{ kind: "player", ref: "#2PP0V90Y" }]);
+
+  // A compare-and-set against a stale read is refused, never a silent
+  // overwrite of someone else's answer.
+  const stale = await handler(
+    event({
+      path: "/api/admin/feedback",
+      cookie: bossCookie,
+      body: {
+        feedback_id: filed.feedback_id,
+        status: "done",
+        response: "Fixed.",
+        expected: { status: "planned", response: null, responded_at: null },
+      },
+    }),
+  );
+  assert.equal(stale.statusCode, 409);
+  const answered = parse(
+    await handler(
+      event({
+        path: "/api/admin/feedback",
+        cookie: bossCookie,
+        body: {
+          feedback_id: filed.feedback_id,
+          status: "done",
+          response: "Fixed: the floor was read from last season.",
+          shipped_in: "11.3.0",
+          expected: { status: "new", response: null, responded_at: null },
+        },
+      }),
+    ),
+  );
+  assert.equal(answered.answered, true, JSON.stringify(answered));
+  assert.equal(
+    (
+      await handler(
+        event({
+          path: "/api/admin/feedback",
+          cookie: bossCookie,
+          body: { feedback_id: "999999999", status: "seen" },
+        }),
+      )
+    ).statusCode,
+    404,
+  );
+
+  // Opening the item reads the answer; the reply follows it.
+  const mine = parse(
+    await get(`/api/me/feedback/${filed.feedback_id}`, memberCookie),
+  ).feedback;
+  assert.equal(mine.shipped_in, "11.3.0");
+  assert.equal(mine.response_seen, false, "as it stood before this read");
+  const { rows: seen } = await db.query(
+    `select response_seen_at from feedback where feedback_id = $1`,
+    [filed.feedback_id],
+  );
+  assert.ok(seen[0].response_seen_at, "opening it marked it seen");
+  assert.equal(
+    (await get(`/api/me/feedback/${filed.feedback_id}`, bossCookie)).statusCode,
+    404,
+    "another account's item does not exist for you",
+  );
+  const reply = parse(
+    await handler(
+      event({
+        path: "/api/feedback",
+        cookie: memberCookie,
+        body: {
+          message: "Thanks, it reads right now.",
+          area: "ladder",
+          follows_id: filed.feedback_id,
+        },
+      }),
+    ),
+  );
+  const again = parse(
+    await get(`/api/me/feedback/${filed.feedback_id}`, memberCookie),
+  ).feedback;
+  assert.deepEqual(again.followed_by, [reply.feedback_id]);
+  const listed = parse(
+    await get("/api/me/feedback", memberCookie, { area: "ladder" }),
+  );
+  assert.ok(listed.feedback.every((f) => f.area === "ladder"));
+  assert.equal(listed.unseen, 0);
+});
+
 test("emails sent to me: the list, one record with its archived body (pixel stripped), and a report about it (0139)", async () => {
   const cookie = memberCookie;
   const get = (path, h = handler) =>
@@ -2565,7 +2726,9 @@ test("feedback and upgrade requests notify the owner; the owner's own feedback d
     "excerpt capped at ~300 chars",
   );
   assert.equal(msg.detail.category, "praise");
-  assert.match(msg.link, /\/admin$/);
+  assert.equal(msg.detail.area, "console");
+  // The notice opens the one queue (0204).
+  assert.match(msg.link, /\/admin\/feedback$/);
   assert.ok(
     !msg.note.includes("@") && !JSON.stringify(msg.detail).includes("@"),
   );

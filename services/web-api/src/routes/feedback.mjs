@@ -1,140 +1,203 @@
-import { json, ID_RE, UUID_RE } from "../http.mjs";
+import {
+  FeedbackError,
+  answerFeedback,
+  feedbackItem,
+  feedbackQueue,
+  fileFeedback,
+  itemMine,
+  listMine,
+  markSeen,
+} from "@elixir-mcp/feedback";
 import { senderRef } from "@elixir-mcp/outbox/notify";
+import { json } from "../http.mjs";
+
+/** The parts of Elixir a signed-in page can file about (0204). mcp, api
+ *  and recorder are the doors' own: a page never claims them. */
+const PAGE_AREAS = new Set(["console", "ladder", "clan", "mail", "docs"]);
+
+function refused(err) {
+  if (!(err instanceof FeedbackError)) throw err;
+  return json(err.status, {
+    error: err.code,
+    message: err.message,
+    ...(err.hint ? { hint: err.hint } : {}),
+  });
+}
+
+/** The first call and email, as the pages read them before refs (0204):
+ *  kept on each item for one release. */
+function withLegacy(item) {
+  return {
+    ...item,
+    request_id: item.refs.find((r) => r.kind === "call")?.ref ?? null,
+    send_id: item.refs.find((r) => r.kind === "email")?.ref ?? null,
+  };
+}
 
 export function feedbackRoutes({
   resolveAccount,
   notifyOwner = async () => {},
 }) {
   return {
+    // A filer's own items, wherever they were filed. A person's own page
+    // shows each answer in full, so the answers on it are read; an owner
+    // on their agent's page reads them for it, and the agent's pending
+    // hint stays up.
     "GET /api/me/feedback": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      const { rows } = await db.query(
-        `select feedback_id, surface, category, message, status,
-                response, responded_at, created_at, shipped_in, request_id, send_id
-         from feedback where account_id = $1
-         order by feedback_id desc limit 50`,
-        [account.accountId],
-      );
-      return json(200, { feedback: rows });
+      const q = event.queryStringParameters ?? {};
+      try {
+        const page = await listMine(db, account.accountId, {
+          limit: q.limit ?? 50,
+          offset: q.offset ?? 0,
+          status: q.status || null,
+          area: q.area || null,
+        });
+        if (!event.scopedAccount)
+          await markSeen(
+            db,
+            account.accountId,
+            page.items.map((i) => i.feedback_id),
+          );
+        return json(200, {
+          feedback: page.items.map(withLegacy),
+          total: page.total,
+          unseen: page.unseen,
+        });
+      } catch (err) {
+        return refused(err);
+      }
     },
 
+    "GET /api/me/feedback/*": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      try {
+        const item = await itemMine(db, account.accountId, event.pathParam, {
+          seen: !event.scopedAccount,
+        });
+        return json(200, { feedback: withLegacy(item) });
+      } catch (err) {
+        return refused(err);
+      }
+    },
+
+    // Every signed-in page files here: the Console, Ladder, Elixir Clan,
+    // the docs and the email record. `area` is the part of Elixir it is
+    // about; `refs` what it points at (a call, an email, a player, a
+    // clan action...). request_id and send_id are the pages' older
+    // fields for the first two, still taken.
     "POST /api/feedback": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
       if (!account) return json(401, { error: "unauthenticated" });
-      const message = String(body.message ?? "").trim();
-      if (!message || message.length > 8000)
+      const refs = [
+        ...(body.request_id ? [{ kind: "call", ref: body.request_id }] : []),
+        ...(body.send_id ? [{ kind: "email", ref: body.send_id }] : []),
+        ...(Array.isArray(body.refs) ? body.refs : []),
+      ];
+      const area = body.area ?? (body.send_id ? "mail" : "console");
+      if (!PAGE_AREAS.has(area))
         return json(400, {
-          error: "bad_request",
-          message: `1-8000 chars; it is ${message.length}.`,
+          error: "bad_area",
+          message: `A page files about ${[...PAGE_AREAS].join(", ")}; '${area}' is not one.`,
         });
-      const category = [
-        "general",
-        "bug",
-        "data_quality",
-        "feature",
-        "praise",
-      ].includes(body.category)
-        ? body.category
-        : "general";
-      // The call this is about, when there is one. A malformed id is not
-      // worth refusing a report over — the report is the valuable half —
-      // so it is dropped rather than 400'd.
-      const requestId = UUID_RE.test(String(body.request_id ?? ""))
-        ? String(body.request_id)
-        : null;
-      // The email this is about, the same way (0139): the console's
-      // email record links here with its send id.
-      const sendId = UUID_RE.test(String(body.send_id ?? ""))
-        ? String(body.send_id)
-        : null;
-      const { rows: filed } = await db.query(
-        `insert into feedback (account_id, surface, category, message, context, request_id, send_id)
-         values ($1, 'web', $2, $3, $4, $5, $6) returning feedback_id`,
-        [
-          account.accountId,
-          category,
-          message,
-          body.context
-            ? JSON.stringify({ context: String(body.context) })
-            : null,
-          requestId,
-          sendId,
-        ],
-      );
-      // Jamie hears about it (2026-09-09): best-effort, never in the way
-      // of the row that was just written. The owner's own feedback is not
-      // news to the owner.
-      if (!account.isOwner) {
-        try {
-          await notifyOwner({
-            kind: "feedback",
-            category,
-            surface: "web",
-            message,
-            from: senderRef(account),
-            feedbackId: filed[0].feedback_id,
-          });
-        } catch (err) {
-          console.error("owner_notify_enqueue_failed", err?.message);
-        }
+      try {
+        const filed = await fileFeedback(db, {
+          account,
+          surface: "web",
+          area,
+          category: body.category ?? "general",
+          message: body.message,
+          context: body.context ?? null,
+          refs,
+          followsId: body.follows_id ?? null,
+          via: { principal_kind: account.kind ?? "person" },
+          from: senderRef(account),
+          // Jamie hears about it (2026-09-09): best-effort, never in the
+          // way of the row that was just written.
+          notifyOwner,
+        });
+        return json(200, {
+          ok: true,
+          feedback_id: filed.feedback_id,
+          area: filed.area,
+          refs: filed.refs,
+          dropped: filed.dropped,
+        });
+      } catch (err) {
+        return refused(err);
       }
-      return json(200, { ok: true });
     },
 
+    // The one queue (0204): every area, newest first or the backlog
+    // oldest first, paged by id, with per-area counts.
     "GET /api/admin/feedback": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
-      const { rows } = await db.query(
-        `select f.feedback_id, f.surface, f.category, f.message, f.context,
-                f.status, f.response, f.responded_at, f.created_at, f.request_id,
-                f.send_id,
-                (select s.kind from email_send es join email_issue s on s.issue_id = es.issue_id
-                 where es.send_id = f.send_id) as send_kind,
-                (select coalesce(es.subject, s.subject_line) from email_send es join email_issue s on s.issue_id = es.issue_id
-                 where es.send_id = f.send_id) as send_subject,
-                (select c.player_tag from claim c
-                 where c.account_id = f.account_id and c.is_primary) as from_player
-         from feedback f order by f.feedback_id desc limit 100`,
-      );
-      return json(200, { feedback: rows });
+      const q = event.queryStringParameters ?? {};
+      try {
+        const page = await feedbackQueue(db, {
+          area: q.area || null,
+          status: q.status || null,
+          category: q.category || null,
+          unanswered: q.unanswered === "1" || q.unanswered === "true",
+          before: q.before ?? null,
+          after: q.after ?? null,
+          oldestFirst: q.order === "oldest",
+          limit: q.limit ?? 100,
+        });
+        return json(200, {
+          feedback: page.items,
+          areas: page.areas,
+          next: page.next,
+        });
+      } catch (err) {
+        return refused(err);
+      }
     },
 
+    "GET /api/admin/feedback/*": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      try {
+        return json(200, { feedback: await feedbackItem(db, event.pathParam) });
+      } catch (err) {
+        return refused(err);
+      }
+    },
+
+    // An answer: a status, usually words, and what shipped. New words are
+    // news to the filer again (their pending hint, a timeline event, and
+    // for a person the feedback_answer email); a status alone is not.
     "POST /api/admin/feedback": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
       });
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
-      const status = ["seen", "planned", "done", "declined"].includes(
-        body.status,
-      )
-        ? body.status
-        : null;
-      if (!status || !ID_RE.test(String(body.feedback_id ?? "")))
-        return json(400, { error: "bad_request" });
-      const response = body.response
-        ? String(body.response).slice(0, 4000)
-        : null;
-      const { rows: updated } = await db.query(
-        `update feedback set status = $2,
-                response = coalesce($3, response),
-                responded_at = case when $3 is not null then now() else responded_at end
-         where feedback_id = $1
-         returning account_id`,
-        [body.feedback_id, status, response],
-      );
-      if (updated[0] && response) {
-        await db.query(
-          `insert into account_event (account_id, kind, detail) values ($1, 'feedback_responded', $2)`,
-          [
-            updated[0].account_id,
-            JSON.stringify({ feedback_id: Number(body.feedback_id), status }),
-          ],
-        );
+      try {
+        const out = await answerFeedback(db, {
+          feedbackId: body.feedback_id,
+          status: body.status,
+          response: body.response ?? null,
+          shippedIn: body.shipped_in,
+          relatedTools: body.related_tools,
+          expected: body.expected ?? undefined,
+        });
+        if (!out.updated)
+          return body.expected
+            ? json(409, {
+                error: "changed",
+                message:
+                  "The item is not as you last read it; reload it and answer again.",
+              })
+            : json(404, { error: "no_feedback" });
+        return json(200, { ok: true, answered: out.answered });
+      } catch (err) {
+        return refused(err);
       }
-      return json(200, { ok: true });
     },
   };
 }

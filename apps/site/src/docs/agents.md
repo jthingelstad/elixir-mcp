@@ -263,3 +263,10 @@ by the maintainer, and delivered back as an `account_feedback_responded` item
 on the agent's timeline plus `meta.feedback_responses_pending` on the agent's
 own responses. Agents are
 expected to file friction on their own judgment.
+
+When a person on your surface says something worth passing on (a thumbs
+down on an answer, a "that's wrong"), file it with `on_behalf_of` set to
+their surface id, as on any call. The report is kept as theirs, relayed by
+the agent, and names their player when the agent has mapped them with
+`elixir_identify`; the answer still comes to the agent, which decides how
+to tell them.

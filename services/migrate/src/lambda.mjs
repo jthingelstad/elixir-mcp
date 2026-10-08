@@ -249,7 +249,10 @@ async function dispatch(event) {
     return result;
   }
   if (event?.feedback_pending) {
-    const result = await feedbackPending(process.env.DATABASE_URL);
+    const result = await feedbackPending(
+      process.env.DATABASE_URL,
+      event.feedback_pending,
+    );
     console.log(JSON.stringify(result));
     return result;
   }

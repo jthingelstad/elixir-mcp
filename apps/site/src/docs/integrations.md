@@ -84,6 +84,7 @@ accountable for the integration but contributes no admin authority or quota.
 | `GET /clans/{tag}/participation`, `GET /clans/{tag}/roster`, `GET /clans/{tag}/war-history` | `clans:read` | Any recorded clan, answered as a person's grant is (the `clans_participation`, `clans_roster` and `war_history` results): a family app evaluating a clan with nobody signed in, or a clan's website |
 | `POST /clans/{tag}/mail` | `mail:send` | A family app's own mail, sent through Elixir by player tag, never by address ([below](#a-family-apps-mail)) |
 | `POST /players/{tag}/facts` | `facts:write` | A fact the platform's own game produced for a player ([attested facts](#attested-facts)) |
+| `POST /feedback`, `GET /feedback` | `feedback:write` | Feedback to Elixir's maintainer, filed as the integration, and the answers to it (the `elixir_send_feedback` and `elixir_my_feedback` results); [feedback](/docs/protocol#feedback-and-the-changelog-over-the-wire) |
 
 Tags must be URL-encoded in paths: `#2PYQ0` becomes `%232PYQ0`.
 
@@ -98,7 +99,7 @@ unknown response fields as compatible additions.
 ## Versions
 
 The JSON API carries its own semantic version, the OpenAPI document's
-`info.version`; the current version is **3.0.0**. Its callers are programs, so
+`info.version`; the current version is **3.1.0**. Its callers are programs, so
 a removed or renamed response field is a major, and an added field or
 operation is a minor. (MCP versions differently: its callers are agents
 reading the current declaration.) The path stays `/api/v1` across majors,

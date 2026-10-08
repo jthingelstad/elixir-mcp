@@ -163,3 +163,34 @@ main makes the deploy wait for main's own `validate` run, which always
 runs the journeys. Two PRs that pass alone and break together now turn
 main red after the merge instead of stalling it; fix forward by PR.
 Everything else in the ruleset stands.
+
+## 2026-10-08 — feedback becomes one system
+
+Jamie, a beta gate: "one general feedback system that can work for all
+of the types of feedback that we want to collect in Elixir". The decisions
+Jamie agreed to are DECISIONS' "Feedback is one system", with the Feedback
+Manager running daily for beta (the response-time promise kept rather than
+softened).
+
+Part one (backend): migration 0204 adds `feedback.area`, `via`,
+`follows_id`, `response_mailed_at` and the `feedback_ref` table, backfilled
+from `request_id`, `context.request_ids` and `send_id`; those three stay
+written for one release (expand-contract) and a later migration drops
+them. `@elixir-mcp/feedback` is the one service: filing (refs checked
+against the filer, a bad pointer dropped and named, never the report),
+the filer's list and item (an item opened is an answer read), the answer
+(compare-and-set; new words are news again; a status alone is not), the
+queue (area, status, category, unanswered; paged by id; counts by area)
+and the backlog the ops lanes read (`{feedback_pending: {area}}`). The
+MCP tools, the web routes, `/api/v1/feedback` (JSON API 3.1.0) and the
+ops lanes all go through it. The `feedback_answer` mail kind and its drain
+(`services/jobs/src/email/feedback-answers.mjs`, settled ten minutes,
+skipped when already read, never the owner) ship here unwired; part two
+wires it beside the Console's item page its link opens.
+
+Part two: the shared feedback launcher in the Console, Ladder and Clan
+shells; Clan's in-place reports; the Console item page and the admin
+queue; Clan's own store, routes, views and `CLAN_MAINTAINER_TAGS`
+retired (its store held nothing: `{clan_maintenance}` lane feedback read
+total 0 on 2026-10-08).
+
