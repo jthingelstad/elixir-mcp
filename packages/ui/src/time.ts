@@ -165,3 +165,16 @@ export function stampTime(
   if (!w) return "—";
   return `${w.hm}${seconds ? `:${w.s}` : ""}${bare ? "" : w.suffix}`;
 }
+
+/** The browser's own IANA zone ("America/Chicago"), or null when it
+ *  will not say. For a reader with no account zone: the battle page's
+ *  clock when nobody is signed in, and the zone the Console offers to
+ *  set when the account has none. Never a silent default for an
+ *  account, whose zone is the one it set (UTC until it sets one). */
+export function browserZone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}

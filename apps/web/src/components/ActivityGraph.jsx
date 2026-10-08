@@ -1,3 +1,4 @@
+import { useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -108,6 +109,7 @@ function monthLabels(cols) {
 
 export function ActivityGraph({ data, error, onRetry }) {
   const [picked, setPicked] = useState(null);
+  const { stamp } = useClock();
   const scroller = useRef(null);
   useEffect(() => {
     // Open on the newest weeks; the past is a swipe away.
@@ -240,8 +242,8 @@ export function ActivityGraph({ data, error, onRetry }) {
           : `${withBattles} days with recorded battles · ${quietDays} covered quiet days · ${unknownDays} empty days with capture incomplete or unknown · tap a day`}
       </div>
       <p className="footnote px-4">
-        Evidence read {data.as_of ?? data.computed_at} · the latest UTC day in
-        this read is still open.
+        Evidence read {stamp(data.as_of ?? data.computed_at, { year: true })} ·
+        the latest UTC day in this read is still open.
       </p>
       <div className="activity__legend">
         <span>losses</span>

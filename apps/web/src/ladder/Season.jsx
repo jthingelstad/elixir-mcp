@@ -14,6 +14,7 @@ import {
   shortDay,
   signed,
   weekBars,
+  zoneShort,
 } from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
 import { BringClanmates } from "../components/BringClanmates.jsx";
@@ -45,7 +46,7 @@ export function Season({ player, mode, modeReady, summary, search }) {
   const body = perf.data;
   const head = seasonHead(body?.applied);
   const ends = head.endsAt
-    ? ` The season ends ${longDay(head.endsAt, zone)} at ${clockTime(head.endsAt, zone)}.`
+    ? ` The season ends ${longDay(head.endsAt, zone)} at ${clockTime(head.endsAt, zone)} ${zoneShort(head.endsAt, zone)}.`
     : "";
   const hrefFor = (m) =>
     ladderHref("season", { player: search.player, mode: m });
@@ -121,7 +122,7 @@ function SeasonBody({ mode, body, weeks, summary, search, zone, startsAt }) {
           <p className="empty__body">
             Elixir has recorded none in this mode since the season began
             {startsAt
-              ? ` on ${longDay(startsAt, zone)} at ${clockTime(startsAt, zone)}`
+              ? ` on ${longDay(startsAt, zone)} at ${clockTime(startsAt, zone)} ${zoneShort(startsAt, zone)}`
               : ""}
             . Each mode keeps its own record; the others are a tab away.
           </p>

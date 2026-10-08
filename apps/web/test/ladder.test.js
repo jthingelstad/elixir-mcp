@@ -23,6 +23,7 @@ import {
   monthName,
   pickMode,
   pickPlayer,
+  zoneShort,
   seasonHead,
   shortDay,
   signed,
@@ -151,6 +152,15 @@ test("dates are prose in the account's zone", () => {
   expect(dateLabel("2026-09-07")).toBe("Sep 7");
   expect(monthName("2026-09")).toBe("September");
   expect(longDay(null, CHI)).toBe("");
+});
+
+test("a time Ladder prints names its clock, as the battle page's does", () => {
+  expect(zoneShort("2026-10-08T19:14:00.000Z", CHI)).toBe("CDT");
+  expect(zoneShort("2026-12-08T19:14:00.000Z", CHI)).toBe("CST");
+  // An account with no zone set reads UTC, and says so.
+  expect(zoneShort("2026-10-08T19:14:00.000Z", null)).toBe("UTC");
+  expect(zoneShort("2026-10-08T19:14:00.000Z", "Mars/Olympus")).toBe("UTC");
+  expect(zoneShort(null, CHI)).toBe("");
 });
 
 test("signed numbers carry a true minus and no sign on zero", () => {

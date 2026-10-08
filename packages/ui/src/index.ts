@@ -63,6 +63,7 @@ export {
   agoExact,
   agoSeconds,
   beatCls,
+  browserZone,
   freshCls,
   secsSince,
   stamp,
