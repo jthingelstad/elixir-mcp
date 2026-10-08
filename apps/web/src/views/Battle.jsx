@@ -332,7 +332,7 @@ function BattleView({ read, me }) {
         </div>
       )}
 
-      <div className="battle__grid">
+      <div className="battle__grid battle__grid--decks">
         {interleave(l.players, r.players).map(({ p, side }) => (
           <DeckPanel
             key={`${side}-${p.player_tag}`}

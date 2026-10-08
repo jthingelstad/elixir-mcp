@@ -107,6 +107,10 @@ game names only, never a nickname or anything of an account, and its link
 unfurls in a chat as the battle itself. The same projection is JSON at
 `/api/public/battles/<short id>`.
 
+On the smallest phones, the players' deck panels stack in their existing
+order, each keeping two rows of four cards. Larger phones and desktop show
+the panels side by side.
+
 If you choose **Create your account** from a battle, sign-in returns to that
 battle so you can continue reading it with your account.
 
