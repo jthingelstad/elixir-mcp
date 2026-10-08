@@ -29,12 +29,14 @@ import {
   useAdminFeedback,
   useAdminFeedbackItem,
   useAdminGateways,
+  useAdminPulse,
   useAdminRequests,
   useAdminServiceTokens,
   useAdminUsage,
   useInvalidate,
 } from "../lib/queries.js";
 import { CONSOLE } from "../lib/console.js";
+import { PULSE_STEPS, pulseRows } from "../lib/pulse.js";
 
 /**
  * Admin, eight pages.
@@ -91,6 +93,7 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
       <AdminAccounts navigate={navigate} />
     );
   if (page === "usage") return <AdminUsage />;
+  if (page === "pulse") return <AdminPulse />;
   if (page === "collectors") return <AdminCollectors navigate={navigate} />;
   if (page === "connections") return <AdminConnections />;
   if (page === "service-tokens") return <AdminServiceTokens />;
@@ -426,6 +429,114 @@ function AdminUsage() {
           : undefined
       }
     />
+  );
+}
+
+/** The beta pulse: how each signup week's people got on, as counts and
+ *  shares of that week's signups. Aggregate only: no cell names, lists
+ *  or links an account (Accounts does that). Mail opens are Tinylytics'
+ *  and are never read back here. */
+function AdminPulse() {
+  const query = useAdminPulse();
+  const pulse = query.data ?? null;
+  const rows = pulseRows(pulse);
+  const excluded = pulse?.excluded;
+  const mail = pulse?.mail ?? { weeks: [], kinds: [] };
+  const recent = mail.weeks.slice(-4);
+  return (
+    <>
+      <LogTable
+        crumb="Admin"
+        title="Beta pulse"
+        note="People who signed up each ISO week (UTC), and how far they got: a count and its share of that week's signups. Counts only; Accounts is where an account is named."
+        cols={[
+          ["WEEK", "left"],
+          ["SIGNED UP", "right"],
+          ...PULSE_STEPS.map(([, label]) => [label, "right"]),
+          ["BACK WK 1", "right"],
+          ["BACK WK 2", "right"],
+        ]}
+        rows={rows}
+        monoCols={[0]}
+        minWidth={1080}
+        loading={query.isLoading}
+        error={query.isError ? "The pulse did not load." : null}
+        empty="No weeks yet."
+        footnote={
+          <>
+            People only: agents and integrations are never counted
+            {excluded
+              ? `, and ${excluded.staff} ${noun(excluded.staff, "staff account", "staff accounts")} and ${excluded.test} ${noun(excluded.test, "staff test mailbox", "staff test mailboxes")} (a staff address with a +tag) are left out`
+              : ""}
+            .{" "}
+            {PULSE_STEPS.map(
+              ([, label, title]) => `${label}: ${title.toLowerCase()}`,
+            ).join("; ")}
+            . BACK WK 1 and 2: a sign-in, a session seen, or a call of their own
+            (Console, Ladder, MCP or API) on a UTC day 1-7 or 8-14 days after
+            the signup day, from the sign-in events, sessions and call log
+            Elixir already keeps; an agent&rsquo;s calls are not its
+            owner&rsquo;s. &ldquo;Open&rdquo; counts people still inside that
+            window.
+          </>
+        }
+      />
+      <section className="panel mt-[18px]">
+        <div className="panel__head">
+          <span className="panel-title">Mail sent, by kind</span>
+          <span className="caveat ml-auto">
+            the last {recent.length} {noun(recent.length, "week", "weeks")}, to
+            the same people
+          </span>
+        </div>
+        {mail.kinds.length === 0 ? (
+          <p className="footnote m-0">No product mail in the window.</p>
+        ) : (
+          <div className="table__scroll" tabIndex={0}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>KIND</th>
+                  {recent.map((w) => (
+                    <th key={w} className="text-right">
+                      {w}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {mail.kinds.map((k) => (
+                  <tr key={k.kind}>
+                    <td>{k.label}</td>
+                    {k.sends.slice(-recent.length).map((n, i) => (
+                      <td
+                        key={recent[i]}
+                        className="table__td--num text-right font-mono"
+                      >
+                        {n}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="footnote mt-[14px] mb-0">
+          Sends, from each mail&rsquo;s send record. Opens are counted by the
+          mail&rsquo;s pixel in{" "}
+          <a
+            href="https://tinylytics.app"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Tinylytics
+          </a>{" "}
+          (path <span className="mono">/mail/&lt;kind&gt;/&lt;period&gt;</span>
+          ), per mail and never per reader; Elixir never reads them back.
+        </p>
+      </section>
+    </>
   );
 }
 

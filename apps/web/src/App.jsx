@@ -148,6 +148,7 @@ export const SECTIONS = {
     pages: [
       { slug: "requests", label: "Requests" },
       { slug: "accounts", label: "Accounts" },
+      { slug: "pulse", label: "Beta pulse" },
       { slug: "integrations", label: "Integrations" },
       { slug: "connections", label: "Connections" },
       { slug: "feedback", label: "Feedback" },
@@ -297,6 +298,13 @@ export const ADMIN_RAIL = [
     label: "Accounts",
     icon: "users",
     to: `${CONSOLE}/admin/accounts`,
+  },
+  // Counts by signup week only; Accounts is the page that names people.
+  {
+    key: "pulse",
+    label: "Beta pulse",
+    icon: "chart-line",
+    to: `${CONSOLE}/admin/pulse`,
   },
   {
     key: "feedback",
@@ -848,6 +856,13 @@ export const DOC_LINKS = {
     [
       ["Integrations", "/docs/integrations"],
       ["Integration API", "/docs/integrations#provisioning-and-administration"],
+    ],
+  ],
+  "admin:pulse": [
+    "What is counted",
+    [
+      ["Privacy", "/docs/privacy"],
+      ["What the mail counts", "/docs/email#what-the-mail-counts"],
     ],
   ],
   "admin:feedback": ["Feedback queue", [["About the project", "/docs/about"]]],
