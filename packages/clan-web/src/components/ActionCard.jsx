@@ -14,6 +14,7 @@ import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
 import { CLAN, clanPath, memberPath } from "../lib/base.js";
 import { MemberSheet } from "./MemberSheet.jsx";
+import { ReportThis } from "./ReportThis.jsx";
 import { RoleChip } from "./RoleChip.jsx";
 
 /**
@@ -1042,11 +1043,28 @@ function BoundActionCard({
         )}
       </div>
       <div className="grid gap-4 px-5 py-[18px]">
-        {action.player_tag ? (
-          <Link to={memberPath(clan.clan_tag, action.player_tag)}>
-            View member activity
-          </Link>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          {action.player_tag ? (
+            <Link to={memberPath(clan.clan_tag, action.player_tag)}>
+              View member activity
+            </Link>
+          ) : null}
+          {/* The action on screen rides along, so the maintainer reads
+              the evidence the person saw (2026-10-08). */}
+          <span className="ml-auto">
+            <ReportThis
+              about={`This action: ${action.label}${action.player_tag ? `, ${action.player_name ?? action.player_tag}` : ""}. Its evidence and the policy behind it ride along.`}
+              refs={[
+                { kind: "clan_action", ref: String(action.card_id) },
+                { kind: "clan", ref: clan.clan_tag },
+                ...(action.player_tag
+                  ? [{ kind: "player", ref: action.player_tag }]
+                  : []),
+              ]}
+              context={{ action_type: action.type, status: action.status }}
+            />
+          </span>
+        </div>
         {removalHeld ? (
           <div className="callout callout--warn flex-col gap-2" role="alert">
             <strong>Removal held: inactivity is not established.</strong>

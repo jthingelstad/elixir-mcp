@@ -4,7 +4,7 @@
  * reply as the Markdown they were written in.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { screen, waitFor, cleanup } from "@testing-library/react";
+import { screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Feedback, FeedbackItem } from "../src/views/account/Feedback.jsx";
 
@@ -33,14 +33,33 @@ const FEEDBACK = [
   },
 ];
 
+/** The record's own read (0204): the item, its pointers and its thread. */
+const ITEM = {
+  ...FEEDBACK[0],
+  area: "ladder",
+  refs: [
+    { kind: "call", ref: "0e6c1f7a-0000-4000-8000-000000000002" },
+    { kind: "player", ref: "#20JJJ2CCRU" },
+  ],
+  follows_id: 3,
+  followed_by: [21],
+};
+
+const reply = (body) => ({
+  ok: true,
+  status: 200,
+  json: async () => body,
+  text: async () => JSON.stringify(body),
+});
+
 beforeEach(() => {
   cleanup();
-  global.fetch = vi.fn(async () => ({
-    ok: true,
-    status: 200,
-    json: async () => ({ feedback: FEEDBACK }),
-    text: async () => JSON.stringify({ feedback: FEEDBACK }),
-  }));
+  global.fetch = vi.fn(async (url, init) => {
+    const path = String(url);
+    if (init?.method === "POST") return reply({ ok: true, feedback_id: 22 });
+    if (/\/api\/me\/feedback\/14$/.test(path)) return reply({ feedback: ITEM });
+    return reply({ feedback: FEEDBACK });
+  });
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -87,4 +106,40 @@ test("the record renders the note and the reply as Markdown, safely", async () =
   expect(document.body.textContent).toContain("<script>");
   expect(document.querySelector('.md a[href^="javascript"]')).toBeNull();
   expect(document.body.textContent).toContain("It lands with");
+});
+
+test("the record names its area, what it points at and its thread", async () => {
+  renderWithProviders(<FeedbackItem id="14" navigate={() => {}} />);
+  await waitFor(() => screen.getByText("fb_14"));
+  expect(document.body.textContent).toContain("Ladder");
+  expect(screen.getByText("call 0e6c1f7a")).toBeTruthy();
+  expect(document.body.textContent).toContain("Player #20JJJ2CCRU");
+  expect(screen.getByText("fb_3")).toBeTruthy();
+  expect(screen.getByText("fb_21")).toBeTruthy();
+  // The record is read by its own route, not found in the list.
+  expect(
+    global.fetch.mock.calls.some(([u]) =>
+      String(u).endsWith("/api/me/feedback/14"),
+    ),
+  ).toBe(true);
+});
+
+test("a reply to an answer follows it, in the same area", async () => {
+  renderWithProviders(<FeedbackItem id="14" navigate={() => {}} />);
+  await waitFor(() => screen.getByText("fb_14"));
+  fireEvent.click(screen.getByRole("button", { name: /Reply/ }));
+  fireEvent.change(screen.getByLabelText("Message"), {
+    target: { value: "Still wrong on Hog 2.6." },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await screen.findByText("fb_22");
+  const [, init] = global.fetch.mock.calls.find(
+    ([, i]) => i?.method === "POST",
+  );
+  expect(JSON.parse(init.body)).toEqual({
+    message: "Still wrong on Hog 2.6.",
+    category: "data_quality",
+    area: "ladder",
+    follows_id: 14,
+  });
 });

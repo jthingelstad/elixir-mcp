@@ -29,6 +29,13 @@ export {
 } from "./family.ts";
 export { Disclaimer } from "./Disclaimer.tsx";
 export { ErrorBoundary } from "./ErrorBoundary.tsx";
+export {
+  FeedbackSheet,
+  type FeedbackBody,
+  type FeedbackRefInput,
+  type FeedbackSendResult,
+  type FeedbackSheetProps,
+} from "./FeedbackSheet.tsx";
 export { Fresh } from "./Fresh.tsx";
 export { Icon, type IconName } from "./Icon.tsx";
 export {

@@ -1,10 +1,10 @@
 /** IAM-only private Clan maintenance, bounded by kind and clan. This is
- * not a public API or a way to read a sealed key. Reads never mark replies
- * seen; a response defaults to preview and refuses a changed item. */
+ * not a public API or a way to read a sealed key. Clan's own feedback
+ * lanes (feedback, respond) retired on 2026-10-08: Clan files into
+ * Elixir's one feedback record, read with feedback_pending. */
 import pg from "pg";
 import { createHash } from "node:crypto";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
-import { createFeedbackService } from "@elixir-mcp/clan/feedback.mjs";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
 import { reconstructedLog, inactivityEvidence } from "@elixir-mcp/clan-engine";
 import { clanActivityEvidence } from "@elixir-mcp/record/clan-activity-evidence";
@@ -20,9 +20,7 @@ export async function clanMaintenance(databaseUrl, spec) {
   const lane = spec?.lane;
   if (
     ![
-      "feedback",
       "actions",
-      "respond",
       "clans",
       "grants",
       "morning",
@@ -35,8 +33,6 @@ export async function clanMaintenance(databaseUrl, spec) {
   const limit = spec.limit ?? 25;
   if (!Number.isInteger(limit) || limit < 1 || limit > 100)
     throw new Error("Clan maintenance limit is 1 through 100");
-  const feedbackId =
-    lane === "respond" || spec.feedback_id ? id(spec.feedback_id) : null;
   const clanLane = [
     "actions",
     "grants",
@@ -201,91 +197,6 @@ export async function clanMaintenance(databaseUrl, spec) {
               : `action_log#${cardId}#`,
         )),
       };
-    if (lane === "feedback") {
-      const items = feedbackId
-        ? (
-            await db.query("select body from clan_state where pk=$1", [
-              `feedback#${feedbackId}`,
-            ])
-          ).rows
-        : (
-            await db.query(
-              `select body from clan_state where partition_key='feedback#queue'
-          and ($1::boolean or body->>'status' in ('new','planned') or nullif(btrim(body->>'response'),'') is null)
-          and sort_key collate "C" > $3 collate "C"
-          order by sort_key collate "C" limit $2`,
-              [spec.all === true, limit + 1, cursor],
-            )
-          ).rows;
-      const total = feedbackId
-        ? items.length
-        : Number(
-            (
-              await db.query(
-                `select count(*)::int as n from clan_state where partition_key='feedback#queue' and ($1::boolean or body->>'status' in ('new','planned') or nullif(btrim(body->>'response'),'') is null)`,
-                [spec.all === true],
-              )
-            ).rows[0].n,
-          );
-      const more = items.length > limit;
-      items.length = Math.min(items.length, limit);
-      return {
-        lane,
-        total,
-        limit,
-        next_cursor: more ? items.at(-1).body.gsi1sk : null,
-        items: items.map(({ body }) => ({
-          ...body,
-          expected_sha256: digest(body),
-        })),
-      };
-    }
-    if (lane === "respond") {
-      if (!["seen", "planned", "done", "declined"].includes(spec.status))
-        throw new Error("invalid Clan feedback status");
-      if (!/^[a-f0-9]{64}$/.test(spec.expected_sha256 ?? ""))
-        throw new Error("Clan response needs the read-back digest");
-      await db.query("begin");
-      const current = (
-        await db.query("select body from clan_state where pk=$1 for update", [
-          `feedback#${feedbackId}`,
-        ])
-      ).rows[0]?.body;
-      if (!current || digest(current) !== spec.expected_sha256)
-        throw new Error("Clan feedback changed; read it again");
-      const patch = {
-        status: spec.status,
-        response: spec.response,
-        shipped_in: spec.shipped_in,
-      };
-      if (spec.apply !== true) {
-        await db.query("rollback");
-        return {
-          lane,
-          applied: false,
-          feedback_id: feedbackId,
-          status: patch.status,
-        };
-      }
-      const next = await createFeedbackService({ ledger }).decide(
-        { maintainer: true },
-        feedbackId,
-        patch,
-      );
-      const stored = (
-        await db.query("select body from clan_state where pk=$1", [
-          `feedback#${feedbackId}`,
-        ])
-      ).rows[0].body;
-      await db.query("commit");
-      return {
-        lane,
-        applied: true,
-        feedback_id: feedbackId,
-        status: next.status,
-        expected_sha256: digest(stored),
-      };
-    }
     const cardPage = await page(`clan#${clanTag}`, "card#");
     const cards = cardId
       ? (

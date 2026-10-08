@@ -4,7 +4,8 @@
  * only the roster, Recruit, Scout, the policy editor and clan settings
  * exist (nothing in clan management runs). Manage for leaders and
  * co-leaders, Awards for all members, Scout also for elders, Away when the policy lets
- * members mark it, Maintain for the product's maintainer. Two items the
+ * members mark it. Feedback is the rail's foot, Elixir's one system
+ * (2026-10-08), not an item. Two items the
  * reader can see at once never share a label.
  * The rail itself is Elixir's (the kit's Rail); this is only what goes
  * on it and which item a path is on.
@@ -159,26 +160,6 @@ export function railItems(me) {
       icon: "plane",
       to: `${CLAN}/you/away`,
     });
-  items.push({
-    key: "feedback",
-    label: "Feedback",
-    icon: "message-square",
-    to: `${CLAN}/feedback`,
-    dot: me?.feedback_unseen
-      ? {
-          tone: "unread",
-          title: `${me.feedback_unseen} new repl${me.feedback_unseen === 1 ? "y" : "ies"}`,
-        }
-      : null,
-  });
-  if (me?.maintainer)
-    items.push({
-      group: "Maintain",
-      key: "maintain",
-      label: "Feedback queue",
-      icon: "inbox",
-      to: `${CLAN}/maintain/feedback`,
-    });
   return items;
 }
 
@@ -190,8 +171,6 @@ export function railKey(path) {
   if (app === "/clans") return "clans";
   if (app === "/you") return "you";
   if (app.startsWith("/you/away")) return "away";
-  if (app.startsWith("/feedback")) return "feedback";
-  if (app.startsWith("/maintain")) return "maintain";
   const m =
     /^\/([^/]+)(?:\/(me|week|season|actions|standing|trophies|awards|recruit|map|manage)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
       app,

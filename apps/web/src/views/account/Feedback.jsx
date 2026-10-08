@@ -1,7 +1,13 @@
+import { FEEDBACK_CATEGORIES } from "@elixir-mcp/contracts";
 import { ago, Icon, Link, LogTable, Markdown, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
-import { keys, useInvalidate, useMyFeedback } from "../../lib/queries.js";
+import {
+  keys,
+  useInvalidate,
+  useMyFeedback,
+  useMyFeedbackItem,
+} from "../../lib/queries.js";
 import { useConsolePath, useScope } from "../../lib/scope.js";
 import { CONSOLE } from "../../lib/console.js";
 
@@ -36,7 +42,31 @@ function firstLine(text, max = 72) {
   return line.length > max ? `${line.slice(0, max - 1).trimEnd()}…` : line;
 }
 
-const CATEGORIES = ["general", "bug", "data_quality", "feature", "praise"];
+/** The part of Elixir an item was written about (0204), as the record
+ *  names it. */
+const AREA_LABEL = {
+  mcp: "MCP",
+  api: "JSON API",
+  console: "Console",
+  ladder: "Ladder",
+  clan: "Elixir Clan",
+  mail: "Email",
+  docs: "Docs",
+  recorder: "Recorder",
+};
+/** The areas a page may file a reply under; a reply to an MCP item
+ *  written here is a Console note about it. */
+const PAGE_AREAS = new Set(["console", "ladder", "clan", "mail", "docs"]);
+
+/** What a pointer reads as on your own record. Calls and emails are
+ *  yours and open; the rest are named. */
+const REF_LABEL = {
+  player: "Player",
+  clan: "Clan",
+  clan_action: "Clan action",
+  award: "Award",
+  policy: "Policy",
+};
 
 function Shipped({ version }) {
   if (!version) return null;
@@ -63,12 +93,12 @@ function Shipped({ version }) {
 export function FeedbackItem({ id, navigate }) {
   const { day } = useClock();
   const path = useConsolePath();
-  const { data, isSuccess, isError } = useMyFeedback();
-  const item =
-    (data?.feedback ?? []).find((f) => String(f.feedback_id) === String(id)) ??
-    null;
-  const missed = (isSuccess || isError) && !item;
-  if (missed)
+  const scoped = Boolean(useScope());
+  const query = useMyFeedbackItem(id);
+  const item = query.data?.feedback ?? null;
+  const [replying, setReplying] = useState(false);
+  const invalidate = useInvalidate();
+  if (query.isError)
     return (
       <div className="empty">
         <div className="empty__title">No feedback item #{id}</div>
@@ -79,6 +109,11 @@ export function FeedbackItem({ id, navigate }) {
       </div>
     );
   if (!item) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
+  const itemPath = (n) => path(`${CONSOLE}/account/feedback/${n}`);
+  const refs = item.refs ?? [];
+  const calls = refs.filter((r) => r.kind === "call");
+  const emails = refs.filter((r) => r.kind === "email");
+  const pointers = refs.filter((r) => r.kind !== "call" && r.kind !== "email");
   return (
     <>
       <p className="page__crumb" style={{ marginBottom: "14px" }}>
@@ -109,13 +144,20 @@ export function FeedbackItem({ id, navigate }) {
         </h1>
         <span className={`chip ${statusChip(item.status)}`}>{item.status}</span>
         <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
+          {AREA_LABEL[item.area] ?? item.area} ·{" "}
           {item.category?.replaceAll("_", " ")} · {day(item.created_at)}
-          {item.surface && item.surface !== "web"
-            ? ` · via ${item.surface}`
-            : ""}
         </span>
         <Shipped version={item.shipped_in} navigate={navigate} />
       </div>
+
+      {item.follows_id && (
+        <p className="mt-0 mb-[14px] text-[13px]">
+          A reply to{" "}
+          <Link className="mono" to={itemPath(item.follows_id)}>
+            fb_{item.follows_id}
+          </Link>
+        </p>
+      )}
 
       <Markdown
         text={item.message}
@@ -127,26 +169,37 @@ export function FeedbackItem({ id, navigate }) {
         }}
       />
 
-      {item.request_id && (
+      {(calls.length > 0 || emails.length > 0 || pointers.length > 0) && (
         <p style={{ margin: "-12px 0 22px", fontSize: "13px" }}>
-          About one call ·{" "}
-          <Link
-            className="mono"
-            to={path(`${CONSOLE}/account/activity/c/${item.request_id}`)}
-          >
-            {item.request_id.slice(0, 8)}
-          </Link>
-        </p>
-      )}
-      {item.send_id && (
-        <p className="text-[13px] -mt-3 mb-[22px]">
-          About one email ·{" "}
-          <Link
-            className="mono"
-            to={`${CONSOLE}/account/activity/e/${item.send_id}`}
-          >
-            {item.send_id.slice(0, 8)}
-          </Link>
+          About{" "}
+          {[
+            ...calls.map((r) => (
+              <Link
+                key={`c${r.ref}`}
+                className="mono"
+                to={path(`${CONSOLE}/account/activity/c/${r.ref}`)}
+                title="The call, as it was answered"
+              >
+                call {r.ref.slice(0, 8)}
+              </Link>
+            )),
+            ...emails.map((r) => (
+              <Link
+                key={`e${r.ref}`}
+                className="mono"
+                to={`${CONSOLE}/account/activity/e/${r.ref}`}
+                title="The email, as it was sent"
+              >
+                email {r.ref.slice(0, 8)}
+              </Link>
+            )),
+            ...pointers.map((r) => (
+              <span key={`${r.kind}${r.ref}`}>
+                {REF_LABEL[r.kind] ?? r.kind}{" "}
+                <span className="mono">{r.ref}</span>
+              </span>
+            )),
+          ].flatMap((el, i) => (i ? [" · ", el] : [el]))}
         </p>
       )}
 
@@ -169,6 +222,49 @@ export function FeedbackItem({ id, navigate }) {
           No reply yet. You cannot edit a filed note — send another if something
           changed.
         </p>
+      )}
+
+      {item.followed_by?.length > 0 && (
+        <p className="mt-[18px] mb-0 text-[13px]">
+          Followed by{" "}
+          {item.followed_by
+            .map((n) => (
+              <Link key={n} className="mono" to={itemPath(n)}>
+                fb_{n}
+              </Link>
+            ))
+            .flatMap((el, i) => (i ? [", ", el] : [el]))}
+        </p>
+      )}
+
+      {/* Answering an answer (0204): a new item that follows this one,
+          so the thread reads as one and the reply is answered too. Your
+          own console only: an agent replies with elixir_send_feedback. */}
+      {item.response && !scoped && (
+        <div className="mt-[22px] max-w-[70ch]">
+          {replying ? (
+            <Compose
+              title={`Reply to fb_${item.feedback_id}`}
+              area={PAGE_AREAS.has(item.area) ? item.area : "console"}
+              category={item.category}
+              followsId={Number(item.feedback_id)}
+              onSent={() => {
+                invalidate(keys.feedback);
+                invalidate(keys.me);
+              }}
+              onClose={() => setReplying(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setReplying(true)}
+            >
+              <Icon name="reply" size={16} />
+              Reply
+            </button>
+          )}
+        </div>
       )}
     </>
   );
@@ -193,18 +289,23 @@ function prefillFromUrl(search = window.location.search) {
 function Compose({
   onSent,
   onClose,
+  title = "Send feedback",
+  area = "console",
+  category: initial = "general",
+  followsId = null,
   context = "",
   requestId = "",
   sendId = "",
 }) {
-  const [category, setCategory] = useState("general");
+  const [category, setCategory] = useState(initial);
   const [message, setMessage] = useState(context ? `${context}\n\n` : "");
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState(null);
   const [failed, setFailed] = useState("");
+  const path = useConsolePath();
   return (
     <section className="panel" style={{ marginBottom: "18px" }}>
       <div className="panel__head">
-        <span className="panel-title">Send feedback</span>
+        <span className="panel-title">{title}</span>
         <button
           type="button"
           className="btn btn--sm"
@@ -219,7 +320,18 @@ function Compose({
         style={{ display: "flex", flexDirection: "column", gap: "10px" }}
       >
         {sent ? (
-          <div className="notice">Received — thank you. It is in the list.</div>
+          <div className="notice">
+            <span>
+              Received — thank you. It is{" "}
+              <Link
+                className="mono"
+                to={path(`${CONSOLE}/account/feedback/${sent}`)}
+              >
+                fb_{sent}
+              </Link>
+              ; the answer comes to your email when it lands.
+            </span>
+          </div>
         ) : (
           <>
             <select
@@ -228,7 +340,7 @@ function Compose({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              {CATEGORIES.map((c) => (
+              {FEEDBACK_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
                   {c.replaceAll("_", " ")}
                 </option>
@@ -267,15 +379,21 @@ function Compose({
                 className="btn btn--primary"
                 disabled={!message.trim()}
                 onClick={async () => {
-                  const r = await api.sendFeedback(
+                  const refs = [
+                    ...(requestId ? [{ kind: "call", ref: requestId }] : []),
+                    ...(sendId ? [{ kind: "email", ref: sendId }] : []),
+                  ];
+                  const r = await api.sendFeedback({
                     message,
                     category,
-                    context || undefined,
-                    requestId || undefined,
-                    sendId || undefined,
-                  );
+                    // An email's report is about the mail (0204).
+                    area: sendId ? "mail" : area,
+                    ...(refs.length ? { refs } : {}),
+                    ...(context ? { context: { context } } : {}),
+                    ...(followsId ? { follows_id: followsId } : {}),
+                  });
                   if (r.ok) {
-                    setSent(true);
+                    setSent(String(r.data.feedback_id));
                     onSent();
                   } else setFailed(r.data?.message ?? "Could not send that.");
                 }}
@@ -325,6 +443,7 @@ export function Feedback({ search } = {}) {
       text: ago(f.created_at, now),
       title: stamp(f.created_at, { year: true }),
     },
+    AREA_LABEL[f.area] ?? f.area ?? "",
     (f.category ?? "general").replaceAll("_", " "),
     { text: firstLine(f.message), title: f.message },
     TONE[f.status]
@@ -377,6 +496,7 @@ export function Feedback({ search } = {}) {
       cols={[
         ["ID", "left"],
         ["WHEN", "left"],
+        ["AREA", "left"],
         ["CATEGORY", "left"],
         ["SAID", "left"],
         ["STATE", "left"],
@@ -385,8 +505,9 @@ export function Feedback({ search } = {}) {
       rows={rows}
       monoCols={[0, 1]}
       filters={[
-        { key: "category", label: "Category", col: 2 },
-        { key: "state", label: "State", col: 4 },
+        { key: "area", label: "Area", col: 2 },
+        { key: "category", label: "Category", col: 3 },
+        { key: "state", label: "State", col: 5 },
       ]}
       empty={
         scoped

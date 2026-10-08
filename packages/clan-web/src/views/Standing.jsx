@@ -3,6 +3,7 @@ import { Fresh, Spark } from "@elixir-mcp/ui";
 import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
 import { TooFew } from "../components/TooFew.jsx";
+import { ReportThis } from "../components/ReportThis.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { MemberLink } from "../components/MemberLink.jsx";
 import { RoleChip } from "../components/RoleChip.jsx";
@@ -337,7 +338,24 @@ export function Standing({ clan, who, navigate }) {
           />
         ) : null
       }
-    />
+    >
+      {/* A standing is Elixir's judgment against the clan's policy: when
+          it reads wrong, the policy version rides along (2026-10-08). */}
+      {state.data ? (
+        <div>
+          <ReportThis
+            about={`Standing in ${clan.name ?? clan.clan_tag}${state.data.policy_version ? `, policy v${state.data.policy_version}` : ""}. Name the member and what reads wrong.`}
+            refs={[
+              { kind: "clan", ref: clan.clan_tag },
+              ...(state.data.policy_version
+                ? [{ kind: "policy", ref: `v${state.data.policy_version}` }]
+                : []),
+            ]}
+            context={{ page: "standing" }}
+          />
+        </div>
+      ) : null}
+    </PageHead>
   );
   if (state.loading)
     return (

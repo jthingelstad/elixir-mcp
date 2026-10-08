@@ -1,4 +1,5 @@
 import { useWrite } from "@elixir-mcp/client";
+import { FEEDBACK_ANSWER_STATUSES } from "@elixir-mcp/contracts";
 import {
   ago,
   Icon,
@@ -25,6 +26,7 @@ import {
   useAdminCards,
   useAdminConnections,
   useAdminFeedback,
+  useAdminFeedbackItem,
   useAdminGateways,
   useAdminRequests,
   useAdminServiceTokens,
@@ -701,21 +703,54 @@ function AdminConnections() {
   );
 }
 
-/** The feedback queue. Unread first is the API's order; the status
- *  control is on the item, because deciding what to do about a piece of
- *  feedback means reading it. */
+const FEEDBACK_AREA_LABEL = {
+  mcp: "MCP",
+  api: "JSON API",
+  console: "Console",
+  ladder: "Ladder",
+  clan: "Elixir Clan",
+  mail: "Email",
+  docs: "Docs",
+  recorder: "Recorder",
+};
+
+/** The one queue (0204): every part of Elixir in one list, filtered by
+ *  area on the server, with each area's count and how many still wait
+ *  for words. Unanswered, oldest first is the backlog's order; the
+ *  answer is on the item, because answering means reading it. */
 function AdminFeedback() {
   const { day } = useClock();
-  const feedback = useAdminFeedback().data?.feedback ?? [];
+  const [area, setArea] = useState("");
+  const [unanswered, setUnanswered] = useState(true);
+  const [cursor, setCursor] = useState([]);
+  const q = {
+    area: area || undefined,
+    unanswered: unanswered ? "1" : undefined,
+    order: unanswered ? "oldest" : undefined,
+    ...(cursor.at(-1) ?? {}),
+  };
+  const query = useAdminFeedback(q);
+  const feedback = query.data?.feedback ?? [];
+  const areas = query.data?.areas ?? [];
+  const next = query.data?.next ?? null;
+  const pick = (value) => {
+    setArea(value);
+    setCursor([]);
+  };
 
   const rows = feedback.map((f) => [
+    {
+      text: `fb_${f.feedback_id}`,
+      href: `${CONSOLE}/admin/feedback/${f.feedback_id}`,
+    },
     day(f.created_at),
-    f.from_player ?? "—",
-    f.surface ?? "",
+    f.from_player ??
+      (f.account_kind === "agent" ? `agent ${f.account_public_id}` : "—"),
+    FEEDBACK_AREA_LABEL[f.area] ?? f.area ?? "",
     f.category ?? "",
     {
       text: f.message.length > 80 ? f.message.slice(0, 80) + "…" : f.message,
-      href: `${CONSOLE}/admin/feedback/${f.feedback_id}`,
+      title: f.message,
     },
     {
       text: f.status + (f.response ? " · answered" : ""),
@@ -727,25 +762,108 @@ function AdminFeedback() {
     <LogTable
       crumb="Admin"
       title="Feedback queue"
-      note="Sent from the console and from elixir_send_feedback at the MCP door."
+      note="Every door files here: MCP, the JSON API, the Console, Ladder, Elixir Clan, the docs and the email footer."
+      loading={query.isPending}
+      error={query.isError ? "The queue could not be read just now." : null}
+      above={
+        <div
+          style={{
+            display: "flex",
+            gap: "6px",
+            flexWrap: "wrap",
+            alignItems: "center",
+            marginBottom: "12px",
+          }}
+        >
+          <button
+            type="button"
+            className={`btn btn--sm${area ? "" : " btn--primary"}`}
+            onClick={() => pick("")}
+          >
+            All
+          </button>
+          {areas.map((a) => (
+            <button
+              key={a.area}
+              type="button"
+              className={`btn btn--sm${area === a.area ? " btn--primary" : ""}`}
+              onClick={() => pick(a.area)}
+              title={`${a.total} shown by this filter, ${a.unanswered} without words`}
+            >
+              {FEEDBACK_AREA_LABEL[a.area] ?? a.area}{" "}
+              <span className="mono">
+                {unanswered ? a.unanswered : a.total}
+              </span>
+            </button>
+          ))}
+          <label
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              gap: "6px",
+              alignItems: "center",
+              fontSize: "13px",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={unanswered}
+              onChange={(e) => {
+                setUnanswered(e.target.checked);
+                setCursor([]);
+              }}
+            />
+            Unanswered, oldest first
+          </label>
+        </div>
+      }
       cols={[
+        ["ID", "left"],
         ["WHEN", "left"],
         ["FROM", "left"],
-        ["VIA", "left"],
+        ["AREA", "left"],
         ["CATEGORY", "left"],
         ["SAID", "left"],
         ["STATE", "left"],
       ]}
       rows={rows}
-      monoCols={[0, 1]}
+      monoCols={[0, 1, 2]}
       filters={[
-        { key: "state", label: "State", col: 5 },
-        { key: "category", label: "Category", col: 3 },
-        { key: "via", label: "Via", col: 2 },
+        { key: "state", label: "State", col: 6 },
+        { key: "category", label: "Category", col: 4 },
       ]}
-      minWidth={820}
-      empty="No feedback yet."
-      footnote="Every item gets a response; the response lands in the filer's notification feed. Open one to answer it."
+      minWidth={880}
+      empty={
+        unanswered
+          ? "Nothing waits for an answer here."
+          : "No feedback here yet."
+      }
+      footnote={
+        <span className="flex items-center gap-[10px]">
+          {cursor.length > 0 && (
+            <button
+              type="button"
+              className="btn btn--sm"
+              onClick={() => setCursor(cursor.slice(0, -1))}
+            >
+              ‹ Back
+            </button>
+          )}
+          {next && (
+            <button
+              type="button"
+              className="btn btn--sm"
+              onClick={() => setCursor([...cursor, next])}
+            >
+              {unanswered ? "Newer ›" : "Older ›"}
+            </button>
+          )}
+          <span>
+            Every item gets an answer: it lands in the filer's feed, and a
+            person is emailed it. Open one to answer it.
+          </span>
+        </span>
+      }
     />
   );
 }
@@ -1074,28 +1192,56 @@ function AttachedEmail({ sendId }) {
   );
 }
 
-/** One feedback item, admin lane: the full record plus the moderation
- *  acts — status and the maintainer response (which lands in the
- *  filer's event feed). The response box finally exposes what the API
- *  supported all along. */
+/** Who filed it through what (0204): the principal, the client, and an
+ *  agent's person when it relayed theirs. */
+function viaLine(item) {
+  const v = item.via ?? {};
+  return [
+    item.from_player ??
+      (item.account_kind === "agent"
+        ? `agent ${item.account_public_id}`
+        : "unknown filer"),
+    `via ${item.surface}`,
+    v.client_name ? v.client_name : null,
+    v.on_behalf_of
+      ? `for ${v.on_behalf_of}${v.player_tag ? ` (${v.player_tag})` : ""}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+const POINTER_LABEL = {
+  player: "Player",
+  clan: "Clan",
+  clan_action: "Clan action",
+  award: "Award",
+  policy: "Policy",
+};
+
+/** One feedback item, admin lane: the record, what it points at (each
+ *  call and email read over the admin lane), its thread, and the answer:
+ *  a status, the words the filer reads, and what shipped. The answer is
+ *  a compare-and-set on the item as read, so two answers cannot cross. */
 function AdminFeedbackItem({ id, navigate }) {
   const { day } = useClock();
-  const query = useAdminFeedback();
-  const item =
-    (query.data?.feedback ?? []).find(
-      (f) => String(f.feedback_id) === String(id),
-    ) ?? null;
-  const missed = query.isFetched && !item;
+  const query = useAdminFeedbackItem(id);
+  const item = query.data?.feedback ?? null;
   const [response, setResponse] = useState("");
+  const [status, setStatus] = useState("");
+  const [shipped, setShipped] = useState("");
   const [saved, setSaved] = useState("");
+  const [failed, setFailed] = useState("");
   const invalidate = useInvalidate();
-  const load = () => invalidate(keys.adminFeedback);
-  // The reply box starts from the saved reply, unless the operator is
+  // The form starts from the saved answer, unless the operator is
   // mid-edit: a background reload must not eat typing.
   useEffect(() => {
-    if (item) setResponse((prev) => prev || item.response || "");
+    if (!item) return;
+    setResponse((prev) => prev || item.response || "");
+    setShipped((prev) => prev || item.shipped_in || "");
+    setStatus((prev) => prev || (item.status === "new" ? "seen" : item.status));
   }, [item]);
-  if (missed)
+  if (query.isError)
     return (
       <div className="panel">
         <div className="panel__body">
@@ -1105,17 +1251,51 @@ function AdminFeedbackItem({ id, navigate }) {
       </div>
     );
   if (!item) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
-  const setStatus = async (status, withResponse) => {
+  const refs = item.refs ?? [];
+  const calls = refs.filter((r) => r.kind === "call");
+  const emails = refs.filter((r) => r.kind === "email");
+  const pointers = refs.filter((r) => r.kind !== "call" && r.kind !== "email");
+  const thread = [
+    ...(item.follows_id
+      ? [{ feedback_id: item.follows_id, rel: "follows" }]
+      : []),
+    ...(item.thread ?? [])
+      .filter((t) => String(t.feedback_id) !== String(item.follows_id))
+      .map((t) => ({ ...t, rel: "reply" })),
+  ];
+  const answer = async () => {
     setSaved("");
-    const r = await api.adminFeedbackStatus(
-      item.feedback_id,
+    setFailed("");
+    const r = await api.answerFeedback({
+      feedback_id: item.feedback_id,
       status,
-      withResponse ? response.trim() || undefined : undefined,
-    );
+      response: response.trim() || undefined,
+      shipped_in: shipped.trim(),
+      expected: {
+        status: item.status,
+        response: item.response ?? null,
+        responded_at: item.responded_at ?? null,
+      },
+    });
     if (r.ok) {
-      setSaved(withResponse ? "Response sent." : "Status saved.");
-      load();
-    }
+      setSaved(
+        r.data?.answered
+          ? "Answered. The filer is told."
+          : "Saved. A status alone is not news to the filer.",
+      );
+      invalidate(keys.adminFeedback);
+    } else if (r.status === 409) {
+      setFailed(r.data?.message ?? "The item changed; reload it.");
+      invalidate(keys.adminFeedbackItem(id));
+    } else setFailed(r.data?.message ?? "That answer was not saved.");
+  };
+  const block = {
+    borderTop: "1px solid var(--line-soft)",
+  };
+  const heading = {
+    fontSize: "11px",
+    color: "var(--ink-faint)",
+    marginBottom: "6px",
   };
   return (
     <>
@@ -1128,10 +1308,13 @@ function AdminFeedbackItem({ id, navigate }) {
           ‹ All feedback
         </Link>
       </p>
-      <section className="panel" style={{ maxWidth: "680px" }}>
+      <section className="panel" style={{ maxWidth: "720px" }}>
         <div className="panel__head">
           <span className="mono" style={{ color: "var(--ink-faint)" }}>
-            #{item.feedback_id}
+            fb_{item.feedback_id}
+          </span>
+          <span className="tag-chip">
+            {FEEDBACK_AREA_LABEL[item.area] ?? item.area}
           </span>
           <span className="tag-chip">{item.category}</span>
           <span
@@ -1147,37 +1330,64 @@ function AdminFeedbackItem({ id, navigate }) {
               color: "var(--ink-faint)",
             }}
           >
-            {item.from_player ?? "unknown filer"} · via {item.surface} ·{" "}
-            {day(item.created_at)}
+            {viaLine(item)} · {day(item.created_at)}
           </span>
         </div>
-        {/* Feedback is written in Markdown — the console's form says so
-            and elixir_send_feedback takes it the same way — so it renders as
-            Markdown here too. The reader's side already did; the queue
-            where it is actually READ was showing the asterisks. */}
+        {/* Feedback is written in Markdown at every door, so it renders as
+            Markdown where it is read. */}
         <div
           className="panel__body"
           style={{ fontSize: "13px", lineHeight: 1.6 }}
         >
           <Markdown text={item.message} />
         </div>
-        {item.request_id && <AttachedCall requestId={item.request_id} />}
-        {item.send_id && (
-          <AttachedEmail sendId={item.send_id} navigate={navigate} />
+        {thread.length > 0 && (
+          <div className="panel__body" style={block}>
+            <div className="mono" style={heading}>
+              THREAD
+            </div>
+            <p className="m-0 text-[13px]">
+              {thread
+                .map((t) => (
+                  <Link
+                    key={t.feedback_id}
+                    className="mono"
+                    to={`${CONSOLE}/admin/feedback/${t.feedback_id}`}
+                  >
+                    {t.rel === "follows" ? "replies to " : "replied in "}fb_
+                    {t.feedback_id}
+                  </Link>
+                ))
+                .flatMap((el, i) => (i ? [" · ", el] : [el]))}
+            </p>
+          </div>
         )}
+        {pointers.length > 0 && (
+          <div className="panel__body" style={block}>
+            <div className="mono" style={heading}>
+              ABOUT
+            </div>
+            <p className="m-0 text-[13px]">
+              {pointers
+                .map((r) => (
+                  <span key={`${r.kind}${r.ref}`}>
+                    {POINTER_LABEL[r.kind] ?? r.kind}{" "}
+                    <span className="mono">{r.ref}</span>
+                  </span>
+                ))
+                .flatMap((el, i) => (i ? [" · ", el] : [el]))}
+            </p>
+          </div>
+        )}
+        {calls.map((r) => (
+          <AttachedCall key={r.ref} requestId={r.ref} />
+        ))}
+        {emails.map((r) => (
+          <AttachedEmail key={r.ref} sendId={r.ref} navigate={navigate} />
+        ))}
         {item.context && (
-          <div
-            className="panel__body"
-            style={{ borderTop: "1px solid var(--line-soft)" }}
-          >
-            <div
-              className="mono"
-              style={{
-                fontSize: "11px",
-                color: "var(--ink-faint)",
-                marginBottom: "6px",
-              }}
-            >
+          <div className="panel__body" style={block}>
+            <div className="mono" style={heading}>
               CONTEXT
             </div>
             <pre
@@ -1195,19 +1405,19 @@ function AdminFeedbackItem({ id, navigate }) {
         <div
           className="panel__body"
           style={{
-            borderTop: "1px solid var(--line-soft)",
+            ...block,
             display: "flex",
             flexDirection: "column",
             gap: "10px",
           }}
         >
           <label>
-            <span className="field-label">Maintainer response</span>
+            <span className="field-label">The answer</span>
             <textarea
-              rows={4}
+              rows={5}
               value={response}
               onChange={(e) => setResponse(e.target.value)}
-              placeholder="Lands in the filer's feed as feedback_responded."
+              placeholder="The filer reads this: in their feed, on their page, and by email for a person."
               style={{ width: "100%" }}
             />
           </label>
@@ -1220,23 +1430,32 @@ function AdminFeedbackItem({ id, navigate }) {
             }}
           >
             <select
-              value={item.status}
-              onChange={(e) => setStatus(e.target.value, false)}
+              className="select"
+              aria-label="Status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
             >
-              {["new", "seen", "planned", "done", "declined"].map((st) => (
+              {FEEDBACK_ANSWER_STATUSES.map((st) => (
                 <option key={st} value={st}>
                   {st}
                 </option>
               ))}
             </select>
+            <input
+              className="input mono w-[160px]"
+              aria-label="Shipped in"
+              placeholder="shipped in (11.3.0)"
+              value={shipped}
+              onChange={(e) => setShipped(e.target.value)}
+            />
             <button
-              className="btn"
-              disabled={!response.trim()}
-              onClick={() =>
-                setStatus(item.status === "new" ? "seen" : item.status, true)
-              }
+              className="btn btn--primary"
+              disabled={!status}
+              onClick={answer}
             >
-              Send response
+              {response.trim() && response.trim() !== (item.response ?? "")
+                ? "Send answer"
+                : "Save status"}
             </button>
             {saved && (
               <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
@@ -1244,6 +1463,7 @@ function AdminFeedbackItem({ id, navigate }) {
               </span>
             )}
           </div>
+          {failed && <p className="field-error">{failed}</p>}
         </div>
       </section>
     </>

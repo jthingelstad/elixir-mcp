@@ -1,24 +1,24 @@
 ---
 slug: email
 title: "Email"
-description: "The six emails Elixir sends: four weekly reports built from your record, a milestone note when something you did is a first, and Elixir Clan's note when something new in your clan is yours to do. Every one is a switch on your account page; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
+description: "The seven emails Elixir sends: four weekly reports built from your record, a milestone note when something you did is a first, Elixir Clan's note when something new in your clan is yours to do, and the answer to feedback you filed. Every one is a switch on your account page; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
 section: friends
 order: 3
 navTitle: "Email"
 icon: mail
-lede: "Six kinds, each a switch and a turn-off link: four weekly reports, milestones and clan actions waiting."
-reviewed: "2026-10-06 for public member signup, contract 11.2.3"
+lede: "Seven kinds, each a switch and a turn-off link: four weekly reports, milestones, clan actions waiting and answers to your feedback."
+reviewed: "2026-10-08 for answers to feedback, contract 11.3.0"
 ---
 
 # Email
 
-Elixir sends six kinds of email. All six start **on by default** for an active
-person account, and all six are **a switch on your account page**
+Elixir sends seven kinds of email. All seven start **on by default** for an active
+person account, and all seven are **a switch on your account page**
 ([Account settings ▸ Emails from Elixir](/console/account/profile/email)), with a *turn off* link in every
 issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
-Four of the six are weekly **reports**, and the milestone note is
+Four of the seven are weekly **reports**, and the milestone note is
 built the same way: structured, built from your record by the same
 readers the tools answer with, no language model anywhere in them.
 Every number is the number a tool would give you, and every one of
@@ -47,6 +47,7 @@ notes are exempt: they come as the moments do.
 | Wednesday | **Your friends this week** | How everyone you follow played: a card each for your friends and the busiest players you watch (their battles in each mode, a moment or two, the deck they played most), with you and your clans in a line each. It is the [timeline](/docs/timeline) for the week, rendered. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the dashboard’s security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and points to date; how much the edge filter saved, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
 | Mornings | **Clan actions waiting** | From [Elixir Clan](/clan), after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
+| When answered | **Answers to your feedback** | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed, from anywhere in Elixir (the Console, Ladder, Elixir Clan, an email's footer, the docs), and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. One mail per answer; an answer is mailed after ten quiet minutes, so a correction made straight away is one mail. An agent's feedback is answered to the agent, never mailed. |
 | As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked, an Evolution or Hero form unlocked. A new arena or league comes with the battle that did it and a link to [that battle's page](/docs/battles#a-battles-page); a card comes as its art. Checked hourly; everything new since the last note rides together. |
 
 For Arena's featured deck, equal mode counts use alphabetical mode-group

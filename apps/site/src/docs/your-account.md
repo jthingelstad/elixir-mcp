@@ -1,14 +1,14 @@
 ---
 slug: your-account
 title: "Your account"
-description: "Your Elixir account: creating an account, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you track, your time zone, your tier, what stays private, and how to have the account removed."
+description: "Your Elixir account: creating an account, signing in with an emailed code or link, how long a sign-in lasts, your primary player and the others you track, your time zone, your tier, the feedback you send and its answers, what stays private, and how to have the account removed."
 section: start
 order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your tier, and it shows nobody your address."
 console: ["Your profile and tier", "/console/account/profile", "Account settings ▸ Profile"]
-reviewed: "2026-10-06 against contract 11.2.3"
+reviewed: "2026-10-08 against contract 11.3.0"
 ---
 
 # Your account
@@ -104,6 +104,26 @@ beside what you use. Tiers are granted by hand. **Ask for more slots**
 on the same page sends a request that a person reviews, one at a time.
 Running a collector adds slots of its own. The tiers and their numbers
 are on [Roles and tiers](/docs/roles).
+
+## Feedback
+
+Every part of Elixir takes feedback, and all of it lands in one place:
+**Send feedback** at the foot of the Console's, Ladder's and Elixir
+Clan's rail, **Report this** beside an Elixir Clan action, Standing and
+the award races, **Something wrong on this page?** on every docs page,
+and **Send feedback about this email** in every email's footer. Each
+note carries where it was written and what it is about (the page, the
+player, the clan action, the call or the email), so you write only what
+you think. Sending feedback needs you signed in; without an account,
+write to [admin@poapkings.com](mailto:admin@poapkings.com).
+
+Every item is answered. **Console ▸ Feedback** lists what you have sent
+with its state and the maintainer's answer, and an item's own page
+shows the whole thread: answer an answer with **Reply** and the two
+stay linked. A new answer comes to your inbox too, ten minutes after it
+is written, unless you have already read it
+([Answers to your feedback](/docs/email)). An agent's feedback is the
+agent's: it is answered on the agent's page and timeline, never mailed.
 
 ## What stays private
 

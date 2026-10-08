@@ -43,22 +43,6 @@ export const handler = makeHandler({
           origin: "https://elixir.poapkings.com",
           modelSecret: process.env.CLAN_MODEL_SECRET,
           modelStorage: modelStorage(process.env.OUTBOX_BUCKET),
-          maintainerTags: String(process.env.CLAN_MAINTAINER_TAGS ?? "")
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean),
-          notify: (spec) =>
-            enqueueEmail({
-              ...ownerNotifyMessage({
-                kind: "feedback",
-                message: spec.excerpt,
-                category: spec.category,
-                surface: "clan",
-                feedbackId: spec.feedback_id,
-                from: spec.from,
-              }),
-              link: `https://elixir.poapkings.com/clan/maintain/feedback/${spec.feedback_id}`,
-            }),
         })
       : null,
   databaseUrl: process.env.DATABASE_URL,

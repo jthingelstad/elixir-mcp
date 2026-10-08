@@ -729,9 +729,11 @@ test("Clan always uses the shared account door and never falls back to the retir
     /ClanApiOriginRequestPolicy|ClanApiDomain|Id: clanapi|Id: clanweb/,
   );
   assert.match(
-    resource(template, "ClanInternal", "ClanMaintainerTags"),
+    resource(template, "ClanInternal", "HasInternalClan"),
     /Default: "true"/,
   );
+  // Clan's own feedback lane retired into the one system (0204).
+  assert.doesNotMatch(template, /ClanMaintainerTags|CLAN_MAINTAINER_TAGS/);
   const shared = resource(
     template,
     "SiteApiOriginRequestPolicy",
@@ -920,4 +922,12 @@ test("CI builds the site once per job (#73)", async () => {
     ),
   );
   assert.match(site.scripts.test, /build-site\.mjs/);
+});
+
+test("the one-minute mail rule also drains answers to feedback (0204)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  assert.match(
+    resource(template, "CollectorUpgradeRule", "CollectorUpgradePermission"),
+    /Input: '\{"collector_upgrades": true, "feedback_answers": true\}'/,
+  );
 });

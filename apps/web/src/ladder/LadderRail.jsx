@@ -1,5 +1,8 @@
-import { Icon, Link, Rail } from "@elixir-mcp/ui";
+import { FEEDBACK_CATEGORIES } from "@elixir-mcp/contracts";
+import { FeedbackSheet, Icon, Link, Rail } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
+import { api } from "../api.js";
+import { CONSOLE } from "../lib/console.js";
 import {
   LADDER_PAGES,
   ladderHref,
@@ -17,6 +20,7 @@ import {
 export function LadderRail({ me, search, here, navigate, narrow }) {
   const players = ladderPlayers(me?.claims);
   const player = pickPlayer(players, search.player);
+  const [feedback, setFeedback] = useState(false);
   const keep = { player: search.player, mode: search.mode };
   const items = LADDER_PAGES.map((p) => ({
     key: p.slug,
@@ -25,34 +29,58 @@ export function LadderRail({ me, search, here, navigate, narrow }) {
     to: ladderHref(p.slug, keep),
   }));
   return (
-    <Rail
-      label="Ladder sections"
-      items={items}
-      current={here.key}
-      navigate={navigate}
-      narrow={narrow}
-      title="Ladder"
-      head={
-        player ? (
-          <PlayerSwitcher
-            players={players}
-            current={player}
-            hrefFor={(p) =>
-              ladderHref(here.key, {
-                player: p.is_primary ? undefined : p.player_tag,
-                mode: search.mode,
-              })
-            }
-            navigate={navigate}
-          />
-        ) : undefined
-      }
-      identity={
-        <p className="ladder-rail__note">
-          A mirror, not a coach: your record, read back.
-        </p>
-      }
-    />
+    <>
+      <Rail
+        label="Ladder sections"
+        items={items}
+        current={here.key}
+        navigate={navigate}
+        narrow={narrow}
+        title="Ladder"
+        head={
+          player ? (
+            <PlayerSwitcher
+              players={players}
+              current={player}
+              hrefFor={(p) =>
+                ladderHref(here.key, {
+                  player: p.is_primary ? undefined : p.player_tag,
+                  mode: search.mode,
+                })
+              }
+              navigate={navigate}
+            />
+          ) : undefined
+        }
+        identity={
+          <p className="ladder-rail__note">
+            A mirror, not a coach: your record, read back.
+          </p>
+        }
+        // Ladder had no way to say anything back (2026-10-08): the sheet
+        // files about Ladder, the page and the player it was reading.
+        foot={{
+          label: "Send feedback",
+          icon: "message-square",
+          onClick: () => setFeedback(true),
+        }}
+      />
+      {feedback && (
+        <FeedbackSheet
+          area="ladder"
+          categories={FEEDBACK_CATEGORIES}
+          about={`About Ladder${player ? `, ${playerName(player)}'s season` : ""}. The page you are on rides along.`}
+          refs={player ? [{ kind: "player", ref: player.player_tag }] : []}
+          context={{
+            page: here.key,
+            ...(search.mode ? { mode: search.mode } : {}),
+          }}
+          send={api.sendFeedback}
+          onClose={() => setFeedback(false)}
+          itemHref={(id) => `${CONSOLE}/account/feedback/${id}`}
+        />
+      )}
+    </>
   );
 }
 

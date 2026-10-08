@@ -4,6 +4,7 @@ import { manageApi } from "../api.js";
 import { useAwards } from "../lib/queries.js";
 import { MemberLink } from "../components/MemberLink.jsx";
 import { TooFew } from "../components/TooFew.jsx";
+import { ReportThis } from "../components/ReportThis.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { trackEvent } from "../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
@@ -74,7 +75,22 @@ export function Awards({ clan, navigate }) {
         title="Award races"
         lede="Current season standings and award setup. Award history keeps the earned record."
         navigate={navigate}
-      />
+      >
+        {/* An award race is Elixir's judgment against the clan's awards
+            config: the version rides along (2026-10-08). */}
+        <div>
+          <ReportThis
+            about={`Award races in ${clan.name ?? clan.clan_tag}${d.config_version ? `, awards v${d.config_version}` : ""}. Name the award and what reads wrong.`}
+            refs={[
+              { kind: "clan", ref: clan.clan_tag },
+              ...(d.config_version
+                ? [{ kind: "award", ref: `config:v${d.config_version}` }]
+                : []),
+            ]}
+            context={{ page: "awards" }}
+          />
+        </div>
+      </PageHead>
       <p className="page-head__note m-0">
         {d.config_version === 0
           ? "This clan runs no awards yet. A leader adds the ones it runs."

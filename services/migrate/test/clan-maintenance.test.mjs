@@ -87,54 +87,6 @@ test("targeted removal reconciliation previews current proof, refuses stale evid
   );
   await assert.rejects(clanMaintenance(scratch.url, spec), /pending removal/);
 });
-test("private queue reads are bounded, oldest first, and do not mark replies seen or return sealed keys", async () => {
-  const ledger = createPostgresLedger(scratch.db);
-  for (let n = 0; n < 4; n++)
-    await ledger.putFeedback({
-      feedback_id: `f${n}`,
-      status: "new",
-      created_at: `2026-09-0${n + 1}T00:00:00Z`,
-      message: `private${n}`,
-      response: n === 0 ? "a reply" : null,
-      response_seen_at: null,
-    });
-  await ledger.saveModelKey("#P0LYQ", { sealed: "must-never-return" });
-  const result = await clanMaintenance(scratch.url, {
-    lane: "feedback",
-    limit: 2,
-  });
-  assert.deepEqual(
-    result.items.map((x) => x.feedback_id),
-    ["f0", "f1"],
-  );
-  assert.equal(result.items[0].response_seen_at, null);
-  assert.equal((await ledger.feedbackItem("f0")).response_seen_at, null);
-  assert.equal(JSON.stringify(result).includes("must-never-return"), false);
-});
-test("a response previews by default, applies explicitly and refuses stale state", async () => {
-  const read = () =>
-    clanMaintenance(scratch.url, { lane: "feedback", feedback_id: "f0" });
-  const spec = {
-    lane: "respond",
-    feedback_id: "f0",
-    status: "done",
-    response: "fixed",
-    expected_sha256: (await read()).items[0].expected_sha256,
-  };
-  assert.equal((await clanMaintenance(scratch.url, spec)).applied, false);
-  assert.equal((await read()).items[0].status, "new");
-  const applied = await clanMaintenance(scratch.url, { ...spec, apply: true });
-  assert.equal(applied.applied, true);
-  assert.equal(
-    applied.expected_sha256,
-    (await read()).items[0].expected_sha256,
-  );
-  assert.equal((await read()).items[0].response_seen_at, null);
-  await assert.rejects(
-    clanMaintenance(scratch.url, { ...spec, apply: true }),
-    /changed/,
-  );
-});
 test("action review reconstructs missing history without writing it and stays inside one clan", async () => {
   const ledger = createPostgresLedger(scratch.db);
   await ledger.putCard("#P0LYQ", {
@@ -166,84 +118,12 @@ test("action review reconstructs missing history without writing it and stays in
   for (const spec of [
     { lane: "model" },
     { lane: "actions", clan_tag: "bad" },
-    { lane: "feedback", limit: 101 },
-    { lane: "feedback", feedback_id: "model_key##P0LYQ" },
+    { lane: "actions", clan_tag: "#P0LYQ", limit: 101 },
+    // Clan's own feedback lanes retired into the one record (0204).
+    { lane: "feedback" },
+    { lane: "respond", feedback_id: "f0", status: "done" },
   ])
     await assert.rejects(clanMaintenance("invalid://never-connect", spec));
-});
-
-test("a stale web reader or decision cannot erase a committed maintenance response", async () => {
-  const { createFeedbackService } =
-    await import("@elixir-mcp/clan/feedback.mjs");
-  const ledger = createPostgresLedger(scratch.db);
-  for (const kind of ["seen", "decision"]) {
-    const feedbackId = `race-${kind}`;
-    await ledger.putFeedback({
-      feedback_id: feedbackId,
-      person_tag: "#P0LYQ",
-      status: "planned",
-      created_at: "2026-10-02T00:00:00Z",
-      response: "old",
-      response_seen_at: null,
-    });
-    let release;
-    let read;
-    const held = new Promise((r) => {
-      release = r;
-    });
-    const ready = new Promise((r) => {
-      read = r;
-    });
-    let first = true;
-    const service = createFeedbackService({
-      ledger: {
-        ...ledger,
-        async feedbackItem(id) {
-          const item = await ledger.feedbackItem(id);
-          if (first) {
-            first = false;
-            read();
-            await held;
-          }
-          return item;
-        },
-      },
-    });
-    const pending =
-      kind === "seen"
-        ? service.item({ player_tag: "#P0LYQ" }, feedbackId)
-        : service.decide({ maintainer: true }, feedbackId, {
-            response: "stale decision",
-          });
-    // Attach a rejection handler before releasing the competing writer.
-    const observed = pending.then(
-      (value) => ({ value }),
-      (error) => ({ error }),
-    );
-    await ready;
-    const current = await clanMaintenance(scratch.url, {
-      lane: "feedback",
-      feedback_id: feedbackId,
-    });
-    await clanMaintenance(scratch.url, {
-      lane: "respond",
-      feedback_id: feedbackId,
-      expected_sha256: current.items[0].expected_sha256,
-      status: "done",
-      response: "new response",
-      shipped_in: "test-receipt",
-      apply: true,
-    });
-    release();
-    const result = await observed;
-    if (kind === "seen") assert.equal(result.value.response, "new response");
-    else assert.equal(result.error.code, "feedback_changed");
-    const stored = await ledger.feedbackItem(feedbackId);
-    assert.equal(stored.response, "new response");
-    assert.equal(stored.status, "done");
-    assert.equal(stored.shipped_in, "test-receipt");
-    assert.equal(stored.response_seen_at, null);
-  }
 });
 
 test("maintenance can traverse complete inventories and reads real grants and morning receipts", async () => {

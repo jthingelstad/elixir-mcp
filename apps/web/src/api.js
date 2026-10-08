@@ -87,15 +87,21 @@ export const api = {
     };
   },
   myFeedback: (agent) => request("GET", `${home(agent)}/feedback`),
-  sendFeedback: (message, category, context, request_id, send_id) =>
-    request("POST", "/api/feedback", {
-      message,
-      category,
-      context,
-      request_id,
-      send_id,
-    }),
-  adminFeedback: () => request("GET", "/api/admin/feedback"),
+  feedbackItem: (id, agent) =>
+    request("GET", `${home(agent)}/feedback/${encodeURIComponent(id)}`),
+  // One record for every page (0204): { message, category, area, refs,
+  // context, follows_id }. request_id and send_id still ride as refs.
+  sendFeedback: (body) => request("POST", "/api/feedback", body),
+  adminFeedback: (q = {}) => {
+    const params = new URLSearchParams(
+      Object.entries(q).filter(
+        ([, v]) => v !== undefined && v !== null && v !== "",
+      ),
+    ).toString();
+    return request("GET", `/api/admin/feedback${params ? `?${params}` : ""}`);
+  },
+  adminFeedbackItem: (id) =>
+    request("GET", `/api/admin/feedback/${encodeURIComponent(id)}`),
   adminCall: (request_id) =>
     request("GET", `/api/admin/calls/${encodeURIComponent(request_id)}`),
   adminEmailSends: () => request("GET", "/api/admin/email/sends"),
@@ -108,12 +114,9 @@ export const api = {
   adminServiceTokens: () => request("GET", "/api/admin/service-tokens"),
   adminServiceTokenAction: (body) =>
     request("POST", "/api/admin/service-tokens", body),
-  adminFeedbackStatus: (feedback_id, status, response) =>
-    request("POST", "/api/admin/feedback", {
-      feedback_id,
-      status,
-      ...(response ? { response } : {}),
-    }),
+  // An answer: status, words, what shipped; `expected` is the status as
+  // the page read it, so two answers cannot cross (409).
+  answerFeedback: (body) => request("POST", "/api/admin/feedback", body),
   activity: (agent) => request("GET", `${home(agent)}/activity`),
   connections: (agent) => request("GET", `${home(agent)}/connections`),
   firstAnswer: (playerTag) =>

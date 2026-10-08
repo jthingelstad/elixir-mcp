@@ -4,10 +4,11 @@ The kinds and delivery behavior are documented publicly at `/docs/email`;
 this file is the design, not the description (AGENTS.md). Composition is
 structured from recorded facts, without model generation.
 
-Six product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
+Seven product kinds are active (`ACTIVE_PRODUCT_EMAIL_KINDS` in
 `packages/contracts/src/queue.ts`): four weekly (`clan_report`,
-`arena_week`, `tracking_report`, `collector_activity`) and two that come
-when something happens (`milestone`, `clan_actions_waiting`). The
+`arena_week`, `tracking_report`, `collector_activity`) and three that come
+when something happens (`milestone`, `clan_actions_waiting`,
+`feedback_answer`). The
 collector upgrade notice is part of `collector_activity`. `top_100` and
 `card_of_week` are retired: they stay in `PRODUCT_EMAIL_KINDS` so sent
 records and old unsubscribe links still resolve, and their generation
@@ -156,6 +157,20 @@ re-upgrade after a rollback is a new event. Approval, person kind,
 current ownership, revocation and preference are checked before
 composing. An available release is never announced as installed.
 
+**Answers to feedback** (`feedback_answer`,
+`services/jobs/src/email/feedback-answers.mjs`, migration 0204) ride the
+same minute rule (`{collector_upgrades:true, feedback_answers:true}`),
+after the upgrade drain. The journal is the item: `response_mailed_at`
+is the `responded_at` whose answer was handled, sent or skipped, so a
+revised answer is owed a mail again and a status-only change never is.
+An answer settles ten minutes first; it sends only when it has words,
+is still unread (`response_seen_at` null: reading it where it was filed
+is the delivery), the `feedback_answer` preference is on, and the filer
+is an approved person with an address who is not the owner. Each answer
+is its own issue (`feedback-answer/<id>/<responded_at>`), so a retry
+after an unmarked enqueue finds it sent and only marks it. The update
+compares `responded_at` as text: a JS Date drops the microseconds.
+
 `collector_release_note` stores the GitHub notes and URL from the
 verifying naming script, plus an optional maintainer `--reason=`. It
 describes the release's purpose, never a host's installation mechanism.
@@ -226,7 +241,8 @@ lead to a family app.
   only; the pixel stripped, so the console never counts as an open). The
   record is at `/console/account/activity/e/<id>` in a sandboxed no-script
   frame, with "Report a problem with this email" filing feedback with
-  `feedback.send_id`.
+  an `email` ref (`feedback_ref`, 0204; `feedback.send_id` is still
+  written for one release).
 - The footer links the record by id and, with `?report=1`, straight into
   feedback. Those links carry the mail's `utm_` tags: a send id is a
   product identifier, not a tracking identifier (`docs/DECISIONS.md`).
