@@ -9,9 +9,7 @@ The database only moves forward, and on 2026-09-15 it moved too far in
 one step. 0099 as first written added a column, updated 468k rows and
 rebuilt two indexes in one transaction. It outlived the migrate Lambda's
 300 s, and its orphaned backend held the ALTER's lock until every
-connection queued behind it: the door was down about 35 minutes
-(docs/notes/2026-W38.md, "INCIDENT: 0099's unbatched backfill took the
-door down"). Most rules below were learned that morning or one like it.
+connection queued behind it: the door was down about 35 minutes. Most rules below were learned that morning or one like it.
 The invariants are ENGINEERING "The database only moves forward" and
 DECISIONS "Schema and migrations"; this is the procedure. `shapes.md`
 has each kind of change step by step, the header template, the backfill

@@ -55,7 +55,7 @@ import {
   ladderHere,
   ladderLegal,
   ladderTitle,
-} from "./lib/ladder.js";
+} from "./ladder/ladder.js";
 import { LadderRail } from "./ladder/LadderRail.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";

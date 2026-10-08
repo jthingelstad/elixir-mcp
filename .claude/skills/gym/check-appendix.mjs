@@ -62,7 +62,6 @@ const WRITE_TOOLS = new Set([
   "live_fetch",
   "elixir_track_player",
   "elixir_track_clan",
-  "collections_edit",
   "elixir_nickname",
   "elixir_identify",
   "elixir_send_feedback",

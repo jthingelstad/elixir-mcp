@@ -1,6 +1,5 @@
 /** Same-origin Clan route map, using the shared session and CSRF header.
- * The temporary legacy runtime accepts this header too. Model operations
- * allow the shared runtime's longer reply window without extending ordinary
+ * Model operations get a longer reply window without extending ordinary
  * reads. All answers keep the family's envelope and retry rules. */
 
 import { createClient } from "@elixir-mcp/client";

@@ -118,7 +118,7 @@ heartbeat, version, channel, `yield_24h` and `edge_filtered_24h`. Start a
 pipeline question here, then `{stats}`.
 
 **CloudWatch Logs Insights.** `/aws/lambda/elixir-mcp-<name>` for `mcp`,
-`web-api`, `scheduler`, `jobs`, `migrate` and `email-relay`
+`web-api`, `collector`, `scheduler`, `jobs`, `migrate` and `email-relay`
 (30 days); `/aws/rds/instance/elixir-mcp-enc/postgresql` (14 days).
 Stamps are UTC; Jamie reads US Central.
 

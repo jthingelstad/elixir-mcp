@@ -133,11 +133,12 @@ before you call it done.
 
 ## 5. The JSON API
 
-Seven `/api/v1` operations answer with a tool's structured result
+Eight tools' structured results are served by `/api/v1` operations
 (`x-tool` in `packages/contracts/integration-api.openapi.json`, wired in
 `services/web-api/src/integration-api.mjs`): `clans_participation`,
-`clans_roster`, `live_fetch` (the clan read), `players_names`,
-`players_profile`, `battles_query` and `elixir_track_player`.
+`clans_roster`, `war_history`, `live_fetch` (the clan read),
+`players_names`, `players_profile`, `battles_query` and
+`elixir_track_player`.
 
 "The JSON API keeps ordinary semver". An addition to a mirrored tool is
 a JSON API minor, made in the same round. A removed or renamed field is
@@ -155,9 +156,10 @@ pin (facets.md section 8 names the files).
 
 ## 6. Tests
 
-- Tests are grouped by concern in `services/mcp/test/` (`tools2.test.mjs`
-  holds most tools). Find a tool's with
-  `grep -l '"<tool>"' services/*/test/*.test.mjs`.
+- Tests are grouped by concern in `packages/tools/test/` (`tools2.test.mjs`
+  holds most tools); protocol and door tests are in `services/mcp/test/`.
+  Find a tool's with
+  `grep -l '"<tool>"' packages/tools/test/*.test.mjs services/*/test/*.test.mjs`.
 - Each file makes its own scratch database on the local brew
   `postgresql@17`, migrates it, seeds it, and calls through
   `makeInvoker({ db, account, registry: makeRegistry() })`. Under
@@ -166,7 +168,7 @@ pin (facets.md section 8 names the files).
 - Hand-seeded battles go through `packages/tools/test/deck-rows.mjs`,
   because "Cards are rows, not JSON".
 - Run one file with
-  `npm run build && node --test services/mcp/test/<file>.test.mjs`.
+  `npm run build && node --test packages/tools/test/<file>.test.mjs`.
 - **Never verify with writes on live data** (AGENTS.md rule 9). Live
   evidence comes from Jamie's `mcp__elixir-mcp__*` connection, or from
   `{profile_tool}` through `/ops`.

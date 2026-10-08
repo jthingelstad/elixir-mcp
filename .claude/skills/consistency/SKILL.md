@@ -139,8 +139,7 @@ report. Every answer becomes a DECISIONS line in the fix phase.
   wherever `from` is, and the retired-names ban.
 - Artifacts: before archiving or removing anything, grep the whole domain
   for pointers to it and repoint them. Migrations are checksum-immutable
-  and may cite old paths; `docs/archive/README.md` keeps the old-to-new
-  path table.
+  and may cite old paths; leave them, git history resolves them.
 - Ledger in the same round: a line in `docs/DECISIONS.md` for every
   decision Jamie made, the stale lines rewritten, a dated entry in
   `docs/NOTES.md`, and ENGINEERING.md where an invariant changed.

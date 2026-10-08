@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
  * Import the deck-archetype vocabulary from the sibling cr-agent-api-docs
- * checkout into the record (docs/reviews/2026-09-20-DECK-ARCHETYPES-DESIGN.md
- * §12.4). The Lambdas have no internet, so the operator's machine reads
+ * checkout into the record. The Lambdas have no internet, so the operator's machine reads
  * ../cr-agent-api-docs/data/card-roles.json and data/deck-aliases.json,
  * refuses a sibling whose two data files are uncommitted (it checks
  * `git status` on them, not whether the commit is pushed: push the

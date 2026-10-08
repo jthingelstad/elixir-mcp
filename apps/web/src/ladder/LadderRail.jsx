@@ -6,7 +6,7 @@ import {
   ladderPlayers,
   pickPlayer,
   playerName,
-} from "../lib/ladder.js";
+} from "./ladder.js";
 
 /**
  * Ladder's rail: the kit's, with the player whose season it reads at

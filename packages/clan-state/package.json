@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "Elixir Clan's private management ledger and its Postgres adapter.",
   "exports": {
     ".": "./src/ledger.mjs",
     "./postgres": "./src/postgres.mjs",

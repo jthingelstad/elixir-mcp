@@ -25,10 +25,11 @@ email and the `/api/v1` JSON API: the Gym does not test them, because they
 derive from the MCP (Jamie, 2026-09-23). The grid is `coverage.md` in this
 directory.
 
-Out of scope for testing is not out of scope for fixing. Seven JSON API
-operations serve a tool's result: `clans_participation`, `clans_roster`,
-the `live_fetch` clan read, `players_names`, `players_profile`,
-`battles_query` and `elixir_track_player` (`POST /api/v1/me/players`, 2.1.0) (wiring in `services/web-api/src/integration-api.mjs`,
+Out of scope for testing is not out of scope for fixing. JSON API
+operations serve eight tools' results: `clans_participation`, `clans_roster`,
+`war_history`, the `live_fetch` clan read, `players_names`, `players_profile`,
+`battles_query` and `elixir_track_player` (`POST /api/v1/me/players`) (the `x-tool`
+operations; wiring in `services/web-api/src/integration-api.mjs`,
 contract in `packages/contracts/integration-api.openapi.json`). A fix to
 one of those tools is checked against its operation before it ships. The
 MCP versioning rule is MCP-only (majors track domain shifts; removing an
@@ -157,7 +158,7 @@ Gym runs are read-only, so they may run while you fix another family.
      read its `captured_at` before building a stale-deploy theory.
    - Fix at the source. The site docs and `apps/site/src/_data/updates.js`
      go in the same commit.
-   - Check the JSON API for the seven mirrored tools (see "Scope"). If the
+   - Check the JSON API for the eight mirrored tools (see "Scope"). If the
      fix would change what the `/api/v1` operation returns, stop: park the
      family and ask Jamie.
    - Merge the report's appendix into `acceptance/gym.json` unchanged.

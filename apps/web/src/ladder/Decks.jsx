@@ -1,7 +1,7 @@
 import { CardArt, DeckGrid, useClock } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
-import { fmt, longDay, pct, shortDay, signed } from "../lib/ladder.js";
-import { groupLabel } from "../lib/ladder-days.js";
+import { fmt, longDay, pct, shortDay, signed } from "./ladder.js";
+import { groupLabel } from "./ladder-days.js";
 import {
   GRID_MODES,
   dayRange,
@@ -14,7 +14,7 @@ import {
   nameList,
   tableRows,
   tableTitle,
-} from "../lib/ladder-decks.js";
+} from "./ladder-decks.js";
 import { useToolRead, useToolReads } from "../lib/queries.js";
 import { LadderHead, Loading, ReadError, Record } from "./common.jsx";
 

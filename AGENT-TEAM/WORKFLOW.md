@@ -145,9 +145,9 @@ Lease keys: `run`, `record`, `loop`, `guard` (this team);
    appends a changelog entry. The tool reference (`/docs/tools`) is
    GENERATED from the MCP registry - never hand-edit it; fix the tool's
    declaration instead. When a tool changes whose result a JSON API
-   operation mirrors (`clans_participation`, `clans_roster`, the
-   `live_fetch` clan read, `players_names`, `players_profile`,
-   `battles_query`, `elixir_track_player`), check the matching `/api/v1` operation in
+   operation mirrors (`clans_participation`, `clans_roster`,
+   `war_history`, the `live_fetch` clan read, `players_names`,
+   `players_profile`, `battles_query`, `elixir_track_player`), check the matching `/api/v1` operation in
    `packages/contracts/integration-api.openapi.json`: the JSON API keeps
    ordinary semver, so a removed or renamed field there is its own major
    and a Jamie decision. Commit small and message-first on a branch
@@ -192,7 +192,7 @@ Lease keys: `run`, `record`, `loop`, `guard` (this team);
 Numbers with receipts: every claim in a note names its source (the
 endpoint, the query, the metric, the commit). If the evidence and a
 comment disagree, trust the live reader — comments describe past
-architecture here more than once (`docs/NOTES.md` and `docs/notes/` have the scars).
+architecture here more than once (git history has the scars).
 
 ## Definition checks and recurring work
 

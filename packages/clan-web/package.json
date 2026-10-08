@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Clan views and routes inside the Elixir application, with a temporary legacy wrapper.",
+  "description": "Elixir Clan's views and routes, joined into the one Elixir application.",
   "scripts": {
     "test": "vitest run"
   },

@@ -86,6 +86,6 @@ has earned the "no gaps is a measurement" claim the Status page makes.
 
 ## Consolidated Clan responsibility
 
-Clan Policy Auditor transfers to this existing owner when `ClanInternal=true`; while the switch is false, legacy ownership remains active. Read the switch from the stack before treating either runtime as authoritative.
+Clan policy auditing belongs to this owner: Clan is part of Elixir, with no separate runtime or owner.
 
 Read `packages/clan-engine/src/` and its goldens, `packages/clan/src/manage/{service,awards}.mjs`, and `packages/clan-state/src/ledger.mjs`. Follow bounded private clans/actions/action_log/policies/grants inventories to completion. Compare each disputed action with its actual saved policy version, frozen evidence, decision/outcome log and membership history. Read actual award grants, not only grants_due in the evaluation snapshot. No policy means no judgment; undersized clans fail closed. Policy choices and member dispositions remain human decisions. Never change a clan policy or manufacture member evidence to test a finding.

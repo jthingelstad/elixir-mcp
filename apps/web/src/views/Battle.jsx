@@ -17,7 +17,7 @@ import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
 import { CONSOLE } from "../lib/console.js";
 import { tagPath } from "../lib/tag-url.js";
-import { ladderPlayers } from "../lib/ladder.js";
+import { ladderPlayers } from "../ladder/ladder.js";
 import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
 
 /**

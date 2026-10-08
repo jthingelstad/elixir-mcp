@@ -88,6 +88,6 @@ the design docs promise.
 
 ## Consolidated Clan responsibility
 
-Clan Security Reviewer transfers to this existing owner when `ClanInternal=true`; while the switch is false, legacy ownership remains active. Read the switch from the stack before treating either runtime as authoritative.
+Clan security review belongs to this owner: Clan is part of Elixir, with no separate runtime or owner.
 
 Read `services/web-api/src/clan.mjs`, shared-session/CSRF refusal tests, `packages/clan-state/`, `packages/clan/src/model-bridge.mjs`, `services/email-relay/src/handler.mjs` and the model bridge transport if present. Check person identity and current roster role on every request, selected-clan/member isolation, maintainer access, session revocation, no private-state exposure through MCP or public API, sealed-key preservation and bounded private model egress. Never read key plaintext, submit a paid call, or manufacture a member action to verify isolation. Review legacy OAuth/token and writer retirement receipts alongside routing; a disabled old schedule alone does not retire host-side writers.

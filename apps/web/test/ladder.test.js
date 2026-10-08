@@ -1,5 +1,5 @@
 /**
- * Ladder's routing and shaping (lib/ladder.js). Every number a Ladder
+ * Ladder's routing and shaping (ladder/ladder.js). Every number a Ladder
  * page shows is one a tool returned, so these pin the seams where the
  * page could invent one: the rate shown for a deck played in several
  * modes, the tile that stands in for a trophy range, the bars' scale.
@@ -26,7 +26,7 @@ import {
   shortDay,
   signed,
   weekBars,
-} from "../src/lib/ladder.js";
+} from "../src/ladder/ladder.js";
 import { DOC_LINKS, legalRoute, titleFor } from "../src/App.jsx";
 
 const CHI = "America/Chicago";
