@@ -21,6 +21,26 @@ const date = (ts) =>
       })
     : "";
 const plural = (k, one, many = `${one}s`) => `${n(k)} ${k === 1 ? one : many}`;
+const DAY_MS = 86_400_000;
+const after = (a, b) => Date.parse(a ?? "") > Date.parse(b ?? "");
+
+/** When the first whole week Elixir records for a clan closes: the
+ *  Monday reset ending the first week (Monday 00:00 UTC to Monday) that
+ *  began after it started following the clan. The week's own shape is
+ *  the engine's (week.mjs); this only names its date. */
+function firstFullWeekCloses(recordedFrom) {
+  const t = Date.parse(recordedFrom ?? "");
+  if (!Number.isFinite(t)) return null;
+  const d = new Date(t);
+  const midnight = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+  );
+  let monday = midnight + ((8 - d.getUTCDay()) % 7) * DAY_MS;
+  if (monday < t) monday += 7 * DAY_MS;
+  return new Date(monday + 7 * DAY_MS).toISOString();
+}
 const list = (items) =>
   items.length <= 1
     ? (items[0] ?? "")
@@ -272,16 +292,27 @@ function Membership({ m }) {
   );
 }
 
-/** The week still running: each area's total and how many took part. */
-function SoFar({ s }) {
+/** The week still running: each area's total and how many took part.
+ *  Named the way the closed week above it is (the week of, and the
+ *  Monday reset that closes it), so the two never read as one week. */
+function SoFar({ s, recordedFrom }) {
   return (
     <section className="panel" aria-labelledby="week-so-far">
       <div className="panel__head">
         <h2 id="week-so-far" className="m-0 grow text-[14px] font-semibold">
           This week so far
         </h2>
-        <span className="page-head__note font-normal">from {date(s.from)}</span>
+        <span className="page-head__note font-normal">
+          the week of {date(s.from)}
+          {s.to ? `, closes ${date(s.to)}` : ""}
+        </span>
       </div>
+      {after(recordedFrom, s.from) ? (
+        <div className="panel__body pb-0 page-head__note">
+          Counted from {date(recordedFrom)}, when Elixir started following this
+          clan.
+        </div>
+      ) : null}
       <div className="panel__body fields">
         {s.areas.map((a) => (
           <span key={a.key} className="contents">
@@ -292,6 +323,31 @@ function SoFar({ s }) {
           </span>
         ))}
       </div>
+    </section>
+  );
+}
+
+/** The left column when the week highlights nothing: why, never a
+ *  blank. A week before Elixir followed the clan has no record, and the
+ *  first whole week it will have is named; otherwise nothing the clan
+ *  counts (or nothing at all) was recorded. */
+function Unrecorded({ d }) {
+  const before = after(d.recorded_from, d.week.from);
+  const closes = before ? firstFullWeekCloses(d.recorded_from) : null;
+  return (
+    <section className="panel" aria-labelledby="week-unrecorded">
+      <div className="panel__head">
+        <h2 id="week-unrecorded" className="m-0 grow text-[14px] font-semibold">
+          {before ? "Before Elixir followed this clan" : "Nothing recorded"}
+        </h2>
+      </div>
+      <p className="panel__body page-head__note m-0">
+        {before
+          ? `Elixir started following this clan on ${date(d.recorded_from)}, after this week began, so it holds no record of the week.${closes ? ` The first full week it records closes at the Monday reset on ${date(closes)}.` : ""}`
+          : d.highlight.basis === "policy"
+            ? "Nothing the clan counts was recorded this week."
+            : "No member took part in anything Elixir recorded this week."}
+      </p>
     </section>
   );
 }
@@ -368,7 +424,10 @@ export function Week({ clan, week, navigate }) {
   const weekPath = (w) => `${base}/${String(w.iso_week).toLowerCase()}`;
   const highlighted = d.week ? d.areas.filter((a) => a.highlighted) : [];
   const rest = d.week ? d.areas.filter((a) => !a.highlighted) : [];
-  const soFar = d.so_far && at <= 0 ? <SoFar s={d.so_far} /> : null;
+  const soFar =
+    d.so_far && at <= 0 ? (
+      <SoFar s={d.so_far} recordedFrom={d.recorded_from} />
+    ) : null;
   if (!d.week)
     return (
       <>
@@ -382,7 +441,7 @@ export function Week({ clan, week, navigate }) {
   return (
     <>
       {head(
-        `${date(d.week.from)} to ${date(d.week.to)}. The week closes at the Monday reset. ${basisLine(d)}`,
+        `The week of ${date(d.week.from)}${at <= 0 ? ", the latest to close" : ""}: it closed at the Monday reset on ${date(d.week.closed_at ?? d.week.to)}. ${basisLine(d)}`,
         earlier || later ? (
           <nav className="flex flex-wrap gap-4 text-[13px]" aria-label="Weeks">
             {earlier ? (
@@ -406,11 +465,7 @@ export function Week({ clan, week, navigate }) {
           {highlighted.map((a) => (
             <Area key={a.key} a={a} clan={clan} navigate={navigate} />
           ))}
-          {d.highlight.basis === "policy" && highlighted.length === 0 ? (
-            <p className="page-head__note m-0">
-              Nothing the clan counts was recorded this week.
-            </p>
-          ) : null}
+          {highlighted.length === 0 ? <Unrecorded d={d} /> : null}
           {rest.length ? (
             <details>
               <summary className="label cursor-pointer mb-3">

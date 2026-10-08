@@ -238,6 +238,9 @@ test("the week so far: each area's total and how many took part", () => {
   ]);
   const r = weeklyReport(p, { now: NOW });
   assert.equal(r.so_far.iso_week, "2026-W37");
+  // Its own bounds: it begins where the latest closed week ends.
+  assert.equal(r.so_far.from, r.week.to);
+  assert.equal(Date.parse(r.so_far.to) - Date.parse(r.so_far.from), 7 * DAY);
   const war = r.so_far.areas.find((a) => a.key === "war");
   assert.deepEqual([war.total, war.took_part], [8, 1]);
   const battles = r.so_far.areas.find((a) => a.key === "battles");
@@ -264,4 +267,22 @@ test("before any week has closed there is no report yet, only the week so far", 
   assert.equal(r.week, null);
   assert.deepEqual(r.weeks, []);
   assert.equal(r.so_far.iso_week, "2026-W37");
+});
+
+test("the report says when Elixir began reading the clan's roster", () => {
+  const p = participation([member("#A")]);
+  p.first_roster_observed_at = null;
+  p.recording_active_since = null;
+  assert.equal(weeklyReport(p, { now: NOW }).recorded_from, null);
+  p.recording_active_since = "2026-09-09T12:00:00.000Z";
+  assert.equal(
+    weeklyReport(p, { now: NOW }).recorded_from,
+    "2026-09-09T12:00:00.000Z",
+  );
+  // The first roster read wins over the subscription's start.
+  p.first_roster_observed_at = "2026-09-08T08:00:00.000Z";
+  assert.equal(
+    weeklyReport(p, { now: NOW }).recorded_from,
+    "2026-09-08T08:00:00.000Z",
+  );
 });

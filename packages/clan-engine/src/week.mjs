@@ -290,7 +290,16 @@ export function weeklyReport(
     to,
   }));
   const soFar = thisWeekSoFar(participation, now);
-  if (!pick) return wanted ? null : { week: null, weeks, so_far: soFar };
+  // When Elixir began reading this clan's roster: a week before it has
+  // nothing to show, and the page says so instead of drawing it blank.
+  const recordedFrom =
+    participation.first_roster_observed_at ??
+    participation.recording_active_since ??
+    null;
+  if (!pick)
+    return wanted
+      ? null
+      : { week: null, weeks, so_far: soFar, recorded_from: recordedFrom };
   const w = participation.weeks[pick.index];
   const members = membersOf(participation, w);
   const areas = WEEK_AREAS.map((k) =>
@@ -322,6 +331,7 @@ export function weeklyReport(
     ),
     weeks,
     so_far: soFar,
+    recorded_from: recordedFrom,
   };
 }
 
@@ -361,5 +371,5 @@ function thisWeekSoFar(participation, now) {
         }
       : null;
   }).filter(Boolean);
-  return { iso_week: w.iso_week ?? null, from: w.from, areas };
+  return { iso_week: w.iso_week ?? null, from: w.from, to: w.to, areas };
 }
