@@ -18,7 +18,7 @@ starts a table row that way.
 - **Does** says Read, or **WRITE** and exactly what it writes. A write op
   on production needs its owner's authority, named in the row: an
   objective runbook that grants it, or Jamie. **Heavy** means the op scans
-  a large table or the whole corpus on a db.t4g.small: run it once, and
+  a large table or the whole corpus on a db.t4g.micro: run it once, and
   expect `elixir-mcp-migrate-duration` if it passes 90 s.
 - **Named by** is the runbook, skill, doc or script that already uses the
   op. "none" means only the source and the dated notes know it.

@@ -159,7 +159,7 @@ current rule, never as "was X, now Y".
 ## Operations and AWS
 
 - **Cost calls are Jamie's** — account-wide spend never changes through an Elixir runtime change.
-- **The database is db.t4g.small**.
+- **The database is db.t4g.micro** — again since 2026-10-08, the class the reserved instance covers; the small (2026-09-23 to 10-08) held a record the tracked-only correction removed.
 - **No Lambda-to-Lambda from the NAT-free VPC** — VPC Lambdas hand work to the non-VPC relay by writing one object to the outbox bucket (`email/`, `clan-model/`) through the S3 gateway endpoint; S3 notifies SQS, which holds retries and DLQs.
 - **Alarms go to the ops queue, never email** — Elixir application tags on everything.
 - **A custom metric exists only to back an alarm; no dashboard** — anything else is a property on the EMF line or a database row; no per-entity dimensions.

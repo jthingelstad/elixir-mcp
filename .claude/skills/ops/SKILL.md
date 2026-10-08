@@ -49,7 +49,7 @@ named about a dozen ops and the rest could be found only by reading
    the CLI retried a timed-out synchronous invoke of the jobs Lambda and
    the job ran twice. Never retry a heavy op on a 429.
 6. **Heavy reads run once, on purpose.** Rows marked heavy scan a battle
-   table or the corpus on a db.t4g.small. Past 90 s an invocation fires
+   table or the corpus on a db.t4g.micro. Past 90 s an invocation fires
    `elixir-mcp-migrate-duration` and Elixir Operator asks who and why, so
    name the run in your report. Thirteen `{probe}` runs in 25 minutes
    preceded the 2026-09-11 RDS memory recovery.

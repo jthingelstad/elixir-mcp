@@ -110,3 +110,27 @@ them, and `docs/archive/README.md` maps each old path to the commit that
 holds it. Their open items are the list above. Code comments that cited a
 review section keep their substance without the citation; shipped
 migrations and the changelog still cite the old paths.
+
+## 2026-10-08 — the database goes back to db.t4g.micro
+
+Jamie's call. The small (2026-09-23) carried a record the tracked-only
+correction has since removed, while the reserved instance bought on
+2026-09-07 is a micro: size flexibility made it cover half the small,
+and the other half billed on demand (about $11.70 a month). Since the
+correction: CPU about 5% average with credits at max, 0-2 connections,
+reads in KB/s apart from a daily burst near 09:00Z, about 690 MB
+freeable on the small.
+
+The purge left the files five times the data. `{rewrite_table}` (VACUUM
+FULL) ran on the small first, about 14:15Z, under the session lease:
+`deck_card` 853 MB to 228 MB (6 s), `battle_participant` 2,235 MB to
+210 MB (8 s), `battle_participant_card` 3,766 MB to 414 MB (22 s). The
+database went from 8.2 GB to about 2.2 GB.
+
+The deploy changes the class (a few minutes of downtime, single-AZ)
+and lowers `elixir-mcp-db-freeable-memory` from 150 MB to 64 MB; the
+old micro idled at 80-260 MB and would have held the 150 MB alarm.
+shared_buffers stays the engine default. The micro's real limit is EBS
+throughput: about 4.7 MB/s once the byte balance is spent, as the Gym
+sweep did on 2026-09-23. Space heavy sweeps, backfills and full
+acceptance runs; `elixir-mcp-db-ebs-byte-balance` (25%) says when not.

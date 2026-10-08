@@ -115,8 +115,9 @@ day, until every family has a clean run on the build we will announce.
 2. Families whose last clean run predates a deploy that touched them.
 
 `elixir`, `game` and `badges` are light. `battles` and `cards`
-read selected personal and clan history and can be heavy on the database (db.t4g.small
-since 2026-09-23, after the sweep drained the micro's EBS byte balance).
+read selected personal and clan history and can be heavy on the database (db.t4g.micro
+again since 2026-10-08; a sweep drained its EBS byte balance on 2026-09-23, so
+run heavy families one at a time).
 
 **Parallelism.**
 - The `gym` token has its own bucket, `hourly_rate_limit` 1,000,000

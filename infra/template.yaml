@@ -210,12 +210,15 @@ Resources:
       DBInstanceIdentifier: elixir-mcp-enc
       Engine: postgres
       EngineVersion: "17"
-      # db.t4g.small from 2026-09-23 (Jamie: "we've been fighting this
-      # micro instance nearly every day"). The micro ran out of EBS byte
-      # balance that afternoon (99% to 0 in five hours under the Gym sweep
-      # and the acceptance gates) and was held to about 4.7 MB/s of reads,
-      # with 1 GB of memory for everything. docs/NOTES.md 2026-09-23.
-      DBInstanceClass: db.t4g.small
+      # db.t4g.micro again from 2026-10-08, the class the reserved
+      # instance (to 2027-09-07) covers in full. The small (2026-09-23 to
+      # 10-08) was for a record the tracked-only correction has since
+      # removed: after it and a VACUUM FULL of the three battle tables
+      # the database is about 2 GB, with CPU near 5% and reads in KB/s.
+      # The micro's limit is EBS throughput (about 4.7 MB/s once the byte
+      # balance is spent, as the Gym sweep did on 2026-09-23), so space
+      # heavy sweeps and backfills. docs/NOTES.md 2026-10-08.
+      DBInstanceClass: db.t4g.micro
       AllocatedStorage: "20"
       MaxAllocatedStorage: 100
       StorageType: gp3
@@ -266,9 +269,10 @@ Resources:
         # Autovacuum runs over one second are the other thing that eats
         # a micro's memory and I/O without any request naming it.
         log_autovacuum_min_duration: 1000
-        # shared_buffers is the engine default again (a quarter of memory)
-        # since the move to db.t4g.small (2026-09-23). The 88 MB pin
-        # (11264 pages, 2026-09-12) was a micro's squeeze.
+        # shared_buffers is the engine default (a quarter of memory). The
+        # 88 MB pin (11264 pages, 2026-09-12) was the old micro's squeeze
+        # under a record five times today's size; it was not restored
+        # with the micro on 2026-10-08.
 
   # Declared so retention is set before RDS starts writing; left to RDS
   # the group is created with never-expire.
@@ -752,7 +756,7 @@ Resources:
     Properties:
       FunctionName: elixir-mcp-web-api
       # A ceiling, not a target (#23). Each invocation opens its own
-      # PostgreSQL client against a db.t4g.small, so unbounded Lambda
+      # PostgreSQL client against a db.t4g.micro, so unbounded Lambda
       # concurrency makes the DATABASE the thing that fails first.
       # Measured traffic is a handful of requests a minute; 20 is orders
       # of magnitude above that and still a hard stop on a runaway
@@ -2518,8 +2522,8 @@ Resources:
   # ran its EBS byte balance to 0 three times, and there were two memory
   # recoveries on 2026-09-11. Both are free RDS metrics. Under a quarter
   # of the burst balance left, reads are about to be held to the
-  # baseline; under about 150 MB freeable, the instance is near a
-  # recovery.
+  # baseline; under about 64 MB freeable, the micro is near a recovery
+  # (150 MB on the small; the old micro idled at 80-260 MB).
   DbEbsByteBalanceAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -2540,14 +2544,14 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: elixir-mcp-db-freeable-memory
-      AlarmDescription: The database has under about 150 MB of freeable memory; two memory recoveries followed this on 2026-09-11
+      AlarmDescription: The database has under about 64 MB of freeable memory; memory recoveries followed a squeeze like this on 2026-09-11
       Namespace: AWS/RDS
       MetricName: FreeableMemory
       Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
       Statistic: Minimum
       Period: 300
       EvaluationPeriods: 3
-      Threshold: 157286400
+      Threshold: 67108864
       ComparisonOperator: LessThanThreshold
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
