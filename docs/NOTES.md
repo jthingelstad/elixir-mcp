@@ -3798,6 +3798,7 @@ but historical attribution precision is a separate follow-up; this change
 does not alter it. Production leases are released. This notes-only close
 requires no further deployment.
 
+
 ## 2026-10-03 — Actions processing and grouped award progress
 
 Jamie's Actions/Awards review moves Awards under Clan for every member, defaults
@@ -6831,3 +6832,51 @@ preference/cleanup authority. Exact inbox/controller, player tag and baseline
 are still awaited; no real test account, communications, capture setup,
 invitations or destructive cleanup ran. This receipt changes notes only and
 requires no further deployment.
+
+## 2026-10-08 — narrow-screen chrome and battle-deck reflow
+
+The whole-app beta review returned to the 320px exception in player-context
+sharing, with synthetic fixtures only. Main `5872c4d6` reproduced a 334px
+public battle page and a 369px signed-in Console header in a 320px viewport.
+The fixed account slot extended off-screen; paired four-card deck rows
+spilled from their panels. A long unbroken account name also clipped inside
+its menu. At 375px the page itself fit but a deck row still exceeded its
+panel; the padded deck content was cramped at 390px too.
+
+The shared bar keeps its logo and accessible home name, showing the wordmark
+from 375px, and retains the same account-slot width while session state
+changes. Product labels stay fully visible and mobile product buttons have
+44px height. Account names wrap. Battle player names can wrap beside their
+you badge; deck panels stack below 406px so each four-card row fits its
+padding, while 420px and desktop keep the paired arrangement. Compact Hero
+ribbons fit their existing card art. The card order, facts, copy-deck links,
+duel selection and player-context sharing behavior do not change.
+
+The 320px full-page exception has been removed. New built browser checks
+cover chrome while signed in, signed out and loading, the static docs bar,
+and 1v1/duel/2v2 decks at 320/375/390/1280px, including page/component bounds,
+keyboard disclosures and Escape focus restoration, duel tabs, and serious
+or critical axe violations. The share preview exercises keyboard copy and
+back/edit at every width with intercepted clipboard/native APIs.
+
+Breakpoint-edge checks also reproduce header overflow at 361px, so the
+logo-only bar continues through 374px. The new bounds checks include
+360/361/374px and 405/406/420px to pin both transitions, not just the four
+requested widths.
+
+The first focused run exposed a duplicate header/footer home-link selector
+in the new static test and the compact Hero ribbon spill; the selector was
+scoped to the banner and the ribbon padding repaired. Browser artifacts and
+screenshots remain outside committed source. No live account, email,
+feedback, invitation, membership, game-data write or real sharing is part of
+this acceptance. No Clan redesign or History feature is in scope.
+
+MCP 11.2.3 and JSON API 3.0.0 are unchanged. This is responsive frontend/site
+behavior, so deployment requires the normal full gates, smoke and exact
+bundle/fixture readback, with no live tool acceptance. Final gate and
+deployment receipts follow after verification.
+
+Final local gates passed: 1,914 Node tests and 493 UI tests, with 85
+documented acceptance skips; all 272 built-browser journeys passed without
+retries. Production bundles built successfully. The focused battle/share
+and responsive checks passed, with visual readback at 320px and 1280px.

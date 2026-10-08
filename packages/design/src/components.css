@@ -466,6 +466,7 @@ table {
   font-size: 15px;
   font-weight: 600;
   color: var(--ink);
+  overflow-wrap: anywhere;
 }
 .account-menu__email {
   overflow: hidden;
@@ -595,6 +596,7 @@ table {
   }
   .chrome__menu {
     display: flex;
+    height: var(--hit-touch);
   }
   .chrome__end {
     gap: 0;
@@ -676,6 +678,20 @@ table {
     left: 16px;
     width: auto;
     max-width: none;
+  }
+}
+
+/* Keep the full product and account controls on the smallest phones.
+   The home link retains its logo and accessible name; wider screens keep
+   the wordmark too. The account slot stays the same for every session. */
+@media (max-width: 374px) {
+  .chrome__home {
+    min-width: var(--hit-touch);
+    min-height: var(--hit-touch);
+    justify-content: center;
+  }
+  .chrome__home .wordmark {
+    display: none;
   }
 }
 
@@ -5499,6 +5515,7 @@ a.card-art:hover .card-art__img {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
   min-width: 0;
   max-width: 100%;
 }
@@ -5907,6 +5924,18 @@ a.card-art:hover .card-art__img {
   }
   .battle-deck__stats dd {
     font-size: 14px;
+  }
+  .battle-deck .card-art__form {
+    padding: 0 2px;
+  }
+}
+
+/* Four cards no longer fit inside each half-width panel on the smallest
+   phone. Keep their played order and two rows of four by stacking the
+   players' panels, rather than shrinking or clipping the cards. */
+@media (max-width: 405px) {
+  .battle__grid--decks {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

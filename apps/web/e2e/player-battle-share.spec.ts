@@ -250,12 +250,31 @@ test("@narrow native-share preview fits small phones and desktop with accessible
     expect(
       await share.evaluate((node) => node.scrollWidth <= node.clientWidth),
     ).toBe(true);
-    // The existing global chrome and paired deck tiles overflow at 320px;
-    // pin the new share panel there, and the full page at supported widths.
-    if (width >= 375)
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth),
-      ).toBeLessThanOrEqual(width);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+    await share
+      .getByRole("button", { name: "Copy message", exact: true })
+      .focus();
+    await page.keyboard.press("Enter");
+    expect(
+      await page.evaluate(() =>
+        (
+          window as unknown as { outbound: { copies: string[] } }
+        ).outbound.copies.at(-1),
+      ),
+    ).toContain(words);
+    await share
+      .getByRole("button", { name: "Back to edit", exact: true })
+      .focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByLabel(/Why did this battle matter/)).toHaveValue(
+      words,
+    );
+    await share
+      .getByRole("button", { name: "Preview message", exact: true })
+      .focus();
+    await page.keyboard.press("Enter");
     await page.screenshot({
       path: `/tmp/player-battle-share-${width}.png`,
       fullPage: true,

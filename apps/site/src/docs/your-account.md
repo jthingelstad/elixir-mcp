@@ -61,6 +61,10 @@ as you, with a sign-out for each and **Sign out everywhere else**, which
 keeps the one you are using. Your agents and connected apps are not
 sessions; they are under [Connections](/docs/connections).
 
+On the smallest screens, the top bar shows the Elixir logo as the home link
+so the product and account controls keep their room. Your full account name
+wraps inside its menu. The same controls remain available by keyboard.
+
 ## Your players
 
 The players on your account each say who they are to you:
