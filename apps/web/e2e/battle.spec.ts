@@ -70,7 +70,10 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
   await expect(page.locator("a.battle__name")).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: "Create your account" }),
-  ).toHaveAttribute("href", "/console/signin?signup");
+  ).toHaveAttribute(
+    "href",
+    `/console/signin?signup&return_to=${encodeURIComponent(`/battle/${BATTLE.battle.short_id}`)}`,
+  );
   await expect(page.getByText(BATTLE.battle.id)).toBeVisible();
   await expect(page.locator(".rail")).toHaveCount(0);
   // The picture and the link, never an embed.

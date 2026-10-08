@@ -24,6 +24,7 @@ export function Dashboard({
   sub,
   itemId,
   recordId,
+  search,
 }) {
   if (me === null) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   if (page === "timeline") return <Timeline />;
@@ -31,7 +32,7 @@ export function Dashboard({
     return itemId === "c" ? (
       <CallRecord id={recordId} navigate={navigate} />
     ) : itemId === "e" ? (
-      <EmailRecord id={recordId} navigate={navigate} />
+      <EmailRecord id={recordId} navigate={navigate} search={search} />
     ) : (
       <Activity sub={sub} navigate={navigate} />
     );
@@ -71,7 +72,7 @@ export function Dashboard({
     return itemId ? (
       <FeedbackItem id={itemId} navigate={navigate} />
     ) : (
-      <Feedback navigate={navigate} />
+      <Feedback navigate={navigate} search={search} />
     );
   return <Overview me={me} navigate={navigate} />;
 }

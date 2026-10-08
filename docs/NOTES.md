@@ -6692,8 +6692,10 @@ data operation. The completed correction above is not rerun or re-investigated.
       scratch readers and browser fixtures, including phone widths.
 - [x] Product-news choice: default checked by Jamie's decision; scratch proof
       and browser fixtures preserve unchecked new-account/welcome enrollment.
-- [ ] Deep-link return through code, link and cross-device handoff; Back/reload.
-- [ ] Combined empty-account journey: retry/help/feedback/logout and keyboard.
+- [x] Deep-link return through code/link, same-browser tabs and cross-device
+      handoff; fixture Back/reload at 390/1280px.
+- [x] Combined empty-account journey: add/read retry, help, keyboard feedback
+      with retry, failed/successful logout and Back/reload; browser fixtures.
 - [ ] Real inbox delivery and natural first capture: separate controlled
       operational permission/fixture; fixtures do not establish these.
 - [ ] Actual tester invitations: not sent by this engineering rehearsal.
@@ -6719,3 +6721,42 @@ keyboard choice, interrupted request/reload/resend, overflow and serious/
 critical axe checks pass while the checkbox is visible. Read-only consistency
 review's public-copy and signup accessibility findings are addressed. No tool
 response changes, so deployment needs no MCP acceptance reads.
+
+PR #348 merged as `e4061842` with green `validate` run 37704703883. Canonical
+deployment from a clean release worktree under the `session` lease matched
+47 reference roles/29 aliases exactly, ran zero migrations (203 already
+applied), and passed all 43 smoke checks. Readback at 00:05:18Z October 8
+(7:05 PM CT October 7) saw the default checked checkbox and unchecked request
+at both widths from the live CloudFront bundle, with every API request
+intercepted. Public health was green and Updates carried the story. The
+lease was released; no real account, mail or subscription acceptance ran.
+
+### 2026-10-08 — return to the record after proof
+
+Built-browser reproduction found a signed-out Explore player link reaching
+Overview after code proof. A login link in a second tab consumed an email
+record's shared return path, sending the requesting screen to Overview; the
+numeric `report=1` also became a quoted string and skipped email feedback.
+The public battle signup CTA carried no return context.
+
+The bounded fix remembers owned Explore and battle paths, keeps a per-tab
+copy beside the shared link-tab copy, uses the router's query parser, and
+passes committed route search into email/feedback initial state. External,
+look-alike and normalized traversal/credential targets refuse. No auth,
+quota, tracking or newsletter policy change, schema or public contract change.
+The recovery fixture extends empty-account add/retry/capture with help,
+keyboard feedback/retry and failed/successful logout, plus Back/reload.
+
+Focused verification: all 25 return/battle browser journeys and all 25
+recorder/recovery journeys passed. These include exact email attachment,
+same-browser link/original-tab return, separate-context handoff confirmation,
+and the complete empty-account help/feedback/logout loop at both widths.
+Earlier red rehearsals identified the query/initial-state defects and two
+fixture errors (fragment-only navigation and the handoff route name); those
+are corrected before the full gate, not treated as flaky reruns.
+
+The final full gate passed 1,914 Node tests and 487 UI tests (85 documented
+acceptance skips); all 253 built-browser journeys passed. Source review
+confirms the server still owns access and handoff approval; return context
+only selects a validated local destination. This changes private navigation
+and public copy, so no MCP acceptance family is required for deployment.

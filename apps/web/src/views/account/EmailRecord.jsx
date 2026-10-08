@@ -20,14 +20,14 @@ import { CONSOLE } from "../../lib/console.js";
 /** The mail's footer links here with ?report=1 ("Something not right?
  *  Send feedback about this email"): one click from the inbox to the
  *  feedback form with this email attached. Read once, at open. */
-function wantsReport() {
-  return new URLSearchParams(window.location.search).get("report") === "1";
+function wantsReport(search = window.location.search) {
+  return new URLSearchParams(search).get("report") === "1";
 }
 
-export function EmailRecord({ id, navigate }) {
+export function EmailRecord({ id, navigate, search }) {
   const { stamp } = useClock();
   const when = (ts) => stamp(ts, { year: true, seconds: true });
-  const [report] = useState(wantsReport);
+  const [report] = useState(() => wantsReport(search));
   useEffect(() => {
     if (report && id)
       navigate(`${CONSOLE}/account/feedback?send_id=${encodeURIComponent(id)}`);

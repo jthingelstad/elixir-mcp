@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { ME, mockApi, signedIn } from "./fixtures.ts";
+import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
 
 const connection = {
   active_connections: 0,
@@ -419,19 +419,29 @@ for (const width of [390, 1280]) {
     let adds = 0;
     let failRead = false;
     let selectedReads = 0;
+    let authed = true;
+    let feedbackSends = 0;
+    let signouts = 0;
     await mockApi(
       page,
       signedIn({
         "GET /api/me": () => [
           200,
-          {
-            ...ME,
-            role: "member",
-            claims: added ? ME.claims : [],
-            recordings: added
-              ? [{ subject_tag: player.player_tag, status: "active" }]
-              : [],
-          },
+          authed
+            ? {
+                ...ME,
+                role: "member",
+                claims: added ? ME.claims : [],
+                recordings: added
+                  ? [{ subject_tag: player.player_tag, status: "active" }]
+                  : [],
+                signals: {
+                  ...ME.signals,
+                  tracking: added ? 1 : 0,
+                  connections: 0,
+                },
+              }
+            : SIGNED_OUT,
         ],
         "POST /api/claims": (route) => {
           expect(route.request().postDataJSON()).toEqual({
@@ -465,6 +475,23 @@ for (const width of [390, 1280]) {
           ];
         },
         "GET /api/me/clans": [200, { clans: [], home_clan: null }],
+        "POST /api/feedback": (route) => {
+          expect(route.request().postDataJSON()).toMatchObject({
+            message: "Fixture: help with my new record",
+            category: "general",
+          });
+          feedbackSends++;
+          return feedbackSends === 1
+            ? [503, { message: "Feedback interrupted." }]
+            : [200, { ok: true }];
+        },
+        "POST /api/session/signout": () => {
+          signouts++;
+          if (signouts === 1)
+            return [503, { message: "Sign-out interrupted." }];
+          authed = false;
+          return [200, { ok: true }];
+        },
         "POST /api/explore": (route) => {
           expect(route.request().postDataJSON()).toEqual({
             tool: "players_profile",
@@ -526,6 +553,39 @@ for (const width of [390, 1280]) {
     ).toBeVisible();
     expect(adds).toBe(2);
     expect(selectedReads).toBeGreaterThan(0);
+    await page
+      .getByRole("link", { name: "How recording works", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/docs\/recording$/);
+    await page.goBack();
+    await expect(recording).toContainText("Captured data available");
+    await page.goto("/console/account/feedback");
+    await page
+      .getByRole("button", { name: "Send feedback", exact: true })
+      .click();
+    const message = page.getByRole("textbox", { name: "Message", exact: true });
+    await message.focus();
+    await page.keyboard.type("Fixture: help with my new record");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(page.getByText("Feedback interrupted.")).toBeVisible();
+    await expect(message).toHaveValue("Fixture: help with my new record");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(
+      page.getByText("Received — thank you. It is in the list."),
+    ).toBeVisible();
+    expect(feedbackSends).toBe(2);
+    await page.goBack();
+    await expect(recording).toContainText("Captured data available");
+    await page.getByRole("button", { name: /^Account:/ }).click();
+    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await expect(page.getByText(/Not signed out\./)).toBeVisible();
+    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await expect(page).toHaveURL(/127\.0\.0\.1:4321\/$/);
+    await page.goBack();
+    await expect(
+      page.getByRole("heading", { name: "Sign in first" }),
+    ).toBeVisible();
+    expect(signouts).toBe(2);
   });
 }
 

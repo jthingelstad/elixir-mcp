@@ -33,6 +33,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  defaultParseSearch,
   lazyRouteComponent,
   notFound,
   redirect,
@@ -1023,7 +1024,7 @@ export function useNav() {
       }
       return nav({
         to: pathname,
-        search: qs ? Object.fromEntries(new URLSearchParams(qs)) : {},
+        search: qs ? defaultParseSearch(`?${qs}`) : {},
         replace,
       });
     },
@@ -1328,29 +1329,67 @@ function DocsStrip({ here }) {
 /** Where a signed-out deep link wanted to go, kept across the sign-in
  *  (2026-09-19: the mail footer links straight to an email's record and
  *  to feedback about it, and a phone that opens the link is usually
- *  signed out). localStorage, not sessionStorage: a magic link opens in
- *  a new tab. Console, Ladder and Clan paths only, read once and cleared. */
+ *  signed out). Shared localStorage supports a magic link in a new tab.
+ *  A per-tab copy keeps the requesting screen's destination
+ *  when the link tab consumes the shared copy. Owned paths only. */
 const SignInProgress = createContext([false, () => {}]);
 const AFTER_SIGN_IN = "elixir.after_sign_in";
-const signedInPath = (path) =>
-  /^\/(account|admin|agent)\//.test(appPath(path) ?? "") ||
-  isLadder(String(path ?? "").split("?")[0]) ||
-  isClan(String(path ?? "").split("?")[0]);
-export function rememberAfterSignIn(path) {
+const signedInPath = (path) => {
+  if (
+    typeof path !== "string" ||
+    !path.startsWith("/") ||
+    path.startsWith("//")
+  )
+    return false;
   try {
-    if (signedInPath(path)) window.localStorage.setItem(AFTER_SIGN_IN, path);
+    const url = new URL(path, window.location.origin);
+    // Refuse external, backslash and traversal spellings before navigation
+    // can normalize them. Credentials and fragments are never return paths.
+    if (
+      url.origin !== window.location.origin ||
+      url.pathname !== path.split("?")[0] ||
+      url.hash
+    )
+      return false;
+    return (
+      /^\/(account|admin|agent|explore)(\/|$)/.test(
+        appPath(url.pathname) ?? "",
+      ) ||
+      isLadder(url.pathname) ||
+      isClan(url.pathname) ||
+      BATTLE_PATH.test(url.pathname)
+    );
   } catch {
-    // Storage denied: the sign-in lands on Overview, as before.
+    return false;
+  }
+};
+export function rememberAfterSignIn(path) {
+  if (!signedInPath(path)) return;
+  for (const storage of ["sessionStorage", "localStorage"]) {
+    try {
+      window[storage].setItem(AFTER_SIGN_IN, path);
+    } catch {
+      // Either storage can be denied independently.
+    }
   }
 }
 export function takeAfterSignIn() {
+  let path = null;
   try {
-    const path = window.localStorage.getItem(AFTER_SIGN_IN);
-    window.localStorage.removeItem(AFTER_SIGN_IN);
-    return path && signedInPath(path) ? path : null;
+    const saved = window.sessionStorage.getItem(AFTER_SIGN_IN);
+    window.sessionStorage.removeItem(AFTER_SIGN_IN);
+    if (signedInPath(saved)) path = saved;
   } catch {
-    return null;
+    // The shared copy still supports a browser without per-tab storage.
   }
+  try {
+    const shared = window.localStorage.getItem(AFTER_SIGN_IN);
+    if (!path || shared === path) window.localStorage.removeItem(AFTER_SIGN_IN);
+    if (!path && signedInPath(shared)) path = shared;
+  } catch {
+    // The requesting tab can still use its own copy.
+  }
+  return path;
 }
 
 export function SignInWall({ navigate }) {
@@ -1593,6 +1632,7 @@ export function useHere() {
       here: railPosition(pathname),
       itemId: agentItem,
       recordId: agentRecord,
+      search: search ?? {},
     };
   }
   const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
@@ -1605,6 +1645,7 @@ export function useHere() {
     here,
     itemId,
     recordId,
+    search: search ?? {},
   };
 }
 

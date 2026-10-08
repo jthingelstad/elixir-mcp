@@ -6,7 +6,7 @@ import { useHere, useMe, useNav } from "../App.jsx";
 export function AccountPage() {
   const navigate = useNav();
   const { me, refresh } = useMe();
-  const { activePage, here, itemId, recordId } = useHere();
+  const { activePage, here, itemId, recordId, search } = useHere();
   return (
     <Dashboard
       me={me}
@@ -16,6 +16,7 @@ export function AccountPage() {
       sub={here.sub}
       itemId={itemId}
       recordId={recordId}
+      search={search}
     />
   );
 }

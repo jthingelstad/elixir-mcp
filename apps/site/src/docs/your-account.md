@@ -47,6 +47,12 @@ for it signs in too: at once when the link is opened from the same
 network, and only after you say yes on the link's page when it is
 opened from somewhere else.
 
+If a player or clan record, or an email's feedback link, brought you to
+sign-in, that screen returns to what you opened after your code or approved
+handoff. A link opened in another tab also keeps that context; it does not
+take the requesting tab's destination away. Creating an account from a public
+battle returns to that battle. Back and reload keep the record address.
+
 A sign-in lasts **thirty days from its last use and ninety days at
 most**. **Console ▸ Profile ▸ Devices** lists every session that can act
 as you, with a sign-out for each and **Sign out everywhere else**, which
