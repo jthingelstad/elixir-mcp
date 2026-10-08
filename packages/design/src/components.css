@@ -2091,6 +2091,12 @@ textarea {
   font-size: 13px;
   outline: none;
 }
+/* A box or a dot is its own size: the full width above is a text
+   field's, and on a checkbox it floats the box away from its label. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+}
 input.mono,
 input[data-tag] {
   font-family: var(--font-mono);
