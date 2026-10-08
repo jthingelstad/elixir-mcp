@@ -635,8 +635,9 @@ export async function setPrimaryClan(db, account, { tag, via }) {
  * scope, the slot every tier has: its roster, its members coming and
  * going, its river races. The rules, each a test in claims.test.mjs:
  *
- * - Only a person's PRIMARY player, and only an account made after 0205
- *   (`account.auto_follow_clan`; older accounts are not backfilled).
+ * - Only a person's PRIMARY player, and only an account whose
+ *   `account.auto_follow_clan` is on: the default since 0205, and turned
+ *   on for the approved people made before it by 0206.
  * - Only when the latest admitted profile says the player is in a clan
  *   (player_profile_membership, read through the record's one rule). No
  *   clan, or no profile yet, does nothing; a primary who leaves a clan

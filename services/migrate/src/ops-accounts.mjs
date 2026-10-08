@@ -101,7 +101,7 @@ export async function accountRoleOp(databaseUrl, spec) {
       );
       const { rows } = await db.query(
         `select a.account_id, left(a.email_hash, 10) as email_hash, a.status,
-                a.role, a.is_owner,
+                a.role, a.is_owner, a.kind, a.auto_follow_clan,
                 (select string_agg(t.name, ',') from service_token t
                  where t.account_id = a.account_id and t.revoked_at is null) as services,
                 (select count(*)::int from claim c

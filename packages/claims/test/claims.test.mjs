@@ -722,7 +722,7 @@ test("a follow the person changed is theirs and is not moved", async () => {
   ]);
 });
 
-test("accounts made before 0205 are not followed (no backfill)", async () => {
+test("an account with auto_follow_clan off is not followed", async () => {
   await db.query(
     `update account set auto_follow_clan = false where account_id = $1`,
     [alice.accountId],
