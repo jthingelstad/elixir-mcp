@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "Times that name their clock, and counts that say what they count",
+    body: "Ladder's nights and season dates now name their zone (\"6:28 – 7:14 pm CDT\"), and a battle's page reads on the same clock as the Console and Ladder when you are signed in, so one battle never shows two times. An account starts at UTC; until you choose a zone, the Console and Ladder say so and offer your browser's in one click. The Overview's calls tile is now tool calls today, and says how many were the Console's and Ladder's own reads, which count against your daily budget like an agent's; Elixir Clan's reads and JSON API calls are no longer counted there, since they never spend it. Your player's line reads \"30 battles in the last 28 days\". In Elixir Clan, The week names the week it shows (the week of Sep 28, closed at the Monday reset on Oct 5) apart from the week still running, and a week from before Elixir followed the clan says so, with the date the first full week closes. MCP 11.4.0 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "Bring your clanmates, and your clan followed on older accounts too",
     body: "Console ▸ Overview and Ladder's season page now offer Bring your clanmates once your primary player's clan is on record: a line for clan chat that fits the game's 200 characters and steers around its chat filter, a longer note for Discord or a message, and your device's share sheet where it has one. A clanmate who signs up gets their own battle history kept and the clan's week in Monday's email. The link is the plain signup address, the same for everyone, with no invite code. Accounts made before today now have their primary player's clan followed too, on the same rules, from the next read of the player's profile. The Tuesday Arena email and Ladder's signed-out page now say the game's log holds roughly the last 30 battles. MCP 11.4.0 and JSON API 3.1.0 unchanged.",
   },
