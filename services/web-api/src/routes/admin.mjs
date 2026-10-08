@@ -14,6 +14,7 @@ import {
   sendRow,
   loadSendRecord,
 } from "../send-record.mjs";
+import { betaPulse } from "../beta-pulse.mjs";
 const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 
 export function adminRoutes({
@@ -132,6 +133,14 @@ export function adminRoutes({
         })),
         aliases,
       });
+    },
+
+    "GET /api/admin/pulse": async (db, event) => {
+      // The beta pulse: counts by signup week, never a person
+      // (beta-pulse.mjs). Accounts is the page that names accounts.
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      return json(200, await betaPulse(db));
     },
 
     "GET /api/admin/usage": async (db, event) => {
