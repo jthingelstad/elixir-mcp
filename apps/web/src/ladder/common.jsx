@@ -1,13 +1,30 @@
 import { Fresh, Link } from "@elixir-mcp/ui";
 import { MODES, fmt, playerName } from "./ladder.js";
+import { ZoneOffer } from "../components/ZoneOffer.jsx";
 
 /**
  * The pieces every Ladder page shares: the head (crumb, title, lede and
- * when the battle log was read), the mode switch, a record in the
+ * when the battle log was read, then the offer to set a time zone while
+ * the account has none), the mode switch, a record in the
  * house's win and loss inks, and the states a read can be in.
  */
 
 export function LadderHead({ player, page, title, lede, observedAt }) {
+  return (
+    <>
+      <LadderHeadRow
+        player={player}
+        page={page}
+        title={title}
+        lede={lede}
+        observedAt={observedAt}
+      />
+      <ZoneOffer className="mb-4" />
+    </>
+  );
+}
+
+function LadderHeadRow({ player, page, title, lede, observedAt }) {
   return (
     <div className="page-head ladder-head">
       <div className="min-w-0 flex-auto">

@@ -117,7 +117,7 @@ test.describe("Ladder signed in", () => {
     await expect(page).toHaveTitle("Season - Ladder - Elixir");
     // Times are prose in the account's zone: 10:00Z is 5:00 am Central.
     await expect(page.locator(".page__lede")).toContainText(
-      "The season ends Monday, October 5 at 5:00 am.",
+      "The season ends Monday, October 5 at 5:00 am CDT.",
     );
     await expect(page.locator(".freshness")).toContainText("battle log read");
 
@@ -495,7 +495,7 @@ test.describe("Ladder days played", () => {
     await expect(days.nth(22)).toContainText("today · capture incomplete");
     await expect(days.nth(23)).toContainText("to come");
     await expect(page.locator(".panel__foot").first()).toContainText(
-      "The season runs Monday, September 7 at 5:00 am to Monday, October 5 at 5:00 am.",
+      "The season runs Monday, September 7 at 5:00 am CDT to Monday, October 5 at 5:00 am CDT.",
     );
 
     // Nights, newest first: Monday's two events then three on Trophy
@@ -504,7 +504,7 @@ test.describe("Ladder days played", () => {
     await expect(nights).toHaveCount(5);
     const night = nights.first();
     await expect(night).toContainText("Mon, Sep 28");
-    await expect(night).toContainText("10:37 – 11:09 pm");
+    await expect(night).toContainText("10:37 – 11:09 pm CDT");
     await expect(night).toContainText("2 event battles");
     await expect(night).toContainText("then 3 on Trophy Road");
     await expect(night).toContainText("Ended on the 12,500 floor");

@@ -8,6 +8,7 @@ import {
   Icon,
   Link,
   NavigateProvider,
+  browserZone,
   ZoneProvider,
   cardLabel,
   isTowerTroop,
@@ -32,15 +33,6 @@ import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
 
 const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "—");
 const fixed = (n, d) => (typeof n === "number" ? n.toFixed(d) : "—");
-
-/** The browser's own zone, for a reader who is not signed in. */
-const browserZone = () => {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
-  } catch {
-    return null;
-  }
-};
 
 /** A battle's time as a person says it: "Sat, Sep 26, 10:55 PM CDT".
  *  A zone this browser does not know reads as UTC. */
@@ -183,13 +175,15 @@ function CopyButton({ text, label = "Copy", className = "btn btn--sm" }) {
 }
 
 /** /battle/<ref>: the page, on the reader's clock (the account's zone,
- *  or the browser's when nobody is signed in). Links to the site's
- *  static pages (a card) are page loads; another battle stays in-app. */
+ *  or the browser's when nobody is signed in). A signed-in account with
+ *  no zone set reads UTC here as it does on the Console and Ladder, so
+ *  one battle never shows two clocks. Links to the site's static pages
+ *  (a card) are page loads; another battle stays in-app. */
 export function BattlePage() {
   const { ref } = useParams({ strict: false });
   const navigate = useNav();
   const { me } = useMe();
-  const zone = me?.timezone || browserZone();
+  const zone = me?.authenticated ? (me.timezone ?? null) : browserZone();
   const go = (to) =>
     to.startsWith("/battle/") || to.startsWith(`${CONSOLE}/`)
       ? navigate(to)

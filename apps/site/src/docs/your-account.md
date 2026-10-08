@@ -94,7 +94,10 @@ recording it: see [What Elixir records](/docs/recording).
 **Account settings ▸ Profile ▸ Timezone** starts at UTC. It sets the times the
 console shows, how a date in a question from a connected app resolves, the
 local times in tool responses and the days your emails name. Storage
-stays in UTC; only the reading changes.
+stays in UTC; only the reading changes. Until you choose one, the Console
+and Ladder say their times are UTC and offer your browser's zone in one
+click; nothing sets it for you. A battle's page reads on your account's
+clock when you are signed in, and on your browser's when you are not.
 
 ## Your tier
 

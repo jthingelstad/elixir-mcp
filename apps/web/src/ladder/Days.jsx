@@ -1,6 +1,6 @@
 import { Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
-import { clockTime, fmt, longDay, monthName } from "./ladder.js";
+import { clockTime, fmt, longDay, monthName, zoneShort } from "./ladder.js";
 import {
   battlePath,
   battleScore,
@@ -226,9 +226,10 @@ function Calendar({ cal, name, season, zone }) {
       </div>
       <div className="panel__foot">
         The season runs {longDay(season.starts_at, zone)} at{" "}
-        {clockTime(season.starts_at, zone)} to {longDay(season.ends_at, zone)}{" "}
-        at {clockTime(season.ends_at, zone)}. Battles after midnight count on
-        the next day.
+        {clockTime(season.starts_at, zone)} {zoneShort(season.starts_at, zone)}{" "}
+        to {longDay(season.ends_at, zone)} at {clockTime(season.ends_at, zone)}{" "}
+        {zoneShort(season.ends_at, zone)}. Battles after midnight count on the
+        next day.
       </div>
     </section>
   );
@@ -352,7 +353,8 @@ function Night({ night, floor, zone }) {
         <span className="ladder-night__when">
           <span className="ladder-night__day">{weekdayLabel(night.day)}</span>
           <span className="ladder-night__time">
-            {timeSpan(night.start, night.end, zone)}
+            {timeSpan(night.start, night.end, zone)}{" "}
+            {zoneShort(night.start, zone)}
           </span>
         </span>
         <span className="ladder-night__what">

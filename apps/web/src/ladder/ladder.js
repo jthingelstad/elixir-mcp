@@ -186,6 +186,13 @@ export function clockTime(ts, zone) {
   return p ? `${p.hour}:${p.minute} ${String(p.dayPeriod).toLowerCase()}` : "";
 }
 
+/** The zone's short name at an instant, "CDT" or "UTC", so a time Ladder
+ *  prints says whose clock it is, as the battle page's does. */
+export function zoneShort(ts, zone) {
+  const p = parts(ts, zone, { timeZoneName: "short" });
+  return p?.timeZoneName ?? "";
+}
+
 /** A date-only string ("2026-09-07", an ISO week's Monday) as "Sep 7",
  *  read as the calendar date it names rather than an instant. */
 export function dateLabel(ymd) {
