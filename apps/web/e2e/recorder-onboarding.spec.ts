@@ -131,7 +131,8 @@ const cases = [
     },
     clan: null,
     action: "Fix the tag",
-    to: "/console/account/tracking/20JJJ2CCRU",
+    // Lands on the inline fix on the player's page (2026-10-08).
+    to: "/console/account/tracking/20JJJ2CCRU#fix-tag",
     state: "Tag not found",
   },
   {

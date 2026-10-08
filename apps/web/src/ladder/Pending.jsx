@@ -13,7 +13,8 @@ import { captureLanded, playerName } from "./ladder.js";
  * this mode", Ladder says what is happening and links to the capture
  * status. The one Ladder view that polls: it reads the Console's
  * first-answer status (an account read, never a tool, so it costs the
- * reader no quota) about once a minute, as FirstAnswer does, and when
+ * reader no quota) as FirstAnswer does: every few seconds for the first
+ * minutes after the add, then about once a minute, and when
  * the capture has landed (captureLanded: the profile and a battle-log
  * read) it refreshes the Ladder reads once.
  */
@@ -33,11 +34,11 @@ export function Pending({ player }) {
   const status = `${CONSOLE}/account/tracking/${tagPath(tag)}`;
   if (journey?.notFound)
     return (
-      <div className="empty mt-6">
+      <div className="empty mt-6" role="alert">
         <h1 className="empty__title">Tag not found</h1>
         <p className="empty__body">{journey.text}</p>
-        <Link className="btn btn--sm" to={status}>
-          Fix the tag
+        <Link className="btn btn--sm" to={`${status}#fix-tag`}>
+          Fix the tag ›
         </Link>
       </div>
     );
@@ -47,7 +48,8 @@ export function Pending({ player }) {
       <p className="empty__body" role="status">
         Elixir has saved {playerName(player)}&rsquo;s tag. The first capture
         usually lands within a few minutes, and roughly the last 30 battles
-        arrive with it. This page checks again about once a minute.
+        arrive with it. This page checks again every few seconds at first, then
+        about once a minute.
       </p>
       <Link className="btn btn--sm" to={status}>
         Capture status ›

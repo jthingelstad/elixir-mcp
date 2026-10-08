@@ -429,6 +429,72 @@ test.describe("Ladder signed in", () => {
       await accessible(page, `ladder pending ${page_}`);
     });
   }
+  // 2026-10-08: a typo'd tag. The game answers its profile 404 and its
+  // battle log an empty 200, so the summary keeps refusing and Ladder
+  // says what the Console says, with the way to the fix.
+  test("a tag the game did not find says so on Ladder, with the fix", async ({
+    page,
+  }) => {
+    await mockApi(
+      page,
+      signedIn({
+        // players_summary answers from the profile, which never lands.
+        "POST /api/explore": (route) => {
+          const { tool } = route.request().postDataJSON() as ToolCall;
+          return [
+            200,
+            {
+              tool,
+              is_error: true,
+              body: {
+                error: {
+                  code: "not_recorded",
+                  class: "input",
+                  message: "#20JJJ2CCRU is not in the record yet.",
+                },
+              },
+            },
+          ];
+        },
+        "GET /api/me/first-answer": [
+          200,
+          {
+            as_of: "2026-10-08T12:00:00Z",
+            player: {
+              player_tag: "#20JJJ2CCRU",
+              is_primary: true,
+              recording_status: "active",
+              profile_available: false,
+              battles_30d: 0,
+              battlelog_observed_at: "2026-10-08T11:59:58Z",
+              last_battle_at: null,
+              capture_attempts: [
+                {
+                  endpoint: "player",
+                  last_admitted_at: null,
+                  last_failed_at: "2026-10-08T11:59:57Z",
+                  last_failed_status: 404,
+                },
+              ],
+            },
+            connection: { active_connections: 0 },
+            clan: null,
+          },
+        ],
+      }),
+    );
+    await page.goto("/ladder");
+    await expect(
+      page.getByRole("heading", { name: "Tag not found" }),
+    ).toBeVisible();
+    await expect(page.getByRole("alert")).toContainText(
+      "We couldn't find #20JJJ2CCRU in Clash Royale",
+    );
+    await expect(
+      page.getByRole("link", { name: "Fix the tag ›" }),
+    ).toHaveAttribute("href", "/console/account/tracking/20JJJ2CCRU#fix-tag");
+    await accessible(page, "ladder tag not found");
+  });
 });
 
 test.describe("Ladder days played", () => {

@@ -85,6 +85,8 @@ test("first-answer follows actual capture and distinguishes authorization from n
   );
   let data = JSON.parse((await read()).body);
   assert.equal(data.player.player_tag, "#2PP0V90Y");
+  // When the tag was added: the Console polls fast just after an add.
+  assert.ok(Date.now() - Date.parse(data.player.tracked_since) < 60_000);
   assert.equal(data.player.profile_observed_at, null);
   assert.equal(data.player.profile_available, false);
   assert.equal(data.player.battles_30d, 0);

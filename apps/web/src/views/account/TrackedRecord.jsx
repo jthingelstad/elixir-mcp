@@ -1,12 +1,5 @@
 import { useWrite } from "@elixir-mcp/client";
-import {
-  ago,
-  Icon,
-  Link,
-  secsSince,
-  WriteError,
-  writeErrorText,
-} from "@elixir-mcp/ui";
+import { ago, Icon, Link, secsSince, WriteError } from "@elixir-mcp/ui";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -21,6 +14,9 @@ import { CONSOLE } from "../../lib/console.js";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
+import { useFirstAnswer } from "../../hooks/useFirstAnswer.js";
+import { recordJourney } from "../../lib/record-journey.js";
+import { FixTag, StopTracking } from "./TagFix.jsx";
 
 /**
  * One tracked player or clan: how you track it, and what that is
@@ -33,7 +29,14 @@ import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
  *
  * "Stop tracking" says what it costs beside itself: the history already
  * recorded is kept, and this only stops new capture. That is the whole
- * reason the word is "stop" and not "delete".
+ * reason the word is "stop" and not "delete". It asks once before it
+ * writes (TagFix.jsx).
+ *
+ * A player tag the game answered "not found" for (2026-10-08) records
+ * nothing: the page says so as an error with the fix in it, and shows
+ * no "active" recording or healthy poll for it (the battle log of an
+ * unknown tag is an empty read that is admitted, so its poll looks
+ * fresh).
  */
 export function TrackedRecord({ me, refresh, navigate, tag }) {
   const clansQuery = useMyClans();
@@ -44,6 +47,16 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   const loadClans = () => invalidate();
 
   const wanted = tagFromPath(tag);
+  const claim = (me.claims ?? []).find((c) => c.player_tag === wanted);
+  // One status read for the page: FirstAnswer below shows it, and the
+  // Capture panel needs to know a tag was not found.
+  const answer = useFirstAnswer(`${wanted}:${claim?.is_primary}`, {
+    playerTag: wanted,
+    enabled: Boolean(claim),
+  });
+  const notFound = Boolean(
+    claim && answer.data && recordJourney(answer.data).notFound,
+  );
   // Every write on this page, each unwrapped: a refusal is said on the
   // page, and the record refetches only after a write that took. "Make
   // primary" used to clear the removal refusal whatever the server
@@ -102,7 +115,6 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
     nickname.error ??
     notify.error;
   const busy = primary.busy || remove.busy;
-  const claim = (me.claims ?? []).find((c) => c.player_tag === wanted);
   // Canonical year evidence, players only: a clan has no year of its own.
   const tracked = Boolean(claim);
   const activityQuery = useBattleActivity(tracked ? wanted : null);
@@ -197,6 +209,25 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
           playerTag={wanted}
           claimsKey={`${wanted}:${claim.is_primary}`}
           compact
+          answer={answer}
+          fix={
+            notFound ? (
+              <FixTag
+                claim={claim}
+                refresh={refresh}
+                navigate={navigate}
+                stop={
+                  <StopTracking
+                    tag={wanted}
+                    run={() => only(remove)(false)}
+                    busy={busy}
+                    error={remove.error}
+                    onDone={() => navigate(`${CONSOLE}/account/tracking`)}
+                  />
+                }
+              />
+            ) : null
+          }
         />
       )}
       {/* Adding a tag lands here, so the primary's clan is offered here
@@ -347,26 +378,16 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
               borderTop: "1px solid var(--line-soft)",
             }}
           >
-            <button
-              className="btn btn--danger"
-              disabled={busy}
-              onClick={async () => {
-                // Your primary cannot be removed while you track others
-                // (409 primary_in_use): the refusal is said beside the
-                // button, and the page stays.
-                const r = await only(remove)(isClan);
-                if (r.ok) navigate(`${CONSOLE}/account/tracking`);
-              }}
-            >
-              Stop tracking
-            </button>
-            {/* The consequence beside the control: this stops new capture
-                and takes nothing away. */}
-            <span className="footnote">
-              {remove.error
-                ? writeErrorText(remove.error)
-                : "History already recorded is kept."}
-            </span>
+            <StopTracking
+              tag={wanted}
+              run={() => only(remove)(isClan)}
+              busy={busy}
+              error={remove.error}
+              // Your primary cannot be removed while you track others
+              // (409 primary_in_use): the refusal is said beside the
+              // button, and the page stays.
+              onDone={() => navigate(`${CONSOLE}/account/tracking`)}
+            />
           </div>
         </section>
 
@@ -384,17 +405,24 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
           >
             <dt style={{ color: "var(--ink-faint)" }}>Recording</dt>
             <dd style={{ margin: 0 }}>
-              <span
-                className={
-                  "chip " +
-                  ((isClan ? clan.recording_status : rec?.status) === "active"
-                    ? "chip--ok"
-                    : "chip--info")
-                }
-              >
-                <span className="chip__dot" />
-                {(isClan ? clan.recording_status : rec?.status) ?? "off"}
-              </span>
+              {notFound ? (
+                <span className="chip chip--bad">
+                  <span className="chip__dot" />
+                  tag not found
+                </span>
+              ) : (
+                <span
+                  className={
+                    "chip " +
+                    ((isClan ? clan.recording_status : rec?.status) === "active"
+                      ? "chip--ok"
+                      : "chip--info")
+                  }
+                >
+                  <span className="chip__dot" />
+                  {(isClan ? clan.recording_status : rec?.status) ?? "off"}
+                </span>
+              )}
             </dd>
             <dt style={{ color: "var(--ink-faint)" }}>How</dt>
             <dd style={{ margin: 0, color: "var(--ink-body)" }}>
@@ -407,7 +435,11 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             <dt style={{ color: "var(--ink-faint)" }}>Freshest poll</dt>
             <dd style={{ margin: 0, color: "var(--ink-body)" }}>
               {/* Never polled is not stale and not zero. */}
-              {fresh == null ? "never polled" : ago(rec.freshest_poll, now)}
+              {notFound
+                ? "no profile: the game does not know this tag"
+                : fresh == null
+                  ? "never polled"
+                  : ago(rec.freshest_poll, now)}
             </dd>
             <dt style={{ color: "var(--ink-faint)" }}>Fetches, 24h</dt>
             <dd

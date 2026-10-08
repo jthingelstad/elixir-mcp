@@ -53,7 +53,7 @@ export function recordJourney(data) {
       ? "Your retained record is available. Check recording status in Tracking."
       : "No profile or battles are available yet. Check recording status in Tracking."
     : notFound
-      ? `We couldn't find ${p.player_tag} in Clash Royale. Check the tag: in the game it is on the player's profile, below the name. Stop tracking this one and add the right tag.`
+      ? `We couldn't find ${p.player_tag} in Clash Royale. Correct the tag, or stop tracking it.`
       : failedAt
         ? "A recent capture attempt failed. Saved information remains available; check again for new observations."
         : recorded

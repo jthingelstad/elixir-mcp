@@ -1032,7 +1032,10 @@ export function useNav() {
   const queryClient = useQueryClient();
   return useCallback(
     (to, { replace = false } = {}) => {
-      const [pathname, qs] = String(to).split("?");
+      // A fragment names a place on the page (Overview's "Fix the tag"
+      // lands on TrackedRecord's #fix-tag): the router carries it apart.
+      const [path, hash] = String(to).split("#");
+      const [pathname, qs] = path.split("?");
       if (
         isClan(pathname) &&
         queryClient.getQueryData(["me"])?.data?.features?.clan_internal !== true
@@ -1043,6 +1046,7 @@ export function useNav() {
       return nav({
         to: pathname,
         search: qs ? defaultParseSearch(`?${qs}`) : {},
+        ...(hash ? { hash } : {}),
         replace,
       });
     },
