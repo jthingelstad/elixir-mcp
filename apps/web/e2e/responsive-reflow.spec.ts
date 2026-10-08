@@ -51,6 +51,9 @@ for (const state of ["signed in", "signed out", "checking"] as const) {
   test(`@narrow shared chrome and account controls fit while ${state}`, async ({
     page,
   }) => {
+    // Ten widths, each with an axe pass: about 6 s here, past the 30 s
+    // budget on a loaded CI runner (main 808431b6, PR #377 twice).
+    test.slow();
     await mockApi(
       page,
       signedIn({
@@ -188,6 +191,8 @@ for (const gutter of [0, 15]) {
     test(`@narrow ${kind} battle decks reflow without card or page overflow (${gutter}px reserved gutter${gutter ? ", missing art" : ""})`, async ({
       page,
     }) => {
+      // Ten widths with axe and screenshots: see the chrome loop above.
+      test.slow();
       if (gutter) {
         // Reserve the content width consumed by a classic scrollbar even
         // on hosts whose Chromium uses overlay scrollbars.
