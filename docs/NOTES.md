@@ -496,3 +496,18 @@ From the fresh-person journey (round 3).
   Jamie's tag.
 - MCP 11.4.1 (timeline baselines, account clan text); JSON API 3.1.0
   unchanged.
+
+## 2026-10-08 — Journey round 3 is live; the first-read join census
+
+Deployed 44931c1b (#375) at about 5:35 pm Central: migration 0207
+applied, acceptance `elixir` 189 cases, 0 failed. The live contract reads
+11.4.1.
+
+`{"membership_baseline_census": true}`, run once after the deploy:
+35 membership rows across 11 clans were opened on their clan's first
+membership observation and still read as joins (20 of them claimed
+players; 11 in the last 30 days, 9 claimed); the earliest is from
+2026-03-12, the latest 2026-10-08 21:32Z (the journey's own #GGJG2CCR,
+1 row). No `member_joined` event came from a follow burst. **Still
+Jamie's call:** mark those 35 rows `baseline` (a one-off ops write) or
+leave them as written.
