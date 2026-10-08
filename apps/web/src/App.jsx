@@ -1405,7 +1405,10 @@ export function SignInWall({ navigate }) {
         </p>
         <button
           className="btn mt-2"
-          onClick={() => navigate(`${CONSOLE}/signin`)}
+          // The protected URL is already saved above. Replace its wall so
+          // completing proof does not leave a second automatic return in
+          // history (notably an email's ?report=1 feedback redirect).
+          onClick={() => navigate(`${CONSOLE}/signin`, { replace: true })}
         >
           Sign in
         </button>
@@ -1501,7 +1504,9 @@ const signInRoute = createRoute({
             // account's private data before any next-account view mounts.
             await resetSessionCache(queryClient);
             await refresh();
-            await navigate(next);
+            // Proof consumes the sign-in step. Back returns to the page
+            // before the sign-in journey instead of forwarding once more.
+            await navigate(next, { replace: true });
           } finally {
             setCompleting(false);
           }

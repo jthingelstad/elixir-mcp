@@ -6696,6 +6696,8 @@ data operation. The completed correction above is not rerun or re-investigated.
       handoff; fixture Back/reload at 390/1280px.
 - [x] Combined empty-account journey: add/read retry, help, keyboard feedback
       with retry, failed/successful logout and Back/reload; browser fixtures.
+- [x] Follow-up recovery: Back out of email feedback and failed clan-list
+      reads for empty/returning accounts; bounded fixture regressions.
 - [ ] Real inbox delivery and natural first capture: separate controlled
       operational permission/fixture; fixtures do not establish these.
 - [ ] Actual tester invitations: not sent by this engineering rehearsal.
@@ -6774,3 +6776,37 @@ All engineering rehearsal items above are now fixture-proven and deployed;
 real inbox delivery, natural first capture and tester invitations remain
 separate controlled operational steps, not established by these fixtures.
 This release receipt changes notes only and needs no further deployment.
+
+### 2026-10-08 — feedback history and clan-read recovery follow-up
+
+The PR #349 P2 review finding reproduced: Back from automatic email feedback
+remounted `?report=1` and opened the form again. Replacing that redirect fixes
+signed-in readers; code proof also needs the protected wall and consumed
+sign-in step replaced so Back does not reach another automatic return.
+Four fixture regressions at 390/1280px exercise Back out, Forward back,
+dismiss/reopen and preserved email attachment without sending feedback.
+
+A separate returning-account fixture confirmed that a failed initial
+`/api/me/clans` read was omitted from Tracking and left a clan detail loading
+indefinitely. The same read now exposes pending/error/retry across Overview,
+Tracking and clan records. Earlier successful clan data stays available;
+unknown reads cannot assert empty tracking, and filtered empty lists name the
+missing kind. Retry refetches only the saved clan list. Six UI cases cover
+cold and retained-data failures on the three views; browser cases cover
+empty/returning players, keyboard retry, deep-link recovery/reload, initial
+pending and filtered absence at both widths.
+
+No account, membership, mail, newsletter, capture or quota policy changes;
+MCP 11.2.3 / JSON API 3.0.0 and schema are unchanged. No MCP acceptance family
+is needed because no tool output moved. Browser plugin not available;
+rehearsals use repository Playwright with intercepted APIs. An early parallel
+browser run collided in Playwright's artifact directory; final runs are
+sequential. A unit assertion initially used an unavailable matcher and was
+corrected to the repository's Chai assertion. These are harness errors,
+separate from the reproduced application defects. Real inbox/capture and
+invitations remain controlled operational acceptance, not fixture claims.
+
+The final full gate passed 1,914 Node tests and 493 UI tests with 85
+documented acceptance skips; all 265 built-browser journeys passed. The
+signup-choice journeys remain green, and no real account, mail, feedback,
+membership or capture was used for acceptance.

@@ -97,6 +97,57 @@ async function arrived(page: Page, to: string) {
 }
 
 for (const width of [390, 1280]) {
+  for (const signedOut of [false, true]) {
+    test(`email feedback Back exits, Forward returns and dismissal stays safe (${signedOut ? "code proof" : "signed in"}) at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      const state = { authed: !signedOut };
+      const writes: string[] = [];
+      page.on("request", (request) => {
+        if (
+          new URL(request.url()).pathname === "/api/me/feedback" &&
+          request.method() !== "GET"
+        )
+          writes.push(request.method());
+      });
+      await mockApi(page, answers(state));
+      // A real preceding page: Back must leave the automatically opened
+      // report, not remount its ?report=1 initializer and reopen the form.
+      const predecessor = paths[2]!;
+      await page.goto(predecessor.from);
+      if (signedOut) {
+        await enter(page, paths[3]!);
+        await page
+          .getByLabel("Email", { exact: true })
+          .fill("fixture@example.com");
+        await page.getByRole("button", { name: "Send sign-in email" }).click();
+        await page.getByLabel("6-digit code").fill("123456");
+        await page
+          .getByRole("button", { name: "Sign in", exact: true })
+          .click();
+      } else await page.goto(email);
+      await arrived(page, paths[3]!.to);
+      await page.getByRole("button", { name: "Close", exact: true }).click();
+      await expect(page.getByText(/Reporting one email/)).toHaveCount(0);
+      await page.goBack();
+      await expect(page).toHaveURL(new RegExp(predecessor.to + "$"));
+      await expect(
+        page.getByRole("button", { name: "Close", exact: true }),
+      ).toHaveCount(0);
+      await page.goForward();
+      await arrived(page, paths[3]!.to);
+      await page.getByRole("button", { name: "Close", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Send feedback", exact: true })
+        .click();
+      await expect(page.getByText(/Reporting one email/)).toBeVisible();
+      await expect(page.getByText(/Reporting one email/)).toContainText(
+        sendId.slice(0, 8),
+      );
+      expect(writes).toEqual([]);
+    });
+  }
   for (const path of paths) {
     for (const proof of ["code", "link"]) {
       test(`${path.name} returns through ${proof}, Back and reload at ${width}px`, async ({

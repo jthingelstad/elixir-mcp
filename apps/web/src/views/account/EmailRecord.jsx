@@ -30,7 +30,12 @@ export function EmailRecord({ id, navigate, search }) {
   const [report] = useState(() => wantsReport(search));
   useEffect(() => {
     if (report && id)
-      navigate(`${CONSOLE}/account/feedback?send_id=${encodeURIComponent(id)}`);
+      navigate(
+        `${CONSOLE}/account/feedback?send_id=${encodeURIComponent(id)}`,
+        {
+          replace: true,
+        },
+      );
   }, [report, id, navigate]);
   // The envelope, because 404 is an answer this page reads.
   const record = useEmailRecord(id);
