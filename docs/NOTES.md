@@ -32,6 +32,12 @@ Remove a line in the change that closes it.
   Overview) into clan chat once and say whether `elixir.poapkings.com`
   at its end survives the chat filter; if it is masked, it comes out of
   the line (`apps/web/src/lib/invite.js`). Jamie.
+- 2026-10-08: should a new account start on its browser's time zone
+  instead of UTC? Today it is UTC until the person sets one (docs: "starts
+  at UTC"; App.jsx, "UTC when none is (Jamie, 2026-09-23)"), so the fresh
+  journey read Ladder in UTC; the Console and Ladder now say so and offer
+  the browser's zone in one click. Saving it at sign-up would also move
+  the days and send times of that person's mail. Product call, Jamie.
 - 2026-09-29: `min_client_version` is 2.0.30 with enforcement on. Raising
   it retires the pre-signing rollback lever. Jamie.
 - 2026-10-08: the fresh-person journey ran live (Jamie's beta1 test
@@ -405,3 +411,44 @@ Spread the word, behind 10 members and an active policy.
   agents and 3 integrations off. No `primary_clan_followed` from the
   backfill yet at 21:50Z; they come with each primary's next profile
   admission (Logs Insights on `/aws/lambda/elixir-mcp-collector`).
+
+## 2026-10-08 — times name their clock; counts say what they count
+
+From the fresh-person journey (screenshots 13, 15, 18, 22):
+
+- **One clock per reader.** Ladder printed night spans and season times
+  with no zone ("6:28 – 7:14 pm", UTC for an account with none set) while
+  the battle page used the browser's zone for the same signed-in reader
+  ("2:14 PM CDT"). Ladder now names the zone on every time it prints
+  (`zoneShort` in `ladder.js`); the battle page uses the account's clock
+  whenever someone is signed in and the browser's only when nobody is,
+  as its own comment always said. The kit gained `browserZone()`.
+- **Day bucketing, decided: unchanged.** Days played buckets by the
+  account's local day, which `ladder.md` states ("lays the season on your
+  calendar in your own timezone"; "a battle after midnight counts on the
+  next day"). The 10:00Z game-day grid (DECISIONS) is for tool daily
+  series and the war clock, and the Console's activity year is a UTC-day
+  chart that says so (DECISIONS, "The console tells time in the
+  account's zone"); neither governs Ladder's calendar. With no zone set,
+  the local day is UTC and the lede says "UTC".
+- **The offer, not a default.** `ZoneOffer` (Overview and every Ladder
+  head) says times are UTC while the account has no zone and offers the
+  browser's, saved only on the click. Whether to set it at sign-up is
+  queued for Jamie above.
+- **Tool calls, not MCP calls.** The Console's and Ladder's reads are
+  Explore tool calls and spend the daily budget, so Overview's tile says
+  "tool calls today" and how many were the site's own reads
+  (`web_calls_today`, new on `/api/me/usage`). The usage counts now hold
+  only what the `mcpday#` limiter charges: Elixir Clan's reads (family
+  exemption) and `/api/v1` calls are no longer counted as spending it
+  (`CHARGED` in `routes/account.mjs`). Quota policy is unchanged.
+- **"30 battles in the last 28 days"** replaces "in 28 UTC days", which
+  read as days with battles.
+- **Clan, The week:** the lede names the week shown ("The week of Sep
+  28, the latest to close: it closed at the Monday reset on Oct 5") and
+  the running week's card names its own ("the week of Oct 5, closes Oct
+  12"); a week from before Elixir followed the clan says so and when the
+  first full week closes, from `recorded_from` (the engine's report:
+  `first_roster_observed_at`, else `recording_active_since`). Week shape
+  is unchanged.
+- No MCP or JSON API change: MCP 11.4.0, JSON API 3.1.0.
