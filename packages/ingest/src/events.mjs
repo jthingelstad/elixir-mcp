@@ -25,7 +25,7 @@ const EVENT_TYPES = {
   bracket_observed: { stream: "clan", timing: "estimated" },
   race_finished: { stream: "clan", timing: "exact" },
   week_resolved: { stream: "clan", timing: "estimated" },
-  // player (the timeline's named moments, review 2026-09-13 Part IV)
+  // player (the timeline's named moments)
   donation_reset: { stream: "player", timing: "estimated" },
   badge_earned: { stream: "player", timing: "estimated" },
   legendary_badge_earned: { stream: "player", timing: "estimated" },

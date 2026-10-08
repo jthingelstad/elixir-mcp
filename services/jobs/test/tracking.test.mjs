@@ -1,6 +1,6 @@
 /**
  * The weekly tracking mail over a scratch database: attested facts never
- * enter it (review 2026-09-27 §6.8). A clan's attested facts are for the
+ * enter it. A clan's attested facts are for the
  * people who read the clan's timeline, and an away is for a leader
  * reading it themselves, never a mail (DECISIONS, "Attested facts"). The
  * mail's moments are filtered BEFORE the timeline's 150-item cap, so a
@@ -166,7 +166,7 @@ test("control: unfiltered, the recipient's timeline carries the facts and the ca
   const kinds = new Set(timeline.map((it) => it.kind));
   for (const k of ["clan_message", "personal_record"])
     assert.ok(kinds.has(k), `${k} is on the timeline`);
-  // Until review 2026-09-27 §6.8 the mail read this timeline and filtered after the cap.
+  // The mail used to read this timeline and filter after the cap.
   assert.ok(!kinds.has("career_wins_step"), "the cap spent on facts");
 });
 

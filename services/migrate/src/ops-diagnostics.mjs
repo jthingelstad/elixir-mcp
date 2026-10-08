@@ -145,7 +145,7 @@ const STATEMENT_TEXT_CHARS = 400;
 
 /**
  * {statements: true | {limit}} - which statements spend the database's
- * time and reads (0190; review 2026-09-27 §5.3, issue #71): the top
+ * time and reads (0190): the top
  * `limit` (20, at most 50) from pg_stat_statements by total execution
  * time and by shared blocks read from disk, for this database only, with
  * the view's own normalized text (constants are $n placeholders; the view
@@ -489,7 +489,7 @@ export async function probe(databaseUrl) {
          and b.battle_time > now() - interval '7 days'
        group by 1, 2, 3 order by 1, 2, 3`,
     );
-    // Level-economics data support (docs/archive/META-INTEL.md follow-on): how much of
+    // Level-economics data support: how much of
     // the corpus carries BOTH sides' per-card levels, and what the
     // level-gap distribution looks like. Decks store slim cards with
     // display-scale levels; duels (rounds) and deckless rows excluded.

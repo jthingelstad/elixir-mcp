@@ -254,7 +254,7 @@ export function makeHandler({
           };
         }
         // Only a credential that names a real key or account is written
-        // down (review §6.5): one that names nobody has nobody to tell.
+        // down: one that names nobody has nobody to tell.
         // The log line below still counts it.
         if (refused.tokenId || refused.accountId)
           await recordCredentialRefusal(db, {
@@ -328,8 +328,8 @@ export function makeHandler({
         : "mcp";
       const clientName = account.serviceName ?? account.clientName ?? null;
       // A JSON-RPC-layer refusal never reaches the invoker, so until 0063
-      // a quota wall or a hidden-tool refusal was invisible in the log
-      // (review 5.2). One row per refusal: the tool asked for, the code,
+      // a quota wall or a hidden-tool refusal was invisible in the log.
+      // One row per refusal: the tool asked for, the code,
       // bounded arguments, and a minted request_id - error_code stays
       // null because no tool ran. Awaited, because the connection closes
       // when this handler returns.
@@ -494,7 +494,7 @@ export function makeHandler({
           ),
           // Every read-only tool answers before Lambda kills the sandbox:
           // the remaining time less what a structured reply, capture and
-          // audit need (review 2026-09-19, Part 7.1).
+          // audit need.
           deadlineMs: Math.max(
             1,
             (context?.getRemainingTimeInMillis?.() ?? 25_000) - 1_500,

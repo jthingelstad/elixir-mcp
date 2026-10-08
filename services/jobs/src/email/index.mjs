@@ -11,7 +11,7 @@ import { isRetiredEmailKind } from "@elixir-mcp/contracts";
  *  message carries the signed one-click unsubscribe URL for its
  *  recipient and kind.
  *
- *  A run watches its own clock (review 2026-09-27 §6.7): with about 90 s
+ *  A run watches its own clock: with about 90 s
  *  of the Lambda's 900 left it stops taking recipients and says
  *  `incomplete`, and the handler fails the invocation so the async
  *  retry (EventInvokeConfig) carries on from where the ledger says it

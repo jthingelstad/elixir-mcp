@@ -42,7 +42,7 @@ export function preResetWindowStart(now: Date): Date {
 }
 
 /**
- * The game day (time-series review 3.1; Jamie, 2026-09-17): the date
+ * The game day (Jamie, 2026-09-17): the date
  * whose 10:00Z start an instant falls after, which is the river race
  * and season grid. The SQL twin is game_day() (0126); the two are
  * pinned equal by the ingest tests. UTC arithmetic only, so DST cannot

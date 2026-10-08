@@ -97,7 +97,7 @@ export function opName(event) {
  * every backend the op opens. {backends} then says which op a backend
  * belongs to, and {terminate_backends} can filter by it; before
  * 2026-09-27 every service connected as one user with no name, and
- * query text was the only handle on an orphan (review §3.1).
+ * query text was the only handle on an orphan.
  */
 export async function handler(event) {
   process.env.PGAPPNAME = `${APP_NAME}:${opName(event)}`;

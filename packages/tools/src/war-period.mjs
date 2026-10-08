@@ -39,7 +39,7 @@ export async function periodAt(db, atMs) {
     weekEndMs: sectionStartMs + 7 * DAY_MS,
     // The next war day to open AFTER this period, on war days too: the
     // rule game_clock speaks (game-clock.mjs), so the two tools agree at
-    // the same instant (review 2026-09-19, defect 2). Tomorrow on war
+    // the same instant. Tomorrow on war
     // days 1-3; after the next training block on day 4; the section's
     // first war day on a training day.
     nextWarDayOpensMs:

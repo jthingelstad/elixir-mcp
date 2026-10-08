@@ -1,6 +1,6 @@
 /**
  * Shared helpers for the tool registry (split from the single-file
- * registry, review item 8, 2026-09-05): entitlement resolution, meta
+ * registry, 2026-09-05): entitlement resolution, meta
  * assembly, segment filters, the closed error class, the shared
  * clan-recording acts both doors use, and - since 1.0.0 - the CONVENTIONS
  * every tool follows (docs/ENGINEERING.md, "Tool conventions"):
@@ -216,7 +216,7 @@ export const MODE_SCHEMA = {
     "Mode group: ladder (Trophy Road to 14,000), ranked (Path of Legends), war, casual (clanmate battles even when tagged), challenge, event (any other battle with an event tag, including the seasonal Trophy Road past 14,000), tournament. Omit for every mode.",
 };
 
-/** The one size control (review 2.2.4). `compactDesc` says what compact
+/** The one size control. `compactDesc` says what compact
  *  drops for THIS tool; the shape of the argument never varies. */
 export function VERBOSITY(compactDesc) {
   return {
@@ -527,7 +527,7 @@ async function seasonFieldsForSpan(
 
 /**
  * The window for a season-aware read. Two defaults: the meta tools
- * (`seasonDefault: true`, review 2026-09-16, 1.1) default to the current
+ * (`seasonDefault: true`) default to the current
  * season to date from the `season` row - never a rolling number of days,
  * which is how a 28-day meta window came to mix two seasons 14/86
  * without saying so; the player battle tools (3.17.0, `seasonDefault:
@@ -700,7 +700,7 @@ export async function liveRead(ctx, { endpoint, entityKey, needPayload }) {
       "Call again without live: true for the recorded view.",
     );
   // queued: false - the one budget had no token for a live read, so none
-  // was minted and nothing was charged (review 2026-09-27 §4.1).
+  // was minted and nothing was charged.
   return {
     state: "pending",
     retry_after_s: r.retry_after_s,
@@ -791,7 +791,7 @@ export async function subject(
 /**
  * A resolved subject is a subject somebody asked about: stamp it so the
  * scheduler keeps that player's battlelog within an hour for the next day
- * (docs/archive/FETCH-LOOP-AUDIT-2026-09-09.md). Best-effort by construction --
+ * (the 2026-09-09 fetch-loop audit). Best-effort by construction --
  * one PK-indexed update, and a failure is logged, never surfaced -- and a
  * subject with no poll_state row (not recorded) is a no-op.
  */
@@ -816,8 +816,8 @@ export async function entitledClan(db, account, inputTag) {
   }
 }
 
-/** The two pending hints, computed once per response by the invoker
- *  (review 4.1): they used to ride only the tools that built a full
+/** The two pending hints, computed once per response by the invoker:
+ * they used to ride only the tools that built a full
  *  envelope, so the consumer whose only regular call is the feed never
  *  saw feedback_responses_pending and re-read its ledger every tick. */
 export async function pendingHints(db, account) {

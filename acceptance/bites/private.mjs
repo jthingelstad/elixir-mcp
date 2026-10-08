@@ -1,7 +1,7 @@
 /**
  * What a bite may not carry. This repo is public and a bite is a tool
  * response copied from a private capture, so the items a reader sees
- * because of who they are stay out of it (review 2026-09-27 §6.4):
+ * because of who they are stay out of it:
  * `attested` (a family app's clan and player facts, some for a clan's
  * members or leaders only) and `account` (the reader's own account).
  * Such an item keeps only what a case can match on: its kind, section,

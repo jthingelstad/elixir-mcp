@@ -685,7 +685,7 @@ test("a revoked key being presented is recorded, named, and counted", async () =
   assert.equal(row.viewer_country, "US");
 });
 
-test("a key that names nobody is refused and not written down (review §6.5)", async () => {
+test("a key that names nobody is refused and not written down", async () => {
   const raw = "svt_never_issued_by_anyone";
   const response = await handler({
     rawPath: "/mcp",
@@ -1127,7 +1127,7 @@ test("a family app that asks for account:email is shown it, and userinfo answers
   assert.ok(discovery.scopes_supported.includes("account:email"));
 });
 
-/* ---- door hardening (review §6.5) ---- */
+/* ---- door hardening ---- */
 
 const sha = (v) => crypto.createHash("sha256").update(v).digest("hex");
 const register = (body, ip) =>

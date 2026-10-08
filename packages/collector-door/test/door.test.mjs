@@ -191,7 +191,7 @@ test("auth: bad, missing, and revoked tokens never pass", async () => {
 
 test("config: contract constants, channel, the update authority, and what doctor needs", async () => {
   // sourceIp is the CloudFront edge that forwarded the call; the
-  // operator's own address is cloudfront-viewer-address (review §6.5).
+  // operator's own address is cloudfront-viewer-address.
   const r = await door.config(db, {
     headers: {
       ...authed(TOKEN_BULK).headers,
@@ -205,7 +205,7 @@ test("config: contract constants, channel, the update authority, and what doctor
     max_attempts: 3,
     timeout_s: 20,
     backoff_ms: 500,
-    // A throttle burst is retried inside the lease (review §6.6).
+    // A throttle burst is retried inside the lease.
     retry_statuses: [429],
   });
   assert.equal(r.body.gateway.channel, "bulk");
@@ -486,7 +486,7 @@ test("ingest exception leaves the lease held for expiry-requeue", async () => {
   );
 });
 
-test("a deadlock or racing upsert is retried once in the door; anything else is not (review §2.5)", async () => {
+test("a deadlock or racing upsert is retried once in the door; anything else is not", async () => {
   const pgError = (code) =>
     Object.assign(new Error(`sqlstate ${code}`), { code });
   const run = async (failures, entity) => {

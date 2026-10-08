@@ -108,7 +108,7 @@ export function validCodeChallenge(value) {
  *  consent page lists them all ticked and the person unticks what they
  *  do not want. The old default - cr:read alone - meant feedback, the one
  *  behaviour every agent is told to perform unprompted, was refused on
- *  most connections (review 3.3). A client that names a scope set gets
+ *  most connections. A client that names a scope set gets
  *  exactly that set, cr:read required. */
 export function normalizeScope(value) {
   const raw = String(value ?? "").trim();
@@ -614,7 +614,7 @@ export function redirectsToFamily(redirectUris) {
   );
 }
 
-/** A family app's client (review §6.5, 2026-09-27): PROVISIONED by
+/** A family app's client: PROVISIONED by
  *  Elixir (family_oauth_client, which only a migration or the operator's
  *  op writes, and whose clients authenticate at /oauth/token), and every
  *  redirect URI it holds on a family origin. First-party clients are not

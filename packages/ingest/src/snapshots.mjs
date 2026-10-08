@@ -5,7 +5,7 @@ import { playerEventOriginSql } from "@elixir-mcp/record/event-origin";
  * One row per recorded player per GAME day ('daily'; the day whose
  * 10:00Z start the observation falls after, gameDay() in contracts and
  * game_day() in SQL, 0126 - the table moved off the UTC calendar day on
- * 2026-09-17, time-series review 3.2); the watchers force a second row
+ * 2026-09-17); the watchers force a second row
  * in the hour before the weekly donation reset ('pre_reset') and in the
  * hour before the season rolls ('season_roll', 0111: the last
  * leagueStatistics.currentSeason and Path of Legends standing before
@@ -293,7 +293,7 @@ export async function upsertProfileSnapshot(
       bestMonth,
       cols.best_season_trophies,
       cols.best_season_rank,
-      // The lifetime block's remainder (review 1.3): the class wins is in.
+      // The lifetime block's remainder: the class wins is in.
       intOrNull(payload.totalDonations),
       intOrNull(payload.challengeCardsWon),
       intOrNull(payload.challengeMaxWins),
@@ -483,7 +483,7 @@ export async function projectPlayerSnapshot(
 const intOrNull = (v) => (Number.isInteger(v) ? v : null);
 
 /**
- * State on the player, written when it differs (review 2.1): the frozen
+ * State on the player, written when it differs: the frozen
  * Clan Wars 1 counters and the retired road's high score are not a
  * series. Once per player in practice. Returns rows written.
  */
@@ -508,7 +508,7 @@ export async function projectFrozenCounters(db, { playerTag, payload }) {
 
 /**
  * lastPathOfLegendSeasonResult is the previous season's final standing,
- * carried on every profile poll of the following month (review 2.1).
+ * carried on every profile poll of the following month.
  * Fill-once on player_pol_season under the season whose ends_at is the
  * latest at or before the poll: the one that has rolled. A profile with
  * no last result (a new account) writes nothing; the API's null rank
@@ -542,7 +542,7 @@ export async function projectPolSeason(db, { playerTag, payload, fetchedAt }) {
 
 /**
  * Snapshot-derived moments, written to the ledger with their values so the
- * timeline can name them (review 2026-09-13 Part IV). Thresholds are the
+ * timeline can name them. Thresholds are the
  * disclosed rungs: a personal best counts at each 500 band, career wins at
  * each thousand, collection level at each fifth level; an arena change and a
  * ranked promotion count as themselves. A season reset dropping the league

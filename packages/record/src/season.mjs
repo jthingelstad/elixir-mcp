@@ -1,5 +1,5 @@
 /**
- * The season as a row (0104; docs/reviews/2026-09-16-SCHEMA-REVIEW.md 1.1).
+ * The season as a row (0104).
  *
  * The calendar itself stays arithmetic (war-clock.mjs: first Monday
  * 10:00Z to first Monday 10:00Z, the war number counted from the 2026-08

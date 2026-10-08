@@ -17,7 +17,7 @@ import { projectRiverRaceLog } from "../../../packages/ingest/src/war.mjs";
 import { makeHandler } from "../src/handler.mjs";
 
 // A family app's client is provisioned (0185), never merely registered to
-// a family redirect: registration is open and proves nothing (review §6.5).
+// a family redirect: registration is open and proves nothing.
 let familyApps = 0;
 async function familyClient(db, spec) {
   const c = await registerClient(db, spec);
@@ -690,7 +690,7 @@ test("a clan's war history reads the same for an integration with clans:read and
   assert.equal(rows.length, 1, "audited as a REST call of the tool");
 });
 
-test("a tool behind a lock answers query_timeout on Explore and /api/v1 before the handler's 504 (review 2026-09-27 §3.2)", async () => {
+test("a tool behind a lock answers query_timeout on Explore and /api/v1 before the handler's 504", async () => {
   // The invoker's deadline used to reach neither door: Explore passed
   // none, and /api/v1 only the analytical budget, so a read waiting on a
   // lock ran on until the handler gave up with a bare 504 and no request

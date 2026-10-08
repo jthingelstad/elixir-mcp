@@ -33,8 +33,8 @@ const COUNTS = [
 ];
 
 /**
- * Recompute rollups for a set of {playerTag, day} pairs, in ONE statement
- * (review 2026-09-27 §2.5, §5.6). It used to delete and re-insert each
+ * Recompute rollups for a set of {playerTag, day} pairs, in ONE statement.
+ * It used to delete and re-insert each
  * pair in the order the observer's battles arrived, and it is the one
  * multi-row write on the battle path: two observers holding the same
  * players' battles took those row locks in different orders, a

@@ -6,7 +6,7 @@ import { CONSOLE } from "../../lib/console.js";
 
 /**
  * One tool call: the request as sent, the response as received, and
- * where the time went (review 2026-09-10, Part 5).
+ * where the time went.
  *
  * The console's job here is the same as the notification record's: make
  * the wire visible. An agent builder asking "what did my bot actually

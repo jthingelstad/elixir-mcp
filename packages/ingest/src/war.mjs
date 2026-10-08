@@ -167,8 +167,7 @@ export async function projectRiverRace(
   // 3. Standings across the race's clans (fame here is the boat's own).
   // The rivals' clanScore rides the same observation stamp as
   // period_points (latest wins), repairPoints MAX-merges like every war
-  // counter, and badgeId lands on the rival's clan row (2026-09-17,
-  // time-series review 2.3).
+  // counter, and badgeId lands on the rival's clan row (2026-09-17).
   let facts = anchorInsert.length;
   facts += await upsertRaceStandings(db, {
     tag,
@@ -440,7 +439,7 @@ async function projectRivalBadges(db, clans) {
 
 /**
  * periodLogs[]: the race's closed war days per clan, present on every
- * race poll (time-series review 2.3). The array spans the whole season
+ * race poll. The array spans the whole season
  * and every entry names the CURRENT bracket's clans
  * (cr-agent-api-docs/models/river-race.md), each with its own result
  * on that day in whatever bracket it raced then. The entries of the

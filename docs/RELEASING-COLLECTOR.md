@@ -46,7 +46,7 @@ both.
 **A dev build, for the startup path.** A released binary cannot soak on
 its own: it asks the update authority at startup and installs whatever
 is named, so a candidate put on a canary downgrades itself to the named
-release within a second (found on v2.0.26, 2026-09-11). A locally built
+release within a second. A locally built
 binary reports `dev` and never self-updates, so it is how a candidate's
 code is run long enough to read. Build the candidate's commit and put
 it in place of the binary on one machine you control, through its
@@ -72,8 +72,8 @@ Then put the released binary back and restart it. Admin → Collectors
 shows `dev` for the canary while it runs; that is the only time it
 should.
 
-There has been no `live` channel since 2026-09-11: every collector checks
-in and takes live jobs first. The `channel=` the client still prints is a
+There is no `live` channel: every collector checks in and takes live
+jobs first. The `channel=` the client still prints is a
 leftover column (expand-and-contract) that nothing routes on; ignore its
 value.
 
@@ -82,8 +82,7 @@ value.
 > collector on that identity. Start it through its supervisor and read
 > the version from the log.
 
-**A signed candidate, for the update path.** The live check done on
-2026-09-26 for v3: install the signed candidate's released binary by hand
+**A signed candidate, for the update path.** Install the signed candidate's released binary by hand
 on one machine and restart it. At startup it asks the authority, is
 told the currently named release, and updates to it: it fetches that
 release's `SHA256SUMS` and `SHA256SUMS.sig` over GitHub's real
@@ -120,8 +119,8 @@ AWS_PROFILE=cloud-engineer node infra/scripts/payload-field-audit.mjs all       
 ```
 
 The endpoint names are the keys of `PAYLOAD_KEYS` (`player`, `clan`,
-`currentriverrace`, `riverracelog`, `player_battlelog`, `cards`, the
-ranking boards, `events`). It lists the whole archive, so it is slow on
+`currentriverrace`, `riverracelog`, `player_battlelog`, `cards`,
+`events`, `globaltournaments`). It lists the whole archive, so it is slow on
 `player_battlelog`; run it once, not in a loop. A non-zero exit stops the
 release: the missing disposition is a server-side change that lands here
 first (a manifest entry plus its projection or written reason), and the
@@ -141,6 +140,14 @@ AWS_PROFILE=cloud-engineer node infra/scripts/name-collector-release.mjs [tag]
 
 With no tag it takes the newest release of any kind. It is idempotent:
 naming the same tag twice changes nothing but `updated_at`.
+
+Naming also stores the published GitHub release body and URL
+(`collector_release_note`) for the upgrade notice in operator email, and
+keeps the release body when it promotes the page. Add
+`--reason="<verified purpose of this release>"` when a maintainer reason
+is available. Never infer the installation mechanism on an operator's
+host. A notice goes out only after a collector reports a higher installed
+version; naming alone sends nothing (`docs/EMAIL.md`, `collector_activity`).
 
 Before it writes a row it refuses:
 
@@ -222,11 +229,9 @@ Enforcement is server-side and switched by the stack parameter
 reaches the collector Lambda as `COLLECTOR_MIN_ENFORCE`. It is a PRESERVED
 parameter (`infra/scripts/parameters.mjs`), so an ordinary deploy never
 flips it either way; changing it is a parameter-only update,
-`AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --param=CollectorMinEnforce=<0|1>`. The last
-value the notes record for production is `1` (set 2026-09-06, restated
-2026-09-12 with the minimum at 2.0.30; `docs/notes/2026-W36-W37.md`). The
-repo cannot show the live value: read the stack's parameters before
-relying on it.
+`AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs --param=CollectorMinEnforce=<0|1>`.
+Production has run with `1`; the repo cannot show the live value, so read
+the stack's parameters before relying on it.
 
 With enforcement on, the door refuses `lease` and `submit` with a 426
 `client_too_old` but never `config`, because config is the channel a stale
@@ -234,13 +239,13 @@ client updates through. It also fails open on any version it cannot parse
 (`dev` passes): this gate retires old clients, it does not authenticate
 anyone.
 
-> **A refused client looks idle, not broken.** The collector treats a
-> 426 `client_too_old` on `/lease` as an empty answer (a collector-repo
-> bug, reported to Jamie 2026-09-25), so a stale client logs quiet
-> activity summaries rather than errors, and its heartbeat stays fresh
-> because the door stamps it before the version check. Look for a
-> collector checking in with no leases issued and a stale
-> `last_success_at`, not for errors in its log.
+A current collector treats a 426 `client_too_old` on `lease` or
+`submit` as its own state (`too_old`): it logs one error naming its
+version and the minimum, re-reads `/config` at once to self-update, and
+re-reads it every 5 minutes while the refusal lasts (the collector's
+README). Its heartbeat stays fresh, because the door stamps it before the
+version check, so on Admin → Collectors a refused collector shows as
+checking in with no leases issued and a stale `last_success_at`.
 
 ---
 
@@ -248,13 +253,3 @@ _Related: <https://elixir.poapkings.com/docs/operators> (the operator's side),
 `docs/COLLECTOR-ZERO-TRUST.md` (why the server is the update authority),
 the collector's `SECURITY.md` (the release key and what a collector
 verifies), and `AGENTS.md`, "Working style"._
-
-
-## Release details in operator email
-
-Naming now stores the published GitHub release body and URL for observed-upgrade
-emails, preserving the release body when promoting the page. Add
-`--reason="<verified purpose of this release>"` to the naming command when a
-maintainer reason is available. Do not infer the installation mechanism on any
-operator’s host. A notice is sent only after a collector reports a higher
-installed version; naming alone sends nothing.

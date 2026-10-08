@@ -1,7 +1,7 @@
 import { runClanEvaluation } from "./clan.mjs";
 import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** The jobs Lambda — scheduled product work, split out of the migrate
- *  Lambda (review item 5, 2026-09-05): EventBridge fires the sweeps and
+ *  Lambda (2026-09-05): EventBridge fires the sweeps and
  *  the nightly activity histogram here, so the function that can
  *  alter schema is never also the one running on a timer. Same VPC and
  *  role; deliberately no migration or seeding code paths.
@@ -118,7 +118,7 @@ export async function sweepPayloads(databaseUrl, s3override) {
 }
 
 /** Operational-row sweep ({sweep_operational: true}, hourly, rides the
- *  same EventBridge rule as the payload sweep): docs/archive/DB-AUDIT-2026-09-04.md R3 — every
+ *  same EventBridge rule as the payload sweep): every
  *  check is already expiry-aware, these rows are pure dead weight.
  *  oauth_token keeps 90 days (not 30): rotated-token rows are the
  *  memory behind family replay detection, and 90d is the absolute

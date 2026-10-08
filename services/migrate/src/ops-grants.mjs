@@ -23,7 +23,7 @@ export async function oauthGrants(databaseUrl, spec = {}) {
       const out = [];
       // One transaction: a revoked family always has its
       // connection_revoked event, and a failed event leaves the family
-      // live, so the op can simply be run again (review 2026-09-27 §3.3).
+      // live, so the op can simply be run again.
       await db.query("begin");
       try {
         for (const id of spec.revoke) {

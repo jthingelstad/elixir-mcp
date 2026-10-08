@@ -754,7 +754,7 @@ export function accountRoutes({
     },
 
     "GET /api/me/requests": async (db, event) => {
-      // Activity tab 1 (docs/archive/SITE-IA.md): the MCP requests this account's
+      // Activity tab 1: the MCP requests this account's
       // agents made - the user's own audit slice, newest first.
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });

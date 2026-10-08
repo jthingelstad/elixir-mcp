@@ -105,7 +105,7 @@ function b64urlDecode(value) {
 }
 
 /**
- * The session secret, or the secrets (review 2026-09-27 §8.5, #71): an
+ * The session secret, or the secrets (#71): an
  * array is `[current, ...previous]`. Tokens are signed with the current
  * one only and verified against every one, so SESSION_SECRET can rotate
  * with SESSION_SECRET_PREVIOUS holding the old value and nobody is signed

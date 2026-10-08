@@ -16,8 +16,8 @@ import { isRetiredRecordingEndpoint } from "@elixir-mcp/contracts";
  * for clans and the river race - cr-agent-api-docs), so a receipt inside
  * that window IS what a new fetch would return, whichever lane fetched it.
  *
- * A minted live job is charged one token from the one global bucket
- * (review 2026-09-27 §4.1), before the per-account quota. With no token
+ * A minted live job is charged one token from the one global bucket,
+ * before the per-account quota. With no token
  * left nothing is minted and nothing is charged: the answer is `pending`
  * with `queued: false` and `retry_after_s` at the next scheduler tick,
  * when the bucket refills.

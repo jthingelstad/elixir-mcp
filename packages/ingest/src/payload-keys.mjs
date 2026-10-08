@@ -1,14 +1,13 @@
 /**
  * The field manifest (docs/ENGINEERING.md, "Ingest invariants": the shape
  * of every admitted payload is known, and a change is a work item;
- * time-series review 2.7, decided by Jamie 2026-09-17).
+ * decided by Jamie 2026-09-17).
  *
  * One entry per field per endpoint, at the top level and inside each
  * array's elements, with its disposition: where it lands (`to`), what it
  * is derived from at read time (`derived`), or why it is dropped
  * (`dropped`). A field the API sends that has no entry here is a
- * finding; an entry with no disposition is a test failure. The census
- * of review Part 2 is the content; Appendix D the key sets.
+ * finding; an entry with no disposition is a test failure.
  *
  * Paths: dots for keys, `[]` for an array's elements, `*` for a map's
  * keys (`progress.*.trophies`). A scalar array's elements are `x[]`.
@@ -147,7 +146,7 @@ export const PAYLOAD_KEYS = {
     "arena.id": to("player_snapshot_daily.arena_id"),
     "arena.name": to("arena.name"),
     "arena.rawName": dropped(
-      "the season namespace rides in it; a text column on arena is Tier 2 (time-series review 2.1)",
+      "the season namespace rides in it; a text column on arena is Tier 2",
     ),
     "leagueStatistics.currentSeason.trophies": to(
       "player_snapshot_daily.season_trophies",
@@ -191,10 +190,10 @@ export const PAYLOAD_KEYS = {
     "badges[].progress": to("player_badge.progress", opt),
     "badges[].target": to("player_badge.target", opt),
     "badges[].iconUrls.large": dropped(
-      "a badge catalog row per name is Tier 2 (time-series review 2.1)",
+      "a badge catalog row per name is Tier 2",
     ),
     "achievements[].name": dropped(
-      "twelve fixed rows per player; player_achievement is Tier 2 (time-series review 2.1)",
+      "twelve fixed rows per player; player_achievement is Tier 2",
     ),
     "achievements[].stars": dropped("Tier 2, with achievements[].name"),
     "achievements[].value": dropped("Tier 2, with achievements[].name"),
@@ -248,12 +247,12 @@ export const PAYLOAD_KEYS = {
     starPoints: to("player_snapshot_daily.star_points"),
     expPoints: to("player_snapshot_daily.exp_points"),
     totalExpPoints: dropped(
-      "the retired progression's lifetime total, frozen with expLevel; state to write once if a reader ever asks (time-series review 1.3)",
+      "the retired progression's lifetime total, frozen with expLevel; state to write once if a reader ever asks",
     ),
     legacyTrophyRoadHighScore: to("player.legacy_trophy_road_high_score", opt),
     kingTowerLevel: to("player_snapshot_daily.king_tower_level"),
     currentWinLoseStreak: dropped(
-      "intraday and derivable: the battle record answers a streak exactly (time-series review 2.1)",
+      "intraday and derivable: the battle record answers a streak exactly",
     ),
     // The three season-result objects are always present and null for a
     // player with no Path of Legends history (cr-agent-api-docs

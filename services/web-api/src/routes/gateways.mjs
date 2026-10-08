@@ -151,7 +151,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
                 op.player_tag as owner_player_tag,
                 (select count(*)::int from api_receipt r where r.gateway_id = g.gateway_id
                  and r.fetched_at > now() - interval '1 hour') as fetches_last_hour,
-                -- What the fetches were worth (0077, review §9.3): the share
+                -- What the fetches were worth (0077): the share
                 -- that changed the record, what the edge filter dropped, and
                 -- how many door calls each admitted fetch cost. Null until a
                 -- receipt carries the column.

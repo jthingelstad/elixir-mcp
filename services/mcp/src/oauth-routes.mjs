@@ -504,7 +504,7 @@ export function makeOauthRoutes({
     );
 
   /**
-   * Who is asking, in words the client did not choose (review §6.5). The
+   * Who is asking, in words the client did not choose. The
    * name is the client's own; where the code is sent is not, and a family
    * app is one Elixir provisioned. Shown above every consent.
    */
@@ -713,7 +713,7 @@ export function makeOauthRoutes({
       const redirectUris = validateRedirectUris(body.redirect_uris);
       if (!redirectUris) return json(400, { error: "invalid_redirect_uri" });
       // The family's own clients are provisioned by Elixir, never
-      // registered (review §6.5).
+      // registered.
       if (redirectsToFamily(redirectUris))
         return json(400, {
           error: "invalid_redirect_uri",
@@ -835,7 +835,7 @@ export function makeOauthRoutes({
 
       if (form.step === "email") {
         // Per caller, and per address with the website's sign-in: codes to
-        // one inbox are capped whichever door asked (review §6.5).
+        // one inbox are capped whichever door asked.
         const allowed =
           (await checkRateLimit(db, {
             bucket: `oauthmail#${ip}`,
@@ -1102,7 +1102,7 @@ export function makeOauthRoutes({
     },
 
     /**
-     * RFC 7009 revocation (review §6.5): a client ends its own grant, as
+     * RFC 7009 revocation: a client ends its own grant, as
      * signing out of a family app should. Form-encoded token and client_id
      * (plus client_secret for a family client). 200 whether or not the
      * token was live, known or the client's: the answer says nothing.

@@ -20,7 +20,7 @@ const MAX_ON_BEHALF_OF_CHARS = 200;
 
 /** Flipped after the first call this sandbox serves. A Lambda module is
  *  evaluated once per sandbox, so "first invocation since load" IS the
- *  cold start, and it is what explains the latency outliers (review 4.2). */
+ *  cold start, and it is what explains the latency outliers. */
 let coldStart = true;
 
 /** Nothing in the tool surface is named any of these, and nothing
@@ -193,8 +193,7 @@ const BUDGET_WORK_MEM = "32MB";
  *  EXCLUSIVE until the door had no connections left (about 35 minutes
  *  down). A read that fails fast returns its connection and answers
  *  query_timeout, which the caller retries. The read-only tool path only:
- *  writes, ingest above all, wait on row locks as a matter of course
- *  (review 2026-09-27 §3.1). */
+ *  writes, ingest above all, wait on row locks as a matter of course. */
 const READ_LOCK_TIMEOUT_MS = 5_000;
 
 /** The tools whose reads earn the analytical budget: corpus-wide
@@ -463,7 +462,7 @@ export function makeInvoker({
     try {
       const body = await raced;
       await restoreTimeout();
-      // The two pending hints ride EVERY response (review 4.1): they used
+      // The two pending hints ride EVERY response: they used
       // to ride only the tools that built a full envelope, so the consumer
       // whose one regular call is elixir_timeline never saw
       // feedback_responses_pending and re-read its ledger on every tick.

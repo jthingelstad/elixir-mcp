@@ -63,7 +63,7 @@ export const war_rivals = {
     }
     // Observer-scoped duplication is by design in the war tables; rival
     // stats dedupe on (season, section, rival) BEFORE aggregating so a
-    // race two recorded clans both saw counts once (docs/archive/META-INTEL.md §10).
+    // race two recorded clans both saw counts once.
     const { rows } = await ctx.db.query(
       `with latest as (
            select season_id, section_index from war_week

@@ -92,7 +92,7 @@ async function fetchRecord(kind, id, cursor) {
     case "deck":
       return call("battles_query", { deck_hash: id, limit: 10 });
     case "week": {
-      // The exact week, by name (review 2026-09-27 §7.5). This read the
+      // The exact week, by name. This read the
       // last 12 seasons and searched them, so an older week answered
       // "not in the recorded log" although the record held it, and the
       // page could show none of the week's own tables.
@@ -156,7 +156,7 @@ function callString(tool, args) {
 function NicknameEditor({ nick, onSaved }) {
   const [value, setValue] = useState(nick.current ?? "");
   // A refused save says so; the record refetches only after one that
-  // took (review 2026-09-27 §7.5).
+  // took.
   const write = useWrite((v) => api.setNickname(nick.tag, v), {
     invalidate: () => onSaved(),
   });
@@ -1346,7 +1346,7 @@ function buildView(kind, rawId, res, me, zone) {
       ],
       tiles: [],
       // The week's own tables, plain: every clan in the race, the race's
-      // closed days, and every recorded participant (review §7.5).
+      // closed days, and every recorded participant.
       tables: [
         {
           title: "Standings",

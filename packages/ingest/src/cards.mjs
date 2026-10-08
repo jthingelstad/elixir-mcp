@@ -175,7 +175,7 @@ export async function projectPlayerCards(
        from upserted u left join prior p on p.card_id = u.card_id`,
     [playerTag, JSON.stringify(rows), fetchedAt],
   );
-  // Ledger rows for the collection's moments (review 2026-09-13 Part IV):
+  // Ledger rows for the collection's moments:
   // a card the player did not have, named; a level that went up, named;
   // a form newly unlocked, named with its form (#110). The timeline shows
   // unlocks and forms and keeps level-ups as a count; the first

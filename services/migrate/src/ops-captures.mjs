@@ -1,6 +1,5 @@
 /**
- * Censuses over the call captures (interface review 2026-09-19, Part 7.4
- * and 7.5; contract 3.18.0). The audit row keeps argument KEYS and never
+ * Censuses over the call captures (contract 3.18.0). The audit row keeps argument KEYS and never
  * values, by design; the captured request and response bodies in the
  * archive bucket (0063) hold the rest. These two readers pull a bounded
  * number of captures and answer the two questions the review could not:

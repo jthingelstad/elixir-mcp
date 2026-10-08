@@ -1,6 +1,6 @@
 /**
  * Publishing the merged site tree to its bucket, in an order that never
- * breaks a page somebody has open (review 2026-09-27 §8.4, #73).
+ * breaks a page somebody has open (#73).
  *
  * Until #73 the deploy ran one `aws s3 sync --delete` with no
  * Cache-Control and then invalidated. The sync removed the previous

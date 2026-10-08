@@ -3,7 +3,7 @@
  *  scale while every other recorded-data tool serves 1-16, so a catalog
  *  join produced "level 15 of max 6"). 1.0.0: ids / query filters and
  *  verbosity, because a 35 KB static payload was being read to look up
- *  one card id (review 4.3). The same catalog is an MCP resource. */
+ *  one card id. The same catalog is an MCP resource. */
 
 import {
   responseMeta,

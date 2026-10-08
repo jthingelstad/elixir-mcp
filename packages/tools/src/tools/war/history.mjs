@@ -94,7 +94,7 @@ export const war_history = {
     // The recording horizon is the oldest week the record holds for the
     // clan, whatever window was asked for: the window's own oldest row
     // used to be reported as the horizon, so seasons:1 named the current
-    // season as the beginning of history (review 2026-09-19, defect 3).
+    // season as the beginning of history.
     const {
       rows: [horizon],
     } = await ctx.db.query(

@@ -553,7 +553,7 @@ test("operational sweep: dead weight leaves, live rows and replay-memory stay", 
   );
   await db.end();
 
-  // The operational sweep moved to the jobs Lambda (review item 5).
+  // The operational sweep moved to the jobs Lambda.
   const { handler: jobsHandler } = await import("../../jobs/src/index.mjs");
   const result = await jobsHandler({ sweep_operational: true });
   assert.equal(result.rate_limit, 1);

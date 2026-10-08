@@ -1,6 +1,5 @@
 /**
- * The daily series readers' shared pieces (time-series review Part 7,
- * contract 3.12.0): the metric catalogue over player_snapshot_daily,
+ * The daily series readers' shared pieces (contract 3.12.0): the metric catalogue over player_snapshot_daily,
  * the date-only window the series tools take (game days, the 10:00Z
  * grid), the stamps every point carries, and the notes every series
  * response says once.

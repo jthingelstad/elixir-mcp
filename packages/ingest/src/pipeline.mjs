@@ -464,14 +464,14 @@ const PROJECTORS = {
 };
 
 /**
- * S3 archive key for one payload (docs/archive/DATA-TOOLS-2026-09-04.md §1): Hive-partitioned by
+ * S3 archive key for one payload: Hive-partitioned by
  * endpoint/entity/fetch date so Athena and DuckDB read the layout with
  * no catalog crawl. Content-addressed — the hash rides the filename.
  */
 /** Every endpoint the archive holds: each projector's payloads are
  *  archived under payloads/endpoint=<key>/ before they are projected.
  *  The Glue table's partition enum (infra/template.yaml) is pinned to
- *  this list by a test (review 2026-09-27 §7.7). */
+ *  this list by a test. */
 export const ARCHIVED_ENDPOINTS = Object.freeze(Object.keys(PROJECTORS));
 
 export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
@@ -490,7 +490,7 @@ export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
  * always has its S3 twin (an orphan object from a rolled-back txn is
  * harmless; the reverse is not). A put failure throws: the door answers
  * 500, the lease expires and the job is refetched. The archive is part
- * of admission, not best-effort (docs/archive/DATA-TOOLS-2026-09-04.md §1).
+ * of admission, not best-effort.
  * @returns {{outcome: string, [k: string]: unknown}}
  */
 // Bound on the DECOMPRESSED body (issue #4). The largest legitimate CR

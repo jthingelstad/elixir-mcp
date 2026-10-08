@@ -11,7 +11,7 @@ import {
 afterEach(cleanup);
 
 /**
- * The kit's Link (review 2026-09-27 §7.5): a record link is a real
+ * The kit's Link: a record link is a real
  * address, and the app takes over only the click a person means to stay
  * in the page with. Everything else is the browser's.
  */

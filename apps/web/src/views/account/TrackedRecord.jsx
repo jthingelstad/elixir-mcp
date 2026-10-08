@@ -46,7 +46,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   // Every write on this page, each unwrapped: a refusal is said on the
   // page, and the record refetches only after a write that took. "Make
   // primary" used to clear the removal refusal whatever the server
-  // answered (review 2026-09-27 §7.5).
+  // answered.
   const relationship = useWrite(api.setRelationship, {
     invalidate: () => refresh(),
   });

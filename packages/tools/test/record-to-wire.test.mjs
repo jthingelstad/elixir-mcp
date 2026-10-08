@@ -1,6 +1,5 @@
 /**
- * The record reaches the wire (interface review 2026-09-19, Part 1.3;
- * Phase 2 of the execution brief, contract 3.15.0): every collected
+ * The record reaches the wire (contract 3.15.0): every collected
  * column an agent would ask about is served on the tool that owns the
  * question. Real fixtures through the real pipeline, then the tools.
  */

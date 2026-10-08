@@ -1,8 +1,7 @@
 # Rotating a secret
 
 What each secret is, where it lives, and how to change it without signing
-anybody out or breaking a link already sent (review 2026-09-27 §8.5,
-issue #71). No value ever enters this repo, a log, or an agent's context:
+anybody out or breaking a link already sent. No value ever enters this repo, a log, or an agent's context:
 the steps that need a value are Jamie's, in the Secrets Manager console.
 
 | Secret | Lives in | Read by | Rotation below |
@@ -11,7 +10,9 @@ the steps that need a value are Jamie's, in the Secrets Manager console.
 | `session_secret_previous` | app secret, only during a rotation | web-api, mcp, when `SessionSecretPreviousInSecret=true` | Session secret |
 | `unsubscribe_secret` | app secret | web-api, jobs, when `UnsubscribeKeyInSecret=true` | Unsubscribe key |
 | `db_password` | app secret; the RDS master password | the six database functions and the `Database` resource | Database password |
-| `buttondown_api_token`, `anthropic_api_key` | app secret | email-relay, editor | Any other app-secret key |
+| `buttondown_api_token` | app secret | email-relay | Any other app-secret key |
+| `anthropic_api_key` | app secret | nothing: no template reference and no code reads it (it served the retired editorial mail) | Retirable: Jamie removes the key in the console; no deploy needed |
+| `session_secret` of `elixir-clan/app` | Clan's sealing secret, named by the `ClanModelSecretName` parameter | web-api, email-relay (`CLAN_MODEL_SECRET`, when `ClanInternal=true`): seals Clan's stored model keys | Clan sealing secret |
 | `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api, mcp and collector require it | Origin secret |
 
 **CloudFormation reads a secret only when the resource holding the
@@ -102,6 +103,13 @@ The `Database` resource keeps its reference to `db_password`.
 CloudFormation re-reads its `MasterUserPassword` only when that resource
 itself changes. By then step 3 has already set the database to the same
 value.
+
+## Clan sealing secret
+
+Not rotated. It seals the model keys Clan stores, so a new value would
+leave every sealed key unreadable. Keep `elixir-clan/app` and its value
+until the sealing secret has a reviewed rotation of its own; the
+derivation and AAD must not change with code or storage moves.
 
 ## Any other app-secret key
 

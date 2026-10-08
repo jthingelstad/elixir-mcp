@@ -1,5 +1,5 @@
 /**
- * Explore's record reads (review 2026-09-27 §7.5). A lookup's probe is
+ * Explore's record reads. A lookup's probe is
  * the record's own call, so it seeds the record page instead of being
  * made twice; and a war week is read BY NAME with war_history's exact
  * week, not searched for in the last 12 seasons, so an older week is

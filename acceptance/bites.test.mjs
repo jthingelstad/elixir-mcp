@@ -47,7 +47,7 @@ test("every capture in bites/ is named by the manifest", () => {
 });
 
 // This repo is public: a committed bite holds no attested or account
-// item beyond its stub (fetch.mjs, review 2026-09-27 §6.4).
+// item beyond its stub (fetch.mjs).
 test("no committed bite carries an attested or account item's facts", () => {
   for (const f of readdirSync(bitesDir).filter(
     (f) => f.endsWith(".json") && f !== "manifest.json",

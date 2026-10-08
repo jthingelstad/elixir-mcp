@@ -1,5 +1,5 @@
 /**
- * The payload archive is write-once (review 2026-09-27 §2.7): every put
+ * The payload archive is write-once: every put
  * asks S3 not to replace an existing key, and a 412 is "already
  * archived", which a retried submit of the same fetch produces.
  */

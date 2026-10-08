@@ -10,7 +10,7 @@
  * operations) hands the invoker a deadline a reply margin inside the soft
  * one, so every read-only tool races it as it does at /mcp and answers
  * query_timeout with a request id and an audit row, instead of running on
- * unbounded until the handler gives up on it (review 2026-09-27 §3.2).
+ * unbounded until the handler gives up on it.
  */
 
 const DEADLINE_MARGIN_MS = 1500;

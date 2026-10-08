@@ -144,7 +144,7 @@ test("a first-party client is provisioned by Elixir, and its codes can only reac
     ]),
   );
   // Family redirects prove nothing about who holds the client: registration
-  // is open (review §6.5). Only a provisioned client is the family's.
+  // is open. Only a provisioned client is the family's.
   assert.ok(
     !fp(["https://elixir.poapkings.com/api/clan/auth/callback"], false),
   );

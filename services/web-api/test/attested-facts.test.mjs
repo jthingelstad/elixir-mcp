@@ -15,7 +15,7 @@ import { makeHandler } from "../src/handler.mjs";
 import { factItems } from "../../../packages/tools/src/activity/entries.mjs";
 
 // A family app's client is provisioned (0185), never merely registered to
-// a family redirect: registration is open and proves nothing (review §6.5).
+// a family redirect: registration is open and proves nothing.
 async function familyClient(db, spec, app) {
   const c = await registerClient(db, spec);
   await db.query(
@@ -320,7 +320,7 @@ test("refusals say why: another app, no capability, not in the clan, the wrong r
   assert.equal(missing.statusCode, 404);
 });
 
-test("an overwrite needs the right to the fact already there, not only the one sent (review §6.5)", async () => {
+test("an overwrite needs the right to the fact already there, not only the one sent", async () => {
   const leader = await grant(accounts.leader, "cr:read clans:attest");
   const elder = await grant(accounts.elder, "cr:read clans:attest");
   const member = await grant(accounts.member, "cr:read clans:attest");
@@ -471,7 +471,7 @@ test("the timeline shows each fact only to the reader its type allows; a departu
   assert.ok(seen.includes("award_granted"));
   assert.ok(seen.includes("departure_classified:kick"));
   assert.ok(seen.includes("member_away"));
-  // A leaders' fact needs the leader reading in person (review §6.5): a
+  // A leaders' fact needs the leader reading in person: a
   // headless key bound to the leader's account reads what the clan shares.
   const headless = await kinds(accounts.leader, clanSubject, false);
   assert.ok(headless.includes("departure_classified:kick"));

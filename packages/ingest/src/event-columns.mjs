@@ -1,5 +1,5 @@
 /**
- * The event ledgers' typed columns (0124; schema review 1.8), one
+ * The event ledgers' typed columns (0124), one
  * mapping for the writer and the SQL fill: `eventColumns(type, payload)`
  * takes an emitter's payload apart into the columns its kind carries.
  * The reader-side inverse lives in packages/tools/src/event-payloads.mjs,

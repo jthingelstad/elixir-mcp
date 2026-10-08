@@ -284,7 +284,7 @@ function AdminRequests() {
   const { day } = useClock();
   const requests = useAdminRequests().data?.requests ?? [];
   // Approve and deny say when they did not take; the queue refetches
-  // only after one that did (review 2026-09-27 §7.5).
+  // only after one that did.
   const decision = useWrite(api.adminDecide, {
     invalidate: [keys.adminRequests],
   });
@@ -796,7 +796,7 @@ function AdminCollectors() {
         : "never",
     },
     String(g.fetches_last_hour ?? 0),
-    // What the fetches were worth (review §9.3): the share that changed
+    // What the fetches were worth: the share that changed
     // the record, what the edge filter dropped before the wire, and door
     // calls per admitted fetch (1.0 is perfect; long-polling was ~2.7).
     typeof g.yield_24h === "number" || typeof g.yield_24h === "string"
@@ -872,7 +872,7 @@ function AdminCollectors() {
 }
 
 /** The person-bound service keys issued before 2026-09-27, to watch and
- *  revoke. None is issued any more (review §6.5): a headless caller is an
+ *  revoke. None is issued any more: a headless caller is an
  *  agent with its own key, or a product on Integrations. */
 function AdminServiceTokens() {
   const { day } = useClock();

@@ -1,7 +1,6 @@
 /**
  * An agent's console: `/api/agent/<public_id>/...` runs the `/api/me/...`
- * route as an agent the signed-in person owns
- * (docs/reviews/2026-09-23-CONSOLE-ACCOUNT-SWITCHER.md).
+ * route as an agent the signed-in person owns.
  *
  * The whole security risk of the design is one route forgetting the
  * ownership check, so the check lives in the handler and this file walks

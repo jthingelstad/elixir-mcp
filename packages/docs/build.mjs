@@ -44,7 +44,7 @@ const absolute = (md) =>
 const withoutLeadingH1 = (md) => md.replace(/^\s*# [^\n]*\n+/, "");
 
 /** Inline <svg> blocks leave the corpus: an agent asking for the
- *  architecture page was reading fifty lines of path data (review 1.3).
+ *  architecture page was reading fifty lines of path data.
  *  The diagram's aria-label, the one sentence written for a reader who
  *  cannot see it, stays as a line of text. */
 const withoutSvg = (md) =>

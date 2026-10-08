@@ -277,7 +277,7 @@ export function adminRoutes({
         );
         return json(200, { ok: true });
       }
-      // No new key acts AS a person (review §6.5): a bot holding one
+      // No new key acts AS a person: a bot holding one
       // read what only that person should, leaders-only facts among it.
       // A headless caller is an agent with its own key (Account ->
       // Agents) or a product on Integrations. Keys already issued still

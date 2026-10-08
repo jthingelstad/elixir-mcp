@@ -1,7 +1,7 @@
 /**
  * The nightly shape census ({shape_census: true}, EventBridge 05:05Z;
- * docs/ENGINEERING.md "Ingest invariants", time-series review 2.7,
- * decided by Jamie 2026-09-17). Out of band from ingestion: it reads a
+ * docs/ENGINEERING.md "Ingest invariants", decided by Jamie
+ * 2026-09-17). Out of band from ingestion: it reads a
  * sample of the day's archived objects per endpoint (twenty, the newest
  * first, by the api_payload rows fetched in the last day) and compares
  * their field sets to the manifest (packages/ingest/src/payload-keys.mjs).

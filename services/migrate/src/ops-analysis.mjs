@@ -5,13 +5,13 @@ import pg from "pg";
  *  volume, errors, truncation, latency (avg, p95, max), size and reach,
  *  per-surface and per-CLIENT (client_name) breakdowns, declared tools
  *  nobody has called, live_fetch by path (the catch-all is meant to be
- *  rare; frequent use is the signal a tool is missing - review 4.7), and
+ *  rare; frequent use is the signal a tool is missing), and
  *  calls-since-ship for every feedback item with a shipped_in version, so
- *  a batch is judged by adoption rather than by shipping (review 4.5).
+ *  a batch is judged by adoption rather than by shipping.
  *  Read-only, counts only. */
 export async function auditCensus(databaseUrl, spec) {
-  // A window is days back from now, or an explicit from/to (3.18.0,
-  // review Part 7.2): fourteen days that span a redesign cannot be
+  // A window is days back from now, or an explicit from/to (3.18.0):
+  // fourteen days that span a redesign cannot be
   // split, and every phase's before/after is one number without this.
   const days = Math.min(Math.max(Number(spec?.days ?? 7), 1), 90);
   const toTs = spec?.to ? new Date(spec.to) : new Date();
@@ -209,7 +209,7 @@ export async function auditCensus(databaseUrl, spec) {
  *  code, WHICH argument keys were present and how often - never values.
  *  The audit stored bounded arguments from day one and nothing read them,
  *  so "what trips strict validation" and "what did elixir-bot send" were
- *  unanswerable without a deploy (review 4.4). Also the error message
+ *  unanswerable without a deploy. Also the error message
  *  class per tool, so a refusal's cause is one invoke away. */
 export async function argsCensus(databaseUrl, spec) {
   const days = Math.min(Math.max(Number(spec?.days ?? 7), 1), 90);

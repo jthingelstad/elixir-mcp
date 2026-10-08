@@ -3,7 +3,7 @@
  * (fixtures/card-roles.snapshot.json, generated from cr-agent-api-docs by
  * infra/scripts/import-card-roles.mjs). Every tier and every edge the
  * design names, each pinned to the label it composes; the same cases
- * are run against elixir-bot's _classify (scripts in docs/reviews) so
+ * were run against elixir-bot's _classify when the grammar was ported, so
  * the port is known to agree where the vocabularies agree.
  */
 import { test } from "node:test";

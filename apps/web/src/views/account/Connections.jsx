@@ -56,7 +56,7 @@ export function Connections({ me, navigate }) {
     invalidate(rootFor(scope));
   };
   // Disconnecting is a security write: a refusal is said above the list,
-  // which refetches only after one that took (review 2026-09-27 §7.5).
+  // which refetches only after one that took.
   const disconnect = useWrite(
     (familyId) => api.revokeConnection(familyId, scope),
     { invalidate: () => load() },

@@ -30,7 +30,7 @@ export const handler = makeHandler({
     process.env.SESSION_SECRET,
     process.env.SESSION_SECRET_PREVIOUS,
   ),
-  // Call capture (review Part 5): on when ARCHIVE_BUCKET is set, off
+  // Call capture: on when ARCHIVE_BUCKET is set, off
   // otherwise. The bodies land beside the payload archive under calls/.
   capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),
   // Same relay, same message shape as the site API (notify.mjs).

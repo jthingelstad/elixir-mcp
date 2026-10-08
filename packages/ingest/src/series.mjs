@@ -1,6 +1,6 @@
 /**
- * The daily series (time-series review, docs/reviews/2026-09-18-TIME-SERIES.md
- * Parts 3 and 4; Jamie's decisions of 2026-09-17 applied, not reopened).
+ * The daily series (Jamie's decisions of 2026-09-17 applied, not
+ * reopened).
  *
  * A pull feeds every subject it describes. The roster is a partial
  * profile read of up to fifty players made up to 96 times a day, and
@@ -78,7 +78,7 @@ export async function projectClanSeries(
     moments = true,
     // false when the day's clan row is the recorder's own and only the
     // members named in the payload are to be written (the elixir-bot
-    // import's non-overlap rule, review 6.1).
+    // import's non-overlap rule).
     clanRow: writeClanRow = true,
   },
 ) {
@@ -102,7 +102,7 @@ export async function projectClanSeries(
     [clanTag, payload.name ?? null],
   );
 
-  // The clan's own state, change-only (review 2.2): type, location,
+  // The clan's own state, change-only: type, location,
   // description ride the clan row; type and location also ride the
   // series row by decision 5 so a day reads whole.
   const type = typeof payload.type === "string" ? payload.type : null;
@@ -388,7 +388,7 @@ export async function projectClanSeries(
 }
 
 /**
- * The profile's progress buckets (review 4.3). Every key becomes a
+ * The profile's progress buckets. Every key becomes a
  * mode_season row (the "" key included since 2026-09-17: it is the
  * Merge Tactics pre-season arena, cr-agent-api-docs 8339a89) and every
  * bucket with any value becomes a day row; a bucket reading trophies 0

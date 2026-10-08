@@ -1,5 +1,5 @@
 /**
- * Output schemas for every tool (the most-called at 1.0.0, review Part 3.2;
+ * Output schemas for every tool (the most-called at 1.0.0;
  * every tool since 6.14.0, and a test fails on one without).
  *
  * Responses were JSON inside a text block, visible to the model and to
@@ -474,8 +474,7 @@ const DECK_TROPHY_RANGE = {
   properties: { lowest: COUNT, highest: COUNT },
 };
 
-/** The seven schemas the call log asked for next (3.18.0, review Part
- *  3.2): the tools called enough in fourteen days to deserve a declared
+/** The seven schemas the call log asked for next (3.18.0): the tools called enough in fourteen days to deserve a declared
  *  shape, permissive below the keys a consumer branches on. */
 
 /** fit_for on the meta tools (6.4.0): the population's rows against
