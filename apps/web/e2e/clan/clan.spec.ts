@@ -186,6 +186,14 @@ test("a Clan landing uses the common sign-in without a separate OAuth login", as
   await expect(
     page.getByRole("link", { name: "Sign in with Elixir" }),
   ).toHaveAttribute("href", "/console/signin");
+  // A new account comes back to Clan.
+  for (const signup of await page
+    .getByRole("link", { name: "Create your account" })
+    .all())
+    await expect(signup).toHaveAttribute(
+      "href",
+      "/console/signin?signup&return_to=%2Fclan",
+    );
   expect(calls.filter((path) => path.startsWith("/api/clan/auth/"))).toEqual(
     [],
   );

@@ -251,11 +251,15 @@ describe("the landing page", () => {
     renderWithProviders(<Landing />);
     expect(screen.getByText(/An Elixir account/)).toBeTruthy();
     expect(screen.getByText(/2\. Your player/)).toBeTruthy();
-    expect(
-      screen
-        .getByRole("link", { name: /Create your account/ })
-        .getAttribute("href"),
-    ).toBe("https://elixir.poapkings.com/console/signin?signup");
+    // Both signup links bring a new account back to the Clan address.
+    const signups = screen.getAllByRole("link", {
+      name: "Create your account",
+    });
+    expect(signups).toHaveLength(2);
+    for (const link of signups)
+      expect(link.getAttribute("href")).toBe(
+        "/console/signin?signup&return_to=%2Fclan",
+      );
     expect(
       screen
         .getByRole("link", { name: "Sign in with Elixir" })

@@ -5,7 +5,6 @@
 const ELIXIR = "https://elixir.poapkings.com";
 export const ELIXIR_LINKS = {
   home: ELIXIR,
-  requestAccess: `${ELIXIR}/console/signin?signup`,
   tracking: `${ELIXIR}/console/account/tracking`,
   verify: `${ELIXIR}/console/account/verify`,
   overview: `${ELIXIR}/console/account/overview`,
