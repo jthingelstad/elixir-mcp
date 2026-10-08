@@ -662,12 +662,13 @@ test("controls.mjs (3.16.0): the rollup-shaped split, the single-player, colosse
 });
 
 test("players_summary: the window's mode split, the deck's modes and dominant mode, the floor (Phase 3 item 2)", async () => {
-  // Fresh battles so the 30-day window holds them whatever the date: four
-  // war wins on deck B, four ladder battles on deck A with two ON the
-  // 12,500 floor.
+  // Fresh battles so the 30-day window holds them whatever the date: ten
+  // war wins on deck B (enough for best_deck once the September war ages
+  // out), and ladder battles on deck A with two ON the 12,500 floor.
   const recent = (i) =>
-    new Date(Date.now() - (3 * 24 - i * 4) * 3600_000).toISOString();
-  for (let i = 0; i < 4; i++)
+    new Date(Date.now() - (3 * 24 - i * 3) * 3600_000).toISOString();
+  const WAR = 10;
+  for (let i = 0; i < WAR; i++)
     await battle({
       at: recent(i),
       type: "riverRacePvP",
@@ -694,7 +695,7 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
     ]),
   ].entries())
     await battle({
-      at: recent(4 + i),
+      at: recent(WAR + i),
       type: "PvP",
       arena: PIT,
       outcome,
@@ -715,7 +716,7 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
   );
   const res = await call("players_summary", { player_tag: F });
   assert.ok(
-    res.last_30_days.modes.war.battles >= 4,
+    res.last_30_days.modes.war.battles >= WAR,
     JSON.stringify(res.last_30_days),
   );
   assert.ok(res.last_30_days.modes.ladder.battles >= 4);
@@ -725,7 +726,7 @@ test("players_summary: the window's mode split, the deck's modes and dominant mo
   assert.ok(res.top_deck.modes, "the deck carries its split");
   assert.ok(res.top_deck.dominant_mode.mode);
   assert.ok(res.notes.some((l) => /trophy floor/.test(l)));
-  // The best deck (war, 11-3 in September plus the four fresh wins) is
+  // The best deck (war, 11-3 in September plus the ten fresh wins) is
   // not the top deck (ladder): both carry modes and the clash note fires.
   assert.ok(res.best_deck, JSON.stringify(res));
   assert.equal(res.best_deck.dominant_mode.mode, "war");
