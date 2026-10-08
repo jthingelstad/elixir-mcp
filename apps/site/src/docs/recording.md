@@ -50,10 +50,13 @@ free and outside your quota, as [Verify](/docs/verify) does. So the first
 capture usually lands within a few minutes, and the first battle-log read
 brings roughly the last 30 battles with it (the game keeps no more; from
 there the record builds forward). If Clash Royale answers that it has no
-player with that tag (its "Player not found"), the Console says so on the
-player's page instead of waiting: check the tag, which is on the player's
-profile in the game below the name, stop tracking the wrong one and add
-the right one. Any other failed read is only a failed attempt, retried on
+player with that tag (its "Player not found"), the Console says so as an
+error on the player's page within seconds of the add (it checks every few
+seconds for the first minutes), and never shows that tag as recording or
+freshly polled: check the tag, which is on the player's profile in the game
+below the name, and type the right one in the same place (Elixir tracks it
+instead, as your primary if the wrong one was) or stop tracking the wrong
+one. Ladder says **Tag not found** too, with the way to that fix. Any other failed read is only a failed attempt, retried on
 the schedule below. A tag read or refused in the last day is not asked for
 again.
 

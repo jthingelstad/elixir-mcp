@@ -24,6 +24,18 @@ do not return. There is no model behind it; each page is a handful of the
 same tool reads a connected app makes, and each one counts against your daily
 quota like any other read.
 
+## A player just added
+
+A tag you have just added has nothing on record yet, so Ladder says the
+first capture is on its way, on every page, instead of an empty season or a
+read error. It holds that until both reads of the first capture are in: the
+profile (usually seconds after the add) and the battle log, which brings
+roughly the last 30 battles. A player whose battle log is read and empty
+is shown as an empty season, not a wait. If Clash Royale has no player with
+that tag, Ladder says **Tag not found**, in the Console's words, and **Fix
+the tag** opens the player's Tracking page at the place to type the right
+one.
+
 ## One mode at a time
 
 Each mode is its own game, so each has its own tab, and nothing on a page

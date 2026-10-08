@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-10-08",
+    title:
+      "A wrong tag says so at once, and a first look at a clan is not a wave of joins",
+    body: "A tag Clash Royale does not know now shows Tag not found within seconds of adding it, as an error on your player's page with the fix right there: type the right tag and Elixir tracks it instead (as your primary, if the wrong one was), or stop tracking it. The page no longer shows that tag as recording or freshly polled, and Overview's and Ladder's Fix the tag open that spot. Stop tracking now asks once before it stops. Ladder waits for your battle log as well as your profile before it shows your season, so a new player no longer sees an empty season for the first few minutes. The first time Elixir reads a clan's roster no longer reads as everyone joining on your timeline, and an account event about a clan names the clan. Counts read \"1 day\" and \"1 member\", and the example tag in the add forms is nobody's. MCP 11.4.1; JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "Times that name their clock, and counts that say what they count",
     body: "Ladder's nights and season dates now name their zone (\"6:28 – 7:14 pm CDT\"), and a battle's page reads on the same clock as the Console and Ladder when you are signed in, so one battle never shows two times. An account starts at UTC; until you choose a zone, the Console and Ladder say so and offer your browser's in one click. The Overview's calls tile is now tool calls today, and says how many were the Console's and Ladder's own reads, which count against your daily budget like an agent's; Elixir Clan's reads and JSON API calls are no longer counted there, since they never spend it. Your player's line reads \"30 battles in the last 28 days\". In Elixir Clan, The week names the week it shows (the week of Sep 28, closed at the Monday reset on Oct 5) apart from the week still running, and a week from before Elixir followed the clan says so, with the date the first full week closes. MCP 11.4.0 and JSON API 3.1.0 unchanged.",
   },

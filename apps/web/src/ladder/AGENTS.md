@@ -14,8 +14,13 @@ their shaping functions (`ladder*.js`) live here. Public docs:
   Two exceptions (2026-10-08), both unmetered account state: before a
   player's first capture lands, `Pending.jsx` shows "Your first capture
   is on its way" and polls the Console's capture status
-  (`/api/me/first-answer`, every 60 s), then refreshes the Ladder reads
-  once when it lands; and Bring your clanmates, below the season home,
+  (`/api/me/first-answer`, every 5 s for the first 3 minutes after the
+  add, then every 60 s: `nextPoll` in `hooks/useFirstAnswer.js`), then
+  refreshes the Ladder reads once when it lands. "Lands" is both reads:
+  the profile AND a battle-log read (`capturePending` / `captureLanded`
+  in `ladder.js`); the profile alone arrives seconds after an add and
+  sets `recorded_since`, which is not a capture. A tag the game answered
+  404 never lands, and Pending says "Tag not found"; and Bring your clanmates, below the season home,
   reads the account's home clan from `/api/me/clans` (cached, never
   polled) to name the clan it invites to.
   A number Ladder needs that no tool returns is a tool change

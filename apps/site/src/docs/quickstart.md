@@ -42,8 +42,9 @@ the existing [tier limits](/docs/roles) still apply. See
 
 Find your tag in Clash Royale by opening your player profile: it appears below
 your name. If the game has no player with the tag you typed, your player's
-page says **Tag not found** within minutes: stop tracking it and add the
-right one. Email verification opens your Elixir account; [player
+page says **Tag not found** within seconds, with the fix in the same place:
+type the right tag there and Elixir tracks it instead (as your primary, if
+the wrong one was), or stop tracking the wrong one. Email verification opens your Elixir account; [player
 verification](/docs/verify) separately proves ownership for the features that
 require it. An ordinary member account includes activity clan recording, not
 comprehensive capture of every member. Tracking shows the available slots.
@@ -51,10 +52,12 @@ comprehensive capture of every member. Tracking shows the available slots.
 Read your personal season in [Ladder](/ladder). Adding a tag opens
 your player's Tracking record. **Player tag saved** means
 the tag is on your account, not that a profile has arrived or ownership has
-been proved. This page checks saved data about once a minute while capture is
+been proved. This page checks saved data every few seconds for the first
+minutes after you add a tag, then about once a minute while capture is
 pending; **Check again** reads the record without forcing a game fetch. The
-first capture usually lands within a few minutes; until it does, Ladder says
-it is on its way rather than showing an empty season.
+first capture usually lands within a few minutes; until both your profile and
+your battle log have been read, Ladder says it is on its way rather than
+showing an empty season.
 
 **View recorded profile** opens the saved profile and its dated trophies and
 lifetime counters. **Browse recorded battles** opens captured battles newest
