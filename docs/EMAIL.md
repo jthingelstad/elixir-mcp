@@ -252,6 +252,8 @@ lead to a family app.
   `apps/web/src/analytics.js` reports a record page without its id.
 - Maintainer side: `GET /api/admin/email/sends` and `/<id>`; Admin →
   Emails sent (`send-record.mjs`, shared with the person's routes).
+  Admin → Beta pulse counts sends per kind per week (`beta-pulse.mjs`);
+  opens stay in Tinylytics.
 - Badge names: `packages/record/src/badge-names.mjs` serves the badge as a
   player says it beside the identifier (timeline `badge_label`, tool
   `label`, the mails' text).

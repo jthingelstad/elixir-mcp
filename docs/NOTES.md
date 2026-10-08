@@ -467,10 +467,10 @@ From the fresh-person journey (round 3).
 - **Rows before 0207 are not rewritten.** The read-only op
   `{"membership_baseline_census": true}` (optionally `{clan_tag}`) counts
   the open-on-first-read rows still narrated as joins and the
-  `member_joined` events of a follow burst. **Question for Jamie:** clean
-  those up (mark the first-read rows `baseline`, delete the burst
-  `member_joined` events) or leave history as written? The numbers are in
-  the next NOTES entry, after deploy.
+  `member_joined` events of a follow burst. The question this raised
+  (clean them up or leave history as written) is answered in the next
+  entry: Jamie approved marking the first-read rows, and there was no
+  burst to delete.
 - **Tag not found at once** (`apps/web/src/views/account/TagFix.jsx`):
   first-answer carries `tracked_since`; the Console polls every 5 s for 3
   minutes after an add (`nextPoll`). Not found is a `callout--bad` alert
@@ -502,9 +502,19 @@ applied, acceptance `elixir` 189 cases, 0 failed. The live contract reads
 membership observation and still read as joins (20 of them claimed
 players; 11 in the last 30 days, 9 claimed); the earliest is from
 2026-03-12, the latest 2026-10-08 21:32Z (the journey's own #GGJG2CCR,
-1 row). No `member_joined` event came from a follow burst. **Still
-Jamie's call:** mark those 35 rows `baseline` (a one-off ops write) or
-leave them as written.
+1 row). No `member_joined` event came from a follow burst.
+
+**Answered.** Jamie, 2026-10-08: "Approved: mark the 35 first-read
+membership rows as baseline in elixir production". Migration 0208 does
+it with the census's own criteria (a row whose `joined_observed_at` is
+its clan's earliest, not yet baseline): `baseline` only, no delete,
+idempotent. The census re-run before the change still read 35 rows, 11
+clans, the latest 21:32Z, so nothing written after 0207 matches.
+`{membership_baseline_census}` now also reports
+`marked_first_read_rows` (the first-read rows from before 0207 that are
+baseline, which only 0208 sets): the deploy's count reads back there.
+Moments are not stored: `clan_joined` is derived from `clan_membership`
+and skips a baseline row, so nothing else needed suppressing.
 
 ## 2026-10-08 — a new account starts on its browser's zone
 
@@ -547,3 +557,45 @@ accounts take the browser's time zone at signup".
 - The same PR gave `responsive-reflow.spec.ts`'s two ten-width loops
   `test.slow()`: they timed out at 30 s on CI (main 808431b6, and #377
   twice) while taking about 6 s locally.
+
+## 2026-10-08 — the beta pulse
+
+Jamie, 2026-10-08: "Approved: round 4 primary, aggregate beta pulse
+funnel in elixir Admin, PR and deploy". DECISIONS: "The beta pulse is
+aggregate by signup week".
+
+- **Admin ▸ Beta pulse** (`apps/web/src/views/Admin.jsx`, cells in
+  `src/lib/pulse.js`) over admin-only `GET /api/admin/pulse`
+  (`services/web-api/src/beta-pulse.mjs`). The last eight ISO weeks
+  (UTC, the running one included) by signup week, each step a count and
+  its share of that week's signups: added a player, primary set, the
+  primary's admitted profile, its admitted battle log, a clan followed
+  (and how many by auto-follow), a verified player, and came back in week
+  1 and week 2. A came-back window still running says how many are in it
+  ("open"). Then product mail sent per kind for the last four weeks.
+- **Who is counted.** People only, never agents or integrations; denied
+  requests and staff are out. Staff are owner and admin accounts, and a
+  staff test mailbox is any account whose address is a staff address
+  with a `+tag` (Jamie's beta1/beta2 journeys): read from the accounts
+  table, no address in the repository, both counted apart in the
+  footnote. No cell names, lists or links an account.
+- **From records Elixir already keeps; nothing new is stored.** "Ever"
+  where the record keeps history (`claim_added`, `clan_added` with
+  `auto`, `claim_verified` events beside the current rows), "now" where
+  it keeps state (primary, capture). Came back: a `signed_in` event, a
+  session opened or last seen, or a call of the person's own in
+  `mcp_call_audit` (Console, Ladder, MCP, API) on a UTC day 1-7 or 8-14
+  days after the signup day; an agent's calls are its own, not its
+  owner's. `account_event` and the call log are not trimmed; sessions go
+  30 days after they lapse, which the events cover for sign-ins.
+- **Mail opens are not here.** Sends come from `email_send`; opens are
+  the pixel's, in Tinylytics (`/mail/<kind>/<period>`), per mail and never
+  per reader, and the servers never read them back (DECISIONS,
+  "Analytics is client-side Tinylytics only"); the page says so and links
+  Tinylytics.
+- Tests: `services/web-api/test/beta-pulse.test.mjs` (cohorts, every
+  step, the windows and their open counts, staff, test mailboxes, agents,
+  integrations, denied, mail, and no id, address or tag in the answer),
+  the route's admin/member split in `web-api.test.mjs`, and
+  `apps/web/test/admin-pulse.test.jsx`.
+- No MCP or JSON API change: MCP 11.4.1, JSON API 3.1.0.
