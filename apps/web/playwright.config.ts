@@ -16,7 +16,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   // GitHub's public-repo runners have four cores; the default is half.
-  workers: process.env.CI ? 4 : undefined,
+  ...(process.env.CI ? { workers: 4 } : {}),
   reporter: process.env.CI ? "github" : "list",
   timeout: 30_000,
   use: {
