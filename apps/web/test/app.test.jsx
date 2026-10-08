@@ -267,10 +267,127 @@ test("the tracked record holds the controls, and says what stopping costs", asyn
     within(document.querySelector("main")).getByText("Jamie"),
   ).toBeTruthy();
   expect(screen.getByText("active")).toBeTruthy();
-  // The consequence sits beside the control, not behind a confirm.
+  // The consequence sits beside the control, and the control asks once
+  // before it writes (2026-10-08): a stray click stopped a recording.
   const stop = screen.getByRole("button", { name: "Stop tracking" });
-  expect(stop).toBeTruthy();
   expect(screen.getByText("History already recorded is kept.")).toBeTruthy();
+  const writes = () =>
+    global.fetch.mock.calls.filter(([, init]) => init?.method === "POST");
+  fireEvent.click(stop);
+  const ask = screen.getByRole("group", { name: "Stop tracking #20JJJ2CCRU?" });
+  expect(within(ask).getByText("#20JJJ2CCRU")).toBeTruthy();
+  expect(writes()).toEqual([]);
+  fireEvent.click(within(ask).getByRole("button", { name: "Cancel" }));
+  expect(screen.getByRole("button", { name: "Stop tracking" })).toBeTruthy();
+  expect(writes()).toEqual([]);
+});
+
+// 2026-10-08, the fresh-person journey: a typo'd tag read "Tag not
+// found" as plain text beside a green "active" chip and a fresh poll (the
+// empty battle log of an unknown tag is admitted), with the fix on
+// another page. Now it is an error, with the fix in it, and nothing on
+// the page says the recording is healthy.
+test("a tag the game did not find is an error with the fix beside it", async () => {
+  window.history.pushState({}, "", "/console/account/tracking/2PP0V90Y");
+  const posts = [];
+  let claims = [
+    {
+      player_tag: "#2PP0V90Y",
+      is_primary: true,
+      notify: true,
+      name: null,
+      relationship: "you",
+    },
+  ];
+  global.fetch = mockFetch({
+    "GET /api/me": () => [
+      200,
+      {
+        authenticated: true,
+        is_owner: false,
+        claims,
+        recordings: [
+          {
+            subject_tag: "#2PP0V90Y",
+            status: "active",
+            freshest_poll: new Date().toISOString(),
+            fetches_24h: 2,
+          },
+        ],
+      },
+    ],
+    "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
+    "GET /api/me/battle-activity/2PP0V90Y": [200, { days: [] }],
+    "GET /api/me/first-answer?player_tag=%232PP0V90Y": [
+      200,
+      {
+        as_of: new Date().toISOString(),
+        player: {
+          player_tag: "#2PP0V90Y",
+          is_primary: true,
+          recording_status: "active",
+          profile_available: false,
+          battlelog_observed_at: new Date().toISOString(),
+          last_battle_at: null,
+          battles_30d: 0,
+          tracked_since: new Date().toISOString(),
+          capture_attempts: [
+            {
+              endpoint: "player",
+              last_admitted_at: null,
+              last_failed_at: new Date(Date.now() - 60_000).toISOString(),
+              last_failed_status: 404,
+            },
+            {
+              endpoint: "player_battlelog",
+              last_admitted_at: new Date().toISOString(),
+            },
+          ],
+        },
+        connection: { active_connections: 0 },
+        clan: null,
+      },
+    ],
+    "POST /api/claims": (init) => {
+      const body = JSON.parse(init.body);
+      posts.push(body);
+      if (body.action === "add")
+        claims = [{ ...claims[0], player_tag: body.player_tag }];
+      return [200, { ok: true, player_tag: body.player_tag }];
+    },
+  });
+  render(<App />);
+  const alert = await screen.findByRole("alert");
+  expect(within(alert).getByText("Tag not found")).toBeTruthy();
+  expect(alert.textContent).toContain("so nothing is being recorded");
+  // Never "active", never a healthy poll, for a tag the game does not know.
+  expect(screen.getByText("tag not found")).toBeTruthy();
+  expect(screen.queryByText("active")).toBeNull();
+  expect(screen.getByText(/the game does not know this tag/)).toBeTruthy();
+  expect(screen.queryByText(/recording active/)).toBeNull();
+  // The fix is in the callout: the right tag in this one's place.
+  const input = within(alert).getByLabelText("Correct tag");
+  fireEvent.change(input, { target: { value: "2PP0V90Y" } });
+  fireEvent.click(
+    within(alert).getByRole("button", { name: "Track this tag instead" }),
+  );
+  expect(
+    await within(alert).findByText("That is the tag the game did not find."),
+  ).toBeTruthy();
+  expect(posts).toEqual([]);
+  fireEvent.change(input, { target: { value: "#2pyq8gj0" } });
+  fireEvent.click(
+    within(alert).getByRole("button", { name: "Track this tag instead" }),
+  );
+  await waitFor(() => expect(posts).toHaveLength(2));
+  // Added first, as the primary, so the typo can be stopped.
+  expect(posts).toEqual([
+    { player_tag: "#2PYQ8GJ0", action: "add", make_primary: true },
+    { player_tag: "#2PP0V90Y", action: "remove" },
+  ]);
+  await waitFor(() =>
+    expect(window.location.pathname).toBe("/console/account/tracking/2PYQ8GJ0"),
+  );
 });
 
 test("admin view is admin-gated in the UI", async () => {

@@ -17,6 +17,11 @@ import {
   cleanup,
 } from "@testing-library/react";
 import { FirstAnswer } from "../src/components/FirstAnswer.jsx";
+import {
+  FAST_POLL_MS,
+  SLOW_POLL_MS,
+  nextPoll,
+} from "../src/hooks/useFirstAnswer.js";
 import { ConnectionQuestions } from "../src/components/ConnectionQuestions.jsx";
 import { App } from "../src/App.jsx";
 
@@ -472,4 +477,63 @@ test("Overview links incomplete steps and offers a supported first question with
   expect(
     screen.getByText(/a connection alone does not confirm a data read/),
   ).toBeTruthy();
+});
+
+// 2026-10-08: "Tag not found" took up to a minute to show after an add,
+// because the status was read once a minute. The first minutes after an
+// add are read every few seconds.
+test("the status is read every few seconds just after an add, then once a minute", () => {
+  const now = Date.parse("2026-10-08T12:00:00Z");
+  const at = (s) => new Date(now - s * 1000).toISOString();
+  const waiting = (p) => ({
+    as_of: new Date(now).toISOString(),
+    player: {
+      player_tag: "#2PP0V90Y",
+      recording_status: "active",
+      profile_available: false,
+      battles_30d: 0,
+      last_battle_at: null,
+      ...p,
+    },
+    connection: {},
+  });
+  expect(nextPoll(waiting({ tracked_since: at(10) }), { now })).toBe(
+    FAST_POLL_MS,
+  );
+  expect(nextPoll(waiting({ tracked_since: at(170) }), { now })).toBe(
+    FAST_POLL_MS,
+  );
+  expect(nextPoll(waiting({ tracked_since: at(200) }), { now })).toBe(
+    SLOW_POLL_MS,
+  );
+  // A status from before tracked_since existed: once a minute.
+  expect(nextPoll(waiting({}), { now })).toBe(SLOW_POLL_MS);
+  // The game said "not found": that is the answer for a day.
+  expect(
+    nextPoll(
+      waiting({
+        tracked_since: at(10),
+        capture_attempts: [
+          {
+            endpoint: "player",
+            last_failed_at: at(5),
+            last_failed_status: 404,
+          },
+        ],
+      }),
+      { now },
+    ),
+  ).toBe(SLOW_POLL_MS);
+  // Captured: nothing left to wait for.
+  expect(
+    nextPoll(
+      waiting({
+        tracked_since: at(10),
+        profile_available: true,
+        battles_30d: 30,
+        last_battle_at: at(600),
+      }),
+      { now },
+    ),
+  ).toBe(null);
 });

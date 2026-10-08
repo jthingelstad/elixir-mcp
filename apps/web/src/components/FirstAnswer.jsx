@@ -1,6 +1,6 @@
 import { Icon, Link, ago, stamp, useClock } from "@elixir-mcp/ui";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
-import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
+import { nextPoll, useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { CONSOLE } from "../lib/console.js";
 import { recordJourney } from "../lib/record-journey.js";
 import {
@@ -13,7 +13,7 @@ const hasBattles = hasBattleEvidence;
 
 /** Readiness is derived from the record, including a successful data read:
  * an OAuth connection alone does not show that the client's setup works. */
-function readiness(data) {
+function readiness(data, notFound = false) {
   const p = data.player;
   const c = data.connection;
   const clan = data.clan;
@@ -23,7 +23,15 @@ function readiness(data) {
       label: "Player tag saved",
       done: Boolean(p),
       detail: p
-        ? `${p.name ?? "your player"} ${p.player_tag} · ${p.is_primary === false ? (p.relationship ?? "tracked") : "primary"}${p.recording_status ? ` · recording ${p.recording_status}` : ""}`
+        ? `${p.name ?? "your player"} ${p.player_tag} · ${p.is_primary === false ? (p.relationship ?? "tracked") : "primary"}${
+            // A tag the game does not know records nothing, so it is
+            // never "recording active" (2026-10-08).
+            notFound
+              ? " · tag not found"
+              : p.recording_status
+                ? ` · recording ${p.recording_status}`
+                : ""
+          }`
         : "nothing here defaults to you",
       action: p ? "Manage recording" : "Add your player",
       showAction: Boolean(
@@ -96,13 +104,26 @@ function readiness(data) {
   ];
 }
 
-export function FirstAnswer({ claimsKey, playerTag, compact = false }) {
+/**
+ * The recording's first answer. A page that needs the same status for
+ * itself (TrackedRecord) reads it once and passes `answer`; `fix` is
+ * that page's inline correction, shown inside the "Tag not found"
+ * callout. Without `fix`, the callout links to it (`#fix-tag`).
+ */
+export function FirstAnswer({
+  claimsKey,
+  playerTag,
+  compact = false,
+  answer = null,
+  fix = null,
+}) {
   const { zone } = useClock();
-  const { data, loading, error, refresh } = useFirstAnswer(claimsKey, {
-    playerTag,
-  });
-  const steps = data ? readiness(data) : [];
+  const own = useFirstAnswer(claimsKey, { playerTag, enabled: !answer });
+  const { data, loading, error, refresh } = answer ?? own;
   const next = data ? recordJourney(data) : null;
+  const notFound = Boolean(next?.notFound);
+  const steps = data ? readiness(data, notFound) : [];
+  const wait = data ? nextPoll(data) : null;
   const questions = data ? starterQuestions(data).slice(0, 1) : [];
   return (
     <section className="mb-6" aria-labelledby="first-answer-title">
@@ -116,30 +137,49 @@ export function FirstAnswer({ claimsKey, playerTag, compact = false }) {
             : (next?.text ?? "Recording status is unavailable.")}
         </span>
       </div>
-      {next && (
-        <p className="mb-3 font-semibold" role="status">
-          {next.state}
+      {notFound ? (
+        // The one failure the game names: said as an error, at once, with
+        // the fix beside it (2026-10-08).
+        <div className="callout callout--bad mb-3" role="alert">
+          <Icon name="x" size={17} />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">{next.state}</p>
+            <p>
+              Clash Royale answered “not found” for{" "}
+              <span className="mono">{data.player.player_tag}</span>{" "}
+              {ago(next.failedAt)}, so nothing is being recorded. Check the tag:
+              in the game it is on the player&rsquo;s profile, below the name.
+              Elixir asks the game again in about a day, in case the tag is
+              brand new.
+            </p>
+            {fix ?? (
+              <Link className="btn btn--sm mt-2" to={`${next.to}#fix-tag`}>
+                {next.action} ›
+              </Link>
+            )}
+          </div>
+        </div>
+      ) : (
+        next && (
+          <p className="mb-3 font-semibold" role="status">
+            {next.state}
+          </p>
+        )
+      )}
+      {wait != null && !notFound && (
+        <p className="mb-3 text-[12.5px] text-ink-faint">
+          {wait < 60_000
+            ? "This page checks again every few seconds for the first minutes after an add, then about once a minute while open."
+            : "This page checks again about once a minute while open."}{" "}
+          Check again reads the saved record; it does not force a game fetch.
         </p>
       )}
-      {data?.player?.recording_status === "active" &&
-        (!data.player.profile_available || !hasBattles(data.player)) && (
-          <p className="mb-3 text-[12.5px] text-ink-faint">
-            This page checks again about once a minute while open. Check again
-            reads the saved record; it does not force a game fetch.
-          </p>
-        )}
-      {next?.failedAt &&
-        (next.notFound ? (
-          <p className="mb-3 text-ink-faint">
-            Clash Royale answered “not found” {ago(next.failedAt)}. Elixir asks
-            again in about a day, in case the tag is new.
-          </p>
-        ) : (
-          <p className="mb-3 text-ink-faint">
-            Failed attempt {ago(next.failedAt)}. A failed fetch does not
-            establish that the tag is invalid.
-          </p>
-        ))}
+      {next?.failedAt && !notFound && (
+        <p className="mb-3 text-ink-faint">
+          Failed attempt {ago(next.failedAt)}. A failed fetch does not establish
+          that the tag is invalid.
+        </p>
+      )}
       {next?.partial && (
         <p className="mb-3 text-ink-body">
           Incomplete capture between{" "}
@@ -152,10 +192,8 @@ export function FirstAnswer({ claimsKey, playerTag, compact = false }) {
       )}
       <div className="mb-3 flex flex-wrap items-center gap-3">
         {next &&
-          !(
-            compact &&
-            ["Check recording status", "Fix the tag"].includes(next.action)
-          ) && (
+          !notFound &&
+          !(compact && next.action === "Check recording status") && (
             <Link className="btn btn--primary" to={next.to}>
               {next.action} ›
             </Link>

@@ -9,6 +9,10 @@ export async function firstAnswer(db, accountId, playerTag = null) {
   // deprecation (docs/ENGINEERING.md: one client, one query at a time).
   const player = await db.query(
     `select c.player_tag, c.is_primary, c.relationship, p.name,
+              -- When this account added the tag: the Console polls fast
+              -- for the first minutes after an add (useFirstAnswer.js),
+              -- so "Tag not found" or the capture shows in seconds.
+              c.created_at as tracked_since,
               exists (select 1 from player_snapshot_daily where player_tag = c.player_tag
                       and profile_observed_at is not null) as profile_available,
               -- Whoever asked for it: a recording belongs to the SUBJECT.
