@@ -121,8 +121,10 @@ inactivity clock.** A member sees only their own observed activity clock and its
 
 ## When it is read
 
-Clan reads every clan with a policy each morning from 11:00 UTC, and
-again when someone opens Standing, Actions, Trophies or a leaders'
-page, at most every five minutes. A reading can raise or withdraw
+Clan reads every clan with a policy each morning from 11:00 UTC. Opening
+Standing or the leaders' Board reads it again when the last reading is
+more than five minutes old. Actions opens the last reading, and reads
+again when someone chooses **Refresh suggestions** or the policy has a
+new version. A reading can raise or withdraw
 [actions](/docs/clan-actions). A new version of the policy is read
 afresh.

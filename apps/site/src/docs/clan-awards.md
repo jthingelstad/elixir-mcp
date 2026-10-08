@@ -40,8 +40,8 @@ Awards follow Clan Wars seasons as the record saw them. A season is
 judged once it has **closed** (every week finished, its Colosseum week
 last or the next season begun) and Clan holds it **whole** (unique sections
 from zero through an observed final Colosseum week, with no gaps). The first reading after that writes the
-season's winners: the morning run, or anyone opening Award history or the
-awards page. A season still being fought shows on the awards page as
+season's winners: the morning run, or anyone opening Award history or
+Award races. A season still being fought shows on Award races as
 provisional, with nothing granted. Missing evidence holds the affected award,
 not every award in the season: points need the possible contenders' counters,
 donations break consequential point ties, rookies need first-season history,
@@ -53,8 +53,7 @@ Rookie uses the same season-points and donation tiebreaks as the points podium,
 restricted to first joins in that season. Unknown current-season points or
 donations that could decide a tie still hold it. Unknown previous-season points
 from an earlier join cannot hold a current-season Rookie race: that earlier join
-is outside its eligible group. Saved closed-season grants remain final when this
-eligibility correction is applied.
+is outside its eligible group.
 
 The complete computed decision is saved before any recipient is written. An
 interrupted batch resumes its original winners; a completed decision, including
@@ -64,16 +63,15 @@ so later capture or configuration changes do not rewrite the podium.
 ## Who does what
 
 - The leader and co-leaders set up the clan's awards.
-- Every member sees **Clan ▸ Awards**, with one season selected at a time.
+- Every member sees **Award races**, with one season selected at a time.
   The newest recorded season is selected first; choose a previous season to
-  read its saved grants. Only the existing allowed roles edit or grant awards.
+  read its saved grants.
 - A **Leaders' pick** is granted by the leader and co-leaders, or by
   elders too when the award allows it, with a note of up to 500
   characters, after the season is recorded as closed and complete. The picker
   shows the saved description, previous holder if recorded, and the member and
   season you are confirming. If an award your choice depends on is held, wait
-  for its evidence. A missing historical receipt does not prove no previous holder.
-  The leader and co-leaders can take a pick back; an award
+  for its evidence. The leader and co-leaders can take a pick back; an award
   Clan decided is the record's and stays.
 
 ## Where members see them
@@ -87,8 +85,9 @@ shows recorded donations in descending order,
 unknown totals last; its pass-or-fail eligibility still depends only on decks
 and the configured allowed misses. No donation total changes attendance eligibility.
 
-Current members' names in Award races open their existing clan-scoped recorded
-activity. A previous recipient who has left stays a saved name, without a
+Current members' names in Award races open their
+[recorded activity](/docs/clan-actions#inspect-a-members-recorded-activity) in
+the clan. A previous recipient who has left stays a saved name, without a
 current-member activity link.
 
 **Award history** is every member's page: their own trophy case, what the
@@ -108,9 +107,7 @@ number recorded on track, and manual picks remain human choices. Each part
 is editable and defaults to clan chat, with an explicit durable Inbox alternative. All parts belong to
 the same Action; mark each sent only after sharing it in the game. Saved weekly
 snapshots and completed or declined Actions stay unchanged. Retrying a timely
-update recovers its original Action, without creating historical backfill.
-Older Actions already waiting stay available for leaders to decide.
-These updates do not grant awards and work separately from the final season
+update recovers its original Action. These updates do not grant awards and work separately from the final season
 announcement setting. Nothing posts automatically.
 
 **Current progress.** A verified leader or co-leader can choose **Send season
@@ -134,9 +131,9 @@ copy. Completed messages keep their history. Model drafting restores the complet
 recipient list locally and uses only the remaining room for prose. Nothing is
 posted automatically.
 
-**On Elixir.** When that announcement is marked sent, each winner is
-named in that particular message is shared with Elixir as a fact the leader attested, for everyone verified
-in the clan. Each morning Clan also shares where the award races stand,
+**On Elixir.** When that announcement is marked sent, each winner it
+names is shared with Elixir as a fact the leader attested, for everyone
+verified in the clan. Each morning Clan also shares where the award races stand,
 and the last closed season's final places, for everyone verified in the
 clan and the clan's agent; a place is written only when it changes.
 [Clan settings](/docs/clan-policy#clan-settings) lists everything

@@ -93,7 +93,7 @@ Account → Connections. Details are on the [Protocol reference](/docs/protocol)
 ### Claude.ai
 
 1. **Settings → Connectors → Add custom connector.**
-2. Name it (say, `Elixir MCP`) and paste `https://elixir.poapkings.com/mcp`.
+2. Name it (say, `Elixir`) and paste `https://elixir.poapkings.com/mcp`.
    Leave the OAuth client id and secret empty: the door registers the client
    itself.
 3. Click **Connect**. A sign-in page opens: enter your account email, then the
@@ -148,7 +148,7 @@ stdio-only client to this flow.
 ChatGPT's connector support is scoped to its own connector catalogue and to
 developer-mode custom connectors whose availability depends on your plan and
 region, and its expectations of a server (specific `search` and `fetch`
-tools for deep research) differ from a general MCP tool surface. Elixir MCP
+tools for deep research) differ from a general MCP tool surface. Elixir
 does not test against ChatGPT and makes no claim that it works there. If you
 try it and it does, or does not, `elixir_send_feedback` is the place to say so.
 
@@ -169,13 +169,13 @@ comparison when two decks appear, a week-over-week comparison when both
 windows have battles. Copy one into your client. You never need to tell
 the client your tag; if it starts by listing your players, that is a bug
 worth reporting. The agent can also read this manual itself: `elixir_docs`
-serves these pages over the connection, and the eleven
+serves these pages over the connection, and the ten
 [examples](/examples/play) are offered as prompts, so "how do I scout a
 bracket?" is a question it can answer before it calls anything.
 
 Connections also counts each connection's calls over the last seven days,
-so you can tell an authorized connection from a working one. **Account →
-Activity** lists every call with its `request_id`.
+so you can tell an authorized connection from a working one. **Usage ▸ MCP
+requests** lists every call with its `request_id`.
 
 ## What next
 
@@ -189,5 +189,5 @@ Activity** lists every call with its `request_id`.
 ## If something goes wrong
 
 Quote the `request_id` from the response's `meta` when you report an answer
-that looks wrong. Your own call history, with those ids, is on **Account →
-Activity**; refused credentials appear on **Account → Connections**.
+that looks wrong. Your own call history, with those ids, is under **Usage ▸
+MCP requests**; refused credentials appear on **Account → Connections**.

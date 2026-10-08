@@ -7,16 +7,14 @@ order: 5
 navTitle: "Architecture"
 icon: layers
 lede: "Collectors, the door, the job ledger, admission and retention."
-reviewed: "2026-09-25 against contract 9.1.0"
+reviewed: "2026-10-08 against contract 11.2.4"
 ---
 
 # Architecture
 
 How Elixir MCP is designed, for people who are curious and for anyone who
 needs to reason about what the service will and won't do. **This page is the
-description of record** — there is no fuller internal one, deliberately: a
-second copy is how the previous one came to describe a model that had already
-been replaced.
+description of record**; there is no fuller internal one.
 
 ## The shape of the system
 
@@ -56,7 +54,7 @@ been replaced.
   <line class="edge" x1="240" y1="310" x2="180" y2="390"/>
   <line class="edge" x1="440" y1="310" x2="440" y2="390"/>
   <line class="edge" x1="640" y1="310" x2="700" y2="390"/>
-  <text class="note" x="452" y="352">work queue — priority-ordered by Elixir MCP</text>
+  <text class="note" x="452" y="352">job ledger — priority-ordered by Elixir MCP</text>
   <text class="note" x="452" y="368">(collectors never choose targets)</text>
   <!-- collectors -->
   <rect class="box" x="70" y="390" width="220" height="70"/>
@@ -74,12 +72,21 @@ been replaced.
   <text class="lbl" x="440" y="537" text-anchor="middle">Clash Royale API</text>
 </svg>
 
-Everything cloud-side is serverless (Lambdas + SQS + RDS Postgres,
-NAT-free VPC). The only machines with Clash Royale API keys are
-**collectors** — operator-run workers that lease fetch jobs from the
-queue, fetch with their IP-allowlisted key, and post results back. They
-never choose their own targets, hold no user data, and earn ladder
-points for every fetch that adds something to the record. The fleet shares **one global rate budget** by design:
+Everything cloud-side is serverless: RDS Postgres, S3 and seven Lambdas in
+one CloudFormation stack, inside a VPC with no NAT. The **web API** serves
+the Console, Ladder, Elixir Clan, the JSON API and battle pages; **MCP**
+serves the MCP and OAuth doors; **collector** is the collector door;
+**scheduler** plans fetch jobs into the Postgres job ledger on every tick;
+**jobs** runs scheduled product work (mail, sweeps, Clan's morning run);
+**migrate** applies migrations during a deploy and runs operator commands;
+and the **email relay**, the one function outside the VPC, carries what
+must reach the internet ([below](#the-outbound-relay)).
+
+The only machines with Clash Royale API keys are **collectors** —
+operator-run workers that lease fetch jobs from the job ledger, fetch
+with their IP-allowlisted key, and post results back. They never choose
+their own targets, hold no user data, and earn points for every fetch
+that adds something to the record. The fleet shares **one global rate budget** by design:
 more collectors mean resilience, never more API load. The budget is a token
 bucket the scheduler plans from, and everything that asks the API for a read
 spends it: each scheduled job, and each live read an agent, a JSON API
@@ -159,24 +166,31 @@ people file it on the site. Every item gets a maintainer response —
 `account_feedback_responded` item lands on the filer's timeline, and
 shipped fixes link the change. The same loop feeds the public
 [Updates](/updates): contract versions are machine-readable
-(`elixir_changelog`), so an agent can ask "what changed since 0.20?"
-and discover capabilities that landed mid-session. Several shipped
+(`elixir_changelog`), so an agent can ask what changed since its last
+session and discover capabilities that landed mid-session. Several shipped
 tools trace directly to agent-filed feedback.
 
 ## The outbound relay
 
 The VPC has no NAT — cloud components cannot reach the internet at
 all, which is a security posture worth keeping. They reach S3 and
-nothing else, so mail leaves as an object in an **outbox** bucket: S3
-notifies a queue, and a small non-VPC **relay** Lambda reads the object,
-sends it and deletes it. The relay does two jobs with
-deliberately different guarantees: transactional email (sign-in codes,
-sent over Amazon SES since 2026-09-17 — retried hard, dead-lettered
-loudly) and newsletter enrollment (Buttondown; best-effort and idempotent,
-and an unsubscribed address is never re-subscribed). A verified new account's
-welcome carries the product-news choice frozen with its email proof; the
-signup checkbox starts checked. Existing sign-in uses the saved account
-preference, never the checkbox's new-signup default.
+nothing else, so anything bound for the internet leaves as an object in
+an **outbox** bucket: S3 notifies a queue, and a small non-VPC **relay**
+Lambda reads the object, acts on it and deletes it. The relay has three
+jobs, with deliberately different guarantees:
+
+- **Mail**, every email Elixir sends, over Amazon SES: retried hard and
+  dead-lettered loudly.
+- **Newsletter enrollment** (Buttondown), for an account that opted in to
+  product news: best-effort and idempotent, and an unsubscribed address is
+  never re-subscribed. A new account's choice is the signup checkbox,
+  which starts checked; an existing account's sign-in uses its saved
+  preference.
+- **Elixir Clan's model calls**, made with the clan's own model key:
+  requests and replies are sealed, short-lived objects, and a request is
+  claimed before the provider is called, so a redelivery never spends the
+  clan's tokens twice.
+
 Elixir's servers send nothing to analytics.
 
 ## Recording: record once, entitle many
@@ -218,10 +232,7 @@ The official API is current-state only: a player's battle log holds
 roughly the last 30 battles and nothing older. Recording therefore means
 fetching often enough that no battle rolls off the log before a collector
 has seen it, while the whole fleet stays inside one shared, conservative
-API budget. For players the scheduler runs **the session clock**
-(September 2026), one rule that replaced a per-player pace estimate, a
-burst bound and a roster gate once a week of measurement showed them to
-sit on the same cost-against-loss curve:
+API budget. For players the scheduler runs **the session clock**:
 
 - **Thirty minutes while playing, doubling to a two-hour ceiling when
   not.** A battle is about three minutes and the API's log holds 30, so
@@ -241,9 +252,7 @@ sit on the same cost-against-loss curve:
   least daily, even under a starved budget.
 - **A failed read is retried in minutes.** A fetch that errors (anything
   but a 404) is planned again 15 minutes later, then 30, then 60, and
-  each retry is charged to the one budget like any other plan. Until
-  September 2026 it waited a whole cycle, so a daily board that failed
-  at the 10:00Z read lost its day.
+  each retry is charged to the one budget like any other plan.
 
 Profiles are read once a day, because the record keeps one snapshot per
 game day, and once after a session: a battle log that delivered battles
@@ -281,9 +290,8 @@ allowance on a fresh read instead of waiting for the schedule.
   before you joined.
 - **Universal game reads**: all recorded game data — battles, profiles,
   timelines, clan rosters and wars — is readable by every active
-  account, the same posture as the game's own public API (since
-  2026-09-05; no membership gate on the clan tools). Your account data
-  stays private.
+  account, the same posture as the game's own public API (no membership
+  gate on the clan tools). Your account data stays private.
 - The MCP door is OAuth 2.1 with rotating refresh tokens. `cr:read` is the
   baseline, while recordings, account preferences, and
   feedback each require their own write capability. The consent page
@@ -292,7 +300,7 @@ allowance on a fresh read instead of waiting for the schedule.
   quota.
 - **Three principals, three doors.** A person connects at
   `/mcp`; an agent at `/a/<id>/mcp`. Platform integrations use the
-  [REST API](/docs/integrations) at `/api/v1`; `/i/<id>/mcp` remains a legacy migration surface.
+  [JSON API](/docs/integrations) at `/api/v1`.
   Grants are audience-bound to exactly one of them, so a credential
   presented at the wrong door is refused rather than quietly answering
   about the wrong subject — which matters because the three publish
@@ -344,17 +352,17 @@ Elixir MCP is built in the open:
 - [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp)
   — this service: recorder, MCP door, web app, and these pages
   (the docs you are reading are the source of record; `docs/ENGINEERING.md`
-  holds the build invariants). Clan is part of the same application,
-  account and deployment, with its management records in Elixir's private
-  store. Its in-game role checks remain tied to the signed-in person.
+  holds the build invariants). Elixir Clan is part of the same
+  application, account and deployment, with its management records in
+  Elixir's private store; its role checks use the signed-in person's
+  verified players.
 - [jthingelstad/elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector)
   — the collector binary operators run.
 - [jthingelstad/elixir-mcp-discord](https://github.com/jthingelstad/elixir-mcp-discord)
-  — the Discord agent any clan can run, and POAP KINGS' own since
-  elixir-bot retired on 2026-09-26; each bot is an agent here, reading
-  this service over MCP with its agent token.
+  — the Discord agent any clan can run, POAP KINGS' included; each bot is
+  an agent here, reading this service over MCP with its agent token.
 - [jthingelstad/drop.poapkings.com](https://github.com/jthingelstad/drop.poapkings.com)
-  — Elixir Drop, the elixir-cost learning game; its collector-bridge
-  and mailing-list patterns are this service's direct ancestors.
+  — Elixir Drop, the elixir-cost learning game, which signs people in
+  with Elixir and reads the game clock as an integration.
 
 All of it orbits [POAP KINGS](https://poapkings.com), the clan.

@@ -1,5 +1,5 @@
 /**
- * The eleven examples as one list, for pagination: each carries its
+ * The examples as one list, for pagination: each carries its
  * group, its glyph, and the three siblings "More like this" offers —
  * the rest of its own group first, then the next group's, so a card is
  * never the page you are on and never a blank.

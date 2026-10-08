@@ -1,36 +1,38 @@
 ---
 slug: sign-in-with-elixir
 title: "Sign in with Elixir"
-description: "How Elixir Clan and Elixir Drop sign you in with your Elixir account: what each asks for, the consent page, when it is not asked again, how to end a grant, and what an app outside the family can and cannot get, with the endpoints, doors and scopes."
+description: "How Elixir Drop signs you in with your Elixir account: what it asks for, the consent page, how to end a grant, and what an app outside the family can and cannot get, with the endpoints, doors and scopes."
 section: build
 order: 2
 navTitle: "Sign in with Elixir"
 icon: log-in
-lede: "Elixir's own apps sign you in with your Elixir account: one consent page, and one grant you can see and end in the console. Other apps can ask too, for less."
+lede: "Elixir's family apps sign you in with your Elixir account: one consent page, and one grant you can see and end in the console. Other apps can ask too, for less."
 console: ["Your connected apps", "/console/account/connections", "Console ▸ Connections"]
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-08 against contract 11.2.4"
 ---
 
 # Sign in with Elixir
 
-Elixir is the account for the whole family. Elixir Clan and Elixir Drop
-have no sign-up of their own: they send you to Elixir, you say yes once,
-and they know who you are and which players are yours. Under the hood it
-is OAuth 2.1, the same sign-in an MCP client uses to connect.
+Elixir is the account for the whole family. A family app has no sign-up of
+its own: it sends you to Elixir, you say yes, and it knows who you are and
+which players are yours. Under the hood it is OAuth 2.1, the same sign-in
+an MCP client uses to connect. Elixir Clan needs none of this: it is part
+of Elixir and uses your Elixir session directly.
 
 ## The apps that use it
 
 | App | Where | Asks for |
 |---|---|---|
-| Elixir Clan | [elixir.poapkings.com/clan](/clan) | `cr:read` and `clans:attest` |
 | Elixir Drop | [drop.poapkings.com](https://drop.poapkings.com) | `cr:read`, `recordings:write` and `account:email` |
 
-Both are **family apps**: clients Elixir provisioned itself, each with a
-secret, with every return address on a family origin. A family app
-reads the [JSON API](/docs/json-api) as you without an hourly limit,
-and only a family app can be given `account:email` or `clans:attest`.
-They learn who you are, and the players you track, from
-`GET /api/v1/me`.
+Drop is a **family app**: a client Elixir provisioned itself, with a
+secret it sends at `/oauth/token` (`client_secret_post`), and every return
+address on a family origin. A family app reads the
+[JSON API](/docs/json-api) as you without an hourly limit, and only a
+family app can be given `account:email` or `clans:attest`, and only when
+it asks. Drop learns who you are, and the players you track, from
+`GET /api/v1/me`, your address from `/oauth/userinfo`, and adds your Drop player to your Elixir account with
+`POST /api/v1/me/players` when it is not there yet.
 
 ## What you see
 
@@ -48,23 +50,15 @@ Elixir has not checked it", and the page asks you to continue only if
 you started the connection and trust that address. Then come the
 capabilities the app asked for. Other ordinary capabilities are offered
 as boxes, unticked; `account:email` and `clans:attest` are never offered
-unasked.
-
-## Not asked twice
-
-Elixir Clan lives on Elixir's own address, so while you hold a live
-grant to it that covers what it asks for, signing in to Clan goes
-straight through with no page. Elixir Drop, on its own address, shows
-the page each time. Revoking the grant, or narrowing it, brings the page
-back.
+unasked. Drop is on its own address, so the page appears each time it
+signs you in.
 
 ## Ending a grant
 
 **Console ▸ Connections ▸ Clients** lists every app connected to your
 account; **Disconnect** ends one at once, and its capabilities can be
-narrowed there. Signing out of Elixir Clan ends its grant too. A grant
-lasts 90 days at most; within it, the app holds an access token for an
-hour at a time and renews it with a refresh token that changes on every
+narrowed there. A grant lasts 90 days at most; within it, the app holds
+an access token for an hour at a time and renews it with a refresh token that changes on every
 use. A refresh token used twice ends the whole grant.
 
 ## For developers

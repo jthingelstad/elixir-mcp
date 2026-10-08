@@ -1,7 +1,7 @@
 ---
 layout: data-page.njk
 title: "Retained battles over time"
-description: "Battles currently retained by Elixir, grouped by the UTC day they were played. Removed records are excluded; protected personal and clan history remains."
+description: "Battles retained in Elixir's record, grouped by the UTC day they were played, with the daily mean and the busiest day."
 permalink: /data/growth/index.html
 canonical: /data/growth
 dataNav: growth
@@ -60,11 +60,9 @@ dataNav: growth
 {% endif %}
 
 <p class="footnote" style="max-width: 78ch">
-  Removed records are excluded. The cleanup preserved protected personal and
-  clan history, so historical bars remain where those battles are still retained.
-  This chart counts the current record, not everything ever collected.
+  Removed records are excluded.
   {% if stats.fetched_at %}Snapshot fetched {{ stats.fetched_at | stamp }};
   refreshed when this site is published. The source can be cached for up to an hour.{% endif %}
-  Per-collector daily charts are in the
+  Daily charts over the full history are in the
   <a href="/console/data/dashboard">console</a>.
 </p>

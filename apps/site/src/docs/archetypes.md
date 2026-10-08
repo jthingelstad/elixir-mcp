@@ -1,7 +1,7 @@
 ---
 slug: archetypes
 title: "Deck archetypes"
-description: "How Elixir names a deck's shape - its win condition and family - from the cards, and how a name a person uses resolves back to decks. The six families, the grammar, the vocabulary's sources, the cycle bound and how it was measured, and what a label is not."
+description: "How Elixir names a deck's shape - its win condition and family - from the cards, and how a name a person uses resolves back to decks. The six families, the grammar, the vocabulary's sources, the cycle bound, and what a label is not."
 section: record
 order: 5
 navTitle: "Archetypes"
@@ -17,8 +17,8 @@ directions. Every deck object it serves — on `battles_query`,
 carry the label alone, `archetype_label`) and `players_summary` — carries an `archetype`: the deck's **family** and **win condition(s)**, a
 descriptive **label** composed from them, and the average elixir the deck
 runs at. And a name a person uses — a family, a label, or a community
-name like *LavaLoon* — is understood by the deck readers' `archetype`
-argument, which narrows a list to that shape.
+name like *LavaLoon* — is understood by the `archetype` argument of
+`battles_decks`, which narrows a list to that shape.
 
 ```json
 "archetype": {
@@ -162,7 +162,7 @@ record required. Called with nothing it returns the vocabulary itself.
 string, resolved the same way in three layers, first match wins. A form
 said before a win condition ("Evo Royal Hogs bridge spam") keeps to that
 form's decks; a name without one ("Royal Hogs bridge spam") matches every
-form of the card, and `cards_archetype` says so in a note (6.22.0).
+form of the card, and `cards_archetype` says so in a note.
 
 1. **An alias** — the community names the grammar does not produce:
    *LavaLoon*, *LumberLoon*, *Log Bait*, *Splashyard*, *Miner Poison*, *Hog
@@ -189,9 +189,7 @@ Every recorded deck carries a descriptive archetype stamp. It is written when th
 
 ## What is not here
 
-- **No matchup or expected-advantage number**, and none is coming. A
-  player's own record by opposing family may arrive later, as facts about
-  that player.
+- **No matchup or expected-advantage number.**
 - **No quality in a label.** A label describes its cards and pace; it is not a recommendation.
 - **No named-deck catalog.** Aliases are read on the way in only.
 - **No model.** The same cards and the same vocabulary name the same

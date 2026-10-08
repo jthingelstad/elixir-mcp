@@ -77,10 +77,10 @@ The battle and card tools take `mode`, one group at a time:
 `battles_query`, `battles_performance`, `battles_compare`,
 `battles_trends`, `battles_decks`, `battles_cards`, `battles_opponents`, `cards_card`,
 and `clans_standings`. Ask your agent for "my Path of
-Legends this week" and it passes `mode: "ranked"`; the
-[glossary](/docs/glossary) has the words people use for each. Omitting
-`mode` means every mode, and the note above.
+Legends this week" and it passes `mode: "ranked"`;
+[the seven groups](#the-seven-groups) above give the game's name for each.
+Omitting `mode` means every mode, and the note above.
 
-The JSON API's battle list (`GET /players/{tag}/battles`) takes no mode
-yet: it returns recent battles across every mode, each row naming its
+The JSON API's battle list (`GET /players/{tag}/battles`) takes no mode:
+it returns recent battles across every mode, each row naming its
 own.

@@ -92,7 +92,6 @@ const STATIC_PAGES = [
   "/docs/architecture",
   "/docs/recording",
   "/docs/battles",
-  "/docs/war-decks",
   "/docs/cards",
   "/docs/archetypes",
   "/docs/clocks",
@@ -751,7 +750,7 @@ test("the protocol requires an explicit segment", () => {
     path.join(repoRoot, "apps/site/src/docs/protocol.md"),
     "utf8",
   );
-  assert.match(protocol, /`segment` is required since 4\.0\.0/);
+  assert.match(protocol, /`segment` is required/);
   assert.ok(
     !protocol.includes(
       "| the whole `segment` object | the entire recorded corpus |",
@@ -972,16 +971,12 @@ test("nothing in the built site relies on inline script", { skip }, () => {
 });
 
 test(
-  "published methodology describes retained history and retires global scores",
+  "published methodology describes recorded history without global scores",
   { skip },
   () => {
     const page = read("docs/methodology/index.html");
     assert.doesNotMatch(page, /{{ statistics|Pilot Score|shrunk_win_rate/);
     assert.match(page, /described, not adjusted for/);
-    assert.match(
-      page,
-      /Game-wide meta statistics and recommendation scores have retired/,
-    );
   },
 );
 

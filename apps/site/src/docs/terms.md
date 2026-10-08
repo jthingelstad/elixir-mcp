@@ -1,7 +1,7 @@
 ---
 slug: terms
 title: "Terms"
-description: "Elixir MCP is a free, unofficial hobby service for folks who like Clash Royale. Access is a courtesy, the service is best effort, and your agents are yours to answer for."
+description: "Elixir is a free, unofficial hobby service for folks who like Clash Royale. Access is a courtesy, the service is best effort, and your agents are yours to answer for."
 section: policy
 order: 32
 navTitle: "Terms"
@@ -11,7 +11,7 @@ lede: "The short version: free, unofficial, best effort, be decent."
 
 # Terms
 
-**Free and unofficial.** Elixir MCP is a free service, built as a
+**Free and unofficial.** Elixir is a free service, built as a
 hobby, for folks who like the game. It is not affiliated with,
 endorsed, sponsored, or specifically approved by Supercell, and
 Supercell is not responsible for it. See Supercell's Fan Content

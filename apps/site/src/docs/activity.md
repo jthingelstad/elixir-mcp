@@ -75,22 +75,8 @@ not delay the graphic, and stale metadata cannot truncate newer activity. No
 request to the game is needed. The evidence-read timestamp dates the graphic;
 “tracked since” is account context and does not establish coverage.
 
-The nightly activity job still maintains descriptive metadata and historical
-capture-audit marks. Those cached marks and poll-success receipts do not decide
+The nightly activity job maintains descriptive metadata and capture-audit
+marks. Those cached marks and poll-success receipts do not decide
 which empty days are quiet in this graphic. No older capture is manufactured or
 backfilled by viewing the year, and no first-capture arrival time is promised.
-Retired automatic groups do not generate activity records. A personal follow
-still works when the account appeared in an old group.
 
-## What became of the rhythm
-
-Until 2026-09-19 the graphic carried a second tile, twenty-four hours by
-seven weekdays, built as a decayed histogram of when the player played.
-It was step one of an adaptive polling design in which the recorder
-would place each battle-log read where the player's expected battles
-crossed the log's batch. Scored against a week of reads it did not: the
-population plays in sittings that land in hours the histogram rated
-ordinary, and no placement it produced cut empty reads without raising
-lost battles. The recorder runs [the session
-clock](/docs/recording#how-often-a-subject-is-fetched) instead, and the
-tile came down with the design; the year is the product.

@@ -43,7 +43,7 @@ game counters: the page does not assign them to war days or divide points by
 decks, since decks played after an early finish can earn no points. Current
 races are marked **So far**, and completed races keep their own rows.
 
-Donation and battle totals are not part of this view. Their existing weekly
+Donation and battle totals are not part of this view. Their weekly
 fields cannot establish clan-attributable season totals after roster changes.
 Seasons outside the bounded read are unavailable here, not missing activity.
 Opening Season makes no policy decision, raises no action, grants no award

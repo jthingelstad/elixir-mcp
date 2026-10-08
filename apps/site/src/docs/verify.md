@@ -8,14 +8,14 @@ navTitle: "Prove a player is yours"
 icon: shield-check
 lede: "Play one battle with a deck we name, and the claim on your player becomes a fact rather than a promise."
 console: ["Verify a player you have added", "/console/account/verify", "Console ▸ Verify"]
-reviewed: "2026-09-28 against contract 9.16.1"
+reviewed: "2026-10-08 against contract 11.2.4"
 ---
 
 # Verify: proving a player is yours
 
-Adding a player to your account is a claim: "this player is me." Until
-now that claim was taken on trust, and for most of what Elixir does that
-is fine. Products that act for a clan are different: a leader-only view
+Adding a player to your account is a claim: "this player is me." For
+most of what Elixir does a claim is taken on trust, and that is fine.
+Acting for a clan is different: what a leader can do in Elixir Clan
 should open for the account that controls the leader's tag and nobody
 else. Verify turns a claim into a proven fact.
 
@@ -64,14 +64,12 @@ the proof is a battle played after the brief.
 
 ## Why a battle, not a deck slot
 
-The first version of Verify asked you to select the deck in a slot and
-waited for the profile's `currentDeck` to show it. It never did: measured
-on the owner's own account on 2026-09-12, the API kept reporting the old
-deck for more than an hour after the slot was selected, with the game
-closed and no battle played. The profile is a cached snapshot that the
-game refreshes on its own schedule. The battle log is not: a finished
-battle is readable within about a minute, and it names the deck each
-side played. So the proof moved to where the fact is fresh.
+Selecting a deck in a slot is not enough, because the profile's
+`currentDeck` is a cached snapshot that the game refreshes on its own
+schedule: the API can keep reporting the old deck for more than an hour
+after a slot is selected. The battle log is fresh: a finished battle is
+readable within about a minute, and it names the deck each side played.
+So the proof is a battle.
 
 ## What it proves, and does not
 
@@ -102,14 +100,20 @@ Verification is recorded on the claim itself (`status`, method and
 time), with the proving battle on the challenge, so anything that later
 needs "is this claim proven" can read it without a second lookup.
 `elixir_my_players` carries it as `claim_status` (`verified` or
-`unverified`) beside each player you track, and
-[Elixir Clan](https://elixir.poapkings.com/clan) is the first consumer: signing in
-with Elixir there requires a verified player, and the clan it acts for is
-chosen from your verified claims only. No data tool changes its answers on
-it; the record is the same for everyone. What it opens is what a clan
-says to its own members: an [attested fact](/docs/integrations#attested-facts)
-a clan's leaders recorded through a family app reaches the timeline of
-readers whose **verified** player is in that clan (and a departure's kind
-only those whose verified player leads it), because it is the clan's own
-word, not the game's; and a family app's mail about a clan goes only to
-the account that verified the player it is for.
+`unverified`) beside each player you track. No data tool changes its
+answers on it; the record is the same for everyone.
+
+[Elixir Clan](/clan) checks it on every request, inside Elixir. Any
+player of your own (your primary or an alt) in a clan lets you open that
+clan as a member and read it. Acting in the clan, the clan map, and the
+tools your in-game role brings (Elder, Co-leader or Leader) wait until
+that player is verified, and Clan names the player whose verification
+would bring more.
+
+Verification also decides what a clan says to its own members: an
+[attested fact](/docs/integrations#attested-facts) a clan's leaders
+recorded reaches the timeline of readers whose **verified** player is in
+that clan (and a member's away only those whose verified player leads
+it), because it is the clan's own word, not the game's; and Clan's mail
+about a clan goes only to the account that verified the player it is
+for.

@@ -7,7 +7,7 @@ order: 3
 navTitle: "JSON API"
 icon: braces
 lede: "Programs read Elixir over plain HTTPS and JSON at /api/v1: the same record your agent reads, as a person through an OAuth app or as a platform with a key."
-reviewed: "2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-08 against contract 11.2.4"
 ---
 
 # The JSON API
@@ -24,8 +24,8 @@ operation, its arguments and its answer.
 Elixir sends their access token, from a grant whose resource is
 `https://elixir.poapkings.com/api/v1`
 ([Sign in with Elixir](/docs/sign-in-with-elixir)). It reads as that
-person, with what their grant allows. Elixir Clan and Elixir Drop read
-this way.
+person, with what their grant allows. Elixir Drop signs people in this
+way.
 
 **An integration, with a key.** A platform Elixir has provisioned sends
 its key and acts as itself, never as a person, with the permissions it
@@ -82,15 +82,14 @@ The JSON API has its own version, separate from the MCP contract, in the
 OpenAPI document's `info.version`. Adding an operation or a field is a
 minor version. Removing or renaming a field is a major version, and the
 path stays `/api/v1` whatever the version, because the path is what a
-person's grant is for. Every version and what changed in it is under
-[Integrations: Versions](/docs/integrations#versions).
+person's grant is for. The current version is 3.0.0; what changed in each
+version is in the OpenAPI document and on [Updates](/updates).
 
 ## Limits
 
 - **A person through an outside app**: 600 calls an hour, counted for
   the person across every outside app.
-- **A person through a family app** (Elixir Clan, Elixir Drop): no
-  hourly limit.
+- **A person through a family app** (Elixir Drop): no hourly limit.
 - **An integration**: its own hourly and daily allowances, and a daily
   allowance of profile refreshes, set when it is provisioned.
 

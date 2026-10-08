@@ -1,7 +1,7 @@
 ---
 slug: privacy
 title: "Privacy"
-description: "Elixir MCP is a free hobby service for folks who like Clash Royale. What it keeps (public game history, your account, aggregate counts), who it shares it with, and how to have yours removed."
+description: "Elixir is a free hobby service for folks who like Clash Royale. What it keeps (public game history, your account, aggregate counts), who it shares it with, and how to have yours removed."
 section: policy
 order: 31
 navTitle: "Privacy"
@@ -11,7 +11,7 @@ lede: "A free hobby service: it keeps what it needs to work, and sells nothing."
 
 # Privacy
 
-**What this is.** Elixir MCP is a free service, built as a hobby, for
+**What this is.** Elixir is a free service, built as a hobby, for
 folks who like the game. There is no company behind it, no
 advertising, and nothing here is sold. An account opens after you verify your email. This page
 says, in general terms, what the service keeps and why; the details

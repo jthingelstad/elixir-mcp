@@ -56,8 +56,8 @@ Refusals:
 | Case | Status | Body | Header |
 |---|---|---|---|
 | No `Authorization: Bearer` | 401 | `{"error":"invalid_token"}` | `WWW-Authenticate: Bearer resource_metadata="<issuer>/.well-known/oauth-protected-resource[<door path>]", scope="cr:read recordings:write account:write feedback:write"` |
-| Unknown, expired, revoked, or suspended credential | 401 | same | same |
-| Valid credential at the wrong door | 403 | `{"error":"wrong_resource","message":"This credential is not for <resource>.","hint":"…"}` | none |
+| Unknown, expired, revoked, or suspended credential, or an OAuth token at a door it was not issued for | 401 | same | same |
+| Valid key (`svt_`) at a door not its own | 403 | `{"error":"wrong_resource","message":"This credential is not for <resource>.","hint":"…"}` | none |
 | Tool needs a scope the token lacks | 403 | JSON-RPC error `-32003` (below) | `WWW-Authenticate: Bearer error="insufficient_scope", scope="<granted + required>", resource_metadata="…"` |
 
 Every refused credential that names a real key or account is counted (per
@@ -100,7 +100,7 @@ the call log.
 }
 ```
 
-Both documents list every capability the server defines. The five
+Both documents list every capability the server defines. The four
 **standard** ones are what the 401 challenge's `scope` advertises and what the
 consent page offers; `account:email` and `clans:attest` are the
 exceptions, offered only to the family's own apps that name them (described
@@ -109,7 +109,7 @@ client asks for is granted; every other standard capability is a checkbox the
 person decides on the consent page**, and a client that names no scope asks
 for `cr:read` alone. On a person's own connection the checkboxes start
 unticked; on an agent or integration every write starts ticked except
-`recordings:write`, which spends the owner's tracking slots (7.2.1). Each box
+`recordings:write`, which spends the owner's tracking slots. Each box
 says what the connection cannot do without it, and unticking one that started
 ticked asks for confirmation, naming what will not work, before the grant is
 made. What you tick is added to the grant, so a person can allow
@@ -190,22 +190,15 @@ signs the browser in to the site as well, so the next consent, and the
 console, do not ask again. Nothing about the grant differs between the two
 paths.
 
-One of Elixir's own apps that takes its code back to elixir.poapkings.com
-(Elixir Clan) is not asked twice. When the signed-in person already holds a
-grant to it for the same door, unrevoked, inside its 90 days, and carrying
-every capability the request asks for, the authorize request redirects with a
-code at once, for exactly what was asked. Revoking that grant (Account →
-Connections, or the app's own sign-out, which calls
-[`/oauth/revoke`](#revocation)) or narrowing it brings the page back. No other
-client skips the page.
-
 For an agent door (`/a/<public_id>/mcp`), only the agent's owner may consent,
 and the resulting grant is for the agent, not the person. An agent that does
 not exist and an agent you do not own get the same refusal.
 
 ### Tokens
 
-`POST /oauth/token`, form-encoded, no client authentication.
+`POST /oauth/token`, form-encoded. A registered client is public and sends no
+secret; a family app adds `client_secret` (`client_secret_post`), and a wrong
+or missing one is HTTP 401 `{"error":"invalid_client"}`.
 
 | Grant | Required fields | Errors |
 |---|---|---|
@@ -219,7 +212,7 @@ Success: `{ "access_token", "refresh_token", "token_type": "Bearer", "expires_in
 |---|---|
 | Access token | 1 hour |
 | Refresh token | 30 days; every refresh returns a new pair |
-| Grant (family) | 90 days from consent, then re-consent |
+| Grant | 90 days from consent, then re-consent |
 
 Presenting a refresh token that has already been rotated revokes the whole
 grant. Refreshing never widens scope.
@@ -260,7 +253,7 @@ which needs the client to cooperate:
   personal door and every agent or integration door you own, each of which
   carries its own grant. An agent can also connect with its **service key**
   rather than OAuth, and a key's capabilities are not part of any grant - edit
-  those on the agent's own page (Account -> Agents). Editing takes effect on that connection's next call - no reconnect,
+  those on the agent's Settings page. Editing takes effect on that connection's next call - no reconnect,
   because the token's scope is read from the grant on every request. Narrowing
   works the same way, so a capability can be taken back without disconnecting
   the client.
@@ -270,17 +263,16 @@ tokens issued with no scope carry every capability.
 
 ### Signing a person in with Elixir
 
-A web product in the Elixir family (Elixir Clan, Elixir Drop) can use Elixir
-as its sign-in ([Sign in with Elixir](/docs/sign-in-with-elixir)). The grant
-it needs is the ordinary one, plus **`account:email`** when it needs the
-person's address (Elixir Drop asks for it; Elixir Clan asks for
-`clans:attest` instead). Like `clans:attest`, `account:email` is never
+A web product in the Elixir family on its own origin (Elixir Drop) can use
+Elixir as its sign-in ([Sign in with Elixir](/docs/sign-in-with-elixir)). The
+grant it needs is the ordinary one, plus **`account:email`** when it needs the
+person's address. Like `clans:attest`, `account:email` is never
 offered unasked: it does not appear ticked
 on the consent page, is not part of the default grant, is never widened into
 from a checkbox or from Account → Connections, and is not advertised in a 401
 challenge. It is offered only to the family's own apps: a client Elixir provisioned,
-whose every redirect URI is on a family origin. Any other client is never
-granted it, whatever it names in `scope`, so the address is never released
+whose every redirect URI is on a family origin. Any other client that names
+it in `scope` is refused `invalid_scope`, so the address is never released
 outside the family. A family app that names it sees it listed with the rest
 on the consent page, and the person can decline the whole connection.
 
@@ -308,9 +300,9 @@ list.
 
 | Kind | Door | Hidden tools | Tools listed |
 |---|---|---|---|
-| `person` | `/mcp` | `elixir_identify`, `elixir_my_identities` | {{ tools.personCount }} |
+| `person` | `/mcp` | `clans_context`, `elixir_identify`, `elixir_my_identities` | {{ tools.personCount }} |
 | `agent` | `/a/<public_id>/mcp` | `elixir_my_players` | {{ tools.agentCount }} |
-| `integration` | `/i/<public_id>/mcp` | `elixir_my_players`, `elixir_nickname`, `elixir_timeline`, `elixir_track_player`, `elixir_track_clan`, `elixir_identify`, `elixir_my_identities` | {{ tools.integrationCount }} |
+| `integration` | `/i/<public_id>/mcp` | `elixir_my_players`, `clans_context`, `elixir_nickname`, `elixir_timeline`, `elixir_track_player`, `elixir_track_clan`, `elixir_identify`, `elixir_my_identities` | {{ tools.integrationCount }} |
 
 The counts are generated from the registry at build time. Hiding is
 enforced: calling a hidden tool answers JSON-RPC `-32601` with `data.kind`
@@ -345,11 +337,11 @@ are (your primary and your clan, or the clan an agent acts for; the other
 players and clans you track by name while they fit, otherwise counted, with
 `elixir_my_players` for the list), the one-line rules that change an answer,
 where to start, how to file feedback, and a pointer to the
-[argument conventions](#argument-conventions) below, which it no longer
-restates. The same facts ride in `_meta` as data; see
+[argument conventions](#argument-conventions) below, which it does not
+restate. The same facts ride in `_meta` as data; see
 [Reading a response](/docs/responses#knowing-who-you-are-connected-as).
 
-Resources and prompts are declared beside tools since 1.0.0, because a
+Resources and prompts are declared beside tools because a
 stateless server cannot push `notifications/tools/list_changed` and clients
 list resources lazily at read time, so the documentation stays reachable when
 a cached `tools/list` is stale:
@@ -359,7 +351,7 @@ a cached `tools/list` is stale:
 | `resources/list` | `elixir://docs` (the index), `elixir://docs/<slug>` for every page, `elixir://examples`, `elixir://examples/<slug>`, `elixir://changelog`, `elixir://updates`, `elixir://cards` |
 | `resources/templates/list` | `elixir://docs/{slug}`, `elixir://docs/{slug}#{section}` (one H2 section), `elixir://examples/{slug}` |
 | `resources/read` | Markdown for pages, sections and examples; JSON for the indexes, the changelog, the updates and the card catalog. An unknown URI is JSON-RPC `-32002` |
-| `prompts/list`, `prompts/get` | the eleven [examples](/examples/play) as prompts, each a user message carrying the example's question and the tools it uses |
+| `prompts/list`, `prompts/get` | the ten [examples](/examples/play) as prompts, each a user message carrying the example's question and the tools it uses |
 
 Reading a resource spends no daily quota; the hourly rate limit still applies.
 
@@ -420,16 +412,16 @@ shape):
 |---|---|---|
 | `invalid_tag` | `input` | input failed tag normalisation; hint states the rule |
 | `not_entitled` | `subject` | the caller lacks entitlement to the subject (clan tools, slots, identity binding) |
-| `not_recorded` | `subject` | the subject is valid but nothing has been recorded for it; on a person's door with no `clan_tag`, also the primary player's clan when it is not recorded (3.18.0: the default never slides to an alt's clan; the hint names the clan and the tracking call) |
+| `not_recorded` | `subject` | the subject is valid but nothing has been recorded for it; on a person's door with no `clan_tag`, also the primary player's clan when it is not recorded (the default never slides to an alt's clan; the hint names the clan and the tracking call) |
 | `not_found` | `subject` | unknown to the record and to the live API; an unknown docs page, example |
-| `no_subject` | `subject` | nothing to answer about: no primary player on the account, a primary player in no clan when `clan_tag` is omitted, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag). With `display_name` beside an unmapped `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is one `elixir_identify` call and zero or several is a question (3.18.0) |
+| `no_subject` | `subject` | nothing to answer about: no primary player on the account, a primary player in no clan when `clan_tag` is omitted, an `on_behalf_of` nobody has mapped, an agent with no recorded clan. The hint names the one call that fixes it (`elixir_track_player`, `elixir_identify`, or pass the tag). With `display_name` beside an unmapped `on_behalf_of`, `error.candidates[]` lists the clan members whose whole name matches (`player_tag`, `name`, `clan_tag`, `role`; case and spacing ignored, never a partial match), so one candidate is one `elixir_identify` call and zero or several is a question |
 | `quota_exceeded` | `budget` | a per-account slot or live-fetch cap; the daily call quota uses `-32029` instead |
 | `live_unavailable` | `server` | the live lane is not configured, or the fresh payload was refused at admission |
-| `live_pending` | `retry` | `live: true` found no read inside the API's cache window and queued one (or, with the shared budget spent until the next tick, queued nothing and charged nothing); nothing is recorded for the subject yet, so there is no answer to give now. `error.retry_after_s` (an integer, seconds) says when to call again (3.14.0; before that only the hint's English carried it) |
+| `live_pending` | `retry` | `live: true` found no read inside the API's cache window and queued one (or, with the shared budget spent until the next tick, queued nothing and charged nothing); nothing is recorded for the subject yet, so there is no answer to give now. `error.retry_after_s` (an integer, seconds) says when to call again |
 | `bad_request` | `input` | structurally invalid input other than tags: unknown enum, inverted window, over-max limit, bad cursor, unknown timezone |
 | `result_too_large` | `input` | the request was fine and the result exceeded the delivery cap; the hint names the narrowing arguments. Also what `live_fetch` answers for a battle-log path, before spending the lane |
 | `query_timeout` | `retry` | an analytical read exceeded its cancellable query budget; no analytical result is returned. Retry the named call after a few seconds or narrow its `from`/`to` window; report `meta.request_id` if it persists. |
-| `internal` | `server` | the arguments were accepted and the server failed (3.13.0). Retrying the same call once is reasonable; if it fails again, report `meta.request_id` with `elixir_send_feedback`. Before 3.13.0 this case was reported as `bad_request`, which told an agent to fix a call that was fine |
+| `internal` | `server` | the arguments were accepted and the server failed. Retrying the same call once is reasonable; if it fails again, report `meta.request_id` with `elixir_send_feedback` |
 
 Every code is one branch: the message is for a person, the hint names one
 executable next step (a tool and its arguments), and an agent should never
@@ -437,15 +429,14 @@ have to read the message to know which case it is in. Check the error body,
 not only the transport flag; `meta.request_id` identifies the call for a
 report.
 
-**`class`** (3.18.0) is the one word a consumer branches on without
+**`class`** is the one word a consumer branches on without
 knowing the code list: `retry` is not a failure of the call (call again:
 `live_pending` after `retry_after_s`, `query_timeout` after a few seconds or
 with a narrower window); `input` means the call is wrong as sent; `subject`
 means the call is fine and there is nothing to answer about; `server` means
 the server failed and `meta.request_id` is what to report; `budget` is a
 quota. Every code has exactly one class (`ERROR_CLASS` in the contracts
-package), so a consumer that counted `live_pending` as a failed call and
-swept after it can stop. Transport-level refusals (the rate limit, a
+package), so `live_pending` is never a failed call. Transport-level refusals (the rate limit, a
 database that will not connect) carry the same envelope and class.
 
 The heavy MCP reads `battles_trends`, `cards_card`, `clans_standings` and
@@ -483,7 +474,7 @@ version, with the tool map, is [Choosing a tool](/docs/choosing-a-tool).
 
 **What omitting a subject argument means** depends on the tool's family, and
 the first sentence of every description says which. Segment tools are the
-exception: `segment` is required since 4.0.0, to identify the player or clan being read and never an implicit default.
+exception: `segment` is required, to identify the player or clan being read, and is never an implicit default.
 
 | Family | Subject argument | Omission rule |
 |---|---|---|
@@ -506,7 +497,7 @@ in its hint.
   `display_name` out, and drops either if a client still sends it. The tools that build the map, `elixir_identify` and
   `elixir_my_identities`, are agent-only. An empty `player_tag` is refused as
   a caller bug, never treated as "default". See [Agents](/docs/agents).
-- **Validation is strict** since 0.39.2: arguments are checked against the
+- **Validation is strict**: arguments are checked against the
   published `inputSchema` before the handler runs. An unknown enum value, an
   inverted date window, or a `limit` above the declared maximum is
   `bad_request`, never clamped or emptied.
@@ -523,7 +514,7 @@ in its hint.
   it resolves the date-only bounds and every local label
   (`battle_time_local` is ISO 8601 with its offset). Default: the account's
   timezone. An unknown zone is `bad_request`.
-- **`applied`** is the one echo block, on every response except seven
+- **`applied`** is the one echo block, on every response except six
   (`elixir_my_players`, `elixir_my_identities`, `elixir_coverage`,
   `elixir_collectors`, `elixir_data_insights`, and
   `elixir_examples` without an `example`): `window` (`from`,
@@ -553,16 +544,16 @@ in its hint.
   `from`/`to`, and `next_cursor` is the window end you just read.
 - **`live: true`** on `players_profile`, `clans_roster`, `war_current`,
   `battles_query` asks for a read no older than the
-  API's cache. Asynchronous (1.7.0): fresh if in hand, otherwise queued
+  API's cache. Asynchronous: fresh if in hand, otherwise queued
   and answered now from the record with `live_status: { state:
   "pending", retry_after_s }`; call again after that. A new live read
   spends one request of the fleet's one global budget; when that budget is
   spent until the next scheduler tick nothing is queued or charged,
   `live_status` stays `pending` with `retry_after_s` the seconds to that
-  tick, and the note says the budget had no room (9.12.3). The tools are annotated `openWorldHint`.
+  tick, and the note says the budget had no room. The tools are annotated `openWorldHint`.
   `elixir_timeline` is the one exception: it selects by when the record
   observed an item, over (from, to] at the millisecond it serves, so a cut
-  instant passed as `to` reaches the item at the cut (7.1.5).
+  instant passed as `to` reaches the item at the cut.
 
 ## Identifiers the record uses
 
@@ -573,7 +564,7 @@ in its hint.
   participant tags, and the battle class; the same battle seen from two
   logs is one row.
 - **`request_id`**: a UUID minted before the tool runs and stamped into
-  `meta`; the same id appears on Account → Activity.
+  `meta`; the same id appears under Usage ▸ MCP requests in the console.
 
 ## Feedback and the changelog, over the wire
 
@@ -585,7 +576,8 @@ in its hint.
   its answer to the report, so the maintainer sees what you saw.
   `request_ids` (up to 20) carries every call a turn made when there were
   several; the first becomes `request_id` when that was omitted. `context`
-  stays free text for naming a tool or a question. Never metered.
+  stays free text for naming a tool or a question. Filing counts as one call
+  against the daily quota, like any tool call.
 - `elixir_my_feedback({ limit?, offset?, status?, since? })`: `status` one of
   `new`, `seen`, `planned`, `done`, `declined`; returns `response`,
   `responded_at`, `shipped_in`, `related_tools`. Pages are bounded by delivered
@@ -604,7 +596,7 @@ in its hint.
 Over the connection itself, three read-only Help tools serve this
 documentation from the same sources the site renders: `elixir_docs` (the
 index; one page by slug; one H2 section with `page` + `section`; or a word
-search with `query`), `elixir_examples` (the eleven worked examples with the
+search with `query`), `elixir_examples` (the ten worked examples with the
 tools each calls) and `elixir_updates` (What's new, newest first, `since` a
 date). The same text is reachable as resources at `elixir://docs`,
 `elixir://docs/<slug>`, `elixir://docs/<slug>#<section>`, `elixir://examples`,

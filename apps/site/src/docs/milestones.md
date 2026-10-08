@@ -7,7 +7,7 @@ order: 4
 navTitle: "Milestones"
 icon: sparkles
 lede: "A short note when you or an alt does something for the first time: a new arena, a promotion, a new best. Never a move down, never the same moment twice."
-console: ["Your email switches", "/console/account/profile/email", "Console ▸ Profile ▸ Email"]
+console: ["Your email switches", "/console/account/profile/email", "Account settings ▸ Emails from Elixir"]
 reviewed: "2026-10-02 against contract 9.18.1"
 ---
 
@@ -59,7 +59,7 @@ a new best or a legendary badge. A new arena and a promotion carry the
 battle that decided them when the record has it: the score, who it was
 against and where they started, and the trophies it moved, with **See
 the battle** opening [the battle's own page](/docs/battles#a-battles-page),
-the same link `battles_query` hands an agent. A card
+the same link `battles_query` hands a connected app. A card
 unlocked is shown as its art, in the form you unlocked, and opens the
 card's page in Elixir. With none of those,
 the first three of anything lead. The rest are listed under **Also**. The subject is the first
@@ -69,7 +69,7 @@ that player's season on [Ladder](/docs/ladder).
 ## Turning it off
 
 **Milestones** is one switch on
-[Profile ▸ Email](/console/account/profile/email), and every milestone
+[Account settings ▸ Emails from Elixir](/console/account/profile/email), and every milestone
 email has a link to turn it off. The switch is for all your players at
 once. [Turn an email off](/docs/turn-an-email-off) has the rest, and
 [Email](/docs/email) every other kind.

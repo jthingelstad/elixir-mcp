@@ -39,14 +39,13 @@ a recording stops. The fields are defined on
 Daily snapshots are keyed by the **game day**, the [policy day](#the-policy-day)
 below: a day runs from 10:00 UTC to 10:00 UTC and is named for the date it
 starts on, so a snapshot taken at 09:00 UTC on the 18th belongs to the 17th,
-the same day as the war day and the season roll it sits inside. (Before
-2026-09-17 the key was the UTC calendar date; every row was moved onto the
-game day then.) `players_timeline` returns one point per snapshot day and
+the same day as the war day and the season roll it sits inside.
+`players_timeline` returns one point per snapshot day and
 only from `snapshots_available_from`, and `players_summary.trophies_as_of`
 is a date, not an instant, because it names the snapshot the trophy count
 came from. The series tools take `YYYY-MM-DD` bounds, game days; an
 instant is accepted and floored to its game day, and the response says
-which day it became (`applied.window.floored`, 3.17.0).
+which day it became (`applied.window.floored`).
 
 Timeline items carry `observed_at`, the moment the recorder noticed the
 change, which is "observed between two polls": a member who left at 09:05
@@ -79,7 +78,7 @@ about to reset: `kind: pre_reset` for the weekly donation counters, and
 climb all week and drop to 0 once a week, around the start of Monday UTC. The
 `pre_reset` row keeps the highest value the record saw late that Sunday, so it
 never holds the new week's numbers. A week's donations everywhere are the
-highest value seen in its game days (Monday 10:00 to Monday 10:00 UTC; 6.33.0).
+highest value seen in its game days (Monday 10:00 to Monday 10:00 UTC).
 
 ## The policy day
 
@@ -112,7 +111,7 @@ closed, which sits inside the half hour before 10:00 UTC and differs per
 race; a battle played in that gap belongs to the new day in the game and
 to the old day on the grid. That rollover cannot be placed reliably across
 every clan Elixir records, so no surface splits a member's week by war
-day (9.0.1): war facts are the game's weekly counters, and
+day: war facts are the game's weekly counters, and
 `war_current.decks_today`, the day still being played, is the one
 day-sized figure. It is the game's own `decksUsedToday` counter for the
 current day, as the last race poll recorded it (so it can trail play by a
@@ -146,10 +145,9 @@ a clan's last poll:
 - Battles in the drift gap, played after the race's real reset but before
   10:00 UTC, would land on the **previous** policy day, which is why no
   count places war battles on a day: `decks_today` is the game's own
-  counter, which follows the race's real reset (9.1.2).
-- The period is the calendar's, open by construction (a day that has
-  ended is simply not the current one; the always-false
-  `nominal_period_elapsed` flag was removed at 4.0.0).
+  counter, which follows the race's real reset.
+- The period is the calendar's, open by construction: a day that has
+  ended is simply not the current one.
   `period.source_observed_at` says how fresh the race itself is.
 
 ## Windows and timezones
@@ -178,7 +176,7 @@ Every windowed tool takes the same bounds and echoes what it used:
   tool whose window is not an argument. An agent quoting "your last 30
   days" reads `source` before it says so. Beside them ride the `season`
   the window starts in, `crosses` (every season roll inside it) and
-  `season_age_days`, on every windowed tool (3.17.0).
+  `season_age_days`, on every windowed tool.
 
 The defaults differ by tool, and each says which applied:
 
@@ -233,7 +231,7 @@ scraped enters the data layer. Use a season window to keep comparisons within th
 - **`applied.window.season_age_days`** is how old that season is at the
   window's end. On the first days of a season the default window is thin
   and the record says so rather than widening it: `insufficient_sample`
-  fires as it always did, and a note names `season: "previous"` as the
+  fires, and a note names `season: "previous"` as the
   settled comparison.
 - `battles_trends` keeps its twelve-week default and crosses rolls by
   design; every week row carries `season_month`, the season its Tuesday

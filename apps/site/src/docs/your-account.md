@@ -7,14 +7,14 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your tier, and it shows nobody your address."
-console: ["Your profile and tier", "/console/account/profile", "Console ▸ Profile"]
+console: ["Your profile and tier", "/console/account/profile", "Account settings ▸ Profile"]
 reviewed: "2026-10-06 against contract 11.2.3"
 ---
 
 # Your account
 
-Everything in Elixir hangs off one account: the console, Elixir Clan,
-the emails and your own AI agent all act as the same person. The
+Everything in Elixir hangs off one account: the console, Ladder, Elixir
+Clan, the emails and the AI apps you connect all act as the same person. The
 account is an email address, the players you track and a few settings.
 There is no password.
 
@@ -30,7 +30,7 @@ privileged role is granted.
 Then add your player in [Console ▸ Tracking](/console/account/tracking), read
 your recorded play in [Ladder](/ladder), or follow [Bring your clan](/docs/bring-your-clan).
 A collector is not required to join. Collector approval, recording allowances
-and the fleet's shared fetch budget are separate from signup and unchanged.
+and the fleet's shared fetch budget are separate from signup.
 New signup has a checked “Send me Elixir product news” box; uncheck it before
 requesting your sign-in email to skip newsletter enrollment. Signing in to an
 existing account preserves its newsletter choice. Sign-in and welcome mail
@@ -56,7 +56,8 @@ in history. Back leaves an automatically opened email-feedback form; Forward
 returns with the email attached. Reload keeps the record address.
 
 A sign-in lasts **thirty days from its last use and ninety days at
-most**. **Console ▸ Profile ▸ Devices** lists every session that can act
+most**. **Account settings ▸ Sign-in and devices** (Account settings is in
+the account menu on the top bar) lists every session that can act
 as you, with a sign-out for each and **Sign out everywhere else**, which
 keeps the one you are using. Your agents and connected apps are not
 sessions; they are under [Connections](/docs/connections).
@@ -90,15 +91,15 @@ recording it: see [What Elixir records](/docs/recording).
 
 ## Your time zone
 
-**Console ▸ Profile ▸ Timezone** starts at UTC. It sets the times the
-console shows, how a date in a question to your agent resolves, the
+**Account settings ▸ Profile ▸ Timezone** starts at UTC. It sets the times the
+console shows, how a date in a question from a connected app resolves, the
 local times in tool responses and the days your emails name. Storage
 stays in UTC; only the reading changes.
 
 ## Your tier
 
 Your tier sets how many players and clans you can record and how many
-tool calls you can make a day; **Console ▸ Profile** shows each limit
+tool calls you can make a day; **Account settings ▸ Profile** shows each limit
 beside what you use. Tiers are granted by hand. **Ask for more slots**
 on the same page sends a request that a person reviews, one at a time.
 Running a collector adds slots of its own. The tiers and their numbers
