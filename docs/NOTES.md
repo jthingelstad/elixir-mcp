@@ -599,3 +599,31 @@ aggregate by signup week".
   the route's admin/member split in `web-api.test.mjs`, and
   `apps/web/test/admin-pulse.test.jsx`.
 - No MCP or JSON API change: MCP 11.4.1, JSON API 3.1.0.
+
+## 2026-10-08 — the beta pulse and 0208 are live; two Gym guards
+
+Deployed 9319942d (#379) at 23:31Z (6:31 PM CT): migrations 207 applied,
+1 ran (0208); smoke ok; acceptance `players,clans` 234 cases, 2 failed,
+31 skipped.
+
+- **0208** marked the 35 first-read membership rows across 11 clans as
+  baseline, as the census counted them; none deleted (Jamie: "Approved:
+  mark the 35 first-read membership rows as baseline in elixir
+  production").
+- **The beta pulse** is at Console ▸ Admin ▸ Beta pulse; mail opens are
+  only in Tinylytics.
+- **Privacy:** privacy.md does not mention the beta pulse (Jamie
+  2026-10-08: "Privacy page: no").
+- **Triage, gym 132.4 and 332.5** (`players_summary` for #20JJJ2CCRU,
+  asserting the "NOT comparable across rows" note): amend the guard.
+  Their only `when` was `neq top_deck.dominant_mode.mode
+  best_deck.dominant_mode.mode`, which holds when `best_deck` is null (no
+  deck with 10+ battles in the window, or the best deck is the top deck),
+  so they ran with nothing to compare. The guard is now `all` of `has
+  best_deck.dominant_mode.mode` and the `neq`, with an `amended` reason
+  on each case (Jamie: "Approved: add a has best_deck guard to gym 132.4
+  and 332.5 in elixir-mcp acceptance/gym.json, with the deploy-results
+  NOTES entry, by PR"). `acceptance.test.mjs` pins it: no best deck, or
+  one in the top deck's mode, is SKIPPED; two modes without the note
+  fail. Re-run alone against live with `--only`, both read SKIPPED. No
+  deploy: a triage edit needs none.
