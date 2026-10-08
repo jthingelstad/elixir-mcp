@@ -24,9 +24,35 @@ permissions: {}
 
 jobs:
   # verify and the journeys run side by side; `validate` passes only when
-  # both did. A job skipped by a failed `needs` reports as skipped, which
-  # a required check would count as passing, so `validate` always runs
-  # and checks each result itself.
+  # both did. A pull request runs the journeys only when it touches what
+  # they serve (infra/scripts/e2e-needed.sh); a push to main always runs
+  # them. A skipped job would count as passing for a required check, so
+  # `validate` always runs and checks each result itself.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      e2e: ${{ steps.decide.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            e2e="$(git diff --name-only "$BASE" HEAD | sh infra/scripts/e2e-needed.sh)"
+          else
+            e2e=true
+          fi
+          echo "e2e: $e2e"
+          echo "e2e=$e2e" >> "$GITHUB_OUTPUT"
+
   verify:
     name: verify
     runs-on: ubuntu-latest
@@ -73,6 +99,8 @@ jobs:
   # across shards, each building the same tree verify builds.
   e2e:
     name: e2e (${{ matrix.shard }}/2)
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -97,13 +125,16 @@ jobs:
   validate:
     name: validate
     if: always()
-    needs: [verify, e2e]
+    needs: [changes, verify, e2e]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
       - env:
+          CHANGES: ${{ needs.changes.result }}
+          WANT_E2E: ${{ needs.changes.outputs.e2e }}
           VERIFY: ${{ needs.verify.result }}
           E2E: ${{ needs.e2e.result }}
         run: |
-          echo "verify: $VERIFY, e2e: $E2E"
-          test "$VERIFY" = success && test "$E2E" = success
+          echo "changes: $CHANGES, verify: $VERIFY, e2e: $E2E (wanted: $WANT_E2E)"
+          test "$CHANGES" = success && test "$VERIFY" = success || exit 1
+          if [ "$WANT_E2E" = true ]; then test "$E2E" = success; else test "$E2E" = skipped; fi
