@@ -166,7 +166,7 @@ async function resolveEntitlements(db, account) {
  * default — and its absence is a question to ask the human, not an error to
  * paper over.
  */
-async function identityFor(db, accountId, externalId) {
+export async function identityFor(db, accountId, externalId) {
   if (typeof externalId !== "string" || !externalId.trim()) return null;
   const { rows } = await db.query(
     `select player_tag from agent_identity

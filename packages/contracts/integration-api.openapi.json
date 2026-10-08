@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "3.0.0",
+    "version": "3.1.0",
     "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Integrations do not enroll players or clans for recording; people manage their own tracked record. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
@@ -1353,6 +1353,277 @@
           }
         }
       }
+    },
+    "/feedback": {
+      "get": {
+        "operationId": "myFeedback",
+        "summary": "The caller's own feedback and what happened to it (3.1.0): the elixir_my_feedback tool, every item filed anywhere in Elixir, with status, the maintainer's answer and what shipped. Pages: pass next_offset as offset until null. Answers on the page are marked read.",
+        "x-permission": "feedback:write",
+        "x-principals": ["person", "integration"],
+        "x-tool": "elixir_my_feedback",
+        "security": [
+          {
+            "personOAuth": ["feedback:write"]
+          },
+          {
+            "integrationKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["new", "seen", "planned", "done", "declined"]
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "area",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mcp",
+                "api",
+                "console",
+                "ladder",
+                "clan",
+                "mail",
+                "docs",
+                "recorder"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success: the elixir_my_feedback tool's structured result (feedback, total, next_offset), the same fields its outputSchema declares at /docs/tools.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "elixir_my_feedback"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-integration-permission": "feedback:write"
+      },
+      "post": {
+        "operationId": "sendFeedback",
+        "summary": "File feedback with the Elixir maintainer (3.1.0): the elixir_send_feedback tool, the same record every door files (MCP, the Console, Ladder, Elixir Clan, the email footer). Every item is answered; GET /feedback reads the answers. A person's grant needs feedback:write; an integration files as itself and needs the feedback:write permission.",
+        "x-permission": "feedback:write",
+        "x-principals": ["person", "integration"],
+        "x-tool": "elixir_send_feedback",
+        "security": [
+          {
+            "personOAuth": ["feedback:write"]
+          },
+          {
+            "integrationKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000,
+                    "description": "The feedback itself, up to 8,000 characters."
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "general",
+                      "bug",
+                      "data_quality",
+                      "feature",
+                      "praise",
+                      "judgment",
+                      "other"
+                    ],
+                    "default": "general"
+                  },
+                  "context": {
+                    "type": "string",
+                    "description": "Which operation or question prompted this."
+                  },
+                  "request_id": {
+                    "type": "string",
+                    "description": "The request_id of the call this is about; only the caller's own calls attach."
+                  },
+                  "request_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 20
+                  },
+                  "refs": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "description": "What else it is about. A pointer that is malformed or not the caller's is dropped and named in notes; the report is kept.",
+                    "items": {
+                      "type": "object",
+                      "required": ["kind", "ref"],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "call",
+                            "email",
+                            "player",
+                            "clan",
+                            "clan_action",
+                            "award",
+                            "policy"
+                          ]
+                        },
+                        "ref": {
+                          "type": "string",
+                          "maxLength": 120
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "follows_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The caller's own item this replies to."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success: the elixir_send_feedback tool's structured result (feedback_id, applied, notes), the same fields its outputSchema declares at /docs/tools.",
+            "headers": {
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "request_id"],
+                  "properties": {
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "x-tool": "elixir_send_feedback"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Failure. Retry-After is supplied for throttling and temporary failures.",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "x-integration-permission": "feedback:write"
+      }
     }
   },
   "components": {
@@ -1373,7 +1644,8 @@
               "cr:read": "Read the record as the signed-in person",
               "recordings:write": "Track players as the signed-in person",
               "account:email": "The account's address, family apps only",
-              "clans:attest": "Record what the person does in their clan as attested facts, family apps only"
+              "clans:attest": "Record what the person does in their clan as attested facts, family apps only",
+              "feedback:write": "File feedback with the Elixir maintainer and read its answers as the signed-in person"
             }
           }
         }

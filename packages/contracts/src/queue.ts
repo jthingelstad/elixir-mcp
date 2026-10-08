@@ -102,6 +102,7 @@ export const PRODUCT_EMAIL_KINDS = [
   "collector_activity",
   "milestone",
   "clan_actions_waiting",
+  "feedback_answer",
 ] as const;
 export type ProductEmailKind = (typeof PRODUCT_EMAIL_KINDS)[number];
 export function isRetiredEmailKind(kind: string): boolean {
@@ -186,6 +187,7 @@ export const EMAIL_KIND_CLASS: Record<
   collector_activity: "bulk",
   milestone: "bulk",
   clan_actions_waiting: "bulk",
+  feedback_answer: "bulk",
 };
 
 export function isProductEmailKind(kind: unknown): kind is ProductEmailKind {

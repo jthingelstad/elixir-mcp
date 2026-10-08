@@ -726,8 +726,8 @@ export function accountRoutes({
         });
       const note = body.note ? String(body.note).slice(0, 500) : null;
       const { rows: fb } = await db.query(
-        `insert into feedback (account_id, surface, category, message, context)
-         values ($1, 'web', 'feature', $2, $3) returning feedback_id`,
+        `insert into feedback (account_id, surface, area, category, message, context)
+         values ($1, 'web', 'console', 'feature', $2, $3) returning feedback_id`,
         [
           account.accountId,
           `Tier upgrade request: ${account.role ?? "member"} -> ${role}${note ? ` — ${note}` : ""}`,

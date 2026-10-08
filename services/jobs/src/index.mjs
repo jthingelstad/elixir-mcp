@@ -16,6 +16,7 @@ import pg from "pg";
 import { sweepSilentCollectors } from "./fleet.mjs";
 import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
 import { makeOutbox } from "@elixir-mcp/outbox";
+import { runFeedbackAnswers } from "./email/feedback-answers.mjs";
 import { runCollectorUpgrades } from "./email/collector-upgrades.mjs";
 import { runEmail } from "./email/index.mjs";
 import { activityHistogram } from "./activity.mjs";
@@ -321,6 +322,22 @@ export async function handler(event, context) {
         : null,
     });
     console.log(JSON.stringify({ collector_upgrades: result }));
+    if (!event.feedback_answers) return result;
+  }
+  // Answers to feedback (0204) ride the collector upgrade drain's
+  // one-minute rule ({"collector_upgrades": true, "feedback_answers":
+  // true}), after it, so a failure here never holds an upgrade notice.
+  if (event?.feedback_answers) {
+    const result = await runFeedbackAnswers({
+      databaseUrl: process.env.DATABASE_URL,
+      enqueue: enqueueEmail,
+      secret: unsubscribeKeys(),
+      archive: await mailArchiveStore(),
+      remainingMs: context?.getRemainingTimeInMillis
+        ? () => context.getRemainingTimeInMillis()
+        : null,
+    });
+    console.log(JSON.stringify({ feedback_answers: result }));
     return result;
   }
   if (typeof event?.email === "string") {

@@ -65,6 +65,7 @@ export const KIND_LABELS = {
   collector_activity: "Collector activity",
   milestone: "Milestones",
   clan_actions_waiting: "Clan actions waiting",
+  feedback_answer: "Answers to your feedback",
 };
 
 /** The family's apps: a family app's own mail links back to it, and
@@ -1190,6 +1191,68 @@ function clanActions(f, c) {
   };
 }
 
+/**
+ * feedback_answer (0204; Jamie, 2026-10-08): the maintainer answered
+ * something the reader filed, from any part of Elixir. One mail per
+ * answer, sent only when they have not already read it where they filed
+ * it. Their own words come back as an excerpt; the answer whole, as
+ * plain text (it was written as Markdown for the Console's page).
+ */
+const FEEDBACK_AREA_LABEL = {
+  mcp: "MCP",
+  api: "the JSON API",
+  console: "the Console",
+  ladder: "Ladder",
+  clan: "Elixir Clan",
+  mail: "an email",
+  docs: "the docs",
+  recorder: "the recorder",
+};
+const FEEDBACK_STATUS_LABEL = {
+  seen: "Read",
+  planned: "Planned",
+  done: "Done",
+  declined: "Declined",
+};
+function feedbackAnswer(f, c) {
+  const clip = (text, max) => {
+    const one = String(text ?? "").trim();
+    return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;
+  };
+  const paragraphs = (text) =>
+    String(text ?? "")
+      .trim()
+      .split(/\n\s*\n/)
+      .map((para) => c.p(esc(para.trim()).replace(/\n/g, "<br>")))
+      .join("");
+  const status = FEEDBACK_STATUS_LABEL[f.status] ?? f.status;
+  const where = FEEDBACK_AREA_LABEL[f.area] ?? "Elixir";
+  const shipped = f.shipped_in
+    ? ` · shipped in <span style="font-family:${MONO};">${esc(f.shipped_in)}</span>`
+    : "";
+  const body = `${c.h2("You wrote")}
+    ${c.box(c.p(esc(clip(f.message, 600)).replace(/\n/g, "<br>"), { mb: 0, color: M.ink }))}
+    ${c.h2("The answer", `${esc(status)}${shipped}`)}
+    ${paragraphs(f.response)}
+    ${c.button("Open it in Elixir", f.link)}
+    ${c.cov("Reply from that page and your reply joins the same thread. Every item you file is answered, wherever you filed it.")}`;
+  const preheader = clip(String(f.response ?? "").replace(/\s+/g, " "), 140);
+  return {
+    subject: `Answered: “${clip(String(f.message ?? "").replace(/\s+/g, " "), 60)}”`,
+    preheader,
+    html: (links) =>
+      c.shell({
+        kind: "feedback_answer",
+        title: "Your feedback, answered",
+        subtitle: `About ${esc(where)} · filed ${esc(c.date(f.filed_at))}`,
+        preheader,
+        body,
+        turnOff: "answers to your feedback",
+        links,
+      }),
+  };
+}
+
 const RENDERERS = {
   arena_week: arena,
   tracking_report: tracking,
@@ -1197,6 +1260,7 @@ const RENDERERS = {
   collector_activity: collector,
   milestone,
   clan_actions_waiting: clanActions,
+  feedback_answer: feedbackAnswer,
 };
 
 /** {subject, preheader, html} for a kind's facts. `links.unsubscribe`

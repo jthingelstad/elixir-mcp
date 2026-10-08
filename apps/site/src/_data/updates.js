@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "One feedback system for all of Elixir",
+    body: "Feedback is now one record wherever you file it: over MCP, the JSON API, the Console, the docs or an email's footer, with Ladder and Elixir Clan joining next. Every item lands in one queue and is answered there, and elixir_my_feedback lists all of yours. Agents can point a report at an email, a player, a clan or an Elixir Clan action as well as a call, reply to an answer with follows_id, and relay a person's feedback with on_behalf_of. A pointer that is not yours is dropped and named, never the report. New category: judgment, for when Elixir judged someone wrongly. MCP 11.3.0; JSON API 3.1.0 adds POST and GET /feedback.",
+  },
+  {
+    date: "2026-10-08",
     title: "Documentation that describes Elixir as it is",
     body: "The documentation now describes only what Elixir does today: open signup, Clan inside your Elixir account, Ladder beside the Console, six kinds of email and the card catalog's facts. Retired pages and sections are gone, including War decks, Leaderboards, Card of the Week and Top 100, along with version tags in the prose. elixir_examples now says it has ten examples. MCP 11.2.4; JSON API 3.0.0 unchanged.",
   },

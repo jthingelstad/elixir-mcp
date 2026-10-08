@@ -431,6 +431,8 @@ export function makeInvoker({
                 live: live ? timedLive(live, timings) : null,
                 notifyOwner,
                 surface,
+                requestId,
+                clientName,
               },
               args,
             )
@@ -456,6 +458,10 @@ export function makeInvoker({
             // answer for the door's reader (clans_participation's table
             // for MCP, #124), never change what it says.
             surface,
+            // This call's own id and client, for a tool that records who
+            // asked through what (elixir_send_feedback's via, 0204).
+            requestId,
+            clientName,
           },
           args,
         );

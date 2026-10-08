@@ -52,10 +52,11 @@ export function ownerNotifyMessage(spec) {
         detail: {
           category: String(spec.category ?? "general"),
           surface: String(spec.surface ?? "web"),
+          ...(spec.area ? { area: String(spec.area) } : {}),
           from: spec.from ?? "an account",
           ...(spec.feedbackId ? { feedback_id: String(spec.feedbackId) } : {}),
         },
-        link: `${SITE}/console/admin`,
+        link: `${SITE}/console/admin/feedback`,
       };
     case "role_upgrade_request":
       return {

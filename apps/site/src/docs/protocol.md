@@ -568,18 +568,34 @@ in its hint.
 
 ## Feedback and the changelog, over the wire
 
-- `elixir_send_feedback({ message, category?, context?, request_id?, request_ids? })`: `message`
+Feedback is one record for all of Elixir: an item filed here, over the
+JSON API (`POST /api/v1/feedback`), from the Console, Ladder, Elixir Clan,
+the docs or an email's footer lands in the same queue, is answered there,
+and is listed by `elixir_my_feedback` wherever it was filed.
+
+- `elixir_send_feedback({ message, category?, context?, request_id?, request_ids?, refs?, follows_id?, on_behalf_of? })`: `message`
   1 to 8000 chars; `category` one of `general` (default), `bug`,
-  `data_quality`, `feature`, `praise`, `other`. `request_id` is the
+  `data_quality`, `feature`, `praise`, `judgment` (Elixir judged someone
+  wrongly), `other`. `request_id` is the
   `meta.request_id` of the call the feedback is about — every response
   carries one, and passing it attaches that exact request, its arguments and
   its answer to the report, so the maintainer sees what you saw.
   `request_ids` (up to 20) carries every call a turn made when there were
-  several; the first becomes `request_id` when that was omitted. `context`
-  stays free text for naming a tool or a question. Filing counts as one call
-  against the daily quota, like any tool call.
-- `elixir_my_feedback({ limit?, offset?, status?, since? })`: `status` one of
-  `new`, `seen`, `planned`, `done`, `declined`; returns `response`,
+  several; the first becomes `request_id` when that was omitted. `refs`
+  (up to 20, with the calls) points at anything else it is about:
+  `{ kind, ref }` with kind `email` (a send id from a mail's footer),
+  `player` or `clan` (a tag), or `clan_action`, `award`, `policy`
+  (Elixir Clan's ids). Only your own calls and emails attach; a pointer
+  that is malformed or not yours is dropped and named in `notes`, and the
+  report is kept. `follows_id` replies to one of your own items, so a
+  question about an answer reads as one thread. An agent relaying a
+  person's feedback passes `on_behalf_of`; the answer still comes to the
+  agent. `context` stays free text for naming a tool or a question. Filing
+  counts as one call against the daily quota, like any tool call.
+- `elixir_my_feedback({ limit?, offset?, status?, since?, area? })`: `status` one of
+  `new`, `seen`, `planned`, `done`, `declined`; `area` one of `mcp`, `api`,
+  `console`, `ladder`, `clan`, `mail`, `docs` (where it was filed). Returns
+  each item's `area`, `refs` and `follows_id` when it has them, `response`,
   `responded_at`, `shipped_in`, `related_tools`. Pages are bounded by delivered
   size as well as `limit`, so follow `next_offset` with the same filters until
   it is `null`; `total` counts the filtered ledger. Only replies delivered on

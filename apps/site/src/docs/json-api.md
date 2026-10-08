@@ -7,7 +7,7 @@ order: 3
 navTitle: "JSON API"
 icon: braces
 lede: "Programs read Elixir over plain HTTPS and JSON at /api/v1: the same record your agent reads, as a person through an OAuth app or as a platform with a key."
-reviewed: "2026-10-08 against contract 11.2.4"
+reviewed: "2026-10-08 against contract 11.3.0"
 ---
 
 # The JSON API
@@ -58,6 +58,7 @@ calls, and answer with that tool's result.
 | `POST /profile-refreshes`, `GET /profile-refreshes/{id}` | integration | a profile refresh, asynchronous |
 | `POST /players/{tag}/facts` | integration | a fact about a player |
 | `POST /clans/{tag}/mail` | integration | a family app's mail to a clan |
+| `POST /feedback`, `GET /feedback` | person (`feedback:write`), integration | `elixir_send_feedback` and `elixir_my_feedback`: feedback to the maintainer and its answers (3.1.0) |
 
 `?fresh=1` on a player's profile or battles asks for a live read, which
 spends the person's live quota unless the app is a family app.
@@ -82,7 +83,7 @@ The JSON API has its own version, separate from the MCP contract, in the
 OpenAPI document's `info.version`. Adding an operation or a field is a
 minor version. Removing or renaming a field is a major version, and the
 path stays `/api/v1` whatever the version, because the path is what a
-person's grant is for. The current version is 3.0.0; what changed in each
+person's grant is for. The current version is 3.1.0; what changed in each
 version is in the OpenAPI document and on [Updates](/updates).
 
 ## Limits

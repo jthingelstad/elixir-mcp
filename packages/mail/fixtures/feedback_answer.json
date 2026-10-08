@@ -1,0 +1,11 @@
+{
+ "feedback_id": 412,
+ "area": "ladder",
+ "category": "data_quality",
+ "status": "done",
+ "message": "The global board shows me at rank 1,204 but the game says 1,187. Is the board a day behind?",
+ "filed_at": "2026-10-06T19:12:00.000Z",
+ "response": "Good catch. The board was reading the previous season's floor for players who crossed into Path of Legends after the reset.\n\nFixed: ranks now come from the same read as the game's own board, refreshed every hour.",
+ "shipped_in": "11.3.0",
+ "link": "https://elixir.poapkings.com/console/account/feedback/412"
+}

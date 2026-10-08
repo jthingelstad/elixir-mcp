@@ -728,3 +728,35 @@ test("a clan header keeps a selected closed race's season and week together acro
   facts.week.war_week = null;
   assert.match(renderMail("clan_report", facts, links).html, /Season 137/);
 });
+
+test("feedback answer: their words clipped and escaped, the answer whole, status and what shipped", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "feedback_answer.json"), "utf8"),
+  );
+  const { subject, html, preheader } = renderMail(
+    "feedback_answer",
+    facts,
+    links,
+  );
+  assert.equal(
+    subject,
+    "Answered: “The global board shows me at rank 1,204 but the game says 1…”",
+  );
+  assert.match(html, /Your feedback, answered/);
+  assert.match(html, /About Ladder · filed/);
+  assert.match(html, />Done · shipped in <span[^>]*>11\.3\.0</);
+  assert.match(html, /Fixed: ranks now come from the same read/);
+  assert.match(preheader, /^Good catch\./);
+  const hostile = renderMail(
+    "feedback_answer",
+    {
+      ...facts,
+      message: "<img src=x onerror=alert(1)>",
+      response: "<script>x()</script>",
+      shipped_in: null,
+    },
+    links,
+  ).html;
+  assert.doesNotMatch(hostile, /<script>|<img src=x/);
+  assert.doesNotMatch(hostile, /shipped in/);
+});

@@ -114,6 +114,10 @@
       "entry": ["src/routes.jsx", "src/App.jsx", "test/**/*.test.{js,jsx}"],
       "project": ["src/**/*.{js,jsx}", "test/**/*.{js,jsx}"],
       "ignoreDependencies": ["@elixir-mcp/design"]
+    },
+    "packages/feedback": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
     }
   }
 }
