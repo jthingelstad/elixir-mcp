@@ -143,9 +143,10 @@ test("players: you first, then your accounts, friends and the watched, four rows
     "/console/account/tracking/U8RYG9Y2U",
     "/console/account/tracking",
   ]);
-  // The primary's line is its last 28 days, from the activity reading.
+  // The primary's line is its last 28 days, from the activity reading,
+  // said as a window and with no clock name a person would read as one.
   await waitFor(() =>
-    expect(rows[1].textContent).toContain("56 battles recorded in 28 UTC days"),
+    expect(rows[1].textContent).toContain("56 battles in the last 28 days"),
   );
   expect(rows[2].textContent).toContain("you");
   expect(rows[4].textContent).toContain("friend");
@@ -172,15 +173,36 @@ test("clans lead with yours; today's calls say the cap and when the count resets
   expect(rows[1].textContent).toContain("activity");
 
   const today = (
-    await screen.findByRole("heading", { name: /MCP calls today/ })
+    await screen.findByRole("heading", { name: /tool calls today/ })
   ).closest("section");
-  expect(today.textContent).toContain("2,551 MCP calls today");
+  expect(today.textContent).toContain("2,551 tool calls today");
+  expect(today.textContent).not.toContain("MCP");
   expect(today.textContent).toMatch(
     /No daily cap on the owner tier · the count resets /,
   );
   expect(
     within(today).getByRole("link", { name: "Usage ›" }).getAttribute("href"),
   ).toBe("/console/account/usage");
+});
+
+test("a person with no agent is told today's calls were the site's own reads", async () => {
+  stub({
+    ...ROUTES,
+    "/api/me/usage": {
+      today_calls: 6,
+      web_calls_today: 6,
+      quota_max: 500,
+      live_today: 0,
+    },
+  });
+  renderWithProviders(<Overview me={ME} navigate={vi.fn()} />);
+  const today = (
+    await screen.findByRole("heading", { name: /tool calls today/ })
+  ).closest("section");
+  expect(today.textContent).toContain("6 tool calls today");
+  expect(today.textContent).toContain(
+    "6 of 500 for the day · all of them the Console's and Ladder's own reads, which count like an agent's · the count resets",
+  );
 });
 
 test("the pill says when the primary was last read, green within the hour", async () => {

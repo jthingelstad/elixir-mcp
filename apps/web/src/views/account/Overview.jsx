@@ -18,6 +18,7 @@ import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 import { CONSOLE } from "../../lib/console.js";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
 import { BringClanmates } from "../../components/BringClanmates.jsx";
+import { ZoneOffer } from "../../components/ZoneOffer.jsx";
 
 /**
  * Overview REPORTS; Tracking manages.
@@ -257,14 +258,17 @@ function More({ rest, restNarrow }) {
 }
 
 /** Positive activity from the same canonical evidence read as the year.
- * A successful poll or a day with some battles cannot establish completeness. */
+ * A successful poll or a day with some battles cannot establish completeness.
+ * A window, said as one: the year's last 28 days (UTC days, as the graph
+ * below says), never a count of days with battles, which on the account's
+ * own calendar can differ from the graph's. */
 function usePrimaryNote(primary) {
   const activity = useBattleActivity(primary?.player_tag ?? null);
   const a = activity.data;
   if (!a?.as_of) return "you";
   const n = (a.days ?? []).slice(-28).reduce((sum, d) => sum + d.battles, 0);
   return n > 0
-    ? `${n.toLocaleString()} battle${n === 1 ? "" : "s"} recorded in 28 UTC days`
+    ? `${n.toLocaleString()} battle${n === 1 ? "" : "s"} in the last 28 days`
     : "capture may be incomplete";
 }
 
@@ -385,14 +389,24 @@ function Clans({ clansQuery }) {
   );
 }
 
-/** Today's calls against the day's budget, and when the day turns over.
- *  Nothing while the reading is on its way or failed: the Usage page
- *  says why. */
+/** Today's tool calls against the day's budget, and when the day turns
+ *  over. Not "MCP calls": the Console's and Ladder's own reads go through
+ *  the same tools and spend the same budget (docs/limits), so a person
+ *  who never connected an agent still has calls, and the tile says whose
+ *  they were. Nothing while the reading is on its way or failed: the
+ *  Usage page says why. */
 function Today({ role }) {
   const { data: usage } = useUsage();
   const { zone } = useClock();
   if (!usage) return null;
   const q = quotaReading(usage, zone);
+  const web = Number(usage.web_calls_today ?? 0);
+  const whose =
+    web === 0
+      ? ""
+      : web === q.calls.used
+        ? "all of them the Console's and Ladder's own reads, which count like an agent's · "
+        : `${web.toLocaleString()} of them the Console's and Ladder's own reads, which count like an agent's · `;
   return (
     <section
       aria-labelledby="ov-today"
@@ -401,14 +415,14 @@ function Today({ role }) {
       <Icon name="chart-column" size={18} />
       <div className="flex min-w-0 flex-auto flex-col gap-0.5">
         <h2 id="ov-today" className="m-0 text-[14px] font-semibold">
-          <span className="mono">{q.calls.used.toLocaleString()}</span> MCP call
-          {q.calls.used === 1 ? "" : "s"} today
+          <span className="mono">{q.calls.used.toLocaleString()}</span> tool
+          call{q.calls.used === 1 ? "" : "s"} today
         </h2>
         <span className="text-[12.5px] text-ink-faint">
           {q.calls.limit == null
             ? `No daily cap${role ? ` on the ${role} tier` : ""}`
             : `${q.calls.label} for the day`}{" "}
-          · the count {q.resets}
+          · {whose}the count {q.resets}
         </span>
       </div>
       <Link
@@ -510,6 +524,8 @@ export function Overview({ me, navigate }) {
         </div>
         <LivePill me={me} />
       </div>
+
+      <ZoneOffer className="mb-6" />
 
       <FirstAnswer
         claimsKey={players

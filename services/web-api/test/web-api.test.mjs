@@ -480,13 +480,23 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
      values ($1, 'war_current', 'not_entitled')`,
     [acct[0].account_id],
   );
+  // A Ladder read (charged, the site's own), an Elixir Clan read and an
+  // /api/v1 call (neither spends the daily tool-call budget).
+  await db.query(
+    `insert into mcp_call_audit (account_id, tool, surface, client_name)
+     values ($1, 'battles_query', 'web', null),
+            ($1, 'clans_participation', 'web', 'Clan'),
+            ($1, 'players_summary', 'rest', null)`,
+    [acct[0].account_id],
+  );
 
   const mine = parse(
     await handler(
       event({ method: "GET", path: "/api/me/usage", cookie, body: undefined }),
     ),
   );
-  assert.equal(mine.today_calls, 3);
+  assert.equal(mine.today_calls, 4, "what the daily limiter charged");
+  assert.equal(mine.web_calls_today, 1, "the Console's and Ladder's share");
   assert.equal(mine.quota_max, 500, "default quota surfaced");
   assert.equal(mine.days[0].errors, 1);
   assert.ok(mine.top_tools.some((t) => t.tool === "players_profile"));
@@ -507,7 +517,8 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
     Object.hasOwn(row, "primary_name"),
     "the label can name the player",
   );
-  assert.equal(row.calls_7d, 3);
+  // The fleet view counts every recorded call, whatever spent the budget.
+  assert.equal(row.calls_7d, 6);
   assert.equal(row.errors_7d, 1);
   assert.ok(fleet.tools.some((t) => t.tool === "battles_query"));
   // A day's capacity is the planner's bulk share, not rate x 86,400 (#64).
