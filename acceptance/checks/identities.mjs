@@ -11,12 +11,9 @@ import {
   rows,
   scalar,
   ordered,
-  sums,
   implies,
   bounded,
-  sumAtMost,
   check,
-  get,
 } from "../dsl.mjs";
 
 const read = (ctx, tool, args = {}) =>
@@ -44,27 +41,6 @@ const warDecksThisWeek = (member, body, current) => {
       w.section_index === current?.section_index,
   );
   return i < 0 ? null : member.war_decks?.[i];
-};
-
-const META_CORPUS = { segment: "corpus", limit: 5 };
-const EXCLUSIONS = [
-  "excluded.duels",
-  "excluded.boat",
-  "excluded.draws",
-  "excluded.unresolved",
-  "excluded.no_deck",
-  "decided_battles",
-];
-/** `excluded` counts battles and decided_battles counts games (9.11.0,
- *  #363): a duel is one battle in excluded.duels and its decided rounds
- *  are in decided_battles, so the exclusions and decided sum to the
- *  battles considered plus the rounds they became (duel_rounds). */
-const CONSIDERED_PLUS_ROUNDS = (r) => {
-  const considered = get(r, "excluded.considered");
-  const rounds = r.duel_rounds;
-  if (considered === undefined || rounds === undefined) return undefined;
-  if (considered === null || rounds === null) return null;
-  return considered + rounds;
 };
 
 export const identities = [
@@ -245,74 +221,6 @@ export const identities = [
     (r) => isInt(r.mean_fame),
   ),
 
-  // --- meta: exclusions and shares
-  sums(
-    "decks: considered = exclusions + decided",
-    "battles_meta_decks",
-    META_CORPUS,
-    CONSIDERED_PLUS_ROUNDS,
-    EXCLUSIONS,
-  ),
-  sums(
-    "cards: considered = exclusions + decided",
-    "battles_meta_cards",
-    META_CORPUS,
-    CONSIDERED_PLUS_ROUNDS,
-    EXCLUSIONS,
-  ),
-  sums(
-    "a deck row's record sums",
-    "battles_meta_decks",
-    META_CORPUS,
-    "battles",
-    ["wins", "losses"],
-    { list: "decks" },
-  ),
-  sums(
-    "a card row's record sums",
-    "battles_meta_cards",
-    META_CORPUS,
-    "battles",
-    ["wins", "losses"],
-    { list: "cards" },
-  ),
-  sumAtMost(
-    "usage shares",
-    "battles_meta_decks",
-    META_CORPUS,
-    "decks",
-    "usage_share",
-    1.001,
-  ),
-  implies(
-    "shrunk_win_rate present iff the sample is sufficient",
-    "battles_meta_decks",
-    META_CORPUS,
-    "decks",
-    () => true,
-    (d, body) => "shrunk_win_rate" in d === (body.insufficient_sample !== true),
-  ),
-  same(
-    "the two meta tools count one population",
-    scalar("battles_meta_decks", META_CORPUS, "decided_battles"),
-    scalar("battles_meta_cards", META_CORPUS, "decided_battles"),
-  ),
-
-  // --- rankings: flags and sizes
-  implies(
-    "a full board is not truncated",
-    "rankings_players",
-    { limit: 5 },
-    null,
-    (b) => b.snapshot?.full === true,
-    (b) => b.snapshot.truncated === false && isInt(b.snapshot.floor_rating),
-  ),
-  same(
-    "the clans view counts the same field",
-    scalar("rankings_clans", { limit: 3 }, "field_size"),
-    scalar("rankings_players", { limit: 3 }, "snapshot.entries"),
-  ),
-
   // --- a player: one window, two tools
   same(
     "a player's 30-day battles",
@@ -370,40 +278,4 @@ export const identities = [
       ok(checked > 0 || weeks.length === 0, "at least one rival reconciled");
     },
   },
-  check(
-    "fit_for splits after sort and limit",
-    "battles_meta_decks",
-    {
-      segment: "corpus",
-      mode: "ladder",
-      trophy_band: "10000_13999",
-      sort: "shrunk_win_rate",
-      fit_for: JAMIE,
-      limit: 17,
-    },
-    (body) => {
-      const rate = (d) => d.shrunk_win_rate ?? d.win_rate;
-      for (const [name, list] of [
-        ["decks", body.decks],
-        ["unfieldable", body.unfieldable],
-      ])
-        for (let i = 1; i < list.length; i += 1)
-          if (rate(list[i]) > rate(list[i - 1]))
-            return `${name}[] is not in the sort order at row ${i}`;
-      if (body.decks.length + body.unfieldable.length > body.applied.limit)
-        return "more rows than the limit";
-      for (const d of body.decks)
-        if (d.fit.fieldable !== true) return "an unfieldable row in decks[]";
-      for (const d of body.unfieldable)
-        if (d.fit.fieldable !== false || !d.fit.missing.length)
-          return "an unfieldable row without a reason";
-      for (const d of [...body.decks, ...body.unfieldable])
-        if (
-          d.fit.plays_archetype &&
-          !(d.fit.plays_win_condition && d.fit.plays_family)
-        )
-          return "the exact shape implies both";
-      return null;
-    },
-  ),
 ];

@@ -74,7 +74,7 @@ export function noteTokens(notes, { tools = new Set() } = {}) {
     for (const m of String(n).matchAll(/[A-Za-z_][A-Za-z0-9_.[\]]*/g)) {
       const word = m[0].replace(/\[\]/g, "").replace(/\.+$/, "");
       const segs = word.split(".");
-      // `rankings_clans.rated_players` is that tool's field, pointed at.
+      // `war_current.members_not_in_race` is that tool's field, pointed at.
       if (segs.length > 1 && tools.has(segs[0])) continue;
       for (const seg of segs) {
         // An API identifier (RoyalTournamentRank_v2) is CamelCase; our
@@ -101,7 +101,6 @@ export const VOCABULARY = new Set([
   "on_behalf_of",
   "from_to",
   "min_battles",
-  "fit_for",
   "group_by",
   "trophy_band",
   "rival_tags",
@@ -117,7 +116,6 @@ export const VOCABULARY = new Set([
   "not_owned",
   "form_not_unlocked",
   "neutral_0",
-  "corpus_window",
   "training_day",
   "period_unknown",
   "war_day_over",

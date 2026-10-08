@@ -184,7 +184,7 @@ export const contracts = [
         "battles_deck_upgrades",
       ]) {
         ok(!ctx.tools.has(tool), `${tool} is absent from tools/list`);
-        const r = await ctx.refusal(tool, {});
+        const r = await ctx.call(tool, {});
         ok(r.isError, `${tool} refuses a stale declaration`);
         eq(r.body?.error?.code, "rpc_error", `${tool} refusal`);
         ok(
@@ -192,7 +192,7 @@ export const contracts = [
           `${tool} is a named protocol refusal`,
         );
       }
-      const r = await ctx.refusal("cards_card", {
+      const r = await ctx.call("cards_card", {
         card_id: 26000007,
         segment: "corpus",
       });
@@ -296,75 +296,6 @@ export const contracts = [
           `clans_participation: ${bad} ${key} rows are not ${cols.length}-entry arrays`,
         );
       }
-      return { ms: r.ms };
-    },
-  },
-  {
-    id: "battles_meta_decks-season",
-    run: async (ctx) => {
-      const r = await ctx.read("battles_meta_decks", {
-        segment: "corpus",
-        limit: 5,
-      });
-      const body = answered(r, "battles_meta_decks");
-      notesNameFields(ctx, "battles_meta_decks", body, {
-        allow: ["held_level", "own_mean_level", "decks", "unfieldable"],
-      });
-      everyRowHas(body.decks, "shrunk_win_rate", "decks");
-      everyRowHas(body.decks, "archetype", "decks");
-      everyRowHas(body.decks, "cards", "decks");
-      ok(body.players_as_of, "the season read says its as-of");
-      return { ms: r.ms };
-    },
-  },
-  {
-    id: "battles_meta_cards-season",
-    run: async (ctx) => {
-      const r = await ctx.read("battles_meta_cards", {
-        segment: "corpus",
-        limit: 5,
-      });
-      const body = answered(r, "battles_meta_cards");
-      notesNameFields(ctx, "battles_meta_cards", body, {
-        allow: ["held_level", "own_mean_level", "decks", "unfieldable"],
-      });
-      everyRowHas(body.cards, "form", "cards");
-      everyRowHas(body.cards, "shrunk_win_rate", "cards");
-      return { ms: r.ms };
-    },
-  },
-  {
-    id: "battles_meta_decks-compact",
-    run: async (ctx) => {
-      const r = await ctx.read("battles_meta_decks", {
-        segment: "corpus",
-        limit: 5,
-        verbosity: "compact",
-      });
-      const body = answered(r, "battles_meta_decks compact");
-      eq(body.applied.verbosity, "compact", "applied.verbosity");
-      everyRowHas(body.decks, "card_names", "compact decks");
-      everyRowHas(body.decks, "archetype_label", "compact decks");
-      ok(!("methodology" in body), "compact drops methodology");
-      ok(
-        body.notes.every((n) => !/has one size/.test(n)),
-        "the meta tools are two-size now",
-      );
-      return { ms: r.ms };
-    },
-  },
-  {
-    id: "rankings_players",
-    run: async (ctx) => {
-      const r = await ctx.read("rankings_players", { limit: 5 });
-      const body = answered(r, "rankings_players");
-      notesNameFields(ctx, "rankings_players", body, {
-        // the profile's name for the same number
-        allow: ["pol_trophies"],
-      });
-      for (const k of ["depth", "full", "floor_rating", "truncated"])
-        ok(k in body.snapshot, `snapshot.${k}`);
-      ok(body.meta.recorded_since, "meta.recorded_since");
       return { ms: r.ms };
     },
   },

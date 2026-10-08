@@ -57,7 +57,7 @@ test("no committed bite carries an attested or account item's facts", () => {
 
 for (const bite of manifest) {
   const label = `${bite.feedback ? `#${bite.feedback} ` : ""}${bite.case ?? bite.rule} bites on ${bite.contract}: ${bite.why}`;
-  test(label, { skip: bite.retired ?? false }, async () => {
+  test(label, async () => {
     if (bite.case) {
       const door = replayDoor(bite.captures.map(load));
       const report = await runSuite(door, {

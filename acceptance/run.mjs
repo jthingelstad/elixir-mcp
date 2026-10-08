@@ -8,8 +8,7 @@
  * at the HTTP level; the Gym explores weekly. What none of them pin is
  * the live data shape at the live scale - `finished_early` was computed
  * as fame === 10000 and passed its fixture test for a fortnight while no
- * live-polled week ever equalled it; a 7-day corpus meta read timed out
- * only past 800k participant rows. This suite reads the deployed door
+ * live-polled week ever equalled it. This suite reads the deployed door
  * with a read-only agent token and asserts INVARIANTS, never values
  * that change daily:
  *
@@ -20,8 +19,8 @@
  *   budgets    - the known-heavy calls answer inside a ceiling well
  *                under the 18 s query budget, so creep is caught before
  *                it is a timeout
- *   gym        - the Elixir Gym's filed repros (#70-#82) with their
- *                acceptance criteria, its Pass 2 automated
+ *   gym        - the Elixir Gym's filed repros with their acceptance
+ *                criteria, its Pass 2 automated
  *
  * Usage: node acceptance/run.mjs [--only <substring>] [--family <family>] [--json]
  *   --family battles runs only the cases that read a battles_* tool: the
@@ -42,26 +41,6 @@ import { ground } from "./checks/ground.mjs";
 import { loadCatalogue } from "./catalogue.mjs";
 import { writeShape, loadShape } from "./shapes.mjs";
 
-// Explicitly retired domains, kept here so historical criteria remain reviewable.
-const RETIRED_TOOLS = new Set([
-  "rankings_players",
-  "rankings_clans",
-  "rankings_clan_ladder",
-  "rankings_timeline",
-  "battles_meta_decks",
-  "battles_meta_cards",
-  "cards_synergy",
-  "battles_deck_sets",
-  "battles_deck_upgrades",
-]);
-class RetiredCriterion extends Error {}
-function retainedCall(tool, args) {
-  if (RETIRED_TOOLS.has(tool) || args?.segment === "corpus")
-    throw new RetiredCriterion(
-      "2026-10-02 recorder scope: global boards, corpus statistics and recommendations retired; historical criterion retained.",
-    );
-}
-
 export const SUITES = {
   contracts,
   identities,
@@ -80,8 +59,7 @@ const KNOWN = new Map(
 /** Suites whose cases are independent run a few at a time; the hand-
  *  written suites share reads in order and stay sequential. */
 /** One at a time everywhere: the budget rule times each call, and three
- *  heavy reads on the micro inflate each other (cards_synergy read 8-11 s
- *  under a pool of three, 4 s alone). */
+ *  heavy reads on the micro inflate each other. */
 const CONCURRENCY = { catalogue: 1 };
 
 /** Run every case against a door. Cases in a suite run in order and
@@ -102,17 +80,11 @@ export async function runSuite(
   const ctx = {
     // Bite replays already supply the named fixture; live runs never set this.
     recordedFixtures,
-    call: async (tool, args) => {
-      retainedCall(tool, args);
-      return door.call(tool, args);
-    },
-    // Dedicated refusal probes intentionally call removed tools/selectors.
-    refusal: (tool, args) => door.call(tool, args),
+    call: door.call,
     tools: new Map(tools.map((t) => [t.name, t])),
     cache: new Map(),
     /** A read, cached by tool + args for the run. */
     read: async (tool, args = {}) => {
-      retainedCall(tool, args);
       const key = `${tool}:${JSON.stringify(args)}`;
       if (!ctx.cache.has(key)) ctx.cache.set(key, await door.call(tool, args));
       return ctx.cache.get(key);
@@ -133,8 +105,7 @@ export async function runSuite(
       ms = out?.ms ?? null;
       skip = out?.skip ?? null;
     } catch (err) {
-      if (err instanceof RetiredCriterion) skip = err.message;
-      else error = err instanceof Error ? err.message : String(err);
+      error = err instanceof Error ? err.message : String(err);
     }
     const wall = Math.round(performance.now() - started);
     // A known failure (known.json: a reason and an expiry, filed for a
@@ -157,8 +128,7 @@ export async function runSuite(
   };
   // A per-family gate (2026-09-23): the cases that read a tool of that
   // family - a case's own `tools`, else the tool names in its id - so a
-  // family's deploy stops paying for every other family's corpus reads.
-  // That full pass drained the micro's EBS byte balance in an afternoon.
+  // family's deploy stops paying for every other family's heavy reads.
   const caseTools = (c) =>
     c.tools?.length
       ? c.tools
@@ -168,7 +138,7 @@ export async function runSuite(
   const inFamily = (c) =>
     !family ||
     (!c.id.endsWith("#docs") &&
-      // A comma list gates several families in one pass (game,rankings).
+      // A comma list gates several families in one pass (game,war).
       caseTools(c).some((t) =>
         family.split(",").some((f) => t.startsWith(`${f.trim()}_`)),
       ));

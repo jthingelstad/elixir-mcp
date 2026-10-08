@@ -13,14 +13,11 @@ without it prints one line saying so.
 The unit tests (333 in `services/mcp` alone) pin logic over fixture
 databases. The smoke gate pins the door at the HTTP level. The Elixir
 Gym explores weekly. None of them pin **the live data shape at the live
-scale**, and that is where the last two days' defects lived:
-
-- `finished_early` was computed as `fame === 10000` and passed its
-  fixture test for a fortnight (the July fixture caps fame at the line)
-  while no live-polled week ever equalled it: documented, named in every
-  note, served on no row (feedback #81).
-- A 7-day corpus meta read timed out at the 18 s query budget only past
-  800k participant rows (feedback #77–#79).
+scale**, and that is where such defects live: `finished_early` was
+computed as `fame === 10000` and passed its fixture test for a fortnight
+(the July fixture caps fame at the line) while no live-polled week ever
+equalled it: documented, named in every note, served on no row
+(feedback #81).
 
 ## The layers (2026-09-21, second build)
 
@@ -90,8 +87,8 @@ Invariants, never a value that changes daily:
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `contracts`  | every `snake_case` field a `notes[]` sentence names exists on the response it rides (or is an argument, a tool name, or vocabulary); the fields the docs promise per row are on every row                                                                                                                                                                                                                   |
 | `identities` | one number two tools serve agrees (`war_current.participants[].decks_used` ⟷ `clans_participation`, `war_rivals.mean_fame` ⟷ the standings); a count's denominator is on the row (`zero_fame_races ≤ finished_races ≤ races_observed`, `scoring_decks ≤ decks_used`); a flag and its detail agree (`finished_early` ⟷ `finish_war_day`, `full` ⟷ `truncated`); `excluded.considered` = exclusions + decided |
-| `budgets`    | the known-heavy calls answer inside a ceiling well under the 18 s budget (corpus meta on a week: decks 9 s, cards 15 s), so creep is caught before it is a timeout; every duration is printed                                                                                                                                                                                                               |
-| `gym`        | the Gym's filed blocks (`gym.json`) and the hand-written repros #70–#87, with the acceptance criteria it wrote — its regression pass, automated                                                                                                                                                                                                                                                                                                     |
+| `budgets`    | the known-heavy calls answer inside a ceiling well under the 18 s budget, so creep is caught before it is a timeout; every duration is printed                                                                                                                                                                                                               |
+| `gym`        | the Gym's filed blocks (`gym.json`) and a few hand-written repros, with the acceptance criteria it wrote — its regression pass, automated                                                                                                                                                                                                                                                                                                     |
 
 It never writes, never passes `live: true` (CR budget), and its token
 cannot: `cr:read` only. A test pins that no case names a write tool.
@@ -130,7 +127,7 @@ node acceptance/run.mjs --json           # the report as JSON
 
 ~215 cases, ~180 distinct calls (a read one case makes is reused by the
 next), four to five minutes, one call at a time so the budget rule's
-timings are honest; the corpus meta reads are most of it.
+timings are honest.
 
 ## Adding a case
 
@@ -139,6 +136,6 @@ whole report a reader gets) and may return `{ ms }` to be listed among
 the slowest. `ctx.read(tool, args)` is a cached call; `ctx.tools` the
 published schemas. When the Gym files a finding, its block goes into
 `gym.json` verbatim (`checks/gym.mjs` runs every block, beside the
-hand-written cases for #70–#87 that predate the blocks), and the
+few hand-written cases that predate the blocks), and the
 invariant behind it in `identities` or `contracts` — the criterion pins
 the fix, the invariant pins the class.
