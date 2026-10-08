@@ -185,7 +185,7 @@ for (const gutter of [0, 15]) {
     ["duel", DUEL],
     ["2v2", teamBattle],
   ] as const) {
-    test(`@narrow ${kind} battle decks reflow without card or page overflow (${gutter}px reserved gutter)`, async ({
+    test(`@narrow ${kind} battle decks reflow without card or page overflow (${gutter}px reserved gutter${gutter ? ", missing art" : ""})`, async ({
       page,
     }) => {
       if (gutter) {
@@ -195,6 +195,9 @@ for (const gutter of [0, 15]) {
           document.addEventListener("DOMContentLoaded", () => {
             document.documentElement.style.paddingRight = "15px";
           });
+        });
+        await page.route("**/assets/cards/**", async (route) => {
+          await route.fulfill({ status: 404, body: "" });
         });
       }
       await mockApi(page, {
@@ -219,6 +222,11 @@ for (const gutter of [0, 15]) {
         await page.goto(`/battle/${record.battle.short_id}`);
         const decks = page.locator(".battle-deck");
         await expect(decks).toHaveCount(kind === "2v2" ? 4 : 2);
+        if (gutter) {
+          await expect(
+            decks.first().locator(".card-art__blank").first(),
+          ).toBeVisible();
+        }
         await expect(page.getByRole("heading", { level: 1 })).toContainText(
           "to",
         );
@@ -242,6 +250,16 @@ for (const gutter of [0, 15]) {
             }),
           );
         expect(spill).toBe(false);
+        const fallbackOverflow = await page
+          .locator(".battle-deck .card-art__blank")
+          .evaluateAll((blanks) =>
+            blanks.some(
+              (blank) =>
+                blank.scrollWidth > blank.clientWidth + 1 ||
+                blank.scrollHeight > blank.clientHeight + 1,
+            ),
+          );
+        expect(fallbackOverflow).toBe(false);
         await expect(decks.first().locator(".deck-grid li")).toHaveCount(8);
         const a = await decks.nth(0).boundingBox(),
           b = await decks.nth(1).boundingBox();
