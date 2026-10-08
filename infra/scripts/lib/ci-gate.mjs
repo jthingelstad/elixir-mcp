@@ -7,10 +7,11 @@
  * deploy waited on ever ran them.
  *
  * A green check on HEAD itself passes. So does a green check on the
- * head of the merged PR whose tree is HEAD's tree: main requires a
- * branch to be up to date before it merges and merges by rebase, so the
- * PR's head and main's new tip hold the same files, and the gate need
- * not wait for the push run to test them a second time.
+ * head of the merged PR whose tree is HEAD's tree: a PR that was up to
+ * date when it merged by rebase leaves main's new tip with its head's
+ * files, so the gate need not wait for the push run to test them a
+ * second time. Since 2026-10-08 a PR may merge while behind main; its
+ * tree then differs, and the gate waits for main's own run.
  *
  * `git(args)` returns trimmed stdout; `ghApi(path)` returns parsed JSON.
  * Both are injected so the test drives every branch without a network.

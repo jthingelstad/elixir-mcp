@@ -120,22 +120,26 @@ the test summaries, not the last line.
 
 ## Merge
 
-main accepts only a pull request whose `validate` check is green on a
-branch up to date with main (the ruleset on `main`, 2026-09-26; no
-bypass, for Jamie's account either, which is the account agents push
-as). No review is required: the check is the gate, the PR is the record.
+main accepts only a pull request whose `validate` check is green (the
+ruleset on `main`, 2026-09-26; no bypass, for Jamie's account either,
+which is the account agents push as). No review is required: the check
+is the gate, the PR is the record. The branch need not be up to date
+with main (2026-10-08), so auto-merge lands a PR about a minute after
+it goes green even when another PR merged first; main's own push run
+then tests the combination, and the deploy gate waits for it.
 
 1. `git push -u origin HEAD`.
 2. `gh pr create --fill` (title and body from the commits; a
    multi-commit PR gets a title that says what the whole ships), then
    `gh pr merge --auto --rebase --delete-branch`. Rebase keeps each
    message-first commit on main as its own commit.
-3. `gh pr checks --watch --fail-fast`. Green: auto-merge lands it. Red:
+3. `gh pr checks --watch --fail-fast`. Green: auto-merge lands it;
+   never merge by hand while it does. Red:
    read the failure, fix on the branch, push; never merge around it. A
    check that fails and passes on a re-run is a flake, and a flake is a
    defect: fix it in this PR or file it in NOTES the same day.
-4. main moved while it ran (another actor, or Dependabot): `gh pr update-branch
-   --rebase`, which re-runs the check.
+4. A rebase conflict with main (GitHub reports the PR `DIRTY`): rebase
+   the branch on `origin/main`, resolve, push; the check re-runs.
 5. `gh pr view --json state -q .state` is `MERGED`, then `git fetch
    origin && git checkout --detach origin/main` (in the main checkout,
    `git switch main && git pull --ff-only`), and `git branch -D` the

@@ -182,7 +182,7 @@ current rule, never as "was X, now Y".
 ## Agent team and process
 
 - **The ledger is the read path** — objective runs, skills and sessions read this file for what stands; NOTES is working notes.
-- **main takes only pull requests** — rebase-merged when `validate` is green on an up-to-date branch; no review required, no bypass; `deploy.mjs` refuses a HEAD that is not a green `origin/main` (`--break-glass` only when GitHub is down); a flake is fixed the day it blocks.
+- **main takes only pull requests** — rebase-merged by auto-merge when `validate` is green, up to date with main or not (2026-10-08; main's push run tests the combination); no review required, no bypass; `deploy.mjs` refuses a HEAD that is not a green `origin/main` (`--break-glass` only when GitHub is down); a flake is fixed the day it blocks.
 - **One worktree per run; the lease guards production** — every run edits in its own worktree at a fresh origin/main and lands a PR; the lease is claimed only for a deploy, a migration run or an ops-lambda write; use `&&`, never `;`, before push or deploy.
 - **The acceptance suite is the release gate, opted into per deploy** — read-only, with its own token and bucket; `--acceptance=<family>` when a tool in that family changes, the whole suite for shared code or a release; a skip prints a warning.
 - **The Gym has standing authority** — it fixes and deploys its findings without asking, one contract bump per family round, no MCP majors, under its own `gym` principal; a change to a response the JSON API mirrors stops for Jamie; a refuted case is pruned once what it tests is gone.
