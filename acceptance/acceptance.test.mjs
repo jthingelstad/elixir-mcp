@@ -524,3 +524,28 @@ test("rollover clock acceptance defers standby and still rejects a fresh wrong s
   w.section_index = 0;
   assert.equal((await criterion.run({ read })).skip, undefined);
 });
+
+test("players_summary deck-mode acceptance skips without a best deck and still asserts across modes", async () => {
+  for (const id of ["132.4", "332.5"]) {
+    const criterion = SUITES.gym.find((c) => c.id === id);
+    const body = {
+      top_deck: { dominant_mode: { mode: "Ladder" } },
+      best_deck: null,
+      notes: [],
+    };
+    const read = async () => ({ body, ms: 0 });
+    // No best deck (no deck with 10+ battles, or it is the top deck):
+    // nothing to compare, so SKIPPED, never passed or failed.
+    assert.match((await criterion.run({ read })).skip, /SKIPPED/);
+    body.best_deck = { dominant_mode: { mode: "Ladder" } };
+    assert.match((await criterion.run({ read })).skip, /SKIPPED/);
+    // Two decks in different modes: the note is still required.
+    body.best_deck = { dominant_mode: { mode: "Path of Legend" } };
+    await assert.rejects(
+      () => criterion.run({ read }),
+      /NOT comparable across rows/,
+    );
+    body.notes = ["top_deck and best_deck are NOT comparable across rows"];
+    assert.equal((await criterion.run({ read })).skip, undefined);
+  }
+});
