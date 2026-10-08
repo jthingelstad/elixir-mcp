@@ -15,6 +15,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  // GitHub's public-repo runners have four cores; the default is half.
+  workers: process.env.CI ? 4 : undefined,
   reporter: process.env.CI ? "github" : "list",
   timeout: 30_000,
   use: {
@@ -37,8 +39,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // CI serves the tree `npm run verify` already built (the site
-    // workspace's test builds it; one build per run, #73). Locally the
+    // CI serves the tree its e2e job built just before. Locally the
     // journeys build first, so they never run against a stale tree.
     command: process.env.CI ? serve : `${build} && ${serve}`,
     url: "http://127.0.0.1:4321/",
