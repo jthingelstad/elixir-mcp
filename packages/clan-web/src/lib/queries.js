@@ -20,14 +20,12 @@ import {
   unwrap,
   sessionGeneration,
 } from "@elixir-mcp/client";
-import { api, feedbackApi, manageApi } from "../api.js";
+import { api, manageApi } from "../api.js";
 
 export const keys = {
   me: ["me", "clan"],
   away: (tag) => ["me", "clan", "away", tag],
   place: ["me", "clan", "place"],
-  feedback: ["me", "clan", "feedback"],
-  feedbackItem: (id) => ["me", "clan", "feedback", id],
   clan: (tag) => ["me", "clan", "record", tag],
   roster: (tag) => ["me", "clan", "record", tag, "roster"],
   manage: (tag) => ["me", "clan", "record", tag, "manage"],
@@ -75,7 +73,6 @@ export const keys = {
     player,
     "awards",
   ],
-  maintain: ["me", "clan", "maintain", "feedback"],
 };
 
 const payload = (call) => () => call().then(unwrap);
@@ -213,20 +210,6 @@ export const useMyAway = (tag) =>
     queryFn: payload(() => manageApi.myAway(tag)),
     enabled: Boolean(tag),
   });
-
-export const useFeedbackList = () =>
-  useQuery({ queryKey: keys.feedback, queryFn: payload(feedbackApi.list) });
-
-export const useFeedbackItem = (id) =>
-  useQuery({
-    queryKey: keys.feedbackItem(id),
-    queryFn: payload(() => feedbackApi.item(id)),
-    enabled: Boolean(id),
-  });
-
-/** The maintainer's queue keeps the envelope: 403 is "not the maintainer". */
-export const useMaintainQueue = () =>
-  useQuery({ queryKey: keys.maintain, queryFn: answered(feedbackApi.queue) });
 
 export const useMemberNotes = (tag, player) =>
   useQuery({

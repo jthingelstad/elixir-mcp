@@ -1,4 +1,5 @@
 import { sessionGeneration } from "@elixir-mcp/client";
+import { FEEDBACK_CATEGORIES } from "@elixir-mcp/contracts";
 import {
   Suspense,
   createContext,
@@ -18,14 +19,16 @@ import {
 import {
   Disclaimer,
   ErrorBoundary,
+  FeedbackSheet,
   Rail as RailList,
   RailIdentity,
 } from "@elixir-mcp/ui";
-import { api } from "./api.js";
+import { api, feedbackApi } from "./api.js";
 import { keys, useMeQuery } from "./lib/queries.js";
 import { railItems, railKey } from "./lib/rail.js";
 import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
 import { RoleChip } from "./components/RoleChip.jsx";
+import { feedbackItemHref } from "./components/ReportThis.jsx";
 import { Clan } from "./views/Clan.jsx";
 import { Clans } from "./views/Clans.jsx";
 import { Manage } from "./views/Manage.jsx";
@@ -48,8 +51,6 @@ import { ELIXIR_LINKS } from "./lib/links.js";
 const ClanMap = lazy(() =>
   import("./views/ClanMap.jsx").then((m) => ({ default: m.ClanMap })),
 );
-import { Feedback, FeedbackItem } from "./views/Feedback.jsx";
-import { MaintainItem, MaintainQueue } from "./views/Maintain.jsx";
 
 /**
  * Routes, all under Elixir's /clan (CLAN, lib/base.js): `/clan` (landing,
@@ -346,70 +347,89 @@ export function VerifyPage() {
   );
 }
 
+/** Clan's own feedback pages retired into Elixir's one system
+ *  (2026-10-08): an old address goes to the person's feedback in the
+ *  Console, and the maintainer's lane to the one queue. */
 export function FeedbackPage() {
-  const { me } = useSession();
-  const navigate = useNav();
-  const { id } = useParams({ strict: false });
-  if (!me?.signed_in || me.unavailable) return null;
-  return id ? (
-    <FeedbackItem id={id} navigate={navigate} />
-  ) : (
-    <Feedback me={me} navigate={navigate} />
-  );
+  useEffect(() => {
+    window.location.replace("/console/account/feedback");
+  }, []);
+  return null;
 }
 
 export function MaintainPage() {
-  const { me } = useSession();
-  const navigate = useNav();
-  const { id } = useParams({ strict: false });
-  if (!me?.signed_in || me.unavailable) return null;
-  return id ? (
-    <MaintainItem id={id} navigate={navigate} />
-  ) : (
-    <MaintainQueue navigate={navigate} />
-  );
+  useEffect(() => {
+    window.location.replace("/console/admin/feedback");
+  }, []);
+  return null;
 }
 
 export function Rail({ me, path, navigate, narrow }) {
   const clan = me?.selected ?? null;
+  const [feedback, setFeedback] = useState(false);
   return (
-    <RailList
-      label="Sections"
-      items={railItems(me)}
-      current={railKey(path)}
-      navigate={navigate}
-      narrow={narrow}
-      title={clan?.name ?? "Elixir Clan"}
-      aside={clan?.clan_tag}
-      subtitle={clan?.name ?? ""}
-      identity={
-        <RailIdentity
-          href={`${CLAN}/you`}
-          onClick={(e) => {
-            e.preventDefault();
-            navigate(`${CLAN}/you`);
-          }}
-          name={
-            <>
-              <span className="yours">★</span>{" "}
-              {clan?.player_name ?? me?.primary?.name ?? "Signed in"}
-            </>
-          }
-          detail={
-            clan ? (
+    <>
+      <RailList
+        label="Sections"
+        items={railItems(me)}
+        current={railKey(path)}
+        navigate={navigate}
+        narrow={narrow}
+        title={clan?.name ?? "Elixir Clan"}
+        aside={clan?.clan_tag}
+        subtitle={clan?.name ?? ""}
+        identity={
+          <RailIdentity
+            href={`${CLAN}/you`}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`${CLAN}/you`);
+            }}
+            name={
               <>
-                <RoleChip role={clan.role} label={clan.role_label} />
-                {clan.verified === false ? (
-                  <span className="chip chip--warn">unverified</span>
-                ) : null}
+                <span className="yours">★</span>{" "}
+                {clan?.player_name ?? me?.primary?.name ?? "Signed in"}
               </>
-            ) : (
-              "with Elixir"
-            )
+            }
+            detail={
+              clan ? (
+                <>
+                  <RoleChip role={clan.role} label={clan.role_label} />
+                  {clan.verified === false ? (
+                    <span className="chip chip--warn">unverified</span>
+                  ) : null}
+                </>
+              ) : (
+                "with Elixir"
+              )
+            }
+          />
+        }
+        // Feedback is Elixir's one system (2026-10-08): the foot opens
+        // the shared sheet, about this clan and the page it was on.
+        foot={{
+          label: "Send feedback",
+          icon: "message-square",
+          onClick: () => setFeedback(true),
+        }}
+      />
+      {feedback && (
+        <FeedbackSheet
+          area="clan"
+          categories={FEEDBACK_CATEGORIES}
+          about={
+            clan
+              ? `About Elixir Clan, in ${clan.name ?? clan.clan_tag}. The page you are on rides along.`
+              : "About Elixir Clan. The page you are on rides along."
           }
+          refs={clan ? [{ kind: "clan", ref: clan.clan_tag }] : []}
+          context={{ page: railKey(path) ?? "clan" }}
+          send={feedbackApi.send}
+          onClose={() => setFeedback(false)}
+          itemHref={feedbackItemHref}
         />
-      }
-    />
+      )}
+    </>
   );
 }
 

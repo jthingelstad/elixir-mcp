@@ -149,12 +149,10 @@ export const manageApi = {
     ),
 };
 
+/** Feedback is Elixir's one system (2026-10-08): Clan files on Elixir's
+ *  own route with the shared session, area "clan". */
 export const feedbackApi = {
-  list: () => get(`${API}/feedback`),
-  file: (body) => post(`${API}/feedback`, body),
-  item: (id) => get(`${API}/feedback/${id}`),
-  queue: () => get(`${API}/maintain/feedback`),
-  decide: (id, body) => post(`${API}/maintain/feedback/${id}`, body),
+  send: (body) => post("/api/feedback", body),
 };
 
 export const api = {

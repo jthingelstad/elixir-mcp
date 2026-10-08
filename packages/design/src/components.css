@@ -1026,6 +1026,31 @@ button.rail__switch-head:hover {
 .panel__body {
   padding: 16px;
 }
+
+/* The feedback sheet (2026-10-08): one modal for sending feedback from
+   any page, Console, Ladder or Elixir Clan. A panel in a native dialog,
+   so Escape and the focus trap are the browser's. */
+.feedback-sheet {
+  width: min(560px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-panel);
+  background: var(--panel);
+  color: var(--ink-body);
+  box-shadow: var(--shadow-modal);
+}
+.feedback-sheet::backdrop {
+  background: rgba(4, 2, 12, 0.55);
+}
+.feedback-sheet__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.feedback-sheet__after {
+  margin: 0;
+  font-size: 13.5px;
+}
 .panel__foot {
   border-top: 1px solid var(--line-soft);
   padding: 11px 16px;

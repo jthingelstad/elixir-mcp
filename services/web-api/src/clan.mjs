@@ -19,7 +19,6 @@ import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
 import { createRecruitService } from "@elixir-mcp/clan/manage/recruit.mjs";
 import { createScout } from "@elixir-mcp/clan/manage/scout.mjs";
 import { createSocialService } from "@elixir-mcp/clan/manage/social.mjs";
-import { createFeedbackService } from "@elixir-mcp/clan/feedback.mjs";
 import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
 import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
@@ -125,8 +124,6 @@ export async function recordedIdentity(db, account) {
 
 export function createClanRequest({
   origin,
-  maintainerTags = [],
-  notify = async () => {},
   modelSecret = null,
   modelStorage = null,
 }) {
@@ -249,8 +246,6 @@ export function createClanRequest({
         weeklyCounts: (...args) => memberActivityWeeks(db, ...args),
         warBounds: (weeks) => memberActivityWarBounds(db, weeks),
       }),
-      feedback: createFeedbackService({ ledger, notify }),
-      maintainerTags,
       appUrl,
       elixirUrl: origin,
     });

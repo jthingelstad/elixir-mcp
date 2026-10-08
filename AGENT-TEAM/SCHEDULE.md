@@ -13,5 +13,5 @@ Event follow-ups are explicit starts. Due subtasks use completion receipts.
 |---|---|---|---|
 | Elixir Operator | ACTIVE | Daily at 04:45 | `run-elixir-mcp` |
 | Elixir Data Auditor | ACTIVE | Monday at 18:15 | `keep-the-record-true` |
-| Elixir Feedback Manager | ACTIVE | Tuesday, Friday at 18:15; Friday evening synthesis once per Chicago ISO week; catch up if blocked | `close-the-loop` |
+| Elixir Feedback Manager | ACTIVE | Daily at 18:15; Friday evening synthesis once per Chicago ISO week; catch up if blocked | `close-the-loop` |
 | Elixir Security Reviewer | ACTIVE | Sunday at 05:15; Every run is the full weekly sweep | `guard-the-door` |

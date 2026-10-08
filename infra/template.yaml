@@ -100,10 +100,6 @@ Parameters:
     Default: "true"
     AllowedValues: ["true", "false"]
     Description: Enable integrated Clan features; disabling does not restore a separate runtime
-  ClanMaintainerTags:
-    Type: String
-    Default: ""
-    Description: Preserved verified player tags for the private Clan feedback maintainer lane
 
 Conditions:
   HasInternalClan: !Equals [!Ref ClanInternal, "true"]
@@ -809,7 +805,6 @@ Resources:
             - !Ref AWS::NoValue
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
           CLAN_INTERNAL: !Ref ClanInternal
-          CLAN_MAINTAINER_TAGS: !Ref ClanMaintainerTags
           CLAN_MODEL_SECRET:
             !If [
               HasInternalClan,
@@ -1197,6 +1192,9 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt EmailCollectorActivityRule.Arn
+  # The minute's mail drains: collector upgrades, and (0204) an answer to
+  # a person's feedback, once it has settled ten minutes unread. One event
+  # runs both, collector upgrades first.
   CollectorUpgradeRule:
     Type: AWS::Events::Rule
     Properties:
@@ -1205,7 +1203,7 @@ Resources:
       Targets:
         - Arn: !GetAtt JobsFunction.Arn
           Id: collector-upgrade-mail
-          Input: '{"collector_upgrades": true}'
+          Input: '{"collector_upgrades": true, "feedback_answers": true}'
   CollectorUpgradePermission:
     Type: AWS::Lambda::Permission
     Properties:

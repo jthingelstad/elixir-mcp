@@ -8,12 +8,12 @@ navTitle: "Turn an email off"
 icon: bell-off
 lede: "Every kind of email is one switch, all on to start. Turn one off from Emails from Elixir or from the link at the foot of any issue, and turn it back on the same way."
 console: ["Your email switches", "/console/account/profile/email", "Account settings ▸ Emails from Elixir"]
-reviewed: "2026-10-02 against contract 9.18.1"
+reviewed: "2026-10-08 against contract 11.3.0"
 ---
 
 # Turn an email off
 
-Elixir sends six kinds of email, and every one is on for a new
+Elixir sends seven kinds of email, and every one is on for a new
 account. Each kind is one switch, and turning one off is immediate and
 yours to undo. [Email](/docs/email) has what each one holds and when it
 lands.
@@ -24,14 +24,14 @@ lands.
 ([/console/account/profile/email](/console/account/profile/email)),
 reached from the account menu, lays the four weekly kinds out on your week, each
 on the day it arrives in your time zone: the Clan report, Your week in
-the Arena, Your friends this week and Collector activity. The two that come when something happens,
-Milestones and Clan actions waiting, sit below the week. Each has a
+the Arena, Your friends this week and Collector activity. The three that come when something happens,
+Milestones, Clan actions waiting and Answers to your feedback, sit below the week. Each has a
 line on what it is and a switch; turn one off and it stops. A kind
 already sent to you links the last one, and the page lists the last
 few emails sent to you, with **All sent** for the rest.
 
-**Every email**, at the top of the page, turns all six off at once,
-or all six back on. While some are on and some are off it says how
+**Every email**, at the top of the page, turns all seven off at once,
+or all seven back on. While some are on and some are off it says how
 many are on.
 
 Two of the switches only matter to some accounts, and are dimmed for

@@ -47,6 +47,8 @@ export const keys = {
   adminUsage: ["admin", "usage"],
   adminConnections: ["admin", "connections"],
   adminFeedback: ["admin", "feedback"],
+  adminFeedbackPage: (q) => ["admin", "feedback", "queue", q],
+  adminFeedbackItem: (id) => ["admin", "feedback", "item", String(id)],
   adminServiceTokens: ["admin", "service-tokens"],
   adminCall: (id) => ["admin", "calls", id],
   adminEmailSends: ["admin", "email", "sends"],
@@ -225,10 +227,21 @@ export const useAdminConnections = adminRead(
   keys.adminConnections,
   api.adminConnections,
 );
-export const useAdminFeedback = adminRead(
-  keys.adminFeedback,
-  api.adminFeedback,
-);
+/** The one queue (0204), filtered and paged on the server: `q` is
+ *  { area, status, category, unanswered, before, after, order }. */
+export const useAdminFeedback = (q = {}) =>
+  useQuery({
+    queryKey: keys.adminFeedbackPage(q),
+    queryFn: payload(() => api.adminFeedback(q)),
+  });
+
+/** One item for the maintainer, any filer's, with its thread. */
+export const useAdminFeedbackItem = (id) =>
+  useQuery({
+    queryKey: keys.adminFeedbackItem(id),
+    queryFn: payload(() => api.adminFeedbackItem(id)),
+    enabled: Boolean(id),
+  });
 export const useAdminServiceTokens = adminRead(
   keys.adminServiceTokens,
   api.adminServiceTokens,
@@ -272,6 +285,17 @@ export const useMyFeedback = () => {
   return useQuery({
     queryKey: scopedKey(agent, "feedback"),
     queryFn: payload(() => api.myFeedback(agent)),
+  });
+};
+
+/** One of your own items (or, on an agent's console, the agent's), with
+ *  what follows it. Opening it on your own console reads its answer. */
+export const useMyFeedbackItem = (id) => {
+  const agent = useScope();
+  return useQuery({
+    queryKey: scopedKey(agent, "feedback", String(id)),
+    queryFn: payload(() => api.feedbackItem(id, agent)),
+    enabled: Boolean(id),
   });
 };
 

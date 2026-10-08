@@ -65,10 +65,8 @@ import { isDeepStrictEqual } from "node:util";
  *
  * And kinds that belong to no clan:
  *
- *   feedback#<id>            what a person told the maintainer and what was
- *                            done about it, in ONE partition (feedback#queue)
- *                            because the whole queue is small and a person's
- *                            own list is a filter over it (2026-09-12)
+ *   (feedback#<id> was Clan's own feedback queue until 2026-10-08: Clan
+ *   files into Elixir's one feedback system now, and nothing writes it)
  *   place#<tag>              where a person says they play from, for the
  *                            clan map (2026-09-26): a country, region and
  *                            city picked from the lists, written under each
@@ -84,7 +82,6 @@ import { isDeepStrictEqual } from "node:util";
 import { randomBytes } from "node:crypto";
 
 const clanKey = (tag) => `clan#${tag}`;
-const FEEDBACK_PARTITION = "feedback#queue";
 const SCHEDULE_PARTITION = "schedule#clans";
 export const newId = () => randomBytes(9).toString("base64url");
 const pad = (n) => String(n).padStart(6, "0");
@@ -567,37 +564,6 @@ export function ledgerOver(io) {
         gsi1sk: previous.gsi1sk,
         at: previous.at,
       });
-    },
-    // ---- feedback: one partition, the queue ---------------------------
-    async feedback() {
-      return (await io.listByPartition(FEEDBACK_PARTITION, "")).map(stripKeys);
-    },
-    async feedbackItem(feedbackId) {
-      const item = await io.get(`feedback#${feedbackId}`);
-      return item ? stripKeys(item) : null;
-    },
-    async updateFeedbackIf(expected, patch) {
-      const pk = `feedback#${expected.feedback_id}`;
-      const current = await io.get(pk);
-      if (!current || !isDeepStrictEqual(stripKeys(current), expected))
-        return null;
-      if (io.compareAndPatch) {
-        const updated = await io.compareAndPatch(pk, current, patch);
-        return updated ? stripKeys(updated) : null;
-      }
-      // Temporary DynamoDB wrapper keeps its existing semantics until freeze.
-      const next = { ...current, ...patch };
-      await io.put(next);
-      return stripKeys(next);
-    },
-    async putFeedback(item) {
-      await io.put({
-        pk: `feedback#${item.feedback_id}`,
-        gsi1pk: FEEDBACK_PARTITION,
-        gsi1sk: `${item.created_at}#${item.feedback_id}`,
-        ...item,
-      });
-      return item;
     },
     // ---- the whole clan ------------------------------------------------
     // ---- social (2026-09-26): a person's place, under each of their

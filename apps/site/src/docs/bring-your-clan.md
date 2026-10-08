@@ -71,8 +71,12 @@ The rail down the side lists Clan's pages:
 - **Manage**: Board, History, Policy and Settings for the leader and
   co-leaders, and Scout for elders too ([the policy](/docs/clan-policy)).
 - **You**: **Players**, the players on your Elixir account that Clan goes
-  by; **Away**, when the clan lets members mark themselves away; and
-  **Feedback**.
+  by; and **Away**, when the clan lets members mark themselves away.
+- **Send feedback**, at the foot of the rail, and **Report this** beside
+  an action, Standing and the award races: both file into Elixir's one
+  feedback record, about Elixir Clan and the thing on screen, and the
+  answer comes to your [feedback](/docs/your-account#feedback) and your
+  inbox.
 
 ## When the clan is not on Elixir
 

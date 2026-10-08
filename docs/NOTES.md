@@ -188,9 +188,34 @@ ops lanes all go through it. The `feedback_answer` mail kind and its drain
 skipped when already read, never the owner) ship here unwired; part two
 wires it beside the Console's item page its link opens.
 
-Part two: the shared feedback launcher in the Console, Ladder and Clan
-shells; Clan's in-place reports; the Console item page and the admin
-queue; Clan's own store, routes, views and `CLAN_MAINTAINER_TAGS`
-retired (its store held nothing: `{clan_maintenance}` lane feedback read
-total 0 on 2026-10-08).
+Part one shipped as #364 and deployed the same day (migrations ran 0204;
+smoke green; `{feedback_pending}` answered with `by_area`, nothing
+pending). The acceptance run had five failures none of this touched,
+and each reproduced alone: gym 132.4 and 332.5 (a "NOT comparable
+across rows" note), gym 312.2 (live participants 44, expected 47),
+`elixir_data_insights#0` at 6.6 s over its 6.1 s ceiling (the database
+went back to db.t4g.micro this morning) and `elixir_timeline#docs`
+(documented fields no response carried this run).
+
+Part two: the kit's `FeedbackSheet` (one modal, native `<dialog>`) at the
+foot of Ladder's and Clan's rail, and Clan's **Report this** beside an
+action (refs `clan_action`, `clan`, `player`), Standing (`policy`) and
+the award races (`award config:v<n>`), category `judgment`. The Console's
+item page reads `/api/me/feedback/<id>`, shows the area, the refs and
+the thread, and replies with `follows_id`; the admin queue filters by
+area on the server (unanswered, oldest first by default) and answers
+with `shipped_in` as a compare-and-set. Clan's own feedback store,
+routes, views, ledger methods, `{clan_maintenance}` feedback/respond
+lanes and `CLAN_MAINTAINER_TAGS` are retired (the store held nothing:
+the lane read total 0 on 2026-10-08); `/clan/feedback` and
+`/clan/maintain` now forward to the Console. The `feedback_answer` drain
+is wired on the one-minute rule. The Feedback Manager runs daily
+(manifest; the installed Codex automation follows).
+
+Still to do: a contract migration that drops `feedback.request_id`,
+`send_id` and the `context.request_ids` writes once nothing reads them;
+Clan's empty `feedback#` rows (none exist) need no cleanup; and the
+Discord agent passing `on_behalf_of` when it relays a member's feedback
+(elixir-mcp-discord). Integrations made before 3.1.0 need
+`feedback:write` granted to use `/api/v1/feedback`.
 
