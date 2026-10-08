@@ -278,6 +278,10 @@ test("selected capture state is claim-bound; roster-only data never promises a p
   assert.ok(
     p.capture_attempts.find((a) => a.endpoint === "player").last_failed_at,
   );
+  assert.equal(
+    p.capture_attempts.find((a) => a.endpoint === "player").last_failed_status,
+    503,
+  );
   assert.equal(p.profile_available, false);
   await db.query(
     "insert into poll_state (subject_tag,endpoint,last_admitted_at) values ('#J2RGCRVG','player',now())",

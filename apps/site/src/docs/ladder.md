@@ -12,7 +12,7 @@ console: ["Open Ladder", "/ladder", "Ladder ▸ Season"]
 
 # Ladder: your season, read back
 
-The game forgets: its battle log holds your last 25 battles. Elixir keeps
+The game forgets: its battle log holds roughly your last 30 battles. Elixir keeps
 every battle it records, and **Ladder**, at `/ladder`, reads that record
 back to you as a season: what you played, in which mode, and how it went.
 It sits beside the Console, signed in like the Console, with its own

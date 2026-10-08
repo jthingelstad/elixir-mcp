@@ -1,4 +1,5 @@
 export { createPrincipal, normalizePrincipalName } from "./principals.mjs";
+import { readMembershipCapture } from "@elixir-mcp/record/membership-capture";
 import {
   poolLimits,
   poolOwner,
@@ -310,11 +311,18 @@ export async function addPlayer(
     }
 
     await db.query("commit");
+    // A new primary is "you", so its clan is yours: follow it when the
+    // record already knows it (Jamie, 2026-10-08). Its own transaction,
+    // after this one: the add has happened whatever the follow decides.
+    const clan = wantPrimary
+      ? await followPrimaryClanSafely(db, account.accountId, { via })
+      : null;
     return {
       ok: true,
       added: claimed > 0,
       isPrimary: wantPrimary,
       recordingStarted: started,
+      clanFollowed: clan?.followed ?? null,
     };
   } catch (err) {
     await db.query("rollback").catch(() => {});
@@ -468,9 +476,12 @@ export async function addClan(db, account, { tag, scope, via }) {
       `insert into clan (clan_tag) values ($1) on conflict do nothing`,
       [tag],
     );
+    // Changing a follow Elixir made makes it the person's own (0205):
+    // Elixir never moves it after that.
     const { rows } = await db.query(
       `insert into account_clan (account_id, clan_tag, scope) values ($1, $2, $3)
-       on conflict (account_id, clan_tag) do update set scope = excluded.scope
+       on conflict (account_id, clan_tag) do update
+         set scope = excluded.scope, auto_followed_at = null
        returning (xmax = 0) as inserted`,
       [account.accountId, tag, want],
     );
@@ -548,6 +559,14 @@ export async function removeClan(db, account, { tag, via }) {
         clan_tag: tag,
         via,
       });
+      // A person who stops tracking a clan is never followed back into
+      // it automatically (Jamie, 2026-10-08; followPrimaryClan).
+      if (!acct?.kind || acct.kind === "person")
+        await db.query(
+          `insert into account_clan_declined (account_id, clan_tag)
+           values ($1, $2) on conflict do nothing`,
+          [account.accountId, tag],
+        );
       ({ stopped } = await reconcileRecording(db, "clan", tag, null));
       if (stopped)
         await logEvent(db, account.accountId, "recording_stopped", {
@@ -590,8 +609,10 @@ export async function setPrimaryClan(db, account, { tag, via }) {
         where account_id = $1 and is_primary and clan_tag <> $2`,
       [account.accountId, tag],
     );
+    // Choosing it as the primary clan makes the follow the person's own:
+    // Elixir never moves it after that (0205, followPrimaryClan).
     await db.query(
-      `update account_clan set is_primary = true
+      `update account_clan set is_primary = true, auto_followed_at = null
         where account_id = $1 and clan_tag = $2`,
       [account.accountId, tag],
     );
@@ -605,4 +626,212 @@ export async function setPrimaryClan(db, account, { tag, via }) {
     await db.query("rollback").catch(() => {});
     throw err;
   }
+}
+
+/**
+ * Follow the primary player's clan (Jamie, 2026-10-08: "it should follow
+ * it automatically for the primary player assuming they have a clan set
+ * (not all players are in a clan)"). The clan is followed at ACTIVITY
+ * scope, the slot every tier has: its roster, its members coming and
+ * going, its river races. The rules, each a test in claims.test.mjs:
+ *
+ * - Only a person's PRIMARY player, and only an account made after 0205
+ *   (`account.auto_follow_clan`; older accounts are not backfilled).
+ * - Only when the latest admitted profile says the player is in a clan
+ *   (player_profile_membership, read through the record's one rule). No
+ *   clan, or no profile yet, does nothing; a primary who leaves a clan
+ *   leaves every follow as it was.
+ * - Nothing when the account already follows that clan, at any scope.
+ * - Never a clan the person stopped tracking (account_clan_declined,
+ *   written by removeClan): tracking it by hand still works.
+ * - The clan moves with the player: when the primary is in a new clan,
+ *   the follow Elixir made for the old one (auto_followed_at set) is
+ *   replaced, and the old clan is not marked declined. A follow the
+ *   person made, or changed, is never touched.
+ * - Never past the pool's slots, and never by displacing another clan:
+ *   with no free slot nothing changes, and Tracking's one-click offer
+ *   (GET /api/me/clans home_clan) is what the person sees.
+ *
+ * Idempotent; one transaction, taking addClan's locks in its order
+ * (account, owner, then the clan subjects, sorted). Every follow and move
+ * is an account_event (`clan_added` / `clan_removed` with `auto: true`).
+ * Returns {followed, moved_from} or {skipped: reason}.
+ */
+export async function followPrimaryClan(db, accountId, { via }) {
+  await db.query("begin");
+  const skip = async (reason) => {
+    await db.query("rollback");
+    return { skipped: reason };
+  };
+  try {
+    const locked = await lockAccount(db, accountId);
+    if (!locked) return await skip("not_found");
+    const {
+      rows: [acct],
+    } = await db.query(
+      `select a.kind, a.status, a.auto_follow_clan,
+              (select player_tag from claim
+                where account_id = a.account_id and is_primary) as primary_tag
+         from account a where a.account_id = $1`,
+      [accountId],
+    );
+    if (acct.kind && acct.kind !== "person") return await skip("not_person");
+    if (acct.status !== "approved") return await skip("not_active");
+    if (!acct.auto_follow_clan) return await skip("not_enabled");
+    const tag = acct.primary_tag;
+    if (!tag) return await skip("no_primary");
+
+    // Absence needs proof, and so does presence: the newest admitted
+    // profile's own clan, never a retained last-known tag on its own.
+    const membership = (await readMembershipCapture(db, [tag])).get(tag);
+    if (membership?.state === "none") return await skip("no_clan");
+    if (membership?.state !== "member") return await skip("unknown");
+    const {
+      rows: [player],
+    } = await db.query(
+      `select last_known_clan_tag from player where player_tag = $1`,
+      [tag],
+    );
+    const clan = player?.last_known_clan_tag ?? null;
+    if (!clan) return await skip("unknown");
+
+    const { rows: follows } = await db.query(
+      `select clan_tag, auto_followed_at from account_clan where account_id = $1`,
+      [accountId],
+    );
+    if (follows.some((f) => f.clan_tag === clan)) return await skip("already");
+    const { rows: declined } = await db.query(
+      `select 1 from account_clan_declined where account_id = $1 and clan_tag = $2`,
+      [accountId, clan],
+    );
+    if (declined.length) return await skip("declined");
+    const previous = follows.find((f) => f.auto_followed_at)?.clan_tag ?? null;
+
+    const owner = await poolOwner(db, accountId);
+    if (owner.account_id !== accountId) await lockAccount(db, owner.account_id);
+    for (const subject of [clan, previous].filter(Boolean).sort())
+      await lockSubject(db, subject);
+
+    if (previous) {
+      await db.query(
+        `delete from account_clan where account_id = $1 and clan_tag = $2`,
+        [accountId, previous],
+      );
+      await logEvent(db, accountId, "clan_removed", {
+        clan_tag: previous,
+        via,
+        auto: true,
+        reason: "primary_clan_moved",
+      });
+      const { stopped } = await reconcileRecording(db, "clan", previous, null);
+      if (stopped)
+        await logEvent(db, accountId, "recording_stopped", {
+          clan_tag: previous,
+          via,
+        });
+    }
+
+    const limits = poolLimits(owner);
+    if (!limits.exempt) {
+      const others = await pooledClanWidth(
+        db,
+        owner.account_id,
+        clan,
+        accountId,
+      );
+      const bucket = widthScope(Math.max(scopeWidth("activity"), others ?? 0));
+      const used = await pooledUsage(db, owner.account_id, {
+        exceptClan: clan,
+      });
+      const inUse =
+        bucket === "comprehensive"
+          ? used.comprehensive_used
+          : used.activity_used;
+      // Rolls the move back too: the old follow stays where it was.
+      if (inUse >= limits[bucket]) return await skip("no_slot");
+    }
+
+    await db.query(
+      `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+      [clan],
+    );
+    await db.query(
+      `insert into account_clan (account_id, clan_tag, scope, auto_followed_at)
+       values ($1, $2, 'activity', now())`,
+      [accountId, clan],
+    );
+    await logEvent(db, accountId, "clan_added", {
+      clan_tag: clan,
+      scope: "activity",
+      via,
+      auto: true,
+      player_tag: tag,
+    });
+    const { started } = await reconcileRecording(db, "clan", clan, accountId);
+    if (started)
+      await logEvent(db, accountId, "recording_started", {
+        clan_tag: clan,
+        scope: "activity",
+        via,
+      });
+    await db.query("commit");
+    console.log(
+      JSON.stringify({
+        msg: "primary_clan_followed",
+        account_id: accountId,
+        clan_tag: clan,
+        moved_from: previous,
+        via,
+      }),
+    );
+    return { followed: clan, moved_from: previous };
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
+}
+
+/** followPrimaryClan for a caller whose own work has already committed:
+ *  a failure is logged and answered as a skip, never thrown, because a
+ *  follow is a courtesy and the next profile admission tries again. */
+export async function followPrimaryClanSafely(db, accountId, { via }) {
+  try {
+    return await followPrimaryClan(db, accountId, { via });
+  } catch (err) {
+    console.error("primary_clan_follow_failed", accountId, err?.message);
+    return { skipped: "error" };
+  }
+}
+
+/**
+ * After a profile admission: every account whose primary this player is
+ * and that does not yet follow the player's current clan. Most admissions
+ * find none (one read on a small table), so ingest pays nothing more.
+ */
+export async function followClanForPlayer(
+  db,
+  playerTag,
+  { via = "profile" } = {},
+) {
+  const { rows } = await db.query(
+    `select c.account_id
+       from claim c
+       join account a on a.account_id = c.account_id
+       join player p on p.player_tag = c.player_tag
+      where c.player_tag = $1 and c.is_primary
+        and a.auto_follow_clan and a.status = 'approved'
+        and coalesce(a.kind, 'person') = 'person'
+        and p.last_known_clan_tag is not null
+        and not exists (select 1 from account_clan ac
+                         where ac.account_id = c.account_id
+                           and ac.clan_tag = p.last_known_clan_tag)
+        and not exists (select 1 from account_clan_declined d
+                         where d.account_id = c.account_id
+                           and d.clan_tag = p.last_known_clan_tag)`,
+    [playerTag],
+  );
+  const out = [];
+  for (const { account_id } of rows)
+    out.push(await followPrimaryClanSafely(db, account_id, { via }));
+  return out;
 }

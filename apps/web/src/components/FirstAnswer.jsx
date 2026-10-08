@@ -128,12 +128,18 @@ export function FirstAnswer({ claimsKey, playerTag, compact = false }) {
             reads the saved record; it does not force a game fetch.
           </p>
         )}
-      {next?.failedAt && (
-        <p className="mb-3 text-ink-faint">
-          Failed attempt {ago(next.failedAt)}. A failed fetch does not establish
-          that the tag is invalid.
-        </p>
-      )}
+      {next?.failedAt &&
+        (next.notFound ? (
+          <p className="mb-3 text-ink-faint">
+            Clash Royale answered “not found” {ago(next.failedAt)}. Elixir asks
+            again in about a day, in case the tag is new.
+          </p>
+        ) : (
+          <p className="mb-3 text-ink-faint">
+            Failed attempt {ago(next.failedAt)}. A failed fetch does not
+            establish that the tag is invalid.
+          </p>
+        ))}
       {next?.partial && (
         <p className="mb-3 text-ink-body">
           Incomplete capture between{" "}
@@ -145,11 +151,15 @@ export function FirstAnswer({ claimsKey, playerTag, compact = false }) {
         </p>
       )}
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        {next && !(compact && next.action === "Check recording status") && (
-          <Link className="btn btn--primary" to={next.to}>
-            {next.action} ›
-          </Link>
-        )}
+        {next &&
+          !(
+            compact &&
+            ["Check recording status", "Fix the tag"].includes(next.action)
+          ) && (
+            <Link className="btn btn--primary" to={next.to}>
+              {next.action} ›
+            </Link>
+          )}
         {next?.profile && (
           <Link to={next.profile.to}>{next.profile.action} ›</Link>
         )}

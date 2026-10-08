@@ -17,7 +17,7 @@ export function clansRoutes({ resolveAccount }) {
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
         `select ac.clan_tag, ac.scope, ac.notify, ac.created_at, c.name,
-                ac.is_primary,
+                ac.is_primary, ac.auto_followed_at,
                 r.status as recording_status, r.scope as effective_scope,
                 (select count(*)::int from clan_membership cm
                   where cm.clan_tag = ac.clan_tag and cm.left_observed_at is null) as member_count

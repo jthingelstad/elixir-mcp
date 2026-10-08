@@ -113,7 +113,10 @@ active tracker requested). **Activity** gives roster, trophies,
 donations, joins and leaves, war; **comprehensive** adds per-member
 battle performance. The war section appears only when a war week
 completed. Composed once per clan, sent to every person account tracking
-that clan. Days are carried as instants (`membership[].at`,
+that clan. Since 2026-10-08 an account made after 0205 tracks its primary
+player's clan automatically at activity scope when a slot is free
+(`followPrimaryClan` in packages/claims), which is what makes the welcome
+mail's "Monday: your clan's week" true for a new member. Days are carried as instants (`membership[].at`,
 `{{day:<instant>}}` in a standout's text) and named in the recipient's
 `account.timezone` (`links.timezone`, set by `deliver`).
 

@@ -7,6 +7,7 @@
 import { test, expect } from "vitest";
 import {
   LADDER_PAGES,
+  capturePending,
   clockTime,
   dateLabel,
   deckModes,
@@ -317,4 +318,35 @@ test("a deck's rate shows only when it is one mode's own", () => {
     { key: "war", label: "War", wins: 6, losses: 4, rate: null },
   ]);
   expect(deckModes(null)).toEqual([]);
+});
+
+test("a player with nothing captured yet is pending, never an error or an empty mode", () => {
+  const polls = (at) => ({ player_battlelog: { observed_at: at } });
+  expect(
+    capturePending({ isError: true, error: { code: "not_recorded" } }),
+  ).toBe(true);
+  expect(capturePending({ isError: true, error: { code: "internal" } })).toBe(
+    false,
+  );
+  expect(capturePending({ isPending: true })).toBe(false);
+  expect(
+    capturePending({ data: { meta: { source_polls: polls(null) } } }),
+  ).toBe(true);
+  // A battle log that was read, even an empty one, is a record to show.
+  expect(
+    capturePending({
+      data: { meta: { source_polls: polls("2026-10-08T12:00:00Z") } },
+    }),
+  ).toBe(false);
+  // Retained history with no poll state is still history.
+  expect(
+    capturePending({
+      data: {
+        meta: {
+          recorded_since: "2026-07-01T00:00:00Z",
+          source_polls: polls(null),
+        },
+      },
+    }),
+  ).toBe(false);
 });

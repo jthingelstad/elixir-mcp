@@ -80,9 +80,12 @@ The rail down the side lists Clan's pages:
 
 ## When the clan is not on Elixir
 
-Clan works from what Elixir records. If your clan is not recorded yet,
-Clan says so and sends you to **Console ▸ Tracking** to track the clan;
-the roster arrives with Elixir's first poll of it. A clan recorded with
+Clan works from what Elixir records. Elixir follows your primary player's
+clan for you at activity scope once your player's profile shows it, when
+you have a clan slot free ([Your player's
+clan](/docs/recording#your-players-clan)). If your clan is not recorded
+yet, Clan says so and sends you to **Console ▸ Tracking** to track the
+clan; the roster arrives with Elixir's first poll of it. A clan recorded with
 its members' battle logs ([comprehensive](/docs/recording)) gives
 fuller battle numbers than one recorded at activity scope, and Clan
 holds back a judgment the record cannot support rather than guess.

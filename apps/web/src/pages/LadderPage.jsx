@@ -2,6 +2,7 @@ import { useLocation } from "@tanstack/react-router";
 import { useMe } from "../App.jsx";
 import {
   MODES,
+  capturePending,
   ladderPlayers,
   ladderSlug,
   pickMode,
@@ -11,6 +12,7 @@ import { useToolRead } from "../lib/queries.js";
 import { NoPlayers } from "../ladder/common.jsx";
 import { Cards } from "../ladder/Cards.jsx";
 import { Days } from "../ladder/Days.jsx";
+import { Pending } from "../ladder/Pending.jsx";
 import { Decks } from "../ladder/Decks.jsx";
 import { Season } from "../ladder/Season.jsx";
 
@@ -31,6 +33,8 @@ export function LadderPage() {
     { enabled: Boolean(player) },
   );
   if (!player) return <NoPlayers />;
+  // Nothing captured yet: say so, calmly, on every page (Pending.jsx).
+  if (capturePending(summary)) return <Pending player={player} />;
 
   const asked = MODES.some((m) => m.key === search?.mode);
   const mode = pickMode(search?.mode, summary.data?.last_30_days?.modes);

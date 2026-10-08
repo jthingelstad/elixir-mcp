@@ -346,8 +346,8 @@ function Clans({ clansQuery }) {
       {rows.length === 0 ? (
         clansQuery.isSuccess && (
           <p className="m-4 text-[13.5px] text-ink-dim">
-            No clans yet. Add your player first: we offer their clan as soon as
-            we see it.
+            No clans yet. Add your player first: Elixir follows their clan as
+            soon as it sees it.
           </p>
         )
       ) : (
@@ -376,7 +376,8 @@ function Clans({ clansQuery }) {
       {home && !rows.some((c) => c.clan_tag === home.clan_tag) && (
         <p className="m-0 border-t border-line-soft px-[18px] py-3 text-[12.5px] text-ink-faint">
           {home.name ?? home.clan_tag} is your player&rsquo;s clan, and is not
-          tracked yet.
+          tracked yet.{" "}
+          <Link to={`${CONSOLE}/account/tracking`}>Track it in Tracking ›</Link>
         </p>
       )}
     </section>

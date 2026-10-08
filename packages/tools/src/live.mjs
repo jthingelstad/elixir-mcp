@@ -128,6 +128,54 @@ export function makeLive({
   };
 }
 
+/**
+ * The first read of a newly added player (2026-10-08). Adding a tag asks
+ * for one live read of its profile, as Verify asks for one: charged to
+ * nobody (no per-account quota), from the one global bucket. Within
+ * minutes the record knows whether the game has this tag at all (a 404
+ * is "Player not found", cr-agent-api-docs players.md) and which clan
+ * the player is in, which is what follows the primary player's clan.
+ * Bounded: nothing when the record has a profile of this tag, or a
+ * failed fetch of it, from the last day, and liveFetch never queues a
+ * second job for a subject that has one open. Never throws: the add has
+ * already happened, and the scheduler's first read comes anyway.
+ * Returns {requested, reason}, and not_found when the last day's failed
+ * fetch was a 404.
+ */
+export async function requestFirstRead(db, live, tag) {
+  try {
+    const {
+      rows: [seen],
+    } = await db.query(
+      `select exists (select 1 from api_receipt
+                       where endpoint = 'player' and entity_key = $1
+                         and fetched_at > now() - interval '1 day') as read,
+              (select http_status from collector_fetch_error
+                where endpoint = 'player' and entity_key = $1
+                  and fetched_at > now() - interval '1 day'
+                order by fetched_at desc limit 1) as failed_status`,
+      [tag],
+    );
+    if (seen.read) return { requested: false, reason: "read_today" };
+    if (seen.failed_status !== undefined && seen.failed_status !== null)
+      return {
+        requested: false,
+        reason: "failed_today",
+        not_found: seen.failed_status === 404,
+      };
+    if (!live) return { requested: false, reason: "no_live_lane" };
+    const r = await live(db, { endpoint: "player", entityKey: tag });
+    if (r.ok) return { requested: false, reason: "fresh" };
+    return {
+      requested: r.reason === "pending" && r.queued !== false,
+      reason: r.reason,
+    };
+  } catch (err) {
+    console.error("first_read_failed", tag, err?.message);
+    return { requested: false, reason: "error" };
+  }
+}
+
 /** Allowlisted live paths -> (endpoint, entity key). Mirrors live_fetch. */
 export function livePathToJob(path, normalizeTag) {
   const m =

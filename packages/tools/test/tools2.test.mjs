@@ -507,6 +507,30 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   const again = await call("elixir_track_player", { player_tag: "#2PP0V90Y" });
   assert.equal(again.body.added, false);
   assert.equal(again.body.recording_started, false);
+  // One recording_started per start (the tool used to log a second).
+  const { rows: started } = await db.query(
+    `select count(*)::int as n from account_event
+      where kind = 'recording_started' and detail->>'player_tag' = '#2PP0V90Y'`,
+  );
+  assert.equal(started[0].n, 1);
+  // The timing the docs promise, and a tag the game answered 404 for
+  // today is named as possibly mistyped (a note, not a shape change).
+  assert.match(add.body.notes.join(" "), /within a few minutes/);
+  const {
+    rows: [gw],
+  } = await db.query(`select gateway_id from gateway where name = 'tools2-gw'`);
+  await db.query(
+    `insert into collector_fetch_error (gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
+     values ($1, 'player', '#2PQ0V9', now() - interval '1 minute', 404, 'http')`,
+    [gw.gateway_id],
+  );
+  const typo = await call("elixir_track_player", { player_tag: "#2PQ0V9" });
+  assert.equal(typo.isError, false);
+  assert.match(typo.body.notes.join(" "), /answered "not found" for #2PQ0V9/);
+  await call("elixir_track_player", {
+    player_tag: "#2PQ0V9",
+    action: "remove",
+  });
 
   // Slots count what you've ADDED (claims); the web door agrees.
   await db.query(

@@ -47,14 +47,20 @@ export async function firstAnswer(db, accountId, playerTag = null) {
   const capturedPlayer = player.rows[0] ?? null;
   if (capturedPlayer) {
     // Existing metadata only, restricted to this account's selected claim.
-    // An error is an attempted fetch, not proof of an invalid tag. Error
-    // retention is bounded; missing error metadata remains unknown.
+    // An error is an attempted fetch, not proof of an invalid tag, with
+    // one exception the game itself states: a 404 on the profile is
+    // "Player not found" (cr-agent-api-docs players.md), so the latest
+    // failure's status rides with it (2026-10-08, record-journey.js).
+    // Error retention is bounded; missing error metadata remains unknown.
     const { rows } = await db.query(
       `select e.endpoint, ps.last_admitted_at, ps.retry_at, ps.retry_tries,
-              (select max(fetched_at) from collector_fetch_error f
-               where f.entity_key = $1 and f.endpoint = e.endpoint) as last_failed_at
+              f.fetched_at as last_failed_at, f.http_status as last_failed_status
        from (values ('player'), ('player_battlelog')) e(endpoint)
-       left join poll_state ps on ps.subject_tag = $1 and ps.endpoint = e.endpoint`,
+       left join poll_state ps on ps.subject_tag = $1 and ps.endpoint = e.endpoint
+       left join lateral (
+         select fetched_at, http_status from collector_fetch_error f
+          where f.entity_key = $1 and f.endpoint = e.endpoint
+          order by fetched_at desc limit 1) f on true`,
       [capturedPlayer.player_tag],
     );
     capturedPlayer.capture_attempts = rows;

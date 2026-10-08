@@ -103,6 +103,10 @@ before(async () => {
     [ids.person, ids.agent, ids.other],
   );
   await db.query(
+    `insert into account_clan_declined (account_id, clan_tag) values ($1, '#2PP0V9RR')`,
+    [ids.person],
+  );
+  await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, origin)
      values ('player', '#2PP0V9PP', $1, 'claim'), ('player', '#2PP0V9QQ', $1, 'claim'),
             ('clan', '#2PP0V9UU', $1, 'claim'), ('clan', '#2PP0V9YY', $2, 'claim')`,
@@ -230,6 +234,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     claim_challenge: 0,
     claim: 2,
     account_clan: 2,
+    account_clan_declined: 1,
     player_nickname: 1,
     timeline_reader: 0,
     agent_identity: 0,
@@ -353,6 +358,7 @@ test("the run removes the person and their agent, keeps the game record, and lea
   for (const table of [
     "claim",
     "account_clan",
+    "account_clan_declined",
     "session",
     "oauth_family",
     "service_token",

@@ -15,6 +15,8 @@ import {
   OAUTH_SCOPE_DETAILS,
 } from "@elixir-mcp/contracts";
 import { normalizeScope } from "@elixir-mcp/auth";
+import { enqueueJob } from "@elixir-mcp/ledger";
+import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { firstAnswer } from "../first-answer.mjs";
 import {
   buildTimeline,
@@ -32,7 +34,11 @@ export function accountRoutes({
   notifyOwner = async () => {},
   capture = null,
   clanInternal = false,
+  live = null,
 }) {
+  // The first read of an added tag (live.mjs requestFirstRead): the live
+  // lane Verify uses, charged to nobody.
+  const liveRead = live ?? makeLive({ enqueue: enqueueJob });
   /** Track, untrack, or set notify or relationship on a player; yours,
    *  or on an agent's console the agent's (which watches, only). */
   async function trackPlayer(db, event, body) {
@@ -118,16 +124,18 @@ export function accountRoutes({
     if (!r.ok && r.error === "not_entitled")
       return json(403, { error: "not_entitled" });
     if (!r.ok) return json(404, { error: "not_found" });
-    if (r.recordingStarted) {
-      await logEvent(db, account.accountId, "recording_started", {
-        player_tag: tag,
-      });
-    }
+    // claims logs recording_started; logging it here too wrote it twice.
+    const first = r.added
+      ? await requestFirstRead(db, liveRead, tag)
+      : { requested: false };
     return json(200, {
       ok: true,
       player_tag: tag,
       recording: "active",
       recording_started: r.recordingStarted,
+      first_read: first.requested,
+      not_found: first.not_found === true,
+      clan_followed: r.clanFollowed ?? null,
     });
   }
 
