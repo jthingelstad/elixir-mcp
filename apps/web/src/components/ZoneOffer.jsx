@@ -26,13 +26,15 @@ function zoneWords(zone) {
 /**
  * The one-click offer to put the account on the reader's own clock.
  *
- * An account starts at UTC and keeps it until a zone is set (Profile;
- * docs/your-account, "Your time zone"), so a new person read Ladder's
- * nights in UTC while the battle page, before they signed in, had shown
- * their own clock (the 2026-10-08 fresh-person journey). Nothing sets a
- * zone for them: this names the clock in use and offers the browser's
- * zone, saved only on the click. It shows only while the account has no
- * zone and the browser's is not UTC, and never on an agent's console.
+ * An account with no zone reads in UTC (Profile; docs/your-account,
+ * "Your time zone"), so a new person read Ladder's nights in UTC while
+ * the battle page, before they signed in, had shown their own clock
+ * (the 2026-10-08 fresh-person journey). Since then a new account opens
+ * on its signup browser's zone, so this is for the accounts made before
+ * that, or whose browser gave none: it names the clock in use and offers
+ * the browser's zone, saved only on the click. It shows only while the
+ * account has no zone and the browser's is not UTC, and never on an
+ * agent's console.
  */
 export function ZoneOffer({ className = "" }) {
   const { zone } = useClock();

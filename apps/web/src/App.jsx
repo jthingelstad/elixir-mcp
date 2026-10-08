@@ -1835,7 +1835,8 @@ function ConsoleShell() {
     Boolean(here.key);
 
   // Every time the console prints is on the account's clock: the zone
-  // set on Profile, or UTC when none is (Jamie, 2026-09-23).
+  // set on Profile, or UTC when none is (Jamie, 2026-09-23). A new
+  // account opens on its signup browser's zone (Jamie, 2026-10-08).
   return (
     <ZoneProvider zone={me?.timezone}>
       <NavigateProvider navigate={navigate}>

@@ -215,8 +215,14 @@ test("an unchecked new-account choice survives interruption, remount and resend;
   await screen.findByLabelText("6-digit code");
   fireEvent.click(screen.getByText("Send another email"));
   await waitFor(() => expect(requests).toHaveLength(3));
+  // The browser's zone rides each request; a new account opens on it.
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   expect(requests).toEqual(
-    Array(3).fill({ email: "fixture@example.com", newsletter_opt_in: false }),
+    Array(3).fill({
+      email: "fixture@example.com",
+      newsletter_opt_in: false,
+      ...(zone ? { timezone: zone } : {}),
+    }),
   );
   fireEvent.change(screen.getByLabelText("6-digit code"), {
     target: { value: "123456" },

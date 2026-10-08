@@ -167,10 +167,11 @@ export function stampTime(
 }
 
 /** The browser's own IANA zone ("America/Chicago"), or null when it
- *  will not say. For a reader with no account zone: the battle page's
- *  clock when nobody is signed in, and the zone the Console offers to
- *  set when the account has none. Never a silent default for an
- *  account, whose zone is the one it set (UTC until it sets one). */
+ *  will not say. The battle page's clock when nobody is signed in; the
+ *  zone a signup sends, which a NEW account opens on (Jamie,
+ *  2026-10-08); and the zone the Console offers to set when an account
+ *  has none. Never a silent default for an existing account, whose zone
+ *  is the one it has (UTC while it has none). */
 export function browserZone(): string | null {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || null;

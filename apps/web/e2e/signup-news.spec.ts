@@ -2,6 +2,10 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
 
+// The browser's zone rides every signup request: a new account opens on
+// it (Jamie, 2026-10-08), so the journey runs on a named clock.
+test.use({ timezoneId: "America/Chicago" });
+
 for (const width of [390, 1280]) {
   for (const news of [false, true]) {
     test(`new signup news ${news} survives retry, reload and resend at ${width}px`, async ({
@@ -75,6 +79,7 @@ for (const width of [390, 1280]) {
         Array(3).fill({
           email: "fixture@example.com",
           newsletter_opt_in: news,
+          timezone: "America/Chicago",
         }),
       );
       await page.getByLabel("6-digit code").fill("123456");
