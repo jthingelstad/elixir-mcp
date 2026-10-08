@@ -1,3 +1,4 @@
+import { noun } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, usePolicy } from "../lib/queries.js";
@@ -178,10 +179,10 @@ export function Policy({ clan }) {
       {view.big_enough === false ? (
         <div className="callout" role="note">
           <span>
-            This clan has {view.members} members. Leaders can prepare and save
-            its policy now. Operational reviews, Actions, standing and awards
-            stay paused until {view.min_members} members; saving below that size
-            creates no announcement Action.
+            This clan has {view.members} {noun(view.members, "member")}. Leaders
+            can prepare and save its policy now. Operational reviews, Actions,
+            standing and awards stay paused until {view.min_members} members;
+            saving below that size creates no announcement Action.
           </span>
         </div>
       ) : null}
@@ -227,7 +228,8 @@ export function Policy({ clan }) {
             .
           </p>
           <p className="m-0">
-            Minimums use {draft.minimums_window_weeks} weeks and require{" "}
+            Minimums use {draft.minimums_window_weeks}{" "}
+            {noun(draft.minimums_window_weeks, "week")} and require{" "}
             {draft.minimums_rule === "any" ? "any one" : "all"} of the enabled
             thresholds above zero. They affect Elder eligibility and inactivity
             grace; with no thresholds set, everyone meets them. Each category’s
@@ -236,7 +238,7 @@ export function Policy({ clan }) {
           <p className="m-0">
             Removal suggestions are{" "}
             {draft.removal_enabled
-              ? `on: the at-risk clock is ${draft.at_risk_days} days, the removal threshold ${draft.at_risk_days + draft.confirm_days} days before contribution grace or holds`
+              ? `on: the at-risk clock is ${draft.at_risk_days} ${noun(draft.at_risk_days, "day")}, the removal threshold ${draft.at_risk_days + draft.confirm_days} ${noun(draft.at_risk_days + draft.confirm_days, "day")} before contribution grace or holds`
               : "off"}
             . A removal Action also requires proof of no battle activity across
             every mode. That proof is currently unavailable; fresh flat counters

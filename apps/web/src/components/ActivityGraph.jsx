@@ -1,4 +1,4 @@
-import { useClock } from "@elixir-mcp/ui";
+import { noun, useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -239,7 +239,7 @@ export function ActivityGraph({ data, error, onRetry }) {
       <div className="activity__caption" aria-live="polite">
         {selected
           ? cellName(selected)
-          : `${withBattles} days with recorded battles · ${quietDays} covered quiet days · ${unknownDays} empty days with capture incomplete or unknown · tap a day`}
+          : `${withBattles} ${noun(withBattles, "day")} with recorded battles · ${quietDays} covered quiet ${noun(quietDays, "day")} · ${unknownDays} empty ${noun(unknownDays, "day")} with capture incomplete or unknown · tap a day`}
       </div>
       <p className="footnote px-4">
         Evidence read {stamp(data.as_of ?? data.computed_at, { year: true })} ·

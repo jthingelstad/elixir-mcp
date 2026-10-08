@@ -1,4 +1,4 @@
-import { CardArt, DeckGrid, useClock } from "@elixir-mcp/ui";
+import { CardArt, DeckGrid, useClock, noun } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { fmt, longDay, pct, shortDay, signed } from "./ladder.js";
 import { groupLabel } from "./ladder-days.js";
@@ -165,8 +165,10 @@ function ModeDecks({ mode, read, base, zone }) {
         ) : null}
         {read?.data?.next_offset != null ? (
           <div className="panel__foot">
-            These are the {fmt(decks.length)} decks played most of{" "}
-            {fmt(read.data.total_decks)}.
+            {decks.length === 1
+              ? "This is the deck"
+              : `These are the ${fmt(decks.length)} decks`}{" "}
+            played most of {fmt(read.data.total_decks)}.
           </div>
         ) : null}
       </section>

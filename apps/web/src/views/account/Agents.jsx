@@ -1,5 +1,5 @@
 import { useWrite } from "@elixir-mcp/client";
-import { Fresh, Link, WriteError } from "@elixir-mcp/ui";
+import { Fresh, Link, WriteError, noun } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
@@ -575,7 +575,7 @@ export function Agents({ navigate }) {
             : res.data?.error === "invalid_name"
               ? "Lowercase letters, numbers and hyphens."
               : res.data?.reason === "agent_limit"
-                ? `Your ${res.data.role} tier allows ${res.data.limit} agents. Revoke one you no longer run, or request a higher tier from Overview.`
+                ? `Your ${res.data.role} tier allows ${res.data.limit} ${noun(res.data.limit, "agent")}. Revoke one you no longer run, or request a higher tier from Overview.`
                 : "Could not create that agent.",
       );
       return;

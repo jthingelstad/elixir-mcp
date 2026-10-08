@@ -413,7 +413,7 @@ test.describe("signed in", () => {
     await expect(
       page.locator(".rail").getByRole("link", { name: /Tracking/ }),
     ).toContainText("1");
-    await page.getByPlaceholder("#20JJJ2CCRU").fill("#VJQV8G8RL");
+    await page.getByPlaceholder("#2PYQ8GJ0").fill("#VJQV8G8RL");
     await page.getByRole("button", { name: "Track" }).first().click();
     // The claim invalidates ["me"]: the rail's count follows without a reload.
     await expect(

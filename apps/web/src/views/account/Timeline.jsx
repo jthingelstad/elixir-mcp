@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { LogTable, useClock } from "@elixir-mcp/ui";
+import { LogTable, useClock, noun } from "@elixir-mcp/ui";
 import { useMyTimeline, useTimelineEvidence } from "../../lib/queries.js";
 import { useScope } from "../../lib/scope.js";
 
@@ -149,7 +149,8 @@ export function Timeline() {
                   <>
                     {typeof selected.facts?.battles === "number" ? (
                       <p>
-                        The summary covers {selected.facts.battles} games
+                        The summary covers {selected.facts.battles}{" "}
+                        {noun(selected.facts.battles, "game")}
                         {selected.facts.ended_at
                           ? `, ending ${stamp(selected.facts.ended_at)}`
                           : ""}

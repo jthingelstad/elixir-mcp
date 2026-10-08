@@ -1,4 +1,12 @@
-import { Fresh, Icon, Link, ZoneProvider, ago, useClock } from "@elixir-mcp/ui";
+import {
+  Fresh,
+  Icon,
+  Link,
+  ZoneProvider,
+  ago,
+  useClock,
+  noun,
+} from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useRoster } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";
@@ -552,7 +560,7 @@ export function Clan({ me, clan, navigate, search }) {
               </div>
               <div className="panel__foot flex flex-wrap items-center gap-2">
                 <span>
-                  {roster.member_count} members
+                  {roster.member_count} {noun(roster.member_count, "member")}
                   {roster.meta?.as_of
                     ? ` · Elixir recorded the roster ${ago(roster.meta.as_of)}`
                     : ""}

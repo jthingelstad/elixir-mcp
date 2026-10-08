@@ -6,6 +6,7 @@ import {
   Link,
   secsSince,
   WriteError,
+  noun,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../api.js";
@@ -119,7 +120,7 @@ function Hours({ daily }) {
           className="footnote"
           style={{ marginLeft: "auto", fontWeight: 400 }}
         >
-          last {rows.length} days · UTC
+          last {rows.length} {noun(rows.length, "day")} · UTC
         </span>
       </div>
       <div

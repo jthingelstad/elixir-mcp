@@ -1,4 +1,4 @@
-import { Icon, Link, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, useClock, noun } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { clockTime, fmt, longDay, monthName, zoneShort } from "./ladder.js";
 import {
@@ -70,7 +70,9 @@ export function Days({ player, summary }) {
         player={player}
         page="Days played"
         title={
-          so ? `${fmt(so.played)} days with recorded battles` : "Days played"
+          so
+            ? `${fmt(so.played)} ${noun(so.played, "day")} with recorded battles`
+            : "Days played"
         }
         lede={`Every day of the ${name}, ${zoneName(zone)}. Each mode keeps its own mark and its own record, so a war day and a Trophy Road night never add up to one number.`}
         observedAt={first?.meta?.source_polls?.player_battlelog?.observed_at}

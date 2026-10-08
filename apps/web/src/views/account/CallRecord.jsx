@@ -1,4 +1,4 @@
-import { Icon, Link, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, useClock, noun } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useCallRecord } from "../../lib/queries.js";
 import { useConsolePath } from "../../lib/scope.js";
@@ -79,8 +79,8 @@ function JsonTree({ value, folded, open, onOpen }) {
             onClick={() => onOpen(childPath)}
           >
             {Array.isArray(item)
-              ? `[…] ${item.length} items`
-              : `{…} ${Object.keys(item ?? {}).length} fields`}
+              ? `[…] ${item.length} ${noun(item.length, "item")}`
+              : `{…} ${Object.keys(item ?? {}).length} ${noun(Object.keys(item ?? {}).length, "field")}`}
           </button>,
         );
       } else {

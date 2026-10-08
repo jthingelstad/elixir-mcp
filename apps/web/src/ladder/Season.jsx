@@ -1,4 +1,4 @@
-import { DeckGrid, Icon, Link, useClock } from "@elixir-mcp/ui";
+import { DeckGrid, Icon, Link, useClock, noun } from "@elixir-mcp/ui";
 import {
   LADDER_PAGES,
   clockTime,
@@ -58,7 +58,7 @@ export function Season({ player, mode, modeReady, summary, search }) {
         page="Season"
         title={
           head.age != null
-            ? `${head.name} · ${fmt(head.age)} days in`
+            ? `${head.name} · ${fmt(head.age)} ${noun(head.age, "day")} in`
             : head.name
         }
         lede={`Each mode is its own game, so each has its own tab and nothing pools across them.${ends}`}
