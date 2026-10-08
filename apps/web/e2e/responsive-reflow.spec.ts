@@ -26,9 +26,14 @@ async function inBounds(page: Page, selector: string) {
             node.scrollWidth > node.clientWidth + 1)
         );
       })
-      .map((node) => node.className),
+      .map((node) => ({
+        className: node.className,
+        bounds: node.getBoundingClientRect().toJSON(),
+        clientWidth: node.clientWidth,
+        scrollWidth: node.scrollWidth,
+      })),
   );
-  expect(overflow).toEqual([]);
+  expect(overflow, `viewport ${page.viewportSize()?.width}`).toEqual([]);
 }
 
 async function accessible(page: Page, include?: string) {
@@ -174,80 +179,97 @@ const teamBattle = {
   })),
 };
 
-for (const [kind, record] of [
-  ["1v1", BATTLE],
-  ["duel", DUEL],
-  ["2v2", teamBattle],
-] as const) {
-  test(`@narrow ${kind} battle decks reflow without card or page overflow`, async ({
-    page,
-  }) => {
-    await mockApi(page, {
-      "GET /api/me": [
-        200,
-        {
-          ...ME,
-          claims: [
-            {
-              ...ME.claims[0],
-              player_tag: record.sides[0]!.players[0]!.player_tag,
-            },
-          ],
-        },
-      ],
-      [`GET /api/public/battles/${record.battle.short_id}`]: [200, record],
-    });
-    const errors: string[] = [];
-    page.on("pageerror", (error) => errors.push(error.message));
-    for (const width of widths) {
-      await page.setViewportSize({ width, height: 860 });
-      await page.goto(`/battle/${record.battle.short_id}`);
-      const decks = page.locator(".battle-deck");
-      await expect(decks).toHaveCount(kind === "2v2" ? 4 : 2);
-      await expect(page.getByRole("heading", { level: 1 })).toContainText("to");
-      expect(await page.title()).toContain("Elixir");
-      await inBounds(
-        page,
-        ".chrome__inner, .chrome__account, .battle__score, .battle__who, .battle-deck, .battle-deck .panel__body, .deck-grid, .card-art",
-      );
-      const spill = await page
-        .locator(".battle-deck .deck-grid")
-        .evaluateAll((grids) =>
-          grids.some((grid) => {
-            const body = grid.closest(".panel__body")!;
-            const parent = body.getBoundingClientRect(),
-              rect = grid.getBoundingClientRect();
-            const css = getComputedStyle(body);
-            return (
-              rect.left < parent.left + parseFloat(css.paddingLeft) - 0.5 ||
-              rect.right > parent.right - parseFloat(css.paddingRight) + 0.5
-            );
-          }),
+for (const gutter of [0, 15]) {
+  for (const [kind, record] of [
+    ["1v1", BATTLE],
+    ["duel", DUEL],
+    ["2v2", teamBattle],
+  ] as const) {
+    test(`@narrow ${kind} battle decks reflow without card or page overflow (${gutter}px reserved gutter)`, async ({
+      page,
+    }) => {
+      if (gutter) {
+        // Reserve the content width consumed by a classic scrollbar even
+        // on hosts whose Chromium uses overlay scrollbars.
+        await page.addInitScript(() => {
+          document.addEventListener("DOMContentLoaded", () => {
+            document.documentElement.style.paddingRight = "15px";
+          });
+        });
+      }
+      await mockApi(page, {
+        "GET /api/me": [
+          200,
+          {
+            ...ME,
+            claims: [
+              {
+                ...ME.claims[0],
+                player_tag: record.sides[0]!.players[0]!.player_tag,
+              },
+            ],
+          },
+        ],
+        [`GET /api/public/battles/${record.battle.short_id}`]: [200, record],
+      });
+      const errors: string[] = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      for (const width of widths) {
+        await page.setViewportSize({ width, height: 860 });
+        await page.goto(`/battle/${record.battle.short_id}`);
+        const decks = page.locator(".battle-deck");
+        await expect(decks).toHaveCount(kind === "2v2" ? 4 : 2);
+        await expect(page.getByRole("heading", { level: 1 })).toContainText(
+          "to",
         );
-      expect(spill).toBe(false);
-      await expect(decks.first().locator(".deck-grid li")).toHaveCount(8);
-      const a = await decks.nth(0).boundingBox(),
-        b = await decks.nth(1).boundingBox();
-      if (width <= 405) expect(b!.y).toBeGreaterThanOrEqual(a!.y + a!.height);
-      else expect(Math.abs(a!.y - b!.y)).toBeLessThan(2);
-      if (kind === "duel") {
-        await page.getByRole("tab", { name: /^Game 3/ }).focus();
-        await page.keyboard.press("Enter");
-        await expect(
-          page.getByRole("region", { name: "How game 3 ended" }),
-        ).toBeVisible();
+        expect(await page.title()).toContain("Elixir");
         await inBounds(
           page,
-          ".battle-deck, .battle-deck .panel__body, .deck-grid, .card-art",
+          ".chrome__inner, .chrome__account, .battle__score, .battle__who, .battle-deck, .battle-deck .panel__body, .deck-grid, .card-art",
         );
+        const spill = await page
+          .locator(".battle-deck .deck-grid")
+          .evaluateAll((grids) =>
+            grids.some((grid) => {
+              const body = grid.closest(".panel__body")!;
+              const parent = body.getBoundingClientRect(),
+                rect = grid.getBoundingClientRect();
+              const css = getComputedStyle(body);
+              return (
+                rect.left < parent.left + parseFloat(css.paddingLeft) - 0.5 ||
+                rect.right > parent.right - parseFloat(css.paddingRight) + 0.5
+              );
+            }),
+          );
+        expect(spill).toBe(false);
+        await expect(decks.first().locator(".deck-grid li")).toHaveCount(8);
+        const a = await decks.nth(0).boundingBox(),
+          b = await decks.nth(1).boundingBox();
+        const available = await page
+          .locator(".battle")
+          .evaluate((node) => node.clientWidth);
+        if (available < 374)
+          expect(b!.y).toBeGreaterThanOrEqual(a!.y + a!.height);
+        else expect(Math.abs(a!.y - b!.y)).toBeLessThan(2);
+        if (kind === "duel") {
+          await page.getByRole("tab", { name: /^Game 3/ }).focus();
+          await page.keyboard.press("Enter");
+          await expect(
+            page.getByRole("region", { name: "How game 3 ended" }),
+          ).toBeVisible();
+          await inBounds(
+            page,
+            ".battle-deck, .battle-deck .panel__body, .deck-grid, .card-art",
+          );
+        }
+        await accessible(page);
+        if (!gutter && (width === 320 || width === 1280))
+          await page.screenshot({
+            path: `/tmp/elixir-reflow-${kind}-${width}.png`,
+            fullPage: false,
+          });
       }
-      await accessible(page);
-      if (width === 320 || width === 1280)
-        await page.screenshot({
-          path: `/tmp/elixir-reflow-${kind}-${width}.png`,
-          fullPage: false,
-        });
-    }
-    expect(errors).toEqual([]);
-  });
+      expect(errors).toEqual([]);
+    });
+  }
 }

@@ -149,9 +149,10 @@ test("a battle Elixir does not hold says so", async ({ page }) => {
   await expect(page.getByText("No battle at this link")).toBeVisible();
 });
 
-test("@narrow on a phone both decks still sit side by side", async ({
+test("@narrow on a phone with room both decks still sit side by side", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 440, height: 860 });
   await mockApi(page, { "GET /api/me": [200, SIGNED_OUT], ...battles });
   await page.goto(`/battle/${BATTLE.battle.short_id}`);
   const decks = page.getByRole("region", { name: /’s deck$/ });
@@ -162,7 +163,7 @@ test("@narrow on a phone both decks still sit side by side", async ({
   ];
   expect(Math.abs((a?.y ?? 0) - (b?.y ?? 0))).toBeLessThan(2);
   const width = await page.evaluate(() => document.documentElement.scrollWidth);
-  expect(width).toBeLessThanOrEqual(420);
+  expect(width).toBeLessThanOrEqual(440);
   // A battle's page is in no place: the bar's one button says Menu, and
   // no place in its sheet is lit (2026-10-02).
   await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
