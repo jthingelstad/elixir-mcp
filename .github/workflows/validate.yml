@@ -1,9 +1,9 @@
 name: validate
 
 # The merge gate (the PR workflow, 2026-09-26). main takes changes only
-# through a pull request whose `validate` check is green on a branch up
-# to date with main, and deploy.mjs refuses a HEAD without a green
-# `validate` (infra/scripts/lib/ci-gate.mjs). The job's name IS the
+# through a pull request whose `validate` check is green (the branch need
+# not be up to date with main, 2026-10-08), and deploy.mjs refuses a HEAD
+# without a green `validate` (infra/scripts/lib/ci-gate.mjs). The job's name IS the
 # required check's name in the main ruleset and the gate's lookup:
 # rename all three together or merges and deploys stop.
 on:

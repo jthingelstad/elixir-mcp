@@ -147,3 +147,19 @@ salt, so the same value in another secret opens every stored model key.
 `anthropic_api_key` was removed from the app secret the same day (read
 by nothing). Jamie copied the value into `elixir-mcp/app` before the deploy; the old
 secret is deleted after it ("Open and queued").
+
+## 2026-10-08 — a green PR merges without catching up to main
+
+Jamie's call. The main ruleset no longer requires a branch to be up to
+date with main (`strict_required_status_checks_policy` off on ruleset
+24050992). Auto-merge never updates a branch, so with two PRs open the
+second sat green and behind until someone ran `gh pr update-branch`;
+sessions had taken to merging by hand, which looked like auto-merge
+never firing. GitHub's merge queue needs an organization-owned repo.
+
+Nothing untested reaches production: `ci-gate.mjs` takes a PR head's
+green check only when its tree is main's new tip, so a PR merged behind
+main makes the deploy wait for main's own `validate` run, which always
+runs the journeys. Two PRs that pass alone and break together now turn
+main red after the merge instead of stalling it; fix forward by PR.
+Everything else in the ruleset stands.
