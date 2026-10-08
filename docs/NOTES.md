@@ -232,10 +232,10 @@ and deploy; leave drop, elixir-bot and saved clan choices unchanged".
   fallback).
 - **Saved choices are untouched.** No migration or backfill: a clan that
   saved `claude-haiku-4-5-20251001` keeps drafting on it, and choosing it
-  again still validates (against the key's own model list). The picker is
-  the key's model list as Anthropic gave it when the key was added, so a
-  clan whose key predates Haiku 5.5 sees it only after adding the key
-  again (which also re-picks the default, as it always has).
+  again still validates (against the key's own model list). The picker
+  was the key's model list as Anthropic gave it when the key was added;
+  decided by Jamie on 2026-10-08 ("yes Clan should refresh that list
+  automatically"), it now refreshes itself (the next entry).
 - The request needed no change for Haiku 5.5: one forced tool call, no
   sampling params, thinking, effort or prefill, and no model-id gate to
   fix. Forced `tool_choice` runs without thinking, so the budgets cover
@@ -262,7 +262,47 @@ no MCP tool or JSON API operation changed. Read-back: `/api/public/status`
 `health.ok` true, `/updates` lists the entry, and the four functions show
 no ERROR, timeout or 5xx line since. No Clan model call had run yet (the
 email relay had no invocations), and none was made to check it: a draft
-spends a clan's own key. Open, a product call for Jamie: a key's model
-list is the snapshot from when it was added, so clans with older keys
-see Haiku 5.5 only after adding the key again.
+spends a clan's own key. The question this left (a key's model list was
+the snapshot from when it was added) was decided by Jamie the same day:
+"yes Clan should refresh that list automatically" (next entry).
+
+## 2026-10-08 — a clan key's model list refreshes itself
+
+Jamie, 2026-10-08: "yes Clan should refresh that list automatically".
+A clan whose key was added before Haiku 5.5 (or any later model) can now
+choose it without adding the key again.
+
+- **Trigger: lazy, from the picker.** `GET /model` reports
+  `refresh_due` (never checked, which is every key added before this, or
+  checked 24 hours ago or more; `MODELS_REFRESH_MS`). The Settings page
+  then asks `POST /model/refresh` after it has drawn and reloads when the
+  list changed, so it never waits on Anthropic. A draft answered 404
+  (`model_unavailable`) clears `models_checked_at`, so the list is due the
+  moment a leader comes to pick another; the failing draft itself does
+  not wait on a read. Drafting never reads the list. Not a jobs-lane
+  sweep: only the web-api role may write `clan-model/` requests and the
+  jobs Lambda holds no model secret, so a scheduled refresh needed an IAM
+  change for no gain.
+- **The read is the key-add read** (`keyModels` in `manage/model.mjs`:
+  `/v1/models` through the bridge, Claude ids only), on the clan's own
+  key, only while the person who added it leads the clan. It spends
+  nothing.
+- **Bounded:** the attempt (`models_checked_at`) is written before the
+  read, so a clan's key is read at most once in 24 hours whatever the
+  outcome, plus once after a `model_unavailable`.
+- **The saved model never changes.** A refresh merges only `models`,
+  `models_checked_at`, `models_refreshed_at` and `models_refresh_error`
+  into the key item as it is after the read, and only while it is the
+  same key, so a choice made meanwhile stands. A saved model the key no
+  longer lists stays chosen: `model_listed: false`, and the picker shows
+  it as a disabled, selected "not offered by this key now" with a note.
+- **Failures keep the list.** 401 or 403 sets `refused_at`, the state a
+  draft's 401/403 already sets (the page asks for the key again; the
+  key could not draft anyway). 429, a provider error, an unknown outcome,
+  a thrown transport error, an empty list or one with no Claude model
+  record `models_refresh_error` (`{at, code, status}`) and change nothing
+  else; drafting goes on.
+- The page shows "Model list: From Anthropic, <date>"
+  (`models_refreshed_at`, written on key add and each success).
+- No MCP contract or JSON API change (`/api/clan` is Clan's own API).
 

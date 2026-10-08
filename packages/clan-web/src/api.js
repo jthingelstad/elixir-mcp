@@ -119,6 +119,8 @@ export const manageApi = {
   model: (tag) => get(`${clanBase(tag)}/model`),
   setModelKey: (tag, key) => put(`${clanBase(tag)}/model`, { key }),
   chooseModel: (tag, model) => put(`${clanBase(tag)}/model`, { model }),
+  // The key's model list, read again when the server says it is due.
+  refreshModels: (tag) => post(`${clanBase(tag)}/model/refresh`, {}),
   removeModelKey: (tag) => del(`${clanBase(tag)}/model`),
   // What the clan records in Elixir (door 3): read-only, always on.
   sharing: (tag) => get(`${clanBase(tag)}/sharing`),

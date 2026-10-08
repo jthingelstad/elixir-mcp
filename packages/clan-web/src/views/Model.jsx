@@ -1,5 +1,5 @@
 import { ago } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useModel } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
@@ -15,12 +15,33 @@ const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
  * judgment about a member. The key is checked with Anthropic, kept
  * sealed and never shown again; it is used only while the person who
  * added it leads the clan, and every use is listed here.
+ *
+ * The key's model list refreshes itself: when the server says it is due
+ * (`refresh_due`, about once a day), the page asks for a refresh after it
+ * has drawn and reloads if the list changed. The page never waits on it,
+ * and the clan's chosen model never changes by itself: a model the key no
+ * longer lists stays chosen, marked as not offered.
  */
 export function Model({ clan }) {
   const { state, load } = useModel(clan.clan_tag);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const refreshAsked = useRef(false);
+  const due = Boolean(state.data?.refresh_due);
+  useEffect(() => {
+    if (!due || refreshAsked.current) return;
+    refreshAsked.current = true;
+    manageApi
+      .refreshModels(clan.clan_tag)
+      .then((r) => {
+        if (r.ok && (r.data?.refreshed || r.data?.reason === "key_refused"))
+          load();
+      })
+      .catch(() => {
+        // A failed refresh leaves the list the page already shows.
+      });
+  }, [due, clan.clan_tag, load]);
 
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -40,6 +61,7 @@ export function Model({ clan }) {
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;
+  const listed = (d.models ?? []).some((m) => m.id === d.model);
 
   const saveKey = async (e) => {
     e.preventDefault();
@@ -124,12 +146,23 @@ export function Model({ clan }) {
                 disabled={busy}
                 onChange={(e) => choose(e.target.value)}
               >
+                {d.model && !listed ? (
+                  <option value={d.model} disabled>
+                    {d.model} (not offered by this key now)
+                  </option>
+                ) : null}
                 {d.models.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
                   </option>
                 ))}
               </select>
+            </span>
+            <span className="label">Model list</span>
+            <span>
+              {d.models_refreshed_at
+                ? `From Anthropic, ${day(d.models_refreshed_at)}`
+                : "From Anthropic, when the key was added"}
             </span>
             <span className="label">Today</span>
             <span>
@@ -141,6 +174,14 @@ export function Model({ clan }) {
               in, {n(d.uses.month.output_tokens)} out
             </span>
           </div>
+          {d.model && !listed && !d.refused_at ? (
+            <div className="callout callout--warn m-3" role="status">
+              <span>
+                The chosen model, {d.model}, is not one this key offers now. It
+                stays chosen until you pick another; drafts may fail until then.
+              </span>
+            </div>
+          ) : null}
           {d.refused_at ? (
             <div className="callout callout--warn m-3" role="alert">
               <span>

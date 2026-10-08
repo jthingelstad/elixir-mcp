@@ -494,6 +494,10 @@ export function createHandler({
         }
         return json(400, { error: "bad_request" });
       }
+      // The key's model list, read again when it is due (the picker asks
+      // after it has drawn; `refreshModels` bounds it to once a day).
+      if (model && method === "POST" && rest === "/model/refresh")
+        return json(200, await model.refreshModels(tag, who, token));
       // An action's message in the clan's voice, by the clan's own model.
       const draft = /^\/actions\/([A-Za-z0-9_-]+)\/draft$/.exec(rest);
       if (method === "POST" && draft) {

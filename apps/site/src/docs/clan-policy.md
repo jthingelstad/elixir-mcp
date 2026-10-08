@@ -167,6 +167,11 @@ without a policy:
   choices for welcomes, removals and farewells. Keep member details out of a
   message note. Everything it writes is a draft a leader edits
   and copies into the game. It never makes or completes a decision.
+  The models offered are the ones the key can use, checked with Anthropic
+  when the key is added and again about once a day when a leader opens
+  Settings. The clan's chosen model never changes by itself: one the key
+  stops offering stays chosen, marked as not offered, until a leader
+  picks another.
 
 ## Agent context
 

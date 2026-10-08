@@ -15,6 +15,7 @@ import { fetchRoster } from "@elixir-mcp/clan/manage/service.mjs";
 import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
 import { draftContextVersion } from "@elixir-mcp/clan/manage/actions.mjs";
 import {
+  MODELS_REFRESH_MS,
   USES_PER_DAY,
   createModelService,
   sealer,
@@ -66,6 +67,7 @@ function fakeAnthropic() {
     state,
     async models(key) {
       state.calls.push(["models", key]);
+      if (state.modelsFn) return state.modelsFn(key);
       if (key !== GOOD && key !== OTHER) return { ok: false, status: 401 };
       return {
         ok: true,
@@ -895,4 +897,222 @@ test("model: a refusal or a cut-off answer is an error with its own code, never 
     ).length,
     0,
   );
+});
+
+// ---------------------------------------------------- the key's model list
+
+const REFRESH = "/api/clans/2PQRJ8LV/model/refresh";
+const SONNET = { id: "claude-sonnet-5", name: "Claude Sonnet 5" };
+const H45 = { id: HAIKU_45, name: "Claude Haiku 4.5" };
+const H55 = { id: HAIKU_55, name: "Claude Haiku 5.5" };
+const modelsCalls = (h) =>
+  h.anthropic.state.calls.filter(([type]) => type === "models").length;
+
+/** A clan whose key was added before Haiku 5.5 and before refreshing. */
+async function oldKey({ model = HAIKU_45 } = {}) {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const stored = await h.ledger.modelKey("#2PQRJ8LV");
+  const before = { ...stored };
+  delete before.models_checked_at;
+  delete before.models_refreshed_at;
+  delete before.models_refresh_error;
+  await h.ledger.saveModelKey("#2PQRJ8LV", {
+    ...before,
+    model,
+    models: [H45, SONNET],
+  });
+  return { h, c };
+}
+
+test("model list: a key added before Haiku 5.5 is due; one refresh offers Haiku 5.5 and keeps the saved model", async () => {
+  const { h, c } = await oldKey();
+  const before = await api(h, c, "GET", MODEL);
+  assert.equal(before.body.refresh_due, true);
+  assert.equal(before.body.models_refreshed_at, null);
+  assert.equal(modelsCalls(h), 1, "reading the status never calls Anthropic");
+  h.anthropic.state.models = [H45, H55, SONNET];
+  const r = await api(h, c, "POST", REFRESH);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.refreshed, true);
+  const after = await api(h, c, "GET", MODEL);
+  assert.deepEqual(
+    after.body.models.map((m) => m.id),
+    [HAIKU_45, HAIKU_55, "claude-sonnet-5"],
+  );
+  assert.equal(after.body.model, HAIKU_45, "the saved choice is untouched");
+  assert.equal(after.body.model_listed, true);
+  assert.equal(after.body.refresh_due, false);
+  assert.equal(after.body.models_refreshed_at, "2026-09-25T12:00:00.000Z");
+  assert.equal(after.body.models_refresh_error, null);
+  // Haiku 5.5 can now be chosen without adding the key again.
+  const chosen = await api(h, c, "PUT", MODEL, { model: HAIKU_55 });
+  assert.equal(chosen.status, 200, JSON.stringify(chosen.body));
+  // Bounded: not again within the day, then due again.
+  const again = await api(h, c, "POST", REFRESH);
+  assert.equal(again.body.refreshed, false);
+  assert.equal(again.body.reason, "not_due");
+  assert.equal(modelsCalls(h), 2);
+  h.clock.t += MODELS_REFRESH_MS;
+  assert.equal((await api(h, c, "GET", MODEL)).body.refresh_due, true);
+  assert.equal((await api(h, c, "POST", REFRESH)).body.refreshed, true);
+  assert.equal(modelsCalls(h), 3);
+  assert.equal((await h.ledger.modelKey("#2PQRJ8LV")).model, HAIKU_55);
+});
+
+test("model list: a saved model the key no longer lists stays chosen and is marked, never switched", async () => {
+  const { h, c } = await oldKey();
+  h.anthropic.state.models = [H55, SONNET];
+  assert.equal((await api(h, c, "POST", REFRESH)).body.refreshed, true);
+  const s = await api(h, c, "GET", MODEL);
+  assert.equal(s.body.model, HAIKU_45);
+  assert.equal(s.body.model_listed, false);
+  assert.deepEqual(
+    s.body.models.map((m) => m.id),
+    [HAIKU_55, "claude-sonnet-5"],
+  );
+  // Drafting still sends the clan's own choice.
+  await api(h, c, "POST", DRAFT, {});
+  assert.equal(h.anthropic.state.calls.at(-1)[2].model, HAIKU_45);
+  assert.equal((await h.ledger.modelKey("#2PQRJ8LV")).model, HAIKU_45);
+});
+
+test("model list: a failed refresh keeps the old list, is recorded, and never blocks drafting", async () => {
+  for (const [name, fn, code] of [
+    [
+      "busy",
+      () => ({ ok: false, status: 429, code: "rate_limit_error" }),
+      "rate_limit_error",
+    ],
+    [
+      "unknown",
+      () => ({ ok: false, status: 0, code: "outcome_unknown" }),
+      "outcome_unknown",
+    ],
+    [
+      "thrown",
+      () => {
+        throw new Error("lost transport");
+      },
+      "outcome_unknown",
+    ],
+    ["empty", () => ({ ok: true, status: 200, models: [] }), "no_models"],
+    [
+      "no claude",
+      () => ({ ok: true, status: 200, models: [{ id: "other", name: "x" }] }),
+      "no_models",
+    ],
+  ]) {
+    const { h, c } = await oldKey();
+    h.anthropic.state.modelsFn = fn;
+    const r = await api(h, c, "POST", REFRESH);
+    assert.equal(r.status, 200, `${name} ${JSON.stringify(r.body)}`);
+    assert.equal(r.body.refreshed, false, name);
+    assert.equal(r.body.reason, "failed", name);
+    const s = await api(h, c, "GET", MODEL);
+    assert.deepEqual(
+      s.body.models.map((m) => m.id),
+      [HAIKU_45, "claude-sonnet-5"],
+      `${name}: the old list stays`,
+    );
+    assert.equal(s.body.models_refresh_error.code, code, name);
+    assert.equal(s.body.refused_at, null, name);
+    assert.equal(s.body.usable, true, name);
+    assert.equal(s.body.refresh_due, false, `${name}: bounded`);
+    assert.equal(s.body.model, HAIKU_45, name);
+    const draft = await api(h, c, "POST", DRAFT, {});
+    assert.equal(draft.status, 200, `${name}: drafting goes on`);
+    assert.equal(
+      (await api(h, c, "POST", REFRESH)).body.reason,
+      "not_due",
+      `${name}: not retried within the day`,
+    );
+  }
+});
+
+test("model list: a 401 or 403 on refresh marks the key refused, as a draft does, and keeps the list", async () => {
+  for (const status of [401, 403]) {
+    const { h, c } = await oldKey();
+    h.anthropic.state.modelsFn = () => ({
+      ok: false,
+      status,
+      code: "authentication_error",
+    });
+    const r = await api(h, c, "POST", REFRESH);
+    assert.equal(r.body.refreshed, false);
+    assert.equal(r.body.reason, "key_refused");
+    const s = await api(h, c, "GET", MODEL);
+    assert.ok(s.body.refused_at, String(status));
+    assert.equal(s.body.usable, false);
+    assert.equal(s.body.refresh_due, false);
+    assert.equal(s.body.models.length, 2);
+    assert.equal(s.body.model, HAIKU_45);
+    const draft = await api(h, c, "POST", DRAFT, {});
+    assert.equal(draft.body.error, "model_key_refused");
+    // A refused key is not read again until a leader adds one.
+    h.clock.t += MODELS_REFRESH_MS;
+    assert.equal((await api(h, c, "POST", REFRESH)).body.reason, "key_refused");
+    assert.equal(modelsCalls(h), 2);
+  }
+});
+
+test("model list: a leader's choice made during a refresh is not written over", async () => {
+  const { h, c } = await oldKey();
+  h.anthropic.state.modelsFn = async () => {
+    const cur = await h.ledger.modelKey("#2PQRJ8LV");
+    await h.ledger.saveModelKey("#2PQRJ8LV", {
+      ...cur,
+      model: "claude-sonnet-5",
+    });
+    return { ok: true, status: 200, models: [H45, H55, SONNET] };
+  };
+  assert.equal((await api(h, c, "POST", REFRESH)).body.refreshed, true);
+  const stored = await h.ledger.modelKey("#2PQRJ8LV");
+  assert.equal(stored.model, "claude-sonnet-5");
+  assert.equal(stored.models.length, 3);
+});
+
+test("model list: drafting never reads the list; a draft whose model is gone makes it due at once", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  for (let i = 0; i < 3; i += 1) await api(h, c, "POST", DRAFT, {});
+  assert.equal(modelsCalls(h), 1, "only adding the key read it");
+  assert.equal((await api(h, c, "GET", MODEL)).body.refresh_due, false);
+  h.anthropic.state.write = () => ({
+    ok: false,
+    status: 404,
+    code: "not_found_error",
+  });
+  const gone = await api(h, c, "POST", DRAFT, {});
+  assert.equal(gone.body.error, "model_unavailable");
+  assert.equal(modelsCalls(h), 1, "the failing draft does not wait on a read");
+  assert.equal((await api(h, c, "GET", MODEL)).body.refresh_due, true);
+  h.anthropic.state.models = [H55];
+  assert.equal((await api(h, c, "POST", REFRESH)).body.refreshed, true);
+  const s = await api(h, c, "GET", MODEL);
+  assert.equal(s.body.model, "claude-sonnet-5", "still the clan's choice");
+  assert.equal(s.body.model_listed, false);
+});
+
+test("model list: only leaders refresh, and only while the key's owner leads", async () => {
+  const { h } = await oldKey();
+  h.mcp.state.roster = rosterBody([
+    { player_tag: ADA, name: "Ada", role: "member" },
+    { player_tag: BEA, name: "Bea", role: "coLeader" },
+  ]);
+  h.mcp.state.players = [
+    player({ player_tag: BEA, name: "Bea", clan_role: "coLeader" }),
+  ];
+  const bea = await signedIn(h);
+  const r = await api(h, bea, "POST", REFRESH);
+  assert.equal(r.body.refreshed, false);
+  assert.equal(r.body.reason, "owner_unconfirmed");
+  assert.equal(modelsCalls(h), 1);
+  h.mcp.state.players = [
+    player({ player_tag: BEA, name: "Bea", clan_role: "elder" }),
+  ];
+  const elder = await signedIn(h);
+  assert.equal((await api(h, elder, "POST", REFRESH)).status, 403);
 });

@@ -20,6 +20,15 @@
  *
  * Rotating the app's session secret makes every kept key unreadable; the
  * page then asks for it again.
+ *
+ * The key's model list (what the picker offers) refreshes itself (Jamie,
+ * 2026-10-08: "yes Clan should refresh that list automatically"): when a
+ * leader opens Settings and the list is a day old, the page asks for a
+ * refresh after it has drawn, and a draft that finds its model gone makes
+ * the list due at once. It is the same read as adding a key (the model
+ * list spends nothing), at most once a day per clan otherwise. A refresh
+ * replaces only the list: the clan's saved model never changes, even when
+ * the key no longer lists it. A failed refresh keeps the old list.
  */
 
 import { createBox } from "../sealed.mjs";
@@ -27,6 +36,8 @@ import { PURPOSES, chooseModel } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 
 export const USES_PER_DAY = 20;
+/** How often a key's model list may be read again, success or not. */
+export const MODELS_REFRESH_MS = 24 * 3600_000;
 const USE_KEEP_DAYS = 90;
 const LEADERS = new Set(["leader", "coLeader"]);
 const KEY_SHAPE = /^sk-ant-[A-Za-z0-9_-]{20,200}$/;
@@ -57,6 +68,20 @@ function refusedKey(r) {
   });
 }
 
+/**
+ * The Claude models a key can reach: the one read both adding a key and
+ * refreshing its list make. `{ ok: true, models }`, or Anthropic's refusal.
+ */
+async function keyModels(anthropic, key) {
+  const r = await anthropic.models(key);
+  if (!r.ok) return r;
+  return {
+    ok: true,
+    status: r.status,
+    models: r.models.filter((m) => /^claude-/.test(m.id)),
+  };
+}
+
 export function createModelService({
   ledger,
   anthropic,
@@ -72,6 +97,23 @@ export function createModelService({
     if (!isLeader(who)) throw new ManageError(403, "leaders_only");
   };
   const iso = () => new Date(now()).toISOString();
+  /** A list never checked (a key added before 2026-10-08) is due. */
+  const refreshDue = (stored) =>
+    !stored.models_checked_at ||
+    now() - Date.parse(stored.models_checked_at) >= MODELS_REFRESH_MS;
+
+  /**
+   * Merge `fields` into the clan's key item as it is NOW, and only while
+   * it is still the same key: a refresh never writes over a model a
+   * leader chose, or a key replaced or removed, in the meantime.
+   */
+  async function updateKeyItem(clanTag, sealed, fields) {
+    const current = await ledger.modelKey(clanTag);
+    if (!current || current.sealed !== sealed) return null;
+    const next = { ...current, ...fields };
+    await ledger.saveModelKey(clanTag, next);
+    return next;
+  }
 
   /** Is the person who added the key still a leader here? null: unknown. */
   async function ownerLeads(clanTag, stored, token) {
@@ -146,6 +188,16 @@ export function createModelService({
         set_at: stored.set_at,
         model: stored.model,
         models: stored.models ?? [],
+        // Is the saved model still one the key lists? It stays chosen
+        // either way; the picker says so.
+        model_listed: (stored.models ?? []).some((m) => m.id === stored.model),
+        models_refreshed_at: stored.models_refreshed_at ?? null,
+        models_refresh_error: stored.models_refresh_error ?? null,
+        refresh_due:
+          readable &&
+          !stored.refused_at &&
+          leads === true &&
+          refreshDue(stored),
         refused_at: stored.refused_at ?? null,
         readable,
         owner_leads: leads,
@@ -166,9 +218,9 @@ export function createModelService({
         throw new ManageError(400, "not_a_key", null, {
           message: "An Anthropic API key starts with sk-ant-.",
         });
-      const r = await anthropic.models(k);
+      const r = await keyModels(anthropic, k);
       if (!r.ok) throw refusedKey(r);
-      const models = r.models.filter((m) => /^claude-/.test(m.id));
+      const { models } = r;
       const chosen =
         model && models.some((m) => m.id === model)
           ? model
@@ -185,6 +237,9 @@ export function createModelService({
         set_at: iso(),
         model: chosen,
         models,
+        models_checked_at: iso(),
+        models_refreshed_at: iso(),
+        models_refresh_error: null,
         refused_at: null,
       });
       return { ok: true, model: chosen };
@@ -206,6 +261,71 @@ export function createModelService({
         });
       await ledger.saveModelKey(clanTag, { ...stored, model });
       return { ok: true, model };
+    },
+
+    /**
+     * Read the key's model list again, when it is due. The picker asks
+     * for this after it has drawn, so a slow or failed read never holds
+     * it up, and nothing on the drafting path waits for it. Bounded: the
+     * attempt is recorded before the read, so another refresh waits
+     * `MODELS_REFRESH_MS` whatever the outcome. Only the list and its
+     * dates change. A 401 or 403 marks the key refused, as a draft does;
+     * any other failure (429, an error, no answer, no Claude model)
+     * keeps the old list and records the failure.
+     */
+    async refreshModels(clanTag, who, token) {
+      requireLeader(who);
+      const stored = await ledger.modelKey(clanTag);
+      if (!stored) throw new ManageError(409, "no_model_key");
+      const skip = (reason) => ({
+        refreshed: false,
+        reason,
+        models: stored.models ?? [],
+      });
+      if (stored.refused_at) return skip("key_refused");
+      if (!refreshDue(stored)) return skip("not_due");
+      const key = box.open(stored.sealed, boundTo(clanTag, stored.set_by));
+      if (!key) return skip("key_unreadable");
+      // The key is used only while the person who added it leads here.
+      if ((await ownerLeads(clanTag, stored, token)) !== true)
+        return skip("owner_unconfirmed");
+      const at = iso();
+      if (
+        !(await updateKeyItem(clanTag, stored.sealed, {
+          models_checked_at: at,
+        }))
+      )
+        return skip("key_changed");
+      let r;
+      try {
+        r = await keyModels(anthropic, key);
+      } catch {
+        r = { ok: false, status: 0, code: "outcome_unknown" };
+      }
+      const failed = (code, extra = {}) =>
+        updateKeyItem(clanTag, stored.sealed, {
+          models_refresh_error: { at, code, status: r.status ?? null },
+          ...extra,
+        });
+      if (!r.ok) {
+        const refused = r.status === 401 || r.status === 403;
+        await failed(r.code ?? "error", refused ? { refused_at: at } : {});
+        return {
+          ...skip(refused ? "key_refused" : "failed"),
+          code: r.code ?? null,
+        };
+      }
+      if (!r.models.length) {
+        await failed("no_models");
+        return { ...skip("failed"), code: "no_models" };
+      }
+      const next = await updateKeyItem(clanTag, stored.sealed, {
+        models: r.models,
+        models_refreshed_at: at,
+        models_refresh_error: null,
+      });
+      if (!next) return skip("key_changed");
+      return { refreshed: true, reason: null, models: next.models };
     },
 
     /** Remove the clan's key. Its uses stay on record. */
@@ -284,10 +404,17 @@ export function createModelService({
         await ledger.saveModelKey(clanTag, { ...stored, refused_at: iso() });
         throw new ManageError(409, "model_key_refused");
       }
-      if (r.status === 404)
+      if (r.status === 404) {
+        // The saved model is gone for this key: the list is due now, so
+        // the picker is current when a leader comes to choose another.
+        // Best effort: the leader's answer is the 409 either way.
+        await updateKeyItem(clanTag, stored.sealed, {
+          models_checked_at: null,
+        }).catch(() => null);
         throw new ManageError(409, "model_unavailable", null, {
           model: stored.model,
         });
+      }
       if (r.status === 429 || r.status === 529)
         throw new ManageError(429, "anthropic_busy", null, {
           message: "Anthropic is busy. Try again in a minute.",
