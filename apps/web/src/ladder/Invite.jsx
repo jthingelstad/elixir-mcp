@@ -32,10 +32,10 @@ export function LadderInvite({ returnTo, onSignIn }) {
         Your season, read back
       </h1>
       <p className="lede">
-        The game&rsquo;s battle log holds your last 25 battles. Elixir keeps
-        every battle it records, and Ladder reads that record back to you as a
-        season: what you played, in which mode, and how it went. A mirror, not a
-        coach.
+        The game&rsquo;s battle log holds roughly your last 30 battles. Elixir
+        keeps every battle it records, and Ladder reads that record back to you
+        as a season: what you played, in which mode, and how it went. A mirror,
+        not a coach.
       </p>
       <p className="page__lede">
         {MODES.map((m) => m.label).join(", ")}: each mode is its own game, so

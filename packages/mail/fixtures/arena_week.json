@@ -163,7 +163,7 @@
     }
    ]
   },
-  "coverage": "16 battles recorded for King Thing; battle log last read 12 minutes ago. The log holds 25 battles, so a long session between reads can leave a gap; missing coverage is unknown, not evidence of absence."
+  "coverage": "16 battles recorded for King Thing; battle log last read 12 minutes ago. The log holds roughly the last 30 battles, so a long session between reads can leave a gap; missing coverage is unknown, not evidence of absence."
  },
  "alts": [
   {
