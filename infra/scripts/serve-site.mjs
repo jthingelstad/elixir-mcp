@@ -69,8 +69,14 @@ http
       !existsSync(file) ||
       statSync(file).isDirectory()
     ) {
+      // The edge's miss: the site's 404 page with a true 404
+      // (services/web-api routes/site-miss.mjs answers it in production).
+      const notFound = path.join(root, "404.html");
       res.statusCode = 404;
-      res.end("not found");
+      if (existsSync(notFound)) {
+        res.setHeader("content-type", TYPES[".html"]);
+        res.end(readFileSync(notFound));
+      } else res.end("not found");
       return;
     }
     res.setHeader(

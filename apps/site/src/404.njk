@@ -1,0 +1,32 @@
+---
+layout: base.njk
+title: "Page not found"
+description: "There is no page at this address on Elixir. The way home, to the docs and to your Console."
+permalink: /404.html
+eleventyExcludeFromCollections: true
+noindex: true
+---
+{#- The answer to every address the site does not build. The edge asks
+    the bucket first; a miss there (S3 says 403 or 404) fails over to
+    the web API, which serves THIS document with a true 404 status
+    (infra/template.yaml, the site-or-miss origin group;
+    services/web-api routes/site-miss.mjs). It is never in the sitemap
+    and never indexed, and every link on it is absolute, because it is
+    served at whatever path was asked for. -#}
+<section class="mx-auto flex max-w-[560px] flex-col items-start gap-4 pt-10 pb-6">
+  <span class="chip">404</span>
+  <h1 class="hero-title m-0">Nothing at this address</h1>
+  <p class="docs__lede m-0">
+    Elixir has no page here. The link may be old, or mistyped. Your record
+    is where it was: start from home, the docs, or your Console.
+  </p>
+  <div class="flex flex-wrap items-center gap-3">
+    <a class="btn btn--primary" href="/">Elixir home</a>
+    <a class="btn" href="/docs">Read the docs</a>
+    <a class="btn" href="/console">Open your Console</a>
+  </div>
+  <p class="footnote m-0">
+    Looking for a battle? A battle&rsquo;s page lives at
+    <span class="mono">/battle/&lt;id&gt;</span>, and the link Elixir gave you names it.
+  </p>
+</section>

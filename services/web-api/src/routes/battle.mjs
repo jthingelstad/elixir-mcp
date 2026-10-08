@@ -90,15 +90,19 @@ export function namedShell(shell, read) {
 
 /** The built app shell, from the site bucket: read once a minute at most,
  *  so a deploy's new shell is served within a minute and a page view
- *  rarely costs an S3 read. */
-export function makeSiteShell(bucket, { ttlMs = 60_000 } = {}) {
+ *  rarely costs an S3 read. `key` reads another built document the same
+ *  way (the site's 404.html, routes/site-miss.mjs). */
+export function makeSiteShell(
+  bucket,
+  { ttlMs = 60_000, key = "app.html" } = {},
+) {
   if (!bucket) return null;
   const s3 = new S3Client({});
   let cached = null;
   return async () => {
     if (cached && Date.now() - cached.at < ttlMs) return cached.html;
     const res = await s3.send(
-      new GetObjectCommand({ Bucket: bucket, Key: "app.html" }),
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
     );
     const html = await res.Body.transformToString("utf8");
     cached = { html, at: Date.now() };

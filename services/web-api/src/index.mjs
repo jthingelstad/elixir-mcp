@@ -9,6 +9,7 @@ import { makeHandler } from "./handler.mjs";
 import { makeCaptureStore } from "@elixir-mcp/tools/capture";
 import { makeOutbox, countStuck } from "@elixir-mcp/outbox";
 import { makeCardArt, makeSiteShell, shareAssetsIn } from "./routes/battle.mjs";
+import { makeSiteMiss } from "./routes/site-miss.mjs";
 import { makeShareImage } from "./share-image.mjs";
 import { createClanRequest } from "./clan.mjs";
 
@@ -79,6 +80,10 @@ export const handler = makeHandler({
   },
   // A battle's page is the app shell with the battle's preview tags.
   siteShell: makeSiteShell(process.env.SITE_BUCKET),
+  // An address the site does not build: its 404 page, with a true 404.
+  siteMiss: makeSiteMiss(
+    makeSiteShell(process.env.SITE_BUCKET, { key: "404.html" }),
+  ),
   // Its share picture: resvg and the fonts ride in the bundle's share/
   // (infra/scripts/build.mjs), the card art in the site bucket.
   shareImage: makeShareImage({
