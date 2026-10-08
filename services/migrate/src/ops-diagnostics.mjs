@@ -1298,6 +1298,8 @@ export async function roleHistoryCensus(databaseUrl) {
  *     clan became tracked (a clan recording created inside the event's
  *     window) about a player who was not tracked before that window: a
  *     clan read only for its tracked players, diffed whole.
+ *   marked_first_read_rows: first-read rows opened before 0207 that are
+ *     baseline now, which only 0208 sets (Jamie, 2026-10-08): its count.
  * With clan_tag, the same counts for that clan alone. Counts and dates
  * only; nothing is written.
  */
@@ -1329,6 +1331,22 @@ export async function membershipBaselineCensus(databaseUrl, opts = {}) {
          from clan_membership cm
          join firsts f on f.clan_tag = cm.clan_tag and f.first_at = cm.joined_observed_at
         where not cm.baseline`,
+      [clanTag],
+    );
+    const {
+      rows: [marked],
+    } = await db.query(
+      `with firsts as (
+         select clan_tag, min(joined_observed_at) as first_at
+           from clan_membership
+          where $1::text is null or clan_tag = $1
+          group by clan_tag)
+       select count(*)::int as rows,
+              count(distinct cm.clan_tag)::int as clans
+         from clan_membership cm
+         join firsts f on f.clan_tag = cm.clan_tag and f.first_at = cm.joined_observed_at
+        where cm.baseline
+          and cm.joined_observed_at < (select applied_at from schema_migrations where id = 207)`,
       [clanTag],
     );
     const {
@@ -1364,9 +1382,10 @@ export async function membershipBaselineCensus(databaseUrl, opts = {}) {
       [clanTag],
     );
     return {
-      note: "Counts only, nothing written. first_read_rows: membership rows opened on their clan's first membership observation and not marked baseline (the player timeline read each as a join). follow_burst_events: member_joined events from the first read after a clan became tracked, about players untracked before that read.",
+      note: "Counts only, nothing written. first_read_rows: membership rows opened on their clan's first membership observation and not marked baseline (the player timeline read each as a join). marked_first_read_rows: the same rows from before 0207 that are baseline now (0208 marked them). follow_burst_events: member_joined events from the first read after a clan became tracked, about players untracked before that read.",
       clan_tag: clanTag,
       first_read_rows: firstRead,
+      marked_first_read_rows: marked,
       follow_burst_events: burst,
       member_joined: joins,
     };
