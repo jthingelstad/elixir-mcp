@@ -5435,6 +5435,8 @@ a.card-art:hover .card-art__img {
    rose on this ground; the mode is a coloured square, never a word's
    colour. */
 .battle {
+  container-type: inline-size;
+  container-name: battle;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -5933,7 +5935,7 @@ a.card-art:hover .card-art__img {
 /* Four cards no longer fit inside each half-width panel on the smallest
    phone. Keep their played order and two rows of four by stacking the
    players' panels, rather than shrinking or clipping the cards. */
-@media (max-width: 405px) {
+@container battle (width < 374px) {
   .battle__grid--decks {
     grid-template-columns: minmax(0, 1fr);
   }

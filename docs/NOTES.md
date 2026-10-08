@@ -6847,8 +6847,9 @@ The shared bar keeps its logo and accessible home name, showing the wordmark
 from 375px, and retains the same account-slot width while session state
 changes. Product labels stay fully visible and mobile product buttons have
 44px height. Account names wrap. Battle player names can wrap beside their
-you badge; deck panels stack below 406px so each four-card row fits its
-padding, while 420px and desktop keep the paired arrangement. Compact Hero
+you badge; deck panels stack when their available content is narrower than 374px,
+so each four-card row fits its padding. Wider content keeps the paired
+arrangement. Compact Hero
 ribbons fit their existing card art. The card order, facts, copy-deck links,
 duel selection and player-context sharing behavior do not change.
 
@@ -6880,3 +6881,18 @@ Final local gates passed: 1,914 Node tests and 493 UI tests, with 85
 documented acceptance skips; all 272 built-browser journeys passed without
 retries. Production bundles built successfully. The focused battle/share
 and responsive checks passed, with visual readback at 320px and 1280px.
+
+The first CI browser gate failed all three new battle-bound cases while
+269 other journeys passed. A viewport breakpoint had not accounted for
+content width reserved by a classic scrollbar. Reserving 15px reproduced
+deck spill locally. The battle now uses an inline-size container query:
+two 180px panels plus their 14px gap require 374px of actual content.
+The tests also reserve 15px on overlay-scrollbar hosts and cover all three
+battle kinds in both configurations. The focused 19 journeys pass. The
+required CI gate must pass on this correction before merge or deployment.
+
+The corrected tree passed full local verification again (1,914 Node tests,
+493 UI tests, 85 documented acceptance skips), production bundles and all
+275 browser journeys without retries. The paired-phone check uses 440px,
+where both panels fit even with reserved scrollbar space; the stricter
+bounds checks continue to include 420px and both configurations.
