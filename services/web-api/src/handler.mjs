@@ -146,6 +146,9 @@ export function makeHandler({
   /** (read) => a battle's share picture as PNG bytes (share-image.mjs
    *  makeShareImage); null = /battle/<id>.png answers 503. */
   shareImage = null,
+  /** (method) => the site's 404 page (routes/site-miss.mjs), for an
+   *  address the site bucket missed; null = the JSON not_found. */
+  siteMiss = null,
   /** Internal Clan request handler. Null until the reviewed state cutover;
    * the old origin continues to serve Clan during preparation. */
   clan = null,
@@ -389,6 +392,15 @@ export function makeHandler({
             agentPath ? `/api/me${agentPath[2] ?? ""}` : path,
             event,
           );
+    // The site bucket missed and the edge failed over here: the site's
+    // own 404 page, never for a path under /api/, whose callers read JSON.
+    if (
+      !found &&
+      siteMiss &&
+      (method === "GET" || method === "HEAD") &&
+      !path.startsWith("/api/")
+    )
+      return siteMiss(method);
     if (!found) return json(404, { error: "not_found" });
     if (agentPath && !AGENT_SCOPED_ROUTES.has(found.key))
       return json(404, { error: "not_found" });

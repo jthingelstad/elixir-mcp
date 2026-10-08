@@ -931,3 +931,36 @@ test("the one-minute mail rule also drains answers to feedback (0204)", async ()
     /Input: '\{"collector_upgrades": true, "feedback_answers": true\}'/,
   );
 });
+
+test("a site miss fails over to the site's 404 page, on the site behaviour alone", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  // The default (site) behaviour targets the group: the bucket first,
+  // then the web API, which answers 404.html with a true 404.
+  const group = template.slice(
+    template.indexOf("        OriginGroups:"),
+    template.indexOf("        DefaultCacheBehavior:"),
+  );
+  assert.match(group, /- Id: site-or-miss\n/);
+  assert.match(group, /Items: \[403, 404\]/);
+  assert.match(group, /- OriginId: site\n\s+- OriginId: api\n/);
+  const defaults = template.slice(
+    template.indexOf("        DefaultCacheBehavior:"),
+    template.indexOf("        CacheBehaviors:"),
+  );
+  assert.match(defaults, /TargetOriginId: site-or-miss\n/);
+  // No other behaviour fails over: the API, MCP and OAuth doors keep
+  // their own refusals, and CustomErrorResponses, which are
+  // distribution-wide, stay out.
+  for (const [p, block] of cacheBehaviours(template))
+    assert.doesNotMatch(
+      block,
+      /TargetOriginId: site-or-miss/,
+      `${p} fails over`,
+    );
+  assert.doesNotMatch(template, /^\s+CustomErrorResponses:/m);
+  // The web API may read the page it serves, and nothing else new.
+  assert.match(
+    template,
+    /arn:aws:s3:::elixir-mcp-site-\$\{AWS::AccountId\}\/404\.html/,
+  );
+});

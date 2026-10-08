@@ -392,6 +392,9 @@ Resources:
                 Resource:
                   - !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/app.html
                   - !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/assets/cards/*
+                  # The site's 404 page, answered for an address the
+                  # bucket misses (SiteDistribution's site-or-miss group).
+                  - !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/404.html
 
   # The collector door (services/collector): archives each submission at
   # admission, write-once (ArchiveBucketPolicy; a put with If-None-Match
@@ -1805,8 +1808,30 @@ Resources:
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
               OriginSSLProtocols: [TLSv1.2]
+        # An address the site does not build (2026-10-08). The bucket
+        # answers a missing key 403 (the distribution may not list it),
+        # which showed raw S3 XML. On a 403 or 404 from the bucket, the
+        # default behaviour's group fails over to the API with the same
+        # path, and the web API answers the site's 404.html with a true
+        # 404 (services/web-api routes/site-miss.mjs). Scoped to the site
+        # behaviour: the API, MCP and OAuth behaviours target their own
+        # origins and keep their own refusals (see the note under
+        # CacheBehaviors on why this is not a CustomErrorResponse).
+        OriginGroups:
+          Quantity: 1
+          Items:
+            - Id: site-or-miss
+              FailoverCriteria:
+                StatusCodes:
+                  Quantity: 2
+                  Items: [403, 404]
+              Members:
+                Quantity: 2
+                Items:
+                  - OriginId: site
+                  - OriginId: api
         DefaultCacheBehavior:
-          TargetOriginId: site
+          TargetOriginId: site-or-miss
           ViewerProtocolPolicy: redirect-to-https
           # AWS managed CachingOptimized
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
@@ -1963,7 +1988,9 @@ Resources:
         # own refusals. An unauthenticated /api/admin/requests came back
         # 200 text/html, and the web client read that as success. Site
         # routing is done by SpaRouter on the site behavior instead,
-        # and a missing page or asset is now honestly a miss.
+        # and a missing page or asset is now honestly a miss: the
+        # site-or-miss origin group above answers it with the site's
+        # 404 page, on the default behaviour alone.
 
   # Routes each path to the half of the site that owns it, without
   # touching status codes anywhere else on the distribution.

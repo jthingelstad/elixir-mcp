@@ -143,6 +143,8 @@ function resolves(urlPath) {
 if (!files.has("app.html")) problems.push("app.html is missing");
 for (const required of [
   "index.html",
+  // The answer to every address the site does not build (site-miss.mjs).
+  "404.html",
   "robots.txt",
   "sitemap.xml",
   "llms.txt",

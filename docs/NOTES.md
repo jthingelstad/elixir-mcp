@@ -90,7 +90,7 @@ Remove a line in the change that closes it.
   enforced modes, run receipts, scheduled CI with a pinned clock, a
   deploy batch marker, decision-citation tests, API Gateway managed
   overrides, a decisive smoke, e2e failure fixtures and router adoption,
-  honest 404s, an `llms-full.txt` trim, a console bundle diet.
+  an `llms-full.txt` trim, a console bundle diet.
 - 2026-09-27: low-value hardening: roster ordering, attested-fact extras.
 
 ## Entries

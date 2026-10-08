@@ -1392,3 +1392,24 @@ test("the Updates page prints tool names whole", { skip }, () => {
   assert.ok(html.includes("elixir_my_feedback"));
   assert.ok(!html.includes("elixirmyfeedback"));
 });
+
+test(
+  "the 404 page: the way home, the disclaimer, never indexed",
+  { skip },
+  () => {
+    // Served at whatever address missed (services/web-api site-miss.mjs),
+    // so it is not in the sitemap and every link on it is absolute.
+    const html = read("404.html");
+    assert.match(html, /<title>Page not found - Elixir<\/title>/);
+    assert.match(html, /<meta name="robots" content="noindex"/);
+    for (const href of ['href="/"', 'href="/docs"', 'href="/console"'])
+      assert.ok(html.includes(href), `404 lacks ${href}`);
+    assert.match(html, /not endorsed by Supercell/);
+    assert.ok(!read("sitemap.xml").includes("404"));
+    for (const m of html.matchAll(/(?:href|src)="([^"#]+)"/g))
+      assert.ok(
+        /^(\/|https:)/.test(m[1]),
+        `404 links ${m[1]}, which resolves against the missed path`,
+      );
+  },
+);
