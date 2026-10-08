@@ -177,9 +177,9 @@ your clan's week in your Monday email. The rules:
 - Already following the clan, at any scope, changes nothing. Agents never
   follow a clan this way.
 
-Accounts made before 2026-10-08 are not changed; their clan stays one
-click away on Tracking. Each follow Elixir makes is in your account's
-activity log.
+The follow comes with a read of your player's profile: within minutes of
+adding a new player, and otherwise at the next regular profile read. Each
+follow Elixir makes is in your account's activity log.
 
 `elixir_nickname({ player_tag, nickname })` stores a private label (1 to 40
 characters, `null` clears) that only your account and your agents see;

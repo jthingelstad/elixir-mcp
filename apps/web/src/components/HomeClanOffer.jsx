@@ -11,9 +11,9 @@ import { useInvalidate, useMyClans } from "../lib/queries.js";
  * have a clan set"; claims followPrimaryClan). This is the fallback, for
  * when it could not: the account's clan slot is taken by a clan the person
  * chose (Elixir never displaces one), the person once stopped tracking
- * this clan, or the account predates the change. It shows only while the
- * home clan is not followed, on Tracking and on the primary player's page,
- * which is where adding a tag lands.
+ * this clan, or no admitted profile has named the clan yet. It shows only
+ * while the home clan is not followed, on Tracking and on the primary
+ * player's page, which is where adding a tag lands.
  *
  * Activity scope: the slot every tier has, and what "follow my clan"
  * means. The comprehensive offer this replaced was refused for every tier
