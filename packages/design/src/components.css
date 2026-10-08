@@ -27,7 +27,7 @@ a {
 a:hover {
   color: var(--ink-link-hover);
 }
-/* An ACTION that sits where a link would (review 2026-09-27 §7.5): a
+/* An ACTION that sits where a link would: a
    button, so it takes focus and says what it does, drawn in the link's
    ink. A place to go is an <a href> (the kit's Link), never this. */
 button.link {

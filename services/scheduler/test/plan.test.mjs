@@ -801,7 +801,7 @@ test("clan scope: 'activity' records the clan only; upgrade re-seeds members", a
 });
 
 // ---------------------------------------------------------------- 0061
-// Production shapes from docs/archive/FETCH-LOOP-AUDIT-2026-09-09.md, pinned.
+// Production shapes from the 2026-09-09 fetch-loop audit, pinned.
 
 test("reader cap: a friend on the ceiling polls hourly for a day after a read", () => {
   const c = (row) => yieldCadenceMinutes(row, NOW);

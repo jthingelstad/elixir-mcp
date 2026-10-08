@@ -2,7 +2,7 @@
  * The words of the timeline: each entry's summary line and each item's
  * text. Deterministic, templated English a person can read, every number
  * taken from the facts beside it. No model call, no judgment, no verb of
- * instruction (review 2026-09-13, §12 and §14). If a sentence here would
+ * instruction. If a sentence here would
  * not be worth reading on the console's Timeline page, it is not worth an
  * agent's tokens either.
  */

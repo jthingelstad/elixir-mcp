@@ -500,7 +500,7 @@ if (!skipWeb) {
   );
 }
 
-// Smoke gate (review 2026-09-05): a deploy is not done until the
+// Smoke gate: a deploy is not done until the
 // read-only checks pass against the live doors.
 const { spawnSync } = await import("node:child_process");
 const smoke = spawnSync(

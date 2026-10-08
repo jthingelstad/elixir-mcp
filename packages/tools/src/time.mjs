@@ -78,7 +78,7 @@ export function resolveInstant(timeZone, value, { endOfDay = false } = {}) {
 /** Local time as ISO 8601 WITH its offset (2026-09-09T23:31:47-05:00):
  *  machine-parseable, the zone recoverable from the offset plus
  *  meta.timezone_applied. It used to be "2026-09-09 23:31:47
- *  (America/Chicago)", a display string nothing could parse (review 2.2.12). */
+ *  (America/Chicago)", a display string nothing could parse. */
 export function formatLocal(isoOrDate, timeZone) {
   const tz = validTimezone(timeZone) ? timeZone : "UTC";
   const date = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);

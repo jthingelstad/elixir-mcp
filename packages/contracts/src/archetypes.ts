@@ -1,5 +1,5 @@
 /**
- * Deck archetypes — the grammar (docs/reviews/2026-09-20-DECK-ARCHETYPES-DESIGN.md).
+ * Deck archetypes — the grammar.
  *
  * Players talk about decks by name: "Royal Hogs bridge spam", "Hog
  * cycle", "Log Bait". The community keeps two layers apart and so does

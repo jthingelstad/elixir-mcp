@@ -8,7 +8,7 @@
  * Unset secret = the check is off (local development and tests). Set it and
  * every request must carry it; the comparison is constant-time.
  *
- * `secret` may be `[current, previous]` (review 2026-09-27 §8.5, #71):
+ * `secret` may be `[current, previous]` (#71):
  * CloudFront sends the current one, and during a rotation some edges
  * still send the previous one for the minutes the distribution takes to
  * deploy, so the doors accept either (ORIGIN_SECRET_PREVIOUS).
@@ -42,7 +42,7 @@ export const forbiddenOrigin = () => ({
 });
 
 /**
- * The caller's own address (review §6.5, 2026-09-27). The Lambda's
+ * The caller's own address. The Lambda's
  * requestContext.http.sourceIp is the CloudFront edge node that forwarded
  * the request, shared by everyone behind that edge. The viewer's address arrives in cloudfront-viewer-address
  * ("1.2.3.4:53422", IPv6 as "2001:db8::1:53422" or bracketed), forwarded

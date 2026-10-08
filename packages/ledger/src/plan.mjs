@@ -247,7 +247,7 @@ export function jitterFactor(subjectTag, endpoint) {
  * cadence times the subject's jitter. For a battle log the product is
  * clamped at the session ceiling, because "never passes two hours" is a
  * published promise (recording.md) and a +15% jitter on the 120-minute
- * ceiling allowed 138 minutes (review 2026-09-27 §4.5). Below the
+ * ceiling allowed 138 minutes. Below the
  * ceiling the jitter still de-phases cohorts in both directions.
  */
 export function dueAfterMs(row, now = new Date()) {

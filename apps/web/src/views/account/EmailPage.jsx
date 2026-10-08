@@ -125,7 +125,7 @@ export function EmailPage() {
   const [now] = useState(() => new Date());
   const kinds = data?.kinds ?? [];
   // A switch that did not take says so; the list refetches only after
-  // one that did (review 2026-09-27 §7.5).
+  // one that did.
   const pref = useWrite(api.setEmailPref, { invalidate: [keys.email] });
   const flip = (kind, enabled) => pref.run(kind, enabled);
 

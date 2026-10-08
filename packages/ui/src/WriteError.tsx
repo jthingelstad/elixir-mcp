@@ -1,5 +1,5 @@
 /**
- * What a failed write says (review 2026-09-27 §7.5): one sentence, where
+ * What a failed write says: one sentence, where
  * the control is, so a refused revoke or sign-out never looks like
  * nothing happened. Fed the `error` of the client's `useWrite` (an
  * ApiError); typed by shape here, so the kit does not depend on the

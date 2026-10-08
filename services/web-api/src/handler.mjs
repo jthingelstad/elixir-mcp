@@ -68,7 +68,7 @@ function wildcardRoute(routes, method, path, event) {
 }
 
 /**
- * An agent's console (docs/reviews/2026-09-23-CONSOLE-ACCOUNT-SWITCHER.md):
+ * An agent's console:
  * `/api/agent/<public_id>/<tail>` runs the `/api/me/<tail>` route AS that
  * agent, for the person who owns it. The scope lives in the path, never in
  * a header or the session, so the access log and the audit say whose page

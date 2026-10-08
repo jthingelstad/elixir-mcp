@@ -1521,7 +1521,7 @@ test("players_profile renders a snapshot with every typed column null and passes
     assert.ok(!(camel in partial.body.snapshot.lifetime), `${camel} is gone`);
 });
 
-test("a window on bp.battle_time answers what a window on b.battle_time answered (review 3.3)", async () => {
+test("a window on bp.battle_time answers what a window on b.battle_time answered", async () => {
   // The participant's copy of battle_time is what every covering index
   // is on; the window predicates moved onto it. Equal by construction
   // because the two copies never differ, and pinned here both ways.

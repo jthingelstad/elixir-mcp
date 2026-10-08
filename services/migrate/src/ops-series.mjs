@@ -1,5 +1,5 @@
 /**
- * The daily series ops (time-series review, docs/reviews/2026-09-18-TIME-SERIES.md):
+ * The daily series ops:
  * the archive backfill that fills the series tables from recorded
  * receipts, its status and self census, and the EXPLAIN of the shapes
  * the series tools serve. Each op documents itself below.
@@ -100,7 +100,7 @@ export async function seriesStatus(databaseUrl, spec = {}) {
 /**
  * {series_backfill: {lane: 'clan'|'player'|'race'|'battle', budget_s?: 45, batch?: 200}}
  *
- * The backfill from the archive (time-series review Part 5). Receipts,
+ * The backfill from the archive. Receipts,
  * not objects, are the walk: an archived object exists once per
  * distinct content, the receipts are one per admitted fetch, and
  * walking them in receipt_id order reproduces what the live projector

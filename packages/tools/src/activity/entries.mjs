@@ -67,7 +67,7 @@ const SESSION_GAP_MS = 30 * MIN_MS;
  * row, ladder trophies net, battles in one sitting — and the crossing
  * battle was learned in this window, so a member's session is surfaced
  * on a clan's timeline once per rung and never re-reported (consumer
- * request, docs/reviews/2026-09-16-TIMELINE-FOR-PROACTIVE.md §1: a bot
+ * request: a bot
  * spent ten calls a day rebuilding these three numbers from
  * battles_performance). Absolute trophy bands on purpose: a win is worth
  * about the same at every ladder floor, so the rungs are arena-invariant.
@@ -1197,7 +1197,7 @@ export function clanLearnedQuery({ tag, fromMs, toMs }) {
 }
 
 /** The day-wide member battle fetch behind sessions and standouts: the
- *  statement an empty window used to pay for (review Part 6.1). */
+ *  statement an empty window used to pay for. */
 export function clanMemberBattlesQuery({ tag, fromMs, toMs }) {
   return {
     text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.trophy_change,
@@ -1249,7 +1249,7 @@ export async function buildClanEntry(
   // a day back on battle_time regardless of when a row was learned so a
   // session that straddles windows is judged whole; `learned` marks the
   // rows this window admitted, and the activity counts use only those.
-  // The empty path first (review Part 6.1, 3.18.0): 95-99% of the
+  // The empty path first (3.18.0): 95-99% of the
   // Discord agents' reads return nothing, and the day-wide member
   // battle scan below is most of an empty read's cost. One probe off
   // the battle created_at index says whether this window learned a
@@ -2191,7 +2191,7 @@ const ROLE_RANK_SQL = `max(case cm.role when 'leader' then 3 when 'coLeader' the
  *     clan today;
  *   - leaders: a PERSON whose verified player leads it (leader or
  *     co-leader), reading with an INTERACTIVE credential (a session or
- *     their own OAuth consent, never a service key, review §6.5); never
+ *     their own OAuth consent, never a service key); never
  *     an agent;
  *   - player: the player is one of the reader's subjects.
  *

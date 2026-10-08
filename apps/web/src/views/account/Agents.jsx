@@ -45,7 +45,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
   const invalidate = useInvalidate();
   const load = () => invalidate(keys.principals);
   // The security writes: a refusal says so beside the button, and the
-  // record refetches only after one that took (review 2026-09-27 §7.5).
+  // record refetches only after one that took.
   const revoke = useWrite(api.revokePrincipalToken, {
     invalidate: [keys.principals],
   });

@@ -2,7 +2,7 @@
  *  through the live lane. It is meant to be RARE (Jamie, 2026-09-10):
  *  frequent use is the signal that a tool is missing, so every path that
  *  has a tool now names it, and the one path that could never fit the
- *  delivery cap (a raw battle log, review 4.3) is refused before the lane
+ *  delivery cap (a raw battle log) is refused before the lane
  *  and the CR budget are spent. */
 
 import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";

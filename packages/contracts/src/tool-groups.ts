@@ -2,7 +2,7 @@
  * Tool taxonomy — the ONE place tools are classified (Jamie, 2026-09-04:
  * "right now they are just one big blob"). Groups follow the
  * cr-agent-api-docs outline (players / battles / clans / river-race /
- * cards) plus our own. The 1.0.0 review (docs/reviews/2026-09-10-DOCS-TOOLS-SEAM.md) split
+ * cards) plus our own. The 1.0.0 contract split
  * the old "Elixir MCP" bucket - 16 of 47 tools - into what each part is
  * FOR: Account (what you track and who you know), Feed (the push lane),
  * Help (the service explaining itself and the feedback loop) and Service
@@ -103,7 +103,7 @@ export const DEFAULT_OAUTH_SCOPE: OAuthScope = OAUTH_SCOPE.READ;
  *  of them. The old default - cr:read alone - meant the behaviour every
  *  agent is told to perform on its own judgment (file feedback) was
  *  refused on every connection whose client never stepped up, which is
- *  most of them (review Part 3.3; feedback item 30 opens with exactly that). */
+ *  most of them (feedback item 30 opens with exactly that). */
 export const FULL_OAUTH_SCOPE: string = STANDARD_OAUTH_SCOPES.join(" ");
 
 export interface ToolClass {

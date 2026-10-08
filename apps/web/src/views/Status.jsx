@@ -235,7 +235,7 @@ function ChartLegend({ series }) {
  * held back - and the line under it is the rolling hour and what the live
  * lane was charged. Until 2026-09-27 this was the calendar hour against an
  * elapsed-fraction pace marker, which at ten past the hour read "152 of 636"
- * while the rolling hour was 28% (review 2026-09-27 §4.2).
+ * while the rolling hour was 28%.
  */
 function BudgetGauge({ budget }) {
   // The page that answers "is the recorder broken" must not be the page

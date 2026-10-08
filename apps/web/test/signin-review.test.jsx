@@ -283,7 +283,7 @@ test("Profile → Devices lists every device, marks this one, and signs the othe
   ).toBeNull();
 });
 
-test("a refused sign-out says so and leaves the device listed (review 2026-09-27 §7.5)", async () => {
+test("a refused sign-out says so and leaves the device listed", async () => {
   // It used to await the revoke, drop the envelope and refetch: a 403 or
   // a 503 looked exactly like a sign-out that worked, apart from the
   // device quietly still being there.

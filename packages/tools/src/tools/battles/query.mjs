@@ -599,8 +599,7 @@ export const battles_query = {
       // The honest aggregate over THIS call's match set (feedback #149:
       // it had counted the deck's lifetime whatever the window and
       // filters said): counts, W-L, distinct pilots, span. Deliberately
-      // NO win rate - a deck's pooled rate describes who plays it
-      // (docs/archive/META-INTEL.md §2).
+      // NO win rate - a deck's pooled rate describes who plays it.
       const { rows: ds } = await ctx.db.query(
         `select count(*)::int as battles,
                   count(*) filter (where bp.outcome = 'win')::int as wins,

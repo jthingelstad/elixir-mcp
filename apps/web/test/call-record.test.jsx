@@ -1,6 +1,6 @@
 /**
- * The call record: one tool call's request, response and timings
- * (review 2026-09-10, Part 5). The page renders what the API handed it,
+ * The call record: one tool call's request, response and timings.
+ * The page renders what the API handed it,
  * folds the response's meta envelope, cuts arrays past twenty rows
  * behind "show all", and links the previous and next call by the same
  * connection and the feedback form prefilled with the request id.

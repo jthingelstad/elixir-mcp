@@ -7,7 +7,7 @@
  *  a GET to a page with a button that POSTs; a GET that changed state
  *  would unsubscribe everyone whose link scanner prefetched it.
  *
- *  The key (review 2026-09-27 §8.5, #71). Links were signed with the
+ *  The key (#71). Links were signed with the
  *  session secret, so rotating it would have signed everyone out and
  *  broken every link already sent. A link now names its key: `u1.` plus
  *  the token is signed with the unsubscribe key of its own

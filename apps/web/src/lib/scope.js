@@ -2,8 +2,7 @@ import { createContext, useContext } from "react";
 import { CONSOLE } from "./console.js";
 
 /**
- * Whose console this is: null for yours, an agent's public id for its
- * (docs/reviews/2026-09-23-CONSOLE-ACCOUNT-SWITCHER.md).
+ * Whose console this is: null for yours, an agent's public id for its.
  *
  * Set from the ADDRESS by the agent route (`/console/agent/<public_id>/...`), never
  * remembered: two tabs can show two consoles, and a write can only land

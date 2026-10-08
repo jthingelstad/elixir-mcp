@@ -1,6 +1,5 @@
 /**
- * The account an agent-scoped console request runs as
- * (docs/reviews/2026-09-23-CONSOLE-ACCOUNT-SWITCHER.md).
+ * The account an agent-scoped console request runs as.
  *
  * The ONE ownership check for `/api/agent/<public_id>/...`: the agent must
  * be an agent, and its owner must be the signed-in person. Anything else is

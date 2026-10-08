@@ -1,5 +1,5 @@
 /**
- * The S3 payload archive helper (docs/archive/DATA-TOOLS-2026-09-04.md §1). The SQS ingest
+ * The S3 payload archive helper. The SQS ingest
  * Lambda retired for the job ledger at 0040; the collector door runs
  * processResult inline and builds this archive for it. Nothing else
  * writes `payloads/`.
@@ -20,7 +20,7 @@ function alreadyArchived(err) {
  * transaction rolls back, and the door answers 500 so the lease expires
  * and the job is refetched.
  *
- * Write-once (review 2026-09-27 §2.7): the archive is kept forever and
+ * Write-once: the archive is kept forever and
  * content-addressed, so every put carries `If-None-Match: *` and never
  * replaces an object. A 412 means the key is already there, which is
  * what a retried submit of the same fetch produces (the key is built

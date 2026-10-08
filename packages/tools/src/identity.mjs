@@ -132,7 +132,7 @@ const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
  * `compact` names only the primary and "your clan" (an agent: its clan and
  * its leader) and counts the rest. The brief takes it when the full list
  * would push the brief past what a client shows (protocol.mjs,
- * INSTRUCTIONS_BUDGET; review 2026-09-27 §6.1): a heavy account's fifty
+ * INSTRUCTIONS_BUDGET): a heavy account's fifty
  * players used to fill Claude Code's 2,048 characters alone.
  * elixir_my_players lists them all.
  */

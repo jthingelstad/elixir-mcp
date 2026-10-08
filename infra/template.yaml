@@ -28,7 +28,7 @@ Parameters:
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
-    Description: Secrets Manager secret with db_password, session_secret, buttondown_api_token, anthropic_api_key and optionally unsubscribe_secret and session_secret_previous (URL-safe values; docs/SECRETS.md)
+    Description: Secrets Manager secret with db_password, session_secret, buttondown_api_token and optionally unsubscribe_secret and session_secret_previous (URL-safe values; docs/SECRETS.md)
   SiteCertificateArn:
     Type: String
     Default: ""
@@ -235,7 +235,7 @@ Resources:
       CopyTagsToSnapshot: true
       EnablePerformanceInsights: false
       AutoMinorVersionUpgrade: true
-      # Enhanced Monitoring at one minute (review 2026-09-11, item 12):
+      # Enhanced Monitoring at one minute:
       # the two memory recoveries that day were invisible from the
       # instance metrics alone - FreeableMemory and SwapUsage say the box
       # is squeezed, not by whom. This is the OS-level split (Postgres vs
@@ -356,7 +356,7 @@ Resources:
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
               # No payloads/: the collector door, the one writer there,
               # has its own Lambda and role since 2026-09-29.
-              # Captured tool calls (review 2026-09-10 Part 5): the
+              # Captured tool calls: the
               # console's call record reads one body at a time through
               # the session check. Read only; the MCP door writes them.
               - Effect: Allow
@@ -773,11 +773,11 @@ Resources:
           # verify-full against the RDS root CAs bundled with the code
           # (infra/certificates; build.mjs copies them into each DB
           # function's package). Was no-verify: encrypted, but any server
-          # could answer (review 2026-09-27 §8.5, #71).
+          # could answer (#71).
           DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=verify-full"
           NODE_EXTRA_CA_CERTS: /var/task/certificates/rds.pem
           SECRET_EPOCH: !Ref SecretEpoch
-          # Every backend is named and bounded (review 2026-09-27 §3.1):
+          # Every backend is named and bounded:
           # node-pg reads PGAPPNAME and PGOPTIONS at connect. The
           # statement_timeout is a ceiling just under the Lambda kill, so a
           # statement the Lambda abandons is cancelled rather than orphaned
@@ -1047,7 +1047,7 @@ Resources:
           PGOPTIONS: "-c statement_timeout=285s -c idle_in_transaction_session_timeout=60s"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
 
-  # Scheduled product jobs (review item 5): the timer-driven work —
+  # Scheduled product jobs: the timer-driven work —
   # clan pulse, weekly sweeps — runs in its own Lambda so the
   # schema-capable migrate function never fires on a schedule.
   JobsLogGroup:
@@ -1102,7 +1102,7 @@ Resources:
   # The async retries of every scheduled job, stated rather than left to
   # the defaults (six hours, two retries). A mail run that stops short of
   # its recipients fails on purpose, and a retry carries on from where
-  # the ledger says it stopped (review 2026-09-27 section 6.7); an event
+  # the ledger says it stopped; an event
   # an hour old has been superseded by the next hourly run, and a weekly
   # mail run gets three invocations inside that hour.
   JobsInvokeConfig:
@@ -1230,7 +1230,7 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt EmailMilestoneRule.Arn
 
-  # Hourly Postgres payload sweep (DATA-TOOLS section 1): superseded
+  # Hourly Postgres payload sweep: superseded
   # payload rows leave Postgres once their S3 twin is HEAD-verified, and
   # the JSON of rows not fetched for two hours is nulled the same way
   # (0071/0072: the column is a cache of the archive; the recorder
@@ -1300,7 +1300,7 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt CaptureEfficiencyRule.Arn
 
-  # The nightly payload shape census (time-series review 2.7, 0132):
+  # The nightly payload shape census (0132):
   # twenty archived objects per endpoint from the last day against the
   # field manifest; findings filed into feedback (surface recorder), the
   # PayloadShapeFindings metric emitted. 05:05Z: before the 05:30Z histogram, the UTC day closed.
@@ -1384,7 +1384,7 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${McpApi}/*
 
-  # The payload archive (DATA-TOOLS): every admitted payload's raw bytes,
+  # The payload archive: every admitted payload's raw bytes,
   # Hive-partitioned, content-addressed. S3 is the system of record for
   # raw observations; Postgres keeps the hot set.
   ArchiveBucket:
@@ -1433,7 +1433,7 @@ Resources:
           # marker: without this rule the body would sit on as a
           # noncurrent version under expire-superseded-versions for
           # another 365 days, about 455 in all, against the 90 that
-          # limits.md promises (review 2026-09-27 6.4).
+          # limits.md promises.
           # The noncurrent body goes a day after the marker, then the
           # marker itself. ExpiredObjectDeleteMarker cannot share a rule
           # with ExpirationInDays, hence a rule of its own.
@@ -1456,7 +1456,7 @@ Resources:
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 7
 
-  # The payload archive is write-once (review 2026-09-27 §2.7). Versioning
+  # The payload archive is write-once. Versioning
   # keeps an overwritten object for only a year, and the internet-facing
   # collector door holds s3:PutObject on payloads/, so a put that could replace
   # a key is refused for every principal: the door sends
@@ -1497,7 +1497,7 @@ Resources:
 
   # One raw-JSON-lines table with partition projection - no crawler, no
   # maintenance. Queries pin entity (injected projection); cross-entity
-  # archaeology is DuckDB's job (DATA-TOOLS section 2).
+  # archaeology is DuckDB's job.
   GlueArchivePayloadsTable:
     Type: AWS::Glue::Table
     Properties:
@@ -2322,7 +2322,7 @@ Resources:
       TreatMissingData: breaching
       AlarmActions: [!Ref AlarmTopic]
 
-  # The user-facing doors (review 2026-09-05): the pipeline was fully
+  # The user-facing doors: the pipeline was fully
   # alarmed but a 500ing MCP or web-api lambda was invisible - users
   # would find out before the ops queue did.
   McpErrorsAlarm:
@@ -2474,7 +2474,7 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
-  # The web-api's own latency (review §8.6): its handler answers 504 at
+  # The web-api's own latency: its handler answers 504 at
   # its deadline, which is handled, so the Errors alarm never sees a slow
   # door. Duration is free, as for McpLatencyAlarm; p95 over 15 s for a
   # quarter hour is a door mostly timing out under its 20 s kill.
@@ -2514,7 +2514,7 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
-  # The database's two documented failure modes (review §8.6): the micro
+  # The database's two documented failure modes: the micro
   # ran its EBS byte balance to 0 three times, and there were two memory
   # recoveries on 2026-09-11. Both are free RDS metrics. Under a quarter
   # of the burst balance left, reads are about to be held to the
@@ -2552,7 +2552,7 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
-  # The site certificate (review §8.6): ACM renews it only while the
+  # The site certificate: ACM renews it only while the
   # validation CNAME, kept by hand at Namecheap, still resolves. ACM
   # publishes DaysToExpiry daily; 30 days is a month to fix the record.
   SiteCertificateExpiryAlarm:

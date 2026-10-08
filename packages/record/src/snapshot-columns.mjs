@@ -1,6 +1,6 @@
 /**
- * The profile snapshot's three fixed-shape objects as columns (0123;
- * schema review 1.8), in both directions: `snapshotColumns` takes the
+ * The profile snapshot's three fixed-shape objects as columns (0123),
+ * in both directions: `snapshotColumns` takes the
  * API payload apart the way the JSON columns were built from it, and
  * `snapshotObjects` puts the columns back into the objects the contract
  * serves (players_profile's path_of_legend, league_statistics and

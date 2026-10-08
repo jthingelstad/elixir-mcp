@@ -1,6 +1,6 @@
 /**
  * Attested facts are the one viewer-dependent read in a universal-reads
- * system (review 2026-09-27 §6.8): who sees a fact is decided per reader
+ * system: who sees a fact is decided per reader
  * in one place. So only two runtime modules may name the table: the read
  * (`packages/tools/src/activity/entries.mjs`, factItems) and the write
  * (`packages/record/src/attested-facts.mjs`). A third reader would carry

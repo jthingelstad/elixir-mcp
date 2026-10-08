@@ -1,6 +1,6 @@
 /**
  * The Elixir family's own OAuth clients, for the operator
- * ({family_clients: {...}}; 0185, review §6.5).
+ * ({family_clients: {...}}; 0185).
  *
  *   {family_clients: {list: true}}  the provisioned clients (app, secret on
  *     file, required, last authenticated) and the AUDIT: every registered

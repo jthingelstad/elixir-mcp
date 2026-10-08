@@ -180,7 +180,7 @@ export function makeRegistry() {
               title: `${cls.group} · ${cls.title}`,
               readOnlyHint: cls.readOnly,
               // True when any action removes or replaces something the
-              // caller owns (review 2.2.6): a client may confirm those.
+              // caller owns: a client may confirm those.
               destructiveHint: cls.destructive ?? false,
               openWorldHint: cls.openWorld ?? false,
             },

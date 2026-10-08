@@ -1,6 +1,6 @@
 /**
  * The daily rollup refresh is one statement over the sorted (player,
- * day) keys (review 2026-09-27 §2.5, §5.6): it locks rows in one fixed
+ * day) keys: it locks rows in one fixed
  * order whatever order the observer's battles arrived in, rewrites only
  * rows whose numbers changed, and deletes rows the recomputation no
  * longer produces.

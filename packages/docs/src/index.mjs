@@ -31,7 +31,7 @@ export async function corpus() {
 
 /** Query terms: lower-case words of two or more characters. A plural's
  *  trailing "s" is dropped so "quotas" finds "quota" the way "quota"
- *  already found "quotas" by substring (review 1.3); "ss" endings and
+ *  already found "quotas" by substring; "ss" endings and
  *  short words are left alone. */
 const singular = (t) =>
   t.length >= 4 && t.endsWith("s") && !t.endsWith("ss") ? t.slice(0, -1) : t;

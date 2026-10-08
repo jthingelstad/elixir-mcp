@@ -11,7 +11,7 @@ import { buildClanEntry } from "@elixir-mcp/tools/activity/entries";
 import { accountCtx, callTool } from "./ctx.mjs";
 import { tryTool } from "./shared.mjs";
 
-/** The facts are the same for every reader (review 2026-09-27 §6.7):
+/** The facts are the same for every reader:
  *  `account` only shapes the ctx the tools are called with, the scope is
  *  the clan's own recording scope, and a day is carried as an instant
  *  that each recipient's render names in their own zone. */

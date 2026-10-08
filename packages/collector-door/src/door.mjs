@@ -107,7 +107,7 @@ const CONFIG = {
   // Check-ins, not polling (2026-09-11): the door answers at once and
   // says when to come back. 0 while work remains for the collector,
   // idle_s when the queue is empty - which is also the worst-case
-  // pickup delay of a live: true fetch (review §9.1, §10.4). The idle
+  // pickup delay of a live: true fetch. The idle
   // answer is PHASED per collector (phasedCheckIn), never the bare
   // constant: told "15 s" from the same empty queue, five collectors
   // arrived together after every scheduler tick.
@@ -635,8 +635,8 @@ export function makeCollectorDoor({
       //
       // A deadlock or a racing upsert is the database's transient answer,
       // not the payload's: processResult has rolled its transaction back,
-      // so the same envelope runs once more before the door gives up
-      // (review 2026-09-27 §2.5). The archive put is write-once, so the
+      // so the same envelope runs once more before the door gives up.
+      // The archive put is write-once, so the
       // second pass re-putting the same key is already archived.
       let outcome;
       for (let attempt = 1; ; attempt++) {

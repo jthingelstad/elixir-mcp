@@ -147,7 +147,7 @@ test("descriptions stay readable: at most 600 characters (ENGINEERING 'Tool conv
   for (const d of declarations) {
     assert.ok(d.description.length > 40, `${d.name} is described`);
     // The convention says 600; the test allowed 1,000 and six drifted
-    // over (review 2026-09-19, defect 12). The rest of a long
+    // over. The rest of a long
     // description belongs on the docs page the tool's pointer names.
     assert.ok(
       d.description.length <= 600,

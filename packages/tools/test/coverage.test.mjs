@@ -1,5 +1,5 @@
 /**
- * meta.completeness_note fires (review 2026-09-19, defect 13). It was
+ * meta.completeness_note fires. It was
  * promised by the instructions, responses.md and choosing-a-tool and set
  * by nothing; buildMeta now reads the newest profile interval for a
  * player subject whose window ends inside the last seven days.

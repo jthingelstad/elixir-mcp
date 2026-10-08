@@ -148,7 +148,7 @@ export function Rail({
   const active = items.find((r) => r.key === current);
 
   // A modified or middle click is the browser's (a new tab, a copied
-  // link); only a plain one routes in-app (review 2026-09-27 §7.5).
+  // link); only a plain one routes in-app.
   const go = (to: string) => (e: MouseEvent<HTMLElement>) => {
     if (!isPlainClick(e)) return;
     e.preventDefault();
@@ -376,7 +376,7 @@ function AccountSwitcher({
   }, [open]);
 
   // A modified or middle click is the browser's (a new tab, a copied
-  // link); only a plain one routes in-app (review 2026-09-27 §7.5).
+  // link); only a plain one routes in-app.
   const go = (to: string) => (e: MouseEvent<HTMLElement>) => {
     if (!isPlainClick(e)) return;
     e.preventDefault();

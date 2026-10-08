@@ -1,5 +1,5 @@
 /**
- * /api/v1 against its own contract (review 2026-09-27 §8.5, issue #71).
+ * /api/v1 against its own contract (issue #71).
  *
  * The OpenAPI document says, per operation, which callers it admits
  * (`x-principals`) and by which credential (`security`). The router is

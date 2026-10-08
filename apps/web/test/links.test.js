@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * A ratchet on links (review 2026-09-27 §7.5). Explore promises that
+ * A ratchet on links. Explore promises that
  * "every record has a real URL", yet 65 anchors in the console and the
  * kit rendered with a click handler and no href: no keyboard focus, no
  * new tab, no copying the link, and axe does not flag one. Both counts

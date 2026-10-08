@@ -7,7 +7,7 @@ import {
 } from "react";
 
 /**
- * The kit's ONE in-app link (review 2026-09-27 §7.5).
+ * The kit's ONE in-app link.
  *
  * A record link used to be an anchor with a click handler and no href: no keyboard
  * focus, no new tab, no copying the address, and axe does not flag it.

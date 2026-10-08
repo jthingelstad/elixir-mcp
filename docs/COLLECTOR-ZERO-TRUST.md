@@ -1,356 +1,195 @@
-# Collector Zero-Trust — kill the IAM users
+# Collector zero-trust
 
-**SHIPPED 2026-09-06 and live end to end** (see `docs/notes/2026-W36-W37.md`: "ZERO-TRUST COLLECTOR TRANSITION EXECUTED"). This document is the design as ratified; the header said "awaiting ratification" for two days after the transition was complete, which is the failure mode a status line exists to prevent. The transport under the doors changed after it shipped: jobs live in the Postgres job ledger (0040) rather than SQS request queues, a submit is ingested inline rather than sent to a results queue, and since 2026-09-11 a collector checks in rather than long-polling. The sections below describe that, and mark what was retired. How to run a collector is public: <https://elixir.poapkings.com/docs/operators>. Jamie's
-directive: operators cannot be assumed safe; collectors must have NO
-AWS connectivity — pure API clients of Elixir MCP with a token we
-issue, a launch-time contract so collection changes need no client
-update, and no IP collection at enrollment.
+Collectors have no AWS connectivity. They are pure API clients of Elixir
+with a token we issue, a launch-time contract so collection changes need
+no client update, and no IP collection at enrollment (Jamie's directive:
+operators cannot be assumed safe). How to run a collector is public:
+<https://elixir.poapkings.com/docs/operators>. Releasing one is
+`docs/RELEASING-COLLECTOR.md`.
 
-## Trust posture TODAY — read this before enrolling anyone (issue #22)
+The collector is one Go implementation (`elixir-mcp-collector`); its
+releases are signed and its updater verifies them and can roll back.
 
-The name of this document describes where the collector plane is
-GOING. It does not describe where it is. As shipped today:
+## Trust posture: read this before enrolling anyone
+
+The name of this document describes where the collector plane is going,
+not all of where it is:
 
 - Probation is **a status, not a control**. A probation gateway fetches
   config, leases real jobs, and its admitted submissions project
   straight into canonical history like any other collector's.
-- Admission proves **shape and identity** — that a payload is
-  well-formed and is about the entity we asked for. It cannot prove
-  that a plausible payload is TRUE. Content-derived battle ids and
-  MAX-merge counters raise the cost of a consistent lie; they do not
-  make one impossible.
-- Black-hole quarantine detects a collector that fails to return work.
+- Admission proves **shape and identity**: that a payload is well-formed
+  and is about the entity we asked for. It cannot prove that a plausible
+  payload is TRUE. Content-derived battle ids and MAX-merge counters raise
+  the cost of a consistent lie; they do not make one impossible.
+- Missed-streak quarantine detects a collector that fails to return work.
   It does not detect one that returns fiction.
 
-Therefore **collector enrollment is trusted-volunteer, not
-zero-trust.** An enrolled operator is a person we have decided to
-trust with write access to the permanent public corpus, and enrollment
-should be treated with exactly that weight. This is tolerable because
-enrollment is not self-serve: raising a hand does nothing until the
-maintainer approves it, and approval issues only a one-time bearer token.
-The operator brings their own CR key, allowlisted to their own IP with
-Supercell; Elixir never issues or stores one. When this was written
-(2026-09-06) every collector was one of Jamie's own machines.
+Therefore **collector enrollment is trusted-volunteer, not zero-trust.**
+An enrolled operator is a person trusted with write access to the
+permanent record, and enrollment carries exactly that weight. Enrollment
+is not self-serve: raising a hand does nothing until the maintainer
+approves it, and approval issues only a one-time bearer token. The
+operator brings their own CR key, allowlisted to their own IP with
+Supercell; Elixir never issues or stores one.
 
-**The activation gate.** Before the first gateway run by someone other
-than the maintainer is moved to `active`, either the shadow lane below
-must ship, or the decision to trust that specific operator anyway must
-be made deliberately and written down. "Begin probation" currently
-means "these results count".
+**The activation gate.** Before a gateway run by someone other than the
+maintainer is moved to `active`, either the shadow lane below must ship,
+or the decision to trust that specific operator must be made
+deliberately and written down. "Begin probation" means "these results
+count".
 
-**Recovery is designed, not drilled.** Receipts carry their gateway
-forever and the archive is replayable — the `{replay}` op exists and
-was exercised for the elixir-bot backfill — but there is **no
-gateway-scoped purge-and-rebuild procedure and none has ever been
-run**. Payload dedup and canonical projections make excising one
-observer more involved than deleting its receipts, because a battle
-seen by an honest clanmate's collector must survive the excision.
-Treat "lies are removable" as an intention with a plausible mechanism
-under it, not as a capability on the shelf.
+**Recovery is designed, not built.** Receipts carry their gateway forever
+and the archive is replayable (the `{replay}` op), but there is **no
+gateway-scoped purge-and-rebuild procedure and none has been run**.
+Payload dedup and canonical projections make excising one observer more
+involved than deleting its receipts, because a battle seen by an honest
+clanmate's collector must survive the excision. Treat "lies are
+removable" as an intention with a plausible mechanism under it, not a
+capability on the shelf.
 
-## Assessment of the IAM-user model it replaced (2026-09-06) — the worry was justified
+## The door
 
-Before 2026-09-06 each collector held a per-collector **IAM user** (a principal
-inside the AWS account) plus the operator's own CR key. Verified
-against the code shipped then, three concrete problems:
+Three routes on `elixir.poapkings.com`, served by the collector door's
+own Lambda (`services/collector`, routed by `CollectorRoute` in
+`infra/template.yaml`, in the VPC with database access) over the
+`@elixir-mcp/collector-door` package
+(`packages/collector-door/src/door.mjs`). It has its own concurrency
+ceiling, role and alarms, so a fleet burst cannot take the console's
+capacity. Every route requires the CloudFront origin secret and a
+per-collector Bearer token.
 
-1. **`cloudwatch:PutMetricData` on `Resource: "*"`**
-   (provision-gateway.mjs). PutMetricData cannot be resource-scoped and
-   the policy sets no namespace condition — any collector can write
-   metrics into ANY namespace in the account: fake another collector's
-   heartbeat, pollute billing/ops metrics, trip or silence
-   metric-based alarms.
-2. **Results are attributed by an unauthenticated field.** Ingest
-   trusts `msg.gateway_id` from the message body; every collector holds
-   send-rights on the same results queue. Any operator can submit
-   results AS any other collector (only `revoked` is refused).
-   Admission's new identity binding limits data damage, but
-   attribution, credits, and lifecycle trust are all spoofable.
-3. **Request-queue rights allow silent denial.** `ReceiveMessage` +
-   `DeleteMessage` on the shared request queues means a hostile
-   collector can drain jobs and delete them unprocessed — invisible
-   except as falling yield.
+- **`GET /api/collector/config`**: the launch-time contract,
+  `{contract_version, min_client_version, pacing_ms, breaker,
+  overflow_bytes, check_in, submit_retry, doctor, gateway, observed_ip,
+  update}`.
+  Read at startup and hourly. `observed_ip` is the caller's address from
+  CloudFront, the egress IP the operator allowlists on their CR key.
+  `update` is the update authority (below).
+- **`POST /api/collector/lease`**: a check-in, never a long-poll. It
+  answers at once with `{job, cr_path, lease, filter?, next_check_in_s}`
+  or `{empty: true, next_check_in_s}`, and the collector sleeps exactly
+  that long. The idle answer is phased per collector (its own slot in the
+  cycle, evenly spaced across the active fleet). Live jobs are a priority
+  flag, served first to whichever collector checks in. **`cr_path` is
+  computed by the server**: the client never learns the endpoint→path
+  mapping, so new endpoints and collection changes ship with no client
+  change. `lease` is an opaque, signed handle on a row in the Postgres
+  job ledger (`packages/ledger`).
+- **`POST /api/collector/submit`**: `{lease, status, body_gzip_b64 |
+  error}`. The server builds the result envelope, **stamps `gateway_id`
+  and `gateway_sha` from the token**, ingests it inline and settles the
+  ledger job. Every authenticated call stamps `last_heartbeat_at`.
 
-Beyond the concrete holes: IAM users are long-lived credentials whose
-misuse surface is "the AWS control plane said no," not "the request
-never reached AWS"; every enrollment requires the owner to run a local
-IAM-minting script (the whole provisioning dance exists only because
-NAT-free VPC Lambdas cannot call IAM); and key revocation is an IAM
-operation rather than a row update. **Verdict: the zero-trust direction
-is right, and it also deletes our most complex operational flow.**
+The client loop is config → `lease → fetch cr_path (paced) → submit`.
+Pacing, breaker and overflow constants come from config, not compiled in.
 
-## The design: collectors as pure Elixir MCP API clients
-
-### Doors
-
-Three routes on the existing hostname, served by web-api (which sits in
-the VPC with database access), Bearer-authenticated by a per-collector
-token:
-
-- **`GET /api/collector/config`** — the launch-time contract:
-  `{contract_version, pacing_ms, breaker: {threshold_403, cooldown_s},
-  overflow_bytes, check_in: {idle_s, capped_s}, submit_retry: {max_attempts,
-  timeout_s, backoff_ms, retry_statuses},
-  min_client_version}` (the `poll` block, served until 2026-09-26 for
-  clients from before 2026-09-11, is gone). Fetched at startup and re-fetched
-  opportunistically; `min_client_version` is the kill switch that can
-  force a self-update.
-- **`POST /api/collector/lease`** — a check-in (2026-09-11: never a
-  long-poll). Answers at once with `{job, cr_path, lease, filter?,
-  next_check_in_s}` or `{empty: true, next_check_in_s}`; the collector
-  sleeps exactly that long. The idle answer is phased per collector
-  (its own slot in the 15 s cycle, evenly spaced across the active
-  fleet), so collectors never converge on the same second. Live jobs
-  are served first to whichever collector checks in.
-  **`cr_path` is computed by the server** — the client never learns
-  endpoint→path mapping, so new CR endpoints and collection changes
-  ship with zero client changes. `lease` is an opaque, signed handle on
-  a row in the Postgres job ledger (0040; it was an SQS receipt handle
-  until then). A lease expires unsubmitted after 90 s and the job goes
-  back to `queued`, so an operator can no longer black-hole work; after
-  five attempts the job is `dead` (see "The black-hole collector").
-- **`POST /api/collector/submit`** — `{lease, status, body_gzip_b64 |
-  error}`. The server builds the result envelope, **stamps gateway_id
-  and gateway_sha server-side from the token** (spoofing dies), ingests
-  it inline in the same request and settles the ledger job (there is no
-  results queue). Every authenticated call also stamps
-  `last_heartbeat_at` in the DB.
-
-The client loop collapses to: config → `lease → fetch cr_path (paced)
-→ submit`. No AWS SDK in either runtime — the Go binary drops
-aws-sdk-go entirely, the Node worker drops @aws-sdk. Pacing, breaker,
-and overflow constants come from config, not compiled-in.
+Below `min_client_version` the door refuses `lease` and `submit` with 426
+`client_too_old` when the `CollectorMinEnforce` stack parameter is on; it
+never refuses `config`, the channel a stale client updates through, and
+it fails open on a version it cannot parse (`dev`).
 
 ### Tokens
 
-Server-generated at approval, stored as a **hash** in the gateway row
-(the service-token pattern), shown once via the existing one-time
-claim-and-null download. Lifecycle unchanged (pending → probation →
-active → drain → revoke) and enforced at the door on every call —
-revocation is a row update with instant effect. Per-token rate limits
-ride the existing rate_limit table. Ingest keeps its gateway checks as
-defense in depth.
+Server-generated at approval (`emcg_` prefix), stored as a sha256 hash
+in the gateway row, shown once through a one-time claim-and-null
+download. Lifecycle pending → probation → active → draining → revoked,
+enforced at the door on every call: revocation is a row update with
+instant effect. Ingest keeps its gateway checks as defense in depth.
 
-### Enrollment simplifies to almost nothing
+### Enrollment
 
-Raise a hand with a **name only** (the card identity stays
-server-assigned, as today). No static IP — the CR key's IP binding is
-between the operator and Supercell and never our business. No IAM
-minting, no owner-side script, no migrate-lambda staging op: approval
-generates the token and the one-time download IS the provisioning.
-`static_ip` becomes nullable and leaves the form and admin display.
+Raise a hand with a **name only**; the card identity is server-assigned.
+No static IP: the CR key's IP binding is between the operator and
+Supercell. No IAM, no owner-side script: approval generates the token
+and the one-time download is the provisioning.
 
-### Heartbeat telemetry
+### Fleet health
 
-The per-gateway CloudWatch namespaces (`ElixirMCP/Gateway/<name>`) go
-away with the permission that fed them. DB heartbeats (already shown on
-the Status page) become the single fleet-health truth; fleet death is
-alarmed by `LedgerOldestJobAlarm` (`OldestQueuedAgeSeconds` in
-`ElixirMCP/Ledger`: the oldest queued job 30 minutes old across two
-15-minute periods), and an exhausted job by `LedgerDeadJobsAlarm`. One
-less credential use, one less unpinnable permission.
+Database heartbeats are the fleet-health truth (Admin → Collectors,
+`elixir_collectors`). Fleet death is alarmed by `LedgerOldestJobAlarm`
+(`OldestQueuedAgeSeconds` in `ElixirMCP/Ledger`), an exhausted job by
+`LedgerDeadJobsAlarm`, and the door itself by `CollectorErrorsAlarm` and
+`CollectorLatencyAlarm`.
 
-### What a hostile operator can still do — and can't
+## What a hostile operator can still do, and can't
 
-Still can: fetch wrong/garbage data (admission + identity binding +
-lifecycle quarantine bound it), sit on leases (each expires in 90 s and
-the job returns to the ledger), hammer the API (rate-limited per token,
-revocable instantly). **Can no longer:** touch any AWS API, impersonate another
-collector, delete work unprocessed, forge metrics, or learn anything
-about the tenant beyond three HTTPS endpoints.
-
-### Channels: bulk for operators, live for us (Jamie, 2026-09-06) — RETIRED 2026-09-11
-
-> **Superseded.** Live is a priority flag on a job, not a kind of
-> collector (review §9.2 / §10, Jamie: async live, let the whole fleet
-> handle it). Every collector checks in and takes live jobs first; the
-> door answers at once with `next_check_in_s`; `live: true` is
-> asynchronous on the MCP side (fresh if in hand, else queued and the
-> record answers now). The security argument below still holds where it
-> matters: a live job reveals only a subject tag the recorder already
-> polls, its result is admitted and verified like any bulk submission,
-> and it reaches a user only through the record. What went away was the
-> latency SLA that needed standing long-polls - and with it roughly $25
-> a month of Lambda and 350,000 database transactions a day serving
-> sixteen calls a week. The `channel` column and its display remain for
-> now (expand-and-contract); nothing reads it for routing.
-
-Instead of one lease door with QoS, the fleet splits into two
-**server-assigned channels**, carried in the config payload so it is
-not even a client fork — same binary, different config:
-
-- **`bulk`** — the default and the ONLY channel open to outside
-  operators. Bulk jobs are scheduler-chosen, latency-irrelevant work:
-  the client polls lazily (drain-until-empty, then idle backoff from
-  config — no held connections at all). An operator collector never
-  sees which subjects users are asking about in real time, and can
-  never serve a payload straight into a user's live answer.
-- **`live`** — grantable only by the owner, run only on our own
-  machines. These long-poll for the 1–3s live-lane SLA.
-
-This is better than QoS on three axes. **Security:** live jobs reveal
-user intent (who is being asked about, right now) and their results
-flow directly into answers — exactly the surface to keep out of
-untrusted hands; bulk operators only ever learn what the recorder
-already decided to poll. **Scale:** standing long-polls now scale with
-OUR machines (one or two), not the open fleet — the concurrency
-concern below evaporates for the part that grows. **Semantics:** the
-two SQS queues already exist; the door simply serves each token its
-channel. If our live collectors are down, `live_fetch` degrades to its
-structured `live_unavailable` while operator bulk recording continues
-untouched.
-
-### Considered and REJECTED (Jamie, 2026-09-06): internal live fetches
-
-Could Elixir MCP make live fetches itself? Technically yes, and it
-would delete the live channel entirely — but it changes two deliberate
-postures, so it is a separate decision:
-
-1. **A CR key would live in the cloud.** Golden rule 2 today: the CR
-   key exists only on operator machines, never in Lambda. Internal
-   live means a Supercell key in Secrets Manager, resolved into a
-   fetcher Lambda. IP-bound and revocable, but a rule change.
-2. **The VPC would need egress.** NAT-free is a security posture. A
-   managed NAT gateway is ~$32/mo (material for a hobby account; the
-   $40 cost alarm this once cited was removed 2026-09-24); the
-   hobby-honest alternative is a t4g.nano NAT instance
-   with an Elastic IP (~$4/mo) — which is a small pet to keep.
-   Supercell allowlists the EIP.
-
-What it buys: the live lane stops depending on any home machine's
-uptime, and the collector story collapses to "operators do bulk,
-full stop." What it doesn't buy: our machines still run bulk
-collectors anyway, so the machine dependency leaves only the live
-path — a path that already degrades to a structured
-`live_unavailable` rather than failing.
-
-**Decision (Jamie):** rejected — the IP-allowlist/egress cost plus the
-privacy angle settle it. Live stayed on private collectors we ran until
-2026-09-11, when the live lane went asynchronous and every collector
-took priority work (see the retired-section note above).
-
-### Costs and trade-offs, stated honestly
-
-- (Retired 2026-09-11: there are no long-polls at all now; a check-in
-  is one short request and the door says when to come back.) Bulk
-  jobs gain up to one check-in interval of latency, irrelevant
-  against cadences measured in minutes.
-- One extra HTTPS hop per job (~50–150ms) against a 1.5s pace — negligible.
-- (Retired with the SQS transport: web-api's role once gained
-  receive/delete on the request queues and send on results. The door
-  now reads and writes the job ledger in Postgres and holds no queue
-  grants for collector work.)
-- The bearer token is still a secret in the operator's .env — but
-  single-purpose, instantly revocable, and worthless against AWS.
-
-## Certificates, signing, and the two bad collectors (Jamie's stress-test, 2026-09-06)
-
-### mTLS / request signing: NO
-
-Bearer-over-TLS already gives us authenticated, confidential transport;
-mTLS would add a client-certificate lifecycle (issue, renew, revoke)
-for a hobby fleet with no gain — the token IS the client identity, and
-the server's identity comes from public TLS. Request signing (HMAC over
-bodies) defends against replay and tampering that TLS already prevents;
-submits are additionally idempotent at ingest (receipt dedup). Neither
-earns its operational weight here.
-
-### Client code attestation ("prove the binary is unmodified"): NO
-
-Any integrity proof produced ON an untrusted machine is answered BY
-that machine — a modified client reports the clean binary's hash.
-Unforgeable attestation needs a hardware root of trust (TPM/enclave),
-which is enterprise machinery this fleet will never justify. It is
-also the wrong target: a byte-perfect binary behind a lying proxy
-still poisons data, and a modified binary that submits truth is
-harmless. Integrity of BEHAVIOR is what matters, and the
-output-side defenses below are how it is checked. Hashing earns its
-keep only in the download direction (the server names the SHA-256 the
-client must install), and `gateway_sha` stays in heartbeats as an
-honest what-are-you-running signal — telemetry, never proof.
-
-### Self-update signing: YES — and the server is the root of trust
-
-The one real signing gap is the update path: today the collector
-verifies a SHA-256 that ships in the SAME GitHub release as the binary
-— whoever can forge the release can forge the hash. GO-PORT deferred
-key-based signing because a key in GH secrets dies in the same
-compromise. The zero-trust door solves this more cleanly than a key
-ceremony: **the config endpoint becomes the update authority.**
-`/api/collector/config` gains `update: {version, sha256, url}`; the
-client only installs a binary whose hash the SERVER named. Pushing
-malicious code to operators then requires compromising Elixir MCP
-itself, not just a GitHub release — and it costs operators nothing and
-us no signing ritual. (Sigstore/cosign can layer on later if the fleet
-ever includes strangers at scale.)
+Still can: submit wrong or garbage data (admission, identity binding and
+the lifecycle bound it), sit on leases (each expires and the job returns
+to the ledger), hammer the door (budgeted per token, revocable
+instantly). **Cannot:** touch any AWS API, impersonate another collector,
+delete work unprocessed, write metrics, or learn anything beyond three
+HTTPS endpoints. A live job reveals only a subject tag the recorder
+already records, and its result is admitted like any other.
 
 ### The black-hole collector (takes work, never responds)
 
-The lease expiry guarantees no job is LOST: an unsubmitted lease
-expires after 90 s and the job returns to the ledger. What it doesn't
-stop is a persistent black-holer grabbing jobs repeatedly: a job whose
-fifth lease expires is marked `dead`, so a determined black-holer could
-walk work into the dead state. Because leasing is server-mediated, we can
-do what the SQS-direct model never could:
+No job is lost: an unsubmitted lease expires after 90 s and the job
+returns to the ledger; after five attempts it is `dead`. Against a
+persistent black-holer:
 
-- **Outstanding-lease cap**: at most 2 unsubmitted leases per token —
-  a black-holer holds 2 jobs, ever, not the queue.
-- **Per-token request budget** (shipped, #11): 10,000 work requests
-  (lease + submit) and 120 config reads per token per hour, counted in
-  the existing `rate_limit` table AFTER authentication so nobody can
-  choose the bucket they fill. Over budget is a 429 carrying
-  `retry_after_s` and a `Retry-After` header. The work ceiling is more
-  than double what the busiest honest collector can reach at the
-  1500ms pacing floor, so it bounds abuse without touching collection.
-  Distinct from the lease cap, which bounds concurrent WORK rather than
-  request volume.
-- **Missed-streak quarantine** (as built): every lease that expires
-  unsubmitted charges the gateway's `missed_streak` when the ledger
-  settles it, and a submit resets it. At ten in a row the collector is
-  **auto-quarantined**: the door stops issuing it leases, flips it to
-  draining, and notifies the owner. (The design also proposed a
-  submit-ratio trigger; only the streak was built.) Honest collectors
-  are unaffected; the failure is visible in minutes instead of as
-  mysteriously falling yield.
+- **Outstanding-lease cap**: at most 2 unsubmitted leases per token,
+  atomic per gateway.
+- **Per-token request budget**: 10,000 work requests (lease + submit) and
+  120 config reads per token per hour, counted in `rate_limit` after
+  authentication so nobody chooses the bucket they fill. Over budget is a
+  429 with `retry_after_s` and `Retry-After`. The work ceiling is more
+  than double what the busiest honest collector reaches at the 1500 ms
+  pacing floor.
+- **Missed-streak quarantine**: every lease that expires unsubmitted
+  charges the gateway's `missed_streak` when the ledger settles it; a
+  submit resets it. At ten in a row the door stops issuing leases, flips
+  the gateway to draining and notifies the owner.
 
 ### The lying collector (submits plausible garbage)
 
-Defense in depth, layered by cost:
+1. **Built:** admission shape validation; identity binding (the payload
+   must be about the requested entity); monotonic MAX-merge counters (a
+   lie cannot walk recorded numbers backwards); content-derived battle
+   ids (a fabricated battle needs a story consistent across observers,
+   and shared subjects are cross-checked by every clanmate's log).
+2. **Not built: shadow verification.** A probation collector's jobs
+   sampled and double-fetched by a trusted collector, comparing stable
+   fields (name, trophies within tolerance, badge counts, roster
+   membership); activation earned by agreement, with a low sampling rate
+   after. This is the activation gate above.
+3. **Not built: provenance quarantine.** Revoke the token, purge that
+   gateway's receipts and payloads, replay the archive without them,
+   keeping a trusted collector's observations of the same subjects. It
+   needs a disposable database and archived fixtures before anyone relies
+   on it.
 
-1. **Already shipped**: admission shape validation; identity binding
-   (the payload must be ABOUT the requested entity); monotonic
-   MAX-merge counters (a lie cannot walk recorded numbers backwards);
-   content-derived battle ids (fabricated battles need a
-   cross-observer-consistent story, and shared subjects get
-   cross-checked by every clanmate's log).
-2. **Probation becomes real**: today probation is just a status. Under
-   v2 it means **shadow verification** — a probation collector's jobs
-   are sampled and double-fetched by a trusted (our) collector, and
-   semantically stable fields (name, trophies within tolerance, badge
-   counts, roster membership) are compared. Activation is EARNED by
-   agreement with trusted observers, not by time served. Post-
-   activation, a low sampling rate continues forever.
-3. **Provenance quarantine is the backstop**: every payload's receipt
-   carries its gateway forever, and projections are rebuildable from
-   the S3 archive. If a liar is discovered late, the intended incident
-   path is: revoke the token, purge that gateway's receipts/payloads,
-   replay the archive without them. **NOT YET BUILT OR DRILLED** — see
-   "Trust posture today". The hard part is not deletion, it is keeping
-   the observations a trusted collector made of the same subjects, so
-   the procedure needs a disposable database and archived fixtures
-   before anyone should rely on it.
+## Updates: the server names, the release key signs
 
-## Migration (done 2026-09-06)
+The config `update` block is the hub's `collector_release` ledger, one
+`{version, sha256, url}` per platform, written only when the maintainer
+names a release (`infra/scripts/name-collector-release.mjs`). The
+collector repo signs each release's `SHA256SUMS` with its release key.
+A collector installs a binary only when the signature verifies against
+the key it carries, the signed `SHA256SUMS` covers the hash the hub
+named, and the version is at or above its install floor; a new version
+that cannot reach the hub rolls itself back. Naming refuses anything a
+collector would refuse. Pushing malicious code to operators therefore
+needs both the release key and the hub.
 
-Executed overnight 2026-09-06 (`docs/notes/2026-W36-W37.md`, "ZERO-TRUST
-COLLECTOR TRANSITION EXECUTED"): Node was retired, the home fleet runs one
-Go and one Python v2 collector for runtime diversity, the cabin runs the
-Go binary and never received AWS credentials, and the per-collector IAM
-users were deleted. The SQS request and results queues then gave way to
-the Postgres job ledger with inline ingest (0040).
+The collector reports what it runs in headers (`x-collector-version`,
+`x-collector-binary-sha256`, `x-collector-release-key`). The door stamps
+them, and `signatureState` (`packages/collector-door/src/signature.mjs`)
+calls a collector `signed` when its hash equals a named hash for its
+version. That is self-reported telemetry for the pages' badge, never
+proof, and nothing gates on it.
 
-## Deliberately out (v1)
+## Deliberately not built
 
-mTLS or signed requests (bearer over TLS matches the threat model at
-this scale); token auto-rotation (owner-triggered regeneration only);
-multi-region doors; per-collector work partitioning.
+- **mTLS or request signing.** Bearer over TLS already authenticates and
+  protects the transport; the token is the client identity. Submits are
+  idempotent at ingest (receipt dedup).
+- **Client attestation** ("prove the binary is unmodified"). Any proof
+  produced on an untrusted machine is answered by that machine, and the
+  target is wrong: a clean binary behind a lying proxy still poisons
+  data. Behavior is checked on the output side.
+- **Internal live fetches** (Jamie). They would put a CR key in the cloud
+  (golden rule 2) and need VPC egress; rejected on the allowlist, egress
+  cost and privacy.
+- Token auto-rotation (owner-triggered regeneration only), multi-region
+  doors, per-collector work partitioning.

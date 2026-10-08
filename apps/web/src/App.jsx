@@ -157,8 +157,7 @@ export const SECTIONS = {
       { slug: "service-tokens", label: "Service tokens", ownerOnly: true },
     ],
   },
-  // An agent's console (2026-09-23, docs/reviews/2026-09-23-CONSOLE-
-  // ACCOUNT-SWITCHER.md): the pages that make sense for an agent, scoped
+  // An agent's console (2026-09-23): the pages that make sense for an agent, scoped
   // to one you own, at /console/agent/<public_id>/<page>. Verify,
   // Profile and Admin are a person's; Explore and Status are the same for
   // everyone and stay in your console. `scoped` marks the id segment

@@ -266,8 +266,7 @@ export async function handleMcpMessage(message, context) {
   if (method === "resources/read") {
     const uri = String(params.uri ?? "");
     const found = await readResource(uri, { db: context.db ?? null });
-    // A read of the corpus is audited like a call (3.18.0, review Part
-    // 7.3): "nobody reads the resources" was a guess with no number.
+    // A read of the corpus is audited like a call (3.18.0): "nobody reads the resources" was a guess with no number.
     await context.auditRead?.("resources/read", { uri }, Boolean(found));
     if (!found) {
       return {
@@ -393,7 +392,7 @@ export async function handleMcpMessage(message, context) {
         // error: the spec holds structuredContent to the tool's
         // outputSchema, which requires meta, notes and docs, and a strict
         // client (the reference SDK validates) would throw away exactly
-        // the refusal whose hint matters (review 2026-09-27 §6.2). The
+        // the refusal whose hint matters. The
         // text block carries the same {error, meta}.
         ...(!isError && body && typeof body === "object"
           ? { structuredContent: body }

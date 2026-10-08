@@ -1,5 +1,5 @@
 /**
- * The mail run over a scratch database (review 2026-09-27 §6.7): the
+ * The mail run over a scratch database: the
  * ledger is asked before anything is composed, a run stops with time to
  * spare and says how far it got, a second milestone on one UTC day is a
  * second mail, a written issue goes out only for its own period, and a

@@ -158,7 +158,7 @@ export function publicRoutes({ deadLetters }) {
                 count(*) filter (where gap)::int as gaps
          from capture_audit where fetched_at > now() - interval '24 hours'`,
       );
-      // The global Clash Royale request budget (review 2026-09-27 §4.2).
+      // The global Clash Royale request budget.
       //
       // The headline is the last 24 hours against the BULK share of a
       // day's budget (rate x 86,400 x (1 - live_reserve)): consumed load
@@ -473,7 +473,7 @@ export function publicRoutes({ deadLetters }) {
     },
 
     "GET /api/public/stats": async (db) => {
-      // The public data story (docs/archive/SITE-IA.md, 2026-09-05): corpus scale and
+      // The public data story (2026-09-05): corpus scale and
       // full-history daily series. No auth, no account data - the
       // universal-reads boundary applied to aggregates. CloudFront
       // caches it for an hour.

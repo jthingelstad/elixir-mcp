@@ -73,7 +73,7 @@ export interface CrResultMessage {
   observed?: number;
   filtered?: number;
   /** Raw response bytes read from the CR API before any filter
-   *  (2026-09-11, review §9.3): what the edge filter saved is the
+   *  (2026-09-11): what the edge filter saved is the
    *  difference between this and the body it submitted. Optional. */
   api_bytes?: number;
   error?: {

@@ -17,7 +17,7 @@ const MAX_ATTEMPTS = 5;
 /** A failed fetch is retried RETRY_BASE_MINUTES later, doubling for up to
  *  RETRY_MAX_TRIES tries (15, 30, 60 minutes), then the subject waits for
  *  its own cadence; the next cadence plan or an admission resets the count
- *  (0188; review 2026-09-27 §2.6). */
+ *  (0188). */
 const RETRY_BASE_MINUTES = 15;
 const RETRY_MAX_TRIES = 3;
 
@@ -154,7 +154,7 @@ function tickMinutes() {
 
 /**
  * Charge one token from the one global bucket for a live job about to be
- * minted (review 2026-09-27 §4.1). Until then live mints never touched the
+ * minted. Until then live mints never touched the
  * bucket, so the live reserve was only the planner abstaining and the
  * per-account daily caps were the only bound on the live lane. Atomic: the
  * row is decremented only while a whole token is left, so concurrent

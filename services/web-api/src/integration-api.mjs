@@ -230,8 +230,8 @@ function requirePersonToolScope(account, tool) {
 
 /** A failure the caller should retry: the database refused or dropped the
  *  connection, or a statement ran out of time or into a lock or deadlock.
- *  Anything else unexpected is a defect, answered 500 with no Retry-After
- *  (review 2026-09-27 §8.5): a deterministic bug used to answer 503 with
+ *  Anything else unexpected is a defect, answered 500 with no Retry-After:
+ * a deterministic bug used to answer 503 with
  *  `Retry-After: 5`, asking every caller to retry it forever. */
 const TRANSIENT_SQLSTATES = new Set([
   "57014", // statement_timeout
@@ -273,7 +273,7 @@ async function runTool(db, account, route, event) {
     queryBudgetMs: PERSON_TOOL_BUDGET_MS,
     // The request's deadline reaches every read-only tool, not only the
     // analytical ones the budget covers: clans_participation (p95 10.2 s)
-    // ran unbounded here (review 2026-09-27 §3.2).
+    // ran unbounded here.
     deadlineMs: toolDeadlineMs(event),
   });
   const result = await invoke(route.tool, route.args);
@@ -459,8 +459,8 @@ async function requestRefresh(db, account, policy, body, event) {
         entity_key: playerTag,
         lane: "live",
       });
-      // A new live row is charged one token from the one global budget
-      // (review 2026-09-27 §4.1); promoting a queued bulk row was paid for
+      // A new live row is charged one token from the one global budget;
+      // promoting a queued bulk row was paid for
       // when the planner inserted it. With no token the whole transaction
       // rolls back - the job, the refresh and this day's quota count - and
       // the answer is when the budget refills.

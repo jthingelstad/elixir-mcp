@@ -1,5 +1,5 @@
 /**
- * MCP resources and prompts (1.0.0, review Part 3.1).
+ * MCP resources and prompts (1.0.0).
  *
  * A stateless server cannot push notifications/tools/list_changed, and
  * clients cache tools/list for a session or longer - this session's own

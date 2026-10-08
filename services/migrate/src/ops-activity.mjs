@@ -76,7 +76,7 @@ export async function activityPreview(databaseUrl, spec = {}) {
 }
 
 /**
- * {explain_timeline: spec} (review 2026-09-19 Part 7.6; 3.18.0): one
+ * {explain_timeline: spec} (3.18.0): one
  * elixir_timeline read, replayed exactly and timed per query, with the
  * plans of the two statements an empty window's cost lives in.
  *

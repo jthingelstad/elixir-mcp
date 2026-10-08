@@ -513,7 +513,7 @@ test("ci gate: a run not yet created or still going is waited for, up to the dea
   assert.match(late.reason, /did not finish/);
 });
 
-test("the failures the doors handle themselves are alarmed, to the ops queue (review 2026-09-27 §8.6, #71)", async () => {
+test("the failures the doors handle themselves are alarmed, to the ops queue (#71)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const filter = resource(
     template,
@@ -692,7 +692,7 @@ function cacheBehaviours(template) {
 
 const CACHING_OPTIMIZED = "658327ea-f89d-4fab-a63d-7e88639e58f6";
 
-test("every public read is cached at the edge by one /api/public/* behaviour (review 2026-09-27 §5.4, #73)", async () => {
+test("every public read is cached at the edge by one /api/public/* behaviour (#73)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const behaviours = cacheBehaviours(template);
   const paths = behaviours.map(([p]) => p);
@@ -797,7 +797,7 @@ test("every /api/public route is a GET that states its own freshness (#73)", asy
   }
 });
 
-// Publishing the site (review 2026-09-27 §8.4, #73). One `s3 sync
+// Publishing the site (#73). One `s3 sync
 // --delete` with no Cache-Control removed the old build's lazy chunks
 // while an open console, or an edge still holding the old app.html,
 // could ask for them: a blank page mid-session.
@@ -893,7 +893,7 @@ test("publish: prune only assets the build no longer ships, after they have been
   );
 });
 
-test("CI builds the site once (review 2026-09-27 §8.4, #73)", async () => {
+test("CI builds the site once (#73)", async () => {
   // The site workspace's test builds the merged tree inside `npm run
   // verify`; validate.yml and the Playwright webServer reuse it.
   const workflow = await readFile(

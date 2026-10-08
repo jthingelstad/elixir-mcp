@@ -22,7 +22,7 @@ export function DevicesPage() {
   // before then.
   const now = query.dataUpdatedAt;
   // A refused sign-out says so where the button is; the list refetches
-  // only after one that worked (review 2026-09-27 §7.5).
+  // only after one that worked.
   const everywhere = useWrite(api.revokeSessionsEverywhere, {
     invalidate: [keys.sessions],
   });

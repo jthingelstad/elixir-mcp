@@ -1,5 +1,5 @@
 /** clans_timeline · clans_members_timeline: the clan's daily series and
- *  its members' (time-series review Part 7, contract 3.12.0). Read from
+ *  its members' (contract 3.12.0). Read from
  *  clan_snapshot_daily and the roster-written rows of
  *  player_snapshot_daily by (clan_tag, snapshot_date); one point per
  *  game day, the day's last observation; every point stamped. */

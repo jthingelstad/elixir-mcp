@@ -13,8 +13,8 @@ import { ScopeProvider } from "../lib/scope.js";
 import { CONSOLE } from "../lib/console.js";
 
 /**
- * /console/agent/{public_id}/{page}/{itemId}/{recordId}: an agent's console
- * (docs/reviews/2026-09-23-CONSOLE-ACCOUNT-SWITCHER.md). The scope comes
+ * /console/agent/{public_id}/{page}/{itemId}/{recordId}: an agent's console.
+ * The scope comes
  * from the address and nowhere else; every page below is the same view
  * your console uses, reading through the scoped hooks.
  */

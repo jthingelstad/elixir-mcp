@@ -1,5 +1,5 @@
 /**
- * What issue #71 (review 2026-09-27 §5.2, §5.3) asks the database to
+ * What issue #71 asks the database to
  * show: {statements} reads pg_stat_statements (0190), and {tables} shows
  * each table's visibility-map cover and the autovacuum settings 0189 put
  * on the meta readers' tables, which is how the week-later check reads.

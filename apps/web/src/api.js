@@ -69,7 +69,7 @@ export const api = {
   // A private nickname is a WRITE through the tool bridge. The bridge
   // answers 200 with is_error for a tool's own refusal, so that is
   // turned into the failed envelope every other write returns, and
-  // useWrite reads it as one (review 2026-09-27 §7.5).
+  // useWrite reads it as one.
   setNickname: async (player_tag, nickname) => {
     const r = await request("POST", "/api/explore", {
       tool: "elixir_nickname",

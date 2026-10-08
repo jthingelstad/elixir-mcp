@@ -230,8 +230,7 @@ export function SignIn({ onAuthed }) {
             const r = await api.confirmHandoff(handoff.confirm);
             setBusy(false);
             // A confirmation that did not take says so and stays here:
-            // moving on would read as the other screen being signed in
-            // (review 2026-09-27 §7.5).
+            // moving on would read as the other screen being signed in.
             if (!r.ok)
               return setError(
                 writeErrorText({

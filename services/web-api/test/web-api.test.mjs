@@ -1170,7 +1170,7 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
   assert.equal(loose.statusCode, 200);
 });
 
-test("service tokens: Admin no longer mints one on a person (review §6.5); an existing one validates, revoke kills it", async () => {
+test("service tokens: Admin no longer mints one on a person; an existing one validates, revoke kills it", async () => {
   const minted = await handler(
     event({
       path: "/api/admin/service-tokens",
@@ -1613,7 +1613,7 @@ test("public status: no auth, 60s cache, no confidential fields", async () => {
   );
   // The budget headline is the last day against the bulk share of a
   // day's capacity, and the charges by lane; no calendar-hour pace
-  // (review 2026-09-27 §4.2, #64).
+  // (#64).
   assert.equal(
     body.budget.bulk_capacity_24h,
     Math.round(

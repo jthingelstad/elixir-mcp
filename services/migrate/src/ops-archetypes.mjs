@@ -1,5 +1,5 @@
 /**
- * Deck archetypes, operator side (docs/reviews/2026-09-20-DECK-ARCHETYPES-DESIGN.md).
+ * Deck archetypes, operator side.
  *
  * {card_roles_import}: the vocabulary (card roles and deck aliases) from
  * cr-agent-api-docs, validated the way the docs build validates it, into

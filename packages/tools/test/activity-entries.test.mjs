@@ -1,5 +1,5 @@
 /**
- * Activity entries (review 2026-09-13, Parts II/III): one row per subject
+ * Activity entries: one row per subject
  * since the reader's cursor, sections always present, facts named, no
  * instruction and no clock inside.
  */

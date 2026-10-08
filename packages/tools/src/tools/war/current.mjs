@@ -248,7 +248,7 @@ export const war_current = {
         },
       };
     }
-    // Today's remaining-decks picture (first designed in docs/archive/CLAN-PULSE.md, now archived): only while the
+    // Today's remaining-decks picture: only while the
     // anchored war-day period is nominally still open.
     let decksToday = null;
     let raceFinishedNote = null;

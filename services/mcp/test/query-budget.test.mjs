@@ -153,7 +153,7 @@ test("the Lambda deadline answers a slow read tool with query_timeout and audits
   });
   const start = Date.now();
   // Not an analytical tool: before 3.14.0 nothing cancelled it and the
-  // client saw a bare HTTP 500 (review 2026-09-19, defect 1).
+  // client saw a bare HTTP 500.
   const result = await invoke("war_current", {});
   assert.equal(result.isError, true);
   assert.equal(result.body.error.code, "query_timeout");

@@ -1,6 +1,6 @@
 /**
  * The brief a client actually delivers, and the results a strict client
- * accepts (review 2026-09-27 §6.1-6.2, issue #65).
+ * accepts (issue #65).
  *
  * Claude Code hands the model the first 2,048 characters of `instructions`
  * and no more. The brief ran about 4,500 for a person, so START, the
@@ -223,7 +223,7 @@ test("a person who still sends them is never refused: they are dropped before va
       ),
   );
   // An agent's own unknown argument is still refused, and the hint says
-  // which contract this is and to reconnect (review §6.2).
+  // which contract this is and to reconnect.
   await assert.rejects(
     registry.invoke(
       "game_clock",
