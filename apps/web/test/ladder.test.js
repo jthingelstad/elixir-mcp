@@ -13,6 +13,7 @@ import {
   dateLabel,
   deckModes,
   floorNote,
+  formRows,
   fourthTile,
   isLadder,
   ladderHere,
@@ -602,5 +603,55 @@ describe("a first capture, in the order its reads arrive", () => {
     const typo = status({ battlelog_observed_at: "2026-10-08T12:00:03Z" });
     expect(captureLanded(typo)).toBe(false);
     expect(capturePending(refused)).toBe(true);
+  });
+});
+
+describe("formRows: the form tables lay the tool's numbers out, never rate them", () => {
+  const side = (over = {}) => ({
+    battles: 31,
+    decided_battles: 30,
+    win_rate: 0.548,
+    head_to_head_battles: 28,
+    three_crown_rate: 0.214,
+    net_trophies: 45,
+    ...over,
+  });
+  test("each number sits over the battles it is over", () => {
+    const rows = formRows(
+      side(),
+      side({
+        battles: 112,
+        decided_battles: 110,
+        win_rate: 0.48,
+        head_to_head_battles: 100,
+        three_crown_rate: 0.15,
+        net_trophies: -12,
+      }),
+    );
+    expect(rows.map((r) => r.label)).toEqual([
+      "Win rate",
+      "Three-crown rate",
+      "Net trophies",
+    ]);
+    expect(rows[0].cells).toEqual([
+      { value: "55%", count: "30 battles" },
+      { value: "48%", count: "110 battles" },
+    ]);
+    expect(rows[1].cells[0]).toEqual({ value: "21%", count: "28 battles" });
+    expect(rows[2].cells).toEqual([
+      { value: "+45", count: "31 battles" },
+      { value: "−12", count: "112 battles" },
+    ]);
+  });
+  test("a number the shaping dropped has no row, and nothing is a verdict", () => {
+    const rows = formRows(
+      side({ three_crown_rate: null, net_trophies: null }),
+      side({ three_crown_rate: null, net_trophies: null }),
+    );
+    expect(rows.map((r) => r.key)).toEqual(["win_rate"]);
+    expect(JSON.stringify(rows)).not.toMatch(
+      /better|worse|improv|up|down|good|bad/i,
+    );
+    expect(formRows(null, side())).toEqual([]);
   });
 });

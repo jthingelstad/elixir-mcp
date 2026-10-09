@@ -62,6 +62,34 @@ const LISTED = {
   },
 };
 /** The applied window a read gets for the season it asked for. */
+/* Form: battles_performance's compare and before_after answers on
+   Trophy Road, shaped as the tool returns them (decided and
+   head-to-head counts beside each rate). Invented numbers that agree
+   with the season's 35 battles. */
+const side = (
+  battles: number,
+  wins: number,
+  h2h: number,
+  crowns3: number,
+  net: number,
+) => ({
+  battles,
+  wins,
+  losses: battles - wins,
+  draws: 0,
+  decided_battles: battles,
+  win_rate: Math.round((wins / battles) * 1000) / 1000,
+  head_to_head_battles: h2h,
+  three_crown_rate: Math.round((crowns3 / h2h) * 1000) / 1000,
+  net_trophies: net,
+});
+export const FORM = {
+  week: side(14, 8, 13, 3, 58),
+  previous: side(35, 12, 33, 4, -10),
+  before: side(12, 3, 12, 1, -40),
+  after: side(23, 9, 21, 3, 30),
+};
+
 const appliedFor = (season: unknown) =>
   String(season) === String(PAST_SEASON.war) ? PAST_APPLIED : APPLIED;
 
@@ -777,11 +805,14 @@ export function explore(
     players_summary = summary(),
     fits = Infinity,
     emptyCurrent = false,
+    form = FORM,
   }: {
     players_summary?: unknown;
     fits?: number;
     /** The current season has no recorded battle yet (its first days). */
     emptyCurrent?: boolean;
+    /** Trophy Road's form answers (compare and before_after reads). */
+    form?: typeof FORM;
   } = {},
 ) {
   return (route: Route): [number, unknown] => {
@@ -858,6 +889,20 @@ export function explore(
         return ok({
           ...base,
           weekly: mode === "ladder" && !empty ? WEEKLY : [],
+        });
+      const ladder = mode === "ladder" && !empty;
+      if (args.compare_from)
+        return ok({
+          ...base,
+          window: ladder ? form.week : WINDOWS.ranked,
+          compare_window: ladder ? form.previous : WINDOWS.ranked,
+        });
+      if (args.before_after)
+        return ok({
+          ...base,
+          split_at: args.before_after,
+          before: ladder ? form.before : WINDOWS.ranked,
+          after: ladder ? form.after : WINDOWS.ranked,
         });
       return ok({
         ...base,

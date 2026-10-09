@@ -6346,6 +6346,56 @@ button.ladder-player__head:hover {
   color: var(--ink-dim);
 }
 
+/* Form (2026-10-08): two stretches of one mode's record side by side,
+   each number over its count. Both columns in the same ink: neither
+   side is marked as the better one. */
+.ladder-form__lede {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+.ladder-form__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.ladder-form__table th,
+.ladder-form__table td {
+  padding: 8px 10px 8px 0;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+.ladder-form__table tr:last-child th,
+.ladder-form__table tr:last-child td {
+  border-bottom: 0;
+}
+.ladder-form__table thead th {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.ladder-form__table tbody th {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-dim);
+}
+.ladder-form__value {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.ladder-form__count {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
 /* Days played (LadderDays.dc.html): the season on the account's
    calendar, one cell a day, each mode its own mark and record; the shade
    deepens with the day's battles. Then the nights, newest first. */
@@ -6727,6 +6777,9 @@ button.ladder-player__head:hover {
     padding: 0 12px;
   }
   .ladder-tile__value--sm {
+    font-size: 17px;
+  }
+  .ladder-form__value {
     font-size: 17px;
   }
   /* The calendar becomes a list of the days so far, newest first, each

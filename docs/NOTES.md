@@ -1103,3 +1103,42 @@ race without clan like the 404: no race yet". Still open, not changed
 here: a `live: true` race read during the roll's 404 (no receipt, only a
 `collector_fetch_error`) stays `pending` and mints a new read each call
 past the cache window.
+
+## 2026-10-08 — form: this week beside the last four, and before and since a deck
+
+Ladder's season home and Tuesday's Arena mail now answer "am I
+improving?" with numbers only.
+
+- **The week.** In the current season, a "This week vs your last 4"
+  panel sets the running game week (Monday 10:00Z, the Arena mail's
+  week) beside the four whole game weeks before it, in the page's mode:
+  win rate over decided battles, three-crown rate over head-to-head
+  battles, and net trophies in Trophy Road and Path of Legends, each with
+  its count. One `battles_performance` read with `compare_from`/
+  `compare_to`.
+- **The deck.** When the season's most-played deck in the mode
+  (`battles_decks`' first row, by deck hash) first appears after the
+  season opened and other decks came before it, a "Before and since
+  {archetype label}" panel splits the season at its `first_used` with
+  `before_after`. Both sides count every deck in the mode; the foot names
+  the deck played most before the split.
+- **The mail.** `build-arena.mjs` makes the same compare read for the
+  primary in the featured mode (war when the week was only war), and the
+  renderer adds one line under the tiles ("Trophy Road win rate 57% this
+  week (14 battles), up from 34% over the previous four weeks (35
+  battles).") Stored issues have no `form` and render without it.
+- **One computation.** `@elixir-mcp/record/form` holds the week boundary
+  (`gameWeekStartMs`, now also what `lastGameWeek` uses), the windows,
+  the arguments, the minimum and the shaping; web and jobs both import
+  it. No tool output changed (the compare and before/after windows
+  already carried `decided_battles`, `head_to_head_battles` and
+  `three_crown_rate`), so no contract bump, no `/api/v1` change and no
+  acceptance family on the deploy.
+- **The minimum** is `FORM_MIN_BATTLES = 10` per side, applied to each
+  number's own count; a number short on either side is dropped from both,
+  so a row is like for like, and a short win rate hides the panel or the
+  line. Ten is a week of a few short sessions; below it one or two
+  battles swing a rate by ten points.
+- **Open.** Path of Legends' `trophyChange` is rating in league 7 and
+  league trophies below it, so "Net trophies" there mixes the two units
+  across a promotion, as the season tile already does.

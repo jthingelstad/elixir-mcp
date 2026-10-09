@@ -12,6 +12,7 @@
     "./battle-links": "./src/battle-links.mjs",
     "./boat-defense-sql": "./src/boat-defense-sql.mjs",
     "./daily-sql": "./src/daily-sql.mjs",
+    "./form": "./src/form.mjs",
     "./game-clock": "./src/game-clock.mjs",
     "./gateway-cards": "./src/gateway-cards.mjs",
     "./mode-filter": "./src/mode-filter.mjs",

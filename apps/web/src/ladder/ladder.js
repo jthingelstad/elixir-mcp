@@ -508,3 +508,48 @@ export function deckModes(deck) {
     rate: one ? (deck.win_rate ?? null) : null,
   }));
 }
+
+/* ---------------------------------------------------------------- form
+   "Am I improving?" read back (2026-10-08): two stretches of one mode's
+   record side by side, as @elixir-mcp/record/form shaped them from
+   battles_performance. The rows only lay the tool's numbers out, each
+   beside the battles it is over; no arrow, colour or word says which
+   side is the better one. */
+
+const battlesWord = (n) => `${fmt(n)} ${n === 1 ? "battle" : "battles"}`;
+
+/** The rows of a form table: win rate, three-crown rate and (in a mode
+ *  where trophies move) net trophies, each side's value and count. A
+ *  number the shaping dropped (null on both sides) has no row. */
+export function formRows(a, b) {
+  if (!a || !b) return [];
+  const rows = [
+    {
+      key: "win_rate",
+      label: "Win rate",
+      cells: [a, b].map((s) => ({
+        value: pct(s.win_rate),
+        count: battlesWord(s.decided_battles),
+      })),
+    },
+  ];
+  if (a.three_crown_rate != null && b.three_crown_rate != null)
+    rows.push({
+      key: "three_crown_rate",
+      label: "Three-crown rate",
+      cells: [a, b].map((s) => ({
+        value: pct(s.three_crown_rate),
+        count: battlesWord(s.head_to_head_battles),
+      })),
+    });
+  if (a.net_trophies != null && b.net_trophies != null)
+    rows.push({
+      key: "net_trophies",
+      label: "Net trophies",
+      cells: [a, b].map((s) => ({
+        value: signed(s.net_trophies),
+        count: battlesWord(s.battles),
+      })),
+    });
+  return rows;
+}

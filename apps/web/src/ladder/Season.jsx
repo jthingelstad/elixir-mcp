@@ -18,6 +18,7 @@ import {
 } from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
 import { BringClanmates } from "../components/BringClanmates.jsx";
+import { DeckForm, WeekForm } from "./Form.jsx";
 import {
   LadderHead,
   Loading,
@@ -94,6 +95,8 @@ export function Season({
         <ReadError error={perf.error} what="this season" />
       ) : (
         <SeasonBody
+          player={player}
+          season={season}
           mode={mode}
           body={body}
           weeks={weeks}
@@ -111,6 +114,8 @@ export function Season({
 }
 
 function SeasonBody({
+  player,
+  season,
   mode,
   body,
   weeks,
@@ -153,6 +158,10 @@ function SeasonBody({
               <span>{note}</span>
             </div>
           ) : null}
+          {/* "Am I improving?": each draws only above the minimum. The
+              week reading belongs to the season running now. */}
+          {season.current ? <WeekForm player={player} mode={mode} /> : null}
+          <DeckForm player={player} mode={mode} season={season} />
         </>
       ) : (
         <div className="empty">

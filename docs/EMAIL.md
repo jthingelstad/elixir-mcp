@@ -138,6 +138,20 @@ milestone and is not counted (an issue stored before then may carry
 for it, including an alt with no battles; a week with no battles at all
 still sends nothing.
 
+**The week beside the four before it** (`form`, 2026-10-08): one more
+`battles_performance` read for the primary, in the featured mode (war
+when the week had only war), with the week as its window and the four
+game weeks before as `compare_from`/`compare_to`. `weekForm` in
+`@elixir-mcp/record/form` shapes it, the same function Ladder's "This
+week vs your last 4" strip uses, so the windows and the minimum
+(`FORM_MIN_BATTLES`, 10 decided battles a side) are one definition. The
+renderer's `formSentence` makes one line under the tiles: the mode's win
+rate this week and its decided-battle count, "up from", "down from" or
+"level with" the four before and their count. Directions are the
+rounded percents' order, never a verdict word. Below the minimum on
+either side `form` is null and there is no line; a stored issue from
+before has no `form` and renders without it.
+
 ### `tracking_report`: Wednesday ("Your friends this week")
 
 `elixir_timeline` for the week, ordered by relationship depth. Friends,
