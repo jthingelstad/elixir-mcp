@@ -253,3 +253,66 @@ test("missing or inconsistent mode evidence and missing art omit the featured ca
   }
   assert.equal(arenaFeaturedDeck(null, full), null);
 });
+
+test("the week's win rate sits beside the previous four game weeks', in the featured mode, with counts", async () => {
+  const tag = "#8QQ8QQ8L";
+  const account = await recipient(tag);
+  // This week: 12 Trophy Road battles, 9 won; and war, which never
+  // pools into the line.
+  for (let n = 0; n < 12; n++)
+    await battle(tag, {
+      at: `2026-09-30T12:${String(n).padStart(2, "0")}:00Z`,
+      outcome: n < 9 ? "win" : "loss",
+    });
+  for (let n = 0; n < 6; n++)
+    await battle(tag, { mode: "war", at: "2026-10-01T12:00:00Z" });
+  // The previous four game weeks (Aug 31 10:00Z to Sep 28 10:00Z): 20,
+  // 10 won, one at each edge. One just before the four weeks opened and
+  // one in this week's last instant before it closes never count there.
+  await battle(tag, { at: "2026-08-31T10:00:00Z", outcome: "win" });
+  await battle(tag, { at: "2026-09-28T09:59:59.999Z" });
+  for (let n = 0; n < 18; n++)
+    await battle(tag, {
+      at: `2026-09-1${n % 9}T12:${String(n).padStart(2, "0")}:00Z`,
+      outcome: n < 9 ? "win" : "loss",
+    });
+  await battle(tag, { at: "2026-08-31T09:59:59.999Z", outcome: "win" });
+  const facts = await build(account);
+  const { form } = facts.primary;
+  assert.equal(form.mode, "ladder");
+  assert.equal(form.week.decided_battles, 12);
+  assert.equal(form.week.win_rate, 0.75);
+  assert.equal(form.previous.decided_battles, 20);
+  assert.equal(form.previous.win_rate, 0.5);
+  const text = htmlToText(
+    renderMail("arena_week", facts, {
+      unsubscribe:
+        "https://elixir.poapkings.com/api/email/unsubscribe?t=fixture",
+      manage: "https://elixir.poapkings.com/console/account/profile/email",
+      period: week.key,
+    }).html,
+  );
+  assert.match(
+    text,
+    /Trophy Road win rate 75% this week \(12 battles\), up from 50% over the previous four weeks \(20 battles\)\./,
+  );
+});
+
+test("a week under the minimum has no form, and the mail no line", async () => {
+  const tag = "#8QQ8QQ8V";
+  const account = await recipient(tag);
+  for (let n = 0; n < 9; n++) await battle(tag, { outcome: "win" });
+  for (let n = 0; n < 30; n++)
+    await battle(tag, { at: "2026-09-15T12:00:00Z" });
+  const facts = await build(account);
+  assert.equal(facts.primary.form, null);
+  const text = htmlToText(
+    renderMail("arena_week", facts, {
+      unsubscribe:
+        "https://elixir.poapkings.com/api/email/unsubscribe?t=fixture",
+      manage: "https://elixir.poapkings.com/console/account/profile/email",
+      period: week.key,
+    }).html,
+  );
+  assert.doesNotMatch(text, /previous four weeks/);
+});

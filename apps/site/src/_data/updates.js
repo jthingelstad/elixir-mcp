@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-10-08",
+    title:
+      "This week beside your last four, and your season before and since a new deck",
+    body: "Ladder's season home now sets the game week so far beside the four game weeks before it, in the mode you are looking at: your win rate, three-crown rate and (on Trophy Road and Path of Legends) net trophies, each with the battles it is over. Game weeks run Monday 10:00 UTC to Monday, the week Tuesday's Arena email reports. When the deck you played most this season arrived after you had played others, the page also splits the season at its first battle and shows the same numbers before and since, naming the deck by its archetype label. Each side needs at least 10 battles, or the panel is not shown, and neither panel says which side is better. Tuesday's Arena email carries the same comparison as one line: your featured mode's win rate this week and its battle count, beside the four weeks before. MCP 11.6.1 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "A race still matchmaking reads as no race yet",
     body: "For a minute or two after a season roll, the game has created each clan's new river race but has not drawn its bracket, so the race has no clans yet. A live read of the race in that window used to fail with an error about a rejected payload. It now says plainly that there is no race yet, that matchmaking is under way and the matched race follows shortly, and shows the last race recorded meanwhile. Nothing is written for that moment, the race is read again as usual, and no race or war day counts as missed. The next season roll is Monday 2 November. MCP 11.6.1; JSON API 3.1.0 unchanged.",
   },

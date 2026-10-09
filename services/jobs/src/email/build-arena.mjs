@@ -9,6 +9,7 @@
 import { accountCtx, callTool } from "./ctx.mjs";
 import { MODE_GROUPS } from "@elixir-mcp/contracts";
 import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
+import { formArgs, formWindows, weekForm } from "@elixir-mcp/record/form";
 import {
   modeLabel,
   cardLabel,
@@ -91,6 +92,21 @@ export async function buildArena({ db, account, week, season }) {
         limit: 1,
       })
     : null;
+  // The week beside the four before it, in the mode the mail features
+  // (war when war is all there was): battles_performance's own two
+  // windows, one mode, shaped by the same function Ladder's strip uses.
+  // Null below the minimum, and the mail then says nothing of it.
+  const formMode =
+    featuredMode ?? (Number(w?.modes?.war?.battles) > 0 ? "war" : null);
+  const formPerf = formMode
+    ? await tryTool(
+        callTool,
+        ctx,
+        "battles_performance",
+        formArgs(formWindows(fromMs), formMode, { player_tag: primary.tag }),
+      )
+    : null;
+  const form = formPerf ? weekForm(formPerf, formMode) : null;
   // The most-used deck in the busiest non-war mode. The reader resolves
   // equal deck counts by hash; both reads keep this mode and game week.
   const top = decks?.decks?.[0];
@@ -167,6 +183,10 @@ export async function buildArena({ db, account, week, season }) {
         level_gap: d.mean_level_gap ?? null,
       })),
       deck: arenaFeaturedDeck(featuredMode, topDeck?.decks?.[0]),
+      // "Am I improving?": this week's win rate beside the previous four
+      // weeks', each with its battle count (2026-10-08). Absent on an
+      // issue stored before then, and below FORM_MIN_BATTLES.
+      form,
       opponents: {
         distinct: opps?.distinct_opponents ?? 0,
         repeats: (opps?.opponents ?? []).filter((o) => o.battles > 1).length,

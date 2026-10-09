@@ -468,6 +468,55 @@ test("the Arena week counts each player's card unlocks and badge levels, and lin
   );
 });
 
+test("the Arena week sets the week's win rate beside the previous four, with counts, and a stored issue renders without it", () => {
+  const stored = JSON.parse(
+    readFileSync(path.join(fixtures, "arena_week.json"), "utf8"),
+  );
+  // An issue stored before the line existed carries no form: it renders
+  // as it did, with no line and no error.
+  const before = htmlToText(renderMail("arena_week", stored, links).html);
+  assert.doesNotMatch(before, /over the previous four weeks/);
+  const side = (win_rate, decided_battles) => ({
+    battles: decided_battles,
+    decided_battles,
+    win_rate,
+    head_to_head_battles: decided_battles,
+    three_crown_rate: 0.1,
+    net_trophies: null,
+  });
+  const facts = structuredClone(stored);
+  facts.primary.form = {
+    mode: "ladder",
+    week: side(0.542, 31),
+    previous: side(0.48, 112),
+  };
+  const text = htmlToText(renderMail("arena_week", facts, links).html);
+  assert.match(
+    text,
+    /Trophy Road win rate 54% this week \(31 battles\), up from 48% over the previous four weeks \(112 battles\)\./,
+  );
+  facts.primary.form = {
+    mode: "war",
+    week: side(0.4, 10),
+    previous: side(0.5, 1),
+  };
+  assert.match(
+    htmlToText(renderMail("arena_week", facts, links).html),
+    /War win rate 40% this week \(10 battles\), down from 50% over the previous four weeks \(1 battle\)\./,
+  );
+  facts.primary.form = {
+    mode: "ranked",
+    week: side(0.501, 12),
+    previous: side(0.504, 40),
+  };
+  assert.match(
+    htmlToText(renderMail("arena_week", facts, links).html),
+    /Path of Legends win rate 50% this week \(12 battles\), level with 50%/,
+  );
+  // No verdict words: the line says which way the numbers lie, no more.
+  assert.doesNotMatch(text, /\b(better|worse|improv\w*|great|good|bad)\b/i);
+});
+
 test("the weekly send times are the EventBridge crons", () => {
   const template = readFileSync(
     path.join(here, "../../../infra/template.yaml"),

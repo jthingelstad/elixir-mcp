@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
-import { explore, summary, type ToolCall } from "./ladder-fixture.ts";
+import { FORM, explore, summary, type ToolCall } from "./ladder-fixture.ts";
 
 /** Nothing serious or critical, on every page a journey lands on. */
 async function accessible(page: Page, name: string) {
@@ -208,6 +208,122 @@ test.describe("Ladder signed in", () => {
     expect(perf.every((c) => c.args.player_tag === "#20JJJ2CCRU")).toBe(true);
     expect(perf.every((c) => c.args.season === "current")).toBe(true);
     await accessible(page, "ladder season");
+  });
+
+  test("the week beside the four before it, and the season before and since the deck played most: numbers and counts only", async ({
+    page,
+  }) => {
+    // Thursday 4:00 pm Central: the game week began Monday 10:00Z.
+    await page.clock.setFixedTime(new Date("2026-10-01T21:00:00Z"));
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder");
+
+    const week = page.getByRole("region", { name: "This week vs your last 4" });
+    await expect(week).toContainText("Trophy Road");
+    const head = week.locator("thead th");
+    await expect(head.nth(1)).toHaveText("This week");
+    await expect(head.nth(2)).toHaveText("Last 4 weeks");
+    const rows = week.locator("tbody tr");
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText("Win rate");
+    await expect(rows.nth(0).locator("td").nth(0)).toContainText("57%");
+    await expect(rows.nth(0).locator("td").nth(0)).toContainText("14 battles");
+    await expect(rows.nth(0).locator("td").nth(1)).toContainText("34%");
+    await expect(rows.nth(0).locator("td").nth(1)).toContainText("35 battles");
+    await expect(rows.nth(1)).toContainText("Three-crown rate");
+    await expect(rows.nth(1).locator("td").nth(0)).toContainText("13 battles");
+    await expect(rows.nth(2)).toContainText("Net trophies");
+    await expect(rows.nth(2).locator("td").nth(0)).toContainText("+58");
+    await expect(rows.nth(2).locator("td").nth(1)).toContainText("−10");
+    await expect(week).toContainText(
+      "this one began Monday, September 28 at 5:00 am CDT",
+    );
+    await expect(week).toContainText("at least 10 battles");
+
+    // The week is UTC on the policy grid: Monday 10:00Z, the four before.
+    const read = calls.find(
+      (c) => c.tool === "battles_performance" && c.args.compare_from,
+    );
+    expect(read?.args).toEqual({
+      player_tag: "#20JJJ2CCRU",
+      from: "2026-09-28T10:00:00.000Z",
+      compare_from: "2026-08-31T10:00:00.000Z",
+      compare_to: "2026-09-28T10:00:00.000Z",
+      mode: "ladder",
+    });
+
+    // The season split at the first battle on the deck played most.
+    const deck = page.getByRole("region", {
+      name: "Before and since Royal Hogs bridge spam",
+    });
+    await expect(deck).toContainText(
+      "Royal Hogs bridge spam is the deck you played most",
+    );
+    await expect(deck.locator("thead th").nth(1)).toHaveText(/^Before Sep 8/);
+    await expect(deck.locator("thead th").nth(2)).toHaveText(/^Since Sep 8/);
+    const split = deck.locator("tbody tr").nth(0);
+    await expect(split.locator("td").nth(0)).toContainText("25%");
+    await expect(split.locator("td").nth(0)).toContainText("12 battles");
+    await expect(split.locator("td").nth(1)).toContainText("39%");
+    await expect(split.locator("td").nth(1)).toContainText("23 battles");
+    await expect(deck).toContainText(
+      "A deck's name describes its cards, never how well it plays.",
+    );
+    const ba = calls.find(
+      (c) => c.tool === "battles_performance" && c.args.before_after,
+    );
+    expect(ba?.args).toEqual({
+      player_tag: "#20JJJ2CCRU",
+      season: "current",
+      mode: "ladder",
+      before_after: "2026-09-08T05:07:03.000Z",
+    });
+
+    // Numbers, never a verdict.
+    for (const panel of [week, deck])
+      await expect(panel).not.toContainText(
+        /improv|better|worse|good|bad|great|declin|trend/i,
+      );
+    await accessible(page, "ladder form");
+  });
+
+  test("a form panel under the minimum is not drawn, and a mode without one draws neither", async ({
+    page,
+  }) => {
+    const calls: ToolCall[] = [];
+    await mockApi(
+      page,
+      signedIn({
+        "POST /api/explore": explore(calls, {
+          form: { ...FORM, week: { ...FORM.week, decided_battles: 9 } },
+        }),
+      }),
+    );
+    await page.goto("/ladder");
+    await expect(
+      page.getByRole("region", {
+        name: "Before and since Royal Hogs bridge spam",
+      }),
+    ).toBeVisible();
+    await expect
+      .poll(() =>
+        calls.some(
+          (c) => c.tool === "battles_performance" && c.args.compare_from,
+        ),
+      )
+      .toBe(true);
+    await expect(
+      page.getByRole("region", { name: "This week vs your last 4" }),
+    ).toHaveCount(0);
+
+    await page
+      .getByRole("navigation", { name: "Mode" })
+      .getByRole("link", { name: "War" })
+      .click();
+    await expect(page).toHaveURL(/\/ladder\?mode=war$/);
+    await expect(page.locator(".ladder-tile").nth(3)).toContainText("Crowns");
+    await expect(page.locator(".ladder-form")).toHaveCount(0);
   });
 
   test("a mode is an address, and a mode with no battles says so", async ({

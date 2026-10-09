@@ -414,6 +414,23 @@ function deckBox(d, c, { title = null, right = null, w = 56 } = {}) {
   );
 }
 
+/** "Trophy Road win rate 54% this week (31 battles), up from 48% over
+ *  the previous four weeks (112 battles).": the week beside the four
+ *  before it, as @elixir-mcp/record/form shaped battles_performance's
+ *  two windows. Numbers and counts only: "up" and "down" say which way
+ *  the two numbers lie, never what they mean. Each count is the battles
+ *  the rate is over (draws and boat battles are outside it). */
+function formSentence(form) {
+  const a = form?.week;
+  const b = form?.previous;
+  if (!a || !b || a.win_rate == null || b.win_rate == null) return "";
+  const battles = (k) => `${n(k)} battle${k === 1 ? "" : "s"}`;
+  const now = Math.round(a.win_rate * 100);
+  const then = Math.round(b.win_rate * 100);
+  const way = now > then ? "up from" : now < then ? "down from" : "level with";
+  return `${FAMILY_LABEL[form.mode] ?? form.mode} win rate ${now}% this week (${battles(a.decided_battles)}), ${way} ${then}% over the previous four weeks (${battles(b.decided_battles)}).`;
+}
+
 function arena(f, c) {
   const pr = f.primary;
   const t = pr.totals;
@@ -502,8 +519,12 @@ function arena(f, c) {
         counted.map((x) => `${c.P(x.tag, x.name)}: ${esc(progressText(x))}`),
       )}${c.small(`Each one, newest first, is on your ${c.link(timelineUrl(), "timeline")}.`)}`
     : "";
+  // An issue stored before 2026-10-08, or a week under the minimum,
+  // has no form and no line.
+  const form = formSentence(pr.form);
   const body = `
     ${tiles.length ? c.tiles(tiles) : ""}
+    ${form ? c.p(esc(form), { size: 14, extra: "margin-top:12px;" }) : ""}
     ${fams.length > 1 ? c.small("Each mode is its own game, so each gets its own record. There is no combined win rate.") : ""}
     ${floor}${notes.length ? c.small(notes.map((m) => sentence(`${esc(m.label)}: ${esc(m.note)}`)).join(" ")) : ""}
     ${deck}${warLine}

@@ -3,20 +3,14 @@
  *  kind sends, it covers the last COMPLETED game week, so Tuesday's and
  *  Wednesday's mail agree. The period key is the ISO week of the
  *  Monday the week started on. */
+import { gameWeekStartMs } from "@elixir-mcp/record/form";
+
 const DAY = 86_400_000;
 
 export function lastGameWeek(now = new Date()) {
-  const t = now.getTime();
-  // Most recent Monday 10:00Z at or before now.
-  const d = new Date(t);
-  const dow = (d.getUTCDay() + 6) % 7; // Monday = 0
-  let monday = Date.UTC(
-    d.getUTCFullYear(),
-    d.getUTCMonth(),
-    d.getUTCDate() - dow,
-    10,
-  );
-  if (monday > t) monday -= 7 * DAY;
+  // Most recent Monday 10:00Z at or before now: the boundary Ladder's
+  // "This week vs your last 4" uses too (@elixir-mcp/record/form).
+  const monday = gameWeekStartMs(now.getTime());
   const to = new Date(monday);
   const from = new Date(monday - 7 * DAY);
   return { from, to, key: isoWeekKey(from), label: rangeLabel(from, to) };

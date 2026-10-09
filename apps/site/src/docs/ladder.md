@@ -123,6 +123,46 @@ zone ("5:00 am CDT"). A new account starts on its signup browser's time
 zone; with no time zone set on your account that is UTC, and the page
 says so.
 
+### This week vs your last 4
+
+In the current season, the season home sets the game week so far beside
+the four whole game weeks before it, in the chosen mode only. A game week
+runs Monday 10:00 UTC to Monday 10:00 UTC, the week the Arena email
+reports; the page names when this one began in your own timezone. It is
+one [battles_performance](/docs/tools/battles#battles_performance) read,
+the week as its window and the four before as `compare_from`/`compare_to`,
+and it shows three of the tool's own numbers, each with the battles it is
+over:
+
+- **Win rate**, over decided battles (draws outside both sides).
+- **Three-crown rate**, over head-to-head battles (duel rounds and boat
+  battles left out, as the tool leaves them out).
+- **Net trophies**, in Trophy Road and Path of Legends only, where
+  trophies move; over the mode's battles.
+
+A side needs at least **10 battles** before it is set beside the other.
+Below that for the win rate, the strip is not drawn at all; below it for
+one number, that number is left off both sides, so each row compares like
+with like. The four weeks before can reach into the previous season: the
+weeks are the game's, not the season's.
+
+### Before and since your main deck
+
+When the deck you played most this season in the chosen mode (a deck is
+its exact cards, as on Decks) arrived after you had played others, the
+season home splits the season at its first battle and shows the same three
+numbers before and since, from one battles_performance read with
+`before_after`. The deck is named by its archetype label, and the page
+names the deck you played most before it. Both sides count every deck you
+played in the mode, so the split is a moment in your season, not a
+deck-against-deck comparison. The same 10-battle minimum holds on each
+side. It reads back what happened after the change; it does not say the
+change caused it.
+
+Neither panel says which side is better: no arrow, colour, score or word
+leans either way. The numbers are the tool's, and so is the conclusion
+yours.
+
 Below the season, once your primary player's clan is on record, the page
 offers [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates):
 words to invite your clan, the same panel as on Console ▸ Overview.
