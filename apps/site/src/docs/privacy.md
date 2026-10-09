@@ -56,9 +56,7 @@ aggregate. No account is attached to a visit.
 
 **Services Elixir uses.** Elixir runs on Amazon Web Services in the
 United States, which also delivers its account mail. Buttondown holds
-and sends the newsletter, and Tinylytics does the counting. Elixir is
-built and run with the help of AI models, which write some of the mail
-from public game data and help read and answer the feedback you send.
+and sends the newsletter, and Tinylytics does the counting.
 Fonts are served from this site, so reading a page tells no one else
 what you read.
 
