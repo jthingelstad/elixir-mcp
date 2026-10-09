@@ -10,7 +10,8 @@ import { betaPulse, isoWeek } from "../src/beta-pulse.mjs";
 /**
  * The beta pulse's aggregation on a scratch database (golden rule 9):
  * cohorts by ISO signup week, each step counted once per account, the
- * came-back windows by UTC day after signup, staff and their +tag test
+ * came-back windows by the account's own day after signup (a sign-in or
+ * a call of their own, never a session merely seen), staff and their +tag test
  * mailboxes left out and counted apart, agents and integrations never
  * counted, mail sends per kind per week, and no account named anywhere in
  * the answer.
@@ -53,13 +54,20 @@ after(async () => {
 let n = 0;
 async function person(
   createdAt,
-  { email = null, role = "member", status = "approved" } = {},
+  { email = null, role = "member", status = "approved", timezone = null } = {},
 ) {
   n += 1;
   const { rows } = await db.query(
-    `insert into account (email_hash, email, status, role, created_at)
-     values ($1, $2, $3, $4, $5) returning account_id`,
-    [`hash-${n}`, email ?? `person${n}@example.com`, status, role, createdAt],
+    `insert into account (email_hash, email, status, role, created_at, timezone)
+     values ($1, $2, $3, $4, $5, $6) returning account_id`,
+    [
+      `hash-${n}`,
+      email ?? `person${n}@example.com`,
+      status,
+      role,
+      createdAt,
+      timezone,
+    ],
   );
   return rows[0].account_id;
 }
@@ -166,7 +174,8 @@ test("the pulse counts each signup week's steps, leaves staff and test mailboxes
      values ($1, 'mcp', 'players_profile', '2026-10-01T23:59:00Z')`,
     [b],
   );
-  // C: nothing after signing up, except a session last seen on day 1.
+  // C: nothing after signing up but a tab left open past midnight: a
+  // session last seen on day 1 is not coming back.
   const c = await person("2026-10-04T23:30:00Z");
   await db.query(
     `insert into session (session_id, account_id, created_at, last_seen_at, sliding_expires_at, absolute_expires_at)
@@ -246,7 +255,7 @@ test("the pulse counts each signup week's steps, leaves staff and test mailboxes
       clan_followed: 2,
       clan_auto: 1,
       verified: 1,
-      came_back_week1: 2, // A by a sign-in on day 3, C by a session seen on day 1
+      came_back_week1: 1, // A by a sign-in on day 3; C's session seen on day 1 is not
       week1_open: 2, // B is on day 7 today, C on day 4
       came_back_week2: 0, // A's day-10 call is after NOW
       week2_open: 3,
@@ -294,4 +303,63 @@ test("the pulse counts each signup week's steps, leaves staff and test mailboxes
     assert.ok(!text.includes(id), "no account id");
   assert.ok(!text.includes("@"), "no address");
   assert.ok(!/#[0289PYLQGRJCUV]{3,}/.test(text), "no tag");
+});
+
+const call = (accountId, at, surface = "web") =>
+  db.query(
+    `insert into mcp_call_audit (account_id, surface, tool, created_at)
+     values ($1, $2, 'players_profile', $3)`,
+    [accountId, surface, at],
+  );
+
+test("came back is a request on a later day of the person's own clock", async () => {
+  // Thursday 2026-12-10 18:00Z: the window starts Monday 10-19, so the
+  // first test's people are outside it. Everyone below signed up in
+  // 2026-W49 (Monday 11-30, UTC).
+  const now = new Date("2026-12-10T18:00:00Z");
+  const chicago = { timezone: "America/Chicago" };
+
+  // E (Chicago) signs up 4 pm on 11-30 and leaves the tab open: it is
+  // seen, and reads once, after UTC midnight but before Chicago's.
+  const e = await person("2026-11-30T22:00:00Z", chicago);
+  await event(e, "signed_in", "2026-11-30T22:00:00Z");
+  await db.query(
+    `insert into session (session_id, account_id, created_at, last_seen_at, sliding_expires_at, absolute_expires_at)
+     values ('s-e', $1, '2026-11-30T22:00:00Z', '2026-12-01T05:30:00Z', now() + interval '1 day', now() + interval '1 day')`,
+    [e],
+  );
+  await call(e, "2026-12-01T05:00:00Z");
+  // F (Chicago) signs up 9 pm on 11-30 (12-01 in UTC) and reads at 9 am
+  // the next morning: the same UTC day, a later Chicago day.
+  const f = await person("2026-12-01T03:00:00Z", chicago);
+  await call(f, "2026-12-01T15:00:00Z");
+  // G has no zone, so its days are UTC: a read at 1 am UTC is a return.
+  const g = await person("2026-12-01T22:00:00Z");
+  await call(g, "2026-12-02T01:00:00Z", "mcp");
+  // H's zone is one Postgres does not know: UTC, and the read still runs.
+  const h = await person("2026-12-02T10:00:00Z", { timezone: "Mars/Olympus" });
+  await event(h, "signed_in", "2026-12-03T10:00:00Z");
+  // I: a service token's calls under the account are not the person.
+  const i = await person("2026-12-02T12:00:00Z");
+  await call(i, "2026-12-04T12:00:00Z", "svc:a-bot");
+  // J (UTC+14) signed up on its 12-03 and it is already 12-11 there, so
+  // its week-1 window has closed, though the UTC date is still 12-10.
+  const j = await person("2026-12-03T05:00:00Z", {
+    timezone: "Pacific/Kiritimati",
+  });
+
+  const pulse = await betaPulse(db, { now });
+  assert.equal(pulse.since, "2026-10-19");
+  const w49 = pulse.weeks.find((w) => w.week === "2026-W49");
+  assert.equal(w49.signed_up, 6);
+  assert.equal(
+    w49.came_back_week1,
+    3,
+    "F, G and H; not E's open tab, not I's service token, not J",
+  );
+  assert.equal(w49.week1_open, 0, "J's window closed on its own clock");
+  assert.equal(w49.week2_open, 6);
+
+  const text = JSON.stringify(pulse);
+  for (const id of [e, f, g, h, i, j]) assert.ok(!text.includes(id));
 });

@@ -472,12 +472,13 @@ function AdminPulse() {
             {PULSE_STEPS.map(
               ([, label, title]) => `${label}: ${title.toLowerCase()}`,
             ).join("; ")}
-            . BACK WK 1 and 2: a sign-in, a session seen, or a call of their own
-            (Console, Ladder, MCP or API) on a UTC day 1-7 or 8-14 days after
-            the signup day, from the sign-in events, sessions and call log
-            Elixir already keeps; an agent&rsquo;s calls are not its
-            owner&rsquo;s. &ldquo;Open&rdquo; counts people still inside that
-            window.
+            . BACK WK 1 and 2: a sign-in or a call of their own (Console,
+            Ladder, MCP or API) on a day 1-7 or 8-14 days after the signup day,
+            both days on the account&rsquo;s own time zone (UTC when it has
+            none), from the sign-in events and call log Elixir already keeps. A
+            session only seen, such as a tab left open past midnight, is not
+            coming back, and an agent&rsquo;s calls are not its owner&rsquo;s.
+            &ldquo;Open&rdquo; counts people still inside that window.
           </>
         }
       />
