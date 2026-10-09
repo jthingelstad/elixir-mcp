@@ -2,6 +2,13 @@
 (function () {
   function missingArt(img) {
     if (!img?.classList?.contains("card-art__img")) return;
+    // A form's art the mirror lacks draws the base card's first.
+    const base = img.getAttribute("data-base");
+    if (base) {
+      img.removeAttribute("data-base");
+      img.setAttribute("src", base);
+      return;
+    }
     const blank = document.createElement("span");
     blank.className = "card-art__blank";
     blank.textContent = img.getAttribute("data-name") || "";

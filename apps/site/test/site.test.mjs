@@ -1426,3 +1426,27 @@ test(
     );
   },
 );
+
+test("a card page draws the catalog's art, its form else the base card", async () => {
+  // 2026-10-08: Hero Electro Wizard's page asked for a file the mirror
+  // had never written. The catalog's art names what exists.
+  const { artOf } = await import(
+    path.join(repoRoot, "apps/site/src/_lib/cards.mjs")
+  );
+  const O = "https://elixir.poapkings.com/assets/cards";
+  const wizard = {
+    id: 26000042,
+    art: { base: `${O}/26000042-285.png`, hero: `${O}/26000042_hero-285.png` },
+  };
+  assert.deepEqual(artOf(wizard, "hero"), {
+    figure: "/assets/cards/26000042_hero-285.png",
+    figure_base: "/assets/cards/26000042-285.png",
+    tile: "/assets/cards/26000042-128.png",
+  });
+  // A form the catalog has no art for is drawn as the base card.
+  assert.deepEqual(artOf(wizard, "evolution"), {
+    figure: "/assets/cards/26000042-285.png",
+    figure_base: null,
+    tile: "/assets/cards/26000042-128.png",
+  });
+});
