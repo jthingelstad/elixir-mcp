@@ -1,4 +1,14 @@
-import { Fresh, Icon, Link, ago, stamp, useClock, noun } from "@elixir-mcp/ui";
+import {
+  Fresh,
+  Icon,
+  Link,
+  ago,
+  stamp,
+  useClock,
+  noun,
+  Tag,
+  TagText,
+} from "@elixir-mcp/ui";
 import {
   CHAT_MAX,
   CHAT_TONES,
@@ -122,7 +132,9 @@ export function CopyLine({
   const [done, setDone] = useState(false);
   return (
     <div className="flex items-start gap-2 rounded-control border border-line-soft bg-ground-sunken px-2.5 py-2 text-[13px]">
-      <span className="flex-auto">{text}</span>
+      <span className="flex-auto">
+        <TagText>{text}</TagText>
+      </span>
       <button
         type="button"
         className="btn btn--sm"
@@ -697,7 +709,7 @@ function By({ by }) {
   if (!by || by.system) return <span>Elixir Clan</span>;
   return (
     <span>
-      {by.name ?? by.tag}
+      {by.name ?? <Tag tag={by.tag} />}
       {by.role ? ` (${by.role})` : ""}
     </span>
   );
@@ -1015,7 +1027,7 @@ function BoundActionCard({
             ) : (
               <>
                 <b className="text-ink">
-                  {action.player_name ?? action.player_tag}
+                  {action.player_name ?? <Tag tag={action.player_tag} />}
                 </b>
                 <span className="tag">{action.player_tag}</span>
                 {action.role_at_raise ? (
@@ -1201,8 +1213,8 @@ function BoundActionCard({
           <div className="rounded-control bg-panel-raised px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-ink-body">
             <b className="text-ink">In the game:</b>{" "}
             {action.type === "promotion" ? "promote" : "demote"}{" "}
-            {action.player_name ?? action.player_tag}, send the reviewed
-            message, then mark it complete. They go together.
+            {action.player_name ?? <Tag tag={action.player_tag} />}, send the
+            reviewed message, then mark it complete. They go together.
           </div>
         ) : null}
         {LEADER_TYPES.has(action.type) && ev.facts?.length ? (

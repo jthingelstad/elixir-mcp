@@ -1,5 +1,13 @@
 import { useWrite } from "@elixir-mcp/client";
-import { ago, Icon, Link, secsSince, WriteError, noun } from "@elixir-mcp/ui";
+import {
+  ago,
+  Icon,
+  Link,
+  secsSince,
+  Tag,
+  WriteError,
+  noun,
+} from "@elixir-mcp/ui";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -148,9 +156,11 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   }
 
   const isClan = Boolean(clan);
+  // With no name the headline is the tag, in the display face, where a
+  // 0 and an O are one shape: drawn as a Tag.
   const name = isClan
-    ? (clan.name ?? clan.clan_tag)
-    : (claim.nickname ?? claim.name ?? claim.player_tag);
+    ? (clan.name ?? <Tag tag={clan.clan_tag} />)
+    : (claim.nickname ?? claim.name ?? <Tag tag={claim.player_tag} />);
   const fresh = secsSince(rec?.freshest_poll, now);
 
   return (

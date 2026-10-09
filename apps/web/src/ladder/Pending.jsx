@@ -1,4 +1,4 @@
-import { Link } from "@elixir-mcp/ui";
+import { Link, TagText } from "@elixir-mcp/ui";
 import { useEffect, useRef } from "react";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { CONSOLE } from "../lib/console.js";
@@ -36,7 +36,9 @@ export function Pending({ player }) {
     return (
       <div className="empty mt-6" role="alert">
         <h1 className="empty__title">Tag not found</h1>
-        <p className="empty__body">{journey.text}</p>
+        <p className="empty__body">
+          <TagText>{journey.text}</TagText>
+        </p>
         <Link className="btn btn--sm" to={`${status}#fix-tag`}>
           Fix the tag ›
         </Link>

@@ -1,3 +1,4 @@
+import { Tag, TagText } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
@@ -94,7 +95,7 @@ export function AgentTracking({ agent }) {
                 <tr key={c.clan_tag}>
                   <td>
                     <span className="font-semibold">
-                      {c.name ?? c.clan_tag}
+                      {c.name ?? <Tag tag={c.clan_tag} />}
                     </span>{" "}
                     <span className="mono text-ink-faint">{c.clan_tag}</span>
                     {c.is_primary && (
@@ -216,7 +217,7 @@ export function AgentTracking({ agent }) {
                   <tr key={p.player_tag}>
                     <td>
                       <span className="font-semibold">
-                        {p.name ?? p.player_tag}
+                        {p.name ?? <Tag tag={p.player_tag} />}
                       </span>{" "}
                       <span className="mono text-ink-faint">
                         {p.player_tag}
@@ -279,7 +280,11 @@ export function AgentTracking({ agent }) {
           </button>
         </form>
       </section>
-      {err && <p className="field-error mt-3">{err}</p>}
+      {err && (
+        <p className="field-error mt-3">
+          <TagText>{err}</TagText>
+        </p>
+      )}
     </>
   );
 }

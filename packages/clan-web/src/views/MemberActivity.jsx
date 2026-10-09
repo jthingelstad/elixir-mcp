@@ -1,4 +1,4 @@
-import { Link, useClock, MODE_LABEL } from "@elixir-mcp/ui";
+import { Link, useClock, MODE_LABEL, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMemberActivity } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
@@ -60,7 +60,9 @@ export function MemberActivity({
         Back to {clan.name ?? "clan"}
       </Link>
       <div className="page-head mt-3">
-        <h1 className="page__title">{d?.name ?? playerTag} · Activity</h1>
+        <h1 className="page__title">
+          {d?.name ?? <Tag tag={playerTag} />} · Activity
+        </h1>
         <span className="tag">{playerTag}</span>
       </div>
     </>

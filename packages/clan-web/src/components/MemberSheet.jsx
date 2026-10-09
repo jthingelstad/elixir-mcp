@@ -1,3 +1,4 @@
+import { Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import {
@@ -44,7 +45,9 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
   return (
     <div className="panel" style={{ marginTop: "12px" }}>
       <div className="panel__head">
-        <span className="yours">{member.name ?? member.player_tag}</span>
+        <span className="yours">
+          {member.name ?? <Tag tag={member.player_tag} />}
+        </span>
         <span className="tag">{member.player_tag}</span>
         <span className="chip">{member.role}</span>
       </div>
@@ -96,7 +99,7 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
                   </span>
                   {n.text}{" "}
                   <span className="page-head__note">
-                    · {n.author_name ?? n.author_tag} ·{" "}
+                    · {n.author_name ?? <Tag tag={n.author_tag} />} ·{" "}
                     {n.created_at.slice(0, 10)}
                   </span>{" "}
                   <button

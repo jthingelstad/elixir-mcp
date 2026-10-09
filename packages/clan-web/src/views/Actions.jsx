@@ -1,4 +1,4 @@
-import { Fresh, Icon, ago } from "@elixir-mcp/ui";
+import { Fresh, Icon, ago, TagText } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { keys, useAction, useActions, useInvalidate } from "../lib/queries.js";
 import {
@@ -96,7 +96,7 @@ function ActionRow({ action, clan, navigate, scope }) {
           {action.label}
         </span>
         <span className="text-[12.5px] text-ink-dim">
-          {about(action)}
+          <TagText>{about(action)}</TagText>
           {action.status !== "proposed" && action.delivery_channels?.length > 1
             ? " · Clan chat and Inbox"
             : action.channel === "leader_message"

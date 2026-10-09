@@ -1,3 +1,4 @@
+import { Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
@@ -26,10 +27,10 @@ export function VerifyNotice({ me, onAcknowledge }) {
       <ul className="mt-3 mb-0 grid gap-1.5 pl-[18px]">
         {clans.map((c) => (
           <li key={`${c.clan_tag}-${c.player_tag}`}>
-            {c.player_name ?? c.player_tag}{" "}
+            {c.player_name ?? <Tag tag={c.player_tag} />}{" "}
             <span className="tag">{c.player_tag}</span>{" "}
             <RoleChip role={c.role} label={c.role_label} /> in{" "}
-            {c.clan_name ?? c.clan_tag}
+            {c.clan_name ?? <Tag tag={c.clan_tag} />}
           </li>
         ))}
       </ul>

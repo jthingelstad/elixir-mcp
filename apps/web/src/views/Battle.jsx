@@ -12,6 +12,7 @@ import {
   ZoneProvider,
   cardLabel,
   isTowerTroop,
+  TagText,
   useClock,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
@@ -77,6 +78,8 @@ export function copyDeckUrl(deck) {
   return `https://link.clashroyale.com/en/?clashroyale://copyDeck?deck=${ids}${tt}`;
 }
 
+// A nameless player is named by tag; where a name is drawn it goes
+// through TagText, so that tag reads with a slashed zero.
 const nameOf = (p) => p?.name ?? p?.player_tag ?? "Unknown";
 const namesOf = (side) => side.players.map(nameOf).join(" and ") || "Unknown";
 
@@ -401,10 +404,12 @@ function PlayerName({ p, signedIn }) {
       className="battle__name"
       to={`${CONSOLE}/explore/player/${tagPath(p.player_tag)}`}
     >
-      {nameOf(p)}
+      <TagText>{nameOf(p)}</TagText>
     </Link>
   ) : (
-    <span className="battle__name">{nameOf(p)}</span>
+    <span className="battle__name">
+      <TagText>{nameOf(p)}</TagText>
+    </span>
   );
 }
 
@@ -416,10 +421,12 @@ function ClanName({ p, signedIn }) {
       className="battle__clan"
       to={`${CONSOLE}/explore/clan/${tagPath(p.clan_tag)}`}
     >
-      {label}
+      <TagText>{label}</TagText>
     </Link>
   ) : (
-    <span className="battle__clan">{label}</span>
+    <span className="battle__clan">
+      <TagText>{label}</TagText>
+    </span>
   );
 }
 
@@ -531,7 +538,9 @@ function Scoreboard({ battle, sides, games, mine, signedIn, mode, when }) {
           <span className="battle__dash">–</span>
           <Crown n={score[1]} outcome={r.outcome} />
         </div>
-        <span className={`result-chip${result.cls}`}>{result.text}</span>
+        <span className={`result-chip${result.cls}`}>
+          <TagText>{result.text}</TagText>
+        </span>
         {games ? (
           <span className="battle__sub">
             games · crowns {l.crowns ?? "?"}–{r.crowns ?? "?"}
@@ -568,7 +577,7 @@ function DeckPanel({ player, outcome, deck, narrow }) {
       <div className="panel__head">
         <span className="battle-deck__head">
           <span className={`battle-deck__dot${dot}`} />
-          {name}’s deck
+          <TagText>{name}</TagText>’s deck
         </span>
         {copy && (
           <a
@@ -670,7 +679,11 @@ function Ended({ battle, sides, game, title }) {
         )}
       </div>
       <div className="panel__body battle-ended">
-        {sentence && <p>{sentence}</p>}
+        {sentence && (
+          <p>
+            <TagText>{sentence}</TagText>
+          </p>
+        )}
         {sides.map((s, i) => {
           const left = hpLeft(s.tower_hp);
           const leak = game
@@ -684,7 +697,7 @@ function Ended({ battle, sides, game, title }) {
                 <span
                   className={`battle-deck__dot${s.outcome === "loss" ? " battle-deck__dot--loss" : s.outcome === "win" ? "" : " battle-deck__dot--draw"}`}
                 />
-                {namesOf(s)}
+                <TagText>{namesOf(s)}</TagText>
                 {left !== null && (
                   <span className="battle-ended__left">
                     <span className="mono">{num(left)}</span> hitpoints left
@@ -757,10 +770,10 @@ function SideBySide({ battle, sides }) {
             <tr>
               <td />
               <th scope="col" className="num">
-                {nameOf(l)}
+                <TagText>{nameOf(l)}</TagText>
               </th>
               <th scope="col" className="num">
-                {nameOf(r)}
+                <TagText>{nameOf(r)}</TagText>
               </th>
             </tr>
           </thead>
@@ -847,7 +860,8 @@ function Meetings({ read, zone }) {
     <section className="panel" aria-label="Their meetings">
       <div className="panel__head">
         <span className="battle-deck__head">
-          {nameOf(l.players[0])} and {nameOf(r.players[0])}
+          <TagText>{nameOf(l.players[0])}</TagText> and{" "}
+          <TagText>{nameOf(r.players[0])}</TagText>
         </span>
         {modes.size === 1 && (
           <span className="battle__note">
@@ -887,7 +901,9 @@ function Sitting({ read, zone }) {
   return (
     <section className="panel" aria-label={`${who}’s session`}>
       <div className="panel__head">
-        <span className="battle-deck__head">{who}’s session</span>
+        <span className="battle-deck__head">
+          <TagText>{who}</TagText>’s session
+        </span>
         <span className="battle__note">
           {say(rows[0].battle_time, zone, DAY)}
         </span>

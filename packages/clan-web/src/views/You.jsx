@@ -1,4 +1,4 @@
-import { ago } from "@elixir-mcp/ui";
+import { ago, Tag } from "@elixir-mcp/ui";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
 import { CLAN } from "../lib/base.js";
@@ -32,7 +32,7 @@ export function You({ me }) {
                 {me.identities.map((i) => (
                   <span key={i.player_tag}>
                     {i.is_primary ? <span className="yours">★ </span> : null}
-                    {i.name ?? i.player_tag}{" "}
+                    {i.name ?? <Tag tag={i.player_tag} />}{" "}
                     <span className="tag">{i.player_tag}</span>{" "}
                     {/* A friend or a watched player is followed, never
                         claimed: "unverified" read as a problem to fix. */}
@@ -49,7 +49,7 @@ export function You({ me }) {
                     {i.clan_tag ? (
                       <span className="page-head__note">
                         {" "}
-                        · {i.clan_name ?? i.clan_tag}
+                        · {i.clan_name ?? <Tag tag={i.clan_tag} />}
                       </span>
                     ) : null}
                   </span>
@@ -62,7 +62,9 @@ export function You({ me }) {
               <>
                 {me.selected.name ?? ""}{" "}
                 <span className="tag">{me.selected.clan_tag}</span> as{" "}
-                {me.selected.player_name ?? me.selected.player_tag}{" "}
+                {me.selected.player_name ?? (
+                  <Tag tag={me.selected.player_tag} />
+                )}{" "}
                 <RoleChip
                   role={me.selected.role}
                   label={me.selected.role_label}

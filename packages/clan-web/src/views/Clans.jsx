@@ -1,3 +1,4 @@
+import { Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
@@ -59,7 +60,9 @@ export function Clans({ me, onSelect, selecting }) {
                     flexWrap: "wrap",
                   }}
                 >
-                  <span className="page-title">{c.name ?? c.clan_tag}</span>
+                  <span className="page-title">
+                    {c.name ?? <Tag tag={c.clan_tag} />}
+                  </span>
                   <span className="tag">{c.clan_tag}</span>
                   {current ? (
                     <span className="chip chip--info">current</span>
@@ -77,7 +80,7 @@ export function Clans({ me, onSelect, selecting }) {
                   }}
                 >
                   <span className="yours">★</span>
-                  <span>{c.acting_as_name ?? c.acting_as}</span>
+                  <span>{c.acting_as_name ?? <Tag tag={c.acting_as} />}</span>
                   <span className="tag">{c.acting_as}</span>
                   <RoleChip role={c.role} label={c.role_label} />
                   {c.verified === false ? (
@@ -86,7 +89,8 @@ export function Clans({ me, onSelect, selecting }) {
                   {c.unlock ? (
                     <span className="page-head__note">
                       {c.unlock.role_label} in the game, once{" "}
-                      {c.unlock.name ?? c.unlock.player_tag} is verified
+                      {c.unlock.name ?? <Tag tag={c.unlock.player_tag} />} is
+                      verified
                     </span>
                   ) : null}
                   {c.your_tags.length > 1 ? (
@@ -114,11 +118,11 @@ export function Clans({ me, onSelect, selecting }) {
                   flexWrap: "wrap",
                 }}
               >
-                <span>{i.name ?? i.player_tag}</span>
+                <span>{i.name ?? <Tag tag={i.player_tag} />}</span>
                 <span className="tag">{i.player_tag}</span>
                 {i.clan_tag ? (
                   <span className="page-head__note">
-                    in {i.clan_name ?? i.clan_tag}
+                    in {i.clan_name ?? <Tag tag={i.clan_tag} />}
                   </span>
                 ) : null}
                 <a

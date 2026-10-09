@@ -6,6 +6,7 @@ import {
   freshCls,
   Link,
   stamp,
+  TagText,
   useClock,
   WriteError,
   noun,
@@ -555,7 +556,7 @@ function Lookup({ me, navigate, browse }) {
           <div className="empty" style={{ textAlign: "left" }}>
             <div className="empty__title">That lookup could not run</div>
             <div className="empty__body" style={{ textAlign: "left" }}>
-              {failure}
+              <TagText>{failure}</TagText>
             </div>
           </div>
         )}
@@ -629,7 +630,9 @@ function Lookup({ me, navigate, browse }) {
               }}
             >
               <span className="tag">{r.tag}</span>
-              <span style={{ color: "var(--ink-faint)" }}>{r.name}</span>
+              <span style={{ color: "var(--ink-faint)" }}>
+                <TagText>{r.name}</TagText>
+              </span>
               <span className="kind-chip">{r.kind}</span>
             </Link>
           ))}
@@ -713,7 +716,7 @@ function RecordTable({ table }) {
                       to={cell.href}
                       style={cell.style}
                     >
-                      {cell.text}
+                      <TagText>{cell.text}</TagText>
                     </Link>
                   ) : (
                     <span
@@ -728,7 +731,7 @@ function RecordTable({ table }) {
                       }
                       style={cell.style}
                     >
-                      {cell.text}
+                      <TagText>{cell.text}</TagText>
                     </span>
                   )}
                 </td>
@@ -795,7 +798,7 @@ function RecordPage({ me, kind, rawId, search }) {
             : "Could not load this record"}
         </div>
         <div className="empty__body">
-          {record.error.message}{" "}
+          <TagText>{record.error.message}</TagText>{" "}
           <Link to={`${CONSOLE}/explore`}>Back to lookup</Link>
         </div>
         <button className="btn btn--sm" onClick={() => record.refetch()}>
@@ -816,7 +819,7 @@ function RecordPage({ me, kind, rawId, search }) {
               aria-current={i === trail.length - 1 ? "page" : undefined}
               to={c.href}
             >
-              {c.label}
+              <TagText>{c.label}</TagText>
             </Link>
           </span>
         ))}
@@ -827,7 +830,9 @@ function RecordPage({ me, kind, rawId, search }) {
           {view.kindLabel} record
         </span>
         <h1 className="page__title" style={{ fontSize: "28px" }}>
-          {view.title}
+          {/* A record with no name is titled by its tag, in the display
+              face: TagText draws it so a 0 never reads as an O. */}
+          <TagText>{view.title}</TagText>
         </h1>
         {view.tag && <span className="tag">{view.tag}</span>}
         {view.nickEdit?.current && (
@@ -856,7 +861,11 @@ function RecordPage({ me, kind, rawId, search }) {
           <Freshness meta={res.body.meta} derived={view.kindLabel === "DECK"} />
         </span>
       </div>
-      {view.sub && <div className="record__sub">{view.sub}</div>}
+      {view.sub && (
+        <div className="record__sub">
+          <TagText>{view.sub}</TagText>
+        </div>
+      )}
 
       {view.table && (
         <section>
@@ -903,11 +912,11 @@ function RecordPage({ me, kind, rawId, search }) {
                   <dd>
                     {f.href ? (
                       <Link className={f.mono ? "tag" : undefined} to={f.href}>
-                        {f.value}
+                        <TagText>{f.value}</TagText>
                       </Link>
                     ) : (
                       <span className={f.mono ? "tag" : undefined}>
-                        {f.value}
+                        <TagText>{f.value}</TagText>
                       </span>
                     )}{" "}
                     {f.hint && <span className="hint">{f.hint}</span>}

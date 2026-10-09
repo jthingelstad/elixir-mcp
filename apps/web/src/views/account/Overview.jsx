@@ -6,6 +6,7 @@ import {
   ago,
   secsSince,
   stampTime,
+  Tag,
   useClock,
   noun,
 } from "@elixir-mcp/ui";
@@ -43,7 +44,8 @@ import { ZoneOffer } from "../../components/ZoneOffer.jsx";
  *  accounts, your friends, then the players you watch. */
 const RANK = { primary: 0, alt: 1, friend: 2, watching: 3 };
 const rankOf = (c) => (c.is_primary ? 0 : (RANK[c.relationship] ?? 3));
-const nameOf = (c) => c.nickname ?? c.name ?? c.player_tag;
+/** A player with no name is shown by tag, drawn as one (a 0 is not an O). */
+const nameOf = (c) => c.nickname ?? c.name ?? <Tag tag={c.player_tag} />;
 
 /** How many rows each list shows before "and N more": four at width,
  *  two on a phone (the Phone board). */
@@ -138,7 +140,13 @@ function Across({ me, clans }) {
         <Tile
           to={home ? `/clan/${tagPath(home.clan_tag)}/week` : "/clan"}
           icon="users"
-          title={home ? `Clan · ${home.name ?? home.clan_tag}` : "Clan"}
+          title={
+            home ? (
+              <>Clan · {home.name ?? <Tag tag={home.clan_tag} />}</>
+            ) : (
+              "Clan"
+            )
+          }
           more={home ? "The week in the clan ›" : "Elixir Clan ›"}
         >
           {tracked?.member_count ? (
@@ -239,9 +247,13 @@ function Row({ to, star, name, tag, note, strong, narrow = true }) {
  *  more. Two spellings, one per width, because the phone shows fewer. */
 function More({ rest, restNarrow }) {
   const line = (list) =>
-    list.length === 1
-      ? nameOf(list[0])
-      : `${nameOf(list[0])}, and ${list.length - 1} more`;
+    list.length === 1 ? (
+      nameOf(list[0])
+    ) : (
+      <>
+        {nameOf(list[0])}, and {list.length - 1} more
+      </>
+    );
   if (restNarrow.length === 0) return null;
   return (
     <Link
@@ -364,7 +376,7 @@ function Clans({ clansQuery }) {
             <Row
               key={c.clan_tag}
               to={`${CONSOLE}/account/tracking/${tagPath(c.clan_tag)}`}
-              name={c.name ?? c.clan_tag}
+              name={c.name ?? <Tag tag={c.clan_tag} />}
               tag={c.clan_tag}
               note={note(c)}
               strong={c.clan_tag === home?.clan_tag}
@@ -374,17 +386,17 @@ function Clans({ clansQuery }) {
           <More
             rest={ordered
               .slice(WIDE_ROWS)
-              .map((c) => ({ name: c.name ?? c.clan_tag }))}
+              .map((c) => ({ name: c.name ?? <Tag tag={c.clan_tag} /> }))}
             restNarrow={ordered
               .slice(NARROW_ROWS)
-              .map((c) => ({ name: c.name ?? c.clan_tag }))}
+              .map((c) => ({ name: c.name ?? <Tag tag={c.clan_tag} /> }))}
           />
         </>
       )}
       {home && !rows.some((c) => c.clan_tag === home.clan_tag) && (
         <p className="m-0 border-t border-line-soft px-[18px] py-3 text-[12.5px] text-ink-faint">
-          {home.name ?? home.clan_tag} is your player&rsquo;s clan, and is not
-          tracked yet.{" "}
+          {home.name ?? <Tag tag={home.clan_tag} />} is your player&rsquo;s
+          clan, and is not tracked yet.{" "}
           <Link to={`${CONSOLE}/account/tracking`}>Track it in Tracking ›</Link>
         </p>
       )}

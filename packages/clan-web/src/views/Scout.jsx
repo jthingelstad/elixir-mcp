@@ -1,4 +1,4 @@
-import { noun } from "@elixir-mcp/ui";
+import { noun, Tag } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
@@ -99,14 +99,15 @@ export function Scout({ clan }) {
       ) : null}
       {r?.pending ? (
         <div className="notice">
-          Elixir is fetching {r.player_tag} from the game · asking again in{" "}
-          {r.pending.retry_after_s} s
+          Elixir is fetching <Tag tag={r.player_tag} /> from the game · asking
+          again in {r.pending.retry_after_s} s
         </div>
       ) : null}
       {p ? (
         <div className="panel">
           <div className="panel__head">
-            {p.name ?? r.player_tag} <span className="tag">{r.player_tag}</span>
+            {p.name ?? <Tag tag={r.player_tag} />}{" "}
+            <span className="tag">{r.player_tag}</span>
             {p.clan ? (
               <span className="page-head__note">
                 in {p.clan.name} as {p.clan.role}

@@ -6,6 +6,7 @@ import {
   ago,
   useClock,
   noun,
+  Tag,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useRoster } from "../lib/queries.js";
@@ -123,10 +124,10 @@ export function RosterTable({
                           }
                           navigate={navigate}
                         >
-                          {m.name ?? m.player_tag}
+                          {m.name ?? <Tag tag={m.player_tag} />}
                         </Link>
                       ) : (
-                        (m.name ?? m.player_tag)
+                        (m.name ?? <Tag tag={m.player_tag} />)
                       )}
                     </span>
                     {m.you ? (
@@ -198,11 +199,12 @@ function ledeFor(roster) {
 }
 
 export function ClanHeader({ clan, roster, others = [], navigate }) {
-  const clanName = roster?.name ?? clan.name ?? clan.clan_tag;
+  const clanName = roster?.name ?? clan.name ?? <Tag tag={clan.clan_tag} />;
   const [open, setOpen] = useState(false);
   const chip = (
     <>
-      <span className="yours">★</span> {clan.acting_as_name ?? clan.acting_as}
+      <span className="yours">★</span>{" "}
+      {clan.acting_as_name ?? <Tag tag={clan.acting_as} />}
       <span className="text-ink-faint">·</span>
       <RoleChip role={clan.role} label={clan.role_label} />
       <span className="text-ink-faint">·</span>
@@ -257,7 +259,7 @@ export function ClanHeader({ clan, roster, others = [], navigate }) {
                     }}
                     className="flex items-center gap-2 px-3.5 py-2.5 text-inherit"
                   >
-                    <span>{c.name ?? c.clan_tag}</span>
+                    <span>{c.name ?? <Tag tag={c.clan_tag} />}</span>
                     <RoleChip role={c.role} label={c.role_label} />
                   </a>
                 ))}
@@ -362,7 +364,9 @@ function Comings({ roster, clan, history, navigate }) {
     Math.abs(Date.parse(e.at) - Date.parse(back.get(e.player_tag))) <
       RETURN_SLACK_MS;
   const line = (e) => {
-    const who = <b className="text-ink">{e.name ?? e.player_tag}</b>;
+    const who = (
+      <b className="text-ink">{e.name ?? <Tag tag={e.player_tag} />}</b>
+    );
     if (e.type === "member_joined")
       return cameBack(e) ? <>{who} came back</> : <>{who} joined</>;
     if (e.type === "member_left") return <>{who} departed</>;
@@ -472,7 +476,8 @@ export function Clan({ me, clan, navigate, search }) {
       ) : roster?.not_recorded ? (
         <div className="empty">
           <div className="empty__title">
-            Elixir is not recording {clan.name ?? roster.clan_tag} yet
+            Elixir is not recording {clan.name ?? <Tag tag={roster.clan_tag} />}{" "}
+            yet
           </div>
           <p className="empty__body">
             Your player is in this clan, but the clan itself is not on

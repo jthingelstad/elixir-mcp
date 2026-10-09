@@ -1,5 +1,5 @@
 import { useWrite } from "@elixir-mcp/client";
-import { writeErrorText } from "@elixir-mcp/ui";
+import { TagText, writeErrorText } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { CONSOLE } from "../../lib/console.js";
@@ -155,10 +155,12 @@ export function FixTag({ claim, refresh, navigate, stop }) {
         </button>
       </form>
       <span id="fix-tag-help" className="footnote">
-        {bad ||
-          (replace.error
-            ? writeErrorText(replace.error)
-            : `Elixir tracks the corrected tag${claim.is_primary ? " as your primary" : ""} and stops ${wanted}.`)}
+        <TagText>
+          {bad ||
+            (replace.error
+              ? writeErrorText(replace.error)
+              : `Elixir tracks the corrected tag${claim.is_primary ? " as your primary" : ""} and stops ${wanted}.`)}
+        </TagText>
       </span>
       {stop}
     </div>

@@ -1,4 +1,4 @@
-import { Fresh, ago } from "@elixir-mcp/ui";
+import { Fresh, ago, Tag, TagText } from "@elixir-mcp/ui";
 import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useAwards } from "../lib/queries.js";
@@ -389,9 +389,11 @@ function AwardPanel({
             ) : null}
             {season.closed ? (
               <p className="page-head__note m-0">
-                {previousGrants.length
-                  ? `Season ${season.season_id - 1}: ${previousGrants.map((g) => g.player_name ?? g.player_tag).join(", ")}.`
-                  : `No recorded ${award.name} grant for season ${season.season_id - 1}. Check the clan's history before choosing.`}{" "}
+                <TagText>
+                  {previousGrants.length
+                    ? `Season ${season.season_id - 1}: ${previousGrants.map((g) => g.player_name ?? g.player_tag).join(", ")}.`
+                    : `No recorded ${award.name} grant for season ${season.season_id - 1}. Check the clan's history before choosing.`}
+                </TagText>{" "}
                 Review the final podium and this award's rule; the choice is
                 yours.
               </p>
@@ -425,7 +427,7 @@ function AwardPanel({
                           (member) => member.player_tag === r.player_tag,
                         )}
                       >
-                        {r.name ?? r.player_tag}
+                        {r.name ?? <Tag tag={r.player_tag} />}
                       </MemberLink>
                     </strong>{" "}
                     <span className="tag">{r.player_tag}</span>
@@ -623,7 +625,7 @@ function AwardPanel({
                               (member) => member.player_tag === r.player_tag,
                             )}
                           >
-                            {r.name ?? r.player_tag}
+                            {r.name ?? <Tag tag={r.player_tag} />}
                           </MemberLink>
                         </strong>{" "}
                         <span className="tag">{r.player_tag}</span>
@@ -710,7 +712,7 @@ function OlderGrants({ grants, awardById }) {
                   <li key={`${g.award_id}-${g.player_tag}`}>
                     <strong>{awardById.get(g.award_id)?.name ?? g.name}</strong>
                     {g.rank > 1 ? ` #${g.rank}` : ""} ·{" "}
-                    {g.player_name ?? g.player_tag}{" "}
+                    {g.player_name ?? <Tag tag={g.player_tag} />}{" "}
                     <span className="tag">{g.player_tag}</span>
                     {g.note ? ` — ${g.note}` : ""}
                   </li>

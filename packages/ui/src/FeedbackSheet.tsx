@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { writeErrorText, type WriteFailure } from "./WriteError.tsx";
+import { TagText } from "./Tag.tsx";
 
 /**
  * Send feedback from where you are (2026-10-08, feedback is one system):
@@ -146,7 +147,11 @@ export function FeedbackSheet({
           </>
         ) : (
           <>
-            {about && <div className="notice">{about}</div>}
+            {about && (
+              <div className="notice">
+                <TagText>{about}</TagText>
+              </div>
+            )}
             <select
               className="select"
               aria-label="Category"

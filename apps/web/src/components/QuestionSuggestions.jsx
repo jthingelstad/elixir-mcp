@@ -1,3 +1,4 @@
+import { TagText } from "@elixir-mcp/ui";
 import { useState } from "react";
 
 function questions(player) {
@@ -59,7 +60,9 @@ export function QuestionSuggestions({ questions }) {
             <h3>{q.title}</h3>
             <details>
               <summary>View full question</summary>
-              <p>{q.prompt}</p>
+              <p>
+                <TagText>{q.prompt}</TagText>
+              </p>
             </details>
             <button
               className="btn"
