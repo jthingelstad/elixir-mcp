@@ -7,6 +7,7 @@
 
 import {
   responseMeta,
+  cardArt,
   cardForms,
   cardType,
   MAX_DISPLAY_LEVEL,
@@ -22,17 +23,28 @@ import { cardProfileTools } from "./card-profile.mjs";
 import { archetypeTools } from "./archetype.mjs";
 
 /** One catalog item as served: in-game max level, the API's rarity-scale
- *  value kept under an unambiguous name, and forms decoded. */
+ *  value kept under an unambiguous name, forms decoded, and its art by
+ *  form (11.5.0): Elixir's mirror of each image the API's iconUrls
+ *  name (contracts card-art.ts). */
 function shapeCatalogCard(c) {
   const { maxLevel, ...rest } = c;
+  const art = cardArt(c.id, c.iconUrls);
   return {
     ...rest,
     type: cardType(c.id),
     maxLevel: MAX_DISPLAY_LEVEL,
     ...(typeof maxLevel === "number" ? { maxLevelRarityScale: maxLevel } : {}),
     forms_available: cardForms(c.maxEvolutionLevel),
+    ...(art ? { art } : {}),
   };
 }
+
+/** The whole catalog unnarrowed, without art: every card's art is about
+ *  14,000 characters, and the whole catalog already sits near the
+ *  result cap (MCP_RESULT_MAX_CHARS), so art rides with the cards a
+ *  call names (ids or query), with cards_card, and on the public
+ *  catalog. */
+const withoutArt = ({ art: _art, ...c }) => c;
 
 const compactCard = (c) => ({
   id: c.id,
@@ -170,7 +182,8 @@ export const cardsTools = {
             .toLowerCase()
             .includes(q));
       const compact = args.verbosity === "compact";
-      const shape = compact ? compactCard : (c) => c;
+      const narrowed = Boolean(ids || q);
+      const shape = compact ? compactCard : narrowed ? (c) => c : withoutArt;
       return {
         applied: appliedBlock({
           ids: ids ? [...ids] : undefined,
@@ -185,6 +198,11 @@ export const cardsTools = {
           "as_of is when the catalog last CHANGED (a card added, renamed, recosted or given a form); fetched_at is the last daily fetch that confirmed it.",
           "maxLevel is the in-game 1-16 scale (a level-16 card is maxed whatever its rarity); maxLevelRarityScale is the API's per-rarity cap.",
           "forms_available decodes maxEvolutionLevel, a bit field (1 = Evolution, 2 = Hero), never a level; type comes from the card id's range (troop, building, spell, tower_troop), which the API does not spell out.",
+          compact
+            ? null
+            : narrowed
+              ? "art is each form's image on Elixir's own origin (the forms iconUrls carries), 285 pixels wide; -128.png or -192.png at the same address is narrower. Show a played form's art, else the base card's: a form whose image Supercell has not published yet does not answer."
+              : "art (each form's image on Elixir's own origin) rides when ids or query name the cards: the whole catalog leaves it out to stay under the result cap.",
         ),
         docs: docsRef("battles", "deck-identity-and-forms"),
         meta: responseMeta({ as_of: new Date().toISOString() }),

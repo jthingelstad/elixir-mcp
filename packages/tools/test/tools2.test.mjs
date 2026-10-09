@@ -325,6 +325,36 @@ test("cards_catalog: served from the recorded GLOBAL payload", async () => {
   assert.equal(isError, false);
   assert.ok(Array.isArray(body.cards) && body.cards.length > 100);
   assert.ok(Array.isArray(body.tower_troops) && body.tower_troops.length > 0);
+  // 11.5.0: art rides only when ids or query narrow the catalog (the
+  // whole catalog would cost ~14,000 characters of the result cap).
+  assert.ok(
+    body.cards.every((c) => !("art" in c)),
+    "the unnarrowed catalog leaves art out",
+  );
+  const withEvo = body.cards.find((c) => c.iconUrls?.evolutionMedium);
+  assert.ok(withEvo, "the fixture catalog holds a card with an evolution");
+  const narrowed = await call("cards_catalog", { ids: [withEvo.id] });
+  assert.equal(narrowed.isError, false);
+  const [card] = narrowed.body.cards;
+  assert.equal(
+    card.art.base,
+    `https://elixir.poapkings.com/assets/cards/${withEvo.id}-285.png`,
+  );
+  assert.equal(
+    card.art.evolution,
+    `https://elixir.poapkings.com/assets/cards/${withEvo.id}_evo-285.png`,
+  );
+  assert.equal(
+    "hero" in card.art,
+    Boolean(withEvo.iconUrls.heroMedium),
+    "a form appears only when the catalog lists its icon",
+  );
+  assert.ok(narrowed.body.notes.some((n) => /art is each form/.test(n)));
+  const compact = await call("cards_catalog", {
+    ids: [withEvo.id],
+    verbosity: "compact",
+  });
+  assert.ok(compact.body.cards.every((c) => !("art" in c)));
 });
 
 test("live_fetch: allowlist validation, then honest live_unavailable", async () => {
@@ -1862,6 +1892,11 @@ test("a card name shared with a tower-troop entry is the deck card; Evo and Hero
       byName.body.card.id,
       top.card_id,
       "the deck card, not the tower entry",
+    );
+    assert.match(
+      byName.body.card.art?.base ?? "",
+      new RegExp(`/assets/cards/${top.card_id}-285\\.png$`),
+      "11.5.0: cards_card carries the card's art",
     );
     const evo = await call("cards_card", {
       card: `Evo ${top.name}`,
