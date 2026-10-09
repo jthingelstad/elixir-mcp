@@ -353,6 +353,38 @@ const ordinal = (k) =>
     : `${k}${["th", "st", "nd", "rd"][k % 100 > 10 && k % 100 < 14 ? 0 : Math.min(k % 10, 4) % 4] ?? "th"}`;
 const rec = (x) => `${x.wins}–${x.losses}`;
 
+/** Free text as a sentence: one full stop, never two. A moment's text
+ *  is already a sentence ("took Arrows Mastery to level 10."), and a
+ *  mail that joined two and added its own printed "10.." (Jamie's
+ *  friends mail, 2026-10-07). Join clauses, then end the sentence once. */
+const clause = (s) =>
+  String(s ?? "")
+    .trim()
+    .replace(/[.\s]+$/, "");
+const sentence = (s) => {
+  const t = String(s ?? "").trim();
+  return !t || /[.!?…]$/.test(t) ? t : `${t}.`;
+};
+
+/** The week's small firsts as counts ("3 cards unlocked, 2 badge
+ *  levels"): card unlocks and badges no longer mail on their own
+ *  (Jamie, 2026-10-08), so the weekly mail says how many. */
+function progressText(p) {
+  if (!p) return "";
+  const k = (v, one, many) => (v ? `${n(v)} ${v === 1 ? one : many}` : null);
+  return [
+    k(p.cards_unlocked, "card unlocked", "cards unlocked"),
+    k(p.badge_levels, "badge level", "badge levels"),
+    k(p.legendary_badges, "legendary badge", "legendary badges"),
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+// A reader's own timeline in the Console (apps/web, account/timeline):
+// every moment, newest first, the small ones the mail only counts.
+const timelineUrl = () => `${SITE}/console/account/timeline`;
+
 /** A mode family's name in a subject line: proper names keep their
  *  capitals, the rest read as words ("Trophy Road 4–6, war 3–3"). */
 const familyWord = (mode) => {
@@ -461,13 +493,21 @@ function arena(f, c) {
       )}`
     : "";
   const altNames = f.alts.map((a) => esc(a.name));
+  // Card unlocks and badges, counted (an issue before 2026-10-08 has none).
+  const counted = (f.progress ?? []).filter((x) => progressText(x));
+  const progress = counted.length
+    ? `${c.h2("Cards and badges")}${c.list(
+        counted.map((x) => `${c.P(x.tag, x.name)}: ${esc(progressText(x))}`),
+      )}${c.small(`Each one, newest first, is on your ${c.link(timelineUrl(), "timeline")}.`)}`
+    : "";
   const body = `
     ${tiles.length ? c.tiles(tiles) : ""}
     ${fams.length > 1 ? c.small("Each mode is its own game, so each gets its own record. There is no combined win rate.") : ""}
-    ${floor}${notes.length ? c.small(notes.map((m) => `${esc(m.label)}: ${esc(m.note)}.`).join(" ")) : ""}
+    ${floor}${notes.length ? c.small(notes.map((m) => sentence(`${esc(m.label)}: ${esc(m.note)}`)).join(" ")) : ""}
     ${deck}${warLine}
     ${met}
     ${alts}
+    ${progress}
     ${c.button(`Open ${pr.name} in Ladder`, ladderUrl(pr.tag, "", f.week?.season))}
     ${c.cov(esc(pr.coverage))}`;
   const subjectRecords = fams.length
@@ -525,7 +565,12 @@ function personCard(x, c) {
           `${n(x.battles)} battles, ${recHtml(x.wins, x.losses)}${x.modes ? `; ${esc(x.modes)}` : ""}.`,
         )
       : "";
-  const notes = (x.moments ?? []).slice(0, 2).map((m) => esc(m.text));
+  // Two moments, newest first, then the week's card unlocks and badges
+  // as counts; clauses, so a moment's own full stop never doubles.
+  const notes = [
+    ...(x.moments ?? []).slice(0, 2).map((m) => esc(clause(m.text))),
+    ...(progressText(x.progress) ? [esc(progressText(x.progress))] : []),
+  ];
   const d = x.deck;
   const deck = d
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;border-top:1px solid ${M.row};"><tr>
@@ -540,6 +585,27 @@ function personCard(x, c) {
     ${modeBar(fams)}${lines}${notes.length ? `<div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};margin-top:6px;">${notes.join(" · ")}</div>` : ""}${deck}`,
     { mt: 10 },
   );
+}
+
+/** Watched and followed players this long without a battle are one
+ *  line of names on the friends mail. */
+const LONG_QUIET_DAYS = 30;
+
+const capFirst = (t) => (t ? `${t.charAt(0).toUpperCase()}${t.slice(1)}` : t);
+
+/** A clan on the friends mail: a headline and at most three bullets, the
+ *  clan sentence's own clauses in its own order, the rest counted with a
+ *  link to the clan (2026-10-08). An issue stored before then has the
+ *  sentence as one line. */
+function clanBlock(k, c) {
+  if (k.headline == null) return esc(k.line ?? "");
+  const more = k.more
+    ? c.small(
+        `${c.link(clanUrl(k.tag), `${n(k.more)} more`)} on the clan’s record.`,
+        "margin-top:2px;",
+      )
+    : "";
+  return `<div>${esc(sentence(capFirst(k.headline)))}</div>${k.bullets?.length ? c.list(k.bullets.map((b) => esc(capFirst(clause(b))))) : ""}${more}`;
 }
 
 function tracking(f, c) {
@@ -564,40 +630,65 @@ function tracking(f, c) {
     ...f.friends.filter((x) => !x.battles),
     ...f.watching.filter((x) => x.battles === 0),
   ];
-  const quiet =
-    quietNames.length || f.quiet?.length
-      ? c.small(
-          `No battle recorded this week: ${[
-            ...quietNames.map((q) => c.P(q.tag, q.name)),
-            ...(f.quiet ?? [])
-              .filter((q) => !quietNames.some((x) => x.tag === q.tag))
-              .map((q) => `${c.P(q.tag, q.name)} (${q.days} days)`),
-          ].join(
-            ", ",
-          )}. A deck’s count is battles with exactly those eight cards.`,
-        )
-      : f.friends.length || f.watching.length
-        ? c.small("A deck’s count is battles with exactly those eight cards.")
-        : "";
+  // Quiet for a month or more is one line of names, longest quiet
+  // first (Jamie, 2026-10-08: a watched player "169 days" quiet,
+  // every week); the recently quiet keep their own line.
+  const daysOf = new Map((f.quiet ?? []).map((q) => [q.tag, q.days]));
+  const everyQuiet = [
+    ...quietNames.map((q) => ({
+      tag: q.tag,
+      name: q.name,
+      days: daysOf.get(q.tag) ?? null,
+      said: false,
+    })),
+    ...(f.quiet ?? [])
+      .filter((q) => !quietNames.some((x) => x.tag === q.tag))
+      .map((q) => ({
+        tag: q.tag,
+        name: q.name,
+        days: q.days ?? null,
+        said: true,
+      })),
+  ];
+  const longQuiet = everyQuiet
+    .filter((q) => (q.days ?? 0) >= LONG_QUIET_DAYS)
+    .sort((a, b) => b.days - a.days);
+  const recentQuiet = everyQuiet
+    .filter((q) => !longQuiet.includes(q))
+    .map((q) =>
+      q.said && q.days != null
+        ? `${c.P(q.tag, q.name)} (${q.days} day${q.days === 1 ? "" : "s"})`
+        : c.P(q.tag, q.name),
+    );
+  const deckNote = "A deck’s count is battles with exactly those eight cards.";
+  const quiet = [
+    recentQuiet.length
+      ? `No battle recorded this week: ${recentQuiet.join(", ")}.`
+      : "",
+    longQuiet.length
+      ? `Quiet for ${LONG_QUIET_DAYS}+ days: ${longQuiet.map((q) => c.P(q.tag, q.name)).join(", ")}.`
+      : "",
+  ].filter(Boolean);
+  const quietHtml =
+    quiet.length || f.friends.length || f.watching.length
+      ? quiet.map((q) => c.small(q)).join("") + c.small(deckNote)
+      : "";
   const youFams = pr?.by_family ?? [];
+  const youNotes = [
+    ...(pr?.moments ?? []).slice(0, 2).map((m) => esc(clause(m.text))),
+    ...(progressText(pr?.progress) ? [esc(progressText(pr.progress))] : []),
+  ];
   const around = [
     ...f.clans.map((k) => ({
       title: `${c.K(k.tag, k.name)}${pr?.clan?.tag === k.tag ? `<span style="font-weight:400;color:${M.faint};">, your clan</span>` : ""}`,
-      text: esc(k.line),
+      text: clanBlock(k, c),
       mark: M.link,
     })),
     ...(pr
       ? [
           {
             title: `You, ${c.P(pr.tag, pr.name)}`,
-            text: `${n(pr.battles)} battle${pr.battles === 1 ? "" : "s"}${youFams.length ? `: ${youFams.map((m) => `${esc(FAMILY_LABEL[m.mode] ?? m.mode)} ${recHtml(m.wins, m.losses)}`).join(", ")}` : pr.battles ? `, ${recHtml(pr.wins, pr.losses)}` : ""}.${f.alts.length ? ` With ${f.alts.map((a) => `${c.P(a.tag, a.name)} (${n(a.battles)})`).join(" and ")}.` : ""}${
-              pr.moments?.length
-                ? ` ${pr.moments
-                    .slice(0, 2)
-                    .map((m) => esc(m.text))
-                    .join(" · ")}.`
-                : ""
-            }`,
+            text: `${n(pr.battles)} battle${pr.battles === 1 ? "" : "s"}${youFams.length ? `: ${youFams.map((m) => `${esc(FAMILY_LABEL[m.mode] ?? m.mode)} ${recHtml(m.wins, m.losses)}`).join(", ")}` : pr.battles ? `, ${recHtml(pr.wins, pr.losses)}` : ""}.${f.alts.length ? ` With ${f.alts.map((a) => `${c.P(a.tag, a.name)} (${n(a.battles)})`).join(" and ")}.` : ""}${youNotes.length ? ` ${sentence(youNotes.join(" · "))}` : ""}`,
             mark: M.ok,
           },
         ]
@@ -605,7 +696,7 @@ function tracking(f, c) {
   ];
   const people = [...friendsPlayed, ...watchPlayed];
   const total = people.reduce((s, x) => s + (x.battles ?? 0), 0);
-  const body = `${friends}${watching}${quiet}
+  const body = `${friends}${watching}${quietHtml}
     ${around.length ? `${c.h2("Around you")}${c.rows(around)}` : ""}
     ${c.button("Follow a friend", `${SITE}/console/account/tracking`)}
     ${c.small(`Anyone with a player tag can be followed. Everyone you follow: <a href="${c.T(`${SITE}/console/account/tracking`)}" style="color:${M.link};">Console › Tracking</a>.`)}

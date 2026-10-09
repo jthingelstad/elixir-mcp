@@ -1,10 +1,10 @@
 /** milestone: congratulations for a FIRST on the recipient's own tags
  *  (primary and alts), from the same named moments the timeline
  *  serves. Firsts, never downs: each moment's identity (the arena, the
- *  league, the band, the step, the badge, the card) mails once per
- *  account and subject, ever (email_milestone), so a season's re-climb
- *  of an arena already celebrated is silent and a higher one is news.
- *  Bundled: everything new since the last look goes in one mail. */
+ *  league, the band, the step, the form) mails once per account and
+ *  subject, ever (email_milestone), so a season's re-climb of an arena
+ *  already celebrated is silent and a higher one is news. Bundled:
+ *  everything new since the last look goes in one mail. */
 import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
@@ -12,17 +12,23 @@ import { formLabel, itemText } from "@elixir-mcp/tools/activity/summary";
 import { myPlayers } from "./shared.mjs";
 import { whenLabel } from "./week.mjs";
 
-const KINDS = new Set([
+/** The big firsts, the only moments that mail when they happen (Jamie,
+ *  2026-10-08: "Agree with recommendation"): a new arena or league, a
+ *  new best trophy band, a new Evolution or Hero form, and the career
+ *  milestones, career wins and Collection Level steps. Card unlocks and
+ *  badges (card_unlocked, badge_earned, legendary_badge_earned) never
+ *  mail on their own: the Tuesday Arena week counts them (progressOf). Three weeks of a beta inbox held about forty
+ *  milestone mails, mostly an alt's card unlocks and badge levels. */
+export const MILESTONE_MAIL_KINDS = new Set([
   "arena_changed",
   "ranked_promotion",
   "best_trophies_band",
+  "card_form_unlocked",
   "career_wins_step",
   "collection_level_step",
-  "card_unlocked",
-  "card_form_unlocked",
-  "badge_earned",
-  "legendary_badge_earned",
 ]);
+
+const KINDS = MILESTONE_MAIL_KINDS;
 
 /** The moment's own identity, or null when it is not a first worth mail. */
 export function momentKey(kind, f) {
@@ -233,11 +239,8 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
     arena_changed: 0,
     ranked_promotion: 0,
     best_trophies_band: 1,
-    legendary_badge_earned: 1,
     career_wins_step: 2,
     collection_level_step: 2,
-    badge_earned: 3,
-    card_unlocked: 3,
     // The collection change players care about most (#110).
     card_form_unlocked: 2,
   };

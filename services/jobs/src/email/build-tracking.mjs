@@ -5,29 +5,32 @@
  *  (EmailFriends): a record per mode from battles_performance and the
  *  deck they played most from battles_decks, art and all. */
 import { buildTimeline, subjectsFor } from "@elixir-mcp/tools/activity/entries";
-import { itemText } from "@elixir-mcp/tools/activity/summary";
+import { clanSummaryParts, itemText } from "@elixir-mcp/tools/activity/summary";
 import { accountCtx, callTool } from "./ctx.mjs";
 import { featuredDeck } from "./build-arena.mjs";
-import { modeLabel, tryTool } from "./shared.mjs";
+import { MILESTONE_MAIL_KINDS } from "./build-milestone.mjs";
+import { modeLabel, progressOf, tryTool } from "./shared.mjs";
 
 /** People drawn as cards with a deck (three tool calls each); anyone
  *  past this is a line. */
 const CARD_CAP = 10;
 
+/** The moments a card names. Card unlocks and badges are counted
+ *  instead (progress, from the entry), the same split as the milestone
+ *  mail (Jamie, 2026-10-08): a week of an alt's unlocks and level-5
+ *  badges had crowded out everything else. The timeline itself is
+ *  unchanged; this is the mail choosing what it says. */
 const MOMENT_KINDS = new Set([
-  "badge_earned",
-  "legendary_badge_earned",
-  "arena_changed",
-  "ranked_promotion",
-  "best_trophies_band",
-  "collection_level_step",
-  "career_wins_step",
-  "card_unlocked",
-  "card_form_unlocked",
+  ...MILESTONE_MAIL_KINDS,
   "clan_joined",
   "clan_left",
   "returned",
 ]);
+
+/** A clan's block: its sentence's first clause as the headline, the next
+ *  few as bullets, the rest counted (Jamie's friends mail, 2026-10-07:
+ *  one paragraph of about a thousand characters). */
+const CLAN_BULLETS = 3;
 
 export async function buildTracking({ db, account, week, season }) {
   const subjects = await subjectsFor(db, account.accountId);
@@ -87,6 +90,7 @@ export async function buildTracking({ db, account, week, season }) {
       : null,
     modes: modesText(e.battles.by_mode),
     moments: momentsFor(e.subject_tag),
+    progress: progressOf(e),
   });
   const primary = players.find((e) => e.relationship === "primary");
   const alts = players.filter((e) => e.relationship === "alt").map(one);
@@ -144,15 +148,21 @@ export async function buildTracking({ db, account, week, season }) {
             ? { from: e.trophies.from, to: e.trophies.to }
             : null,
         moments: momentsFor(e.subject_tag),
+        progress: progressOf(e),
         ...(cards.get(e.subject_tag) ?? {}),
       };
     })
     .sort((a, b) => (b.battles ?? 0) - (a.battles ?? 0));
-  const clanRows = clans.map((e) => ({
-    tag: e.subject_tag,
-    name: e.name ?? e.subject_tag,
-    line: e.summary ? e.summary.replace(/^[^:]+:\s*/, "") : "",
-  }));
+  const clanRows = clans.map((e) => {
+    const parts = clanSummaryParts(e, tz);
+    return {
+      tag: e.subject_tag,
+      name: e.name ?? e.subject_tag,
+      headline: parts[0] ?? "",
+      bullets: parts.slice(1, 1 + CLAN_BULLETS),
+      more: Math.max(0, parts.length - 1 - CLAN_BULLETS),
+    };
+  });
   return {
     week: { label: week.label, key: week.key, season },
     primary: primary
