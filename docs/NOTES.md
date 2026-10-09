@@ -1151,3 +1151,11 @@ improving?" with numbers only.
 - **Open.** Path of Legends' `trophyChange` is rating in league 7 and
   league trophies below it, so "Net trophies" there mixes the two units
   across a promotion, as the season tile already does.
+- **Live** 2026-10-08 21:51 CDT (deploy of `a8ebbc9b`, no acceptance
+  family: no tool output changed). Read back with reads only: the live
+  Ladder chunk carries both panels, and `/updates` and the docs anchors
+  serve. No own player of Jamie's has 10 battles in a mode this game
+  week yet, so his strip is hidden for now; a followed player's Path of
+  Legends reads 75% (12) beside 73% (15), three-crown 50% beside 27%,
+  +270 beside +330. thingles' Season 136 Trophy Road splits at the
+  first Hog Rider control battle: 88.5% (87) before, 92% (25) since.
