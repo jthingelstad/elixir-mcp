@@ -1231,3 +1231,27 @@ them left the wording to this entry):
   2026-10-08 open-questions review ("5. agree"), as a reader's choice,
   never the default, with a battle floor and the level gap and no label.
 
+## 2026-10-09 — one dashboard, no new metrics
+
+Jamie's call: "Approved: add the elixir-mcp CloudWatch dashboard to
+infra/template.yaml and amend the no-dashboard decision". The 2026-09-24
+rule had two halves. The cost half stands: a custom metric still exists
+only to back an alarm. The other half, no dashboard because no one opens
+the console, is lifted.
+
+`OpsDashboard` (`elixir-mcp`) is stack-owned and reads, top to bottom:
+the alarm states (all but the conditional certificate alarm), the three
+doors (requests, errors with the handled-failure count, p95 against each
+alarm line), CloudFront, recording (scheduler ticks, jobs, the ledger
+gauges, submit ingest errors), the database (CPU with the credit
+balance, which has no alarm on the micro; memory, connections, EBS byte
+balance, IOPS, storage) and mail. Tool detail comes from Logs Insights
+over the MCP door's `tool`/`status`/`ms` line, and fleet pace from the
+scheduler's EMF properties (`FetchesHour`, `QueuedJobs`,
+`CollectorsActive`), so neither needs a metric.
+
+It is the account's third custom dashboard (Drop and YVN are the
+others) and references 33 metrics; the free tier is three dashboards of
+50. Whether the alarm widget counts toward the 50 is unconfirmed; if it
+does, the dashboard is $3 a month. A day's MCP log query scans about
+3 MB.

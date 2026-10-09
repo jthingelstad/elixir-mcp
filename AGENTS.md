@@ -149,8 +149,8 @@ Skills and tests cite these by number; keep the numbering.
 - One stack, `infra/template.yaml`; every parameter is classed in
   `infra/scripts/parameters.mjs`. An unclassed one resets to its default.
 - Alarms publish to SNS `elixir-mcp-alarms` for the sysadmin
-  `projects-ops-alerts` queue; no email. No dashboard: a custom metric
-  exists only behind an alarm.
+  `projects-ops-alerts` queue; no email. A custom metric exists only
+  behind an alarm; the one dashboard, `elixir-mcp`, adds none.
 - `deploy.mjs` tags the stack (`awsApplication`, `Application=Elixir`,
   `Project=elixir-mcp`, `Environment`, `ManagedBy`, `Repository`);
   CloudFormation propagates them.

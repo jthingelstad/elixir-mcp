@@ -2608,6 +2608,150 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
+  # The one dashboard (Jamie, 2026-10-09): standard AWS metrics and the
+  # custom metrics that already back alarms, never a metric of its own.
+  # It is the third custom dashboard in the account (Drop and YVN are the
+  # others), so it is free while it references at most 50 metrics; keep
+  # the graphs under that. Per-tool and fleet detail comes from Logs
+  # Insights over the log lines the doors and scheduler already write.
+  # The certificate alarm is conditional (HasSiteCert) and left off.
+  OpsDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: elixir-mcp
+      DashboardBody: !Sub |
+        {
+          "start": "-PT24H",
+          "periodOverride": "inherit",
+          "widgets": [
+            { "type": "text", "x": 0, "y": 0, "width": 24, "height": 2,
+              "properties": { "markdown": "## Elixir\nTop to bottom: alarms, the doors people and agents use, recording, the database, mail, then tools read from the MCP log. Alarms page the projects-ops-alerts queue; this page is for looking. It adds no metrics: a custom metric still exists only to back an alarm (docs/DECISIONS.md)." } },
+
+            { "type": "alarm", "x": 0, "y": 2, "width": 24, "height": 4,
+              "properties": { "title": "Alarms", "sortBy": "stateUpdatedTimestamp", "alarms": [
+                "${McpErrorsAlarm.Arn}", "${McpLatencyAlarm.Arn}", "${HandledFailureAlarm.Arn}",
+                "${WebApiErrorsAlarm.Arn}", "${WebApiLatencyAlarm.Arn}",
+                "${CollectorErrorsAlarm.Arn}", "${CollectorLatencyAlarm.Arn}", "${SubmitIngestErrorAlarm.Arn}",
+                "${SchedulerErrorsAlarm.Arn}", "${SchedulerMissingAlarm.Arn}", "${JobsErrorsAlarm.Arn}",
+                "${LedgerOldestJobAlarm.Arn}", "${LedgerDeadJobsAlarm.Arn}",
+                "${WarUnresolvedAlarm.Arn}", "${SeasonMismatchAlarm.Arn}", "${MigrateDurationAlarm.Arn}",
+                "${DbCpuAlarm.Arn}", "${DbFreeableMemoryAlarm.Arn}", "${DbStorageAlarm.Arn}",
+                "${DbConnectionsAlarm.Arn}", "${DbEbsByteBalanceAlarm.Arn}",
+                "${DlqAlarmEmail.Arn}", "${EmailComposeFailedAlarm.Arn}"
+              ] } },
+
+            { "type": "metric", "x": 0, "y": 6, "width": 8, "height": 6,
+              "properties": { "title": "Doors: requests", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300, "stat": "Sum",
+                "metrics": [
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${McpFunction}", { "label": "mcp" }],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${WebApiFunction}", { "label": "web-api" }],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${CollectorFunction}", { "label": "collector" }]
+                ] } },
+            { "type": "metric", "x": 8, "y": 6, "width": 8, "height": 6,
+              "properties": { "title": "Doors: errors and handled failures", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300, "stat": "Sum",
+                "metrics": [
+                  ["AWS/Lambda", "Errors", "FunctionName", "${McpFunction}", { "label": "mcp errors" }],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${WebApiFunction}", { "label": "web-api errors" }],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${CollectorFunction}", { "label": "collector errors" }],
+                  ["ElixirMCP/Door", "HandledFailure", { "label": "handled failures (mcp + web-api)" }]
+                ] } },
+            { "type": "metric", "x": 16, "y": 6, "width": 8, "height": 6,
+              "properties": { "title": "Doors: p95 duration (ms)", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300, "stat": "p95",
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${McpFunction}", { "label": "mcp (alarm 8 s)" }],
+                  ["AWS/Lambda", "Duration", "FunctionName", "${WebApiFunction}", { "label": "web-api (alarm 15 s)" }],
+                  ["AWS/Lambda", "Duration", "FunctionName", "${CollectorFunction}", { "label": "collector (alarm 5 s)" }]
+                ],
+                "annotations": { "horizontal": [
+                  { "label": "collector alarm", "value": 5000 },
+                  { "label": "mcp alarm", "value": 8000 },
+                  { "label": "web-api alarm", "value": 15000 }
+                ] } } },
+
+            { "type": "metric", "x": 0, "y": 12, "width": 8, "height": 6,
+              "properties": { "title": "CloudFront: requests and error rates", "region": "us-east-1", "view": "timeSeries", "stacked": false, "period": 300,
+                "metrics": [
+                  ["AWS/CloudFront", "Requests", "DistributionId", "${SiteDistribution}", "Region", "Global", { "stat": "Sum", "label": "requests" }],
+                  ["AWS/CloudFront", "5xxErrorRate", "DistributionId", "${SiteDistribution}", "Region", "Global", { "stat": "Average", "label": "5xx %", "yAxis": "right" }],
+                  ["AWS/CloudFront", "4xxErrorRate", "DistributionId", "${SiteDistribution}", "Region", "Global", { "stat": "Average", "label": "4xx %", "yAxis": "right" }]
+                ] } },
+            { "type": "log", "x": 8, "y": 12, "width": 16, "height": 6,
+              "properties": { "title": "Tools: calls, p95 and max ms (MCP log)", "region": "${AWS::Region}", "view": "table",
+                "query": "SOURCE '${McpLogGroup}' | filter rpc = 'tools/call' | stats count(*) as calls, pct(ms, 95) as p95_ms, max(ms) as max_ms by tool | sort calls desc | limit 25" } },
+
+            { "type": "metric", "x": 0, "y": 18, "width": 8, "height": 6,
+              "properties": { "title": "Recording: scheduler ticks and jobs runs", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300, "stat": "Sum",
+                "metrics": [
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${SchedulerFunction}", { "label": "scheduler ticks" }],
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${JobsFunction}", { "label": "jobs runs" }],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${JobsFunction}", { "label": "jobs errors" }]
+                ] } },
+            { "type": "metric", "x": 8, "y": 18, "width": 8, "height": 6,
+              "properties": { "title": "Recording: job ledger and submits", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 900,
+                "metrics": [
+                  ["ElixirMCP/Ledger", "OldestQueuedAgeSeconds", { "stat": "Maximum", "label": "oldest queued job (s)" }],
+                  ["ElixirMCP/Ledger", "DeadJobs", { "stat": "Maximum", "label": "dead jobs", "yAxis": "right" }],
+                  ["ElixirMCP/Collector", "SubmitIngestError", { "stat": "Sum", "label": "submit ingest errors", "yAxis": "right" }]
+                ],
+                "annotations": { "horizontal": [ { "label": "oldest-job alarm", "value": 1800 } ] } } },
+            { "type": "log", "x": 16, "y": 18, "width": 8, "height": 6,
+              "properties": { "title": "Recording: fleet pace (scheduler log)", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false,
+                "query": "SOURCE '${SchedulerLogGroup}' | filter ispresent(OldestQueuedAgeSeconds) | stats max(FetchesHour) as fetches_hour, max(FetchErrorsHour) as fetch_errors_hour, max(QueuedJobs) as queued, max(CollectorsActive) as collectors by bin(30m)" } },
+
+            { "type": "metric", "x": 0, "y": 24, "width": 4, "height": 6,
+              "properties": { "title": "DB: CPU % and credits", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300,
+                "metrics": [
+                  ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", "${Database}", { "stat": "Average", "label": "CPU %" }],
+                  ["AWS/RDS", "CPUCreditBalance", "DBInstanceIdentifier", "${Database}", { "stat": "Minimum", "label": "credits", "yAxis": "right" }]
+                ],
+                "annotations": { "horizontal": [ { "label": "alarm", "value": 85 } ] } } },
+            { "type": "metric", "x": 4, "y": 24, "width": 4, "height": 6,
+              "properties": { "title": "DB: freeable memory", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300,
+                "metrics": [ ["AWS/RDS", "FreeableMemory", "DBInstanceIdentifier", "${Database}", { "stat": "Minimum", "label": "freeable" }] ],
+                "annotations": { "horizontal": [ { "label": "alarm", "value": 67108864 } ] } } },
+            { "type": "metric", "x": 8, "y": 24, "width": 4, "height": 6,
+              "properties": { "title": "DB: connections", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300,
+                "metrics": [ ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "${Database}", { "stat": "Maximum", "label": "connections" }] ],
+                "annotations": { "horizontal": [ { "label": "alarm", "value": 60 } ] } } },
+            { "type": "metric", "x": 12, "y": 24, "width": 4, "height": 6,
+              "properties": { "title": "DB: EBS byte balance %", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300,
+                "metrics": [ ["AWS/RDS", "EBSByteBalance%", "DBInstanceIdentifier", "${Database}", { "stat": "Minimum", "label": "byte balance" }] ],
+                "annotations": { "horizontal": [ { "label": "alarm", "value": 25 } ] } } },
+            { "type": "metric", "x": 16, "y": 24, "width": 4, "height": 6,
+              "properties": { "title": "DB: read and write IOPS", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300, "stat": "Average",
+                "metrics": [
+                  ["AWS/RDS", "ReadIOPS", "DBInstanceIdentifier", "${Database}", { "label": "read" }],
+                  ["AWS/RDS", "WriteIOPS", "DBInstanceIdentifier", "${Database}", { "label": "write" }]
+                ] } },
+            { "type": "metric", "x": 20, "y": 24, "width": 4, "height": 6,
+              "properties": { "title": "DB: free storage", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 900,
+                "metrics": [ ["AWS/RDS", "FreeStorageSpace", "DBInstanceIdentifier", "${Database}", { "stat": "Minimum", "label": "free" }] ],
+                "annotations": { "horizontal": [ { "label": "alarm", "value": 2147483648 } ] } } },
+
+            { "type": "metric", "x": 0, "y": 30, "width": 12, "height": 6,
+              "properties": { "title": "Mail: queue and dead letters", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 300,
+                "metrics": [
+                  ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "${EmailQueue.QueueName}", { "stat": "Maximum", "label": "queued" }],
+                  ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "${EmailDlq.QueueName}", { "stat": "Maximum", "label": "dead letters" }],
+                  ["AWS/SQS", "ApproximateAgeOfOldestMessage", "QueueName", "${EmailQueue.QueueName}", { "stat": "Maximum", "label": "oldest (s)", "yAxis": "right" }]
+                ] } },
+            { "type": "metric", "x": 12, "y": 30, "width": 12, "height": 6,
+              "properties": { "title": "Mail: relay runs, errors and failed composes", "region": "${AWS::Region}", "view": "timeSeries", "stacked": false, "period": 3600, "stat": "Sum",
+                "metrics": [
+                  ["AWS/Lambda", "Invocations", "FunctionName", "${EmailRelayFunction}", { "label": "relay runs" }],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${EmailRelayFunction}", { "label": "relay errors", "yAxis": "right" }],
+                  ["ElixirMCP/Email", "ComposeFailed", { "label": "failed composes", "yAxis": "right" }]
+                ] } },
+
+            { "type": "log", "x": 0, "y": 36, "width": 12, "height": 7,
+              "properties": { "title": "Tools: refused or failed calls by status (MCP log)", "region": "${AWS::Region}", "view": "table",
+                "query": "SOURCE '${McpLogGroup}' | filter rpc = 'tools/call' and status >= 400 | stats count(*) as calls by tool, status | sort calls desc | limit 25" } },
+            { "type": "log", "x": 12, "y": 36, "width": 12, "height": 7,
+              "properties": { "title": "Tools: slowest calls (open request_id at /console/account/activity/c/...)", "region": "${AWS::Region}", "view": "table",
+                "query": "SOURCE '${McpLogGroup}' | filter rpc = 'tools/call' | sort ms desc | fields @timestamp, tool, ms, status, request_id | limit 20" } }
+          ]
+        }
+
 Outputs:
   DatabaseEndpoint:
     Value: !GetAtt Database.Endpoint.Address
