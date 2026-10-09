@@ -272,8 +272,12 @@ sign-in code, welcome and operator notices included:
 - **Images:** https PNGs on elixir.poapkings.com only, never a data URI
   and never Supercell's CDN. Every content image carries alt text, which
   is what the text part prints. `packages/mail/src/cards.mjs`'s
-  `cardAsset(id, form, displayWidth)` picks the smallest mirrored file at
-  least twice the drawn width; `deckStrip` draws a deck as one row of
+  `cardAsset(id, form)` names the mirror's one file for the card and
+  form, a byte-identical copy of Supercell's icon (never resized or
+  altered; the image's width and height size it), and an Evo or Hero the
+  mirror lacks draws the base card, decided at compose time
+  (`resolveCardArt`, from the jobs Lambda's look at the site bucket);
+  `deckStrip` draws a deck as one row of
   eight in fixed-share cells, the tower troop as text under it. Every
   image has its width and height set.
 - **Footer:** why the mail came and when the next one does, in the

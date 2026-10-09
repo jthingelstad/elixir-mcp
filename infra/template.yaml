@@ -560,6 +560,15 @@ Resources:
                 Action: s3:PutObject
                 Resource:
                   - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
+              # Card art in mail (2026-10-08): whether the site's
+              # mirror holds an Evo or Hero image, so a form Supercell
+              # has not published yet draws the base card. Read only
+              # (a HEAD is s3:GetObject); the site is published by the
+              # deploy, never here.
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource:
+                  - !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/assets/cards/*
 
   # The email outbox connects VPC composers to the non-VPC relay.
   OutboxBucket:
@@ -1085,6 +1094,8 @@ Resources:
           # retired one-statement `pop` was 228 s on 2026-09-19).
           PGOPTIONS: "-c statement_timeout=300s -c idle_in_transaction_session_timeout=60s"
           ARCHIVE_BUCKET: !Ref ArchiveBucket
+          # The card-art mirror mail asks about (cardArtHeld).
+          SITE_BUCKET: !Sub elixir-mcp-site-${AWS::AccountId}
           # Product email (docs/EMAIL.md): the queue the relay drains, the
           # secret the one-click unsubscribe token is signed with (the same
           # one the web API verifies it with).

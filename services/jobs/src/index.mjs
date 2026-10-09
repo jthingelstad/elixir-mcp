@@ -273,6 +273,28 @@ async function mailArchiveStore() {
   return (mailArchive = { s3: new S3Client({}), bucket });
 }
 
+/** Whether the site bucket's card-art mirror holds a file (deliver's
+ *  cardArt): an Evo or Hero whose image Supercell has not published yet
+ *  (about two weeks after the API lists it) draws the base card in
+ *  mail, which cannot fall back the way a page does. One HEAD per path
+ *  per invocation; any error reads as "not held", so a mail draws the
+ *  base card rather than a broken image. Null without a bucket. */
+async function cardArtHeld() {
+  const bucket = process.env.SITE_BUCKET;
+  if (!bucket) return null;
+  const { S3Client, HeadObjectCommand } = await import("@aws-sdk/client-s3");
+  const s3 = new S3Client({});
+  return (p) =>
+    s3
+      .send(
+        new HeadObjectCommand({ Bucket: bucket, Key: p.replace(/^\//, "") }),
+      )
+      .then(
+        () => true,
+        () => false,
+      );
+}
+
 /** What a sent mail's unsubscribe link is signed with (packages/mail
  *  unsubscribe.mjs): its own key once the app secret carries one, else
  *  the session secret, as every link before it was. */
@@ -350,6 +372,7 @@ export async function handler(event, context) {
       enqueue: enqueueEmail,
       secret: unsubscribeKeys(),
       archive: await mailArchiveStore(),
+      cardArt: await cardArtHeld(),
       remainingMs:
         typeof context?.getRemainingTimeInMillis === "function"
           ? () => context.getRemainingTimeInMillis()

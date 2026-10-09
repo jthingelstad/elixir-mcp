@@ -79,6 +79,9 @@ export async function runEmail({
   accountEmail = null,
   force = false,
   archive = null,
+  // (path) => whether the card-art mirror holds that file (deliver's
+  // cardArt); null draws every card in its own form.
+  cardArt = null,
   // () => ms left in this invocation (the Lambda context's
   // getRemainingTimeInMillis); null runs to the end.
   remainingMs = null,
@@ -141,6 +144,7 @@ export async function runEmail({
           archive,
           force,
           now,
+          cardArt,
         });
         if (r.sent) result.sent += 1;
         else if (r.reason === "already_sent") result.already_sent += 1;
