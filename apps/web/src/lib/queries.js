@@ -59,6 +59,7 @@ export const keys = {
   status: ["status"],
   efficiency: ["efficiency"],
   stats: ["stats"],
+  cards: ["cards"],
 };
 
 const payload = (call) => () => call().then(unwrap);
@@ -337,6 +338,17 @@ export const usePublicEfficiency = () =>
 
 export const usePublicStats = () =>
   useQuery({ queryKey: keys.stats, queryFn: payload(api.publicStats) });
+
+/** Public: the card catalog, read once a session for each card's art
+ *  (2026-10-08, Jamie: "Card art should be in the api response for
+ *  cards"). It changes when Supercell adds a card or a form, so an hour
+ *  is fresh enough; the edge keeps it as long. */
+export const useCardCatalog = () =>
+  useQuery({
+    queryKey: keys.cards,
+    queryFn: payload(api.publicCards),
+    staleTime: 60 * 60 * 1000,
+  });
 
 /** One tool's answer through the explore bridge, as Ladder reads it:
  *  the body, or a thrown error carrying the tool's code when the tool

@@ -1,7 +1,9 @@
 import { test, expect, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
   CardArt,
+  CardArtProvider,
+  type CardArtSource,
   cardArtSrc,
   cardLabel,
   DeckGrid,
@@ -118,4 +120,102 @@ test("a missing cost is never guessed", () => {
     cycle4: null,
   });
   expect(deckElixir([], () => 3)).toEqual({ average: null, cycle4: null });
+});
+
+/**
+ * The art the catalog names (2026-10-08: "Card art should be in the api
+ * response for cards"). A journey found Hero Electro Wizard and Evo
+ * Electro Giant as text on a top player's Ladder: the tile had guessed
+ * file names the mirror had never written.
+ */
+const ORIGIN = "https://elixir.poapkings.com/assets/cards";
+const catalog: CardArtSource = {
+  status: "ready",
+  art: (id) =>
+    ({
+      26000042: {
+        base: `${ORIGIN}/26000042-285.png`,
+        hero: `${ORIGIN}/26000042_hero-285.png`,
+      },
+      26000085: {
+        base: `${ORIGIN}/26000085-285.png`,
+        evolution: `${ORIGIN}/26000085_evo-285.png`,
+      },
+    })[id] ?? null,
+};
+const srcOf = (name: string) =>
+  screen.getByRole("img", { name }).querySelector("img")?.getAttribute("src");
+
+test("a tile draws the art the catalog names, at the width it needs", () => {
+  render(
+    <CardArtProvider value={catalog}>
+      <CardArt card={{ id: 26000042, name: "Electro Wizard", form: "hero" }} />
+      <CardArt
+        card={{ id: 26000085, name: "Electro Giant", form: "evolution" }}
+        size={80}
+      />
+    </CardArtProvider>,
+  );
+  expect(srcOf("Hero Electro Wizard")).toBe(`${ORIGIN}/26000042_hero-128.png`);
+  expect(srcOf("Evo Electro Giant")).toBe(`${ORIGIN}/26000085_evo-192.png`);
+});
+
+test("a form the catalog has no art for draws the base card's", () => {
+  render(
+    <CardArtProvider value={catalog}>
+      <CardArt card={{ id: 26000085, name: "Electro Giant", form: "hero" }} />
+    </CardArtProvider>,
+  );
+  expect(srcOf("Hero Electro Giant")).toBe(`${ORIGIN}/26000085-128.png`);
+});
+
+test("art that fails steps down: the form, the base card, the name", () => {
+  render(
+    <CardArtProvider value={catalog}>
+      <CardArt card={{ id: 26000042, name: "Electro Wizard", form: "hero" }} />
+    </CardArtProvider>,
+  );
+  const tile = screen.getByRole("img", { name: "Hero Electro Wizard" });
+  fireEvent.error(tile.querySelector("img")!);
+  expect(tile.querySelector("img")?.getAttribute("src")).toBe(
+    `${ORIGIN}/26000042-128.png`,
+  );
+  expect(tile.querySelector(".card-art__form--hero")?.textContent).toBe("Hero");
+  fireEvent.error(tile.querySelector("img")!);
+  expect(tile.querySelector("img")).toBeNull();
+  expect(tile.querySelector(".card-art__blank")?.textContent).toBe(
+    "Electro Wizard",
+  );
+});
+
+test("a card the catalog lacks is its name; a loading catalog an empty frame", () => {
+  render(
+    <>
+      <CardArtProvider value={catalog}>
+        <CardArt card={{ id: 26000999, name: "Mirror" }} />
+      </CardArtProvider>
+      <CardArtProvider value={{ status: "loading", art: () => null }}>
+        <CardArt card={{ id: 26000042, name: "Electro Wizard" }} />
+      </CardArtProvider>
+    </>,
+  );
+  const mirror = screen.getByRole("img", { name: "Mirror" });
+  expect(mirror.querySelector(".card-art__blank")?.textContent).toBe("Mirror");
+  const loading = screen.getByRole("img", { name: "Electro Wizard" });
+  expect(loading.querySelector("img")).toBeNull();
+  expect(loading.querySelector(".card-art__blank")).toBeNull();
+});
+
+test("without a catalog, the mirror's names, the form then the base", () => {
+  render(
+    <CardArt card={{ id: 26000042, name: "Electro Wizard", form: "hero" }} />,
+  );
+  const tile = screen.getByRole("img", { name: "Hero Electro Wizard" });
+  expect(tile.querySelector("img")?.getAttribute("src")).toBe(
+    "/assets/cards/26000042_hero-128.png",
+  );
+  fireEvent.error(tile.querySelector("img")!);
+  expect(tile.querySelector("img")?.getAttribute("src")).toBe(
+    "/assets/cards/26000042-128.png",
+  );
 });

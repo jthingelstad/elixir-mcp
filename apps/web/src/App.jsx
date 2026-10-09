@@ -48,6 +48,7 @@ import {
 import { createClanRoutes } from "@elixir-mcp/clan-web/routes";
 import { api } from "./api.js";
 import { useAgentMe } from "./lib/queries.js";
+import { CardArtSource } from "./components/CardArtSource.jsx";
 import { CONSOLE, appPath } from "./lib/console.js";
 import {
   LADDER,
@@ -1710,7 +1711,9 @@ export function App() {
   return (
     <SignInProgress.Provider value={signInProgress}>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <CardArtSource>
+          <RouterProvider router={router} />
+        </CardArtSource>
       </QueryClientProvider>
     </SignInProgress.Provider>
   );

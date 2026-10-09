@@ -1,9 +1,16 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Link } from "./Link.tsx";
 
 /**
- * Cards as the game draws them (design canvas, 2026-10-01): the art
- * Elixir mirrors at /assets/cards/, a ribbon for an Evo or Hero form,
+ * Cards as the game draws them (design canvas, 2026-10-01): the art the
+ * card catalog names (2026-10-08: "Card art should be in the api
+ * response for cards"), a ribbon for an Evo or Hero form,
  * and the level under the card. One tile for every surface that shows
  * a card or a deck — the battle page, Ladder, Clan, the console — so a
  * deck reads the same wherever it is. Levels are the in-game 1-16
@@ -21,7 +28,9 @@ export interface DeckCard {
   level?: number | null;
 }
 
-/** The mirrored widths (infra/scripts/mirror-card-art.mjs). */
+/** The mirrored widths (infra/scripts/mirror-card-art.mjs; contracts
+ *  CARD_ART_WIDTHS): a catalog art URL names the 285 copy, and each
+ *  narrower one is the same address with its width. */
 const WIDTHS = [128, 192, 285] as const;
 const SUFFIX: Record<CardForm, string> = {
   base: "",
@@ -33,6 +42,65 @@ const FORM_LABEL: Partial<Record<CardForm, string>> = {
   hero: "Hero",
 };
 
+/** A card's art by form, as the catalog serves it (`art`). */
+export type CardArtMap = Partial<Record<CardForm, string>>;
+
+/** Where tiles find art: the app reads the catalog once and provides
+ *  it. `loading` draws empty frames; `unavailable` (the catalog could
+ *  not be read) falls back to the mirror's own names. */
+export interface CardArtSource {
+  status: "loading" | "ready" | "unavailable";
+  art: (id: number) => CardArtMap | null | undefined;
+}
+
+const CardArtContext = createContext<CardArtSource | null>(null);
+
+/** Supplies the catalog's art to every tile below it. */
+export function CardArtProvider({
+  value,
+  children,
+}: {
+  value: CardArtSource;
+  children: ReactNode;
+}) {
+  return (
+    <CardArtContext.Provider value={value}>{children}</CardArtContext.Provider>
+  );
+}
+
+const widthFor = (size: number) =>
+  WIDTHS.find((w) => w >= size * 2) ?? WIDTHS[WIDTHS.length - 1];
+
+/** A catalog art URL at the smallest width that is sharp at `size` CSS
+ *  pixels on a 2x screen. */
+export const artAt = (url: string, size = 64): string =>
+  url.replace(/-\d+\.png$/, `-${widthFor(size)}.png`);
+
+/** The images a tile tries, in order: the played form's art, then the
+ *  base card's; past the last, the card's name. Null while the catalog
+ *  is still loading. */
+export function artCandidates(
+  card: Pick<DeckCard, "id" | "form">,
+  size: number,
+  source: CardArtSource | null,
+): string[] | null {
+  const form = card.form ?? "base";
+  if (source?.status === "loading") return null;
+  if (source?.status === "ready") {
+    const art = source.art(card.id);
+    return [...new Set([art?.[form], art?.base].filter(Boolean))].map((u) =>
+      artAt(u as string, size),
+    );
+  }
+  // No catalog: the mirror's own names, the form then the base card.
+  return [
+    ...new Set([
+      cardArtSrc(card.id, form, size),
+      cardArtSrc(card.id, "base", size),
+    ]),
+  ];
+}
+
 /** Tower troops (159xxxxxx) have no mirrored art. */
 export const isTowerTroop = (id: number) => id >= 159000000 && id < 160000000;
 
@@ -43,9 +111,7 @@ export function cardArtSrc(
   form: CardForm | null = "base",
   size = 64,
 ): string {
-  const want = size * 2;
-  const width = WIDTHS.find((w) => w >= want) ?? WIDTHS[WIDTHS.length - 1];
-  return `/assets/cards/${id}${SUFFIX[form ?? "base"]}-${width}.png`;
+  return `/assets/cards/${id}${SUFFIX[form ?? "base"]}-${widthFor(size)}.png`;
 }
 
 /** The label a person reads for a card: "Evo Royal Hogs", "Hero Knight". */
@@ -72,30 +138,37 @@ export function CardArt({
   showLevel?: boolean;
 }) {
   // A card Elixir has no art for (Mirror, a card newer than the mirror)
-  // is its name in the frame, never a broken image.
-  const [missing, setMissing] = useState(false);
+  // is its name in the frame, never a broken image; a form the mirror
+  // lacks draws the base card under its ribbon first.
+  const source = useContext(CardArtContext);
+  const [failed, setFailed] = useState<string[]>([]);
   const form = card.form ?? "base";
   const label = cardLabel(card);
   const alt = card.level ? `${label}, level ${card.level}` : label;
   const style = { "--card-w": `${size}px` } as CSSProperties;
   const ribbon = FORM_LABEL[form];
+  const candidates = isTowerTroop(card.id)
+    ? []
+    : artCandidates(card, size, source);
+  const src = candidates?.find((u) => !failed.includes(u));
   const body: ReactNode = (
     <>
       <span className="card-art__frame">
-        {isTowerTroop(card.id) || missing ? (
+        {candidates === null ? null : !src ? (
           <span className="card-art__blank" aria-hidden="true">
             {card.name}
           </span>
         ) : (
           <img
+            key={src}
             className="card-art__img"
-            src={cardArtSrc(card.id, form, size)}
+            src={src}
             alt=""
             width={size}
             height={Math.round((size * 420) / 285)}
             loading="lazy"
             decoding="async"
-            onError={() => setMissing(true)}
+            onError={() => setFailed((f) => [...f, src])}
           />
         )}
         {ribbon ? (
