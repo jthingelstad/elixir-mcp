@@ -3,12 +3,25 @@
  * faced in one mode this season, as battles_cards returns them (mine and
  * opponent), and the opponents behind them as battles_opponents counts
  * them. A form is its own card here, as it is in the tool: an Evo Witch
- * row and a Witch row are two records. Nothing here adds rows up, ranks
- * a card or names a nemesis.
+ * row and a Witch row are two records. Nothing here adds rows up, rates a
+ * card or labels one; the order is the tool's, in the one the reader
+ * chose.
  */
 import { cardLabel, isTowerTroop } from "@elixir-mcp/ui";
 
-/** One row per card and form, in the tool's order (most battles first). */
+/** The orders the reader can choose for what they faced, each the tools'
+ *  own `sort`: most battles first (the default, no `?order=`), or most
+ *  battles lost first. A choice, never the page's default. */
+export const ORDERS = [
+  { key: "battles", label: "Most faced" },
+  { key: "losses", label: "Most losses" },
+];
+
+/** The order an address asks for: `?order=losses`, else the default. */
+export const pickOrder = (param) => (param === "losses" ? "losses" : "battles");
+
+/** One row per card and form, in the tool's order (most battles first,
+ *  or most losses first when that was asked). */
 export function cardRows(body) {
   return (body?.cards ?? []).map((c) => {
     const card = { id: c.id, name: c.name, form: c.form ?? "base" };
@@ -23,6 +36,10 @@ export function cardRows(body) {
       wins: Number(c.wins ?? 0),
       losses: Number(c.losses ?? 0),
       rate: c.win_rate ?? null,
+      // Your deck's average level minus the other side's in these
+      // battles, as the tool states it (display scale, stamped at
+      // ingest); null where the record has no levels.
+      gap: c.mean_level_gap ?? null,
     };
   });
 }

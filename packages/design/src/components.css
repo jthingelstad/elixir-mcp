@@ -6097,6 +6097,26 @@ button.ladder-player__head:hover {
   font-weight: 600;
 }
 
+/* Cards: how what you faced is ordered, a choice beside its floors. */
+.ladder-order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 4px 0 12px;
+}
+.ladder-order__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+.ladder-order__hint {
+  flex: 1 1 16rem;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
 /* Which season the page reads, beside when the battle log was read. */
 .ladder-head__side {
   display: flex;
@@ -6674,6 +6694,10 @@ button.ladder-player__head:hover {
 }
 .ladder-opponents li {
   padding: 4px 0;
+}
+.ladder-opponents__gap {
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
 }
 .ladder-opponents__tag {
   font-family: var(--font-mono);

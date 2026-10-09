@@ -91,6 +91,7 @@ export function LadderPage() {
           player: search?.player,
           mode: search?.mode,
           season: key,
+          order: search?.order,
         }),
     },
     summary,

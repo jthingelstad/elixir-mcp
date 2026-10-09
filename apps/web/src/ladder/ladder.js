@@ -72,15 +72,17 @@ export function ladderTitle(path, site = "Elixir") {
 }
 
 /** A Ladder address: the page, then the player (no hash, as every tag
- *  in a path or query travels), the mode and the season. Omitted params
- *  stay off; no season is the current one (or the last one with battles,
- *  pickSeason). */
-export function ladderHref(slug, { player, mode, season } = {}) {
+ *  in a path or query travels), the mode, the season and, on Cards, the
+ *  order of what you faced. Omitted params stay off; no season is the
+ *  current one (or the last one with battles, pickSeason), and no order
+ *  is the tools' own (most battles first). */
+export function ladderHref(slug, { player, mode, season, order } = {}) {
   const path = !slug || slug === "season" ? LADDER : `${LADDER}/${slug}`;
   const q = new URLSearchParams();
   if (player) q.set("player", tagPath(player));
   if (mode) q.set("mode", mode);
   if (season != null && season !== "") q.set("season", String(season));
+  if (slug === "cards" && order === "losses") q.set("order", order);
   const qs = q.toString();
   return qs ? `${path}?${qs}` : path;
 }

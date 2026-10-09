@@ -648,9 +648,17 @@ function battlesDecks(args: Record<string, unknown>, empty = false) {
 
 /* Cards: battles_cards on Trophy Road, yours and theirs (live answers,
    2026-10-02, contract 9.18.1), and battles_opponents' repeats. The
-   repeat opponent is invented: no real player's tag in a fixture. */
-type CardRow = [id: number, name: string, form: string, b: number, w: number];
-const cardRow = ([id, name, form, battles, wins]: CardRow) => ({
+   repeat opponent is invented: no real player's tag in a fixture. A
+   row's level gap is 0.6 unless it names one (null: no levels). */
+type CardRow = [
+  id: number,
+  name: string,
+  form: string,
+  b: number,
+  w: number,
+  gap?: number | null,
+];
+const cardRow = ([id, name, form, battles, wins, gap = 0.6]: CardRow) => ({
   id,
   name,
   form,
@@ -659,7 +667,7 @@ const cardRow = ([id, name, form, battles, wins]: CardRow) => ({
   losses: battles - wins,
   win_rate: Math.round((wins / battles) * 1000) / 1000,
   modes: { ladder: battles },
-  mean_level_gap: 0.6,
+  mean_level_gap: gap,
 });
 const MY_CARDS: CardRow[] = [
   [26000018, "Mini P.E.K.K.A", "hero", 35, 12],
@@ -677,10 +685,10 @@ const MY_CARDS: CardRow[] = [
 ];
 const THEIR_CARDS: CardRow[] = [
   [26000007, "Witch", "evolution", 9, 1],
-  [28000010, "Graveyard", "base", 9, 2],
+  [28000010, "Graveyard", "base", 9, 2, -0.35],
   [28000000, "Fireball", "base", 8, 2],
   [28000001, "Arrows", "base", 7, 3],
-  [26000010, "Skeletons", "base", 6, 0],
+  [26000010, "Skeletons", "base", 6, 0, null],
   [26000030, "Ice Spirit", "base", 6, 1],
   [26000055, "Mega Knight", "evolution", 5, 1],
   [26000021, "Hog Rider", "base", 5, 2],
@@ -691,16 +699,24 @@ const THEIR_CARDS: CardRow[] = [
   [26000031, "Fire Spirit", "base", 4, 1],
   [26000006, "Balloon", "base", 4, 2],
 ];
+/** The tools' two orders (11.6.0): most battles first, as the lists
+ *  above are written, or most losses first, ties to the most battles. */
+type Counted = { battles: number; losses: number };
+const byLosses = <T extends Counted>(rows: T[]) =>
+  [...rows].sort((a, b) => b.losses - a.losses || b.battles - a.battles);
+
 function battlesCards(args: Record<string, unknown>) {
   const mode = String(args.mode ?? "ladder");
   const perspective = String(args.perspective ?? "mine");
-  const rows =
+  const sort = args.sort === "losses" ? "losses" : "battles";
+  const listed =
     mode === "ladder"
       ? (perspective === "opponent" ? THEIR_CARDS : MY_CARDS).map(cardRow)
       : [];
+  const rows = sort === "losses" ? byLosses(listed) : listed;
   return {
     player_tag: args.player_tag,
-    applied: { ...APPLIED, perspective, mode, min_battles: 3 },
+    applied: { ...APPLIED, perspective, mode, sort, min_battles: 3 },
     modes_in_window:
       mode === "ladder"
         ? { ladder: { battles: 35, mean_level_gap: 0.62 } }
@@ -715,7 +731,12 @@ function battlesOpponents(args: Record<string, unknown>) {
   const ladder = String(args.mode ?? "ladder") === "ladder";
   return {
     player_tag: args.player_tag,
-    applied: { ...APPLIED, mode: args.mode, min_battles: args.min_battles },
+    applied: {
+      ...APPLIED,
+      mode: args.mode,
+      min_battles: args.min_battles,
+      sort: args.sort ?? "battles",
+    },
     distinct_opponents: ladder ? 34 : 0,
     matching_opponents: ladder ? 1 : 0,
     opponents: ladder
@@ -728,6 +749,7 @@ function battlesOpponents(args: Record<string, unknown>) {
             wins: 1,
             losses: 1,
             draws: 0,
+            mean_level_gap: -0.5,
             first_seen: "2026-09-10T04:14:21.000Z",
             last_seen: "2026-09-27T03:55:51.000Z",
             modes: ["Ladder"],

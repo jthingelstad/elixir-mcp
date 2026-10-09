@@ -1001,3 +1001,40 @@ longer counted in Tuesday's Arena week (`progressOf` drops
 `legendary_badges`; stored issues still render the old field). Plain badge
 levels and card unlocks stay counted. MCP 11.5.2 and JSON API 3.1.0 are
 unchanged; the deploy needs no acceptance family (mail only).
+
+## 2026-10-08 — what you faced, most losses first, as a choice (MCP 11.6.0)
+
+**What.** Ladder ▸ Cards' opponent side (Across the table from you, and
+Opponents met again) gains an order the reader chooses: **Most faced**
+(the default, unchanged: most battles first) or **Most losses** (most
+battles lost first, then most battles). The choice is an address
+(`/ladder/cards?order=losses`); the mode tabs and the season switch keep
+it, other pages never carry it. Every card row and every repeat opponent
+shows its level gap, or a dash where the record has no levels. No row is
+labelled and no line advises.
+
+**MCP 11.6.0 (additive).** `battles_cards` takes `sort`
+(`battles` | `losses`, echoed in `applied.sort`); `battles_opponents`'
+`sort` also takes `losses`, and its rows gain `mean_level_gap`. The
+pages read the tools' order (rule "a number Ladder needs that no tool
+returns is a tool change"): a client re-sort of `battles_cards`' top 120
+by battles would not be the top 120 by losses. Neither tool is an
+`/api/v1` operation, so JSON API 3.1.0 is unchanged.
+
+- **The minimum.** A card row needs 3 battles (`battles_cards`' existing
+  floor, `applied.min_battles`); an opponent needs 2 meetings (the page
+  already read repeats only). Losses is a count, not a rate, ordered ties
+  to the most battles, so a single loss cannot lead the list; the page
+  states both floors beside the choice.
+- **The level gap** is the one already stamped at ingest
+  (`deck_avg_level - opp_deck_avg_level`, 0156), on the display scale
+  `displayLevel` converts to at the one seam; no new level arithmetic.
+  For `battles_opponents` it is the side mean, as on every other battle
+  tool, so a 2v2 row's gap includes both opponents; a duel has none.
+- **Wording.** "nemesis" and "a strength" left `battles_cards`'
+  declaration, its OPPONENT note, the pooled-modes note
+  (`controls.mjs`), the battles docs and `ladder-cards.js`.
+- **Acceptance.** `identities.mjs` gains
+  `battles_cards-battles_opponents-losses-order`: both orders hold the
+  same rows and counts, the floor holds, the losses order is losses then
+  battles descending, and every opponent row carries `mean_level_gap`.

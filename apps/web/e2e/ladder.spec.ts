@@ -930,6 +930,94 @@ test.describe("Ladder cards", () => {
     expect(reads.every((c) => c.args.season === "current")).toBe(true);
   });
 
+  test("most losses first is a choice: the default order stays, the address keeps it, and each row has its level gap", async ({
+    page,
+  }) => {
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder/cards");
+
+    // The default is the tools' own order, and says its floors.
+    const order = page.getByRole("navigation", {
+      name: "Order what you faced",
+    });
+    await expect(
+      order.getByRole("link", { name: "Most faced" }),
+    ).toHaveAttribute("aria-current", "true");
+    await expect(
+      order.getByRole("link", { name: "Most losses" }),
+    ).not.toHaveAttribute("aria-current", "true");
+    await expect(page.locator(".ladder-order")).toContainText(
+      "Most battles first. A card is listed from 3 battles, a player from 2.",
+    );
+    const theirs = page.locator(".ladder-cards").nth(1);
+    await expect(
+      theirs.getByRole("columnheader", { name: "Level gap" }),
+    ).toBeVisible();
+    const rows = theirs.locator("tbody tr");
+    await expect(rows.nth(0)).toContainText("Evo Witch");
+    await expect(rows.nth(0)).toContainText("+0.60");
+    await expect(rows.nth(1)).toContainText("Graveyard");
+    await expect(rows.nth(1)).toContainText("−0.35");
+    // A row whose battles carry no levels shows a dash, never a zero.
+    await expect(rows.nth(4)).toContainText("Skeletons");
+    await expect(rows.nth(4).locator("td").last()).toHaveText("—");
+    expect(
+      calls
+        .filter(
+          (c) => c.tool === "battles_cards" || c.tool === "battles_opponents",
+        )
+        .every((c) => c.args.sort === undefined),
+    ).toBe(true);
+
+    // Choosing most losses is going to its address, and the reads ask
+    // the tools for that order.
+    await order.getByRole("link", { name: "Most losses" }).click();
+    await expect(page).toHaveURL(/\/ladder\/cards\?.*order=losses/);
+    await expect(
+      order.getByRole("link", { name: "Most losses" }),
+    ).toHaveAttribute("aria-current", "true");
+    await expect(page.locator(".ladder-order")).toContainText(
+      "Most battles lost first, then most battles. A card is listed from 3 battles, a player from 2.",
+    );
+    await expect(rows.nth(0)).toContainText("Evo Witch");
+    await expect(rows.nth(1)).toContainText("Graveyard");
+    await expect(rows.nth(2)).toContainText("Fireball");
+    await expect(rows.nth(3)).toContainText("Skeletons");
+    await expect(page.locator(".panel").nth(1)).toContainText(
+      "most battles lost first",
+    );
+    const opp = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Opponents" }) });
+    await expect(opp).toContainText("One came back, most battles lost first:");
+    await expect(opp).toContainText("level gap −0.50");
+    // The mode tabs keep the order; Your cards does not take it.
+    await expect(
+      page
+        .getByRole("navigation", { name: "Mode" })
+        .getByRole("link", { name: "Path of Legends" }),
+    ).toHaveAttribute("href", /order=losses/);
+    const sorted = calls.filter((c) => c.args.sort === "losses");
+    expect(sorted.map((c) => [c.tool, c.args.perspective ?? null])).toEqual(
+      expect.arrayContaining([
+        ["battles_cards", "opponent"],
+        ["battles_opponents", null],
+      ]),
+    );
+    expect(
+      calls.some(
+        (c) =>
+          c.tool === "battles_cards" &&
+          c.args.perspective === "mine" &&
+          c.args.sort !== undefined,
+      ),
+    ).toBe(false);
+    // No label and no verdict on the page: the record, in an order.
+    await expect(page.locator("body")).not.toContainText(/nemesis/i);
+    await accessible(page, "ladder cards by losses");
+  });
+
   test("a mode with no battles says so", async ({ page }) => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
     await page.goto("/ladder/cards?mode=war");
