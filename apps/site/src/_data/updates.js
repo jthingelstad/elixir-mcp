@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "Card art comes with the card",
+    body: "Elixir's card answers now carry each card's art, one image per form the game lists (the card, its Evolution and its Hero), served from Elixir itself. Ladder, battle pages, the Console, card pages and share images draw the art the answer names: a card played as its Evolution or Hero shows that form's art, or the base card's art under the Evo or Hero ribbon when the game has not published that image yet, where it used to show the card's name as text (Hero Electro Wizard and Evo Electro Giant today). Every deploy now copies any new art. MCP 11.5.0; JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "A new account starts on your own clock",
     body: "A new account now starts on the time zone of the browser you sign up from, so the Console, Ladder and your emails tell time on your clock from the first visit instead of UTC. If you open the sign-in link on another device, the account still takes the zone of the browser that asked for it. Signing in never changes a zone you already have, and Profile changes it any time. Accounts made before today keep what they have; one with no zone still reads in UTC and is offered your browser's zone in one click. MCP 11.4.1 and JSON API 3.1.0 unchanged.",
   },

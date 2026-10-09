@@ -146,6 +146,7 @@ current rule, never as "was X, now Y".
 - **Activity year reads log coverage** — a rolled log never draws as zero.
 - **Adopt the ecosystem early** — React 19, TanStack and Tailwind v4 in the shared kit; kit gaps are fixed in the kit; no Radix before a real dialog; no PWA.
 - **Fonts are self-hosted** — no font CDN; the CSP names no third party.
+- **Card art is Elixir's mirror of the API's iconUrls** — card responses carry `art` by form on Elixir's origin (Jamie, 2026-10-08: "Card art should be in the api response for cards"); surfaces draw the played form, else the base card, else the name; no page, share image or mail hotlinks Supercell's CDN for card art; every deploy mirrors, seeded from the bucket so a prune never takes art.
 - **Docs ship with the change** — the tool reference is generated from the registry; a docs pointer must resolve before a tool names it.
 
 ## Email

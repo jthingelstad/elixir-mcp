@@ -627,3 +627,39 @@ Deployed 9319942d (#379) at 23:31Z (6:31 PM CT): migrations 207 applied,
   one in the top deck's mode, is SKIPPED; two modes without the note
   fail. Re-run alone against live with `--only`, both read SKIPPED. No
   deploy: a triage edit needs none.
+
+## 2026-10-08 — card art rides in card responses (MCP 11.5.0)
+
+Jamie: "Card art should be in the api response for cards." A top
+player's Ladder and battle page drew Hero Electro Wizard and Evo Electro
+Giant as text: the web built `<id>_hero-128.png` / `<id>_evo-*.png` from
+the played form and the mirror had no such file.
+
+- **Why the files were missing:** the mirror (`mirror-card-art.mjs`) was a
+  hand step, last run 2026-09-22. Run again today it still cannot write
+  them: Supercell's CDN answers 404 for exactly those two icons the
+  `/cards` catalog lists (Electro Wizard `heroMedium`, Electro Giant
+  `evolutionMedium`); the other 182 icon URLs answer 200. A form can be
+  listed before its art is published.
+- **What shipped:** `cardArt` in contracts maps a card's `iconUrls` to one
+  URL per form on Elixir's origin (285 wide; -128/-192 at the same
+  address). cards_card carries `card.art`; cards_catalog carries `art`
+  when ids or query narrow it (the whole catalog would add ~14,000
+  characters against the 48,000 cap); `/api/public/cards` and
+  `/api/public/cards/{id}` carry it. The kit's `CardArt` reads the
+  catalog's art through `CardArtProvider` (the web app wraps the router
+  in `CardArtSource`) and falls back form, then base, then the name, so
+  the two cards now draw base art under the Hero/Evo ribbon. Card pages
+  and the cards index do the same; the share image reads the base key
+  when the form's object is missing.
+- **Mirror, not hotlink (DECISIONS, Web):** no surface hotlinks Supercell
+  for card art. Every deploy runs the mirror before build-site, seeded
+  from the site bucket (`--seed-bucket`) so a worktree deploy uploads the
+  art and the 14-day asset prune never takes it; a mirror failure only
+  warns. The two missing forms are written by the first deploy after
+  Supercell publishes them.
+- **Left:** mail's `cardAsset` still names the played form's file and
+  cannot fall back in a mail client, so a mail showing Hero Electro
+  Wizard or Evo Electro Giant draws a broken image until Supercell
+  publishes them; collector avatars and Verify's card faces
+  (`icon_medium`) still hotlink Supercell; tower troops have no art.
