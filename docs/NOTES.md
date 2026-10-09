@@ -1104,6 +1104,15 @@ here: a `live: true` race read during the roll's 404 (no receipt, only a
 `collector_fetch_error`) stays `pending` and mints a new read each call
 past the cache window.
 
+**Deployed** 2026-10-09 02:36Z (21:36 CT on 10-08), e26d2fac, with
+11.6.0 and the Ladder Cards change: migrations ran 2 (0211, 0212),
+contract 11.6.1 live. Full acceptance: 825 cases, the two known failures
+only (gym 312.2, live participants 46 against 48 members with two not in
+the race roster; `elixir_timeline#docs`). Read back: `war_current` on the
+home clan answers its war day as before, with no matchmaking note. The
+matchmaking path itself is proved by the replay tests above; the first
+live roll it meets is Monday 2026-11-02.
+
 ## 2026-10-08 — form: this week beside the last four, and before and since a deck
 
 Ladder's season home and Tuesday's Arena mail now answer "am I
