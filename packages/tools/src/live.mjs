@@ -1,4 +1,5 @@
 import { isRetiredRecordingEndpoint } from "@elixir-mcp/contracts";
+import { RACE_MATCHMAKING } from "@elixir-mcp/ingest/admission";
 /**
  * The live lane, asynchronous (2026-09-11; review §9.2 / §10, Jamie:
  * "async live_fetch would be really smart").
@@ -29,6 +30,12 @@ import { isRetiredRecordingEndpoint } from "@elixir-mcp/contracts";
  * the cache window answers it, a recorded one included. A recording read
  * never counts a fetch-only result as fresh (the record did not move),
  * and turns a fetch-only open job into a recording one.
+ *
+ * A race read that found the race in matchmaking (RACE_MATCHMAKING: the
+ * minute or two after a season roll when the race exists without a
+ * clan) is a fresh answer of its own, `reason: "matchmaking"`: no race
+ * yet. It is not a rejection, and asking again inside the cache window
+ * answers the same without minting another fetch.
  */
 
 import {
@@ -44,6 +51,15 @@ const MAX_AGE_S = {
   riverracelog: 120,
 };
 const DEFAULT_MAX_AGE_S = 60;
+
+/** Seconds until a read fetched at `fetchedAt` leaves the API's cache
+ *  window, so the next ask can mint a new fetch (at least 15). */
+function cacheLeftS(fetchedAt, maxAgeS) {
+  const left = Math.ceil(
+    (fetchedAt.getTime() + maxAgeS * 1000 - Date.now()) / 1000,
+  );
+  return Math.max(15, left);
+}
 
 export function makeLive({
   enqueue,
@@ -85,13 +101,27 @@ export function makeLive({
     );
     const latest = fresh[0];
     if (latest) {
-      if (latest.admission !== "admitted")
+      if (
+        latest.admission === RACE_MATCHMAKING &&
+        (!needPayload || latest.payload_json)
+      )
+        return {
+          ok: false,
+          reason: "matchmaking",
+          fetched_at: latest.fetched_at.toISOString(),
+          retry_after_s: cacheLeftS(latest.fetched_at, maxAge),
+          payload: latest.payload_json ?? null,
+        };
+      if (latest.admission === "rejected")
         return {
           ok: false,
           reason: "rejected",
           errors: latest.admission_errors,
         };
-      if (!needPayload || latest.payload_json)
+      if (
+        latest.admission === "admitted" &&
+        (!needPayload || latest.payload_json)
+      )
         return {
           ok: true,
           fetched_at: latest.fetched_at.toISOString(),

@@ -12,6 +12,7 @@ import { enqueueJob } from "../../ledger/src/ledger.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
 import { normalizeTag } from "@elixir-mcp/contracts";
+import { trackClans } from "../../ingest/test/helpers.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -682,4 +683,165 @@ test("all leaderboard live paths and helpers refuse without IO or quota spend", 
     "/locations/57000249/pathoflegend/players",
   ])
     assert.equal(livePathToJob(path, normalizeTag).error, "bad_request");
+});
+
+/** The whole body currentriverrace answers between the season roll's 404
+ *  and the drawn bracket (cr-agent-api-docs models/river-race.md,
+ *  observed 2026-10-05): no clan, so no tags of anyone. */
+const MATCHMAKING = { periodIndex: 0, sectionIndex: 0, state: "matchmaking" };
+
+test("war_current live:true in matchmaking says no race yet, never 'rejected'; the record stays the last race and nothing is re-minted", async () => {
+  const race = await fixture("currentriverrace/war_day.json");
+  const clanTag = normalizeTag(race.clan.tag);
+  // A recorded clan, so the call without live: true reads it too (an
+  // earlier test's primary-clan follow may already record it).
+  const { rowCount: tracked } = await db.query(
+    `select 1 from recording where subject_type = 'clan' and subject_tag = $1 and status = 'active'`,
+    [clanTag],
+  );
+  if (!tracked) await trackClans(db, [clanTag]);
+  // The last race, recorded before the roll.
+  await processResult(db, {
+    v: 1,
+    job: { endpoint: "currentriverrace", entity_key: clanTag, lane: "bulk" },
+    gateway_id: gatewayId,
+    fetched_at: new Date(Date.now() - 20 * 60_000).toISOString(),
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(race))).toString(
+      "base64",
+    ),
+  });
+  const weeks = async () =>
+    (
+      await db.query(
+        `select (select count(*)::int from war_week where clan_tag = $1) as weeks,
+                (select count(*)::int from war_participation where clan_tag = $1) as parts,
+                (select last_admitted_at from poll_state
+                  where subject_tag = $1 and endpoint = 'currentriverrace') as admitted_at`,
+        [clanTag],
+      )
+    ).rows[0];
+  const recorded = await weeks();
+  assert.equal(recorded.weeks, 1, "the last race is in the record");
+  const live = fakeGatewayLive({
+    [`currentriverrace:${clanTag}`]: MATCHMAKING,
+  });
+  const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
+  // The first ask queues the read (the collector answers in between).
+  const first = await invoke("war_current", {
+    clan_tag: clanTag,
+    live: true,
+  });
+  assert.equal(first.isError, false, JSON.stringify(first.body).slice(0, 300));
+  assert.equal(first.body.live_status.state, "pending");
+  const jobs = async () =>
+    (
+      await db.query(
+        `select count(*)::int n from job where endpoint = 'currentriverrace' and entity_key = $1`,
+        [clanTag],
+      )
+    ).rows[0].n;
+  const minted = await jobs();
+  // The second finds the read: the race is matchmaking.
+  const { body, isError } = await invoke("war_current", {
+    clan_tag: clanTag,
+    live: true,
+  });
+  assert.equal(isError, false, JSON.stringify(body).slice(0, 300));
+  assert.equal(body.live_status.state, "matchmaking");
+  assert.ok(body.live_status.fetched_at);
+  assert.ok(body.live_status.retry_after_s >= 15);
+  const said = body.notes.join(" ");
+  assert.match(said, /No race yet/);
+  assert.match(said, /not an error, and no race or war day is missed/);
+  assert.doesNotMatch(JSON.stringify(body), /rejected/);
+  assert.equal(body.season_id, race.seasonId ?? body.season_id);
+  assert.equal(body.section_index, race.sectionIndex, "the last race recorded");
+  assert.ok(body.standings.length > 0);
+  assert.equal(await jobs(), minted, "inside the cache window: nothing minted");
+  // The record is untouched and its freshness held, so it is read again.
+  assert.deepEqual(await weeks(), recorded);
+  const {
+    rows: [receipt],
+  } = await db.query(
+    `select admission, admission_errors from api_receipt
+      where endpoint = 'currentriverrace' and entity_key = $1
+      order by receipt_id desc limit 1`,
+    [clanTag],
+  );
+  assert.deepEqual(
+    { ...receipt },
+    {
+      admission: "matchmaking",
+      admission_errors: null,
+    },
+  );
+  // Without live: true the answer says it too, from the latest receipt.
+  const plain = await invoke("war_current", { clan_tag: clanTag });
+  assert.equal(plain.isError, false, JSON.stringify(plain.body).slice(0, 300));
+  assert.equal(plain.body.live_status, undefined);
+  assert.match(plain.body.notes.join(" "), /No race yet/);
+  assert.match(plain.body.notes.join(" "), /usual race cadence/);
+  // The matched race lands: the note goes.
+  await processResult(db, {
+    v: 1,
+    job: { endpoint: "currentriverrace", entity_key: clanTag, lane: "bulk" },
+    gateway_id: gatewayId,
+    fetched_at: new Date().toISOString(),
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(race))).toString(
+      "base64",
+    ),
+  });
+  const after = await invoke("war_current", { clan_tag: clanTag, live: true });
+  assert.equal(after.isError, false);
+  assert.equal(after.body.live_status.state, "fresh");
+  assert.doesNotMatch(after.body.notes.join(" "), /No race yet/);
+});
+
+test("an unrecorded clan's race in matchmaking answers no race yet with retry_after_s, never live_unavailable", async () => {
+  const clanTag = "#GQ0YLC8P";
+  const live = fakeGatewayLive({
+    [`currentriverrace:${clanTag}`]: MATCHMAKING,
+  });
+  const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
+  const first = await invoke("war_current", { clan_tag: clanTag, live: true });
+  assert.equal(first.body.error.code, "live_pending", "queued");
+  assert.match(first.body.error.message, /queued/);
+  const { body, isError } = await invoke("war_current", {
+    clan_tag: clanTag,
+    live: true,
+  });
+  assert.equal(isError, true);
+  assert.equal(body.error.code, "live_pending");
+  assert.match(body.error.message, /No race yet/);
+  assert.match(body.error.message, /matchmaking/);
+  assert.doesNotMatch(body.error.message, /rejected/);
+  assert.ok(body.error.retry_after_s >= 15);
+  assert.match(body.error.hint, /matched race/);
+});
+
+test("live_fetch of a race in matchmaking serves the API's body as no race yet, and records nothing (0209, 0211)", async () => {
+  const clanTag = "#GQ0YLC9P";
+  const live = fakeGatewayLive({
+    [`currentriverrace:${clanTag}`]: MATCHMAKING,
+  });
+  const invoke = makeInvoker({ db, account, registry: makeRegistry(), live });
+  const path = `/clans/${clanTag}/currentriverrace`;
+  const first = await invoke("live_fetch", { path });
+  assert.equal(first.body.error.code, "live_pending");
+  const { body, isError } = await invoke("live_fetch", { path });
+  assert.equal(isError, false, JSON.stringify(body).slice(0, 300));
+  assert.deepEqual(body.data, MATCHMAKING, "the API's own body");
+  assert.equal(body.live_status.state, "matchmaking");
+  assert.match(body.notes.join(" "), /No race yet/);
+  const {
+    rows: [n],
+  } = await db.query(
+    `select (select count(*)::int from api_receipt where entity_key = $1) as receipts,
+            (select count(*)::int from live_fetch_result
+              where entity_key = $1 and admission = 'matchmaking') as held`,
+    [clanTag],
+  );
+  assert.deepEqual({ ...n }, { receipts: 0, held: 1 });
 });

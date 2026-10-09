@@ -68,28 +68,33 @@ function admitClan(payload, errors) {
   });
 }
 
-/** The one refusal that is the API's state rather than a bad fetch. A
- *  race exists for a minute or two before its bracket is drawn: the
- *  whole body is periodIndex, sectionIndex and state "matchmaking", with
- *  no clan (recorded at the S137 season roll, 2026-10-05,
- *  cr-agent-api-docs/clans.md). It is still refused, so freshness holds
- *  and the clan is read again soon, but it is never charged to the
- *  collector that fetched it (chargedRejectionSql). */
-export const RACE_MATCHMAKING = "state:matchmaking";
+/** A race in matchmaking is the API's state, not a bad payload. A race
+ *  exists for a minute or two before its bracket is drawn: the whole body
+ *  is periodIndex, sectionIndex and state "matchmaking", with no clan
+ *  (recorded at the S137 season roll, 2026-10-05, cr-agent-api-docs
+ *  models/river-race.md). It is neither admitted nor rejected: the
+ *  receipt's admission is RACE_MATCHMAKING (0211), nothing is projected,
+ *  freshness holds so the clan is read again on its cadence, and it is
+ *  never charged to the collector that fetched it. Readers that want a
+ *  usable race keep reading `admission = 'admitted'`; the live lane
+ *  answers it as "no race yet" (tools/live.mjs). */
+export const RACE_MATCHMAKING = "matchmaking";
 
-/** SQL: an api_receipt rejection charged to its collector, every
- *  rejection but RACE_MATCHMAKING. `alias` is the receipt's table alias,
- *  if the query has one. */
+/** SQL: an api_receipt rejection charged to its collector. A matchmaking
+ *  race is not a rejection, so it is never charged. `alias` is the
+ *  receipt's table alias, if the query has one. */
 export function chargedRejectionSql(alias = "") {
   const c = alias ? `${alias}.` : "";
-  return `(${c}admission = 'rejected' and ${c}admission_errors is distinct from array['${RACE_MATCHMAKING}']::text[])`;
+  return `(${c}admission = 'rejected')`;
+}
+
+/** The receipt's admission value for an admit() result. */
+export function admissionValue(admission) {
+  if (admission.ok) return "admitted";
+  return admission.state === RACE_MATCHMAKING ? RACE_MATCHMAKING : "rejected";
 }
 
 function admitRiverrace(payload, errors) {
-  if (payload?.state === "matchmaking" && payload?.clan === undefined) {
-    errors.push(RACE_MATCHMAKING);
-    return;
-  }
   if (!tagOk(payload?.clan?.tag)) errors.push("clan.tag:invalid");
   if (!Array.isArray(payload?.clans) || payload.clans.length === 0)
     errors.push("clans:missing");
@@ -164,9 +169,6 @@ const VALIDATORS = {
   globaltournaments: admitListItems,
 };
 
-/**
- * @returns {{ok: true} | {ok: false, errors: string[]}}
- */
 /** Payload identity per endpoint - who this payload is ABOUT. Used to
  *  bind the body to the requested entity: a mis-routed collector result
  *  must never be projected under another subject's key (sol-6 F4). */
@@ -184,7 +186,26 @@ function sameTag(a, b) {
   }
 }
 
+/** A race with state "matchmaking" and no clan: the whole body the API
+ *  serves between the season roll's 404 and the drawn bracket. A body
+ *  that names a clan is judged like any other race. */
+function isMatchmakingRace(endpoint, payload) {
+  return (
+    endpoint === "currentriverrace" &&
+    payload?.state === "matchmaking" &&
+    payload?.clan === undefined &&
+    typeof payload?.periodIndex === "number" &&
+    typeof payload?.sectionIndex === "number"
+  );
+}
+
+/**
+ * @returns {{ok: true} | {ok: false, errors: string[]}
+ *   | {ok: false, state: "matchmaking", errors: []}}
+ */
 export function admit(endpoint, payload, entityKey = null) {
+  if (isMatchmakingRace(endpoint, payload))
+    return { ok: false, state: RACE_MATCHMAKING, errors: [] };
   const validator = VALIDATORS[endpoint];
   if (!validator)
     return { ok: false, errors: [`endpoint:unknown:${endpoint}`] };

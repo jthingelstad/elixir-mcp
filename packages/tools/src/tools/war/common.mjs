@@ -201,6 +201,31 @@ export async function finishWarDays(db, clanTag, keys) {
   return new Map(rows.map((r) => [weekKey(r), r.war_day]));
 }
 
+/** When the clan's latest race read found its race in matchmaking: the
+ *  minute or two after a season roll when the race exists with no clan
+ *  (RACE_MATCHMAKING, 0211; cr-agent-api-docs models/river-race.md).
+ *  The live read's own answer if it was one, else the latest recorded
+ *  race receipt's, so a call without live: true says it too. Null when
+ *  the latest read was anything else. */
+export async function raceMatchmakingAt(db, clanTag, live) {
+  if (live?.state === "matchmaking") return live.fetched_at;
+  const {
+    rows: [latest],
+  } = await db.query(
+    `select admission, fetched_at from api_receipt
+      where endpoint = 'currentriverrace' and entity_key = $1
+      order by receipt_id desc limit 1`,
+    [clanTag],
+  );
+  return latest?.admission === "matchmaking"
+    ? latest.fetched_at.toISOString()
+    : null;
+}
+
+/** The plain answer for a race in matchmaking: no race yet. */
+export const RACE_MATCHMAKING_TEXT =
+  "the game has created this clan's new river race but has not drawn its bracket, so the race has no clans, standings or decks yet. It lasts a minute or two after a season roll; it is not an error, and no race or war day is missed";
+
 export async function clanSubject(ctx, args, endpoint) {
   if (args.live === true) {
     let tag;

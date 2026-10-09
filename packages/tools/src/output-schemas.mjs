@@ -563,7 +563,11 @@ export const OUTPUT_SCHEMAS = {
       "The Clash Royale API's own payload for the path asked, fetched now through a collector, plus live_status; the shape is the API's, not the record's.",
     properties: {
       applied: { type: "object" },
-      live_status: { type: "object" },
+      live_status: {
+        type: "object",
+        description:
+          "state fresh with fetched_at, or matchmaking (a currentriverrace read of a race not yet matched after a season roll: no race yet) with fetched_at and retry_after_s.",
+      },
       payload: {},
       docs: DOCS,
       meta: META,
@@ -2556,7 +2560,7 @@ export const OUTPUT_SCHEMAS = {
       live_status: {
         type: "object",
         description:
-          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again).",
+          "With live: true: whether a fresh read was served or is pending (retry_after_s says when to call again), or state matchmaking: the read found the clan's new race not yet matched after a season roll, so there is no race yet (fetched_at, retry_after_s).",
       },
       clan_tag: TAG,
       season_id: COUNT,

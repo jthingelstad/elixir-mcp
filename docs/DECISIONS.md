@@ -35,6 +35,7 @@ current rule, never as "was X, now Y".
 - **The session clock is the player schedule** — follow up 30 minutes after a productive read, doubling after empty ones, 2-hour ceiling (jitter included); profiles daily and after a session.
 - **A failed fetch is retried in minutes** — 15, 30, then 60 (`poll_state.retry_at`), planned and charged like any plan; freshness moves only on admission.
 - **A 404 holds a subject for a day** — except `currentriverrace` within six hours of the clan's last admitted race, which keeps its cadence through the season roll.
+- **A race in matchmaking is no race yet** — its receipt is `matchmaking`, neither admitted nor rejected: nothing projected, freshness holds, never charged to a collector, never a missed race; every surface answers it as no race yet, never as an error.
 - **Roster `lastSeen` never gates battle logs** — it is a profile-efficiency signal only.
 - **`live_fetch` only fetches** — Jamie 2026-10-08: "live_fetch should ONLY live fetch and not record data." Its job is fetch-only (`job.record = false`): the payload reaches the caller from `live_fetch_result` (an hour at most) and never the record, receipts or archive; a recording ask turns an open fetch-only job into a recording one, never the reverse. `live: true` on a recorded tool, Verify and the first read on add record.
 - **Never manufacture a request to diagnose** — wait for the natural wave; errors never advance freshness.

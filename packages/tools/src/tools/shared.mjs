@@ -668,9 +668,12 @@ export async function seasonFieldsForDays(db, fromDay, toDay) {
  *  fetched_at, payload } when a read inside the API's own cache window is
  *  in hand, or { state: "pending", retry_after_s } after queueing one
  *  priority fetch (charged to the live quota only when minted);
- *  `record: false` is live_fetch's fetch-only read (0209). Throws
- *  live_unavailable when the lane is not configured or the fresh payload
- *  was rejected at admission. Tools answer from the record either way;
+ *  `record: false` is live_fetch's fetch-only read (0209). A race read
+ *  that found the race in matchmaking returns { state: "matchmaking",
+ *  fetched_at, retry_after_s, payload }: no race yet, which is an
+ *  answer, never a rejection. Throws live_unavailable when the lane is
+ *  not configured or the fresh payload was rejected at admission. Tools
+ *  answer from the record either way;
  *  a subject with no record at all raises live_pending via
  *  notRecordedOrPending(). */
 export async function liveRead(
@@ -700,6 +703,13 @@ export async function liveRead(
       "Global leaderboard capture has been retired.",
       "Existing recorded history remains available without live: true until its retirement.",
     );
+  if (r.reason === "matchmaking")
+    return {
+      state: "matchmaking",
+      fetched_at: r.fetched_at,
+      retry_after_s: r.retry_after_s,
+      payload: r.payload ?? null,
+    };
   if (r.reason === "rejected")
     throw new ToolFailure(
       "live_unavailable",
@@ -718,6 +728,12 @@ export async function liveRead(
 /** The `live_status` block a live: true answer carries. */
 export function liveStatus(live) {
   if (!live) return undefined;
+  if (live.state === "matchmaking")
+    return {
+      state: "matchmaking",
+      fetched_at: live.fetched_at,
+      retry_after_s: live.retry_after_s,
+    };
   return live.state === "fresh"
     ? { state: "fresh", fetched_at: live.fetched_at }
     : { state: "pending", retry_after_s: live.retry_after_s };

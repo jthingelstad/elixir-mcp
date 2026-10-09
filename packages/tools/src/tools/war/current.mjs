@@ -8,15 +8,18 @@ import {
   liveStatus,
   notRecordedOrPending,
   notes,
+  ToolFailure,
 } from "../shared.mjs";
 import {
   CLAN_TAG_SCHEMA,
   CLOCK_DOCS,
+  RACE_MATCHMAKING_TEXT,
   boatDecksNote,
   boatFinished,
   cappedProgressNote,
   clanSubject,
   finishWarDays,
+  raceMatchmakingAt,
   warDaysLog,
   weekKey,
 } from "./common.mjs";
@@ -34,7 +37,7 @@ export const war_current = {
       live: {
         type: "boolean",
         description:
-          "Ask for a read of this clan's race no older than two minutes; works for a clan nobody records. Served if in hand, otherwise queued while the record answers with live_status pending.",
+          "Ask for a read of this clan's race no older than two minutes; works for a clan nobody records. Served if in hand, otherwise queued while the record answers with live_status pending. A race still matchmaking after a season roll answers live_status matchmaking: no race yet.",
       },
     },
     additionalProperties: false,
@@ -51,6 +54,26 @@ export const war_current = {
          where clan_tag = $1 order by season_id desc, section_index desc limit 1`,
       [clanTag],
     );
+    // A race in matchmaking is an answer (no race yet), never a
+    // rejection: the season-roll minutes before the bracket is drawn.
+    const matchmakingAt = await raceMatchmakingAt(ctx.db, clanTag, live);
+    if (!weekRows[0] && matchmakingAt) {
+      const noRaceYet = `No race yet: the race read at ${matchmakingAt} found it matchmaking - ${RACE_MATCHMAKING_TEXT}.`;
+      if (live && live.state !== "fresh")
+        throw new ToolFailure(
+          "live_pending",
+          live.state === "pending" && live.queued !== false
+            ? `${noRaceYet} A fresh read is queued.`
+            : noRaceYet,
+          `Call again in ${live.retry_after_s} s for the matched race.`,
+          { retry_after_s: live.retry_after_s },
+        );
+      throw new ToolFailure(
+        "not_recorded",
+        `No war weeks recorded for this clan yet. ${noRaceYet}`,
+        "The matched race is read on the clan's usual race cadence; live: true reads it now.",
+      );
+    }
     if (!weekRows[0]) {
       // Say what the record knows before pointing at live (feedback
       // #53: a one-member clan's routine was told "live reads the race
@@ -355,6 +378,9 @@ export const war_current = {
       ...(daysClosed ? { days_closed: daysClosed } : {}),
       notes: notes(
         livePendingNote(live),
+        matchmakingAt
+          ? `No race yet: the race read at ${matchmakingAt} found it matchmaking - ${RACE_MATCHMAKING_TEXT}. Everything else here is the last race recorded (season_id ${wk.season_id}, section_index ${wk.section_index}); ${live?.state === "matchmaking" ? `call again with live: true in ${live.retry_after_s} s for the matched race.` : "the matched race is read on the clan's usual race cadence."}`
+          : null,
         "points are per-member contributions; fame belongs to the boat (the clan).",
         // Two groups both called participants (Gym #312).
         participation.rows.some((r) => !r.in_clan)

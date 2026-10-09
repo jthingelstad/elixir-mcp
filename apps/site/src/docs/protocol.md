@@ -550,7 +550,10 @@ in its hint.
   spends one request of the fleet's one global budget; when that budget is
   spent until the next scheduler tick nothing is queued or charged,
   `live_status` stays `pending` with `retry_after_s` the seconds to that
-  tick, and the note says the budget had no room. The tools are annotated `openWorldHint`.
+  tick, and the note says the budget had no room. A `war_current` read in
+  the minute or two after a season roll, before the new race is matched,
+  answers `live_status: { state: "matchmaking", fetched_at, retry_after_s }`:
+  no race yet, never an error. The tools are annotated `openWorldHint`.
   `elixir_timeline` is the one exception: it selects by when the record
   observed an item, over (from, to] at the millisecond it serves, so a cut
   instant passed as `to` reaches the item at the cut.
