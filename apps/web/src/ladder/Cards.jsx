@@ -1,13 +1,22 @@
 import { CardArt, Link, noun, Tag } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { CONSOLE } from "../lib/console.js";
-import { fmt, ladderHref, modeLabel, pct, seasonWords } from "./ladder.js";
 import {
+  fmt,
+  ladderHref,
+  modeLabel,
+  pct,
+  seasonWords,
+  signed,
+} from "./ladder.js";
+import {
+  ORDERS,
   cameBack,
   cardRows,
   distinctCards,
   modeBattles,
   opponentName,
+  pickOrder,
   times,
 } from "./ladder-cards.js";
 import { useToolRead } from "../lib/queries.js";
@@ -23,12 +32,19 @@ import {
 /** Rows a card table shows before "Show all". */
 const ROWS_SHOWN = 12;
 
+/** The fewest meetings an opponent needs to be listed: met again. */
+const OPPONENT_FLOOR = 2;
+
 /**
  * Cards (LadderCards.dc.html): one mode's season, card by card. Your
  * cards and the cards across the table come from battles_cards (mine and
  * opponent), each a record of the battles where that deck held the card;
  * the opponents are battles_opponents' count and its repeats. A form is
  * its own row, as the tool keeps it; no row is summed with another.
+ * What you faced reads in the tools' default order (most battles first)
+ * unless the reader asks for most losses first (`?order=losses`, the
+ * tools' `sort: "losses"`); each row carries its level gap where the
+ * record has one.
  */
 export function Cards({
   player,
@@ -39,6 +55,10 @@ export function Cards({
   search,
 }) {
   const args = { player_tag: player.player_tag, season: season.arg, mode };
+  const order = pickOrder(search.order);
+  // Only a chosen order rides on the read, so the default read is the
+  // one the page always made (and shares its cache).
+  const sorted = order === "losses" ? { sort: "losses" } : {};
   const mine = useToolRead(
     "battles_cards",
     { ...args, perspective: "mine" },
@@ -46,12 +66,12 @@ export function Cards({
   );
   const theirs = useToolRead(
     "battles_cards",
-    { ...args, perspective: "opponent" },
+    { ...args, perspective: "opponent", ...sorted },
     { enabled: modeReady },
   );
   const opponents = useToolRead(
     "battles_opponents",
-    { ...args, min_battles: 2 },
+    { ...args, min_battles: OPPONENT_FLOOR, ...sorted },
     { enabled: modeReady },
   );
   const label = modeLabel(mode);
@@ -60,6 +80,14 @@ export function Cards({
       player: search.player,
       mode: m,
       season: search.season,
+      order,
+    });
+  const orderHref = (o) =>
+    ladderHref("cards", {
+      player: search.player,
+      mode: search.mode,
+      season: search.season,
+      order: o,
     });
   const when = seasonWords(season);
   const played = Number(modeBattles(mine.data, mode) ?? 0) > 0;
@@ -98,17 +126,66 @@ export function Cards({
       ) : (
         <>
           <YourCards body={mine.data} />
+          <OrderSwitch
+            order={order}
+            hrefFor={orderHref}
+            cardFloor={
+              theirs.data?.applied?.min_battles ??
+              mine.data?.applied?.min_battles
+            }
+          />
           <TheirCards
             read={theirs}
             opponents={opponents.data?.distinct_opponents ?? null}
             mode={mode}
+            order={order}
           />
-          <Opponents read={opponents} label={label} when={when} />
+          <Opponents read={opponents} label={label} when={when} order={order} />
         </>
       )}
     </div>
   );
 }
+
+/** How what you faced is ordered: a choice the reader makes, each its own
+ *  address like the mode tabs. The default is the tools' order (most
+ *  battles first); most losses first is never chosen for the reader. It
+ *  says the floors, so a single loss is seen not to lead the list. */
+function OrderSwitch({ order, hrefFor, cardFloor }) {
+  const id = useId();
+  return (
+    <div className="ladder-order">
+      <span id={id} className="ladder-order__label">
+        Order what you faced
+      </span>
+      <nav aria-labelledby={id} className="ladder-modes">
+        {ORDERS.map((o) => (
+          <Link
+            key={o.key}
+            to={hrefFor(o.key)}
+            className="ladder-modes__tab"
+            aria-current={o.key === order ? "true" : undefined}
+          >
+            {o.label}
+          </Link>
+        ))}
+      </nav>
+      <span className="ladder-order__hint">
+        {order === "losses"
+          ? "Most battles lost first, then most battles."
+          : "Most battles first."}{" "}
+        {cardFloor
+          ? `A card is listed from ${fmt(cardFloor)} battles, `
+          : "A card is listed from the tool's floor, "}
+        a player from {fmt(OPPONENT_FLOOR)}.
+      </span>
+    </div>
+  );
+}
+
+/** A level gap as the tools state it: "+0.40", "−1.25", or a dash where
+ *  the record has no levels. */
+const gapText = (gap) => (gap == null ? "—" : signed(Number(gap), 2));
 
 /** A card's cell: its art, never a link, and its name, the one link. */
 function CardCell({ row }) {
@@ -213,7 +290,7 @@ function YourCards({ body }) {
   );
 }
 
-function TheirCards({ read, opponents, mode }) {
+function TheirCards({ read, opponents, mode, order }) {
   const id = useId();
   const rows = read.data ? cardRows(read.data) : [];
   const { shown, toggle } = useShown(rows);
@@ -256,6 +333,9 @@ function TheirCards({ read, opponents, mode }) {
                   Faced
                 </th>
                 <th scope="col">Your record</th>
+                <th scope="col" className="ladder-table__num">
+                  Level gap
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -268,6 +348,7 @@ function TheirCards({ read, opponents, mode }) {
                   <td>
                     <Record wins={r.wins} losses={r.losses} />
                   </td>
+                  <td className="ladder-table__num">{gapText(r.gap)}</td>
                 </tr>
               ))}
             </tbody>
@@ -282,7 +363,11 @@ function TheirCards({ read, opponents, mode }) {
       )}
       {toggle}
       <div className="panel__foot">
-        Your record in the battles where the opponent&apos;s deck held the card.
+        Your record in the battles where the opponent&apos;s deck held the card
+        {order === "losses" ? ", most battles lost first" : ""}. Level gap is
+        your deck&apos;s average card level minus your opponent&apos;s in those
+        battles (positive: yours were higher); a dash where the record has no
+        levels.
         {floor
           ? ` Cards met in fewer than ${fmt(floor)} ${noun(floor, "battle")} are left out.`
           : ""}
@@ -292,7 +377,7 @@ function TheirCards({ read, opponents, mode }) {
 }
 
 /** How many players you met in this mode, and the ones you met again. */
-function Opponents({ read, label, when }) {
+function Opponents({ read, label, when, order }) {
   const id = useId();
   const body = read.data;
   const repeats = body?.opponents ?? [];
@@ -316,7 +401,7 @@ function Opponents({ read, label, when }) {
               {body.distinct_opponents === 1 ? "opponent" : "opponents"} on{" "}
               {label} {when}.{" "}
               {repeats.length
-                ? `${cameBack(Number(body.matching_opponents ?? repeats.length))}:`
+                ? `${cameBack(Number(body.matching_opponents ?? repeats.length))}${order === "losses" ? ", most battles lost first" : ""}:`
                 : "None came back."}
             </p>
             {repeats.length ? (
@@ -331,6 +416,12 @@ function Opponents({ read, label, when }) {
                     <Tag tag={o.player_tag} className="ladder-opponents__tag" />
                     , {times(o.battles)},{" "}
                     <Record wins={o.wins} losses={o.losses} draws={o.draws} />
+                    {o.mean_level_gap != null ? (
+                      <span className="ladder-opponents__gap">
+                        {" "}
+                        · level gap {gapText(o.mean_level_gap)}
+                      </span>
+                    ) : null}
                   </li>
                 ))}
               </ul>

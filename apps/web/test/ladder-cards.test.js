@@ -2,15 +2,18 @@
  * Ladder's Cards page shaping (ladder/ladder-cards.js): battles_cards'
  * rows as the page lists them. These pin a form as its own row, the
  * card page link (never for a tower troop), counts that never add rows
- * up, and an opponent the record has no name for.
+ * up, an opponent the record has no name for, the order the reader
+ * chooses (never chosen for them) and each row's level gap.
  */
 import { test, expect } from "vitest";
 import {
+  ORDERS,
   cameBack,
   cardRows,
   distinctCards,
   modeBattles,
   opponentName,
+  pickOrder,
   times,
 } from "../src/ladder/ladder-cards.js";
 
@@ -25,6 +28,7 @@ const BODY = {
       wins: 12,
       losses: 23,
       win_rate: 0.343,
+      mean_level_gap: -0.4,
     },
     {
       id: 26000007,
@@ -92,4 +96,21 @@ test("opponents read as words", () => {
   expect(
     opponentName({ player_tag: "#20V9PQLPCG", name: null, name_known: false }),
   ).toBe("#20V9PQLPCG");
+});
+
+test("the order is the reader's choice: most losses only when asked", () => {
+  expect(ORDERS.map((o) => o.key)).toEqual(["battles", "losses"]);
+  expect(ORDERS[0].label).toBe("Most faced");
+  expect(pickOrder(undefined)).toBe("battles");
+  expect(pickOrder("")).toBe("battles");
+  expect(pickOrder("nonsense")).toBe("battles");
+  expect(pickOrder("losses")).toBe("losses");
+  // No label rides on a row: the labels are the orders', never a card's.
+  for (const o of ORDERS) expect(o.label).not.toMatch(/nemesis|counter|weak/i);
+});
+
+test("a row carries the tool's level gap, null where the record has none", () => {
+  const rows = cardRows(BODY);
+  expect(rows[0].gap).toBe(-0.4);
+  expect(rows[1].gap).toBeNull();
 });

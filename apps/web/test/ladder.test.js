@@ -98,6 +98,18 @@ test("an address carries the player without its hash and only what was given", (
   );
 });
 
+test("Cards keeps a chosen order in its address, and only most losses", () => {
+  expect(ladderHref("cards", { mode: "ladder", order: "losses" })).toBe(
+    "/ladder/cards?mode=ladder&order=losses",
+  );
+  // The default order is no parameter at all.
+  expect(ladderHref("cards", { mode: "ladder", order: "battles" })).toBe(
+    "/ladder/cards?mode=ladder",
+  );
+  // Another page never carries Cards' order.
+  expect(ladderHref("decks", { order: "losses" })).toBe("/ladder/decks");
+});
+
 const CLAIMS = [
   { player_tag: "#FRIEND1", relationship: "friend" },
   { player_tag: "#VJQV8G8RL", name: "thingles", relationship: "alt" },

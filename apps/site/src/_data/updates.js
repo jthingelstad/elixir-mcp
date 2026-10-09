@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "Ladder Cards: what you faced, most losses first if you ask",
+    body: "On Ladder's Cards page, the cards across the table from you and the opponents you met again can now be read most losses first: choose Most losses beside them. It is your choice, not the page's: the page still opens most battles first. A card is listed only from three battles and a player from two meetings, and the page says so beside the choice, so a single loss does not lead the list. The order is part of the address (/ladder/cards?order=losses) and the mode tabs and season switch keep it. Each card row and each opponent now shows the level gap, your deck's average card level minus your opponent's in those battles, or a dash where the record has no levels. Nothing is labelled: it is the record in the order you asked for. Agents get the same order with sort: \"losses\" on battles_cards and battles_opponents, and battles_opponents rows carry mean_level_gap. MCP 11.6.0; JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "A legendary badge is a milestone email",
     body: "Earning a legendary badge now sends a milestone email when it happens, like a new arena or a new league, and it leads the note beside a new best. It is no longer counted in Tuesday's Arena email, which still counts your cards unlocked and badge levels. Each legendary badge mails once, ever. MCP 11.5.2 and JSON API 3.1.0 unchanged.",
   },
