@@ -667,12 +667,16 @@ export async function seasonFieldsForDays(db, fromDay, toDay) {
 /** live: true, asynchronously (1.7.0). Returns { state: "fresh",
  *  fetched_at, payload } when a read inside the API's own cache window is
  *  in hand, or { state: "pending", retry_after_s } after queueing one
- *  priority fetch (charged to the live quota only when minted). Throws
+ *  priority fetch (charged to the live quota only when minted);
+ *  `record: false` is live_fetch's fetch-only read (0209). Throws
  *  live_unavailable when the lane is not configured or the fresh payload
  *  was rejected at admission. Tools answer from the record either way;
  *  a subject with no record at all raises live_pending via
  *  notRecordedOrPending(). */
-export async function liveRead(ctx, { endpoint, entityKey, needPayload }) {
+export async function liveRead(
+  ctx,
+  { endpoint, entityKey, needPayload, record = true },
+) {
   if (!ctx.live)
     throw new ToolFailure(
       "live_unavailable",
@@ -683,6 +687,9 @@ export async function liveRead(ctx, { endpoint, entityKey, needPayload }) {
     endpoint,
     entityKey,
     needPayload: needPayload === true,
+    // live_fetch alone reads without recording (0209); every other live
+    // flag answers from the record, so its read is recorded.
+    record: record !== false,
     beforeMint: () => spendLiveQuota(ctx),
   });
   if (r.ok)

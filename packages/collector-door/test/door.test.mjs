@@ -461,6 +461,46 @@ test("submit: inline ingest, server-stamped identity and job id, DB-bound lease"
   assert.equal(closed[0].status, "done");
 });
 
+test("submit: live_fetch's fetch-only job reaches ingest marked record: false, read from the row at submit (0209)", async () => {
+  await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#8U2P0JPL",
+    lane: "live",
+    record: false,
+  });
+  await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: "#8U2P0JPV",
+    lane: "live",
+    record: false,
+  });
+  const submitOne = async () => {
+    const r = await door.lease(db, authed(TOKEN_LIVE), { wait_s: 0 });
+    const res = await door.submit(db, authed(TOKEN_LIVE), {
+      lease: r.body.lease,
+      status: "ok",
+      body_gzip_b64: Buffer.from("z").toString("base64"),
+      fetched_at: new Date().toISOString(),
+    });
+    assert.equal(res.status, 200);
+    return { lease: Number(r.body.lease), envelope: ingested.at(-1) };
+  };
+  const a = await submitOne();
+  assert.equal(a.envelope.job.record, false, "fetch-only reaches ingest");
+  // A recording ask while the second is leased: it records after all.
+  const r = await door.lease(db, authed(TOKEN_LIVE), { wait_s: 0 });
+  await db.query(`update job set record = true where job_id = $1`, [
+    Number(r.body.lease),
+  ]);
+  await door.submit(db, authed(TOKEN_LIVE), {
+    lease: r.body.lease,
+    status: "ok",
+    body_gzip_b64: Buffer.from("z").toString("base64"),
+    fetched_at: new Date().toISOString(),
+  });
+  assert.equal(ingested.at(-1).job.record, undefined, "recorded");
+});
+
 test("ingest exception leaves the lease held for expiry-requeue", async () => {
   const boom = makeCollectorDoor({
     ingest: async () => {

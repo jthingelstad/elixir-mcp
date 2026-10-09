@@ -9,6 +9,10 @@ export interface CrJob {
   /** Canonical entity key: a normalized tag, or 'GLOBAL'. */
   entity_key: string;
   lane: "live" | "bulk";
+  /** false on live_fetch's fetch-only job (0209): its result reaches the
+   *  caller and never the record. Absent means recorded. Server-stamped
+   *  from the job row; collectors never see it. */
+  record?: boolean;
   /** Present on live-lane jobs so the MCP layer can await the receipt. */
   correlation_id?: string;
 }
@@ -326,6 +330,8 @@ export function validateResultMessage(
   if (typeof m.job?.entity_key !== "string")
     errors.push("job.entity_key:missing");
   if (!LANES.has(m.job?.lane as string)) errors.push("job.lane:invalid");
+  if (m.job?.record !== undefined && typeof m.job.record !== "boolean")
+    errors.push("job.record:invalid");
   if (typeof m.gateway_id !== "string") errors.push("gateway_id:missing");
   if (
     typeof m.fetched_at !== "string" ||
