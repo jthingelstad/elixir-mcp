@@ -658,16 +658,20 @@ test("the battle that did it opens its page, and a stored issue without the link
     html,
     /<a href="https:\/\/elixir\.poapkings\.com\/battle\/aad68079b0fa\?utm_source=email[^"]*"[^>]*>See the battle ›<\/a>/,
   );
-  // The button opens the player's own season on Ladder.
+  // The button opens the player's own season on Ladder: the season the
+  // milestone happened in, so an old mail still opens that season.
   assert.match(html, />Open Big Thing in Ladder</);
   assert.match(
     html,
-    /href="https:\/\/elixir\.poapkings\.com\/ladder\?player=VJG0J29QP&amp;utm_source=email/,
+    /href="https:\/\/elixir\.poapkings\.com\/ladder\?player=VJG0J29QP&amp;season=136&amp;utm_source=email/,
   );
   delete facts.milestones[0].battle.url;
+  delete facts.season;
   const old = renderMail("milestone", facts, links).html;
   assert.match(old, /The battle that did it/);
   assert.doesNotMatch(old, /See the battle/);
+  // Stored before the season was on it: Ladder's own default.
+  assert.match(old, /\/ladder\?player=VJG0J29QP&amp;utm_source=email/);
 });
 
 test("the Arena week opens Ladder: the season, and every deck on Ladder › Decks", () => {
@@ -678,9 +682,34 @@ test("the Arena week opens Ladder: the season, and every deck on Ladder › Deck
   assert.match(html, />Open King Thing in Ladder</);
   assert.match(
     html,
-    /href="https:\/\/elixir\.poapkings\.com\/ladder\/decks\?player=20JJJ2CCRU&amp;utm_source=email[^"]*"[^>]*>Ladder › Decks<\/a>/,
+    /href="https:\/\/elixir\.poapkings\.com\/ladder\/decks\?player=20JJJ2CCRU&amp;season=136&amp;utm_source=email[^"]*"[^>]*>Ladder › Decks<\/a>/,
+  );
+  // Both open the season the week was in, not whatever runs on the day
+  // the mail is read (2026-10-08).
+  assert.match(
+    html,
+    /href="https:\/\/elixir\.poapkings\.com\/ladder\?player=20JJJ2CCRU&amp;season=136&amp;utm_source=email[^"]*"[^>]*>Open King Thing in Ladder/,
   );
   assert.doesNotMatch(html, /in the console</);
+});
+
+test("the clan report links the race's own week, by Season and Week", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
+  );
+  const { html } = renderMail("clan_report", facts, links);
+  assert.match(
+    html,
+    /href="https:\/\/elixir\.poapkings\.com\/console\/explore\/week\/J2RGCRVG~136~2\?utm_source=email[^"]*"[^>]*>the week’s page<\/a>/,
+  );
+  assert.match(html, /Season 136, week 3 are on/);
+  // No race, no week link.
+  const quiet = renderMail(
+    "clan_report",
+    { ...facts, war: { present: false } },
+    links,
+  ).html;
+  assert.doesNotMatch(quiet, /explore\/week\//);
 });
 
 test("each collector is its card, with what it is doing now", () => {

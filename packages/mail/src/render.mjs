@@ -95,8 +95,14 @@ const clanUrl = (tag) => `${SITE}/console/explore/clan/${tagPath(tag)}`;
 // Ladder, a player's own season (apps/web pages/LadderPage.jsx):
 // `?player=` names one of the reader's own players, so only the Arena
 // week and Milestones, which are about the reader's own, link it.
-const ladderUrl = (tag, page = "") =>
-  `${SITE}/ladder${page ? `/${page}` : ""}?player=${tagPath(tag)}`;
+// `?season=` is the season the mail describes (2026-10-08), so a link
+// opened after the roll still shows that season, not the new one.
+const ladderUrl = (tag, page = "", season = null) =>
+  `${SITE}/ladder${page ? `/${page}` : ""}?player=${tagPath(tag)}${season != null ? `&season=${encodeURIComponent(season)}` : ""}`;
+// A clan's river race week in the console (apps/web views/Explore.jsx):
+// /explore/week/<tag>~<season>~<section index>, the week counted from 0.
+const raceWeekUrl = (tag, season, week) =>
+  `${SITE}/console/explore/week/${tagPath(tag)}~${encodeURIComponent(season)}~${Number(week) - 1}`;
 // The console's record of one sent email (apps/web views/account/
 // EmailRecord.jsx) and its list (views/Activity.jsx, Emails). The
 // footer links the record by its id, and with ?report=1 the record
@@ -412,7 +418,7 @@ function arena(f, c) {
   const notes = (pr.modes ?? []).filter((m) => m.note);
   const war = fams.find((m) => m.mode === "war");
   const deck = pr.deck
-    ? `${c.h2(`Your ${FAMILY_LABEL[pr.deck.family] ?? "main"} deck`)}${deckBox(pr.deck, c)}${c.small(`Every deck of the season, each in the mode it was played in, is in ${c.link(ladderUrl(pr.tag, "decks"), "Ladder › Decks")}.`)}`
+    ? `${c.h2(`Your ${FAMILY_LABEL[pr.deck.family] ?? "main"} deck`)}${deckBox(pr.deck, c)}${c.small(`Every deck of the season, each in the mode it was played in, is in ${c.link(ladderUrl(pr.tag, "decks", f.week?.season), "Ladder › Decks")}.`)}`
     : "";
   const warLine = war
     ? c.p(
@@ -462,7 +468,7 @@ function arena(f, c) {
     ${deck}${warLine}
     ${met}
     ${alts}
-    ${c.button(`Open ${pr.name} in Ladder`, ladderUrl(pr.tag))}
+    ${c.button(`Open ${pr.name} in Ladder`, ladderUrl(pr.tag, "", f.week?.season))}
     ${c.cov(esc(pr.coverage))}`;
   const subjectRecords = fams.length
     ? fams
@@ -709,8 +715,16 @@ function clan(f, c) {
         ],
         ["Donations", n(h.donations), "cards given"],
       ];
+  // The week the race was (2026-10-08): its page in the console, by
+  // Season and Week, so the link still names this race after the next.
+  const raceWeek =
+    war?.season != null && war?.week != null
+      ? c.small(
+          `Every member’s decks and points for Season ${esc(war.season)}, week ${esc(war.week)} are on ${c.link(raceWeekUrl(tag, war.season, war.week), "the week’s page")}.`,
+        )
+      : "";
   const race = war?.standings?.length
-    ? `${c.h2("The race", war.finish_war_day ? `over the line on war day ${war.finish_war_day}` : war.colosseum ? "the Colosseum" : "")}${raceRows(war, tag, c)}`
+    ? `${c.h2("The race", war.finish_war_day ? `over the line on war day ${war.finish_war_day}` : war.colosseum ? "the Colosseum" : "")}${raceRows(war, tag, c)}${raceWeek}`
     : "";
   // Who raced: the five with the most points, and the reader's own
   // players wherever they finished.
@@ -1113,7 +1127,10 @@ function milestone(f, c) {
   const body = `${others.map((m) => `${big(m)}${battle(m.battle)}`).join("")}
     ${tiles}
     ${also}
-    ${c.button(`Open ${first.subject.name} in Ladder`, ladderUrl(first.subject.tag))}
+    ${c.button(
+      `Open ${first.subject.name} in Ladder`,
+      ladderUrl(first.subject.tag, "", f.season),
+    )}
     ${c.cov("Milestones come from the record as it is polled, usually within the hour. A move down never mails; only firsts do.")}`;
   const more = ms.length - 1;
   const preheader =
