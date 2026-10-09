@@ -73,8 +73,8 @@ Lease keys: `run`, `record`, `loop`, `guard` (this team);
    objective's authoritative evidence: the public status endpoint, the
    migrate/jobs lambda read ops, Postgres (`mcp_call_audit`, the job
    ledger, the feedback table), an alarm that fired, or a read-only
-   probe. There is no CloudWatch dashboard and no metric without an
-   alarm; Logs Insights reads the EMF line when a log is the evidence. Reproduce an observed
+   probe. There is no metric without an alarm, and the `elixir-mcp`
+   dashboard is a view of those, not evidence of its own; Logs Insights reads the EMF line when a log is the evidence. Reproduce an observed
    problem before touching code.
 3. **Decide whether there is an objective gap.** A healthy no-op is a
    successful run; write a one-line note and stop. Do not manufacture

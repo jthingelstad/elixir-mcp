@@ -176,7 +176,8 @@ current rule, never as "was X, now Y".
 - **The database is db.t4g.micro** — again since 2026-10-08, the class the reserved instance covers; the small (2026-09-23 to 10-08) held a record the tracked-only correction removed.
 - **No Lambda-to-Lambda from the NAT-free VPC** — VPC Lambdas hand work to the non-VPC relay by writing one object to the outbox bucket (`email/`, `clan-model/`) through the S3 gateway endpoint; S3 notifies SQS, which holds retries and DLQs.
 - **Alarms go to the ops queue, never email** — Elixir application tags on everything.
-- **A custom metric exists only to back an alarm; no dashboard** — anything else is a property on the EMF line or a database row; no per-entity dimensions.
+- **A custom metric exists only to back an alarm** — anything else is a property on the EMF line or a database row; no per-entity dimensions.
+- **One dashboard, `elixir-mcp`, adds no metrics** (Jamie, 2026-10-09) — stack-owned; standard AWS metrics, the alarm-backed custom metrics and Logs Insights over existing log lines; at most 50 metrics so it stays in the free tier.
 - **DNS stays at Namecheap** — Jamie applies records by hand.
 - **A secret rotates without a sign-out** — every signing secret has a verify-only previous value; `docs/SECRETS.md` is the runbook; values are Jamie's, set in the console.
 

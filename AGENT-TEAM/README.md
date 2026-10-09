@@ -109,8 +109,8 @@ Cross-cutting work keeps one originating owner through acceptance.
   is an on-demand census, never a routine read — see Elixir Operator), the jobs
   lambda (sweeps, the activity row, the efficiency row), Postgres itself
   (`mcp_call_audit`, the job ledger, `capture_efficiency_daily`), and the
-  alarms that fired. There is no CloudWatch dashboard, and a custom metric
-  exists only to back an alarm (`docs/DECISIONS.md`); anything else rides
+  alarms that fired. A custom metric exists only to back an alarm, and the
+  one CloudWatch dashboard (`elixir-mcp`) adds none (`docs/DECISIONS.md`); anything else rides
   the EMF log line, which Logs Insights reads. The console's `/console/status` page is
   signed-in; the public health reads are `/data/now` and
   `/api/public/status`.
