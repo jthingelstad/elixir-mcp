@@ -112,28 +112,30 @@ export function makeSiteShell(
 }
 
 /** Each card's art from the site bucket's mirror
- *  (infra/scripts/mirror-card-art.mjs), at the 128-pixel width: the
- *  picture draws a card 78 wide. The played form's art, else the base
- *  card's (the page's own fallback: a form newer than the mirror is
- *  never a bare name when the card has art), else null, and the picture
- *  writes its name in the frame. Read once per key for the life of the
- *  function. */
+ *  (infra/scripts/mirror-card-art.mjs): the one file per card and form,
+ *  Supercell's own bytes. The picture is a composed image and draws it
+ *  78 wide inside itself (Jamie, 2026-10-08: "it is completely fine to
+ *  encode card art into those battle images"); the stored file is never
+ *  changed. The played form's art, else the base card's (the page's own
+ *  fallback: a form newer than the mirror is never a bare name when the
+ *  card has art), else null, and the picture writes its name in the
+ *  frame. A file read is kept for the life of the function; a miss is
+ *  asked again next time, so a form the mirror gains after this
+ *  function started is drawn once it is there. */
 export function makeCardArt(bucket, send = null) {
   if (!bucket) return async () => null;
   const s3 = send ? { send } : new S3Client({});
-  const seen = new Map();
-  const read = (key) => {
-    if (!seen.has(key))
-      seen.set(
-        key,
-        s3
-          .send(new GetObjectCommand({ Bucket: bucket, Key: key }))
-          .then((res) => res.Body.transformToByteArray())
-          .catch(() => null),
-      );
-    return seen.get(key);
+  const held = new Map();
+  const read = async (key) => {
+    if (held.has(key)) return held.get(key);
+    const bytes = await s3
+      .send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+      .then((res) => res.Body.transformToByteArray())
+      .catch(() => null);
+    if (bytes) held.set(key, bytes);
+    return bytes;
   };
-  const key = (id, form) => cardArtPath(id, form, 128).slice(1);
+  const key = (id, form) => cardArtPath(id, form).slice(1);
   return async (card) => {
     const form = card.form ?? "base";
     const bytes = await read(key(card.id, form));
