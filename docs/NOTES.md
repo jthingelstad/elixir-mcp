@@ -21,24 +21,16 @@ Remove a line in the change that closes it.
 - 2026-10-08: delete `elixir-clan/app` (keep the default recovery
   window) once the deploy that reads `elixir-mcp/app:clan_sealing_secret`
   has succeeded; Jamie copied the value across the same day. Jamie.
-- 2026-10-04: privacy.md still says AI models "write some of the mail"
-  and help with feedback, which is the retired editorial claim; also
-  decide whether to name Clan's own-key model flow. Product wording,
+- 2026-10-04: whether privacy.md should name Clan's own-key model flow.
+  Product wording, Jamie.
+- 2026-10-08: beta invitations: Jamie invites POAP KINGS, with the
+  wording as it stands (accepted 2026-10-08), and pastes Bring your
+  clanmates' clan-chat line (Console ▸ Overview) into clan chat once to
+  see whether `elixir.poapkings.com` at its end survives the chat filter;
+  if it is masked, it comes out of the line (`apps/web/src/lib/invite.js`).
   Jamie.
-- 2026-10-05: Ship It! and Elixir Kings report `channels_ok: 0`. Restore
-  each ask-channel binding or permission, then restart only the repaired
-  instance. Jamie (Operator follow-up).
-- 2026-10-08: paste Bring your clanmates' clan-chat line (Console ▸
-  Overview) into clan chat once and say whether `elixir.poapkings.com`
-  at its end survives the chat filter; if it is masked, it comes out of
-  the line (`apps/web/src/lib/invite.js`). Jamie.
 - 2026-09-29: `min_client_version` is 2.0.30 with enforcement on. Raising
   it retires the pre-signing rollback lever. Jamie.
-- 2026-10-08: the fresh-person journey ran live (Jamie's beta1 test
-  account, tracking a public creator tag #92P2LPLP, clan #GGJG2CCR
-  auto-followed): signup to 30 battles in about 8 minutes, mail in
-  seconds. Inbox placement for a stranger (not a filtered folder) still
-  unproven. Invitations are Jamie's call. Jamie.
 - 2026-10-03: co-leaders' own sign-in, verification and model-status
   read-back, any reviewed historical manual-award reconciliation, and a
   bounded paid drafting attempt remain live checks. Jamie with the
@@ -55,8 +47,10 @@ Remove a line in the change that closes it.
 
 ### Engineering
 
-- 2026-10-08: stop tracking #92P2LPLP on Jamie's beta1 test account
-  after its first weekly mails (by 2026-10-15). Operator.
+- 2026-10-08: after their first weekly mails, by 2026-10-15, stop
+  tracking on Jamie's beta1/beta2 test accounts (beta1: #92P2LPLP; beta2:
+  #9Y0LV2QLC and its auto-followed clan #QUV28PCG), then sign both test
+  accounts out of every session. Operator.
 - 2026-10-03: optional RDS downsizing (db.t4g.small, 20 GiB) waits a
   couple of weeks of measurements. Operator.
 - 2026-09-28: one rate budget with no per-key pooling; revisit around
@@ -663,3 +657,36 @@ the played form and the mirror had no such file.
   Wizard or Evo Electro Giant draws a broken image until Supercell
   publishes them; collector avatars and Verify's card faces
   (`icon_medium`) still hotlink Supercell; tower troops have no art.
+
+## 2026-10-08 — came back means a later day on the person's clock; housekeeping
+
+Jamie's answers the same day, to the recommendations they name:
+
+- **"8. agree": the beta pulse's came back.** BACK WK 1 and 2 now count
+  only the person using Elixir: a `signed_in` event or a call of their
+  own in `mcp_call_audit` (Console, Ladder, MCP or API; a service
+  token's `svc:` calls under the account are not the person), on a day
+  1-7 or 8-14 after the signup day, both days on the account's own time
+  zone (UTC when it has none, or one Postgres does not know). A session
+  only seen or refreshed no longer counts: a tab left open past UTC
+  midnight was counting as a return. "Open" is judged on the same clock.
+  Signup weeks stay ISO weeks in UTC. Nothing new is stored
+  (`services/web-api/src/beta-pulse.mjs`; tests in `beta-pulse.test.mjs`:
+  the open tab, a next-local-day read, a zone-less account on UTC, an
+  unknown zone, a service token, and a UTC+14 window that has closed);
+  the Admin footnote says so. The DECISIONS line carries the rule.
+- **"9. agree, no need to review for approval": privacy.md.** The
+  sentence that AI models "write some of the mail from public game data
+  and help read and answer the feedback you send" is gone (DECISIONS: no
+  model-written mail). Whether to name Clan's own-key model flow was not
+  answered and stays in Jamie's list.
+- **"10. we can skip this":** inbox placement for strangers is not being
+  pursued; the line that tracked it is gone.
+- **"11. fine":** Jamie's beta2 test account gets beta1's treatment, and
+  both test accounts are signed out of every session then (Operator
+  line).
+- **"12. remove":** the 2026-10-05 `channels_ok: 0` line; STEWARD's
+  10-08 rebuild logged `channels_ok` on all three bots.
+- **Invitations:** Jamie invites POAP KINGS with the wording as it
+  stands, and pastes the clan-chat line once to watch the chat filter.
+- No MCP or JSON API change: MCP 11.5.0, JSON API 3.1.0.
