@@ -799,6 +799,37 @@ no served file was Supercell's own bytes.
 - **Left:** collector avatars and Verify's card faces still hotlink
   Supercell's `icon_medium` (unaltered); tower troops have no art.
 
+**Live.** #387 merged as f96fb0d2 and was deployed from green
+`origin/main` at 01:06Z (20:06 CT) with `--acceptance=cards`: 32 cases,
+0 failed. The mirror wrote 182 originals, refused none, and found 2 forms
+missing (`26000042_hero`, `26000085_evo`, both expected). A second deploy
+of green main (da251e46, 01:17Z, 20:17 CT) verified all 182 against fresh
+downloads. Read-back (reads only): the sha256 of Supercell's icon equals
+Elixir's copy for Knight base/evo/hero, Hero Valkyrie, Evo P.E.K.K.A and
+Electro Wizard. All are `image/png`. A battle page, its share PNG and
+`/cards/26000042/` (base under the Hero ribbon) all draw art.
+
+- **The first deploy baked the old names into the card pages.** The site
+  build reads `/api/public/cards`, and CloudFront caches that response
+  for an hour (`max-age=3600`). The build read the pre-flip catalog, so
+  `/cards/` named `-285.png` until the second deploy rebuilt it. Any
+  change to an `art` URL needs a second deploy once the cache turns
+  over, or the site must build those paths from `cardArtPath` instead
+  of the response's text. Neither is built.
+- **The resized objects were not deleted.** Auto mode blocked
+  `aws s3 rm` of the 546 `assets/cards/*-{128,192,285}.png` objects, so
+  they still answer 200, though nothing built or served names them.
+  Their last upload was 00:55Z today. The 14-day asset prune
+  (`pruneCandidates`) removes them on the first deploy after about
+  2026-10-23 00:55Z, because no build ships them any more. Originals
+  cannot be pruned: every deploy seeds them from the bucket and
+  re-uploads them. Mail sent before today names the resized URLs. After
+  the prune its images break, though the alt text still shows.
+- **Flake:** `services/mcp/test/query-budget.test.mjs` ("a read-only
+  tool behind a lock…") failed once under full-suite load ('5s' !== '0').
+  It passed alone 3 of 3 and on the next full verify. The run was
+  unrelated, but the flake is a defect and remains open.
+
 ## 2026-10-08 — 11.5.1 and the per-agent hour are live; the strays stay
 
 **Deploy.** #384 (live_fetch only fetches, 0209, 11.5.1) and #386 (each
