@@ -7,17 +7,20 @@
  *  form at 128, 192 and 285 pixels wide, uploaded with the site. Mail
  *  never hotlinks Supercell's CDN: a mail client proxies or blocks a
  *  third-party image. */
+import { CARD_ART_WIDTHS, cardArtPath } from "@elixir-mcp/contracts";
 import { SITE, FONT, M, esc } from "./shell.mjs";
-
-/** The widths the mirror writes. */
-const ASSET_WIDTHS = [128, 192, 285];
 
 /** The asset for a DISPLAY width: the smallest file at least twice as
  *  wide, so a retina screen has real pixels to draw with (64 -> 128,
  *  96 -> 192, 160 -> 285). Above 142 the source's own 285 is the most
- *  there is; inventing pixels above it would only add bytes. */
+ *  there is; inventing pixels above it would only add bytes. The file's
+ *  name is the mirror's own (contracts card-art.ts). */
 export const cardAsset = (cardId, form, displayWidth) =>
-  `${SITE}/assets/cards/${cardId}${form === "hero" ? "_hero" : form === "evolution" ? "_evo" : ""}-${ASSET_WIDTHS.find((w) => w >= displayWidth * 2) ?? 285}.png`;
+  `${SITE}${cardArtPath(
+    cardId,
+    form === "hero" || form === "evolution" ? form : "base",
+    CARD_ART_WIDTHS.find((w) => w >= displayWidth * 2) ?? 285,
+  )}`;
 
 /** Card art is 2:3 portrait (the frame, 285x420 at source), never a
  *  square icon, so a width carries its height: a cell that sets only the

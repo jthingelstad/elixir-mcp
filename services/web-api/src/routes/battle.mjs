@@ -5,6 +5,7 @@
  *  reading /api/public/battles/<ref>; this route only names it. */
 import { readFile } from "node:fs/promises";
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { cardArtPath } from "@elixir-mcp/contracts";
 import { readPublicBattle } from "../battle-page.mjs";
 import { SHARE_FILES } from "../share-files.mjs";
 
@@ -112,16 +113,16 @@ export function makeSiteShell(
 
 /** Each card's art from the site bucket's mirror
  *  (infra/scripts/mirror-card-art.mjs), at the 128-pixel width: the
- *  picture draws a card 78 wide. Read once per card and form for the
- *  life of the function; a card the mirror lacks is null, and the
- *  picture writes its name in the frame. */
-const SUFFIX = { base: "", evolution: "_evo", hero: "_hero" };
-export function makeCardArt(bucket) {
+ *  picture draws a card 78 wide. The played form's art, else the base
+ *  card's (the page's own fallback: a form newer than the mirror is
+ *  never a bare name when the card has art), else null, and the picture
+ *  writes its name in the frame. Read once per key for the life of the
+ *  function. */
+export function makeCardArt(bucket, send = null) {
   if (!bucket) return async () => null;
-  const s3 = new S3Client({});
+  const s3 = send ? { send } : new S3Client({});
   const seen = new Map();
-  return (card) => {
-    const key = `assets/cards/${card.id}${SUFFIX[card.form] ?? ""}-128.png`;
+  const read = (key) => {
     if (!seen.has(key))
       seen.set(
         key,
@@ -131,6 +132,12 @@ export function makeCardArt(bucket) {
           .catch(() => null),
       );
     return seen.get(key);
+  };
+  const key = (id, form) => cardArtPath(id, form, 128).slice(1);
+  return async (card) => {
+    const form = card.form ?? "base";
+    const bytes = await read(key(card.id, form));
+    return bytes ?? (form === "base" ? null : read(key(card.id, "base")));
   };
 }
 

@@ -13,7 +13,6 @@ layout: base.njk
 navActive: cards
 ---
 {%- set formName = {"hero": "Hero", "evolution": "Evo", "base": ""}[card.artForm] %}
-{%- set suffix = {"hero": "_hero", "evolution": "_evo", "base": ""}[card.artForm] %}
 <div class="flex flex-col gap-[22px] pt-7 pb-2" data-card="{{ card.id }}">
   <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-[13px] text-ink-faint">
     <a href="/cards/" data-card-crumb>Cards</a>
@@ -25,7 +24,7 @@ navActive: cards
     <span class="card-figure">
       <span class="card-art">
         <span class="card-art__frame">
-          <img class="card-art__img" src="/assets/cards/{{ card.id }}{{ suffix }}-285.png" alt="{{ (formName + ' ') if formName }}{{ card.name }}" width="92" height="136" data-name="{{ card.name }}" />
+          <img class="card-art__img" src="{{ card.art.figure }}"{% if card.art.figure_base %} data-base="{{ card.art.figure_base }}"{% endif %} alt="{{ (formName + ' ') if formName }}{{ card.name }}" width="92" height="136" data-name="{{ card.name }}" />
           {%- if formName %}
           <span class="card-art__form card-art__form--{{ card.artForm }}">{{ formName }}</span>
           {%- endif %}

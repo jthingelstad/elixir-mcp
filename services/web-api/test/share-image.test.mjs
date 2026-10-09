@@ -249,3 +249,24 @@ test("the renderer draws a PNG, and two renderers share one wasm", async () => {
     Object.keys(SHARE_FILES).sort(),
   );
 });
+
+test("a form the mirror lacks draws the base card's art, then nothing", async () => {
+  // 2026-10-08: Hero Electro Wizard and Evo Electro Giant were missing
+  // from the mirror, and the picture wrote their names.
+  const { makeCardArt } = await import("../src/routes/battle.mjs");
+  const keys = [];
+  const stored = new Set(["assets/cards/26000042-128.png"]);
+  const send = async (cmd) => {
+    keys.push(cmd.input.Key);
+    if (!stored.has(cmd.input.Key)) throw new Error("NoSuchKey");
+    return { Body: { transformToByteArray: async () => PIXEL } };
+  };
+  const art = makeCardArt("site", send);
+  assert.deepEqual(await art({ id: 26000042, form: "hero" }), PIXEL);
+  assert.deepEqual(keys, [
+    "assets/cards/26000042_hero-128.png",
+    "assets/cards/26000042-128.png",
+  ]);
+  assert.equal(await art({ id: 26000085, form: "evolution" }), null);
+  assert.equal(await art({ id: 26000085, form: "base" }), null);
+});

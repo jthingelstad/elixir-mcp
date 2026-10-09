@@ -54,7 +54,7 @@ navActive: cards
     <li data-name="{{ card.name }}" data-rarity="{{ card.rarity }}" data-elixir="{{ card.elixir }}">
       <a class="card-tile" href="/cards/{{ card.id }}/">
         <span class="card-tile__art">
-          <span class="card-art"><span class="card-art__frame"><img class="card-art__img" src="/assets/cards/{{ card.id }}-128.png" alt="" width="43" height="63" loading="lazy" data-name="{{ card.name }}" /></span></span>
+          <span class="card-art"><span class="card-art__frame"><img class="card-art__img" src="{{ card.art.tile }}" alt="" width="43" height="63" loading="lazy" data-name="{{ card.name }}" /></span></span>
           <span class="card-elixir" aria-label="{{ card.elixir }} elixir">{{ card.elixir }}</span>
         </span>
         <span class="card-tile__body">

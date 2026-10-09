@@ -34,6 +34,33 @@ export function artForm(forms) {
       : "base";
 }
 
+/** A catalog art URL as this origin's own path, at a mirrored width: the
+ *  pages are served from the origin the art is on (and a local build
+ *  serves its own copy). */
+const artPath = (url, width) =>
+  url
+    ? String(url)
+        .replace(/^https?:\/\/[^/]+/, "")
+        .replace(/-\d+\.png$/, `-${width}.png`)
+    : null;
+
+/** The art a card's page and tile draw (2026-10-08, Jamie: "Card art
+ *  should be in the api response for cards"): the catalog's own `art`,
+ *  the page's form else the base card. A catalog without `art` (one
+ *  served before 11.5.0) falls back to the mirror's names. */
+export function artOf(c, form) {
+  const sfx = { hero: "_hero", evolution: "_evo", base: "" };
+  const named = (f) =>
+    c.art ? (c.art[f] ?? null) : `/assets/cards/${c.id}${sfx[f]}-285.png`;
+  const figure = artPath(named(form) ?? named("base"), 285);
+  const base = artPath(named("base"), 285);
+  return {
+    figure,
+    figure_base: figure !== base ? base : null,
+    tile: artPath(named("base"), 128),
+  };
+}
+
 /** The public catalog (GET /api/public/cards) as the pages bake it: real
  *  cards only (a cost and art), A to Z. */
 export function shapeCards(body) {
@@ -49,6 +76,7 @@ export function shapeCards(body) {
       formsLabel: formsLabel(c.forms_available),
       also: alsoLabel(c.forms_available),
       artForm: artForm(c.forms_available),
+      art: artOf(c, artForm(c.forms_available)),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "en"));
 }
