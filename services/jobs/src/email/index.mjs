@@ -381,6 +381,10 @@ async function runPerAccount(run, recipients, season) {
         if (facts) {
           periodKey = milestonePeriodKey(now, facts._moments ?? []);
           period = now.toISOString().slice(0, 10);
+          // The season the lead moment happened in, from game_clock, so
+          // the mail's Ladder link opens that season (2026-10-08).
+          const at = facts.milestones?.[0]?.instant;
+          facts.season = await seasonOf(db, account, at ? new Date(at) : now);
         }
       }
       if (!facts) {

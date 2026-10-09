@@ -409,7 +409,9 @@ test("the battle that did it links its page, the short id battles_query hands ou
     html,
     /href="https:\/\/elixir\.poapkings\.com\/battle\/aad68079b0fa\?[^"]*"[^>]*>See the battle ›/,
   );
-  assert.match(html, /\/ladder\?player=2RQQ9LG8/);
+  // The Ladder link names the season the milestone happened in, from
+  // game_clock at its instant (2026-10-08).
+  assert.match(html, /\/ladder\?player=2RQQ9LG8&amp;season=1\d\d&amp;/);
 });
 
 test("the milestone window reaches back to the last clean look, never more than seven days", () => {
