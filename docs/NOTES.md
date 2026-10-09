@@ -798,3 +798,67 @@ no served file was Supercell's own bytes.
   and the `-128`/`-192` copies are gone. JSON API 3.1.0 unchanged.
 - **Left:** collector avatars and Verify's card faces still hotlink
   Supercell's `icon_medium` (unaltered); tower troops have no art.
+
+## 2026-10-08 — 11.5.1 and the per-agent hour are live; the strays stay
+
+**Deploy.** #384 (live_fetch only fetches, 0209, 11.5.1) and #386 (each
+agent has its own hour) went out in one deploy from green `origin/main`
+90acd3a0, using `--acceptance`. 0209 ran and the stack is
+`UPDATE_COMPLETE`. Acceptance found 824 cases with 2 failed, and both
+failures are the known ones: gym 312.2 (live participants 45, expected 48)
+and `elixir_timeline#docs`.
+
+**Read-back** (reads only):
+
+- `/tools.json` reports 11.5.1. Its live_fetch description says "It stores
+  nothing".
+- `/api/public/status` is healthy.
+
+**Strays.** Jamie approved the deletion, verbatim: "Approved: delete the
+profile snapshots live_fetch stored for untracked players in elixir
+production". `{live_fetch_strays}` (days 90) read 5 tags. 2 are tracked
+and 3 are not.
+
+- **#VL9ULV8RL and #UYPLUQ0U9** were live_fetched at 23:05Z on 10-08, with
+  one live-lane receipt each (`record` true, from before 0209).
+  - `player_snapshot_daily`: 1 and 1
+  - `player_progress_daily`: 2 and 0
+  - `player_badge`: 107 and 136
+  - `player_card`: 125 and 127
+  - `player_pol_season`: 1 and 1
+  - `player_profile_membership`: 1 and 1
+  - `player_event`, `battle_participant` and `clan_membership`: 0
+  - The `player` row is NAMED for both.
+- **#9Y0LV2QCL** has an unnamed `player` row and no footprint or receipt.
+
+The admission fed more than a snapshot: the player's name, cards, badges,
+profile membership and Path of Legends season. The approval's condition
+was to stop and report rather than widen the delete, so no deletion
+migration was written. Jamie's call:
+
+- delete the whole profile footprint plus the `player` row, receipt,
+  payload and archive object, or
+- leave them.
+
+0209 means live_fetch can no longer create more.
+
+**Feedback for the Feedback Manager.** `{feedback_respond}` is the Feedback
+Manager's op under the `loop` lease, so these two items are left for it.
+
+- **#34** (`planned`): shipped in 3.13.0. `battles_decks` rows carry
+  `mean_level_gap`, `modes` and `dominant_mode`, and the response carries
+  `comparable` with the conditional note, covering all three of the
+  filer's proposals. Suggested: `done`, `shipped_in` "3.13.0".
+- **#88** (`seen`): shipped in 6.19.0, which added `clan_war_trophies` and
+  deprecated `clan_score`. 9.1.0 removed the war family's `clan_score`
+  alias. On 10-09, `war_current` serves `clan_war_trophies` and no
+  `clan_score`. Jamie, 10-08: "rename it and deprecate clan_score
+  immediately", and that is already the shipped state. Suggested: `done`,
+  `shipped_in` "6.19.0", and say the alias went at 9.1.0.
+
+No `war_trophies` field was added. The war family already uses the clan
+family's name, as the filer asked ("Fix the war family up to the clan
+family's two"). A third name for the same number would break "One name,
+one meaning". `clans_roster.clan_score` and the `clans_timeline`
+`clan_score` metric are the profile's clan score, which is correct.
+
