@@ -1197,3 +1197,19 @@ deploy needs no acceptance run.
 **Open:** possible counts the roster at the close while used counts every
 participant, so a week with churn can exceed 100% before the cap; the
 render caps each share at 100%.
+
+**Deployed** 2026-10-09 03:13Z (10:13 PM CT on 10-08), 3274df12 (#396),
+from green `origin/main` under the `session` lease; no acceptance (no
+tool output changed). `/api/public/status` healthy.
+
+**Read back** (`{clan_report_preview}`, read-only, the home clan's
+2026-W40 report): the stored issue renders unchanged with no `trend`;
+composed now, the same week shows War decks "191 of 768 possible war
+decks used (25%), 577 not played. Over the four races before: 36%",
+with S136 weeks 3, 2 and 1 (finished on war day 3, so three days asked)
+and S135 week 5 (Colosseum) in the table, and the clan's-week row "The 3
+recorded weeks before averaged 2,821 battles a week, by 44 members."
+The headline reads 2,484 battles by 44 (the stored issue's 2,481 was
+counted by when the battles were learned). The week of 08-31 is left out
+of the activity comparison: it starts before the clan's active recording
+row's `created_at`.
