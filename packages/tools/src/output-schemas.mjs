@@ -871,6 +871,7 @@ export const OUTPUT_SCHEMAS = {
             first_seen: { type: ["string", "null"] },
             last_seen: { type: ["string", "null"] },
             losses: { type: ["number", "null"] },
+            mean_level_gap: { type: ["number", "null"] },
             modes: { type: "array" },
             name: { type: ["string", "null"] },
             name_known: { type: ["boolean", "null"] },

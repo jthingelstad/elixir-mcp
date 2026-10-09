@@ -1,5 +1,6 @@
 import { formName, modeGroupSql } from "@elixir-mcp/contracts";
 import {
+  requireEnum,
   DISPLAY_NAME_SCHEMA,
   MODE_SCHEMA,
   ON_BEHALF_OF_SCHEMA,
@@ -29,9 +30,22 @@ import {
   ownBattlesClause,
 } from "./common.mjs";
 
+/** A row needs this many battles: one game in or out of a deck says
+ *  nothing, and in the losses order a single loss must not lead. */
+const MIN_BATTLES = 3;
+
+/** The two orders (11.6.0's sort): the record's own counts, nothing
+ *  derived. Losses ties go to the card met more often, then a stable
+ *  card order, so the same record always reads in the same order. */
+const CARD_ORDER = {
+  battles: "count(*) desc",
+  losses:
+    "count(*) filter (where bp.outcome = 'loss') desc, count(*) desc, pc.card_id, pc.form",
+};
+
 export const battles_cards = {
   description:
-    'Per-card win/loss attribution over recorded battles. perspective "mine": which of your cards carry. perspective "opponent": which enemy cards beat you (the nemesis question). Each row carries its battles per mode group and mean_level_gap; modes_in_window and comparable say whether modes with different matchmaking were pooled (pass mode to isolate one). Each round of a Clan Wars duel is one game: the cards played that round, and that round\'s result.',
+    'Per-card win/loss attribution over recorded battles. perspective "mine": the battles where your deck held the card. perspective "opponent": the battles where an opposing deck held it, with your record in them. sort "losses" orders rows by the battles you lost (default "battles"); a row needs at least applied.min_battles (3). Each row carries its battles per mode group and mean_level_gap; modes_in_window and comparable say whether modes with different matchmaking were pooled (pass mode to isolate one). Each round of a Clan Wars duel is one game: that round\'s cards and result.',
   inputSchema: {
     type: "object",
     properties: {
@@ -46,6 +60,13 @@ export const battles_cards = {
       ...WINDOW_ARGS,
       season: SEASON_ARG_SCHEMA,
       mode: MODE_SCHEMA,
+      sort: {
+        type: "string",
+        enum: ["battles", "losses"],
+        default: "battles",
+        description:
+          "battles: most battles first. losses: most battles lost first, then most battles. Either way a row needs applied.min_battles.",
+      },
     },
     additionalProperties: false,
   },
@@ -64,6 +85,8 @@ export const battles_cards = {
       seasonDefault: false,
     });
     const mine = args.perspective !== "opponent";
+    requireEnum(args.sort, ["battles", "losses"], "sort");
+    const sort = args.sort ?? "battles";
     const where = ["bp.player_tag = $1", `bp.outcome in ('win','loss')`];
     const params = [tag];
     const add = (clause, value) => {
@@ -96,7 +119,7 @@ export const battles_cards = {
     // The control beside each row (feedback #54, 3.13.0): the mean
     // level gap over the battles the card appeared in, and the row's
     // battles by mode group, so a card met mostly in war games does not
-    // read as a ladder nemesis.
+    // read as a ladder record.
     const levelSource = `cross join lateral (
              -- The other side's level, stamped at ingest (0156).
              select case when bp.deck_avg_level is not null
@@ -114,8 +137,8 @@ export const battles_cards = {
          join card c on c.card_id = pc.card_id
          where ${where.join(" and ")} and pc.slot > 0
          group by 1, 2, 3
-         having count(*) >= 3
-         order by count(*) desc
+         having count(*) >= ${MIN_BATTLES}
+         order by ${CARD_ORDER[sort]}
          limit 120`,
       params,
     );
@@ -140,7 +163,8 @@ export const battles_cards = {
         window: win.echo,
         perspective: mine ? "mine" : "opponent",
         mode: args.mode,
-        min_battles: 3,
+        sort,
+        min_battles: MIN_BATTLES,
       }),
       modes_in_window: Object.fromEntries(
         pooledGroups.map((g) => [
@@ -166,7 +190,7 @@ export const battles_cards = {
         win.seasonNotes,
         mine
           ? "win_rate is YOUR record when this card is in your deck."
-          : "win_rate is YOUR record when this card appears in the OPPONENT deck; low means nemesis.",
+          : "win_rate is YOUR record in the battles where the OPPONENT deck held this card.",
         "Each row's modes counts its battles by mode group and mean_level_gap is your deck's average level minus the opposing side's in those battles; a row's record is comparable to another's only at similar values of both.",
         FORM_ROWS_NOTE,
       ),

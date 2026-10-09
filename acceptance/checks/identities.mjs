@@ -240,6 +240,68 @@ export const identities = [
 
   // --- the two that need more than one read per side
   {
+    // 11.6.0: most losses first is an order, never a different answer.
+    // Both orders hold the same rows with the same counts (where both
+    // lists reach them: each is cut at 120), every row clears the floor,
+    // the losses order is losses then battles descending, and every
+    // opponent row carries its level gap (a number or null, never absent).
+    id: "battles_cards-battles_opponents-losses-order",
+    tools: ["battles_cards", "battles_opponents"],
+    run: async (ctx) => {
+      const args = {
+        player_tag: JAMIE,
+        perspective: "opponent",
+        mode: "ladder",
+        days: 90,
+      };
+      const byBattles = await read(ctx, "battles_cards", args);
+      const byLosses = await read(ctx, "battles_cards", {
+        ...args,
+        sort: "losses",
+      });
+      eq(byBattles.applied.sort, "battles", "battles_cards default sort");
+      eq(byLosses.applied.sort, "losses", "battles_cards sort echoed");
+      const floor = byLosses.applied.min_battles;
+      ok(isInt(floor) && floor >= 2, `a floor of at least 2 (${floor})`);
+      const key = (c) => `${c.id}:${c.form}`;
+      const before = new Map(byBattles.cards.map((c) => [key(c), c]));
+      for (const [i, c] of byLosses.cards.entries()) {
+        ok(c.battles >= floor, `${key(c)}: ${c.battles} under the floor`);
+        const prev = byLosses.cards[i - 1];
+        if (prev)
+          ok(
+            prev.losses > c.losses ||
+              (prev.losses === c.losses && prev.battles >= c.battles),
+            `losses order: ${key(prev)} ${prev.losses}/${prev.battles} before ${key(c)} ${c.losses}/${c.battles}`,
+          );
+        const same = before.get(key(c));
+        if (same) {
+          eq(c.losses, same.losses, `${key(c)} losses in both orders`);
+          eq(c.battles, same.battles, `${key(c)} battles in both orders`);
+        }
+      }
+      const opp = await read(ctx, "battles_opponents", {
+        player_tag: JAMIE,
+        days: 90,
+        min_battles: 2,
+        sort: "losses",
+      });
+      eq(opp.applied.sort, "losses", "battles_opponents sort echoed");
+      for (const [i, o] of opp.opponents.entries()) {
+        ok(
+          o.mean_level_gap === null || typeof o.mean_level_gap === "number",
+          `${o.player_tag}: mean_level_gap ${JSON.stringify(o.mean_level_gap)}`,
+        );
+        const prev = opp.opponents[i - 1];
+        if (prev)
+          ok(
+            prev.losses >= o.losses,
+            `opponents by losses: ${prev.losses} before ${o.losses}`,
+          );
+      }
+    },
+  },
+  {
     id: "war_rivals-mean-fame-is-the-standings-mean",
     run: async (ctx) => {
       // Pooled over finished shared races: rebuilt from the exact weeks

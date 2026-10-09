@@ -319,8 +319,17 @@ therefore serves the controls beside it:
   `mean_level_gap` over the battles the card appeared in; the response
   carries `modes_in_window` (battles and mean gap per mode group over the
   whole window) and `comparable`. A card met mostly in war games inherits
-  war's matchmaking, so a "nemesis" table pooled across modes is a mode
-  table first; pass `mode` before reading a row as a weakness.
+  war's matchmaking, so a card table pooled across modes is a mode table
+  first; pass `mode` before comparing one row's record with another's.
+  A row needs three battles (`applied.min_battles`). Rows come most
+  battles first; `sort: "losses"` puts the most battles lost first, ties
+  to the most battles, so a single loss never leads the list. Either way
+  the rows and their counts are the same; only the order moves.
+- `battles_opponents` rows carry `mean_level_gap` too: your deck's
+  average card level minus the opposing side's over the battles with
+  both recorded, null when none were (a duel has no single deck). Its
+  `sort` takes `battles` (the default), `last_seen`, `wins` or `losses`,
+  and `min_battles` sets the fewest meetings a row needs.
 - `battles_performance` and `battles_compare` take `mode`; with none they
   return the record split per [mode group](#mode-groups) under `modes`
   beside the pooled one, and a note fires whenever the battles span more
