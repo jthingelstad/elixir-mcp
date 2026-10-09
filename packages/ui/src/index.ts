@@ -53,6 +53,7 @@ export {
 export { isPlainClick, Link, NavigateProvider } from "./Link.tsx";
 export { Markdown, renderMarkdown } from "./Markdown.tsx";
 export { Spark, type SparkPoint } from "./Spark.tsx";
+export { splitTags, Tag, TagText } from "./Tag.tsx";
 export {
   Rail,
   RailIdentity,
