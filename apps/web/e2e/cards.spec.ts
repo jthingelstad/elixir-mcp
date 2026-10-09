@@ -24,7 +24,7 @@ test("catalog browsing works without requesting global statistics", async ({
 }) => {
   // The local card-art cache is absent in CI. Fulfill only the art this
   // case inspects so catalog/form behavior does not depend on a cache hit.
-  await page.route("**/assets/cards/26000000_hero-285.png", (route) =>
+  await page.route("**/assets/cards/26000000_hero.png", (route) =>
     route.fulfill({
       contentType: "image/png",
       body: Buffer.from(

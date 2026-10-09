@@ -26,22 +26,31 @@ const hogs: DeckCard = {
   level: 15,
 };
 
-test("the art is the smallest mirrored width that is sharp at 2x", () => {
-  expect(cardArtSrc(26000000, "base", 40)).toBe(
-    "/assets/cards/26000000-128.png",
+test("the art is the mirror's one file per form: never a resized copy", () => {
+  // Jamie, 2026-10-08: "you cannot resize the images or alter them in
+  // anyway." 11.5.0 asked for -128, -192 or -285 copies by size.
+  expect(cardArtSrc(26000000, "base")).toBe("/assets/cards/26000000.png");
+  expect(cardArtSrc(26000000, "evolution")).toBe(
+    "/assets/cards/26000000_evo.png",
   );
-  expect(cardArtSrc(26000000, "base", 64)).toBe(
-    "/assets/cards/26000000-128.png",
-  );
-  expect(cardArtSrc(26000000, "evolution", 72)).toBe(
-    "/assets/cards/26000000_evo-192.png",
-  );
-  expect(cardArtSrc(26000000, "hero", 120)).toBe(
-    "/assets/cards/26000000_hero-285.png",
-  );
-  expect(cardArtSrc(26000000, "hero", 400)).toBe(
-    "/assets/cards/26000000_hero-285.png",
-  );
+  expect(cardArtSrc(26000000, "hero")).toBe("/assets/cards/26000000_hero.png");
+  expect(cardArtSrc(26000000, null)).toBe("/assets/cards/26000000.png");
+});
+
+test("the display size is the tile's width and height, whatever the size", () => {
+  for (const size of [40, 64, 80, 160]) {
+    cleanup();
+    render(<CardArt card={hogs} size={size} />);
+    const img = screen
+      .getByRole("img", { name: "Evo Royal Hogs, level 15" })
+      .querySelector("img");
+    expect(img?.getAttribute("src")).toBe("/assets/cards/26000046_evo.png");
+    expect(img?.getAttribute("width")).toBe(String(size));
+    expect(img?.getAttribute("height")).toBe(
+      String(Math.round((size * 420) / 285)),
+    );
+    expect(img?.hasAttribute("srcset")).toBe(false);
+  }
 });
 
 test("a form is part of the card's name, never merged with the base", () => {
@@ -56,7 +65,7 @@ test("a tile without a link is one image named by card and level", () => {
   const tile = screen.getByRole("img", { name: "Evo Royal Hogs, level 15" });
   expect(tile.tagName).toBe("SPAN");
   expect(tile.querySelector("img")?.getAttribute("src")).toBe(
-    "/assets/cards/26000046_evo-128.png",
+    "/assets/cards/26000046_evo.png",
   );
   expect(tile.querySelector(".card-art__form--evolution")?.textContent).toBe(
     "Evo",
@@ -134,19 +143,19 @@ const catalog: CardArtSource = {
   art: (id) =>
     ({
       26000042: {
-        base: `${ORIGIN}/26000042-285.png`,
-        hero: `${ORIGIN}/26000042_hero-285.png`,
+        base: `${ORIGIN}/26000042.png`,
+        hero: `${ORIGIN}/26000042_hero.png`,
       },
       26000085: {
-        base: `${ORIGIN}/26000085-285.png`,
-        evolution: `${ORIGIN}/26000085_evo-285.png`,
+        base: `${ORIGIN}/26000085.png`,
+        evolution: `${ORIGIN}/26000085_evo.png`,
       },
     })[id] ?? null,
 };
 const srcOf = (name: string) =>
   screen.getByRole("img", { name }).querySelector("img")?.getAttribute("src");
 
-test("a tile draws the art the catalog names, at the width it needs", () => {
+test("a tile draws the art the catalog names, as named, at its own size", () => {
   render(
     <CardArtProvider value={catalog}>
       <CardArt card={{ id: 26000042, name: "Electro Wizard", form: "hero" }} />
@@ -156,8 +165,13 @@ test("a tile draws the art the catalog names, at the width it needs", () => {
       />
     </CardArtProvider>,
   );
-  expect(srcOf("Hero Electro Wizard")).toBe(`${ORIGIN}/26000042_hero-128.png`);
-  expect(srcOf("Evo Electro Giant")).toBe(`${ORIGIN}/26000085_evo-192.png`);
+  expect(srcOf("Hero Electro Wizard")).toBe(`${ORIGIN}/26000042_hero.png`);
+  expect(srcOf("Evo Electro Giant")).toBe(`${ORIGIN}/26000085_evo.png`);
+  const giant = screen
+    .getByRole("img", { name: "Evo Electro Giant" })
+    .querySelector("img");
+  expect(giant?.getAttribute("width")).toBe("80");
+  expect(giant?.getAttribute("height")).toBe("118");
 });
 
 test("a form the catalog has no art for draws the base card's", () => {
@@ -166,7 +180,7 @@ test("a form the catalog has no art for draws the base card's", () => {
       <CardArt card={{ id: 26000085, name: "Electro Giant", form: "hero" }} />
     </CardArtProvider>,
   );
-  expect(srcOf("Hero Electro Giant")).toBe(`${ORIGIN}/26000085-128.png`);
+  expect(srcOf("Hero Electro Giant")).toBe(`${ORIGIN}/26000085.png`);
 });
 
 test("art that fails steps down: the form, the base card, the name", () => {
@@ -178,7 +192,7 @@ test("art that fails steps down: the form, the base card, the name", () => {
   const tile = screen.getByRole("img", { name: "Hero Electro Wizard" });
   fireEvent.error(tile.querySelector("img")!);
   expect(tile.querySelector("img")?.getAttribute("src")).toBe(
-    `${ORIGIN}/26000042-128.png`,
+    `${ORIGIN}/26000042.png`,
   );
   expect(tile.querySelector(".card-art__form--hero")?.textContent).toBe("Hero");
   fireEvent.error(tile.querySelector("img")!);
@@ -212,11 +226,11 @@ test("without a catalog, the mirror's names, the form then the base", () => {
   );
   const tile = screen.getByRole("img", { name: "Hero Electro Wizard" });
   expect(tile.querySelector("img")?.getAttribute("src")).toBe(
-    "/assets/cards/26000042_hero-128.png",
+    "/assets/cards/26000042_hero.png",
   );
   fireEvent.error(tile.querySelector("img")!);
   expect(tile.querySelector("img")?.getAttribute("src")).toBe(
-    "/assets/cards/26000042-128.png",
+    "/assets/cards/26000042.png",
   );
 });
 

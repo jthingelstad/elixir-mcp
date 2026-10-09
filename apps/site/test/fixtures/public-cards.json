@@ -19,9 +19,9 @@
         "hero"
       ],
       "art": {
-        "base": "https://elixir.poapkings.com/assets/cards/26000000-285.png",
-        "evolution": "https://elixir.poapkings.com/assets/cards/26000000_evo-285.png",
-        "hero": "https://elixir.poapkings.com/assets/cards/26000000_hero-285.png"
+        "base": "https://elixir.poapkings.com/assets/cards/26000000.png",
+        "evolution": "https://elixir.poapkings.com/assets/cards/26000000_evo.png",
+        "hero": "https://elixir.poapkings.com/assets/cards/26000000_hero.png"
       }
     },
     {
@@ -41,8 +41,8 @@
         "evolution"
       ],
       "art": {
-        "base": "https://elixir.poapkings.com/assets/cards/26000010-285.png",
-        "evolution": "https://elixir.poapkings.com/assets/cards/26000010_evo-285.png"
+        "base": "https://elixir.poapkings.com/assets/cards/26000010.png",
+        "evolution": "https://elixir.poapkings.com/assets/cards/26000010_evo.png"
       }
     },
     {
@@ -62,8 +62,8 @@
         "hero"
       ],
       "art": {
-        "base": "https://elixir.poapkings.com/assets/cards/28000015-285.png",
-        "hero": "https://elixir.poapkings.com/assets/cards/28000015_hero-285.png"
+        "base": "https://elixir.poapkings.com/assets/cards/28000015.png",
+        "hero": "https://elixir.poapkings.com/assets/cards/28000015_hero.png"
       }
     },
     {
@@ -79,7 +79,7 @@
       "maxLevelRarityScale": 14,
       "forms_available": [],
       "art": {
-        "base": "https://elixir.poapkings.com/assets/cards/28000000-285.png"
+        "base": "https://elixir.poapkings.com/assets/cards/28000000.png"
       }
     },
     {
@@ -95,7 +95,7 @@
       "maxLevelRarityScale": 6,
       "forms_available": [],
       "art": {
-        "base": "https://elixir.poapkings.com/assets/cards/26000074-285.png"
+        "base": "https://elixir.poapkings.com/assets/cards/26000074.png"
       }
     },
     {
@@ -115,8 +115,8 @@
         "evolution"
       ],
       "art": {
-        "base": "https://elixir.poapkings.com/assets/cards/26000055-285.png",
-        "evolution": "https://elixir.poapkings.com/assets/cards/26000055_evo-285.png"
+        "base": "https://elixir.poapkings.com/assets/cards/26000055.png",
+        "evolution": "https://elixir.poapkings.com/assets/cards/26000055_evo.png"
       }
     }
   ],

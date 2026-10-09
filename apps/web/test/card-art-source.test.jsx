@@ -9,8 +9,8 @@ const data = {
       id: 26000042,
       name: "Electro Wizard",
       art: {
-        base: `${ORIGIN}/26000042-285.png`,
-        hero: `${ORIGIN}/26000042_hero-285.png`,
+        base: `${ORIGIN}/26000042.png`,
+        hero: `${ORIGIN}/26000042_hero.png`,
       },
     },
     { id: 26000999, name: "A card with no art" },
@@ -20,7 +20,7 @@ const data = {
 test("the catalog's art by card id; a card without art has none", () => {
   const source = cardArtSource({ isPending: false, isError: false, data });
   expect(source.status).toBe("ready");
-  expect(source.art(26000042)?.hero).toBe(`${ORIGIN}/26000042_hero-285.png`);
+  expect(source.art(26000042)?.hero).toBe(`${ORIGIN}/26000042_hero.png`);
   expect(source.art(26000999)).toBeNull();
   expect(source.art(1)).toBeNull();
 });
