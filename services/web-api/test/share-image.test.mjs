@@ -255,7 +255,7 @@ test("a form the mirror lacks draws the base card's art, then nothing", async ()
   // from the mirror, and the picture wrote their names.
   const { makeCardArt } = await import("../src/routes/battle.mjs");
   const keys = [];
-  const stored = new Set(["assets/cards/26000042-128.png"]);
+  const stored = new Set(["assets/cards/26000042.png"]);
   const send = async (cmd) => {
     keys.push(cmd.input.Key);
     if (!stored.has(cmd.input.Key)) throw new Error("NoSuchKey");
@@ -264,9 +264,20 @@ test("a form the mirror lacks draws the base card's art, then nothing", async ()
   const art = makeCardArt("site", send);
   assert.deepEqual(await art({ id: 26000042, form: "hero" }), PIXEL);
   assert.deepEqual(keys, [
-    "assets/cards/26000042_hero-128.png",
-    "assets/cards/26000042-128.png",
+    "assets/cards/26000042_hero.png",
+    "assets/cards/26000042.png",
   ]);
   assert.equal(await art({ id: 26000085, form: "evolution" }), null);
   assert.equal(await art({ id: 26000085, form: "base" }), null);
+  // The picture reads the mirror's original files (2026-10-08: the
+  // resized -128 copies are gone), and a miss is asked again, so the
+  // hero drawn once Supercell publishes it needs no cold start.
+  stored.add("assets/cards/26000042_hero.png");
+  keys.length = 0;
+  assert.deepEqual(await art({ id: 26000042, form: "hero" }), PIXEL);
+  assert.deepEqual(keys, ["assets/cards/26000042_hero.png"]);
+  keys.length = 0;
+  await art({ id: 26000042, form: "hero" });
+  assert.deepEqual(keys, [], "a file read is kept");
+  assert.ok(keys.every((k) => !/-\d+\.png$/.test(k)));
 });
