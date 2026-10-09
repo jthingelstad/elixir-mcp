@@ -41,6 +41,7 @@ import {
   warDrift,
   roleHistoryCensus,
   membershipBaselineCensus,
+  liveFetchStrayCensus,
   battleFidelityCensus,
   modeShapeCensus,
   enumCensus,
@@ -373,6 +374,14 @@ async function dispatch(event) {
     const result = await feedbackRespond(
       process.env.DATABASE_URL,
       event.feedback_respond,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.live_fetch_strays) {
+    const result = await liveFetchStrayCensus(
+      process.env.DATABASE_URL,
+      event.live_fetch_strays,
     );
     console.log(JSON.stringify(result));
     return result;
