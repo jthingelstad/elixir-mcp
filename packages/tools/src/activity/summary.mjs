@@ -145,6 +145,15 @@ export function summarizePlayer(e, timeZone = "UTC") {
 }
 
 export function summarizeClan(e, timeZone = "UTC") {
+  return `${e.name ?? e.subject_tag}: ${clanSummaryParts(e, timeZone).join("; ")}.`;
+}
+
+/** The clan sentence's clauses, in the order the sentence says them: the
+ *  week's activity first, then roster moves, war, presence, standouts and
+ *  donations. The timeline joins them into one sentence; the friends
+ *  mail draws the first as a headline and the next few as bullets
+ *  (2026-10-08), so both say the same facts in the same order. */
+export function clanSummaryParts(e, timeZone = "UTC") {
   const since = sinceLabel(e.window.from, e.window.to, timeZone);
   const parts = [];
   const a = e.activity;
@@ -289,7 +298,7 @@ export function summarizeClan(e, timeZone = "UTC") {
     parts.push(
       `donations this week ${num(e.donations.week_total)}, led by ${e.donations.leader.name ?? e.donations.leader.tag} (${e.donations.leader.given})`,
     );
-  return `${e.name ?? e.subject_tag}: ${parts.join("; ")}.`;
+  return parts;
 }
 
 /** ", on a 3-0 win over Jotaro (5,976), +30 to 6,000" - the battle a
