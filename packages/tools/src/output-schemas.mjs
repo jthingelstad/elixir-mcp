@@ -948,6 +948,11 @@ export const OUTPUT_SCHEMAS = {
             items: { type: "string", enum: ["base", "evolution", "hero"] },
           },
           icon_urls: { type: ["object", "null"] },
+          art: {
+            type: ["object", "null"],
+            description:
+              "Each form's image on Elixir's own origin (base, evolution, hero: the forms icon_urls carries), 285 pixels wide; -128.png and -192.png at the same address are narrower copies (11.5.0).",
+          },
           first_seen_in_catalog: { type: ["string", "null"] },
           first_played: {
             type: "object",
@@ -967,6 +972,7 @@ export const OUTPUT_SCHEMAS = {
           "elixir_cost",
           "forms_available",
           "icon_urls",
+          "art",
           "first_seen_in_catalog",
           "first_played",
         ],
@@ -1050,6 +1056,11 @@ export const OUTPUT_SCHEMAS = {
             elixirCost: { type: ["number", "null"] },
             forms_available: { type: "array" },
             iconUrls: { type: "object" },
+            art: {
+              type: "object",
+              description:
+                "Each form's image on Elixir's own origin, 285 pixels wide, when ids or query name the cards (11.5.0).",
+            },
             id: { type: ["number", "null"] },
             maxEvolutionLevel: { type: ["number", "null"] },
             maxLevel: { type: ["number", "null"] },

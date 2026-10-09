@@ -17,7 +17,7 @@ Elixir keeps the card catalog, your observed card inventory, the cards on each b
 
 | place | what it holds |
 | --- | --- |
-| Catalog | Id, name, type, rarity, elixir cost, icons and available forms. |
+| Catalog | Id, name, type, rarity, elixir cost, icons, art and available forms. |
 | Battle side | Played card, form, slot and level on the in-game 1–16 scale. |
 | Deck identity | Exact card/form pairs plus tower troop, identified by `deck_hash`; levels are separate. |
 | Player inventory | Last observed level, count, unlocked forms and star level, with observation timestamps. |
@@ -47,6 +47,12 @@ Card history reads use the selected players' recorded games before looking up ca
 | My observed card levels and forms | `players_collection` |
 | Which decks did I play? | `battles_decks` |
 | What is this deck called? | `cards_archetype` |
+
+## Card art
+
+Card responses carry each card's art by form: `art: {base, evolution, hero}` on `cards_catalog` when `ids` or `query` name the cards, on `card.art` in `cards_card`, and on the public catalog at `/api/public/cards`. A form is there when the API's own `iconUrls` lists it, so the art is the game's. Each address is an image on Elixir's own origin, 285 pixels wide; the same address ending `-128.png` or `-192.png` is a narrower copy. Elixir copies the images from the API's addresses, so a page showing them never sends its reader to Supercell's servers. `iconUrls` stays as the API serves it.
+
+Draw a played card's form art, else the base card's art, else its name. The API can list a form before Supercell publishes its image (on 2026-10-08, Hero Electro Wizard and Evo Electro Giant): Elixir copies it once it answers, and until then that address does not, and the base card stands in. Tower troops carry no art yet. The unnarrowed `cards_catalog` leaves `art` out to stay under the result cap.
 
 ## Tower troops
 

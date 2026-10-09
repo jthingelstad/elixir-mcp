@@ -12,7 +12,12 @@ import {
   RELEASE_SIGNED_SQL,
   signatureState,
 } from "@elixir-mcp/collector-door/signature";
-import { DISCLAIMER, cardForms, cardType } from "@elixir-mcp/contracts";
+import {
+  DISCLAIMER,
+  cardArt,
+  cardForms,
+  cardType,
+} from "@elixir-mcp/contracts";
 import { RECORDED_PLAYERS_SQL } from "@elixir-mcp/tools/shared";
 import { readPublicBattle } from "../battle-page.mjs";
 
@@ -394,6 +399,13 @@ export function publicRoutes({ deadLetters }) {
             elixir_cost: card.elixir_cost,
             forms_available: cardForms(card.max_evolution_level),
             type: cardType(card.card_id),
+            // Each form's art on Elixir's own origin, from the API's
+            // iconUrls (11.5.0; contracts card-art.ts).
+            art: cardArt(card.card_id, {
+              medium: card.icon_medium,
+              evolutionMedium: card.icon_evolution_medium,
+              heroMedium: card.icon_hero_medium,
+            }),
           },
           disclaimer: DISCLAIMER,
         },
