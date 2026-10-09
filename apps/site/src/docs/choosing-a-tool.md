@@ -40,10 +40,10 @@ conventions that hold everywhere.
 | A name to a tag, or tags to names | `players_search`, `players_names` |
 | What happened since I last looked? | `elixir_timeline` (items newest first and an entry per subject, then drill with the data tools) |
 | How have I moved: trophies, rank, a lifetime counter, day by day? | `players_timeline` (one point per game day; `metrics` picks the series) |
-| Which of my cards carry, which enemy cards beat me? | `battles_cards` (`perspective: "mine"` or `"opponent"`) |
-| Who do I keep meeting, and how does it go? | `battles_opponents` |
+| Which of my cards carry, which enemy cards beat me? | `battles_cards` (`perspective: "mine"` or `"opponent"`; `sort: "losses"` for the most battles lost first) |
+| Who do I keep meeting, and how does it go? | `battles_opponents` (`sort: "losses"` for the opponents you lost to most first) |
 | Two to four players side by side | `battles_compare` (`mode`, or read each player's per-mode-group split, `window.modes`) |
-| Were my cards above or below my opponents' this window? | `players_summary` (`mean_level_gap` on each deck), `battles_decks` and `battles_cards` rows (`mean_level_gap`); the record describes the gap and does not score it, see [Methodology](/docs/methodology#card-levels-described-not-adjusted-for) |
+| Were my cards above or below my opponents' this window? | `players_summary` (`mean_level_gap` on each deck), `battles_decks`, `battles_cards` and `battles_opponents` rows (`mean_level_gap`); the record describes the gap and does not score it, see [Methodology](/docs/methodology#card-levels-described-not-adjusted-for) |
 | How did this player or clan's members play week by week? | `battles_trends` with a `segment` |
 | Card facts, earliest selected-history play, and who in my clan played or holds it | `cards_card` (one call; [Cards](/docs/cards)) |
 | The profile, the collection, how complete the record is | `players_profile`, `players_collection`, `elixir_coverage` |

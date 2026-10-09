@@ -240,6 +240,49 @@ test("battles_cards: mine and opponent perspectives, each duel round a game (9.1
   assert.match(opp.body.notes.join(" "), /OPPONENT/);
 });
 
+test("battles_cards sort: losses is a choice, the default order stays, the floor holds (11.6.0)", async () => {
+  const byBattles = await call("battles_cards", { perspective: "opponent" });
+  const byLosses = await call("battles_cards", {
+    perspective: "opponent",
+    sort: "losses",
+  });
+  assert.equal(byLosses.isError, false, JSON.stringify(byLosses.body));
+  assert.equal(byBattles.body.applied.sort, "battles", "the default order");
+  assert.equal(byLosses.body.applied.sort, "losses");
+  assert.equal(byLosses.body.applied.min_battles, 3);
+  const rows = byLosses.body.cards;
+  assert.ok(rows.length > 1, "more than one row to order");
+  for (const c of rows) assert.ok(c.battles >= 3, "the floor holds");
+  for (let i = 1; i < rows.length; i += 1) {
+    const [a, b] = [rows[i - 1], rows[i]];
+    assert.ok(
+      a.losses > b.losses || (a.losses === b.losses && a.battles >= b.battles),
+      `losses then battles, descending: ${a.name} ${a.losses}/${a.battles} before ${b.name} ${b.losses}/${b.battles}`,
+    );
+  }
+  // The same rows, the same counts: only the order moves.
+  const key = (c) => `${c.id}:${c.form}`;
+  const counts = (body) =>
+    new Map(body.cards.map((c) => [key(c), [c.wins, c.losses]]));
+  assert.deepEqual(counts(byLosses.body), counts(byBattles.body));
+  // The default order is still most battles first.
+  const b = byBattles.body.cards.map((c) => c.battles);
+  assert.deepEqual(
+    b,
+    [...b].sort((x, y) => y - x),
+  );
+  const bad = await call("battles_cards", { sort: "win_rate" });
+  assert.equal(bad.isError, true);
+  assert.equal(bad.body.error.code, "bad_request");
+  // No verdict words: the notes and the declaration name no nemesis.
+  const text = JSON.stringify(byLosses.body.notes);
+  assert.doesNotMatch(text, /nemesis/i);
+  const decl = makeRegistry()
+    .declarations()
+    .find((d) => d.name === "battles_cards");
+  assert.doesNotMatch(decl.description, /nemesis/i);
+});
+
 test("battles_decks: a light list by deck_hash, one page at a time, and one deck in full (9.12.0)", async () => {
   const { body, isError } = await call("battles_decks", {});
   assert.equal(isError, false);
@@ -1287,6 +1330,47 @@ test("battles_opponents groups by opponent: repeats, names, modes", async () => 
   }
   assert.ok(repeats.body.opponents.every((o) => o.name_known));
   assert.equal(repeats.body.matching_opponents, repeats.body.opponents.length);
+  // sort: "losses" (11.6.0): the opponents you lost to most first, the
+  // same rows as the default order, and each row's level gap beside it.
+  const byLosses = await call("battles_opponents", {
+    min_battles: 2,
+    sort: "losses",
+  });
+  assert.equal(byLosses.isError, false, JSON.stringify(byLosses.body));
+  assert.equal(byLosses.body.applied.sort, "losses");
+  const lost = byLosses.body.opponents.map((o) => o.losses);
+  assert.deepEqual(
+    lost,
+    [...lost].sort((x, y) => y - x),
+  );
+  assert.deepEqual(
+    byLosses.body.opponents.map((o) => o.player_tag).sort(),
+    repeats.body.opponents.map((o) => o.player_tag).sort(),
+  );
+  for (const o of [...all.body.opponents, ...byLosses.body.opponents])
+    assert.ok(
+      o.mean_level_gap === null || typeof o.mean_level_gap === "number",
+      "mean_level_gap is a number or null, never absent",
+    );
+  assert.ok(
+    all.body.opponents.some((o) => typeof o.mean_level_gap === "number"),
+    "the fixture's battles carry levels",
+  );
+  // The gap is the stamped one: your deck's level minus the other
+  // side's, on the display scale, over the battles that have both.
+  const {
+    rows: [gap],
+  } = await db.query(
+    `select round(avg(me.deck_avg_level - me.opp_deck_avg_level)::numeric, 2) as g
+       from battle_participant me
+       join battle_participant o on o.battle_id = me.battle_id and o.side <> me.side
+      where me.player_tag = $1 and o.player_tag = $2`,
+    [OBSERVER, all.body.opponents[0].player_tag],
+  );
+  assert.equal(
+    all.body.opponents[0].mean_level_gap,
+    gap.g === null ? null : Number(gap.g),
+  );
   // A WINDOWED read (feedback #56): 3.11.1 wrote the predicate on an
   // alias the query did not have, so every days/from/to call failed
   // with a SQL error the door reported as bad_request, and the inverted

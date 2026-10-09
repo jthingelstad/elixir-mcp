@@ -249,7 +249,7 @@ export function pooledModesNote(groups) {
     .join(", ");
   if (spread < 0.5)
     return `Pooled across modes: ${list}; pass mode to isolate one.`;
-  return `Pooled across modes with different matchmaking: ${list}; a card met mostly in the easier-gap mode inherits that mode's record for reasons unrelated to the card, so pass mode before reading a row as a strength or a nemesis.`;
+  return `Pooled across modes with different matchmaking: ${list}; a card met mostly in the easier-gap mode inherits that mode's record for reasons unrelated to the card, so pass mode before comparing one row's record with another's.`;
 }
 
 /**

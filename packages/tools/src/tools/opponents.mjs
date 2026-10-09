@@ -28,7 +28,7 @@ import {
 export const opponentsTools = {
   battles_opponents: {
     description:
-      "A player's recorded battles grouped by OPPONENT: per opponent the record (W/L/D), first and last meeting, the modes, clan at last meeting, and the opponent's name where the service has observed one (name_known). min_battles: 2 answers \"who have I faced more than once\" in one call. Head-to-head only. The discovery half of battles_query's opponent_tag filter.",
+      'A player\'s recorded battles grouped by OPPONENT: per opponent the record (W/L/D), first and last meeting, the modes, clan at last meeting, mean_level_gap, and the opponent\'s name where the service has observed one (name_known). min_battles: 2 answers "who have I faced more than once" in one call; sort: "losses" puts the opponents you lost to most first. Head-to-head only. The discovery half of battles_query\'s opponent_tag filter.',
     inputSchema: {
       type: "object",
       properties: {
@@ -47,7 +47,7 @@ export const opponentsTools = {
         },
         sort: {
           type: "string",
-          enum: ["battles", "last_seen", "wins"],
+          enum: ["battles", "last_seen", "wins", "losses"],
           default: "battles",
         },
         limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
@@ -90,7 +90,11 @@ export const opponentsTools = {
         add("b.type = any(?)", typesForModeGroup(args.mode));
         where.push(`not ${eventContentSql("b.type", "b.event_tag")}`);
       }
-      requireEnum(args.sort, ["battles", "last_seen", "wins"], "sort");
+      requireEnum(
+        args.sort,
+        ["battles", "last_seen", "wins", "losses"],
+        "sort",
+      );
       const minBattles = Math.max(1, Number(args.min_battles ?? 1));
       if (!Number.isInteger(minBattles))
         throw new ToolFailure("bad_request", "min_battles must be an integer.");
@@ -101,13 +105,20 @@ export const opponentsTools = {
           ? "max(b.battle_time) desc"
           : sort === "wins"
             ? "count(*) filter (where me.outcome = 'win') desc, count(*) desc"
-            : "count(*) desc, max(b.battle_time) desc";
+            : sort === "losses"
+              ? "count(*) filter (where me.outcome = 'loss') desc, count(*) desc, max(b.battle_time) desc"
+              : "count(*) desc, max(b.battle_time) desc";
       const { rows } = await ctx.db.query(
         `select o.player_tag, p.name,
                 count(*)::int as battles,
                 count(*) filter (where me.outcome = 'win')::int as wins,
                 count(*) filter (where me.outcome = 'loss')::int as losses,
                 count(*) filter (where me.outcome = 'draw')::int as draws,
+                -- The level gap (11.6.0), as every battle tool states it:
+                -- your deck's average level minus the opposing side's,
+                -- both stamped on the display scale at ingest (displayLevel,
+                -- 0156); a duel holds no single deck, so it has none.
+                round(avg(me.deck_avg_level - me.opp_deck_avg_level)::numeric, 2) as mean_level_gap,
                 min(b.battle_time) as first_seen,
                 max(b.battle_time) as last_seen,
                 array_agg(distinct coalesce(b.game_mode_name, b.type)) as modes,
@@ -151,6 +162,8 @@ export const opponentsTools = {
           wins: r.wins,
           losses: r.losses,
           draws: r.draws,
+          mean_level_gap:
+            r.mean_level_gap === null ? null : Number(r.mean_level_gap),
           first_seen: r.first_seen.toISOString(),
           last_seen: r.last_seen.toISOString(),
           modes: r.modes,
@@ -159,6 +172,7 @@ export const opponentsTools = {
         notes: notes(
           win.seasonNotes,
           "Head-to-head rows only: 2v2 teammates never appear, and a duel counts once however many rounds it held.",
+          "mean_level_gap is your deck's average card level minus the opposing side's over the battles with both recorded (positive: your cards were higher); null when none were, as in a duel. A record is comparable to another's only at a similar gap.",
           "name_known false means no observation ever carried a name for that tag; players_names resolves the ones the corpus knows, players_profile({ live: true }) fetches one.",
         ),
         docs: docsRef("battles", "what-a-battle-record-holds"),
