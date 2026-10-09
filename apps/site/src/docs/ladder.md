@@ -51,10 +51,37 @@ played most in the last 30 days, including War and Events. Ties keep the first
 tab in the order shown; with no recorded battles, Trophy Road is the default. The tabs are
 addresses (`/ladder?mode=ranked`), so a link to one mode stays in it.
 
-Ladder shows the current season. Console's recording summary links a saved
-profile directly to its dated profile view, and retained battles directly to
-the battle browser, including older seasons. It does not use an empty current
-season as proof that those records are missing.
+## Which season
+
+Ladder opens on the current season, and the **Season** switch beside the
+page's freshness offers every season your player has battles in: the
+current one, the last one, and each one before it back to the first battle
+Elixir recorded. The list comes from the tools, not a calendar: one
+[battles_performance](/docs/tools/battles#battles_performance) read from
+that first battle, whose `applied.window` names each season the window
+crossed. Seasons are named as everywhere else in Elixir, **Season 136**,
+and the one running is marked *now*.
+
+The season is part of the address (`/ladder?season=135`), like the mode,
+so a link to a past season stays on it, a reload keeps it, and every page
+honours it: the season home, Days played, Decks and Cards each read that
+season with `season: 135`. A past season's home shows its dates and record
+week by week, and links its decks in place of the most-played deck, which
+is always the last 30 days. Emails that describe a season link Ladder with
+it (see [Emails](/docs/email)).
+
+When the current season has no recorded battles yet (the first days after
+the first-Monday roll, in any mode) and your player has a season before
+it on record, Ladder opens on last season and says so above the page, with
+the empty one a click away. A
+season you ask for in the address is always the one shown, even when it is
+empty, and a player whose first capture has not landed still sees it on its
+way, never last season.
+
+Console's recording summary links a saved profile directly to its dated
+profile view, and retained battles directly to the battle browser,
+including older seasons. It does not use an empty current season as proof
+that those records are missing.
 
 ## Whose season
 
@@ -66,9 +93,10 @@ yet, Ladder sends you to **Tracking** to add the player you play as.
 
 ## The season home
 
-The season home is the current season so far in the chosen mode, from
+The season home is the season so far in the chosen mode (the current one
+unless you picked another), from
 [battles_performance](/docs/tools/battles#battles_performance) with
-`season: current`:
+`season: current` (or the season's number):
 
 - **Battles, record and win rate**: the tool's own counts, with the rate as
   it defines it (wins over decided battles, draws outside both sides).
@@ -86,7 +114,8 @@ The season home is the current season so far in the chosen mode, from
   the deck you played most in the last 30 days in any mode, its archetype
   label and average elixir, and its record in each mode it was played in.
   A rate appears only when the deck was played in one mode, where it is
-  that mode's own; across modes it would pool them.
+  that mode's own; across modes it would pool them. Shown for the running
+  season only; a past season links its decks instead.
 
 The season itself runs first Monday to first Monday at 10:00 UTC, which
 the page gives in your own timezone, as it gives every time, naming the
@@ -135,9 +164,10 @@ out, as the season home does.
 
 ## Decks
 
-**Decks**, at `/ladder/decks`, is every deck you played this season, each
+**Decks**, at `/ladder/decks`, is every deck you played in the season, each
 judged in the mode it was played in, from
-[battles_decks](/docs/tools/battles#battles_decks) with `season: current`:
+[battles_decks](/docs/tools/battles#battles_decks) with `season: current`
+(or the season picked):
 one read over every mode to learn which modes you played, then one read per
 mode, so a deck you took from Trophy Road into an event has a record in
 each and never one across them. A deck is its exact cards, forms and tower
