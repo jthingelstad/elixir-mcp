@@ -111,7 +111,10 @@ Consecutive 403s open a per-collector breaker and drain it.
   in a versioned bucket with `DeletionPolicy: Retain`.
 - **Tools never read `api_payload`.** Its JSON column is a cache for a
   reader waiting on that exact payload (`live_fetch`, on the live lane,
-  within seconds), and only live-lane payloads carry it. Every
+  within seconds), and only live-lane payloads carry it. `live_fetch`'s
+  own fetch-only results (`job.record = false`, 0209) skip the record
+  altogether: they wait in `live_fetch_result` (an hour at most) with no
+  receipt, payload row, archive object, projection or freshness. Every
   product-facing datum has a projection: the card catalog is `card`, a
   player's collection is `player_card`.
 - **Cards played are rows, not JSON.** A tool reads `deck` (one row per

@@ -133,7 +133,7 @@ trophies and the ranked standing, so the two sides of it are not one series.
   read inside the API's cache window is in hand, otherwise queued while
   the record answers now with `live_status.state: "pending"` and when to
   call again. `live_fetch` is the raw catch-all and the last resort; it
-  refuses a battle log, which never fits the cap.
+  stores nothing, and refuses a battle log, which never fits the cap.
 - **`timezone`** on any windowed tool names an IANA zone for that call's
   date-only bounds and local labels, for agents serving people in several
   zones.

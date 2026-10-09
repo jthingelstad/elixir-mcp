@@ -690,3 +690,43 @@ Jamie's answers the same day, to the recommendations they name:
 - **Invitations:** Jamie invites POAP KINGS with the wording as it
   stands, and pastes the clan-chat line once to watch the chat filter.
 - No MCP or JSON API change: MCP 11.5.0, JSON API 3.1.0.
+## 2026-10-08 — live_fetch only fetches (MCP 11.5.1, 0209)
+
+Jamie: "is this because any use of live_fetch creates those records?
+Based on current layout of Elixir I would say that live_fetch should ONLY
+live fetch and not record data." A test run that day called `live_fetch`
+for `/players/#VL9ULV8RL` and `/players/#UYPLUQ0U9`, players nobody
+tracks, and the record kept their profiles: every live-lane result was
+admitted and projected like a scheduled poll.
+
+- **What shipped:** `job.record` (0209, default true). `live_fetch` mints
+  its job with `record = false`; the door copies the row's flag onto the
+  envelope at submit; ingest's `processFetchOnly` admits the payload (a
+  malformed body is still refused) and holds it in `live_fetch_result`
+  for the caller's next ask, deleting rows older than an hour. No
+  api_payload, api_receipt or S3 archive object (no replay can project
+  it), no projection, no poll_state freshness or retry, no clan follow,
+  no collector point. A failed fetch-only read keeps its
+  `collector_fetch_error` row and stamps no retry.
+- **What still records, and why:** `live: true` on players_profile,
+  clans_roster, war_current and battles_query (the tool answers from the
+  record, so the record is what moves; true for any tag, tracked or not —
+  whether an untracked tag's live read should record is a separate
+  product call), Verify's battle-log reads (`routes/verify.mjs`, a
+  claimed player's log) and the first read on add (`requestFirstRead`,
+  #371: the tag is tracked from the add). All call `makeLive` with the
+  default `record: true`. A recording ask behind an open fetch-only job
+  turns it recording (`recordOpenJob`), and a fetch-only result is never
+  that ask's "fresh" read; a fetch-only ask never turns a recording job
+  off. `requestFirstRead` reads `api_receipt`, so a tag live_fetched and
+  then added still gets its first read.
+- **Budget and audit that remain:** the live token is charged at mint
+  (`budget_charge`), the account's `liveday#` quota at mint, the job row
+  stays (pruned weekly with other done jobs), `mcp_call_audit` has the
+  call, and the scheduler's `fetches_hour` adds `live_fetch_result` rows.
+- **Strays:** `{live_fetch_strays}` (read-only op) names every player tag
+  live_fetch read in a window, whether anyone tracks it, and for the
+  untracked ones what the profile admission left (snapshots, progress,
+  badges, cards, PoL season, profile membership, player events), the
+  player row, battles and memberships from elsewhere, and receipts by
+  lane.

@@ -451,14 +451,17 @@ player's battle log for the "what did they just play" path. Prefer these;
 they are the live lane with the record's shape.
 
 `live_fetch({ path })` is the raw catch-all: one authenticated GET against
-the Clash Royale API through the live lane, recorded on the way back. It
-needs the payload itself, so until one is in hand it answers the error
-`live_pending` with `retry_after_s`; once one is, it answers
+the Clash Royale API through the live lane. **It stores nothing**: the
+payload comes back to you and never enters the record, so a tag nobody
+tracks stays unrecorded however often it is fetched. It needs the payload
+itself, so until one is in hand it answers the error `live_pending` with
+`retry_after_s`; once one is, it answers
 `{ path, live: true, live_status, applied, data, notes, docs, meta }`, with
 `data` the raw payload and a note naming the recorded tool that answers the
-same path.
+same path. Any read inside the API's cache window answers it, a recorded
+one included.
 
-| Allowed `path` | Recorded as |
+| Allowed `path` | Endpoint |
 |---|---|
 | `/players/{tag}` | `player` |
 | `/clans/{tag}` | `clan` |
@@ -475,6 +478,15 @@ rarity-relative scale (a maxed legendary reads 8/8), while every recorded
 tool serves the in-game 1 to 16 scale; `cards_catalog` carries both maxima.
 `live_unavailable` is answered only when the lane is not configured or the
 fresh payload was refused at admission.
+
+What a live read leaves behind:
+
+| Read | What it records |
+|---|---|
+| `live_fetch` | nothing; the payload waits for your next call outside the record, for at most an hour |
+| `live: true` on a recorded tool | the read, admitted and projected like a scheduled poll: the tool answers from the record, so the record is what moves |
+| Verify's reads of your battle log | the battle log, as any poll of a tracked player |
+| the first read of a player you add | the profile: the tag is tracked from the moment it is added |
 
 Live fetches are capped per day by tier (20 / 100 / 250 / 1,000; owner and
 admin unlimited), and an agent spends its owner's allowance; past the cap a
