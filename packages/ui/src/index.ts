@@ -1,10 +1,15 @@
 export {
+  artAt,
+  artCandidates,
   CardArt,
+  CardArtProvider,
   cardArtSrc,
   cardLabel,
   DeckGrid,
   deckElixir,
   isTowerTroop,
+  type CardArtMap,
+  type CardArtSource,
   type CardForm,
   type DeckCard,
 } from "./Cards.tsx";
