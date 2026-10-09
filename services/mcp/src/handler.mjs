@@ -40,6 +40,16 @@ import { makeLive } from "@elixir-mcp/tools/live";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 export { HOURLY_RATE_LIMIT };
 
+/** The hourly bucket a call spends from: a key with its own ceiling has its
+ *  own; otherwise the principal that made the call (an agent its own, a
+ *  person or an integration their account), never the account that pays. */
+export function hourlyBucketFor(account) {
+  if ((account.hourlyRateLimit ?? null) !== null && account.tokenId) {
+    return `mcp#token#${account.tokenId}`;
+  }
+  return `mcp#${account.accountId}`;
+}
+
 export function makeHandler({
   databaseUrl,
   issuer = "https://elixir.poapkings.com",
@@ -412,12 +422,18 @@ export function makeHandler({
       // counter would let that key starve its owner's other doors (found
       // 2026-09-21: one acceptance run took 40% of the owner's hour, and
       // the Discord agent shares it).
+      //
+      // The hour is the PRINCIPAL's, not the budget account's (Jamie,
+      // 2026-10-08: "yes, seperate limits"). An agent spends its owner's
+      // DAILY quota and live lane, but gets an hourly bucket of its own at
+      // the tier rate: on 10-08 one replay emptied the owner's shared 300
+      // and the owner's three Discord agents were refused for 52 minutes.
+      // A person's and an integration's principal IS their budget account,
+      // so for them nothing moves. The tier rate is the same for every tier
+      // today, so "capped at the owner's tier" is the same 300.
       const ownCeiling = account.hourlyRateLimit ?? null;
       const withinRate = await checkRateLimit(db, {
-        bucket:
-          ownCeiling !== null && account.tokenId
-            ? `mcp#token#${account.tokenId}`
-            : `mcp#${account.budget?.accountId ?? account.accountId}`,
+        bucket: hourlyBucketFor(account),
         max: ownCeiling ?? HOURLY_RATE_LIMIT,
       });
       if (!withinRate) {
