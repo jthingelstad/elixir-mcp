@@ -1,22 +1,34 @@
-/** Mirror the card art mail needs, at the sizes mail asks for.
+/** Mirror the card art every surface draws, at the sizes they ask for.
  *
- *  Mail does not hotlink Supercell's CDN. A mail client proxies or
- *  blocks a third-party image, Gmail caches it on its own terms, and a
- *  URL we do not control is a URL that can stop working in an issue
- *  somebody opens a year from now. The site hotlinks the same CDN for
- *  collector avatars and that is fine - a page can; a mail cannot.
+ *  Since 2026-10-08 every deploy runs this (deploy.mjs, before the site
+ *  build) with --seed-bucket: it first copies down what the site bucket
+ *  already holds, so a deploy from a fresh worktree ships the whole
+ *  mirror (and the prune never takes art a checkout did not have), then
+ *  fetches each form the live catalog's iconUrls name that is still
+ *  missing. Until then it was a hand step, last run 2026-09-22, and the
+ *  forms Supercell added after it (Hero Electro Wizard, Evo Electro
+ *  Giant) were text on Ladder and the battle page. The card responses
+ *  carry each form's address (contracts card-art.ts); this is what
+ *  makes those addresses answer.
+ *
+ *  No surface hotlinks Supercell's CDN for card art (DECISIONS, Web,
+ *  2026-10-08): a page that did would tell Supercell who reads it, a
+ *  mail client proxies or blocks a third-party image, and a URL we do
+ *  not control can stop working in an issue somebody opens a year from
+ *  now. (Collector avatars and Verify's card faces still name the CDN;
+ *  NOTES has them.)
  *
  *  Run on a machine with the internet (not CI, not Lambda: the VPC has
  *  neither NAT nor a reason). Output lands in apps/site/src/assets/cards
  *  and is never committed (.gitignore): it is a local cache, not a
  *  source, and the repo is public. The site build copies it in when it
- *  is there and the deploy uploads it with the site; a checkout that has
- *  not mirrored builds without it, with a warning (eleventy.config.mjs).
- *  It stays a separate step because a build that reaches the network to
- *  succeed is a build that fails on a Sunday. Re-run when the catalog's
- *  as_of moves.
+ *  is there and the deploy uploads it with the site. The build itself
+ *  never reaches the network for art (a build that must reach the
+ *  network to succeed fails on a Sunday): the deploy runs this first,
+ *  and a failure here is a warning that ships what the bucket held.
  *
  *    node infra/scripts/mirror-card-art.mjs [--catalog <file|url>] [--force]
+ *    node infra/scripts/mirror-card-art.mjs --seed-bucket <bucket> [--catalog <file|url>]
  *    node infra/scripts/mirror-card-art.mjs --source-dir <dir> [--force]
  *
  *  --source-dir takes card art already on disk, named <id>.png,
@@ -28,6 +40,7 @@
  *  that shows it carries the disclaimer.
  */
 import { mkdir, readFile, writeFile, stat, readdir } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { decode, encode, resize } from "./lib/png.mjs";
@@ -94,13 +107,37 @@ async function fromDir(dir) {
   );
 }
 
+/** What the site bucket already holds, copied down: only files whose
+ *  size differs or that are missing here travel. */
+function seedFromBucket(bucket) {
+  execFileSync(
+    "aws",
+    [
+      "s3",
+      "sync",
+      `s3://${bucket}/assets/cards`,
+      OUT,
+      "--size-only",
+      "--only-show-errors",
+      "--exclude",
+      "*",
+      "--include",
+      "*.png",
+    ],
+    { stdio: "inherit" },
+  );
+}
+
 async function main() {
   const dir = arg("source-dir");
   if (dir) return fromDir(dir);
+  await mkdir(OUT, { recursive: true });
+  const bucket = arg("seed-bucket");
+  if (bucket) seedFromBucket(bucket);
   const source = arg("catalog", DEFAULT_CATALOG);
   const catalog = await loadCatalog(source);
   const cards = catalog.cards ?? catalog;
-  await mkdir(OUT, { recursive: true });
+  const missing = [];
   let fetched = 0;
   let written = 0;
   let skipped = 0;
@@ -124,9 +161,12 @@ async function main() {
         skipped += targets.length;
         continue;
       }
-      const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(30000),
+      }).catch((err) => ({ ok: false, status: err.message }));
       if (!res.ok) {
         console.warn(`[art] ${card.name} ${form}: HTTP ${res.status}`);
+        missing.push(`${card.id}${suffix}`);
         continue;
       }
       fetched += 1;
@@ -141,7 +181,7 @@ async function main() {
     }
   }
   console.log(
-    JSON.stringify({ cards: cards.length, fetched, written, skipped }),
+    JSON.stringify({ cards: cards.length, fetched, written, skipped, missing }),
   );
 }
 
