@@ -730,3 +730,31 @@ admitted and projected like a scheduled poll.
   badges, cards, PoL season, profile membership, player events), the
   player row, battles and memberships from elsewhere, and receipts by
   lane.
+
+
+## 2026-10-08 — each agent has its own hour
+
+Jamie's answer, verbatim: "6. yes, seperate limits". The evidence is in
+STEWARD 10-08. Jamie's three Discord agents and a replay all spent the
+owner's one hourly bucket of 300 (`mcp#<budget account>`). The replay emptied
+it at 5:06 pm, and the bots got 429 from 5:08 until 6:00.
+
+- `services/mcp/src/handler.mjs` `hourlyBucketFor`: the bucket is
+  `mcp#<principal accountId>`. A key that carries its own `hourly_rate_limit`
+  still spends `mcp#token#<id>`, the 2026-09-21 rule. Nothing changes for a
+  person or an integration, because their principal is their budget account.
+  The Explore page keeps the person's bucket.
+- The ceiling is unchanged: 300 for every tier (`HOURLY_RATE_LIMIT`). There
+  is no per-tier hourly number to cap against yet. If roles ever get one,
+  the agent's ceiling is its owner's tier's.
+- The daily tool-call quota and the live lane still key on `account.budget`
+  (the owner). They were not raised.
+- This is the MCP door's request limit. The collector rate budget is
+  untouched.
+- One consequence to watch: an owner with N agents can now make up to
+  (N+1) × 300 MCP requests an hour. The daily quota is still the real cap,
+  (Jamie's own account is owner-tier, so its day is unlimited).
+- A replay that borrows a bot's own agent key still shares that bot's hour.
+  Give a replay its own agent, or a key with its own ceiling
+  (`{service_token_limits}`), to keep it off a live bot.
+
