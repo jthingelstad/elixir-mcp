@@ -24,8 +24,8 @@ import { archetypeTools } from "./archetype.mjs";
 
 /** One catalog item as served: in-game max level, the API's rarity-scale
  *  value kept under an unambiguous name, forms decoded, and its art by
- *  form (11.5.0): Elixir's mirror of each image the API's iconUrls
- *  name (contracts card-art.ts). */
+ *  form (11.5.0): Elixir's byte-identical copy of each image the API's
+ *  iconUrls name (contracts card-art.ts). */
 function shapeCatalogCard(c) {
   const { maxLevel, ...rest } = c;
   const art = cardArt(c.id, c.iconUrls);
@@ -201,7 +201,7 @@ export const cardsTools = {
           compact
             ? null
             : narrowed
-              ? "art is each form's image on Elixir's own origin (the forms iconUrls carries), 285 pixels wide; -128.png or -192.png at the same address is narrower. Show a played form's art, else the base card's: a form whose image Supercell has not published yet does not answer."
+              ? "art is each form's image on Elixir's own origin (the forms iconUrls carries): an exact copy of that icon, never resized or altered, so size it in the page. Show a played form's art, else the base card's: a new form's image can take about two weeks to answer after the catalog lists it."
               : "art (each form's image on Elixir's own origin) rides when ids or query name the cards: the whole catalog leaves it out to stay under the result cap.",
         ),
         docs: docsRef("battles", "deck-identity-and-forms"),

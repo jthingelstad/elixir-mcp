@@ -951,7 +951,7 @@ export const OUTPUT_SCHEMAS = {
           art: {
             type: ["object", "null"],
             description:
-              "Each form's image on Elixir's own origin (base, evolution, hero: the forms icon_urls carries), 285 pixels wide; -128.png and -192.png at the same address are narrower copies (11.5.0).",
+              "Each form's image on Elixir's own origin (base, evolution, hero: the forms icon_urls carries): a byte-identical copy of that icon, never resized or altered; size it in the page (11.5.2).",
           },
           first_seen_in_catalog: { type: ["string", "null"] },
           first_played: {
@@ -1059,7 +1059,7 @@ export const OUTPUT_SCHEMAS = {
             art: {
               type: "object",
               description:
-                "Each form's image on Elixir's own origin, 285 pixels wide, when ids or query name the cards (11.5.0).",
+                "Each form's image on Elixir's own origin, a byte-identical copy of the iconUrls icon, when ids or query name the cards (11.5.2).",
             },
             id: { type: ["number", "null"] },
             maxEvolutionLevel: { type: ["number", "null"] },

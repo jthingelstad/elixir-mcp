@@ -338,11 +338,11 @@ test("cards_catalog: served from the recorded GLOBAL payload", async () => {
   const [card] = narrowed.body.cards;
   assert.equal(
     card.art.base,
-    `https://elixir.poapkings.com/assets/cards/${withEvo.id}-285.png`,
+    `https://elixir.poapkings.com/assets/cards/${withEvo.id}.png`,
   );
   assert.equal(
     card.art.evolution,
-    `https://elixir.poapkings.com/assets/cards/${withEvo.id}_evo-285.png`,
+    `https://elixir.poapkings.com/assets/cards/${withEvo.id}_evo.png`,
   );
   assert.equal(
     "hero" in card.art,
@@ -1895,7 +1895,7 @@ test("a card name shared with a tower-troop entry is the deck card; Evo and Hero
     );
     assert.match(
       byName.body.card.art?.base ?? "",
-      new RegExp(`/assets/cards/${top.card_id}-285\\.png$`),
+      new RegExp(`/assets/cards/${top.card_id}\\.png$`),
       "11.5.0: cards_card carries the card's art",
     );
     const evo = await call("cards_card", {
