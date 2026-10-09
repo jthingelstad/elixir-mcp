@@ -932,3 +932,16 @@ card unlocks and badge levels roll into the weekly mail as counts.
 - **Not changed:** the timeline (order, items, cap) and every MCP and
   JSON API response; no contract bump (MCP 11.5.2, JSON API 3.1.0).
   Issues stored before this render as they did (`line`, no `progress`).
+
+## 2026-10-08 — `{tag_footprint}`: the whole record of a tag, read before a deletion
+
+Jamie, verbatim: "Approved: delete the full record footprint of untracked
+live_fetch tags" (three tags admitted by the pre-11.5.1 live_fetch path).
+`{live_fetch_strays}` counts only the tables a profile admission writes,
+so a deletion scoped to "the full footprint" needs a read of every table
+that can hold a player tag first, and the same read after.
+`{tag_footprint}` (read-only) finds every base table with a tag column
+from the catalog and counts each tag's rows, with what would make the
+tag tracked, its battles and their other side, its MCP calls and its
+payload archive objects. The deletion is its own migration, after this
+read.

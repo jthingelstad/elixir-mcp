@@ -42,6 +42,7 @@ import {
   roleHistoryCensus,
   membershipBaselineCensus,
   liveFetchStrayCensus,
+  tagFootprintCensus,
   battleFidelityCensus,
   modeShapeCensus,
   enumCensus,
@@ -382,6 +383,14 @@ async function dispatch(event) {
     const result = await liveFetchStrayCensus(
       process.env.DATABASE_URL,
       event.live_fetch_strays,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.tag_footprint) {
+    const result = await tagFootprintCensus(
+      process.env.DATABASE_URL,
+      event.tag_footprint === true ? {} : event.tag_footprint,
     );
     console.log(JSON.stringify(result));
     return result;

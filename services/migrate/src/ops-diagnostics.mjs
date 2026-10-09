@@ -1542,3 +1542,257 @@ export async function liveFetchStrayCensus(databaseUrl, opts = {}) {
     await db.end();
   }
 }
+
+/** Columns that name a player (or a subject keyed by a player tag). Every
+ *  base table carrying one is counted by {tag_footprint}, found from the
+ *  catalog, so a table added later is counted without an edit here. */
+const TAG_COLUMNS = [
+  "player_tag",
+  "entity_key",
+  "subject_tag",
+  "observer_tag",
+  "attester_tag",
+  "subject_key",
+  "requested_player_tag",
+];
+
+/** Tables whose tag column leads no index and which are large: counted
+ *  through battle_participant's player index instead of a scan. */
+const VIA_PARTICIPANT = new Set([
+  "battle_participant_card",
+  "battle_participant_round",
+]);
+
+/** jsonb columns of small tables that can name a player in passing. (The
+ *  attested facts' table is counted by its tag columns only: its contents
+ *  have one reader, services/mcp/test/attested-readers.test.mjs.) */
+const TAG_MENTIONS = [
+  ["account_event", "detail"],
+  ["clan_state", "body"],
+  ["email_issue", "facts"],
+  ["feedback", "context"],
+];
+
+/**
+ * Tag footprint census ({"tag_footprint": {"tags": ["#TAG"]}}, 1 to 10
+ * player tags) — read-only. Everything the database holds for a player
+ * tag, before a deletion Jamie approved and after it: the row count in
+ * every base table with a tag column (TAG_COLUMNS, from the catalog, by
+ * endpoint where the table has one), the jsonb mentions in small tables,
+ * the player row's identity stamps, what makes the tag tracked (any
+ * recording with its status, claims, claim challenges, sign-up requests,
+ * agent identities, nicknames, open jobs, open memberships and whether
+ * their clan is tracked), its battles and how many have a tracked player
+ * on the other side, its MCP calls by tool, and for each receipt its lane,
+ * record flag and whether the payload archive object exists (a HEAD; the
+ * role holds s3:GetObject on payloads/). Counts, dates and keys only;
+ * nothing is written.
+ */
+export async function tagFootprintCensus(databaseUrl, opts = {}, deps = {}) {
+  const { normalizeTag } = await import("@elixir-mcp/contracts");
+  const raw = Array.isArray(opts?.tags) ? opts.tags : [];
+  const tags = [];
+  for (const t of raw) {
+    let tag = null;
+    try {
+      tag = normalizeTag(String(t));
+    } catch {
+      tag = null;
+    }
+    if (!tag) return { error: "invalid_tag", given: String(t) };
+    if (!tags.includes(tag)) tags.push(tag);
+  }
+  if (tags.length === 0 || tags.length > 10)
+    return { error: "tags_required", note: "Pass 1 to 10 player tags." };
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  let head = deps.head ?? null;
+  if (!head && process.env.ARCHIVE_BUCKET) {
+    const { S3Client, HeadObjectCommand } = await import("@aws-sdk/client-s3");
+    const s3 = new S3Client({});
+    head = async (key) => {
+      try {
+        await s3.send(
+          new HeadObjectCommand({
+            Bucket: process.env.ARCHIVE_BUCKET,
+            Key: key,
+          }),
+        );
+        return true;
+      } catch (err) {
+        if (err?.$metadata?.httpStatusCode === 404) return false;
+        return `${err?.name ?? "error"}`;
+      }
+    };
+  }
+  const { archiveKey } = await import("@elixir-mcp/ingest/pipeline");
+  try {
+    await db.query("set statement_timeout = 60000");
+    await db.query("set default_transaction_read_only = on");
+    const { rows: columns } = await db.query(
+      `select c.table_name, c.column_name,
+              exists (select 1 from information_schema.columns e
+                       where e.table_schema = 'public' and e.table_name = c.table_name
+                         and e.column_name = 'endpoint') as has_endpoint
+         from information_schema.columns c
+         join information_schema.tables t
+           on t.table_schema = c.table_schema and t.table_name = c.table_name
+        where c.table_schema = 'public' and t.table_type = 'BASE TABLE'
+          and c.column_name = any($1::text[])
+        order by 1, 2`,
+      [TAG_COLUMNS],
+    );
+    const ident = (s) => `"${String(s).replace(/"/g, '""')}"`;
+    const out = [];
+    for (const tag of tags) {
+      const rows = {};
+      for (const c of columns) {
+        const key = `${c.table_name}.${c.column_name}`;
+        if (
+          VIA_PARTICIPANT.has(c.table_name) &&
+          c.column_name === "player_tag"
+        ) {
+          const {
+            rows: [n],
+          } = await db.query(
+            `select count(*)::int as n from ${ident(c.table_name)} x
+              where (x.battle_id, x.player_tag) in
+                    (select battle_id, player_tag from battle_participant where player_tag = $1)`,
+            [tag],
+          );
+          rows[key] = n.n;
+        } else if (c.has_endpoint) {
+          const { rows: byEndpoint } = await db.query(
+            `select endpoint, count(*)::int as n from ${ident(c.table_name)}
+              where ${ident(c.column_name)} = $1 group by 1 order by 1`,
+            [tag],
+          );
+          rows[key] = Object.fromEntries(
+            byEndpoint.map((r) => [r.endpoint, r.n]),
+          );
+        } else {
+          const {
+            rows: [n],
+          } = await db.query(
+            `select count(*)::int as n from ${ident(c.table_name)}
+              where ${ident(c.column_name)} = $1`,
+            [tag],
+          );
+          rows[key] = n.n;
+        }
+      }
+      const mentions = {};
+      const needles = [`%${tag}%`, `%${encodeURIComponent(tag)}%`];
+      for (const [table, column] of TAG_MENTIONS) {
+        const {
+          rows: [n],
+        } = await db.query(
+          `select count(*)::int as n from ${ident(table)}
+            where ${ident(column)}::text like any($1::text[])`,
+          [needles],
+        );
+        mentions[`${table}.${column}`] = n.n;
+      }
+      const {
+        rows: [player],
+      } = await db.query(
+        `select name is not null as named, first_seen_at, last_seen_at,
+                last_known_clan_tag is not null as has_clan,
+                years_played is not null as has_tenure
+           from player where player_tag = $1`,
+        [tag],
+      );
+      const { rows: recordings } = await db.query(
+        `select subject_type, status, origin, scope, created_at
+           from recording where subject_tag = $1 order by created_at`,
+        [tag],
+      );
+      const {
+        rows: [tracking],
+      } = await db.query(
+        `select (select count(*)::int from claim where player_tag = $1) as claims,
+                (select count(*)::int from claim_challenge where player_tag = $1) as claim_challenges,
+                (select count(*)::int from account where requested_player_tag = $1) as account_requests,
+                (select count(*)::int from agent_identity where player_tag = $1) as agent_identities,
+                (select count(*)::int from player_nickname where player_tag = $1) as nicknames,
+                (select count(*)::int from job where entity_key = $1
+                    and status in ('queued', 'leased')) as open_jobs,
+                (select count(*)::int from clan_membership
+                  where player_tag = $1 and left_observed_at is null) as open_memberships,
+                (select count(*)::int from clan_membership cm
+                  where cm.player_tag = $1 and cm.left_observed_at is null
+                    and (exists (select 1 from recording r where r.subject_type = 'clan'
+                                   and r.status = 'active' and r.subject_tag = cm.clan_tag)
+                         or exists (select 1 from account_clan ac
+                                     where ac.clan_tag = cm.clan_tag))) as tracked_clan_memberships`,
+        [tag],
+      );
+      const {
+        rows: [battles],
+      } = await db.query(
+        `select count(*)::int as participant_rows,
+                count(*) filter (where exists (
+                  select 1 from battle_participant o
+                   where o.battle_id = p.battle_id and o.player_tag <> p.player_tag
+                     and (exists (select 1 from recording r where r.subject_type = 'player'
+                                   and r.status = 'active' and r.subject_tag = o.player_tag)
+                          or exists (select 1 from claim c where c.player_tag = o.player_tag))
+                ))::int as with_tracked_other_side
+           from battle_participant p where p.player_tag = $1`,
+        [tag],
+      );
+      const { rows: calls } = await db.query(
+        `select tool, count(*)::int as n, min(created_at) as first_at, max(created_at) as last_at
+           from mcp_call_audit where args::text like any($1::text[])
+          group by 1 order by 1`,
+        [needles],
+      );
+      const { rows: receiptRows } = await db.query(
+        `select r.receipt_id::text, r.endpoint, r.fetched_at, r.admission,
+                coalesce(j.lane, 'unknown') as lane,
+                coalesce(j.record::text, 'unknown') as record,
+                p.first_fetched_at, r.payload_hash
+           from api_receipt r
+           left join job j on j.job_id = r.job_id
+           left join api_payload p on p.endpoint = r.endpoint
+                and p.entity_key = r.entity_key and p.payload_hash = r.payload_hash
+          where r.entity_key = $1
+          order by r.fetched_at limit 50`,
+        [tag],
+      );
+      const receipts = [];
+      for (const r of receiptRows) {
+        const at = (r.first_fetched_at ?? r.fetched_at).toISOString();
+        const key = archiveKey(r.endpoint, tag, at, r.payload_hash);
+        receipts.push({
+          receipt_id: r.receipt_id,
+          endpoint: r.endpoint,
+          fetched_at: r.fetched_at,
+          admission: r.admission,
+          lane: r.lane,
+          record: r.record,
+          payload_row: r.first_fetched_at !== null,
+          archive_key: key,
+          archive_object: head ? await head(key) : "unchecked",
+        });
+      }
+      out.push({
+        tag,
+        player: player ?? null,
+        tracking: { recordings, ...tracking },
+        battles,
+        rows,
+        mentions,
+        mcp_calls: calls,
+        receipts,
+      });
+    }
+    return {
+      note: "Counts, dates and keys only; nothing written. rows: every base table with a tag column (by endpoint where it has one). tracking: anything that makes the tag recorded. battles.with_tracked_other_side: its battles that belong to a tracked player's record. receipts: archive_object is a HEAD of the payload archive key.",
+      tag_columns: columns.map((c) => `${c.table_name}.${c.column_name}`),
+      tags: out,
+    };
+  } finally {
+    await db.end();
+  }
+}
