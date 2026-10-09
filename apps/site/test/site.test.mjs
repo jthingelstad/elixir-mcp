@@ -1249,7 +1249,7 @@ test(
     const knight = tiles.find((a) => a.href.endsWith("/26000000/"));
     assert.equal(
       knight.querySelector("img.card-art__img").getAttribute("src"),
-      "/assets/cards/26000000-128.png",
+      "/assets/cards/26000000.png",
     );
     assert.equal(knight.querySelector(".card-elixir").textContent, "3");
     assert.match(
@@ -1281,10 +1281,7 @@ test(
     const crumb = doc.querySelector('nav[aria-label="Breadcrumb"]');
     assert.equal(crumb.querySelector("a").getAttribute("href"), "/cards/");
     const img = root.querySelector(".card-figure img.card-art__img");
-    assert.equal(
-      img.getAttribute("src"),
-      "/assets/cards/26000000_hero-285.png",
-    );
+    assert.equal(img.getAttribute("src"), "/assets/cards/26000000_hero.png");
     assert.equal(img.getAttribute("alt"), "Hero Knight");
     assert.equal(
       root.querySelector(".card-art__form--hero").textContent,
@@ -1301,7 +1298,7 @@ test(
       .document;
     assert.equal(
       fireball.querySelector(".card-figure img").getAttribute("src"),
-      "/assets/cards/28000000-285.png",
+      "/assets/cards/28000000.png",
     );
     assert.equal(fireball.querySelector(".card-art__form"), null);
     // The CSP forbids inline script, handlers included.
@@ -1436,17 +1433,22 @@ test("a card page draws the catalog's art, its form else the base card", async (
   const O = "https://elixir.poapkings.com/assets/cards";
   const wizard = {
     id: 26000042,
-    art: { base: `${O}/26000042-285.png`, hero: `${O}/26000042_hero-285.png` },
+    art: { base: `${O}/26000042.png`, hero: `${O}/26000042_hero.png` },
   };
   assert.deepEqual(artOf(wizard, "hero"), {
-    figure: "/assets/cards/26000042_hero-285.png",
-    figure_base: "/assets/cards/26000042-285.png",
-    tile: "/assets/cards/26000042-128.png",
+    figure: "/assets/cards/26000042_hero.png",
+    figure_base: "/assets/cards/26000042.png",
+    tile: "/assets/cards/26000042.png",
   });
   // A form the catalog has no art for is drawn as the base card.
   assert.deepEqual(artOf(wizard, "evolution"), {
-    figure: "/assets/cards/26000042-285.png",
+    figure: "/assets/cards/26000042.png",
     figure_base: null,
-    tile: "/assets/cards/26000042-128.png",
+    tile: "/assets/cards/26000042.png",
   });
+  // Every address is the mirror's one file per form: no width copies
+  // (Jamie, 2026-10-08: "you cannot resize the images or alter them in
+  // anyway").
+  for (const v of Object.values(artOf(wizard, "hero")))
+    assert.doesNotMatch(String(v), /-\d+\.png$/);
 });

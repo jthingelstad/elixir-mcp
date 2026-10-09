@@ -34,15 +34,13 @@ export function artForm(forms) {
       : "base";
 }
 
-/** A catalog art URL as this origin's own path, at a mirrored width: the
- *  pages are served from the origin the art is on (and a local build
- *  serves its own copy). */
-const artPath = (url, width) =>
-  url
-    ? String(url)
-        .replace(/^https?:\/\/[^/]+/, "")
-        .replace(/-\d+\.png$/, `-${width}.png`)
-    : null;
+/** A catalog art URL as this origin's own path: the pages are served
+ *  from the origin the art is on (and a local build serves its own
+ *  copy). The file is the mirror's one copy of the form, Supercell's own
+ *  bytes; the page sizes it with width and height (Jamie, 2026-10-08:
+ *  "you cannot resize the images or alter them in anyway"). */
+const artPath = (url) =>
+  url ? String(url).replace(/^https?:\/\/[^/]+/, "") : null;
 
 /** The art a card's page and tile draw (2026-10-08, Jamie: "Card art
  *  should be in the api response for cards"): the catalog's own `art`,
@@ -51,13 +49,13 @@ const artPath = (url, width) =>
 export function artOf(c, form) {
   const sfx = { hero: "_hero", evolution: "_evo", base: "" };
   const named = (f) =>
-    c.art ? (c.art[f] ?? null) : `/assets/cards/${c.id}${sfx[f]}-285.png`;
-  const figure = artPath(named(form) ?? named("base"), 285);
-  const base = artPath(named("base"), 285);
+    c.art ? (c.art[f] ?? null) : `/assets/cards/${c.id}${sfx[f]}.png`;
+  const figure = artPath(named(form) ?? named("base"));
+  const base = artPath(named("base"));
   return {
     figure,
     figure_base: figure !== base ? base : null,
-    tile: artPath(named("base"), 128),
+    tile: base,
   };
 }
 

@@ -29,10 +29,7 @@ export interface DeckCard {
   level?: number | null;
 }
 
-/** The mirrored widths (infra/scripts/mirror-card-art.mjs; contracts
- *  CARD_ART_WIDTHS): a catalog art URL names the 285 copy, and each
- *  narrower one is the same address with its width. */
-const WIDTHS = [128, 192, 285] as const;
+/** The mirror's file suffix per form (contracts cardArtPath). */
 const SUFFIX: Record<CardForm, string> = {
   base: "",
   evolution: "_evo",
@@ -72,50 +69,33 @@ export function CardArtProvider({
   );
 }
 
-const widthFor = (size: number) =>
-  WIDTHS.find((w) => w >= size * 2) ?? WIDTHS[WIDTHS.length - 1];
-
-/** A catalog art URL at the smallest width that is sharp at `size` CSS
- *  pixels on a 2x screen. */
-export const artAt = (url: string, size = 64): string =>
-  url.replace(/-\d+\.png$/, `-${widthFor(size)}.png`);
-
 /** The images a tile tries, in order: the played form's art, then the
  *  base card's; past the last, the card's name. Null while the catalog
- *  is still loading. */
+ *  is still loading. Each is the mirror's one file for that form,
+ *  Supercell's own bytes (Jamie, 2026-10-08: "you cannot resize the
+ *  images or alter them in anyway"): the tile sizes it with width,
+ *  height and CSS, never by asking for a smaller copy. */
 export function artCandidates(
   card: Pick<DeckCard, "id" | "form">,
-  size: number,
   source: CardArtSource | null,
 ): string[] | null {
   const form = card.form ?? "base";
   if (source?.status === "loading") return null;
   if (source?.status === "ready") {
     const art = source.art(card.id);
-    return [...new Set([art?.[form], art?.base].filter(Boolean))].map((u) =>
-      artAt(u as string, size),
-    );
+    return [...new Set([art?.[form], art?.base].filter(Boolean) as string[])];
   }
   // No catalog: the mirror's own names, the form then the base card.
-  return [
-    ...new Set([
-      cardArtSrc(card.id, form, size),
-      cardArtSrc(card.id, "base", size),
-    ]),
-  ];
+  return [...new Set([cardArtSrc(card.id, form), cardArtSrc(card.id, "base")])];
 }
 
 /** Tower troops (159xxxxxx) have no mirrored art. */
 export const isTowerTroop = (id: number) => id >= 159000000 && id < 160000000;
 
-/** The mirrored art for a card at the smallest width that is sharp at
- *  `size` CSS pixels on a 2x screen. */
-export function cardArtSrc(
-  id: number,
-  form: CardForm | null = "base",
-  size = 64,
-): string {
-  return `/assets/cards/${id}${SUFFIX[form ?? "base"]}-${widthFor(size)}.png`;
+/** The mirrored art for a card and form: the one file, as Supercell
+ *  serves it. */
+export function cardArtSrc(id: number, form: CardForm | null = "base"): string {
+  return `/assets/cards/${id}${SUFFIX[form ?? "base"]}.png`;
 }
 
 /** The label a person reads for a card: "Evo Royal Hogs", "Hero Knight". */
@@ -153,9 +133,7 @@ export function CardArt({
   const alt = card.level ? `${label}, level ${card.level}` : label;
   const style = { "--card-w": `${size}px` } as CSSProperties;
   const ribbon = FORM_LABEL[form];
-  const candidates = isTowerTroop(card.id)
-    ? []
-    : artCandidates(card, size, source);
+  const candidates = isTowerTroop(card.id) ? [] : artCandidates(card, source);
   const src = candidates?.find((u) => !failed.includes(u));
   const body: ReactNode = (
     <>
