@@ -816,15 +816,13 @@ Electro Wizard. All are `image/png`. A battle page, its share PNG and
   change to an `art` URL needs a second deploy once the cache turns
   over, or the site must build those paths from `cardArtPath` instead
   of the response's text. Neither is built.
-- **The resized objects were not deleted.** Auto mode blocked
-  `aws s3 rm` of the 546 `assets/cards/*-{128,192,285}.png` objects, so
-  they still answer 200, though nothing built or served names them.
-  Their last upload was 00:55Z today. The 14-day asset prune
-  (`pruneCandidates`) removes them on the first deploy after about
-  2026-10-23 00:55Z, because no build ships them any more. Originals
-  cannot be pruned: every deploy seeds them from the bucket and
-  re-uploads them. Mail sent before today names the resized URLs. After
-  the prune its images break, though the alt text still shows.
+- **The resized objects are deleted.** Jamie, verbatim: "Approved: delete
+  the 546 resized card art objects (assets/cards/*-128/-192/-285.png) from
+  elixir-mcp-site-999153317627 and invalidate CloudFront /assets/cards/*".
+  Done 2026-10-09 about 02:00Z: the bucket holds the 182 originals and
+  no resized object, the invalidation completed, and an old `-285.png`
+  URL answers 404. Mail sent before 2026-10-08 named the resized URLs,
+  so its card images now show alt text only.
 - **Flake:** `services/mcp/test/query-budget.test.mjs` ("a read-only
   tool behind a lock…") failed once under full-suite load ('5s' !== '0').
   It passed alone 3 of 3 and on the next full verify. The run was
@@ -993,3 +991,13 @@ done jobs), with no player row, receipt or payload row. The third tag and
 a tracked neighbour read exactly as before the deploy, table by table.
 About 520 rows went, so no `{vacuum}`. Still owed: the two payload
 archive objects in S3 (Jamie, console; previous entry).
+
+## 2026-10-08 — a legendary badge is a milestone mail
+
+Jamie, verbatim: "Approved: legendary badges send immediate milestone mail
+in elixir-mcp, PR and deploy". `legendary_badge_earned` joins
+`MILESTONE_MAIL_KINDS` and mails once, ranked beside a new best. It is no
+longer counted in Tuesday's Arena week (`progressOf` drops
+`legendary_badges`; stored issues still render the old field). Plain badge
+levels and card unlocks stay counted. MCP 11.5.2 and JSON API 3.1.0 are
+unchanged; the deploy needs no acceptance family (mail only).

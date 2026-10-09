@@ -6,9 +6,9 @@ section: friends
 order: 4
 navTitle: "Milestones"
 icon: sparkles
-lede: "A short note when you or an alt does something for the first time: a new arena, a promotion, a new best. Never a move down, never the same moment twice."
+lede: "A short note when you or an alt reach a big first: a new arena, a promotion, a new best, a legendary badge. Never a move down, never the same moment twice."
 console: ["Your email switches", "/console/account/profile/email", "Account settings ▸ Emails from Elixir"]
-reviewed: "2026-10-02 against contract 9.18.1"
+reviewed: "2026-10-08 for legendary badges as milestones, contract 11.5.2"
 ---
 
 # Milestones
@@ -32,13 +32,17 @@ an alt's moment leads, the note names the alt; your own reads "You".
 | A new best | your best trophies pass a multiple of 500 for the first time on record |
 | Career wins | every 1,000 wins |
 | Collection Level | every 5 levels below 100, every 50 up to 1,000, every 100 above |
-| A card unlocked | a card new to your collection, or its Evolution or Hero |
-| A badge | a badge earned, or taken to its top level or a multiple of five |
+| An Evolution or Hero | a form of a card new to your collection (an Evolution and a Hero of one card are two firsts) |
+| A legendary badge | a one-off legendary badge earned |
+
+A card unlocked and a badge level never send a milestone email on their
+own: Tuesday's [Arena email](/docs/email) counts them for each of your
+players, and your [timeline](/docs/timeline) lists every one.
 
 ## Firsts only
 
 Each moment mails **once, ever**: the arena, the league, the band, the
-step, the card's form or the badge level is remembered for your account
+step, the card's form or the legendary badge is remembered for your account
 and that player, and the same moment never mails again. Climbing back
 into an arena you were already congratulated on is silent. **A move
 down never mails.**
@@ -59,8 +63,8 @@ a new best or a legendary badge. A new arena and a promotion carry the
 battle that decided them when the record has it: the score, who it was
 against and where they started, and the trophies it moved, with **See
 the battle** opening [the battle's own page](/docs/battles#a-battles-page),
-the same link `battles_query` hands a connected app. A card
-unlocked is shown as its art, in the form you unlocked, and opens the
+the same link `battles_query` hands a connected app. A new
+Evolution or Hero is shown as its art, in the form you unlocked, and opens the
 card's page in Elixir. With none of those,
 the first three of anything lead. The rest are listed under **Also**. The subject is the first
 headline, with how many more ride along. The button at the foot opens

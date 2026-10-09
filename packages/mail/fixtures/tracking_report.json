@@ -47,8 +47,7 @@
   ],
   "progress": {
    "cards_unlocked": 3,
-   "badge_levels": 2,
-   "legendary_badges": 0
+   "badge_levels": 2
   }
  },
  "alts": [
@@ -274,8 +273,7 @@
    "deck_battles": 58,
    "progress": {
     "cards_unlocked": 1,
-    "badge_levels": 0,
-    "legendary_badges": 0
+    "badge_levels": 0
    }
   }
  ],
