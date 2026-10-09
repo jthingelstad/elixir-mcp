@@ -28,11 +28,16 @@ import { KIND_LABELS } from "@elixir-mcp/mail";
  *   clan_followed    a followed clan now, or a clan_added event
  *   clan_auto        of those, one Elixir followed for them (0205)
  *   verified         a verified claim now, or a claim_verified event
- *   came_back_week1  a sign-in (signed_in event or a session opened),
- *                    a session last seen, or a tool call of their own
- *                    (Console, Ladder, MCP or API) on a UTC day 1 to 7
- *                    days after the signup day
+ *   came_back_week1  the person using Elixir on a later day of their
+ *                    own: a sign-in (signed_in event) or a call they
+ *                    made (Console, Ladder, MCP or API; mcp_call_audit
+ *                    under their account, never a service token's) on
+ *                    a day 1 to 7 days after the signup day
  *   came_back_week2  the same on days 8 to 14
+ * Days are the account's own, in its time zone (UTC when it has none,
+ * or one Postgres does not know). A session only seen or refreshed is
+ * not a return: a tab left open past midnight is not the person coming
+ * back (Jamie, 2026-10-08).
  * A came-back window still running reports how many accounts are in it
  * (`open`), so a young cohort's share reads as so far, not as final.
  *
@@ -53,8 +58,7 @@ const POPULATION = `
       from account
      where kind = 'person' and role in ('owner', 'admin') and email is not null),
   people as (
-    select a.account_id, a.created_at,
-           (a.created_at at time zone 'UTC')::date as day0,
+    select a.account_id, a.created_at, a.timezone,
            date_trunc('week', a.created_at at time zone 'UTC')::date as week,
            case when a.role in ('owner', 'admin') then 'staff'
                 when a.email is not null
@@ -83,30 +87,36 @@ export async function betaPulse(
 
   const { rows: cohortRows } = await db.query(
     `with ${POPULATION},
-     activity as (
-       select account_id, (created_at at time zone 'UTC')::date as day
+     zones as materialized (
+       select distinct on (lower(name)) lower(name) as key, name
+         from pg_timezone_names
+        order by lower(name), name),
+     zoned as (
+       select c.account_id, c.week, c.created_at, coalesce(z.name, 'UTC') as zone
+         from cohort c
+         left join zones z on z.key = lower(c.timezone)),
+     local as (
+       select account_id, week, zone,
+              (created_at at time zone zone)::date as day0,
+              ($2::timestamptz at time zone zone)::date as today
+         from zoned),
+     own as (
+       select account_id, created_at as at
          from mcp_call_audit
         where created_at >= ($1::date)::timestamp at time zone 'UTC'
-          and created_at <= $3::timestamptz
+          and created_at <= $2::timestamptz
+          and surface not like 'svc:%'
           and account_id in (select account_id from cohort)
-       union
-       select account_id, (created_at at time zone 'UTC')::date
+       union all
+       select account_id, created_at
          from account_event
         where kind = 'signed_in' and created_at >= ($1::date)::timestamp at time zone 'UTC'
-          and created_at <= $3::timestamptz
-          and account_id in (select account_id from cohort)
-       union
-       select account_id, (created_at at time zone 'UTC')::date
-         from session
-        where created_at >= ($1::date)::timestamp at time zone 'UTC'
-          and created_at <= $3::timestamptz
-          and account_id in (select account_id from cohort)
-       union
-       select account_id, (last_seen_at at time zone 'UTC')::date
-         from session
-        where last_seen_at >= ($1::date)::timestamp at time zone 'UTC'
-          and last_seen_at <= $3::timestamptz
+          and created_at <= $2::timestamptz
           and account_id in (select account_id from cohort)),
+     activity as (
+       select distinct o.account_id, (o.at at time zone l.zone)::date as day
+         from own o
+         join local l on l.account_id = o.account_id),
      facts as (
        select c.week,
               exists (select 1 from claim x where x.account_id = c.account_id)
@@ -142,9 +152,9 @@ export async function betaPulse(
               exists (select 1 from activity v
                        where v.account_id = c.account_id
                          and v.day between c.day0 + 8 and c.day0 + 14) as back_week2,
-              $2::date <= c.day0 + 7 as week1_open,
-              $2::date <= c.day0 + 14 as week2_open
-         from cohort c
+              c.today <= c.day0 + 7 as week1_open,
+              c.today <= c.day0 + 14 as week2_open
+         from local c
          left join claim p on p.account_id = c.account_id and p.is_primary)
      select week::text,
             count(*)::int as signed_up,
@@ -161,7 +171,7 @@ export async function betaPulse(
             count(*) filter (where week2_open)::int as week2_open
        from facts
       group by week`,
-    [since, today, now.toISOString()],
+    [since, now.toISOString()],
   );
 
   const { rows: excludedRows } = await db.query(
