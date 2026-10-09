@@ -316,12 +316,50 @@ test("cards unlocked reach the mail as their art, each a link to its page; a for
   });
   assert.equal(r.sent, 1, JSON.stringify(r));
   const { html } = out[0];
-  for (const file of ["26000047-285", "26000006-285", "26000021_evo-285"])
+  for (const file of ["26000047", "26000006", "26000021_evo"])
     assert.ok(html.includes(`/assets/cards/${file}.png`), file);
   for (const card of [26000047, 26000006, 26000021])
     assert.match(html, new RegExp(`href="[^"]*/cards/${card}\\?`));
   assert.match(html, />Epic</);
   assert.match(html, /You unlocked three cards/);
+});
+
+test("a form the art mirror lacks reaches the mail as the base card's art", async () => {
+  // 2026-10-08: Supercell lists a new form about two weeks before its
+  // image answers, and a mail client cannot fall back as a page does.
+  const TAG = "#9QQ2GG8R";
+  const id = await person("form-art", TAG, "2026-09-01T00:00:00Z", null);
+  await db.query(
+    `insert into card (card_id, name, kind, rarity) values
+       (26000021, 'Hog Rider', 'card', 'rare')
+     on conflict (card_id) do nothing`,
+  );
+  await db.query(
+    `insert into player_event
+       (player_tag, event_type, timing, window_start, window_end, card_id, step)
+     values ($1, 'card_form_unlocked', 'estimated', $2, $3, 26000021, 1)`,
+    [TAG, "2026-09-23T17:00:00Z", "2026-09-23T18:00:00Z"],
+  );
+  const { enqueue, out } = sink();
+  const asked = [];
+  const r = await runEmail({
+    db,
+    kind: "milestone",
+    now: new Date("2026-09-23T18:20:00Z"),
+    enqueue,
+    secret: "s",
+    accountId: id,
+    cardArt: async (p) => {
+      asked.push(p);
+      return false;
+    },
+  });
+  assert.equal(r.sent, 1, JSON.stringify(r));
+  const { html } = out[0];
+  assert.deepEqual(asked, ["/assets/cards/26000021_evo.png"]);
+  assert.ok(html.includes("/assets/cards/26000021.png"));
+  assert.ok(!html.includes("/assets/cards/26000021_evo.png"));
+  assert.match(html, /alt="Evo Hog Rider"/);
 });
 
 test("the battle that did it links its page, the short id battles_query hands out", async () => {

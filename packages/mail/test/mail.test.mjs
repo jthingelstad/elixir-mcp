@@ -14,6 +14,7 @@ import {
   KIND_LABELS,
   MAIL_SCHEDULE,
   cardAsset,
+  resolveCardArt,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -528,20 +529,92 @@ test("unsubscribe links have their own key, and links sent before it still work 
   );
 });
 
-test("cardAsset picks the mirrored file at twice the display width, in its form", () => {
+test("cardAsset is the mirror's one original file per card and form", () => {
+  // Jamie, 2026-10-08: "you cannot resize the images or alter them in
+  // anyway." The mail sizes the original with width and height.
   const base = "https://elixir.poapkings.com/assets/cards/";
-  assert.equal(cardAsset(26000021, "base", 36), `${base}26000021-128.png`);
-  assert.equal(cardAsset(26000021, null, 64), `${base}26000021-128.png`);
-  assert.equal(
-    cardAsset(26000021, "evolution", 96),
-    `${base}26000021_evo-192.png`,
+  assert.equal(cardAsset(26000021, "base"), `${base}26000021.png`);
+  assert.equal(cardAsset(26000021, null), `${base}26000021.png`);
+  assert.equal(cardAsset(26000021, "evolution"), `${base}26000021_evo.png`);
+  assert.equal(cardAsset(26000021, "hero"), `${base}26000021_hero.png`);
+});
+
+test("every card image in every mail is an original, sized by width and height", () => {
+  for (const { name, kind, facts } of allFixtures()) {
+    if (isRetiredEmailKind(kind)) continue;
+    const { html } = renderMail(kind, facts, links);
+    for (const img of html.match(
+      /<img [^>]*src="[^"]*\/assets\/cards\/[^"]*"[^>]*>/g,
+    ) ?? []) {
+      assert.match(
+        img,
+        /\/assets\/cards\/\d+(_evo|_hero)?\.png"/,
+        `${name}: ${img}`,
+      );
+      assert.match(img, /width="\d+" height="\d+"/, `${name}: ${img}`);
+      assert.doesNotMatch(img, /srcset/, name);
+    }
+  }
+});
+
+test("an Evo or Hero the mirror lacks draws the base card's original, chosen at compose time", async () => {
+  // A mail client cannot fall back the way a page does; Supercell lists
+  // a form about two weeks before its image answers (Hero Electro
+  // Wizard on 2026-10-08).
+  const facts = {
+    deck: {
+      cards: [
+        { id: 26000042, name: "Electro Wizard", form: "hero" },
+        { id: 26000059, name: "Royal Hogs", form: "evolution" },
+        { id: 26000012, name: "Skeleton Army", form: "base" },
+      ],
+    },
+    at: new Date("2026-10-08T00:00:00Z"),
+  };
+  const asked = [];
+  const held = async (p) => {
+    asked.push(p);
+    return p === "/assets/cards/26000059_evo.png";
+  };
+  const out = await resolveCardArt(facts, held);
+  const [wizard, hogs, army] = out.deck.cards;
+  assert.equal(wizard.art_src, cardAsset(26000042, "base"));
+  assert.equal(wizard.form, "hero", "the alt still names the form played");
+  assert.equal(hogs.art_src, undefined, "a held form draws its own art");
+  assert.equal(army.art_src, undefined, "a base card is never asked about");
+  assert.deepEqual(asked.sort(), [
+    "/assets/cards/26000042_hero.png",
+    "/assets/cards/26000059_evo.png",
+  ]);
+  assert.ok(out.at instanceof Date);
+  assert.equal(facts.deck.cards[0].art_src, undefined, "input unchanged");
+  // A failing check reads as missing: the base card, never a broken image.
+  const failed = await resolveCardArt(facts, async () => {
+    throw new Error("AccessDenied");
+  });
+  assert.equal(failed.deck.cards[1].art_src, cardAsset(26000059, "base"));
+});
+
+test("the drawn image is the base card's, with the form's name as its alt", async () => {
+  const facts = stored("milestone-cards");
+  const hero = facts.milestones.find(
+    (m) => m.card?.form && m.card.form !== "base",
   );
-  assert.equal(
-    cardAsset(26000021, "hero", 130),
-    `${base}26000021_hero-285.png`,
+  const subject = hero ?? facts.milestones[0];
+  const card = { ...subject.card, form: "hero" };
+  const resolved = await resolveCardArt(
+    { ...facts, milestones: [{ ...subject, card }] },
+    async () => false,
   );
-  // Past the source's own width there is nothing bigger to fetch.
-  assert.equal(cardAsset(26000021, "base", 400), `${base}26000021-285.png`);
+  const { html } = renderMail("milestone", resolved, links);
+  assert.ok(html.includes(`/assets/cards/${card.id}.png"`));
+  assert.ok(!html.includes(`/assets/cards/${card.id}_hero.png`));
+  assert.match(
+    html,
+    new RegExp(
+      `alt="Hero ${card.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
+    ),
+  );
 });
 
 test("cards unlocked are their art, each a link to the card's page in Elixir", () => {
@@ -550,7 +623,7 @@ test("cards unlocked are their art, each a link to the card's page in Elixir", (
   assert.match(html, /Big Thing unlocked three cards/);
   for (const m of facts.milestones) {
     assert.ok(
-      html.includes(`/assets/cards/${m.card.id}-285.png`),
+      html.includes(`/assets/cards/${m.card.id}.png`),
       `${m.card.name}'s art`,
     );
     assert.match(html, new RegExp(`href="[^"]*/cards/${m.card.id}\\?`));
@@ -630,7 +703,7 @@ test("each collector is its card, with what it is doing now", () => {
   );
   for (const x of facts.collectors)
     assert.ok(
-      html.includes(`/assets/cards/${x.card_id}-128.png`),
+      html.includes(`/assets/cards/${x.card_id}.png`),
       `${x.name}'s art`,
     );
   assert.match(html, /silent since Sep 26, 9:40 pm/);

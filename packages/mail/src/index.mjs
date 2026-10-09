@@ -24,7 +24,7 @@ export {
   MAIL_SOURCE,
   sendTime as mailSendTime,
 } from "./shell.mjs";
-export { cardAsset } from "./cards.mjs";
+export { cardAsset, resolveCardArt } from "./cards.mjs";
 export {
   pixelPath,
   pixelUrl,

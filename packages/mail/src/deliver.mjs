@@ -10,6 +10,7 @@ import { randomUUID } from "node:crypto";
 import {
   renderMail,
   htmlToText,
+  resolveCardArt,
   signUnsubscribe,
   unsubscribeUrl,
 } from "@elixir-mcp/mail";
@@ -32,6 +33,10 @@ export async function deliver({
   force = false,
   now = new Date(),
   sendId = randomUUID(),
+  // (path) => whether the card-art mirror holds that file: an Evo or
+  // Hero whose image it lacks draws the base card (resolveCardArt).
+  // Null draws every card's own form.
+  cardArt = null,
 }) {
   if (isRetiredEmailKind(kind)) return { sent: false, reason: "retired" };
   if (!force && (await alreadySent(db, issueId, account.accountId)))
@@ -47,7 +52,8 @@ export async function deliver({
     timezone: account.timezone ?? "UTC",
     ...(account.tags?.length ? { mine: account.tags } : {}),
   };
-  const { subject, html } = renderMail(kind, facts, links);
+  const drawn = cardArt ? await resolveCardArt(facts, cardArt) : facts;
+  const { subject, html } = renderMail(kind, drawn, links);
   const text = htmlToText(html);
   const archived = await archiveSentMail({
     store: archive,
