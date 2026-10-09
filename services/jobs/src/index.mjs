@@ -19,6 +19,7 @@ import { makeOutbox } from "@elixir-mcp/outbox";
 import { runFeedbackAnswers } from "./email/feedback-answers.mjs";
 import { runCollectorUpgrades } from "./email/collector-upgrades.mjs";
 import { runEmail } from "./email/index.mjs";
+import { clanReportPreview } from "./email/clan-preview.mjs";
 import { activityHistogram } from "./activity.mjs";
 import { captureEfficiency } from "./efficiency.mjs";
 import { warBattlesUnresolved, warUnresolvedEmf } from "./war-calendar.mjs";
@@ -360,6 +361,24 @@ export async function handler(event, context) {
         : null,
     });
     console.log(JSON.stringify({ feedback_answers: result }));
+    return result;
+  }
+  // Read-only: one clan's Monday report as the run would compose it,
+  // beside the issue stored for that week. Writes and sends nothing.
+  if (event?.clan_report_preview) {
+    const result = await clanReportPreview(
+      { databaseUrl: process.env.DATABASE_URL },
+      event.clan_report_preview,
+    );
+    console.log(
+      JSON.stringify({
+        clan_report_preview: {
+          clan_tag: result.clan_tag ?? null,
+          week: result.week ?? null,
+          error: result.error ?? null,
+        },
+      }),
+    );
     return result;
   }
   if (typeof event?.email === "string") {

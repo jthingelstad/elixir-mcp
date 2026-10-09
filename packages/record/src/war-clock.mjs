@@ -24,6 +24,26 @@ const PERIODS_PER_SECTION = TRAINING_DAYS + WAR_DAYS;
 const NOMINAL_RESET_HOUR_UTC = 10;
 const DAY_MS = 24 * 3600_000;
 
+/** War decks a member can play on a war day: the game's own limit. */
+export const WAR_DECKS_PER_DAY = 4;
+
+/** The war days a finished race week asked of a member (decks, not
+ *  days: DECISIONS, "War facts are weekly aggregates"): every war day up
+ *  to the clan's finish, since after the boat crosses the rest of the
+ *  week is optional; all four in Colosseum, which has no line, and when
+ *  no finish day is recorded. Null while the week is open. Training days
+ *  are never among them: the race's weekly decksUsed counts war days
+ *  only, and a training deck is practice, never attendance. The one
+ *  derivation Elixir Clan's rates and the clan report's possible decks
+ *  read. */
+export function warDaysAsked(w) {
+  if (!w?.finished_observed_at) return null;
+  if (w.is_colosseum) return WAR_DAYS;
+  return Number.isInteger(w.finish_war_day)
+    ? Math.min(WAR_DAYS, Math.max(1, w.finish_war_day))
+    : WAR_DAYS;
+}
+
 export function periodInfo(periodIndex) {
   const sectionIndex = Math.floor(periodIndex / PERIODS_PER_SECTION);
   const dayInSection = periodIndex % PERIODS_PER_SECTION;

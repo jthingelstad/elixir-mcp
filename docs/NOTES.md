@@ -1159,3 +1159,41 @@ improving?" with numbers only.
   Legends reads 75% (12) beside 73% (15), three-crown 50% beside 27%,
   +270 beside +330. thingles' Season 136 Trophy Road splits at the
   first Hog Rider control battle: 88.5% (87) before, 92% (25) since.
+
+
+## 2026-10-08 — the clan report sets its week beside the weeks before
+
+The Monday clan report described one week alone. It now carries `trend`
+(`build-clan.mjs`, rendered by `packages/mail`):
+
+- **War decks:** decks used of those possible for the race that closed,
+  beside the races that closed in the four weeks before, each with its
+  share, and the pooled share of those before. Used is the sum of the
+  game's weekly `decksUsed` (`war_history`'s exact week), so training
+  days never count and nothing is split by day; no fame, and no member is
+  named. Possible is four decks a war day up to `finish_war_day` (four in
+  Colosseum) for each member on the roster at the close. `warDaysAsked`
+  moved from `clan-engine/week.mjs` into `record/war-clock.mjs`, which
+  both now read; `clan-engine` depends on `@elixir-mcp/record` for it
+  (war-clock imports nothing, so the browser bundles are unchanged).
+  `war_history` is read three seasons back (was two) so a season's first
+  week reaches the races before it.
+- **Activity:** battles and members who battled by `battle_time` (boat
+  defenses excluded), against the average of the four weeks before, in
+  the clan's-week row. Comprehensive clans only. The headline's battles
+  and active members now read this count, so the week shows one number.
+- **Thin history:** a prior week the record lacks (no participants, a
+  capped list, no roster at the close, before the recording began, no
+  battle) is left out, and the words say how many weeks are compared;
+  with none the comparison is left out. Issues stored before render
+  without the block.
+- **Read-back op:** `{clan_report_preview}` on the jobs Lambda composes
+  one clan's report in a read-only session beside the issue stored for
+  that week (`.claude/skills/ops/SKILL.md`).
+
+No tool output changed: MCP 11.6.1 and JSON API 3.1.0 stand, and the
+deploy needs no acceptance run.
+
+**Open:** possible counts the roster at the close while used counts every
+participant, so a week with churn can exceed 100% before the cap; the
+render caps each share at 100%.

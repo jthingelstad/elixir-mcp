@@ -821,6 +821,57 @@ test("the clan report links the race's own week, by Season and Week", () => {
   assert.doesNotMatch(quiet, /explore\/week\//);
 });
 
+test("the clan report sets the race and the week beside the weeks before", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
+  );
+  const text = htmlToText(renderMail("clan_report", facts, links).html);
+  assert.match(text, /War decks/);
+  assert.match(
+    text,
+    /This race: 214 of 528 possible war decks used \(41%\), 314 not played\. Over the four races before: 71%\./,
+  );
+  assert.match(text, /Season 135, week 5 \(Colosseum\)/);
+  assert.match(text, /training days are not counted/);
+  assert.match(
+    text,
+    /In 636 sessions, by 42 of 44 members\. The four weeks before averaged 2,384 battles a week, by 42 members\./,
+  );
+
+  // Thin history: the words say how many weeks are compared.
+  const thin = structuredClone(facts);
+  thin.trend.war.prior = thin.trend.war.prior.slice(0, 2);
+  thin.trend.activity.prior = thin.trend.activity.prior.slice(0, 1);
+  const thinText = htmlToText(renderMail("clan_report", thin, links).html);
+  assert.match(thinText, /Over the 2 recorded races before: 72%\./);
+  assert.match(
+    thinText,
+    /The one recorded week before had 2,310 battles, by 41 members\./,
+  );
+  assert.doesNotMatch(thinText, /four (races|weeks) before/);
+
+  // No earlier week recorded: the race alone, no comparison.
+  const alone = structuredClone(facts);
+  alone.trend.war.prior = [];
+  alone.trend.activity.prior = [];
+  const aloneText = htmlToText(renderMail("clan_report", alone, links).html);
+  assert.doesNotMatch(aloneText, /races? before|weeks? before/);
+  assert.match(aloneText, /War decks/);
+  assert.match(aloneText, /This race: 214 of 528 possible war decks used/);
+
+  // The race unknown and no earlier week: nothing at all.
+  const none = structuredClone(facts);
+  none.trend = { war: null, activity: { ...none.trend.activity, prior: [] } };
+  const noneText = htmlToText(renderMail("clan_report", none, links).html);
+  assert.doesNotMatch(noneText, /possible war decks|War decks|weeks? before/);
+
+  // An issue stored before the trend renders without it.
+  const old = htmlToText(
+    renderMail("clan_report", stored("clan_report-2026-09"), links).html,
+  );
+  assert.doesNotMatch(old, /possible war decks|War decks|weeks? before/);
+});
+
 test("each collector is its card, with what it is doing now", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "collector_activity.json"), "utf8"),

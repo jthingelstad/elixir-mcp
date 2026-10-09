@@ -336,5 +336,84 @@
  },
  "badges": [],
  "roster_note": null,
- "coverage": "Counted from what Elixir recorded for POAP KINGS, Monday to Monday at the river race's own reset; the roster was read 4 min before this was composed."
+ "coverage": "Counted from what Elixir recorded for POAP KINGS, Monday to Monday at the river race's own reset; the roster was read 4 min before this was composed.",
+ "trend": {
+  "war": {
+   "this_week": {
+    "season": 136,
+    "week": 3,
+    "colosseum": false,
+    "decks_used": 214,
+    "decks_possible": 528,
+    "members": 44,
+    "war_days": 3
+   },
+   "prior": [
+    {
+     "season": 136,
+     "week": 2,
+     "colosseum": false,
+     "decks_used": 402,
+     "decks_possible": 540,
+     "members": 45,
+     "war_days": 3
+    },
+    {
+     "season": 136,
+     "week": 1,
+     "colosseum": false,
+     "decks_used": 388,
+     "decks_possible": 552,
+     "members": 46,
+     "war_days": 3
+    },
+    {
+     "season": 135,
+     "week": 5,
+     "colosseum": true,
+     "decks_used": 541,
+     "decks_possible": 736,
+     "members": 46,
+     "war_days": 4
+    },
+    {
+     "season": 135,
+     "week": 4,
+     "colosseum": false,
+     "decks_used": 371,
+     "decks_possible": 564,
+     "members": 47,
+     "war_days": 3
+    }
+   ]
+  },
+  "activity": {
+   "this_week": {
+    "battles": 2486,
+    "active": 42
+   },
+   "prior": [
+    {
+     "from": "2026-09-14T10:00:00.000Z",
+     "battles": 2310,
+     "active": 41
+    },
+    {
+     "from": "2026-09-07T10:00:00.000Z",
+     "battles": 2604,
+     "active": 43
+    },
+    {
+     "from": "2026-08-31T10:00:00.000Z",
+     "battles": 2198,
+     "active": 40
+    },
+    {
+     "from": "2026-08-24T10:00:00.000Z",
+     "battles": 2422,
+     "active": 42
+    }
+   ]
+  }
+ }
 }

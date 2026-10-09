@@ -12,5 +12,8 @@
   "main": "./src/index.mjs",
   "scripts": {
     "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@elixir-mcp/record": "0.1.0"
   }
 }
