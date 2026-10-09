@@ -1,4 +1,5 @@
-import { Fresh, Link } from "@elixir-mcp/ui";
+import { Fresh, Icon, Link } from "@elixir-mcp/ui";
+import { useId } from "react";
 import { MODES, fmt, playerName } from "./ladder.js";
 import { ZoneOffer } from "../components/ZoneOffer.jsx";
 
@@ -9,7 +10,15 @@ import { ZoneOffer } from "../components/ZoneOffer.jsx";
  * house's win and loss inks, and the states a read can be in.
  */
 
-export function LadderHead({ player, page, title, lede, observedAt }) {
+export function LadderHead({
+  player,
+  page,
+  title,
+  lede,
+  observedAt,
+  season,
+  seasonPicker,
+}) {
   return (
     <>
       <LadderHeadRow
@@ -18,13 +27,22 @@ export function LadderHead({ player, page, title, lede, observedAt }) {
         title={title}
         lede={lede}
         observedAt={observedAt}
+        seasonPicker={seasonPicker}
       />
+      <SeasonFallback season={season} seasonPicker={seasonPicker} />
       <ZoneOffer className="mb-4" />
     </>
   );
 }
 
-function LadderHeadRow({ player, page, title, lede, observedAt }) {
+function LadderHeadRow({
+  player,
+  page,
+  title,
+  lede,
+  observedAt,
+  seasonPicker,
+}) {
   return (
     <div className="page-head ladder-head">
       <div className="min-w-0 flex-auto">
@@ -38,7 +56,66 @@ function LadderHeadRow({ player, page, title, lede, observedAt }) {
         <h1 className="page__title">{title}</h1>
         {lede ? <p className="page__lede">{lede}</p> : null}
       </div>
-      {observedAt ? <Fresh ts={observedAt} label="battle log read" /> : null}
+      <div className="ladder-head__side">
+        {seasonPicker ? <SeasonSwitch {...seasonPicker} /> : null}
+        {observedAt ? <Fresh ts={observedAt} label="battle log read" /> : null}
+      </div>
+    </div>
+  );
+}
+
+/** Which season the page reads (2026-10-08): the seasons on the
+ *  player's record, newest first, and any other the address names. A
+ *  choice is going to that season's address (`?season=136`), so a
+ *  link or a reload keeps it, as the mode tabs do. */
+function SeasonSwitch({ seasons, value, hrefFor, navigate }) {
+  const id = useId();
+  const list = seasons ?? [];
+  if (!list.length) return null;
+  const options = list.some((s) => s.key === value)
+    ? list
+    : [
+        ...list,
+        { key: value, name: /^\d+$/.test(value) ? `Season ${value}` : value },
+      ];
+  return (
+    <div className="ladder-season">
+      <label htmlFor={id} className="ladder-season__label">
+        Season
+      </label>
+      <select
+        id={id}
+        className="ladder-season__select"
+        value={value}
+        onChange={(e) => navigate?.(hrefFor(e.target.value))}
+      >
+        {options.map((s) => (
+          <option key={s.key} value={s.key}>
+            {s.name}
+            {s.current ? " (now)" : ""}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** The current season has no recorded battle yet, so the page reads the
+ *  one before (pickSeason): it says so, and the empty season is one click
+ *  away. Calm, not an alarm: the first days of every season look like
+ *  this. */
+function SeasonFallback({ season, seasonPicker }) {
+  const empty = season?.fallback;
+  if (!empty) return null;
+  return (
+    <div className="callout callout--info ladder-season-note" role="status">
+      <Icon name="info" size={17} />
+      <span>
+        {empty.name} has no recorded battles yet, so this is {season.name}.{" "}
+        {seasonPicker?.hrefFor ? (
+          <Link to={seasonPicker.hrefFor(empty.key)}>Show {empty.name} ›</Link>
+        ) : null}
+      </span>
     </div>
   );
 }

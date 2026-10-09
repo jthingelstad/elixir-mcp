@@ -72,15 +72,138 @@ export function ladderTitle(path, site = "Elixir") {
 }
 
 /** A Ladder address: the page, then the player (no hash, as every tag
- *  in a path or query travels) and the mode. Omitted params stay off. */
-export function ladderHref(slug, { player, mode } = {}) {
+ *  in a path or query travels), the mode and the season. Omitted params
+ *  stay off; no season is the current one (or the last one with battles,
+ *  pickSeason). */
+export function ladderHref(slug, { player, mode, season } = {}) {
   const path = !slug || slug === "season" ? LADDER : `${LADDER}/${slug}`;
   const q = new URLSearchParams();
   if (player) q.set("player", tagPath(player));
   if (mode) q.set("mode", mode);
+  if (season != null && season !== "") q.set("season", String(season));
   const qs = q.toString();
   return qs ? `${path}?${qs}` : path;
 }
+
+/* --------------------------------------------------------- the season
+   Ladder reads one season at a time (2026-10-08), named in the address
+   (`?season=136`) so a link, a reload or a mail lands on the season it
+   meant. The tools take the season themselves ('current', 'previous',
+   the month the API names it by, or the river race season number), so
+   the page only chooses which one to ask for. */
+
+/** The tools' `season` argument for a `?season=`: a river race season
+ *  number (136; the router may hand it over as a number), the month the
+ *  API names it by ("2026-09"), "previous", and "current" for nothing or
+ *  anything else. */
+export function seasonArg(param) {
+  if (param == null) return "current";
+  const s = String(param).trim();
+  if (/^\d{1,4}$/.test(s)) return Number(s);
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  if (s === "previous") return "previous";
+  return "current";
+}
+
+/** A season as Elixir names it everywhere (the mail, Elixir Clan,
+ *  Explore's war weeks): "Season 136". A season row with no river race
+ *  number yet falls back to its month. */
+export function seasonName(season) {
+  if (season?.war != null) return `Season ${season.war}`;
+  if (season?.month) return `${monthName(season.month)} season`;
+  return "This season";
+}
+
+/** The key a season travels by in an address: its number, else its month. */
+const seasonKey = (s) =>
+  s?.war != null ? String(s.war) : String(s?.month ?? "");
+
+/**
+ * The seasons a player has on record, newest first, from one
+ * battles_performance read that starts at the player's first recorded
+ * battle (meta.recorded_since): applied.window.season is the season it
+ * starts in and crosses every roll since, the last of which is the
+ * season now running. Each comes as the tool named it; nothing here
+ * counts or rates them.
+ */
+export function recordedSeasons(applied) {
+  const w = applied?.window;
+  const list = [
+    w?.season ? { month: w.season.month, war: w.season.war } : null,
+    ...(w?.crosses ?? []).map((c) => c?.to_season ?? null),
+  ].filter((s) => s && (s.war != null || s.month));
+  const seen = new Set();
+  const out = [];
+  for (const s of list.reverse()) {
+    const key = seasonKey(s);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ key, war: s.war ?? null, month: s.month ?? null });
+  }
+  return out.map((s, i) => ({ ...s, name: seasonName(s), current: i === 0 }));
+}
+
+/**
+ * Which season a page reads, from the address and two reads LadderPage
+ * makes: `seasons` (recordedSeasons, newest first) and `currentBattles`
+ * (the current season's battles over every mode; undefined while it is
+ * read, null when it could not be).
+ *
+ * An address that names a season gets that season, even an empty one.
+ * With none, the page reads the current season, unless it has no
+ * recorded battle yet and an earlier season is on record: then it reads
+ * the one before, and `fallback` names the empty current season, so the
+ * page says so and offers it one click away. The first days of every
+ * season would otherwise open on an empty page. A refused read falls
+ * back to the current season, never a guess.
+ */
+export function pickSeason(param, { seasons, currentBattles } = {}) {
+  const list = seasons ?? [];
+  const asked = param != null && String(param).trim() !== "";
+  const arg = seasonArg(param);
+  const find = (a) =>
+    a === "current"
+      ? list[0]
+      : a === "previous"
+        ? list[1]
+        : list.find((s) =>
+            typeof a === "number" ? s.war === a : s.month === String(a),
+          );
+  const shape = (a, fallback = null) => {
+    const s = find(a) ?? null;
+    return {
+      arg: a,
+      key: s?.key ?? String(a),
+      name:
+        s?.name ??
+        (typeof a === "number"
+          ? `Season ${a}`
+          : /^\d{4}-\d{2}$/.test(String(a))
+            ? `${monthName(a)} season`
+            : a === "previous"
+              ? "Last season"
+              : "This season"),
+      current: a === "current" || Boolean(s?.current),
+      fallback,
+      ready: true,
+    };
+  };
+  if (asked) return shape(arg);
+  if (currentBattles === undefined)
+    return { ...shape("current"), ready: false };
+  if (currentBattles !== 0) return shape("current");
+  if (seasons === undefined) return { ...shape("current"), ready: false };
+  if (list.length > 1) {
+    const prev = list[1];
+    return shape(prev.war ?? prev.month, list[0]);
+  }
+  return shape("current");
+}
+
+/** The words a page uses for the season it reads: "this season" for
+ *  the one running, "in Season 136" for any other. */
+export const seasonWords = (season) =>
+  !season || season.current ? "this season" : `in ${season.name}`;
 
 /** The players Ladder can show: the reader's own, primary first, then
  *  alts. A friend or a watched player is somebody else's season, and
@@ -267,15 +390,17 @@ export function signed(n, digits = 0) {
 /* ---------------------------------------------------------- the season */
 
 /** The season home's header facts, from battles_performance's applied
- *  window: "September season", the days in, and when it ends. */
+ *  window: "Season 136", the days in, and when it ends. */
 export function seasonHead(applied) {
   const season = applied?.window?.season ?? null;
   return {
     month: season?.month ?? null,
-    name: season?.month ? `${monthName(season.month)} season` : "This season",
+    name: seasonName(season),
     age: applied?.window?.season_age_days ?? null,
     startsAt: season?.starts_at ?? null,
     endsAt: season?.ends_at ?? null,
+    // A season still running is read to now: its window has no end.
+    running: Boolean(season) && applied?.window?.to == null,
   };
 }
 
@@ -306,7 +431,7 @@ export function fourthTile(mode, window, floor) {
 /** The floor callout, from trophy_floor: where the player stood and how
  *  many losses there cost nothing. The tool's own note says why net
  *  trophies mislead there; this is that note, in the page's words. */
-export function floorNote(floor) {
+export function floorNote(floor, when = "this season") {
   if (!floor?.floored || floor.floor == null) return null;
   const arena = floor.arena?.name ? ` (${floor.arena.name})` : "";
   const n = Number(floor.on_floor_losses ?? 0);
@@ -314,7 +439,7 @@ export function floorNote(floor) {
     n === 0
       ? ""
       : ` ${n === 1 ? "One loss" : `${spell(n)} losses`} there cost nothing, so net trophies say more about how recently you played than how well: read the range and the win rate.`;
-  return `You stood on the ${fmt(floor.floor)} floor${arena} this season.${losses}`;
+  return `You stood on the ${fmt(floor.floor)} floor${arena} ${when}.${losses}`;
 }
 
 const WORDS = [

@@ -111,7 +111,7 @@ test.describe("Ladder signed in", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "September season · 24 days in",
+        name: "Season 136 · 24 days in",
       }),
     ).toBeVisible();
     await expect(page).toHaveTitle("Season - Ladder - Elixir");
@@ -194,7 +194,11 @@ test.describe("Ladder signed in", () => {
     ).toHaveAttribute("href", "/docs/ladder");
 
     // Every read went through the bridge, one mode, the reader's player.
-    const perf = calls.filter((c) => c.tool === "battles_performance");
+    // The page's own reads; the picker's list starts at the first
+    // recorded battle (`from`) and names no season.
+    const perf = calls.filter(
+      (c) => c.tool === "battles_performance" && !c.args.from,
+    );
     expect(perf.map((c) => [c.args.mode, c.args.group_by ?? null])).toEqual(
       expect.arrayContaining([
         ["ladder", null],
@@ -328,7 +332,7 @@ test.describe("Ladder signed in", () => {
     await page.goto("/ladder/not-a-page");
     await expect(page).toHaveURL(/\/ladder$/);
     await expect(
-      page.getByRole("heading", { level: 1, name: /September season/ }),
+      page.getByRole("heading", { level: 1, name: /Season 136/ }),
     ).toBeVisible();
   });
 
@@ -358,7 +362,7 @@ test.describe("Ladder signed in", () => {
     await mockApi(page, signedIn({ "POST /api/explore": explore() }));
     await page.goto("/ladder");
     await expect(
-      page.getByRole("heading", { level: 1, name: /September season/ }),
+      page.getByRole("heading", { level: 1, name: /Season 136/ }),
     ).toBeVisible();
     await expect(page.locator(".ladder-player")).toContainText("King Thing");
     const toggle = page.locator(".rail__toggle");
@@ -517,7 +521,7 @@ test.describe("Ladder days played", () => {
     ).toBeVisible();
     await expect(page).toHaveTitle("Days played - Ladder - Elixir");
     await expect(page.locator(".page__lede")).toContainText(
-      "Every day of the September season, Central time.",
+      "Every day of Season 136, Central time.",
     );
     await expect(
       page
@@ -946,5 +950,107 @@ test.describe("Ladder cards", () => {
     );
     expect(overflow).toBeLessThanOrEqual(0);
     await accessible(page, "ladder cards narrow");
+  });
+});
+
+test.describe("Ladder seasons", () => {
+  test("the picker lists the player's seasons, and a season is an address every page honours", async ({
+    page,
+  }) => {
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder?mode=ladder");
+    const picker = page.getByLabel("Season", { exact: true });
+    await expect(picker).toHaveValue("136");
+    await expect(picker.locator("option")).toHaveText([
+      "Season 136 (now)",
+      "Season 135",
+    ]);
+
+    // Choosing one goes to its address, and the page reads that season.
+    await picker.selectOption("135");
+    await expect(page).toHaveURL(/\/ladder\?mode=ladder&season=135$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Season 135" }),
+    ).toBeVisible();
+    await expect(page.locator(".page__lede")).toContainText(
+      "The season ran Monday, August 3 at 5:00 am CDT to Monday, September 7 at 5:00 am CDT.",
+    );
+    // The last 30 days are not that season: its decks are a link away.
+    await expect(
+      page.getByRole("link", { name: "The decks of Season 135 ›" }),
+    ).toHaveAttribute("href", "/ladder/decks?mode=ladder&season=135");
+    await expect
+      .poll(() =>
+        calls.some(
+          (c) =>
+            c.tool === "battles_performance" &&
+            c.args.season === 135 &&
+            c.args.mode === "ladder",
+        ),
+      )
+      .toBe(true);
+
+    // The rail and the mode tabs keep the season.
+    await expect(
+      page.getByRole("navigation", { name: "Mode" }).getByRole("link", {
+        name: "War",
+      }),
+    ).toHaveAttribute("href", "/ladder?mode=war&season=135");
+    await page
+      .getByRole("navigation", { name: "Ladder sections" })
+      .getByRole("link", { name: "Decks" })
+      .click();
+    await expect(page).toHaveURL(/\/ladder\/decks\?mode=ladder&season=135$/);
+    await expect(page.getByLabel("Season", { exact: true })).toHaveValue("135");
+    await expect(
+      page.getByRole("heading", { level: 1, name: /in Season 135$/ }),
+    ).toBeVisible();
+    await expect
+      .poll(() =>
+        calls
+          .filter((c) => c.tool === "battles_decks")
+          .some((c) => c.args.season === 135),
+      )
+      .toBe(true);
+
+    // A reload keeps it: the season is in the address, not the page.
+    await page.reload();
+    await expect(page.getByLabel("Season", { exact: true })).toHaveValue("135");
+    await accessible(page, "ladder decks, an earlier season");
+  });
+
+  test("an empty current season opens on the last one, says so, and the empty one is a click away", async ({
+    page,
+  }) => {
+    const calls: ToolCall[] = [];
+    await mockApi(
+      page,
+      signedIn({
+        "POST /api/explore": explore(calls, { emptyCurrent: true }),
+      }),
+    );
+    await page.goto("/ladder?mode=ladder");
+    const note = page.locator(".ladder-season-note");
+    await expect(note).toContainText(
+      "Season 136 has no recorded battles yet, so this is Season 135.",
+    );
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Season 135" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("Season", { exact: true })).toHaveValue("135");
+    // Its record is shown, not an empty page.
+    await expect(page.locator(".ladder-tiles")).toContainText("35");
+    await accessible(page, "ladder, an empty current season");
+
+    // The empty season itself, one click away, says it is empty.
+    await note.getByRole("link", { name: "Show Season 136 ›" }).click();
+    await expect(page).toHaveURL(/\/ladder\?mode=ladder&season=136$/);
+    await expect(
+      page.getByRole("heading", {
+        name: "No Trophy Road battles this season",
+      }),
+    ).toBeVisible();
+    await expect(note).toHaveCount(0);
   });
 });

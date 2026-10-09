@@ -24,6 +24,47 @@ const APPLIED = {
     season_age_days: 24,
   },
 };
+/** The season before (2026-10-08, the picker): a closed window. */
+const PAST_SEASON = {
+  month: "2026-08",
+  war: 135,
+  starts_at: "2026-08-03T10:00:00.000Z",
+  ends_at: "2026-09-07T10:00:00.000Z",
+};
+const PAST_APPLIED = {
+  window: {
+    from: PAST_SEASON.starts_at,
+    to: PAST_SEASON.ends_at,
+    source: "season",
+    timezone: "America/Chicago",
+    season: PAST_SEASON,
+    crosses: [],
+    season_age_days: 35,
+  },
+};
+/** The read that lists a player's seasons: from the first recorded
+ *  battle, the season it starts in and every roll since. */
+const LISTED = {
+  window: {
+    from: "2026-08-20T01:00:00.000Z",
+    to: null,
+    timezone: "America/Chicago",
+    season: PAST_SEASON,
+    crosses: [
+      {
+        kind: "season",
+        at: SEASON.starts_at,
+        from_season: { month: PAST_SEASON.month, war: PAST_SEASON.war },
+        to_season: { month: SEASON.month, war: SEASON.war },
+      },
+    ],
+    season_age_days: 24,
+  },
+};
+/** The applied window a read gets for the season it asked for. */
+const appliedFor = (season: unknown) =>
+  String(season) === String(PAST_SEASON.war) ? PAST_APPLIED : APPLIED;
+
 const META = {
   as_of: "2026-10-01T21:31:13.353Z",
   source_polls: {
@@ -180,7 +221,7 @@ export function summary(
     last_30_days: { battles: 81, wins: 36, losses: 45, modes },
     trophy_floor: FLOOR,
     top_deck: TOP_DECK,
-    meta: META,
+    meta: { ...META, recorded_since: LISTED.window.from },
   };
 }
 
@@ -576,18 +617,23 @@ function deckRow(d: Deck, modes: string[], full: boolean) {
   };
 }
 
-function battlesDecks(args: Record<string, unknown>) {
+function battlesDecks(args: Record<string, unknown>, empty = false) {
   const mode = args.mode ? String(args.mode) : null;
   const modes = mode ? [mode] : ["ladder", "ranked", "war", "event"];
   const hash = args.deck_hash ? String(args.deck_hash) : null;
-  const rows = DECKS.filter((d) => modes.some((m) => d.per[m]))
+  const rows = DECKS.filter((d) => !empty && modes.some((m) => d.per[m]))
     .filter((d) => !hash || d.hash === hash)
     .map((d) => deckRow(d, modes, Boolean(hash)))
     .sort((a, b) => b.battles - a.battles);
-  const duels = !mode || mode === "war" ? DUELS : [];
+  const duels = !empty && (!mode || mode === "war") ? DUELS : [];
   return {
     player_tag: args.player_tag,
-    applied: { ...APPLIED, mode, sort: "battles", limit: args.limit ?? 40 },
+    applied: {
+      ...appliedFor(args.season),
+      mode,
+      sort: "battles",
+      limit: args.limit ?? 40,
+    },
     total_battles_in_window: rows.reduce((a, r) => a + r.battles, 0),
     total_decks: rows.length,
     next_offset: null,
@@ -708,7 +754,13 @@ export function explore(
   {
     players_summary = summary(),
     fits = Infinity,
-  }: { players_summary?: unknown; fits?: number } = {},
+    emptyCurrent = false,
+  }: {
+    players_summary?: unknown;
+    fits?: number;
+    /** The current season has no recorded battle yet (its first days). */
+    emptyCurrent?: boolean;
+  } = {},
 ) {
   return (route: Route): [number, unknown] => {
     const { tool, args = {} } = route.request().postDataJSON() as ToolCall;
@@ -755,14 +807,27 @@ export function explore(
         meta: META,
       });
     }
-    if (tool === "battles_decks") return ok(battlesDecks(args));
+    // The season the read asked for is the current one (136).
+    const current =
+      args.season === "current" || String(args.season) === String(SEASON.war);
+    if (tool === "battles_decks")
+      return ok(battlesDecks(args, emptyCurrent && current));
     if (tool === "battles_cards") return ok(battlesCards(args));
     if (tool === "battles_opponents") return ok(battlesOpponents(args));
     if (tool === "battles_performance") {
+      if (args.from && !args.season && !args.mode && !args.group_by)
+        return ok({
+          player_tag: args.player_tag,
+          applied: LISTED,
+          window: WINDOWS.ladder,
+          notes: [],
+          meta: META,
+        });
       const mode = String(args.mode ?? "ladder");
+      const empty = emptyCurrent && current;
       const base = {
         player_tag: args.player_tag,
-        applied: { ...APPLIED, mode },
+        applied: { ...appliedFor(args.season), mode },
         trophy_floor: mode === "ladder" ? FLOOR : null,
         notes: [],
         meta: META,
@@ -770,9 +835,12 @@ export function explore(
       if (args.group_by === "week")
         return ok({
           ...base,
-          weekly: mode === "ladder" ? WEEKLY : [],
+          weekly: mode === "ladder" && !empty ? WEEKLY : [],
         });
-      return ok({ ...base, window: WINDOWS[mode] ?? WINDOWS.ranked });
+      return ok({
+        ...base,
+        window: empty ? WINDOWS.ranked : (WINDOWS[mode] ?? WINDOWS.ranked),
+      });
     }
     return [
       200,

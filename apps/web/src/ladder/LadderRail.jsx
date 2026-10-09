@@ -21,7 +21,11 @@ export function LadderRail({ me, search, here, navigate, narrow }) {
   const players = ladderPlayers(me?.claims);
   const player = pickPlayer(players, search.player);
   const [feedback, setFeedback] = useState(false);
-  const keep = { player: search.player, mode: search.mode };
+  const keep = {
+    player: search.player,
+    mode: search.mode,
+    season: search.season,
+  };
   const items = LADDER_PAGES.map((p) => ({
     key: p.slug,
     label: p.label,
@@ -46,6 +50,7 @@ export function LadderRail({ me, search, here, navigate, narrow }) {
                 ladderHref(here.key, {
                   player: p.is_primary ? undefined : p.player_tag,
                   mode: search.mode,
+                  season: search.season,
                 })
               }
               navigate={navigate}
@@ -74,6 +79,7 @@ export function LadderRail({ me, search, here, navigate, narrow }) {
           context={{
             page: here.key,
             ...(search.mode ? { mode: search.mode } : {}),
+            ...(search.season != null ? { season: String(search.season) } : {}),
           }}
           send={api.sendFeedback}
           onClose={() => setFeedback(false)}

@@ -31,10 +31,14 @@ const LIMIT = 100;
  * each deck's cards (one read per deck, by its deck_hash), and every
  * other mode is a row of one table. No record here pools two modes.
  */
-export function Decks({ player }) {
+export function Decks({ player, season, seasonPicker }) {
   const { zone } = useClock();
-  const base = { player_tag: player.player_tag, season: "current" };
-  const all = useToolRead("battles_decks", { ...base, limit: LIMIT });
+  const base = { player_tag: player.player_tag, season: season.arg };
+  const all = useToolRead(
+    "battles_decks",
+    { ...base, limit: LIMIT },
+    { enabled: season.ready },
+  );
   const modes = all.data ? modesOf(all.data) : [];
   const reads = useToolReads(
     "battles_decks",
@@ -48,9 +52,15 @@ export function Decks({ player }) {
       <LadderHead
         player={player}
         page="Decks"
-        title={all.data && count ? decksTitle(count, modes.length) : "Decks"}
+        title={
+          all.data && count
+            ? `${decksTitle(count, modes.length)}${season.current ? "" : ` in ${season.name}`}`
+            : "Decks"
+        }
         lede="A deck is judged in the mode it was played in. War draws opponents from the racing clans, not from your trophies, so a war record and a Trophy Road record never sit in one column."
         observedAt={all.data?.meta?.source_polls?.player_battlelog?.observed_at}
+        season={season}
+        seasonPicker={seasonPicker}
       />
       {all.isPending ? (
         <Loading what="the season's decks" />
@@ -58,11 +68,22 @@ export function Decks({ player }) {
         <ReadError error={all.error} what="the season's decks" />
       ) : count === 0 ? (
         <div className="empty">
-          <h2 className="empty__title">No decks this season yet</h2>
-          <p className="empty__body">
-            Elixir has recorded no battle with a deck since the season began.
-            The page fills from the next battle log it reads.
-          </p>
+          {season.current ? (
+            <>
+              <h2 className="empty__title">No decks this season yet</h2>
+              <p className="empty__body">
+                Elixir has recorded no battle with a deck since the season
+                began. The page fills from the next battle log it reads.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="empty__title">No decks in {season.name}</h2>
+              <p className="empty__body">
+                Elixir recorded no battle with a deck in {season.name}.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <>
