@@ -945,3 +945,37 @@ from the catalog and counts each tag's rows, with what would make the
 tag tracked, its battles and their other side, its MCP calls and its
 payload archive objects. The deletion is its own migration, after this
 read.
+
+## 2026-10-08 — 0210: the live_fetch strays leave the record
+
+Jamie, 2026-10-08, verbatim: "Approved: delete the full record footprint
+of untracked live_fetch tags" for three untracked tags admitted by the
+pre-11.5.1 live_fetch path (the tags are in 0210's SQL only).
+`{tag_footprint}` (#390) read every table with a tag column first.
+
+- **Two tags go, by migration 0210.** Each held one live-lane admission
+  (`record` true, before 0209) and what it projected, and nothing that
+  makes it tracked: no recording, claim, challenge, sign-up request,
+  agent identity, nickname, open job, membership, battle or event. Before
+  (tag A / tag B): `player` 1/1, `player_badge` 107/136, `player_card`
+  125/127, `player_pol_season` 1/1, `player_profile_membership` 1/1,
+  `player_progress_daily` 2/0, `player_snapshot_daily` 1/1, `poll_state`
+  1/1, `api_receipt` 1/1, `api_payload` 1/1; every other tag column 0.
+  0210's guard refuses (and stops the deploy) if either became recorded
+  since the read; the deletes are scoped by tag literal, children first.
+- **One tag stays whole.** Its `player` row came from an account adding
+  the player (a claim recording, since stopped, and that account's
+  events), not from live_fetch: all five of its live_fetch reads failed
+  (five fetch errors, no receipt). The approval was for what live_fetch
+  admitted, and anything a claim made is the account's history, so
+  nothing is deleted for it.
+- **Left, on purpose:** the job rows and fetch errors (operational,
+  pruned on their own clocks), `mcp_call_audit` (the call log), the clan
+  row the profiles upserted (a clan's, shared), and `mode_season`,
+  `arena` and `card` (global).
+- **Owed to Jamie:** the two payload archive objects in S3
+  (`payloads/endpoint=player/entity=<tag>/dt=2026-10-08/...`). No
+  migration reaches the bucket and nothing holds `s3:DeleteObject` (the
+  bucket is versioned, write-once by policy). With the receipts gone no
+  replay walks to them; deleting them is a console step for Jamie, keys
+  in the session report.
