@@ -3,7 +3,10 @@
  *  frequent use is the signal that a tool is missing, so every path that
  *  has a tool now names it, and the one path that could never fit the
  *  delivery cap (a raw battle log) is refused before the lane
- *  and the CR budget are spent. */
+ *  and the CR budget are spent. It only fetches (Jamie, 2026-10-08:
+ *  "live_fetch should ONLY live fetch and not record data"): its job is
+ *  fetch-only, and the payload reaches the caller without entering the
+ *  record (0209). */
 
 import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
 import { livePathToJob } from "../live.mjs";
@@ -30,7 +33,7 @@ const RECORDED_ALTERNATIVE = {
 export const liveTools = {
   live_fetch: {
     description:
-      "The catch-all: one allowlisted raw GET against the CR API through the live lane (per-account daily quota, spends the shared CR budget). Paths: /players/{tag}, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog. Prefer the recorded tools, all of which take live: true where a fresh read matters; /players/{tag}/battlelog is refused (a raw log exceeds the delivery cap): use battles_query({ live: true }). RAW payload: card levels are the API's rarity-relative scale.",
+      "The catch-all: one allowlisted raw GET against the CR API through the live lane (per-account daily quota, spends the shared CR budget). It stores nothing: the payload comes back to you and never enters the record. Paths: /players/{tag}, /clans/{tag}, /clans/{tag}/currentriverrace, /clans/{tag}/riverracelog; /players/{tag}/battlelog is refused (too large): use battles_query({ live: true }). Prefer the recorded tools, which take live: true. RAW payload: card levels are the API's rarity-relative scale.",
     inputSchema: {
       type: "object",
       properties: {
@@ -59,6 +62,7 @@ export const liveTools = {
         endpoint: job.endpoint,
         entityKey: job.entityKey,
         needPayload: true,
+        record: false,
       });
       if (live.state === "pending") {
         throw new ToolFailure(
@@ -85,7 +89,7 @@ export const liveTools = {
           RECORDED_ALTERNATIVE[job.endpoint]
             ? `A recorded tool answers this path: ${RECORDED_ALTERNATIVE[job.endpoint]}.`
             : null,
-          "Raw payload: card levels are the API's rarity-relative scale (a maxed legendary reads 8/8); the fetch was recorded opportunistically.",
+          "Raw payload: card levels are the API's rarity-relative scale (a maxed legendary reads 8/8); live_fetch stores nothing, so this read did not enter the record.",
         ),
         docs: docsRef("recording", "reading-the-game-live"),
         meta: responseMeta({ as_of: new Date().toISOString() }),

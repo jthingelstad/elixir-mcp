@@ -21,9 +21,21 @@ import { isRetiredRecordingEndpoint } from "@elixir-mcp/contracts";
  * left nothing is minted and nothing is charged: the answer is `pending`
  * with `queued: false` and `retry_after_s` at the next scheduler tick,
  * when the bucket refills.
+ *
+ * `record: false` is live_fetch's read (Jamie, 2026-10-08: "live_fetch
+ * should ONLY live fetch and not record data"; 0209). Its job is minted
+ * fetch-only, and the result waits in `live_fetch_result`, outside the
+ * record: no projection, receipt, archive or freshness. Any read inside
+ * the cache window answers it, a recorded one included. A recording read
+ * never counts a fetch-only result as fresh (the record did not move),
+ * and turns a fetch-only open job into a recording one.
  */
 
-import { takeLiveToken, refundLiveToken } from "@elixir-mcp/ledger";
+import {
+  takeLiveToken,
+  refundLiveToken,
+  recordOpenJob,
+} from "@elixir-mcp/ledger";
 
 /** The API's cache-control max-age per endpoint, in seconds. */
 const MAX_AGE_S = {
@@ -38,22 +50,37 @@ export function makeLive({
   retryAfterS = 15,
   charge = takeLiveToken,
   refund = refundLiveToken,
+  markRecord = recordOpenJob,
 }) {
   return async function liveFetch(
     db,
-    { endpoint, entityKey, needPayload = false, beforeMint = async () => {} },
+    {
+      endpoint,
+      entityKey,
+      needPayload = false,
+      record = true,
+      beforeMint = async () => {},
+    },
   ) {
     if (isRetiredRecordingEndpoint(endpoint))
       return { ok: false, reason: "live_unavailable" };
     const maxAge = MAX_AGE_S[endpoint] ?? DEFAULT_MAX_AGE_S;
-    const { rows: fresh } = await db.query(
-      `select r.admission, r.admission_errors, r.fetched_at, p.payload_json
+    const recorded = `select r.admission, r.admission_errors, r.fetched_at, p.payload_json
        from api_receipt r
        left join api_payload p on p.endpoint = r.endpoint
          and p.entity_key = r.entity_key and p.payload_hash = coalesce(r.replay_payload_hash,r.payload_hash)
        where r.endpoint = $1 and r.entity_key = $2 and r.replay_retired_at is null
-         and r.fetched_at >= now() - make_interval(secs => $3)
-       order by r.receipt_id desc limit 1`,
+         and r.fetched_at >= now() - make_interval(secs => $3)`;
+    const { rows: fresh } = await db.query(
+      record === false
+        ? `select * from (${recorded}
+           union all
+           select f.admission, f.admission_errors, f.fetched_at, f.payload_json
+             from live_fetch_result f
+            where f.endpoint = $1 and f.entity_key = $2
+              and f.fetched_at >= now() - make_interval(secs => $3)) x
+           order by (payload_json is not null) desc, fetched_at desc limit 1`
+        : `${recorded} order by r.receipt_id desc limit 1`,
       [endpoint, entityKey, maxAge],
     );
     const latest = fresh[0];
@@ -74,16 +101,25 @@ export function makeLive({
     // One open job per subject: a second ask while the first is queued
     // or leased is the same ask, and is not charged again.
     const { rows: open } = await db.query(
-      `select job_id, lane, status from job
+      `select job_id, lane, status, record from job
        where endpoint = $1 and entity_key = $2 and status in ('queued', 'leased')
        order by job_id desc limit 1`,
       [endpoint, entityKey],
     );
     if (open[0]) {
       if (open[0].lane !== "live" && open[0].status === "queued") {
-        // Promote the queued bulk row: live jumps the queue.
-        await enqueue(db, { endpoint, entity_key: entityKey, lane: "live" });
+        // Promote the queued bulk row: live jumps the queue. A bulk row
+        // records, and a fetch-only ask never turns that off.
+        await enqueue(db, {
+          endpoint,
+          entity_key: entityKey,
+          lane: "live",
+          record: record !== false,
+        });
       }
+      // A recording ask behind live_fetch's fetch-only job: record it.
+      if (record !== false && open[0].record === false)
+        await markRecord(db, open[0].job_id);
       return {
         ok: false,
         reason: "pending",
@@ -109,6 +145,7 @@ export function makeLive({
         endpoint,
         entity_key: entityKey,
         lane: "live",
+        record: record !== false,
       });
     } catch (err) {
       await refund(db).catch(() => {});

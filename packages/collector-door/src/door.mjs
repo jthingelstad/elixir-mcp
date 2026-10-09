@@ -555,7 +555,7 @@ export function makeCollectorDoor({
       // the job identity comes from the row - nothing client-supplied
       // to sign or verify (0040 replaced the HMAC lease token).
       const { rows: leased } = await db.query(
-        `select job_id, endpoint, entity_key, lane from job
+        `select job_id, endpoint, entity_key, lane, record from job
          where job_id = $1 and leased_by = $2 and status = 'leased'`,
         [jobId, gw.gateway_id],
       );
@@ -592,6 +592,10 @@ export function makeCollectorDoor({
           endpoint: job.endpoint,
           entity_key: job.entity_key,
           lane: job.lane,
+          // live_fetch's job (0209): the result reaches its caller and
+          // never the record. Read from the row at submit, so a recording
+          // ask that arrived while the job was leased still records.
+          ...(job.record === false ? { record: false } : {}),
         },
         // SERVER-stamped provenance: spoofing dies here, and the job id
         // binds a live wait to ITS result (issue #3).

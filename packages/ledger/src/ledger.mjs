@@ -118,21 +118,39 @@ export async function retireJobs(db, { limit = 1000 } = {}) {
   return rowCount;
 }
 
-/** Insert or upgrade a job. Live beats bulk; nothing downgrades. */
-export async function enqueueJob(db, { endpoint, entity_key, lane }) {
+/** Insert or upgrade a job. Live beats bulk; nothing downgrades.
+ *  `record: false` (live_fetch only, 0209) asks for a fetch whose result
+ *  never enters the record; recording beats fetch-only, so a queued job
+ *  either asker wants recorded stays recorded. */
+export async function enqueueJob(
+  db,
+  { endpoint, entity_key, lane, record = true },
+) {
   if (isRetiredRecordingEndpoint(endpoint))
     return { job_id: null, lane, inserted: false, retired: true };
   const { rows } = await db.query(
-    `insert into job (endpoint, entity_key, lane)
-     values ($1, $2, $3)
+    `insert into job (endpoint, entity_key, lane, record)
+     values ($1, $2, $3, $4)
      on conflict (endpoint, entity_key) where status = 'queued'
        do update set lane = case
          when excluded.lane = 'live' or job.lane = 'live' then 'live'
-         else 'bulk' end
-     returning job_id, lane, (xmax = 0) as inserted`,
-    [endpoint, entity_key, lane],
+         else 'bulk' end,
+         record = job.record or excluded.record
+     returning job_id, lane, record, (xmax = 0) as inserted`,
+    [endpoint, entity_key, lane, record !== false],
   );
   return rows[0];
+}
+
+/** A recording ask for a subject whose open job is fetch-only (0209):
+ *  the job's result enters the record after all. The door reads `record`
+ *  at submit, so this holds for a leased job too. */
+export async function recordOpenJob(db, jobId) {
+  await db.query(
+    `update job set record = true
+     where job_id = $1 and status in ('queued', 'leased') and not record`,
+    [jobId],
+  );
 }
 
 /** Add `n` to the hour's charge row for a lane (budget_charge, 0187):
@@ -348,7 +366,10 @@ export async function ledgerStats(db) {
     `select
        (select count(*)::int from api_receipt r join gateway g on g.gateway_id = r.gateway_id
          where r.fetched_at > now() - interval '1 hour'
-           and g.name <> 'backfill-elixir-bot') as fetches_hour,
+           and g.name <> 'backfill-elixir-bot')
+       -- live_fetch's results are fetches too, held outside the record (0209).
+       + (select count(*)::int from live_fetch_result
+           where fetched_at > now() - interval '1 hour') as fetches_hour,
        (select count(*)::int from collector_fetch_error
          where fetched_at > now() - interval '1 hour') as fetch_errors_hour,
        (select round(rate_per_sec * 3600)::int from budget_state) as ceiling_hour,

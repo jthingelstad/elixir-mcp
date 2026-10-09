@@ -144,7 +144,7 @@ test("livePathToJob maps the allowlist and rejects the rest", () => {
   );
 });
 
-test("live_fetch: the first ask queues and answers live_pending; the second finds the fresh payload, recorded", async () => {
+test("live_fetch: the first ask queues and answers live_pending; the second finds the fresh payload, and nothing is recorded (0209)", async () => {
   const profile = await fixture("player/profile.json");
   const tag = normalizeTag(profile.tag);
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
@@ -155,6 +155,15 @@ test("live_fetch: the first ask queues and answers live_pending; the second find
   assert.match(first.body.error.hint, /15 s/);
   // The seconds ride as a field, not only inside the English (defect 8).
   assert.equal(first.body.error.retry_after_s, 15);
+  const { rows: jobs } = await db.query(
+    `select record from job where endpoint = 'player' and entity_key = $1`,
+    [tag],
+  );
+  assert.deepEqual(
+    jobs.map((j) => j.record),
+    [false],
+    "minted fetch-only",
+  );
   const { body, isError } = await invoke("live_fetch", {
     path: `/players/${tag}`,
   });
@@ -162,14 +171,164 @@ test("live_fetch: the first ask queues and answers live_pending; the second find
   assert.equal(body.live, true);
   assert.equal(body.live_status.state, "fresh");
   assert.equal(body.data.tag, profile.tag, "API-shaped passthrough");
-  // Opportunistic recording: the fetch left a snapshot behind.
-  const snaps = (
-    await db.query(
+  assert.match(body.notes.join(" "), /live_fetch stores nothing/);
+  // Jamie, 2026-10-08: "live_fetch should ONLY live fetch and not record
+  // data." Nothing of the read is in the record, its receipts or archive.
+  const count = async (sql) => (await db.query(sql, [tag])).rows[0].n;
+  for (const [what, sql] of [
+    ["player", `select count(*)::int n from player where player_tag = $1`],
+    [
+      "snapshot",
       `select count(*)::int n from player_snapshot_daily where player_tag = $1`,
-      [tag],
-    )
-  ).rows[0].n;
-  assert.ok(snaps > 0, "live fetch was recorded");
+    ],
+    [
+      "receipt",
+      `select count(*)::int n from api_receipt where entity_key = $1`,
+    ],
+    [
+      "payload",
+      `select count(*)::int n from api_payload where entity_key = $1`,
+    ],
+    [
+      "freshness",
+      `select count(*)::int n from poll_state where subject_tag = $1`,
+    ],
+  ])
+    assert.equal(await count(sql), 0, `no ${what} row`);
+  assert.equal(
+    await count(
+      `select count(*)::int n from live_fetch_result where entity_key = $1 and admission = 'admitted'`,
+    ),
+    1,
+    "the result waited outside the record",
+  );
+});
+
+test("a recording live read neither counts live_fetch's result as fresh nor leaves its open job fetch-only (0209)", async () => {
+  const profile = structuredClone(await fixture("player/profile.json"));
+  profile.tag = "#PQ0Y8LQ";
+  const tag = profile.tag;
+  const live = fakeGatewayLive({ [`player:${tag}`]: profile });
+  // live_fetch's read lands; a recording ask inside the cache window
+  // still queues, because the record did not move.
+  await live(db, { endpoint: "player", entityKey: tag, record: false });
+  const fetched = await live(db, {
+    endpoint: "player",
+    entityKey: tag,
+    needPayload: true,
+    record: false,
+  });
+  assert.equal(fetched.ok, true, "live_fetch's own next ask is answered");
+  let queued = null;
+  const recording = makeLive({
+    enqueue: async (_db, job) => (queued = await enqueueJob(db, job)),
+  });
+  const r = await recording(db, { endpoint: "player", entityKey: tag });
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, "pending");
+  assert.equal(queued?.record, true, "a recording fetch is queued");
+
+  // A fetch-only job still open when a recording ask arrives records.
+  const other = "#PQ2Y8LQ";
+  const fetchOnly = await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: other,
+    lane: "live",
+    record: false,
+  });
+  assert.equal(fetchOnly.record, false);
+  await db.query(`update job set status = 'leased' where job_id = $1`, [
+    fetchOnly.job_id,
+  ]);
+  const again = await recording(db, { endpoint: "player", entityKey: other });
+  assert.equal(again.reason, "pending");
+  const {
+    rows: [row],
+  } = await db.query(`select record from job where job_id = $1`, [
+    fetchOnly.job_id,
+  ]);
+  assert.equal(row.record, true, "the door reads record at submit");
+  // And the reverse never happens: live_fetch behind a recording job
+  // leaves it recording.
+  const third = "#PQ8Y8LQ";
+  const bulk = await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: third,
+    lane: "bulk",
+  });
+  await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: third,
+    lane: "live",
+    record: false,
+  });
+  const {
+    rows: [kept],
+  } = await db.query(`select lane, record from job where job_id = $1`, [
+    bulk.job_id,
+  ]);
+  assert.deepEqual({ ...kept }, { lane: "live", record: true });
+});
+
+test("a fetch-only result is never archived or projected, and a duplicate submit is one row (0209)", async () => {
+  const profile = structuredClone(await fixture("player/profile.json"));
+  profile.tag = "#PQ9Y8LQ";
+  const job = await enqueueJob(db, {
+    endpoint: "player",
+    entity_key: profile.tag,
+    lane: "live",
+    record: false,
+  });
+  const puts = [];
+  const msg = {
+    v: 1,
+    job: {
+      endpoint: "player",
+      entity_key: profile.tag,
+      lane: "live",
+      record: false,
+    },
+    job_id: Number(job.job_id),
+    gateway_id: gatewayId,
+    fetched_at: new Date().toISOString(),
+    status: "ok",
+    body_gzip_b64: gzipSync(Buffer.from(JSON.stringify(profile))).toString(
+      "base64",
+    ),
+  };
+  const archive = { put: async (key) => puts.push(key) };
+  const first = await processResult(db, msg, { archive });
+  assert.equal(first.outcome, "admitted");
+  assert.equal(first.fetch_only, true);
+  const second = await processResult(db, msg, { archive });
+  assert.equal(second.outcome, "duplicate");
+  assert.deepEqual(puts, [], "no S3 archive object, so no replay");
+  const {
+    rows: [n],
+  } = await db.query(
+    `select (select count(*)::int from live_fetch_result where entity_key = $1) as held,
+            (select count(*)::int from player where player_tag = $1) as players`,
+    [profile.tag],
+  );
+  assert.deepEqual({ ...n }, { held: 1, players: 0 });
+  // A failed fetch-only read leaves its operational receipt and owes the
+  // subject no retry: nobody records it.
+  const failed = await processResult(db, {
+    ...msg,
+    fetched_at: new Date(Date.now() - 1000).toISOString(),
+    status: "error",
+    http_status: 503,
+    error: { kind: "http" },
+    body_gzip_b64: undefined,
+  });
+  assert.equal(failed.outcome, "fetch_error");
+  const {
+    rows: [retry],
+  } = await db.query(
+    `select count(*)::int n from poll_state where subject_tag = $1`,
+    [profile.tag],
+  );
+  assert.equal(retry.n, 0);
 });
 
 test("players_profile live:true answers from the record NOW with pending, then serves the fresh snapshot", async () => {
@@ -363,6 +522,7 @@ test("an agent's live fetch is charged to its owner's bucket, and the owner's ca
     },
   };
   await db.query(`delete from api_receipt where entity_key = $1`, [tag]);
+  await db.query(`delete from live_fetch_result where entity_key = $1`, [tag]);
   await db.query(`delete from job where entity_key = $1`, [tag]);
   const live = fakeGatewayLive({ [`player:${tag}`]: profile });
   const invoke = makeInvoker({

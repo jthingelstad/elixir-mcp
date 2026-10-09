@@ -502,6 +502,140 @@ export function archiveKey(endpoint, entityKey, fetchedAt, hash) {
 // inside zlib, before any string or JSON work.
 const MAX_DECOMPRESSED_BYTES = 16 * 1024 * 1024;
 
+/** Liveness for the submitting collector; false when it is unknown or
+ *  revoked (§4.6: revocation is real because ingest stops listening). */
+async function touchGateway(db, msg, rawMessage) {
+  const { rows } = await db.query(
+    `update gateway set last_heartbeat_at = now(),
+            last_seen_sha = coalesce($2, last_seen_sha)
+     where gateway_id::text = $1 and status <> 'revoked'
+     returning status`,
+    [msg.gateway_id, rawMessage?.gateway_sha ?? null],
+  );
+  return rows.length > 0;
+}
+
+/** API receipts remain one row per HTTP 200 (§4.3), but a non-200 must
+ *  leave a compact, no-payload operational receipt. Otherwise a planned
+ *  board that never admits is indistinguishable from a collector that
+ *  never received the work. Freshness still does not move. */
+async function recordFetchError(db, msg) {
+  const kind = msg.error?.kind ?? "unknown";
+  const { rowCount: recorded } = await db.query(
+    `insert into collector_fetch_error
+       (job_id, gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
+     values ($1, $2, $3, $4, $5, $6, $7)
+     on conflict (gateway_id, endpoint, entity_key, fetched_at) do nothing`,
+    [
+      Number.isInteger(msg.job_id) ? msg.job_id : null,
+      msg.gateway_id,
+      msg.job.endpoint,
+      msg.job.entity_key,
+      msg.fetched_at,
+      Number.isInteger(msg.http_status) ? msg.http_status : null,
+      kind,
+    ],
+  );
+  return { kind, recorded };
+}
+
+/** Gunzip inside the bound, parse, and admit. */
+function decodeAndAdmit(msg) {
+  let payload;
+  let rawText;
+  let tooLarge = false;
+  try {
+    rawText = gunzipSync(Buffer.from(msg.body_gzip_b64, "base64"), {
+      maxOutputLength: MAX_DECOMPRESSED_BYTES,
+    }).toString("utf8");
+    payload = JSON.parse(rawText);
+  } catch (err) {
+    // zlib aborts at the bound with ERR_BUFFER_TOO_LARGE — a deliberate,
+    // observable rejection, not an allocation.
+    tooLarge = err?.code === "ERR_BUFFER_TOO_LARGE";
+    payload = undefined;
+  }
+  const endpoint = msg.job.endpoint;
+  const entityKey =
+    subjectTag(endpoint, msg.job.entity_key) ?? msg.job.entity_key;
+  const admission =
+    payload === undefined
+      ? {
+          ok: false,
+          errors: [tooLarge ? "body:too_large" : "body:unparseable"],
+        }
+      : admit(endpoint, payload, entityKey);
+  return { payload, rawText, tooLarge, endpoint, entityKey, admission };
+}
+
+/** How long a fetch-only result is kept for its caller's next ask. The
+ *  reader takes only one inside the API's cache window (60 to 120 s). */
+const FETCH_ONLY_KEEP = "1 hour";
+
+/**
+ * live_fetch's result (Jamie, 2026-10-08: "live_fetch should ONLY live
+ * fetch and not record data"; 0209). The payload is admitted, so a
+ * malformed body is still refused, then held in `live_fetch_result` for
+ * the caller's next ask, and nothing else is written: no api_payload,
+ * api_receipt or S3 archive object (no replay can project it later), no
+ * projection, no poll_state freshness or retry, no clan follow, no
+ * collector point. A failed fetch leaves its operational receipt
+ * (collector_fetch_error) and owes the subject no retry.
+ */
+async function processFetchOnly(db, rawMessage, msg, t0) {
+  if (!Number.isInteger(msg.job_id))
+    return { outcome: "bad_message", errors: ["job_id:missing"] };
+  if (!(await touchGateway(db, msg, rawMessage)))
+    return { outcome: "gateway_refused", gateway_id: msg.gateway_id };
+  if (msg.status !== "ok") {
+    const { kind } = await recordFetchError(db, msg);
+    return { outcome: "fetch_error", kind, fetch_only: true };
+  }
+  const { payload, endpoint, entityKey, admission } = decodeAndAdmit(msg);
+  await db.query("begin");
+  try {
+    const { rowCount } = await db.query(
+      `insert into live_fetch_result
+         (job_id, endpoint, entity_key, fetched_at, gateway_id, admission, admission_errors, payload_json)
+       values ($1, $2, $3, $4, $5, $6, $7, $8)
+       on conflict (job_id) do nothing`,
+      [
+        msg.job_id,
+        endpoint,
+        entityKey,
+        msg.fetched_at,
+        msg.gateway_id,
+        admission.ok ? "admitted" : "rejected",
+        admission.ok ? null : admission.errors.map((e) => String(e)),
+        admission.ok ? JSON.stringify(payload) : null,
+      ],
+    );
+    if (rowCount === 0) {
+      await db.query("rollback");
+      return { outcome: "duplicate", fetch_only: true };
+    }
+    await db.query(
+      `delete from live_fetch_result
+       where fetched_at < now() - interval '${FETCH_ONLY_KEEP}'`,
+    );
+    if (admission.ok)
+      await db.query(
+        `update gateway set last_success_at = now() where gateway_id::text = $1`,
+        [msg.gateway_id],
+      );
+    await db.query("commit");
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
+  return {
+    outcome: admission.ok ? "admitted" : "rejected",
+    fetch_only: true,
+    timings: { total_ms: Date.now() - t0 },
+    ...(admission.ok ? {} : { errors: admission.errors }),
+  };
+}
+
 export async function processResult(db, rawMessage, deps = {}) {
   const t0 = Date.now();
   const validated = validateResultMessage(rawMessage);
@@ -511,6 +645,10 @@ export async function processResult(db, rawMessage, deps = {}) {
   // Refuse before parsing or archiving, including old leases and replays.
   if (isRetiredRecordingEndpoint(msg.job.endpoint))
     return { outcome: "retired", endpoint: msg.job.endpoint };
+  // live_fetch only fetches (Jamie, 2026-10-08; 0209): its result waits
+  // for the caller outside the record, so it takes no recording lock.
+  if (msg.job.record === false)
+    return processFetchOnly(db, rawMessage, msg, t0);
   const fleetBulk = msg.job.lane === "bulk" && msg.job_id != null;
   // A session lock spans error receipts and the archive/projection transaction.
   // Every lane and jobless import participates: original fetch time and
@@ -541,38 +679,12 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
   // Lifecycle enforcement (§4.6): revocation is real because ingest stops
   // listening. Unknown ids die here too — cheaper than an FK throw + retry.
   // Any valid message proves liveness; success is stamped on admission below.
-  const { rows: gwRows } = await db.query(
-    `update gateway set last_heartbeat_at = now(),
-            last_seen_sha = coalesce($2, last_seen_sha)
-     where gateway_id::text = $1 and status <> 'revoked'
-     returning status`,
-    [msg.gateway_id, rawMessage?.gateway_sha ?? null],
-  );
-  if (gwRows.length === 0) {
+  if (!(await touchGateway(db, msg, rawMessage))) {
     return { outcome: "gateway_refused", gateway_id: msg.gateway_id };
   }
 
   if (msg.status !== "ok") {
-    // API receipts remain one row per HTTP 200 (§4.3), but a non-200 must
-    // leave a compact, no-payload operational receipt. Otherwise a planned
-    // board that never admits is indistinguishable from a collector that
-    // never received the work. Freshness still does not move.
-    const kind = msg.error?.kind ?? "unknown";
-    const { rowCount: recorded } = await db.query(
-      `insert into collector_fetch_error
-         (job_id, gateway_id, endpoint, entity_key, fetched_at, http_status, error_kind)
-       values ($1, $2, $3, $4, $5, $6, $7)
-       on conflict (gateway_id, endpoint, entity_key, fetched_at) do nothing`,
-      [
-        Number.isInteger(msg.job_id) ? msg.job_id : null,
-        msg.gateway_id,
-        msg.job.endpoint,
-        msg.job.entity_key,
-        msg.fetched_at,
-        Number.isInteger(msg.http_status) ? msg.http_status : null,
-        kind,
-      ],
-    );
+    const { kind, recorded } = await recordFetchError(db, msg);
     // Owe the subject a retry in minutes rather than a cadence (0188;
     // review 2026-09-27 §2.6). Not for a 404: the planner's not-found
     // hold owns that answer. Only for a newly recorded error, so a
@@ -593,31 +705,8 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
   }
 
   let t = mark("gateway_ms", t0);
-  let payload;
-  let rawText;
-  let tooLarge = false;
-  try {
-    rawText = gunzipSync(Buffer.from(msg.body_gzip_b64, "base64"), {
-      maxOutputLength: MAX_DECOMPRESSED_BYTES,
-    }).toString("utf8");
-    payload = JSON.parse(rawText);
-  } catch (err) {
-    // zlib aborts at the bound with ERR_BUFFER_TOO_LARGE — a deliberate,
-    // observable rejection, not an allocation.
-    tooLarge = err?.code === "ERR_BUFFER_TOO_LARGE";
-    payload = undefined;
-  }
-
-  const endpoint = msg.job.endpoint;
-  const entityKey =
-    subjectTag(endpoint, msg.job.entity_key) ?? msg.job.entity_key;
-  const admission =
-    payload === undefined
-      ? {
-          ok: false,
-          errors: [tooLarge ? "body:too_large" : "body:unparseable"],
-        }
-      : admit(endpoint, payload, entityKey);
+  const { payload, rawText, tooLarge, endpoint, entityKey, admission } =
+    decodeAndAdmit(msg);
   const hash =
     payload === undefined
       ? payloadHash(tooLarge ? msg.body_gzip_b64 : (rawText ?? ""))
