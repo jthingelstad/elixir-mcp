@@ -61,10 +61,6 @@ Remove a line in the change that closes it.
   coverage contract and receipt-bound counter tuples. Clan.
 - 2026-10-05: membership counts changed while the join and departure
   lists were empty; cause unconfirmed. Data Auditor.
-- 2026-10-05: a `live: true` race read that lands in matchmaking still
-  says "The live fetch returned a payload our admission rejected."
-  (`packages/tools/src/tools/shared.mjs`) and the receipt stays
-  `rejected`.
 - 2026-10-04: #292, Clan History browsing older recorded membership
   changes. Open.
 - 2026-10-04: #296, slow warm Awards participation reads. Needs browser
@@ -1038,3 +1034,72 @@ by battles would not be the top 120 by losses. Neither tool is an
   `battles_cards-battles_opponents-losses-order`: both orders hold the
   same rows and counts, the floor holds, the losses order is losses then
   battles descending, and every opponent row carries `mean_level_gap`.
+
+## 2026-10-08 — a race in matchmaking is no race yet (MCP 11.6.1, 0211, 0212)
+
+Closes the 2026-10-05 open item: a `live: true` race read that lands in
+matchmaking said "The live fetch returned a payload our admission
+rejected." The next season roll is Monday 2026-11-02.
+
+**Where "rejected" came from.** Not the collector: the Go client sends
+the API's 200 body untouched and ignores the door's `outcome`. Admission
+refused the matchmaking body (`state:matchmaking`, 7176f673, so it was
+already not charged), the receipt said `rejected`, and the live lane
+(`tools/live.mjs`) turned any non-admitted receipt inside the cache window
+into `reason: "rejected"`, which `liveRead` (`tools/shared.mjs`) threw as
+`live_unavailable` with that message. `live_fetch` failed the same way.
+
+**Evidence.** The payload archive under `currentriverrace` holds no
+matchmaking body (no object under 526 bytes; new content is always
+archived), and on 2026-10-05 the three recorded races have no object
+between 09:03Z and 13:47Z: the daily 404 hold (fixed in #308) kept the
+recorder off the race through the whole roll, so the matchmaking body was seen only by
+crprobe (cr-agent-api-docs PR #4). The live-tool calls in
+`{audit_census}` for 09:30Z to 12:00Z that day have no `live_unavailable`.
+So no recorded receipt is a matchmaking one, and 2026-11-02 is the first
+roll the recorder reads through (the race keeps its cadence through the
+404 since #308), so it will meet the state on its own polls.
+
+**What changed.**
+- Admission: the body `{periodIndex, sectionIndex, state: "matchmaking"}`
+  with no `clan` is its own outcome, neither admitted nor rejected:
+  receipt `admission = 'matchmaking'` with no errors (0211 widens the
+  check on `api_receipt` NOT VALID, 0212 validates it; `live_fetch_result`
+  widened in 0211). Nothing projected, freshness holds (read again on the
+  30-minute race cadence), no collector charge (`chargedRejectionSql` is
+  now `admission = 'rejected'`), the raw body archived as always.
+  `RACE_MATCHMAKING` is now the admission value `matchmaking`, not the
+  error string `state:matchmaking`; readers of a usable race keep
+  `admission = 'admitted'`, so the race lane's series backfill never
+  walks it.
+- Live lane: a matchmaking receipt in the cache window answers
+  `reason: "matchmaking"` (no new mint until the window passes);
+  `liveRead` returns `state: "matchmaking"` with `fetched_at` and
+  `retry_after_s`.
+- `war_current`: `live_status: { state: "matchmaking", fetched_at,
+  retry_after_s }` and a "No race yet" note; the rest is the last race
+  recorded. No race recorded: `live_pending` with `retry_after_s` (live)
+  or `not_recorded` naming the matchmaking read (not live). Without
+  `live: true` the note rides while the clan's latest race receipt is a
+  matchmaking one.
+- `live_fetch` of `/clans/{tag}/currentriverrace`: the API's body as
+  `data`, `live_status` matchmaking, the note. Still stores nothing.
+- No web or Clan surface reads the race live: Clan's and `/api/v1`'s live
+  read is `live_fetch` of `/clans/{tag}` only. JSON API 3.1.0 unchanged.
+- Never a missed race: no race row exists to count, and Clan judges the
+  week's `decksUsed` from admitted races only.
+
+**Proof without waiting for 2026-11-02.** Replays of the reference's
+body (no tags) through the real pipeline and live lane on scratch
+databases: `packages/ingest/test/admission.test.mjs`,
+`packages/ingest/test/pipeline.test.mjs` (receipt `matchmaking`, archive
+put, war tables and freshness untouched, not charged) and
+`packages/tools/test/live.test.mjs` (war_current live and not, an
+unrecorded clan, live_fetch).
+
+**For the collector:** nothing. **For cr-agent-api-docs:** nothing new;
+`models/river-race.md` and `clans.md` already state the body and "treat a
+race without clan like the 404: no race yet". Still open, not changed
+here: a `live: true` race read during the roll's 404 (no receipt, only a
+`collector_fetch_error`) stays `pending` and mints a new read each call
+past the cache window.

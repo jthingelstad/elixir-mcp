@@ -25,7 +25,7 @@ import {
   RECORDING_CUTOVER_LOCK,
 } from "@elixir-mcp/ledger";
 import { followClanForPlayer } from "@elixir-mcp/claims";
-import { admit } from "./admission.mjs";
+import { RACE_MATCHMAKING, admissionValue, admit } from "./admission.mjs";
 import { ingestBattlelog } from "./battles.mjs";
 import { ingestClanRoster } from "./roster.mjs";
 import {
@@ -605,9 +605,15 @@ async function processFetchOnly(db, rawMessage, msg, t0) {
         entityKey,
         msg.fetched_at,
         msg.gateway_id,
-        admission.ok ? "admitted" : "rejected",
-        admission.ok ? null : admission.errors.map((e) => String(e)),
-        admission.ok ? JSON.stringify(payload) : null,
+        admissionValue(admission),
+        admission.errors?.length
+          ? admission.errors.map((e) => String(e))
+          : null,
+        // A race in matchmaking is the caller's answer too: the body
+        // says "no race yet", so live_fetch serves it as the API's own.
+        admission.ok || admission.state === RACE_MATCHMAKING
+          ? JSON.stringify(payload)
+          : null,
       ],
     );
     if (rowCount === 0) {
@@ -629,10 +635,10 @@ async function processFetchOnly(db, rawMessage, msg, t0) {
     throw err;
   }
   return {
-    outcome: admission.ok ? "admitted" : "rejected",
+    outcome: admissionValue(admission),
     fetch_only: true,
     timings: { total_ms: Date.now() - t0 },
-    ...(admission.ok ? {} : { errors: admission.errors }),
+    ...(admission.errors?.length ? { errors: admission.errors } : {}),
   };
 }
 
@@ -773,8 +779,10 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
         msg.fetched_at,
         hash,
         msg.gateway_id,
-        admission.ok ? "admitted" : "rejected",
-        admission.ok ? null : admission.errors.map((e) => String(e)),
+        admissionValue(admission),
+        admission.errors?.length
+          ? admission.errors.map((e) => String(e))
+          : null,
         Number.isInteger(msg.job_id) ? msg.job_id : null,
         Number.isInteger(msg.observed) ? msg.observed : null,
         Number.isInteger(msg.filtered) ? msg.filtered : null,
@@ -867,11 +875,17 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
           console.error("primary_clan_follow_failed", entityKey, err?.message),
       );
     timings.total_ms = Date.now() - t0;
+    // A race in matchmaking (RACE_MATCHMAKING) is neither: no projection,
+    // no freshness, no collector charge; the planner reads it again.
     return {
-      outcome: admission.ok ? "admitted" : "rejected",
+      outcome: admissionValue(admission),
       receiptId,
       timings,
-      ...(admission.ok ? { projection } : { errors: admission.errors }),
+      ...(admission.ok
+        ? { projection }
+        : admission.errors?.length
+          ? { errors: admission.errors }
+          : {}),
     };
   } catch (err) {
     await db.query("rollback").catch(() => {});

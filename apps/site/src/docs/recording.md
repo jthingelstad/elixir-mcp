@@ -443,6 +443,22 @@ retry_after_s }` and a note saying so; call again after that and the fresh
 view is there. A subject with no record at all answers `live_pending` with
 the same `retry_after_s`. Nothing waits on a collector inside a call.
 
+**A race that is still matchmaking is no race yet, not an error.** For a
+minute or two after a season roll (the first Monday of the month, a few
+minutes past 10:00 UTC), the game has created a clan's new river race but
+not drawn its bracket: the race has no clans, standings or decks. A
+`war_current({ live: true })` read that lands then answers
+`live_status: { state: "matchmaking", fetched_at, retry_after_s }` with a
+note, and the rest of the answer is the last race recorded; a clan with no
+race recorded answers `live_pending` with the same `retry_after_s`. The
+same note rides on `war_current` without `live: true` while the clan's
+latest race read is that one. `live_fetch` of `/clans/{tag}/currentriverrace`
+serves the API's own body (`state: "matchmaking"`, no `clan`) with the
+same `live_status`. The record does not move: nothing is written for that
+race, the clan is read again on its usual race cadence, the collector that
+fetched it is not charged with a rejected fetch, and no race or war day is
+counted as missed.
+
 {{ tools.liveFlagCount }} recorded tools take the flag:
 {{ tools.liveFlagNames }}. The player tools can read any tag;
 `clans_roster` and `war_current` can read **any clan, recorded or not**;

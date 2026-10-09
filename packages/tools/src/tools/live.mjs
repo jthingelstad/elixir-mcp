@@ -86,6 +86,9 @@ export const liveTools = {
         }),
         data: result.payload,
         notes: notes(
+          live.state === "matchmaking"
+            ? `No race yet: the race is matchmaking (state "matchmaking", no clan), so the game has created the new race but not drawn its bracket. It lasts a minute or two after a season roll and is not an error; read the path again in ${live.retry_after_s} s for the matched race.`
+            : null,
           RECORDED_ALTERNATIVE[job.endpoint]
             ? `A recorded tool answers this path: ${RECORDED_ALTERNATIVE[job.endpoint]}.`
             : null,

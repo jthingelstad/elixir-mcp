@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { RACE_MATCHMAKING, admit } from "../src/admission.mjs";
+import { RACE_MATCHMAKING, admissionValue, admit } from "../src/admission.mjs";
 import { fixture } from "./helpers.mjs";
 
 test("all fixture payloads admit", async () => {
@@ -71,15 +71,23 @@ test("riverrace periodIndex/sectionIndex cross-check enforced", async () => {
   assert.ok(result.errors.includes("periodIndex:section-cross-check-failed"));
 });
 
-test("a race in matchmaking is refused with RACE_MATCHMAKING alone (S137 roll, 2026-10-05)", () => {
+test("a race in matchmaking is its own admission, never a rejection (S137 roll, 2026-10-05)", () => {
   // The whole body the API served for about two minutes after the season
-  // roll's 404, before the bracket was drawn.
+  // roll's 404, before the bracket was drawn (cr-agent-api-docs
+  // models/river-race.md).
   const result = admit(
     "currentriverrace",
     { periodIndex: 0, sectionIndex: 0, state: "matchmaking" },
-    "#J2RGCRVG",
+    "#2GUY2",
   );
-  assert.deepEqual(result, { ok: false, errors: [RACE_MATCHMAKING] });
+  assert.deepEqual(result, {
+    ok: false,
+    state: RACE_MATCHMAKING,
+    errors: [],
+  });
+  assert.equal(admissionValue(result), "matchmaking");
+  assert.equal(admissionValue({ ok: true }), "admitted");
+  assert.equal(admissionValue({ ok: false, errors: ["x"] }), "rejected");
 });
 
 test("matchmaking excuses only a race with no clan", async () => {
@@ -90,6 +98,17 @@ test("matchmaking excuses only a race with no clan", async () => {
     clans: [],
   });
   assert.deepEqual(result, { ok: false, errors: ["clans:missing"] });
+  // A body without its indexes is not the matchmaking shape either.
+  assert.equal(
+    admit("currentriverrace", { state: "matchmaking" }).state,
+    undefined,
+  );
+  // And matchmaking is a race state only.
+  assert.equal(
+    admit("clan", { periodIndex: 0, sectionIndex: 0, state: "matchmaking" })
+      .state,
+    undefined,
+  );
 });
 
 test("identity binding: a payload about someone else never admits (sol-6 F4)", async () => {

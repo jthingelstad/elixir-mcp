@@ -170,29 +170,46 @@ test("rejected payload gets a receipt with errors; no projection; freshness NOT 
   assert.equal(ps.rows.length, 0, "freshness advances on admission only");
 });
 
-test("a matchmaking race is refused, holds freshness, and is not charged to the collector", async () => {
+test("a matchmaking race is neither admitted nor rejected: nothing projected, freshness holds, never charged", async () => {
+  const before = async () =>
+    (
+      await ctx.db.query(
+        `select (select count(*)::int from war_week) as weeks,
+                (select count(*)::int from war_week_clan) as clans,
+                (select count(*)::int from war_participation) as parts,
+                (select count(*)::int from war_period_anchor) as anchors`,
+      )
+    ).rows[0];
+  const was = await before();
+  const archived = [];
   const result = await processResult(
     ctx.db,
     message({
       endpoint: "currentriverrace",
-      entityKey: "#J2RGCRVG",
+      entityKey: "#2GUY2",
+      // The reference's shape: the whole body, no clan (no real tags).
       payload: { periodIndex: 0, sectionIndex: 0, state: "matchmaking" },
       fetchedAt: "2026-10-05T10:09:01Z",
     }),
+    { archive: { put: async (key) => archived.push(key) } },
   );
-  assert.equal(result.outcome, "rejected");
+  assert.equal(result.outcome, "matchmaking");
+  assert.equal(result.errors, undefined, "not a refusal");
+  assert.equal(archived.length, 1, "raw stays byte-true in the archive");
   const {
     rows: [race],
   } = await ctx.db.query(
-    `select admission, admission_errors, ${chargedRejectionSql()} as charged
-     from api_receipt where endpoint = 'currentriverrace'`,
+    `select admission, admission_errors, new_facts, ${chargedRejectionSql()} as charged
+     from api_receipt where endpoint = 'currentriverrace' and entity_key = '#2GUY2'`,
   );
-  assert.equal(race.admission, "rejected");
-  assert.deepEqual(race.admission_errors, ["state:matchmaking"]);
+  assert.equal(race.admission, "matchmaking");
+  assert.equal(race.admission_errors, null);
+  assert.equal(race.new_facts, null, "no collector point either way");
   assert.equal(race.charged, false, "the API's state, not the collector's");
+  assert.deepEqual(await before(), was, "the race record is untouched");
   const ps = await ctx.db.query(
     `select 1 from poll_state
-     where subject_tag = '#J2RGCRVG' and endpoint = 'currentriverrace'
+     where subject_tag = '#2GUY2' and endpoint = 'currentriverrace'
        and last_admitted_at is not null`,
   );
   assert.equal(ps.rows.length, 0, "freshness holds, so the race is read again");

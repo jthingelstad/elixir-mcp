@@ -363,7 +363,7 @@ export const PAYLOAD_KEYS = {
 
   currentriverrace: {
     state: dropped(
-      "'full' on every admitted race; 'matchmaking' (a race not yet matched, with no clan) is refused at admission as RACE_MATCHMAKING and not charged to the collector (cr-agent-api-docs/models/river-race.md)",
+      "'full' on every admitted race; 'matchmaking' (a race not yet matched, with no clan) is neither admitted nor rejected: its receipt's admission is 'matchmaking' (0211), nothing is projected, freshness holds and the collector is never charged; the live lane answers it as no race yet (cr-agent-api-docs/models/river-race.md)",
     ),
     periodIndex: to("war_period_anchor.period_index"),
     periodType: to("poll_state.period_type"),
