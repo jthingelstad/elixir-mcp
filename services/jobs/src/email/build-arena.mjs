@@ -3,7 +3,9 @@
  *  battles_opponents. Skipped when no tag of theirs battled. The board
  *  (EmailArena, 2026-10-01) draws one record per mode, the week's main
  *  deck with its art, who you met more than once, and your other
- *  players' climbs; each comes from a tool's own answer. */
+ *  players' climbs; each comes from a tool's own answer. Since
+ *  2026-10-08 it also counts the week's card unlocks and badge levels
+ *  (progress), which no longer mail on their own. */
 import { accountCtx, callTool } from "./ctx.mjs";
 import { MODE_GROUPS } from "@elixir-mcp/contracts";
 import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
@@ -14,6 +16,7 @@ import {
   tryTool,
   weekday,
   agoText,
+  progressOf,
 } from "./shared.mjs";
 
 export async function buildArena({ db, account, week, season }) {
@@ -37,6 +40,9 @@ export async function buildArena({ db, account, week, season }) {
   });
   const w = perf?.window ?? null;
   const altRows = [];
+  // Card unlocks and badge levels, counted per player: the milestone
+  // mail no longer sends them on their own (Jamie, 2026-10-08).
+  const progress = [];
   for (const a of alts) {
     const ap = await tryTool(callTool, ctx, "battles_performance", {
       player_tag: a.tag,
@@ -48,7 +54,6 @@ export async function buildArena({ db, account, week, season }) {
       group_by: "game_mode",
     });
     const aw = ap?.window;
-    if (!aw || !aw.battles) continue;
     const { entry: ae } = await buildPlayerEntry(db, {
       tag: a.tag,
       relationship: "alt",
@@ -56,6 +61,9 @@ export async function buildArena({ db, account, week, season }) {
       toMs,
       timezone: account.timezone,
     });
+    const ag = progressOf(ae);
+    if (ag) progress.push({ tag: a.tag, name: a.name, ...ag });
+    if (!aw || !aw.battles) continue;
     altRows.push({
       tag: a.tag,
       name: a.name,
@@ -113,6 +121,8 @@ export async function buildArena({ db, account, week, season }) {
     toMs,
     timezone: account.timezone,
   });
+  const mine = progressOf(entry);
+  if (mine) progress.unshift({ tag: primary.tag, name: primary.name, ...mine });
   const trophies =
     entry.trophies?.from != null && entry.trophies?.to != null
       ? { from: entry.trophies.from, to: entry.trophies.to }
@@ -191,6 +201,7 @@ export async function buildArena({ db, account, week, season }) {
       coverage: `${w?.battles ?? 0} battles recorded for ${primary.name}; battle log last read ${agoText(freshness)}. The log holds roughly the last 30 battles, so a long session between reads can leave a gap; missing coverage is unknown, not evidence of absence.`,
     },
     alts: altRows,
+    progress,
   };
 }
 

@@ -10,13 +10,18 @@
 export default [
   {
     date: "2026-10-08",
+    title: "Milestone emails for the big firsts, and a shorter friends email",
+    body: "A milestone email now comes only for a big first: a new arena, a new league in Path of Legends, a new best trophy band, an Evolution or Hero form unlocked, or a career milestone (every 1,000 career wins, and each Collection Level step). Cards unlocked and badge levels no longer send one each; Tuesday's Arena email counts them for each of your players (\"3 cards unlocked, 2 badge levels\") with a link to your timeline, where every one is still listed newest first. Your friends this week draws each clan as a headline and at most three of the week's facts, with the rest counted and a link to the clan, names everyone quiet for 30 days or more in one line, counts a friend's unlocks and badges instead of listing them, and no longer ends a sentence with two full stops. MCP 11.5.2 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "Ladder reads any season you played, and tags read plainly",
     body: "Ladder now has a Season switch beside the page's freshness: the current season, the last one, and every season your player has battles in since Elixir started recording them, named Season 136 as everywhere else. The season is part of the address (/ladder?season=135), so a link keeps it, a reload keeps it, and the season home, Days played, Decks and Cards all read it. In the first days after the roll, when the current season has no battles yet, Ladder opens on last season and says so, with the new season a click away. The Tuesday Arena email and milestone notes now open Ladder on the season they describe, and the Monday clan report links the race's own week, so an older mail still opens what it described. Player and clan tags now draw in a fixed-width face with a slashed zero across Elixir, Ladder and Elixir Clan, so a 0 and an O never look alike, as they did on a Tag not found headline. MCP 11.5.2 and JSON API 3.1.0 unchanged.",
   },
   {
     date: "2026-10-08",
     title: "Each agent has its own hour",
-    body: "The hourly limit on MCP calls, 300 an hour, now belongs to whoever made the call. Each of your agents has its own 300, so one busy agent can no longer use up the hour for you and your other agents. Your agents still spend your daily tool calls and your live fetches, as before. MCP 11.5.1 and JSON API 3.1.0 unchanged.",
+    body: "The hourly limit on MCP calls, 300 an hour, now belongs to whoever made the call. Each of your agents has its own 300, so one busy agent can no longer use up the hour for you and your other agents. Your agents still spend your daily tool calls and your live fetches, as before. MCP 11.5.2 and JSON API 3.1.0 unchanged.",
   },
   {
     date: "2026-10-08",

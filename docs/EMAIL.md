@@ -128,6 +128,15 @@ week went, the deck used most. The headline is per mode family, never one
 win rate pooled across modes (`docs/DECISIONS.md`, mode discipline).
 Skipped when zero battles across all the account's own tags.
 
+**Cards and badges** (`progress`, 2026-10-08): per own tag, the week's
+card unlocks, badge level-ups and legendary badges as counts, read off
+the timeline entry (`collection.unlocked`, `badges.earned`,
+`badges.legendary`; `progressOf` in `shared.mjs`), with a link to the
+Console timeline. These are the small firsts the milestone mail no
+longer sends; a week with none has no section. Every alt's entry is read
+for it, including an alt with no battles; a week with no battles at all
+still sends nothing.
+
 ### `tracking_report`: Wednesday ("Your friends this week")
 
 `elixir_timeline` for the week, ordered by relationship depth. Friends,
@@ -135,8 +144,24 @@ then the busiest watched players, ten in all (`CARD_CAP`): a card each
 with a record per mode family, two moments and the most-played deck.
 Other watchers: one line each. Never empty for an account with a claim.
 
-**Tracking is state and progress; Arena is battles.** Neither shows the
-other's numbers.
+What the mail says is chosen from the timeline, never by changing it
+(2026-10-08):
+- **Moments** are the big firsts (`MILESTONE_MAIL_KINDS`) plus clan
+  moves and returns (`MOMENT_KINDS`, chosen before the cap); card unlocks and badges are a
+  count from the entry (`progress`), after the two moments.
+- **A clan** is `clanSummaryParts` (the clauses `summarizeClan` joins,
+  in its order): the first as the headline, the next three
+  (`CLAN_BULLETS`) as bullets, the rest counted with a link to the clan.
+  An issue stored before then carries the sentence as `line` and renders
+  it as before.
+- **Quiet** players with `days_quiet` of 30 or more are one line, longest
+  quiet first, with no day counts (`LONG_QUIET_DAYS` in the renderer).
+- **Full stops:** a moment's text is a sentence; the renderer joins
+  clauses (`clause`) and ends a sentence once (`sentence`), so "level
+  10.." cannot recur.
+
+**Friends is everyone you follow; Arena is your own battles**, plus the
+count of your own small firsts. Neither shows the other's numbers.
 
 ### `collector_activity`: Sunday, plus upgrade notices
 
@@ -202,14 +227,19 @@ Subject and body say historical test. No force bypass exists.
 
 ### `milestone`: hourly
 
-Congratulations for a FIRST on the recipient's primary or alts, from the
-named moments the timeline serves (`services/jobs/src/email/build-milestone.mjs`):
-`arena_changed` up, `ranked_promotion` up, `best_trophies_band`,
-`career_wins_step`, `collection_level_step`, `card_unlocked`,
-`card_form_unlocked` (an Evolution and a Hero of one card are two
-firsts), `badge_earned`, `legendary_badge_earned`. Each moment's own
+Congratulations for a big FIRST on the recipient's primary or alts, from
+the named moments the timeline serves (`services/jobs/src/email/build-milestone.mjs`,
+`MILESTONE_MAIL_KINDS`; Jamie, 2026-10-08): `arena_changed` up,
+`ranked_promotion` up, `best_trophies_band`, `card_form_unlocked` (an
+Evolution and a Hero of one card are two firsts), and the career
+milestones `career_wins_step` and `collection_level_step`. Card unlocks
+and badges (`card_unlocked`, `badge_earned`,
+`legendary_badge_earned`) never mail on their own: the Tuesday Arena
+week counts them. Three weeks of a beta inbox had held about forty
+milestone mails, mostly an alt's card unlocks and badge levels, and
+none was kept. Each moment's own
 identity (`arena:<id>`, `league:<id>`, `form:<card>:<form>`,
-`badge:<name>:<level>`…) mails once per account and subject, ever
+`wins:<step>`…) mails once per account and subject, ever
 (`email_milestone`), so a season's re-climb is silent; a move down never
 keys. Hourly, reading 26 hours back from the account's last clean look
 (`email_milestone_look`, capped at seven days). The period key is the

@@ -862,3 +862,42 @@ family's two"). A third name for the same number would break "One name,
 one meaning". `clans_roster.clan_score` and the `clans_timeline`
 `clan_score` metric are the profile's clan score, which is correct.
 
+## 2026-10-08 — milestone mail is the big firsts; the friends mail collapses
+
+Jamie approved round 5's "milestone mail digest and Friends mail
+cleanup" and answered the product call: "4. Agree with recommendation."
+The recommendation: mail immediately only for a new arena or league, a
+new best trophy band, a new Evo or Hero form, and career milestones;
+card unlocks and badge levels roll into the weekly mail as counts.
+
+- **Evidence** (a read-only review of Jamie's received mail, three
+  weeks): about 40 milestone mails, mostly "You unlocked Ice Spirit" and
+  badge levels for two low-level alts, every one in Trash. The friends
+  mail drew POAP KINGS as one ~1,000-character semicolon-joined
+  paragraph, printed "Arrows Mastery to level 10.." and listed watched
+  players quiet 169 days. The timeline read held 321 items in 7 days,
+  much of it card unlocks and level-5 badges.
+- **Milestone** (`MILESTONE_MAIL_KINDS` in `build-milestone.mjs`):
+  `arena_changed` up, `ranked_promotion` up, `best_trophies_band`,
+  `card_form_unlocked`, and "career" as the two existing step kinds,
+  `career_wins_step` and `collection_level_step`. `card_unlocked`,
+  `badge_earned` and `legendary_badge_earned` no longer mail and are no
+  longer written to `email_milestone`. A one-off legendary badge is not
+  in Jamie's list, so it is counted with the badges, not mailed. The
+  hourly look, the seven-day reach-back and once-ever keys are unchanged.
+- **Tuesday Arena** carries `progress`: per own tag, the entry's
+  `collection.unlocked`, `badges.earned` and `badges.legendary` as
+  counts, with a link to `/console/account/timeline`. Every alt's entry
+  is read now, not only an alt that battled. A week with no battles at
+  all is still skipped, counts and all.
+- **Friends**: card unlocks and badges leave the card moments
+  (`MOMENT_KINDS`) for a count from the entry; a clan is
+  `clanSummaryParts` (new in `summary.mjs`; `summarizeClan` joins the same
+  clauses, so MCP output is byte-identical) as a headline plus three
+  bullets and "N more"; `days_quiet` of 30 or more collapses into one
+  line; `clause`/`sentence` in the renderer end a sentence once. The
+  double period came from the "You" row appending "." after moment
+  texts that already end in one.
+- **Not changed:** the timeline (order, items, cap) and every MCP and
+  JSON API response; no contract bump (MCP 11.5.2, JSON API 3.1.0).
+  Issues stored before this render as they did (`line`, no `progress`).

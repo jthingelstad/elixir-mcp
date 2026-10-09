@@ -408,6 +408,66 @@ test("the friends mail is called what it is: Your friends this week (Jamie, 2026
   assert.match(out.html, /Turn off Your friends this week/);
 });
 
+test("the friends mail: a clan is a headline and at most three bullets, a month quiet is one line, and a full stop never doubles (Jamie, 2026-10-08)", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "tracking_report.json"), "utf8"),
+  );
+  const text = htmlToText(renderMail("tracking_report", facts, links).html);
+  const block = text.slice(
+    text.indexOf("Around you"),
+    text.indexOf("28 battles in 6 sessions"),
+  );
+  assert.match(
+    block,
+    /3,200 battles in 410 sessions by 46 of 47 members since Mon Sep 21\.\n/,
+  );
+  assert.equal(block.match(/^• /gm)?.length, 3, block);
+  assert.match(block, /^• Week 3 finished in place 1 with 10,305 fame$/m);
+  assert.match(block, /4 more/);
+  assert.ok(!block.includes(";\u0020week"), "one clause per bullet");
+  // Quiet a month or more: one line, longest first, no day counts.
+  assert.match(
+    text,
+    /Quiet for 30\+ days: Lord of Latency[^\n]*, Lucky Red Panda[^\n]*\./,
+  );
+  assert.doesNotMatch(text, /169 days/);
+  assert.match(text, /No battle recorded this week: JaxikoLane/);
+  // The moment ends its own sentence; the mail adds no second stop.
+  assert.match(
+    text,
+    /reached Legendary Arena · 3 cards unlocked, 2 badge levels\./,
+  );
+  assert.doesNotMatch(text, /[A-Za-z0-9]\.\./);
+  // An issue stored before 2026-10-08 keeps its one line.
+  const old = structuredClone(facts);
+  old.clans = [
+    {
+      tag: "#J2RGCRVG",
+      name: "POAP KINGS",
+      line: "3,200 battles; war week 3 finished",
+    },
+  ];
+  assert.match(
+    htmlToText(renderMail("tracking_report", old, links).html),
+    /3,200 battles; war week 3 finished/,
+  );
+});
+
+test("the Arena week counts each player's card unlocks and badge levels, and links the timeline", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "arena_week.json"), "utf8"),
+  );
+  const text = htmlToText(renderMail("arena_week", facts, links).html);
+  assert.match(text, /King Thing[^\n]*: 1 card unlocked, 2 badge levels/);
+  assert.match(text, /thingles[^\n]*: 3 cards unlocked, 1 badge level\b/);
+  assert.match(text, /\/console\/account\/timeline\?utm_source=email/);
+  delete facts.progress;
+  assert.doesNotMatch(
+    htmlToText(renderMail("arena_week", facts, links).html),
+    /Cards and badges/i,
+  );
+});
+
 test("the weekly send times are the EventBridge crons", () => {
   const template = readFileSync(
     path.join(here, "../../../infra/template.yaml"),

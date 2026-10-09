@@ -86,3 +86,22 @@ export async function tryTool(callTool, ctx, name, args) {
     throw err;
   }
 }
+
+/** The small firsts a player's week held, counted (Jamie, 2026-10-08:
+ *  card unlocks and badge levels roll into the weekly mail as counts):
+ *  read off the timeline's own entry for the player, so the count is the
+ *  entry's (every badge level-up, every card unlocked), never a second
+ *  derivation. Null when there were none. */
+export function progressOf(entry) {
+  const unlocked = entry?.collection?.unlocked;
+  const cards = (unlocked?.items?.length ?? 0) + (unlocked?.more ?? 0);
+  const levels = entry?.badges?.earned ?? 0;
+  const legendary = entry?.badges?.legendary ?? 0;
+  return cards || levels || legendary
+    ? {
+        cards_unlocked: cards,
+        badge_levels: levels,
+        legendary_badges: legendary,
+      }
+    : null;
+}

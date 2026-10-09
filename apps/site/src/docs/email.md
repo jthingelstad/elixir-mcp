@@ -1,13 +1,13 @@
 ---
 slug: email
 title: "Email"
-description: "The seven emails Elixir sends: four weekly reports built from your record, a milestone note when something you did is a first, Elixir Clan's note when something new in your clan is yours to do, and the answer to feedback you filed. Every one is a switch on your account page; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
+description: "The seven emails Elixir sends: four weekly reports built from your record, a milestone note when you or an alt reach a big first, Elixir Clan's note when something new in your clan is yours to do, and the answer to feedback you filed. Every one is a switch on your account page; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
 section: friends
 order: 3
 navTitle: "Email"
 icon: mail
 lede: "Seven kinds, each a switch and a turn-off link: four weekly reports, milestones, clan actions waiting and answers to your feedback."
-reviewed: "2026-10-08 for answers to feedback, contract 11.3.0"
+reviewed: "2026-10-08 for milestones as big firsts and the friends email, contract 11.5.2"
 ---
 
 # Email
@@ -43,12 +43,12 @@ notes are exempt: they come as the moments do.
 | Day | Kind | What it is |
 |---|---|---|
 | Monday | **Clan report** | Your clan's week: the war result if a war week closed (the clan's place, fame and war trophies, the race as it finished, the top five who raced and your own players), who joined and left and when, who has gone quiet, and the week in battles, promotions, new bests and donations, with a link to the roster and one to the race's own week in Explore, by its Season and Week. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone and your own players marked *you*. Elixir tracks your primary player's clan for you as soon as it sees it, when you have a clan slot free ([Your player's clan](/docs/recording#your-players-clan)). |
-| Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the most-used deck in your busiest non-war mode drawn card by card, with its record and level gap from that mode alone, who you faced and who came round more than once, and a line for each alt. It links the week's season on [Ladder](/docs/ladder), and every deck of it on Ladder's Decks. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
-| Wednesday | **Your friends this week** | How everyone you follow played: a card each for your friends and the busiest players you watch (their battles in each mode, a moment or two, the deck they played most), with you and your clans in a line each. It is the [timeline](/docs/timeline) for the week, rendered. |
+| Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the most-used deck in your busiest non-war mode drawn card by card, with its record and level gap from that mode alone, who you faced and who came round more than once, and a line for each alt. It links the week's season on [Ladder](/docs/ladder), and every deck of it on Ladder's Decks. **Cards and badges** counts, for each of your players, the week's cards unlocked and badge levels (and any legendary badge), which no longer come as milestone emails, with a link to your [timeline](/docs/timeline) where each one is listed. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
+| Wednesday | **Your friends this week** | How everyone you follow played: a card each for your friends and the busiest players you watch (their battles in each mode, a moment or two, then their cards unlocked and badge levels as a count, the deck they played most), with you in a line and each of your clans as a headline and at most three of the week's facts, the rest counted with a link to the clan. Anyone quiet for 30 days or more is named once, in one line. It is the [timeline](/docs/timeline) for the week, rendered: the email chooses what to say, and the timeline keeps everything. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the dashboard’s security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and points to date; how much the edge filter saved, and what you earned: points (fetches that added to the record) and the credits they convert to, one per ten points. One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
 | Mornings | **Clan actions waiting** | From [Elixir Clan](/clan), after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
 | When answered | **Answers to your feedback** | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed, from anywhere in Elixir (the Console, Ladder, Elixir Clan, an email's footer, the docs), and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. One mail per answer; an answer is mailed after ten quiet minutes, so a correction made straight away is one mail. An agent's feedback is answered to the agent, never mailed. |
-| As it happens | **Milestones** | Congratulations when something you or an alt did is a first: a new arena, a promotion in ranked, a personal-best band, a career-wins or collection step, a badge, a card unlocked, an Evolution or Hero form unlocked. A new arena or league comes with the battle that did it and a link to [that battle's page](/docs/battles#a-battles-page); a card comes as its art. Its button opens Ladder on the season the moment happened in. Checked hourly; everything new since the last note rides together. |
+| As it happens | **Milestones** | Congratulations when you or an alt reach a big first: a new arena, a new league in Path of Legends, a new personal-best trophy band, an Evolution or Hero form unlocked, or a career milestone (every 1,000 career wins, and each Collection Level step). A new arena or league comes with the battle that did it and a link to [that battle's page](/docs/battles#a-battles-page); a form comes as its art. Its button opens Ladder on the season the moment happened in. Cards unlocked and badges never send one on their own: Tuesday's Arena email counts them. Checked hourly; everything new since the last note rides together. |
 
 For Arena's featured deck, equal mode counts use alphabetical mode-group
 order, and equal deck counts use the recorded deck hash order. If the selected
@@ -77,8 +77,10 @@ the current release.
 ## Milestones are firsts
 
 A milestone mails once, ever, per account and subject, keyed by the
-moment's own identity: the arena, the league, the band, the badge, the
-card's form. A season's re-climb of an arena you have already been
+moment's own identity: the arena, the league, the band, the career step,
+the card's form. Only the big firsts mail (2026-10-08): a card unlocked
+or a badge level is a count in Tuesday's Arena email and an item on your
+[timeline](/docs/timeline), never an email of its own. A season's re-climb of an arena you have already been
 congratulated for is silent; a higher one is news. A move down never mails. Friends' and
 watchers' moments belong to Your friends this week, not here. If a check is
 missed (an outage, a failed send), the next one reads back to the last

@@ -25,7 +25,12 @@
    "role": "leader"
   },
   "modes": "10 ladder, 6 war",
-  "moments": [],
+  "moments": [
+   {
+    "when": "Sat 10:02",
+    "text": "reached Legendary Arena."
+   }
+  ],
   "by_family": [
    {
     "mode": "ladder",
@@ -39,7 +44,12 @@
     "wins": 3,
     "losses": 3
    }
-  ]
+  ],
+  "progress": {
+   "cards_unlocked": 3,
+   "badge_levels": 2,
+   "legendary_badges": 0
+  }
  },
  "alts": [
   {
@@ -261,7 +271,12 @@
     "level_gap": null
    },
    "decks_used": 37,
-   "deck_battles": 58
+   "deck_battles": 58,
+   "progress": {
+    "cards_unlocked": 1,
+    "badge_levels": 0,
+    "legendary_badges": 0
+   }
   }
  ],
  "watching": [
@@ -467,12 +482,20 @@
   {
    "tag": "#J2RGCRVG",
    "name": "POAP KINGS",
-   "line": "3,200 battles by 46 of 47 members; war week 3 finished 1st with 10,305 fame"
+   "headline": "3,200 battles in 410 sessions by 46 of 47 members since Mon Sep 21",
+   "bullets": [
+    "joined: Ana, Bo; left: Cy",
+    "week 3 finished in place 1 with 10,305 fame",
+    "quiet past 10d: Dee (12d)"
+   ],
+   "more": 4
   },
   {
    "tag": "#GJ09RJP8",
    "name": "Elixir Kings",
-   "line": "28 battles by 2 members"
+   "headline": "28 battles in 6 sessions by 2 of 41 members since Mon Sep 21",
+   "bullets": [],
+   "more": 0
   }
  ],
  "quiet": [
@@ -485,6 +508,11 @@
    "tag": "#200UL8LYUJ",
    "name": "Lucky Red Panda",
    "days": 30
+  },
+  {
+   "tag": "#2282UV9UY8",
+   "name": "Lord of Latency",
+   "days": 169
   }
  ],
  "coverage": "12 subjects tracked; 2 with nothing recorded this week (read days since poll before calling the silence theirs)."

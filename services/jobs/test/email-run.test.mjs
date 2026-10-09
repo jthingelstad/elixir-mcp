@@ -286,7 +286,7 @@ test("a moment from a day the milestone job failed is mailed by the next run tha
   assert.equal(again.sent, 0);
 });
 
-test("cards unlocked reach the mail as their art, each a link to its page; a form as its own art", async () => {
+test("card unlocks and badge levels never mail on their own; a new form does, as its art (Jamie, 2026-10-08)", async () => {
   const TAG = "#9QQ2GG8Q";
   const id = await person("cards", TAG, "2026-09-01T00:00:00Z", null);
   await db.query(
@@ -299,29 +299,115 @@ test("cards unlocked reach the mail as their art, each a link to its page; a for
   const at = ["2026-09-23T17:00:00Z", "2026-09-23T18:00:00Z"];
   await db.query(
     `insert into player_event
-       (player_tag, event_type, timing, window_start, window_end, card_id, step)
-     values ($1, 'card_unlocked', 'estimated', $2, $3, 26000047, null),
-            ($1, 'card_unlocked', 'estimated', $2, $3, 26000006, null),
-            ($1, 'card_form_unlocked', 'estimated', $2, $3, 26000021, 1)`,
+       (player_tag, event_type, timing, window_start, window_end, card_id, badge_name, level)
+     values ($1, 'card_unlocked', 'estimated', $2, $3, 26000047, null, null),
+            ($1, 'card_unlocked', 'estimated', $2, $3, 26000006, null, null),
+            ($1, 'badge_earned', 'estimated', $2, $3, null, 'MasteryArrows', 10)`,
     [TAG, ...at],
   );
-  const { enqueue, out } = sink();
-  const r = await runEmail({
-    db,
-    kind: "milestone",
-    now: new Date("2026-09-23T18:20:00Z"),
-    enqueue,
-    secret: "s",
-    accountId: id,
-  });
+  const run = async (now) => {
+    const { enqueue, out } = sink();
+    const r = await runEmail({
+      db,
+      kind: "milestone",
+      now: new Date(now),
+      enqueue,
+      secret: "s",
+      accountId: id,
+    });
+    return { r, out };
+  };
+  const quiet = await run("2026-09-23T18:20:00Z");
+  assert.equal(quiet.r.sent, 0, JSON.stringify(quiet.r));
+  assert.equal(quiet.out.length, 0);
+  // A form is a big first: it mails, as its own art, and the unlocks
+  // beside it stay out of the mail (the Arena week counts them).
+  await db.query(
+    `insert into player_event
+       (player_tag, event_type, timing, window_start, window_end, card_id, step)
+     values ($1, 'card_form_unlocked', 'estimated', $2, $3, 26000021, 1)`,
+    [TAG, "2026-09-23T19:00:00Z", "2026-09-23T19:10:00Z"],
+  );
+  const { r, out } = await run("2026-09-23T19:20:00Z");
   assert.equal(r.sent, 1, JSON.stringify(r));
   const { html } = out[0];
-  for (const file of ["26000047", "26000006", "26000021_evo"])
-    assert.ok(html.includes(`/assets/cards/${file}.png`), file);
-  for (const card of [26000047, 26000006, 26000021])
-    assert.match(html, new RegExp(`href="[^"]*/cards/${card}\\?`));
-  assert.match(html, />Epic</);
-  assert.match(html, /You unlocked three cards/);
+  assert.ok(html.includes("/assets/cards/26000021_evo.png"));
+  assert.match(html, new RegExp(`href="[^"]*/cards/26000021\\?`));
+  for (const file of ["26000047", "26000006"])
+    assert.ok(!html.includes(`/assets/cards/${file}.png`), file);
+  assert.doesNotMatch(html, /Arrows Mastery/);
+  const { rows } = await db.query(
+    `select kind from email_milestone where account_id = $1`,
+    [id],
+  );
+  assert.deepEqual(
+    rows.map((x) => x.kind),
+    ["card_form_unlocked"],
+  );
+});
+
+test("an unlock-only week sends no milestone mail and Tuesday's Arena week counts it; an arena first mails", async () => {
+  const TAG = "#8YQQ2PLL";
+  const id = await person("digest", TAG, "2026-09-01T00:00:00Z", null);
+  await db.query(
+    `insert into card (card_id, name, kind, rarity) values
+       (26000030, 'Ice Spirit', 'card', 'common'),
+       (26000047, 'Royal Recruits', 'card', 'common'),
+       (26000006, 'Balloon', 'card', 'epic')
+     on conflict (card_id) do nothing`,
+  );
+  const BATTLE = `d16e${"0".repeat(60)}`;
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class) values ($1, '2026-10-08T12:00:00Z', 'PvP', 'pvp')`,
+    [BATTLE],
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class, crowns, trophy_change, starting_trophies)
+     values ($1, $2, 0, '2026-10-08T12:00:00Z', 'win', 'PvP', 'pvp', 1, 29, 2000)`,
+    [BATTLE, TAG],
+  );
+  const at = ["2026-10-08T12:00:00Z", "2026-10-08T12:30:00Z"];
+  await db.query(
+    `insert into player_event
+       (player_tag, event_type, timing, window_start, window_end, card_id, badge_name, level)
+     values ($1, 'card_unlocked', 'estimated', $2, $3, 26000030, null, null),
+            ($1, 'card_unlocked', 'estimated', $2, $3, 26000047, null, null),
+            ($1, 'card_unlocked', 'estimated', $2, $3, 26000006, null, null),
+            ($1, 'badge_earned', 'estimated', $2, $3, null, 'MasteryArrows', 4),
+            ($1, 'badge_earned', 'estimated', $2, $3, null, 'MasteryArrows', 5)`,
+    [TAG, ...at],
+  );
+  const send = async (kind, now) => {
+    const { enqueue, out } = sink();
+    const r = await runEmail({
+      db,
+      kind,
+      now: new Date(now),
+      enqueue,
+      secret: "s",
+      accountId: id,
+    });
+    return { r, out };
+  };
+  const hourly = await send("milestone", "2026-10-08T13:20:00Z");
+  assert.equal(hourly.r.sent, 0, JSON.stringify(hourly.r));
+  // An arena first, the same day: it mails, and only it.
+  await db.query(
+    `insert into player_event
+       (player_tag, event_type, timing, window_start, window_end,
+        arena_from, arena_to, arena_to_name)
+     values ($1, 'arena_changed', 'exact', '2026-10-08T14:00:00Z', '2026-10-08T14:00:00Z', 11, 12, 'Spell Valley')`,
+    [TAG],
+  );
+  const arenaFirst = await send("milestone", "2026-10-08T14:20:00Z");
+  assert.equal(arenaFirst.r.sent, 1, JSON.stringify(arenaFirst.r));
+  assert.match(arenaFirst.out[0].subject, /Spell Valley/);
+  assert.doesNotMatch(arenaFirst.out[0].html, /Ice Spirit|Mastery/);
+  // Tuesday: the week's unlocks and badge levels, as counts.
+  const tuesday = await send("arena_week", "2026-10-13T14:00:00Z");
+  assert.equal(tuesday.r.sent, 1, JSON.stringify(tuesday.r));
+  assert.match(tuesday.out[0].html, /3 cards unlocked, 2 badge levels/);
+  assert.match(tuesday.out[0].html, /\/console\/account\/timeline\?/);
 });
 
 test("a form the art mirror lacks reaches the mail as the base card's art", async () => {
