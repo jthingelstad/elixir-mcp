@@ -129,11 +129,12 @@ win rate pooled across modes (`docs/DECISIONS.md`, mode discipline).
 Skipped when zero battles across all the account's own tags.
 
 **Cards and badges** (`progress`, 2026-10-08): per own tag, the week's
-card unlocks, badge level-ups and legendary badges as counts, read off
-the timeline entry (`collection.unlocked`, `badges.earned`,
-`badges.legendary`; `progressOf` in `shared.mjs`), with a link to the
-Console timeline. These are the small firsts the milestone mail no
-longer sends; a week with none has no section. Every alt's entry is read
+card unlocks and badge level-ups as counts, read off the timeline
+entry (`collection.unlocked`, `badges.earned`; `progressOf` in
+`shared.mjs`), with a link to the Console timeline. These are the small
+firsts the milestone mail no longer sends; a legendary badge mails as a
+milestone and is not counted (an issue stored before then may carry
+`legendary_badges`, and renders it); a week with none has no section. Every alt's entry is read
 for it, including an alt with no battles; a week with no battles at all
 still sends nothing.
 
@@ -231,11 +232,12 @@ Congratulations for a big FIRST on the recipient's primary or alts, from
 the named moments the timeline serves (`services/jobs/src/email/build-milestone.mjs`,
 `MILESTONE_MAIL_KINDS`; Jamie, 2026-10-08): `arena_changed` up,
 `ranked_promotion` up, `best_trophies_band`, `card_form_unlocked` (an
-Evolution and a Hero of one card are two firsts), and the career
-milestones `career_wins_step` and `collection_level_step`. Card unlocks
-and badges (`card_unlocked`, `badge_earned`,
-`legendary_badge_earned`) never mail on their own: the Tuesday Arena
-week counts them. Three weeks of a beta inbox had held about forty
+Evolution and a Hero of one card are two firsts), the career
+milestones `career_wins_step` and `collection_level_step`, and
+`legendary_badge_earned` (Jamie, 2026-10-08, approving it; it leads
+beside a new best). Card unlocks and badge levels (`card_unlocked`,
+`badge_earned`) never mail on their own: the Tuesday Arena week counts
+them. Three weeks of a beta inbox had held about forty
 milestone mails, mostly an alt's card unlocks and badge levels, and
 none was kept. Each moment's own
 identity (`arena:<id>`, `league:<id>`, `form:<card>:<form>`,

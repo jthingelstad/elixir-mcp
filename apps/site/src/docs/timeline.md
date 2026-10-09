@@ -375,8 +375,9 @@ entry: a clan's silence is the clan's activity.
   war-only agent, and a person reading the console. Each reads the sections
   it cares about.
 - **It never changes for the mail.** The mail chooses what to say from
-  it: the milestone email sends only the big firsts, the weekly emails
-  count card unlocks and badges rather than listing them, and the friends
+  it: the milestone email sends only the big firsts (a legendary badge
+  among them), the weekly emails count card unlocks and badge levels
+  rather than listing them, and the friends
   email draws a clan's summary as a headline and its next three clauses
   ([Email](/docs/email)). The timeline itself keeps every item, newest
   first.

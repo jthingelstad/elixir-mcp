@@ -410,6 +410,70 @@ test("an unlock-only week sends no milestone mail and Tuesday's Arena week count
   assert.match(tuesday.out[0].html, /\/console\/account\/timeline\?/);
 });
 
+test("a legendary badge mails when it happens and is not counted on Tuesday; a badge level only counts (Jamie, 2026-10-08)", async () => {
+  const TAG = "#2LQQ9PYV";
+  const id = await person("legendary", TAG, "2026-09-01T00:00:00Z", null);
+  const BATTLE = `1e9e${"0".repeat(60)}`;
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class) values ($1, '2026-10-08T12:00:00Z', 'PvP', 'pvp')`,
+    [BATTLE],
+  );
+  await db.query(
+    `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class, crowns, trophy_change, starting_trophies)
+     values ($1, $2, 0, '2026-10-08T12:00:00Z', 'win', 'PvP', 'pvp', 1, 29, 2000)`,
+    [BATTLE, TAG],
+  );
+  const send = async (kind, now) => {
+    const { enqueue, out } = sink();
+    const r = await runEmail({
+      db,
+      kind,
+      now: new Date(now),
+      enqueue,
+      secret: "s",
+      accountId: id,
+    });
+    return { r, out };
+  };
+  // A badge level alone: no mail.
+  await db.query(
+    `insert into player_event
+       (player_tag, event_type, timing, window_start, window_end, badge_name, level)
+     values ($1, 'badge_earned', 'estimated', '2026-10-08T12:00:00Z', '2026-10-08T12:30:00Z', 'MasteryArrows', 5)`,
+    [TAG],
+  );
+  const level = await send("milestone", "2026-10-08T13:20:00Z");
+  assert.equal(level.r.sent, 0, JSON.stringify(level.r));
+  // A legendary badge: it mails, by the badge's name, and only it.
+  await db.query(
+    `insert into player_event
+       (player_tag, event_type, timing, window_start, window_end, badge_name)
+     values ($1, 'legendary_badge_earned', 'estimated', '2026-10-08T14:00:00Z', '2026-10-08T14:10:00Z', 'BeatingDeathBadge')`,
+    [TAG],
+  );
+  const legendary = await send("milestone", "2026-10-08T14:20:00Z");
+  assert.equal(legendary.r.sent, 1, JSON.stringify(legendary.r));
+  const { html } = legendary.out[0];
+  assert.match(html, /You earned Beating Death/);
+  assert.match(html, /A legendary badge\./);
+  assert.doesNotMatch(html, /Arrows Mastery/);
+  const { rows } = await db.query(
+    `select kind, moment_key from email_milestone where account_id = $1`,
+    [id],
+  );
+  assert.deepEqual(rows, [
+    { kind: "legendary_badge_earned", moment_key: "badge:BeatingDeathBadge" },
+  ]);
+  // Once ever: the next look sends nothing.
+  const again = await send("milestone", "2026-10-08T15:20:00Z");
+  assert.equal(again.r.sent, 0, JSON.stringify(again.r));
+  // Tuesday counts the badge level, never the legendary badge it mailed.
+  const tuesday = await send("arena_week", "2026-10-13T14:00:00Z");
+  assert.equal(tuesday.r.sent, 1, JSON.stringify(tuesday.r));
+  assert.match(tuesday.out[0].html, /1 badge level\b/);
+  assert.doesNotMatch(tuesday.out[0].html, /legendary badge/i);
+});
+
 test("a form the art mirror lacks reaches the mail as the base card's art", async () => {
   // 2026-10-08: Supercell lists a new form about two weeks before its
   // image answers, and a mail client cannot fall back as a page does.

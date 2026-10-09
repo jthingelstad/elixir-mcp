@@ -230,15 +230,13 @@
    "tag": "#20JJJ2CCRU",
    "name": "King Thing",
    "cards_unlocked": 1,
-   "badge_levels": 2,
-   "legendary_badges": 0
+   "badge_levels": 2
   },
   {
    "tag": "#VJQV8G8RL",
    "name": "thingles",
    "cards_unlocked": 3,
-   "badge_levels": 1,
-   "legendary_badges": 0
+   "badge_levels": 1
   }
  ]
 }

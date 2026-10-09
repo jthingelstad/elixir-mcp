@@ -91,17 +91,14 @@ export async function tryTool(callTool, ctx, name, args) {
  *  card unlocks and badge levels roll into the weekly mail as counts):
  *  read off the timeline's own entry for the player, so the count is the
  *  entry's (every badge level-up, every card unlocked), never a second
- *  derivation. Null when there were none. */
+ *  derivation. Null when there were none. A legendary badge is not
+ *  counted: it is a big first and mails when it happens
+ *  (MILESTONE_MAIL_KINDS, Jamie, 2026-10-08), like an arena. */
 export function progressOf(entry) {
   const unlocked = entry?.collection?.unlocked;
   const cards = (unlocked?.items?.length ?? 0) + (unlocked?.more ?? 0);
   const levels = entry?.badges?.earned ?? 0;
-  const legendary = entry?.badges?.legendary ?? 0;
-  return cards || levels || legendary
-    ? {
-        cards_unlocked: cards,
-        badge_levels: levels,
-        legendary_badges: legendary,
-      }
+  return cards || levels
+    ? { cards_unlocked: cards, badge_levels: levels }
     : null;
 }

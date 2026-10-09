@@ -367,8 +367,10 @@ const sentence = (s) => {
 };
 
 /** The week's small firsts as counts ("3 cards unlocked, 2 badge
- *  levels"): card unlocks and badges no longer mail on their own
- *  (Jamie, 2026-10-08), so the weekly mail says how many. */
+ *  levels"): card unlocks and badge levels no longer mail on their own
+ *  (Jamie, 2026-10-08), so the weekly mail says how many. A legendary
+ *  badge mails as a milestone and is no longer counted; an issue stored
+ *  before then carries legendary_badges and renders it as before. */
 function progressText(p) {
   if (!p) return "";
   const k = (v, one, many) => (v ? `${n(v)} ${v === 1 ? one : many}` : null);
