@@ -1213,3 +1213,21 @@ The headline reads 2,484 battles by 44 (the stored issue's 2,481 was
 counted by when the battles were learned). The week of 08-31 is left out
 of the activity comparison: it starts before the clan's active recording
 row's `created_at`.
+
+## 2026-10-08 — round 6 approvals, recorded
+
+Jamie's approvals for the round 6 changes, verbatim (the PRs that built
+them left the wording to this entry):
+
+- #395, the form strip on Ladder and the Arena mail line: "Approved: round
+  6 primary, "am I improving" trend on Ladder and in the Arena mail in
+  elixir-mcp, PR and deploy".
+- #396, the Monday clan report trend: "Approved: round 6 backup, 4-week
+  trend and decks-used-of-possible in the Monday clan report in
+  elixir-mcp, PR and deploy".
+- #397 (11.6.1), the matchmaking race read: "Approved: fix the rollover
+  live race read during matchmaking in elixir-mcp, PR and deploy".
+- #394 (11.6.0), what you faced ordered by losses: approved in the
+  2026-10-08 open-questions review ("5. agree"), as a reader's choice,
+  never the default, with a battle floor and the level gap and no label.
+
