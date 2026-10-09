@@ -120,6 +120,34 @@ mail's "Monday: your clan's week" true for a new member. Days are carried as ins
 `{{day:<instant>}}` in a standout's text) and named in the recipient's
 `account.timezone` (`links.timezone`, set by `deliver`).
 
+**Trend** (`trend`, 2026-10-08): the week beside the four before it,
+only as far back as the record holds.
+- **War decks:** the race's decks used (the sum of every participant's
+  weekly `decks_used` from `war_history`'s exact week, departed members
+  included) of those possible: four a war day (`WAR_DECKS_PER_DAY`) for
+  `warDaysAsked` days (up to `finish_war_day`, all four in Colosseum;
+  `record/war-clock`, the rule Elixir Clan's rates read) for each member
+  on the roster at the race's close (`clanRosterAt`, membership
+  intervals). Weekly totals only: training days are not war days and
+  never count. A prior race is the races that closed in the four weeks
+  before; one with no participants recorded, a capped participant list
+  (60), or no roster observed at its close is left out, never a zero.
+  The render shows each share capped at 100% (decks played by members
+  who left before the close can exceed the roster's possible), the pooled
+  share of the races before, and a table, with no member named.
+- **Activity** (comprehensive scope): battles and members who battled,
+  by `battle_time` with boat defenses excluded (`clanActivityWeeks`),
+  for the report week and the four before; a prior week counts once the
+  clan's active recording had begun and it holds a battle. The headline's
+  battles and members active read the same count.
+- The words say how many weeks are compared ("the four races before",
+  "the 2 recorded races before"); with none, the race stands alone and
+  the clan's week has no comparison. An issue stored before has no
+  `trend` and renders without it.
+
+`{"clan_report_preview": {"clan_tag", "at"}}` on the jobs Lambda composes
+one clan's report read-only beside the stored issue for that week.
+
 ### `arena_week`: Tuesday ("Your week in the Arena")
 
 `battles_performance` + `battles_opponents` + `battles_decks` for the

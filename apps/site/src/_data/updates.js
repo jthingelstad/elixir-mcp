@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "The clan report sets the week beside the weeks before",
+    body: "The Monday clan report now shows how the week compares. War decks: the race's war decks used out of those possible (four a war day up to the finish, every day in Colosseum, for each member on the roster when the race closed), beside each of the four races before with the share they used. Training days are not counted. The clan's week: battles and members who battled, by when the battles were played, against the average of the four weeks before. Only weeks Elixir recorded are compared: with fewer, the report says how many (\"the 2 recorded races before\"), and with none it shows the week alone. MCP 11.6.1 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title:
       "This week beside your last four, and your season before and since a new deck",
     body: "Ladder's season home now sets the game week so far beside the four game weeks before it, in the mode you are looking at: your win rate, three-crown rate and (on Trophy Road and Path of Legends) net trophies, each with the battles it is over. Game weeks run Monday 10:00 UTC to Monday, the week Tuesday's Arena email reports. When the deck you played most this season arrived after you had played others, the page also splits the season at its first battle and shows the same numbers before and since, naming the deck by its archetype label. Each side needs at least 10 battles, or the panel is not shown, and neither panel says which side is better. Tuesday's Arena email carries the same comparison as one line: your featured mode's win rate this week and its battle count, beside the four weeks before. MCP 11.6.1 and JSON API 3.1.0 unchanged.",

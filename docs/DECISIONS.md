@@ -165,6 +165,7 @@ current rule, never as "was X, now Y".
 - **Clan's mail goes through Elixir** — Clan composes `clan_actions_waiting`; Elixir holds the address, switch and unsubscribe, sends only to the account that verified a player who can act, at most once per clan per account per day, with the app's lines escaped.
 - **A collector upgrade is one notice** — one mail per observed installed release upgrade, under the collector switch; dev builds and prereleases never count.
 - **Every send has an id and a record** — the footer links the record, one-click feedback and the sponsorship line; the relay logs the send id, never the recipient.
+- **A report's trend compares only recorded weeks** — the clan report sets its week beside at most the four before it that the record holds and says how many; a week the record lacks is left out, never a zero. War decks possible are four a war day up to the finish (every day in Colosseum) for each member on the roster at the race's close, from weekly totals only.
 - **Pixel and utm on all mail** — the pixel names the mail, never the reader; owner notifications carry none; SES open/click tracking is never enabled.
 - **No public issue page** — sharing means forwarding the email.
 - **Newsletter consent is explicit** — Buttondown is Jamie's announcement channel only; new signup shows "Send me Elixir product news", checked by default, applied only to a newly created account; sign-in never overwrites an existing choice.

@@ -785,6 +785,74 @@ function raceRows(war, clanTag, c) {
     .join("")}</table>`;
 }
 
+/** The week beside the ones before it (2026-10-08): the race's war
+ *  decks used of those possible against the races before, and (in the
+ *  clan's-week row) the clan's battles and members who battled against
+ *  the weeks before, each only as far back as the record holds. The
+ *  words say how many are compared, and with none the comparison is left
+ *  out. An issue stored before then has no `trend` and renders without
+ *  it. */
+const capped = (w) => Math.min(w.decks_used, w.decks_possible);
+const share = (used, possible) =>
+  possible > 0 ? Math.min(1, used / possible) : null;
+const beforeWords = (k, what) =>
+  k === 4
+    ? `the four ${what}s before`
+    : `the ${k === 1 ? `one recorded ${what}` : `${k} recorded ${what}s`} before`;
+const raceName = (w) =>
+  `Season ${w.season}, week ${w.week}${w.colosseum ? " (Colosseum)" : ""}`;
+
+function trendBlock(f, c) {
+  const t = f.trend;
+  if (!t) return "";
+  const parts = [];
+  const war = t.war;
+  if (war?.this_week) {
+    const w = war.this_week;
+    const prior = war.prior ?? [];
+    const unplayed = Math.max(0, w.decks_possible - w.decks_used);
+    let line = `This race: <strong style="color:${M.ink};">${n(w.decks_used)} of ${n(w.decks_possible)}</strong> possible war decks used (${pct(share(w.decks_used, w.decks_possible))})${unplayed ? `, ${n(unplayed)} not played` : ""}.`;
+    let table = "";
+    if (prior.length) {
+      const pooled = share(
+        prior.reduce((s, x) => s + capped(x), 0),
+        prior.reduce((s, x) => s + x.decks_possible, 0),
+      );
+      line += ` Over ${beforeWords(prior.length, "race")}: ${pct(pooled)}.`;
+      table = c.table(
+        ["Race", "Used", "Possible", "Share"],
+        [w, ...prior].map((x, i) => [
+          `${esc(raceName(x))}${i === 0 ? ` <span style="color:${M.faint};">this week</span>` : ""}`,
+          n(x.decks_used),
+          n(x.decks_possible),
+          pct(share(x.decks_used, x.decks_possible)),
+        ]),
+        {
+          align: ["left", "right", "right", "right"],
+          mono: [false, true, true, true],
+        },
+      );
+    }
+    parts.push(
+      `${c.p(line, { size: 14 })}${table}${c.small("Possible is four decks a war day up to the finish line (every day in Colosseum) for each member on the roster when the race closed. Decks played after the finish count as used; training days are not counted.")}`,
+    );
+  }
+  if (!parts.length) return "";
+  return `${c.h2("War decks")}${parts.join("")}`;
+}
+
+/** The clan's battles and members who battled in the weeks before,
+ *  said beside this week's in the clan's-week row; "" with none. */
+function activityBefore(f) {
+  const prior = f.trend?.activity?.prior ?? [];
+  const k = prior.length;
+  if (!k) return "";
+  const avg = (key) => Math.round(prior.reduce((s, x) => s + x[key], 0) / k);
+  return k === 1
+    ? ` The one recorded week before had ${n(avg("battles"))} battles, by ${n(avg("active"))} members.`
+    : ` ${k === 4 ? "The four weeks before" : `The ${k} recorded weeks before`} averaged ${n(avg("battles"))} battles a week, by ${n(avg("active"))} members.`;
+}
+
 function clan(f, c) {
   const war = f.war?.present ? f.war : null;
   const h = f.headline;
@@ -908,7 +976,7 @@ function clan(f, c) {
     h.battles
       ? {
           title: `${n(h.battles)} battles`,
-          text: `In ${n(h.sessions)} sessions, by ${n(h.active)} of ${n(h.of)} members.${wm?.top_battler ? ` ${c.P(wm.top_battler.tag, wm.top_battler.name)} played ${n(wm.top_battler.battles)} of them.` : ""}`,
+          text: `In ${n(h.sessions)} sessions, by ${n(h.active)} of ${n(h.of)} members.${activityBefore(f)}${wm?.top_battler ? ` ${c.P(wm.top_battler.tag, wm.top_battler.name)} played ${n(wm.top_battler.battles)} of them.` : ""}`,
           mark: M.link,
         }
       : null,
@@ -969,7 +1037,7 @@ function clan(f, c) {
   );
   const body = `
     ${c.tiles(tiles)}
-    ${race}${whoRaced}${comings}${quiet}${theWeek}
+    ${race}${whoRaced}${trendBlock(f, c)}${comings}${quiet}${theWeek}
     ${f.roster_note ? c.small(esc(f.roster_note)) : ""}
     ${roster}
     ${c.button(`Open ${f.clan.name} in the console`, clanUrl(tag))}

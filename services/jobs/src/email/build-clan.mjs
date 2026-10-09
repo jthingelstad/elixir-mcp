@@ -7,6 +7,11 @@
  *  member-by-member table put a 50-member clan's mail past the size
  *  Gmail clips at, and the console already draws it. */
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
+import {
+  clanActivityWeeks,
+  clanRosterAt,
+} from "@elixir-mcp/record/member-activity";
+import { WAR_DECKS_PER_DAY, warDaysAsked } from "@elixir-mcp/record/war-clock";
 import { buildClanEntry } from "@elixir-mcp/tools/activity/entries";
 import { accountCtx, callTool } from "./ctx.mjs";
 import { tryTool } from "./shared.mjs";
@@ -30,9 +35,11 @@ export async function buildClan({ db, account, clanTag, week, season }) {
   const roster = await tryTool(callTool, ctx, "clans_roster", {
     clan_tag: clanTag,
   });
+  // Three seasons: the trend's four races before a season's first week
+  // reach back into the season before it.
   const wars = await tryTool(callTool, ctx, "war_history", {
     clan_tag: clanTag,
-    seasons: 2,
+    seasons: 3,
   });
   const closed = (wars?.weeks ?? []).find((w) => {
     const t = w.closed_at ?? w.finished;
@@ -94,6 +101,17 @@ export async function buildClan({ db, account, clanTag, week, season }) {
           })),
       }
     : { present: false };
+
+  const trend = await buildTrend({
+    db,
+    ctx,
+    clanTag,
+    scope,
+    week,
+    weeks: wars?.weeks ?? [],
+    closed,
+    exact,
+  });
 
   const r = entry.roster;
   const st = entry.standouts;
@@ -177,8 +195,11 @@ export async function buildClan({ db, account, clanTag, week, season }) {
       members_from: r.size.from ?? r.size.to ?? roster?.member_count ?? null,
     },
     headline: {
-      battles: entry.activity.battles ?? 0,
-      active: entry.activity.members_active ?? 0,
+      // By when the battles were played (the trend's own count) when the
+      // clan's battles are recorded, so the week reads one number.
+      battles: trend.activity?.this_week.battles ?? entry.activity.battles ?? 0,
+      active:
+        trend.activity?.this_week.active ?? entry.activity.members_active ?? 0,
       of: entry.activity.members_total ?? roster?.member_count ?? null,
       sessions: entry.activity.sessions ?? 0,
       donations: entry.donations?.week_total ?? 0,
@@ -235,11 +256,129 @@ export async function buildClan({ db, account, clanTag, week, season }) {
       ).map((q) => ({ name: q.name ?? q.tag, days: q.after_days })),
     },
     badges,
+    trend,
     roster_note:
       scope === "comprehensive"
         ? null
         : "Activity scope: roster and war only; member battles are not recorded for this clan.",
     coverage: `Counted from what Elixir recorded for ${entry.name ?? roster?.name ?? clanTag}, Monday to Monday at the river race's own reset; the roster was read ${roster?.meta?.freshness_seconds != null ? `${Math.round(roster.meta.freshness_seconds / 60)} min` : "shortly"} before this was composed.`,
+  };
+}
+
+const WEEK_MS = 7 * 86_400_000;
+// war_history's exact week lists at most this many members; a list that
+// reaches it may be cut short, so its total is unknown.
+const MEMBER_WEEKS_CAP = 60;
+const TREND_WEEKS = 4;
+
+/** The week beside the four before it (2026-10-08). Only what the record
+ *  holds: a prior week it does not hold is left out, never counted as a
+ *  zero, and the render says how many weeks it compares against.
+ *
+ *  War: the race's decks used (every member's weekly decksUsed, the
+ *  game's own counter, departed members included) out of the decks
+ *  possible, four a war day up to the finish (warDaysAsked, the rule
+ *  Elixir Clan reads) for each member on the roster when the race
+ *  closed. Weekly totals only; training days are never counted.
+ *
+ *  Activity: battles and members who battled, by battle_time, for a
+ *  clan whose members' battles are recorded; a prior week counts once
+ *  the clan's recording had begun and it holds a battle. */
+async function buildTrend({
+  db,
+  ctx,
+  clanTag,
+  scope,
+  week,
+  weeks,
+  closed,
+  exact,
+}) {
+  return {
+    war: await warTrend({ db, ctx, clanTag, weeks, closed, exact }),
+    activity:
+      scope === "comprehensive"
+        ? await activityTrend({ db, clanTag, week })
+        : null,
+  };
+}
+
+const closeMs = (w) => Date.parse(w.closed_at ?? w.finished ?? "");
+
+async function warTrend({ db, ctx, clanTag, weeks, closed, exact }) {
+  if (!closed) return null;
+  const done = weeks.filter(
+    (w) => !w.in_progress && Number.isFinite(closeMs(w)),
+  );
+  const at = done.indexOf(closed);
+  if (at < 0) return null;
+  // The races that closed in the four weeks before this one, newest first.
+  const earliest = closeMs(closed) - TREND_WEEKS * WEEK_MS - 12 * 3600_000;
+  const priors = done
+    .slice(at + 1)
+    .filter((w) => closeMs(w) >= earliest)
+    .slice(0, TREND_WEEKS);
+  const races = [closed, ...priors];
+  const lists = [exact];
+  for (const w of priors) {
+    const one = await tryTool(callTool, ctx, "war_history", {
+      clan_tag: clanTag,
+      season_id: w.season_id,
+      section_index: w.section_index,
+    });
+    lists.push(one);
+  }
+  const roster = await clanRosterAt(
+    db,
+    clanTag,
+    races.map((w) => new Date(closeMs(w))),
+  );
+  const rosterSince = roster.roster_since
+    ? Date.parse(roster.roster_since)
+    : null;
+  const read = races.map((w, i) => {
+    const rows = lists[i]?.member_weeks;
+    if (!rows?.length || rows.length >= MEMBER_WEEKS_CAP) return null;
+    const members = roster.members[i];
+    if (rosterSince === null || rosterSince > closeMs(w) || !(members > 0))
+      return null;
+    const days = warDaysAsked({
+      finished_observed_at: w.finished ?? w.closed_at,
+      is_colosseum: w.is_colosseum,
+      finish_war_day: w.finish_war_day,
+    });
+    if (days === null) return null;
+    return {
+      season: w.season_id,
+      week: w.section_index + 1,
+      colosseum: Boolean(w.is_colosseum),
+      decks_used: rows.reduce((n, m) => n + (m.decks_used ?? 0), 0),
+      decks_possible: members * WAR_DECKS_PER_DAY * days,
+      members,
+      war_days: days,
+    };
+  });
+  if (!read[0]) return null;
+  return { this_week: read[0], prior: read.slice(1).filter(Boolean) };
+}
+
+async function activityTrend({ db, clanTag, week }) {
+  const from = week.from.getTime();
+  const windows = Array.from({ length: TREND_WEEKS + 1 }, (_, k) => ({
+    from: from - k * WEEK_MS,
+    to: from - k * WEEK_MS + (week.to.getTime() - from),
+  }));
+  const rows = await clanActivityWeeks(db, clanTag, windows);
+  const { recording_since } = await clanRosterAt(db, clanTag, []);
+  const since = recording_since ? Date.parse(recording_since) : null;
+  const [now, ...before] = rows;
+  return {
+    this_week: { battles: now.battles, active: now.active },
+    prior: before
+      .filter(
+        (w) => since !== null && Date.parse(w.from) >= since && w.battles > 0,
+      )
+      .map((w) => ({ from: w.from, battles: w.battles, active: w.active })),
   };
 }
 

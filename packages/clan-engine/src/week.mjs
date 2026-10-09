@@ -13,6 +13,7 @@
  * left is "departed", never kicked or left.
  */
 
+import { warDaysAsked } from "@elixir-mcp/record/war-clock";
 import { countedCategories } from "./policy.mjs";
 
 const HOUR_MS = 3600_000;
@@ -44,14 +45,9 @@ const COLUMN = {
 const ROLE_ORDER = ["member", "elder", "coLeader", "leader"];
 
 /** Days a finished war week asked for: four decks a day up to the clan's
- *  finish, or all four days in Colosseum (null while the week is open). */
-export function warDaysAsked(w) {
-  if (!w?.finished_observed_at) return null;
-  if (w.is_colosseum) return 4;
-  return Number.isInteger(w.finish_war_day)
-    ? Math.min(4, Math.max(1, w.finish_war_day))
-    : 4;
-}
+ *  finish, or all four days in Colosseum (null while the week is open).
+ *  The record's one derivation, shared with Elixir's clan report. */
+export { warDaysAsked };
 
 /** The war week that belongs to an ISO week: the one that finished at the
  *  Monday reset ending it, or, still running, the one that began at the

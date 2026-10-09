@@ -72,3 +72,74 @@ export async function memberActivityWarBounds(db, weeks) {
     to: w.to.toISOString(),
   }));
 }
+
+/** A clan's battles and active members in each window, by when the
+ *  battles were played (`battle_time`, never when Elixir learned them, so
+ *  a late capture or a backfill lands in the week it was played): the
+ *  distinct battles a member played while in this clan, and how many
+ *  members played one. Boat defenses are not the member's battle (0171).
+ *  The Monday clan report's week and the four before it. */
+export async function clanActivityWeeks(db, clanTag, windows) {
+  const { rows } = await db.query(
+    `select w.i, a.battles, a.active
+       from jsonb_to_recordset($2::jsonb) as w(i int, "from" timestamptz, "to" timestamptz)
+       cross join lateral (
+         select count(distinct bp.battle_id)::int as battles,
+                count(distinct bp.player_tag)::int as active
+           from battle_participant bp
+          where bp.clan_tag = $1
+            and bp.battle_time >= w."from" and bp.battle_time < w."to"
+            and ${notBoatDefense("bp", { lookupByKey: true })}) a
+      order by w.i`,
+    [
+      clanTag,
+      JSON.stringify(
+        windows.map((w, i) => ({
+          i,
+          from: new Date(w.from).toISOString(),
+          to: new Date(w.to).toISOString(),
+        })),
+      ),
+    ],
+  );
+  return rows.map((r) => ({
+    from: new Date(windows[r.i].from).toISOString(),
+    to: new Date(windows[r.i].to).toISOString(),
+    battles: r.battles,
+    active: r.active,
+  }));
+}
+
+/** How many members the record holds on a clan's roster at each instant
+ *  (membership intervals, as the clan entry sizes a window), with when
+ *  the record first saw the roster and when the clan's active recording
+ *  began: a count before the first is unknown, never zero. */
+export async function clanRosterAt(db, clanTag, instants) {
+  const { rows } = await db.query(
+    `select t.i,
+            (select count(*)::int from clan_membership cm
+              where cm.clan_tag = $1 and cm.joined_observed_at <= t.at
+                and (cm.left_observed_at is null or cm.left_observed_at > t.at)) as members
+       from jsonb_to_recordset($2::jsonb) as t(i int, at timestamptz)
+      order by t.i`,
+    [
+      clanTag,
+      JSON.stringify(
+        instants.map((at, i) => ({ i, at: new Date(at).toISOString() })),
+      ),
+    ],
+  );
+  const {
+    rows: [since],
+  } = await db.query(
+    `select (select min(joined_observed_at) from clan_membership where clan_tag = $1) as roster_since,
+            (select min(created_at) from recording
+              where subject_type = 'clan' and subject_tag = $1 and status = 'active') as recording_since`,
+    [clanTag],
+  );
+  return {
+    members: rows.map((r) => r.members),
+    roster_since: since.roster_since?.toISOString() ?? null,
+    recording_since: since.recording_since?.toISOString() ?? null,
+  };
+}

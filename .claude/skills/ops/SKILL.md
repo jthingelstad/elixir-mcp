@@ -162,6 +162,11 @@ Firing now: `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --st
 **The jobs Lambda** (`elixir-mcp-jobs`) has its own payload keys, such as
 `{capture_efficiency}` and `{shape_census}`: scheduled product work,
 outside this catalogue; Elixir Operator names the ones worth reading.
+One is a read for checking a mail change against the live record:
+`{"clan_report_preview": {"clan_tag": "#TAG", "at": "<ISO>"}}` composes
+that clan's Monday report for the week before `at` as its oldest tracker,
+beside the issue stored for that week, and returns both as text in a
+read-only session (no issue, no send).
 
 ## Choosing the read
 

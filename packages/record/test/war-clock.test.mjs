@@ -9,6 +9,7 @@ import {
   nominalPeriodBoundsMs,
   seasonFromDate,
   seasonIdForMonth,
+  warDaysAsked,
 } from "../src/war-clock.mjs";
 import { fixture } from "./fixture.mjs";
 
@@ -231,4 +232,35 @@ test("raceWeekFor: one calendar rule for both war_week writers", () => {
   assert.equal(raceWeekFor(3, at("2026-09-08T12:00:00Z")), null);
   assert.equal(raceWeekFor(5, at("2026-10-05T09:50:00Z")), null);
   assert.equal(raceWeekFor("1", at("2026-09-14T09:57:54Z")), null);
+});
+
+test("war days asked: up to the finish, every day in Colosseum, none while the race is open", () => {
+  const done = "2026-10-05T09:38:04Z";
+  assert.equal(warDaysAsked({ finished_observed_at: null }), null);
+  assert.equal(warDaysAsked(null), null);
+  assert.equal(
+    warDaysAsked({
+      finished_observed_at: done,
+      is_colosseum: true,
+      finish_war_day: 2,
+    }),
+    4,
+  );
+  assert.equal(
+    warDaysAsked({
+      finished_observed_at: done,
+      is_colosseum: false,
+      finish_war_day: 3,
+    }),
+    3,
+  );
+  // The day-by-day log does not hold the week: all four were asked.
+  assert.equal(
+    warDaysAsked({
+      finished_observed_at: done,
+      is_colosseum: false,
+      finish_war_day: null,
+    }),
+    4,
+  );
 });
