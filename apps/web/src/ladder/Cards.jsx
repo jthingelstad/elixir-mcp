@@ -1,7 +1,7 @@
-import { CardArt, Link, noun } from "@elixir-mcp/ui";
+import { CardArt, Link, noun, Tag } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { CONSOLE } from "../lib/console.js";
-import { fmt, ladderHref, modeLabel, pct } from "./ladder.js";
+import { fmt, ladderHref, modeLabel, pct, seasonWords } from "./ladder.js";
 import {
   cameBack,
   cardRows,
@@ -30,8 +30,15 @@ const ROWS_SHOWN = 12;
  * the opponents are battles_opponents' count and its repeats. A form is
  * its own row, as the tool keeps it; no row is summed with another.
  */
-export function Cards({ player, mode, modeReady, search }) {
-  const args = { player_tag: player.player_tag, season: "current", mode };
+export function Cards({
+  player,
+  mode,
+  modeReady,
+  season,
+  seasonPicker,
+  search,
+}) {
+  const args = { player_tag: player.player_tag, season: season.arg, mode };
   const mine = useToolRead(
     "battles_cards",
     { ...args, perspective: "mine" },
@@ -49,7 +56,12 @@ export function Cards({ player, mode, modeReady, search }) {
   );
   const label = modeLabel(mode);
   const hrefFor = (m) =>
-    ladderHref("cards", { player: search.player, mode: m });
+    ladderHref("cards", {
+      player: search.player,
+      mode: m,
+      season: search.season,
+    });
+  const when = seasonWords(season);
   const played = Number(modeBattles(mine.data, mode) ?? 0) > 0;
 
   return (
@@ -58,10 +70,12 @@ export function Cards({ player, mode, modeReady, search }) {
         player={player}
         page="Cards"
         title="Cards you played, cards you faced"
-        lede={`${label}, this season. An evolution or a hero is a different card from its base form, so each keeps its own row. Every card name opens that card's public page: the same card across everyone Elixir records.`}
+        lede={`${label}, ${when}. An evolution or a hero is a different card from its base form, so each keeps its own row. Every card name opens that card's public page: the same card across everyone Elixir records.`}
         observedAt={
           mine.data?.meta?.source_polls?.player_battlelog?.observed_at
         }
+        season={season}
+        seasonPicker={seasonPicker}
       />
       <ModeSwitch mode={mode} hrefFor={hrefFor} />
       {!modeReady || mine.isPending ? (
@@ -70,10 +84,14 @@ export function Cards({ player, mode, modeReady, search }) {
         <ReadError error={mine.error} what="your cards" />
       ) : !played ? (
         <div className="empty">
-          <h2 className="empty__title">No {label} battles this season</h2>
+          <h2 className="empty__title">
+            No {label} battles {when}
+          </h2>
           <p className="empty__body">
-            Elixir has recorded none in this mode since the season began, so
-            there are no cards to read back. Another mode&apos;s tab may hold
+            {season.current
+              ? "Elixir has recorded none in this mode since the season began,"
+              : `Elixir recorded none in this mode in ${season.name},`}{" "}
+            so there are no cards to read back. Another mode&apos;s tab may hold
             your season.
           </p>
         </div>
@@ -85,7 +103,7 @@ export function Cards({ player, mode, modeReady, search }) {
             opponents={opponents.data?.distinct_opponents ?? null}
             mode={mode}
           />
-          <Opponents read={opponents} label={label} />
+          <Opponents read={opponents} label={label} when={when} />
         </>
       )}
     </div>
@@ -274,7 +292,7 @@ function TheirCards({ read, opponents, mode }) {
 }
 
 /** How many players you met in this mode, and the ones you met again. */
-function Opponents({ read, label }) {
+function Opponents({ read, label, when }) {
   const id = useId();
   const body = read.data;
   const repeats = body?.opponents ?? [];
@@ -296,7 +314,7 @@ function Opponents({ read, label }) {
             <p className="ladder-opponents__lede">
               {fmt(body.distinct_opponents)} different{" "}
               {body.distinct_opponents === 1 ? "opponent" : "opponents"} on{" "}
-              {label} this season.{" "}
+              {label} {when}.{" "}
               {repeats.length
                 ? `${cameBack(Number(body.matching_opponents ?? repeats.length))}:`
                 : "None came back."}
@@ -310,9 +328,7 @@ function Opponents({ read, label }) {
                     >
                       {opponentName(o)}
                     </Link>{" "}
-                    <span className="ladder-opponents__tag">
-                      {o.player_tag}
-                    </span>
+                    <Tag tag={o.player_tag} className="ladder-opponents__tag" />
                     , {times(o.battles)},{" "}
                     <Record wins={o.wins} losses={o.losses} draws={o.draws} />
                   </li>

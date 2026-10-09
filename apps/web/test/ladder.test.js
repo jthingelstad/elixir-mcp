@@ -24,6 +24,11 @@ import {
   monthName,
   pickMode,
   pickPlayer,
+  pickSeason,
+  recordedSeasons,
+  seasonArg,
+  seasonName,
+  seasonWords,
   zoneShort,
   seasonHead,
   shortDay,
@@ -191,8 +196,133 @@ test("the season head is the tool's own window", () => {
     age: 24,
     startsAt: "2026-09-07T10:00:00.000Z",
     endsAt: "2026-10-05T10:00:00.000Z",
+    running: true,
+  });
+  // Named as the rest of Elixir names a season, once the row has its
+  // river race number; a closed season's window has an end.
+  const closed = {
+    window: {
+      ...APPLIED.window,
+      to: "2026-10-05T10:00:00.000Z",
+      season: { ...APPLIED.window.season, war: 136 },
+    },
+  };
+  expect(seasonHead(closed)).toMatchObject({
+    name: "Season 136",
+    running: false,
   });
   expect(seasonHead(undefined).name).toBe("This season");
+});
+
+describe("the season a page reads (2026-10-08)", () => {
+  test("?season= becomes the tools' own season argument", () => {
+    expect(seasonArg(undefined)).toBe("current");
+    expect(seasonArg("")).toBe("current");
+    expect(seasonArg("current")).toBe("current");
+    expect(seasonArg("136")).toBe(136);
+    expect(seasonArg(136)).toBe(136);
+    expect(seasonArg("2026-09")).toBe("2026-09");
+    expect(seasonArg("previous")).toBe("previous");
+    expect(seasonArg("drop table")).toBe("current");
+  });
+
+  test("a season is named as Elixir names it, and an address carries it", () => {
+    expect(seasonName({ war: 137, month: "2026-10" })).toBe("Season 137");
+    expect(seasonName({ war: null, month: "2026-10" })).toBe("October season");
+    expect(seasonName(null)).toBe("This season");
+    expect(ladderHref("decks", { player: "#VJQV8G8RL", season: 136 })).toBe(
+      "/ladder/decks?player=VJQV8G8RL&season=136",
+    );
+    expect(ladderHref("season", { season: "" })).toBe("/ladder");
+  });
+
+  const LISTED = {
+    window: {
+      from: "2026-08-20T00:00:00.000Z",
+      to: null,
+      season: { month: "2026-08", war: 135 },
+      crosses: [
+        {
+          kind: "season",
+          at: "2026-09-07T10:00:00.000Z",
+          from_season: { month: "2026-08", war: 135 },
+          to_season: { month: "2026-09", war: 136 },
+        },
+        {
+          kind: "season",
+          at: "2026-10-05T10:00:00.000Z",
+          from_season: { month: "2026-09", war: 136 },
+          to_season: { month: "2026-10", war: 137 },
+        },
+      ],
+    },
+  };
+
+  test("the seasons on record are the window's own, newest first", () => {
+    const seasons = recordedSeasons(LISTED);
+    expect(seasons.map((s) => [s.key, s.name, s.current])).toEqual([
+      ["137", "Season 137", true],
+      ["136", "Season 136", false],
+      ["135", "Season 135", false],
+    ]);
+    expect(recordedSeasons(undefined)).toEqual([]);
+  });
+
+  test("an address that names a season gets it, even an empty one", () => {
+    const seasons = recordedSeasons(LISTED);
+    expect(pickSeason("136", { seasons, currentBattles: 0 })).toMatchObject({
+      arg: 136,
+      key: "136",
+      name: "Season 136",
+      current: false,
+      fallback: null,
+      ready: true,
+    });
+    expect(pickSeason("137", { seasons })).toMatchObject({
+      arg: 137,
+      current: true,
+      fallback: null,
+    });
+    // A season older than the record still reads; the tool answers it.
+    expect(pickSeason("120", { seasons })).toMatchObject({
+      arg: 120,
+      name: "Season 120",
+      current: false,
+    });
+  });
+
+  test("an empty current season opens on the last one, and says so", () => {
+    const seasons = recordedSeasons(LISTED);
+    const picked = pickSeason(undefined, { seasons, currentBattles: 0 });
+    expect(picked).toMatchObject({ arg: 136, key: "136", ready: true });
+    expect(picked.fallback).toMatchObject({ key: "137", name: "Season 137" });
+    expect(seasonWords(picked)).toBe("in Season 136");
+    // A season with battles, a refused read, or no earlier season on
+    // record: the current one.
+    expect(pickSeason(undefined, { seasons, currentBattles: 4 })).toMatchObject(
+      { arg: "current", key: "137", fallback: null },
+    );
+    expect(
+      pickSeason(undefined, { seasons, currentBattles: null }),
+    ).toMatchObject({ arg: "current", fallback: null });
+    expect(
+      pickSeason(undefined, {
+        seasons: seasons.slice(0, 1),
+        currentBattles: 0,
+      }),
+    ).toMatchObject({ arg: "current", fallback: null });
+    expect(
+      seasonWords(pickSeason(undefined, { seasons, currentBattles: 4 })),
+    ).toBe("this season");
+  });
+
+  test("the page waits for what it needs to choose, and no longer", () => {
+    expect(pickSeason(undefined, {}).ready).toBe(false);
+    // Battles this season: no need to wait for the list.
+    expect(pickSeason(undefined, { currentBattles: 3 }).ready).toBe(true);
+    expect(pickSeason(undefined, { currentBattles: 0 }).ready).toBe(false);
+    expect(pickSeason("136", {}).ready).toBe(true);
+  });
 });
 
 const FLOOR = {

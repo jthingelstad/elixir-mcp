@@ -1,6 +1,13 @@
 import { Icon, Link, useClock, noun } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
-import { clockTime, fmt, longDay, monthName, zoneShort } from "./ladder.js";
+import {
+  clockTime,
+  fmt,
+  longDay,
+  seasonName,
+  seasonWords,
+  zoneShort,
+} from "./ladder.js";
 import {
   battlePath,
   battleScore,
@@ -34,18 +41,21 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  * names (lib/battle-sweep.js). Each mode keeps its own mark and its own
  * record; the page counts battles and never rates a day.
  */
-export function Days({ player, summary }) {
+export function Days({ player, season: picked, seasonPicker, summary }) {
   const { zone } = useClock();
   const [now] = useState(() => Date.now());
   const coverage = useToolRead("elixir_coverage", {
     player_tag: player.player_tag,
   });
-  const sweep = useBattleSweep({
-    player_tag: player.player_tag,
-    season: "current",
-    verbosity: "compact",
-    limit: 40,
-  });
+  const sweep = useBattleSweep(
+    {
+      player_tag: player.player_tag,
+      season: picked.arg,
+      verbosity: "compact",
+      limit: 40,
+    },
+    { enabled: picked.ready },
+  );
   const first = sweep.data?.first;
   const season = first?.applied?.window?.season ?? null;
   const battles = sweep.data?.battles ?? [];
@@ -62,7 +72,8 @@ export function Days({ player, summary }) {
       })
     : null;
   const so = cal ? daysPlayed(cal.days) : null;
-  const name = season?.month ? `${monthName(season.month)} season` : "season";
+  const name = season ? seasonName(season) : picked.name;
+  const when = seasonWords(picked);
 
   return (
     <div className="ladder-page">
@@ -74,8 +85,10 @@ export function Days({ player, summary }) {
             ? `${fmt(so.played)} ${noun(so.played, "day")} with recorded battles`
             : "Days played"
         }
-        lede={`Every day of the ${name}, ${zoneName(zone)}. Each mode keeps its own mark and its own record, so a war day and a Trophy Road night never add up to one number.`}
+        lede={`Every day of ${name}, ${zoneName(zone)}. Each mode keeps its own mark and its own record, so a war day and a Trophy Road night never add up to one number.`}
         observedAt={first?.meta?.source_polls?.player_battlelog?.observed_at}
+        season={picked}
+        seasonPicker={seasonPicker}
       />
       {sweep.isPending ? (
         <Loading what="the season's battles" />
@@ -89,6 +102,8 @@ export function Days({ player, summary }) {
           so={so}
           name={name}
           season={season}
+          when={when}
+          running={picked.current}
           battles={battles}
           capped={capped}
           total={sweep.data.total}
@@ -106,6 +121,8 @@ function DaysBody({
   so,
   name,
   season,
+  when,
+  running,
   battles,
   capped,
   total,
@@ -121,7 +138,7 @@ function DaysBody({
       <div className="ladder-tiles">
         <Tile
           label="Days with recorded battles"
-          sub={`in ${fmt(so.of)} season days so far`}
+          sub={`in ${fmt(so.of)} season days${running ? " so far" : ""}`}
         >
           {fmt(so.played)}
         </Tile>
@@ -164,25 +181,31 @@ function DaysBody({
           <Icon name="info" size={17} />
           <span>
             This page reads the newest {fmt(battles.length)}
-            {total != null ? ` of ${fmt(total)}` : ""} battles this season, so
-            the days before {firstRead ? firstRead.label : "the newest"} are
-            marked partially read rather than drawn empty; any battles already
-            read remain visible.
+            {total != null ? ` of ${fmt(total)}` : ""} battles {when}, so the
+            days before {firstRead ? firstRead.label : "the newest"} are marked
+            partially read rather than drawn empty; any battles already read
+            remain visible.
           </span>
         </div>
       ) : null}
 
-      <Calendar cal={cal} name={name} season={season} zone={zone} />
+      <Calendar
+        cal={cal}
+        name={name}
+        season={season}
+        zone={zone}
+        running={running}
+      />
       <p className="footnote">
         Open a night and choose a captured battle to inspect it and share why it
         mattered to you.
       </p>
-      <Nights battles={battles} floor={floor} zone={zone} />
+      <Nights battles={battles} floor={floor} zone={zone} when={when} />
     </>
   );
 }
 
-function Calendar({ cal, name, season, zone }) {
+function Calendar({ cal, name, season, zone, running = true }) {
   const present = [
     ...new Map(
       cal.days.flatMap((d) => d.modes).map((m) => [m.key, m.label]),
@@ -227,11 +250,11 @@ function Calendar({ cal, name, season, zone }) {
         </ol>
       </div>
       <div className="panel__foot">
-        The season runs {longDay(season.starts_at, zone)} at{" "}
-        {clockTime(season.starts_at, zone)} {zoneShort(season.starts_at, zone)}{" "}
-        to {longDay(season.ends_at, zone)} at {clockTime(season.ends_at, zone)}{" "}
-        {zoneShort(season.ends_at, zone)}. Battles after midnight count on the
-        next day.
+        The season {running ? "runs" : "ran"} {longDay(season.starts_at, zone)}{" "}
+        at {clockTime(season.starts_at, zone)}{" "}
+        {zoneShort(season.starts_at, zone)} to {longDay(season.ends_at, zone)}{" "}
+        at {clockTime(season.ends_at, zone)} {zoneShort(season.ends_at, zone)}.
+        Battles after midnight count on the next day.
       </div>
     </section>
   );
@@ -290,7 +313,7 @@ function Day({ day }) {
   );
 }
 
-function Nights({ battles, floor, zone }) {
+function Nights({ battles, floor, zone, when = "this season" }) {
   const [all, setAll] = useState(false);
   const nights = nightsOf(battles, zone);
   const shown = all ? nights : nights.slice(0, NIGHTS_SHOWN);
@@ -301,12 +324,15 @@ function Nights({ battles, floor, zone }) {
           Nights
         </h2>
         <span className="text-[12.5px] text-ink-faint">
-          {fmt(nights.length)} this season, newest first
+          {fmt(nights.length)} {when}, newest first
         </span>
       </div>
       {nights.length === 0 ? (
         <div className="panel__body">
-          <p className="text-ink-faint">No battles recorded this season yet.</p>
+          <p className="text-ink-faint">
+            No battles recorded {when}
+            {when === "this season" ? " yet" : ""}.
+          </p>
         </div>
       ) : (
         <ul className="ladder-nights">

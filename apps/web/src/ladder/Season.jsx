@@ -33,9 +33,17 @@ import {
  * over the last 30 days as players_summary names it. Every number is
  * one the tools returned; the page adds no rate, pace or verdict.
  */
-export function Season({ player, mode, modeReady, summary, search }) {
+export function Season({
+  player,
+  mode,
+  modeReady,
+  season,
+  seasonPicker,
+  summary,
+  search,
+}) {
   const { zone } = useClock();
-  const args = { player_tag: player.player_tag, season: "current", mode };
+  const args = { player_tag: player.player_tag, season: season.arg, mode };
   const perf = useToolRead("battles_performance", args, { enabled: modeReady });
   const weeks = useToolRead(
     "battles_performance",
@@ -45,11 +53,21 @@ export function Season({ player, mode, modeReady, summary, search }) {
 
   const body = perf.data;
   const head = seasonHead(body?.applied);
-  const ends = head.endsAt
-    ? ` The season ends ${longDay(head.endsAt, zone)} at ${clockTime(head.endsAt, zone)} ${zoneShort(head.endsAt, zone)}.`
-    : "";
+  const at = (ts) =>
+    `${longDay(ts, zone)} at ${clockTime(ts, zone)} ${zoneShort(ts, zone)}`;
+  const ends = !head.endsAt
+    ? ""
+    : head.running
+      ? ` The season ends ${at(head.endsAt)}.`
+      : head.startsAt
+        ? ` The season ran ${at(head.startsAt)} to ${at(head.endsAt)}.`
+        : "";
   const hrefFor = (m) =>
-    ladderHref("season", { player: search.player, mode: m });
+    ladderHref("season", {
+      player: search.player,
+      mode: m,
+      season: search.season,
+    });
 
   return (
     <div className="ladder-page">
@@ -57,12 +75,16 @@ export function Season({ player, mode, modeReady, summary, search }) {
         player={player}
         page="Season"
         title={
-          head.age != null
+          head.running && head.age != null
             ? `${head.name} · ${fmt(head.age)} ${noun(head.age, "day")} in`
-            : head.name
+            : body
+              ? head.name
+              : season.name
         }
         lede={`Each mode is its own game, so each has its own tab and nothing pools across them.${ends}`}
         observedAt={body?.meta?.source_polls?.player_battlelog?.observed_at}
+        season={season}
+        seasonPicker={seasonPicker}
       />
       <ModeSwitch mode={mode} hrefFor={hrefFor} />
 
@@ -79,6 +101,8 @@ export function Season({ player, mode, modeReady, summary, search }) {
           search={search}
           zone={zone}
           startsAt={head.startsAt}
+          running={head.running || season.current}
+          seasonName={head.name}
         />
       )}
       <BringClanmates className="mt-6" />
@@ -86,11 +110,27 @@ export function Season({ player, mode, modeReady, summary, search }) {
   );
 }
 
-function SeasonBody({ mode, body, weeks, summary, search, zone, startsAt }) {
+function SeasonBody({
+  mode,
+  body,
+  weeks,
+  summary,
+  search,
+  zone,
+  startsAt,
+  running,
+  seasonName,
+}) {
   const w = body.window ?? {};
   const played = Number(w.battles ?? 0) > 0;
   const fourth = fourthTile(mode, w, body.trophy_floor);
-  const note = mode === "ladder" ? floorNote(body.trophy_floor) : null;
+  const note =
+    mode === "ladder"
+      ? floorNote(
+          body.trophy_floor,
+          running ? "this season" : `in ${seasonName}`,
+        )
+      : null;
   return (
     <>
       {played ? (
@@ -117,21 +157,34 @@ function SeasonBody({ mode, body, weeks, summary, search, zone, startsAt }) {
       ) : (
         <div className="empty">
           <h2 className="empty__title">
-            No {modeLabel(mode)} battles this season
+            No {modeLabel(mode)} battles{" "}
+            {running ? "this season" : `in ${seasonName}`}
           </h2>
           <p className="empty__body">
-            Elixir has recorded none in this mode since the season began
-            {startsAt
-              ? ` on ${longDay(startsAt, zone)} at ${clockTime(startsAt, zone)} ${zoneShort(startsAt, zone)}`
-              : ""}
-            . Each mode keeps its own record; the others are a tab away.
+            {running
+              ? `Elixir has recorded none in this mode since the season began${
+                  startsAt
+                    ? ` on ${longDay(startsAt, zone)} at ${clockTime(startsAt, zone)} ${zoneShort(startsAt, zone)}`
+                    : ""
+                }.`
+              : `Elixir recorded none in this mode in ${seasonName}.`}{" "}
+            Each mode keeps its own record; the others are a tab away.
           </p>
         </div>
       )}
 
       <div className="ladder-split">
         {played ? <WeekByWeek mode={mode} weeks={weeks} /> : null}
-        <TopDeck summary={summary} search={search} zone={zone} wide={!played} />
+        {running ? (
+          <TopDeck
+            summary={summary}
+            search={search}
+            zone={zone}
+            wide={!played}
+          />
+        ) : (
+          <SeasonDecks search={search} name={seasonName} wide={!played} />
+        )}
       </div>
     </>
   );
@@ -331,6 +384,7 @@ function TopDeck({ summary, search, zone, wide }) {
                 to={ladderHref("decks", {
                   player: search.player,
                   mode: search.mode,
+                  season: search.season,
                 })}
               >
                 Every deck you played ›
@@ -338,6 +392,39 @@ function TopDeck({ summary, search, zone, wide }) {
             ) : null}
           </>
         )}
+      </div>
+    </section>
+  );
+}
+
+/** An earlier season's home: the most-played deck panel is the last 30
+ *  days (players_summary), which is not that season, so the panel points
+ *  to the season's own decks instead. */
+function SeasonDecks({ search, name, wide }) {
+  return (
+    <section
+      className={`panel ${wide ? "ladder-span-5" : "ladder-span-2"} ladder-deck`}
+      aria-labelledby="ladder-season-decks"
+    >
+      <div className="panel__head">
+        <h2 id="ladder-season-decks" className="ladder-panel-title">
+          Decks
+        </h2>
+      </div>
+      <div className="panel__body ladder-deck__body">
+        <p className="text-ink-faint">
+          Every deck you played in {name}, each in the mode it was played in.
+        </p>
+        <Link
+          className="ladder-more"
+          to={ladderHref("decks", {
+            player: search.player,
+            mode: search.mode,
+            season: search.season,
+          })}
+        >
+          The decks of {name} ›
+        </Link>
       </div>
     </section>
   );
