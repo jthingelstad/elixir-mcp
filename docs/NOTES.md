@@ -758,3 +758,43 @@ it at 5:06 pm, and the bots got 429 from 5:08 until 6:00.
   Give a replay its own agent, or a key with its own ceiling
   (`{service_token_limits}`), to keep it off a live bot.
 
+## 2026-10-08 — card art is byte-identical, never resized (MCP 11.5.2)
+
+Jamie: "it is important with card art that we not modify it at all. we
+can host them locally, but you cannot resize the images or alter them in
+anyway." 11.5.0 (#381) served card art that the mirror had decoded and
+re-encoded at 128, 192 and 285 pixels (`infra/scripts/lib/png.mjs`), so
+no served file was Supercell's own bytes.
+
+- **Mirror:** `mirror-card-art.mjs` now stores exactly the bytes each
+  `iconUrls` icon serves, one file per card and form
+  (`<id>.png`, `<id>_evo.png`, `<id>_hero.png`; contracts `cardArtPath`):
+  no decode, resize, re-encode, metadata strip or format change; a
+  non-PNG source is refused, never converted. Every run re-fetches every
+  listed form; a matching sha256 is verified, a new or changed file is
+  written and read back against the download's sha256. It removes the
+  old resized names from the local cache and never seeds them from the
+  bucket. `png.mjs` is deleted (nothing else used it);
+  `services/mcp/test/card-art-mirror.test.mjs` holds the mirror to Node's
+  own modules and keeps image code out of every card-art path.
+- **Missing forms are expected:** Jamie: "For some reason it takes a
+  couple weeks for new cards art to show up… this happens every time."
+  A form the catalog lists answers 404 on Supercell's CDN for about two
+  weeks; the mirror asks again on every deploy and the base card stands
+  in until then (Hero Electro Wizard and Evo Electro Giant today).
+- **Surfaces:** the kit's `CardArt`, card pages and the cards index draw
+  the original with `width`/`height` (no srcset, no width copies). Mail
+  draws the original with `width`/`height`, and an Evo or Hero the
+  mirror lacks draws the base card, decided at compose time
+  (`resolveCardArt`; the jobs Lambda HEADs the site bucket, new
+  read-only `s3:GetObject` on `assets/cards/*` and `SITE_BUCKET`). This
+  closes the #381 "Left" mail item.
+- **Share images** (`/battle/<id>.png`) draw card art into a composed
+  PNG, scaled to 78 pixels inside it; Jamie ruled that fine ("it is
+  completely fine to encode card art into those battle images… other
+  sites do that"). They now read the original files, and a miss is asked
+  again rather than kept for the life of the function.
+- **Contract:** 11.5.2, a correction: `art` URLs lose the `-285` suffix
+  and the `-128`/`-192` copies are gone. JSON API 3.1.0 unchanged.
+- **Left:** collector avatars and Verify's card faces still hotlink
+  Supercell's `icon_medium` (unaltered); tower troops have no art.
