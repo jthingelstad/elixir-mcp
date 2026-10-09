@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -47,10 +48,13 @@ export type CardArtMap = Partial<Record<CardForm, string>>;
 
 /** Where tiles find art: the app reads the catalog once and provides
  *  it. `loading` draws empty frames; `unavailable` (the catalog could
- *  not be read) falls back to the mirror's own names. */
+ *  not be read) falls back to the mirror's own names. `want`, when the
+ *  source has it, is called by the first tile that mounts, so a page
+ *  with no card never reads the catalog. */
 export interface CardArtSource {
   status: "loading" | "ready" | "unavailable";
   art: (id: number) => CardArtMap | null | undefined;
+  want?: () => void;
 }
 
 const CardArtContext = createContext<CardArtSource | null>(null);
@@ -141,6 +145,8 @@ export function CardArt({
   // is its name in the frame, never a broken image; a form the mirror
   // lacks draws the base card under its ribbon first.
   const source = useContext(CardArtContext);
+  const want = source?.want;
+  useEffect(() => want?.(), [want]);
   const [failed, setFailed] = useState<string[]>([]);
   const form = card.form ?? "base";
   const label = cardLabel(card);

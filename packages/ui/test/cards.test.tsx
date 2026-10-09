@@ -219,3 +219,26 @@ test("without a catalog, the mirror's names, the form then the base", () => {
     "/assets/cards/26000042-128.png",
   );
 });
+
+test("the first tile asks for the catalog; a page with no tile never does", () => {
+  let asked = 0;
+  const source: CardArtSource = {
+    status: "loading",
+    art: () => null,
+    want: () => {
+      asked += 1;
+    },
+  };
+  const { rerender } = render(
+    <CardArtProvider value={source}>
+      <p>no cards here</p>
+    </CardArtProvider>,
+  );
+  expect(asked).toBe(0);
+  rerender(
+    <CardArtProvider value={source}>
+      <CardArt card={{ id: 26000042, name: "Electro Wizard" }} />
+    </CardArtProvider>,
+  );
+  expect(asked).toBe(1);
+});

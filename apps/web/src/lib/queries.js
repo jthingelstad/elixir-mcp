@@ -343,11 +343,12 @@ export const usePublicStats = () =>
  *  (2026-10-08, Jamie: "Card art should be in the api response for
  *  cards"). It changes when Supercell adds a card or a form, so an hour
  *  is fresh enough; the edge keeps it as long. */
-export const useCardCatalog = () =>
+export const useCardCatalog = ({ enabled = true } = {}) =>
   useQuery({
     queryKey: keys.cards,
     queryFn: payload(api.publicCards),
     staleTime: 60 * 60 * 1000,
+    enabled,
   });
 
 /** One tool's answer through the explore bridge, as Ladder reads it:
