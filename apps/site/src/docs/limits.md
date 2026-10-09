@@ -8,7 +8,7 @@ navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."
 console: ["Your budget and what spent it", "/console/account/usage", "Console ▸ Usage"]
-reviewed: "2026-10-06 against contract 11.2.3 and JSON API 3.0.0"
+reviewed: "2026-10-08 against contract 11.5.1 and JSON API 3.1.0"
 ---
 
 # Limits
@@ -28,8 +28,8 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 
 | Limit | Applies to | Bucket | Max | Refusal |
 |---|---|---|---|---|
-| MCP calls per hour | every credential on the door, keyed by the **budget account** (an agent spends its owner's) | `mcp#<account>` | 300 (per-token override possible) | HTTP 429 in the standard error envelope, `error.code` `quota_exceeded`, naming the ceiling that applied, with `meta.request_id` and a `Retry-After` giving the seconds left in the hourly window |
-| Explorer calls per hour | the website's Explore page | same bucket as above | 300 | HTTP 429 `{"error":"rate_limited"}` |
+| MCP calls per hour | every credential on the door, keyed by the **principal** that made the call: a person or an integration its own account, and each agent its own bucket at its owner's tier rate, so one busy agent cannot refuse its owner or its sibling agents (the daily quotas below stay the owner's) | `mcp#<principal>`, or `mcp#token#<key>` for a key with its own ceiling | 300 (per-token override possible) | HTTP 429 in the standard error envelope, `error.code` `quota_exceeded`, naming the ceiling that applied, with `meta.request_id` and a `Retry-After` giving the seconds left in the hourly window |
+| Explorer calls per hour | the website's Explore page | the signed-in person's bucket above | 300 | HTTP 429 `{"error":"rate_limited"}` |
 | Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` + collector credits (one per 10 collector points, a point being a fetch that added to the record), capped at 4× base; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
 | Explorer calls per day | the Console's Explore page and Ladder, whose reads are tool calls (Elixir Clan's reads and `/api/v1` spend none) | same bucket | same | HTTP 429 `{"error":"quota_exceeded","message":"Daily tool-call quota reached (N per day)…"}` |
 | Live fetches per day | `live_fetch`, and `live: true` on {{ tools.liveFlagNames }}; every agent shares its owner's lane | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> tier, shared with your owner's other agents)." |

@@ -272,7 +272,9 @@ using the REST API with its own key). See
 [Users, agents and integrations](/docs/connections).
 
 **budget account** — whose daily quotas a call spends. An agent spends its
-owner's call budget and live lane; an integration spends its own.
+owner's call budget and live lane; an integration spends its own. The
+hourly rate limit is not a budget: it belongs to the principal, so each agent
+has its own hour.
 
 **on_behalf_of** — on an agent connection, the end user's id in your own
 space (`discord:1234`), mapped once with `elixir_identify`; omit

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "Each agent has its own hour",
+    body: "The hourly limit on MCP calls, 300 an hour, now belongs to whoever made the call. Each of your agents has its own 300, so one busy agent can no longer use up the hour for you and your other agents. Your agents still spend your daily tool calls and your live fetches, as before. MCP 11.5.1 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "A raw live read stores nothing",
     body: "live_fetch, the raw read of the game an agent can make, now only fetches: the answer comes back to the agent and nothing of it is kept, so asking about a player nobody tracks no longer puts them on the record. To keep someone's history, track them. A live read on a recorded tool (players_profile, clans_roster, war_current or battles_query with live) still updates the record it answers from. MCP 11.5.1; JSON API 3.1.0 unchanged.",
   },

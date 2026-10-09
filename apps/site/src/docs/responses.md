@@ -93,7 +93,9 @@ that finds it landed. `max` and `remaining` are `null`
 when the budget is unlimited (owner and admin). `resets_at` is the next UTC
 midnight, when both counters roll. Collector credits are already included in
 `calls.max`. An agent spends its owner's call budget and its owner's live
-lane, so every agent on one account reads the same balances.
+lane, so every agent on one account reads the same balances. The hourly
+rate limit is the exception: each agent has its own hour (see
+[Limits](/docs/limits#the-table)).
 
 **`request_id`** — the id of the call that produced this response. Quote it when
 reporting an answer that looks wrong and we can find the exact row. Your own
