@@ -69,8 +69,9 @@ export default function (eleventyConfig) {
   // (packages/ui/src/family.json names it). Rendered small from the
   // 512px source in poapkings.com: the bar draws it at 40px.
   eleventyConfig.addPassthroughCopy("src/assets/elixir-logo-*.webp");
-  // Card art for mail and the card pages, mirrored at the sizes they
-  // ask for by infra/scripts/mirror-card-art.mjs. Gitignored: it is a
+  // Card art for mail and the card pages: byte-identical copies of the
+  // API's icons, one per card and form, by
+  // infra/scripts/mirror-card-art.mjs. Gitignored: it is a
   // cache, so a checkout that has not mirrored yet simply builds
   // without it rather than failing.
   if (existsSync(path.join(import.meta.dirname, "src/assets/cards")))

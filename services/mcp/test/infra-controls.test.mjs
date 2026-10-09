@@ -820,7 +820,7 @@ test("publish: only Vite's content-hashed chunks are immutable (#73)", () => {
       "assets/rail-anchors.js",
       "assets/updates-filter.js",
       "assets/fonts/Clash_Regular.otf",
-      "assets/cards/26000000_evo-128.png",
+      "assets/cards/26000000_evo.png",
       "index.html",
     ],
     [...VITE_OUT, "fonts"],
