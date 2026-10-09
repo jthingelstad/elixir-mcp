@@ -1642,6 +1642,26 @@ h1,
   font-family: var(--font-mono);
   font-size: 12.5px;
   color: var(--ink-body);
+  font-variant-numeric: slashed-zero;
+}
+/* A tag wherever it sits (the kit's Tag, 2026-10-08): monospace with a
+   slashed zero, at the size and weight of the text around it, so a 0
+   never reads as an O, in a headline, a sentence or a table. The
+   display face and plain Inter draw both as the same round shape. */
+.cr-tag {
+  font-family: var(--font-mono);
+  font-weight: inherit;
+  font-variant-numeric: slashed-zero;
+  font-variant-ligatures: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+/* The mono runs a page writes tags into; the zero is slashed there too. */
+.mono,
+.tag-chip,
+.account-menu__tag,
+code {
+  font-variant-numeric: slashed-zero;
 }
 /* ★ marks what is YOURS: primary player tag, home clan, your row. */
 .yours {
@@ -2100,6 +2120,7 @@ input[type="radio"] {
 input.mono,
 input[data-tag] {
   font-family: var(--font-mono);
+  font-variant-numeric: slashed-zero;
 }
 input::placeholder,
 textarea::placeholder {
@@ -6076,6 +6097,38 @@ button.ladder-player__head:hover {
   font-weight: 600;
 }
 
+/* Which season the page reads, beside when the battle log was read. */
+.ladder-head__side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 14px;
+  margin-left: auto;
+}
+.ladder-head__side .freshness {
+  margin-left: 0;
+}
+.ladder-season {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ladder-season__label {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.ladder-season__select {
+  width: auto;
+  min-width: 10em;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13.5px;
+}
+.ladder-season-note a {
+  white-space: nowrap;
+}
+
 .ladder-record {
   font-family: var(--font-mono);
   white-space: nowrap;
@@ -6624,6 +6677,7 @@ button.ladder-player__head:hover {
 }
 .ladder-opponents__tag {
   font-family: var(--font-mono);
+  font-variant-numeric: slashed-zero;
   font-size: 12.5px;
   color: var(--ink-faint);
 }
