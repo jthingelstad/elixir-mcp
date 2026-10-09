@@ -1,3 +1,4 @@
+import { Tag } from "@elixir-mcp/ui";
 import { useTrophies } from "../lib/queries.js";
 import { TooFew } from "../components/TooFew.jsx";
 
@@ -15,7 +16,9 @@ export function Trophies({ clan, who }) {
   const head = (
     <div className="page-head items-center">
       <h1 className="page__title">Award history</h1>
-      <span className="page-head__note">{clan.name ?? clan.clan_tag}</span>
+      <span className="page-head__note">
+        {clan.name ?? <Tag tag={clan.clan_tag} />}
+      </span>
     </div>
   );
   if (state.forbidden)
@@ -135,7 +138,7 @@ export function Trophies({ clan, who }) {
                       {g.player_tag === who?.player_tag ? (
                         <span className="yours">★ </span>
                       ) : null}
-                      {g.player_name ?? g.player_tag}{" "}
+                      {g.player_name ?? <Tag tag={g.player_tag} />}{" "}
                       <span className="tag">{g.player_tag}</span>
                     </td>
                   </tr>

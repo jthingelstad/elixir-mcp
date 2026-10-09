@@ -1,5 +1,5 @@
 import { MemberLink } from "../components/MemberLink.jsx";
-import { Fresh } from "@elixir-mcp/ui";
+import { Fresh, Tag, TagText } from "@elixir-mcp/ui";
 import { CATEGORY_LABELS } from "@elixir-mcp/clan-engine";
 import { useWeek } from "../lib/queries.js";
 import { CLAN, clanPath } from "../lib/base.js";
@@ -102,7 +102,7 @@ function Group({ label, tone, people, asked, name, clan, navigate }) {
               playerTag={p.player_tag}
               navigate={navigate}
             >
-              {p.name ?? p.player_tag}
+              {p.name ?? <Tag tag={p.player_tag} />}
             </MemberLink>
             <span className={`font-mono text-[12px] ${TONE[tone]}`}>
               {asked ? `${n(p.value)}/${asked}` : n(p.value)}
@@ -270,7 +270,9 @@ function Membership({ m }) {
             className="grid gap-1 py-2.5 border-b border-line-row last:border-b-0"
           >
             <span className="label">{label}</span>
-            <span className="text-[13.5px] text-ink-body">{list(names)}</span>
+            <span className="text-[13.5px] text-ink-body">
+              <TagText>{list(names)}</TagText>
+            </span>
           </div>
         ))}
         {rows.length === 0 && m.complete ? (

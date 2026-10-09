@@ -1,4 +1,4 @@
-import { noun } from "@elixir-mcp/ui";
+import { noun, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useMyAway } from "../lib/queries.js";
@@ -44,8 +44,8 @@ export function Away({ me }) {
       <div className="page-head">
         <h1 className="page__title">Away</h1>
         <span className="page-head__note">
-          {clan.name ?? clan.clan_tag} · as{" "}
-          {clan.player_name ?? clan.player_tag}
+          {clan.name ?? <Tag tag={clan.clan_tag} />} · as{" "}
+          {clan.player_name ?? <Tag tag={clan.player_tag} />}
         </span>
       </div>
       <p className="page__lede" style={{ margin: "0 0 16px" }}>

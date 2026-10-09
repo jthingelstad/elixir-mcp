@@ -1,4 +1,4 @@
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../api.js";
 import { useInvalidate, useMyClans } from "../lib/queries.js";
@@ -34,8 +34,9 @@ export function HomeClanOffer({ className = "" }) {
     <div className={`callout callout--info ${className}`.trim()}>
       <Icon name="radar" size={17} />
       <span>
-        <span className="text-gold">★</span> {home.name ?? home.clan_tag} is
-        your player&rsquo;s clan and{" "}
+        <span className="text-gold">★</span>{" "}
+        {home.name ?? <Tag tag={home.clan_tag} />} is your player&rsquo;s clan
+        and{" "}
         <button
           type="button"
           className="link"

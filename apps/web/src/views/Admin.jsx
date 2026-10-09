@@ -6,6 +6,7 @@ import {
   Link,
   LogTable,
   Markdown,
+  TagText,
   useClock,
   WriteError,
   noun,
@@ -621,7 +622,9 @@ function AdminAccountDetail({ id }) {
       </p>
       <section className="panel" style={{ maxWidth: "680px" }}>
         <div className="panel__head">
-          <span className="panel-title">{a.email ?? principalLabel(a)}</span>
+          <span className="panel-title">
+            <TagText>{a.email ?? principalLabel(a)}</TagText>
+          </span>
           {a.is_owner && <span className="chip chip--info">owner</span>}
           {a.pending_role_request && (
             <span className="chip chip--warn">upgrade requested</span>
@@ -735,7 +738,7 @@ function AdminAccountDetail({ id }) {
         <p className="footnote" style={{ margin: "14px 0 0" }}>
           This {a.kind ?? "principal"} belongs to{" "}
           <Link to={`${CONSOLE}/admin/accounts/${parent.account_id}`}>
-            {parent.email ?? principalLabel(parent)}
+            <TagText>{parent.email ?? principalLabel(parent)}</TagText>
           </Link>{" "}
           — it spends their entitlements and their daily budget.
         </p>
@@ -1443,7 +1446,7 @@ function AdminFeedbackItem({ id, navigate }) {
               color: "var(--ink-faint)",
             }}
           >
-            {viaLine(item)} · {day(item.created_at)}
+            <TagText>{viaLine(item)}</TagText> · {day(item.created_at)}
           </span>
         </div>
         {/* Feedback is written in Markdown at every door, so it renders as

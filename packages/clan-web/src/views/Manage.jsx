@@ -1,4 +1,4 @@
-import { Fresh, ago } from "@elixir-mcp/ui";
+import { Fresh, ago, Tag } from "@elixir-mcp/ui";
 import { Fragment, useState } from "react";
 import { useHistory, useManage } from "../lib/queries.js";
 import { MemberSheet } from "../components/MemberSheet.jsx";
@@ -52,11 +52,12 @@ export function Manage({ clan, tab, navigate, who }) {
     <div className="page-head" style={{ alignItems: "center" }}>
       <h1 className="page__title">{TITLES[tab] ?? "Manage"}</h1>
       <span className="chip">
-        <span className="yours">★</span> {clan.acting_as_name ?? clan.acting_as}
+        <span className="yours">★</span>{" "}
+        {clan.acting_as_name ?? <Tag tag={clan.acting_as} />}
         <span style={{ color: "var(--ink-faint)" }}>·</span>
         <RoleChip role={clan.role} label={clan.role_label} />
         <span style={{ color: "var(--ink-faint)" }}>·</span>
-        {clan.name ?? clan.clan_tag}
+        {clan.name ?? <Tag tag={clan.clan_tag} />}
       </span>
       {state.data ? (
         <Fresh
@@ -302,7 +303,7 @@ export function Manage({ clan, tab, navigate, who }) {
                               )
                             }
                           >
-                            {m.name ?? m.player_tag}
+                            {m.name ?? <Tag tag={m.player_tag} />}
                           </button>{" "}
                           <span className="tag block">{m.player_tag}</span>
                           {m.hold?.active !== false && m.hold ? (
@@ -513,7 +514,7 @@ function History({ clan, navigate }) {
                 <tr key={`${e.type}-${e.player_tag}-${e.at}`}>
                   <td>{e.at.slice(0, 10)}</td>
                   <td>
-                    {e.name ?? e.player_tag}{" "}
+                    {e.name ?? <Tag tag={e.player_tag} />}{" "}
                     <span className="tag">{e.player_tag}</span>
                   </td>
                   <td>
@@ -602,7 +603,7 @@ function History({ clan, navigate }) {
                   </td>
                   <td>{c.raised_at.slice(0, 10)}</td>
                   <td>
-                    {c.player_name ?? c.player_tag}{" "}
+                    {c.player_name ?? <Tag tag={c.player_tag} />}{" "}
                     <span className="tag">{c.player_tag}</span>
                   </td>
                   <td>{c.label}</td>

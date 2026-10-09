@@ -1,3 +1,4 @@
+import { Tag, TagText } from "@elixir-mcp/ui";
 import { CLAN, clanPath } from "../lib/base.js";
 
 /**
@@ -25,7 +26,7 @@ export function PageHead({
     e.preventDefault();
     navigate(path);
   };
-  const clanName = name ?? clan.name ?? clan.clan_tag;
+  const clanName = name ?? clan.name ?? <Tag tag={clan.clan_tag} />;
   const home = clanPath(clan.clan_tag);
   return (
     <div className="flex flex-wrap items-end gap-x-6 gap-y-3 mb-[22px]">
@@ -70,7 +71,9 @@ export function PageHead({
             </span>
           )}
         </nav>
-        <h1 className="page__title">{title}</h1>
+        <h1 className="page__title">
+          <TagText>{title}</TagText>
+        </h1>
         {lede ? <p className="page__lede m-0">{lede}</p> : null}
         {children}
       </div>

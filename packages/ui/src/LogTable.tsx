@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "./Link.tsx";
+import { TagText } from "./Tag.tsx";
 
 /**
  * The console's ONE log table.
@@ -23,6 +24,9 @@ import { Link } from "./Link.tsx";
  *   { text, action }          a button, for the last column
  *   { text, title }           a hover title, for a shortened id
  *   { text, ink }             an explicit ink, for a latency over budget
+ *
+ * A player or clan tag in a cell's text is drawn as a Tag (2026-10-08),
+ * so "King Thing #20JJJ2CCRU" never shows a 0 that reads as an O.
  */
 const PAGE = 25;
 
@@ -238,7 +242,7 @@ export function LogTable({
                                   }
                                 : {})}
                             >
-                              {cell.text}
+                              <TagText>{cell.text}</TagText>
                             </Link>
                           ) : tone ? (
                             <span
@@ -249,10 +253,10 @@ export function LogTable({
                                 className="chip__dot"
                                 style={{ background: `var(--${tone})` }}
                               />
-                              {cell.text}
+                              <TagText>{cell.text}</TagText>
                             </span>
                           ) : (
-                            cell.text
+                            <TagText>{cell.text}</TagText>
                           )}
                         </td>
                       );

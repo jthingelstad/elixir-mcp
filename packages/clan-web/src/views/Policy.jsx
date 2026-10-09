@@ -1,4 +1,4 @@
-import { noun } from "@elixir-mcp/ui";
+import { noun, Tag } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, usePolicy } from "../lib/queries.js";
@@ -172,9 +172,10 @@ export function Policy({ clan }) {
   return (
     <div className="grid gap-4">
       <p className="page__lede m-0">
-        Policy is Elixir’s agreement for {clan.name ?? clan.clan_tag}. It is not
-        a setting in Clash Royale. You choose the expectations; the recorded
-        evidence suggests Actions, and a leader decides what to do in the game.
+        Policy is Elixir’s agreement for{" "}
+        {clan.name ?? <Tag tag={clan.clan_tag} />}. It is not a setting in Clash
+        Royale. You choose the expectations; the recorded evidence suggests
+        Actions, and a leader decides what to do in the game.
       </p>
       {view.big_enough === false ? (
         <div className="callout" role="note">

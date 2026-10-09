@@ -1,4 +1,4 @@
-import { Icon, Link, ago, stamp, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, TagText, ago, stamp, useClock } from "@elixir-mcp/ui";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { nextPoll, useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { CONSOLE } from "../lib/console.js";
@@ -132,9 +132,11 @@ export function FirstAnswer({
           Your recording
         </h2>
         <span className="text-[12.5px] text-ink-faint wide:ml-auto">
-          {loading
-            ? "checking the record…"
-            : (next?.text ?? "Recording status is unavailable.")}
+          <TagText>
+            {loading
+              ? "checking the record…"
+              : (next?.text ?? "Recording status is unavailable.")}
+          </TagText>
         </span>
       </div>
       {notFound ? (
@@ -240,7 +242,9 @@ export function FirstAnswer({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <span className="text-[14px] text-ink-body">{s.label}</span>
-                <span className="text-[12.5px] text-ink-faint">{s.detail}</span>
+                <span className="text-[12.5px] text-ink-faint">
+                  <TagText>{s.detail}</TagText>
+                </span>
               </div>
               {(!s.done || s.showAction) && s.action && (
                 <Link className="inline-block pt-1 text-[12.5px]" to={s.to}>
@@ -262,7 +266,10 @@ export function FirstAnswer({
           </p>
           {steps.slice(4).map((s) => (
             <p className="mt-3" key={s.label}>
-              <span>{s.label}</span>: <span>{s.detail}</span>
+              <span>{s.label}</span>:{" "}
+              <span>
+                <TagText>{s.detail}</TagText>
+              </span>
               {(!s.done || s.showAction) && s.action && (
                 <>
                   {" "}

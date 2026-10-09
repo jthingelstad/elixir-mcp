@@ -1,4 +1,4 @@
-import { Icon, stampTime, useClock } from "@elixir-mcp/ui";
+import { Icon, stampTime, Tag, TagText, useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useVerifyList } from "../../lib/queries.js";
@@ -195,7 +195,7 @@ export function Verify({ refresh, navigate }) {
             </div>
             {err && (
               <p className="verify__error" role="alert">
-                {err}
+                <TagText>{err}</TagText>
               </p>
             )}
           </div>
@@ -216,7 +216,9 @@ export function Verify({ refresh, navigate }) {
         {header}
         <div className="verify__row">
           <p className="verify__who">
-            <strong>{challenge.name ?? challenge.player_tag}</strong>{" "}
+            <strong>
+              {challenge.name ?? <Tag tag={challenge.player_tag} />}
+            </strong>{" "}
             <span className="mono">{challenge.player_tag}</span>
           </p>
           {verified ? (
@@ -256,12 +258,17 @@ export function Verify({ refresh, navigate }) {
                   {verified ? (
                     <>
                       <strong>Verified</strong> · the proof:{" "}
-                      {resultLine(challenge.last_battle, zone)}
+                      <TagText>
+                        {resultLine(challenge.last_battle, zone)}
+                      </TagText>
                     </>
                   ) : challenge.last_battle ? (
                     <>
                       <strong>{challenge.matched}</strong> of {challenge.of} in
-                      that deck · {resultLine(challenge.last_battle, zone)}
+                      that deck ·{" "}
+                      <TagText>
+                        {resultLine(challenge.last_battle, zone)}
+                      </TagText>
                     </>
                   ) : (
                     <>No battle since you started</>
@@ -302,7 +309,7 @@ export function Verify({ refresh, navigate }) {
           <section className="panel verify__done">
             <div className="panel__body">
               <VerifiedBurst
-                name={challenge.name ?? challenge.player_tag}
+                name={challenge.name ?? <Tag tag={challenge.player_tag} />}
                 battle={challenge.last_battle}
                 seenAfterS={challenge.seen_after_s}
               />
@@ -387,7 +394,7 @@ export function Verify({ refresh, navigate }) {
               {players.map((p) => (
                 <li key={p.player_tag} className="verify__row">
                   <span className="verify__who">
-                    <strong>{p.name ?? p.player_tag}</strong>
+                    <strong>{p.name ?? <Tag tag={p.player_tag} />}</strong>
                     {p.status === "verified" && <VerifiedMark />}{" "}
                     <span className="mono">{p.player_tag}</span>
                     <span className="chip chip--tier">
@@ -416,7 +423,7 @@ export function Verify({ refresh, navigate }) {
       </section>
       {(err || listErr) && (
         <p className="verify__error" role="alert">
-          {err || listErr}
+          <TagText>{err || listErr}</TagText>
         </p>
       )}
     </>
@@ -478,7 +485,9 @@ function VerifiedBurst({ name, battle, seenAfterS }) {
         now be told so.
       </p>
       {battle && (
-        <p className="verify__result">The proof: {resultLine(battle, zone)}</p>
+        <p className="verify__result">
+          The proof: <TagText>{resultLine(battle, zone)}</TagText>
+        </p>
       )}
       {seenAfterS != null && (
         <p className="verify__seen">

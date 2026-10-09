@@ -1,6 +1,6 @@
 import { ELIXIR_LINKS } from "../lib/links.js";
 import { CLAN } from "../lib/base.js";
-import { useClock } from "@elixir-mcp/ui";
+import { useClock, Tag } from "@elixir-mcp/ui";
 
 /**
  * One page per gate refusal, in gate order. Each says exactly what to do
@@ -76,7 +76,7 @@ export function Refused({ reason, me, onRecheck, checking }) {
         >
           {players.map((p) => (
             <li key={p.player_tag}>
-              {p.name ?? p.player_tag}{" "}
+              {p.name ?? <Tag tag={p.player_tag} />}{" "}
               <span className="tag">{p.player_tag}</span>{" "}
               {p.claim_status === "verified"
                 ? "verified"

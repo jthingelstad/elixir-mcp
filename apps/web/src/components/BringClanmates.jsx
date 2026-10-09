@@ -1,4 +1,4 @@
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMyClans } from "../lib/queries.js";
 import { SIGNUP_URL, clanChatLine, clanMessage } from "../lib/invite.js";
@@ -49,7 +49,7 @@ export function BringClanmates({ className = "" }) {
   const [shareNote, setShareNote] = useState("");
   if (!home) return null;
   const name = home.name ?? null;
-  const shown = name ?? home.clan_tag;
+  const shown = name ?? <Tag tag={home.clan_tag} />;
   const chat = clanChatLine(name);
   const message = clanMessage(name);
   const canShare =

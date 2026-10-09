@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "./Icon.tsx";
 import { Link } from "./Link.tsx";
+import { Tag, TagText } from "./Tag.tsx";
 
 /** One of the person's players in the account menu. */
 export interface ChromePlayer {
@@ -113,8 +114,11 @@ export function AccountMenu({
               <span className="account-menu__star">
                 {p.primary && <Icon name="star" size={14} />}
               </span>
-              <span className="account-menu__player-name">{p.name}</span>
-              {p.tag && <span className="account-menu__tag">{p.tag}</span>}
+              {/* A player with no name is named by its tag (TagText draws it). */}
+              <span className="account-menu__player-name">
+                <TagText>{p.name}</TagText>
+              </span>
+              <Tag tag={p.tag} className="account-menu__tag" />
             </Link>
           ))}
           {account.playersFoot && (

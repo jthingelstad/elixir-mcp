@@ -1,4 +1,4 @@
-import { Fresh, Icon, noun } from "@elixir-mcp/ui";
+import { Fresh, Icon, noun, Tag } from "@elixir-mcp/ui";
 import { useMemberView } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
@@ -156,7 +156,7 @@ export function YouHere({ clan, navigate }) {
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="yours">★</span>
           <span className="text-[15px] font-semibold">
-            {y.name ?? y.player_tag}
+            {y.name ?? <Tag tag={y.player_tag} />}
           </span>
           <span className="tag">{y.player_tag}</span>
           <RoleChip role={y.role} label={ROLE[y.role] ?? y.role} />

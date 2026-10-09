@@ -1,3 +1,4 @@
+import { Tag } from "@elixir-mcp/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -49,8 +50,8 @@ export function ClanMap({ clan }) {
     <Page clan={clan}>
       <p className="page__lede m-0">
         Where the clan plays from, and what time it is there. Add your city or
-        region to appear; only signed-in members of {clan.name ?? clan.clan_tag}{" "}
-        see this, and it stays here.
+        region to appear; only signed-in members of{" "}
+        {clan.name ?? <Tag tag={clan.clan_tag} />} see this, and it stays here.
       </p>
       <YourPlace clan={clan} />
       {d.not_recorded ? (
@@ -77,7 +78,9 @@ function Page({ clan, children }) {
     <div className="grid gap-4">
       <div className="page-head">
         <h1 className="page__title">Clan map</h1>
-        <span className="page-head__note">{clan.name ?? clan.clan_tag}</span>
+        <span className="page-head__note">
+          {clan.name ?? <Tag tag={clan.clan_tag} />}
+        </span>
       </div>
       {children}
     </div>
@@ -203,7 +206,7 @@ function People({ entries, now }) {
               const t = localTime(e.place.tz, now);
               return (
                 <span key={e.player_tag} className="page-head__note">
-                  {e.name ?? e.player_tag}
+                  {e.name ?? <Tag tag={e.player_tag} />}
                   {e.you ? " (you)" : ""} · {e.role_label ?? e.role} ·{" "}
                   {[e.place.city_name, e.place.region_name]
                     .filter(Boolean)

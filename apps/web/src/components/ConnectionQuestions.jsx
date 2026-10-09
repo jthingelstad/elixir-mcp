@@ -1,3 +1,4 @@
+import { Tag } from "@elixir-mcp/ui";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import {
   QuestionSuggestions,
@@ -57,8 +58,10 @@ export function ConnectionQuestions({ claimsKey, navigate }) {
               <>
                 <p>
                   Waiting for the first capture for{" "}
-                  <strong>{data.player.name ?? data.player.player_tag}</strong>.
-                  Questions will appear when a profile or battle history is
+                  <strong>
+                    {data.player.name ?? <Tag tag={data.player.player_tag} />}
+                  </strong>
+                  . Questions will appear when a profile or battle history is
                   recorded.
                 </p>
                 <p className="first-answer__times">

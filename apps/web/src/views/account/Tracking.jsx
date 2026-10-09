@@ -1,4 +1,4 @@
-import { ago, Icon, Link, secsSince } from "@elixir-mcp/ui";
+import { ago, Icon, Link, secsSince, Tag, TagText } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
@@ -85,7 +85,7 @@ export function Tracking({ me, refresh, navigate }) {
         kind: "clan",
         key: c.clan_tag,
         tag: c.clan_tag,
-        name: c.name ?? c.clan_tag,
+        name: c.name ?? <Tag tag={c.clan_tag} />,
         rel:
           (clans?.home_clan?.clan_tag === c.clan_tag ? "your clan" : c.scope) +
           (deeper ? " †" : ""),
@@ -416,7 +416,7 @@ export function Tracking({ me, refresh, navigate }) {
             </span>
             {tagErr && (
               <span className="field-error" style={{ flexBasis: "100%" }}>
-                {tagErr}
+                <TagText>{tagErr}</TagText>
               </span>
             )}
             {tagInfo && (
@@ -487,7 +487,7 @@ export function Tracking({ me, refresh, navigate }) {
             </button>
             {clanErr && (
               <span className="field-error" style={{ flexBasis: "100%" }}>
-                {clanErr}
+                <TagText>{clanErr}</TagText>
               </span>
             )}
           </div>
