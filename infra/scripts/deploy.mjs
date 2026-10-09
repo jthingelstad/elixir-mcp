@@ -417,6 +417,23 @@ if (!skipWeb) {
   // This replaces the old deploy-time bake, which patched live stats
   // into the single shared shell; the static build now reads the same
   // endpoint at build time and writes real pages.
+  // Card art first (2026-10-08): what the bucket holds, then each form
+  // the live catalog names that it lacks, so the art the card responses
+  // carry answers and a fresh worktree ships the whole mirror. A failure
+  // warns and ships what the bucket held: never a reason to stop a deploy.
+  try {
+    execFileSync(
+      "node",
+      [
+        path.join(repoRoot, "infra/scripts/mirror-card-art.mjs"),
+        "--seed-bucket",
+        outputs.SiteBucketName,
+      ],
+      { cwd: repoRoot, stdio: "inherit" },
+    );
+  } catch (err) {
+    console.error(`WARNING: card art mirror failed: ${err.message}`);
+  }
   execFileSync("node", [path.join(repoRoot, "infra/scripts/build-site.mjs")], {
     cwd: repoRoot,
     stdio: "inherit",
