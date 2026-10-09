@@ -979,3 +979,17 @@ pre-11.5.1 live_fetch path (the tags are in 0210's SQL only).
   bucket is versioned, write-once by policy). With the receipts gone no
   replay walks to them; deleting them is a console step for Jamie, keys
   in the session report.
+
+## 2026-10-08 — 0210 is live; the two strays are gone
+
+**Deploy.** #390 (`{tag_footprint}`) and #392 (0210) each went out from
+green `origin/main` under the `session` lease, no acceptance (an op and a
+data migration; no tool changed). 0210 ran (`applied 209, ran 1`);
+`/api/public/status` is healthy.
+
+**Read-back** (`{tag_footprint}`, reads only): both deleted tags now read
+0 in every tag column except one `job` row each (operational, pruned with
+done jobs), with no player row, receipt or payload row. The third tag and
+a tracked neighbour read exactly as before the deploy, table by table.
+About 520 rows went, so no `{vacuum}`. Still owed: the two payload
+archive objects in S3 (Jamie, console; previous entry).
