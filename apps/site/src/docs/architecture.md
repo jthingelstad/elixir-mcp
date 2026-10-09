@@ -283,8 +283,9 @@ health views report how many of the last day's polls found the log had
 already rolled: `capture_audit_24h` in `/api/public/status`, with no
 sign-in, and [Recording now](/data/now) for the live strip. The console's
 [Status](/console/status/service) page shows the same to a signed-in account. When you need the state of play right
-now rather than the recorded history, `live_fetch` spends your live
-allowance on a fresh read instead of waiting for the schedule.
+now rather than the recorded history, `live: true` spends your live
+allowance on a fresh read instead of waiting for the schedule;
+`live_fetch` returns a raw read and stores nothing.
 
 ## Access: entitlements, not permissions
 

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-08",
+    title: "A raw live read stores nothing",
+    body: "live_fetch, the raw read of the game an agent can make, now only fetches: the answer comes back to the agent and nothing of it is kept, so asking about a player nobody tracks no longer puts them on the record. To keep someone's history, track them. A live read on a recorded tool (players_profile, clans_roster, war_current or battles_query with live) still updates the record it answers from. MCP 11.5.1; JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-08",
     title: "Privacy no longer mentions model-written mail",
     body: "The privacy page drops a sentence saying AI models write some of Elixir's mail and help with the feedback you send. Elixir's reports about your play are built from your record, not written by a model. Nothing else on the page changed. MCP 11.5.0 and JSON API 3.1.0 unchanged.",
   },

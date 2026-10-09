@@ -36,6 +36,7 @@ current rule, never as "was X, now Y".
 - **A failed fetch is retried in minutes** — 15, 30, then 60 (`poll_state.retry_at`), planned and charged like any plan; freshness moves only on admission.
 - **A 404 holds a subject for a day** — except `currentriverrace` within six hours of the clan's last admitted race, which keeps its cadence through the season roll.
 - **Roster `lastSeen` never gates battle logs** — it is a profile-efficiency signal only.
+- **`live_fetch` only fetches** — Jamie 2026-10-08: "live_fetch should ONLY live fetch and not record data." Its job is fetch-only (`job.record = false`): the payload reaches the caller from `live_fetch_result` (an hour at most) and never the record, receipts or archive; a recording ask turns an open fetch-only job into a recording one, never the reverse. `live: true` on a recorded tool, Verify and the first read on add record.
 - **Never manufacture a request to diagnose** — wait for the natural wave; errors never advance freshness.
 - **Ingest never pauses on catalog integrity** — an unseen card is stubbed and healed.
 - **The retained record's archive is write-once** — `payloads/` is content-addressed (`If-None-Match: *`) and the rebuild source; every field has a manifest disposition. History leaves only through a reviewed, Jamie-approved manifest that also deletes the selected object versions.
