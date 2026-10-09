@@ -1393,3 +1393,152 @@ export async function membershipBaselineCensus(databaseUrl, opts = {}) {
     await db.end();
   }
 }
+
+/** The tables a profile admission writes for its player, with the column
+ *  that names the player: what a stray live_fetch could have left. */
+const PROFILE_FOOTPRINT = [
+  "player_snapshot_daily",
+  "player_progress_daily",
+  "player_badge",
+  "player_card",
+  "player_pol_season",
+  "player_profile_membership",
+  "player_event",
+];
+
+/**
+ * Live-fetch stray census ({"live_fetch_strays": {"days": 30}}, or
+ * {"live_fetch_strays": {"tags": ["#TAG"]}}) — read-only (0209). Before
+ * 0209 a live_fetch of /players/{tag} was admitted and projected like any
+ * poll, so a player nobody tracks could enter the record through it
+ * (Jamie, 2026-10-08: "live_fetch should ONLY live fetch and not record
+ * data"). For each player tag live_fetch read in the window (from
+ * mcp_call_audit), or each tag given: whether anyone tracks it (an active
+ * player recording, a claim, or an open membership of a tracked clan),
+ * then for the untracked ones the rows the profile projection writes,
+ * the player row, the evidence that came from elsewhere (battles,
+ * memberships, bulk-lane receipts) and the player receipts by lane.
+ * Counts and dates only; nothing is written.
+ */
+export async function liveFetchStrayCensus(databaseUrl, opts = {}) {
+  const days = Math.min(90, Math.max(1, Math.trunc(Number(opts?.days) || 30)));
+  const given = Array.isArray(opts?.tags) ? opts.tags : [];
+  const { normalizeTag } = await import("@elixir-mcp/contracts");
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query("set statement_timeout = 120000");
+    await db.query("set default_transaction_read_only = on");
+    const { rows: calls } = await db.query(
+      `select args->>'path' as path, count(*)::int as calls,
+              min(created_at) as first_at, max(created_at) as last_at
+         from mcp_call_audit
+        where tool = 'live_fetch' and created_at > now() - make_interval(days => $1)
+          and args->>'path' like '/players/%'
+        group by 1`,
+      [days],
+    );
+    const byTag = new Map();
+    const tagOf = (raw) => {
+      try {
+        return normalizeTag(decodeURIComponent(String(raw)));
+      } catch {
+        return null;
+      }
+    };
+    for (const c of calls) {
+      const m = /^\/players\/([^/]+)$/.exec(c.path ?? "");
+      const tag = m ? tagOf(m[1]) : null;
+      if (!tag) continue;
+      const seen = byTag.get(tag) ?? {
+        calls: 0,
+        first_at: null,
+        last_at: null,
+      };
+      seen.calls += c.calls;
+      if (!seen.first_at || c.first_at < seen.first_at)
+        seen.first_at = c.first_at;
+      if (!seen.last_at || c.last_at > seen.last_at) seen.last_at = c.last_at;
+      byTag.set(tag, seen);
+    }
+    for (const raw of given) {
+      const tag = tagOf(raw);
+      if (tag && !byTag.has(tag))
+        byTag.set(tag, { calls: 0, first_at: null, last_at: null });
+    }
+    const untracked = [];
+    let tracked = 0;
+    for (const [tag, seen] of byTag) {
+      const {
+        rows: [t],
+      } = await db.query(
+        `select exists (select 1 from recording where subject_type = 'player'
+                         and status = 'active' and subject_tag = $1)
+             or exists (select 1 from claim where player_tag = $1)
+             or exists (select 1 from clan_membership cm
+                         where cm.player_tag = $1 and cm.left_observed_at is null
+                           and (exists (select 1 from recording r
+                                         where r.subject_type = 'clan' and r.status = 'active'
+                                           and r.subject_tag = cm.clan_tag)
+                                or exists (select 1 from account_clan ac
+                                            where ac.clan_tag = cm.clan_tag)))
+                as tracked`,
+        [tag],
+      );
+      if (t.tracked) {
+        tracked += 1;
+        continue;
+      }
+      const footprint = {};
+      for (const table of PROFILE_FOOTPRINT) {
+        const {
+          rows: [n],
+        } = await db.query(
+          `select count(*)::int as n from ${table} where player_tag = $1`,
+          [tag],
+        );
+        footprint[table] = n.n;
+      }
+      const {
+        rows: [elsewhere],
+      } = await db.query(
+        `select (select first_seen_at from player where player_tag = $1) as player_first_seen_at,
+                (select name is not null from player where player_tag = $1) as player_named,
+                (select count(*)::int from battle_participant where player_tag = $1) as battle_participant,
+                (select count(*)::int from clan_membership where player_tag = $1) as clan_membership`,
+        [tag],
+      );
+      const { rows: receipts } = await db.query(
+        `select coalesce(j.lane, 'unknown') as lane,
+                coalesce(j.record::text, 'unknown') as record,
+                count(*)::int as n,
+                min(r.fetched_at) as first_at, max(r.fetched_at) as last_at
+           from api_receipt r left join job j on j.job_id = r.job_id
+          where r.endpoint = 'player' and r.entity_key = $1
+          group by 1, 2 order by 1, 2`,
+        [tag],
+      );
+      untracked.push({
+        tag,
+        live_fetch_calls: seen.calls,
+        live_fetch_first_at: seen.first_at,
+        live_fetch_last_at: seen.last_at,
+        footprint,
+        player_first_seen_at: elsewhere.player_first_seen_at,
+        player_named: elsewhere.player_named,
+        battle_participant: elsewhere.battle_participant,
+        clan_membership: elsewhere.clan_membership,
+        receipts,
+      });
+    }
+    return {
+      note: "Counts only, nothing written. Each untracked tag live_fetch read: the rows a profile admission writes (footprint), the player row's first sighting, evidence from elsewhere (battle_participant, clan_membership) and its player receipts by lane. A bulk or unknown-lane receipt means something other than live_fetch read it too.",
+      days,
+      tags_read: byTag.size,
+      tracked,
+      untracked,
+    };
+  } finally {
+    await db.end();
+  }
+}
