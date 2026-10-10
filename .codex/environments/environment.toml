@@ -1,8 +1,8 @@
-# Codex local environment for scheduled runs (AGENT-TEAM/WORKFLOW.md,
-# "One worktree per run"). Each automation in AGENT-TEAM/automations.toml
-# runs in its own worktree, prepared by this setup.
+# Codex local environment: prepares a session's own worktree of this
+# repository (scripts/worktree-setup.sh). On Jamie's machine sessions are
+# started by the domain's session-start, which runs the same script.
 version = 1
 name = "elixir-mcp"
 
 [setup]
-script = "bash AGENT-TEAM/scripts/worktree-setup.sh"
+script = "bash scripts/worktree-setup.sh"
