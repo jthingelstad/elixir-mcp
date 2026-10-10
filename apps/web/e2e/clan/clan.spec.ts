@@ -659,6 +659,90 @@ test.describe("signed in", () => {
     await accessible(page, "clan settings");
   });
 
+  test("a clan's key shows about what the month cost, and its monthly cap", async ({
+    page,
+  }) => {
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/clan/clans/2PQRJ8LV/model": [
+          200,
+          {
+            clan_tag: "#2PQRJ8LV",
+            purposes: { recruit_pitch: { label: "Recruiting pitch" } },
+            per_day: 20,
+            keep_days: 90,
+            max_spend_cap_usd: 1000,
+            prices_as_of: "2026-10-10",
+            uses: {
+              today: 0,
+              month: {
+                count: 6,
+                input_tokens: 5088,
+                output_tokens: 404,
+                spend_usd: 0.014216,
+                spend_estimated: false,
+              },
+              recent: [
+                {
+                  at: "2026-10-09T11:00:00Z",
+                  by: "#20QQL8CCRU",
+                  by_name: "Ada",
+                  purpose: "recruit_pitch",
+                  model: "claude-sonnet-5",
+                  ok: true,
+                  code: null,
+                  input_tokens: 700,
+                  output_tokens: 180,
+                  spend_usd: 0.0032,
+                },
+              ],
+            },
+            spend_cap_usd: 5,
+            spend_cap_set_by_name: "Ada",
+            spend_cap_set_at: "2026-10-10T12:00:00Z",
+            cap_reached: false,
+            set: true,
+            hint: "sk-ant-…mQAA",
+            set_by: "#20QQL8CCRU",
+            set_by_name: "Ada",
+            set_at: "2026-09-25T10:00:00Z",
+            model: "claude-sonnet-5",
+            models: [
+              { id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5" },
+              { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
+              { id: "claude-haiku-5-5", name: "Claude Haiku 5.5" },
+            ],
+            model_listed: true,
+            models_refreshed_at: "2026-10-10T12:00:00Z",
+            models_refresh_error: null,
+            refresh_due: false,
+            refused_at: null,
+            readable: true,
+            owner_leads: true,
+            usable: true,
+          },
+        ],
+        "GET /api/clan/clans/2PQRJ8LV/sharing": [
+          200,
+          { clan_tag: "#2PQRJ8LV", types: {} },
+        ],
+      }),
+    );
+    await page.goto("/clan/2PQRJ8LV/manage/settings");
+    await expect(
+      page.getByText(
+        /6 uses · 5,088 tokens in, 404 out · about \$0\.01 of the \$5\.00 cap/,
+      ),
+    ).toBeVisible();
+    await expect(page.getByLabel("Monthly cap")).toHaveValue("5");
+    await expect(
+      page.getByRole("button", { name: "Remove cap" }),
+    ).toBeVisible();
+    await expect(page.getByText("From Anthropic, 2026-10-10")).toBeVisible();
+    await accessible(page, "clan settings with a key");
+  });
+
   test("actions are a short list; each has its own address, with its log open", async ({
     page,
   }) => {
