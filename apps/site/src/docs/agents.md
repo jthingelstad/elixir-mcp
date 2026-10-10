@@ -244,8 +244,9 @@ Facts in, judgment in your code.
 | Rotate | its console → Settings → Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
 | Revoke | its console → Settings → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready: it takes the name and scope of the most recent key, and is refused (`409 name_taken`) only if another of your live agents has taken that name since. |
 | Suspend / Resume | its console → Settings | `status: disabled`; the same key reads as invalid until resumed. Reversible. |
+| Remove / Restore | a suspended agent's console → Settings | takes it out of the console's agent switcher and the Agents table into a folded **Removed agents** list on the Agents page. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own console. Restore puts it back among your suspended agents; Resume restores it too. |
 | Rename | its console → Settings | changes the name; must stay unique among your live agents |
-| Delete | – | there is no delete. Suspend is the reversible stop; revoke is the irreversible one. |
+| Delete | – | there is no delete. Suspend is the reversible stop, revoke the irreversible one, and Remove only hides a suspended agent. |
 
 An agent acts only while its owner has access. If your access is
 withdrawn, every agent you own stops with it: its keys and the apps

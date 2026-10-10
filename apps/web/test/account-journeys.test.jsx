@@ -165,7 +165,7 @@ test(
 );
 
 test(
-  "create an agent, open its detail, rotate its key, suspend and resume it",
+  "create an agent, open its detail, rotate its key, suspend, remove and resume it",
   { timeout: 20000 },
   async () => {
     await scratch.db.query(
@@ -218,8 +218,27 @@ test(
         )
       ).rows[0].status,
     ).toBe("disabled");
+    // A suspended agent can be removed from view (0215): out of the
+    // Agents table into its folded Removed list, deleting nothing.
+    await clickReady("Remove");
+    await screen.findByRole("button", { name: "Restore", exact: true });
+    const removedAt = async () =>
+      (
+        await scratch.db.query(
+          "select removed_at from account where account_id=$1",
+          [agentId],
+        )
+      ).rows[0].removed_at;
+    expect(await removedAt()).not.toBeNull();
+    cleanup();
+    open("/console/account/agents");
+    await screen.findByText("Removed agents (1)");
+    expect(screen.queryByText("Open ›")).toBeNull();
+    fireEvent.click(screen.getByRole("link", { name: "journey-agent" }));
+    // Resuming a removed agent restores it too.
     await clickReady("Resume");
     await screen.findByRole("button", { name: "Suspend", exact: true });
+    expect(await removedAt()).toBeNull();
     expect(
       (
         await scratch.db.query(

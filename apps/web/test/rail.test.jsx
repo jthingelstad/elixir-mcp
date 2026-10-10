@@ -261,6 +261,25 @@ test("the switcher: you, your agents, and Admin for an admin", () => {
   ]);
 });
 
+test("the switcher leaves a removed agent out unless it is open", () => {
+  // 0215: a removed agent is found on the Agents page, not in the switcher;
+  // its own console still names it while you are in it.
+  const me = {
+    ...ME,
+    is_admin: false,
+    agents: [
+      { public_id: "f43c60e8f5bd", name: "POAP KINGS" },
+      { public_id: "ea322ce81822", name: "Ship It!", removed_at: "2026-10-10" },
+    ],
+  };
+  expect(railConsoles(me).map((c) => c.key)).toEqual(["me", "f43c60e8f5bd"]);
+  expect(railConsoles(me, "ea322ce81822").map((c) => c.key)).toEqual([
+    "me",
+    "f43c60e8f5bd",
+    "ea322ce81822",
+  ]);
+});
+
 test("wide: the rail is a list, with no disclosure to open", async () => {
   window.history.pushState({}, "", "/console/account/overview");
   render(<App />);

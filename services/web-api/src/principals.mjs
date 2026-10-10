@@ -15,6 +15,7 @@ import { createPrincipal, normalizePrincipalName } from "@elixir-mcp/claims";
 export async function listPrincipals(db, ownerAccountId) {
   const { rows } = await db.query(
     `select a.account_id, a.kind, a.public_id, a.role, a.created_at, a.status,
+            a.removed_at,
             -- Its name is its key's: the newest, a live one first, so an
             -- agent whose key was revoked keeps its name (the rail head's
             -- selector and GET /api/me say it the same way).
@@ -336,8 +337,12 @@ export async function setPrincipalStatus(
 ) {
   if (status !== "approved" && status !== "disabled")
     return { ok: false, error: "bad_status" };
+  // Resuming a removed agent restores it too: removed_at is set only while
+  // the agent is suspended (0215).
   const { rowCount } = await db.query(
-    `update account set status = $3
+    `update account
+        set status = $3,
+            removed_at = case when $3 = 'approved' then null else removed_at end
       where account_id = $1 and owned_by_account_id = $2
         and kind = 'agent'`,
     [principalAccountId, ownerAccountId, status],
@@ -345,4 +350,39 @@ export async function setPrincipalStatus(
   return rowCount === 1
     ? { ok: true, status }
     : { ok: false, error: "not_found" };
+}
+
+/**
+ * Remove a suspended agent from view, or restore it (0215).
+ *
+ * Agents are never deleted: the account, its URL, its keys and its history
+ * stay, and a removed agent still opens at its own address. Removing only
+ * moves it out of the rail's selector and the Agents table into the
+ * collapsed Removed list (Jamie, 2026-10-10: five suspended agents crowded
+ * both). Only a suspended agent can be removed, so a removed one is always
+ * refused at both doors; an active one answers `not_suspended`.
+ */
+export async function setPrincipalRemoved(
+  db,
+  ownerAccountId,
+  principalAccountId,
+  removed,
+) {
+  if (typeof removed !== "boolean") return { ok: false, error: "bad_removed" };
+  const { rows } = await db.query(
+    `update account
+        set removed_at = case when $3 then coalesce(removed_at, now()) end
+      where account_id = $1 and owned_by_account_id = $2
+        and kind = 'agent'
+        and (status = 'disabled' or not $3)
+      returning removed_at`,
+    [principalAccountId, ownerAccountId, removed],
+  );
+  if (rows[0]) return { ok: true, removed_at: rows[0].removed_at };
+  const { rows: owned } = await db.query(
+    `select 1 from account
+      where account_id = $1 and owned_by_account_id = $2 and kind = 'agent'`,
+    [principalAccountId, ownerAccountId],
+  );
+  return { ok: false, error: owned[0] ? "not_suspended" : "not_found" };
 }

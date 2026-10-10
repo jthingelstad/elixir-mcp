@@ -305,7 +305,7 @@ export function accountRoutes({
       // The agents this person can switch the console into, for the rail
       // header's selector: a few rows, so every page can offer it.
       const { rows: agents } = await db.query(
-        `select a.public_id, a.role, a.status,
+        `select a.public_id, a.role, a.status, a.removed_at,
                 (select t.name from service_token t
                   where t.account_id = a.account_id
                   order by (t.revoked_at is null) desc, t.created_at desc

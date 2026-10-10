@@ -513,6 +513,79 @@ test("suspending refuses a status that is not a status", async () => {
   assert.equal(rows[0].status, "approved");
 });
 
+test("removing takes a suspended agent out of view and deletes nothing", async () => {
+  // Jamie, 2026-10-10 (0215): five suspended agents crowded the rail and the
+  // Agents table. Remove is a mark on the account, never a delete.
+  const id = await bossAgentId();
+  const remove = (removed, cookie = bossCookie) =>
+    handler(
+      event({
+        path: "/api/me/principals/remove",
+        cookie,
+        body: { account_id: id, removed },
+      }),
+    );
+  const setStatus = (status) =>
+    handler(
+      event({
+        path: "/api/me/principals/status",
+        cookie: bossCookie,
+        body: { account_id: id, status },
+      }),
+    );
+  const row = async () =>
+    (
+      await db.query(
+        `select status, removed_at from account where account_id = $1`,
+        [id],
+      )
+    ).rows[0];
+
+  // An active agent is suspended first.
+  const active = await remove(true);
+  assert.equal(active.statusCode, 409, active.body);
+  assert.equal(parse(active).error, "not_suspended");
+  assert.equal((await row()).removed_at, null);
+
+  await setStatus("disabled");
+  // Never somebody else's, and never "refused": not found.
+  assert.equal((await remove(true, leaderCookie)).statusCode, 404);
+  assert.equal((await remove("yes")).statusCode, 400);
+
+  const res = await remove(true);
+  assert.equal(res.statusCode, 200, res.body);
+  assert.ok((await row()).removed_at);
+  const { rows: keys } = await db.query(
+    `select count(*)::int as live from service_token
+      where account_id = $1 and revoked_at is null`,
+    [id],
+  );
+  assert.equal(keys[0].live, 1, "the key is kept");
+
+  // Both console reads still carry it, marked, so the console can fold it.
+  const listed = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me/principals", cookie: bossCookie }),
+    ),
+  ).agents.find((a) => a.account_id === id);
+  assert.ok(listed.removed_at);
+  const me = parse(
+    await handler(
+      event({ method: "GET", path: "/api/me", cookie: bossCookie }),
+    ),
+  );
+  assert.ok(me.agents.some((a) => a.removed_at));
+
+  // Restore puts it back among the suspended.
+  assert.equal((await remove(false)).statusCode, 200);
+  assert.deepEqual(await row(), { status: "disabled", removed_at: null });
+
+  // Resuming a removed agent restores it too.
+  await remove(true);
+  await setStatus("approved");
+  assert.deepEqual(await row(), { status: "approved", removed_at: null });
+});
+
 test("an agent's timeline is readable by its owner and nobody else", async () => {
   // Its console's Timeline (2026-09-23): the scoped route, as the agent.
   const id = await bossAgentId();
