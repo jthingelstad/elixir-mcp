@@ -38,6 +38,7 @@ import { Refused } from "./views/Refused.jsx";
 import { You } from "./views/You.jsx";
 import { Away } from "./views/Away.jsx";
 import { Recruit } from "./views/Recruit.jsx";
+import { ActivityDiscord } from "./views/ActivityDiscord.jsx";
 import { Trophies } from "./views/Trophies.jsx";
 import { MemberActivity } from "./views/MemberActivity.jsx";
 import { Awards } from "./views/Awards.jsx";
@@ -70,7 +71,7 @@ const ClanMap = lazy(() =>
  *  action's number (`/clan/<TAG>/actions/37`). */
 export function parseClanPath(path) {
   const m =
-    /^\/([^/]+)(?:\/(manage|me|week|season|actions|standing|trophies|awards|recruit|map|members)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
+    /^\/([^/]+)(?:\/(manage|me|week|season|actions|standing|trophies|awards|recruit|map|discord|members)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
       appPath(path) ?? "",
     );
   const tag = m ? tagOf(m[1]) : null;
@@ -275,6 +276,10 @@ export function ClanPage() {
     return <Trophies key={clan.clan_tag} clan={clan} who={who} />;
   if (parsed.section === "recruit")
     return <Recruit key={clan.clan_tag} clan={clan} navigate={navigate} />;
+  if (parsed.section === "discord")
+    return (
+      <ActivityDiscord key={clan.clan_tag} clan={clan} navigate={navigate} />
+    );
   if (parsed.section === "map")
     return (
       <Suspense fallback={<p className="page__lede">Reading…</p>}>

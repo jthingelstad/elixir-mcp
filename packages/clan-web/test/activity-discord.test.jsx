@@ -2,7 +2,10 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { ActivityDiscordSetting } from "../src/views/ActivityDiscordSetting.jsx";
+import { ActivityDiscord } from "../src/views/ActivityDiscord.jsx";
 import { manageApi } from "../src/api.js";
+import { railItems, railKey } from "../src/lib/rail.js";
+import { parseClanPath } from "../src/App.jsx";
 
 afterEach(() => {
   cleanup();
@@ -97,11 +100,16 @@ describe("the clan's activity in Discord", () => {
 
   test("without the clan's key, the rewrite asks for one in Settings", async () => {
     vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(ok(view()));
-    renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+    const navigate = vi.fn();
+    renderWithProviders(<ActivityDiscord clan={clan} navigate={navigate} />);
     expect(
       await screen.findByText(/add the clan’s Anthropic API key/),
     ).toBeTruthy();
     expect(screen.queryByLabelText(/Rewrite each post/)).toBeNull();
+    fireEvent.click(screen.getByRole("link", { name: "Settings ›" }));
+    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/manage/settings", {
+      hash: "settings-model",
+    });
   });
 
   test("with the key, the rewrite and the voice are saved", async () => {
@@ -146,5 +154,54 @@ describe("the clan's activity in Discord", () => {
     ).toBeTruthy();
     expect(screen.getByText("not posting")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Resume posting" })).toBeNull();
+  });
+});
+
+describe("Social ▸ Discord in the rail", () => {
+  const me = (role, extra = {}) => ({
+    ok: true,
+    selected: { clan_tag: "#2PQRJ8LV", role },
+    clans: [{}],
+    policy: { set: false },
+    ...extra,
+  });
+  const items = (m) => railItems(m);
+
+  test("a page of its own in the Social group, for leaders, with or without a policy", () => {
+    for (const role of ["leader", "coLeader"]) {
+      const rail = items(me(role));
+      const at = rail.findIndex((r) => r.key === "discord");
+      expect(at).toBeGreaterThan(-1);
+      expect(rail[at].to).toBe("/clan/2PQRJ8LV/discord");
+      // After Recruit, before Manage starts its own group.
+      expect(rail[at - 1].key).toBe("recruit");
+      expect(rail[at].group).toBeUndefined();
+      expect(rail.slice(at + 1).find((r) => r.group)?.group).toBe("Manage");
+    }
+    expect(items(me("elder")).map((r) => r.key)).not.toContain("discord");
+    expect(items(me("member")).map((r) => r.key)).not.toContain("discord");
+    // Off with the map, Recruit opens the group and Discord stays in it.
+    const off = items(me("leader", { social: { enabled: false } }));
+    const recruit = off.findIndex((r) => r.key === "recruit");
+    expect(off[recruit].group).toBe("Social");
+    expect(off[recruit + 1].key).toBe("discord");
+  });
+
+  test("its address is the clan's, and Settings no longer holds it", () => {
+    expect(railKey("/clan/2PQRJ8LV/discord")).toBe("discord");
+    expect(parseClanPath("/clan/2PQRJ8LV/discord")).toEqual({
+      tag: "#2PQRJ8LV",
+      section: "discord",
+      tab: null,
+    });
+  });
+
+  test("the page wears its own head", async () => {
+    vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(ok(view()));
+    renderWithProviders(<ActivityDiscord clan={clan} navigate={vi.fn()} />);
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Discord" }),
+    ).toBeTruthy();
+    expect(await screen.findByText("Clan Wars")).toBeTruthy();
   });
 });

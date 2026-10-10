@@ -149,10 +149,10 @@ export function Model({ clan }) {
         its voice; add those in Recruit and choose the tone on the action.
       </p>
       <p className="page-head__note m-0">
-        The one exception is the clan&rsquo;s activity in Discord (Social,
-        above), when a leader turns its rewrite on: each line is sent as members
-        already read it, names included, and posted without a review. A line
-        that changes a name, adds a number or carries a link keeps
+        The one exception is the clan&rsquo;s activity in Discord (Social ▸
+        Discord), when a leader turns its rewrite on: each line is sent as
+        members already read it, names included, and posted without a review. A
+        line that changes a name, adds a number or carries a link keeps
         Elixir&rsquo;s own words. Those uses are counted apart from the
         drafts&rsquo;.
       </p>
