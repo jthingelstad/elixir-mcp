@@ -1,100 +1,25 @@
-# Elixir notes
+# Elixir notes, to 2026-10-10
 
-Working notes: what is open, what is queued for Jamie, and dated entries
-for the reasoning behind a change. What still stands is
-`docs/DECISIONS.md`, one line per ratified decision and declined idea;
-read it before proposing anything. Earlier entries are in git
-(`git log -- docs/NOTES.md`); the last full version is at `bb01d62b`
-(`git show bb01d62b:docs/NOTES.md`), and the weekly archives that sat
-in `docs/notes/` are listed in `docs/archive/README.md`.
+The archive of the dated working notes, frozen on 2026-10-10. Nothing is
+added here any more:
 
-## Open and queued
+- **A change's notes** are a file of its own in `docs/notes/`, written in
+  the change's pull request (`docs/notes/README.md`).
+- **Open items**, Jamie's queue and parked ideas are GitHub issues in this
+  repository, labelled `needs-jamie`, `engineering` or `parked` (a parked
+  issue names its trigger). The list that stood here moved on 2026-10-10:
+  #414 to #433, with #292 and #296, which were already issues.
 
-One line per item: when it was raised, what it needs, and who owns it.
-Remove a line in the change that closes it.
-
-### Jamie
-
-- 2026-09-28: retire `session_secret_previous` on or after 2026-12-27.
-  Deploy with `--param=SessionSecretPreviousInSecret=false`, then remove
-  the key in the console (`docs/SECRETS.md`). Jamie.
-- 2026-10-08: delete `elixir-clan/app` (keep the default recovery
-  window) once the deploy that reads `elixir-mcp/app:clan_sealing_secret`
-  has succeeded; Jamie copied the value across the same day. Jamie.
-- 2026-10-04: whether privacy.md should name Clan's own-key model flow.
-  Product wording, Jamie.
-- 2026-10-08: beta invitations: Jamie invites POAP KINGS, with the
-  wording as it stands (accepted 2026-10-08), and pastes Bring your
-  clanmates' clan-chat line (Console ▸ Overview) into clan chat once to
-  see whether `elixir.poapkings.com` at its end survives the chat filter;
-  if it is masked, it comes out of the line (`apps/web/src/lib/invite.js`).
-  Jamie.
-- 2026-09-29: `min_client_version` is 2.0.30 with enforcement on. Raising
-  it retires the pre-signing rollback lever. Jamie.
-- 2026-10-03: co-leaders' own sign-in, verification and model-status
-  read-back, any reviewed historical manual-award reconciliation, and a
-  bounded paid drafting attempt remain live checks. Jamie with the
-  co-leaders.
-- 2026-09-27: growth priorities, held: the saturation ladder and planner
-  class order, a pre-reset watcher, the `MaxAllocatedStorage` ceiling
-  (100 GiB in the template) and a written trigger for a larger database
-  instance. Jamie.
-- 2026-09-27: collector-fleet trust, held: where the collectors are and
-  a second site, a written trust decision before an outside operator's
-  collector goes `active`, shadow verification
-  (`docs/COLLECTOR-ZERO-TRUST.md`), and off-account replication of the
-  payload archive. Jamie.
-
-### Engineering
-
-- 2026-10-08: after their first weekly mails, by 2026-10-15, stop
-  tracking on Jamie's beta1/beta2 test accounts (beta1: #92P2LPLP; beta2:
-  #9Y0LV2QLC and its auto-followed clan #QUV28PCG), then sign both test
-  accounts out of every session. Operator.
-- 2026-10-03: optional RDS downsizing (db.t4g.small, 20 GiB) waits a
-  couple of weeks of measurements. Operator.
-- 2026-09-28: one rate budget with no per-key pooling; revisit around
-  2026-10-28. Operator.
-- 2026-10-03: a recomposed closed week's collector credits can differ by
-  one: it uses current lifetime points, not the period-end total.
-- 2026-10-04: ordinary removal stays held until there is an all-mode
-  coverage contract and receipt-bound counter tuples. Clan.
-- 2026-10-05: membership counts changed while the join and departure
-  lists were empty; cause unconfirmed. Data Auditor.
-- 2026-10-04: #292, Clan History browsing older recorded membership
-  changes. Open.
-- 2026-10-04: #296, slow warm Awards participation reads. Needs browser
-  Network/Server-Timing evidence if it recurs.
-- 2026-09-16: schema index diet, not started: drop
-  `battle_participant_player` and `battle_participant_window`; a partial
-  `clan_membership (clan_tag) where left_observed_at is null`; seed the
-  Training Camp arena (54000001) and add the
-  `player_snapshot_daily.arena_id` FK; `api_receipt.job_id` FK
-  `on delete set null`; rename `poll_state.subject_tag` to `subject_key`;
-  comments on the declined FKs.
-
-### Parked, with their triggers
-
-- 2026-09-27: measure with the `{statements}` op before changing any of:
-  invoker fixed cost, a result cache, per-container connection reuse, MCP
-  Lambda memory, the nightly and activity tidies.
-- 2026-09-27: wait for scale: mail compose fan-out once a weekly run
-  passes about 450 s; a split recording door.
-- 2026-09-27: tool features, on a consumer ask: gaps as a precise
-  control; an event as a population (`group_by: "event"`); a card's
-  `changes[]` history; a supported-clients matrix.
-- 2026-09-27: engineering system, when it pays: an ops registry with
-  enforced modes, run receipts, scheduled CI with a pinned clock, a
-  deploy batch marker, decision-citation tests, API Gateway managed
-  overrides, a decisive smoke, e2e failure fixtures and router adoption,
-  an `llms-full.txt` trim, a console bundle diet.
-- 2026-09-27: low-value hardening: roster ordering, attested-fact extras.
+What still stands is `docs/DECISIONS.md`, one line per ratified decision
+and declined idea; read it before proposing anything. Earlier entries are
+in git (`git log -- docs/NOTES.md`); the last full version is at
+`bb01d62b` (`git show bb01d62b:docs/NOTES.md`), and the weekly archives
+that sat in an earlier `docs/notes/` are listed in
+`docs/archive/README.md`.
 
 ## Entries
 
-Newest last. Each entry is `## YYYY-MM-DD — title`, then what changed and
-why. A ratified decision also gets its line in `docs/DECISIONS.md` in the
-same commit.
+Oldest first, to 2026-10-10.
 
 ## 2026-10-08 — internal docs describe the current state
 
