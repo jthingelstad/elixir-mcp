@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-10",
+    title: "The privacy page covers Discord cross-posting",
+    body: "The privacy page now says what happens when you cross-post your timeline, or an agent's, to a Discord channel: each new item is posted there, where Discord keeps it under its own terms and everyone in the channel can read it. Elixir keeps the webhook sealed and never shows it whole. Turning cross-posting off stops new posts, and lines already in the channel are Discord's to delete. MCP 11.7.2 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-10",
     title: "Elixir Clan posts the clan's activity to Discord",
     body: "A clan's leaders can now post its activity to a Discord channel of its own, from Discord, a page of its own in Elixir Clan's Social section. Connect a webhook (not the one Actions go to) and the clan's timeline is posted there as it happens, as members read it: who joins and departs and role changes, members' milestones, and the Clan Wars week, each a line with a link back to Elixir that draws no preview. The clan's policy sets which are on: war posts only for a clan that takes part, and nothing without a policy. A leader can switch each one. A departure says the member departed, and when a leader says it was a kick or a leave, that message is edited to say so. With the clan's own model key, a leader can have each line rewritten in a voice the leaders describe; those lines are posted unread, so one that changes a name, adds a number or runs long keeps Elixir's own words, at most 50 a day and within the clan's monthly cap. Nothing earlier than the connection is posted and nothing pings anyone. A leader's word in Elixir Clan now also wakes timeline cross-posts at once. MCP 11.7.2 and JSON API 3.1.0 unchanged.",
   },

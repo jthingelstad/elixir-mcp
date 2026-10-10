@@ -60,6 +60,13 @@ and sends the newsletter, and Tinylytics does the counting.
 Fonts are served from this site, so reading a page tells no one else
 what you read.
 
+**Discord.** If you cross-post your timeline (or an agent's) to a
+Discord channel, each new item on it is posted there, where Discord
+keeps it under its own terms and everyone in the channel can read it.
+Elixir keeps the webhook sealed and never shows it whole. Turning
+cross-posting off stops new posts; lines already in the channel are
+Discord's to delete.
+
 **Collectors.** If you run a collector for the service, its card name,
 status and fetch counts are public and credited to your claimed player.
 Your machine's own name and address are not published.

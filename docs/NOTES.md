@@ -23,14 +23,6 @@ Remove a line in the change that closes it.
   has succeeded; Jamie copied the value across the same day. Jamie.
 - 2026-10-04: whether privacy.md should name Clan's own-key model flow.
   Product wording, Jamie.
-- 2026-10-10: whether privacy.md gets a Discord paragraph for timeline
-  cross-posting (policy pages change only with Jamie's word). Proposed:
-  "If you cross-post your timeline (or an agent's) to a Discord channel,
-  each new item on it is posted there, where Discord keeps it under its
-  own terms and everyone in the channel can read it. Elixir keeps the
-  webhook sealed and never shows it whole. Turning cross-posting off
-  stops new posts; lines already in the channel are Discord's to
-  delete." Jamie.
 - 2026-10-08: beta invitations: Jamie invites POAP KINGS, with the
   wording as it stands (accepted 2026-10-08), and pastes Bring your
   clanmates' clan-chat line (Console ▸ Overview) into clan chat once to
@@ -1532,4 +1524,11 @@ in a voice the leaders write.
 - **Time:** a clan run that would start with under 40 s left goes back
   to the queue (`clan_activity_later`); its pointer means a wake that
   never runs only delays a post. The model's wait is at most 25 s.
+
+## 2026-10-10 — privacy.md names timeline cross-posting
+
+Jamie approved the proposed Discord paragraph for privacy.md ("Approved:
+add the Discord paragraph to privacy.md in elixir-mcp"), so the queued
+ask is closed. It covers the timeline's cross-post only; Clan's Actions
+and activity posts to a clan's Discord are not named on the page.
 
