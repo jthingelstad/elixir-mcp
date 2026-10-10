@@ -463,6 +463,28 @@ test("round-1 tester fixes: inverted windows refuse; compact drops decks; null c
     verbosity: "compact",
   });
   assert.equal(short.body.next_cursor, null, "explicit null on final page");
+  // A last page that is exactly full is still the last page: a cursor
+  // there opened an empty page (Codex on #464).
+  const all = short.body.battles.length;
+  assert.ok(all > 1 && all < 50, `seed has a few battles (${all})`);
+  const exact = await call("battles_query", {
+    limit: all,
+    verbosity: "compact",
+  });
+  assert.equal(exact.body.battles.length, all);
+  assert.equal(exact.body.next_cursor, null, "a full final page is the end");
+  const head = await call("battles_query", {
+    limit: all - 1,
+    verbosity: "compact",
+  });
+  assert.ok(head.body.next_cursor, "one more battle: a cursor");
+  const tail = await call("battles_query", {
+    limit: all - 1,
+    verbosity: "compact",
+    cursor: head.body.next_cursor,
+  });
+  assert.equal(tail.body.battles.length, 1);
+  assert.equal(tail.body.next_cursor, null);
 
   const perf = await call("battles_performance", {
     before_after: "2026-09-01",

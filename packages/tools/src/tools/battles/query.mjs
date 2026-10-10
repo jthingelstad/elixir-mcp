@@ -311,7 +311,10 @@ export const battles_query = {
     // table's time index backwards probing each row for the player).
     // The (player_tag, battle_time) covering index now serves the
     // ordered scan directly; the two columns are equal by construction.
-    const { rows } = await ctx.db.query(
+    // One row past the page says whether another page exists: a page that
+    // is exactly full can be the last one, and a cursor there opened an
+    // empty page (Codex on #464).
+    const { rows: fetched } = await ctx.db.query(
       `select b.cursor, b.battle_id, b.battle_time, b.type, b.type_class, b.game_mode_id, b.game_mode_name,
                 b.arena, b.arena_id, b.league_number,
                 b.event_tag, b.tournament_tag, b.deck_selection, b.is_ladder_tournament,
@@ -327,9 +330,11 @@ export const battles_query = {
          left join clan cl on cl.clan_tag = bp.clan_tag
          where ${where.join(" and ")}
          order by bp.battle_time desc, bp.battle_id desc
-         limit ${limit}`,
+         limit ${limit + 1}`,
       params,
     );
+    const more = fetched.length > limit;
+    const rows = more ? fetched.slice(0, limit) : fetched;
 
     let others = new Map();
     if (rows.length > 0) {
@@ -692,10 +697,9 @@ export const battles_query = {
       battles,
       ...(totalCount !== undefined ? { total_count: totalCount } : {}),
       // Explicit null = end of results (absent-vs-null was ambiguous).
-      next_cursor:
-        rows.length === limit
-          ? `${rows[rows.length - 1].battle_time.toISOString()}|${rows[rows.length - 1].battle_id}`
-          : null,
+      next_cursor: more
+        ? `${rows[rows.length - 1].battle_time.toISOString()}|${rows[rows.length - 1].battle_id}`
+        : null,
       notes: notes(
         livePendingNote(live),
         compact ? null : ARCHETYPE_NOTE,
