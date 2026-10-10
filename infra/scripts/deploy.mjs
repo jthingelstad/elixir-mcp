@@ -23,6 +23,7 @@ import { readdirSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { versionsIn } from "../../packages/contracts/scripts/changes-index.mjs";
 import {
   CloudFrontClient,
   CreateInvalidationCommand,
@@ -175,7 +176,7 @@ if (dirty) {
 // unreachable, never for a red check.
 if (args.breakGlass) {
   console.warn(
-    "deploy: WARNING --break-glass: the CI gate is skipped; record why in docs/NOTES.md.",
+    "deploy: WARNING --break-glass: the CI gate is skipped; record why in a docs/notes/ fragment.",
   );
 } else {
   const gate = await ciGate({
@@ -641,12 +642,10 @@ try {
     if (err?.name !== "NoSuchKey") throw err;
   }
   const declared = {
-    contract: (
-      await readFile(
-        path.join(repoRoot, "packages/contracts/src/version.ts"),
-        "utf8",
-      )
-    ).match(/CONTRACT_VERSION = "([^"]+)"/)?.[1],
+    // The highest file in src/changes/ is CONTRACT_VERSION.
+    contract: versionsIn(
+      readdirSync(path.join(repoRoot, "packages/contracts/src/changes")),
+    )[0],
     api: JSON.parse(
       await readFile(
         path.join(repoRoot, "packages/contracts/integration-api.openapi.json"),
