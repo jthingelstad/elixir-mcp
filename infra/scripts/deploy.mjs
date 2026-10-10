@@ -4,8 +4,10 @@
  * lane -> MIGRATE (the migrate bundle is pushed ahead of the flip, so a
  * failed migration stops the deploy before any code changes) -> vocabulary
  * import -> stack update -> web sync and invalidation -> smoke ->
- * acceptance when asked. On --create the stack comes first and migrations
- * run after it. When no Lambda bundle and not the template changed, the
+ * acceptance when asked -> the deploy record and its PR comments. The
+ * whole run holds the production lock (lib/production-lock.mjs), taken
+ * after the CI gate and before the build. On --create the stack comes
+ * first and migrations run after it. When no Lambda bundle and not the template changed, the
  * SITE lane skips the migrate push, the migrations and the stack update
  * (lib/deploy-lane.mjs); --platform takes the whole path anyway.
  *
@@ -38,6 +40,7 @@ import {
 } from "@aws-sdk/client-cloudformation";
 import {
   S3Client,
+  GetObjectCommand,
   PutObjectCommand,
   ListObjectsV2Command,
   DeleteObjectsCommand,
@@ -54,6 +57,20 @@ import { buildAll } from "./build.mjs";
 import { buildParameters, originRotation } from "./parameters.mjs";
 import { DEPLOY_USAGE, parseDeployArgs } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
+import {
+  acquireLock,
+  holdUntilExit,
+  lockFileFor,
+} from "./lib/production-lock.mjs";
+import {
+  DEPLOY_RECORD_KEY,
+  commentBody,
+  commentOnPulls,
+  deployHistoryKey,
+  liveVersions,
+  shippedCommits,
+  shippedPulls,
+} from "./lib/deploy-record.mjs";
 import { prepareReferenceSeedRefresh } from "./lib/reference-seed-check.mjs";
 import {
   readVocabulary,
@@ -177,6 +194,36 @@ if (args.breakGlass) {
     `deploy: CI gate passed for ${gate.sha.slice(0, 8)} (validate green on ${gate.via}).`,
   );
 }
+
+// The production lock (lib/production-lock.mjs), --break-glass included:
+// GitHub being down is no reason for two deploys at once. Taken here,
+// after the checks that only read (arguments, the worktree, the CI gate,
+// which can wait minutes for a check) and before the build, so a refused
+// deploy stops in seconds and nothing is built or sent without it. It is
+// held to the end: the deploy record below is a production write too.
+// Released when this process ends, however it ends (holdUntilExit), since
+// the exits above and below are process.exit() calls a finally never sees.
+const git = (...a) =>
+  execFileSync("git", a, {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+const headSha = git("rev-parse", "HEAD");
+const lockFile = lockFileFor(repoRoot);
+const locked = acquireLock({
+  file: lockFile,
+  holder: "deploy",
+  purpose: `deploy.mjs ${process.argv.slice(2).join(" ") || "(update)"}`.trim(),
+  worktree: git("rev-parse", "--show-toplevel"),
+  head: headSha,
+});
+if (!locked.ok) {
+  console.error(`deploy: ${locked.reason}\nNothing was deployed.`);
+  process.exit(3);
+}
+const releaseLock = holdUntilExit({ file: lockFile, lock: locked.lock });
+console.error(`deploy: production lock taken (${lockFile}).`);
 
 const sts = new STSClient({ region: REGION });
 const { Account: accountId } = await sts.send(new GetCallerIdentityCommand({}));
@@ -548,6 +595,7 @@ const acceptanceEnv = new URL("../../acceptance/.env", import.meta.url)
 // touch shared code.
 const acceptanceFamily = args.acceptanceFamily;
 const wantAcceptance = args.acceptance || process.env.ACCEPTANCE === "1";
+let acceptanceResult = "not run";
 if (!wantAcceptance) {
   console.log(
     "WARNING: acceptance NOT run. Pass --acceptance=<family> when a tool in that family changed, --acceptance for shared code or a release (or ACCEPTANCE=1); npm run acceptance any time.",
@@ -567,11 +615,117 @@ if (!wantAcceptance) {
     );
     process.exit(1);
   }
+  acceptanceResult = acceptanceFamily
+    ? `passed (\`--acceptance=${acceptanceFamily}\`)`
+    : "passed (the whole suite)";
 } else {
+  acceptanceResult = "not run (no acceptance/.env on the deploying machine)";
   console.warn(
     "acceptance: skipped - no acceptance/.env on this machine (see acceptance/README.md).",
   );
 }
+
+// The deploy record (lib/deploy-record.mjs): what is live, and a comment
+// on each PR this deploy shipped for the first time. The previous record
+// says where the last deploy stopped. Nothing here fails a deploy that
+// is already live; it warns.
+try {
+  const deployedAt = new Date().toISOString();
+  let previous = null;
+  try {
+    const got = await s3.send(
+      new GetObjectCommand({ Bucket: codeBucket, Key: DEPLOY_RECORD_KEY }),
+    );
+    previous = JSON.parse(await got.Body.transformToString());
+  } catch (err) {
+    if (err?.name !== "NoSuchKey") throw err;
+  }
+  const declared = {
+    contract: (
+      await readFile(
+        path.join(repoRoot, "packages/contracts/src/version.ts"),
+        "utf8",
+      )
+    ).match(/CONTRACT_VERSION = "([^"]+)"/)?.[1],
+    api: JSON.parse(
+      await readFile(
+        path.join(repoRoot, "packages/contracts/integration-api.openapi.json"),
+        "utf8",
+      ),
+    ).info.version,
+  };
+  const live = await liveVersions({
+    fetch,
+    base: "https://elixir.poapkings.com",
+  });
+  const record = {
+    sha: headSha,
+    deployed_at: deployedAt,
+    lane,
+    contract_version: live.contract ?? declared.contract,
+    api_version: live.api ?? declared.api,
+    acceptance: acceptanceResult,
+    previous_sha: previous?.sha ?? null,
+  };
+  // Recorded before the comments: a comment that fails must not leave
+  // the next deploy counting this one's commits again.
+  for (const Key of [DEPLOY_RECORD_KEY, deployHistoryKey(deployedAt, headSha)])
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: codeBucket,
+        Key,
+        Body: `${JSON.stringify(record, null, 2)}\n`,
+        ContentType: "application/json",
+      }),
+    );
+  console.error(`deploy record: ${headSha.slice(0, 12)} written.`);
+  const range = shippedCommits({
+    git: (a) => git(...a),
+    from: previous?.sha ?? null,
+    to: headSha,
+  });
+  if (!range.ok) {
+    console.warn(`deploy record: no PR comments; ${range.reason}.`);
+  } else {
+    const ghApi = async (p) =>
+      JSON.parse(execFileSync("gh", ["api", p], { encoding: "utf8" }));
+    const ghPost = async (p, body) =>
+      execFileSync("gh", ["api", "-X", "POST", p, "--input", "-"], {
+        input: JSON.stringify(body),
+        encoding: "utf8",
+      });
+    const pulls = await shippedPulls({
+      ghApi,
+      repo: GITHUB_REPO,
+      commits: range.commits,
+    });
+    const result = await commentOnPulls({
+      ghApi,
+      ghPost,
+      repo: GITHUB_REPO,
+      sha: headSha,
+      pulls,
+      bodyFor: (pr) =>
+        commentBody({
+          repo: GITHUB_REPO,
+          sha: headSha,
+          deployedAt,
+          lane,
+          live,
+          declared,
+          acceptance: acceptanceResult,
+          prCommits: pr.commits,
+        }),
+      warn: (line) => console.warn(line),
+    });
+    console.error(
+      `deploy record: ${range.commits.length} commit(s) shipped; commented on ${result.commented.map((n) => `#${n}`).join(", ") || "no PR"}${result.skipped.length ? `; already commented: ${result.skipped.map((n) => `#${n}`).join(", ")}` : ""}.`,
+    );
+  }
+} catch (err) {
+  console.warn(`WARNING: deploy record failed: ${err?.message ?? err}`);
+}
+releaseLock();
 
 console.log("\ndeploy complete.");
 console.log(
