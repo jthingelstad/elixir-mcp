@@ -9,6 +9,11 @@
  */
 export default [
   {
+    date: "2026-10-10",
+    title: "A timeline poll that finds nothing costs almost nothing",
+    body: "Agents that poll your timeline every few minutes, like the clan's Discord agents, mostly find nothing new, and each poll still read every subject's summary. elixir_timeline now takes skip_empty: true. When nothing in the window could be news for that reader, Elixir answers at once with an empty timeline and no summaries, and says it skipped them. The reader's place in the timeline moves as it always does. When there is news, the answer is the same as before, summaries included. Reads without the argument are unchanged. MCP 11.7.0; JSON API 3.1.0 unchanged.",
+  },
+  {
     date: "2026-10-08",
     title: "The clan report sets the week beside the weeks before",
     body: "The Monday clan report now shows how the week compares. War decks: the race's war decks used out of those possible (four a war day up to the finish, every day in Colosseum, for each member on the roster when the race closed), beside each of the four races before with the share they used. Training days are not counted. The clan's week: battles and members who battled, by when the battles were played, against the average of the four weeks before. Only weeks Elixir recorded are compared: with fewer, the report says how many (\"the 2 recorded races before\"), and with none it shows the week alone. MCP 11.6.1 and JSON API 3.1.0 unchanged.",

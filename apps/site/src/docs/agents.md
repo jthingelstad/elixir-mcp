@@ -187,12 +187,18 @@ marks as itself:
 const page = await call("elixir_timeline", {
   reader: "editor",                 // this consumer's own pointer
   sections: ["roster", "war", "presence"],   // optional: trim items and entries
+  skip_empty: true,                 // optional: an empty window costs one check
 });
 if (page.timeline.length === 0) return;           // nothing to consider
 for (const item of page.timeline) consider(item);  // item.text is the sentence; item.facts the numbers
 for (const entry of page.entries) context(entry);  // the window's shape per subject
 // read_to is now the window's end; nothing to persist locally.
 ```
+
+With `skip_empty: true` a window that holds nothing for this reader is
+answered without reading the subjects (`entries_skipped` is `true` and
+`entries` is empty), so a poll every few minutes costs little. Drop it on
+the read that wants the entries of a quiet window.
 
 A runtime that keeps its own cursor still can (pass `from`, `mark_read:
 false`), but then `meta.timeline_pending` cannot help it: that hint counts
