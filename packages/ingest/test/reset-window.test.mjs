@@ -252,3 +252,52 @@ test("late and replayed observations around a reset add no second moment", async
   assert.equal(events.length, 1);
   assert.equal(events[0].window_end.toISOString(), "2026-10-04T23:45:00.000Z");
 });
+
+test("two transactions that see the same reset at once write one moment", async () => {
+  // Codex on #461: a profile and a roster receipt on opposite sides of the
+  // 10:00Z game-day boundary lock different daily rows, so without a lock
+  // of its own each one's check ran before the other's insert committed.
+  const { donationResetMoment } = await import("../src/snapshots.mjs");
+  const pg = (await import("pg")).default;
+  const tag = "#P0YQ2LL";
+  await ctx.db.query("insert into player(player_tag,name) values($1,'C')", [
+    tag,
+  ]);
+  const prior = {
+    donations: 60,
+    observed_at: new Date("2026-10-04T22:00:00Z"),
+  };
+  const [one, two] = [new pg.Client(ctx.url), new pg.Client(ctx.url)];
+  await one.connect();
+  await two.connect();
+  try {
+    await one.query("begin");
+    assert.equal(
+      await donationResetMoment(one, {
+        playerTag: tag,
+        prior,
+        donations: 4,
+        observedAt: "2026-10-05T09:59:00Z",
+      }),
+      true,
+    );
+    await two.query("begin");
+    const second = donationResetMoment(two, {
+      playerTag: tag,
+      prior,
+      donations: 4,
+      observedAt: "2026-10-05T10:01:00Z",
+    }).then(async (wrote) => {
+      await two.query("commit");
+      return wrote;
+    });
+    // The second waits for the first to commit, then finds its moment.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await one.query("commit");
+    assert.equal(await second, false);
+  } finally {
+    await one.end();
+    await two.end();
+  }
+  assert.equal((await resetsOf(tag)).length, 1);
+});
