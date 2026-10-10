@@ -251,22 +251,24 @@ export function Model({ clan }) {
               ) : null}
             </form>
           </div>
-          {capMessage ? (
-            <p className="field-error mx-3 my-0" role="alert">
-              {capMessage}
+          <div className="panel__body grid gap-2 pt-0">
+            {capMessage ? (
+              <p className="field-error m-0" role="alert">
+                {capMessage}
+              </p>
+            ) : null}
+            <p className="page-head__note m-0">
+              Spend is an estimate: each use&rsquo;s tokens at Anthropic&rsquo;s
+              list prices as of {d.prices_as_of}
+              {month.spend_estimated
+                ? ", with a model newer than those priced at the dearest of its kind"
+                : ""}
+              . With a cap, the clan&rsquo;s model drafts nothing more once this
+              month&rsquo;s (UTC) estimate reaches it; a draft that starts under
+              the cap may finish a little over it. Your Anthropic bill is the
+              real figure.
             </p>
-          ) : null}
-          <p className="page-head__note mx-3 my-0">
-            Spend is an estimate: each use&rsquo;s tokens at Anthropic&rsquo;s
-            list prices as of {d.prices_as_of}
-            {month.spend_estimated
-              ? ", with a model newer than those priced at the dearest of its kind"
-              : ""}
-            . With a cap, the clan&rsquo;s model drafts nothing more once this
-            month&rsquo;s (UTC) estimate reaches it; a draft that starts under
-            the cap may finish a little over it. Your Anthropic bill is the real
-            figure.
-          </p>
+          </div>
           {d.cap_reached ? (
             <div className="callout callout--warn m-3" role="status">
               <span>
