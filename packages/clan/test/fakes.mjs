@@ -51,7 +51,10 @@ export function rosterBody(members) {
 /**
  * A scripted MCP door. `principal` is what initialize answers;
  * `players` what elixir_my_players answers; `roster` what clans_roster
- * answers (a body, or `{ error: { code, message } }` for a tool failure).
+ * answers (a body, or `{ error: { code, message } }` for a tool failure);
+ * `rosters` answers per clan, keyed by the `clan_tag` asked for, falling
+ * back to `roster` when the call names no clan or one not listed (as the
+ * real tool falls back to the account's default recorded clan).
  * `refuse` makes every call answer HTTP 401 until cleared, which is how
  * an expired or revoked access token looks from here.
  */
@@ -61,12 +64,14 @@ export function fakeMcp({
   principal = PERSON,
   players = [player()],
   roster = null,
+  rosters = null,
 } = {}) {
   const calls = [];
   const state = {
     principal,
     players,
     roster,
+    rosters,
     refuse: false,
     acceptedTokens: null,
     facts: [],
@@ -142,14 +147,15 @@ export function fakeMcp({
           },
         };
       if (name === "clans_roster") {
-        if (state.roster?.error)
+        const roster = state.rosters?.[args?.clan_tag] ?? state.roster;
+        if (roster?.error)
           return {
             ok: false,
-            code: state.roster.error.code,
-            error: state.roster.error.message,
-            hint: state.roster.error.hint,
+            code: roster.error.code,
+            error: roster.error.message,
+            hint: roster.error.hint,
           };
-        return { ok: true, body: state.roster ?? rosterBody([]) };
+        return { ok: true, body: roster ?? rosterBody([]) };
       }
       return { ok: false, code: "unknown", error: `no fake for ${name}` };
     },
