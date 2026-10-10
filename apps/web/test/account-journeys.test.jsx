@@ -230,6 +230,21 @@ test(
         )
       ).rows[0].removed_at;
     expect(await removedAt()).not.toBeNull();
+    // The switcher reads the session, which the removal refetched: once
+    // you leave the agent's console it is no longer offered (#441 review).
+    const rail = () => document.querySelector(".rail");
+    fireEvent.click(rail().querySelector(".rail__switch-head"));
+    fireEvent.click(within(rail()).getByRole("link", { name: /Your console/ }));
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/console/account/overview"),
+    );
+    const head = rail().querySelector("button.rail__switch-head");
+    if (head) fireEvent.click(head);
+    await waitFor(() =>
+      expect(
+        within(rail()).queryByRole("link", { name: /journey-agent/ }),
+      ).toBeNull(),
+    );
     cleanup();
     open("/console/account/agents");
     await screen.findByText("Removed agents (1)");
