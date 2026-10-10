@@ -44,6 +44,15 @@
         "mark_read": false
       },
       "reason": "full verbosity carries the entries with their kinds (player_activity, clan_activity)"
+    },
+    {
+      "args": {
+        "days": 1,
+        "kinds": ["member_joined", "member_left"],
+        "mark_read": false,
+        "skip_empty": true
+      },
+      "reason": "skip_empty (11.7.0): a poll's shape; entries_skipped and the empty answer when the day held no roster move, the full read when it did"
     }
   ],
   "players_collection": [
