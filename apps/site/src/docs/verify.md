@@ -91,8 +91,8 @@ not charged to your daily live-fetch allowance. Starts are limited to a
 few an hour, for each account and for each player, so the wizard cannot
 be used to make the collectors read somebody's log on a loop. A player's log is read for
 verification at most 120 times a day, across every challenge for that
-tag, whoever opened it: about one and a half hours of a watched
-challenge. Past that the challenge stays open, the page says so, and the
+tag, whoever opened it, and removing and adding the player again does not
+reset the count: about one and a half hours of a watched challenge. Past that the challenge stays open, the page says so, and the
 check waits for the player's regular recording until the reads come
 back within a day.
 

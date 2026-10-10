@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { migrate } from "../../../services/migrate/src/migrate.mjs";
 import { processResult } from "../../ingest/src/pipeline.mjs";
-import { makeLive, livePathToJob } from "../src/live.mjs";
+import { makeLive, livePathToJob, requestFirstRead } from "../src/live.mjs";
 import { enqueueJob } from "../../ledger/src/ledger.mjs";
 import { makeRegistry } from "../src/tools.mjs";
 import { makeInvoker } from "../src/invoker.mjs";
@@ -844,4 +844,72 @@ test("live_fetch of a race in matchmaking serves the API's body as no race yet, 
     [clanTag],
   );
   assert.deepEqual({ ...n }, { receipts: 0, held: 1 });
+});
+
+test("free first reads are bounded per person per UTC day, agents included: cycling fresh tags stops minting at the pool's player slots (#371 review)", async () => {
+  const day = new Date().toISOString().slice(0, 10);
+  // A member with three player slots, and one agent spending them too.
+  const { rows: people } = await db.query(
+    `insert into account (email_hash, status, role, max_player_recordings)
+     values ('first-read-person', 'approved', 'member', 3) returning account_id`,
+  );
+  const personId = people[0].account_id;
+  const { rows: agents } = await db.query(
+    `insert into account (email_hash, status, role, kind, owned_by_account_id, public_id)
+     values ('first-read-agent', 'approved', 'member', 'agent', $1, 'f1r57ead0001')
+     returning account_id`,
+    [personId],
+  );
+  const agentId = agents[0].account_id;
+  const live = makeLive({ enqueue: enqueueJob });
+  const tags = ["#2PYLQ0", "#2PYLQ2", "#2PYLQ8", "#2PYLQ9", "#2PYLQP"];
+  const jobsFor = async (keys) =>
+    (
+      await db.query(
+        `select count(*)::int as n from job where endpoint = 'player' and entity_key = any($1)`,
+        [keys],
+      )
+    ).rows[0].n;
+
+  // Add, remove, add a fresh tag: each add is a new tag and asks.
+  for (const [tag, who] of [
+    [tags[0], personId],
+    [tags[1], agentId],
+    [tags[2], personId],
+  ]) {
+    const r = await requestFirstRead(db, live, tag, who);
+    assert.equal(r.requested, true, `${tag} gets its first read`);
+  }
+  // The pool's three are spent: the fourth fresh tag mints nothing, and
+  // the global token it took goes back.
+  const before = await tokens();
+  const spent = await requestFirstRead(db, live, tags[3], agentId);
+  assert.deepEqual(spent, { requested: false, reason: "first_reads_spent" });
+  assert.equal(await tokens(), before, "the token is given back");
+  assert.equal(await jobsFor(tags), 3);
+  const { rows: bucket } = await db.query(
+    `select bucket from rate_limit where bucket like 'firstread#%' and window_start = $1::date
+       and bucket in ($2, $3)`,
+    [day, `firstread#${personId}`, `firstread#${agentId}`],
+  );
+  assert.deepEqual(
+    bucket.map((b) => b.bucket),
+    [`firstread#${personId}`],
+    "one bucket, the person's",
+  );
+
+  // A tag with an open job asks nothing new and costs nothing.
+  const open = await requestFirstRead(db, live, tags[0], personId);
+  assert.equal(open.requested, true);
+  assert.equal(await jobsFor(tags), 3);
+
+  // The next UTC day the pool has its first reads again.
+  await db.query(
+    `update rate_limit set window_start = window_start - interval '1 day'
+      where bucket = $1`,
+    [`firstread#${personId}`],
+  );
+  const tomorrow = await requestFirstRead(db, live, tags[4], personId);
+  assert.equal(tomorrow.requested, true);
+  assert.equal(await jobsFor(tags), 4);
 });

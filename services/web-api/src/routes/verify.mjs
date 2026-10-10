@@ -18,7 +18,8 @@ import { drawTarget, deckIds, deckKey } from "./verify-draw.mjs";
  * Reads go through the live lane like `live: true` on battles_query, but
  * with NO quota hook: a person proving who they are may hold no tier.
  * What bounds them instead is per tag: LIVE_READS_PER_TAG_PER_DAY across
- * every challenge for it (#130).
+ * every challenge for it (#130), counted in a ledger that outlives the
+ * challenges (READ_LEDGER).
  * The challenge row carries the job it asked for, and api_receipt.job_id
  * (0041) says a fetch was a verification read. The browser never causes
  * a fetch directly: the poll route mints at most one live read every
@@ -121,13 +122,29 @@ async function battlelogReadAt(db, tag) {
   return rows[0]?.fetched_at ?? null;
 }
 
+/** The tag's verification reads live in a ledger of their own:
+ *  rate_limit rows keyed `verify-read#<tag>`, one per clock hour (kept a
+ *  week). A challenge row is deleted with its claim (0080, on delete
+ *  cascade), so a sum over claim_challenge.live_reads went back to zero
+ *  when the player was removed and added again, and the ceiling with it
+ *  (#136 review). */
+const READ_LEDGER = "verify-read#";
+
+async function chargeLiveRead(db, tag) {
+  await checkRateLimit(db, {
+    bucket: `${READ_LEDGER}${tag}`,
+    max: LIVE_READS_PER_TAG_PER_DAY,
+  });
+}
+
 /** Whether this tag has had its day's verification reads, across every
- *  challenge any account opened for it. */
+ *  challenge any account opened for it, deleted ones included: the
+ *  current clock hour and the 23 before it. */
 async function liveReadsSpent(db, tag) {
   const { rows } = await db.query(
-    `select coalesce(sum(live_reads), 0)::int as n from claim_challenge
-      where player_tag = $1 and created_at > now() - interval '24 hours'`,
-    [tag],
+    `select coalesce(sum(count), 0)::int as n from rate_limit
+      where bucket = $1 and window_start > now() - interval '24 hours'`,
+    [`${READ_LEDGER}${tag}`],
   );
   return rows[0].n >= LIVE_READS_PER_TAG_PER_DAY;
 }
@@ -456,12 +473,14 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
       const read = capped
         ? { pending: false, jobId: null }
         : await requestRead(db, tag);
-      if (read.pending)
+      if (read.pending) {
         await db.query(
           `update claim_challenge set live_job_id = $2, live_requested_at = now(), live_reads = 1
             where challenge_id = $1`,
           [created[0].challenge_id, read.jobId],
         );
+        await chargeLiveRead(db, tag);
+      }
       await logEvent(db, account.accountId, "verify_started", {
         player_tag: tag,
       });
@@ -563,6 +582,7 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
             where challenge_id = $1`,
           [row.challenge_id, read.jobId],
         );
+        if (read.jobId !== null) await chargeLiveRead(db, row.player_tag);
       } else {
         const { rows: openJob } = await db.query(
           `select 1 from job where endpoint = 'player_battlelog' and entity_key = $1
