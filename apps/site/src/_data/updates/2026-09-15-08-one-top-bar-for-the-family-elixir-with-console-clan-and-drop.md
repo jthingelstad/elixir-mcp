@@ -1,0 +1,3 @@
+# One top bar for the family: Elixir, with Console, Clan and Drop
+
+The bar now reads Elixir, and its right-hand side carries the family's three products as buttons: Console (this record's own pages), Clan (clan.poapkings.com) and Drop (drop.poapkings.com, which opens in a new window and says so). The one you are inside is green; the others are gold, the way over. The same bar, with the same tabs, is drawn on the documentation pages, in the console and in Elixir Clan, so moving between them never changes the shape of the page. The service is still Elixir MCP; the wordmark names the family it belongs to.

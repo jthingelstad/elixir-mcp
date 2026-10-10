@@ -1,0 +1,3 @@
+# Ladder: your season, read back
+
+Ladder opens at /ladder, beside the console and signed in like it: the current season of one of your players, as Elixir recorded it, one mode at a time. Trophy Road, Path of Legends, war and events each have their own tab and nothing pools across them. The season home shows the season so far in that mode: battles, record, win rate and the trophies you ranged over, a note when you stood on an arena floor where losses cost nothing, the season week by week, and the deck you played most in the last 30 days with its record in each mode. Every number is one the tools return; Ladder adds no verdict and no advice. It opens on the mode you played most, and on your primary player, with your alts a click away. No change to the tools.

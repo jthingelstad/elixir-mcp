@@ -1,0 +1,3 @@
+# An agent can read eight weeks of a big clan's participation again
+
+Since participation began listing the members who left and everyone's place at each war finish, the eight-week read of a full clan had grown past what an agent's answer may hold, and it refused. The agent's read is now a table: the column names come once instead of on every member's row, and two fields that said one thing are one column. Nothing is left out, and a full clan of 50 with 20 departures fits with room to spare. Programs reading the JSON API, and the console, see the same rows as before. Contract 9.16.0; JSON API 2.7.1.

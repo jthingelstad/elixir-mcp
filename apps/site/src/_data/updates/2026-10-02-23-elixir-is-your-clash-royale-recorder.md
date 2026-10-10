@@ -1,0 +1,3 @@
+# Elixir is your Clash Royale recorder
+
+About Elixir now starts with what it is for: recording your own play, your friends and your clan, sending notifications, making the record available to agents, and a dashboard where you can explore what happened. Clan and Ladder are features inside Elixir. The agreed right-sizing retires game-wide meta statistics, gameplay recommendations and named recording Collections. Existing primary, alt, friend and watching relationships remain. This update records the direction; runtime removal follows, and no recording, tools, email delivery or stored data has changed in this update.

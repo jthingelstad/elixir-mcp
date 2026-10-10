@@ -1,0 +1,3 @@
+# A Support page, and what sponsoring does not buy
+
+Elixir is free to use and independently run, and there is now a page that says what keeping it going costs and how to help pay for it: GitHub Sponsors at three suggested amounts, with running a collector set beside it as the other way to contribute. The page is mostly a promise repeated three times — sponsorship gives no extra quota, retention, features or priority, at any amount, because Supercell's Fan Content Policy forbids selling access and reading is universal here by design. Collectors are the one contribution that does change an account, and the page says so plainly rather than letting the two blur. The corpus counters on it are the same ones the Data page reads, from the same build-time bake.

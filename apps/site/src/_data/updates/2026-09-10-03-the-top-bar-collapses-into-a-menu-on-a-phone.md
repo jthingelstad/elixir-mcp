@@ -1,0 +1,3 @@
+# The top bar collapses into a menu on a phone
+
+Six tabs, a wordmark and a Console button do not fit on a phone. The tabs now collapse behind one button on the right, and the sheet drops below the bar rather than covering the page — six links is a menu, not a modal. The Console button stays on the bar at every width: it is the way into the product, and putting it behind a menu would cost a tap on the one thing most people came for. Both halves of the site render the same markup at every width and let a single media query decide which is showing, so the bar you see on a marketing page and the bar you see in the console are the same bar. With JavaScript off the six links are still in the page and still work.

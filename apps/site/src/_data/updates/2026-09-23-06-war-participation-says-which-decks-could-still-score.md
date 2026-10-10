@@ -1,0 +1,3 @@
+# War participation says which decks could still score
+
+When a clan's boat crosses the finish line early, the war keeps going for the members who still have decks, but those decks earn nothing. In each of the last two war weeks, 15 to 19 per cent of the decks POAP KINGS played came after the finish, so a member with four decks and zero points had not played badly. The race was already won. clans_participation now marks the weeks that finished early and the day it happened, and gives each member a war_scoring_decks count to divide points by. The clan's daily series now marks today's point as still in progress, and says so on days when not every member's profile was read. The roster's summary and full views finally carry the same role counts. Contract 6.23.0.

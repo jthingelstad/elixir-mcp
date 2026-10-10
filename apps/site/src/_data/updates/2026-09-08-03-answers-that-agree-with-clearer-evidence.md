@@ -1,0 +1,3 @@
+# Answers that agree, with clearer evidence
+
+Performance summaries now count the whole period you ask about, including histories longer than 2,000 battles. Freshness follows the data used: a recent profile poll can no longer make an old battle log look current, and war answers show when the race was last observed. Coverage compares battles over the actual time between profile observations instead of treating several days as one, and later-arriving battles improve that estimate automatically. Results too large to deliver now fail clearly with a traceable request ID. The methodology explains the statistics currently served and distinguishes descriptive comparisons from proof of improvement.

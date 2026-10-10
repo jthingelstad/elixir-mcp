@@ -1,0 +1,3 @@
+# The timeline reads newest first, like a newsfeed
+
+The timeline is a stream of what is new, so it now leads with what happened most recently everywhere you read it: elixir_timeline, the console's Timeline and each agent's, the moments in the Wednesday Tracking report, the joins, departures and role changes in the Monday clan report, and milestones of equal weight in a milestone note. When a window holds more than the timeline can show at once, it keeps the newest and counts the rest, so an agent catching up after days away lands on what is happening now; the per-player and per-clan summaries still cover the whole window, and the older items can still be read by asking for that window. Contract 7.0.0.

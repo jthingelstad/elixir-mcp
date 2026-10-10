@@ -1,0 +1,3 @@
+# Elixir Clan's clan page, redrawn
+
+A clan's page in Elixir Clan has the new design. It opens with what the game says the clan asks of a joiner and the clan's own figures as tiles: members by role, clan war trophies with the latest race result, and donations a week. The roster sits in a panel you can search by name or tag, with the longest rosters showing the first 25 and the rest a click away. Beside it are the clan's comings and goings, who joined or came back, who departed and how its races finished, in your own time zone, and once the clan's policy is on, a panel to spread the word with the clan's description, its tag to copy and a line for clan chat. Nothing about who sees what has changed. No change to the tools.

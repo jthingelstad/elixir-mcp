@@ -1,0 +1,3 @@
+# Leaderboards: ties, and events that have closed
+
+The Elixir Gym's first run over the ranking tools. The global clan ladder has hundreds of clans tied at the top clan score, and the game lists them in its own order, so the ladder now says they are tied instead of letting rank 1 read as a winner. The mode leaderboards (Merge Tactics and the other event boards) no longer describe themselves as Path of Legends, and each now says when its standings last moved. Several share a name, and a closed event keeps refreshing its players' clans, so without that it looked like today's leaderboard. Contract 6.28.0.

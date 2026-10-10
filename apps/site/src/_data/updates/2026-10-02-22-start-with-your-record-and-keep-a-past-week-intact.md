@@ -1,0 +1,3 @@
+# Start with your record, and keep a past week intact
+
+Overview links the setup steps still waiting for you and offers a first question matched to the history already recorded. A connected client and a successful data read are separate checks; a profile is enough to start, and a clan is optional. The quickstart fits a phone even where a URL is long. A clan's historical presence now reads who belonged during the requested window, so later departures and future joins do not change that past window's quiet crossings or returns. Card meta, card partners and weekly trends do less repeated database work while preserving their counts and forms. Contracts 9.19.1 through 9.19.3; no JSON API change.

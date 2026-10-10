@@ -1,0 +1,3 @@
+# Each of your agents has its own console
+
+The top of the console's menu is now an account selector: you, and each agent you own. Choosing an agent opens its own console, the same pages scoped to it: its overview (its key, its last call, anything refusing it, and the address to connect it at), its timeline, the calls it made, its share of your daily budget, the clients connected as it, its settings, and the feedback it has filed. Until now an agent's calls and feedback could not be read anywhere in the console. Pages that belong to a person, like Verify and Profile, are not in an agent's console, and Explore and Status stay in yours. Clients connected as an agent now appear on that agent's console rather than on yours, and new feedback is always filed as you.

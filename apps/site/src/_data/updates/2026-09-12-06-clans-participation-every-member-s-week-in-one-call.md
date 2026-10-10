@@ -1,0 +1,3 @@
+# clans_participation: every member's week, in one call
+
+A clan's own participation rules need the same few facts about every member: battles and ranked battles per week, the donation counter at week end, war decks per day, when the record first saw them, when they last played. Getting those for fifty members meant a call per member. clans_participation answers all of it for every open member in one call, per ISO week for up to eight weeks, with each war week's per-day decks where a poll saw the day and null where none did, and the recording horizon stated (tenure_known is false for anyone already present at the first roster poll). It measures and never rates: no score, no threshold, no rank. Elixir Clan reads it to run a clan's policy; any consumer can.

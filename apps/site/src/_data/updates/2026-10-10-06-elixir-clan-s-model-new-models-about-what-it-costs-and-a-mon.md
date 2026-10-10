@@ -1,0 +1,3 @@
+# Elixir Clan's model: new models, about what it costs, and a monthly cap
+
+The clan's model list in Settings was meant to refresh itself about once a day, and it never did: each refresh stopped before it asked Anthropic. It now works, so a key added before Claude Haiku 5.5 and Claude Sonnet 5.5 offers them the next time a leader opens Settings, and the chosen model still never changes by itself. Settings also shows about what each use and the month cost, from the tokens at Anthropic's list prices. The leader or a co-leader can set a monthly cap in dollars: once the month's estimate reaches it, the model drafts nothing more until the cap is raised or removed or the month turns. MCP 11.7.1 and JSON API 3.1.0 unchanged.

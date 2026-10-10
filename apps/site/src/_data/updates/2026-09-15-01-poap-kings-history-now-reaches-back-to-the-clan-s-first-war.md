@@ -1,0 +1,3 @@
+# POAP KINGS history now reaches back to the clan's first war
+
+The clan's own recorder kept six months of raw reads the record had never seen. They were replayed through the same admission as a live fetch, with their original fetch times: battles from January, daily snapshots and profiles from March 7, every war week from season 129 (February 16) with its standings and participation, per-day war attendance from March, the game-events calendar from June, and observed membership tenure from March 12 - first_observed_in_clan on clans_roster and clans_participation now says when a member was first seen, not when this record started. elixir_coverage and war_history state the horizon; a week with points but null war days is coverage, not absence.

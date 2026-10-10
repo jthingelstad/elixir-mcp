@@ -1,0 +1,3 @@
+# Send feedback from Ladder and Elixir Clan, and get the answer by email
+
+Send feedback now sits at the foot of Ladder's and Elixir Clan's rail as well as the Console's, and Elixir Clan adds Report this beside an action, Standing and the award races, carrying the thing on screen with your note. Clan's separate feedback pages are gone: everything you send is in Console ▸ Feedback, where an item's page shows the whole thread and a Reply answers an answer. When the maintainer answers, the answer comes to your inbox too, unless you have already read it: Answers to your feedback is a new email switch, on by default. MCP 11.3.0 and JSON API 3.1.0 unchanged.

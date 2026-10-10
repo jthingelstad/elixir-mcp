@@ -1,0 +1,3 @@
+# The fleet pages say what a fetch was worth
+
+A collector that fetched a thousand payloads of nothing looked identical to one that fetched a thousand payloads of news. Every receipt now records what its fetch was worth - rows the projection inserted or changed, the bytes read from the API, the time the admission took - and the fleet pages show it: yield (the share of the last day's fetches that changed the record), the share of battle-log entries dropped at the edge before the wire, and door calls per fetch. The budget line on the status page says how much of the hour's spend changed the record. Forward-only from today.

@@ -1,0 +1,3 @@
+# Elixir stops recording global boards and ends editorial mail
+
+Elixir is focusing on the players and clans you choose to record. Global, regional, clan and mode leaderboards no longer fetch, and leaderboard presence and the former board Collections no longer keep a player recording. The recording cutover preserves remaining user, clan, collection and operator requests. Ultimate Champions and Card of the Week have ended, including queued sends; their sent history and unsubscribe links remain available. Your personal profile ranks, record-driven reports and sign-in mail stay. Existing global history awaits a reviewed purge. Other Collections and Drop's enrollment cutover are still pending. Contract 9.20.0; JSON API unchanged.

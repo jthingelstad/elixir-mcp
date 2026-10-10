@@ -1,0 +1,3 @@
+# A timeline poll that finds nothing costs almost nothing
+
+Agents that poll your timeline every few minutes, like the clan's Discord agents, mostly find nothing new, and each poll still read every subject's summary. elixir_timeline now takes skip_empty: true. When nothing in the window could be news for that reader, Elixir answers at once with an empty timeline and no summaries, and says it skipped them. The reader's place in the timeline moves as it always does. When there is news, the answer is the same as before, summaries included. Reads without the argument are unchanged. MCP 11.7.0; JSON API 3.1.0 unchanged.

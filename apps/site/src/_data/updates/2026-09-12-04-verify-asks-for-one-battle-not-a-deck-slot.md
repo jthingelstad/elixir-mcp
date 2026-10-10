@@ -1,0 +1,3 @@
+# Verify asks for one battle, not a deck slot
+
+The first Verify waited for your profile's current deck to show the eight cards. On the owner's own account it never did: the API kept reporting the old deck for over an hour after the slot was selected, with the game closed. The battle log has no such lag, so Verify now asks you to play one battle with the deck, any 1v1, win or lose, and shows that battle's result as the proof. Challenges stay open for an hour, a restart hands back the same eight cards for a day, the page lists only your primary player and your alts (players are added under Tracking), the unlock says how many seconds after the battle Elixir saw it, and verified players carry a checkmark wherever they are listed.

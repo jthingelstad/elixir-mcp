@@ -1,0 +1,3 @@
+# Participation shows who was in the clan, and as what, at each war finish
+
+A clan's participation read used to apply today's roster and roles to every past war week, so a member promoted last week looked like an Elder all along, and a member who had left was simply missing. Each member now carries whether they were in the clan and their role at each war finish, the role changes seen in the window, and the members who left during it are listed with the same weekly figures, counted in this clan only. Where the record cannot say, because the roster changed between two reads around a finish or the finish predates recorded roles, the entry is empty rather than guessed. Contracts 9.13.0; JSON API 2.7.0.

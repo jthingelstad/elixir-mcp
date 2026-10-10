@@ -1,0 +1,3 @@
+# A busy moment no longer costs a collector its fetch
+
+When two collectors handed in overlapping battle logs at the same moment, the database could refuse one of them, and that fetch was thrown away and made again later. The recorder now tries it once more on the spot, and the daily battle totals it keeps for each player are updated in one fixed order, which removes a likely cause of those refusals. The archive of everything the game sent is now write-once: an object in it can be added but never replaced. Operators: config's submit_retry now names retry_statuses (429), so a collector release that reads it retries a momentary throttle inside the lease instead of letting the lease expire. No change to the tools.

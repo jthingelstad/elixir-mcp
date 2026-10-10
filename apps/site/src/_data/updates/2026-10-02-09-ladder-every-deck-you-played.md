@@ -1,0 +1,3 @@
+# Ladder: every deck you played
+
+Ladder has a Decks page, at /ladder/decks: every deck you played this season, each judged in the mode it was played in. Trophy Road and Path of Legends show each deck with its eight cards, its evolutions, the days you played it, its average elixir, and its record, win rate and level gap in that mode. When two decks are the same cards with an evolution moved and one followed the other, the page draws the swap: what moved, what stayed, and each deck's own record, without saying the change caused it. War, duels and events sit in one table, a row per deck per mode, with duel rounds counted as rounds. No change to the tools.

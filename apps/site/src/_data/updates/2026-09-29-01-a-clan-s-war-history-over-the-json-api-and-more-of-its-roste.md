@@ -1,0 +1,3 @@
+# A clan's war history over the JSON API, and more of its roster
+
+Programs reading Elixir's JSON API can now read a clan's recorded war weeks, the same record war_history gives an agent: each week's final rank, boat fame, war trophies and trophy change, over up to twelve seasons. The roster adds what the clan asks of a joiner and its donations per week, and gives each member this week's cards received, their place in the clan's list, their arena and their favorite card. clans_roster adds the clan's two figures for agents too; the member figures stay off the agent's roster, which a full clan already fills close to its size limit.

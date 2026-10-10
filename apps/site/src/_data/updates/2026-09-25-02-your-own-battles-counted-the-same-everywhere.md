@@ -1,0 +1,3 @@
+# Your own battles, counted the same everywhere
+
+A boat defense, where an enemy attacked your clan's boat and the defense deck answered, is no longer counted as one of your battles in performance, comparisons, trends, card and deck stats, or clan participation. When a record mixes game modes, the answer now shows each mode family and says it pooled them, and the weekly arena mail does the same. On your own connection you are yourself: your agent no longer sees the tools for mapping other people, and leaving out a clan means your primary player's clan. You cannot remove your primary player while you track others; make another player primary first, from the player's page. Only Elixir's own apps, like Elixir Drop, can ask for your email address when you sign in.

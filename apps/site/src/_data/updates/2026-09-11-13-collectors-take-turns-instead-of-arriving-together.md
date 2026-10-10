@@ -1,0 +1,3 @@
+# Collectors take turns instead of arriving together
+
+Told the same fifteen seconds from the same empty queue, every collector in the fleet came back on the same second and hit the door as a pack after each scheduler tick. The door now gives each active collector its own slot in the idle cycle, evenly spaced across the fleet and measured against the clock rather than against the last call: five collectors check in one every three seconds, a collector that just drained a burst of work falls straight back into its own slot, and a machine joining or leaving re-spaces the rest within a cycle. Nothing to update on a collector - it already sleeps exactly what the door says.

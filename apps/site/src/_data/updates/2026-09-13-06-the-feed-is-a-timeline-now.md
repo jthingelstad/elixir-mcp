@@ -1,0 +1,3 @@
+# The feed is a timeline now
+
+elixir_events is elixir_timeline. It answers what happened to the players and clans you track since your read pointer, as items in order: a battle session (a gap of 30 minutes breaks one; single battles never appear), a badge by name, an arena or ranked move, a new best, a card unlocked, a join, a departure, a role change, the boat crossing the line, a week resolving, a member crossing a quiet rung or coming back, and your own account events. Every item is a sentence a person can read with its facts beside it. The per-subject entries stay as the summary of the same window. mark_read moves the pointer to the top; a dry run passes false. The console's Activity page shows the same timeline.

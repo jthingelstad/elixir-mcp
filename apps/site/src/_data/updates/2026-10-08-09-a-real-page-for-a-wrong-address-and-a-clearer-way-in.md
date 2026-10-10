@@ -1,0 +1,3 @@
+# A real page for a wrong address, and a clearer way in
+
+An address that leads nowhere now answers with an Elixir page and a true 404, with the way back to the home page, the docs and the Console, instead of a bare storage error. Ladder, signed out, says what it reads back and offers Create your account, which brings you back to the Ladder page you asked for; Elixir Clan's signup link does the same for Clan. The home page and Ladder link a recorded battle, so you can see one before you sign up. Every browser tab now ends in Elixir, the product-news checkbox sits beside its label, and Updates prints tool names such as players_summary with their underscores. MCP 11.3.0 and JSON API 3.1.0 unchanged.
