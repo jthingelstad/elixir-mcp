@@ -19,7 +19,8 @@ Elixir Clan's views. Read `packages/clan/AGENTS.md` first, and
   text, a tag or a URL. The events, which this list must match:
   `clan.action_commented`, `clan.action_link_copied`, `clan.award_granted`,
   `clan.awards_saved`, `clan.away_cleared`, `clan.away_set`,
-  `clan.copy_in_game`, `clan.feedback_answered`, `clan.feedback_sent`,
+  `clan.copy_in_game`, `clan.discord_nudge`, `clan.discord_removed`,
+  `clan.discord_set`, `clan.feedback_answered`, `clan.feedback_sent`,
   `clan.hold_set`, `clan.model_drafted`, `clan.model_key_removed`,
   `clan.model_key_set`, `clan.note_added`, `clan.place_cleared`,
   `clan.place_set`, `clan.policy_preset`, `clan.policy_previewed`,

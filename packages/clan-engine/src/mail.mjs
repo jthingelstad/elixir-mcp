@@ -20,7 +20,9 @@ export const ACTIONS_MAIL_KIND = "clan_actions_waiting";
 export const MAIL_MAX_LINES = 10;
 
 const labelOf = actionLabel;
-const lineOf = (c) =>
+/** An action in one line: its number, its label and the member it is
+ *  about. The email and the Discord post say it the same way. */
+export const actionLine = (c) =>
   `${Number.isInteger(c.number) ? `#${c.number} ` : ""}${
     c.player_name && ACTION_TYPES[c.type]?.audience !== "member"
       ? `${labelOf(c)}: ${c.player_name}`
@@ -64,12 +66,12 @@ export function actionsWaitingMail({
     if (!fresh.size) continue;
     const lines = mine
       .slice(0, MAIL_MAX_LINES)
-      .map((c) => `${lineOf(c)}${fresh.has(c.card_id) ? " (new)" : ""}`);
+      .map((c) => `${actionLine(c)}${fresh.has(c.card_id) ? " (new)" : ""}`);
     if (mine.length > MAIL_MAX_LINES)
       lines.push(`And ${mine.length - MAIL_MAX_LINES} more.`);
     const subject =
       mine.length === 1
-        ? `${lineOf(mine[0])} (${clan})`
+        ? `${actionLine(mine[0])} (${clan})`
         : `${mine.length} actions waiting for you in ${clan}`;
     out.push({
       player_tag: who.player_tag,

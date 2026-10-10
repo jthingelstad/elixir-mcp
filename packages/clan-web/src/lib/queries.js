@@ -37,6 +37,7 @@ export const keys = {
   sharing: (tag) => ["me", "clan", "record", tag, "sharing"],
   map: (tag) => ["me", "clan", "record", tag, "map"],
   social: (tag) => ["me", "clan", "record", tag, "social"],
+  discord: (tag) => ["me", "clan", "record", tag, "discord"],
   standing: (tag) => ["me", "clan", "record", tag, "standing"],
   trophies: (tag) => ["me", "clan", "record", tag, "trophies"],
   actions: (tag) => ["me", "clan", "record", tag, "actions"],
@@ -148,6 +149,11 @@ export const useRecruit = (tag) =>
 /** The clan's own model: its key (never the key itself) and its uses. */
 export const useModel = (tag) =>
   useGated(keys.model(tag), () => manageApi.model(tag));
+
+/** Actions in the clan's Discord: whether a webhook is connected, and by
+ *  whom (never the webhook itself). */
+export const useDiscord = (tag) =>
+  useGated(keys.discord(tag), () => manageApi.discord(tag));
 
 /** What the clan records in Elixir, and who sees it there (read-only). */
 export const useSharing = (tag) =>

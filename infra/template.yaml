@@ -383,6 +383,20 @@ Resources:
                   Action: s3:GetObject
                   Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/reply/*
                 - !Ref AWS::NoValue
+              # Actions in a clan's Discord (2026-10-10): posts and edits
+              # go to the relay the same way, and their answers come back.
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/request/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/reply/*
+                - !Ref AWS::NoValue
               # A battle's public page (2026-10-01): the app shell it is
               # served in, and the card art its share picture draws,
               # read from the site bucket. Read only; the site is
@@ -560,6 +574,34 @@ Resources:
                 Action: s3:PutObject
                 Resource:
                   - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
+              # The morning run's Actions in a clan's Discord (2026-10-10):
+              # posts and edits to the relay, and their answers back. A
+              # missing answer is confirmed with an exact-key, one-result
+              # list, as the relay does.
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/request/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/reply/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:ListBucket
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
+                  Condition:
+                    StringLike:
+                      s3:prefix:
+                        - clan-discord/reply/*
+                    NumericLessThanEquals:
+                      s3:max-keys: "1"
+                - !Ref AWS::NoValue
               # Card art in mail (2026-10-08): whether the site's
               # mirror holds an Evo or Hero image, so a form Supercell
               # has not published yet draws the base card. Read only
@@ -602,6 +644,14 @@ Resources:
               Queue: !GetAtt EmailQueue.Arn
               Filter:
                 S3Key: { Rules: [{ Name: prefix, Value: clan-model/request/ }] }
+            - !Ref AWS::NoValue
+          - !If
+            - HasInternalClan
+            - Event: s3:ObjectCreated:*
+              Queue: !GetAtt EmailQueue.Arn
+              Filter:
+                S3Key:
+                  { Rules: [{ Name: prefix, Value: clan-discord/request/ }] }
             - !Ref AWS::NoValue
 
   # S3 may notify the two lanes' queues, and only from the outbox. The
@@ -667,6 +717,8 @@ Resources:
                       s3:prefix:
                         - clan-model/reply/*
                         - clan-model/claim/*
+                        - clan-discord/reply/*
+                        - clan-discord/claim/*
                     NumericLessThanEquals:
                       s3:max-keys: "1"
                 - !Ref AWS::NoValue
@@ -687,6 +739,21 @@ Resources:
                   Resource:
                     - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/claim/*
                     - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/reply/*
+                - !Ref AWS::NoValue
+              # Actions in a clan's Discord (2026-10-10): the same lane.
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource:
+                    - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/claim/*
+                    - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/reply/*
                 - !Ref AWS::NoValue
               # Send as elixir@poapkings.com and nothing else: the identity
               # and the configuration set are the only resources, and the
@@ -1101,6 +1168,13 @@ Resources:
           # one the web API verifies it with).
           OUTBOX_BUCKET: !Ref OutboxBucket
           CLAN_INTERNAL: !Ref ClanInternal
+          # Seals a clan's Discord webhook into the morning run's posts.
+          CLAN_MODEL_SECRET:
+            !If [
+              HasInternalClan,
+              !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:clan_sealing_secret}}",
+              !Ref AWS::NoValue,
+            ]
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           UNSUBSCRIBE_SECRET: !If
             - HasUnsubscribeKey

@@ -12,6 +12,9 @@ import {
   fetchParticipation,
 } from "@elixir-mcp/clan/manage/service.mjs";
 import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
+import { createDiscordService } from "@elixir-mcp/clan/manage/discord.mjs";
+import { createDiscordBridge } from "@elixir-mcp/clan/discord-bridge.mjs";
+import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 import {
   writeClanFactAsApp,
   removeClanFactAsApp,
@@ -39,6 +42,7 @@ export async function evaluateClanTick(
   {
     manage,
     awards,
+    discord = null,
     state = createPostgresStore(db),
     ledger = createPostgresLedger(db),
     credential = Object.freeze({}),
@@ -98,6 +102,10 @@ export async function evaluateClanTick(
       const evaluated = await manage.evaluateOnSchedule(clan, credential);
       const awarded = await awards.evaluateOnSchedule(clan, credential);
       const mailed = await manage.mailActionsWaiting(clan, credential);
+      // Best effort: a Discord that does not answer never holds the run.
+      const posted = discord
+        ? await discord.share(clan).catch(() => ({ discord_error: true }))
+        : {};
       if (
         awarded.standings_failed ||
         awarded.awards_error ||
@@ -113,7 +121,15 @@ export async function evaluateClanTick(
         attempt,
         completed_at: new Date(now()).toISOString(),
       });
-      return { due: 1, ok: true, attempt, ...evaluated, ...awarded, ...mailed };
+      return {
+        due: 1,
+        ok: true,
+        attempt,
+        ...evaluated,
+        ...awarded,
+        ...mailed,
+        ...posted,
+      };
     } catch (e) {
       const skipped = ["no_policy", "too_few_members"].includes(e.code);
       const current = await state.get(`morning#${clan}`);
@@ -138,6 +154,9 @@ export async function runClanEvaluation({
   enqueue,
   secret,
   archive,
+  /** The sealing secret and the outbox, for Actions in a clan's Discord */
+  sealingSecret = null,
+  outboxBucket = null,
 }) {
   const db = new pg.Client({ connectionString: databaseUrl });
   await db.connect();
@@ -186,14 +205,27 @@ export async function runClanEvaluation({
     });
     await expireModelUses(db);
     const ledger = createPostgresLedger(db);
+    const appUrl = "https://elixir.poapkings.com/clan";
     return await evaluateClanTick(db, {
       ledger,
       credential,
+      discord:
+        sealingSecret && outboxBucket
+          ? createDiscordService({
+              ledger,
+              secret: sealingSecret,
+              appUrl,
+              bridge: createDiscordBridge({
+                secret: sealingSecret,
+                storage: modelStorage(outboxBucket),
+              }),
+            })
+          : null,
       manage: createManageService({
         ledger,
         mcp,
         activityFor: (tag, tags) => clanActivityEvidence(db, tag, tags),
-        appUrl: "https://elixir.poapkings.com/clan",
+        appUrl,
       }),
       awards: createAwardsService({
         ledger,

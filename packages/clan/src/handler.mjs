@@ -37,6 +37,8 @@ export function createHandler({
   drafts = null,
   /** the clan's Social section: the clan map (`manage/social.mjs`) */
   social = null,
+  /** Actions posted to the clan's Discord (`manage/discord.mjs`) */
+  discord = null,
   memberActivity = null,
   now = () => Date.now(),
   log = console,
@@ -494,6 +496,22 @@ export function createHandler({
         }
         return json(400, { error: "bad_request" });
       }
+      // Actions in the clan's Discord: leaders connect and remove the
+      // webhook. Any clan, with or without a policy, like the model.
+      if (discord && rest === "/discord") {
+        if (method === "GET") return json(200, await discord.status(tag, who));
+        if (method === "PUT")
+          return json(
+            200,
+            await discord.setWebhook(tag, who, {
+              url: body.url,
+              clanName: clan.name ?? null,
+            }),
+          );
+        if (method === "DELETE")
+          return json(200, await discord.removeWebhook(tag, who));
+        return json(400, { error: "bad_request" });
+      }
       // The key's model list, read again when it is due (the picker asks
       // after it has drawn; `refreshModels` bounds it to once a day).
       if (model && method === "POST" && rest === "/model/refresh")
@@ -574,9 +592,12 @@ export function createHandler({
         const view = await manage.actionsView(tag, who, token, {
           refresh: event.queryStringParameters?.refresh === "1",
         });
-        // Leaders are told whether the clan's model can draft messages.
+        // Leaders are told whether the clan's model can draft messages,
+        // and whether its Discord hears about Actions (the page nudges).
         if (model && ["leader", "coLeader"].includes(who.role))
           view.model = await model.summary(tag);
+        if (discord && ["leader", "coLeader"].includes(who.role))
+          view.discord = await discord.summary(tag);
         return json(200, view);
       }
       // One action by its number, for "take a look at action 37".
@@ -763,7 +784,7 @@ export function createHandler({
   async function dispatch(event, method, path) {
     try {
       if (
-        (manage || awards || recruit || social || memberActivity) &&
+        (manage || awards || recruit || social || discord || memberActivity) &&
         path.startsWith("/api/clans/")
       ) {
         const answered = await manageRoute(event, method, path);

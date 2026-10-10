@@ -52,6 +52,13 @@ or workflow of its own.
   The key's model list refreshes itself (`refreshModels`, at most daily,
   asked for by Settings after it draws); nothing ever changes a clan's
   saved model.
+- **Actions in Discord** go the same way, under `clan-discord/`
+  (`src/discord-bridge.mjs`, `src/discord-webhook.mjs`,
+  `src/manage/discord.mjs`): the webhook is sealed in its own item, the
+  relay claims each post or edit before calling Discord, a post whose
+  outcome is unknown is never made again, and nothing logs the webhook's
+  address. `share` runs inside the clan's lock after each request and
+  after the morning run.
 - **`ClanInternal`** (stack parameter, `CLAN_INTERNAL`) is the feature
   switch. Turning it off disables Clan's API and morning run; it never
   resumes another runtime.

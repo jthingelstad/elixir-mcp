@@ -1,4 +1,5 @@
-/** Narrow immutable object adapter. No payloads, keys or responses logged. */
+/** Narrow immutable object adapter for the outbox bridges (the clan's model
+ * and its Discord). No payloads, keys or responses logged. */
 import {
   S3Client,
   GetObjectCommand,
@@ -6,7 +7,7 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 export function modelStorage(bucket, s3 = new S3Client({ maxAttempts: 2 })) {
-  if (!bucket) throw new Error("private model bridge needs its bucket");
+  if (!bucket) throw new Error("private outbox bridge needs its bucket");
   return {
     async get(key) {
       try {
@@ -22,7 +23,7 @@ export function modelStorage(bucket, s3 = new S3Client({ maxAttempts: 2 })) {
         // denied list or a listed object keeps the original lookup failure.
         if (
           e.name === "AccessDenied" &&
-          /^clan-model\/(?:reply|claim)\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\.json$/.test(
+          /^clan-(?:model|discord)\/(?:reply|claim)\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\.json$/.test(
             key,
           )
         ) {

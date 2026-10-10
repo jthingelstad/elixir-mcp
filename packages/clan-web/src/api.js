@@ -1,5 +1,6 @@
 /** Same-origin Clan route map, using the shared session and CSRF header.
- * Model operations get a longer reply window without extending ordinary
+ * Model operations (and connecting Discord, which waits for Discord) get a
+ * longer reply window without extending ordinary
  * reads. All answers keep the family's envelope and retry rules. */
 
 import { createClient } from "@elixir-mcp/client";
@@ -17,15 +18,12 @@ const options = {
 const client = createClient(options);
 const modelClient = createClient({ ...options, timeoutMs: 30_000 });
 
+const SLOW = /\/(?:model|draft|discord)$/;
 const get = (path) => client.get(path);
 const post = (path, body) =>
-  (/\/(?:model|draft)$/.test(path) ? modelClient : client).post(path, body);
+  (SLOW.test(path) ? modelClient : client).post(path, body);
 const put = (path, body) =>
-  (/\/(?:model|draft)$/.test(path) ? modelClient : client).request(
-    "PUT",
-    path,
-    body,
-  );
+  (SLOW.test(path) ? modelClient : client).request("PUT", path, body);
 const del = (path) => client.request("DELETE", path);
 
 /** Where Clan's API answers on Elixir's origin. */
@@ -124,6 +122,10 @@ export const manageApi = {
   removeModelKey: (tag) => del(`${clanBase(tag)}/model`),
   // What the clan records in Elixir (door 3): read-only, always on.
   sharing: (tag) => get(`${clanBase(tag)}/sharing`),
+  // Actions in the clan's Discord (2026-10-10): the webhook, never shown.
+  discord: (tag) => get(`${clanBase(tag)}/discord`),
+  setDiscord: (tag, url) => put(`${clanBase(tag)}/discord`, { url }),
+  removeDiscord: (tag) => del(`${clanBase(tag)}/discord`),
   // Social (2026-09-26): the clan map, and the switch leaders turn off.
   map: (tag) => get(`${clanBase(tag)}/map`),
   social: (tag) => get(`${clanBase(tag)}/social`),

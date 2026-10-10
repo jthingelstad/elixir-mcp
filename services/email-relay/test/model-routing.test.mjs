@@ -50,3 +50,24 @@ test("private model objects never take the email or delete path; disabled transp
   );
   assert.equal(called, 1, "direct queue messages cannot call the provider");
 });
+
+test("Discord objects go to the Discord worker only; disabled transport refuses", async () => {
+  const seen = [];
+  const handler = makeHandler({
+    send: async () => assert.fail("not an email"),
+    readObject: async () => assert.fail("worker owns its reads"),
+    deleteObject: async () => assert.fail("no email deletion"),
+    modelObject: async () => assert.fail("not a model call"),
+    discordObject: async (object) => seen.push(object.key),
+  });
+  assert.deepEqual(
+    await handler(notification("clan-discord/request/test.json")),
+    { batchItemFailures: [] },
+  );
+  assert.deepEqual(seen, ["clan-discord/request/test.json"]);
+  const disabled = makeHandler({ send: async () => assert.fail("no send") });
+  assert.deepEqual(
+    await disabled(notification("clan-discord/request/test.json")),
+    { batchItemFailures: [{ itemIdentifier: "test" }] },
+  );
+});

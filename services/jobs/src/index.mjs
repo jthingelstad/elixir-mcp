@@ -325,6 +325,8 @@ export async function handler(event, context) {
       enqueue: enqueueEmail,
       secret: unsubscribeKeys(),
       archive: await mailArchiveStore(),
+      sealingSecret: process.env.CLAN_MODEL_SECRET ?? null,
+      outboxBucket: process.env.OUTBOX_BUCKET ?? null,
     });
     console.log(JSON.stringify({ clan_evaluate: result }));
     return result;

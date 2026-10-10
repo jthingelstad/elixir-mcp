@@ -177,6 +177,38 @@ function ActionList({ id, title, tone, actions, clan, navigate, foot, scope }) {
 }
 
 /**
+ * The leaders' nudge toward Actions in Discord (Jamie, 2026-10-10): shown
+ * to the leader and co-leaders while the clan has no webhook, or when
+ * Discord stopped taking the one it has. Nothing when it works.
+ */
+function DiscordNudge({ discord, to, navigate }) {
+  if (!discord || (discord.set && !discord.refused)) return null;
+  const go = (e) => {
+    if (!navigate) return;
+    e.preventDefault();
+    trackEvent("clan.discord_nudge");
+    navigate(to);
+  };
+  return (
+    <div
+      className={`callout ${discord.set ? "callout--warn" : "callout--info"} mb-4`}
+      role="status"
+    >
+      <span>
+        {discord.set
+          ? "Discord stopped accepting the clan’s webhook, so Actions are not being posted there. "
+          : "Post Actions to your leaders’ Discord channel: each new one appears there, and is marked when someone completes it. "}
+        <a href={to} onClick={go}>
+          {discord.set
+            ? "Connect it again in Settings ›"
+            : "Set it up in Settings ›"}
+        </a>
+      </span>
+    </div>
+  );
+}
+
+/**
  * Actions, for everyone in a clan with a policy: a list of what is
  * waiting for you (assigned to you, or open to your role) and what closed
  * in the last 30 days, one line each (Jamie, 2026-09-25: the page of full
@@ -260,6 +292,13 @@ export function Actions({ clan, who, navigate, scope: routeScope }) {
         </a>
         .
       </p>
+      {leads ? (
+        <DiscordNudge
+          discord={d.discord}
+          to={`${clanPath(clan.clan_tag)}/manage/settings`}
+          navigate={navigate}
+        />
+      ) : null}
       <div className="grid gap-4">
         <label className="flex items-center gap-3">
           <span className="field-label">Show</span>

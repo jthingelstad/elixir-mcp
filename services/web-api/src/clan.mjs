@@ -3,6 +3,8 @@ import { ledgerOver } from "@elixir-mcp/clan-state";
 import { createModelService } from "@elixir-mcp/clan/manage/model.mjs";
 import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
 import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
+import { createDiscordBridge } from "@elixir-mcp/clan/discord-bridge.mjs";
+import { createDiscordService } from "@elixir-mcp/clan/manage/discord.mjs";
 /** Clan inside the web API: the authenticated Elixir person, the request's
  * connected Postgres client, and the same recorded facts the public doors
  * read. There is no internal OAuth grant or HTTP round trip. */
@@ -227,8 +229,33 @@ export function createClanRequest({
             }),
           })
         : null;
+    // Actions in the clan's Discord ride the same sealed outbox bridge
+    // and secret as the clan's model.
+    const discord =
+      modelSecret && modelStorage
+        ? createDiscordService({
+            ledger,
+            secret: modelSecret,
+            appUrl,
+            bridge: createDiscordBridge({
+              secret: modelSecret,
+              storage: modelStorage,
+            }),
+            waitMs: () =>
+              Math.max(
+                1,
+                Math.min(
+                  20_000,
+                  (event.softDeadlineAt ?? Date.now() + 28_000) -
+                    Date.now() -
+                    3000,
+                ),
+              ),
+          })
+        : null;
     const handler = createHandler({
       ...context,
+      discord,
       mcp,
       manage,
       awards,
@@ -277,7 +304,16 @@ export function createClanRequest({
     if (lock) await db.query("select pg_advisory_lock(hashtext($1))", [lock]);
     const lockMs = lock ? Date.now() - lockStarted : null;
     try {
-      return await handler(event, { lockMs });
+      const response = await handler(event, { lockMs });
+      // Anything that can raise or decide an Action holds the clan's
+      // lock; still inside it, the clan's Discord is brought up to date.
+      // Best effort: the morning run sweeps again.
+      const clanTag = clan ? normalizeTag(clan) : null;
+      if (discord && clanTag && !pureView)
+        await discord.share(clanTag).catch(() => {
+          console.error("clan_discord_share_failed");
+        });
+      return response;
     } finally {
       if (lock)
         await db.query("select pg_advisory_unlock(hashtext($1))", [lock]);
