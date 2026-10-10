@@ -2,8 +2,8 @@
  * What the rail offers depends on who is looking and on the clan's policy:
  * until a leader saves one, and while the clan has fewer than 10 members,
  * only the roster, Recruit, Scout, the policy editor and clan settings
- * exist (nothing in clan management runs). Manage for leaders and
- * co-leaders, Awards for all members, Scout also for elders, Away when the policy lets
+ * exist (nothing in clan management runs). Manage and Social's Discord
+ * for leaders and co-leaders, Awards for all members, Scout also for elders, Away when the policy lets
  * members mark it. Feedback is the rail's foot, Elixir's one system
  * (2026-10-08), not an item. Two items the
  * reader can see at once never share a label.
@@ -103,6 +103,16 @@ export function railItems(me) {
       to: `${base}/recruit`,
     });
     const leader = LEADERS.has(clan.role);
+    // Discord (Jamie, 2026-10-10): the clan's activity in a channel of
+    // its own, for the leader and co-leaders, with or without a policy
+    // (without one it posts nothing, and the page says so).
+    if (leader)
+      items.push({
+        key: "discord",
+        label: "Discord",
+        icon: "message-square",
+        to: `${base}/discord`,
+      });
     const elder = ELDER_PLUS.has(clan.role);
     if (leader) {
       if (set) {
@@ -172,7 +182,7 @@ export function railKey(path) {
   if (app === "/you") return "you";
   if (app.startsWith("/you/away")) return "away";
   const m =
-    /^\/([^/]+)(?:\/(me|week|season|actions|standing|trophies|awards|recruit|map|manage)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
+    /^\/([^/]+)(?:\/(me|week|season|actions|standing|trophies|awards|recruit|map|discord|manage)(?:\/([a-z0-9-]+))?)?\/?$/.exec(
       app,
     );
   if (!m || !tagOf(m[1])) return null;
@@ -189,6 +199,7 @@ export function railKey(path) {
       "awards",
       "recruit",
       "map",
+      "discord",
     ].includes(section)
   )
     return section;

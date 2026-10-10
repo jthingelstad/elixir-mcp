@@ -2,19 +2,26 @@ import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
+import { clanPath } from "../lib/base.js";
 
 const day = (ts) => (ts ? ts.slice(0, 10) : "");
 
 /**
  * The clan's activity in its own Discord channel (Jamie, 2026-10-10):
- * Social's Discord item. A webhook of its own (not the one Actions go
+ * the body of Social ▸ Discord. A webhook of its own (not the one Actions go
  * to), the categories of the clan's timeline posted there (the policy
  * sets the defaults and can rule one out), and the clan's own model
  * rewriting the posts in a voice the leaders describe. Without the
- * clan's key the rewrite asks for one under The clan's own model. The
+ * clan's key the rewrite asks for one in Settings. The
  * webhook is kept sealed and shown only in its short form.
  */
-export function ActivityDiscordSetting({ clan }) {
+export function ActivityDiscordSetting({ clan, navigate }) {
+  const settings = `${clanPath(clan.clan_tag)}/manage/settings`;
+  const toSettings = (e) => {
+    if (!navigate) return;
+    e.preventDefault();
+    navigate(settings, { hash: "settings-model" });
+  };
   const { state } = useActivityDiscord(clan.clan_tag);
   const invalidate = useInvalidate();
   const [url, setUrl] = useState("");
@@ -272,9 +279,10 @@ export function ActivityDiscordSetting({ clan }) {
                 <span>
                   To have the posts written in the clan&rsquo;s own voice rather
                   than Elixir&rsquo;s plain lines, add the clan&rsquo;s
-                  Anthropic API key under{" "}
-                  <a href="#settings-model">The clan&rsquo;s own model</a>{" "}
-                  below.
+                  Anthropic API key in{" "}
+                  <a href={`${settings}#settings-model`} onClick={toSettings}>
+                    Settings ›
+                  </a>
                 </span>
               </div>
             ) : (
@@ -283,8 +291,8 @@ export function ActivityDiscordSetting({ clan }) {
                   <div className="callout callout--warn" role="alert">
                     <span>
                       Anthropic stopped accepting the clan&rsquo;s key. Add it
-                      again under The clan&rsquo;s own model; until then
-                      Elixir&rsquo;s own lines are posted.
+                      again in Settings; until then Elixir&rsquo;s own lines are
+                      posted.
                     </span>
                   </div>
                 ) : null}

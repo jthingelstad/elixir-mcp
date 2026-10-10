@@ -1489,7 +1489,10 @@ in a voice the leaders write.
   live in `packages/syndication` (`clan-settings.mjs`, `clan-sync.mjs`);
   the rules in `clan-engine/activity.mjs`; the leaders' service in
   `clan/src/manage/activity.mjs`; the page in clan-web
-  (`ActivityDiscordSetting.jsx`, under Settings ▸ Social).
+  (`ActivityDiscord.jsx`, Social ▸ Discord in the rail; first shipped
+  as a section of Settings, and moved the same day, Jamie: "this should
+  be a new top level feature in the “Social” section of the left hand
+  nav").
 - **Pipeline:** the cross-post's own. A wake `{v:1, clan_tag}` under
   `timeline-sync/clan-<tag>.<minute>` from the collector's admissions and,
   new, after an attested fact (Clan's session writes and the family-app

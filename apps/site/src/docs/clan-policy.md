@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-10; the clan's activity in Discord, contracts unchanged"
+reviewed: "2026-10-10; the clan's activity in Discord on its own Social page, contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -153,9 +153,9 @@ without a policy:
   each other's local time. Only the clan's verified members see it, and
   nothing of it goes to Elixir. Only the leader and co-leaders can change
   whether the clan's social features are on; other members opening Settings
-  directly can read that status without a switch. Under it, **Discord**
-  posts the clan's activity to a channel of its own ([The clan's activity
-  in Discord](#the-clans-activity-in-discord)).
+  directly can read that status without a switch. The clan's activity
+  channel is Social's own page in the rail, not a setting here ([The
+  clan's activity in Discord](#the-clans-activity-in-discord)).
 - **Actions in Discord**: a webhook from one of the clan's Discord channels.
   Each open action leaders or elders can take is posted there and
   marked when it closes ([Actions in the clan's
@@ -196,7 +196,8 @@ without a policy:
 
 ## The clan's activity in Discord
 
-Under **Social** in **Manage ▸ Settings**, the leader or a co-leader can
+**Social ▸ Discord**, a page in the rail for the leader and co-leaders,
+with or without a policy, is where they
 connect a Discord webhook of its own: not the one Actions go to, and not
 a person's [timeline cross-post](/docs/timeline). From then on the clan's
 timeline is posted there as it happens, as its members read it: one line
@@ -234,10 +235,10 @@ preview.
   all lines when the model cannot be used. At most 50 rewrites a day,
   counted apart from the leaders' drafts and shown in the key's use log;
   the clan's monthly cap, when set, stops them as it stops drafts.
-  Without a key, the setting points to **The clan's own model**.
+  Without a key, the page points to **The clan's own model** in Settings.
 - Connecting posts a short hello to check the webhook; it is kept
   encrypted and shown only shortened. If Discord stops taking it, posting
-  turns off and Settings says why. Pausing or disconnecting leaves the
+  turns off and the page says why. Pausing or disconnecting leaves the
   messages already posted.
 
 ## Agent context
