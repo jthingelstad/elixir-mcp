@@ -50,11 +50,14 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
   const revoke = useWrite(api.revokePrincipalToken, {
     invalidate: [keys.principals],
   });
+  // The rail's console switcher reads the session (`keys.me`), not this
+  // list: a write that changes which agents it shows, or their names,
+  // refetches the session, and with it everything under it.
   const status = useWrite(api.setPrincipalStatus, {
-    invalidate: [keys.principals],
+    invalidate: [keys.me],
   });
   const removal = useWrite(api.setPrincipalRemoved, {
-    invalidate: [keys.principals],
+    invalidate: [keys.me],
   });
   const unmap = useWrite(api.removePrincipalIdentity, {
     invalidate: [keys.principals],
@@ -152,7 +155,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
                       setBusy(false);
                       if (r.ok) {
                         setRenaming(false);
-                        load();
+                        invalidate(keys.me);
                         return;
                       }
                       // Say which refusal this actually is. Every non-duplicate
