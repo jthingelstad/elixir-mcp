@@ -32,13 +32,14 @@ An npm workspaces monorepo.
 | `acceptance/` | The read-only acceptance suite run against the live service |
 | `db/migrations` | The ordered schema migrations |
 | `infra/` | The CloudFormation template and the build, deploy and maintenance scripts |
-| `AGENT-TEAM/` | The objective owners that maintain the service |
-| `docs/` | Engineering invariants, the decision ledger and the working notes |
+| `scripts/` | The setup hook for a session's own worktree |
+| `docs/` | Engineering invariants, the decision ledger, how production is operated, and one note per change |
 
 For contributors: [AGENTS.md](AGENTS.md) holds the golden rules and points to
 each area's own guide (Console, Ladder, Clan, tools, site, infra);
-[docs/ENGINEERING.md](docs/ENGINEERING.md) the build invariants and
-[docs/DECISIONS.md](docs/DECISIONS.md) the ratified decisions.
+[docs/ENGINEERING.md](docs/ENGINEERING.md) the build invariants,
+[docs/DECISIONS.md](docs/DECISIONS.md) the ratified decisions and
+[docs/OPERATIONS.md](docs/OPERATIONS.md) how production is operated.
 `node infra/scripts/build-site.mjs` builds both halves of the site into one
 tree and validates it; `npm run verify` is the pre-push gate.
 

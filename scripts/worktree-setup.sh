@@ -1,19 +1,17 @@
 #!/usr/bin/env bash
-# Prepares one run's private worktree (WORKFLOW.md, "One worktree per
-# run"). Codex runs it from .codex/environments/environment.toml with the
-# new worktree as the working directory; a domain run or an interactive
-# session runs it by hand after `git worktree add --detach <dir>`, setting
-# the same two variables.
+# Prepares a session's worktree of this repository. Codex runs it from
+# .codex/environments/environment.toml with the new worktree as the
+# working directory; on Jamie's machine the domain's session-start runs it
+# after `git worktree add --detach <dir>`, setting the same two variables.
 #
-#   CODEX_SOURCE_TREE_PATH  the main checkout (~/Projects/clash-royale/elixir-mcp)
+#   CODEX_SOURCE_TREE_PATH  the main checkout
 #   CODEX_WORKTREE_PATH     this worktree
 #
-# It moves the worktree to a freshly fetched origin/main (Codex starts it
-# from whatever origin/main the main checkout last fetched), links in the
-# machine's gitignored local files, links the sibling repositories beside
-# it so ../elixir-bot/.env and ../cr-agent-api-docs resolve as they do
-# from the main checkout, and installs dependencies. Links, never copies,
-# for anything secret: a copy of a secrets file is a secret.
+# It moves the worktree to a freshly fetched origin/main, links in the
+# machine's gitignored local files, clones the card-art cache, and
+# installs dependencies. Links, never copies, for anything secret: a copy
+# of a secrets file is a secret. Sibling repositories are not its
+# business; whoever made the worktree places them.
 set -euo pipefail
 
 : "${CODEX_SOURCE_TREE_PATH:?worktree-setup: CODEX_SOURCE_TREE_PATH is unset (the main checkout)}"
@@ -24,7 +22,7 @@ source_tree=$(cd "$CODEX_SOURCE_TREE_PATH" && pwd -P)
 git_dir=$(git rev-parse --path-format=absolute --git-dir)
 common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
 
-# Never in the shared checkout: a hard reset there would take someone's work.
+# Never in the main checkout: a reset there would take someone's work.
 if [ "$git_dir" = "$common_dir" ] || [ "$(cd "$worktree" && pwd -P)" = "$source_tree" ]; then
   echo "worktree-setup: $worktree is the main checkout, not a linked worktree; nothing done." >&2
   exit 2
@@ -62,19 +60,6 @@ cards=apps/site/src/assets/cards
 if [ -d "$source_tree/$cards" ] && [ ! -e "$worktree/$cards" ]; then
   cp -cR "$source_tree/$cards" "$worktree/$cards" 2>/dev/null ||
     cp -R "$source_tree/$cards" "$worktree/$cards"
-fi
-
-# Siblings, only into a directory that is this run's alone (Codex gives
-# each worktree its own parent); never beside the main checkout.
-source_parent=$(dirname "$source_tree")
-worktree_parent=$(cd "$(dirname "$worktree")" && pwd -P)
-if [ "$worktree_parent" != "$source_parent" ]; then
-  for sibling in "$source_parent"/*; do
-    name=$(basename "$sibling")
-    [ "$name" = "$(basename "$worktree")" ] && continue
-    [ -e "$worktree_parent/$name" ] || [ -L "$worktree_parent/$name" ] ||
-      ln -s "$sibling" "$worktree_parent/$name"
-  done
 fi
 
 npm ci --no-audit --no-fund --loglevel=error
