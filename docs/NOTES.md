@@ -1472,3 +1472,50 @@ approximate spend beside its tokens and an editable monthly spend cap.
   capped draft is not a use. The 20 uses a day stays. `spendNow` is the
   check any other path that spends the key must call.
 - No MCP contract or JSON API change.
+
+## 2026-10-10 — the clan's activity in its own Discord channel
+
+Jamie asked for a third way between the timeline cross-post and the
+elixir-mcp-discord agent: "a Discord social setting in Elixir Clan…
+the easiest, simplest, but still very powerful way for a clan to see
+their activity in Discord", a NEW webhook (not Actions', not timeline
+sharing), sourced from the timeline as the agent is, event driven,
+plain text with `<link>` links, no backfill, and optionally the clan's
+own key making the posts "materially better and not template driven"
+in a voice the leaders write.
+
+- **Where:** migration 0214 (`clan_activity_discord`, `_told`), private
+  Clan state beside the timeline cross-post's tables. Settings and sync
+  live in `packages/syndication` (`clan-settings.mjs`, `clan-sync.mjs`);
+  the rules in `clan-engine/activity.mjs`; the leaders' service in
+  `clan/src/manage/activity.mjs`; the page in clan-web
+  (`ActivityDiscordSetting.jsx`, under Settings ▸ Social).
+- **Pipeline:** the cross-post's own. A wake `{v:1, clan_tag}` under
+  `timeline-sync/clan-<tag>.<minute>` from the collector's admissions and,
+  new, after an attested fact (Clan's session writes and the family-app
+  API), which also wakes account cross-posts. The timeline-sync reads the
+  clan's timeline as a member does (`buildTimeline` `clanMember`),
+  writes `timeline-discord/` objects of kind `clan_activity`
+  (`clan_hello` for the connection's first line), and the relay opens
+  the webhook with the clan's seal (`clan activity webhook v1`, bound to
+  a random channel id per webhook).
+- **Policy:** members and milestones default on; Clan Wars on for
+  `participating`, off for unspecified, ruled out for
+  `not_participating`. A leader's switch is stored only where made.
+- **Departures:** `member_left` posts "departed"; `departure_classified`
+  edits that message (key of the departure, revision above 1000), or
+  replaces it when both land in one run. With no told departure (the
+  join predates the connection) nothing is posted.
+- **The rewrite:** `writeUnattended` in the model service, the one
+  purpose sent unread (`discord_activity`). The timeline-sync asks
+  through Clan's model bridge with `CLAN_MODEL_SECRET` (now in its
+  env) and a pg connection of its own so the use record commits. Lines
+  carry the sentence and public facts, never a tag; the engine refuses
+  a changed name, an invented number or a long line, and that line
+  keeps Elixir's words. The first 20 lines of a run are rewritten.
+  50 runs a day, counted apart from the leaders' drafts, and stopped
+  by the leaders' monthly cap (`spendNow`) as their drafts are.
+- **Time:** a clan run that would start with under 40 s left goes back
+  to the queue (`clan_activity_later`); its pointer means a wake that
+  never runs only delays a post. The model's wait is at most 25 s.
+

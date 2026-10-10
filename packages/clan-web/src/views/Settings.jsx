@@ -2,15 +2,16 @@ import { Model } from "./Model.jsx";
 import { Sharing } from "./Sharing.jsx";
 import { SocialSetting } from "./SocialSetting.jsx";
 import { DiscordSetting } from "./DiscordSetting.jsx";
+import { ActivityDiscordSetting } from "./ActivityDiscordSetting.jsx";
 
 /**
  * Clan settings (Jamie, 2026-09-25): one page for the leader and
  * co-leaders with what belongs to the whole clan rather than to how it
  * runs. How the clan runs is its Policy; its awards and its recruiting
  * words keep their own pages. Here: what the clan records in Elixir
- * (door 3, read-only: always on), its Social switch (2026-09-26), the
- * Discord its Actions are posted to (2026-10-10) and the clan's own
- * model. The mail it
+ * (door 3, read-only: always on), its Social switch (2026-09-26) and
+ * the Discord channel its activity is posted to, the Discord its Actions
+ * are posted to (both 2026-10-10) and the clan's own model. The mail it
  * sends through Elixir (door 2) is each person's to switch, on Elixir's
  * email page.
  */
@@ -33,6 +34,10 @@ export function Settings({ clan }) {
           Social
         </h2>
         <SocialSetting clan={clan} />
+        <h3 id="activity-discord" className="m-0 mt-2 text-base font-semibold">
+          Discord
+        </h3>
+        <ActivityDiscordSetting clan={clan} />
       </section>
       <section
         id="discord"
@@ -40,7 +45,7 @@ export function Settings({ clan }) {
         aria-labelledby="settings-discord"
       >
         <h2 id="settings-discord" className="label m-0">
-          Discord
+          Actions in Discord
         </h2>
         <DiscordSetting clan={clan} />
       </section>

@@ -10,13 +10,15 @@
     "./settings": "./src/settings.mjs",
     "./relay": "./src/relay.mjs",
     "./seal": "./src/seal.mjs",
-    "./store": "./src/store.mjs"
+    "./store": "./src/store.mjs",
+    "./clan-settings": "./src/clan-settings.mjs"
   },
   "scripts": {
     "test": "node --test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",
+    "@elixir-mcp/clan-engine": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0",
     "@elixir-mcp/record": "0.1.0",
     "@elixir-mcp/tools": "0.1.0"

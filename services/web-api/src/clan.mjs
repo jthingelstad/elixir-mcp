@@ -5,6 +5,17 @@ import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
 import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
 import { createDiscordBridge } from "@elixir-mcp/clan/discord-bridge.mjs";
 import { createDiscordService } from "@elixir-mcp/clan/manage/discord.mjs";
+import { createActivityService } from "@elixir-mcp/clan/manage/activity.mjs";
+import { createBox } from "@elixir-mcp/clan/sealed.mjs";
+import {
+  clanActivityRowView,
+  clanActivitySeal,
+  readClanActivity,
+  removeClanActivity,
+  saveClanActivity,
+  wakeAfterFact,
+  CLAN_ACTIVITY_PURPOSE,
+} from "@elixir-mcp/syndication";
 /** Clan inside the web API: the authenticated Elixir person, the request's
  * connected Postgres client, and the same recorded facts the public doors
  * read. There is no internal OAuth grant or HTTP round trip. */
@@ -128,8 +139,17 @@ export function createClanRequest({
   origin,
   modelSecret = null,
   modelStorage = null,
+  /** the outbox (`makeOutbox`): a fact's wake and the clan's activity
+   *  channel's hello line; null = neither */
+  outbox = null,
+  /** the relay's last word on a channel (`makeStatusReader`) */
+  readStatus = async () => null,
 }) {
   const appUrl = `${origin}/clan`;
+  // The clan's activity channel: its webhook sealed as it is saved.
+  const activitySeal = modelSecret
+    ? clanActivitySeal(createBox(modelSecret, CLAN_ACTIVITY_PURPOSE)).seal
+    : null;
   return async ({ db, account, event, signout, modelFactory = null }) => {
     const credential = Object.freeze({});
     const invoke = makeInvoker({
@@ -162,8 +182,14 @@ export function createClanRequest({
               }
             : { ok: true, body: r.body };
         }),
+      // A leader's fact (a departure's answer, an award) wakes the
+      // Discord syndication, as a collector's admission does.
       writeFact: (tag, body) =>
-        answer(() => writeClanFactInClan(db, account, tag, body)),
+        answer(async () => {
+          const fact = await writeClanFactInClan(db, account, tag, body);
+          await wakeAfterFact(db, fact, { outbox });
+          return fact;
+        }),
       removeFact: (tag, ref) =>
         answer(() => removeClanFactInClan(db, account, tag, ref)),
     });
@@ -253,8 +279,34 @@ export function createClanRequest({
               ),
           })
         : null;
+    // The clan's activity in its own Discord channel (Social).
+    const activity = activitySeal
+      ? createActivityService({
+          ledger,
+          model,
+          store: {
+            async read(clanTag) {
+              const row = await readClanActivity(db, clanTag);
+              return row
+                ? clanActivityRowView(row, await readStatus(row.channel_id))
+                : null;
+            },
+            async save(clanTag, change, { who, clanName }) {
+              const r = await saveClanActivity(db, clanTag, change, {
+                seal: activitySeal,
+                outbox,
+                who,
+                clanName,
+              });
+              return r.error ? r : { view: clanActivityRowView(r.row) };
+            },
+            remove: (clanTag) => removeClanActivity(db, clanTag),
+          },
+        })
+      : null;
     const handler = createHandler({
       ...context,
+      activity,
       discord,
       mcp,
       manage,

@@ -373,9 +373,9 @@ set in the console only, never through MCP or the JSON API.
 - **When.** When the record learns something about one of the subjects,
   the account's timeline is read about a minute later from the
   cross-post's own place in it, and anything new is posted. Nothing
-  polls. A quiet rung crossed by the clock, or an attested fact from a
-  family app, posts with the next thing the record learns about that
-  subject. Nothing from before it was turned on is posted. The
+  polls. An attested fact (a leader's word in Elixir Clan, a family
+  app's record) wakes it the same way. A quiet rung crossed by the clock
+  posts with the next thing the record learns about that subject. Nothing from before it was turned on is posted. The
   cross-post's place never moves your read pointer, a reader's, or
   `meta.timeline_pending`.
 - **One line per item,** opening with a Discord timestamp that each
@@ -394,6 +394,11 @@ set in the console only, never through MCP or the JSON API.
   Discord says the webhook no longer exists, cross-posting turns off and
   the panel says why. Turning it back on, or a new webhook, starts from
   that moment.
+
+A clan's leaders can also post the clan's own activity to a channel,
+chosen by category and set by the clan's policy, from Elixir Clan's
+Settings ([The clan's activity in
+Discord](/docs/clan-policy#the-clans-activity-in-discord)).
 
 ## What the timeline never does
 

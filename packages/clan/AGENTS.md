@@ -59,6 +59,13 @@ or workflow of its own.
   outcome is unknown is never made again, and nothing logs the webhook's
   address. `share` runs inside the clan's lock after each request and
   after the morning run.
+- **The clan's activity in Discord** (Settings ▸ Social) is the
+  timeline cross-post's pipeline, not Clan's bridges: the connection and
+  sync are `packages/syndication` (`clan-settings.mjs`, `clan-sync.mjs`),
+  the rules `clan-engine/activity.mjs`, the leaders' service
+  `src/manage/activity.mjs`. Its rewrite is the one model use posted
+  unread (`writeUnattended`, purpose `discord_activity`): only the line
+  goes to the model, and the engine's checks decide what is posted.
 - **`ClanInternal`** (stack parameter, `CLAN_INTERNAL`) is the feature
   switch. Turning it off disables Clan's API and morning run; it never
   resumes another runtime.

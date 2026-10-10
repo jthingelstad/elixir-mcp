@@ -91,3 +91,69 @@ test("a failed sync keeps its object and retries; a malformed wake is refused", 
   }
   assert.deepEqual(s.deleted, []);
 });
+
+test("a clan's wake runs its activity sync; one without the time for the model waits for a later delivery", async () => {
+  const key = "timeline-sync/clan-J2RGCRVG.29340000.json";
+  const synced = [];
+  const objects = () =>
+    new Map([[key, JSON.stringify({ v: 1, clan_tag: "#J2RGCRVG" })]]);
+  const deleted = [];
+  const make = (map) =>
+    makeHandler({
+      connect: async () => ({ end: async () => {} }),
+      sync: async () => assert.fail("not an account's wake"),
+      syncClan: async (_db, tag, { remainingMs }) => {
+        synced.push([tag, remainingMs()]);
+        return { posted: 1 };
+      },
+      readObject: async (obj) => map.get(obj.key) ?? null,
+      deleteObject: async (obj) => deleted.push(obj.key),
+    });
+  const log = console.log;
+  const lines = [];
+  console.log = (...a) => lines.push(a[0]);
+  try {
+    const short = await make(objects())(
+      { Records: [record("a", key)] },
+      { getRemainingTimeInMillis: () => 30_000 },
+    );
+    assert.deepEqual(short.batchItemFailures, [{ itemIdentifier: "a" }]);
+    assert.deepEqual(synced, []);
+    assert.deepEqual(deleted, [], "its wake stays for the next delivery");
+    assert.ok(lines.includes("clan_activity_later"));
+
+    const out = await make(objects())(
+      { Records: [record("b", key)] },
+      { getRemainingTimeInMillis: () => 55_000 },
+    );
+    assert.deepEqual(out.batchItemFailures, []);
+    assert.deepEqual(synced, [["#J2RGCRVG", 55_000]]);
+    assert.deepEqual(deleted, [key]);
+  } finally {
+    console.log = log;
+  }
+});
+
+test("a clan's wake with a tag that is not one, or with no clan sync, is refused", async () => {
+  const key = "timeline-sync/clan-x.1.json";
+  const error = console.error;
+  console.error = () => {};
+  try {
+    for (const [tag, syncClan] of [
+      ["J2RGCRVG", async () => ({})],
+      ["#J2RGCRVG", null],
+    ]) {
+      const handler = makeHandler({
+        connect: async () => ({ end: async () => {} }),
+        sync: async () => ({}),
+        syncClan,
+        readObject: async () => JSON.stringify({ v: 1, clan_tag: tag }),
+        deleteObject: async () => assert.fail("never deleted"),
+      });
+      const out = await handler({ Records: [record("a", key)] });
+      assert.deepEqual(out.batchItemFailures, [{ itemIdentifier: "a" }]);
+    }
+  } finally {
+    console.error = error;
+  }
+});

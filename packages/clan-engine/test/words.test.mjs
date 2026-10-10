@@ -36,6 +36,7 @@ test("a model writes words for a closed list of uses, none a judgment about a me
     "recruit_pitch",
     "leader_message",
     "clan_chat",
+    "discord_activity",
   ]);
   assert.doesNotMatch(
     JSON.stringify(PURPOSES),

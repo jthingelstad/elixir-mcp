@@ -18,3 +18,4 @@ export * from "./geo.mjs";
 export * from "./week.mjs";
 export * from "./season.mjs";
 export * from "./discord.mjs";
+export * from "./activity.mjs";

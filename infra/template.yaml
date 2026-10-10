@@ -470,6 +470,11 @@ Resources:
                     NumericLessThanEquals:
                       s3:max-keys: "1"
                 - !Ref AWS::NoValue
+              # A leader's attested fact (a departure classified, an
+              # award) wakes the clan's activity sync (2026-10-10).
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-sync/*
               # A battle's public page (2026-10-01): the app shell it is
               # served in, and the card art its share picture draws,
               # read from the site bucket. Read only; the site is
@@ -739,6 +744,34 @@ Resources:
                       - timeline-discord-state/*
                   NumericLessThanEquals:
                     s3:max-keys: "1"
+              # A clan's activity in its Discord (2026-10-10): with the
+              # rewrite on, the clan's own model is asked through the
+              # relay as Clan asks it (packages/clan/src/model-bridge.mjs),
+              # and a missing reply is confirmed with an exact-key list.
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/request/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-model/reply/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:ListBucket
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
+                  Condition:
+                    StringLike:
+                      s3:prefix:
+                        - clan-model/reply/*
+                    NumericLessThanEquals:
+                      s3:max-keys: "1"
+                - !Ref AWS::NoValue
 
   # The email outbox connects VPC composers to the non-VPC relay.
   OutboxBucket:
@@ -1292,6 +1325,14 @@ Resources:
           PGAPPNAME: elixir-mcp-timeline-sync
           PGOPTIONS: "-c statement_timeout=50s -c idle_in_transaction_session_timeout=60s"
           OUTBOX_BUCKET: !Ref OutboxBucket
+          # Seals a clan's rewrite request and opens its reply; the
+          # clan's key and the webhook stay sealed here.
+          CLAN_MODEL_SECRET:
+            !If [
+              HasInternalClan,
+              !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:clan_sealing_secret}}",
+              !Ref AWS::NoValue,
+            ]
 
   # Two at once: wakes for different accounts run side by side, and the
   # sync's row lock keeps one account to one at a time.

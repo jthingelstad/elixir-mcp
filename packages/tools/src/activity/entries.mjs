@@ -2203,8 +2203,11 @@ const ROLE_RANK_SQL = `max(case cm.role when 'leader' then 3 when 'coLeader' the
  * without a rewrite.
  *
  * Only clan subjects carry clan facts, and nothing without a reader
- * (the clan mail's composition) carries any. Selected by when Elixir
- * recorded them, like every ledger item; `at` is when they happened.
+ * (the clan mail's composition) carries any. The one reader that is no
+ * account is the clan's own Discord channel (`clanMember`, 2026-10-10):
+ * it reads its clan's facts as any member does, the `clan` kinds only.
+ * Selected by when Elixir recorded them, like every ledger item; `at` is
+ * when they happened.
  */
 const FACT_KINDS_SEEN_BY = (visibility) =>
   ATTESTED_FACT_KINDS.filter(
@@ -2215,14 +2218,22 @@ const FACT_KINDS_SEEN_BY = (visibility) =>
 export async function factItems(
   db,
   subjects,
-  { accountId, fromMs, toMs, interactive = false },
+  { accountId, fromMs, toMs, interactive = false, clanMember = false },
 ) {
-  if (!accountId) return [];
+  if (!accountId && !clanMember) return [];
   const clanTags = subjects.filter((s) => s.kind === "clan").map((s) => s.tag);
   const playerTags = subjects
     .filter((s) => s.kind === "player")
     .map((s) => s.tag);
   if (!clanTags.length && !playerTags.length) return [];
+  if (!accountId)
+    return readFactItems(db, subjects, {
+      fromMs,
+      toMs,
+      inClan: clanTags,
+      leads: [],
+      playerTags: [],
+    });
   const { rows: who } = await db.query(
     `select kind, coalesce(owned_by_account_id, account_id) as seat_account
        from account where account_id = $1`,
@@ -2249,6 +2260,20 @@ export async function factItems(
       ? seats.filter((r) => r.rank >= 2).map((r) => r.clan_tag)
       : [];
   if (!inClan.length && !playerTags.length) return [];
+  return readFactItems(db, subjects, {
+    fromMs,
+    toMs,
+    inClan,
+    leads,
+    playerTags,
+  });
+}
+
+async function readFactItems(
+  db,
+  subjects,
+  { fromMs, toMs, inClan, leads, playerTags },
+) {
   const { rows } = await db.query(
     `select f.*, cl.name as clan_name, p.name as player_name,
             ap.name as attester_name, pp.name as previous_name
@@ -2345,6 +2370,9 @@ export async function buildTimeline(
     // A person reading with a session or their own consent, not a key
     // (factItems: leaders-only facts). False unless the caller says so.
     interactive = false,
+    // No account: the clan's own channel, reading its clan's facts as a
+    // member does (factItems).
+    clanMember = false,
   },
 ) {
   const entries = [];
@@ -2413,6 +2441,7 @@ export async function buildTimeline(
       fromMs,
       toMs,
       interactive,
+      clanMember,
     })),
   );
   items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));

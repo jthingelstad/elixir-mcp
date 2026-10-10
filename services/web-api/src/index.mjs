@@ -50,6 +50,8 @@ export const handler = makeHandler({
           origin: "https://elixir.poapkings.com",
           modelSecret: process.env.CLAN_MODEL_SECRET,
           modelStorage: modelStorage(process.env.OUTBOX_BUCKET),
+          outbox,
+          readStatus: makeStatusReader(process.env.OUTBOX_BUCKET),
         })
       : null,
   databaseUrl: process.env.DATABASE_URL,

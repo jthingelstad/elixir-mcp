@@ -118,7 +118,7 @@ function feedbackRoute(method, query, body) {
 /** The operations a person may call, by method and path: each is one
  *  read the family's apps make, answered with the tool's structured
  *  result (Elixir Clan's reads, plan clan-app-api phases 1-3). */
-function personRoute(db, account, method, path, query, body) {
+function personRoute(db, account, method, path, query, body, deps = {}) {
   let m;
   if (method === "GET" && path === "/api/v1/me")
     return {
@@ -204,7 +204,11 @@ function personRoute(db, account, method, path, query, body) {
     const clan = decodeURIComponent(m[1]);
     return {
       operation: "clans.facts.write",
-      run: () => writeClanFact(db, account, clan, body),
+      run: async () => {
+        const r = await writeClanFact(db, account, clan, body);
+        await deps.wake?.(db, r);
+        return r;
+      },
       statusOf: (r) => (r.created ? 201 : 200),
     };
   }
@@ -533,6 +537,8 @@ async function requestRefresh(db, account, policy, body, event) {
   }
 }
 
+/** `deps.wake(db, fact)` wakes what a written clan fact reaches (the
+ *  Discord syndication; packages/syndication wakeAfterFact). */
 /** `deps.mail` ({ enqueue, secret, archive }) sends a family app's mail
  *  (2.4.0); without it the mail operation answers 503. */
 export async function integrationApi(db, event, body, deps = {}) {
@@ -558,7 +564,7 @@ export async function integrationApi(db, event, body, deps = {}) {
       if (!account || (account.kind ?? "person") !== "person")
         throw new ApiError(401, "unauthenticated");
       const query = event.queryStringParameters ?? {};
-      const route = personRoute(db, account, method, path, query, body);
+      const route = personRoute(db, account, method, path, query, body, deps);
       if (!route) throw new ApiError(404, "not_found");
       operation = route.operation;
       if (!account.firstParty) {
@@ -750,6 +756,7 @@ export async function integrationApi(db, event, body, deps = {}) {
           operation = "clans.facts.write";
           run = async () => {
             const r = await writeClanFactAsApp(db, app, clan, body);
+            await deps.wake?.(db, r);
             status = r.created ? 201 : 200;
             return r;
           };

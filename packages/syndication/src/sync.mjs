@@ -39,6 +39,26 @@ export const postRevision = (it) =>
 const observedMs = (it) => Date.parse(it.observed_at ?? it.at);
 
 /**
+ * The timeline keeps a window's newest 150 by when they were observed; a
+ * busier window is read again up to the newest it cut, and the rest
+ * follows in the next run (`narrowed`: wake again), so nothing is
+ * skipped. `read(from, to)` is a buildTimeline call.
+ */
+export async function readCapped(read, fromMs, toMs) {
+  let built = await read(fromMs, toMs);
+  let narrowed = false;
+  for (let i = 0; i < NARROW_MAX && built.timeline_more > 0; i += 1) {
+    const cut = built.timeline_dropped.map(observedMs).filter(Number.isFinite);
+    const to = cut.length ? Math.max(...cut) : toMs;
+    if (!(to > fromMs && to < toMs)) break;
+    toMs = to;
+    narrowed = true;
+    built = await read(fromMs, toMs);
+  }
+  return { timeline: built.timeline, toMs, narrowed };
+}
+
+/**
  * @param {import("pg").ClientBase} db
  * @param {string} accountId
  * @param {{ outbox: Function, readStatus?: Function, now?: number }} deps
@@ -124,21 +144,9 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
     fromMs < toMs &&
     (await timelineNews(db, subjects, { fromMs, toMs, accountId })).any;
   if (news) {
-    let built = await read(fromMs, toMs);
-    // The timeline keeps a window's newest 150 by when they were
-    // observed; a busier window is read again up to the newest it cut,
-    // and the rest follows in the next run, so nothing is skipped.
-    for (let i = 0; i < NARROW_MAX && built.timeline_more > 0; i += 1) {
-      const cut = built.timeline_dropped
-        .map(observedMs)
-        .filter(Number.isFinite);
-      const to = cut.length ? Math.max(...cut) : toMs;
-      if (!(to > fromMs && to < toMs)) break;
-      toMs = to;
-      narrowed = true;
-      built = await read(fromMs, toMs);
-    }
-    for (const it of built.timeline) byId.set(it.id, it);
+    const got = await readCapped(read, fromMs, toMs);
+    ({ toMs, narrowed } = got);
+    for (const it of got.timeline) byId.set(it.id, it);
   }
 
   // A sitting told while still open is read again from its start, so

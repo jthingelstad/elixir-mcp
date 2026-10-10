@@ -46,6 +46,11 @@ import { ManageError } from "./service.mjs";
 import { PRICES_AS_OF, roundUsd, costOfUse } from "./prices.mjs";
 
 export const USES_PER_DAY = 20;
+/** The clan's Discord activity rewrites (`writeUnattended`): a day's
+ *  cap of their own, apart from the leaders' drafts. Past it, the posts
+ *  keep Elixir's own lines until the day turns (UTC). */
+export const ACTIVITY_USES_PER_DAY = 50;
+const ACTIVITY = "discord_activity";
 /** How often a key's model list may be read again, success or not. */
 export const MODELS_REFRESH_MS = 24 * 3600_000;
 const USE_KEEP_DAYS = 90;
@@ -206,8 +211,16 @@ export function createModelService({
         keep_days: USE_KEEP_DAYS,
         max_spend_cap_usd: MAX_SPEND_CAP_USD,
         prices_as_of: PRICES_AS_OF,
+        activity_per_day: ACTIVITY_USES_PER_DAY,
         uses: {
-          today: calls.filter((c) => c.at.startsWith(today)).length,
+          // The leaders' drafts against their daily limit; the activity
+          // channel's rewrites have their own.
+          today: calls.filter(
+            (c) => c.at.startsWith(today) && c.purpose !== ACTIVITY,
+          ).length,
+          activity_today: calls.filter(
+            (c) => c.at.startsWith(today) && c.purpose === ACTIVITY,
+          ).length,
           month: {
             count: calls.length,
             input_tokens: calls.reduce((s, c) => s + (c.input_tokens ?? 0), 0),
@@ -462,7 +475,11 @@ export function createModelService({
             "The recorded roster could not confirm who added this key. Try again shortly.",
         });
       const today = iso().slice(0, 10);
-      if ((await ledger.modelCalls(clanTag, today)).length >= USES_PER_DAY)
+      // The Discord activity rewrites have a cap of their own.
+      const drafts = (await ledger.modelCalls(clanTag, today)).filter(
+        (c) => c.purpose !== ACTIVITY,
+      );
+      if (drafts.length >= USES_PER_DAY)
         throw new ManageError(429, "model_daily_limit", null, {
           per_day: USES_PER_DAY,
         });
@@ -548,6 +565,83 @@ export function createModelService({
             ? "The draft's outcome is unknown and this attempt is counted. Check the use log in Settings before requesting another draft."
             : (r.message ?? "The model did not answer."),
       });
+    },
+
+    /**
+     * Words from the clan's model that no person asks for and no person
+     * reads before they are sent: the clan's activity rewritten for its
+     * Discord channel (Jamie, 2026-10-10; `activityRewriteRequest`), the
+     * one such purpose. The same key, owner, record and monthly cap as a
+     * leader's draft, under its own day's cap. Never throws for the clan's state:
+     * `{ ok: false, code }` and the caller posts Elixir's own lines.
+     * `ownerLeads(playerTag)` says whether the key's owner leads the clan
+     * now (true, false, or null when unknown).
+     */
+    async writeUnattended(clanTag, request, { ownerLeads: leadsNow }) {
+      if (request?.purpose !== ACTIVITY)
+        throw new ManageError(400, "unknown_purpose");
+      const stored = await ledger.modelKey(clanTag);
+      if (!stored) return { ok: false, code: "no_model_key" };
+      if (stored.refused_at) return { ok: false, code: "model_key_refused" };
+      const key = box.open(stored.sealed, boundTo(clanTag, stored.set_by));
+      if (!key) return { ok: false, code: "model_key_unreadable" };
+      const leads = await leadsNow(stored.set_by);
+      if (leads === false) return { ok: false, code: "model_key_owner_left" };
+      if (leads !== true) return { ok: false, code: "model_owner_unconfirmed" };
+      const today = iso().slice(0, 10);
+      const used = (await ledger.modelCalls(clanTag, today)).filter(
+        (c) => c.purpose === ACTIVITY,
+      ).length;
+      if (used >= ACTIVITY_USES_PER_DAY)
+        return { ok: false, code: "model_daily_limit" };
+      // The leaders' monthly cap stops the rewrites too: every use counts.
+      if (!(await spendNow(clanTag, stored)).allowed)
+        return { ok: false, code: "model_spend_cap" };
+      const call = await ledger.addModelCall(clanTag, {
+        at: iso(),
+        by: null,
+        by_name: "Discord activity",
+        purpose: ACTIVITY,
+        model: stored.model,
+        ok: false,
+        status: null,
+        code: "outcome_pending",
+        input_tokens: null,
+        output_tokens: null,
+        ttl: Math.floor(now() / 1000) + USE_KEEP_DAYS * 86400,
+      });
+      let r;
+      try {
+        r = await anthropic.write(key, {
+          model: stored.model,
+          system: request.system,
+          prompt: request.prompt,
+          tool: request.tool,
+          max_tokens: request.max_tokens,
+        });
+      } catch {
+        r = { ok: false, status: 0, code: "outcome_unknown" };
+      }
+      await ledger.finishModelCall(clanTag, call, {
+        model: r.model ?? stored.model,
+        ok: r.ok,
+        status: r.status ?? null,
+        code: r.ok ? null : (r.code ?? null),
+        input_tokens: r.usage?.input_tokens ?? null,
+        output_tokens: r.usage?.output_tokens ?? null,
+      });
+      if (r.ok) return { ok: true, input: r.input, model: r.model };
+      if (r.status === 401 || r.status === 403) {
+        await ledger.saveModelKey(clanTag, { ...stored, refused_at: iso() });
+        return { ok: false, code: "model_key_refused" };
+      }
+      if (r.status === 404) {
+        await updateKeyItem(clanTag, stored.sealed, {
+          models_checked_at: null,
+        }).catch(() => null);
+        return { ok: false, code: "model_unavailable" };
+      }
+      return { ok: false, code: r.code ?? "model_failed" };
     },
   };
 }

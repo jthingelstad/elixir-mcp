@@ -90,15 +90,25 @@ function discordStamp(atIso, nowMs = Date.now()) {
 // The time lead itemText writes ("Sat 11:18 "), which the stamp replaces.
 const LEAD = /^\s*(?:[A-Z][a-z]{2} \d{2}:\d{2} )?/;
 
+/** The item's own sentence, without its time lead. */
+export const itemSentence = (it) => String(it.text ?? "").replace(LEAD, "");
+
 /** The item as one Discord message's content, at most 2,000 characters:
  *  the links survive a long sentence (a clan chat message), the
- *  sentence is cut. */
+ *  sentence is cut. `text`, when given, is told instead of the item's
+ *  own sentence (a clan's model rewrote it), with the same stamp and
+ *  links, escaped the same way. */
 export function discordLine(
   it,
-  { battles = new Map(), clanTags = new Set(), nowMs = Date.now() } = {},
+  {
+    battles = new Map(),
+    clanTags = new Set(),
+    nowMs = Date.now(),
+    text = null,
+  } = {},
 ) {
   const stamp = discordStamp(it.at, nowMs);
-  const sentence = escapeDiscord(String(it.text ?? "").replace(LEAD, ""));
+  const sentence = escapeDiscord(text ?? itemSentence(it));
   const links = itemLinks(it, { battles, clanTags })
     .map((l) => `[${escapeDiscord(l.label)}](<${l.url}>)`)
     .join(" · ");
