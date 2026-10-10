@@ -1,7 +1,7 @@
 import { after, before, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { projectPlayerSnapshot } from "../src/snapshots.mjs";
-import { fixture, scratchDb } from "./helpers.mjs";
+import { fixture, scratchDb, trackClans } from "./helpers.mjs";
 import { playerEvents } from "./event-rows.mjs";
 import { participationQueries } from "../../record/src/participation-sql.mjs";
 import { evaluateAwards } from "@elixir-mcp/clan-engine";
@@ -119,4 +119,136 @@ test("auxiliary reset snapshots preserve counters and award input but emit no se
     awards(rows[1].donations),
     "awards see identical snapshot-derived evidence",
   );
+});
+
+// The clan roster writes the same shared `donations` column the profile
+// does, at its own cadence. Codex on #261: a roster poll that saw the
+// weekly reset first overwrote the counter without a moment, so the next
+// profile poll compared low with low and the week's reset was lost.
+const RESET_CLAN = "#2PP0V9YY";
+const rosterOf = (members) => ({
+  tag: RESET_CLAN,
+  name: "Reset Clan",
+  memberList: members.map(([tag, donations], i) => ({
+    tag,
+    name: `M${i}`,
+    role: "member",
+    trophies: 6000,
+    arena: { id: 54000050, name: "Legendary Arena" },
+    clanRank: i + 1,
+    previousClanRank: i + 1,
+    donations,
+    donationsReceived: 0,
+  })),
+});
+
+async function resetsOf(tag) {
+  return playerEvents(ctx.db, "player_tag=$1 and event_type='donation_reset'", [
+    tag,
+  ]);
+}
+
+test("a roster poll that sees the reset first records it once; the profile polls after it do not repeat it", async () => {
+  const { projectClanSeries } = await import("../src/series.mjs");
+  const tag = "#P0YQ2LC";
+  await ctx.db.query("insert into player(player_tag,name) values($1,'R')", [
+    tag,
+  ]);
+  await trackClans(ctx.db, [RESET_CLAN]);
+  const poll = (fetchedAt, donations) =>
+    projectPlayerSnapshot(ctx.db, {
+      playerTag: tag,
+      payload: { ...profile, tag, donations },
+      fetchedAt,
+    });
+  const roster = (observedAt, donations) =>
+    projectClanSeries(ctx.db, {
+      payload: rosterOf([[tag, donations]]),
+      observedAt,
+    });
+  await poll("2026-10-04T14:27:48Z", 60);
+  await roster("2026-10-04T23:20:00Z", 60);
+  await roster("2026-10-04T23:32:00Z", 4);
+  await poll("2026-10-04T23:40:00Z", 5);
+  await roster("2026-10-04T23:50:00Z", 5);
+  await poll("2026-10-05T01:10:00Z", 5);
+  const events = await resetsOf(tag);
+  assert.equal(events.length, 1, "the reset is on the ledger exactly once");
+  assert.deepEqual(events[0].payload, {
+    donations_before: 60,
+    donations_after: 4,
+  });
+  assert.equal(
+    events[0].window_start.toISOString(),
+    "2026-10-04T23:20:00.000Z",
+  );
+  assert.equal(events[0].window_end.toISOString(), "2026-10-04T23:32:00.000Z");
+});
+
+test("a quiet clan's roster seeing the reset on the next game day is the one moment; the profile's older baseline does not repeat it", async () => {
+  const { projectClanSeries } = await import("../src/series.mjs");
+  const tag = "#P0YQ2LG";
+  await ctx.db.query("insert into player(player_tag,name) values($1,'Q')", [
+    tag,
+  ]);
+  // The last write on the old game day is before the reset; the next one
+  // is the roster's, on a new game day's row of its own.
+  await projectPlayerSnapshot(ctx.db, {
+    playerTag: tag,
+    payload: { ...profile, tag, donations: 60 },
+    fetchedAt: "2026-10-04T22:00:00Z",
+  });
+  await projectClanSeries(ctx.db, {
+    payload: rosterOf([[tag, 4]]),
+    observedAt: "2026-10-05T10:30:00Z",
+  });
+  await projectPlayerSnapshot(ctx.db, {
+    playerTag: tag,
+    payload: { ...profile, tag, donations: 5 },
+    fetchedAt: "2026-10-05T11:00:00Z",
+  });
+  const events = await resetsOf(tag);
+  assert.equal(events.length, 1);
+  assert.equal(
+    events[0].window_start.toISOString(),
+    "2026-10-04T22:00:00.000Z",
+  );
+  assert.equal(
+    events[0].window_end.toISOString(),
+    "2026-10-05T10:30:00.000Z",
+    "the roster saw it first",
+  );
+});
+
+test("late and replayed observations around a reset add no second moment", async () => {
+  const { projectClanSeries } = await import("../src/series.mjs");
+  const tag = "#P0YQ2LJ";
+  await ctx.db.query("insert into player(player_tag,name) values($1,'L')", [
+    tag,
+  ]);
+  const poll = (fetchedAt, donations) =>
+    projectPlayerSnapshot(ctx.db, {
+      playerTag: tag,
+      payload: { ...profile, tag, donations },
+      fetchedAt,
+    });
+  const roster = (observedAt, donations, moments = true) =>
+    projectClanSeries(ctx.db, {
+      payload: rosterOf([[tag, donations]]),
+      observedAt,
+      moments,
+    });
+  await poll("2026-10-03T20:00:00Z", 50);
+  await poll("2026-10-04T14:00:00Z", 60);
+  await roster("2026-10-04T23:45:00Z", 4);
+  // A profile read from before the roster's, delivered after it: today's
+  // row is newer than it, so its baseline is yesterday's 50.
+  await poll("2026-10-04T23:40:00Z", 5);
+  // A roster read from before the reset, delivered late.
+  await roster("2026-10-04T23:10:00Z", 60);
+  // A replay writes rows, never moments.
+  await roster("2026-10-04T23:15:00Z", 2, false);
+  const events = await resetsOf(tag);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].window_end.toISOString(), "2026-10-04T23:45:00.000Z");
 });

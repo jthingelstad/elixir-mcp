@@ -94,8 +94,9 @@ up or down to the widest remaining reason; a player's scope only ever widens.
 History is never deleted when a recording stops.
 
 Extra pre-reset and season-roll snapshots preserve the same profile observation.
-They do not emit a second donation-reset event; the daily projection records the
-counter change once.
+They do not emit a second donation-reset event. The weekly counter's fall is
+recorded once, by whichever daily observation sees it first: the player's
+profile or their clan's roster.
 
 
 ## Scope: what is actually polled

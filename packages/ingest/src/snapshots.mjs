@@ -16,7 +16,8 @@ import { playerEventOriginSql } from "@elixir-mcp/record/event-origin";
  *
  * Diff events come from comparing against the LATEST snapshot observation
  * (the DB is the baseline, same as roster tenure): donation_reset when
- * the weekly counter falls, and the ledger milestones below. First sight
+ * the weekly counter falls (or the roster, whichever sees it first:
+ * donationResetMoment), and the ledger milestones below. First sight
  * emits nothing. The baseline is the newest row by observed_at, today's
  * included: until 2026-09-15 it was the newest PRIOR day's row, and since
  * today's row is rewritten on every poll, every later poll that day
@@ -345,7 +346,8 @@ export async function projectPlayerSnapshot(
   // today's rewritten row included, and strictly before this poll: the
   // moments are diffed against it, so a moment is written once, by the
   // first poll that sees it, and never again by the polls that follow it
-  // the same day.
+  // the same day. donation_reset is the exception: the weekly counter is
+  // a column the roster writes too, so it reads donationBaselines below.
   const SNAPSHOT_BASELINE = `select snapshot_date, profile_observed_at as observed_at, donations, battle_count,
             arena_id, best_trophies, wins, collection_level, pol_league
      from player_snapshot_daily`;
@@ -382,6 +384,13 @@ export async function projectPlayerSnapshot(
     if (arenaRows[0]) latest.arena_id = arenaRows[0].arena_id;
   }
 
+  // The weekly counter is shared with the roster too, so its baseline is
+  // the newest daily observation of either writer (donationBaselines),
+  // read before this poll writes.
+  const donationBaseline = moments
+    ? await donationBaselines(db, [playerTag], fetchedAt)
+    : new Map();
+
   const written = await upsertProfileSnapshot(db, {
     playerTag,
     payload,
@@ -411,24 +420,14 @@ export async function projectPlayerSnapshot(
     }
   }
 
-  if (
-    moments &&
-    latest &&
-    typeof payload.donations === "number" &&
-    typeof latest.donations === "number" &&
-    payload.donations < latest.donations
-  ) {
-    await emitEvent(db, "donation_reset", {
-      tag: playerTag,
+  if (moments)
+    await donationResetMoment(db, {
+      playerTag,
+      prior: donationBaseline.get(playerTag),
+      donations: payload.donations,
+      observedAt: fetchedAt,
       receiptId,
-      windowStart: latest.observed_at.toISOString(),
-      windowEnd: fetchedAt,
-      payload: {
-        donations_before: latest.donations,
-        donations_after: payload.donations,
-      },
     });
-  }
 
   // Did the snapshot say anything new (0077)? The day row is rewritten
   // on every poll so observed_at is honest; this is whether a counter a
@@ -726,6 +725,69 @@ async function nthWinBattle(db, { playerTag, battles, prevWins, wins, step }) {
   if (won.length !== wins - prevWins) return null;
   const nth = won[step - prevWins - 1];
   return nth ? describeBattle(db, playerTag, nth) : null;
+}
+
+/**
+ * The weekly donation counter's baseline per player: the newest DAILY
+ * row observed strictly before `before`, of either writer. The roster
+ * (series.mjs) writes the same shared `donations` column as the profile,
+ * taking it only when its observation is the row's newest, so a daily
+ * row's donations is the value as of its observed_at. The auxiliary
+ * rows are left out: pre_reset keeps the week's high-water mark after
+ * the counter fell (#261), and as a baseline it would invent a second
+ * reset.
+ */
+export async function donationBaselines(db, tags, before) {
+  const { rows } = await db.query(
+    `select distinct on (player_tag) player_tag, donations, observed_at
+     from player_snapshot_daily
+     where player_tag = any($1::text[]) and snapshot_kind = 'daily'
+       and observed_at < $2::timestamptz
+     order by player_tag, observed_at desc`,
+    [tags, before],
+  );
+  return new Map(rows.map((r) => [r.player_tag, r]));
+}
+
+/**
+ * donation_reset, once per reset, from whichever writer sees the weekly
+ * counter fall first: the profile (projectPlayerSnapshot) or the clan
+ * roster (series.mjs). Until 2026-10-10 only the profile emitted it, so a
+ * roster poll that saw the reset first overwrote the counter silently and
+ * the next profile poll compared the low value with itself (Codex on
+ * #261). `prior` is the donationBaselines row; a reset already on the
+ * ledger since it was observed is this one, seen by the other writer or
+ * delivered out of order. Returns whether a moment was written.
+ */
+export async function donationResetMoment(
+  db,
+  { playerTag, prior, donations, observedAt, receiptId = null },
+) {
+  if (
+    !prior ||
+    typeof prior.donations !== "number" ||
+    typeof donations !== "number" ||
+    donations >= prior.donations
+  )
+    return false;
+  const { rows: already } = await db.query(
+    `select 1 from player_event
+      where player_tag = $1 and event_type = 'donation_reset'
+        and window_end >= $2::timestamptz limit 1`,
+    [playerTag, prior.observed_at],
+  );
+  if (already.length) return false;
+  await emitEvent(db, "donation_reset", {
+    tag: playerTag,
+    receiptId,
+    windowStart: prior.observed_at.toISOString(),
+    windowEnd: observedAt,
+    payload: {
+      donations_before: prior.donations,
+      donations_after: donations,
+    },
+  });
+  return true;
 }
 
 /**
