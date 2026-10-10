@@ -42,3 +42,7 @@ packages/mail/.preview/
 
 # Claude Code subagent worktrees (each a full checkout; never part of this one).
 .claude/worktrees/
+
+# The contract changelog's index, written by the contracts build from
+# packages/contracts/src/changes/ (scripts/changes-index.mjs).
+packages/contracts/src/generated/

@@ -14,7 +14,14 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readdirSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { CHANGELOG, CONTRACT_VERSION } from "../dist/index.js";
+import { bumpKind, versionsIn } from "../scripts/changes-index.mjs";
+
+const pkg = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const files = readdirSync(path.join(pkg, "src/changes"));
 
 const parse = (v) => v.split(".").map(Number);
 
@@ -59,6 +66,60 @@ test("every entry carries a version, a date and a summary", () => {
     assert.ok(
       e.summary && e.summary.length > 40,
       `${e.version} needs a summary somebody can act on`,
+    );
+  }
+});
+
+// Since 2026-10-10 each version is its own file, src/changes/<version>.ts,
+// and CONTRACT_VERSION is the highest of them, so no pull request edits a
+// shared line. These hold the files to what the one list used to promise.
+
+test("each version file's entry carries the file's version", async () => {
+  for (const name of files) {
+    const version = name.replace(/\.ts$/, "");
+    const { default: entry } = await import(
+      pathToFileURL(path.join(pkg, "dist/changes", `${version}.js`)).href
+    );
+    assert.equal(
+      entry.version,
+      version,
+      `src/changes/${name} holds the entry for ${entry.version}`,
+    );
+  }
+});
+
+test("the changelog is every version file, and the contract the highest", () => {
+  // A stale src/generated/ (a file added or renamed since the build) shows
+  // here: the build writes it, so rebuild.
+  const versions = versionsIn(files);
+  assert.deepEqual(
+    CHANGELOG.map((e) => e.version),
+    versions,
+    "CHANGELOG does not match src/changes/; npm run build",
+  );
+  assert.equal(CONTRACT_VERSION, versions[0]);
+});
+
+test("a version file is named <major>.<minor>.<patch>.ts", () => {
+  assert.throws(() => versionsIn(["11.7.2.ts", "next.ts"]), /next\.ts/);
+  assert.throws(() => versionsIn(["11.7.ts"]), /11\.7\.ts/);
+  assert.deepEqual(versionsIn(["9.10.0.ts", "9.9.1.ts", "10.0.0.ts"]), [
+    "10.0.0",
+    "9.10.0",
+    "9.9.1",
+  ]);
+});
+
+test("each version is a semver successor of the one before it", () => {
+  // Checked over the whole history: from 0.6.0, the first entry, no
+  // version was skipped. A gap means two pull requests took versions
+  // without seeing each other; `npm run contract:bump` renumbers.
+  for (let i = CHANGELOG.length - 1; i > 0; i--) {
+    const before = CHANGELOG[i].version;
+    const after = CHANGELOG[i - 1].version;
+    assert.ok(
+      bumpKind(before, after),
+      `${after} is not a patch, minor or major after ${before}`,
     );
   }
 });

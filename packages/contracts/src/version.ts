@@ -6,5 +6,9 @@
  * OpenAPI document's info.version, on ordinary semver (a removed field is
  * a major), because its callers are programs. serverInfo.version is
  * `${CONTRACT_VERSION}+tools.<fingerprint>` computed by the server.
+ *
+ * Never typed here: it is the highest version in src/changes/, which the
+ * build writes to src/generated/latest-version.ts. A bump is a new file
+ * (`npm run contract:bump -- <patch|minor|major>`).
  */
-export const CONTRACT_VERSION = "11.7.2";
+export { LATEST_VERSION as CONTRACT_VERSION } from "./generated/latest-version.js";
