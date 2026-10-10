@@ -41,6 +41,7 @@
     "acceptance": "npm run build && node acceptance/run.mjs",
     "cr": "node infra/scripts/cr-api.mjs",
     "op": "node infra/scripts/op.mjs",
+    "contract:bump": "node packages/contracts/scripts/bump.mjs",
     "e2e": "playwright test -c apps/web/playwright.config.ts"
   }
 }
