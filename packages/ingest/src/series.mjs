@@ -44,6 +44,8 @@ import { rosterRecords } from "./roster.mjs";
 import { ensureSeason, parseProgressKey } from "@elixir-mcp/record/season";
 import {
   arenaChangedMoment,
+  donationBaselines,
+  donationResetMoment,
   upsertProfileSnapshot,
   projectFrozenCounters,
   projectPolSeason,
@@ -216,6 +218,7 @@ export async function projectClanSeries(
 
   let membersMoved = 0;
   let arenaMoments = 0;
+  let donationMoments = 0;
   if (members.length > 0) {
     // The members' latest observation of either writer before this
     // poll: the arena baseline. A member whose arena moved gets the
@@ -234,8 +237,17 @@ export async function projectClanSeries(
     // wrote a moment per poll for every member who had moved that day,
     // because the prior observation it saw was yesterday's row).
     const priorArena = new Map();
+    // The weekly donation counter under the same rule: the roster writes
+    // the shared column too, so a reset it sees first is its moment
+    // (donationResetMoment), once whichever writer sees it.
+    let priorDonations = new Map();
     const fresh = Date.parse(observedAt) > Date.now() - 24 * 3600_000;
     if (moments && kind === "daily" && source === "api" && fresh) {
+      priorDonations = await donationBaselines(
+        db,
+        members.map((m) => m.tag),
+        observedAt,
+      );
       const { rows: prior } = await db.query(
         `select distinct on (player_tag) player_tag, arena_id, observed_at
          from player_snapshot_daily
@@ -328,6 +340,17 @@ export async function projectClanSeries(
     );
     membersMoved = rowCount;
     facts += rowCount;
+    for (const m of members)
+      if (
+        await donationResetMoment(db, {
+          playerTag: m.tag,
+          prior: priorDonations.get(m.tag),
+          donations: m.donations,
+          observedAt,
+          receiptId,
+        })
+      )
+        donationMoments += 1;
     for (const m of members) {
       const prior = priorArena.get(m.tag);
       if (
@@ -381,6 +404,7 @@ export async function projectClanSeries(
     clanRow,
     membersMoved,
     arenaMoments,
+    donationMoments,
     members: members.length,
     ...(Object.keys(extras).length ? { extras } : {}),
     facts,
