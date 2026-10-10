@@ -770,6 +770,15 @@ export async function donationResetMoment(
     donations >= prior.donations
   )
     return false;
+  // The check and the insert are one step per player: a profile and a
+  // roster receipt on opposite sides of the 10:00Z game-day boundary lock
+  // different daily rows, and player_event has no key to refuse a second
+  // reset (Codex on #461). Taken only when a fall is seen, about once a
+  // week; the second transaction waits for the first's commit and then
+  // finds its moment.
+  await db.query("select pg_advisory_xact_lock(hashtext($1))", [
+    `donation_reset:${playerTag}`,
+  ]);
   const { rows: already } = await db.query(
     `select 1 from player_event
       where player_tag = $1 and event_type = 'donation_reset'
