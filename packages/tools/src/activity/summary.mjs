@@ -114,7 +114,7 @@ export function summarizePlayer(e, timeZone = "UTC") {
         parts.push(`joined ${n.clan_name ?? "a clan"}`);
         break;
       case "clan_left":
-        parts.push(`left ${n.clan_name ?? "their clan"}`);
+        parts.push(`departed ${n.clan_name ?? "their clan"}`);
         break;
       case "returned":
         parts.push(`back after ${plural(n.after_days, "quiet day")}`);
@@ -383,8 +383,12 @@ export function itemText(it, timeZone = "UTC") {
       return `${at} ${member || subj} unlocked ${formLabel(f)}.`;
     case "member_joined":
       return `${at} ${f.name ?? f.player_tag} joined ${subj}${f.role && f.role !== "member" ? ` as ${f.role}` : ""}.`;
+    // The roster sees only that a member went, never whether they left or
+    // were removed (Jamie, 2026-10-10: a kick is "was removed", never
+    // "left", wherever the timeline is told), so the roster's own item
+    // says neither; a leader's departure_classified says which.
     case "member_left":
-      return `${at} ${f.name ?? f.player_tag} left ${subj}${f.role_at_departure ? ` (was ${f.role_at_departure})` : ""}.`;
+      return `${at} ${f.name ?? f.player_tag} departed ${subj}${f.role_at_departure ? ` (was ${f.role_at_departure})` : ""}.`;
     case "member_role_changed": {
       // Rows written before 3.0.0 carry no direction; the roles say it.
       const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
@@ -406,7 +410,7 @@ export function itemText(it, timeZone = "UTC") {
     case "clan_joined":
       return `${at} ${subj} joined ${f.clan_name ?? f.clan_tag}.`;
     case "clan_left":
-      return `${at} ${subj} left ${f.clan_name ?? f.clan_tag}${f.role && f.role !== "member" ? ` (was ${f.role})` : ""}.`;
+      return `${at} ${subj} departed ${f.clan_name ?? f.clan_tag}${f.role && f.role !== "member" ? ` (was ${f.role})` : ""}.`;
     case "quiet_crossed":
       return `${at} ${member || subj} passed ${f.rung} recorded-quiet days${f.days_since_poll ? ` (last polled ${plural(f.days_since_poll, "day")} ago)` : ""}.`;
     case "returned":
@@ -414,7 +418,7 @@ export function itemText(it, timeZone = "UTC") {
     // Attested facts (9.2.0): said by a person through a family app, and
     // said as theirs.
     case "departure_classified":
-      return `${at} ${said(f)} ${member} ${f.kind === "kick" ? "was kicked from" : "left"} ${subj}${f.kind === "kick" ? "" : " on their own"}.`;
+      return `${at} ${said(f)} ${member} ${f.kind === "kick" ? "was removed from" : "left"} ${subj}${f.kind === "kick" ? "" : " on their own"}.`;
     case "role_change_made": {
       const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
       const dir =
