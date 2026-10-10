@@ -218,6 +218,7 @@ class FirstReadsSpent extends Error {}
  * fetch was a 404.
  */
 export async function requestFirstRead(db, live, tag, accountId) {
+  let spent = null;
   try {
     const {
       rows: [seen],
@@ -246,9 +247,13 @@ export async function requestFirstRead(db, live, tag, accountId) {
       // Spent only when a job is minted: a fresh read or an open job
       // costs the pool nothing. Throwing here gives the token back.
       beforeMint: async () => {
-        if (!(await spendFirstRead(db, accountId))) throw new FirstReadsSpent();
+        spent = await spendFirstRead(db, accountId);
+        if (!spent.ok) throw new FirstReadsSpent();
       },
     });
+    // Another add of the same tag got its job in first: nothing was
+    // minted for this one, so the pool's read goes back with the token.
+    if (spent?.ok && r.minted === false) await refundFirstRead(db, spent);
     if (r.ok) return { requested: false, reason: "fresh" };
     return {
       requested: r.reason === "pending" && r.queued !== false,
@@ -257,6 +262,8 @@ export async function requestFirstRead(db, live, tag, accountId) {
   } catch (err) {
     if (err instanceof FirstReadsSpent)
       return { requested: false, reason: "first_reads_spent" };
+    // The mint failed after the pool paid for it: give it back.
+    if (spent?.ok) await refundFirstRead(db, spent).catch(() => {});
     console.error("first_read_failed", tag, err?.message);
     return { requested: false, reason: "error" };
   }
@@ -266,21 +273,33 @@ export async function requestFirstRead(db, live, tag, accountId) {
  *  windowed by UTC date like `liveday#`. */
 const FIRST_READS = "firstread#";
 
-/** Take one of the pool's first reads for today: true while the count
- *  is within its player slots (an exempt pool is never counted). */
+/** Take one of the pool's first reads for today: ok while the count is
+ *  within its player slots (an exempt pool is never counted). Returns
+ *  the window it charged, for refundFirstRead. */
 async function spendFirstRead(db, accountId) {
   const owner = await poolOwner(db, accountId);
-  if (!owner) return false;
+  if (!owner) return { ok: false, bucket: null };
   const max = poolLimits(owner).player_slots;
-  if (max === Infinity) return true;
+  if (max === Infinity) return { ok: true, bucket: null };
+  const bucket = `${FIRST_READS}${owner.account_id}`;
   const day = new Date().toISOString().slice(0, 10);
   const { rows } = await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 1)
      on conflict (bucket, window_start) do update set count = rate_limit.count + 1
      returning count`,
-    [`${FIRST_READS}${owner.account_id}`, day],
+    [bucket, day],
   );
-  return rows[0].count <= max;
+  return { ok: rows[0].count <= max, bucket, day };
+}
+
+/** Give back a first read that minted nothing. */
+async function refundFirstRead(db, { bucket, day }) {
+  if (!bucket) return;
+  await db.query(
+    `update rate_limit set count = count - 1
+      where bucket = $1 and window_start = $2::date and count > 0`,
+    [bucket, day],
+  );
 }
 
 /** Allowlisted live paths -> (endpoint, entity key). Mirrors live_fetch. */

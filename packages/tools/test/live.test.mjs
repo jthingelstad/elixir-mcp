@@ -913,3 +913,44 @@ test("free first reads are bounded per person per UTC day, agents included: cycl
   assert.equal(tomorrow.requested, true);
   assert.equal(await jobsFor(tags), 4);
 });
+
+test("a first read that mints nothing gives the pool's read back: a lost race or a failed enqueue (#460 review)", async () => {
+  const day = new Date().toISOString().slice(0, 10);
+  const { rows: people } = await db.query(
+    `insert into account (email_hash, status, role, max_player_recordings)
+     values ('first-read-refund', 'approved', 'member', 3) returning account_id`,
+  );
+  const personId = people[0].account_id;
+  const used = async () =>
+    (
+      await db.query(
+        `select coalesce(sum(count), 0)::int as n from rate_limit
+          where bucket = $1 and window_start = $2::date`,
+        [`firstread#${personId}`, day],
+      )
+    ).rows[0].n;
+
+  // Another add of the same tag inserts its job between this call's
+  // open-job check and its insert: this call mints nothing.
+  const raced = makeLive({
+    enqueue: async (_db, job) => {
+      await enqueueJob(db, job);
+      return enqueueJob(db, job);
+    },
+  });
+  const before = await tokens();
+  const lost = await requestFirstRead(db, raced, "#2PYLQR", personId);
+  assert.equal(lost.requested, true, "the other add's job is pending");
+  assert.equal(await used(), 0, "the pool's read is given back");
+  assert.equal(await tokens(), before, "and so is the global token");
+
+  // The enqueue fails after the pool paid: given back too.
+  const failing = makeLive({
+    enqueue: async () => {
+      throw new Error("ledger down");
+    },
+  });
+  const failed = await requestFirstRead(db, failing, "#2PYLQG", personId);
+  assert.deepEqual(failed, { requested: false, reason: "error" });
+  assert.equal(await used(), 0);
+});
