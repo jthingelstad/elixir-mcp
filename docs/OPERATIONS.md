@@ -405,22 +405,9 @@ private state is read through the IAM-only `{clan_maintenance}` op
 
 ## Restore rehearsal
 
-Backups that have never restored are hypotheses. DECISIONS lists
-"Database restore readiness work" under Declined (Jamie, 2026-09-27),
-including a rehearsal; whether one runs, and how often, is Jamie's
-call. These are the steps for when it does.
-
-1. Name the scratch instance and bound its cost before creating it.
-2. Restore the latest automated snapshot of `elixir-mcp-enc` to it.
-3. Run the schema fingerprint against it
-   (`node services/migrate/src/cli.mjs fingerprint --url <scratch url>`,
-   never `--update`) and compare with `db/schema.fingerprint` at the
-   deployed revision.
-4. Time the procedure end to end.
-5. Delete the scratch instance and confirm the deletion. Never touch a
-   retained production snapshot.
-
-The receipt records: the date, snapshot and source age, the schema
-revision, the fingerprint result, the time taken, and the cleanup
-evidence. An unknown prior success is due, never presumed. A schema
-change to the account tables makes a new rehearsal due.
+Declined. DECISIONS lists "Database restore readiness work" under
+Declined (Jamie, 2026-09-27): no restore runbook or rehearsal, longer
+retention, Multi-AZ, off-account copy or archive-replay proof. The
+automated RDS snapshots of `elixir-mcp-enc` are the backup. This
+heading stays so a reader looking for the procedure finds the decision;
+reopening it is Jamie's call.
