@@ -14,9 +14,9 @@ only when it does not apply, and say why in the commit message.
 - [ ] The family's DECISIONS lines are read in full and the binding
       ones are named in the plan. Review.
 - [ ] For a new tool, the measured walk comes from the call audit, and
-      Jamie's answer is recorded as a DECISIONS line and a NOTES entry.
+      Jamie's answer is recorded as a DECISIONS line and a change note.
       DECISIONS "New indexes or tools must collapse a measured walk".
-- [ ] The edit is in this session's own checkout or worktree.
+- [ ] The edit is in this session's own worktree.
 
 ## The code map
 
@@ -196,7 +196,7 @@ only when it does not apply, and say why in the commit message.
 - [ ] A new tool has a row in `choosing-a-tool.md`.
 - [ ] `examples.js` still uses real names and required arguments. No
       test reads it.
-- [ ] `updates.js` has an entry if a user can see the change.
+- [ ] A file in `apps/site/src/_data/updates/` if a user can see the change.
 - [ ] The generated tool reference is untouched. A new group gets its
       page in `apps/site/src/docs/tools/<group>.njk`. Test: `site`
       (skipped unless the site is built).
@@ -215,10 +215,12 @@ only when it does not apply, and say why in the commit message.
 
 ## Version and hand-off
 
-- [ ] `CONTRACT_VERSION` and a new head entry in `CHANGELOG` are set,
-      with `tools_added` or `breaking` where they apply. There is one
-      bump for the round. Test: `packages/contracts/test/changelog`.
-- [ ] Jamie's decisions are in `docs/DECISIONS.md` and `docs/NOTES.md`.
+- [ ] `npm run contract:bump` wrote the version's file in
+      `packages/contracts/src/changes/`, its entry filled in with
+      `tools_added` or `breaking` where they apply. There is one bump
+      for the round. Test: `packages/contracts/test/changelog`.
+- [ ] Jamie's decisions are in `docs/DECISIONS.md` and a note in
+      `docs/notes/`.
 - [ ] Hand off to `/ship`, naming the family (the tool-name prefix) for
       its deploy's `--acceptance=<family>`, or the whole suite for
       shared code.
@@ -288,6 +290,9 @@ only when it does not apply, and say why in the commit message.
 - The newest entry is `CONTRACT_VERSION`.
 - Versions are unique and run newest first.
 - Every entry has a version, a date and a summary.
+- Each file in `src/changes/` is named for its version and carries it;
+  the contract is the highest file, and each version succeeds the one
+  before it.
 
 `apps/site/test/site.test.mjs` (only when the site is built):
 - The tools pages and `tools.json` cover the live registry.

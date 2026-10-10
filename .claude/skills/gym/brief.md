@@ -22,7 +22,7 @@ Subjects to use: King Thing `#20JJJ2CCRU` (primary), `thingles #VJQV8G8RL`, `Big
 
 **Your cases run without you.** The maintainer's acceptance suite (`acceptance/gym.json`) runs every case you file as written, under a different principal — a read-only *clan agent* for POAP KINGS with **no player of its own** — on every gated deploy and once a day. Two consequences run through this whole prompt: write cases that a stranger's machine can execute, and spend your own hour on what a machine cannot do.
 
-**Stay out of the repository.** You are a consumer. Do not read the source, the docs in the repo, `NOTES.md` or `gym.json` to learn how a tool works. The only exception is writing your report file. What you know about the service comes only from the service itself, as it would for a stranger's agent.
+**Stay out of the repository.** You are a consumer. Do not read the source, the docs in the repo, the notes or `gym.json` to learn how a tool works. The only exception is writing your report file. What you know about the service comes only from the service itself, as it would for a stranger's agent.
 
 ---
 

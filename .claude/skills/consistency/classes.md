@@ -140,7 +140,7 @@ or describes the hub wrongly.
 - Example: Drop signing in on the MCP door while being a program; the
   Discord preview never reading `timeline_more`, so busy windows lost
   items; elixir-bot pinning contract 6.
-- Fix: in that repo, under its rules and lease, after the hub change it
+- Fix: in that repo, under its rules, after the hub change it
   needs is live.
 - Guard: that repo's own tests against a fixture of the hub's current
   shape.

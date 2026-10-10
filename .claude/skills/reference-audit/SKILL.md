@@ -22,24 +22,24 @@ its own evidence tool (`tools/cr-probe`) for live calls.
 
 | Question | Owner |
 |---|---|
-| Does Elixir's ingest know every field the API sends? | the hub's manifest (`packages/ingest/src/payload-keys.mjs`), the nightly shape census and the full audit's UNCATALOGUED list; Elixir Feedback Manager turns a finding into the change |
+| Does Elixir's ingest know every field the API sends? | the hub's manifest (`packages/ingest/src/payload-keys.mjs`), the nightly shape census and the full audit's UNCATALOGUED list; a finding arrives as a `recorder` feedback item and becomes product work (`docs/OPERATIONS.md`, "Feedback") |
 | Does the reference document what the API sends? | **this skill** |
-| What is happening in the game, and what is coming? | the domain objective Clash Royale Analyst (`../AGENT-TEAM/clash-royale-analyst.md`), which runs this skill for its evidence step |
+| What is happening in the game, and what is coming? | the domain team (`../AGENT-TEAM/`), which runs this skill weekly for its evidence |
 
 ## Preflight
 
 1. The AWS caller is `cloud-engineer` in account 999153317627:
    `AWS_PROFILE=cloud-engineer aws sts get-caller-identity`.
 2. `../cr-agent-api-docs` is clean and synced with `origin/main`
-   (`git -C ../cr-agent-api-docs status -sb`). It has no lease tooling; a
-   dirty or behind checkout is read-only for this run (the domain
-   `AGENT-TEAM/WORKFLOW.md` rule).
+   (`git -C ../cr-agent-api-docs status -sb`). A dirty or behind
+   checkout is read-only for this run: a change to it is made in a
+   worktree of its own, named when the session starts.
 3. Read the previous report in `reports/` (ignored by git). A finding it
    carried as proposed or declined is not re-proposed without new evidence.
 
-Evidence and the diff are reads and need no lease. Writing the reference
+Evidence and the diff are reads and take no lock. Writing the reference
 follows its rules; a hub change (a manifest entry) is a hub PR from your
-own worktree, and its deploy takes the hub lease.
+own worktree, and its deploy takes the production lock itself.
 
 ## Step 1: evidence
 
@@ -178,7 +178,7 @@ In `../cr-agent-api-docs`, under its AGENTS.md:
 
 A patch that also changes the hub (a manifest entry, a mode map, a docs
 page that quotes the reference) is a hub change: fix it there in your own
-worktree with its own gates, deploy under the hub lease, and say so in
+worktree with its own gates, deploy it (`/ship`), and say so in
 the report.
 
 ## Close

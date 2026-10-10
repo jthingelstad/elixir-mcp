@@ -51,8 +51,8 @@ segment, window, season, war, boat, ghost, archetype, form, timeline),
 and name the lines that constrain the change in your plan. "The ledger
 is the read path": the 2026-09-25 audit found decisions left unrealized
 because agents had read NOTES instead. Before the first edit, be in
-your own checkout (`AGENT-TEAM/WORKFLOW.md`, "One worktree per run");
-the lease is for the deploy (`/ship`).
+your own worktree (AGENTS.md, "Working style"); the production lock is
+the deploy's (`/ship`).
 
 ## 2. Where the code lives
 
@@ -186,8 +186,8 @@ pin (facets.md section 8 names the files).
   `protocol.mjs`; no test checks that list.
 - `apps/site/src/_data/examples.js` must use real tool names and
   required arguments. No test reads its calls, so check it by hand.
-- `apps/site/src/_data/updates.js` gets an entry for anything a user
-  sees, in the same commit. `elixir_docs` serves these pages to agents.
+- A What's new file in `apps/site/src/_data/updates/` for anything a
+  user sees, in the same commit (`apps/site/AGENTS.md`, "Updates"). `elixir_docs` serves these pages to agents.
 
 ## 8. Acceptance
 
@@ -216,12 +216,12 @@ pin (facets.md section 8 names the files).
   correction that removes an unreliable field is a patch". A major is "a
   domain-model change that requires the agent to change what its task
   means", which is Jamie's call.
-- **One bump per round**, not one per fix. Set `CONTRACT_VERSION` in
-  `packages/contracts/src/version.ts` and add an entry at the head of
-  `CHANGELOG` in `changelog.ts` (`tools_added` for a new tool, `breaking`
-  for a removal). "every contract bump updates the changelog".
-- **A decision Jamie made** becomes a DECISIONS line and a dated NOTES
-  entry in the same round.
+- **One bump per round**, not one per fix. `npm run contract:bump --
+  <patch|minor|major>` writes `packages/contracts/src/changes/<version>.ts`;
+  fill in its entry (`tools_added` for a new tool, `breaking` for a
+  removal). "every contract bump updates the changelog".
+- **A decision Jamie made** becomes a DECISIONS line and a change note in
+  `docs/notes/` in the same round.
 - **Hand off to `/ship`** and name the family (or families) you
   changed, so its deploy runs `--acceptance=<family>`.
 

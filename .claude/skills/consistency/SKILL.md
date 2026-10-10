@@ -42,14 +42,14 @@ public milestone, after a burst of decisions, or about monthly. On
 
 ## Preflight
 
-1. Work in your own checkout (`AGENT-TEAM/WORKFLOW.md`, "One worktree
-   per run"); edits take no lease. Claim the lease (interactively
-   `node AGENT-TEAM/scripts/objective-lease.mjs claim session`; from an
-   objective run, that objective's key) only for a deploy or an
-   ops-lambda write, and release it after.
+1. Work in your own worktree, on the session's branch, with a draft pull
+   request at the first push (AGENTS.md, "Working style"). Edits take no
+   lock; the deploy and `npm run op` take the production lock
+   themselves.
 2. Read `docs/DECISIONS.md` in full, `facets.md`, `classes.md`, and the
    previous report of this mode in `reports/`.
-3. Note HEAD, the contract version (`packages/contracts/src/version.ts`)
+3. Note HEAD, the contract version (the highest file in
+   `packages/contracts/src/changes/`)
    and the JSON API version (`info.version` in
    `packages/contracts/integration-api.openapi.json`). The report states
    what it reviewed.
@@ -108,7 +108,7 @@ Every verified finding is one of:
   finding carries a policy half, ask about the policy.
 - **Sibling repo.** The fix belongs to Clan, Drop, the Discord preview or
   cr-agent-api-docs (elixir-bot is retired, 2026-09-26). Fix it there under that repo's rules, in
-  its own worktree (`../AGENT-TEAM/WORKFLOW.md`).
+  its own worktree, named when the session starts.
   poapkings.com is report-only (Jamie, 2026-09-25: "leave poapkings.com
   website as is for now even if it is wrong").
 
@@ -141,11 +141,11 @@ report. Every answer becomes a DECISIONS line in the fix phase.
   for pointers to it and repoint them. Migrations are checksum-immutable
   and may cite old paths; leave them, git history resolves them.
 - Ledger in the same round: a line in `docs/DECISIONS.md` for every
-  decision Jamie made, the stale lines rewritten, a dated entry in
-  `docs/NOTES.md`, and ENGINEERING.md where an invariant changed.
+  decision Jamie made, the stale lines rewritten, a change note in
+  `docs/notes/`, and ENGINEERING.md where an invariant changed.
 - A contract change follows the versioning rules (AGENTS.md rule 5): one
-  MCP bump for the round, a changelog entry, `updates.js` for anything a
-  user sees; a JSON API change moves `info.version` and the pin.
+  MCP bump for the round (`npm run contract:bump`, then its entry), a
+  file in `apps/site/src/_data/updates/` for anything a user sees; a JSON API change moves `info.version` and the pin.
 
 ## Phase 5: ship
 
@@ -161,8 +161,8 @@ consistency round:
   (2026-09-25): expect the round's decisions to break Gym cases that
   asserted the old behavior, and amend them with the decision as the
   reason rather than calling them flakes.
-- Sibling repos last, after the hub they depend on is live. Their gates,
-  their deploys, their leases, released when done.
+- Sibling repos last, after the hub they depend on is live, under their
+  own gates and deploys.
 
 ## Phase 6: close
 
@@ -172,7 +172,6 @@ consistency round:
   queued, and the coverage list of what was checked and found consistent.
 - Memory: update the memories the round changed, and one memory for the
   round's decisions if it had any.
-- Release every lease you claimed.
 - The message to Jamie: what landed, what acceptance caught, and a short
   **Needs you** list (live checks only Jamie can do, sibling work that is
   not ours, open questions). Times in US Central.
@@ -183,7 +182,8 @@ consistency round:
 - Never read `.env` files or secret values; the public repos hold none.
 - DECISIONS.md is the ledger agents read. When a finding is "the ledger
   says X, the agents were never told", the fix is the reading path
-  (AGENTS.md, `AGENT-TEAM/READING.md`, the objective files, the skills),
+  (AGENTS.md, `docs/OPERATIONS.md`, the skills, the domain team's
+  runbooks),
   not another copy of X.
 - Do not re-litigate a DECISIONS line. A surface that disagrees with it is
   the defect; a line that contradicts another line is a product call.

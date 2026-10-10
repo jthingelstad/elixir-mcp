@@ -1,7 +1,7 @@
 # Acceptance triage
 
 Every failure from a deploy's acceptance run (or `npm run acceptance`) gets
-exactly one verdict, and the ship's NOTES entry lists them. The suite is
+exactly one verdict, and the ship's report lists them. The suite is
 how 9.1.0 found a note still naming a removed field (2026-09-25): a run
 with a failure nobody triaged is a gate nobody kept.
 
@@ -19,7 +19,7 @@ with a failure nobody triaged is a gate nobody kept.
 ## Why each verdict is what it is
 
 - **Fix forward.** The code is live when acceptance runs; a red case means
-  "fix forward now, not walk away" (`AGENT-TEAM/WORKFLOW.md`).
+  "fix forward now, not walk away".
 - **Amend.** A case that asserts a retired rule makes the gate enforce the
   old decision. The amended case must still fail on its bite
   (`acceptance/bites.test.mjs`, under verify): "A rule that passes on
