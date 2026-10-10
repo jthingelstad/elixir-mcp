@@ -311,3 +311,102 @@ describe("the clan's model", () => {
     expect(railKey("/clan/2PQRJ8LV/manage/model")).toBe("settings");
   });
 });
+
+describe("the clan's model: spend and the monthly cap", () => {
+  const spent = (extra = {}) =>
+    status({
+      prices_as_of: "2026-10-10",
+      max_spend_cap_usd: 1000,
+      spend_cap_usd: null,
+      cap_reached: false,
+      uses: {
+        today: 2,
+        month: {
+          count: 5,
+          input_tokens: 3500,
+          output_tokens: 900,
+          spend_usd: 0.016,
+          spend_estimated: false,
+        },
+        recent: [
+          {
+            at: "2026-09-25T11:00:00Z",
+            by: "#20QQL8CCRU",
+            by_name: "Ada",
+            purpose: "recruit_pitch",
+            model: "claude-sonnet-5",
+            ok: true,
+            input_tokens: 700,
+            output_tokens: 180,
+            spend_usd: 0.0032,
+          },
+        ],
+      },
+      ...extra,
+    });
+
+  test("shows about what the month and each use cost, from list prices", async () => {
+    vi.spyOn(manageApi, "model").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: spent(),
+    });
+    renderWithProviders(<Model clan={leaderClan} />);
+    expect(
+      await screen.findByText(
+        /5 uses · 3,500 tokens in, 900 out · about \$0\.02/,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(/700 in · 180 out · about \$0\.0032/)).toBeTruthy();
+    expect(screen.getByText(/list prices as of 2026-10-10/)).toBeTruthy();
+    expect(screen.getByLabelText("Monthly cap").value).toBe("");
+  });
+
+  test("a leader sets, and removes, the monthly cap", async () => {
+    vi.spyOn(manageApi, "model").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: spent(),
+    });
+    const setCap = vi
+      .spyOn(manageApi, "setSpendCap")
+      .mockResolvedValue({ ok: true, status: 200, data: { ok: true } });
+    renderWithProviders(<Model clan={leaderClan} />);
+    const input = await screen.findByLabelText("Monthly cap");
+    fireEvent.change(input, { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save cap" }));
+    await waitFor(() => expect(setCap).toHaveBeenCalledWith("#2PQRJ8LV", "5"));
+    cleanup();
+    vi.spyOn(manageApi, "model").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: spent({ spend_cap_usd: 5 }),
+    });
+    renderWithProviders(<Model clan={leaderClan} />);
+    expect(
+      await screen.findByText(/about \$0\.02 of the \$5\.00 cap/),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Remove cap" }));
+    await waitFor(() => expect(setCap).toHaveBeenCalledWith("#2PQRJ8LV", null));
+  });
+
+  test("says so when the month has reached the cap, and shows a refused cap's reason", async () => {
+    vi.spyOn(manageApi, "model").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: spent({ spend_cap_usd: 0.01, cap_reached: true }),
+    });
+    vi.spyOn(manageApi, "setSpendCap").mockResolvedValue({
+      ok: false,
+      status: 400,
+      data: { message: "A cap is a dollar amount from $0.01 to $1000." },
+    });
+    renderWithProviders(<Model clan={leaderClan} />);
+    expect(await screen.findByText(/has reached the \$0\.01 cap/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Monthly cap"), {
+      target: { value: "5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save cap" }));
+    expect(await screen.findByText(/A cap is a dollar amount/)).toBeTruthy();
+  });
+});

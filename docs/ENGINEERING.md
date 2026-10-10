@@ -482,9 +482,16 @@ behavior (the only door route that sees the session cookie is
   read (`keyModels`), at most once in `MODELS_REFRESH_MS` per clan (the
   attempt is recorded before the read), asked for by the Settings page
   after it draws, and due at once after a `model_unavailable`. It merges
-  only the list fields into the key item re-read after the call, never
+  only the list fields into the key item re-read after the call (same key
+  compared by its sealed bytes, never by object identity), never
   `model`. 401/403 sets `refused_at`; any other failure keeps the list
   and records `models_refresh_error`.
+- Spend: `prices.mjs` prices a use from the tokens it recorded
+  (`costOfUse`; update `PRICES_AS_OF` and the table when Anthropic's list
+  changes). `spendNow` sums the UTC month's recorded uses against the key
+  item's `spend_cap_usd`; `write` refuses `model_spend_cap` before it
+  reserves a use. Every use recorded with `addModelCall` counts, whatever
+  path made it.
 - Repair is the IAM-only `{clan_maintenance}` migrate op: bounded reads,
   digest-checked feedback responses, and an audited system withdrawal of
   one pending removal under incident authority. Sealed key items have no

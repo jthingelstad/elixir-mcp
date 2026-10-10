@@ -1116,3 +1116,93 @@ test("model list: only leaders refresh, and only while the key's owner leads", a
   const elder = await signedIn(h);
   assert.equal((await api(h, elder, "POST", REFRESH)).status, 403);
 });
+
+// ------------------------------------------------- spend and the monthly cap
+
+test("model spend: each use is priced at list rates; the month is summed", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  assert.equal((await api(h, c, "GET", MODEL)).body.model, "claude-sonnet-5");
+  await api(h, c, "POST", DRAFT, {});
+  await api(h, c, "POST", DRAFT, {});
+  const s = await api(h, c, "GET", MODEL);
+  // 700 in and 180 out on Sonnet 5 ($2 / $10 per million): $0.0032 each.
+  assert.equal(s.body.uses.recent[0].spend_usd, 0.0032);
+  assert.equal(s.body.uses.month.spend_usd, 0.0064);
+  assert.equal(s.body.uses.month.spend_estimated, false);
+  assert.equal(s.body.spend_cap_usd, null);
+  assert.equal(s.body.cap_reached, false);
+  assert.match(s.body.prices_as_of, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test("model spend: drafting stops at the clan's monthly cap, until it is raised, removed or the month turns", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const set = await api(h, c, "PUT", MODEL, { spend_cap_usd: 0.01 });
+  assert.equal(set.status, 200, JSON.stringify(set.body));
+  assert.equal(set.body.spend_cap_usd, 0.01);
+  // $0.0032 a draft: the fourth starts at $0.0096, still under the cap.
+  for (let i = 0; i < 4; i += 1)
+    assert.equal((await api(h, c, "POST", DRAFT, {})).status, 200, `#${i}`);
+  const writes = () =>
+    h.anthropic.state.calls.filter(([t]) => t === "write").length;
+  assert.equal(writes(), 4);
+  const stopped = await api(h, c, "POST", DRAFT, {});
+  assert.equal(stopped.status, 429);
+  assert.equal(stopped.body.error, "model_spend_cap");
+  assert.equal(writes(), 4, "a capped draft never reaches Anthropic");
+  const s = await api(h, c, "GET", MODEL);
+  assert.equal(s.body.cap_reached, true);
+  assert.equal(s.body.uses.month.count, 4, "a capped draft is not a use");
+  assert.equal(s.body.spend_cap_set_by_name, "Ada");
+  // Raised, it drafts again; removed, it drafts again.
+  await api(h, c, "PUT", MODEL, { spend_cap_usd: 1 });
+  assert.equal((await api(h, c, "POST", DRAFT, {})).status, 200);
+  await api(h, c, "PUT", MODEL, { spend_cap_usd: 0.01 });
+  assert.equal((await api(h, c, "POST", DRAFT, {})).status, 429);
+  await api(h, c, "PUT", MODEL, { spend_cap_usd: null });
+  assert.equal((await api(h, c, "GET", MODEL)).body.spend_cap_usd, null);
+  assert.equal((await api(h, c, "POST", DRAFT, {})).status, 200);
+  // A new month (UTC) starts from nothing under the same cap.
+  await api(h, c, "PUT", MODEL, { spend_cap_usd: 0.01 });
+  assert.equal((await api(h, c, "POST", DRAFT, {})).status, 429);
+  h.clock.t = Date.parse("2026-10-01T00:00:00Z");
+  assert.equal((await api(h, c, "POST", DRAFT, {})).status, 200);
+});
+
+test("model spend: a cap is dollars to the cent, set by leaders, and outlives the key", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  assert.equal(
+    (await api(h, c, "PUT", MODEL, { spend_cap_usd: 5 })).body.error,
+    "no_model_key",
+  );
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  for (const bad of [0, -1, 0.001, 1000.01, "five", true, {}])
+    assert.equal(
+      (await api(h, c, "PUT", MODEL, { spend_cap_usd: bad })).body.error,
+      "bad_spend_cap",
+      JSON.stringify(bad),
+    );
+  for (const good of [0.29, "2.50", 1000]) {
+    const r = await api(h, c, "PUT", MODEL, { spend_cap_usd: good });
+    assert.equal(r.status, 200, JSON.stringify(good));
+    assert.equal(r.body.spend_cap_usd, Number(good));
+  }
+  await api(h, c, "PUT", MODEL, { spend_cap_usd: 3 });
+  // Replacing the key keeps the clan's cap.
+  await api(h, c, "PUT", MODEL, { key: OTHER });
+  assert.equal((await api(h, c, "GET", MODEL)).body.spend_cap_usd, 3);
+  // An elder cannot see or change it.
+  h.mcp.state.players = [
+    player({ player_tag: BEA, name: "Bea", clan_role: "elder" }),
+  ];
+  const elder = await signedIn(h);
+  assert.equal(
+    (await api(h, elder, "PUT", MODEL, { spend_cap_usd: 100 })).status,
+    403,
+  );
+  assert.equal((await h.ledger.modelKey("#2PQRJ8LV")).spend_cap_usd, 3);
+});
