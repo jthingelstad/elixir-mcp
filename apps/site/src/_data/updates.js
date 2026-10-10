@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-10",
+    title: "Faster empty polls, and a faster corpus count",
+    body: "The skip_empty check that lets an empty timeline poll answer at once was slow when the reader asked for quiet_crossed, the moment a member goes quiet: it looked at every recorded battle to find one. It now looks only at the battles of the players the reader follows, so an empty poll answers in milliseconds whichever kinds it asks for. elixir_data_insights also counts the stored daily snapshots in one pass instead of four. Both answers are unchanged. MCP 11.7.1; JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-10",
     title: "A timeline poll that finds nothing costs almost nothing",
     body: "Agents that poll your timeline every few minutes, like the clan's Discord agents, mostly find nothing new, and each poll still read every subject's summary. elixir_timeline now takes skip_empty: true. When nothing in the window could be news for that reader, Elixir answers at once with an empty timeline and no summaries, and says it skipped them. The reader's place in the timeline moves as it always does. When there is news, the answer is the same as before, summaries included. Reads without the argument are unchanged. MCP 11.7.0; JSON API 3.1.0 unchanged.",
   },
