@@ -40,12 +40,13 @@ after a month gets a month's timeline (capped at 30 days, and at the newest
 | `evidence_offset` | integer | 0 | 0 to 10,000: where the page of games starts |
 | `evidence_limit` | integer | 25 | 1 to 25 games per page |
 | `expected_evidence_version` | string | none | the item's `evidence.version`; required after the first page, so a page never shifts under changed evidence |
+| `skip_empty` | boolean | `false` | for polling: a window with no item this read's `kinds` would keep is answered without reading the subjects, so `timeline`, `entries` and `quiet` are empty and `entries_skipped` is `true`. The pointer, `next_cursor` and `meta` move as on any read ([Polling cheaply](#polling-cheaply)) |
 | `verbosity` | `full` \| `compact` | `full` | compact keeps items, entry summaries and player notables, and drops entry sections including clan standouts |
 | `timezone` | IANA zone | the account's | for date-only bounds and the text's times |
 
 Response: `{ window: { from, to }, read_to, timeline: [...], timeline_more,
-timeline_more_to, entries: [...], quiet: [...], subjects, next_cursor,
-has_more, notes, docs, meta }`.
+timeline_more_to, entries: [...], entries_skipped, quiet: [...], subjects,
+next_cursor, has_more, notes, docs, meta }`.
 
 - `timeline` is **newest first** by `at` (when a moment happened), like a
   newsfeed. A window selects items by `observed_at`, when the record
@@ -391,6 +392,8 @@ entry: a clan's silence is the clan's activity.
    `meta.timeline_pending` was 0. If `timeline` is empty, there is nothing
    to consider. Otherwise read the items, then the entries for the shape of
    the window.
+   Pass `skip_empty: true` when you poll and act only on items
+   ([Polling cheaply](#polling-cheaply)).
 3. Drill with the data tools for anything worth more: `clans_roster`,
    `war_current`, `clans_participation`, `players_summary`.
 4. Nothing to save: your reader's pointer is the window's end. A consumer
@@ -400,6 +403,26 @@ entry: a clan's silence is the clan's activity.
 On first run the window is the last 24 hours; an agent that posts a month
 of backlog into a channel is the most common mistake with a feed like this,
 and the cap and the default exist to prevent it.
+
+## Polling cheaply
+
+Most polls find nothing new. With `skip_empty: true`, Elixir first asks
+whether anything in the window could be an item this read keeps: a
+recorded battle, a ledger moment, a roster move, a quiet rung crossed by
+the clock, an account event or an attested fact, among your subjects and
+the `kinds` you named. When nothing could, it answers at once:
+`timeline`, `entries` and `quiet` are empty, `entries_skipped` is `true`,
+and a note says so. Everything else is as on any read: the window,
+`next_cursor`, `read_to`, the reader's pointer and `meta`, including
+`meta.timeline_pending`.
+
+When the window does hold an item, the read is exactly the read without
+`skip_empty`, entries included, and `entries_skipped` is `false`. A
+`sections` filter does not narrow the check, so a read filtered only by
+section may build and then serve nothing. An evidence read always builds.
+
+Read without `skip_empty` when you want the entries of a quiet window,
+for example a summary posted when nothing happened.
 
 ## One member, and the window's bounds
 

@@ -1255,3 +1255,33 @@ others) and references 33 metrics; the free tier is three dashboards of
 50. Whether the alarm widget counts toward the 50 is unconfirmed; if it
 does, the dashboard is $3 a month. A day's MCP log query scans about
 3 MB.
+
+## 2026-10-10 — 11.7.0: an empty timeline poll skips the build
+
+Jamie's call: "Approved: empty-poll fast path for elixir_timeline in
+elixir-mcp". The census for 2026-10-09 10:12Z to 10-10 10:12Z: 864
+elixir_timeline calls, 89% of 974 MCP calls (the three Discord agents at
+5 minutes), avg 542 ms, 379 ms in the DB, 24 queries; about 96% returned
+no items. Every one built every subject's entry and items before the
+kinds filter or compact verbosity applied.
+
+`skip_empty: true` (opt-in; the bots' carry-release turn reads entries
+from an empty window, so the default is unchanged) runs `timelineNews`
+first: one statement with a column per item source in buildTimeline
+(player battles, player moments, the player's clan moves, the player's
+quiet rung, the clan ledger, member moments, member battles for standouts,
+sessions and returns, the clan's quiet rungs, account events, attested
+facts), each a superset of what its builder serves, asked only when the
+read's kinds keep one of its kinds. Quiet rungs are clock, not rows: the
+check asks for a battle a rung before the window with none after it until
+the rung. All false: the read answers with empty timeline, entries and
+quiet, `entries_skipped: true`, and moves the pointer, next_cursor and
+meta exactly as the full read (same code below the build).
+
+`timeline-skip-empty.test.mjs` seeds one moment per source and sweeps
+5-minute and hour windows over them: any window the build serves an item
+in must answer the check, under no kinds and under each served kind
+alone. Disabling each source in turn fails that assertion for all ten.
+On the scratch database an empty poll was 9 queries against a full
+read's 51.
+

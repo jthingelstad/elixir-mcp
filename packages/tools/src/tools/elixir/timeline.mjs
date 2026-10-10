@@ -3,6 +3,7 @@ import {
   ITEM_KINDS,
   buildTimeline,
   subjectsFor,
+  timelineNews,
   readTimelineEvidence,
 } from "../../activity/entries.mjs";
 import { resolveInstant } from "../../time.mjs";
@@ -97,6 +98,12 @@ export const elixir_timeline = {
         maxLength: 16,
         description:
           "Keep only items about this player (7.1.5): their own moments and sessions and, on a clan's timeline, their member moments and sessions. Applied before the item cap; entries are untouched, and a member read never moves the read pointer.",
+      },
+      skip_empty: {
+        type: "boolean",
+        default: false,
+        description:
+          "For polling (11.7.0): true answers a window with no item your kinds would keep without building it: timeline, entries and quiet empty, entries_skipped true; the pointer, next_cursor and meta move as on any read. Read without it when you want the entries.",
       },
       verbosity: VERBOSITY(
         "the timeline items and each entry's summary, subject, window and player notables; every entry section, including clan standouts, is dropped.",
@@ -246,6 +253,7 @@ export const elixir_timeline = {
         `Kinds: ${ITEM_KINDS.join(", ")}, or an account_* kind.`,
       );
     const compact = args.verbosity === "compact";
+    const iso = (ms) => (ms === null ? null : new Date(ms).toISOString());
 
     // One member's items (Gym #253: "anything new with me?" read the
     // whole clan feed, where the cap left 18 of that member's items).
@@ -266,19 +274,42 @@ export const elixir_timeline = {
       it.subject_tag === memberTag ||
       it.facts?.player_tag === memberTag;
     const subjects = await subjectsFor(ctx.db, ctx.account.accountId);
-    const built = await buildTimeline(ctx.db, subjects, {
-      fromMs,
-      toMs,
-      timezone: tz,
-      accountId: ctx.account.accountId,
-      // Leaders-only facts need the person's own consent, not a key.
-      interactive: ctx.account.credentialType === "oauth",
-      memberTag,
-      filter: (it) =>
-        (!sections || sections.includes(it.section)) &&
-        (!kinds || kinds.includes(it.kind)) &&
-        aboutMember(it),
-    });
+    // skip_empty (11.7.0): one statement asks whether any source could
+    // serve an item this read keeps; when none could, the build is skipped
+    // and the read answers as an empty window (no entries), moving the
+    // pointer exactly as a full read would. An evidence read always builds.
+    const skipped =
+      args.skip_empty === true &&
+      !args.evidence_item_id &&
+      !(
+        await timelineNews(ctx.db, subjects, {
+          fromMs,
+          toMs,
+          accountId: ctx.account.accountId,
+          kinds,
+        })
+      ).any;
+    const built = skipped
+      ? {
+          window: { from: iso(fromMs), to: iso(toMs) },
+          timeline: [],
+          timeline_dropped: [],
+          entries: [],
+          quiet: [],
+        }
+      : await buildTimeline(ctx.db, subjects, {
+          fromMs,
+          toMs,
+          timezone: tz,
+          accountId: ctx.account.accountId,
+          // Leaders-only facts need the person's own consent, not a key.
+          interactive: ctx.account.credentialType === "oauth",
+          memberTag,
+          filter: (it) =>
+            (!sections || sections.includes(it.section)) &&
+            (!kinds || kinds.includes(it.kind)) &&
+            aboutMember(it),
+        });
     // A member session the window cuts recurs in the next read (Gym
     // #302); a read that holds each sitting whole says nothing.
     const sittingCut =
@@ -404,6 +435,7 @@ export const elixir_timeline = {
         timeline_more: 0,
         timeline_more_to: null,
         entries: [],
+        entries_skipped: false,
         quiet: [],
         subjects: subjects.length,
         next_cursor: built.window.to,
@@ -446,7 +478,6 @@ export const elixir_timeline = {
       storedMs = stored[0]?.activity_seen_at?.getTime() ?? null;
     }
     const pointerKept = marking && storedMs !== null && storedMs > endMs;
-    const iso = (ms) => (ms === null ? null : new Date(ms).toISOString());
     // The war ledger's own start (Gym #215): war moments and the clan
     // entry's war.resolved begin with the first war event on record, so
     // an earlier window read "no week resolved" over five closed weeks.
@@ -497,6 +528,7 @@ export const elixir_timeline = {
         ...(memberTag ? { player_tag: memberTag } : {}),
         ...(sections ? { sections } : {}),
         ...(kinds ? { kinds } : {}),
+        ...(args.skip_empty === true ? { skip_empty: true } : {}),
         verbosity: compact ? "compact" : "full",
       }),
       window: built.window,
@@ -505,6 +537,10 @@ export const elixir_timeline = {
       timeline_more: remaining,
       ...(evidence ? { evidence } : {}),
       entries,
+      // True when skip_empty found nothing to build: entries and quiet
+      // are empty because they were not read, not because nothing is
+      // tracked.
+      entries_skipped: skipped,
       quiet: built.quiet,
       subjects: subjects.length,
       next_cursor: iso(endMs),
@@ -515,9 +551,12 @@ export const elixir_timeline = {
       timeline_more_to: cutMs !== null ? iso(cutMs) : null,
       notes: notes(
         seasonFields.seasonNotes,
-        entries.length === 0 && built.quiet.length === 0
+        subjects.length === 0
           ? "No subjects: track a player or clan (notify defaults on) and it appears here."
           : "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Each item's id is the story it tells, the same in every read, and revision is how far it has grown: tell a story once per id, and update it (never retell it) when a read serves a higher revision. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+        skipped
+          ? "skip_empty: nothing in this window is an item this read keeps, so the entries were not built (entries_skipped). The pointer and next_cursor moved as on any read; read without skip_empty for the subjects' summaries."
+          : null,
         built.quiet.length > 0
           ? "quiet lists tracked players with nothing in the window; read days_since_poll beside days_quiet before calling the silence theirs."
           : null,

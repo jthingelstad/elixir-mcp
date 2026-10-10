@@ -3125,6 +3125,11 @@ export const OUTPUT_SCHEMAS = {
           required: ["kind", "subject_tag", "summary", "window"],
         },
       },
+      entries_skipped: {
+        type: "boolean",
+        description:
+          "11.7.0: true when skip_empty found no item for this read and the entries and quiet were not built; false on every other read.",
+      },
       quiet: { type: "array" },
       subjects: COUNT,
       next_cursor: ISO,

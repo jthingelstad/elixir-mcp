@@ -2533,6 +2533,175 @@ export async function buildTimeline(
   };
 }
 
+/**
+ * Whether a window could hold a timeline item, without building it
+ * (skip_empty, 11.7.0). A poll that finds nothing should cost one
+ * statement, not a build: on 2026-10-09 the three Discord agents' polls
+ * were 89% of MCP calls, 96% of them empty, each paying ~24 queries.
+ *
+ * One column per item source in buildTimeline, each a superset of what
+ * that source can serve, so "false everywhere" proves an empty timeline
+ * and "true" only means build it. A source missed here is a lost post,
+ * which is worse than a slow poll: every kind in ITEM_KINDS belongs to a
+ * source below, and the test walks them all. A source is checked only
+ * when the caller's `kinds` keeps one of its kinds (the kinds filter
+ * runs before the cap, so a kind it drops cannot change the answer);
+ * `sections` is not consulted, which errs toward building.
+ *
+ * Two sources are time, not rows: a quiet rung is crossed when the days
+ * since a battle reach it, so the check asks for a battle a rung before
+ * the window with nothing after it until the rung.
+ */
+export const NEWS_SOURCES = {
+  // buildPlayerEntry: sessions from battles learned in the window, and a
+  // return, which needs one of them.
+  player_battles: ["battle_session", "returned"],
+  player_moments: PLAYER_MOMENT_KINDS,
+  player_clan_moves: ["clan_joined", "clan_left"],
+  player_quiet: ["quiet_crossed"],
+  // buildClanEntry: the ledger (role_changed is served as
+  // member_role_changed), member moments, sessions and returns from
+  // member battles the window learned, and quiet rungs.
+  clan_ledger: [
+    "member_joined",
+    "member_left",
+    "member_role_changed",
+    "bracket_observed",
+    "race_finished",
+    "week_resolved",
+  ],
+  clan_member_moments: PLAYER_MOMENT_KINDS,
+  clan_member_battles: ["session_standout", "battle_session", "returned"],
+  clan_quiet: ["quiet_crossed"],
+  // accountItems serves account_<kind>; factItems the attested kinds.
+  account: ["account_*"],
+  attested: ATTESTED_FACT_KINDS,
+};
+
+export async function timelineNews(
+  db,
+  subjects,
+  { fromMs, toMs, accountId = null, kinds = null },
+) {
+  const wants = (source) =>
+    !kinds ||
+    NEWS_SOURCES[source].some((k) =>
+      k === "account_*"
+        ? kinds.some((x) => x.startsWith("account_"))
+        : kinds.includes(k),
+    );
+  const players = subjects.filter((s) => s.kind === "player").map((s) => s.tag);
+  const clans = subjects.filter((s) => s.kind === "clan").map((s) => s.tag);
+  const comprehensive = subjects
+    .filter(
+      (s) =>
+        s.kind === "clan" && (s.scope ?? "comprehensive") === "comprehensive",
+    )
+    .map((s) => s.tag);
+  const inWindow = (col) =>
+    `${col} >= ${ts(fromMs + 1)} and ${col} < ${ts(toMs + 1)}`;
+  // A battle `r` days before the window with none after it until the rung
+  // (presenceOf and the clan's battle gaps: a crossing at battle + r in
+  // (from, to] whose gap is still open there).
+  const quietSql = (tagsSql) =>
+    `exists (select 1 from unnest(array[${QUIET_RUNGS_DAYS.join(", ")}]) as r(days)
+       join battle_participant bp on bp.player_tag in (${tagsSql})
+        and bp.battle_time > ${ts(fromMs)} - make_interval(days => r.days)
+        and bp.battle_time <= ${ts(toMs)} - make_interval(days => r.days)
+      where not exists (select 1 from battle_participant nx
+                         where nx.player_tag = bp.player_tag
+                           and nx.battle_time > bp.battle_time
+                           and nx.battle_time <= bp.battle_time + make_interval(days => r.days)))`;
+  const members = (tagsParam, extra = "") =>
+    `select cm.player_tag from clan_membership cm
+      where cm.clan_tag = any(${tagsParam}) and cm.joined_observed_at < ${ts(toMs + 1)}${extra}`;
+  const checks = {
+    player_battles:
+      players.length &&
+      `exists (select 1 from battle_participant bp join battle b on b.battle_id = bp.battle_id
+                where bp.player_tag = any(p.players)
+                  and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
+                  and ${inWindow("b.created_at")})`,
+    player_moments:
+      players.length &&
+      `exists (select 1 from player_event pe
+                where pe.player_tag = any(p.players) and pe.event_type = any(p.moment_kinds)
+                  and ${inWindow("coalesce(pe.evidence_observed_at, pe.window_end)")})`,
+    player_clan_moves:
+      players.length &&
+      `exists (select 1 from clan_membership cm
+                where cm.player_tag = any(p.players)
+                  and ((${inWindow("cm.joined_observed_at")}) or (${inWindow("cm.left_observed_at")})))`,
+    player_quiet: players.length && quietSql("select unnest(p.players)"),
+    clan_ledger:
+      clans.length &&
+      `exists (select 1 from clan_event e
+                where e.clan_tag = any(p.clans) and e.event_type = any(p.ledger_kinds)
+                  and ${inWindow("e.window_end")})`,
+    clan_member_moments:
+      clans.length &&
+      `exists (select 1 from player_event pe
+                join clan_membership cm on cm.player_tag = pe.player_tag
+                 and cm.clan_tag = any(p.clans) and cm.left_observed_at is null
+                where pe.event_type = any(p.moment_kinds)
+                  and ${inWindow("coalesce(pe.evidence_observed_at, pe.window_end)")})`,
+    // Standouts and a member's sessions read battles in the clan; a return
+    // reads a member's battles wherever they were played, back to the
+    // deepest rung, so both are asked.
+    clan_member_battles:
+      clans.length &&
+      `exists (select 1 from battle b join battle_participant bp on bp.battle_id = b.battle_id
+                where ${inWindow("b.created_at")}
+                  and bp.battle_time > ${ts(fromMs - QUIET_RUNGS_DAYS.at(-1) * DAY_MS)}
+                  and bp.battle_time < ${ts(toMs + 1)}
+                  and (bp.clan_tag = any(p.clans)
+                       or bp.player_tag in (${members("p.clans")})))`,
+    clan_quiet:
+      comprehensive.length &&
+      quietSql(
+        members(
+          "p.comprehensive",
+          ` and (cm.left_observed_at is null or cm.left_observed_at > ${ts(fromMs)})`,
+        ),
+      ),
+    account:
+      accountId &&
+      `exists (select 1 from account_event
+                where account_id = p.account_id and ${inWindow("created_at")})`,
+    attested:
+      (players.length || clans.length) &&
+      `exists (select 1 from attested_fact f
+                where ${inWindow("f.recorded_at")}
+                  and ((f.subject_kind = 'clan' and f.clan_tag = any(p.clans))
+                    or (f.subject_kind = 'player' and f.player_tag = any(p.players))))`,
+  };
+  const asked = Object.entries(checks).filter(([k, sql]) => sql && wants(k));
+  const sources = Object.fromEntries(
+    Object.keys(NEWS_SOURCES).map((k) => [k, false]),
+  );
+  if (asked.length) {
+    const {
+      rows: [row],
+    } = await db.query(
+      // Every parameter typed once, here (pg-param-type-from-first-use).
+      `select ${asked.map(([k, sql]) => `${sql} as ${k}`).join(",\n")}
+         from (select $1::text[] as players, $2::text[] as clans,
+                      $3::text[] as comprehensive, $4::text[] as moment_kinds,
+                      $5::text[] as ledger_kinds, $6::uuid as account_id) p`,
+      [
+        players,
+        clans,
+        comprehensive,
+        PLAYER_MOMENT_KINDS,
+        CLAN_LEDGER_KINDS,
+        accountId,
+      ],
+    );
+    for (const [k] of asked) sources[k] = row[k] === true;
+  }
+  return { any: Object.values(sources).some(Boolean), sources };
+}
+
 /** Entries only: the ops preview and the console read this shape. */
 export async function buildEntries(db, subjects, opts) {
   const out = await buildTimeline(db, subjects, opts);
