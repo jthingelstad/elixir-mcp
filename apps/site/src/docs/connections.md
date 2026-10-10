@@ -173,7 +173,7 @@ rail:
 | Its record → Activity | its calls with `request_id`, and its account events |
 | Its record → Usage | its calls as a share of your budget, which it spends |
 | Access → Connections | the clients connected as it, what each may do, and refusals of its key |
-| Access → Settings | its name, what its key may do, the key itself (issue, revoke, suspend), and who it answers for |
+| Access → Settings | its name, what its key may do, the key itself (issue, revoke, suspend), removing a suspended agent from view, and who it answers for |
 | Access → Feedback | what it has filed and what the maintainer answered; new feedback is filed as you |
 
 ## Making one

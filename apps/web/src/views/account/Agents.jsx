@@ -53,6 +53,9 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
   const status = useWrite(api.setPrincipalStatus, {
     invalidate: [keys.principals],
   });
+  const removal = useWrite(api.setPrincipalRemoved, {
+    invalidate: [keys.principals],
+  });
   const unmap = useWrite(api.removePrincipalIdentity, {
     invalidate: [keys.principals],
   });
@@ -75,6 +78,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
 
   const live = (agent.tokens ?? []).filter((k) => !k.revoked_at);
   const suspended = agent.status !== "approved";
+  const removed = Boolean(agent.removed_at);
   const name = agent.name ?? agent.public_id;
   // The agent's own door. One hostname serves the site and the MCP endpoint,
   // so the origin this console is served from IS the origin to connect to —
@@ -123,7 +127,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
           style={{ marginLeft: "auto" }}
         >
           <span className="chip__dot" />
-          {suspended ? "suspended" : "active"}
+          {removed ? "removed" : suspended ? "suspended" : "active"}
         </span>
       </div>
 
@@ -450,15 +454,40 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
               onClick={() => {
                 revoke.reset();
                 rotate.reset();
+                removal.reset();
                 status.run(id, suspended ? "approved" : "disabled");
               }}
             >
               {suspended ? "Resume" : "Suspend"}
             </button>
+            {/* Out of view, never deleted (0215): a suspended agent leaves
+                the rail and the Agents table for its Removed list. */}
+            {suspended && (
+              <button
+                className="btn btn--quiet"
+                disabled={busy || removal.busy}
+                onClick={() => {
+                  revoke.reset();
+                  rotate.reset();
+                  status.reset();
+                  removal.run(id, !removed);
+                }}
+              >
+                {removed ? "Restore" : "Remove"}
+              </button>
+            )}
             <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
               Suspend is reversible — the same key comes back. Revoke is not.
+              {suspended &&
+                (removed
+                  ? " Removed: kept, out of view; Restore puts it back among your agents."
+                  : " Remove takes a suspended agent out of view; nothing is deleted.")}
             </span>
-            <WriteError error={rotate.error ?? revoke.error ?? status.error} />
+            <WriteError
+              error={
+                rotate.error ?? revoke.error ?? status.error ?? removal.error
+              }
+            />
           </div>
         )}
         {minted && (
@@ -570,6 +599,10 @@ export function Agents({ navigate }) {
   const load = () => invalidate();
 
   const clans = principals?.addable_clans ?? [];
+  // A removed agent (0215) is folded below the table, not in it.
+  const agents = principals?.agents ?? [];
+  const shown = agents.filter((a) => !a.removed_at);
+  const removedAgents = agents.filter((a) => a.removed_at);
 
   async function create(e) {
     e.preventDefault();
@@ -632,7 +665,7 @@ export function Agents({ navigate }) {
               </p>
             </div>
 
-            {principals?.agents?.length === 0 && (
+            {principals && agents.length === 0 && (
               <div className="panel__body">
                 <div className="empty">
                   <p className="empty__body" style={{ marginBottom: 0 }}>
@@ -642,7 +675,7 @@ export function Agents({ navigate }) {
                 </div>
               </div>
             )}
-            {principals?.agents?.length > 0 && (
+            {shown.length > 0 && (
               <div className="table__scroll" tabIndex={0}>
                 <table className="table">
                   <thead>
@@ -662,7 +695,7 @@ export function Agents({ navigate }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {principals.agents.map((a) => {
+                    {shown.map((a) => {
                       const live = (a.tokens ?? []).filter(
                         (k) => !k.revoked_at,
                       );
@@ -720,6 +753,27 @@ export function Agents({ navigate }) {
                   </tbody>
                 </table>
               </div>
+            )}
+
+            {/* Removed agents (0215): kept, never deleted, and listed only
+                here, folded, so they are seen when looked for. */}
+            {removedAgents.length > 0 && (
+              <details className="panel__body">
+                <summary>Removed agents ({removedAgents.length})</summary>
+                <p className="text-ink-faint">
+                  Suspended and out of view. Each keeps its address, its key and
+                  its history; open one to restore it.
+                </p>
+                <ul>
+                  {removedAgents.map((a) => (
+                    <li key={a.account_id}>
+                      <Link to={`${CONSOLE}/agent/${a.public_id}/settings`}>
+                        {a.name ?? a.public_id}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
 
             {minted && (

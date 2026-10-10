@@ -2,6 +2,7 @@ import {
   listPrincipals,
   renamePrincipal,
   rotateToken,
+  setPrincipalRemoved,
   setPrincipalStatus,
   setPrincipalScope,
   createAgent,
@@ -174,6 +175,38 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
         body.status,
       );
       return result.ok ? json(200, result) : json(404, result);
+    },
+
+    // Out of view, never deleted (0215): only a suspended agent.
+    "POST /api/me/principals/remove": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (!UUID_RE.test(String(body.account_id ?? "")))
+        return json(400, { error: "invalid_account_id" });
+      const result = await setPrincipalRemoved(
+        db,
+        account.accountId,
+        body.account_id,
+        body.removed,
+      );
+      if (!result.ok)
+        return json(
+          result.error === "not_found"
+            ? 404
+            : result.error === "not_suspended"
+              ? 409
+              : 400,
+          result,
+        );
+      await logEvent(
+        db,
+        account.accountId,
+        body.removed ? "principal_removed" : "principal_restored",
+        { account_id: body.account_id },
+      );
+      return json(200, result);
     },
 
     "GET /api/me/principals/identities": async (db, event) => {

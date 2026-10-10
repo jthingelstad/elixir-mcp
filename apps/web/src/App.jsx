@@ -1199,7 +1199,7 @@ function Chrome({ navigate, me, unreachable, current }) {
 /** The consoles the rail head switches between (ConsoleRail board): you,
  *  each agent you own, and Admin for an admin. Each is a place with its
  *  own address, never a mode the app remembers. */
-export function railConsoles(me) {
+export function railConsoles(me, openAgent = null) {
   const primary = (me?.claims ?? []).find((c) => c.is_primary);
   const name = primary?.nickname ?? primary?.name ?? me?.email ?? undefined;
   return [
@@ -1211,14 +1211,17 @@ export function railConsoles(me) {
       detail: [name, me?.role].filter(Boolean).join(" · ") || undefined,
       to: `${CONSOLE}/account/overview`,
     },
-    ...(me?.agents ?? []).map((a) => ({
-      key: a.public_id,
-      group: "Your agents",
-      icon: "bot",
-      label: a.name ?? a.public_id,
-      detail: `agent · ${a.public_id}`,
-      to: `${CONSOLE}/agent/${a.public_id}/overview`,
-    })),
+    // A removed agent (0215) is left out unless it is the console open now.
+    ...(me?.agents ?? [])
+      .filter((a) => !a.removed_at || a.public_id === openAgent)
+      .map((a) => ({
+        key: a.public_id,
+        group: "Your agents",
+        icon: "bot",
+        label: a.name ?? a.public_id,
+        detail: `agent · ${a.public_id}`,
+        to: `${CONSOLE}/agent/${a.public_id}/overview`,
+      })),
     ...(me?.is_admin
       ? [
           {
@@ -1241,7 +1244,7 @@ export function railConsoles(me) {
  *  never the rail's. */
 function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
   const [signOutFailed, setSignOutFailed] = useState(null);
-  const consoles = railConsoles(me);
+  const consoles = railConsoles(me, here.scope);
   const settings = here.rail === "account";
   const rail = here.scope
     ? agentRail(here.scope)

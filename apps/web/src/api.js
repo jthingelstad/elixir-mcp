@@ -206,6 +206,9 @@ export const api = {
     request("POST", "/api/me/principals/rotate", { account_id }),
   setPrincipalStatus: (account_id, status) =>
     request("POST", "/api/me/principals/status", { account_id, status }),
+  // Out of view or back (0215); only a suspended agent can be removed.
+  setPrincipalRemoved: (account_id, removed) =>
+    request("POST", "/api/me/principals/remove", { account_id, removed }),
   renamePrincipal: (account_id, name) =>
     request("POST", "/api/me/principals/rename", { account_id, name }),
   principalIdentities: (account_id) =>
