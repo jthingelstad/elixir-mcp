@@ -16,6 +16,8 @@ import {
   addClan,
   removeClan,
   followClanForPlayer,
+  pooledUsage,
+  setAgentStatus,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -308,6 +310,87 @@ test("an owner and their agent share one pool of player slots, under one lock", 
   } finally {
     await Promise.all(conns.map((c) => c.end()));
   }
+});
+
+test("only active agents count: suspending frees the slot and stops its recording", async () => {
+  // Jamie, 2026-10-10: "Only active ones should count against usage
+  // slots." A suspended agent's subjects are out of the pool and out of
+  // recording, so suspending cannot be a way to record without a slot.
+  const owner = await account(`active-${Math.random()}`, { slots: 3 });
+  const {
+    rows: [row],
+  } = await db.query(
+    `insert into account (status, role, kind, owned_by_account_id, public_id)
+     values ('approved', 'member', 'agent', $1, $2) returning account_id`,
+    [owner.accountId, `act${String(Math.random()).slice(2, 10)}`],
+  );
+  const agent = { accountId: row.account_id };
+  assert.equal((await addPlayer(db, owner, { tag: A, via: "test" })).ok, true);
+  assert.equal((await addPlayer(db, agent, { tag: C, via: "test" })).ok, true);
+  // Bob tracks D too, so D outlives the agent's suspension.
+  assert.equal((await addPlayer(db, bob, { tag: D, via: "test" })).ok, true);
+  await addPlayer(db, agent, { tag: D, via: "test" });
+  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 3);
+
+  const off = await setAgentStatus(
+    db,
+    owner.accountId,
+    agent.accountId,
+    "disabled",
+  );
+  assert.equal(off.ok, true);
+  assert.equal(off.recordings_stopped, 1, "C stops; D is still Bob's");
+  assert.equal(await isRecording(C), false);
+  assert.equal(await isRecording(D), true);
+  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 1);
+
+  // The freed slot is the owner's to spend; with a ceiling of 2, resuming
+  // would be 4 of 2.
+  assert.equal((await addPlayer(db, owner, { tag: B, via: "test" })).ok, true);
+  await db.query(
+    `update account set max_player_recordings = 2 where account_id = $1`,
+    [owner.accountId],
+  );
+  const refused = await setAgentStatus(
+    db,
+    owner.accountId,
+    agent.accountId,
+    "approved",
+  );
+  assert.equal(refused.error, "quota_exceeded");
+  assert.equal(refused.limit, 2);
+  assert.match(refused.message, /Free 2 first/);
+  const {
+    rows: [still],
+  } = await db.query(`select status from account where account_id = $1`, [
+    agent.accountId,
+  ]);
+  assert.equal(still.status, "disabled", "a refused resume changes nothing");
+  assert.equal(await isRecording(C), false);
+
+  // With room again, resuming counts it and records it again.
+  await removePlayer(db, owner, { tag: B, via: "test" });
+  await db.query(
+    `update account set max_player_recordings = 3 where account_id = $1`,
+    [owner.accountId],
+  );
+  const on = await setAgentStatus(
+    db,
+    owner.accountId,
+    agent.accountId,
+    "approved",
+  );
+  assert.equal(on.ok, true, JSON.stringify(on));
+  assert.equal(on.recordings_started, 1);
+  assert.equal(await isRecording(C), true);
+  assert.equal((await pooledUsage(db, owner.accountId)).players_used, 3);
+
+  // Somebody else's agent is not found.
+  assert.equal(
+    (await setAgentStatus(db, bob.accountId, agent.accountId, "disabled"))
+      .error,
+    "not_found",
+  );
 });
 
 test("owner and admin stay exempt from slots", async () => {

@@ -348,6 +348,15 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.agent_recordings) {
+    const { agentRecordingsOp } = await import("./ops-agent-recordings.mjs");
+    const result = await agentRecordingsOp(
+      process.env.DATABASE_URL,
+      event.agent_recordings,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.account_role) {
     const result = await accountRoleOp(
       process.env.DATABASE_URL,

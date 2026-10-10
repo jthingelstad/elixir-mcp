@@ -9,7 +9,11 @@
  */
 
 import { mintServiceTokenValue, normalizeScope } from "@elixir-mcp/auth";
-import { createPrincipal, normalizePrincipalName } from "@elixir-mcp/claims";
+import {
+  createPrincipal,
+  normalizePrincipalName,
+  setAgentStatus,
+} from "@elixir-mcp/claims";
 
 /** Everything the owner has that a principal could be pointed at. */
 export async function listPrincipals(db, ownerAccountId) {
@@ -328,29 +332,12 @@ export async function renamePrincipal(
  *
  * Deliberately NOT a token revocation: resuming restores the same key, so a
  * suspension is reversible without redistributing a credential.
+ *
+ * The status also decides the agent's place in its owner's slots and what
+ * it records (2026-10-10), so the write is the claims package's, which
+ * settles both in the same transaction.
  */
-export async function setPrincipalStatus(
-  db,
-  ownerAccountId,
-  principalAccountId,
-  status,
-) {
-  if (status !== "approved" && status !== "disabled")
-    return { ok: false, error: "bad_status" };
-  // Resuming a removed agent restores it too: removed_at is set only while
-  // the agent is suspended (0215).
-  const { rowCount } = await db.query(
-    `update account
-        set status = $3,
-            removed_at = case when $3 = 'approved' then null else removed_at end
-      where account_id = $1 and owned_by_account_id = $2
-        and kind = 'agent'`,
-    [principalAccountId, ownerAccountId, status],
-  );
-  return rowCount === 1
-    ? { ok: true, status }
-    : { ok: false, error: "not_found" };
-}
+export const setPrincipalStatus = setAgentStatus;
 
 /**
  * Remove a suspended agent from view, or restore it (0215).

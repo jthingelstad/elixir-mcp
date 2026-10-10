@@ -69,6 +69,7 @@ test("op: reads are reads", () => {
     { rollup_regroup: { census: true } },
     { account_remove: { email: "x", dry_run: true } },
     { account_track: { primary_tag: "#A", player_tag: "#B", dry_run: true } },
+    { agent_recordings: { dry_run: true } },
     { clan_context: { agents: ["abc"] } },
     { clan_maintenance: { lane: "actions", clan_tag: "#A" } },
   ])
@@ -104,6 +105,8 @@ test("op: everything else is a write, and takes the lock", () => {
     { account_remove: { email: "x" } }, // defaults to a dry run; not counted
     { account_enroll: { dry_run: false } },
     { account_track: { primary_tag: "#A" } }, // defaults to a REAL run
+    { agent_recordings: { dry_run: false } },
+    { agent_recordings: {} }, // defaults to a dry run; not counted
     { clan_context: { agents: ["a"], apply: true } },
     { clan_context: { agents: ["a"], revoke: true } },
     { clan_maintenance: { lane: "reconcile_removal", card_id: "c" } },

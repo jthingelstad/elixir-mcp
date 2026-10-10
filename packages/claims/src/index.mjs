@@ -71,6 +71,10 @@ async function logEvent(db, accountId, kind, detail) {
   );
 }
 
+/** An account `a` whose tracking is a reason to record: anyone but a
+ *  suspended agent. */
+const COUNTS = `(a.kind <> 'agent' or a.status = 'approved')`;
+
 /**
  * Make the recording match the reasons to record.
  *
@@ -93,13 +97,18 @@ export async function reconcileRecording(
        -- EVERY reason a subject is recorded, counted in one place. An
        -- account associates with a player through claim and with a clan
        -- through account_clan. Retired Collections and boards do not count.
+       -- A suspended agent's are no reason (2026-10-10): its subjects
+       -- are out of its owner's pool, so they are out of recording too.
        ($2 = 'player'
-        and exists (select 1 from claim where player_tag = $1)) as claimed,
+        and exists (select 1 from claim c join account a using (account_id)
+                     where c.player_tag = $1 and ${COUNTS})) as claimed,
        ($2 = 'clan'
-        and exists (select 1 from account_clan where clan_tag = $1)) as added,
+        and exists (select 1 from account_clan ac join account a using (account_id)
+                     where ac.clan_tag = $1 and ${COUNTS})) as added,
        ($2 = 'clan'
-        and exists (select 1 from account_clan
-                    where clan_tag = $1 and scope = 'comprehensive')) as added_deep,
+        and exists (select 1 from account_clan ac join account a using (account_id)
+                     where ac.clan_tag = $1 and ac.scope = 'comprehensive'
+                       and ${COUNTS})) as added_deep,
        exists (select 1 from recording
                where subject_type = $2 and subject_tag = $1
                  and status = 'active' and origin = 'ops') as ops,
@@ -835,4 +844,105 @@ export async function followClanForPlayer(
   for (const { account_id } of rows)
     out.push(await followPrimaryClanSafely(db, account_id, { via }));
   return out;
+}
+
+const BUCKETS = [
+  ["players_used", "player_slots", "players"],
+  ["activity_used", "activity", "activity clans"],
+  ["comprehensive_used", "comprehensive", "comprehensive clans"],
+];
+
+/**
+ * Suspend or resume an agent, and settle what it records (2026-10-10).
+ *
+ * Only active agents are in their owner's pool (pool.mjs), so the status
+ * decides both what the agent's tracking costs and whether it is a reason
+ * to record. Suspending frees its slots and stops every recording only it
+ * kept alive (game data stays). Resuming starts them again, and is refused
+ * (`quota_exceeded`, with a message saying what to free) when it would take
+ * the pool past a ceiling it is not already past. Resuming also restores a
+ * removed agent (0215).
+ *
+ * Account, then owner, then subjects in tag order: the owner's row
+ * serializes the pool as it does for every add, and a fixed subject order
+ * keeps two of these from deadlocking each other.
+ */
+export async function setAgentStatus(
+  db,
+  ownerAccountId,
+  agentAccountId,
+  status,
+) {
+  if (status !== "approved" && status !== "disabled")
+    return { ok: false, error: "bad_status" };
+  await db.query("begin");
+  try {
+    const { rows: found } = await db.query(
+      `select account_id from account
+        where account_id = $1 and owned_by_account_id = $2
+          and kind = 'agent'
+        for update`,
+      [agentAccountId, ownerAccountId],
+    );
+    if (!found[0]) {
+      await db.query("rollback");
+      return { ok: false, error: "not_found" };
+    }
+    const owner = await poolOwner(db, agentAccountId);
+    await lockAccount(db, owner.account_id);
+    const limits = poolLimits(owner);
+    const before =
+      status === "approved" && !limits.exempt
+        ? await pooledUsage(db, owner.account_id)
+        : null;
+    await db.query(
+      `update account
+          set status = $2,
+              removed_at = case when $2 = 'approved' then null else removed_at end
+        where account_id = $1`,
+      [agentAccountId, status],
+    );
+    if (before) {
+      const after = await pooledUsage(db, owner.account_id);
+      for (const [used, limit, noun] of BUCKETS) {
+        if (after[used] > limits[limit] && after[used] > before[used]) {
+          await db.query("rollback");
+          return {
+            ok: false,
+            error: "quota_exceeded",
+            scope: limit,
+            limit: limits[limit],
+            used: after[used],
+            role: owner.role ?? "member",
+            message: `Resuming it would track ${after[used]} ${noun} against your ${limits[limit]}. Free ${after[used] - limits[limit]} first, here or on your other agents, then resume it.`,
+          };
+        }
+      }
+    }
+    const { rows: subjects } = await db.query(
+      `select 'player' as kind, player_tag as tag from claim where account_id = $1
+       union
+       select 'clan', clan_tag from account_clan where account_id = $1
+       order by tag, kind`,
+      [agentAccountId],
+    );
+    let started = 0;
+    let stopped = 0;
+    for (const { kind, tag } of subjects) {
+      await lockSubject(db, tag);
+      const r = await reconcileRecording(db, kind, tag, agentAccountId);
+      if (r.started) started += 1;
+      if (r.stopped) stopped += 1;
+    }
+    await db.query("commit");
+    return {
+      ok: true,
+      status,
+      recordings_started: started,
+      recordings_stopped: stopped,
+    };
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
 }
