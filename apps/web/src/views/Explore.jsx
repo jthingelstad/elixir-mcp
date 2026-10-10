@@ -879,7 +879,9 @@ function RecordPage({ me, kind, rawId, search }) {
       {pageable && (
         <nav aria-label="Battle pages" className="my-4 flex flex-wrap gap-4">
           {cursor && <Link to={href}>Newest battles ›</Link>}
-          {res.body.has_more && res.body.next_cursor && (
+          {/* battles_query's next_cursor is null on the last page; it
+              returns no has_more. */}
+          {res.body.next_cursor && (
             <Link
               to={`${href}?cursor=${encodeURIComponent(res.body.next_cursor)}`}
             >

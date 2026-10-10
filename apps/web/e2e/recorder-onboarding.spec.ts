@@ -258,7 +258,6 @@ for (const width of [390, 1280]) {
                     ],
                   },
                 ],
-                has_more: !older,
                 next_cursor: older ? null : token,
               },
             },
@@ -343,7 +342,7 @@ for (const width of [390, 1280]) {
                     name: player.name,
                     battles: [battle],
                     total_count: 1,
-                    has_more: false,
+                    next_cursor: null,
                   },
                 },
               ];
