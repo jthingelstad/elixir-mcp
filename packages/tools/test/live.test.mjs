@@ -954,3 +954,32 @@ test("a first read that mints nothing gives the pool's read back: a lost race or
   assert.deepEqual(failed, { requested: false, reason: "error" });
   assert.equal(await used(), 0);
 });
+
+test("a refused first read takes nothing, so a read given back is there for the next add (#463 review)", async () => {
+  const { rows: people } = await db.query(
+    `insert into account (email_hash, status, role, max_player_recordings)
+     values ('first-read-denied', 'approved', 'member', 2) returning account_id`,
+  );
+  const personId = people[0].account_id;
+  const live = makeLive({ enqueue: enqueueJob });
+  assert.equal(
+    (await requestFirstRead(db, live, "#2PYLUC", personId)).requested,
+    true,
+  );
+  // A takes the pool's second read and then loses its insert race; while
+  // it is in flight, C asks for a fresh tag and is refused.
+  let denied = null;
+  const raced = makeLive({
+    enqueue: async (_db, job) => {
+      denied = await requestFirstRead(db, live, "#2PYLUV", personId);
+      await enqueueJob(db, job);
+      return enqueueJob(db, job);
+    },
+  });
+  await requestFirstRead(db, raced, "#2PYLU0", personId);
+  assert.deepEqual(denied, { requested: false, reason: "first_reads_spent" });
+  // A gave its read back: one first read has been minted today, so D
+  // gets the second.
+  const next = await requestFirstRead(db, live, "#2PYLU2", personId);
+  assert.equal(next.requested, true);
+});
