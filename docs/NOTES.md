@@ -1429,6 +1429,17 @@ lines per object, so a busy channel never delays sign-in mail on the
 email queue or runs past the relay's 60 s timeout. DLQ alarms on both new
 queues.
 
+**Deployed** 2026-10-10, finished ~12:58Z (07:58 CT), from 1a3a101c (PR
+#407) under the session lease, no acceptance family (no tool changed):
+0213 applied, smoke green. Read back without a write: the
+`elixir-mcp-timeline-sync` function (VPC, 512 MB, 60 s) and its queue
+and DLQ; the outbox notifies `timeline-sync/` and `timeline-discord/`;
+the email relay maps the timeline-discord queue at batch 1, concurrency
+2; signed out, `GET /api/me/timeline/discord` is 401; no collector or
+relay errors in the first minutes of admissions. No account has it on
+yet, so the first real post is the first owner's save (its hello line
+and the panel's status). Lease released.
+
 ## 2026-10-10 — a kick is never told as a leave
 
 Jamie, while scoping Clan's activity posts to Discord: "Kicks can be
