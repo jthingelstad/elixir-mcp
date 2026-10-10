@@ -273,23 +273,27 @@ export async function requestFirstRead(db, live, tag, accountId) {
  *  windowed by UTC date like `liveday#`. */
 const FIRST_READS = "firstread#";
 
-/** Take one of the pool's first reads for today: ok while the count is
- *  within its player slots (an exempt pool is never counted). Returns
- *  the window it charged, for refundFirstRead. */
+/** Take one of the pool's first reads for today: ok while the pool has
+ *  one left within its player slots (an exempt pool is never counted).
+ *  A refusal leaves the count alone, so the count is always the reads
+ *  taken and not given back, and a refund frees a read for the next add.
+ *  Returns the window it charged, for refundFirstRead. */
 async function spendFirstRead(db, accountId) {
   const owner = await poolOwner(db, accountId);
   if (!owner) return { ok: false, bucket: null };
   const max = poolLimits(owner).player_slots;
   if (max === Infinity) return { ok: true, bucket: null };
+  if (!(max >= 1)) return { ok: false, bucket: null };
   const bucket = `${FIRST_READS}${owner.account_id}`;
   const day = new Date().toISOString().slice(0, 10);
   const { rows } = await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 1)
      on conflict (bucket, window_start) do update set count = rate_limit.count + 1
+       where rate_limit.count < $3
      returning count`,
-    [bucket, day],
+    [bucket, day, max],
   );
-  return { ok: rows[0].count <= max, bucket, day };
+  return rows.length ? { ok: true, bucket, day } : { ok: false, bucket: null };
 }
 
 /** Give back a first read that minted nothing. */
