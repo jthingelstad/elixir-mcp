@@ -17,3 +17,4 @@ export * from "./mail.mjs";
 export * from "./geo.mjs";
 export * from "./week.mjs";
 export * from "./season.mjs";
+export * from "./discord.mjs";

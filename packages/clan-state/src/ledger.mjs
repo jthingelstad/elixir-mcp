@@ -62,6 +62,14 @@ import { isDeepStrictEqual } from "node:util";
  *
  *   social#<clan>            the clan's Social switch (2026-09-26): on
  *                            unless a leader turned it off, who and when
+ *   discord#<clan>           the clan's Discord webhook for Actions
+ *                            (2026-10-10), SEALED (manage/discord.mjs), who
+ *                            connected it; outside the ByClan index, as
+ *                            model_key is
+ *   discord_post#<clan>#<card id>
+ *                            an Action's message in that Discord: its
+ *                            message id, the text it shows, and the request
+ *                            the relay has not answered yet
  *
  * And kinds that belong to no clan:
  *
@@ -565,6 +573,31 @@ export function ledgerOver(io) {
         at: previous.at,
       });
     },
+    // ---- Actions in Discord (2026-10-10) --------------------------------
+    async discordWebhook(clanTag) {
+      const item = await io.get(`discord#${clanTag}`);
+      return item ? stripKeys(item) : null;
+    },
+    async saveDiscordWebhook(clanTag, item) {
+      // No gsi1pk: the sealed address is never in a listing of the clan.
+      await io.put({ ...item, pk: `discord#${clanTag}` });
+    },
+    async removeDiscordWebhook(clanTag) {
+      await remove(`discord#${clanTag}`);
+      for (const item of await io.listByPrefix(clanTag, "discord_post#"))
+        await remove(item.pk);
+    },
+    async discordPosts(clanTag) {
+      return (await io.listByPrefix(clanTag, "discord_post#")).map(stripKeys);
+    },
+    async saveDiscordPost(clanTag, post) {
+      await io.put({
+        ...post,
+        pk: `discord_post#${clanTag}#${post.card_id}`,
+        gsi1pk: clanKey(clanTag),
+        gsi1sk: `discord_post#${post.card_id}`,
+      });
+    },
     // ---- the whole clan ------------------------------------------------
     // ---- social (2026-09-26): a person's place, under each of their
     // verified tags; the clan's switch, in the clan's partition ----------
@@ -600,6 +633,7 @@ export function ledgerOver(io) {
       await remove(`awards#${clanTag}`);
       await remove(`recruit#${clanTag}`);
       await remove(`model_key#${clanTag}`);
+      await remove(`discord#${clanTag}`);
       await remove(`schedule#${clanTag}`);
       await remove(`morning#${clanTag}`);
       await remove(`action_seq#${clanTag}`);

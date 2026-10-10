@@ -1,13 +1,13 @@
 ---
 slug: clan-actions
 title: "Actions"
-description: "Elixir Clan's actions: the calls a clan's policy hands its leaders, elders and members, each kind and who gets it, when one appears and is withdrawn, how to decide one, the inactivity clock behind a removal, holds and away notices, and the morning email."
+description: "Elixir Clan's actions: the calls a clan's policy hands its leaders, elders and members, each kind and who gets it, when one appears and is withdrawn, how to decide one, the inactivity clock behind a removal, holds and away notices, the morning email, and Actions in the clan's Discord."
 section: clan
 order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-04; Clan browsing context and read clarity, contracts unchanged"
+reviewed: "2026-10-10; Actions in the clan's Discord, contracts unchanged"
 ---
 
 # Actions
@@ -313,3 +313,26 @@ account that verified the player, only while that player is in the
 clan, and at most once a day per clan. Turn it off on
 [Profile ▸ Email](/console/account/profile/email)
 ([Turn an email off](/docs/turn-an-email-off)).
+
+## Actions in the clan's Discord
+
+The leader or a co-leader can connect a Discord webhook under
+**Manage ▸ Settings** ([Clan settings](/docs/clan-policy#clan-settings)).
+From then on, every open action that leaders or elders can take is posted
+to that channel as one message: its number, what it is and who it is
+about, and a link to it here. When someone completes or declines it,
+the same message is edited to say so and by whom; when Clan withdraws it,
+the message says that. A declined action that is reopened reads as open
+again.
+
+- Actions already open when the webhook is connected are posted too; one
+  that closes before it was ever posted is not.
+- A member's own **Going to be away?** prompt is never posted.
+- Messages name the member, removals included, so use a channel only the
+  clan's leaders can read. The link opens the action only for someone
+  signed in who could see it here.
+- Messages go out as Clan works: after a visit that raises or decides an
+  action, and after the morning read. Nothing in them pings anyone.
+- Until a webhook is connected, the Actions page suggests one to the
+  leader and co-leaders. If Discord stops taking it (the webhook was
+  deleted, say), posting stops and Settings and the Actions page say so.

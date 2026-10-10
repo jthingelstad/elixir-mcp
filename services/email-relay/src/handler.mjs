@@ -36,6 +36,7 @@ export function makeHandler({
   readObject = null,
   deleteObject = null,
   modelObject = null,
+  discordObject = null,
   upgradeDelivery = null,
 }) {
   /** One message: "sent" (or dropped by design) or "bad_message"; a
@@ -147,6 +148,12 @@ export function makeHandler({
       if (obj.key.startsWith("clan-model/")) {
         if (!modelObject) return "bad_message";
         await modelObject(obj);
+        continue;
+      }
+      // Actions in a clan's Discord (2026-10-10): a post or an edit.
+      if (obj.key.startsWith("clan-discord/")) {
+        if (!discordObject) return "bad_message";
+        await discordObject(obj);
         continue;
       }
       const text = await readObject(obj);

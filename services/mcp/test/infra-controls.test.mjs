@@ -41,12 +41,16 @@ test("the model relay can distinguish unwritten replies without reading other ou
   const role = resource(template, "EmailRelayRole", "EmailRelayFunction");
   assert.match(
     role,
-    /Action: s3:ListBucket\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\n\s+Condition:\n\s+StringLike:\n\s+s3:prefix:\n\s+- clan-model\/reply\/\*\n\s+- clan-model\/claim\/\*\n\s+NumericLessThanEquals:\n\s+s3:max-keys: "1"/,
+    /Action: s3:ListBucket\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\n\s+Condition:\n\s+StringLike:\n\s+s3:prefix:\n\s+- clan-model\/reply\/\*\n\s+- clan-model\/claim\/\*\n\s+- clan-discord\/reply\/\*\n\s+- clan-discord\/claim\/\*\n\s+NumericLessThanEquals:\n\s+s3:max-keys: "1"/,
   );
   assert.equal((role.match(/Action: s3:ListBucket/g) ?? []).length, 1);
   assert.match(
     role,
     /Action: s3:GetObject\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\/clan-model\/\*/,
+  );
+  assert.match(
+    role,
+    /Action: s3:GetObject\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\/clan-discord\/\*/,
   );
   assert.doesNotMatch(
     role,
@@ -754,7 +758,10 @@ test("Clan always uses the shared account door and never falls back to the retir
   );
 });
 
-test("the private model sealing secret is limited to the shared web API and egress relay", async () => {
+// The jobs Lambda joined on 2026-10-10: the morning run posts a clan's
+// Actions to its Discord, through a webhook sealed under this secret. It
+// already holds the session secret, so no stronger key came with it.
+test("the private sealing secret is limited to the web API, the morning run and the egress relay", async () => {
   const template = await readFile(templateUrl, "utf8");
   const functions = [...template.matchAll(/^  (\w+Function):\n/gm)];
   const consumers = functions
@@ -763,14 +770,18 @@ test("the private model sealing secret is limited to the shared web API and egre
       return /CLAN_MODEL_SECRET:/.test(block);
     })
     .map((entry) => entry[1]);
-  assert.deepEqual(consumers, ["WebApiFunction", "EmailRelayFunction"]);
-  assert.equal((template.match(/CLAN_MODEL_SECRET:/g) ?? []).length, 2);
+  assert.deepEqual(consumers, [
+    "WebApiFunction",
+    "EmailRelayFunction",
+    "JobsFunction",
+  ]);
+  assert.equal((template.match(/CLAN_MODEL_SECRET:/g) ?? []).length, 3);
   assert.equal(
     (
       template.match(/\$\{AppSecretName\}:SecretString:clan_sealing_secret/g) ??
       []
     ).length,
-    2,
+    3,
   );
 });
 

@@ -1339,3 +1339,27 @@ after they adopt `skip_empty`. If the yes-without-item rate matters, a
 tighter `clan_member_battles` (the standout rule and the return gap
 in SQL) is the next step. It must still never answer no wrongly.
 
+
+## 2026-10-10 — Actions in the clan's Discord
+
+Jamie asked for a Clan setting that shares Actions to Discord through a
+webhook, each as a short title and a link with no preview, with the
+message edited when the Action is completed, naming who; and a nudge on
+the Actions page for leaders until it is set up. Jamie's answers: titles
+name the member, removals included (Settings advises a leaders-only
+channel); no clan name; Actions already open are posted on setup;
+leader and elder Actions only, never a member's own away prompt.
+
+The VPC side has no egress, so posts and edits go through the outbox
+bucket to the relay under `clan-discord/`, sealed like the model bridge.
+The relay claims a request before calling Discord; only a 429 is
+retried, and a post whose outcome is unknown is never made again (a
+duplicate message is worse than a missing one). Edits need the message
+id, which arrives in the relay's reply; `share` collects replies and
+posts or edits at most ten Actions a sweep, after every locked Clan
+request and after the morning run. A reply to a morning-run post is
+collected by the next request or the next morning, so a close in
+between edits late.
+
+The jobs function now holds `clan_sealing_secret` too (the morning run
+opens the clan's webhook to post); it already held `SESSION_SECRET`.

@@ -1,8 +1,11 @@
 import { createModelWorker } from "@elixir-mcp/clan/model-bridge.mjs";
 import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 import { createAnthropicClient } from "@elixir-mcp/clan/anthropic.mjs";
+import { createDiscordWorker } from "@elixir-mcp/clan/discord-bridge.mjs";
+import { createDiscordWebhook } from "@elixir-mcp/clan/discord-webhook.mjs";
 /** Lambda entrypoint: the non-VPC relay — sends mail over SES from the
- *  outbox and enrolls opted-in sign-ins with Buttondown. */
+ *  outbox, enrolls opted-in sign-ins with Buttondown, and makes the
+ *  clan model's calls and Clan's Discord posts the VPC cannot. */
 
 import { createHash } from "node:crypto";
 import {
@@ -89,7 +92,23 @@ const modelWorker =
       })
     : null;
 
+const discordWorker =
+  process.env.CLAN_MODEL_SECRET && process.env.OUTBOX_BUCKET
+    ? createDiscordWorker({
+        secret: process.env.CLAN_MODEL_SECRET,
+        storage: modelStorage(process.env.OUTBOX_BUCKET, s3),
+        discord: createDiscordWebhook(),
+      })
+    : null;
+
 export const handler = makeHandler({
+  discordObject: discordWorker
+    ? async ({ bucket, key }) => {
+        if (bucket !== process.env.OUTBOX_BUCKET)
+          throw new Error("unsupported private discord bucket");
+        await discordWorker(key);
+      }
+    : null,
   upgradeDelivery: upgradeDeliveryStore(process.env.OUTBOX_BUCKET, s3),
   modelObject: modelWorker
     ? async ({ bucket, key }) => {

@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-10",
+    title: "Elixir Clan posts its Actions to your leaders' Discord",
+    body: "The leader or a co-leader can now connect a Discord webhook in Elixir Clan's Settings. Each open Action that leaders or elders can take is then posted to that channel as one short line, naming the member, with a link to the Action that draws no preview. When someone completes or declines it, the same message is edited to say so and by whom; when Clan withdraws it, the message says that. Actions already open when the webhook is connected are posted too, a member's own away prompt never is, and nothing pings anyone. Messages name members, removals included, so use a channel only your leaders can read. Until a webhook is connected, the Actions page suggests one to the leader and co-leaders. MCP 11.7.1 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-10",
     title: "Faster empty polls, and a faster corpus count",
     body: "The skip_empty check that lets an empty timeline poll answer at once was slow when the reader asked for quiet_crossed, the moment a member goes quiet: it looked at every recorded battle to find one. It now looks only at the battles of the players the reader follows, so an empty poll answers in milliseconds whichever kinds it asks for. elixir_data_insights also counts the stored daily snapshots in one pass instead of four. Both answers are unchanged. MCP 11.7.1; JSON API 3.1.0 unchanged.",
   },

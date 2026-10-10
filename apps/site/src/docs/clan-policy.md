@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-04 against contract 11.2.0"
+reviewed: "2026-10-10; the Discord setting, contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -154,6 +154,13 @@ without a policy:
   nothing of it goes to Elixir. Only the leader and co-leaders can change
   whether the clan's social features are on; other members opening Settings
   directly can read that status without a switch.
+- **Discord**: a webhook from one of the clan's Discord channels.
+  Each open action leaders or elders can take is posted there and
+  marked when it closes ([Actions in the clan's
+  Discord](/docs/clan-actions#actions-in-the-clans-discord)). Connecting
+  it posts a short message to check it; the address is kept encrypted
+  and never shown again. Only the leader and co-leaders can connect,
+  replace or remove it.
 - **The clan's own model**: an Anthropic key of the clan's own, which
   lets a model draft the recruiting pitch in Recruit and, on an open
   action, the reviewed message (clan chat or a Clan Leader Message) for a promotion, demotion, awards
