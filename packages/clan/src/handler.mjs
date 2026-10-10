@@ -490,6 +490,12 @@ export function createHandler({
           );
         if (method === "PUT" && body.model)
           return json(200, await model.setModel(tag, who, body.model));
+        // The clan's monthly spend cap: dollars, or null to remove it.
+        if (method === "PUT" && Object.hasOwn(body ?? {}, "spend_cap_usd"))
+          return json(
+            200,
+            await model.setSpendCap(tag, who, body.spend_cap_usd),
+          );
         if (method === "DELETE") {
           await model.removeKey(tag, who);
           return json(200, { ok: true });

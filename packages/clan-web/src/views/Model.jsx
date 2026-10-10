@@ -7,6 +7,13 @@ import { CLAN } from "../lib/base.js";
 
 const day = (ts) => (ts ? ts.slice(0, 10) : "");
 const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
+/** Dollars a leader can read: cents, or the first figures of a fraction. */
+function usd(x) {
+  if (x === null || x === undefined) return "—";
+  if (x === 0) return "$0.00";
+  if (x < 0.01) return `$${Number(x.toPrecision(2))}`;
+  return `$${x.toFixed(2)}`;
+}
 
 /**
  * The clan's own model (2026-09-25): bring your own tokens. A leader or
@@ -21,12 +28,18 @@ const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
  * has drawn and reloads if the list changed. The page never waits on it,
  * and the clan's chosen model never changes by itself: a model the key no
  * longer lists stays chosen, marked as not offered.
+ *
+ * Spend (2026-10-10): the server prices each use's tokens at Anthropic's
+ * list rates, so the month reads as about what it cost; a leader may set
+ * a monthly cap, and drafting stops once the estimate reaches it.
  */
 export function Model({ clan }) {
   const { state, load } = useModel(clan.clan_tag);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [cap, setCap] = useState(null);
+  const [capMessage, setCapMessage] = useState("");
   const refreshAsked = useRef(false);
   const due = Boolean(state.data?.refresh_due);
   useEffect(() => {
@@ -88,6 +101,25 @@ export function Model({ clan }) {
     if (!r.ok) setMessage(r.data?.message ?? "That did not save.");
     load();
   };
+  const saveCap = async (e, value) => {
+    e?.preventDefault();
+    setBusy(true);
+    setCapMessage("");
+    const r = await manageApi.setSpendCap(clan.clan_tag, value);
+    setBusy(false);
+    if (!r.ok) {
+      setCapMessage(r.data?.message ?? "That did not save.");
+      return;
+    }
+    setCap(null);
+    trackEvent(
+      value === null ? "clan.model_cap_removed" : "clan.model_cap_set",
+    );
+    load();
+  };
+  const savedCap = d.spend_cap_usd == null ? "" : String(d.spend_cap_usd);
+  const capValue = cap ?? savedCap;
+  const month = d.uses.month;
   const remove = async () => {
     if (!window.confirm("Remove the clan's key? Nothing will use it again."))
       return;
@@ -163,6 +195,9 @@ export function Model({ clan }) {
               {d.models_refreshed_at
                 ? `From Anthropic, ${day(d.models_refreshed_at)}`
                 : "From Anthropic, when the key was added"}
+              {d.models_refresh_error
+                ? ` · the check on ${day(d.models_refresh_error.at)} failed; it is tried again a day later`
+                : ""}
             </span>
             <span className="label">Today</span>
             <span>
@@ -170,10 +205,78 @@ export function Model({ clan }) {
             </span>
             <span className="label">This month</span>
             <span>
-              {d.uses.month.count} uses · {n(d.uses.month.input_tokens)} tokens
-              in, {n(d.uses.month.output_tokens)} out
+              {month.count} uses · {n(month.input_tokens)} tokens in,{" "}
+              {n(month.output_tokens)} out · about {usd(month.spend_usd)}
+              {d.spend_cap_usd != null
+                ? ` of the ${usd(d.spend_cap_usd)} cap`
+                : ""}
             </span>
+            <label className="label" htmlFor="model-cap">
+              Monthly cap
+            </label>
+            <form
+              className="flex flex-wrap items-center gap-2"
+              onSubmit={(e) => saveCap(e, capValue.trim())}
+            >
+              <span aria-hidden="true">$</span>
+              <input
+                id="model-cap"
+                className="input w-28"
+                type="number"
+                inputMode="decimal"
+                min="0.01"
+                max={d.max_spend_cap_usd}
+                step="0.01"
+                placeholder="No cap"
+                value={capValue}
+                disabled={busy}
+                onChange={(e) => setCap(e.target.value)}
+              />
+              <button
+                type="submit"
+                className="btn btn--sm"
+                disabled={busy || !capValue.trim() || capValue === savedCap}
+              >
+                Save cap
+              </button>
+              {d.spend_cap_usd != null ? (
+                <button
+                  type="button"
+                  className="btn btn--sm"
+                  disabled={busy}
+                  onClick={(e) => saveCap(e, null)}
+                >
+                  Remove cap
+                </button>
+              ) : null}
+            </form>
           </div>
+          {capMessage ? (
+            <p className="field-error mx-3 my-0" role="alert">
+              {capMessage}
+            </p>
+          ) : null}
+          <p className="page-head__note mx-3 my-0">
+            Spend is an estimate: each use&rsquo;s tokens at Anthropic&rsquo;s
+            list prices as of {d.prices_as_of}
+            {month.spend_estimated
+              ? ", with a model newer than those priced at the dearest of its kind"
+              : ""}
+            . With a cap, the clan&rsquo;s model drafts nothing more once this
+            month&rsquo;s (UTC) estimate reaches it; a draft that starts under
+            the cap may finish a little over it. Your Anthropic bill is the real
+            figure.
+          </p>
+          {d.cap_reached ? (
+            <div className="callout callout--warn m-3" role="status">
+              <span>
+                This month&rsquo;s spend, about {usd(month.spend_usd)}, has
+                reached the {usd(d.spend_cap_usd)} cap, so the clan&rsquo;s
+                model is not drafting. Raise or remove the cap, or wait for the
+                month to turn.
+              </span>
+            </div>
+          ) : null}
           {d.model && !listed && !d.refused_at ? (
             <div className="callout callout--warn m-3" role="status">
               <span>
@@ -246,7 +349,9 @@ export function Model({ clan }) {
           An API key from the Anthropic Console. It is checked with Anthropic
           (which spends nothing), kept encrypted and never shown again, and used
           only while you lead this clan: your Anthropic account pays for each
-          use, so set a spend limit there. At most {d.per_day} uses a day.
+          use, so set a spend limit there too (a monthly cap here is Elixir
+          Clan&rsquo;s own stop, not Anthropic&rsquo;s). At most {d.per_day}{" "}
+          uses a day.
         </p>
       </form>
 
@@ -274,6 +379,9 @@ export function Model({ clan }) {
                     </td>
                     <td>
                       {n(u.input_tokens)} in · {n(u.output_tokens)} out
+                      {u.spend_usd != null
+                        ? ` · about ${usd(u.spend_usd)}`
+                        : ""}
                     </td>
                   </tr>
                 ))}

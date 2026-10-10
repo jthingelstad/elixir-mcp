@@ -10,6 +10,12 @@
 export default [
   {
     date: "2026-10-10",
+    title:
+      "Elixir Clan's model: new models, about what it costs, and a monthly cap",
+    body: "The clan's model list in Settings was meant to refresh itself about once a day, and it never did: each refresh stopped before it asked Anthropic. It now works, so a key added before Claude Haiku 5.5 and Claude Sonnet 5.5 offers them the next time a leader opens Settings, and the chosen model still never changes by itself. Settings also shows about what each use and the month cost, from the tokens at Anthropic's list prices. The leader or a co-leader can set a monthly cap in dollars: once the month's estimate reaches it, the model drafts nothing more until the cap is raised or removed or the month turns. MCP 11.7.1 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-10",
     title: "A kick is never told as a leave",
     body: 'The game\'s roster sees only that a member went, not whether they left or were removed, yet the timeline said "left" for both. A departure now says the member departed the clan. When a leader tells Elixir Clan which it was, the timeline says the member was removed, or left on their own. The same words reach every place the timeline is told: the console, agents, the tracking mail, and anything that posts it to Discord. MCP 11.7.2; JSON API 3.1.0 unchanged.',
   },

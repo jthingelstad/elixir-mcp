@@ -281,6 +281,8 @@ const DRAFT_ERROR = {
     "The chosen model is no longer available to this key. Pick another in Settings.",
   model_daily_limit:
     "The clan's model has drafted as many times as it may today. Try again tomorrow.",
+  model_spend_cap:
+    "The clan's model has reached this month's spend cap. A leader can raise it in Settings.",
 };
 
 /**

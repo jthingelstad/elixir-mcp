@@ -1441,3 +1441,34 @@ already used for the same reason), and `departure_classified` says
 the tracking mail and the Discord cross-post, so one change reaches all
 of them. Contract 11.7.2 (wording only).
 
+
+## 2026-10-10 — Clan's model list really refreshes; spend and a monthly cap
+
+Jamie, from Settings: the model list was frozen at the day the key was
+added (no Claude Haiku 5.5 or Sonnet 5.5), and asked for the month's
+approximate spend beside its tokens and an editable monthly spend cap.
+
+- **The refresh never ran.** `updateKeyItem` compared the stored sealed
+  key by object identity (`current.sealed !== sealed`). Postgres parses a
+  fresh object for every read, so every refresh decided the key had
+  changed and returned `key_changed` before it called Anthropic. The web
+  API log showed three refreshes for POAP KINGS that morning (11:49,
+  12:05, 12:26Z), each 200 with three `clan_state.get` and no write. The
+  tests passed because the memory ledger handed back the same object.
+  Fixed by comparing the sealed bytes (`sameSealed`), and the memory
+  ledger now returns a copy on every read, as Postgres does. With the
+  old comparison back, six refresh tests now fail.
+- **Spend** (`packages/clan/src/manage/prices.mjs`): a use's recorded
+  tokens at Anthropic's first-party list rates as of 2026-10-10 (from
+  platform.claude.com pricing; Haiku 5.5's higher rates over a 100,000
+  token prompt included). A model missing from the table is priced at the
+  dearest of its family, or the dearest of all, and marked estimated, so
+  a cap is never passed for want of a price. Settings shows each use's
+  cost and the month's.
+- **Cap**: `spend_cap_usd` on the key item, $0.01 to $1,000 to the cent,
+  set or removed by the leader or a co-leader (as the model choice is),
+  kept when the key is replaced. `write` refuses `model_spend_cap` (429)
+  before reserving a use once the UTC month's estimate reaches it; a
+  capped draft is not a use. The 20 uses a day stays. `spendNow` is the
+  check any other path that spends the key must call.
+- No MCP contract or JSON API change.

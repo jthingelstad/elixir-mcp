@@ -179,6 +179,15 @@ without a policy:
   Settings. The clan's chosen model never changes by itself: one the key
   stops offering stays chosen, marked as not offered, until a leader
   picks another.
+  Settings shows each use's tokens and about what it cost, and the
+  month's total: the tokens at Anthropic's list prices (the date is on
+  the page), an estimate rather than the bill. The leader or a co-leader
+  may set a monthly cap in dollars. Once the month's (UTC) estimate
+  reaches it, the model drafts nothing more until a leader raises or
+  removes the cap or the month turns; a draft that starts under the cap
+  may finish a little over it. The cap stays when the key is replaced.
+  It is Elixir Clan's own stop: a spend limit on the Anthropic account
+  is the one Anthropic keeps.
 
 ## Agent context
 
