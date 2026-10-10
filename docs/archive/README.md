@@ -1,8 +1,9 @@
 # Archive index
 
 The documents that used to live here, the finished reviews in
-`docs/reviews/` and the weekly notes in `docs/notes/` were deleted on
-2026-10-08. Git keeps them. Each row names the last commit that changed
+`docs/reviews/` and the weekly notes that sat in `docs/notes/` were
+deleted on 2026-10-08 (`docs/notes/` holds per-change notes since
+2026-10-10). Git keeps them. Each row names the last commit that changed
 the file, so
 
     git show <sha>:<path>
@@ -10,10 +11,10 @@ the file, so
 prints it as it last stood. None of it is authoritative: what the product
 does is <https://elixir.poapkings.com/docs>, the build invariants are
 `docs/ENGINEERING.md`, what stands is `docs/DECISIONS.md`, and open items
-are in `docs/NOTES.md`.
+are GitHub issues.
 
 Shipped migrations (`db/migrations`, checksum-immutable) and the published
-changelog (`packages/contracts/src/changelog.ts`) still cite these paths.
+changelog (`packages/contracts/src/changes/`) still cite these paths.
 They are not edited; this table resolves them.
 
 ## Archive bodies
