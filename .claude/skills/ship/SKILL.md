@@ -220,7 +220,7 @@ flag exits 2 before any AWS call: until 2026-09-25, `--help` deployed.
 `origin/main`, and `validate` must be green on HEAD or on the merged PR
 head with the same tree; a check still running is waited for (15 min).
 `--break-glass` skips it only when GitHub itself is unreachable, never
-for a red check, and the pull request says why.
+for a red check, and a change note in `docs/notes/` says why.
 
 **Lanes** (`infra/scripts/lib/deploy-lane.mjs`). Each bundle's key is
 the hash of its content. When every key and the template match the live
