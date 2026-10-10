@@ -15,7 +15,7 @@
  * 2026-09-09): one send attempt, a log line on failure, never a batch
  * item failure. The thing they announce - a feedback row, an access
  * request, a raised hand - is durable in the database and visible in the
- * console either way, and the Elixir Feedback Manager's pass reads that table;
+ * console either way, and the daily feedback pass reads that table;
  * a lost courtesy email is recoverable, a DLQ full of them pages for
  * nothing and shares the alarm with sign-in mail, which must retry hard.
  */

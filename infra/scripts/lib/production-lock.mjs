@@ -3,7 +3,7 @@
  * for anything that writes to Elixir's production, taken in code by the
  * writers themselves (deploy.mjs, and `npm run op` for a write op), so it
  * no longer depends on a session remembering to claim a lease. It
- * replaces AGENT-TEAM/scripts/objective-lease.mjs: no objective keys, no
+ * replaced the objective lease (retired 2026-10-10): no objective keys, no
  * queued notes, no clear-stale and no force flag.
  *
  * The lock is one JSON file in the clone's COMMON git directory

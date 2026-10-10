@@ -26,7 +26,7 @@ export const DEPLOY_USAGE = `usage: AWS_PROFILE=cloud-engineer node infra/script
   --acceptance=<family>  run one family's acceptance cases (a,b for several)
   --break-glass          skip the CI gate (HEAD must be origin/main with a
                          green validate check); GitHub down only, and
-                         NOTES says why
+                         the pull request says why
   --help, -h             print this and exit; nothing is deployed`;
 
 /** @param {string[]} argv process.argv.slice(2) */

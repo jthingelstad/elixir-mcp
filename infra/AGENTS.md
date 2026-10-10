@@ -55,8 +55,16 @@ asked (`--acceptance` or `--acceptance=<family>`).
   the seed before anything is written and stops on a mismatch.
 - **Origin secret:** `--rotate-origin-secret` mints a new one; the doors
   keep the old one as `OriginSecretPrevious` until it is cleared.
-- Claim the lease first (`node AGENT-TEAM/scripts/objective-lease.mjs claim
-  session`) and release it after the live read-back.
+- **The production lock:** `deploy.mjs` takes it after the CI gate and
+  holds it for the whole run (`scripts/lib/production-lock.mjs`, one
+  holder, in the clone's common git directory, so every worktree sees
+  it); `npm run op` (`scripts/op.mjs`) takes it for an ops-lambda write,
+  and a read waits while it is held. A held lock prints who, since when
+  and doing what, and exits 3 from `npm run op`: wait, never clear it. A
+  lock whose process has exited on this host is released automatically.
+- **The deploy record:** every deploy writes `deploys/production.json` to
+  the code bucket and comments on each pull request it shipped, with the
+  time, the versions and the acceptance result.
 
 ## Scripts
 

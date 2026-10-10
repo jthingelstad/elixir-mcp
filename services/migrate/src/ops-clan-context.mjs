@@ -1,6 +1,6 @@
 /** {clan_context: {agents: [public_id], apply?, expected_sha256?, revoke?}}
  * IAM-only metadata preview, or explicitly authorized grant/revocation under
- * the production lease. At most three candidates; never returns credentials,
+ * the production lock (`npm run op`). At most three candidates; never returns credentials,
  * player identities or private policy. Apply rechecks the preview fingerprint
  * and only grants currently eligible candidates. No default scope changes. */
 import pg from "pg";

@@ -175,9 +175,12 @@ inside a request. Non-database work (S3 calls) still parallelises.
   `apps/site/src/docs/json-api.md`.
 - **Clients cache `tools/list` forever.** `serverInfo.version` is
   `<contract>+tools.<fingerprint>` so a cache can be busted; a stateless
-  server can never push `listChanged`. Every bump gets an entry in
-  `packages/contracts/src/changelog.ts` in the same commit;
-  `elixir_changelog(since)` and `/updates` serve it.
+  server can never push `listChanged`. Every bump is its own file,
+  `packages/contracts/src/changes/<version>.ts`, written by
+  `npm run contract:bump -- <patch|minor|major>` (rerun with no argument
+  to renumber after another pull request took the number);
+  `CONTRACT_VERSION` is the highest, and `elixir_changelog(since)` and
+  `/updates` serve them.
 - **Never hand-mirror the tool list** into another repo or a doc. The
   published `/tools.json` and the docs reference are generated from the
   registry at build time.
@@ -299,7 +302,7 @@ conventions"; `choosing-a-tool.md`); this list is what a new tool must do.
   retired something; `payload_shape_seen` is its memory). Each finding is
   filed once into `feedback` under the owner account (`category:
   data_quality`, `surface: recorder`), deduplicated on `(endpoint, path)`
-  while open, for the Elixir Feedback Manager to turn into the change (the
+  while open, to be turned into the change (the
   manifest entry and projection, the contract bump, the docs, the
   `cr-agent-api-docs` entry). Collectors stay dumb: they gzip bytes and
   never parse.

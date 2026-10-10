@@ -37,8 +37,14 @@ docs is cleanup, not a feature to preserve.
   line; a surface that disagrees with it is the defect.
 - **`docs/ENGINEERING.md`:** the build invariants (rate budget, migrations,
   contract versioning, ingest, packages, deploy).
-- **`docs/NOTES.md`:** open items, Jamie's queue, dated working notes. A new
-  decision gets its NOTES entry and its DECISIONS line in the same change.
+- **`docs/notes/`:** one note per change, written in its pull request
+  (`docs/notes/README.md`); `docs/NOTES.md` is the frozen archive to
+  2026-10-10. A new decision gets its note and its DECISIONS line in the
+  same change. Open items and asks for Jamie are GitHub issues
+  (`needs-jamie`, `engineering`, `parked`).
+- **`docs/OPERATIONS.md`:** how production is operated: the health reads,
+  dead jobs and letters, the collector fleet, feedback, record truth, the
+  security sweep and the incident ops' bounds.
 - **`README.md`:** the workspace map.
 - **Area guides**, read the one for the code you are in:
 
@@ -81,9 +87,10 @@ Skills and tests cite these by number; keep the numbering.
    changelog, errors, groups, principals, collector contract,
    `integration-api.openapi.json`); tool declarations and output schemas
    sit with their handlers in `packages/tools`. MCP: an addition is a
-   minor, a correction a patch, a major is Jamie's call; every bump gets a
-   `changelog.ts` entry. `/api/v1` keeps ordinary semver; its `x-tool`
-   operations mirror MCP tools and change with them.
+   minor, a correction a patch, a major is Jamie's call; every bump is a
+   file in `src/changes/` written by `npm run contract:bump`. `/api/v1`
+   keeps ordinary semver; its `x-tool` operations mirror MCP tools and
+   change with them.
 6. **Schema changes are ordered migrations in `db/migrations`**, applied
    only by the migrate Lambda during a deploy, never at handler start or
    by hand. Expand and contract; applied files are immutable
@@ -116,31 +123,41 @@ Skills and tests cite these by number; keep the numbering.
 
 ## Working style
 
-- **Own checkout:** if another session is in the main checkout, work in a
-  worktree from `origin/main` and run `AGENT-TEAM/scripts/worktree-setup.sh`
-  there.
-- **`main` takes only pull requests:** branch, `gh pr create --fill`,
+- **A session is one worktree, one branch, one pull request.** The main
+  checkout stays on a clean `main`. Make a worktree at a fresh
+  `origin/main` and run `scripts/worktree-setup.sh` in it. On Jamie's
+  machine the domain's `scripts/session-start` does both and
+  `session-finish` cleans up (`../AGENTS.md`, `../AGENT-TEAM/WORKFLOW.md`);
+  there is no lease. Open a draft pull request at the first
+  push (`gh pr create --draft --fill`): the open list is how sessions see
+  each other.
+- **`main` takes only pull requests:** `gh pr ready`, then
   `gh pr merge --auto --rebase --delete-branch`; merged on a green
   `validate` check, no bypass, Jamie's account included.
 - **`npm run verify`** before every push (prettier, oxlint, knip,
   typecheck, every workspace test); `npm run format` fixes style;
   `npm run e2e` runs the Playwright journeys CI runs. After touching
   `.github/workflows/`, `sh infra/scripts/test-workflows.sh`.
-- **Docs ship with the change:** user-visible behaviour updates
-  `apps/site/src/docs/` and `apps/site/src/_data/updates.js` in the same
-  commit; `/docs/tools` is generated from the registry, never hand-edited.
+- **Docs ship with the change, as files of their own:** user-visible
+  behaviour updates `apps/site/src/docs/` and adds a What's new entry in
+  `apps/site/src/_data/updates/` in the same commit; a change note goes in
+  `docs/notes/`; a contract move is `npm run contract:bump`. Two pull
+  requests never edit one shared file for these. `/docs/tools` is
+  generated from the registry, never hand-edited.
 - **Commits are small and message-first;** stage named paths, never
   `git add -A`; assert HEAD moved.
-- **Deploying is part of done.** From green `origin/main`: claim the lease
-  (`node AGENT-TEAM/scripts/objective-lease.mjs claim session`), then
-  `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`
-  (`--acceptance=<family>` when that family's tools changed), read the
-  change back live, release the lease. A held lease is a wait.
-  `--break-glass` only when GitHub itself is down. `/ship` has the rest.
+- **Deploying is part of done.** From a detached, freshly fetched
+  `origin/main`: `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`
+  (`--acceptance=<family>` when that family's tools changed), then read
+  the change back live. The deploy takes the production lock and comments
+  on each pull request it shipped. Ops-lambda writes go through
+  `npm run op`, which takes the same lock. A held lock is a wait; never
+  clear another holder's. `--break-glass` only when GitHub itself is
+  down. `/ship` has the rest.
 - **Ask Jamie up front** for product calls (who sees what, what is
   promised), an MCP or `/api/v1` major, IAM edits outside a deploy and
   deleting production rows. Steps only Jamie can do (Supercell keys, DNS,
-  secret values) go into `docs/NOTES.md` as one exact ask.
+  secret values) are one exact ask in a `needs-jamie` issue.
 
 ## AWS
 
