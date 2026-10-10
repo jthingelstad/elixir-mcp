@@ -1,99 +1,54 @@
 {
-  "generated_at": "2026-10-02T16:11:58.316Z",
+  "generated_at": "2026-10-10T10:54:43.990Z",
   "days": 7,
   "per_tool": 3,
   "tools": {
     "battles_cards": {
-      "calls": 9,
-      "p50_ms": 238,
-      "p95_ms": 739,
+      "calls": 4,
+      "p50_ms": 471,
+      "p95_ms": 834,
       "sets": [
         {
           "args": {
-            "mode": "ladder",
-            "perspective": "opponent",
-            "player_tag": "#20JJJ2CCRU",
-            "season": "current"
-          },
-          "calls": 4
-        },
-        {
-          "args": {
-            "mode": "ladder",
-            "perspective": "mine",
-            "player_tag": "#20JJJ2CCRU",
-            "season": "current"
-          },
-          "calls": 2
-        },
-        {
-          "args": {
-            "days": 30,
+            "days": 90,
             "mode": "ladder",
             "perspective": "opponent",
             "player_tag": "#20JJJ2CCRU"
           },
           "calls": 1
-        }
-      ]
-    },
-    "battles_compare": {
-      "calls": 3,
-      "p50_ms": 559,
-      "p95_ms": 587,
-      "sets": [
+        },
         {
           "args": {
-            "days": 30,
-            "player_tags": ["#20JJJ2CCRU", "#U8RYG9Y2U"]
+            "days": 90,
+            "mode": "ladder",
+            "perspective": "opponent",
+            "player_tag": "#20JJJ2CCRU",
+            "sort": "losses"
           },
           "calls": 1
         },
         {
           "args": {
-            "days": 7,
-            "mode": "ladder",
-            "player_tags": [
-              "#20JJJ2CCRU",
-              "#VJQV8G8RL",
-              "#U8RYG9Y2U",
-              "#UL2V9QRG0"
-            ]
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "days": 7,
-            "mode": "ladder",
-            "player_tags": [
-              "#VGJJLC9PR",
-              "#V0CRYP2GG",
-              "#C920YGLC2",
-              "#RJ9RRQPVU"
-            ]
+            "mode": "war",
+            "player_tag": "#20JJJ2CCRU",
+            "sort": "losses",
+            "weeks": 6
           },
           "calls": 1
         }
       ]
     },
     "battles_decks": {
-      "calls": 19,
-      "p50_ms": 163,
-      "p95_ms": 329,
+      "calls": 6,
+      "p50_ms": 332,
+      "p95_ms": 392,
       "sets": [
         {
           "args": {
-            "days": 7,
-            "player_tag": "#VJG0J29QP",
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "days": 7,
-            "player_tag": "#VJQV8G8RL",
+            "days": 90,
+            "limit": 10,
+            "mode": "ladder",
+            "player_tag": "#20JJJ2CCRU",
             "verbosity": "compact"
           },
           "calls": 1
@@ -106,37 +61,49 @@
             "weeks": 6
           },
           "calls": 1
+        },
+        {
+          "args": {
+            "limit": 3,
+            "mode": "ladder",
+            "player_tag": "#VJQV8G8RL",
+            "season": "previous"
+          },
+          "calls": 1
         }
       ]
     },
     "battles_opponents": {
-      "calls": 3,
-      "p50_ms": 188,
-      "p95_ms": 245,
+      "calls": 4,
+      "p50_ms": 155,
+      "p95_ms": 470,
       "sets": [
         {
           "args": {
-            "limit": 10,
-            "mode": "ladder",
-            "player_tag": "#20JJJ2CCRU",
-            "season": "current"
+            "days": 90,
+            "min_battles": 2,
+            "player_tag": "#20JJJ2CCRU"
           },
           "calls": 1
         },
         {
           "args": {
+            "days": 90,
+            "limit": 5,
             "min_battles": 2,
             "mode": "ladder",
-            "player_tag": "#20JJJ2CCRU",
-            "season": "current"
+            "player_tag": "#20JJJ2CCRU"
           },
           "calls": 1
         },
         {
           "args": {
+            "days": 90,
+            "limit": 5,
             "min_battles": 2,
+            "mode": "ladder",
             "player_tag": "#20JJJ2CCRU",
-            "season": "current"
+            "sort": "losses"
           },
           "calls": 1
         },
@@ -152,59 +119,64 @@
       ]
     },
     "battles_performance": {
-      "calls": 37,
-      "p50_ms": 180,
-      "p95_ms": 738,
+      "calls": 16,
+      "p50_ms": 137,
+      "p95_ms": 394,
       "sets": [
         {
           "args": {
-            "group_by": "week",
-            "mode": "ladder",
-            "player_tag": "#20JJJ2CCRU",
-            "season": "current"
-          },
-          "calls": 3
-        },
-        {
-          "args": {
-            "last_n_battles": 25,
-            "player_tag": "#20JJJ2CCRU"
-          },
-          "calls": 2
-        },
-        {
-          "args": {
-            "mode": "ladder",
-            "player_tag": "#20JJJ2CCRU",
-            "season": "current"
-          },
-          "calls": 2
-        }
-      ]
-    },
-    "battles_query": {
-      "calls": 38,
-      "p50_ms": 220,
-      "p95_ms": 634,
-      "sets": [
-        {
-          "args": {
-            "battle_id": "aad68079b0fa3480ce3745580d892b35df3c6a3eda20cdc2ee7c1c338bd5228c",
-            "player_tag": "#20JJJ2CCRU"
-          },
-          "calls": 2
-        },
-        {
-          "args": {
-            "battle_id": "56001d1a60f60ead0633d8d1ed8c2382266bb434aa5b303a4b4f4e0af94bb4f9",
+            "days": 7,
+            "group_by": "game_mode",
             "player_tag": "#20JJJ2CCRU"
           },
           "calls": 1
         },
         {
           "args": {
-            "battle_id": "a9f2ae45581f546513072a410ec6b54777fa92823f2a1293932015a8d9d3dea3",
-            "player_tag": "#20JJJ2CCRU"
+            "days": 7,
+            "group_by": "game_mode",
+            "player_tag": "#VJG0J29QP"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "days": 7,
+            "group_by": "game_mode",
+            "player_tag": "#VJQV8G8RL"
+          },
+          "calls": 1
+        }
+      ]
+    },
+    "battles_query": {
+      "calls": 13,
+      "p50_ms": 227,
+      "p95_ms": 343,
+      "sets": [
+        {
+          "args": {
+            "battle_id": "2f2ccd910fb8",
+            "player_tag": "#20JJJ2CCRU",
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "battle_id": "69dcc4e93f15",
+            "player_tag": "#20JJJ2CCRU",
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "days": 20,
+            "limit": 3,
+            "mode": "ladder",
+            "player_tag": "#20JJJ2CCRU",
+            "verbosity": "compact"
           },
           "calls": 1
         },
@@ -219,11 +191,46 @@
         }
       ]
     },
-    "cards_card": {
-      "calls": 4,
-      "p50_ms": 9458,
-      "p95_ms": 15945,
+    "battles_trends": {
+      "calls": 2,
+      "p50_ms": 79,
+      "p95_ms": 88,
       "sets": [
+        {
+          "args": {
+            "segment": {
+              "player_tag": "#VJG0J29QP"
+            },
+            "weeks": 5
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "segment": {
+              "player_tag": "#VJQV8G8RL"
+            },
+            "weeks": 5
+          },
+          "calls": 1
+        }
+      ]
+    },
+    "cards_card": {
+      "calls": 1,
+      "p50_ms": 171,
+      "p95_ms": 171,
+      "sets": [
+        {
+          "args": {
+            "card_id": 26000042,
+            "segment": {
+              "player_tag": "#9Y0LV2QLC"
+            },
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
         {
           "args": {
             "card": "Knight",
@@ -235,194 +242,153 @@
       ]
     },
     "cards_catalog": {
-      "calls": 8,
-      "p50_ms": 128,
-      "p95_ms": 239,
+      "calls": 2,
+      "p50_ms": 234,
+      "p95_ms": 304,
       "sets": [
         {
           "args": {
-            "ids": [159000000, 159000001, 159000002, 159000003]
+            "ids": [26000042, 26000085]
           },
-          "calls": 1
-        },
-        {
-          "args": {
-            "ids": [
-              159000000, 159000001, 159000002, 159000003, 159000004, 29000000,
-              26000072
-            ],
-            "verbosity": "compact"
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "ids": [159000000, 159000004, 29000000]
-          },
-          "calls": 1
+          "calls": 2
         }
       ]
     },
     "clans_members_timeline": {
-      "calls": 2,
-      "p50_ms": 2268,
-      "p95_ms": 3876,
+      "calls": 1,
+      "p50_ms": 156,
+      "p95_ms": 156,
       "sets": [
         {
           "args": {
-            "granularity": "week",
-            "limit": 50,
-            "metrics": ["clan_rank"],
-            "verbosity": "compact",
-            "weeks": 8
-          },
-          "calls": 1
-        },
-        {
-          "args": {
-            "from": "2026-09-14",
-            "limit": 6,
-            "metrics": [
-              "arena_id",
-              "league_number",
-              "pol_trophies",
-              "trophies",
-              "three_crown_wins",
-              "battle_count",
-              "wins"
-            ],
-            "to": "2026-09-21",
-            "verbosity": "compact"
+            "clan_tag": "#J2RGCRVG",
+            "from": "2026-09-03",
+            "metrics": ["donations", "clan_tag"],
+            "player_tags": ["#CVUU09QC2", "#RCCY80VG2"],
+            "timezone": "Etc/UTC",
+            "to": "2026-09-30",
+            "verbosity": "full"
           },
           "calls": 1
         }
       ]
     },
     "clans_participation": {
-      "calls": 11,
-      "p50_ms": 5564,
-      "p95_ms": 12053,
+      "calls": 5,
+      "p50_ms": 2117,
+      "p95_ms": 7091,
       "sets": [
         {
           "args": {
-            "verbosity": "compact",
+            "clan_tag": "#J2RGCRVG",
+            "verbosity": "full",
             "weeks": 8
           },
           "calls": 4
         },
         {
           "args": {
-            "verbosity": "full",
-            "weeks": 5
-          },
-          "calls": 2
-        },
-        {
-          "args": {
             "verbosity": "compact",
-            "weeks": 2
+            "weeks": 4
           },
           "calls": 1
         }
       ]
     },
     "clans_roster": {
-      "calls": 14,
-      "p50_ms": 382,
-      "p95_ms": 729,
+      "calls": 6,
+      "p50_ms": 177,
+      "p95_ms": 353,
       "sets": [
         {
-          "args": {},
-          "calls": 6
+          "args": {
+            "clan_tag": "#GCYQR9VY"
+          },
+          "calls": 1
         },
         {
           "args": {
             "clan_tag": "#GCYQR9VY",
             "verbosity": "compact"
           },
-          "calls": 2
+          "calls": 1
         },
         {
           "args": {
-            "verbosity": "compact"
+            "clan_tag": "#GGJG2CCR"
           },
-          "calls": 2
+          "calls": 1
         }
       ]
     },
     "clans_standings": {
       "calls": 2,
-      "p50_ms": 3010,
-      "p95_ms": 4858,
+      "p50_ms": 4652,
+      "p95_ms": 6660,
       "sets": [
         {
           "args": {
-            "days": 7
+            "days": 30,
+            "mode": "ladder"
           },
           "calls": 1
         },
         {
           "args": {
-            "min_battles": 1,
-            "mode": "war",
-            "season": "current"
+            "days": 30,
+            "min_battles": 5,
+            "mode": "war"
           },
           "calls": 1
         }
       ]
     },
     "elixir_changelog": {
-      "calls": 11,
-      "p50_ms": 106,
-      "p95_ms": 241,
+      "calls": 5,
+      "p50_ms": 105,
+      "p95_ms": 140,
       "sets": [
         {
           "args": {
-            "since": "9.12.3"
-          },
-          "calls": 2
-        },
-        {
-          "args": {
-            "since": "9.12.1"
+            "limit": 10
           },
           "calls": 1
         },
         {
           "args": {
-            "since": "9.12.2"
+            "since": "11.2.3"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "since": "11.3.0"
           },
           "calls": 1
         }
       ]
     },
     "elixir_collectors": {
-      "calls": 12,
-      "p50_ms": 126,
-      "p95_ms": 245,
+      "calls": 4,
+      "p50_ms": 182,
+      "p95_ms": 259,
       "sets": [
         {
           "args": {},
-          "calls": 12
+          "calls": 4
         }
       ]
     },
     "elixir_coverage": {
-      "calls": 7,
-      "p50_ms": 178,
-      "p95_ms": 613,
+      "calls": 2,
+      "p50_ms": 130,
+      "p95_ms": 165,
       "sets": [
         {
           "args": {
-            "player_tag": "#20JJJ2CCRU"
+            "player_tag": "#92P2LPPL"
           },
-          "calls": 3
-        },
-        {
-          "args": {
-            "player_tag": "#29PR0CCR0"
-          },
-          "calls": 2
+          "calls": 1
         },
         {
           "args": {
@@ -433,85 +399,76 @@
       ]
     },
     "elixir_data_insights": {
-      "calls": 2,
-      "p50_ms": 3484,
-      "p95_ms": 3733,
+      "calls": 1,
+      "p50_ms": 2348,
+      "p95_ms": 2348,
       "sets": [
         {
           "args": {},
-          "calls": 2
+          "calls": 1
         }
       ]
     },
     "elixir_docs": {
-      "calls": 9,
-      "p50_ms": 54,
-      "p95_ms": 111,
+      "calls": 3,
+      "p50_ms": 112,
+      "p95_ms": 132,
       "sets": [
         {
           "args": {
-            "query": "ChatGPT"
-          },
-          "calls": 2
-        },
-        {
-          "args": {
-            "page": "agents"
+            "page": "clan-actions"
           },
           "calls": 1
         },
         {
           "args": {
-            "page": "email"
+            "page": "clocks"
           },
           "calls": 1
-        }
-      ]
-    },
-    "elixir_examples": {
-      "calls": 1,
-      "p50_ms": 87,
-      "p95_ms": 87,
-      "sets": [
+        },
         {
-          "args": {},
+          "args": {
+            "query": "actions awards"
+          },
           "calls": 1
         }
       ]
     },
     "elixir_timeline": {
-      "calls": 20,
-      "p50_ms": 2036,
-      "p95_ms": 8213,
+      "calls": 3,
+      "p50_ms": 11616,
+      "p95_ms": 11639,
       "sets": [
         {
           "args": {
-            "from": "2026-09-27T09:00:00Z",
-            "kinds": ["battle_session", "session_standout"],
-            "mark_read": false,
-            "player_tag": "#C920YGLC2",
-            "to": "2026-09-27T12:00:00Z",
-            "verbosity": "compact"
-          },
-          "calls": 2
-        },
-        {
-          "args": {
-            "from": "2026-09-27T12:00:00Z",
-            "kinds": ["battle_session", "session_standout"],
-            "mark_read": false,
-            "player_tag": "#C920YGLC2",
-            "to": "2026-09-27T15:00:00Z",
-            "verbosity": "compact"
-          },
-          "calls": 2
-        },
-        {
-          "args": {
-            "days": 14,
+            "days": 7,
             "mark_read": false,
             "player_tag": "#20JJJ2CCRU",
-            "sections": ["collection"]
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "from": "2026-09-01T00:00:00Z",
+            "kinds": ["member_joined", "member_left"],
+            "mark_read": false,
+            "player_tag": "#CVUU09QC2",
+            "sections": ["roster"],
+            "to": "2026-10-03T16:00:00Z",
+            "verbosity": "compact"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "from": "2026-09-01T00:00:00Z",
+            "kinds": ["member_joined", "member_left"],
+            "mark_read": false,
+            "player_tag": "#RCCY80VG2",
+            "sections": ["roster"],
+            "to": "2026-10-03T16:00:00Z",
+            "verbosity": "compact"
           },
           "calls": 1
         },
@@ -531,33 +488,31 @@
           },
           "calls": 0,
           "seed": "full verbosity carries the entries with their kinds (player_activity, clan_activity)"
+        },
+        {
+          "args": {
+            "days": 1,
+            "kinds": ["member_joined", "member_left"],
+            "mark_read": false,
+            "skip_empty": true
+          },
+          "calls": 0,
+          "seed": "skip_empty (11.7.0): a poll's shape; entries_skipped and the empty answer when the day held no roster move, the full read when it did"
         }
       ]
     },
     "game_clock": {
-      "calls": 3,
-      "p50_ms": 108,
-      "p95_ms": 213,
+      "calls": 12,
+      "p50_ms": 96,
+      "p95_ms": 228,
       "sets": [
         {
           "args": {},
-          "calls": 3
-        }
-      ]
-    },
-    "game_events": {
-      "calls": 2,
-      "p50_ms": 157,
-      "p95_ms": 162,
-      "sets": [
-        {
-          "args": {},
-          "calls": 1
+          "calls": 11
         },
         {
           "args": {
-            "days": 60,
-            "limit": 60
+            "at": "2026-10-04T14:00:00Z"
           },
           "calls": 1
         }
@@ -565,15 +520,22 @@
     },
     "players_collection": {
       "calls": 3,
-      "p50_ms": 148,
-      "p95_ms": 204,
+      "p50_ms": 205,
+      "p95_ms": 261,
       "sets": [
         {
           "args": {
-            "player_tag": "#20JJJ2CCRU",
+            "player_tag": "#VJQV8G8RL",
             "verbosity": "compact"
           },
-          "calls": 3
+          "calls": 2
+        },
+        {
+          "args": {
+            "player_tag": "#VJG0J29QP",
+            "verbosity": "compact"
+          },
+          "calls": 1
         },
         {
           "args": {
@@ -584,21 +546,39 @@
         }
       ]
     },
+    "players_names": {
+      "calls": 1,
+      "p50_ms": 249,
+      "p95_ms": 249,
+      "sets": [
+        {
+          "args": {
+            "player_tags": ["#2PYQ8GJ0"]
+          },
+          "calls": 1
+        }
+      ]
+    },
     "players_profile": {
       "calls": 4,
-      "p50_ms": 128,
-      "p95_ms": 134,
+      "p50_ms": 150,
+      "p95_ms": 177,
       "sets": [
         {
           "args": {
             "player_tag": "#20JJJ2CCRU"
           },
-          "calls": 3
+          "calls": 1
         },
         {
           "args": {
-            "player_tag": "#20JJJ2CCRU",
-            "verbosity": "compact"
+            "player_tag": "#VJG0J29QP"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "player_tag": "#VJQV8G8RL"
           },
           "calls": 1
         }
@@ -606,56 +586,82 @@
     },
     "players_search": {
       "calls": 2,
-      "p50_ms": 357,
-      "p95_ms": 474,
+      "p50_ms": 1056,
+      "p95_ms": 1356,
       "sets": [
         {
           "args": {
             "limit": 10,
-            "query": "Ollie"
+            "query": "alex"
           },
           "calls": 1
         },
         {
           "args": {
-            "query": "OllieTurtles"
+            "query": "Kun⚡"
           },
           "calls": 1
         }
       ]
     },
     "players_summary": {
-      "calls": 6,
-      "p50_ms": 413,
-      "p95_ms": 594,
+      "calls": 8,
+      "p50_ms": 268,
+      "p95_ms": 732,
       "sets": [
         {
           "args": {
             "player_tag": "#20JJJ2CCRU"
           },
-          "calls": 5
+          "calls": 4
         },
         {
           "args": {
-            "player_tag": "#RJ9RRQPVU"
+            "player_tag": "#20V9PQLL2U"
+          },
+          "calls": 1
+        },
+        {
+          "args": {
+            "player_tag": "#92P2LPPL"
+          },
+          "calls": 1
+        }
+      ]
+    },
+    "players_timeline": {
+      "calls": 1,
+      "p50_ms": 135,
+      "p95_ms": 135,
+      "sets": [
+        {
+          "args": {
+            "days": 7,
+            "metrics": ["battle_count"],
+            "player_tag": "#G2CUUJQ8V"
           },
           "calls": 1
         }
       ]
     },
     "war_current": {
-      "calls": 3,
-      "p50_ms": 133,
-      "p95_ms": 154,
+      "calls": 11,
+      "p50_ms": 146,
+      "p95_ms": 264,
       "sets": [
         {
           "args": {
-            "verbosity": "full"
+            "verbosity": "compact"
           },
-          "calls": 2
+          "calls": 9
+        },
+        {
+          "args": {},
+          "calls": 1
         },
         {
           "args": {
+            "clan_tag": "#J2RGCRVG",
             "verbosity": "compact"
           },
           "calls": 1
@@ -663,24 +669,32 @@
       ]
     },
     "war_history": {
-      "calls": 10,
-      "p50_ms": 161,
-      "p95_ms": 393,
+      "calls": 15,
+      "p50_ms": 146,
+      "p95_ms": 240,
       "sets": [
         {
           "args": {
-            "player_tag": "#20JJJ2CCRU",
+            "clan_tag": "#J2RGCRVG",
             "season_id": 136,
-            "section_index": 2
+            "section_index": 3
           },
-          "calls": 5
+          "calls": 7
         },
         {
           "args": {
             "player_tag": "#20JJJ2CCRU",
             "seasons": 1
           },
-          "calls": 2
+          "calls": 3
+        },
+        {
+          "args": {
+            "clan_tag": "#GCYQR9VY",
+            "season_id": 136,
+            "section_index": 3
+          },
+          "calls": 1
         }
       ]
     }
