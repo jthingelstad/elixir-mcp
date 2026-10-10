@@ -16,18 +16,18 @@ The source of truth for what stands, and the files that point agents at it.
 |---|---|---|
 | Decisions | `docs/DECISIONS.md` | itself (no line contradicts another), and everything below |
 | Invariants | `docs/ENGINEERING.md` | DECISIONS, the tests that enforce each invariant |
-| Working notes | `docs/NOTES.md` | open items and dated notes; never cited as the ledger |
-| Agent guide | `AGENTS.md` (CLAUDE.md is a symlink) | DECISIONS; points at DECISIONS, not NOTES |
-| Objective runs | `AGENT-TEAM/READING.md`, `README.md`, `WORKFLOW.md`, the four active objective files | DECISIONS; current plumbing in `infra/template.yaml` |
+| Change notes | `docs/notes/` (`docs/NOTES.md` the frozen archive) | one note per change; never cited as the ledger; open items are issues, not notes |
+| Agent guide | `AGENTS.md` (CLAUDE.md is a symlink) | DECISIONS; points at DECISIONS, not the notes |
+| Operations | `docs/OPERATIONS.md` | DECISIONS; current plumbing in `infra/template.yaml`; its section names (the domain team's runbooks cite them) |
 | Repo skills | `.claude/skills/gym/`, `.claude/skills/consistency/` | DECISIONS; the acceptance and deploy rules |
 | User skill | `~/.claude/skills/mcp-tool-review/SKILL.md` | profiles, paths and tools as they are now |
-| Domain guide | `../AGENTS.md`, `../AGENT-TEAM/` | the repo list, each repo's reading path, the lease order |
+| Domain guide | `../AGENTS.md`, `../AGENT-TEAM/` | the repo list, each repo's reading path, the OPERATIONS.md sections the runbooks cite |
 
 ## 2. The contract
 
 | Surface | Path | Must agree with |
 |---|---|---|
-| Versions | `packages/contracts/src/version.ts`, `changelog.ts` (`breaking` field, not prose) | the change's semver class (AGENTS.md rule 5) |
+| Versions | `packages/contracts/src/changes/<version>.ts`, one per version (`breaking` field, not prose) | the change's semver class (AGENTS.md rule 5) |
 | Shared vocabulary | `packages/contracts/src/{modes,principals,roles,queue,tool-groups}.ts` | JS and SQL readers (one answer in both), docs tables |
 | Tool registry | `packages/tools/src/tools.mjs`, `packages/tools/src/tools/**` | declarations, `output-schemas.mjs`, the brief |
 | Output schemas | `packages/tools/src/output-schemas.mjs` | every field the tool serves; nothing it does not |
@@ -77,7 +77,7 @@ is where the war-days gap lived.
 |---|---|---|
 | Docs pages | `apps/site/src/docs/*.md` | the registry, output schemas and DECISIONS |
 | Examples | `apps/site/src/_data/examples.js` | valid tool names and required arguments |
-| What's new | `apps/site/src/_data/updates.js` | the changelog, in plain words |
+| What's new | `apps/site/src/_data/updates/` (one file per entry) | the changelog, in plain words |
 | Privacy promises | `privacy.md`, `connections.md`, `email.md`, `terms.md` | what the code sends, keeps and deletes |
 | Front page | `README.md` | the services and packages that exist |
 

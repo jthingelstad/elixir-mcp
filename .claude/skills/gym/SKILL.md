@@ -66,10 +66,10 @@ brief forbids them from using it, and your assignment header repeats that.
 1. **Preflight.**
    - Check that the connection answers: `node .claude/skills/gym/call.mjs game_clock '{}'`.
    - Check that `acceptance/gym.json` parses.
-   - The run itself needs no lease: the subagent writes only its report,
+   - The run itself takes no lock: the subagent writes only its report,
      under `reports/` (ignored by git). Recording the result in
-     `coverage.md` (tracked) is an edit in your own checkout, landed by
-     PR (`AGENT-TEAM/WORKFLOW.md`, "One worktree per run").
+     `coverage.md` (tracked) is an edit in your own worktree, landed by
+     pull request (`/ship`, "Merge").
 2. **Build the legacy list.** Findings #1–#89 were filed from Jamie's
    account, before the Gym had its own.
    - Read them with Jamie's connection (`mcp__elixir-mcp__elixir_my_feedback`,
@@ -133,11 +133,11 @@ Gym runs are read-only, so they may run while you fix another family.
 2. **If the run is clean,** mark the family clean in the grid, noting
    contract version and date, and move on.
 3. **If the run has findings, fix them. Jamie's standing authority for the
-   sweep: fix and deploy without asking.** Work it the Elixir Feedback Manager way
-   (`AGENT-TEAM/elixir-feedback-manager.md`):
-   - Edit in your own checkout. Claim the `loop` lease
-     (`AGENT-TEAM/scripts/objective-lease.mjs claim loop`) for the deploy
-     and the `{feedback_respond}` writes, and release it after them.
+   sweep: fix and deploy without asking.** Work it by `docs/OPERATIONS.md`,
+   "Feedback":
+   - Edit in your own worktree. The deploy and the `{feedback_respond}`
+     writes (through `npm run op`) take the production lock themselves;
+     a held lock is a wait.
    - Verify every finding against the record before touching code. The Gym
      is evidence, not authority. A finding you refute gets an answer with
      the evidence, not a fix. Its case still joins `gym.json` as filed, with
@@ -157,8 +157,8 @@ Gym runs are read-only, so they may run while you fix another family.
      as live evidence (a 6.35.0 lead on 2026-09-24 was a call from the
      night before). Pull the capture with `acceptance/bites/fetch.mjs` and
      read its `captured_at` before building a stale-deploy theory.
-   - Fix at the source. The site docs and `apps/site/src/_data/updates.js`
-     go in the same commit.
+   - Fix at the source. The site docs and a What's new file in
+     `apps/site/src/_data/updates/` go in the same commit.
    - Check the JSON API for the eight mirrored tools (see "Scope"). If the
      fix would change what the `/api/v1` operation returns, stop: park the
      family and ask Jamie.
@@ -166,7 +166,7 @@ Gym runs are read-only, so they may run while you fix another family.
      Fetch each finding's bite:
      `acceptance/bites/fetch.mjs <date> <request-id prefix> <name> <feedback id>`.
      New verbs go into `acceptance/gym-interp.mjs`.
-   - **Attested facts are counted, never quoted** into NOTES, a report
+   - **Attested facts are counted, never quoted** into a note, a report
      excerpt, `gym.json` or anything else in this public repo: say "3
      `clan_message` items", never what one says or who said it. The Gym
      reads its clan's facts; the fetcher stubs `attested` and `account`
@@ -182,9 +182,9 @@ Gym runs are read-only, so they may run while you fix another family.
      runs, drained the database's EBS byte balance in one afternoon.
      A change to a tool follows `/tool-change`.
    - Answer each item with `{feedback_respond}`, `done` naming the version,
-     following elixir-feedback-manager.md's write rules. Add a short `docs/NOTES.md`
-     entry for the round. Commit, merge through a PR (`/ship`'s Merge
-     step), deploy, answer, and release the lease.
+     following `docs/OPERATIONS.md`, "Feedback" (a compare-and-set, then a
+     read-back). Add a short change note in `docs/notes/` for the round.
+     Commit, merge through a PR (`/ship`'s Merge step), deploy, answer.
 4. **Re-run** the family (round N+1). The header says what shipped since.
 5. **Stop the family after three rounds without a clean run.** Park it as
    `needs Jamie` with the reason and keep sweeping the others.

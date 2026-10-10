@@ -19,17 +19,18 @@ named about a dozen ops and the rest could be found only by reading
   is holding the database"): choose the read from "Choosing the read" and
   `ops.md`, run it, and answer with the numbers and where each came from.
 - `/ops <op>` (`/ops capture_audit`): read the op's row in `ops.md`, then
-  run it with the payload the question needs. Reads need no
-  lease; a write op is a proposal until its owner says go (rule 2).
+  run it with `npm run op` and the payload the question needs. Reads
+  take no lock; a write op is a proposal until its authority says go
+  (rule 2).
 
 ## Rules
 
 1. **Never verify with writes on live data.** Reads and refusal paths only
    (AGENTS.md rule 9). A write op changes production; it is never a check.
-2. **A write op needs its owner's authority.** Each write row in `ops.md`
-   names it: an objective runbook that grants the op, or Jamie. Without
-   it, put the exact payload in your answer for Jamie. A granted write runs
-   under the lease its runbook names. The session's permission check can
+2. **A write op needs authority.** Each write row in `ops.md` names it:
+   a section of `docs/OPERATIONS.md` that bounds the op, or Jamie.
+   Without it, put the exact payload in your answer for Jamie. A granted
+   write runs through `npm run op`, which takes the production lock. The session's permission check can
    refuse a live write anyway (the Gym's `{service_token_limits}`,
    2026-09-23); then hand Jamie the command.
 3. **Never manufacture a request to diagnose** (DECISIONS). Read what the
@@ -50,7 +51,8 @@ named about a dozen ops and the rest could be found only by reading
    the job ran twice. Never retry a heavy op on a 429.
 6. **Heavy reads run once, on purpose.** Rows marked heavy scan a battle
    table or the corpus on a db.t4g.micro. Past 90 s an invocation fires
-   `elixir-mcp-migrate-duration` and Elixir Operator asks who and why, so
+   `elixir-mcp-migrate-duration`, the alarm reaches the sysadmin queue
+   and someone asks who and why, so
    name the run in your report. Thirteen `{probe}` runs in 25 minutes
    preceded the 2026-09-11 RDS memory recovery.
 7. **A backfill is not finished until it is vacuumed, and never runs with
@@ -74,12 +76,34 @@ named about a dozen ops and the rest could be found only by reading
 The function is `elixir-mcp-migrate` (`MigrateFunction` in
 `infra/template.yaml`, stack output `MigrateFunctionName`): Node 24, 1 GB,
 300 s timeout, reserved concurrency 1, in the private subnets with the
-database URL and `ARCHIVE_BUCKET`. Confirm the identity first:
-`AWS_PROFILE=cloud-engineer aws sts get-caller-identity` shows
-`assumed-role/ProjectsCloudEngineer/projects-cloud-engineer`. Take the
-payload from the op's row, and invoke once, synchronously.
+database URL and `ARCHIVE_BUCKET`. Take the payload from the op's row,
+and invoke once, synchronously.
 
-**Preferred: the AWS MCP server's `run_script`,** sandboxed and audited
+**`npm run op`** (`infra/scripts/op.mjs`), from the repository root. It
+is the only way to run a write, and the default for a read:
+
+```sh
+npm run op -- '{"capture_audit": {"days": 1}}'
+npm run op -- '{"ledger": {"op": "requeue", "job_ids": ["123"]}}'
+npm run op -- '{"clan_report_preview": {"clan_tag": "#TAG"}}' --function jobs
+```
+
+It checks the caller is `assumed-role/ProjectsCloudEngineer/projects-cloud-engineer`,
+invokes with profile `cloud-engineer`, no retries and a read timeout past
+the function's own, and prints the result. It classifies the payload by
+an allowlist (`infra/scripts/lib/ops-invoke.mjs`): a payload that is not
+plainly a read is a write and takes the production lock
+(`infra/scripts/lib/production-lock.mjs`) for the invocation. A read
+takes no lock but does not run while the lock is held. Exit 3 means
+locked: the output names the holder, since when and doing what. Wait;
+never clear another holder's lock. A looping batch takes the lock once
+per invocation, so it stops at exit 3 and resumes after.
+
+The two raw paths below take no lock: **reads only**. Confirm the
+identity first: `AWS_PROFILE=cloud-engineer aws sts get-caller-identity`
+shows `assumed-role/ProjectsCloudEngineer/projects-cloud-engineer`.
+
+**The AWS MCP server's `run_script`,** sandboxed and audited
 (`~/Projects/AGENTS.md`):
 
 ```python
@@ -93,7 +117,7 @@ Check `api_calls` for exactly one Invoke, and `FunctionError` in the
 response. The script cannot set the client's read timeout or retries, so
 keep it for ops that finish well inside a minute.
 
-**The CLI,** for heavy ops or where the MCP server is not available:
+**The CLI,** for a heavy read when `npm run op` cannot run:
 
 ```sh
 AWS_PROFILE=cloud-engineer AWS_MAX_ATTEMPTS=1 aws lambda invoke \
@@ -150,7 +174,7 @@ the object in the S3 console or with a GetObject
 `{refusal_census}` and `{controls_census}` read many at once. A Gym
 finding's capture becomes a bite through `acceptance/bites/fetch.mjs`,
 which stubs `attested` and `account` items. Attested facts are counted,
-never quoted into NOTES or the repo: a capture holds them whole, and a
+never quoted into a note or the repo: a capture holds them whole, and a
 leaders-only fact read here is still leaders-only.
 
 **Alarms.** Every `elixir-mcp-*` alarm publishes to SNS
@@ -163,7 +187,8 @@ Firing now: `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --st
 
 **The jobs Lambda** (`elixir-mcp-jobs`) has its own payload keys, such as
 `{capture_efficiency}` and `{shape_census}`: scheduled product work,
-outside this catalogue; Elixir Operator names the ones worth reading.
+outside this catalogue; `docs/OPERATIONS.md` names the ones worth
+reading. Run them with `npm run op -- '<payload>' --function jobs`.
 One is a read for checking a mail change against the live record:
 `{"clan_report_preview": {"clan_tag": "#TAG", "at": "<ISO>"}}` composes
 that clan's Monday report for the week before `at` as its oldest tracker,
