@@ -53,6 +53,10 @@
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
+    "packages/syndication": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
     "packages/outbox": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
@@ -91,6 +95,10 @@
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },
     "services/scheduler": {
+      "entry": ["src/index.mjs", "test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "services/timeline-sync": {
       "entry": ["src/index.mjs", "test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
     },

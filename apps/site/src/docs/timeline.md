@@ -1,7 +1,7 @@
 ---
 slug: timeline
 title: "The timeline"
-description: "elixir_timeline: what happened to the players and clans you track since your read pointer, as items newest first (battle sessions, named moments, roster and war moments, presence) plus one summary entry per subject; who is a subject for a person and for an agent; the window and read-pointer semantics; what the timeline never does."
+description: "elixir_timeline: what happened to the players and clans you track since your read pointer, as items newest first (battle sessions, named moments, roster and war moments, presence) plus one summary entry per subject; who is a subject for a person and for an agent; the window and read-pointer semantics; cross-posting a timeline to Discord; what the timeline never does."
 section: agent
 order: 8
 navTitle: "Timeline"
@@ -356,6 +356,44 @@ cannot move someone into or out of an earlier window's presence population.
 Tracked players with nothing in the window get no entry; they are listed
 under `quiet` with `days_quiet` and `days_since_poll`. A clan always gets an
 entry: a clan's silence is the clan's activity.
+
+## Cross-posting to Discord
+
+A timeline can be posted to a Discord channel as it happens: a person's
+own timeline, or an agent's (its clan and the players it tracks), turned
+on by the account's owner on Console ▸ Timeline under **Cross-post to
+Discord**. Profile, and each agent's page, say whether it is on. It is
+set in the console only, never through MCP or the JSON API.
+
+- **What posts.** Every item the timeline holds for that account, not
+  filtered: the same subjects, sections and kinds a scheduled agent
+  reads. Two kinds of line never leave Elixir: an item only a clan's
+  leaders may see (a member's away), and your account's own
+  administration (section `account`).
+- **When.** When the record learns something about one of the subjects,
+  the account's timeline is read about a minute later from the
+  cross-post's own place in it, and anything new is posted. Nothing
+  polls. A quiet rung crossed by the clock, or an attested fact from a
+  family app, posts with the next thing the record learns about that
+  subject. Nothing from before it was turned on is posted. The
+  cross-post's place never moves your read pointer, a reader's, or
+  `meta.timeline_pending`.
+- **One line per item,** opening with a Discord timestamp that each
+  reader sees on their own clock, then the item's sentence with names
+  made literal, then links back to Elixir (the battle, the race week, the
+  member, the subject) in the form Discord never previews. Nothing pings
+  anyone.
+- **Edited, never repeated.** When an item grows (a sitting adds
+  battles, or closes), its message is edited in place. A message
+  deleted in the channel stays deleted. When Discord's answer to a post
+  is lost, that line is not posted again: a missing line is better than
+  a duplicate.
+- **The webhook.** Only Discord's own webhook address is accepted, and
+  saving one posts a first line to the channel so you can see it works.
+  Elixir keeps it sealed, shows it shortened, and never logs it. When
+  Discord says the webhook no longer exists, cross-posting turns off and
+  the panel says why. Turning it back on, or a new webhook, starts from
+  that moment.
 
 ## What the timeline never does
 

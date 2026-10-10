@@ -37,6 +37,7 @@ export function makeHandler({
   deleteObject = null,
   modelObject = null,
   discordObject = null,
+  timelineDiscordObject = null,
   upgradeDelivery = null,
 }) {
   /** One message: "sent" (or dropped by design) or "bad_message"; a
@@ -154,6 +155,13 @@ export function makeHandler({
       if (obj.key.startsWith("clan-discord/")) {
         if (!discordObject) return "bad_message";
         await discordObject(obj);
+        continue;
+      }
+      // The timeline cross-posted to Discord (2026-10-10): lines to post
+      // or edit (packages/syndication/src/relay.mjs).
+      if (obj.key.startsWith("timeline-discord/")) {
+        if (!timelineDiscordObject) return "bad_message";
+        await timelineDiscordObject(obj);
         continue;
       }
       const text = await readObject(obj);

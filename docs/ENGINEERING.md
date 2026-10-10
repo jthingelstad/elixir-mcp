@@ -371,12 +371,16 @@ read state; sponsorship (`/support`) ties to nothing on an account.
 
 ## Network posture
 
-VPC Lambdas (web-api, collector, mcp, scheduler, migrate, jobs) run in a
-NAT-free VPC and never call another Lambda. Work that needs the internet
-(mail through SES, a clan's model call) is handed to the non-VPC email
-relay by writing one object to the outbox bucket (`email/`, `clan-model/`)
-through the S3 gateway endpoint; S3 notifies SQS, which holds retries and
-the dead-letter queue. Metrics ride the EMF log line; a custom metric exists
+VPC Lambdas (web-api, collector, mcp, scheduler, migrate, jobs,
+timeline-sync) run in a NAT-free VPC and never call another Lambda. Work
+that needs the internet (mail through SES, a clan's model call, a Discord
+post) is handed to the non-VPC email relay by writing one object to the
+outbox bucket (`email/`, `clan-model/`, `clan-discord/`,
+`timeline-discord/`) through the S3 gateway endpoint; S3 notifies SQS,
+which holds retries and the dead-letter queue. The collector wakes the
+timeline sync the same way (`timeline-sync/`, held a minute so a burst is
+one sync). The timeline's Discord lines ride a queue of their own at batch
+size 1, so a busy channel never holds up sign-in mail. Metrics ride the EMF log line; a custom metric exists
 only to back an alarm.
 
 ## Services share through packages, never each other
@@ -396,6 +400,7 @@ imported by name.
 | `collector-door` | collectors' `config`, `lease`, `submit` and the release-signature state |
 | `auth` | sessions, OAuth, tokens, integration accounts, the `clans_context` reader |
 | `mail`, `outbox` | rendering, the send ledger and archive, delivery; the S3 outbox |
+| `syndication` | the timeline cross-posted to Discord: the setting, the wake, the sync, its lines and the relay's worker |
 | `clan-engine`, `clan`, `clan-state`, `clan-web` | Elixir Clan (`packages/clan/AGENTS.md`) |
 | `docs` | the public docs as a corpus the MCP door serves |
 | `design`, `ui`, `client` | the web kit (`apps/web/AGENTS.md`) |
@@ -407,7 +412,8 @@ imported by name.
 | `collector` | the collector door |
 | `scheduler` | the ledger tick |
 | `jobs` | the nightly and hourly jobs, mail builds, Clan's morning run |
-| `email-relay` | the outbox: mail over SES, Clan model calls |
+| `email-relay` | the outbox: mail over SES, Clan model calls, Discord posts (Clan's and the timeline's) |
+| `timeline-sync` | a woken account's timeline, as lines for its Discord channel |
 | `migrate` | migrations at deploy and every op |
 
 A package is bundled into each Lambda by esbuild, so adding one needs no

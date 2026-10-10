@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { LogTable, useClock, noun } from "@elixir-mcp/ui";
 import { useMyTimeline, useTimelineEvidence } from "../../lib/queries.js";
 import { useScope } from "../../lib/scope.js";
+import { TimelineDiscord } from "./TimelineDiscord.jsx";
 
 /**
  * The timeline: what happened to the players and clans you track, the
@@ -11,7 +12,8 @@ import { useScope } from "../../lib/scope.js";
  * it is the thing a reader most often opens the console to ask, and it
  * had been Activity's first view, one level down beside the call log.
  * Still a LogTable, because it is still a log, and newest first as the
- * timeline is everywhere: a newsfeed (contract 7.0.0).
+ * timeline is everywhere: a newsfeed (contract 7.0.0). Above it, the
+ * switch that cross-posts it to a Discord channel (2026-10-10).
  */
 export function Timeline() {
   const { stamp } = useClock();
@@ -100,124 +102,131 @@ export function Timeline() {
           : "What happened to the players and clans you track, last seven days, newest first. The same items a connection reads with elixir_timeline."
       }
       above={
-        selected ? (
-          <section
-            aria-label="Timeline evidence"
-            ref={panelRef}
-            tabIndex={-1}
-            className="mb-6 space-y-3 border-b border-rule pb-5"
-          >
-            <h2 className="text-lg">Recorded evidence</h2>
-            <p className="break-words">{selected.text}</p>
-            <button
-              className="btn btn--sm"
-              type="button"
-              onClick={closeEvidence}
+        <>
+          <TimelineDiscord />
+          {selected ? (
+            <section
+              aria-label="Timeline evidence"
+              ref={panelRef}
+              tabIndex={-1}
+              className="mb-6 space-y-3 border-b border-rule pb-5"
             >
-              Close evidence
-            </button>
-            {evidenceQuery.isFetching ? (
-              <p role="status">Reading recorded games…</p>
-            ) : null}
-            {evidenceQuery.isError ? (
-              <div role="alert">
-                <p>
-                  This evidence is unavailable or changed. Refresh the timeline
-                  and open it again.
-                </p>
-                <button
-                  className="btn btn--sm"
-                  type="button"
-                  onClick={() => {
-                    closeEvidence();
-                    timelineQuery.refetch();
-                  }}
-                >
-                  Refresh timeline
-                </button>
-              </div>
-            ) : null}
-            {evidence ? (
-              <>
-                <p>
-                  Observed {stamp(evidence.observed_at)}.
-                  {evidence.observed_at_basis === "legacy_window"
-                    ? " This is the legacy observation window; its proof attachment time was not recorded."
-                    : ""}
-                </p>
-                {evidence.kind === "session" ? (
-                  <>
-                    {typeof selected.facts?.battles === "number" ? (
-                      <p>
-                        The summary covers {selected.facts.battles}{" "}
-                        {noun(selected.facts.battles, "game")}
-                        {selected.facts.ended_at
-                          ? `, ending ${stamp(selected.facts.ended_at)}`
-                          : ""}
-                        .
-                      </p>
-                    ) : null}
-                    <p>
-                      {evidence.count} recorded games
-                      {evidence.from
-                        ? ` from ${stamp(evidence.from)}`
-                        : ""}{" "}
-                      through {stamp(evidence.through)}.
-                      {selected.kind === "session_standout"
-                        ? " This evidence ends at the latest milestone reached in this update; the summary can include later games in the same sitting."
-                        : ""}{" "}
-                      {evidence.open
-                        ? "The summarized sitting was still open at this read."
-                        : "The summarized sitting was closed at this read."}
-                    </p>
-                    <p>
-                      Capture completeness is unknown.{" "}
-                      {evidence.completeness === "anchor_bound"
-                        ? "The bounded search may omit the beginning of this sitting."
-                        : "These are the recorded games from the sitting’s observed beginning."}
-                    </p>
-                  </>
-                ) : (
+              <h2 className="text-lg">Recorded evidence</h2>
+              <p className="break-words">{selected.text}</p>
+              <button
+                className="btn btn--sm"
+                type="button"
+                onClick={closeEvidence}
+              >
+                Close evidence
+              </button>
+              {evidenceQuery.isFetching ? (
+                <p role="status">Reading recorded games…</p>
+              ) : null}
+              {evidenceQuery.isError ? (
+                <div role="alert">
                   <p>
-                    {evidence.status === "proved"
-                      ? "This recorded game proves the crossing."
-                      : "The change was observed, but its crossing game is unknown or unavailable."}
+                    This evidence is unavailable or changed. Refresh the
+                    timeline and open it again.
                   </p>
-                )}
-                <ol className="space-y-2" start={offset + 1}>
-                  {evidence.battles.map((b) => (
-                    <li key={b.battle_id}>
-                      <a href={b.url} target="_blank" rel="noopener noreferrer">
-                        {stamp(b.at)} · {b.mode_group ?? "Recorded"} ·{" "}
-                        {b.outcome ?? "Outcome unknown"} · Open recorded game
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-                <div className="flex flex-wrap gap-4">
-                  {offset > 0 ? (
-                    <button
-                      className="btn btn--sm"
-                      type="button"
-                      onClick={() => setOffset(Math.max(0, offset - 25))}
-                    >
-                      Previous games
-                    </button>
-                  ) : null}
-                  {evidence.next_offset !== null ? (
-                    <button
-                      className="btn btn--sm"
-                      type="button"
-                      onClick={() => setOffset(evidence.next_offset)}
-                    >
-                      Next games
-                    </button>
-                  ) : null}
+                  <button
+                    className="btn btn--sm"
+                    type="button"
+                    onClick={() => {
+                      closeEvidence();
+                      timelineQuery.refetch();
+                    }}
+                  >
+                    Refresh timeline
+                  </button>
                 </div>
-              </>
-            ) : null}
-          </section>
-        ) : null
+              ) : null}
+              {evidence ? (
+                <>
+                  <p>
+                    Observed {stamp(evidence.observed_at)}.
+                    {evidence.observed_at_basis === "legacy_window"
+                      ? " This is the legacy observation window; its proof attachment time was not recorded."
+                      : ""}
+                  </p>
+                  {evidence.kind === "session" ? (
+                    <>
+                      {typeof selected.facts?.battles === "number" ? (
+                        <p>
+                          The summary covers {selected.facts.battles}{" "}
+                          {noun(selected.facts.battles, "game")}
+                          {selected.facts.ended_at
+                            ? `, ending ${stamp(selected.facts.ended_at)}`
+                            : ""}
+                          .
+                        </p>
+                      ) : null}
+                      <p>
+                        {evidence.count} recorded games
+                        {evidence.from
+                          ? ` from ${stamp(evidence.from)}`
+                          : ""}{" "}
+                        through {stamp(evidence.through)}.
+                        {selected.kind === "session_standout"
+                          ? " This evidence ends at the latest milestone reached in this update; the summary can include later games in the same sitting."
+                          : ""}{" "}
+                        {evidence.open
+                          ? "The summarized sitting was still open at this read."
+                          : "The summarized sitting was closed at this read."}
+                      </p>
+                      <p>
+                        Capture completeness is unknown.{" "}
+                        {evidence.completeness === "anchor_bound"
+                          ? "The bounded search may omit the beginning of this sitting."
+                          : "These are the recorded games from the sitting’s observed beginning."}
+                      </p>
+                    </>
+                  ) : (
+                    <p>
+                      {evidence.status === "proved"
+                        ? "This recorded game proves the crossing."
+                        : "The change was observed, but its crossing game is unknown or unavailable."}
+                    </p>
+                  )}
+                  <ol className="space-y-2" start={offset + 1}>
+                    {evidence.battles.map((b) => (
+                      <li key={b.battle_id}>
+                        <a
+                          href={b.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {stamp(b.at)} · {b.mode_group ?? "Recorded"} ·{" "}
+                          {b.outcome ?? "Outcome unknown"} · Open recorded game
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                  <div className="flex flex-wrap gap-4">
+                    {offset > 0 ? (
+                      <button
+                        className="btn btn--sm"
+                        type="button"
+                        onClick={() => setOffset(Math.max(0, offset - 25))}
+                      >
+                        Previous games
+                      </button>
+                    ) : null}
+                    {evidence.next_offset !== null ? (
+                      <button
+                        className="btn btn--sm"
+                        type="button"
+                        onClick={() => setOffset(evidence.next_offset)}
+                      >
+                        Next games
+                      </button>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
+            </section>
+          ) : null}
+        </>
       }
       cols={[
         ["WHEN", "left"],

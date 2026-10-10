@@ -32,6 +32,11 @@ export const LAMBDAS = [
   { name: "migrate", entry: "services/migrate/src/lambda.mjs", db: true },
   { name: "jobs", entry: "services/jobs/src/index.mjs", db: true },
   { name: "collector", entry: "services/collector/src/index.mjs", db: true },
+  {
+    name: "timeline-sync",
+    entry: "services/timeline-sync/src/index.mjs",
+    db: true,
+  },
 ];
 
 /** The us-east-1 RDS root CAs (rsa2048, rsa4096 and ecc384 G1), from

@@ -71,3 +71,22 @@ test("Discord objects go to the Discord worker only; disabled transport refuses"
     { batchItemFailures: [{ itemIdentifier: "test" }] },
   );
 });
+
+test("timeline Discord objects go to their worker only; disabled transport refuses", async () => {
+  const seen = [];
+  const handler = makeHandler({
+    send: async () => assert.fail("not an email"),
+    readObject: async () => assert.fail("worker owns its reads"),
+    deleteObject: async () => assert.fail("no email deletion"),
+    discordObject: async () => assert.fail("not Clan's"),
+    timelineDiscordObject: async (object) => seen.push(object.key),
+  });
+  assert.deepEqual(await handler(notification("timeline-discord/test.json")), {
+    batchItemFailures: [],
+  });
+  assert.deepEqual(seen, ["timeline-discord/test.json"]);
+  const disabled = makeHandler({ send: async () => assert.fail("no send") });
+  assert.deepEqual(await disabled(notification("timeline-discord/test.json")), {
+    batchItemFailures: [{ itemIdentifier: "test" }],
+  });
+});

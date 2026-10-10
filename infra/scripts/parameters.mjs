@@ -22,6 +22,7 @@ export const REQUIRED_PARAMETERS = [
   "MigrateCodeKey",
   "JobsCodeKey",
   "CollectorCodeKey",
+  "TimelineSyncCodeKey",
 ];
 
 /**

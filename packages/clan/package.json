@@ -8,10 +8,11 @@
     "./*": "./src/*"
   },
   "dependencies": {
-    "@elixir-mcp/record": "0.1.0",
+    "@aws-sdk/client-s3": "^3.1146.0",
     "@elixir-mcp/clan-engine": "0.1.0",
     "@elixir-mcp/clan-state": "0.1.0",
-    "@aws-sdk/client-s3": "^3.1146.0"
+    "@elixir-mcp/contracts": "0.1.0",
+    "@elixir-mcp/record": "0.1.0"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs"

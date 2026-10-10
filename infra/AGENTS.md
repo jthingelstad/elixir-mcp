@@ -1,8 +1,8 @@
 # infra: the stack and the deploy
 
 One CloudFormation stack (`template.yaml`) in `us-east-1`, profile
-`cloud-engineer`. Seven Lambdas (collector, email-relay, jobs, mcp,
-migrate, scheduler, web-api), RDS PostgreSQL `db.t4g.micro` in a NAT-free
+`cloud-engineer`. Eight Lambdas (collector, email-relay, jobs, mcp,
+migrate, scheduler, timeline-sync, web-api), RDS PostgreSQL `db.t4g.micro` in a NAT-free
 VPC, S3 (payload archive, outbox, web), CloudFront in front of one origin.
 `docs/ENGINEERING.md` has the invariants; the `ship` skill has the loop.
 
@@ -15,8 +15,11 @@ VPC, S3 (payload archive, outbox, web), CloudFront in front of one origin.
   template.
 - **Network:** VPC Lambdas never call another Lambda. They hand work to the
   non-VPC email relay by writing one object to the outbox bucket (`email/`,
-  `clan-model/`) through the S3 gateway endpoint; S3 notifies SQS, which
-  holds retries and the dead-letter queue.
+  `clan-model/`, `clan-discord/`, `timeline-discord/`) through the S3
+  gateway endpoint; S3 notifies SQS, which holds retries and the
+  dead-letter queue. The timeline's Discord lines have a queue of their own
+  (batch 1), so a busy channel never delays sign-in mail. A collector
+  admission wakes the timeline sync the same way (`timeline-sync/`).
 - **Read budgets:** each function's `statement_timeout` (PGOPTIONS) sits
   just under its Lambda timeout. Migrate, jobs and scheduler run at
   reserved concurrency 1, so never run a backfill and a deploy together.
