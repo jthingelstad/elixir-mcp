@@ -174,7 +174,15 @@ export function principalsRoutes({ resolveAccount, logEvent }) {
         body.account_id,
         body.status,
       );
-      return result.ok ? json(200, result) : json(404, result);
+      if (result.ok) return json(200, result);
+      return json(
+        result.error === "not_found"
+          ? 404
+          : result.error === "quota_exceeded"
+            ? 409
+            : 400,
+        result,
+      );
     },
 
     // Out of view, never deleted (0215): only a suspended agent.

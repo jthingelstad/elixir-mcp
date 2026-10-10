@@ -9,8 +9,19 @@
  * gate ("a clan you have already added") as the general statement of the
  * same guarantee, and closes the gap that gate left: an owner who removed a
  * clan left their agents' copies recording against no slot.
+ *
+ * Only ACTIVE agents are in the pool (Jamie, 2026-10-10: "Only active ones
+ * should count against usage slots."). A suspended agent's subjects free
+ * their slots and stop being a reason to record (reconcileRecording), and
+ * resuming it is refused when it would take the pool past a ceiling.
  */
 import { roleQuotas } from "@elixir-mcp/contracts";
+
+/** The pool's accounts, for owner $1: the person and their active agents. */
+const POOL = `select account_id from account
+               where account_id = $1
+                  or (owned_by_account_id = $1 and kind = 'agent'
+                      and status = 'approved')`;
 
 /** The person whose slots an account spends: itself, or its owner. With
  *  what the ceiling needs: role, the per-account player override, and
@@ -52,10 +63,7 @@ export async function pooledUsage(
   { exceptPlayer = null, exceptClan = null } = {},
 ) {
   const { rows } = await db.query(
-    `with pool as (
-       select account_id from account
-        where account_id = $1
-           or (owned_by_account_id = $1 and kind = 'agent')),
+    `with pool as (${POOL}),
      clans as (
        select clan_tag,
               max(case when scope = 'comprehensive' then 2 else 1 end) as width
@@ -86,9 +94,7 @@ export async function pooledClanWidth(db, ownerId, clanTag, exceptAccount) {
     `select max(case when scope = 'comprehensive' then 2 else 1 end) as width
        from account_clan
       where clan_tag = $2 and account_id is distinct from $3
-        and account_id in (select account_id from account
-                            where account_id = $1
-                               or (owned_by_account_id = $1 and kind = 'agent'))`,
+        and account_id in (${POOL})`,
     [ownerId, clanTag, exceptAccount],
   );
   return rows[0]?.width ?? null;

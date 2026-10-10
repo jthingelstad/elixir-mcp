@@ -478,6 +478,10 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
             )}
             <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
               Suspend is reversible — the same key comes back. Revoke is not.
+              {/* Only active agents count against your slots (2026-10-10). */}
+              {suspended
+                ? " Suspended, its players and clans take none of your slots and record only if someone else tracks them; resuming needs the slots back."
+                : " Suspending frees the slots its players and clans take, and stops recording the ones only it tracks."}
               {suspended &&
                 (removed
                   ? " Removed: kept, out of view; Restore puts it back among your agents."

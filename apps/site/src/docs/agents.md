@@ -100,7 +100,11 @@ for you, with an agent's meaning. Its players are `watching`, never
 it tracks spends **your** recording slots: they are one pool across you and
 all your agents, a subject counts once however many of you track it, and a
 clan counts once at the widest scope any of you gives it. So making agents
-never adds slots.
+never adds slots. Only **active** agents are in the pool: a suspended
+agent's players and clans take none of your slots and are recorded only if
+you or someone else still tracks them, so the record has a gap for the
+ones only it tracks until you resume it. Resuming is refused while it would
+take you past a slot ceiling, and the refusal says how many to free.
 
 One of its clans is the clan it **acts for**, its default wherever
 `clan_tag` is omitted. It cannot remove that clan, or its last one; you can
@@ -243,7 +247,7 @@ Facts in, judgment in your code.
 |---|---|---|
 | Rotate | its console → Settings → Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
 | Revoke | its console → Settings → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready: it takes the name and scope of the most recent key, and is refused (`409 name_taken`) only if another of your live agents has taken that name since. |
-| Suspend / Resume | its console → Settings | `status: disabled`; the same key reads as invalid until resumed. Reversible. |
+| Suspend / Resume | its console → Settings | `status: disabled`; the same key reads as invalid until resumed. Its players and clans leave your slots and stop recording unless someone else tracks them. Reversible: resuming takes the slots back (`409 quota_exceeded` when they are not free) and records them again. |
 | Remove / Restore | a suspended agent's console → Settings | takes it out of the console's agent switcher and the Agents table into a folded **Removed agents** list on the Agents page. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own console. Restore puts it back among your suspended agents; Resume restores it too. |
 | Rename | its console → Settings | changes the name; must stay unique among your live agents |
 | Delete | – | there is no delete. Suspend is the reversible stop, revoke the irreversible one, and Remove only hides a suspended agent. |
