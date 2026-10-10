@@ -443,7 +443,7 @@ export function createHandler({
           return json(200, await social.setEnabled(tag, who, body.enabled));
       }
       if (social && method === "GET" && rest === "/map") {
-        const got = await loadRoster(ctx.session, ctx.gate, clan);
+        const got = await loadRoster(ctx.session, clan);
         if (got.response) return got.response;
         if (got.body.not_recorded)
           return json(200, { clan_tag: tag, not_recorded: true, entries: [] });

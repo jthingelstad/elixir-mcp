@@ -189,3 +189,67 @@ test("a leader turns the clan's social features off; a member cannot; the rail h
     200,
   );
 });
+
+test("a person in two clans sees each clan's own members on its map, never the other's", async () => {
+  const h = harness();
+  const OTHER = "#8PYLQG0";
+  const alt = player({
+    player_tag: "#9GQLV20",
+    name: "Ada alt",
+    relationship: "alt",
+    is_primary: false,
+    clan_tag: OTHER,
+    clan_role: "member",
+  });
+  const CY = player({
+    player_tag: "#2YQC",
+    name: "Cy",
+    clan_tag: OTHER,
+    clan_role: "member",
+  });
+  // The default roster (what the tool answers when no clan is named) is
+  // Ada's home clan; the other clan answers only when asked for by tag.
+  h.mcp.state.rosters = {
+    [OTHER]: {
+      ...rosterOf(alt, CY),
+      clan_tag: OTHER,
+      name: "Other Clan",
+    },
+  };
+  const ben = await as(h, BEN);
+  await ben("PUT", "/api/me/place", { country: "CA", region: "08" });
+  const cy = await as(h, CY);
+  await cy("PUT", "/api/me/place", { country: "US", region: "TX" });
+
+  h.mcp.state.players = [ADA, alt];
+  const { sessionCookie } = await signIn(h);
+  const ada = async (method, path, body) => {
+    const r = await h.handler(
+      req(method, path, {
+        cookies: cookieHeader(sessionCookie),
+        body: body === undefined ? undefined : JSON.stringify(body),
+      }),
+    );
+    return { status: r.statusCode, body: JSON.parse(r.body) };
+  };
+  // Ada's home clan has its map switched off; the other clan's stays on.
+  assert.equal(
+    (await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false })).status,
+    200,
+  );
+
+  const map = await ada("GET", "/api/clans/8PYLQG0/map");
+  assert.equal(map.status, 200, JSON.stringify(map.body));
+  assert.equal(map.body.clan_tag, OTHER);
+  assert.equal(map.body.members, 2);
+  assert.deepEqual(
+    map.body.entries.map((e) => e.player_tag),
+    [CY.player_tag],
+    "only the requested clan's members, with their places",
+  );
+  assert.equal(map.body.entries[0].place.region_name, "Texas");
+  const asked = h.mcp.calls.filter((c) => c[0] === "clans_roster").at(-1);
+  assert.equal(asked[2].clan_tag, OTHER, "the roster read names the clan");
+  // The home clan's map stays off for everyone.
+  assert.equal((await ada("GET", "/api/clans/2PQRJ8LV/map")).status, 409);
+});
