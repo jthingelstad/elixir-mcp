@@ -197,8 +197,10 @@ test("production lock: of many processes racing for it, exactly one gets it", as
 
 test("production lock: released when the holding process exits, by process.exit or by SIGTERM", async (t) => {
   const { file } = scratch(t);
+  let held = false;
   const run = (tail) =>
     new Promise((resolve) => {
+      held = false;
       const p = spawn(
         process.execPath,
         [
@@ -209,21 +211,27 @@ test("production lock: released when the holding process exits, by process.exit 
            if (!r.ok) process.exit(9);
            holdUntilExit({ file: ${JSON.stringify(file)}, lock: r.lock, log: () => {} });
            process.stdout.write("held\\n");
-           ${tail}`,
+           process.stdin.once("data", () => { ${tail} });`,
         ],
-        { stdio: ["ignore", "pipe", "ignore"] },
+        { stdio: ["pipe", "pipe", "ignore"] },
       );
-      p.stdout.on("data", () => {
-        assert.ok(existsSync(file));
+      // The child holds until the parent has seen the lock file, then
+      // runs its exit; checked any later, a fast exit has removed it.
+      p.stdout.once("data", () => {
+        held = existsSync(file);
         if (tail.includes("setInterval")) p.kill("SIGTERM");
+        else p.stdin.write("go\n");
       });
       p.on("close", (code, signal) => resolve({ code, signal }));
     });
   assert.equal((await run("process.exit(1);")).code, 1);
+  assert.ok(held);
   assert.equal(existsSync(file), false);
   assert.equal((await run("setInterval(() => {}, 1000);")).code, 143);
+  assert.ok(held);
   assert.equal(existsSync(file), false);
   assert.equal((await run("throw new Error('boom');")).code, 1);
+  assert.ok(held);
   assert.equal(existsSync(file), false);
 });
 
