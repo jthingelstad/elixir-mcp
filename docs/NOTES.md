@@ -1317,3 +1317,25 @@ sweep test holds, and a check that never answers quiet fails it.
 `elixir_data_insights` reads the snapshot count, both profile counts and
 the newest date in one scan; the badge count stays its own read.
 
+**Deployed** 2026-10-10, finished 11:31Z (06:31 CT), from 980e50f8 (PR
+#404) under the session lease, `--acceptance=elixir`: smoke green; 187
+cases, 1 failed, 12 skipped. The one failure was again
+`catalogue/elixir_data_insights#0`, now 4,597 ms (from 6,209). Its DB time
+is 512 ms (one scan, 367 ms cold; four scans took ~1.65 s), and the rest
+is the fresh Lambda. Alone: 4,507 ms (first call), then 1,806 and 790 ms.
+Verdict: fixed by 11.7.1; the residual was the post-deploy cold start.
+Lease released 11:32Z.
+
+**Live, the bots' editor kinds** (wake plus carry, 20 kinds), six
+5-minute windows 10:31-10:57Z through `{profile_tool}`: the check is
+13-15 ms warm (97 and 253 ms on the first, cold calls), and a skipped poll
+21-25 ms in the DB and 7 queries, against the full read's 252-283 ms and
+27 queries warm. Three of the six windows skipped. A window with any
+member battle answers yes, because a battle can make a `session_standout`
+or a `returned`, and those six windows held battles in half of them. So
+the bots' skip rate will be below the 96% of polls that served no item.
+Measure the agents' `elixir_timeline` calls with `{audit_census}` a day
+after they adopt `skip_empty`. If the yes-without-item rate matters, a
+tighter `clan_member_battles` (the standout rule and the return gap
+in SQL) is the next step. It must still never answer no wrongly.
+
