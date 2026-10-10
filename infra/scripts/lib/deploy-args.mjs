@@ -7,6 +7,9 @@
 
 export const DEPLOY_USAGE = `usage: AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs [flags]
 
+  Takes the production lock after the CI gate and holds it to the end;
+  refuses while another holder has it (lib/production-lock.mjs).
+
   (no flags)             update the production stack
   --create               first deploy (GATED)
   --skip-web             code and infrastructure only; no site sync
