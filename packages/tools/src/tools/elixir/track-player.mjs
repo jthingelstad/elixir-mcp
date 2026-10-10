@@ -112,7 +112,7 @@ export const elixir_track_player = {
     // tag the game does not have is known in minutes, not at the next
     // scheduled poll, and the primary player's clan with it.
     const first = r.added
-      ? await requestFirstRead(ctx.db, ctx.live, tag)
+      ? await requestFirstRead(ctx.db, ctx.live, tag, ctx.account.accountId)
       : { requested: false };
     return {
       player_tag: tag,

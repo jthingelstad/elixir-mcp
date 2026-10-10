@@ -43,6 +43,7 @@ import {
   refundLiveToken,
   recordOpenJob,
 } from "@elixir-mcp/ledger";
+import { poolLimits, poolOwner } from "@elixir-mcp/claims";
 
 /** The API's cache-control max-age per endpoint, in seconds. */
 const MAX_AGE_S = {
@@ -195,21 +196,28 @@ export function makeLive({
   };
 }
 
+/** A pool's first reads for the day are spent (spendFirstRead). */
+class FirstReadsSpent extends Error {}
+
 /**
  * The first read of a newly added player (2026-10-08). Adding a tag asks
  * for one live read of its profile, as Verify asks for one: charged to
- * nobody (no per-account quota), from the one global bucket. Within
- * minutes the record knows whether the game has this tag at all (a 404
- * is "Player not found", cr-agent-api-docs players.md) and which clan
- * the player is in, which is what follows the primary player's clan.
+ * nobody's live quota, from the one global bucket. Within minutes the
+ * record knows whether the game has this tag at all (a 404 is "Player
+ * not found", cr-agent-api-docs players.md) and which clan the player is
+ * in, which is what follows the primary player's clan.
  * Bounded: nothing when the record has a profile of this tag, or a
  * failed fetch of it, from the last day, and liveFetch never queues a
- * second job for a subject that has one open. Never throws: the add has
- * already happened, and the scheduler's first read comes anyway.
+ * second job for a subject that has one open. And per person: a pool (a
+ * person and their agents) mints at most one first read per player slot
+ * per UTC day (FIRST_READS bucket), so adding, removing and re-adding
+ * fresh tags cannot drain the global bucket (#371 review). Past that the
+ * add still happens and the scheduler's first read comes as for any new
+ * recording. Never throws: the add has already happened.
  * Returns {requested, reason}, and not_found when the last day's failed
  * fetch was a 404.
  */
-export async function requestFirstRead(db, live, tag) {
+export async function requestFirstRead(db, live, tag, accountId) {
   try {
     const {
       rows: [seen],
@@ -231,16 +239,48 @@ export async function requestFirstRead(db, live, tag) {
         not_found: seen.failed_status === 404,
       };
     if (!live) return { requested: false, reason: "no_live_lane" };
-    const r = await live(db, { endpoint: "player", entityKey: tag });
+    if (!accountId) return { requested: false, reason: "no_account" };
+    const r = await live(db, {
+      endpoint: "player",
+      entityKey: tag,
+      // Spent only when a job is minted: a fresh read or an open job
+      // costs the pool nothing. Throwing here gives the token back.
+      beforeMint: async () => {
+        if (!(await spendFirstRead(db, accountId))) throw new FirstReadsSpent();
+      },
+    });
     if (r.ok) return { requested: false, reason: "fresh" };
     return {
       requested: r.reason === "pending" && r.queued !== false,
       reason: r.reason,
     };
   } catch (err) {
+    if (err instanceof FirstReadsSpent)
+      return { requested: false, reason: "first_reads_spent" };
     console.error("first_read_failed", tag, err?.message);
     return { requested: false, reason: "error" };
   }
+}
+
+/** The day's first reads, per pool: `firstread#<owner>` in rate_limit,
+ *  windowed by UTC date like `liveday#`. */
+const FIRST_READS = "firstread#";
+
+/** Take one of the pool's first reads for today: true while the count
+ *  is within its player slots (an exempt pool is never counted). */
+async function spendFirstRead(db, accountId) {
+  const owner = await poolOwner(db, accountId);
+  if (!owner) return false;
+  const max = poolLimits(owner).player_slots;
+  if (max === Infinity) return true;
+  const day = new Date().toISOString().slice(0, 10);
+  const { rows } = await db.query(
+    `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 1)
+     on conflict (bucket, window_start) do update set count = rate_limit.count + 1
+     returning count`,
+    [`${FIRST_READS}${owner.account_id}`, day],
+  );
+  return rows[0].count <= max;
 }
 
 /** Allowlisted live paths -> (endpoint, entity key). Mirrors live_fetch. */

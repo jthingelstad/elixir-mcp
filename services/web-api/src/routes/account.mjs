@@ -134,7 +134,7 @@ export function accountRoutes({
     if (!r.ok) return json(404, { error: "not_found" });
     // claims logs recording_started; logging it here too wrote it twice.
     const first = r.added
-      ? await requestFirstRead(db, liveRead, tag)
+      ? await requestFirstRead(db, liveRead, tag, account.accountId)
       : { requested: false };
     return json(200, {
       ok: true,

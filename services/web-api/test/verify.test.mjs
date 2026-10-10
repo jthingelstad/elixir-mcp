@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
+import { removePlayer } from "@elixir-mcp/claims";
 import { makeHandler } from "../src/handler.mjs";
 import {
   verifyRoutes,
@@ -709,10 +710,15 @@ test("a tag's verification reads are capped per day across re-opened challenges 
   const one = await start(mine);
   assert.equal(one.live_capped, false);
   assert.equal(asks, 1);
+  // The reads are counted in the tag's own ledger, not on the challenge.
+  await db.query(`update rate_limit set count = $2 where bucket = $1`, [
+    `verify-read#${CAP_TAG}`,
+    LIVE_READS_PER_TAG_PER_DAY - 1,
+  ]);
   await db.query(
-    `update claim_challenge set live_reads = $2, expires_at = now() - interval '1 minute'
+    `update claim_challenge set expires_at = now() - interval '1 minute'
       where challenge_id = $1`,
-    [one.challenge_id, LIVE_READS_PER_TAG_PER_DAY - 1],
+    [one.challenge_id],
   );
   assert.equal((await poll(mine, one.challenge_id)).state, "expired");
 
@@ -734,15 +740,78 @@ test("a tag's verification reads are capped per day across re-opened challenges 
 
   // A day later the reads are back.
   await db.query(
-    `update claim_challenge set created_at = created_at - interval '25 hours'
-      where player_tag = $1 and challenge_id <> $2`,
-    [CAP_TAG, two.challenge_id],
-  );
-  await db.query(
-    `update claim_challenge set live_reads = 0 where challenge_id = $1`,
-    [two.challenge_id],
+    `update rate_limit set window_start = window_start - interval '25 hours'
+      where bucket = $1`,
+    [`verify-read#${CAP_TAG}`],
   );
   const fresh = await poll(mine, two.challenge_id);
   assert.equal(fresh.live_capped, false);
   assert.equal(asks, 3);
+});
+
+test("removing and re-adding the player does not give a tag its verification reads back (#136 review)", async () => {
+  const CYCLE_TAG = "#2YVPC0GL";
+  await seedCollection(CYCLE_TAG);
+  const accountId = (
+    await db.query(
+      "insert into account(email_hash,status,role) values ('verify-cycle','approved','member') returning account_id",
+    )
+  ).rows[0].account_id;
+  const claimIt = () =>
+    db.query(
+      `insert into claim (account_id, player_tag, status, is_primary, relationship)
+       values ($1, $2, 'unverified', true, 'primary')`,
+      [accountId, CYCLE_TAG],
+    );
+  await claimIt();
+  let asks = 0;
+  const routes = verifyRoutes({
+    resolveAccount: async () => ({ accountId, role: "member", kind: "person" }),
+    logEvent: async () => {},
+    live: async () => {
+      asks += 1;
+      return { ok: false, reason: "pending", job_id: 500 + asks };
+    },
+  });
+  const start = async () =>
+    data(
+      await routes["POST /api/me/verify"](db, {}, { player_tag: CYCLE_TAG }),
+    );
+  const poll = async (id) => {
+    await db.query(
+      `update claim_challenge set live_requested_at = now() - interval '1 minute'
+        where challenge_id = $1`,
+      [id],
+    );
+    return data(await routes["GET /api/me/verify/*"](db, { pathParam: id }));
+  };
+
+  // Watched until the day's reads are spent, the way the wizard spends them.
+  const one = await start();
+  let polled = await poll(one.challenge_id);
+  while (!polled.live_capped) polled = await poll(one.challenge_id);
+  assert.equal(asks, LIVE_READS_PER_TAG_PER_DAY);
+
+  // Removing the player deletes its challenges (0080, on delete cascade).
+  const removed = await removePlayer(
+    db,
+    { accountId },
+    { tag: CYCLE_TAG, via: "web" },
+  );
+  assert.equal(removed.removed, true);
+  const { rows: left } = await db.query(
+    `select count(*)::int as n from claim_challenge where player_tag = $1`,
+    [CYCLE_TAG],
+  );
+  assert.equal(left[0].n, 0);
+
+  // Added back: the tag's day is still spent, and nothing is read.
+  await claimIt();
+  const two = await start();
+  assert.equal(two.state, "open");
+  assert.equal(two.live_capped, true);
+  assert.equal(asks, LIVE_READS_PER_TAG_PER_DAY, "the restart reads nothing");
+  const again = await poll(two.challenge_id);
+  assert.equal(again.live_capped, true);
+  assert.equal(asks, LIVE_READS_PER_TAG_PER_DAY, "and neither does its poll");
 });
