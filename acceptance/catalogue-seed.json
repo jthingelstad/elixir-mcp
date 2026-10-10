@@ -62,5 +62,13 @@
       },
       "reason": "a full collection under the result cap (the owner's is not: filed)"
     }
+  ],
+  "cards_catalog": [
+    {
+      "args": {
+        "ids": [159000000, 159000004, 29000000]
+      },
+      "reason": "tower_troops[] rows (type tower_troop) the notes name; usage this week may read only standard cards"
+    }
   ]
 }

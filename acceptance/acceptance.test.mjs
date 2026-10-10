@@ -15,7 +15,7 @@ import { shapeCatalogue } from "./catalogue.mjs";
 import { identities } from "./checks/identities.mjs";
 import { noteTokens, notesNameFields, deepKeys } from "./lib.mjs";
 import { runSuite, SUITES } from "./run.mjs";
-import { buildCatalogueCases } from "./checks/catalogue.mjs";
+import { buildCatalogueCases, ceilingMs } from "./checks/catalogue.mjs";
 import { contracts } from "./checks/contracts.mjs";
 
 const evidenceContract = contracts.find(
@@ -82,6 +82,32 @@ test("evidence acceptance refreshes a capture race once, but fails other refusal
       }),
     /refused bad_request/,
   );
+});
+
+test("catalogue ceilings: a seeded set is unmeasured, a thin sample gets twice the margin", async () => {
+  assert.equal(ceilingMs(2348, 30), 4_022);
+  assert.equal(ceilingMs(2348, 1), 7_544);
+  assert.equal(ceilingMs(171, 1), 4_000);
+  assert.equal(ceilingMs(null), 15_000);
+  const cases = buildCatalogueCases({
+    tools: {
+      example_tool: {
+        calls: 1,
+        p95_ms: 171,
+        sets: [{ args: { heavy: true }, calls: 0, seed: "a heavier shape" }],
+      },
+    },
+  });
+  const ctx = {
+    tools: new Map([
+      [
+        "example_tool",
+        { inputSchema: { properties: {} }, outputSchema: { type: "object" } },
+      ],
+    ]),
+    read: async () => ({ body: {}, ms: 9_500 }),
+  };
+  await cases.find((x) => x.id === "example_tool#0").run(ctx);
 });
 
 test("docs audit distinguishes conditional output vocabulary from unserved fields", async () => {

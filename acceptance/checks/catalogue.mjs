@@ -42,11 +42,13 @@ const ALLOW = JSON.parse(
 const allowFor = (tool) => Object.keys({ ...ALLOW["*"], ...ALLOW[tool] });
 
 /** Ceiling from the week's p95: 1.5x plus the door's own overhead, never
- *  under 2 s (a fast tool's jitter is not a regression), never over
- *  15 s (three under the 18 s budget is the whole point). */
-export function ceilingMs(p95) {
+ *  under 4 s (a fast tool's jitter is not a regression), never over
+ *  15 s (three under the 18 s budget is the whole point). One or two
+ *  calls are a sample, not a p95, so they get twice the margin. */
+export function ceilingMs(p95, calls) {
   if (!Number.isInteger(p95)) return 15_000;
-  return Math.min(15_000, Math.max(4_000, Math.round(p95 * 1.5) + 500));
+  const factor = Number.isInteger(calls) && calls < 3 ? 3 : 1.5;
+  return Math.min(15_000, Math.max(4_000, Math.round(p95 * factor) + 500));
 }
 
 const IDENT = /`([a-z][a-z0-9]*(?:_[a-z0-9]+)+)`/g;
@@ -149,7 +151,12 @@ export function buildCatalogueCases(catalogue = loadCatalogue()) {
               `recorded shape: ${shape.missing.join(", ")} missing (baseline shapes/${tool}.json)`,
             );
           }
-          const ceiling = ceilingMs(entry.p95_ms);
+          // A seeded set was not called this week: the tool's p95 is
+          // another set's, often a far lighter one (2026-10-10:
+          // cards_card's clan segment against a player's 171 ms).
+          const ceiling = set.seed
+            ? ceilingMs(null)
+            : ceilingMs(entry.p95_ms, entry.calls);
           ok(
             r.ms <= ceiling,
             `${r.ms} ms over the ceiling ${ceiling} (p95 this week ${entry.p95_ms})`,

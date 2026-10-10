@@ -251,6 +251,13 @@
             "ids": [26000042, 26000085]
           },
           "calls": 2
+        },
+        {
+          "args": {
+            "ids": [159000000, 159000004, 29000000]
+          },
+          "calls": 0,
+          "seed": "tower_troops[] rows (type tower_troop) the notes name; usage this week may read only standard cards"
         }
       ]
     },
@@ -598,7 +605,7 @@
         },
         {
           "args": {
-            "query": "Kun⚡"
+            "query": "Kun\u26a1"
           },
           "calls": 1
         }
