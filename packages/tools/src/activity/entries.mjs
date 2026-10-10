@@ -2602,14 +2602,20 @@ export async function timelineNews(
     `${col} >= ${ts(fromMs + 1)} and ${col} < ${ts(toMs + 1)}`;
   // A battle `r` days before the window with none after it until the rung
   // (presenceOf and the clan's battle gaps: a crossing at battle + r in
-  // (from, to] whose gap is still open there).
+  // (from, to] whose gap is still open there). Lateral per tag and rung,
+  // so each is a range on battle_participant_player_time_cover: joined
+  // to the tag set with the rung's bounds, the planner scanned the whole
+  // table (512 ms of a 526 ms check, live on 2026-10-10).
   const quietSql = (tagsSql) =>
-    `exists (select 1 from unnest(array[${QUIET_RUNGS_DAYS.join(", ")}]) as r(days)
-       join battle_participant bp on bp.player_tag in (${tagsSql})
-        and bp.battle_time > ${ts(fromMs)} - make_interval(days => r.days)
-        and bp.battle_time <= ${ts(toMs)} - make_interval(days => r.days)
+    `exists (select 1 from (${tagsSql}) as t(player_tag)
+       cross join unnest(array[${QUIET_RUNGS_DAYS.join(", ")}]) as r(days)
+       cross join lateral (
+         select bp.battle_time from battle_participant bp
+          where bp.player_tag = t.player_tag
+            and bp.battle_time > ${ts(fromMs)} - make_interval(days => r.days)
+            and bp.battle_time <= ${ts(toMs)} - make_interval(days => r.days)) bp
       where not exists (select 1 from battle_participant nx
-                         where nx.player_tag = bp.player_tag
+                         where nx.player_tag = t.player_tag
                            and nx.battle_time > bp.battle_time
                            and nx.battle_time <= bp.battle_time + make_interval(days => r.days)))`;
   const members = (tagsParam, extra = "") =>

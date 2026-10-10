@@ -1285,3 +1285,35 @@ alone. Disabling each source in turn fails that assertion for all ten.
 On the scratch database an empty poll was 9 queries against a full
 read's 51.
 
+**Deployed** 2026-10-10 about 11:03-11:12Z (06:03-06:12 CT), platform
+lane, from 86806590 under the session lease, `--acceptance=elixir`: smoke
+green; 187 cases, 1 failed, 12 skipped. Live: `tools.json` serves 11.7.0
+with `skip_empty`; `elixir_changelog` since 11.6.1 answers the entry.
+
+- **FAIL `catalogue/elixir_data_insights#0`**, 6,209 ms against a 4,022
+  ceiling (the week's one call, 2,348 ms); 5,644 ms alone, so not a
+  flake. `{profile_tool}`: four sequential scans of
+  `player_snapshot_daily`, whose heap is 8,926 pages (73 MB) for 12,186
+  live rows after the 2026-10-07 purge (443,521 deleted), read cold.
+  Verdict: fix forward, 11.7.1 reads it once. The heap itself only
+  shrinks with a rewrite, which `{rewrite_table}` does not offer for this
+  table and is Jamie's window if wanted.
+
+**Live measurement** (`{profile_tool}`, acceptance principal, reads
+only). An empty roster-kinds window: skip_empty 7 queries, 8-27 ms in
+the DB (25-60 ms total) against the full read's 27 queries, 262 ms (520
+ms total). With the bots' editor kinds, six 5-minute windows 10:14-10:44Z
+skipped four, but the check itself cost ~530 ms: `quiet_crossed` asked
+the quiet-rung column, which joined the tag set to `battle_participant`
+with the rung's bounds and the planner scanned all of it (512 ms of 526,
+temp spilled). Every other source took milliseconds.
+
+## 2026-10-10 — 11.7.1: the quiet check and the corpus count read less
+
+The quiet-rung check goes lateral per tag and rung, so each pair is a
+range on `battle_participant_player_time_cover` (player_tag, battle_time
+desc); semantics exact, no limit, since a window may span 30 days. The
+sweep test holds, and a check that never answers quiet fails it.
+`elixir_data_insights` reads the snapshot count, both profile counts and
+the newest date in one scan; the badge count stays its own read.
+

@@ -17,7 +17,17 @@ export const elixir_data_insights = {
       q(
         `select count(*)::int as n, min(battle_time) as first, max(battle_time) as last from battle`,
       ),
-      q(`select count(*)::int as n from player_snapshot_daily`),
+      // The snapshot table is read once: its heap is far larger than its
+      // rows after the 2026-10-07 purge, and four scans of it put the
+      // cold call over its acceptance ceiling (6.2 s, 2026-10-10).
+      q(`select count(*)::int as n,
+                count(distinct player_tag) filter (
+                  where profile_observed_at is not null)::int as with_snapshot,
+                count(distinct player_tag) filter (
+                  where profile_observed_at is not null
+                    and snapshot_date >= current_date - 7)::int as with_snapshot_last_7_days,
+                max(snapshot_date)::text as newest_snapshot
+           from player_snapshot_daily`),
       q(`select count(*)::int as n from war_week`),
       // Recorded players along the axis a corpus-sizing question needs
       // (feedback #18).
@@ -45,16 +55,13 @@ export const elixir_data_insights = {
                      where subject_type = 'clan' and status = 'active'
                        and scope = 'comprehensive')::int as clans_comprehensive`),
       q(`select count(*)::int as n from api_receipt`),
-      // Players with a PROFILE snapshot: since 0127 the roster writes
-      // rows for every member of every polled clan, so the count reads
-      // profile_observed_at (Phase 3 verification, 2026-09-18).
-      q(`select (select count(distinct player_tag) from player_snapshot_daily
-                     where profile_observed_at is not null)::int as with_snapshot,
-                    (select count(distinct player_tag) from player_badge)::int as with_badges,
-                    (select count(distinct player_tag) from player_snapshot_daily
-                     where profile_observed_at is not null
-                       and snapshot_date >= current_date - 7)::int as with_snapshot_last_7_days,
-                    (select max(snapshot_date)::text from player_snapshot_daily) as newest_snapshot`),
+      // Players with a PROFILE snapshot (read with the snapshot count
+      // above): since 0127 the roster writes rows for every member of
+      // every polled clan, so it counts profile_observed_at (Phase 3
+      // verification, 2026-09-18).
+      q(
+        `select count(distinct player_tag)::int as with_badges from player_badge`,
+      ),
       async () =>
         (
           await ctx.db.query(
@@ -69,8 +76,9 @@ export const elixir_data_insights = {
         ).rows,
     ])
       counts.push(await step());
-    const [players, battles, snaps, weeks, recs, receipts, profiles, clans] =
+    const [players, battles, snaps, weeks, recs, receipts, badges, clans] =
       counts;
+    const profiles = { ...snaps, with_badges: badges.with_badges };
     return {
       players_observed: players.n,
       battles: {
