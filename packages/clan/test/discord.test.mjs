@@ -182,11 +182,13 @@ test("a redelivered request posts once, and the payloads in the outbox are seale
   const sent = await w.bridge.send({
     method: "post",
     url: HOOK,
-    content: "hi",
+    // Spaces and punctuation never occur in base64, so the sealed box
+    // cannot contain it by chance (a bare "hi" sometimes did).
+    content: "A sealed line, hi!",
   });
   assert.ok(sent.ok);
   const text = w.storage.objects.get(discordRequestKey(sent.id));
-  assert.ok(!text.includes(TOKEN) && !text.includes("hi"));
+  assert.ok(!text.includes(TOKEN) && !text.includes("A sealed line, hi!"));
   await w.worker(discordRequestKey(sent.id));
   await w.worker(discordRequestKey(sent.id));
   assert.equal(w.discord.calls.length, 1);
