@@ -245,9 +245,10 @@ carries `item_id`, the item's evidence fields, `offset`, `limit`, and
 A read that cannot be served is refused as `bad_request`, and the message
 names why: `evidence_changed` (refresh the item before continuing),
 `version_required` (a later page without `expected_evidence_version`),
-`evidence_unavailable` (the item is not visible in that window, or carries
-no evidence) or `invalid_page`. Evidence reads always keep the read pointer,
-including when `mark_read` is omitted.
+or `evidence_unavailable` (the item is not visible in that window, or
+carries no evidence). An `evidence_offset` or `evidence_limit` out of range
+is refused by argument validation, as any argument is. Evidence reads always
+keep the read pointer, including when `mark_read` is omitted.
 Paging constituent games does not change the newsfeed's cap or ordering.
 The membership fingerprint and page share one database snapshot; concurrent
 capture asks for a refresh instead of silently shifting game offsets.

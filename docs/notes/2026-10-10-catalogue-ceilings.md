@@ -1,4 +1,4 @@
-# Catalogue ceilings: seeded sets and thin samples
+# 2026-10-10 — Catalogue ceilings for seeded sets and thin samples
 
 The full acceptance run after the 2026-10-10 deploy failed three catalogue
 cases. The shipped code did not cause them; this morning's catalogue refresh
@@ -13,3 +13,9 @@ cases. The shipped code did not cause them; this morning's catalogue refresh
   ceiling now has twice the margin (3x instead of 1.5x).
 - `cards_catalog#notes`: this week's reads asked only for standard cards, so no
   response carried the `tower_troop` its notes name. A seed now reads tower troops.
+
+The timeline docs audit (#469) was settled the same day: three refusal
+reasons an MCP caller can meet are allowed and pinned by a unit test.
+`invalid_page` was not among them. An out-of-range `evidence_offset` or
+`evidence_limit` is refused by the tool's argument validation, so
+`docs/timeline` no longer names it.
