@@ -8,6 +8,8 @@ import {
   timelineDiscordStateKey,
   timelineDiscordStatusKey,
   outboxKey,
+  isClanDiscordKind,
+  TIMELINE_DISCORD_KINDS,
 } from "../dist/index.js";
 
 const ID = "123456789012345678";
@@ -82,6 +84,26 @@ test("a timeline Discord message is validated before the relay acts on it", () =
       ],
     }).ok,
     true,
+  );
+  // A clan's activity channel (2026-10-10): its own kinds, which the
+  // relay opens with the clan's seal; any other kind is refused.
+  assert.equal(
+    validateTimelineDiscordMessage({ ...ok, kind: "clan_activity" }).ok,
+    true,
+  );
+  assert.deepEqual(TIMELINE_DISCORD_KINDS, [
+    "timeline",
+    "hello",
+    "clan_activity",
+    "clan_hello",
+  ]);
+  assert.deepEqual(TIMELINE_DISCORD_KINDS.filter(isClanDiscordKind), [
+    "clan_activity",
+    "clan_hello",
+  ]);
+  assert.deepEqual(
+    validateTimelineDiscordMessage({ ...ok, kind: "clan" }).errors,
+    ["kind:invalid"],
   );
   // The webhook travels sealed; a bare address is refused.
   const bad = validateTimelineDiscordMessage({

@@ -73,15 +73,31 @@ export interface TimelineDiscordPost {
 }
 
 /** The object the sync (or a save's test line) writes to the outbox's
- *  timeline-discord/ lane. */
+ *  timeline-discord/ lane: an account's timeline (`timeline`, `hello`),
+ *  or a clan's activity in its own channel (`clan_activity`,
+ *  `clan_hello`; Clan Settings, Social, 2026-10-10). */
 export interface TimelineDiscordMessage {
   v: 1;
-  kind: "timeline" | "hello";
+  kind: TimelineDiscordKind;
+  /** The account, or for a clan's kinds its channel's id: the id the
+   *  webhook is sealed to and the relay files its records under. */
   account_id: string;
-  /** The webhook, sealed and bound to the account. */
+  /** The webhook, sealed and bound to the account (or channel). */
   webhook: SealedBox;
   posts: TimelineDiscordPost[];
 }
+
+export const TIMELINE_DISCORD_KINDS = [
+  "timeline",
+  "hello",
+  "clan_activity",
+  "clan_hello",
+] as const;
+export type TimelineDiscordKind = (typeof TIMELINE_DISCORD_KINDS)[number];
+
+/** A clan's channel, whose webhook is sealed under the clan's purpose. */
+export const isClanDiscordKind = (kind: string): boolean =>
+  kind === "clan_activity" || kind === "clan_hello";
 
 const POST_KEY = /^(?:tl_[a-f0-9]{20}|hello-[a-f0-9-]{36})$/;
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
@@ -106,7 +122,8 @@ export function validateTimelineDiscordMessage(
     return { ok: false, errors: [":not-an-object"] };
   const errors: string[] = [];
   if (m.v !== 1) errors.push("v:unsupported");
-  if (m.kind !== "timeline" && m.kind !== "hello") errors.push("kind:invalid");
+  if (!(TIMELINE_DISCORD_KINDS as readonly string[]).includes(m.kind))
+    errors.push("kind:invalid");
   if (typeof m.account_id !== "string" || !UUID.test(m.account_id))
     errors.push("account_id:invalid");
   if (!sealed(m.webhook)) errors.push("webhook:invalid");

@@ -1,7 +1,7 @@
 {
   "name": "@elixir-mcp/timeline-sync",
   "version": "0.1.0",
-  "description": "The VPC Lambda that brings a cross-posted timeline up to date: S3 notifies its queue for each wake an admission writes to the outbox, and it writes the account's new and grown lines to the outbox's timeline-discord/ lane.",
+  "description": "The VPC Lambda that brings a cross-posted timeline, or a clan's activity channel, up to date: S3 notifies its queue for each wake written to the outbox, and it writes the new and grown lines to the outbox's timeline-discord/ lane.",
   "type": "module",
   "main": "src/index.mjs",
   "scripts": {
@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",
+    "@elixir-mcp/clan": "0.1.0",
+    "@elixir-mcp/clan-state": "0.1.0",
     "@elixir-mcp/contracts": "0.1.0",
     "@elixir-mcp/outbox": "0.1.0",
     "@elixir-mcp/syndication": "0.1.0",

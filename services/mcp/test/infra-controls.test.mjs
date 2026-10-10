@@ -789,7 +789,10 @@ test("Clan always uses the shared account door and never falls back to the retir
 // The jobs Lambda joined on 2026-10-10: the morning run posts a clan's
 // Actions to its Discord, through a webhook sealed under this secret. It
 // already holds the session secret, so no stronger key came with it.
-test("the private sealing secret is limited to the web API, the morning run and the egress relay", async () => {
+// The timeline sync joined the same day: a clan's activity rewritten by
+// the clan's own model goes through Clan's model bridge, whose request
+// it seals. It holds the database password already, and logs no key.
+test("the private sealing secret is limited to the web API, the morning run, the timeline sync and the egress relay", async () => {
   const template = await readFile(templateUrl, "utf8");
   const functions = [...template.matchAll(/^  (\w+Function):\n/gm)];
   const consumers = functions
@@ -801,15 +804,16 @@ test("the private sealing secret is limited to the web API, the morning run and 
   assert.deepEqual(consumers, [
     "WebApiFunction",
     "EmailRelayFunction",
+    "TimelineSyncFunction",
     "JobsFunction",
   ]);
-  assert.equal((template.match(/CLAN_MODEL_SECRET:/g) ?? []).length, 3);
+  assert.equal((template.match(/CLAN_MODEL_SECRET:/g) ?? []).length, 4);
   assert.equal(
     (
       template.match(/\$\{AppSecretName\}:SecretString:clan_sealing_secret/g) ??
       []
     ).length,
-    3,
+    4,
   );
 });
 

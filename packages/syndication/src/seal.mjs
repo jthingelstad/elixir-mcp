@@ -6,10 +6,14 @@
 
 /** The derivation purpose, distinct from every Clan box's. */
 export const WEBHOOK_PURPOSE = "timeline discord webhook v1";
+/** A clan's activity channel (Clan Settings, Social): its own purpose,
+ *  so neither kind of box opens as the other. */
+export const CLAN_ACTIVITY_PURPOSE = "clan activity webhook v1";
 
-/** Bound to the account: a box copied onto another account opens to
- *  nothing. */
+/** Bound to the account (or a clan's channel): a box copied onto
+ *  another opens to nothing. */
 const aad = (accountId) => `timeline-discord|${accountId}`;
+const clanAad = (channelId) => `clan-activity|${channelId}`;
 
 /**
  * @param {{ seal: (plain: string, aad: string) => object,
@@ -19,5 +23,13 @@ export function webhookSeal(box) {
   return {
     seal: (url, accountId) => box.seal(url, aad(accountId)),
     open: (sealed, accountId) => box.open(sealed, aad(accountId)),
+  };
+}
+
+/** A clan's activity webhook, bound to its channel id. */
+export function clanActivitySeal(box) {
+  return {
+    seal: (url, channelId) => box.seal(url, clanAad(channelId)),
+    open: (sealed, channelId) => box.open(sealed, clanAad(channelId)),
   };
 }

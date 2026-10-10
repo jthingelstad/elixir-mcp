@@ -38,6 +38,7 @@ export const keys = {
   map: (tag) => ["me", "clan", "record", tag, "map"],
   social: (tag) => ["me", "clan", "record", tag, "social"],
   discord: (tag) => ["me", "clan", "record", tag, "discord"],
+  activityDiscord: (tag) => ["me", "clan", "record", tag, "activity-discord"],
   standing: (tag) => ["me", "clan", "record", tag, "standing"],
   trophies: (tag) => ["me", "clan", "record", tag, "trophies"],
   actions: (tag) => ["me", "clan", "record", tag, "actions"],
@@ -154,6 +155,11 @@ export const useModel = (tag) =>
  *  whom (never the webhook itself). */
 export const useDiscord = (tag) =>
   useGated(keys.discord(tag), () => manageApi.discord(tag));
+
+/** The clan's activity in its own Discord channel: the connection (never
+ *  the webhook), the policy's word on each category, the clan's key. */
+export const useActivityDiscord = (tag) =>
+  useGated(keys.activityDiscord(tag), () => manageApi.activityDiscord(tag));
 
 /** What the clan records in Elixir, and who sees it there (read-only). */
 export const useSharing = (tag) =>

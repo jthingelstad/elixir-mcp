@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-10",
+    title: "Elixir Clan posts the clan's activity to Discord",
+    body: "A clan's leaders can now post its activity to a Discord channel of its own, from Elixir Clan's Settings, under Social. Connect a webhook (not the one Actions go to) and the clan's timeline is posted there as it happens, as members read it: who joins and departs and role changes, members' milestones, and the Clan Wars week, each a line with a link back to Elixir that draws no preview. The clan's policy sets which are on: war posts only for a clan that takes part, and nothing without a policy. A leader can switch each one. A departure says the member departed, and when a leader says it was a kick or a leave, that message is edited to say so. With the clan's own model key, a leader can have each line rewritten in a voice the leaders describe; those lines are posted unread, so one that changes a name, adds a number or runs long keeps Elixir's own words, at most 50 a day and within the clan's monthly cap. Nothing earlier than the connection is posted and nothing pings anyone. A leader's word in Elixir Clan now also wakes timeline cross-posts at once. MCP 11.7.2 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-10",
     title:
       "Elixir Clan's model: new models, about what it costs, and a monthly cap",
     body: "The clan's model list in Settings was meant to refresh itself about once a day, and it never did: each refresh stopped before it asked Anthropic. It now works, so a key added before Claude Haiku 5.5 and Claude Sonnet 5.5 offers them the next time a leader opens Settings, and the chosen model still never changes by itself. Settings also shows about what each use and the month cost, from the tokens at Anthropic's list prices. The leader or a co-leader can set a monthly cap in dollars: once the month's estimate reaches it, the model drafts nothing more until the cap is raised or removed or the month turns. MCP 11.7.1 and JSON API 3.1.0 unchanged.",

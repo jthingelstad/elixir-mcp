@@ -129,6 +129,12 @@ export const manageApi = {
   discord: (tag) => get(`${clanBase(tag)}/discord`),
   setDiscord: (tag, url) => put(`${clanBase(tag)}/discord`, { url }),
   removeDiscord: (tag) => del(`${clanBase(tag)}/discord`),
+  // The clan's activity in its own Discord channel (2026-10-10): a
+  // separate webhook, the categories, the rewrite and its voice.
+  activityDiscord: (tag) => get(`${clanBase(tag)}/activity-discord`),
+  saveActivityDiscord: (tag, body) =>
+    put(`${clanBase(tag)}/activity-discord`, body),
+  removeActivityDiscord: (tag) => del(`${clanBase(tag)}/activity-discord`),
   // Social (2026-09-26): the clan map, and the switch leaders turn off.
   map: (tag) => get(`${clanBase(tag)}/map`),
   social: (tag) => get(`${clanBase(tag)}/social`),

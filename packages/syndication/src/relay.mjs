@@ -58,7 +58,7 @@ const retry = (code) => new Error(`timeline_discord_${code}`);
  * @param {{
  *   discord: { post: Function, edit: Function },
  *   store: ReturnType<typeof import("./store.mjs").timelineDiscordStore>,
- *   open: (sealed: object, accountId: string) => string | null,
+ *   open: (sealed: object, accountId: string, kind: string) => string | null,
  *   now?: () => number,
  *   log?: Pick<Console, "log" | "error">,
  * }} deps
@@ -166,7 +166,11 @@ export function createTimelineDiscordWorker({
       throw retry("bad_message");
     }
     const msg = validated.msg;
-    const hook = parseDiscordWebhook(open(msg.webhook, msg.account_id));
+    // A clan's channel is sealed under its own purpose (`kind` says
+    // which box opens it).
+    const hook = parseDiscordWebhook(
+      open(msg.webhook, msg.account_id, msg.kind),
+    );
     if (!hook) {
       log.error("timeline_discord_unsealed", msg.account_id);
       throw retry("bad_message");

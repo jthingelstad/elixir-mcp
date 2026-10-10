@@ -17,7 +17,10 @@ Elixir Clan's views. Read `packages/clan/AGENTS.md` first, and
 - **Analytics** (`src/analytics.js`, Elixir's Tinylytics site): pages report
   as `/clan/...` with the tag masked; events are bounded labels, never free
   text, a tag or a URL. The events, which this list must match:
-  `clan.action_commented`, `clan.action_link_copied`, `clan.award_granted`,
+  `clan.action_commented`, `clan.action_link_copied`,
+  `clan.activity_discord_category`, `clan.activity_discord_removed`,
+  `clan.activity_discord_rewrite`, `clan.activity_discord_set`,
+  `clan.activity_discord_switch`, `clan.award_granted`,
   `clan.awards_saved`, `clan.away_cleared`, `clan.away_set`,
   `clan.copy_in_game`, `clan.discord_nudge`, `clan.discord_removed`,
   `clan.discord_set`, `clan.feedback_answered`, `clan.feedback_sent`,

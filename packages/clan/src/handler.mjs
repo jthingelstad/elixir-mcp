@@ -39,6 +39,9 @@ export function createHandler({
   social = null,
   /** Actions posted to the clan's Discord (`manage/discord.mjs`) */
   discord = null,
+  /** the clan's activity in a Discord channel of its own, Social's
+   *  Discord item (`manage/activity.mjs`) */
+  activity = null,
   memberActivity = null,
   now = () => Date.now(),
   log = console,
@@ -421,11 +424,13 @@ export function createHandler({
       method === "GET" || method === "DELETE" ? {} : parseBody(event);
     if (body === null) return json(400, { error: "bad_request" });
     try {
-      const activity = /^\/members\/([0-9A-Za-z]{3,12})\/activity$/.exec(rest);
-      if (memberActivity && method === "GET" && activity)
+      const memberPath = /^\/members\/([0-9A-Za-z]{3,12})\/activity$/.exec(
+        rest,
+      );
+      if (memberActivity && method === "GET" && memberPath)
         return json(
           200,
-          await memberActivity(tag, token, activity[1], {
+          await memberActivity(tag, token, memberPath[1], {
             cursor: event.queryStringParameters?.cursor ?? null,
             to: event.queryStringParameters?.to ?? null,
           }),
@@ -500,6 +505,21 @@ export function createHandler({
           await model.removeKey(tag, who);
           return json(200, { ok: true });
         }
+        return json(400, { error: "bad_request" });
+      }
+      // The clan's activity in its own Discord channel (Social): leaders
+      // connect it, choose what is posted and how it sounds.
+      if (activity && rest === "/activity-discord") {
+        if (method === "GET") return json(200, await activity.status(tag, who));
+        if (method === "PUT")
+          return json(
+            200,
+            await activity.save(tag, who, body, {
+              clanName: clan.name ?? null,
+            }),
+          );
+        if (method === "DELETE")
+          return json(200, await activity.remove(tag, who));
         return json(400, { error: "bad_request" });
       }
       // Actions in the clan's Discord: leaders connect and remove the
@@ -790,7 +810,13 @@ export function createHandler({
   async function dispatch(event, method, path) {
     try {
       if (
-        (manage || awards || recruit || social || discord || memberActivity) &&
+        (manage ||
+          awards ||
+          recruit ||
+          social ||
+          discord ||
+          activity ||
+          memberActivity) &&
         path.startsWith("/api/clans/")
       ) {
         const answered = await manageRoute(event, method, path);

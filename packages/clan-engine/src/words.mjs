@@ -3,15 +3,19 @@
  * key may be used for, the request for each use, and the check on each
  * answer. A model writes WORDS, never judgments (VISION, principle 5):
  *
- *  - the uses are a closed list (`PURPOSES`); nothing about a member is
- *    ever one of them;
+ *  - the uses are a closed list (`PURPOSES`); no judgment about a member
+ *    is ever one of them (an activity post names a member only to retell
+ *    what the clan's timeline already shows of them);
  *  - a request carries clan-level facts only: the game's numbers for the
  *    clan, what it is for, how it runs, its own words. A welcome may carry
  *    its frozen recorded return or career detail; a confirmed departure
  *    its leader classification and recorded tenure. Never identity,
  *    private notes, removal rationale or broader member history;
  *  - every answer is checked here and handed to a person to edit and
- *    save. Nothing a model writes is saved or sent by itself.
+ *    save. Nothing a model writes is saved or sent by itself, with one
+ *    exception Jamie asked for (2026-10-10): the clan's activity posts in
+ *    its Discord (`discord_activity`, activity.mjs), which retell a line
+ *    the clan's timeline already shows and are checked line by line.
  *
  * Pure: context in, request out; answer in, values out.
  */
@@ -40,6 +44,13 @@ export const PURPOSES = {
   clan_chat: {
     label: "Clan chat",
     why: "Drafts a welcome or a message after a leader's decision, for a person to edit and send in the game.",
+  },
+  // The one use whose words are sent unread (Jamie, 2026-10-10): the
+  // clan's activity lines in its Discord, rewritten in the leaders'
+  // voice from what each line already says (activity.mjs).
+  discord_activity: {
+    label: "Discord activity",
+    why: "Rewrites the clan's activity posts in its Discord in the voice its leaders describe, from what each post already says; a post the check refuses keeps Elixir's own words.",
   },
 };
 

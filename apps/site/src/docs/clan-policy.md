@@ -1,13 +1,13 @@
 ---
 slug: clan-policy
 title: "Write how your clan runs"
-description: "Elixir Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Board, History, Scout and Clan settings."
+description: "Elixir Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Board, History, Scout and Clan settings, and the clan's activity in Discord."
 section: clan
 order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-10; the Discord setting, contracts unchanged"
+reviewed: "2026-10-10; the clan's activity in Discord, contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -153,8 +153,10 @@ without a policy:
   each other's local time. Only the clan's verified members see it, and
   nothing of it goes to Elixir. Only the leader and co-leaders can change
   whether the clan's social features are on; other members opening Settings
-  directly can read that status without a switch.
-- **Discord**: a webhook from one of the clan's Discord channels.
+  directly can read that status without a switch. Under it, **Discord**
+  posts the clan's activity to a channel of its own ([The clan's activity
+  in Discord](#the-clans-activity-in-discord)).
+- **Actions in Discord**: a webhook from one of the clan's Discord channels.
   Each open action leaders or elders can take is posted there and
   marked when it closes ([Actions in the clan's
   Discord](/docs/clan-actions#actions-in-the-clans-discord)). Connecting
@@ -188,6 +190,55 @@ without a policy:
   may finish a little over it. The cap stays when the key is replaced.
   It is Elixir Clan's own stop: a spend limit on the Anthropic account
   is the one Anthropic keeps.
+  The one use nobody reviews is the activity channel's rewrite, when a
+  leader turns it on (below); its uses are counted apart, and the cap
+  stops them too.
+
+## The clan's activity in Discord
+
+Under **Social** in **Manage ▸ Settings**, the leader or a co-leader can
+connect a Discord webhook of its own: not the one Actions go to, and not
+a person's [timeline cross-post](/docs/timeline). From then on the clan's
+timeline is posted there as it happens, as its members read it: one line
+each, with a link back to Elixir in angle brackets so Discord draws no
+preview.
+
+- **What is posted**: three groups a leader switches. **Members**: who
+  joins and who departs, and role changes made in the game. **Milestones**:
+  members' standout sessions, badges, arenas, ranked promotions, new
+  bests, collection levels, career wins and card unlocks, and the clan's
+  awards. **Clan Wars**: the week's bracket, the boat crossing the finish
+  line and how the week finished.
+- **The policy decides the defaults**: Members and Milestones are on;
+  Clan Wars is on when the policy says the clan takes part, and off until
+  a leader turns it on when the policy does not say. When the policy says
+  the clan does not take part, Clan Wars cannot be turned on. A leader's
+  switch holds until a leader sets it back to the policy's default.
+  Without a policy nothing is posted.
+- **A departure** is posted as the roster sees it: the member departed.
+  When a leader says which it was on the departure's action, that same
+  message is edited to say the member was removed, or left on their own;
+  it is never a second post, and a kick is never told as a leave.
+- **When**: posting starts when the webhook is connected (or turned back
+  on); nothing earlier is posted. Each line goes out within a few minutes
+  of the activity landing in Elixir, never on a timer, and an item that
+  grows is edited in place. Nothing pings anyone; items only the leaders
+  may see are never posted.
+- **Written by the clan's own model**: with the clan's own model key
+  set, a leader can have each line rewritten in the clan's voice, and
+  describe that voice in up to 400 characters. These lines are posted
+  without anyone reading them first. The model is sent only what the line
+  already says, member names included, never a tag or anything private
+  to Clan. A rewritten line that changes a member's name, adds a number
+  the line did not give, or runs long keeps Elixir's own words, and so do
+  all lines when the model cannot be used. At most 50 rewrites a day,
+  counted apart from the leaders' drafts and shown in the key's use log;
+  the clan's monthly cap, when set, stops them as it stops drafts.
+  Without a key, the setting points to **The clan's own model**.
+- Connecting posts a short hello to check the webhook; it is kept
+  encrypted and shown only shortened. If Discord stops taking it, posting
+  turns off and Settings says why. Pausing or disconnecting leaves the
+  messages already posted.
 
 ## Agent context
 

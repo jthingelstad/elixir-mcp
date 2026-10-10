@@ -29,6 +29,7 @@ import { makeRegistry } from "@elixir-mcp/tools";
 import { authRoutes } from "./routes/auth.mjs";
 import { accountRoutes } from "./routes/account.mjs";
 import { timelineDiscordRoutes } from "./routes/timeline-discord.mjs";
+import { wakeAfterFact } from "@elixir-mcp/syndication";
 import { emailRoutes } from "./routes/email.mjs";
 import { clansRoutes } from "./routes/clans.mjs";
 import { publicRoutes } from "./routes/public.mjs";
@@ -343,6 +344,10 @@ export function makeHandler({
           route: (db, event, body) =>
             integrationApi(db, event, body, {
               mail: mail ? { ...mail, secret: unsubscribeKeys } : null,
+              wake: discord?.outbox
+                ? (d, fact) =>
+                    wakeAfterFact(d, fact, { outbox: discord.outbox })
+                : null,
             }),
           key: `${method} /api/v1/*`,
         }
