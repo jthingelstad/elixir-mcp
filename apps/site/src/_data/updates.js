@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-10",
+    title: "A kick is never told as a leave",
+    body: 'The game\'s roster sees only that a member went, not whether they left or were removed, yet the timeline said "left" for both. A departure now says the member departed the clan. When a leader tells Elixir Clan which it was, the timeline says the member was removed, or left on their own. The same words reach every place the timeline is told: the console, agents, the tracking mail, and anything that posts it to Discord. MCP 11.7.2; JSON API 3.1.0 unchanged.',
+  },
+  {
+    date: "2026-10-10",
     title: "Cross-post your timeline to Discord",
     body: "Your timeline can now be posted to a Discord channel as it happens. On Console ▸ Timeline, paste a channel's webhook under Cross-post to Discord and turn it on; for an agent, its owner does the same on the agent's timeline, and the channel gets the agent's clan and the players it tracks. Every new item becomes one line with links back to Elixir that draw no preview, and when an item grows (a sitting adds battles, or ends) its message is edited in place instead of posted again. Nothing from before you turn it on is posted, nothing pings anyone, and items only a clan's leaders may see never leave Elixir, nor do lines about your own account. Saving a webhook posts a first line so you can see it works; Elixir keeps the webhook sealed and shows it shortened. If Discord says the webhook is gone, cross-posting turns off and the page says why. Profile and each agent's page say whether it is on. MCP 11.7.1 and JSON API 3.1.0 unchanged.",
   },

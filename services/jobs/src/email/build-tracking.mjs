@@ -126,7 +126,7 @@ export async function buildTracking({ db, account, week, season }) {
         if (n.kind === "returned")
           bits.push(`back after ${n.after_days} quiet days`);
         else if (n.kind === "clan_joined") bits.push(`joined ${n.clan_name}`);
-        else if (n.kind === "clan_left") bits.push(`left ${n.clan_name}`);
+        else if (n.kind === "clan_left") bits.push(`departed ${n.clan_name}`);
         else if (n.kind === "arena_changed")
           bits.push(`reached ${n.to ?? "a new arena"}`);
         else if (n.kind === "ranked_promotion")

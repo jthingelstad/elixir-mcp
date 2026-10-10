@@ -77,7 +77,7 @@ export const ATTESTED_FACT_TYPES: Readonly<Record<string, FactType>> = {
       left_at: { type: "instant", optional: true },
     },
     about:
-      "A leader says whether a member who left was kicked or left on their own; the roster records only that they went.",
+      "A leader says whether a member who departed was removed (a kick) or left on their own; the roster records only that they went.",
   },
   role_change_made: {
     subject: "clan",

@@ -1429,3 +1429,15 @@ lines per object, so a busy channel never delays sign-in mail on the
 email queue or runs past the relay's 60 s timeout. DLQ alarms on both new
 queues.
 
+## 2026-10-10 — a kick is never told as a leave
+
+Jamie, while scoping Clan's activity posts to Discord: "Kicks can be
+narrated but they should be shown as 'was removed' as opposed to 'left'.
+This same rule should apply to how any syndication approaches this."
+The game's roster cannot tell the two apart, so `member_left` and
+`clan_left` now say the member *departed* (the word `clan-engine`'s week
+already used for the same reason), and `departure_classified` says
+*was removed from* for a kick. Item text is shared by MCP, the console,
+the tracking mail and the Discord cross-post, so one change reaches all
+of them. Contract 11.7.2 (wording only).
+
