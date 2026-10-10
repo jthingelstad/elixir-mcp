@@ -29,11 +29,21 @@
  * list spends nothing), at most once a day per clan otherwise. A refresh
  * replaces only the list: the clan's saved model never changes, even when
  * the key no longer lists it. A failed refresh keeps the old list.
+ *
+ * Spend (Jamie, 2026-10-10): each use's tokens are priced at Anthropic's
+ * list rates (`prices.mjs`), so leaders see about what the month's uses
+ * cost. A leader or co-leader may set a monthly cap in dollars: once the
+ * month's (UTC) estimated spend reaches it, the clan's model drafts
+ * nothing more until the month turns or the cap is raised or removed. A
+ * draft that starts under the cap may finish a little over it. The cap is
+ * Elixir Clan's own stop, never Anthropic's spend limit; it stays with
+ * the clan when the key is replaced.
  */
 
 import { createBox } from "../sealed.mjs";
 import { PURPOSES, chooseModel } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
+import { PRICES_AS_OF, roundUsd, costOfUse } from "./prices.mjs";
 
 export const USES_PER_DAY = 20;
 /** How often a key's model list may be read again, success or not. */
@@ -41,6 +51,29 @@ export const MODELS_REFRESH_MS = 24 * 3600_000;
 const USE_KEEP_DAYS = 90;
 const LEADERS = new Set(["leader", "coLeader"]);
 const KEY_SHAPE = /^sk-ant-[A-Za-z0-9_-]{20,200}$/;
+/** The largest monthly cap a leader may set, in dollars. */
+export const MAX_SPEND_CAP_USD = 1000;
+
+/**
+ * The same sealed key? Compared by its sealed bytes: two reads of the
+ * stored item are never the same object (Postgres parses each one), so
+ * identity said "changed" every time and no refresh ever ran.
+ */
+const sameSealed = (a, b) =>
+  Boolean(a && b) && a.iv === b.iv && a.tag === b.tag && a.ct === b.ct;
+
+/** About what a list of uses cost: `{ usd, estimated }`. */
+function spendOf(calls) {
+  let usd = 0;
+  let estimated = false;
+  for (const c of calls) {
+    const cost = costOfUse(c.model, c.input_tokens, c.output_tokens);
+    if (!cost) continue;
+    usd += cost.usd;
+    estimated ||= cost.estimated;
+  }
+  return { usd: roundUsd(usd), estimated };
+}
 
 /** Seal and open a clan's key under a key derived from the app secret. */
 export function sealer(secret) {
@@ -109,10 +142,28 @@ export function createModelService({
    */
   async function updateKeyItem(clanTag, sealed, fields) {
     const current = await ledger.modelKey(clanTag);
-    if (!current || current.sealed !== sealed) return null;
+    if (!current || !sameSealed(current.sealed, sealed)) return null;
     const next = { ...current, ...fields };
     await ledger.saveModelKey(clanTag, next);
     return next;
+  }
+
+  /**
+   * May the clan's model be used now, under the clan's monthly cap? Every
+   * use recorded with `ledger.addModelCall` (its model and tokens) counts
+   * toward the month, whoever or whatever asked for it.
+   */
+  async function spendNow(clanTag, stored = null) {
+    const item = stored ?? (await ledger.modelKey(clanTag));
+    const cap = item?.spend_cap_usd ?? null;
+    const month = iso().slice(0, 7);
+    const spent = spendOf(await ledger.modelCalls(clanTag, month));
+    return {
+      allowed: cap === null || spent.usd < cap,
+      cap_usd: cap,
+      spend_usd: spent.usd,
+      month,
+    };
   }
 
   /** Is the person who added the key still a leader here? null: unknown. */
@@ -126,6 +177,8 @@ export function createModelService({
   }
 
   return {
+    spendNow,
+
     /** Cheap, for pages that offer a use: is there a key, and is it good? */
     async summary(clanTag) {
       const stored = await ledger.modelKey(clanTag);
@@ -144,11 +197,15 @@ export function createModelService({
       const today = new Date(t).toISOString().slice(0, 10);
       const month = today.slice(0, 7);
       const calls = await ledger.modelCalls(clanTag, month);
+      const spend = spendOf(calls);
+      const cap = stored?.spend_cap_usd ?? null;
       const base = {
         clan_tag: clanTag,
         purposes: PURPOSES,
         per_day: USES_PER_DAY,
         keep_days: USE_KEEP_DAYS,
+        max_spend_cap_usd: MAX_SPEND_CAP_USD,
+        prices_as_of: PRICES_AS_OF,
         uses: {
           today: calls.filter((c) => c.at.startsWith(today)).length,
           month: {
@@ -158,22 +215,32 @@ export function createModelService({
               (s, c) => s + (c.output_tokens ?? 0),
               0,
             ),
+            spend_usd: spend.usd,
+            spend_estimated: spend.estimated,
           },
           recent: calls
             .slice(-10)
             .reverse()
-            .map((c) => ({
-              at: c.at,
-              by: c.by,
-              by_name: c.by_name ?? null,
-              purpose: c.purpose,
-              model: c.model,
-              ok: c.ok,
-              code: c.code ?? null,
-              input_tokens: c.input_tokens ?? null,
-              output_tokens: c.output_tokens ?? null,
-            })),
+            .map((c) => {
+              const cost = costOfUse(c.model, c.input_tokens, c.output_tokens);
+              return {
+                at: c.at,
+                by: c.by,
+                by_name: c.by_name ?? null,
+                purpose: c.purpose,
+                model: c.model,
+                ok: c.ok,
+                code: c.code ?? null,
+                input_tokens: c.input_tokens ?? null,
+                output_tokens: c.output_tokens ?? null,
+                spend_usd: cost ? roundUsd(cost.usd) : null,
+              };
+            }),
         },
+        spend_cap_usd: cap,
+        spend_cap_set_by_name: stored?.spend_cap_set_by_name ?? null,
+        spend_cap_set_at: stored?.spend_cap_set_at ?? null,
+        cap_reached: cap !== null && spend.usd >= cap,
       };
       if (!stored) return { ...base, set: false };
       const readable =
@@ -229,7 +296,13 @@ export function createModelService({
         throw new ManageError(400, "no_models", null, {
           message: "This key cannot reach any Claude model.",
         });
+      // The clan's cap outlives the key it was set beside.
+      const previous = await ledger.modelKey(clanTag);
       await ledger.saveModelKey(clanTag, {
+        spend_cap_usd: previous?.spend_cap_usd ?? null,
+        spend_cap_set_by: previous?.spend_cap_set_by ?? null,
+        spend_cap_set_by_name: previous?.spend_cap_set_by_name ?? null,
+        spend_cap_set_at: previous?.spend_cap_set_at ?? null,
         sealed: box.seal(k, boundTo(clanTag, who.player_tag)),
         hint: `sk-ant-…${k.slice(-4)}`,
         set_by: who.player_tag,
@@ -246,10 +319,9 @@ export function createModelService({
     },
 
     /**
-     * Choose which of the key's models writes: any the key listed when it
-     * was added. A clan's saved choice is never changed for it; a model
-     * Anthropic released after the key was added is listed once the key is
-     * added again.
+     * Choose which of the key's models writes: any on the key's list as it
+     * was last read (when the key was added, or its latest refresh). A
+     * clan's saved choice is never changed for it.
      */
     async setModel(clanTag, who, model) {
       requireLeader(who);
@@ -328,6 +400,37 @@ export function createModelService({
       return { refreshed: true, reason: null, models: next.models };
     },
 
+    /**
+     * Set the clan's monthly spend cap in dollars, or remove it (null).
+     * Drafting stops once the month's estimated spend reaches it.
+     */
+    async setSpendCap(clanTag, who, cap) {
+      requireLeader(who);
+      const stored = await ledger.modelKey(clanTag);
+      if (!stored) throw new ManageError(409, "no_model_key");
+      let usd = null;
+      if (cap !== null) {
+        usd = typeof cap === "number" ? cap : Number(String(cap).trim());
+        if (
+          !Number.isFinite(usd) ||
+          usd < 0.01 ||
+          usd > MAX_SPEND_CAP_USD ||
+          Math.abs(Math.round(usd * 100) - usd * 100) > 1e-6
+        )
+          throw new ManageError(400, "bad_spend_cap", null, {
+            message: `A cap is a dollar amount from $0.01 to $${MAX_SPEND_CAP_USD}, to the cent.`,
+          });
+      }
+      const next = await updateKeyItem(clanTag, stored.sealed, {
+        spend_cap_usd: usd,
+        spend_cap_set_by: usd === null ? null : who.player_tag,
+        spend_cap_set_by_name: usd === null ? null : (who.name ?? null),
+        spend_cap_set_at: usd === null ? null : iso(),
+      });
+      if (!next) throw new ManageError(409, "model_key_changed");
+      return { ok: true, spend_cap_usd: usd };
+    },
+
     /** Remove the clan's key. Its uses stay on record. */
     async removeKey(clanTag, who) {
       requireLeader(who);
@@ -362,6 +465,12 @@ export function createModelService({
       if ((await ledger.modelCalls(clanTag, today)).length >= USES_PER_DAY)
         throw new ManageError(429, "model_daily_limit", null, {
           per_day: USES_PER_DAY,
+        });
+      const budget = await spendNow(clanTag, stored);
+      if (!budget.allowed)
+        throw new ManageError(429, "model_spend_cap", null, {
+          spend_cap_usd: budget.cap_usd,
+          spend_usd: budget.spend_usd,
         });
       // Reserve before dispatch. A killed request, lost transport reply or
       // failed final ledger update still consumes and shows this attempt.

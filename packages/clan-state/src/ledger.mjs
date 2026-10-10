@@ -95,16 +95,20 @@ export const newId = () => randomBytes(9).toString("base64url");
 const pad = (n) => String(n).padStart(6, "0");
 let logSeq = 0;
 
-/** The same contract in memory, for tests. */
+/**
+ * The same contract in memory, for tests. Every read is a fresh copy, as
+ * Postgres parses one per query: a test that holds a read and compares it
+ * by identity, or mutates it, fails here as it would live.
+ */
 export function createMemoryLedger() {
   const items = new Map();
   const api = ledgerOver({
     async put(item) {
-      items.set(item.pk, { ...item });
+      items.set(item.pk, structuredClone(item));
     },
     async putIfAbsent(item) {
       if (!items.has(item.pk)) items.set(item.pk, structuredClone(item));
-      return items.get(item.pk);
+      return structuredClone(items.get(item.pk));
     },
     async putObservedIfNewer(item) {
       const current = items.get(item.pk);
@@ -114,21 +118,23 @@ export function createMemoryLedger() {
       return true;
     },
     async get(pk) {
-      return items.get(pk) ?? null;
+      const item = items.get(pk);
+      return item ? structuredClone(item) : null;
     },
     async compareAndPatch(pk, expected, patch) {
       const current = items.get(pk);
       if (!current || !isDeepStrictEqual(current, expected)) return null;
       const updated = { ...current, ...structuredClone(patch) };
       items.set(pk, updated);
-      return updated;
+      return structuredClone(updated);
     },
     async listByPartition(partition, prefix) {
       return [...items.values()]
         .filter(
           (i) => i.gsi1pk === partition && String(i.gsi1sk).startsWith(prefix),
         )
-        .sort((a, b) => (a.gsi1sk < b.gsi1sk ? -1 : 1));
+        .sort((a, b) => (a.gsi1sk < b.gsi1sk ? -1 : 1))
+        .map((i) => structuredClone(i));
     },
     async listByPrefix(clanTag, prefix) {
       return this.listByPartition(clanKey(clanTag), prefix);
