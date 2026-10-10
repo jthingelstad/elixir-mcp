@@ -1,0 +1,3 @@
+# Unlocking an Evolution or Hero form is a moment
+
+Unlocking a card's Evolution or its Hero is the collection change players care about most, and the one the upgrade advice points at, but Elixir only kept which forms a card has and let the unlock pass without a word. From today it is a named moment: the timeline says "unlocked Hero Valkyrie", the week's summary lists it, the tracking report carries it, and your own or an alt's first unlock of each form gets a milestone mail. It starts now: a form unlocked before today still shows in the collection, but was never seen happen, so it has no moment. Contract 9.14.0.

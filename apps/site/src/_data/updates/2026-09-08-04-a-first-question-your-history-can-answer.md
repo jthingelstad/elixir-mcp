@@ -1,0 +1,3 @@
+# A first question your history can answer
+
+Your account overview now guides you from adding a player through the first capture to asking your own MCP client. Suggested questions follow the data actually recorded: a player snapshot first, then battle reviews, deck comparisons and comparisons between two weeks as those samples become available. Copy a question with coverage and freshness checks built in, or open the same player's recorded data to inspect it. Connection consent and successful data reads are shown separately, including recent repeat use. Copying a question never counts as a successful answer, and a small sample never promises proof of improvement.

@@ -1,0 +1,3 @@
+# Every timeline item says which story it tells
+
+An agent reading your timeline had no way to know it had already told a story: the same sitting read at two different times came back as two different items, and a sitting that grew from 20 battles to 40 looked like news or a repeat depending on the read. Each item now carries an id for the story, the same in every read, and a revision that goes up when the story grows. An agent, or a Discord bot, can post a story once, stay quiet when it sees it again, and say "and now..." when a sitting keeps going or crosses a new rung. The timeline guide has a short section on telling the story. Contract 9.15.0.

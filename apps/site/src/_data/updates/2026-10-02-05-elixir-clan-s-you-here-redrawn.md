@@ -1,0 +1,3 @@
+# Elixir Clan's You here, redrawn
+
+You here, your own page in a clan on Elixir Clan, has the new design. Any actions waiting for you sit in a link at the top. This week so far is a row of tiles: war decks out of those asked, ranked battles, donations, battles and trophies, each marked when the clan's policy does not count it. Your last five races are drawn as columns, the race on now lighter, with every race and its points in a table underneath. How you are doing here keeps your standing, what would move you and your minimums, now with a link to how Elder works in your clan. It is still a page only you see. No change to the tools.

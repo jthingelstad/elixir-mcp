@@ -1,0 +1,3 @@
+# Console fixes from a first-visit audit
+
+An overnight audit of the console for a first-time visitor. Choosing "UTC (default)" as your timezone now works after another zone was set. A console tab left open across an update reloads onto the new version instead of failing to open a section. The Timeline, Feedback and MCP request tables say when they are loading or could not be read, instead of "nothing yet". A dismissed sign-in refusal no longer keeps its warning dot lit. Adding a clan starts from the scope every account has. The data collection page describes the polling schedule as the recording docs do.

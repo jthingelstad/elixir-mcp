@@ -1,0 +1,3 @@
+# The record reaches the wire
+
+The recorder has kept more than the tools showed: a battle's event and tournament tags and how its deck was chosen, a boat attack's towers, each war day's points and rank for every clan in the race, the rivals' clan scores and repair points, a player's past Path of Legends finals, the career war-day and clan-card counters, a clan's type, location and description, the API's own close instant for a war week and its own word for the day. Every one of those is now served on the tool that owns the question, beside what was there, with nothing renamed and no migration. Contract 3.15.0.

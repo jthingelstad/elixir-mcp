@@ -1,0 +1,3 @@
+# Approval starts recording what you asked for
+
+The player tag on your access request is claimed and recorded the moment you are approved, and the clan that player is in is followed too, at activity scope — the one clan slot every tier has, which is exactly what it is for. Sign in and the console already knows who you are. Two related fixes: tracking a player another account already records now shows you their history instead of an empty page (the recording belongs to the player, not to whoever asked first), and the Tracking page's nudge to follow your own clan offers the slot you actually have rather than a comprehensive one it would refuse.

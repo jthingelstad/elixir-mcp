@@ -1,0 +1,3 @@
+# Player summaries: event battles, starter decks and the level you field now
+
+The Elixir Gym's first run over the player tools. A player's top deck no longer counts battles in decks an event handed them, and those battles are filed as event rather than casual play. The best deck now says the trophies it was played at, since a 10-0 run at 200 trophies with the starter deck is not a better deck than the one played at 1,300. The collection view now gives the level you have fielded in your last ten battles beside the 30-day average, which runs two levels low on an account that is levelling up. And searching a name from a clan agent finally puts that clan's members first. Contract 6.27.0.

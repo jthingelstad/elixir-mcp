@@ -1,0 +1,3 @@
+# cards_archetype: what a deck name means, and what to call a deck
+
+One tool for the two questions a player asks in one breath. Give it a name - 'bridge spam', 'Royal Hogs bridge spam', 'LavaLoon', '2.6 Hog' - and it says the family and win conditions it means, the other names for that shape, and how much of this season's record plays it. Give it eight cards, by id or by name with 'Evo' or 'Hero' where it matters, and it names the deck - no record required, and it says whether anyone recorded has played that exact set. Give it nothing and it hands over the whole vocabulary: the six families with their definitions, every win condition with its tier, the bait units and bridge partners, the aliases, and the version in force. Contract 6.8.0, additive.

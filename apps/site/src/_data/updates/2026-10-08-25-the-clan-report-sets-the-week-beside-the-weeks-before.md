@@ -1,0 +1,3 @@
+# The clan report sets the week beside the weeks before
+
+The Monday clan report now shows how the week compares. War decks: the race's war decks used out of those possible (four a war day up to the finish, every day in Colosseum, for each member on the roster when the race closed), beside each of the four races before with the share they used. Training days are not counted. The clan's week: battles and members who battled, by when the battles were played, against the average of the four weeks before. Only weeks Elixir recorded are compared: with fewer, the report says how many ("the 2 recorded races before"), and with none it shows the week alone. MCP 11.6.1 and JSON API 3.1.0 unchanged.

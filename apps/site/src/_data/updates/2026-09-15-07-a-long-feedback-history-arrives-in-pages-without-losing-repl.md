@@ -1,0 +1,3 @@
+# A long feedback history arrives in pages without losing replies
+
+Two natural agent reads of elixir_my_feedback crossed the 48,000-character delivery cap: twenty full reports plus maintainer responses can be much larger than twenty ordinary rows. Worse, the read marked every response seen before the protocol replaced the body with result_too_large, so the agent could lose its pending signal without seeing the reply. The tool now returns bounded, lossless pages with total and next_offset; pass next_offset as offset until null. A page may be shorter than limit when the text is large, and only replies actually delivered on that page are marked seen. Additive; contract 3.8.0.

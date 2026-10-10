@@ -1,0 +1,3 @@
+# Console: your tier as a table, dismissible warnings, one page per collector
+
+Profile shows the same eight limits the Tiers page publishes, with what you are using beside each one, instead of four meters. A warning about an expired credential still being presented can be dismissed — it comes back if it happens again another day. Busiest tools on Usage open the requests for that tool. Admin got the email address on Accounts, a record page for each account, a page listing every account's connections with a revoke, and a collector fleet that is a list of five columns with the actions moved onto each collector's own page. Player tags in URLs no longer carry an encoded hash, so the links from Overview into Tracking and Explore work.

@@ -1,0 +1,3 @@
+# Record the players and clans you choose
+
+Named recording Collections have retired from tracking, Explore, administration, agents and platform integrations. A Collection no longer keeps its members recording. Follow players directly and organize them with primary, alt, friend and watching relationships; follow clans at the scope you need. Drop has stopped automatic enrollment while retaining Elixir sign-in and authorized account access. Your existing direct follows and recorded history stay. Owned cards are still recorded as part of player profiles. Contract 10.0.0; JSON API 3.0.0 removes Collection additions.

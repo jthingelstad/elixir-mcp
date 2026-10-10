@@ -1,0 +1,3 @@
+# days and weeks work on every windowed tool
+
+The connection instructions have said 'days/weeks are sugar' since 1.0.0, and five tools honoured it while the rest refused with bad_request - an agent that had just used clans_standings({days: 1}) sent days: 1 to battles_performance and lost three calls learning the difference. Every tool that takes a window now accepts days and weeks as sugar for from, ending now: the battles family, opponents, synergy, the timeline, rankings_timeline, game_events, and players_timeline (there as N days of snapshots, today included). from/to given still win. Additive; contract 3.7.0.

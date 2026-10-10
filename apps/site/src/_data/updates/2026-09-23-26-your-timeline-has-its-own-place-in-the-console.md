@@ -1,0 +1,3 @@
+# Your timeline has its own place in the console
+
+The console's Timeline, what happened to the players and clans you track over the last seven days, is now its own item at the top of the menu, between Overview and Explore, instead of the first view inside Activity. It lists the newest first and shows the same items your connections read with elixir_timeline; on a week too busy to show whole, it keeps the newest and says how many it left out. The dot beside it still means some of them are unread by your connections. Activity keeps your MCP requests, emails and account events, and an old link to Activity's timeline opens the new page.

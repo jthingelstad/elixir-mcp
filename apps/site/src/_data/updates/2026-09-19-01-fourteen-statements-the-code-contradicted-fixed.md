@@ -1,0 +1,3 @@
+# Fourteen statements the code contradicted, fixed
+
+A review of the interface after the record redesign found fourteen places where a description, a note or a docs sentence said one thing and the wire did another, and this release fixes every one without changing a name. A closed war week's whole roster (war_history with season_id and section_index) used to time out for a full clan and reach the client as a bare HTTP 500; it now answers in one pass, and every read is raced against the server's own deadline so a slow call answers query_timeout with a request id instead of dying silently. Contract 3.14.0.

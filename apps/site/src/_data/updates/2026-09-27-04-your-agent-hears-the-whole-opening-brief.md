@@ -1,0 +1,3 @@
+# Your agent hears the whole opening brief
+
+When an agent connects, Elixir tells it who you are and how to use the tools. That brief had grown past what some apps pass on (Claude Code keeps the first 2,048 characters), so the part about where to start and how to send feedback never reached the model. It is now written to arrive whole: if you track a lot of players it counts them instead of listing every one, and the finer points live in the documentation it points to. A personal connection's tool list also drops two arguments only clan agents use, and refusals now reach apps that check answers strictly. Contract 9.12.4.

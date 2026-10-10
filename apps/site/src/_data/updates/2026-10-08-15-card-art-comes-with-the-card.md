@@ -1,0 +1,3 @@
+# Card art comes with the card
+
+Elixir's card answers now carry each card's art, one image per form the game lists (the card, its Evolution and its Hero), served from Elixir itself. Ladder, battle pages, the Console, card pages and share images draw the art the answer names: a card played as its Evolution or Hero shows that form's art, or the base card's art under the Evo or Hero ribbon when the game has not published that image yet, where it used to show the card's name as text (Hero Electro Wizard and Evo Electro Giant today). Every deploy now copies any new art. MCP 11.5.0; JSON API 3.1.0 unchanged.

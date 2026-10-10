@@ -28,9 +28,12 @@ the same corpus. Write what is true now, plainly:
 
 ## Updates
 
-Every user-visible change appends an entry, newest first, to
-`src/_data/updates.js` in the same commit: what a person notices, in
-their words, ending with the MCP and JSON API versions.
+Every user-visible change adds its own file to `src/_data/updates/` in the
+same commit: `<YYYY-MM-DD>-<NN>-<slug>.md`, a `# Title` line, a blank
+line, then the body: what a person notices, in their words, ending with
+the MCP and JSON API versions. NN orders one day's entries, the higher
+the newer; take the day's highest plus one (`01` on a new day). Never
+edit another entry to make room. `src/_data/updates.js` reads them.
 
 ## Building and testing
 

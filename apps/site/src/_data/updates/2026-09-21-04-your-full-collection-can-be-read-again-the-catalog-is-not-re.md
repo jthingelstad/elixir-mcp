@@ -1,0 +1,3 @@
+# Your full collection can be read again: the catalog is not repeated per card
+
+The acceptance suite's first day found that players_collection at full verbosity refused for any mature collection - the answer ran to 55,000 characters against the 48,000 cap, and with no limit to narrow, the refusal could not even say what would fit. Thirty-one thousand of those characters were the card catalog, repeated once per card: the icon URLs, the rarity, the elixir cost, the maxima, identical for every player and one cards_catalog call away. They are gone from the collection rows; what stays is what is yours - level, count, star level, forms unlocked. A full collection reads at about 24,000 characters now. Contract 6.14.0.

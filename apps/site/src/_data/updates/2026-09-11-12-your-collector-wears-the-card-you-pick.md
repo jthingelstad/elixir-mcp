@@ -1,0 +1,3 @@
+# Your collector wears the card you pick
+
+Running a collector is a favour, so the favour gets to choose its face: when you raise your hand at Status > Collectors you now pick the Clash Royale card your collector is named for, and a collector you already run can change its card from its own page. A card belongs to one collector - a taken one is shown dimmed, and the record refuses a double pick even when two operators reach for it at once. The form no longer hides once you run one: raising a hand is the only way a collector comes to exist, it is always yours, and you can raise as many machines as you run.

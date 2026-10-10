@@ -1,0 +1,3 @@
+# Feedback reads as a list, and Profile is the one account page
+
+The Feedback page is a table now, like Notifications: one line per note with its first line, state and whether the maintainer has replied, and the whole note one click away. A note and its reply render as the Markdown they were written in, so paragraphs and lists come through. The rail's identity block shows the address you signed in with and leads to Profile, which replaces Settings & tier as the one page about your account: your email, how you sign in, your timezone, your tier with its slot meters and the upgrade request, and today's quota. Old links to Settings & tier land there.

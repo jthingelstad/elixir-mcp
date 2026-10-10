@@ -1,0 +1,3 @@
+# The war day comes from the calendar, not from the last poll
+
+war_current and the clan timeline said which river race day it was from the clan's last observed period, so a clan whose polls lagged, or that the recorder had only just started following, could read a stale day or none at all. The record now holds every policy day as a row, and the day is looked up by the clock: always current, for every clan, with the clan's own first sighting of that day reported beside it when the recorder has one. Windowed battle reads also take their bounds from the participant row the indexes are built on, which is the same answer sooner. Contract 3.11.1.

@@ -1,0 +1,3 @@
+# Slow analytical reads fail clearly, not with a closed connection
+
+Deck meta, card meta and clan standings now cancel over-budget queries and return query_timeout with a request id and retry hint, leaving time to record the failure. Their MCP query budget is at most 18 seconds; a narrower from/to window reduces work, while lowering limit only trims returned rows. Corpus meta avoids a redundant scan with the same population and shrinkage math. An unrecorded rival roster now names the exact live retry, without starting an ongoing watch, and clan standings advertises the existing one-call short-window member scan. This is a reliability boundary, not a promise that every 28-day query will finish under load.

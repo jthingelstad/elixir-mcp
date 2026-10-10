@@ -1,0 +1,3 @@
+# Your card collection is recorded, and it tells you when it changes
+
+players_collection now reads a player's cards and tower troops from the record - levels on the in-game 1-16 scale, counts toward the next level, which forms are unlocked - instead of a payload cache that has been empty for most players most of the day since this morning's cache change. Two new nods on the event feed: card_unlocked when a card the player did not have appears, and card_leveled when a level goes up. Counts ticking toward the next level are recorded but never announced, and a player's first observed collection is silent. Collections fill as profiles are polled; nothing is backfilled.

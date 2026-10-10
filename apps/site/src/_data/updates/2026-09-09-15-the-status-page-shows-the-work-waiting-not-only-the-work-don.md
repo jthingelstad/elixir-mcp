@@ -1,0 +1,3 @@
+# The Status page shows the work waiting, not only the work done
+
+The capture charts only ever showed completed fetches. A new 'Work waiting' gauge above them shows the other half as a queue, in pipeline order: subjects due for the next scheduler tick (the planner runs every five minutes, so due work piles up between ticks and empties at each one), jobs queued for a collector, jobs being fetched, and what was done this hour, with a countdown to the next tick and the due count broken down by endpoint. The bar fills against what the next tick can plan, so a bar past full means a backlog is forming rather than the normal between-tick pile.

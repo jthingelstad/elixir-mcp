@@ -1,0 +1,3 @@
+# Email: six kinds, each a switch
+
+Elixir now sends mail from the record: a Monday clan report, Tuesday's your week in the Arena, Wednesday's tracking report, Thursday's Top 100 (one shared issue), Sunday's collector activity for operators, and a milestone note when something you or an alt did is a first. Five are structured reports with no model in the loop; the Top 100 is written by a model that may print a number only after reading it from a brief the program built, and the program checks every number before it sends. All six are on by default, each a switch on your Profile with a send-me-this-now button, and every issue carries a one-click off. Details at /docs/email.

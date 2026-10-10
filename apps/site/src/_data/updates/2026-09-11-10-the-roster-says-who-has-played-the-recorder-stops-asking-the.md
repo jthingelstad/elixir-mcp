@@ -1,0 +1,3 @@
+# The roster says who has played; the recorder stops asking the rest
+
+Six in ten battle-log polls came back with nothing new, and most profile polls confirmed a profile that had not moved. A clan roster already carries the game's own lastSeen for every member in one small fetch, so the scheduler now reads it first: when a roster fresher than a member's last poll shows they have not been in the game since, that poll is skipped. A sighting under two hours old never gates, so a session in progress is always followed. Profiles have no floor any more - an idle player owes the record no snapshot - and are read every eight hours once the roster shows them active.

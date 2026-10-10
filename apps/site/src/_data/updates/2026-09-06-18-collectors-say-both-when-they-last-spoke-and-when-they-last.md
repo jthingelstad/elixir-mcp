@@ -1,0 +1,3 @@
+# Collectors say both when they last spoke and when they last delivered
+
+The status page and the admin table were showing different times for the same collector, and both were right: one counted the last data we accepted, the other counted the last time the collector said hello. A collector that is polling happily but has nothing to fetch is idle, not broken, and only one of those numbers could tell you so. Both surfaces now show both times, labelled, on the same clock. The status page also dropped its queue panel - the queues it listed were retired weeks ago and six of the seven rows had been reading 'unavailable' ever since.

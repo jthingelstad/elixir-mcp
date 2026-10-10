@@ -1,0 +1,3 @@
+# The collector door tells a new operator where they stand
+
+Three small additions to what a collector's config call returns, for the preflight command the next collector release carries (collector doctor): the address your requests arrive from, which is the one to allowlist on your Clash Royale key; the one Clash Royale path the collector may read to prove that key works from there; and an answer for a token that is installed but not yet promoted — pending reads config and nothing else, so the operator sees "not yet promoted" instead of the same 401 a typo gets. A revoked token is told so on config, once. The operators page now states the payload ceiling as it actually is, 5 MB compressed, not the 250 KB it inherited from the SQS era.

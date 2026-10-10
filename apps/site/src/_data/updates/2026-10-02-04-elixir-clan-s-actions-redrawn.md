@@ -1,0 +1,3 @@
+# Elixir Clan's actions, redrawn
+
+Actions in Elixir Clan have the new design. What is waiting for you and what closed in the last 30 days sit in two panels, each action marked by its kind with its number, who it is about and its comments. An action's own page opens with what it asks and who it is about, then why, what to do in the game, the facts it was judged by, the message to copy, its log and the decision at the foot. The Clan Leader Message now says when nothing in it is known to trip the game's chat filter. Every action keeps its own address, and who sees which actions has not changed. No change to the tools.

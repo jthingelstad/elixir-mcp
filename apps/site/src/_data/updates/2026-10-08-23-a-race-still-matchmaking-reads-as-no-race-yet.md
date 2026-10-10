@@ -1,0 +1,3 @@
+# A race still matchmaking reads as no race yet
+
+For a minute or two after a season roll, the game has created each clan's new river race but has not drawn its bracket, so the race has no clans yet. A live read of the race in that window used to fail with an error about a rejected payload. It now says plainly that there is no race yet, that matchmaking is under way and the matched race follows shortly, and shows the last race recorded meanwhile. Nothing is written for that moment, the race is read again as usual, and no race or war day counts as missed. The next season roll is Monday 2 November. MCP 11.6.1; JSON API 3.1.0 unchanged.

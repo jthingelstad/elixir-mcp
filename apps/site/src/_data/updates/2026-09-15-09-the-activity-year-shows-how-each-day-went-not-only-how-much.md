@@ -1,0 +1,3 @@
+# The activity year shows how each day went, not only how much
+
+Each cell of the battle-activity year on Console now carries two things: its hue is the day's win share, from red (all losses) through purple (even) to blue (all wins), and its shade is still the volume, four steps scaled to the player's busiest day. Tap a day and the caption says the record - '6 battles · 4 wins, 1 loss, 1 draw' - and the two-week list gains a won/lost column. Draws and unresolved results count toward volume and toward neither side; a day with nothing decided keeps the neutral purple. The nightly histogram now stores wins and losses per day alongside the count, so a day the job has not rebuilt yet is drawn as before until the next run.

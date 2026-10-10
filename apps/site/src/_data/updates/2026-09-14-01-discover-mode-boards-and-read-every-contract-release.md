@@ -1,0 +1,3 @@
+# Discover mode boards and read every contract release
+
+rankings_players with board mode and location list now names the recorded leaderboard ids, including Merge Tactics; an unknown mode points to that discovery call. The contract changelog fits the response cap by returning up to 20 releases per page, with next_offset to reach the rest and the same since filter throughout. The tool-choice guide now shows the existing short-window clan standings and exact-deck clanmate drill, and makes the race-finished caveat explicit. Live-quota tool names come from the registry, and the timeline guide distinguishes player notables from clan standouts and states the ledger's indefinite retention separately from the 30-day read window.

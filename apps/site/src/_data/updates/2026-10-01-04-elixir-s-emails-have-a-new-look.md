@@ -1,0 +1,3 @@
+# Elixir's emails have a new look
+
+Every email Elixir sends now wears the same frame: Elixir's logo and name at the top, a label saying which part of Elixir it comes from and when (Clan on Monday, Friends on Wednesday), and a footer that says why you got it and when the next one comes, in your own timezone. Your sign-in code and the welcome now look like the weekly mail and say Elixir rather than Elixir MCP; the code still leads the subject. Wednesday's Tracking report is now called Your friends this week, and your switch for it carried over. Every image in a mail is served from elixir.poapkings.com and says what it is when images are off. No change to the tools.
