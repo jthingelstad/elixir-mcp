@@ -119,9 +119,10 @@ test("a saved profile survives a failed read through explicit retry, without liv
 
 test("retained battles page through the returned cursor and keep all history and modes", async () => {
   const explore = vi.spyOn(api, "explore").mockImplementation(async (_, args) =>
+    // The shape battles_query returns: a cursor, null at the end, and no
+    // has_more (Codex on #335).
     answer({
       battles: [],
-      has_more: !args.cursor,
       next_cursor: args.cursor ? null : "opaque/+cursor=",
     }),
   );
@@ -149,6 +150,8 @@ test("retained battles page through the returned cursor and keep all history and
       await screen.findByRole("link", { name: "Newest battles ›" })
     ).getAttribute("href"),
   ).toBe(path);
+  // The last page's cursor is null: nothing older to offer.
+  expect(screen.queryByRole("link", { name: "Older battles ›" })).toBeNull();
   expect(explore.mock.calls).toEqual([
     [
       "battles_query",
