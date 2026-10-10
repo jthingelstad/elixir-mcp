@@ -10,6 +10,11 @@
 export default [
   {
     date: "2026-10-10",
+    title: "Cross-post your timeline to Discord",
+    body: "Your timeline can now be posted to a Discord channel as it happens. On Console ▸ Timeline, paste a channel's webhook under Cross-post to Discord and turn it on; for an agent, its owner does the same on the agent's timeline, and the channel gets the agent's clan and the players it tracks. Every new item becomes one line with links back to Elixir that draw no preview, and when an item grows (a sitting adds battles, or ends) its message is edited in place instead of posted again. Nothing from before you turn it on is posted, nothing pings anyone, and items only a clan's leaders may see never leave Elixir, nor do lines about your own account. Saving a webhook posts a first line so you can see it works; Elixir keeps the webhook sealed and shows it shortened. If Discord says the webhook is gone, cross-posting turns off and the page says why. Profile and each agent's page say whether it is on. MCP 11.7.1 and JSON API 3.1.0 unchanged.",
+  },
+  {
+    date: "2026-10-10",
     title: "Elixir Clan posts its Actions to your leaders' Discord",
     body: "The leader or a co-leader can now connect a Discord webhook in Elixir Clan's Settings. Each open Action that leaders or elders can take is then posted to that channel as one short line, naming the member, with a link to the Action that draws no preview. When someone completes or declines it, the same message is edited to say so and by whom; when Clan withdraws it, the message says that. Actions already open when the webhook is connected are posted too, a member's own away prompt never is, and nothing pings anyone. Messages name members, removals included, so use a channel only your leaders can read. Until a webhook is connected, the Actions page suggests one to the leader and co-leaders. MCP 11.7.1 and JSON API 3.1.0 unchanged.",
   },

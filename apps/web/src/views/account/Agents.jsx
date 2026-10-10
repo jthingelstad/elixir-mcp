@@ -14,6 +14,7 @@ import {
 } from "../../lib/queries.js";
 import { useConsolePath } from "../../lib/scope.js";
 import { CONSOLE } from "../../lib/console.js";
+import { TimelineDiscordState } from "./TimelineDiscord.jsx";
 
 /**
  * An agent, on its own console (2026-09-23): `part` is the page. Overview
@@ -290,6 +291,17 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
               <dd>
                 {agent.timeline_pending ?? 0}{" "}
                 <span className="hint">since its read pointer</span>
+              </dd>
+            </>
+          )}
+          {part === "settings" && (
+            <>
+              <dt>Timeline to Discord</dt>
+              <dd>
+                <TimelineDiscordState agent={publicId} />{" "}
+                <Link to={`${CONSOLE}/agent/${publicId}/timeline`}>
+                  change on its timeline ›
+                </Link>
               </dd>
             </>
           )}

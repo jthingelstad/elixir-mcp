@@ -211,6 +211,7 @@ const required = {
   MigrateCodeKey: codeKeys.migrate,
   JobsCodeKey: codeKeys.jobs,
   CollectorCodeKey: codeKeys.collector,
+  TimelineSyncCodeKey: codeKeys["timeline-sync"],
 };
 const templateBody = await readFile(
   path.join(repoRoot, "infra/template.yaml"),

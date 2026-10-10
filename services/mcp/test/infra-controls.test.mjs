@@ -41,7 +41,7 @@ test("the model relay can distinguish unwritten replies without reading other ou
   const role = resource(template, "EmailRelayRole", "EmailRelayFunction");
   assert.match(
     role,
-    /Action: s3:ListBucket\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\n\s+Condition:\n\s+StringLike:\n\s+s3:prefix:\n\s+- clan-model\/reply\/\*\n\s+- clan-model\/claim\/\*\n\s+- clan-discord\/reply\/\*\n\s+- clan-discord\/claim\/\*\n\s+NumericLessThanEquals:\n\s+s3:max-keys: "1"/,
+    /Action: s3:ListBucket\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\n\s+Condition:\n\s+StringLike:\n\s+s3:prefix:\n\s+- clan-model\/reply\/\*\n\s+- clan-model\/claim\/\*\n\s+- clan-discord\/reply\/\*\n\s+- clan-discord\/claim\/\*\n\s+- timeline-discord-state\/\*\n\s+NumericLessThanEquals:\n\s+s3:max-keys: "1"/,
   );
   assert.equal((role.match(/Action: s3:ListBucket/g) ?? []).length, 1);
   assert.match(
@@ -70,6 +70,15 @@ test("SQS visibility outlasts each Lambda timeout by six times", async () => {
   const emailQueue = resource(template, "EmailQueue", "EmailDlq");
 
   assert.match(emailQueue, /^      VisibilityTimeout: 360$/m);
+  for (const [queue, next] of [
+    ["TimelineSyncQueue", "TimelineSyncDlq"],
+    ["TimelineDiscordQueue", "TimelineDiscordDlq"],
+  ])
+    assert.match(
+      resource(template, queue, next),
+      /^      VisibilityTimeout: 360$/m,
+      queue,
+    );
   assert.doesNotMatch(template, /^  Editor(?:Function|Queue|EventSource):/m);
 });
 
@@ -117,6 +126,11 @@ test("every database-facing Lambda names its connections and bounds its statemen
     ["SchedulerFunction", "SchedulerRule", "elixir-mcp-scheduler"],
     ["MigrateFunction", "JobsLogGroup", "elixir-mcp-migrate"],
     ["JobsFunction", "EmailClanReportRule", "elixir-mcp-jobs"],
+    [
+      "TimelineSyncFunction",
+      "TimelineSyncEventSource",
+      "elixir-mcp-timeline-sync",
+    ],
   ];
   for (const [logicalId, nextLogicalId, name] of functions) {
     const block = resource(template, logicalId, nextLogicalId);
@@ -151,18 +165,23 @@ test("every database-facing Lambda names its connections and bounds its statemen
     );
   }
   // No other function reaches the database.
-  assert.equal((template.match(/^          DATABASE_URL:/gm) ?? []).length, 6);
+  assert.equal((template.match(/^          DATABASE_URL:/gm) ?? []).length, 7);
 });
 
 test("the collector door is its own function, role and route on the site API (2026-09-29)", async () => {
   const template = await readFile(templateUrl, "utf8");
-  // The role puts payloads and mail and nothing else: a write-once put
-  // needs no read, and the door lists nothing.
+  // The role puts payloads, mail and the timeline sync's wakes and
+  // nothing else: a write-once put needs no read, and the door lists
+  // nothing.
   const role = resource(template, "CollectorRole", "McpRole");
   assert.match(role, /RoleName: elixir-mcp-collector\n/);
   assert.deepEqual(
     [...role.matchAll(/^ {16}Action: (.+)$/gm)].map((m) => m[1]),
-    ["s3:PutObject", "s3:PutObject"],
+    ["s3:PutObject", "s3:PutObject", "s3:PutObject"],
+  );
+  assert.match(
+    role,
+    /elixir-mcp-outbox-\$\{AWS::AccountId\}\/timeline-sync\/\*\n/,
   );
   assert.match(
     role,
@@ -560,18 +579,26 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (#7
 test("the database connections verify the server against the bundled RDS roots (#71)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const urls = template.match(/^          DATABASE_URL: .+$/gm) ?? [];
-  assert.equal(urls.length, 6);
+  assert.equal(urls.length, 7);
   for (const url of urls) assert.match(url, /\?sslmode=verify-full"$/, url);
   assert.doesNotMatch(template, /sslmode=no-verify/);
   // Every function with a DATABASE_URL loads the bundle its package
   // carries, and only those packages carry it.
   const loads = template.match(/^          NODE_EXTRA_CA_CERTS: .+$/gm) ?? [];
-  assert.equal(loads.length, 6);
+  assert.equal(loads.length, 7);
   for (const line of loads)
     assert.ok(line.endsWith(`/var/task/${RDS_CA_PATH}`), line);
   assert.deepEqual(
     LAMBDAS.filter((l) => l.db).map((l) => l.name),
-    ["web-api", "mcp", "scheduler", "migrate", "jobs", "collector"],
+    [
+      "web-api",
+      "mcp",
+      "scheduler",
+      "migrate",
+      "jobs",
+      "collector",
+      "timeline-sync",
+    ],
   );
   const bundle = await readFile(
     new URL(`../../../${RDS_CA_BUNDLE}`, import.meta.url),
@@ -611,11 +638,11 @@ test("secrets rotate without a sign-out: previous values and the epoch are wired
   );
   assert.doesNotMatch(collector, /SESSION_SECRET|UNSUBSCRIBE_SECRET/);
   // Every function holding a secret reference re-reads it when the epoch
-  // moves: the six database functions, the relay and the editor.
+  // moves: the seven database functions and the relay.
   assert.equal(
     (template.match(/^          SECRET_EPOCH: !Ref SecretEpoch$/gm) ?? [])
       .length,
-    7,
+    8,
   );
   assert.match(
     template.slice(
@@ -650,6 +677,7 @@ test("a preserved parameter's first deploy takes its default; a rotation carries
       "JobsCodeKey",
       "EditorCodeKey",
       "CollectorCodeKey",
+      "TimelineSyncCodeKey",
     ].map((k) => [k, "x"]),
   );
   const existing = [...Object.keys(required), ...PRESERVED_PARAMETERS].filter(

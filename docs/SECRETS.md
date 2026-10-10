@@ -9,15 +9,15 @@ the steps that need a value are Jamie's, in the Secrets Manager console.
 | `session_secret` | app secret `elixir-mcp/app` | web-api, mcp (sessions); jobs (older unsubscribe links) | Session secret |
 | `session_secret_previous` | app secret, only during a rotation | web-api, mcp, when `SessionSecretPreviousInSecret=true` | Session secret |
 | `unsubscribe_secret` | app secret | web-api, jobs, when `UnsubscribeKeyInSecret=true` | Unsubscribe key |
-| `db_password` | app secret; the RDS master password | the six database functions and the `Database` resource | Database password |
+| `db_password` | app secret; the RDS master password | the seven database functions and the `Database` resource | Database password |
 | `buttondown_api_token` | app secret | email-relay | Any other app-secret key |
-| `clan_sealing_secret` | app secret | web-api, email-relay, jobs (`CLAN_MODEL_SECRET`, when `ClanInternal=true`): seals Clan's stored model keys and Discord webhooks, and the outbox requests that carry them | Clan sealing secret |
+| `clan_sealing_secret` | app secret | web-api, email-relay, jobs (`CLAN_MODEL_SECRET`, when `ClanInternal=true`): seals Clan's stored model keys and Discord webhooks, the timeline's Discord webhooks, and the outbox requests that carry them | Clan sealing secret |
 | `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api, mcp and collector require it | Origin secret |
 
 **CloudFormation reads a secret only when the resource holding the
 reference changes.** Editing a value in Secrets Manager changes nothing
 live until a deploy updates the function. `--param=SecretEpoch=<date>`
-changes an environment variable on all seven functions that hold a
+changes an environment variable on all eight functions that hold a
 reference, so every reference is read again.
 
 **CloudFormation also re-reads the previous template's references on a

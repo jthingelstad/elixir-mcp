@@ -3,9 +3,14 @@ import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 import { createAnthropicClient } from "@elixir-mcp/clan/anthropic.mjs";
 import { createDiscordWorker } from "@elixir-mcp/clan/discord-bridge.mjs";
 import { createDiscordWebhook } from "@elixir-mcp/clan/discord-webhook.mjs";
+import { createBox } from "@elixir-mcp/clan/sealed.mjs";
+import { createTimelineDiscordWorker } from "@elixir-mcp/syndication/relay";
+import { webhookSeal, WEBHOOK_PURPOSE } from "@elixir-mcp/syndication/seal";
+import { timelineDiscordStore } from "@elixir-mcp/syndication/store";
 /** Lambda entrypoint: the non-VPC relay — sends mail over SES from the
  *  outbox, enrolls opted-in sign-ins with Buttondown, and makes the
- *  clan model's calls and Clan's Discord posts the VPC cannot. */
+ *  clan model's calls, Clan's Discord posts and the timeline's Discord
+ *  posts the VPC cannot. */
 
 import { createHash } from "node:crypto";
 import {
@@ -101,7 +106,23 @@ const discordWorker =
       })
     : null;
 
+// The timeline's Discord posts (2026-10-10): the webhook arrives sealed
+// under the same secret for this use only, and is opened only here.
+const timelineDiscordWorker =
+  process.env.CLAN_MODEL_SECRET && process.env.OUTBOX_BUCKET
+    ? createTimelineDiscordWorker({
+        discord: createDiscordWebhook({
+          userAgent: "Elixir (https://elixir.poapkings.com, 1)",
+        }),
+        store: timelineDiscordStore(process.env.OUTBOX_BUCKET, s3),
+        open: webhookSeal(
+          createBox(process.env.CLAN_MODEL_SECRET, WEBHOOK_PURPOSE),
+        ).open,
+      })
+    : null;
+
 export const handler = makeHandler({
+  timelineDiscordObject: timelineDiscordWorker,
   discordObject: discordWorker
     ? async ({ bucket, key }) => {
         if (bucket !== process.env.OUTBOX_BUCKET)

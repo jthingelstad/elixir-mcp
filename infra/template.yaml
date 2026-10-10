@@ -25,6 +25,8 @@ Parameters:
     Type: String
   CollectorCodeKey:
     Type: String
+  TimelineSyncCodeKey:
+    Type: String
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
@@ -308,6 +310,50 @@ Resources:
       MessageRetentionPeriod: 1209600
       SqsManagedSseEnabled: true
 
+  # The timeline cross-posted to Discord (2026-10-10). An admission that
+  # wrote new facts wakes each account that syndicates its subject: a
+  # timeline-sync/ object, one per account a minute, held a minute
+  # (DelaySeconds) so a burst of admissions is one sync. The sync is a
+  # VPC Lambda; its event source mapping needs no route to SQS.
+  TimelineSyncQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-timeline-sync
+      DelaySeconds: 60
+      VisibilityTimeout: 360
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TimelineSyncDlq.Arn
+        maxReceiveCount: 5
+
+  TimelineSyncDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-timeline-sync-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  # The sync's lines, to the relay (which also sends the mail): a queue
+  # of their own, so a busy timeline never holds up a sign-in email.
+  TimelineDiscordQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-timeline-discord
+      VisibilityTimeout: 360
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TimelineDiscordDlq.Arn
+        maxReceiveCount: 5
+
+  TimelineDiscordDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-timeline-discord-dlq
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
   # ------------------------------------------------------------------- iam
   # One role per function (#24). These five used to share
   # elixir-mcp-vpc-lambda, so the two internet-facing Lambdas carried
@@ -397,6 +443,33 @@ Resources:
                   Action: s3:GetObject
                   Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/reply/*
                 - !Ref AWS::NoValue
+              # The timeline to Discord (2026-10-10): a save's hello line
+              # to the relay, and the relay's last word on the webhook,
+              # whose absence is confirmed with an exact-key list.
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord-state/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:ListBucket
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
+                  Condition:
+                    StringLike:
+                      s3:prefix:
+                        - timeline-discord-state/*
+                    NumericLessThanEquals:
+                      s3:max-keys: "1"
+                - !Ref AWS::NoValue
               # A battle's public page (2026-10-01): the app shell it is
               # served in, and the card art its share picture draws,
               # read from the site bucket. Read only; the site is
@@ -439,6 +512,11 @@ Resources:
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
+              # An admission that wrote new facts wakes the timeline sync
+              # of each account that cross-posts its subject (2026-10-10).
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-sync/*
 
   # The MCP/OAuth door sends login mail and, since 0063, writes the
   # request/response of every tool call under calls/ (nothing else on
@@ -612,6 +690,56 @@ Resources:
                 Resource:
                   - !Sub arn:aws:s3:::elixir-mcp-site-${AWS::AccountId}/assets/cards/*
 
+  # The timeline sync (services/timeline-sync, 2026-10-10): reads its
+  # wakes, reads the database, writes the lines for the relay and, when
+  # the timeline's cap held some back, a wake for itself; reads the
+  # relay's last word on the webhook. The webhook it copies is sealed:
+  # it holds no key to open it.
+  TimelineSyncRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: elixir-mcp-timeline-sync
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: elixir-mcp-timeline-sync
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  [
+                    sqs:ReceiveMessage,
+                    sqs:DeleteMessage,
+                    sqs:GetQueueAttributes,
+                    sqs:GetQueueUrl,
+                  ]
+                Resource: !GetAtt TimelineSyncQueue.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-sync/*
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord/*
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord-state/*
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
+                Condition:
+                  StringLike:
+                    s3:prefix:
+                      - timeline-discord-state/*
+                  NumericLessThanEquals:
+                    s3:max-keys: "1"
+
   # The email outbox connects VPC composers to the non-VPC relay.
   OutboxBucket:
     Type: AWS::S3::Bucket
@@ -653,22 +781,39 @@ Resources:
                 S3Key:
                   { Rules: [{ Name: prefix, Value: clan-discord/request/ }] }
             - !Ref AWS::NoValue
+          # The timeline to Discord (2026-10-10): a wake for the sync, and
+          # the sync's lines for the relay.
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt TimelineSyncQueue.Arn
+            Filter:
+              S3Key: { Rules: [{ Name: prefix, Value: timeline-sync/ }] }
+          - !If
+            - HasInternalClan
+            - Event: s3:ObjectCreated:*
+              Queue: !GetAtt TimelineDiscordQueue.Arn
+              Filter:
+                S3Key: { Rules: [{ Name: prefix, Value: timeline-discord/ }] }
+            - !Ref AWS::NoValue
 
-  # S3 may notify the two lanes' queues, and only from the outbox. The
+  # S3 may notify the lanes' queues, and only from the outbox. The
   # bucket ARN is spelled out rather than referenced so the bucket can
   # depend on this policy (S3 checks it can deliver when the notification
   # is configured).
   OutboxQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
-      Queues: [!Ref EmailQueue]
+      Queues:
+        [!Ref EmailQueue, !Ref TimelineSyncQueue, !Ref TimelineDiscordQueue]
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal: { Service: s3.amazonaws.com }
             Action: sqs:SendMessage
-            Resource: [!GetAtt EmailQueue.Arn]
+            Resource:
+              - !GetAtt EmailQueue.Arn
+              - !GetAtt TimelineSyncQueue.Arn
+              - !GetAtt TimelineDiscordQueue.Arn
             Condition:
               ArnEquals:
                 aws:SourceArn: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
@@ -700,7 +845,9 @@ Resources:
                     sqs:GetQueueAttributes,
                     sqs:GetQueueUrl,
                   ]
-                Resource: !GetAtt EmailQueue.Arn
+                Resource:
+                  - !GetAtt EmailQueue.Arn
+                  - !GetAtt TimelineDiscordQueue.Arn
               # Its lane of the outbox: read the message, delete it once sent.
               - Effect: Allow
                 Action: [s3:GetObject, s3:DeleteObject]
@@ -719,6 +866,7 @@ Resources:
                         - clan-model/claim/*
                         - clan-discord/reply/*
                         - clan-discord/claim/*
+                        - timeline-discord-state/*
                     NumericLessThanEquals:
                       s3:max-keys: "1"
                 - !Ref AWS::NoValue
@@ -754,6 +902,21 @@ Resources:
                   Resource:
                     - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/claim/*
                     - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/reply/*
+                - !Ref AWS::NoValue
+              # The timeline to Discord (2026-10-10): its lines, read and
+              # deleted once delivered, and the relay's own records of
+              # each post's message id and the account's last delivery.
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: [s3:GetObject, s3:DeleteObject]
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord-state/*
                 - !Ref AWS::NoValue
               # Send as elixir@poapkings.com and nothing else: the identity
               # and the configuration set are the only resources, and the
@@ -1085,6 +1248,60 @@ Resources:
       FunctionName: !Ref EmailRelayFunction
       EventSourceArn: !GetAtt EmailQueue.Arn
       BatchSize: 5
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
+  # The timeline's lines (2026-10-10): one object a run, at most two runs
+  # at once, so a webhook is posted to at Discord's pace.
+  TimelineDiscordEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref EmailRelayFunction
+      EventSourceArn: !GetAtt TimelineDiscordQueue.Arn
+      BatchSize: 1
+      ScalingConfig: { MaximumConcurrency: 2 }
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
+  # The timeline sync (2026-10-10): one account's timeline brought up to
+  # date in its Discord channel, woken by the collector door's admissions.
+  TimelineSyncLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/elixir-mcp-timeline-sync
+      RetentionInDays: 30
+
+  TimelineSyncFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: TimelineSyncLogGroup
+    Properties:
+      FunctionName: elixir-mcp-timeline-sync
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 60
+      Role: !GetAtt TimelineSyncRole.Arn
+      Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref TimelineSyncCodeKey }
+      VpcConfig:
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub "postgres://elixir:{{resolve:secretsmanager:${AppSecretName}:SecretString:db_password}}@${Database.Endpoint.Address}:5432/elixir_mcp?sslmode=verify-full"
+          NODE_EXTRA_CA_CERTS: /var/task/certificates/rds.pem
+          SECRET_EPOCH: !Ref SecretEpoch
+          PGAPPNAME: elixir-mcp-timeline-sync
+          PGOPTIONS: "-c statement_timeout=50s -c idle_in_transaction_session_timeout=60s"
+          OUTBOX_BUCKET: !Ref OutboxBucket
+
+  # Two at once: wakes for different accounts run side by side, and the
+  # sync's row lock keeps one account to one at a time.
+  TimelineSyncEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref TimelineSyncFunction
+      EventSourceArn: !GetAtt TimelineSyncQueue.Arn
+      BatchSize: 10
+      ScalingConfig: { MaximumConcurrency: 2 }
       FunctionResponseTypes: [ReportBatchItemFailures]
 
   MigrateLogGroup:
@@ -2210,6 +2427,38 @@ Resources:
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
       Dimensions: [{ Name: QueueName, Value: !GetAtt EmailDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DlqAlarmTimelineSync:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-dlq-timeline-sync
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        [{ Name: QueueName, Value: !GetAtt TimelineSyncDlq.QueueName }]
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  DlqAlarmTimelineDiscord:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-dlq-timeline-discord
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        [{ Name: QueueName, Value: !GetAtt TimelineDiscordDlq.QueueName }]
       Statistic: Maximum
       Period: 300
       EvaluationPeriods: 1

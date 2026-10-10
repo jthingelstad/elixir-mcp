@@ -874,6 +874,27 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
         (err) =>
           console.error("primary_clan_follow_failed", entityKey, err?.message),
       );
+    // A timeline cross-posted to Discord (0213, Jamie 2026-10-10: "event
+    // driven, WHEN items arrive in the timeline"): an admission that
+    // wrote facts wakes the accounts whose timeline its subject reaches.
+    // After the commit and never thrown, like the follow; a replay wakes
+    // nobody. The wake is the collector's to inject (syndication reads
+    // the timeline, which reads this package).
+    if (
+      deps.wake &&
+      admission.ok &&
+      !deps.skipProjection &&
+      deps.moments !== false &&
+      (projection?.facts ?? 0) > 0
+    ) {
+      const tag = subjectTag(endpoint, msg.job.entity_key);
+      if (tag)
+        await Promise.resolve()
+          .then(() => deps.wake(db, tag))
+          .catch((err) =>
+            console.error("timeline_wake_failed", tag, err?.message),
+          );
+    }
     timings.total_ms = Date.now() - t0;
     // A race in matchmaking (RACE_MATCHMAKING) is neither: no projection,
     // no freshness, no collector charge; the planner reads it again.

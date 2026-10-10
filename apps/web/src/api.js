@@ -184,6 +184,11 @@ export const api = {
   timelineEvidence: (params, agent) =>
     request("GET", `${home(agent)}/timeline?${new URLSearchParams(params)}`),
   myTimeline: (agent) => request("GET", `${home(agent)}/timeline`),
+  // The timeline cross-posted to Discord: { enabled, webhook (shortened),
+  // ... }; saving takes { url?, enabled }.
+  timelineDiscord: (agent) => request("GET", `${home(agent)}/timeline/discord`),
+  saveTimelineDiscord: (body, agent) =>
+    request("PUT", `${home(agent)}/timeline/discord`, body),
   // A POST: claiming spends a one-time credential, so it must not be
   // reachable by a link scanner, a prefetch, or a cross-site top-level
   // navigation (#31).

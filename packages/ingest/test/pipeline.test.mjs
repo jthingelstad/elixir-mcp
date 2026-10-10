@@ -1117,3 +1117,51 @@ test("a profile admission follows the primary player's clan; a replay does not",
     { clan_tag: profile.clan.tag, scope: "activity", auto: true },
   ]);
 });
+
+test("an admission that wrote facts wakes the cross-posted timelines; a repeat, a replay or a failing wake does not touch it", async () => {
+  const woke = [];
+  const wake = async (_db, tag) => {
+    woke.push(tag);
+  };
+  const minutesAgo = (m) => new Date(Date.now() - m * 60_000).toISOString();
+  const send = async (file, minutes, deps) =>
+    processResult(
+      ctx.db,
+      message({
+        endpoint: "player_battlelog",
+        entityKey: meta[file].entity_key,
+        payload: await fixture(file),
+        fetchedAt: minutesAgo(minutes),
+      }),
+      deps,
+    );
+
+  const replay = "player_battlelog/with_clanmate_2v2.json";
+  const replayed = await send(replay, 30, { wake, moments: false });
+  assert.equal(replayed.outcome, "admitted");
+  assert.deepEqual(woke, [], "a replay wakes nobody");
+
+  const file = "player_battlelog/with_colosseum_duel.json";
+  const live = await send(file, 20, { wake });
+  assert.equal(live.outcome, "admitted");
+  assert.ok(live.projection.facts > 0);
+  assert.deepEqual(woke, [meta[file].entity_key]);
+
+  // The same battles again wrote nothing new: no wake.
+  const again = await send(file, 10, { wake });
+  assert.equal(again.projection.facts, 0);
+  assert.equal(woke.length, 1);
+
+  // A wake that fails never fails the admission.
+  const failing = await send(
+    "player_battlelog/counterpart_2v2_teammate.json",
+    5,
+    {
+      wake: async () => {
+        throw new Error("outbox down");
+      },
+    },
+  );
+  assert.equal(failing.outcome, "admitted");
+  assert.ok(failing.projection.facts > 0);
+});

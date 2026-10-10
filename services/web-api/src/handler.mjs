@@ -28,6 +28,7 @@ import { makeRegistry } from "@elixir-mcp/tools";
 
 import { authRoutes } from "./routes/auth.mjs";
 import { accountRoutes } from "./routes/account.mjs";
+import { timelineDiscordRoutes } from "./routes/timeline-discord.mjs";
 import { emailRoutes } from "./routes/email.mjs";
 import { clansRoutes } from "./routes/clans.mjs";
 import { publicRoutes } from "./routes/public.mjs";
@@ -81,6 +82,9 @@ function wildcardRoute(routes, method, path, event) {
 export const AGENT_SCOPED_ROUTES = new Set([
   "GET /api/me",
   "GET /api/me/timeline",
+  // The agent's timeline cross-posted to Discord (0213), set by its owner.
+  "GET /api/me/timeline/discord",
+  "PUT /api/me/timeline/discord",
   "GET /api/me/requests",
   "GET /api/me/activity/calls/*",
   "GET /api/me/activity",
@@ -149,6 +153,9 @@ export function makeHandler({
   /** (method) => the site's 404 page (routes/site-miss.mjs), for an
    *  address the site bucket missed; null = the JSON not_found. */
   siteMiss = null,
+  /** { outbox, readStatus } for the timeline's Discord cross-post
+   *  (routes/timeline-discord.mjs); null = no hello line, no status. */
+  discord = null,
   /** Internal Clan request handler. Null until the reviewed state cutover;
    * the old origin continues to serve Clan during preparation. */
   clan = null,
@@ -295,6 +302,7 @@ export function makeHandler({
       capture,
       clanInternal: Boolean(clan),
     }),
+    ...timelineDiscordRoutes({ resolveAccount, discord }),
     ...clansRoutes({ resolveAccount, logEvent }),
     ...publicRoutes({ deadLetters }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),

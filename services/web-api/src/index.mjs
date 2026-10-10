@@ -12,6 +12,12 @@ import { makeCardArt, makeSiteShell, shareAssetsIn } from "./routes/battle.mjs";
 import { makeSiteMiss } from "./routes/site-miss.mjs";
 import { makeShareImage } from "./share-image.mjs";
 import { createClanRequest } from "./clan.mjs";
+import { createBox } from "@elixir-mcp/clan/sealed.mjs";
+import {
+  makeStatusReader,
+  webhookSeal,
+  WEBHOOK_PURPOSE,
+} from "@elixir-mcp/syndication";
 
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 
@@ -69,6 +75,18 @@ export const handler = makeHandler({
     enqueueEmail({ v: 1, kind: "welcome", to: email, newsletter }),
   deadLetters,
   notifyOwner,
+  // The timeline's Discord cross-post: the webhook sealed as it is saved
+  // (under the sealing secret Clan's webhooks use, for this use only),
+  // the hello line a save sends, and the relay's last word on it.
+  discord: process.env.CLAN_MODEL_SECRET
+    ? {
+        seal: webhookSeal(
+          createBox(process.env.CLAN_MODEL_SECRET, WEBHOOK_PURPOSE),
+        ).seal,
+        outbox,
+        readStatus: makeStatusReader(process.env.OUTBOX_BUCKET),
+      }
+    : null,
   // Captured tool calls are read back for the console's call record;
   // absent bucket = the record carries the row only.
   capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),

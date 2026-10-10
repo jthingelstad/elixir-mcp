@@ -18,3 +18,4 @@ export * from "./collector-release.js";
 export * from "./battle-link.js";
 export * from "./feedback.js";
 export * from "./card-art.js";
+export * from "./discord.js";

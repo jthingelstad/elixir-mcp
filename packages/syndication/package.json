@@ -1,0 +1,27 @@
+{
+  "name": "@elixir-mcp/syndication",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An account's timeline cross-posted to a Discord webhook: the setting (sealed webhook), the wake an admission sends, the sync that writes the posts to the outbox, the lines they read as, and the relay's worker that posts and edits them.",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./settings": "./src/settings.mjs",
+    "./relay": "./src/relay.mjs",
+    "./seal": "./src/seal.mjs",
+    "./store": "./src/store.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@elixir-mcp/contracts": "0.1.0",
+    "@elixir-mcp/record": "0.1.0",
+    "@elixir-mcp/tools": "0.1.0"
+  },
+  "devDependencies": {
+    "pg": "^8.23.1"
+  }
+}

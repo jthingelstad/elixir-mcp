@@ -16,8 +16,11 @@ import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
+import { createBox } from "@elixir-mcp/clan/sealed.mjs";
+import { webhookSeal, WEBHOOK_PURPOSE } from "@elixir-mcp/syndication";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const discordSent = [];
 const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -85,6 +88,11 @@ before(async () => {
     sendLoginEmail: async (m) => sentEmails.push(m),
     notifyOwner: async () => {},
     sendWelcomeEmail: async () => {},
+    discord: {
+      seal: webhookSeal(createBox("agent-scope-sealing", WEBHOOK_PURPOSE)).seal,
+      outbox: async (lane, msg) => discordSent.push({ lane, msg }),
+      readStatus: async () => null,
+    },
   });
   await db.query(
     `insert into clan (clan_tag, name) values ('#J2RGCRVG', 'POAP KINGS')`,
@@ -448,4 +456,72 @@ test("an agent keeps its name when its key is revoked", async () => {
       [agentId],
     );
   }
+});
+
+test("the timeline's Discord cross-post: set on the agent's console, the agent's alone, the webhook never shown whole", async () => {
+  const token = "w".repeat(68);
+  const hook = `https://discord.com/api/webhooks/123456789012345678/${token}`;
+  const put = (p, body, cookie = ownerCookie) =>
+    handler(event({ method: "PUT", path: p, body, cookie }));
+  const agentPath = `/api/agent/${agentPid}/timeline/discord`;
+
+  const stranger = await put(
+    agentPath,
+    { url: hook, enabled: true },
+    strangerCookie,
+  );
+  assert.equal(stranger.statusCode, 404);
+  const bad = await put(agentPath, {
+    url: "https://example.com/x",
+    enabled: true,
+  });
+  assert.equal(bad.statusCode, 400);
+  assert.equal(parse(bad).error, "webhook_invalid");
+  assert.equal(
+    (await put(agentPath, { url: hook })).statusCode,
+    400,
+    "enabled is required",
+  );
+
+  const on = await put(agentPath, { url: hook, enabled: true });
+  assert.equal(on.statusCode, 200, on.body);
+  assert.equal(parse(on).enabled, true);
+  assert.ok(
+    !on.body.includes(token.slice(0, 20)),
+    "the token never comes back",
+  );
+  assert.match(
+    parse(on).webhook,
+    /^discord\.com\/api\/webhooks\/123456789012345678\/…w{4}$/,
+  );
+  const rows = await db.query(
+    `select account_id, webhook_sealed::text as sealed from timeline_discord
+      where account_id = any($1::uuid[])`,
+    [[agentId, ownerId]],
+  );
+  assert.deepEqual(
+    rows.rows.map((r) => r.account_id),
+    [agentId],
+    "the agent's row, not its owner's",
+  );
+  assert.ok(!rows.rows[0].sealed.includes(token.slice(0, 20)), "kept sealed");
+  // The hello line goes to the relay with the webhook still sealed.
+  assert.equal(discordSent.length, 1);
+  assert.equal(discordSent[0].lane, "timeline-discord");
+  assert.equal(discordSent[0].msg.account_id, agentId);
+  assert.ok(!JSON.stringify(discordSent[0].msg).includes(token.slice(0, 20)));
+
+  const read = await handler(event({ path: agentPath, cookie: ownerCookie }));
+  assert.equal(parse(read).enabled, true);
+  const mine = await handler(
+    event({ path: "/api/me/timeline/discord", cookie: ownerCookie }),
+  );
+  assert.equal(parse(mine).enabled, false, "the owner's own is untouched");
+
+  const off = await put(agentPath, { enabled: false });
+  assert.equal(parse(off).enabled, false);
+  assert.equal(parse(off).disabled_reason, "owner");
+  await db.query(`delete from timeline_discord where account_id = $1`, [
+    agentId,
+  ]);
 });

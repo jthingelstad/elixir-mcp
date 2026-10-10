@@ -270,8 +270,17 @@ export function validateEmailMessage(
  *  for a non-VPC worker is written to the outbox bucket as one JSON
  *  object and S3 notifies that lane's queue. The object body is the
  *  message itself (an EmailMessage on the email lane); the worker reads it, acts and deletes it, so an
- *  object still there after the queue's retries is one that failed. */
-export const OUTBOX_LANES = ["email"] as const;
+ *  object still there after the queue's retries is one that failed.
+ *  Since 2026-10-10 two more lanes carry the timeline to Discord:
+ *  `timeline-sync/` wakes the VPC sync for one account (its queue feeds
+ *  a VPC Lambda through an event source mapping, which needs no route),
+ *  and `timeline-discord/` carries the posts to the relay, which alone
+ *  talks to Discord (as it does for Clan's `clan-discord/`). */
+export const OUTBOX_LANES = [
+  "email",
+  "timeline-sync",
+  "timeline-discord",
+] as const;
 export type OutboxLane = (typeof OUTBOX_LANES)[number];
 
 export function outboxKey(lane: OutboxLane, id: string): string {

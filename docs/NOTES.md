@@ -23,6 +23,14 @@ Remove a line in the change that closes it.
   has succeeded; Jamie copied the value across the same day. Jamie.
 - 2026-10-04: whether privacy.md should name Clan's own-key model flow.
   Product wording, Jamie.
+- 2026-10-10: whether privacy.md gets a Discord paragraph for timeline
+  cross-posting (policy pages change only with Jamie's word). Proposed:
+  "If you cross-post your timeline (or an agent's) to a Discord channel,
+  each new item on it is posted there, where Discord keeps it under its
+  own terms and everyone in the channel can read it. Elixir keeps the
+  webhook sealed and never shows it whole. Turning cross-posting off
+  stops new posts; lines already in the channel are Discord's to
+  delete." Jamie.
 - 2026-10-08: beta invitations: Jamie invites POAP KINGS, with the
   wording as it stands (accepted 2026-10-08), and pastes Bring your
   clanmates' clan-chat line (Console ▸ Overview) into clan chat once to
@@ -1363,3 +1371,61 @@ between edits late.
 
 The jobs function now holds `clan_sealing_secret` too (the morning run
 opens the clan's webhook to post); it already held `SESSION_SECRET`.
+
+## 2026-10-10 — the timeline cross-posted to Discord
+
+Jamie asked for a person's timeline (all their watched players, not
+filtered) and an agent's (its clan and tracked players) to syndicate to
+a Discord webhook, set on the Timeline page and shown in Settings.
+Jamie's answers: post once and edit the message as the item grows;
+plain lines with `<link>`-wrapped links back to Elixir, so nothing
+unfurls; event driven when items arrive, not polling. Defaults taken and
+stated: owner-only and console-only (never MCP or `/api/v1`), no
+backfill, leaders-only items never post, the sync keeps its own pointer,
+only Discord webhook addresses are accepted and saving sends a first
+line, the URL is shown shortened and never logged, a gone webhook turns
+it off and the page says why. Judgment call, told to Jamie: the
+account's own administration lines (section `account`) stay in the
+console.
+
+Shape: `packages/syndication` and an eighth Lambda,
+`services/timeline-sync` (VPC). A collector admission that wrote facts
+calls `wakeSyndication`, which writes one `timeline-sync/` object per
+woken account per minute (written once); its queue holds it 60 s, so a
+burst is one sync. The sync locks the account's `timeline_discord` row
+(0213), reads its timeline non-interactively from `synced_to`, narrows a
+window the 150-item cap cut and wakes itself for the rest, re-reads open
+sittings from their start so an edit tells the whole sitting, and writes
+up to 20 lines an object to `timeline-discord/`. A post's revision is
+`revision * 2 + (closed ? 1 : 0)`, so a sitting that closes with no new
+battle is edited once to drop "still going".
+
+Delivery converged on Clan's Actions to Discord, built the same day:
+one relay (the email relay), one webhook parser (contracts
+`parseDiscordWebhook`, which Clan's `parseWebhook` now calls), Clan's
+Discord client, and Clan's rule that a post whose outcome is unknown is
+never made again (a 429, a dead webhook or a 400 frees the claim; an
+edit is retried). The webhook is sealed with Clan's box under its own
+purpose (`timeline discord webhook v1`, AAD bound to the account): the
+web API seals it on save, the sync copies the sealed box without the
+secret, and only the relay opens it. No new secret holder. So it needs
+`ClanInternal=true`; without the secret the save answers
+`discord_unavailable`.
+
+Differences from Clan's path, on purpose: the relay keeps each post's
+message id beside the outbox (`timeline-discord-state/<account>/<webhook
+fp>/<item>.json`, conditional writes claim before the call) instead of
+replying to the VPC side, because the sync has nothing to collect a
+reply with; a missing state key reads as AccessDenied without ListBucket,
+so the relay lists the exact key under an `s3:prefix` condition. The
+first line on save is asynchronous and its outcome shows on the panel
+(Clan's save waits on its reply). A line deleted in the channel is
+marked and stays deleted. The relay status (`ok`, `gone`, `failing`) is
+what the sync reads to turn a gone webhook off.
+
+The timeline's lines have their own queue (`TimelineDiscordQueue`, batch
+1, concurrency 2) into the email relay, a 35 s budget per run and 20
+lines per object, so a busy channel never delays sign-in mail on the
+email queue or runs past the relay's 60 s timeout. DLQ alarms on both new
+queues.
+

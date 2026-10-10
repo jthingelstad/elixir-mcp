@@ -153,6 +153,17 @@ export const useMyTimeline = (enabled = true) => {
   });
 };
 
+/** The timeline's Discord cross-post. On an agent's settings page the
+ *  agent is named outright; elsewhere it is the console's scope. */
+export const useTimelineDiscord = (agentId = null) => {
+  const scoped = useScope();
+  const agent = agentId ?? scoped;
+  return useQuery({
+    queryKey: scopedKey(agent, "feed-discord"),
+    queryFn: payload(() => api.timelineDiscord(agent)),
+  });
+};
+
 export const useTimelineEvidence = (params) => {
   const agent = useScope();
   return useQuery({

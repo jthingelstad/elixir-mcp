@@ -4,6 +4,7 @@ import { api } from "../../api.js";
 import { useUsage } from "../../lib/queries.js";
 import { quotaReading } from "../../lib/quota.js";
 import { CONSOLE } from "../../lib/console.js";
+import { TimelineDiscordState } from "./TimelineDiscord.jsx";
 
 /**
  * Profile — the account you are signed in as, all on one page.
@@ -110,6 +111,13 @@ export function Profile({ me, refresh, navigate }) {
           icon="mail"
           title="Emails from Elixir"
           note="your week in email, each one a switch, and what was sent"
+        />
+        <SubpageLink
+          navigate={navigate}
+          to={`${CONSOLE}/account/timeline`}
+          icon="bell"
+          title="Timeline to Discord"
+          note={<TimelineDiscordState />}
         />
         <SubpageLink
           navigate={navigate}

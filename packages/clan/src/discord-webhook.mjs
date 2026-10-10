@@ -13,26 +13,19 @@
  * last part is the webhook's secret.
  */
 
-/** A webhook address as Discord shows it, on any of its hostnames. */
-export const WEBHOOK_URL =
-  /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api(?:\/v\d{1,2})?\/webhooks\/([0-9]{15,25})\/([A-Za-z0-9_-]{40,120})$/;
+import { parseDiscordWebhook } from "@elixir-mcp/contracts";
+
 const MESSAGE_ID = /^[0-9]{15,25}$/;
 
 /**
  * The webhook a leader pasted, in its one canonical spelling, or null.
- * Query strings are refused rather than dropped: `?thread_id=` would
- * change where the messages go.
+ * One parser for everything Elixir posts to Discord (contracts); a query
+ * string is refused rather than dropped: `?thread_id=` would change
+ * where the messages go.
  */
 export function parseWebhook(text) {
-  const raw = String(text ?? "")
-    .trim()
-    .replace(/\/+$/, "");
-  const m = WEBHOOK_URL.exec(raw);
-  if (!m) return null;
-  return {
-    id: m[1],
-    url: `https://discord.com/api/webhooks/${m[1]}/${m[2]}`,
-  };
+  const hook = parseDiscordWebhook(String(text ?? ""));
+  return hook ? { id: hook.id, url: hook.url } : null;
 }
 
 export const validMessageId = (id) => MESSAGE_ID.test(String(id ?? ""));
@@ -49,6 +42,8 @@ export function createDiscordWebhook({
   retries = 3,
   /** The longest single wait Discord may ask for that is waited here. */
   maxWaitMs = 10_000,
+  /** Who is posting, as Discord's API asks every caller to say. */
+  userAgent = "ElixirClan (https://elixir.poapkings.com/clan, 1)",
 } = {}) {
   async function call(method, url, body) {
     for (let attempt = 0; ; attempt++) {
@@ -58,7 +53,7 @@ export function createDiscordWebhook({
           method,
           headers: {
             "content-type": "application/json",
-            "user-agent": "ElixirClan (https://elixir.poapkings.com/clan, 1)",
+            "user-agent": userAgent,
           },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(timeoutMs),
