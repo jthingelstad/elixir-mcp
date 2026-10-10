@@ -4,7 +4,7 @@ What stands, one line each. The code and the public docs
 (`apps/site/src/docs/`) describe behaviour; this file records the choices
 that constrain it. The reasoning behind a line is in git history
 (`git log -S "<words from the line>" -- docs/`). Do not re-litigate a line. A
-change is a dated `docs/NOTES.md` entry plus an edit here, written as the
+change is a note in `docs/notes/` plus an edit here, written as the
 current rule, never as "was X, now Y".
 
 ## Scope and footprint
@@ -198,19 +198,19 @@ current rule, never as "was X, now Y".
 - **Time-series shape** — `season` keyed on `season_month`; `war_period` rows; day grain with the last observation winning; a war-id mismatch alarms but never relabels.
 - **A backfill that does not vacuum is not finished** — never run a backfill and a deploy together.
 - **Live diagnostics only through migrate ops** — EXPLAIN the exact SQL the tool serves.
-- **Incident authority** — while the door or pipeline is failing, the Elixir Operator may run `{terminate_backends}` (named, on a migration or backfill backend past five minutes) and `{gateway_drain}`/`{gateway_recover}`, recording each use in NOTES; account-touching write ops (`{account_*}`, `{oauth_grants}`) stay Jamie's.
+- **Incident authority** — while the door or pipeline is failing, `{terminate_backends}` (named, on a migration or backfill backend past five minutes) and `{gateway_drain}`/`{gateway_recover}` may be run within the bounds in `docs/OPERATIONS.md`, each use recorded with its evidence; account-touching write ops (`{account_*}`, `{oauth_grants}`) stay Jamie's.
 
 ## Agent team and process
 
-- **The ledger is the read path** — objective runs, skills and sessions read this file for what stands; NOTES is working notes.
+- **The ledger is the read path** — scheduled runs, skills and sessions read this file for what stands; `docs/notes/` records changes and GitHub issues hold what is open.
 - **main takes only pull requests** — rebase-merged by auto-merge when `validate` is green, up to date with main or not (2026-10-08; main's push run tests the combination); no review required, no bypass; `deploy.mjs` refuses a HEAD that is not a green `origin/main` (`--break-glass` only when GitHub is down); a flake is fixed the day it blocks.
-- **One worktree per run; the lease guards production** — every run edits in its own worktree at a fresh origin/main and lands a PR; the lease is claimed only for a deploy, a migration run or an ops-lambda write; use `&&`, never `;`, before push or deploy.
+- **One worktree per run or session; the lock guards production** — every session, interactive or scheduled, is one worktree at a fresh origin/main, one branch and one PR, drafted at the first push; `deploy.mjs` and `npm run op` take the one production lock for a deploy or an ops-lambda write, and nothing else takes a lock; notes, What's new entries and contract versions are files of their own per change (2026-10-10); use `&&`, never `;`, before push or deploy.
 - **The acceptance suite is the release gate, opted into per deploy** — read-only, with its own token and bucket; `--acceptance=<family>` when a tool in that family changes, the whole suite for shared code or a release; a skip prints a warning.
 - **The Gym has standing authority** — it fixes and deploys its findings without asking, one contract bump per family round, no MCP majors, under its own `gym` principal; a change to a response the JSON API mirrors stops for Jamie; a refuted case is pruned once what it tests is gone.
 - **Close the loop** — feedback is never actioned invisibly; acceptance means passing from the first call; every contract bump updates the changelog.
 - **Feedback is one system** — every door (MCP, `/api/v1/feedback`, the Console, Ladder, Elixir Clan, the docs, an email footer) files into `feedback` through `@elixir-mcp/feedback`, with an `area` and `feedback_ref` pointers; one admin queue answers all of it, and only the Elixir admin answers (2026-10-08, Jamie). Sign-in required, no anonymous feedback for beta; `admin@poapkings.com` is the fallback. A person is mailed each answer they have not already read (`feedback_answer`, one per answer). An agent relays a person's feedback with `on_behalf_of`; the answer goes to the agent. Drop stays out.
 - **New indexes or tools must collapse a measured walk** — check an audit claim against the calling client first.
-- **Standing owners** — four objective owners (Elixir Operator, Data Auditor, Feedback Manager, Security Reviewer) cover Elixir and Clan (`AGENT-TEAM/`); there is no Rankings Analyst and no separate Clan owner.
+- **The agent team lives outside this repository** — its roles, cadences and authority are in the private Clash Royale domain repository (2026-10-10); how Elixir is operated is `docs/OPERATIONS.md`, changed with the code; Clan has no separate owner.
 
 ## Declined
 

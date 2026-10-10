@@ -8,7 +8,7 @@ import {
 export { normalizeRelatedTools } from "@elixir-mcp/feedback";
 
 /** The ops lanes over the one feedback record (0204): the same service
- *  the admin queue uses, so the Feedback Manager's answer is the admin
+ *  the admin queue uses, so an answer sent through the op is the admin
  *  page's answer (news again when the words change, mailed to a person). */
 async function withDb(databaseUrl, run) {
   const db = new pg.Client({ connectionString: databaseUrl });
