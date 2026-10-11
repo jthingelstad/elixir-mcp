@@ -477,3 +477,44 @@ test("needs_info is an answer: it raises the pending count and the filer replies
     "the reply is in the maintainer's queue",
   );
 });
+
+test("needs_info carries a new question: none, or the current response, is refused (Codex on #479)", async () => {
+  const { feedback_id: id } = await fileFeedback(db, {
+    account: agent,
+    surface: "mcp",
+    area: "mcp",
+    message: "Something is off.",
+  });
+  await assert.rejects(
+    answerFeedback(db, { feedbackId: id, status: "needs_info" }),
+    (err) => err instanceof FeedbackError && err.code === "needs_question",
+  );
+  await assert.rejects(
+    answerFeedback(db, {
+      feedbackId: id,
+      status: "needs_info",
+      response: "  ",
+    }),
+    (err) => err instanceof FeedbackError && err.code === "needs_question",
+  );
+  const first = await answerFeedback(db, {
+    feedbackId: id,
+    status: "seen",
+    response: "Looking.",
+  });
+  assert.equal(first.updated, 1);
+  await assert.rejects(
+    answerFeedback(db, {
+      feedbackId: id,
+      status: "needs_info",
+      response: "Looking.",
+    }),
+    (err) => err instanceof FeedbackError && err.code === "needs_question",
+  );
+  const asked = await answerFeedback(db, {
+    feedbackId: id,
+    status: "needs_info",
+    response: "Which window did you read?",
+  });
+  assert.equal(asked.answered, true);
+});

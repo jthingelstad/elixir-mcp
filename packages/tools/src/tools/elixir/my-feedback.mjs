@@ -175,7 +175,7 @@ export const elixir_my_feedback = {
         status: args.status,
         since: args.since,
         area: args.area,
-        verbosity: compact ? "compact" : undefined,
+        verbosity: compact ? "compact" : "full",
       }),
       feedback,
       total,

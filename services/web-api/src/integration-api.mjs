@@ -86,7 +86,10 @@ const FEEDBACK_FIELDS = [
   "refs",
   "follows_id",
 ];
-const FEEDBACK_QUERY = ["status", "since", "area"];
+// feedback_id and verbosity (JSON API 3.2.0) reach the tool too: without
+// them a single read returned the list, and compact returned bodies and
+// marked them seen.
+const FEEDBACK_QUERY = ["feedback_id", "status", "since", "area", "verbosity"];
 function feedbackRoute(method, query, body) {
   if (method === "POST")
     return {

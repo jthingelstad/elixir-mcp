@@ -257,3 +257,24 @@ test("a database connection or timeout failure stays a 503 with Retry-After", as
     assert.equal(response.headers["retry-after"], "5");
   }
 });
+
+test("GET /feedback forwards feedback_id and verbosity to the tool (3.2.0, Codex on #479)", async () => {
+  const read = async (query) => {
+    const response = await handler({
+      rawPath: "/api/v1/feedback",
+      queryStringParameters: query,
+      requestContext: { http: { method: "GET" } },
+      headers: { authorization: `Bearer ${personToken}` },
+    });
+    return { status: response.statusCode, body: JSON.parse(response.body) };
+  };
+  // Dropped, feedback_id read the default list (200); passed, an id the
+  // caller does not own is not_found.
+  const one = await read({ feedback_id: "999999" });
+  assert.equal(one.status, 404, JSON.stringify(one.body));
+  const compact = await read({ verbosity: "compact" });
+  assert.equal(compact.status, 200, JSON.stringify(compact.body));
+  assert.equal(compact.body.data.applied.verbosity, "compact");
+  const full = await read({});
+  assert.equal(full.body.data.applied.verbosity, "full");
+});
