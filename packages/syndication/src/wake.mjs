@@ -17,6 +17,7 @@
  *  Settings, Social) is woken the same way, by its own tag or a
  *  member's. */
 import { clanWakeId } from "./clan-sync.mjs";
+import { OPEN_MS } from "./sync.mjs";
 
 const WAKE_SQL = `
   select d.account_id from timeline_discord d
@@ -99,4 +100,41 @@ export async function wakeAfterFact(db, fact, { outbox, now = Date.now() }) {
     console.error("syndication_wake_failed", err?.code ?? err?.name ?? "error");
     return 0;
   }
+}
+
+/** A sitting is over once its last battle is this old (the timeline's
+ *  SESSION_GAP_MS, 30 minutes), and a minute for the read. */
+const SITTING_QUIET_MS = 31 * 60_000;
+/** A quiet sitting's account is woken at most once in this long. */
+const SITTING_WAKE_EVERY_MS = 15 * 60_000;
+
+/**
+ * The closing edit of a sitting told while open (#454). An admission
+ * wakes the sync, but a sitting closes when nothing more happens, so no
+ * admission comes to drop "still going" from its line. The accounts with
+ * a sitting told open and nothing told of it for SITTING_QUIET_MS are
+ * woken (one timeline-sync object each, at most once a quarter hour),
+ * and the sync reads the sitting again from its start and edits it
+ * closed. This wakes only accounts that already have a line waiting to
+ * close: it is not a poll of the timeline. A wake that finds the sitting
+ * still open changes nothing; the sync stops reading a sitting OPEN_MS
+ * after it began, and so does this.
+ */
+export async function wakeClosingSittings(db, { outbox, now = Date.now() }) {
+  if (!outbox) return 0;
+  const { rows } = await db.query(
+    `select distinct t.account_id
+       from timeline_discord_told t
+       join timeline_discord d on d.account_id = t.account_id and d.enabled
+      where t.open_from > $1 and t.told_at < $2`,
+    [new Date(now - OPEN_MS), new Date(now - SITTING_QUIET_MS)],
+  );
+  const slot = Math.floor(now / SITTING_WAKE_EVERY_MS);
+  for (const { account_id } of rows)
+    await outbox(
+      "timeline-sync",
+      { v: 1, account_id },
+      { id: `${account_id}.sitting.${slot}`, once: true },
+    );
+  return rows.length;
 }

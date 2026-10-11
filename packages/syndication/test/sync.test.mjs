@@ -17,6 +17,7 @@ import { createBox } from "../../clan/src/sealed.mjs";
 import {
   syncAccount,
   accountsToWake,
+  wakeClosingSittings,
   wakeSyndication,
   saveDiscordSetting,
   readDiscordSetting,
@@ -155,6 +156,33 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   });
   assert.equal(sent.length, 2);
 
+  // No admission comes when a sitting ends (#454): once nothing of it
+  // has been told for half an hour, its account is woken, once a
+  // quarter hour, so the sync can edit it closed.
+  const wakes = recorder();
+  assert.equal(
+    await wakeClosingSittings(ctx.db, {
+      outbox: wakes.outbox,
+      now: Date.parse("2026-09-02T19:05Z"),
+    }),
+    0,
+    "told 25 minutes ago: maybe still being played",
+  );
+  assert.equal(
+    await wakeClosingSittings(ctx.db, {
+      outbox: wakes.outbox,
+      now: Date.parse("2026-09-02T19:20Z"),
+    }),
+    1,
+  );
+  assert.deepEqual(wakes.sent[0].message, { v: 1, account_id: person });
+  assert.equal(wakes.sent[0].lane, "timeline-sync");
+  assert.equal(wakes.sent[0].opts.once, true);
+  assert.match(
+    wakes.sent[0].opts.id,
+    new RegExp(`^${person}\\.sitting\\.\\d+$`),
+  );
+
   // 20:30: the sitting closed with no new battle, and is edited once to
   // drop "still going"; the 19:20 battle is a sitting of its own.
   await syncAccount(ctx.db, person, {
@@ -170,6 +198,14 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   assert.ok(
     (await told(person)).every((r) => r.open_from === null),
     "a closed sitting is not read again",
+  );
+  assert.equal(
+    await wakeClosingSittings(ctx.db, {
+      outbox: wakes.outbox,
+      now: Date.parse("2026-09-02T21:30Z"),
+    }),
+    0,
+    "edited closed: nothing more to wake for",
   );
 });
 

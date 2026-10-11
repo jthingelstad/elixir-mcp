@@ -679,17 +679,16 @@ Resources:
                 Action: s3:PutObject
                 Resource:
                   - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/email/*
+              # Wakes for the timeline sync: a Clan hand-off's, a minute on,
+              # to collect its answers (2026-10-11), and a cross-posted
+              # sitting's closing edit once it goes quiet (#454).
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-sync/*
               # The morning run's Actions in a clan's Discord (2026-10-10):
               # posts and edits to the relay, and their answers back. A
               # missing answer is confirmed with an exact-key, one-result
-              # list, as the relay does. A hand-off wakes the timeline
-              # sync a minute on to collect the answers (2026-10-11).
-              - !If
-                - HasInternalClan
-                - Effect: Allow
-                  Action: s3:PutObject
-                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-sync/*
-                - !Ref AWS::NoValue
+              # list, as the relay does.
               - !If
                 - HasInternalClan
                 - Effect: Allow
@@ -1629,6 +1628,25 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt CollectorUpgradeRule.Arn
+  # A timeline sitting cross-posted to Discord while still open is
+  # edited closed once it goes quiet (#454): no admission comes when a
+  # sitting ends, so this wakes the sync for those accounts alone.
+  DiscordSittingsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: elixir-mcp-discord-sittings
+      ScheduleExpression: rate(5 minutes)
+      Targets:
+        - Arn: !GetAtt JobsFunction.Arn
+          Id: discord-sittings
+          Input: '{"discord_sittings": true}'
+  DiscordSittingsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref JobsFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DiscordSittingsRule.Arn
   EmailMilestoneRule:
     Type: AWS::Events::Rule
     Properties:

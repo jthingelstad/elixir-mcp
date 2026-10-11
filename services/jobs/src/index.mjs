@@ -16,6 +16,7 @@ import pg from "pg";
 import { sweepSilentCollectors } from "./fleet.mjs";
 import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
 import { makeOutbox } from "@elixir-mcp/outbox";
+import { wakeClosingSittings } from "@elixir-mcp/syndication";
 import { runFeedbackAnswers } from "./email/feedback-answers.mjs";
 import { runCollectorUpgrades } from "./email/collector-upgrades.mjs";
 import { runEmail } from "./email/index.mjs";
@@ -132,6 +133,19 @@ export async function archetypeStampNightly(databaseUrl) {
   try {
     const vocab = await loadVocabulary(db);
     return await stampDecks(db, vocab, {});
+  } finally {
+    await db.end();
+  }
+}
+
+/** Wake the timeline sync for each account whose cross-posted sitting
+ *  went quiet while told open (syndication wakeClosingSittings). */
+async function closingSittings(databaseUrl, { wakeOutbox = outbox } = {}) {
+  if (!wakeOutbox) return { skipped: "no_outbox" };
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    return { woken: await wakeClosingSittings(db, { outbox: wakeOutbox }) };
   } finally {
     await db.end();
   }
@@ -329,6 +343,14 @@ export async function handler(event, context) {
       outboxBucket: process.env.OUTBOX_BUCKET ?? null,
     });
     console.log(JSON.stringify({ clan_evaluate: result }));
+    return result;
+  }
+  // The closing edit of a timeline sitting cross-posted to Discord while
+  // still open (#454): its own five-minute rule wakes the sync for the
+  // accounts whose open sitting has gone quiet.
+  if (event?.discord_sittings) {
+    const result = await closingSittings(process.env.DATABASE_URL);
+    console.log(JSON.stringify({ discord_sittings: result }));
     return result;
   }
   if (event?.collector_upgrades) {
