@@ -346,17 +346,6 @@ export const elixir_timeline = {
           quiet: [],
         }
       : await buildFor(basis);
-    // A member session the window cuts recurs in the next read (Gym
-    // #302); a read that holds each sitting whole says nothing. Since
-    // 11.8.0 a standout sitting is the member's session too (#374).
-    const sittingCut =
-      Boolean(memberTag) &&
-      built.timeline.some(
-        (it) =>
-          (it.kind === "battle_session" || it.kind === "session_standout") &&
-          (it.facts?.open ||
-            Date.parse(it.facts?.started_at ?? it.at) < fromMs),
-      );
     const keep = (entry) => {
       if (!compact && !sections) return entry;
       const allowed = new Set([...ALWAYS, ...(compact ? [] : sections)]);
@@ -451,6 +440,19 @@ export const elixir_timeline = {
       cutMs === null && stuckAt === null
         ? 0
         : all.length - timeline.length + droppedShown.length;
+    // A member session the window cuts recurs in the next read (Gym
+    // #302); a read that holds each sitting whole says nothing. Since
+    // 11.8.0 a standout sitting is the member's session too (#374). The
+    // page served is what is checked, not what the size cut left out
+    // (Codex on #475).
+    const sittingCut =
+      Boolean(memberTag) &&
+      timeline.some(
+        (it) =>
+          (it.kind === "battle_session" || it.kind === "session_standout") &&
+          (it.facts?.open ||
+            Date.parse(it.facts?.started_at ?? it.at) < fromMs),
+      );
     // The read always reaches the window's end: what the cap left out is
     // counted, not queued.
     const endMs = toMs;
