@@ -133,7 +133,7 @@ section, text, visibility, publishable, facts, follow }`:
 | field | what it is |
 |---|---|
 | `id` | the story the item tells: opaque (`tl_` and 20 hex characters), the same in every read and every window. It names the happening, not the reader, and a read serves each `id` once ([One story, one item](#one-story-one-item)). Never a ledger sequence number |
-| `revision` | how far the story has grown: 1 for a moment that never grows. A sitting's is its battles the record holds so far, so a sitting told at 20 battles and read again at 40 is the same `id` at a higher `revision`; a crossing's is its proof's attachment revision, so a move proved late comes back once, grown |
+| `revision` | how far the story has grown: 1 for a moment that never grows. A sitting's is its battles the record holds so far, so a sitting told at 20 battles and read again at 40 is the same `id` at a higher `revision`; a crossing's is its proof's attachment revision |
 | `at` | when it happened; what that means for each kind is in [the facts table](#the-facts-keys-by-kind) |
 | `sort_at` | the instant the feed is ordered by and an occurred window selects on: a sitting's last battle, else `at` |
 | `at_unix` | `at` in Unix seconds, for a renderer's own clock |
@@ -152,8 +152,8 @@ section, text, visibility, publishable, facts, follow }`:
 
 | kind | subject | what it is |
 |---|---|---|
-| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more: battles, record, modes, ladder trophy net and its peak, the decks played (by archetype label) and the events named, `won_in_a_row`, `open` while it may still be going. On a player's own timeline every sitting is an item, a single battle included; a clan's members' ordinary sessions are not items there (see `session_standout`, and `player_tag` below). A reader that moves its pointer sees each sitting once; a member read (`player_tag`) keeps no pointer, so a sitting still being learned can come back with a running total under the same `id` at a higher `revision`: update, never retell. |
-| `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500, `battles` 20 / 40 in one sitting. The session shape plus `crossed` (every rung so far), `newly` (the rungs this window learned) and `crossings` (each rung with the battle that crossed it and the value there); `at` is the battle that crossed the first new rung. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing; a new rung is the sitting's `id` at a higher `revision`. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
+| `battle_session` | player | a run of recorded battles with no gap of 30 minutes or more, `open` while it may still be going. On a player's own timeline every sitting is an item, a single battle included; a clan's members' ordinary sessions are not items there (see `session_standout`, and `player_tag` below). A reader that moves its pointer sees each sitting once; a member read (`player_tag`) keeps no pointer, so a sitting still being learned can come back with a running total under the same `id` at a higher `revision`: update, never retell. |
+| `session_standout` | a clan's member | a member's session that crossed a disclosed rung: `won_in_a_row` 5 / 10 / 20, ladder `trophy_net` ±150 / ±300 / ±500, `battles` 20 / 40 in one sitting. Once per rung: a session is never re-reported, and a window that learns more of the same session without a new rung carries nothing; a new rung is the sitting's `id` at a higher `revision`. The clan entry lists the five strongest under `standouts.sessions` with the rungs under `standouts.session_rungs`. Absolute trophy bands on purpose - a win is worth about the same at every ladder floor |
 | `badge_earned`, `legendary_badge_earned` | player, or a clan's member | a tiered badge levelled up, or a one-off badge: `facts.badge` is the badge's API identifier (`MasterySkeletonWarriors`), `facts.badge_label` the badge as a player says it (`Guards Mastery`), `facts.name` the member on a clan's timeline. A level-up is an item only at the badge's final level or a multiple of five (`max_level` is absent on the oldest rows); the entry's `badges` counts every level-up |
 | `arena_changed` | player, or a clan's member | arena moved, named from the arena catalog. When the record holds the crossing, `facts.promoted_by` names the win that reached the new arena's floor and `at` is that battle's instant rather than the poll's; absent means a capture gap, never a guess |
 | `ranked_promotion` | player, or a clan's member | Path of Legends league went up, by name. `facts.promoted_by` names the promoting battle when the record holds it: the last win played in the league below (a ranked battle is stamped with the league it started in), with `at` at that battle |
@@ -165,7 +165,7 @@ section, text, visibility, publishable, facts, follow }`:
 | `member_joined`, `member_left`, `member_role_changed` | clan | who, with the role; a departure is raw, the game cannot tell a leave from a kick (a clan's leaders can, through Elixir Clan: `departure_classified`), so its sentence says the member departed, never that they left; a classified kick says the member was removed. The same baseline rule: a clan's first roster read, and the first read of a clan that was read only for its tracked players before it was tracked, name nobody as joining |
 | `bracket_observed` | clan | the record's first sight of a new war week: `season_id`, `section_index`, `is_colosseum`, and `rivals[]` - the other four clans with `tag`, `name` and `recorded` (whether the hub records that clan, so a scout knows what it can drill). The week's start *time* is not here; `game_clock` has it |
 | `race_finished` | clan | the boat crossed the finish line, with fame |
-| `week_resolved` | clan | the week finished: fame, rank among the five, war trophy change, and each member's week (`members`: decks used and points, most points first) |
+| `week_resolved` | clan | the week finished: fame, rank among the five, war trophy change, and each member's week by points |
 | `quiet_crossed`, `returned` | player, or a clan's member | a member crossed 5, 10 or 20 recorded-quiet days (never while the silence is ours: `days_since_poll` rides along), or played again after seven or more |
 | `account_*` | your account | feedback answered (`account_feedback_responded`), recordings started or stopped, clans added or removed (the text names the clan; one Elixir made on its own says "automatically" and whose clan it followed), role changes (`account_role_changed`), connections, by the app's name. A burst of one kind within a minute (six connections revoked at once) is one item with `count`. Never publishable |
 | `departure_classified`, `role_change_made`, `award_granted`, `award_standing`, `member_away`, `clan_message` | clan | [attested facts](/docs/integrations#attested-facts): what a person did in the clan through a family app (a leader says a departure was a kick or a leave; a promotion made; the clan's own award; a member away; a Clan Leader Message or clan chat line), and what the app itself computed (`award_standing`: where a member stands in one of the clan's awards). Section `attested`; `facts` is the fact's detail plus `player_tag` and `name` for the member it is about (and `previous_name` beside a standing's `previous_player_tag`), `attested_by` (`app`, `player_tag`, `name`, `role`; the last three null on the app's own fact) and `visibility`. Shown only to a reader whose verified player (an agent's owner's) is in the clan; an away only to a **person** whose verified player leads it, never to an agent. A departure's kind reaches the clan and its agent. `at` is when it happened; it is selected by when Elixir recorded it |
@@ -226,11 +226,9 @@ twice in a read, and `text` names everyone by their in-game name.
 
 ### Telling the story
 
-A moment that gains its proof late (an arena move the roster saw before
-the battle log delivered the promoting battle) is served again under the
-same `id` at a higher `revision`, the proof's `evidence.attachment_revision`,
-now carrying the battle in its `facts` and `text`. This is an update to
-that moment, not another achievement: edit what you told, or say nothing.
+A moment that gains its proof late is served again under the same `id`
+at a higher `revision`, with the battle in its `facts` and `text`: an
+update to that moment, not another achievement.
 
 Post once per `id`, and only an item that is `publishable`. When a later
 read serves an `id` you have told at a higher `revision`, the story grew: update it, or say "and now...", and
@@ -305,8 +303,7 @@ standing and wider mixed-mode statistics separate from the crossing's evidence.
 Otherwise it says `unknown`; it never substitutes the nearest game. A
 roster-observed arena move can later gain proof: its original logical
 origin is frozen before enrichment, its ID stays the same, and its evidence
-revision, the item's `revision` and its observation time advance when the
-proof arrives.
+revision, `revision` and observation time advance when the proof arrives.
 
 An agent passes `evidence_item_id` to `elixir_timeline`, with the original
 `from` and `to`, `evidence_offset` (default 0), `evidence_limit` (1–25), and
@@ -353,7 +350,7 @@ about a player, a member's moment on a clan's timeline included, carries
 | kind | version | `at` is | `facts` |
 |---|---|---|---|
 | `battle_session` | 2 | the sitting's first battle; `sort_at` is its last | `player_tag`, `name`, `started_at`, `ended_at`, `duration_s`, `battles`, `won`, `lost`, `drawn`, `by_mode` (battles per mode group), `trophy_net` (the session's ladder net), `trophy_net_peak` (the running ladder net furthest from zero), `won_in_a_row`, `open`, `decks` (up to three `{ label, battles }`, by archetype label), `events` (`{ event_tag, name, battles }` per event or challenge played) |
-| `session_standout` | 3 | the battle that crossed the first new rung; `sort_at` is the sitting's last battle | the session's keys, plus `crossed` (every rung passed, as `won_in_a_row>=5`, `trophy_net>=300`, `battles>=20`), `newly` (the rungs this window learned) and `crossings` (each rung's `{ rung, key, threshold, value, at, battle_id }`: the value at the battle that crossed it, signed, so a trophy rung crossed going down reads negative, and that battle), [`teammate`] (`{ player_tag, name, battles }`: the partner in most of the sitting's 2v2 battles; a clanmate's sitting of the same games says the same, so tell the pair once), [`best_win`] (the win over the opponent who started it with the most trophies, in the shape below plus `mode`; absent when no win's opponent has recorded trophies) |
+| `session_standout` | 3 | the battle that crossed the first new rung; `sort_at` is the sitting's last battle | the session's keys, plus `crossed` (every rung passed, as `won_in_a_row>=5`, `trophy_net>=300`, `battles>=20`), `newly` (the rungs this window learned) and `crossings` (each rung's `{ rung, key, threshold, value, at, battle_id }`: the value at the battle that crossed it, signed, so a trophy rung crossed going down reads negative, and that battle), [`teammate`] (`{ player_tag, name, battles }`, the 2v2 partner: tell a pair's sittings once), [`best_win`] (the win over the highest-rated opponent, the battle shape below plus `mode`) |
 | `badge_earned` | 2 | the profile read that saw the level | `player_tag`, `name`, `badge`, `badge_label`, [`level`, `max_level`, `prior_level`] |
 | `legendary_badge_earned` | 2 | the profile read that saw it | `player_tag`, `name`, `badge`, `badge_label` |
 | `arena_changed` | 2 | the promoting battle when `promoted_by` is there, else the read that saw the move | `player_tag`, `name`, `from`, `to` (arena ids), `from_name`, `to_name`, [`promoted_by`] |
@@ -370,7 +367,7 @@ about a player, a member's moment on a clan's timeline included, carries
 | `member_role_changed` | 1 | the roster read that saw the new role | `player_tag`, `name`, `role_before`, `role_after`, `direction`, `roster_size_before`, `roster_size_after` |
 | `bracket_observed` | 1 | the record's first sight of the week | `season_id`, `section_index`, `is_colosseum`, `rivals[]` (`tag`, `name`, `recorded`) |
 | `race_finished` | 1 | the finish, when the race log gives it, else the read that saw it | `season_id`, `section_index`, `fame`, `finish_time` |
-| `week_resolved` | 2 | the read that saw the week close | `season_id`, `section_index`, `is_colosseum`, `fame`, `rank`, `trophy_change`, `members` (`player_tag`, `name`, `decks_used`, `points`, most points first; `text` names the three with the most points, with their points and decks) |
+| `week_resolved` | 2 | the read that saw the week close | `season_id`, `section_index`, `is_colosseum`, `fame`, `rank`, `trophy_change`, `members` (`player_tag`, `name`, `decks_used`, `points`, most points first; `text` names the top three) |
 | `quiet_crossed` | 2 | the last battle plus the rung's days | `player_tag`, `name`, `rung` (5, 10 or 20), `days_quiet`, `days_since_poll`, [`role` on a clan's timeline] |
 | `returned` | 2 | the battle that ended the absence | `player_tag`, `name`, `after_days` |
 | `account` | 2 | the first event of the burst | every `account_*` kind: the event's own detail (a feedback id and status, a subject tag, a tier), `count` (events in the burst) and `apps` (the apps named) |
