@@ -16,6 +16,7 @@ import {
   waitFor,
   cleanup,
   within,
+  configure,
 } from "@testing-library/react";
 import {
   ACCOUNT_RAIL,
@@ -29,6 +30,13 @@ import {
   railConsoles,
   railPosition,
 } from "../src/App.jsx";
+
+// This file renders the whole App, routes and all, from a cold module
+// graph. Testing Library's 1 s default wait reads a slow first paint on a
+// loaded machine as a missing element (first-answer failed so, #488).
+// Bound the wait as the other whole-App journeys do
+// (account-journeys.test.jsx), with a 20 s bound on each test that renders it.
+configure({ asyncUtilTimeout: 5000 });
 
 const ME = {
   authenticated: true,
@@ -280,67 +288,79 @@ test("the switcher leaves a removed agent out unless it is open", () => {
   ]);
 });
 
-test("wide: the rail is a list, with no disclosure to open", async () => {
-  window.history.pushState({}, "", "/console/account/overview");
-  render(<App />);
-  await waitFor(() =>
-    expect(screen.getByRole("navigation", { name: "Console sections" })),
-  );
-  // Scoped to the rail: the top bar has its own expandable button now
-  // (the narrow menu), which is a different control on a different
-  // element and is present at every width.
-  // The only button in it is the console switcher, never a disclosure
-  // over the list.
-  const rail = document.querySelector(".rail");
-  expect(rail.querySelector(".rail__toggle")).toBeNull();
-  expect(
-    within(rail)
-      .getAllByRole("button")
-      .every((b) => b.classList.contains("rail__switch-head")),
-  ).toBe(true);
-  expect(within(rail).getByRole("link", { name: /Tracking/ })).toBeTruthy();
-});
+test(
+  "wide: the rail is a list, with no disclosure to open",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/console/account/overview");
+    render(<App />);
+    await waitFor(() =>
+      expect(screen.getByRole("navigation", { name: "Console sections" })),
+    );
+    // Scoped to the rail: the top bar has its own expandable button now
+    // (the narrow menu), which is a different control on a different
+    // element and is present at every width.
+    // The only button in it is the console switcher, never a disclosure
+    // over the list.
+    const rail = document.querySelector(".rail");
+    expect(rail.querySelector(".rail__toggle")).toBeNull();
+    expect(
+      within(rail)
+        .getAllByRole("button")
+        .every((b) => b.classList.contains("rail__switch-head")),
+    ).toBe(true);
+    expect(within(rail).getByRole("link", { name: /Tracking/ })).toBeTruthy();
+  },
+);
 
-test("narrow: the rail is a disclosure above the content, not a drawer", async () => {
-  vi.stubGlobal("matchMedia", (q) => ({
-    matches: q === "(max-width: 900px)",
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }));
-  window.history.pushState({}, "", "/console/account/overview");
-  render(<App />);
+test(
+  "narrow: the rail is a disclosure above the content, not a drawer",
+  { timeout: 20000 },
+  async () => {
+    vi.stubGlobal("matchMedia", (q) => ({
+      matches: q === "(max-width: 900px)",
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    window.history.pushState({}, "", "/console/account/overview");
+    render(<App />);
 
-  // Closed, it names the section and hides the list — and it is a
-  // sibling of the content, never positioned over it.
-  const rail = await waitFor(() => {
-    const el = document.querySelector(".rail");
-    expect(el).toBeTruthy();
-    return el;
-  });
-  const toggle = within(rail).getByRole("button", { expanded: false });
-  expect(toggle.textContent).toContain("Overview");
-  expect(
-    screen.queryByRole("navigation", { name: "Console sections" }),
-  ).toBeNull();
+    // Closed, it names the section and hides the list — and it is a
+    // sibling of the content, never positioned over it.
+    const rail = await waitFor(() => {
+      const el = document.querySelector(".rail");
+      expect(el).toBeTruthy();
+      return el;
+    });
+    const toggle = within(rail).getByRole("button", { expanded: false });
+    expect(toggle.textContent).toContain("Overview");
+    expect(
+      screen.queryByRole("navigation", { name: "Console sections" }),
+    ).toBeNull();
 
-  const main = document.querySelector("main");
-  expect(
-    rail.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
+    const main = document.querySelector("main");
+    expect(
+      rail.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
-  toggle.click();
-  await waitFor(() =>
-    expect(screen.getByRole("navigation", { name: "Console sections" })),
-  );
-});
+    toggle.click();
+    await waitFor(() =>
+      expect(screen.getByRole("navigation", { name: "Console sections" })),
+    );
+  },
+);
 
-test("the docs strip is on the page, and it is the page's own entry", async () => {
-  window.history.pushState({}, "", "/console/account/usage");
-  render(<App />);
-  // Usage is about budgets; the strip must say so rather than "docs".
-  expect(await screen.findByText(/Docs · Budgets/)).toBeTruthy();
-  expect(screen.getByRole("link", { name: "Limits" })).toBeTruthy();
-});
+test(
+  "the docs strip is on the page, and it is the page's own entry",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/console/account/usage");
+    render(<App />);
+    // Usage is about budgets; the strip must say so rather than "docs".
+    expect(await screen.findByText(/Docs · Budgets/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Limits" })).toBeTruthy();
+  },
+);
 
 test("an agent's console: its pages and nothing of a person's, one segment along", () => {
   expect(AGENT_RAIL.map((r) => r.key)).toEqual([

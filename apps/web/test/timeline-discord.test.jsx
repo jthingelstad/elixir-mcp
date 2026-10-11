@@ -11,8 +11,16 @@ import {
   waitFor,
   cleanup,
   fireEvent,
+  configure,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+
+// This file renders the whole App, routes and all, from a cold module
+// graph. Testing Library's 1 s default wait reads a slow first paint on a
+// loaded machine as a missing element (first-answer failed so, #488).
+// Bound the wait as the other whole-App journeys do
+// (account-journeys.test.jsx), with a 20 s bound on each test that renders it.
+configure({ asyncUtilTimeout: 5000 });
 
 const ME = {
   authenticated: true,
@@ -85,109 +93,135 @@ async function open() {
   );
 }
 
-test("off with no webhook: it asks for one, and saving turns it on", async () => {
-  setting = OFF;
-  await open();
-  const input = screen.getByRole("textbox", { name: "Discord webhook URL" });
-  fireEvent.change(input, {
-    target: { value: " https://discord.com/api/webhooks/1234/abcd " },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Turn on" }));
-  await waitFor(() => expect(puts.length).toBe(1));
-  expect(puts[0]).toEqual({
-    url: "https://discord.com/api/webhooks/1234/abcd",
-    enabled: true,
-  });
-  await waitFor(() => screen.getByText(/A first line was sent to the channel/));
-});
+test(
+  "off with no webhook: it asks for one, and saving turns it on",
+  { timeout: 20000 },
+  async () => {
+    setting = OFF;
+    await open();
+    const input = screen.getByRole("textbox", { name: "Discord webhook URL" });
+    fireEvent.change(input, {
+      target: { value: " https://discord.com/api/webhooks/1234/abcd " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Turn on" }));
+    await waitFor(() => expect(puts.length).toBe(1));
+    expect(puts[0]).toEqual({
+      url: "https://discord.com/api/webhooks/1234/abcd",
+      enabled: true,
+    });
+    await waitFor(() =>
+      screen.getByText(/A first line was sent to the channel/),
+    );
+  },
+);
 
-test("on: the webhook is shown shortened, and it can be turned off", async () => {
-  setting = ON;
-  await open();
-  expect(screen.getAllByText(ON.webhook).length).toBeGreaterThan(0);
-  expect(screen.queryByRole("textbox", { name: "Discord webhook URL" })).toBe(
-    null,
-  );
-  fireEvent.click(screen.getByRole("button", { name: "Turn off" }));
-  await waitFor(() => expect(puts.length).toBe(1));
-  expect(puts[0]).toEqual({ enabled: false });
-  await waitFor(() => screen.getByText(/Turned off/));
-});
+test(
+  "on: the webhook is shown shortened, and it can be turned off",
+  { timeout: 20000 },
+  async () => {
+    setting = ON;
+    await open();
+    expect(screen.getAllByText(ON.webhook).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("textbox", { name: "Discord webhook URL" })).toBe(
+      null,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Turn off" }));
+    await waitFor(() => expect(puts.length).toBe(1));
+    expect(puts[0]).toEqual({ enabled: false });
+    await waitFor(() => screen.getByText(/Turned off/));
+  },
+);
 
-test("on: Change webhook asks for the new one, and cancel puts it back", async () => {
-  setting = ON;
-  await open();
-  fireEvent.click(screen.getByRole("button", { name: "Change webhook" }));
-  expect(
-    screen.getByRole("textbox", { name: "Discord webhook URL" }),
-  ).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Save webhook" })).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "cancel" }));
-  expect(screen.queryByRole("textbox", { name: "Discord webhook URL" })).toBe(
-    null,
-  );
-});
+test(
+  "on: Change webhook asks for the new one, and cancel puts it back",
+  { timeout: 20000 },
+  async () => {
+    setting = ON;
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Change webhook" }));
+    expect(
+      screen.getByRole("textbox", { name: "Discord webhook URL" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Save webhook" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "cancel" }));
+    expect(screen.queryByRole("textbox", { name: "Discord webhook URL" })).toBe(
+      null,
+    );
+  },
+);
 
-test("off because Discord said the webhook is gone: the page says why", async () => {
-  setting = {
-    ...OFF,
-    webhook: ON.webhook,
-    enabled_at: ON.enabled_at,
-    disabled_reason: "webhook_gone",
-    disabled_at: "2026-10-10T16:00:00Z",
-  };
-  await open();
-  expect(screen.getByRole("alert").textContent).toMatch(
-    /webhook no longer exists/,
-  );
-  // A new webhook is asked for, not the dead one turned back on.
-  expect(
-    screen.getByRole("textbox", { name: "Discord webhook URL" }),
-  ).toBeTruthy();
-});
+test(
+  "off because Discord said the webhook is gone: the page says why",
+  { timeout: 20000 },
+  async () => {
+    setting = {
+      ...OFF,
+      webhook: ON.webhook,
+      enabled_at: ON.enabled_at,
+      disabled_reason: "webhook_gone",
+      disabled_at: "2026-10-10T16:00:00Z",
+    };
+    await open();
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /webhook no longer exists/,
+    );
+    // A new webhook is asked for, not the dead one turned back on.
+    expect(
+      screen.getByRole("textbox", { name: "Discord webhook URL" }),
+    ).toBeTruthy();
+  },
+);
 
-test("off by the owner with a saved webhook: Turn on uses it", async () => {
-  setting = {
-    ...OFF,
-    webhook: ON.webhook,
-    disabled_reason: "owner",
-    disabled_at: "2026-10-10T16:00:00Z",
-  };
-  await open();
-  fireEvent.click(screen.getByRole("button", { name: "Turn on" }));
-  await waitFor(() => expect(puts.length).toBe(1));
-  expect(puts[0]).toEqual({ enabled: true });
-});
+test(
+  "off by the owner with a saved webhook: Turn on uses it",
+  { timeout: 20000 },
+  async () => {
+    setting = {
+      ...OFF,
+      webhook: ON.webhook,
+      disabled_reason: "owner",
+      disabled_at: "2026-10-10T16:00:00Z",
+    };
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Turn on" }));
+    await waitFor(() => expect(puts.length).toBe(1));
+    expect(puts[0]).toEqual({ enabled: true });
+  },
+);
 
-test("on: the last deliveries are listed, and your clan's own channel is named, nothing filtered", async () => {
-  setting = {
-    ...ON,
-    deliveries: [
-      {
-        at: "2026-10-10T15:00:00Z",
-        outcome: "refused",
-        ref: "tl_0123456789abcdef0123",
-        http_status: 400,
-        reason: "Invalid Form Body",
-        excerpt: "a line Discord would not take",
-      },
-      {
-        at: "2026-10-10T14:30:00Z",
-        outcome: "posted",
-        ref: "tl_0123456789abcdef0124",
-        excerpt: "five battles",
-      },
-    ],
-    not_delivered: 1,
-    clan_channels: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
-  };
-  await open();
-  const list = screen.getByRole("list", { name: "Last deliveries" });
-  expect(list.textContent).toContain("Discord: HTTP 400, Invalid Form Body");
-  expect(list.textContent).toContain("five battles");
-  expect(list.textContent).not.toContain("tl_", "an item's id says nothing");
-  expect(screen.getByText(/1 not delivered in 30 days/)).toBeTruthy();
-  expect(screen.getByRole("note").textContent).toMatch(
-    /POAP KINGS posts the clan’s activity to a Discord channel of its own.*Nothing here is filtered/,
-  );
-});
+test(
+  "on: the last deliveries are listed, and your clan's own channel is named, nothing filtered",
+  { timeout: 20000 },
+  async () => {
+    setting = {
+      ...ON,
+      deliveries: [
+        {
+          at: "2026-10-10T15:00:00Z",
+          outcome: "refused",
+          ref: "tl_0123456789abcdef0123",
+          http_status: 400,
+          reason: "Invalid Form Body",
+          excerpt: "a line Discord would not take",
+        },
+        {
+          at: "2026-10-10T14:30:00Z",
+          outcome: "posted",
+          ref: "tl_0123456789abcdef0124",
+          excerpt: "five battles",
+        },
+      ],
+      not_delivered: 1,
+      clan_channels: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
+    };
+    await open();
+    const list = screen.getByRole("list", { name: "Last deliveries" });
+    expect(list.textContent).toContain("Discord: HTTP 400, Invalid Form Body");
+    expect(list.textContent).toContain("five battles");
+    expect(list.textContent).not.toContain("tl_", "an item's id says nothing");
+    expect(screen.getByText(/1 not delivered in 30 days/)).toBeTruthy();
+    expect(screen.getByRole("note").textContent).toMatch(
+      /POAP KINGS posts the clan’s activity to a Discord channel of its own.*Nothing here is filtered/,
+    );
+  },
+);

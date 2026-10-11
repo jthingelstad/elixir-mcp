@@ -20,11 +20,19 @@ import {
   fireEvent,
   waitFor,
   cleanup,
+  configure,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { App } from "../src/App.jsx";
 import { SignIn } from "../src/views/SignIn.jsx";
 import { DevicesPage } from "../src/views/account/DevicesPage.jsx";
+
+// This file renders the whole App, routes and all, from a cold module
+// graph. Testing Library's 1 s default wait reads a slow first paint on a
+// loaded machine as a missing element (first-answer failed so, #488).
+// Bound the wait as the other whole-App journeys do
+// (account-journeys.test.jsx), with a 20 s bound on each test that renders it.
+configure({ asyncUtilTimeout: 5000 });
 
 /** Timers and the clock only: the router schedules its first render
  *  on the microtask queue, and faking that leaves the app unrendered. */
@@ -66,58 +74,66 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test("a transport failure on /api/me is 'Elixir didn't answer', retried once, never the sign-in wall", async () => {
-  window.history.pushState({}, "", "/console/account/overview");
-  let calls = 0;
-  const err = new TypeError("Failed to fetch");
-  global.fetch = mockFetch({
-    "GET /api/me": () => {
-      calls += 1;
-      return err;
-    },
-  });
-  render(<App />);
-  // The quiet retry sits 1.5 s after the first failure - real seconds
-  // here, because the query's retry and the router's first render both
-  // schedule through paths a faked clock does not advance evenly.
-  expect(
-    await screen.findByText("Elixir didn’t answer", {}, { timeout: 4000 }),
-  ).toBeTruthy();
-  expect(calls).toBe(2);
-  expect(screen.queryByText("Sign in first")).toBeNull();
-  expect(screen.getByText(/You are not signed out/)).toBeTruthy();
-});
+test(
+  "a transport failure on /api/me is 'Elixir didn't answer', retried once, never the sign-in wall",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/console/account/overview");
+    let calls = 0;
+    const err = new TypeError("Failed to fetch");
+    global.fetch = mockFetch({
+      "GET /api/me": () => {
+        calls += 1;
+        return err;
+      },
+    });
+    render(<App />);
+    // The quiet retry sits 1.5 s after the first failure - real seconds
+    // here, because the query's retry and the router's first render both
+    // schedule through paths a faked clock does not advance evenly.
+    expect(
+      await screen.findByText("Elixir didn’t answer", {}, { timeout: 4000 }),
+    ).toBeTruthy();
+    expect(calls).toBe(2);
+    expect(screen.queryByText("Sign in first")).toBeNull();
+    expect(screen.getByText(/You are not signed out/)).toBeTruthy();
+  },
+);
 
-test("an edge error page on /api/me is the same answer, and Try again recovers", async () => {
-  vi.useFakeTimers(FAKE_TIMERS);
-  window.history.pushState({}, "", "/console/account/overview");
-  let answers = 0;
-  global.fetch = mockFetch({
-    "GET /api/me": () => {
-      answers += 1;
-      return answers <= 2
-        ? [503, "<html>Service Unavailable</html>"]
-        : [200, { authenticated: true, claims: [], recordings: [] }];
-    },
-    "GET /api/me/first-answer": [200, {}],
-    "GET /api/me/activity": [200, { events: [] }],
-    "GET /api/me/timeline": [
-      200,
-      { timeline: [], entries: [], quiet: [], read_to: null },
-    ],
-    "GET /api/me/usage": [200, {}],
-    "GET /api/me/connections": [200, { connections: [] }],
-    "GET /api/me/clans": [200, { clans: [] }],
-  });
-  render(<App />);
-  await vi.advanceTimersByTimeAsync(1600);
-  expect(await screen.findByText("Elixir didn’t answer")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-  await waitFor(() =>
-    expect(screen.queryByText("Elixir didn’t answer")).toBeNull(),
-  );
-  expect(screen.queryByText("Sign in first")).toBeNull();
-});
+test(
+  "an edge error page on /api/me is the same answer, and Try again recovers",
+  { timeout: 20000 },
+  async () => {
+    vi.useFakeTimers(FAKE_TIMERS);
+    window.history.pushState({}, "", "/console/account/overview");
+    let answers = 0;
+    global.fetch = mockFetch({
+      "GET /api/me": () => {
+        answers += 1;
+        return answers <= 2
+          ? [503, "<html>Service Unavailable</html>"]
+          : [200, { authenticated: true, claims: [], recordings: [] }];
+      },
+      "GET /api/me/first-answer": [200, {}],
+      "GET /api/me/activity": [200, { events: [] }],
+      "GET /api/me/timeline": [
+        200,
+        { timeline: [], entries: [], quiet: [], read_to: null },
+      ],
+      "GET /api/me/usage": [200, {}],
+      "GET /api/me/connections": [200, { connections: [] }],
+      "GET /api/me/clans": [200, { clans: [] }],
+    });
+    render(<App />);
+    await vi.advanceTimersByTimeAsync(1600);
+    expect(await screen.findByText("Elixir didn’t answer")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() =>
+      expect(screen.queryByText("Elixir didn’t answer")).toBeNull(),
+    );
+    expect(screen.queryByText("Sign in first")).toBeNull();
+  },
+);
 
 test("the code step polls and signs in when the link was opened elsewhere", async () => {
   vi.useFakeTimers(FAKE_TIMERS);
