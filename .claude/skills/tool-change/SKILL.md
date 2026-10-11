@@ -37,8 +37,8 @@ Gym's stop list, and it applies to every tool change, not only a sweep:
   makes today to answer the question). "The consumer taxonomy never
   shapes the domain", so one surface's wish is not evidence.
 - **A change to what a number MEANS**, rather than to how it is
-  described ("Facts, never judgments"; "No branded or derived player
-  metric, ever").
+  described ("Facts, never judgments"; "Elixir rates no player"). A
+  plain derived fact (a rate, a count, a difference) is not a rating.
 - **A refusal that breaks existing callers** ("The 7.0.0 refusals are
   dropped" is the precedent).
 - **Anything a DECISIONS line or a declined idea covers.** Read
@@ -228,7 +228,8 @@ pin (facets.md section 8 names the files).
 ## Standing rules
 
 - The repo is public. Never read `.env` files or secret values.
-- Do not re-litigate a DECISIONS line. A tool that disagrees with one is
-  the defect.
+- Do not re-litigate a **[Jamie]** DECISIONS line. A tool that disagrees
+  with one is the defect; an **[engineering]** line may be proposed for
+  change with evidence.
 - Never hand-mirror the tool list into another doc or repo: "It rots"
   (ENGINEERING).

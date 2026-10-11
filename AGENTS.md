@@ -23,18 +23,23 @@ and secret safety everywhere.
 
 Elixir is the personal and clan recorder; MCP is an extension of it
 (`VISION.md`). There are no global leaderboards, elite or corpus
-recording, game-wide meta statistics, gameplay recommendations, editorial
-emails, recording Collections or branded player scores. Do not build
-them, even over a smaller population. A retired name still in code or
-docs is cleanup, not a feature to preserve.
+recording, game-wide meta statistics, recommendations in Elixir's own
+outputs, recording Collections or player ratings. Do not build them,
+even over a smaller population. Agents may coach from Elixir's facts;
+that is theirs, not Elixir's. The Ultimate Champions and Card of the
+Week mail are retired. A retired name still in code or docs is cleanup,
+not a feature to preserve.
 
 ## What to read
 
 - **Product behaviour:** the public docs, `apps/site/src/docs/` (served at
   `/docs`, and to agents by `elixir_docs`). They are the only description
   of what the service does; do not write a second one here.
-- **`docs/DECISIONS.md`:** what stands, one line each. Do not re-litigate a
-  line; a surface that disagrees with it is the defect.
+- **`docs/DECISIONS.md`:** what stands, one line each, each tagged with
+  who decided it. A **[Jamie]** line is not re-litigated, and a surface
+  that disagrees with it is the defect; an **[engineering]** line is a
+  default you may propose changing with evidence. A line says no more
+  than its decision: cite it, never restate it wider.
 - **`docs/ENGINEERING.md`:** the build invariants (rate budget, migrations,
   contract versioning, ingest, packages, deploy).
 - **`docs/notes/`:** one note per change, written in its pull request
