@@ -209,6 +209,7 @@ test("a timeline item's facts: flattened, capped, never a tag, an id, a link, a 
     name: "Ada",
     player_tag: "#8QCV",
     battle_id: "b1",
+    season_id: 135,
     url: "https://x.test",
     at: "2026-10-10T01:00:00Z",
     started_at: "2026-10-10T01:00:00Z",
@@ -221,6 +222,7 @@ test("a timeline item's facts: flattened, capped, never a tag, an id, a link, a 
   assert.match(text, /^name: Ada$/m);
   assert.match(text, /^best_win\.opponent\.name: Jotaro$/m);
   assert.match(text, /^best_win\.crowns: 3$/m);
+  assert.match(text, /^season_id: 135$/m, "a season is the moment's");
   assert.match(text, /members\.0\.decks_used: 16|members.*decks_used: 16/);
   assert.doesNotMatch(text, /8QCV|#J|b1|https|2026-10-10|fame|2900|xxxx/);
   assert.ok(!/decks.*7/.test(text), "a list keeps five");
