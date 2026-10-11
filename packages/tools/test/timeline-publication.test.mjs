@@ -349,3 +349,25 @@ test("basis: an ad hoc window reads what happened and keeps the pointer; a polle
     /never moves a read pointer/,
   );
 });
+
+test("a member read whose window cuts a standout sitting says it recurs under the same id (Gym #321, 11.8.0)", async () => {
+  const ctx = { db, account: { accountId: owner, timezone: TZ } };
+  const out = await elixir_timeline.handler(ctx, {
+    player_tag: PILOT,
+    // Learned at 14:40Z, begun at 14:00Z; Friday's games were learned at
+    // 16:00Z, outside this window, so the standout is the only sitting.
+    from: iso(SATURDAY_PLAY + 5 * 60_000),
+    to: iso(SATURDAY_PLAY + 60 * 60_000),
+    mark_read: false,
+    basis: "observed",
+  });
+  assert.deepEqual(
+    sittings(out.timeline).map((it) => it.kind),
+    ["session_standout"],
+    "the member's sitting is served as its standout, alone",
+  );
+  assert.ok(
+    out.notes.some((n) => /same id with a higher revision/.test(n)),
+    "a standout begun before from is a cut sitting too",
+  );
+});
