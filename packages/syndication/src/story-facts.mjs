@@ -20,7 +20,7 @@ import { activityCategory } from "@elixir-mcp/clan-engine";
 
 const DAY_MS = 24 * 3600_000;
 /** Finished war weeks told: the clan's and each member's. */
-export const STORY_WEEKS = 4;
+const STORY_WEEKS = 4;
 /** How far back a member's moments are read, and how many are kept. */
 const MOMENT_DAYS = 14;
 const MOMENTS_MAX = 5;
