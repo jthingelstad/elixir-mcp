@@ -12,3 +12,5 @@ This is the third of three changes from the Discord delivery plan Jamie approved
   - The check is limited to the person's own clans, because whether another clan posts its activity is that clan's business.
 
 Unchanged: no embeds, no filtering, and a post whose outcome is unknown is never made again. No migration, no MCP or JSON API move, no tool change.
+
+Review (#490): the list shows all 20 entries the history keeps (the kit's default was 8, on the Actions page too), and the timeline page names every clan that overlaps, with no limit of five.

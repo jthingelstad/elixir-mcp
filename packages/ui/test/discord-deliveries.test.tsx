@@ -65,3 +65,15 @@ test("a clan's activity line is shown whole and says when the clan's model wrote
   expect(item?.textContent).not.toContain("tl_");
   expect(screen.getByText(long).className).not.toContain("truncate");
 });
+
+test("all twenty the history keeps are listed", () => {
+  render(
+    <DiscordDeliveries
+      entries={Array.from({ length: 20 }, (_, i) => ({
+        at: new Date(Date.UTC(2026, 9, 11, 12, i)).toISOString(),
+        outcome: "posted" as const,
+      }))}
+    />,
+  );
+  expect(screen.getAllByRole("listitem")).toHaveLength(20);
+});

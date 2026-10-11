@@ -33,7 +33,9 @@ const MISSED = new Set(["refused", "unknown", "not_delivered"]);
 export function DiscordDeliveries({
   entries,
   notDelivered = 0,
-  show = 8,
+  // Every entry the history keeps (contracts DISCORD_HISTORY_MAX): the
+  // pages promise the last 20.
+  show = 20,
   whole = false,
 }: {
   entries: DiscordDeliveryRow[] | null | undefined;

@@ -60,8 +60,7 @@ export async function clanChannelsInTimeline(db, accountId) {
               on cm.player_tag = c.player_tag and cm.left_observed_at is null
            where c.account_id = $1 and c.status = 'verified'
              and cm.clan_tag = d.clan_tag)
-      order by d.clan_tag
-      limit 5`,
+      order by d.clan_tag`,
     [accountId],
   );
   return rows.map((r) => ({ clan_tag: r.clan_tag, name: r.name ?? null }));
