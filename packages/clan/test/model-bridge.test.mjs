@@ -415,3 +415,66 @@ test("a started write is collected later: no reply yet is null, the reply when i
     "invalid_model_request",
   );
 });
+test("an editor's round goes through the bridge to the provider's turn; a malformed round is never sent", async () => {
+  const storage = memory();
+  const turnInput = {
+    model: "claude-test",
+    system: "Edit the channel",
+    context: "THE CLAN",
+    messages: [{ role: "user", content: "STORY tl_1" }],
+    tools: [
+      {
+        name: "channel_recent",
+        strict: true,
+        input_schema: { type: "object" },
+      },
+      { name: "write_posts", strict: true, input_schema: { type: "object" } },
+    ],
+    answer: "write_posts",
+    max_tokens: 650,
+    effort: "low",
+  };
+  const turns = [];
+  const worker = createModelWorker({
+    secret: "old-secret",
+    storage,
+    provider: {
+      async turn(k, r) {
+        turns.push(r);
+        assert.equal(k, key);
+        return { ok: true, answer: { posts: [], skips: [] } };
+      },
+    },
+  });
+  const bridge = createModelBridge({
+    secret: "old-secret",
+    storage,
+    timeoutMs: 50_000,
+    pause: async () =>
+      worker(
+        [...storage.objects.keys()].find((k) =>
+          k.startsWith("clan-model/request/"),
+        ),
+      ),
+  });
+  const r = await bridge.turn(key, turnInput);
+  assert.deepEqual(r.answer, { posts: [], skips: [] });
+  // The relay waits no longer than the round does.
+  assert.deepEqual(turns, [{ ...turnInput, timeoutMs: 50_000 }]);
+
+  for (const bad of [
+    { tools: turnInput.tools.map((t) => ({ ...t, strict: false })) },
+    { answer: "missing_tool" },
+    { messages: Array(6).fill({ role: "user", content: "x" }) },
+    { messages: [{ role: "assistant", content: "x" }] },
+    { max_tokens: 9000 },
+  ]) {
+    const before = storage.objects.size;
+    assert.deepEqual(
+      await bridge.turn(key, { ...turnInput, ...bad }),
+      { ok: false, status: 400, code: "invalid_model_request" },
+      JSON.stringify(Object.keys(bad)),
+    );
+    assert.equal(storage.objects.size, before, "nothing sent");
+  }
+});

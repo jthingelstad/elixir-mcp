@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-11; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, the last deliveries listed with rewritten lines marked, contracts unchanged"
+reviewed: "2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -181,7 +181,7 @@ without a policy:
   never makes or completes a decision.
   Elixir Clan chooses the model for each use, and Settings shows which:
   Claude Opus 5.5 drafts the recruiting pitch and the messages on
-  Actions, and Claude Sonnet 5.5 rewrites the activity channel's posts.
+  Actions, and Claude Sonnet 5.5 edits the activity channel.
   When the key cannot reach that model, the use takes the other of the
   two, then Claude Haiku 5.5; it never falls back to an older model, and
   a key that reaches none of the three is not accepted. Which models the
@@ -197,8 +197,8 @@ without a policy:
   may finish a little over it. The cap stays when the key is replaced.
   It is Elixir Clan's own stop: a spend limit on the Anthropic account
   is the one Anthropic keeps.
-  The one use nobody reviews is the activity channel's rewrite, when a
-  leader turns it on (below); its uses are counted apart, and the cap
+  The one use nobody reviews is the activity channel's editor, when a
+  leader turns it on (below); its runs are counted apart, and the cap
   stops them too. A use whose answer never arrived (the provider may
   still have charged for it) is counted toward the cap at its estimate.
 
@@ -259,33 +259,44 @@ told more than three hours late says when in words ("Yesterday").
   on); nothing earlier is posted. Each story goes out a few minutes after
   the activity lands in Elixir, never on a schedule. Nothing pings
   anyone; items only the leaders may see are never posted.
-- **Written by the clan's own model**: with the clan's own model key
-  set, a leader can have each story rewritten in the clan's voice, and
-  describe that voice in up to 400 characters. These posts are made
-  without anyone reading them first. Each post's model is told Elixir's
-  own words for the story, the clan
-  (its name, recruiting words, goals, member count and last war weeks),
-  the moment's own facts (the battle and who it beat, the badge, the
-  best set, the week's place) and, for a member, what Elixir records
-  about them: trophies, best, arena, career wins, collection level, time in the clan and
-  any earlier stint, recent war weeks as decks and points, the clan's
-  awards they hold as announced this season and last, their last three
-  moments from the past two weeks while the channel posts Milestones
-  (never the one being posted; for up to eight members in one run), and
-  how often the channel already told
-  about them this week. A departure's post is told only the member's
-  time in the clan and the weeks they played. Never a tag, a member's
-  share of fame, an award not yet announced, or anything private to
-  Clan.
-  The model picks a detail or two that make the moment a story. A post
-  that drops or changes a member's or opponent's name, carries a number
-  or a name it was not given, carries a link or a mention, or runs long
-  is Elixir's own story, and so is every post when the model cannot be
-  used. A story of several members' milestones is one post that names
-  each of them, up to 500 characters. At most 50 model requests a day (one
-  request writes several posts), counted apart from the leaders' drafts
-  and shown in the key's use log; the clan's monthly cap, when set,
-  stops them as it stops drafts.
+- **Edited by the clan's own model**: with the clan's own model key
+  set, a leader can have the clan's model edit the channel in the clan's
+  voice, described in up to 400 characters. Its posts are made without
+  anyone reading them first. The model is handed a run's stories, up to
+  12, each with Elixir's own words for it, and the clan (its name,
+  recruiting words, goals, member count and last war weeks), the
+  moment's own facts (the battle and who it beat, the badge, the best
+  set, the week's place) and, for a member, what Elixir records about
+  them: trophies, best, arena, career wins, collection level, time in
+  the clan and any earlier stint, recent war weeks as decks and points,
+  the clan's awards they hold as announced this season and last, their
+  last three moments from the past two weeks while the channel posts
+  Milestones (never the one being posted; for up to eight members in
+  one run), and how often the channel already told about them this
+  week. A departure's story is told only the member's time in the clan
+  and the weeks they played. Never a tag, a member's share of fame, an
+  award not yet announced, or anything private to Clan.
+  Before it answers, the model may look things up in the clan's record,
+  read-only, in up to two rounds of at most six lookups each: a current
+  member's record as above; a current member's battles in the last
+  seven days (up to ten: the mode, the result and crowns, the opponent,
+  the deck's archetype, the trophy change and roughly when, in words);
+  and what the channel posted in the last three days. Then it edits: it
+  may tell several stories in one post, skip a story with a short reason
+  (shown on the page), and tells the rest in one to three sentences. A
+  departure is never skipped and never told with another story, and
+  neither is a post being edited in place.
+  A post that drops or changes a member's or opponent's name, carries a
+  number or a name it was neither given nor looked up, says a time of
+  day, carries a link or a mention, tells a departure in other words
+  than the record's (departed, was removed, left), or runs past 600
+  characters is refused, and its stories are Elixir's own. So is every
+  story the model leaves out, and every story when the model cannot be
+  used or has not answered in time. At most 50 editor runs a day (a run
+  is one to three requests: its lookups, then its answer), counted
+  apart from the leaders' drafts and shown in the key's use log with
+  each request; the clan's monthly cap, when set, stops them as it stops
+  drafts. What a run costs is on [Limits](/docs/limits).
   **Preview the last 5 in this voice** shows the five newest things the
   channel could post, written in the voice in the box (saved or not),
   each beside Elixir's line or with why it would be refused. It posts
@@ -302,7 +313,8 @@ told more than three hours late says when in words ("Yesterday").
 - The page lists the channel's last 40 deliveries and skips from the
   past 30 days, each post whole as it was posted, with any the clan's
   model wrote marked **rewritten**, and each skip with what it would
-  have said and why it was skipped. It also counts the posts not
+  have said and why it was skipped, by Elixir's rule or by the clan's
+  model. It also counts the posts not
   delivered; a skip is not one of them.
 
 ## Agent context

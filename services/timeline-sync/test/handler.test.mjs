@@ -236,3 +236,46 @@ test("a clan's held stories come back on the hold queue to the same run; only a 
   assert.deepEqual(synced, ["#J2RGCRVG"]);
   assert.deepEqual(deleted, [key]);
 });
+
+test("a clan whose model edits runs on the editor's queue, told so, and only with a round's room left", async () => {
+  const key = "timeline-editor/clan-J2RGCRVG.29340005.json";
+  const sync = "timeline-sync/clan-J2RGCRVG.29340006.json";
+  const account = `timeline-editor/${ACCOUNT}.29340005.json`;
+  const runs = [];
+  const objects = new Map([
+    [key, JSON.stringify({ v: 1, clan_tag: "#J2RGCRVG" })],
+    [sync, JSON.stringify({ v: 1, clan_tag: "#J2RGCRVG" })],
+    [account, JSON.stringify({ v: 1, account_id: ACCOUNT })],
+  ]);
+  const handler = makeHandler({
+    connect: async () => ({ end: async () => {} }),
+    sync: async () => assert.fail("an account never runs as an editor"),
+    syncClan: async (_db, tag, opts) => {
+      runs.push([tag, opts.editor]);
+      return { posted: 1 };
+    },
+    readObject: async (obj) => objects.get(obj.key) ?? null,
+    deleteObject: async (obj) => objects.delete(obj.key),
+  });
+  const log = console.log;
+  console.log = () => {};
+  try {
+    // 50 s left: enough for a sync's clan run, not for an editor's.
+    const short = await handler(
+      { Records: [record("a", key), record("b", sync)] },
+      { getRemainingTimeInMillis: () => 50_000 },
+    );
+    assert.deepEqual(short.batchItemFailures, [{ itemIdentifier: "a" }]);
+    const out = await handler(
+      { Records: [record("a", key), record("c", account)] },
+      { getRemainingTimeInMillis: () => 170_000 },
+    );
+    assert.deepEqual(out.batchItemFailures, [{ itemIdentifier: "c" }]);
+  } finally {
+    console.log = log;
+  }
+  assert.deepEqual(runs, [
+    ["#J2RGCRVG", false],
+    ["#J2RGCRVG", true],
+  ]);
+});

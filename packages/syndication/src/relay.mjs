@@ -348,6 +348,7 @@ export function createTimelineDiscordWorker({
         ref: k.key,
         reason: k.reason,
         ...(k.excerpt ? { excerpt: k.excerpt } : {}),
+        ...(k.rewritten === true ? { rewritten: true } : {}),
       }));
     const started = now();
     const until = started + budgetMs;

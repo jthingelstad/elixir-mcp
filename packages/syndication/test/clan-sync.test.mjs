@@ -232,7 +232,7 @@ test("categories: a leader's off holds, the policy's ruled-out category never po
   policy = PARTICIPATING;
 });
 
-test("the rewrite: each post's packet carries the clan, the facts and the member; the model is asked outside the sync's transaction", async () => {
+test("the editor's run: sent to its own queue, then each story's packet carries the clan, the facts and the member; it may look things up; the model is asked outside the sync's transaction", async () => {
   await saveClanActivity(
     db,
     CLAN,
@@ -244,11 +244,45 @@ test("the rewrite: each post's packet carries the clan, the facts and the member
     after: "elder",
   });
   await clanEvent("member_left", JOINER, T + 11 * H + 20 * MIN);
-  let request = null;
+  const toldCount = async () =>
+    (
+      await db.query(
+        `select count(*)::int as n from clan_activity_discord_told where clan_tag = $1`,
+        [CLAN],
+      )
+    ).rows[0].n;
+  const before = await toldCount();
+  // On the sync's queue, a clan whose model edits is sent to the
+  // editor's: nothing is written there.
+  const sent = await sync(T + 12 * H, {
+    rewrite: async () => assert.fail("not on the sync's queue"),
+  });
+  assert.equal(sent.editor, "queued");
+  assert.equal(sent.ready, 2);
+  assert.deepEqual(
+    sent.sent.map((x) => [x.lane, x.message, x.opts.once]),
+    [["timeline-editor", { v: 1, clan_tag: CLAN }, true]],
+  );
+  assert.equal(await toldCount(), before);
+
+  const requests = [];
+  const asked = [];
   let saved = null;
   const out = await sync(T + 12 * H, {
-    rewrite: async (_db, tag, req) => {
-      request = req;
+    editor: true,
+    readHistory: async () => ({
+      entries: [
+        {
+          at: at(T + 11 * H),
+          outcome: "posted",
+          // As the relay keeps it: escaped for Discord.
+          excerpt: "Le\\_aver unlocked Rune Giant.",
+        },
+      ],
+    }),
+    rewrite: async (_db, tag, req, opts) => {
+      requests.push(req);
+      asked.push(opts);
       assert.equal(tag, CLAN);
       // A leader's save is not held up while the model writes: no row
       // lock and no transaction are held across the wait.
@@ -263,46 +297,83 @@ test("the rewrite: each post's packet carries the clan, the facts and the member
       } finally {
         await other.end();
       }
-      const keys = [...req.prompt.matchAll(/^POST (tl_[a-f0-9]{20})/gm)].map(
-        (m) => m[1],
-      );
+      if (opts.round === 1)
+        return {
+          ok: true,
+          calls: [
+            { id: "c1", name: "channel_recent", input: {} },
+            { id: "c2", name: "member_record", input: { name: "Stayer" } },
+          ],
+          content: [
+            { type: "tool_use", id: "c1", name: "channel_recent", input: {} },
+            {
+              type: "tool_use",
+              id: "c2",
+              name: "member_record",
+              input: { name: "Stayer" },
+            },
+          ],
+        };
+      const keys = [
+        ...req.messages[0].content.matchAll(/^STORY (tl_[a-f0-9]{20})/gm),
+      ].map((m) => m[1]);
       return {
         ok: true,
-        input: {
+        answer: {
           posts: [
-            { key: keys[0], text: "Joiner steps up to Elder! 🔥" },
+            { keys: [keys[0]], text: "Joiner steps up to Elder! 🔥" },
             // A number the post was never given is refused.
-            { key: keys[1], text: "Joiner departed after 400 wins." },
+            { keys: [keys[1]], text: "Joiner departed after 400 wins." },
           ],
+          skips: [],
         },
       };
     },
   });
   assert.equal(saved.rowCount, 1);
+  // One run, two rounds, each asked as that run's round.
+  assert.equal(requests.length, 2);
+  assert.equal(asked[0].run, asked[1].run);
+  assert.deepEqual(
+    asked.map((a) => a.round),
+    [1, 2],
+  );
+  const [request, second] = requests;
   assert.equal(request.purpose, "discord_activity");
   assert.equal(request.effort, "low");
-  assert.equal(request.tool.strict, true);
+  assert.ok(request.tools.every((t) => t.strict === true));
+  assert.equal(request.answer, "write_posts");
   assert.match(request.context, /^THE CLAN\nName: POAP KINGS/);
   assert.match(
     request.context,
     /How its leaders want it to sound: Hype and short\./,
   );
+  const packet = request.messages[0].content;
   assert.match(
-    request.prompt,
-    /\(member_role_changed\)\nElixir's line: Joiner was promoted/,
+    packet,
+    /^STORY tl_[a-f0-9]{20} \(member role changed\)\nElixir's version: Joiner was promoted/m,
   );
-  assert.match(request.prompt, /- role_after: elder/);
-  assert.match(
-    request.prompt,
-    /\(member_left\)\nElixir's line: Joiner departed/,
+  assert.match(packet, /- role_after: elder/);
+  assert.match(packet, /\(member left\)\nA departure: say "departed"/);
+  assert.doesNotMatch(packet, /#PYL0Q2G8/, "no tags reach the model");
+  // The lookups' answers, read-only, as the second round's tool results.
+  const results = second.messages[2].content;
+  assert.deepEqual(
+    results.slice(0, 2).map((r) => r.tool_use_id),
+    ["c1", "c2"],
   );
-  assert.doesNotMatch(request.prompt, /#PYL0Q2G8/, "no tags reach the model");
+  assert.match(results[0].content, /: Le_aver unlocked Rune Giant\.$/m);
+  assert.match(results[0].content, /a couple of hours ago/);
+  assert.match(results[1].content, /^MEMBER: Stayer/);
+  assert.match(results[2].text, /Round 2 of 3/);
+
   assert.equal(out.posted, 2);
   assert.equal(out.rewritten, 1);
+  assert.equal(out.rounds, 2);
+  assert.equal(out.lookups, 2);
   assert.deepEqual(out.refused, { number_invented: 1 });
   const [promo, gone] = out.sent[0].message.posts;
   assert.match(promo.content, /Joiner steps up to Elder! 🔥/);
-  assert.match(promo.content, /^Joiner steps up/, "no time on a fresh line");
   assert.match(gone.content, /departed/);
   assert.doesNotMatch(gone.content, /400 wins/);
   // Its delivery says the clan's model wrote it; Elixir's own does not.
@@ -310,9 +381,27 @@ test("the rewrite: each post's packet carries the clan, the facts and the member
   assert.equal("rewritten" in gone, false);
 });
 
-test("a rewrite the model cannot make posts Elixir's own lines", async () => {
+test("a model the clan cannot use, or one that never answers in time, posts Elixir's own stories; a run under way sends the next after the hold", async () => {
   await clanEvent("member_joined", JOINER, T + 13 * H);
+  // Another run holds the clan: this one waits for the hold queue.
+  const other = new pg.Client({ connectionString: ctx.url });
+  await other.connect();
+  try {
+    await other.query("select pg_advisory_lock($1, hashtext($2))", [
+      0x636c616e,
+      CLAN,
+    ]);
+    const busy = await sync(T + 14 * H, { editor: true });
+    assert.equal(busy.skipped, "busy");
+    assert.deepEqual(
+      busy.sent.map((x) => [x.lane, x.message, x.opts.once]),
+      [["timeline-hold", { v: 1, clan_tag: CLAN }, true]],
+    );
+  } finally {
+    await other.end();
+  }
   const out = await sync(T + 14 * H, {
+    editor: true,
     rewrite: async () => ({ ok: false, code: "no_key" }),
   });
   assert.equal(out.posted, 1);
@@ -320,22 +409,66 @@ test("a rewrite the model cannot make posts Elixir's own lines", async () => {
   assert.equal(out.rewrite_code, "no_key");
   assert.match(out.sent[0].message.posts[0].content, /Joiner joined/);
   const thrown = await sync(T + 15 * H, {
+    editor: true,
     rewrite: async () => {
       throw new Error("bridge");
     },
   });
   assert.equal(thrown.posted, 0);
 
+  // A model that only looks things up is out of rounds after three; a
+  // run without the time for a round asks nothing.
+  await clanEvent("member_joined", STAYER, T + 15 * H + 5 * MIN);
+  let rounds = 0;
+  const looking = await sync(T + 15 * H + 15 * MIN, {
+    editor: true,
+    rewrite: async (_db, _tag, req) => {
+      rounds += 1;
+      if (rounds === 3)
+        assert.match(
+          req.messages.at(-1).content.at(-1).text,
+          /no more lookups/,
+        );
+      return {
+        ok: true,
+        calls: [{ id: `c${rounds}`, name: "channel_recent", input: {} }],
+        content: [
+          {
+            type: "tool_use",
+            id: `c${rounds}`,
+            name: "channel_recent",
+            input: {},
+          },
+        ],
+      };
+    },
+  });
+  assert.equal(rounds, 3);
+  assert.equal(looking.rewrite_code, "no_answer");
+  assert.equal(looking.posted, 1);
+  assert.match(looking.sent[0].message.posts[0].content, /^Stayer joined/);
+
+  await clanEvent("member_joined", JOINER, T + 15 * H + 16 * MIN);
+  const late = await sync(T + 15 * H + 25 * MIN, {
+    editor: true,
+    remainingMs: () => 10_000,
+    rewrite: async () => assert.fail("no time for a round"),
+  });
+  assert.equal(late.rewrite_code, "deadline");
+  assert.equal(late.rounds, 0);
+  assert.equal(late.posted, 1);
+
   // A leader turns the connection off while the model writes: the run
   // writes nothing, and nothing is told.
-  await clanEvent("member_joined", STAYER, T + 15 * H + 10 * MIN);
-  const changed = await sync(T + 15 * H + 20 * MIN, {
+  await clanEvent("member_joined", STAYER, T + 15 * H + 30 * MIN);
+  const changed = await sync(T + 15 * H + 40 * MIN, {
+    editor: true,
     rewrite: async (client) => {
       await saveClanActivity(
         client,
         CLAN,
         { enabled: false },
-        { seal, who: WHO, now: T + 15 * H + 20 * MIN },
+        { seal, who: WHO, now: T + 15 * H + 40 * MIN },
       );
       return { ok: false, code: "no_key" };
     },
@@ -346,14 +479,14 @@ test("a rewrite the model cannot make posts Elixir's own lines", async () => {
     `select 1 from clan_activity_discord_told
       where clan_tag = $1 and player_tag = $2 and kind = 'member_joined'
         and item_at >= $3`,
-    [CLAN, STAYER, at(T + 15 * H)],
+    [CLAN, STAYER, at(T + 15 * H + 30 * MIN)],
   );
   assert.equal(told.length, 0);
   await saveClanActivity(
     db,
     CLAN,
     { enabled: true },
-    { seal, who: WHO, now: T + 15 * H + 30 * MIN },
+    { seal, who: WHO, now: T + 15 * H + 50 * MIN },
   );
 });
 
@@ -423,23 +556,27 @@ async function award(player, name, ms) {
   );
 }
 
-test("same-kind milestones are one story under its first item's key; a refused rewrite tells Elixir's own story", async () => {
+test("same-kind milestones are one story under its first item's key; a refused post tells Elixir's own story", async () => {
   await award(JOINER, "Cup", T + 18 * H);
   await award(STAYER, "Cup", T + 18 * H + MIN);
   let packet = null;
   const out = await sync(T + 19 * H, {
+    editor: true,
     rewrite: async (_db, _tag, req) => {
-      packet = req.prompt;
-      const key = /^POST (tl_[a-f0-9]{20})/m.exec(req.prompt)[1];
+      packet = req.messages[0].content;
+      const key = /^STORY (tl_[a-f0-9]{20})/m.exec(packet)[1];
       return {
         ok: true,
-        input: {
-          posts: [{ key, text: "Cups for Joiner and Stayer this season!" }],
+        answer: {
+          posts: [
+            { keys: [key], text: "Cups for Joiner and Stayer this season!" },
+          ],
+          skips: [],
         },
       };
     },
   });
-  assert.match(packet, /2 moments of this kind together; write ONE post/);
+  assert.match(packet, /^STORY tl_[a-f0-9]{20} \(award granted; 2 moments\)$/m);
   assert.match(packet, /Facts of moment 2:/);
   // Each member's ABOUT block names the awards the clan announced.
   assert.match(
@@ -452,6 +589,7 @@ test("same-kind milestones are one story under its first item's key; a refused r
   assert.match(post.content, /Cups for Joiner and Stayer this season!/);
   // Both items are told: neither posts again.
   const again = await sync(T + 19 * H + 10 * MIN, {
+    editor: true,
     rewrite: async () => assert.fail("nothing to rewrite"),
   });
   assert.equal(again.posted, 0);
@@ -459,16 +597,20 @@ test("same-kind milestones are one story under its first item's key; a refused r
   await award(JOINER, "Shield", T + 20 * H);
   await award(STAYER, "Shield", T + 20 * H + MIN);
   const refused = await sync(T + 21 * H, {
+    editor: true,
     // A group that drops a member's name is refused.
     rewrite: async (_db, _tag, req) => ({
       ok: true,
-      input: {
+      answer: {
         posts: [
           {
-            key: /^POST (tl_[a-f0-9]{20})/m.exec(req.prompt)[1],
+            keys: [
+              /^STORY (tl_[a-f0-9]{20})/m.exec(req.messages[0].content)[1],
+            ],
             text: "Shields for Joiner!",
           },
         ],
+        skips: [],
       },
     }),
   });
@@ -487,12 +629,13 @@ test("same-kind milestones are one story under its first item's key; a refused r
   await clanEvent("member_left", JOINER, T + 21 * H + 30 * MIN);
   let departing = null;
   await sync(T + 21 * H + 40 * MIN, {
+    editor: true,
     rewrite: async (_db, _tag, req) => {
-      departing = req.prompt;
+      departing = req.messages[0].content;
       return { ok: false, code: "no_key" };
     },
   });
-  assert.match(departing, /\(member_left\)/);
+  assert.match(departing, /\(member left\)\nA departure: say "departed"/);
   assert.doesNotMatch(departing, /Awards they hold|Cup|Shield/);
 });
 
@@ -639,6 +782,96 @@ test("a leader's preview: the newest shareable items as packets, in the voice be
     now: T + 400 * H,
   });
   assert.deepEqual(quiet, { empty: true, reason: "nothing_recent" });
+});
+
+test("the editor may tell two stories in one post and skip one with its reason; neither is told again", async () => {
+  const NEWBIE = "#PYL0Q2GU";
+  await db.query(
+    `insert into player (player_tag, name) values ($1, 'Newbie')`,
+    [NEWBIE],
+  );
+  await clanEvent("member_joined", NEWBIE, T + 100 * H);
+  await emitEvent(db, "badge_earned", {
+    tag: STAYER,
+    windowStart: at(T + 100 * H - MIN),
+    windowEnd: at(T + 100 * H),
+    payload: { name: "Played3Years", level: 3, prior_level: 2, max_level: 3 },
+  });
+  await award(STAYER, "Star", T + 100 * H + MIN);
+  let packet = null;
+  const out = await sync(T + 101 * H, {
+    editor: true,
+    rewrite: async (_db, _tag, req) => {
+      packet = req.messages[0].content;
+      const key = (kind) =>
+        new RegExp(`^STORY (tl_[a-f0-9]{20}) \\(${kind}\\)`, "m").exec(
+          packet,
+        )[1];
+      return {
+        ok: true,
+        answer: {
+          posts: [
+            {
+              keys: [key("award granted"), key("member joined")],
+              text: "Welcome Newbie! And Stayer took the clan's Star for season 136.",
+            },
+          ],
+          skips: [
+            {
+              key: key("badge earned"),
+              reason: "Badges are told on Sundays here.",
+            },
+          ],
+        },
+      };
+    },
+  });
+  assert.equal(out.posted, 1);
+  assert.equal(out.rewritten, 1);
+  assert.equal(out.merged, 1);
+  assert.equal(out.model_skips, 1);
+  const { message } = out.sent.find((x) => x.lane === "timeline-discord");
+  assert.equal(validateTimelineDiscordMessage(message).ok, true);
+  const join = /^STORY (tl_[a-f0-9]{20}) \(member joined\)/m.exec(packet)[1];
+  const badge = /^STORY (tl_[a-f0-9]{20}) \(badge earned\)/m.exec(packet)[1];
+  // One post under the first of its stories.
+  assert.deepEqual(
+    message.posts.map((p) => [p.key, p.rewritten]),
+    [[join, true]],
+  );
+  assert.match(message.posts[0].content, /^Welcome Newbie!/);
+  // The skip is in the delivery history, as the model's.
+  assert.deepEqual(message.skipped, [
+    {
+      key: badge,
+      reason: "Badges are told on Sundays here.",
+      excerpt: message.skipped[0].excerpt,
+      rewritten: true,
+    },
+  ]);
+  assert.match(
+    message.skipped[0].excerpt,
+    /^Stayer took .+ to its top level, 3\.$/,
+  );
+  const { rows } = await db.query(
+    `select kind, story_key, skipped, skip_reason
+       from clan_activity_discord_told
+      where clan_tag = $1 and told_at = $2 order by kind`,
+    [CLAN, at(T + 101 * H)],
+  );
+  assert.deepEqual(
+    rows.map((r) => [r.kind, r.story_key, r.skipped, r.skip_reason]),
+    [
+      ["award_granted", join, false, null],
+      ["badge_earned", badge, true, "editor"],
+      ["member_joined", join, false, null],
+    ],
+  );
+  const again = await sync(T + 101 * H + 10 * MIN, {
+    editor: true,
+    rewrite: async () => assert.fail("nothing to tell"),
+  });
+  assert.equal(again.posted, 0);
 });
 
 test("refusals and removal", async () => {

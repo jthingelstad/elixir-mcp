@@ -73,10 +73,11 @@ import { PRICES_AS_OF, roundUsd, costOfUse } from "./prices.mjs";
 import { THINKING_ROOM } from "../anthropic.mjs";
 
 export const USES_PER_DAY = 20;
-/** The clan's Discord activity rewrites (`writeUnattended`): a day's
- *  cap of their own, apart from the leaders' drafts, counted in requests
- *  to the model (one request rewrites up to `REWRITE_BATCH_MAX` posts).
- *  Past it, the posts keep Elixir's own lines until the day turns (UTC). */
+/** The clan's Discord activity editor (`writeUnattended`): a day's cap
+ *  of its own, apart from the leaders' drafts, counted in editor runs
+ *  (2026-10-11): one run edits up to `EDITOR_STORIES_MAX` stories in up
+ *  to `EDITOR_ROUNDS` requests, its lookups and its answer. Past it, the
+ *  posts are Elixir's own stories until the day turns (UTC). */
 export const ACTIVITY_USES_PER_DAY = 50;
 /** How long a started draft may be collected before its outcome is
  *  recorded unknown: the relay's 55 s wait for Anthropic, its queue and
@@ -88,6 +89,15 @@ const ACTIVITY = "discord_activity";
  *  and reads. The unattended rewrites have their own day. */
 const leaderUse = (c) => c.purpose !== ACTIVITY || c.preview === true;
 const unattendedUse = (c) => c.purpose === ACTIVITY && c.preview !== true;
+/** The editor runs among some uses: a run's rounds are one (`run`); a
+ *  use recorded before runs is one of its own. */
+function runsOf(calls) {
+  const uses = calls.filter(unattendedUse);
+  return (
+    new Set(uses.filter((c) => c.run).map((c) => c.run)).size +
+    uses.filter((c) => !c.run).length
+  );
+}
 /** How often a key's model list may be read again, success or not. */
 export const MODELS_REFRESH_MS = 24 * 3600_000;
 const USE_KEEP_DAYS = 90;
@@ -147,6 +157,19 @@ const dispatch = (model, request) => ({
   ...(request.effort ? { effort: request.effort } : {}),
 });
 
+/** One round of the activity channel's editor (2026-10-11): the
+ *  conversation so far, the lookups and the answer tool. */
+const dispatchTurn = (model, request) => ({
+  model,
+  system: request.system,
+  ...(request.context ? { context: request.context } : {}),
+  messages: request.messages,
+  tools: request.tools,
+  answer: request.answer,
+  max_tokens: request.max_tokens,
+  ...(request.effort ? { effort: request.effort } : {}),
+});
+
 /** A reservation's estimate: about 3.5 characters a token for what is
  *  sent, and the whole output budget, thinking included. */
 const estimate = (request) => ({
@@ -154,7 +177,9 @@ const estimate = (request) => ({
     (String(request.system ?? "").length +
       String(request.context ?? "").length +
       String(request.prompt ?? "").length +
-      JSON.stringify(request.tool ?? {}).length) /
+      JSON.stringify(request.tool ?? {}).length +
+      (request.messages ? JSON.stringify(request.messages).length : 0) +
+      (request.tools ? JSON.stringify(request.tools).length : 0)) /
       3.5,
   ),
   est_output_tokens: (request.max_tokens ?? 0) + THINKING_ROOM,
@@ -424,9 +449,8 @@ export function createModelService({
           // channel's rewrites have their own.
           today: calls.filter((c) => c.at.startsWith(today) && leaderUse(c))
             .length,
-          activity_today: calls.filter(
-            (c) => c.at.startsWith(today) && unattendedUse(c),
-          ).length,
+          // The editor's runs today (a run's rounds are one).
+          activity_today: runsOf(calls.filter((c) => c.at.startsWith(today))),
           month: {
             count: calls.length,
             input_tokens: calls.reduce((s, c) => s + (c.input_tokens ?? 0), 0),
@@ -786,15 +810,24 @@ export function createModelService({
 
     /**
      * Words from the clan's model that no person asks for and no person
-     * reads before they are sent: the clan's activity rewritten for its
-     * Discord channel (Jamie, 2026-10-10; `activityRewriteRequest`), the
+     * reads before they are sent: the clan's activity channel's editor
+     * (Jamie, 2026-10-10, an editor 2026-10-11; `editorRequest`), the
      * one such purpose. The same key, owner, record and monthly cap as a
-     * leader's draft, under its own day's cap. Never throws for the clan's state:
-     * `{ ok: false, code }` and the caller posts Elixir's own lines.
-     * `ownerLeads(playerTag)` says whether the key's owner leads the clan
-     * now (true, false, or null when unknown).
+     * leader's draft, under its own day's cap, counted in runs: `run`
+     * names the run and `round` its request (1 to `EDITOR_ROUNDS`); only
+     * a run's first round is held to the day's cap, and every round to
+     * the monthly cap. A request with `messages` is a round (`turn`:
+     * `{ ok, answer }` or `{ ok, calls, content }`); one with `prompt` a
+     * single answer (`{ ok, input }`). Never throws for the clan's
+     * state: `{ ok: false, code }` and the caller posts Elixir's own
+     * stories. `ownerLeads(playerTag)` says whether the key's owner leads
+     * the clan now (true, false, or null when unknown).
      */
-    async writeUnattended(clanTag, request, { ownerLeads: leadsNow }) {
+    async writeUnattended(
+      clanTag,
+      request,
+      { ownerLeads: leadsNow, run = null, round = 1 },
+    ) {
       if (request?.purpose !== ACTIVITY)
         throw new ManageError(400, "unknown_purpose");
       const stored = await ledger.modelKey(clanTag);
@@ -808,10 +841,10 @@ export function createModelService({
       const model = modelFor(ACTIVITY, listed(stored));
       if (!model) return { ok: false, code: "model_unavailable" };
       const today = iso().slice(0, 10);
-      const used = (await ledger.modelCalls(clanTag, today)).filter(
-        unattendedUse,
-      ).length;
-      if (used >= ACTIVITY_USES_PER_DAY)
+      if (
+        round <= 1 &&
+        runsOf(await ledger.modelCalls(clanTag, today)) >= ACTIVITY_USES_PER_DAY
+      )
         return { ok: false, code: "model_daily_limit" };
       // The leaders' monthly cap stops the rewrites too: every use counts.
       if (!(await spendNow(clanTag, stored)).allowed)
@@ -821,6 +854,7 @@ export function createModelService({
         by: null,
         by_name: "Discord activity",
         purpose: ACTIVITY,
+        ...(run ? { run, round } : {}),
         model,
         ok: false,
         status: null,
@@ -830,13 +864,20 @@ export function createModelService({
         ...estimate(request),
         ttl: Math.floor(now() / 1000) + USE_KEEP_DAYS * 86400,
       });
+      const turn = Array.isArray(request.messages);
       let r;
       try {
-        r = await anthropic.write(key, dispatch(model, request));
+        r = turn
+          ? await anthropic.turn(key, dispatchTurn(model, request))
+          : await anthropic.write(key, dispatch(model, request));
       } catch {
         r = { ok: false, status: 0, code: "outcome_unknown" };
       }
       await ledger.finishModelCall(clanTag, call, finished(r, model));
+      if (r.ok && turn)
+        return r.answer !== undefined
+          ? { ok: true, answer: r.answer, model: r.model }
+          : { ok: true, calls: r.calls, content: r.content, model: r.model };
       if (r.ok) return { ok: true, input: r.input, model: r.model };
       if (r.status === 401 || r.status === 403) {
         await updateKeyItem(clanTag, stored.sealed, { refused_at: iso() });

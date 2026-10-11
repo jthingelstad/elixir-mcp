@@ -55,7 +55,7 @@ function validRequest(request) {
   if (
     !request ||
     !/^sk-ant-[A-Za-z0-9_-]{20,200}$/.test(request.key ?? "") ||
-    !["models", "write"].includes(request.method)
+    !["models", "write", "turn"].includes(request.method)
   )
     return false;
   if (
@@ -68,6 +68,7 @@ function validRequest(request) {
   )
     return false;
   if (request.method === "models") return request.input === null;
+  if (request.method === "turn") return validTurn(request.input);
   const input = request.input;
   return Boolean(
     input &&
@@ -86,6 +87,47 @@ function validRequest(request) {
     input.max_tokens <= 8192,
   );
 }
+/** Messages one editor run may send: the stories, then a turn and its
+ *  lookups' answers for each further round (three rounds at most). */
+const TURN_MESSAGES_MAX = 5;
+const TURN_TOOLS_MAX = 8;
+/** One round of the activity channel's editor (2026-10-11): the
+ *  conversation so far and strict tools, one of them the answer. */
+function validTurn(input) {
+  return Boolean(
+    input &&
+    typeof input.model === "string" &&
+    input.model.startsWith("claude-") &&
+    typeof input.system === "string" &&
+    (input.context == null || typeof input.context === "string") &&
+    Array.isArray(input.messages) &&
+    input.messages.length >= 1 &&
+    input.messages.length <= TURN_MESSAGES_MAX &&
+    input.messages.every(
+      (m) =>
+        (m?.role === "user" || m?.role === "assistant") &&
+        (typeof m.content === "string" || Array.isArray(m.content)),
+    ) &&
+    input.messages[0].role === "user" &&
+    Array.isArray(input.tools) &&
+    input.tools.length >= 1 &&
+    input.tools.length <= TURN_TOOLS_MAX &&
+    input.tools.every(
+      (t) =>
+        typeof t?.name === "string" &&
+        t.input_schema?.type === "object" &&
+        t.strict === true,
+    ) &&
+    typeof input.answer === "string" &&
+    input.tools.some((t) => t.name === input.answer) &&
+    (input.effort == null ||
+      ["low", "medium", "high"].includes(input.effort)) &&
+    Number.isInteger(input.max_tokens) &&
+    input.max_tokens > 0 &&
+    input.max_tokens <= 8192,
+  );
+}
+
 export function createModelBridge({
   secret,
   storage,
@@ -143,7 +185,7 @@ export function createModelBridge({
       return { ok: false, status: 503, code: "model_not_started" };
     const end = now() + waitMs;
     const started = await start(method, key, input, {
-      relayMs: method === "write" ? Math.min(PROVIDER_MAX_MS, waitMs) : null,
+      relayMs: method === "models" ? null : Math.min(PROVIDER_MAX_MS, waitMs),
     });
     if (!started.ok) return started;
     return (await collect(started.id, end - now())) ?? unknown();
@@ -151,6 +193,8 @@ export function createModelBridge({
   return {
     models: (key) => call("models", key),
     write: (key, input) => call("write", key, input),
+    /** One round of the activity channel's editor, waited for. */
+    turn: (key, input) => call("turn", key, input),
     /** Start a write the caller collects later: `{ ok, id }`. The relay
      *  waits up to `relayMs` (50 s unless given; at most 55 s) for the
      *  provider. */
@@ -197,15 +241,15 @@ export function createModelWorker({
       await storage.put(modelClaimKey(id), JSON.stringify({ at: now() }))
     ) {
       try {
+        const wait = request.timeout_ms
+          ? { timeoutMs: request.timeout_ms }
+          : {};
         response =
           request.method === "write"
-            ? await provider.write(request.key, {
-                ...request.input,
-                ...(request.timeout_ms
-                  ? { timeoutMs: request.timeout_ms }
-                  : {}),
-              })
-            : await provider.models(request.key);
+            ? await provider.write(request.key, { ...request.input, ...wait })
+            : request.method === "turn"
+              ? await provider.turn(request.key, { ...request.input, ...wait })
+              : await provider.models(request.key);
       } catch {
         response = unknown();
       }

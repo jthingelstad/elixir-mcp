@@ -122,11 +122,13 @@ export interface TimelineDiscordMessage {
 }
 
 /** One story a clan's channel skipped: its key, why (the words the page
- *  shows) and what it would have said. */
+ *  shows) and what it would have said. `rewritten`: the clan's own model
+ *  chose to skip it (the editor, 2026-10-11), not one of Elixir's rules. */
 export interface TimelineDiscordSkip {
   key: string;
   reason: string;
   excerpt?: string;
+  rewritten?: boolean;
 }
 
 export const TIMELINE_DISCORD_KINDS = [
@@ -193,6 +195,8 @@ export function validateTimelineDiscordMessage(
           k.excerpt.length > DISCORD_CONTENT_MAX)
       )
         errors.push(`skipped[${i}].excerpt:invalid`);
+      if (k?.rewritten !== undefined && k.rewritten !== true)
+        errors.push(`skipped[${i}].rewritten:invalid`);
     });
   if (
     !Array.isArray(m.posts) ||

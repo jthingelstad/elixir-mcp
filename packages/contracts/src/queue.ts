@@ -278,11 +278,13 @@ export function validateEmailMessage(
  *  talks to Discord (as it does for Clan's `clan-discord/`). Since
  *  2026-10-11 `timeline-hold/` brings a clan's activity channel back
  *  five minutes later for the stories it held (its own queue, the same
- *  sync). */
+ *  sync), and `timeline-editor/` runs a clan whose own model edits its
+ *  channel, one clan an invocation (its own queue, the same sync). */
 export const OUTBOX_LANES = [
   "email",
   "timeline-sync",
   "timeline-hold",
+  "timeline-editor",
   "timeline-discord",
 ] as const;
 export type OutboxLane = (typeof OUTBOX_LANES)[number];

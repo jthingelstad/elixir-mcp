@@ -10,7 +10,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemoryLedger } from "@elixir-mcp/clan-state";
-import { activityRewriteRequest, rewriteLine } from "@elixir-mcp/clan-engine";
+import {
+  activityRewriteRequest,
+  editorRequest,
+  rewriteLine,
+} from "@elixir-mcp/clan-engine";
 import { createActivityService } from "@elixir-mcp/clan/manage/activity.mjs";
 import { fetchRoster } from "@elixir-mcp/clan/manage/service.mjs";
 import {
@@ -57,6 +61,27 @@ function fakeAnthropic() {
         model: request.model,
         usage: { input_tokens: 300, output_tokens: 60 },
         input: { posts: [{ key: "tl_1", text: "Ada joined!" }] },
+      };
+    },
+    async turn(key, request) {
+      state.calls.push(["turn", key, request]);
+      const usage = { input_tokens: 2000, output_tokens: 150 };
+      // A first round looks something up; a later one answers.
+      if (request.messages.length === 1)
+        return {
+          ok: true,
+          model: request.model,
+          usage,
+          calls: [{ id: "c1", name: "channel_recent", input: {} }],
+          content: [
+            { type: "tool_use", id: "c1", name: "channel_recent", input: {} },
+          ],
+        };
+      return {
+        ok: true,
+        model: request.model,
+        usage,
+        answer: { posts: [{ keys: ["tl_1"], text: "Ada joined!" }], skips: [] },
       };
     },
   };
@@ -317,6 +342,89 @@ test("writeUnattended: recorded apart from the drafts, under its own day's cap",
     (await h.model.writeUnattended(TAG, request(), { ownerLeads: leads })).ok,
     true,
     "a new day",
+  );
+});
+
+test("writeUnattended: the editor's rounds are one run against the day's cap, each round recorded", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  const leads = async () => true;
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const first = editorRequest({
+    context: CONTEXT,
+    stories: [{ key: "tl_1", packet: "STORY tl_1 (member joined)" }],
+  });
+  const looked = await h.model.writeUnattended(TAG, first, {
+    ownerLeads: leads,
+    run: "clan-2PQRJ8LV.1",
+    round: 1,
+  });
+  assert.equal(looked.ok, true);
+  assert.deepEqual(looked.calls, [
+    { id: "c1", name: "channel_recent", input: {} },
+  ]);
+  const [kind, , sent] = h.anthropic.state.calls.at(-1);
+  assert.equal(kind, "turn");
+  assert.equal(sent.model, "claude-sonnet-5-5");
+  assert.equal(sent.answer, "write_posts");
+  assert.ok(sent.tools.every((t) => t.strict === true));
+  const answered = await h.model.writeUnattended(
+    TAG,
+    {
+      ...first,
+      messages: [
+        ...first.messages,
+        { role: "assistant", content: looked.content },
+        {
+          role: "user",
+          content: [{ type: "tool_result", tool_use_id: "c1", content: "-" }],
+        },
+      ],
+    },
+    { ownerLeads: leads, run: "clan-2PQRJ8LV.1", round: 2 },
+  );
+  assert.deepEqual(answered.answer.posts, [
+    { keys: ["tl_1"], text: "Ada joined!" },
+  ]);
+  const calls = await h.ledger.modelCalls(TAG);
+  assert.deepEqual(
+    calls
+      .map((x) => [x.run, x.round, x.ok, x.input_tokens])
+      .sort((a, b) => a[1] - b[1]),
+    [
+      ["clan-2PQRJ8LV.1", 1, true, 2000],
+      ["clan-2PQRJ8LV.1", 2, true, 2000],
+    ],
+  );
+  const status = await api(h, c, "GET", MODEL);
+  assert.equal(status.body.uses.activity_today, 1, "two rounds, one run");
+
+  // A day's cap of runs: a new run past it is refused; a run under way
+  // finishes its rounds.
+  for (let i = 1; i < ACTIVITY_USES_PER_DAY; i += 1)
+    await h.model.writeUnattended(TAG, first, {
+      ownerLeads: leads,
+      run: `clan-2PQRJ8LV.r${i}`,
+      round: 1,
+    });
+  assert.deepEqual(
+    await h.model.writeUnattended(TAG, first, {
+      ownerLeads: leads,
+      run: "clan-2PQRJ8LV.next",
+      round: 1,
+    }),
+    { ok: false, code: "model_daily_limit" },
+  );
+  assert.equal(
+    (
+      await h.model.writeUnattended(TAG, first, {
+        ownerLeads: leads,
+        run: "clan-2PQRJ8LV.r1",
+        round: 2,
+      })
+    ).ok,
+    true,
+    "its next round",
   );
 });
 

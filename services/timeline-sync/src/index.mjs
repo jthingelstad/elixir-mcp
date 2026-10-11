@@ -11,6 +11,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { makeOutbox } from "@elixir-mcp/outbox";
 import {
+  makeHistoryReader,
   makeStatusReader,
   syncAccount,
   syncClan,
@@ -28,6 +29,7 @@ const s3 = new S3Client({});
 const bucket = process.env.OUTBOX_BUCKET;
 const outbox = makeOutbox(bucket, s3);
 const readStatus = makeStatusReader(bucket, s3);
+const readHistory = makeHistoryReader(bucket, s3);
 const secret = process.env.CLAN_MODEL_SECRET || null;
 
 async function connect() {
@@ -48,16 +50,17 @@ async function leadsNow(db, clanTag, playerTag) {
 }
 
 /**
- * The clan's model, for its channel's rewrite: the clan's key through
- * Clan's model bridge (the relay calls Anthropic), recorded in the
- * clan's ledger on a connection of its own. The sync asks it outside
- * any transaction (`syncClan`'s phase two), so no row is locked while
- * the model writes. Without the secret there
- * is no rewrite and Elixir's own lines are posted.
+ * The clan's model, as its channel's editor: one round a call, the
+ * clan's key through Clan's model bridge (the relay calls Anthropic),
+ * recorded in the clan's ledger on a connection of its own. The sync
+ * asks it outside any transaction (`syncClan`'s phase two), so no row
+ * is locked while the model writes. A round waits 50 s at most, and
+ * leaves the run 15 s to write. Without the secret there is no model
+ * and Elixir's own stories are posted.
  */
 const rewriter = (remainingMs) =>
   secret
-    ? async (_db, clanTag, request) => {
+    ? async (_db, clanTag, request, { run, round }) => {
         const own = await connect();
         try {
           const model = createModelService({
@@ -67,11 +70,13 @@ const rewriter = (remainingMs) =>
             anthropic: createModelBridge({
               secret,
               storage: modelStorage(bucket, s3),
-              timeoutMs: () => Math.min(25_000, remainingMs() - 8000),
+              timeoutMs: () => Math.min(50_000, remainingMs() - 15_000),
             }),
           });
           return await model.writeUnattended(clanTag, request, {
             ownerLeads: (tag) => leadsNow(own, clanTag, tag),
+            run,
+            round,
           });
         } finally {
           await own.end().catch(() => {});
@@ -111,10 +116,13 @@ async function shareClanDiscord(db, clanTag) {
 export const handler = makeHandler({
   connect,
   sync: (db, accountId) => syncAccount(db, accountId, { outbox, readStatus }),
-  syncClan: (db, clanTag, { remainingMs }) =>
+  syncClan: (db, clanTag, { remainingMs, editor }) =>
     syncClan(db, clanTag, {
       outbox,
       readStatus,
+      readHistory,
+      remainingMs,
+      editor,
       policyFor: (d, tag) => createPostgresLedger(d).currentPolicy(tag),
       pitchFor: (d, tag) => createPostgresLedger(d).currentPitch(tag),
       rewrite: rewriter(remainingMs),
