@@ -471,18 +471,9 @@ test("awards: the morning run shares the running season's standings with Elixir 
   );
   const facts = h.mcp.state.facts;
   assert.ok(facts.every((f) => f.type === "award_standing"));
-  // The running season, and the latest closed season's final places.
+  // The running season only: the closed one's places are not standings.
   const seasons = new Set(facts.map((f) => f.detail.season_id));
-  assert.ok(seasons.has(136), "the running season");
-  assert.ok(
-    [...seasons].every((id) => id === 136 || id === 135),
-    [...seasons].join(),
-  );
-  assert.ok(
-    facts.some(
-      (f) => f.detail.award_id === "season_champ" && f.detail.place === 1,
-    ),
-  );
+  assert.deepEqual([...seasons], [136], "the running season");
   // What was shared is remembered; the next morning writes nothing new.
   const saved = await h.ledger.sharedStandings("#2PQRJ8LV");
   assert.equal(saved.season_id, 136);

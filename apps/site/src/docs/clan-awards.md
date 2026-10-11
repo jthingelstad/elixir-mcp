@@ -133,8 +133,10 @@ posted automatically.
 
 **On Elixir.** When that announcement is marked sent, each winner it
 names is shared with Elixir as a fact the leader attested, for everyone
-verified in the clan. Each morning Clan also shares where the award races stand,
-and the last closed season's final places, for everyone verified in the
-clan and the clan's agent; a place is written only when it changes.
+verified in the clan. Each morning Clan also shares where the running
+season's award races stand, for everyone verified in the clan and the
+clan's agent; a place is written only when it changes, and the morning a
+season closes its standings are taken back (its result is the
+announcement above, never a standing).
 [Clan settings](/docs/clan-policy#clan-settings) lists everything
 shared.

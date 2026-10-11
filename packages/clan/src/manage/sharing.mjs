@@ -56,7 +56,7 @@ const SHARE_TYPES = {
   },
   award_standing: {
     label: "Where the award races stand",
-    why: "Each morning, Elixir Clan's own reading of the running season's awards (and the last closed season's final places): who is on each podium, who is on track for attendance. Said by the app, not a person; written only when a place changes.",
+    why: "Each morning, Elixir Clan's own reading of the running season's awards: who is on each podium, who is on track for attendance. Said by the app, not a person; written only when a place changes.",
     sees: "Everyone verified in the clan, and the clan's agent.",
   },
 };
