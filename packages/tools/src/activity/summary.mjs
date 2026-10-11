@@ -392,6 +392,22 @@ export function formLabel(f) {
   return form ? `${form} ${card}` : `a new form of ${card}`;
 }
 
+/** A new best, told as it happened. `best` is the profile's best when
+ *  the record saw it, which can be later and higher than the battle
+ *  that crossed the rung: then the crossing is told, and the peak after
+ *  it ("passed 12,000 ... +26 to 12,005, and went on to a best of
+ *  12,032"), never "a new best of 12,032 ... to 12,005" (2026-10-11). A
+ *  best below where the crossing ended is a stale read: the crossing
+ *  alone is told. */
+function bestText(who, f) {
+  const b = f.crossed_by;
+  if (!b) return `${who} set a new best of ${num(f.best)} trophies.`;
+  const after = b.trophies_after;
+  if (typeof after !== "number" || after === f.best)
+    return `${who} set a new best of ${num(f.best)} trophies, crossing ${num(f.band)}${onBattle(b)}.`;
+  return `${who} passed ${num(f.band)} trophies for the first time${onBattle(b)}${f.best > after ? `, and went on to a best of ${num(f.best)}` : ""}.`;
+}
+
 /** One timeline item as a sentence. */
 export function itemText(it, timeZone = "UTC") {
   const f = it.facts ?? {};
@@ -428,7 +444,7 @@ export function itemText(it, timeZone = "UTC") {
     case "ranked_promotion":
       return `${member || subj} was promoted to ${f.to_name ?? `league ${f.to}`}${onBattle(f.promoted_by)}.`;
     case "best_trophies_band":
-      return `${member || subj} set a new best of ${num(f.best)} trophies${f.crossed_by ? `, crossing ${num(f.band)}${onBattle(f.crossed_by)}` : ""}.`;
+      return bestText(member || subj, f);
     case "collection_level_step":
       return `${member || subj} reached collection level ${f.level}.`;
     case "career_wins_step":
