@@ -1,6 +1,8 @@
 import { test, expect } from "vitest";
 import { CHAT_MAX, chatWarnings } from "@elixir-mcp/clan-engine/chat";
 import {
+  INVITE_CHANNELS,
+  INVITE_EVENT,
   SIGNUP_URL,
   SITE,
   clanChatLine,
@@ -60,4 +62,14 @@ test("the invite link is the canonical signup, with no referral or tracking para
   expect(SIGNUP_URL).toBe("https://elixir.poapkings.com/console/signin?signup");
   const url = new URL(SIGNUP_URL);
   expect([...url.searchParams.keys()]).toEqual(["signup"]);
+});
+
+test("a copy is one aggregate event whose value is a channel, never a tag, a person or a URL", () => {
+  expect(INVITE_EVENT).toBe("web.invite_copied");
+  expect(Object.values(INVITE_CHANNELS).sort()).toEqual([
+    "chat",
+    "message",
+    "share",
+  ]);
+  for (const v of Object.values(INVITE_CHANNELS)) expect(v).toMatch(/^[a-z]+$/);
 });
