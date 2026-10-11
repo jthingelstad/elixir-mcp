@@ -42,7 +42,7 @@ after a month gets a month's timeline (capped at 30 days, and at the newest
 | `evidence_limit` | integer | 25 | 1 to 25 games per page |
 | `expected_evidence_version` | string | none | the item's `evidence.version`; required after the first page, so a page never shifts under changed evidence |
 | `skip_empty` | boolean | `false` | for polling: a window with no item this read's `kinds` would keep is answered without reading the subjects, so `timeline`, `entries` and `quiet` are empty and `entries_skipped` is `true`. The pointer, `next_cursor` and `meta` move as on any read ([Polling cheaply](#polling-cheaply)) |
-| `verbosity` | `full` \| `compact` | `full` | compact keeps items, entry summaries and player notables, and drops entry sections including clan standouts |
+| `verbosity` | `full` \| `compact` | `full` | compact keeps items (without `follow`), entry summaries and player notables, and drops entry sections including clan standouts |
 | `timezone` | IANA zone | the account's | for date-only bounds and each item's `local` |
 
 Response: `{ window: { from, to }, read_to, timeline: [...], timeline_more,
@@ -128,7 +128,7 @@ silences it without touching its recording.
 
 Every item is `{ id, revision, at, sort_at, at_unix, local, observed_at,
 late, subject_tag, subject_name, nickname?, subjects, kind, schema,
-section, text, visibility, publishable, facts }`:
+section, text, visibility, publishable, facts, follow }`:
 
 | field | what it is |
 |---|---|
@@ -148,6 +148,7 @@ section, text, visibility, publishable, facts }`:
 | `text` | one sentence a person can read, with no time in it: render the time from `at_unix` or `local` |
 | `visibility`, `publishable` | who may see it (`public` for the game record; `clan`, `player` or `leaders` for an attested fact, by its type; `owner` for your account's own administration), and whether it may be posted outside Elixir: `public`, `clan` and `player` may; `leaders` and `owner` never |
 | `facts` | the numbers and names `text` was written from |
+| `follow` | where the item leads: the reads that expand it into its story, each `{ tool, args }`, a tool you may call and the arguments to call it with ([Where an item leads](#where-an-item-leads)). Full verbosity only |
 
 | kind | subject | what it is |
 |---|---|---|
@@ -236,6 +237,31 @@ never retell it. The same `id` at the same or a lower `revision` is a
 story you have told; say nothing. Keep the ids you have told, with the
 revision you told each at, and a timeline read through overlapping
 windows, a member read, or a read after a restart never repeats itself.
+
+### Where an item leads
+
+The timeline says that something happened; the rest of the record says
+how. Each item's `follow` names the reads that tell more, built from the
+item itself, so an agent never has to work out which tool holds the
+story or how to name the moment to it:
+
+| kind | `follow` |
+|---|---|
+| `battle_session`, `session_standout` | this item's own [recorded evidence](#recorded-evidence) (`elixir_timeline` with `evidence_item_id`, this window and basis), then `battles_performance` over the sitting's span |
+| `ranked_promotion`, `arena_changed`, `best_trophies_band`, `career_wins_step` | the battle that proved it (`battles_query` by `battle_id`), when the record holds it, then `players_summary` |
+| `badge_earned`, `legendary_badge_earned` | `players_profile` |
+| `collection_level_step` | `players_collection` |
+| `card_unlocked`, `card_form_unlocked` | `players_collection`, then `cards_card` for that card and that player |
+| roster moves and clan moves | `players_summary` for the member, then `clans_roster` |
+| `bracket_observed` | `war_rivals` for the clan and its bracket |
+| `race_finished`, `week_resolved` | `war_history` for that season and week |
+| `quiet_crossed`, `returned` | `players_summary`, then the member's last ten battles (`battles_query`) |
+| attested facts | `players_summary` for the member |
+| `account_*` | nothing: `[]` |
+
+Call them as they are, in order of how close they stay to the moment. They
+are addresses, not advice: what to make of the answer is yours. A tool
+your connection may not call is left out.
 
 ### Rendering an item
 
