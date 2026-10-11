@@ -113,10 +113,20 @@ test("a sitting leads to its own evidence, from the window that served it, and t
     tool: "battles_performance",
     args: {
       player_tag: PLAYER,
-      from: "2026-10-10T13:59:59.000Z",
-      to: "2026-10-10T14:21:00.000Z",
+      from: "2026-10-10T14:00:00.000Z",
+      to: "2026-10-10T14:21:01.000Z",
     },
   });
+});
+
+test("a player's own clan move names no roster read; a clan feed's move does", () => {
+  const tools = (kind) =>
+    followFor(itemOf(kind, TIMELINE_KIND_SCHEMAS[kind]), WINDOW).map(
+      (x) => x.tool,
+    );
+  assert.deepEqual(tools("clan_joined"), ["players_summary"]);
+  assert.deepEqual(tools("clan_left"), ["players_summary"]);
+  assert.deepEqual(tools("member_joined"), ["players_summary", "clans_roster"]);
 });
 
 test("a read the caller may not make is no address for it", () => {

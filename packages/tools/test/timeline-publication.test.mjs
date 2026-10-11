@@ -20,6 +20,7 @@ import {
   missingFacts,
 } from "../src/activity/schemas.mjs";
 import { elixir_timeline } from "../src/tools/elixir/timeline.mjs";
+import { makeRegistry } from "../src/tools.mjs";
 
 const PILOT = "#2PYLQ0";
 const CLAN = "#2PYLQJ";
@@ -425,6 +426,15 @@ test("a full read's items say where they lead, and a sitting's own address reads
   const [sitting] = sittings(read.timeline);
   const tools = sitting.follow.map((x) => x.tool);
   assert.deepEqual(tools, ["elixir_timeline", "battles_performance"]);
+  const span = await makeRegistry().invoke(
+    "battles_performance",
+    ctx,
+    sitting.follow[1].args,
+  );
+  // The span holds every battle the sitting counts, its last included
+  // (Codex on #476: battle windows end before to).
+  assert.equal(span.window.battles, sitting.facts.battles);
+  assert.equal(span.window.wins, sitting.facts.won);
   const back = await elixir_timeline.handler(ctx, sitting.follow[0].args);
   assert.equal(back.timeline[0].id, sitting.id);
   assert.equal(back.evidence.count, sitting.facts.battles);

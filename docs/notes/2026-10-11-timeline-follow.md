@@ -34,3 +34,13 @@ fact in the one tool that owns it.
 - `test/timeline-publication.test.mjs`: a sitting's evidence address,
   called through the handler, returns that item and its games; compact
   carries no `follow`.
+
+## Codex on #476 (11.9.1)
+
+- P1, real: battle tools select `[from, to)`, so a sitting's span read to
+  `ended_at` left its last battle out (a one-battle sitting read zero).
+  The span is now `[started_at, ended_at + 1 s)`; the handler test calls
+  it and holds its battles and wins to the sitting's.
+- P2, real: a player's own `clan_joined` / `clan_left` can name a clan
+  nobody records, and `clans_roster` answers `not_recorded` there. Those
+  moves lead to the member only; a clan feed's moves keep the roster.
