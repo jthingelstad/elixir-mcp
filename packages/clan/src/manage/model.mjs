@@ -338,18 +338,22 @@ export function createModelService({
   /**
    * A use's answer, recorded (when `call` is still open) and turned into
    * the draft's input or the error a leader reads.
+   * `stored` is the key that sent the request, or null when that key has
+   * since been removed or replaced: an answer's refusal or missing model
+   * then marks no key, never a leader's new one.
    */
   async function settle(clanTag, stored, model, purpose, call, r) {
     if (call) await ledger.finishModelCall(clanTag, call, finished(r, model));
     if (r.ok) return { input: r.input, model: r.model, usage: r.usage ?? null };
     if (r.status === 401 || r.status === 403) {
-      await ledger.saveModelKey(clanTag, { ...stored, refused_at: iso() });
+      if (stored)
+        await updateKeyItem(clanTag, stored.sealed, { refused_at: iso() });
       throw new ManageError(409, "model_key_refused");
     }
     if (r.status === 404) {
       // The model is gone for this key: the next draft runs on the
       // purpose's next model, if the key reaches one.
-      await dropModel(clanTag, stored, model);
+      if (stored) await dropModel(clanTag, stored, model);
       throw new ManageError(409, "model_unavailable", null, {
         model,
         purpose,
@@ -686,6 +690,9 @@ export function createModelService({
         by_name: who.name ?? null,
         purpose: request.purpose,
         ...(request.purpose === ACTIVITY ? { preview: true } : {}),
+        // Which key sent it: a started draft collected after the key
+        // changed settles without touching the new one.
+        key_set_at: stored.set_at ?? null,
         model,
         ok: false,
         status: null,
@@ -744,8 +751,14 @@ export function createModelService({
       const call = await pendingCall(clanTag, requestId);
       if (!call) throw new ManageError(404, "no_pending_draft");
       if (call.by !== who.player_tag) throw new ManageError(403, "not_yours");
-      const stored = await ledger.modelKey(clanTag);
-      if (!stored) throw new ManageError(409, "no_model_key");
+      // The answer was paid for by the key that sent it: still collected
+      // when that key has been removed or replaced since, and then settled
+      // without marking whatever key the clan holds now.
+      const current = await ledger.modelKey(clanTag);
+      const stored =
+        current && call.key_set_at && current.set_at === call.key_set_at
+          ? current
+          : null;
       let r = await anthropic.collect(requestId).catch(() => ({
         ok: false,
         status: 0,
@@ -826,7 +839,7 @@ export function createModelService({
       await ledger.finishModelCall(clanTag, call, finished(r, model));
       if (r.ok) return { ok: true, input: r.input, model: r.model };
       if (r.status === 401 || r.status === 403) {
-        await ledger.saveModelKey(clanTag, { ...stored, refused_at: iso() });
+        await updateKeyItem(clanTag, stored.sealed, { refused_at: iso() });
         return { ok: false, code: "model_key_refused" };
       }
       if (r.status === 404) {

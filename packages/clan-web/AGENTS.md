@@ -18,9 +18,10 @@ Elixir Clan's views. Read `packages/clan/AGENTS.md` first, and
   as `/clan/...` with the tag masked; events are bounded labels, never free
   text, a tag or a URL. The events, which this list must match:
   `clan.action_commented`, `clan.action_link_copied`,
-  `clan.activity_discord_category`, `clan.activity_discord_removed`,
-  `clan.activity_discord_rewrite`, `clan.activity_discord_set`,
-  `clan.activity_discord_switch`, `clan.award_granted`,
+  `clan.activity_discord_category`, `clan.activity_discord_preview`,
+  `clan.activity_discord_removed`, `clan.activity_discord_rewrite`,
+  `clan.activity_discord_set`, `clan.activity_discord_switch`,
+  `clan.award_granted`,
   `clan.awards_saved`, `clan.away_cleared`, `clan.away_set`,
   `clan.copy_in_game`, `clan.discord_mention_off`,
   `clan.discord_mention_set`, `clan.discord_nudge`, `clan.discord_removed`,
