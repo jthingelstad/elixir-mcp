@@ -116,7 +116,6 @@ export const manageApi = {
   draftPitch: (tag, note) => post(`${clanBase(tag)}/recruit/draft`, { note }),
   model: (tag) => get(`${clanBase(tag)}/model`),
   setModelKey: (tag, key) => put(`${clanBase(tag)}/model`, { key }),
-  chooseModel: (tag, model) => put(`${clanBase(tag)}/model`, { model }),
   // The clan's monthly spend cap, in dollars; null removes it.
   setSpendCap: (tag, usd) =>
     put(`${clanBase(tag)}/model`, { spend_cap_usd: usd }),

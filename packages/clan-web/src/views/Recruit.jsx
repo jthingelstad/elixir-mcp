@@ -278,7 +278,7 @@ const DRAFT_ERROR = {
     "Anthropic stopped accepting the clan's key. Add it again in Settings.",
   model_key_unreadable: "The clan's key needs to be added again in Settings.",
   model_unavailable:
-    "The chosen model is no longer available to this key. Pick another in Settings.",
+    "The clan's key could not reach the model Elixir Clan uses for this. Try again; if it fails again, opening Settings checks the key with Anthropic.",
   model_daily_limit:
     "The clan's model has drafted as many times as it may today. Try again tomorrow.",
   model_spend_cap:
@@ -354,9 +354,12 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
           </button>
         </div>
         <span className="page-head__note">
-          Uses the clan&rsquo;s Anthropic key ({model.model}). It replaces the
-          tagline, the about, the points and who you are looking for below;
-          nothing is saved until you save.
+          Uses the clan&rsquo;s Anthropic key
+          {model.model_for?.recruit_pitch
+            ? ` (${model.model_for.recruit_pitch.name}, Elixir Clan's choice)`
+            : ""}
+          . It replaces the tagline, the about, the points and who you are
+          looking for below; nothing is saved until you save.
         </span>
         {result?.error ? (
           <p className="field-error m-0" role="alert">

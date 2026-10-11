@@ -176,11 +176,15 @@ without a policy:
   choices for welcomes, removals and farewells. Keep member details out of a
   message note. Everything it writes is a draft a leader edits
   and copies into the game. It never makes or completes a decision.
-  The models offered are the ones the key can use, checked with Anthropic
-  when the key is added and again about once a day when a leader opens
-  Settings. The clan's chosen model never changes by itself: one the key
-  stops offering stays chosen, marked as not offered, until a leader
-  picks another.
+  Elixir Clan chooses the model for each use, and Settings shows which:
+  Claude Opus 5.5 drafts the recruiting pitch and the messages on
+  Actions, and Claude Sonnet 5.5 rewrites the activity channel's posts.
+  When the key cannot reach that model, the use takes the other of the
+  two, then Claude Haiku 5.5; it never falls back to an older model, and
+  a key that reaches none of the three is not accepted. Which models the
+  key reaches is checked with Anthropic when the key is added and again
+  about once a day when a leader opens Settings. The key and its monthly
+  cap are the leaders' choice; the model is not.
   Settings shows each use's tokens and about what it cost, and the
   month's total: the tokens at Anthropic's list prices (the date is on
   the page), an estimate rather than the bill. The leader or a co-leader

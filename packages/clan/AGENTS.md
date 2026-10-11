@@ -50,8 +50,9 @@ or workflow of its own.
   answer is logged. The sealing secret (`clan_sealing_secret` in the app secret) keeps its
   derivation and AAD until its own reviewed rotation (`docs/SECRETS.md`).
   The key's model list refreshes itself (`refreshModels`, at most daily,
-  asked for by Settings after it draws); nothing ever changes a clan's
-  saved model.
+  asked for by Settings after it draws). Elixir Clan chooses the model
+  for each use from `MODEL_FOR` (clan-engine `words.mjs`) against that
+  list; leaders choose the key and the monthly cap, never the model.
 - **Actions in Discord** go the same way, under `clan-discord/`
   (`src/discord-bridge.mjs`, `src/discord-webhook.mjs`,
   `src/manage/discord.mjs`): the webhook is sealed in its own item, the

@@ -1,8 +1,8 @@
 /**
  * Anthropic's API on a clan's own key (bring your own tokens, 2026-09-25):
  * the model list, which is how a key is checked when a leader adds it (it
- * spends nothing), and one message whose answer is a single forced tool
- * call, so a model's words arrive in the shape the engine checks. Elixir
+ * spends nothing), and one message whose answer is a single tool call, so
+ * a model's words arrive in the shape the engine checks. Elixir
  * Clan funds no model use; every call here is on the key it is handed.
  *
  * Timed into the request's trace (`timedModel`): the call, its time, its
@@ -12,9 +12,14 @@
  *
  * The request is the same for every model: no temperature, top_p or
  * top_k, no thinking or effort, no assistant prefill. The Claude 5 models
- * (Haiku 5.5 included) answer a 400 to any of those, and a forced tool
- * call runs without thinking on the models that think. Nothing here
- * depends on the model id, so a clan's saved model is sent as it is.
+ * (Haiku 5.5 included) answer a 400 to any of those. The tool is asked
+ * for, not forced (2026-10-11): Claude Opus 5.5, the model the leaders'
+ * drafts run on, answers a 400 to a forced `tool_choice` and always
+ * thinks, so the request names the tool in the system prompt, allows one
+ * call (`auto`, no parallel calls), and adds `THINKING_ROOM` to the
+ * engine's `max_tokens`, which sizes the answer alone. An answer with no
+ * call is `no_answer`, never words. Nothing here depends on the model
+ * id: the model Elixir Clan chose for the use is sent as it is.
  */
 
 import { timedModel } from "./trace.mjs";
@@ -23,6 +28,9 @@ const ANTHROPIC_URL = "https://api.anthropic.com";
 export const ANTHROPIC_VERSION = "2023-06-01";
 /** Under the Lambda's 25 s and the gateway's 29 s, with room to answer. */
 const MODEL_TIMEOUT_MS = 20_000;
+/** Tokens a model that thinks may spend before its tool call; billed
+ *  only when used. */
+export const THINKING_ROOM = 4096;
 
 export function createAnthropicClient({
   fetch = globalThis.fetch,
@@ -98,11 +106,11 @@ export function createAnthropicClient({
           method: "POST",
           body: JSON.stringify({
             model,
-            max_tokens,
-            system,
+            max_tokens: max_tokens + THINKING_ROOM,
+            system: `${system}\n\nAnswer directly: call the ${tool.name} tool once, and write nothing else.`,
             messages: [{ role: "user", content: prompt }],
             tools: [tool],
-            tool_choice: { type: "tool", name: tool.name },
+            tool_choice: { type: "auto", disable_parallel_tool_use: true },
           }),
         });
         if (!r.ok) return r;

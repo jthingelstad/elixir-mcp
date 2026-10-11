@@ -5,6 +5,17 @@
  * for the uses the engine names (`PURPOSES` in `words.mjs`), never a
  * judgment about a member.
  *
+ * Which model writes is Elixir Clan's choice, per use (Jamie, 2026-10-11:
+ * "The model is our selection based on how the product should work. The
+ * key and its budget are the external decisions."): `MODEL_FOR` in
+ * `words.mjs` lists the 5.5 generation in order for each purpose, and a
+ * use runs on the first of them the key's model list reaches
+ * (`modelFor`). A key that reaches none of them is refused when it is
+ * added, and a use whose models are all out of reach is refused
+ * (`model_unavailable`); nothing falls back to an older generation.
+ * Leaders no longer pick a model; a `model` saved beside a key before
+ * 2026-10-11 is left in the item and never read.
+ *
  * The key:
  *  - is checked with Anthropic before it is kept (the model list: it
  *    spends nothing); an Admin key is refused;
@@ -21,14 +32,15 @@
  * Rotating the app's session secret makes every kept key unreadable; the
  * page then asks for it again.
  *
- * The key's model list (what the picker offers) refreshes itself (Jamie,
- * 2026-10-08: "yes Clan should refresh that list automatically"): when a
- * leader opens Settings and the list is a day old, the page asks for a
- * refresh after it has drawn, and a draft that finds its model gone makes
- * the list due at once. It is the same read as adding a key (the model
- * list spends nothing), at most once a day per clan otherwise. A refresh
- * replaces only the list: the clan's saved model never changes, even when
- * the key no longer lists it. A failed refresh keeps the old list.
+ * The key's model list says which models a use can reach, and refreshes
+ * itself (Jamie, 2026-10-08: "yes Clan should refresh that list
+ * automatically"): when a leader opens Settings and the list is a day
+ * old, the page asks for a refresh after it has drawn. It is the same
+ * read as adding a key (the model list spends nothing), at most once a
+ * day per clan otherwise. A use whose model Anthropic no longer serves
+ * (a 404) takes that model off the list at once, so the next use runs on
+ * the purpose's next model, and makes the list due. A failed refresh
+ * keeps the old list.
  *
  * Spend (Jamie, 2026-10-10): each use's tokens are priced at Anthropic's
  * list rates (`prices.mjs`), so leaders see about what the month's uses
@@ -41,7 +53,12 @@
  */
 
 import { createBox } from "../sealed.mjs";
-import { PURPOSES, chooseModel } from "@elixir-mcp/clan-engine";
+import {
+  MODEL_FOR,
+  PURPOSES,
+  modelFor,
+  modelName,
+} from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 import { PRICES_AS_OF, roundUsd, costOfUse } from "./prices.mjs";
 
@@ -86,6 +103,33 @@ export function sealer(secret) {
 }
 
 const boundTo = (clanTag, playerTag) => `${clanTag}|${playerTag}`;
+
+/** The ids on a key's model list as last read (empty when never read). */
+const listed = (stored) => (stored?.models ?? []).map((m) => m.id);
+
+/**
+ * The model each use runs on with this key now: `{ purpose: { id, name }
+ * | null }`, null where the key reaches none of the purpose's models.
+ * Without a key, the model each use would start on.
+ */
+function modelsFor(stored) {
+  const ids = stored ? listed(stored) : null;
+  return Object.fromEntries(
+    Object.keys(MODEL_FOR).map((purpose) => {
+      const id = modelFor(purpose, ids);
+      return [purpose, id ? { id, name: modelName(id) } : null];
+    }),
+  );
+}
+
+/** A use whose models the key cannot reach, in a leader's words. */
+function unreachable(purpose) {
+  const names = (MODEL_FOR[purpose] ?? []).map(modelName);
+  return new ManageError(409, "model_unavailable", null, {
+    purpose,
+    message: `The clan's key cannot reach the models Elixir Clan uses for this (${names.join(", ")}). Settings checks the key's models again when you open it.`,
+  });
+}
 
 /** Anthropic's refusal of a key, in a leader's words. */
 function refusedKey(r) {
@@ -142,16 +186,31 @@ export function createModelService({
 
   /**
    * Merge `fields` into the clan's key item as it is NOW, and only while
-   * it is still the same key: a refresh never writes over a model a
-   * leader chose, or a key replaced or removed, in the meantime.
+   * it is still the same key: a refresh never writes over a cap a leader
+   * set, or a key replaced or removed, in the meantime.
    */
   async function updateKeyItem(clanTag, sealed, fields) {
     const current = await ledger.modelKey(clanTag);
     if (!current || !sameSealed(current.sealed, sealed)) return null;
-    const next = { ...current, ...fields };
+    const next = {
+      ...current,
+      ...(typeof fields === "function" ? fields(current) : fields),
+    };
     await ledger.saveModelKey(clanTag, next);
     return next;
   }
+
+  /**
+   * Anthropic no longer serves `model` to this key (a 404): off the list
+   * at once, so the next use takes the purpose's next model, and the
+   * list is due for a full read. Best effort: the use's answer is the
+   * refusal either way.
+   */
+  const dropModel = (clanTag, stored, model) =>
+    updateKeyItem(clanTag, stored.sealed, (current) => ({
+      models: (current.models ?? []).filter((m) => m.id !== model),
+      models_checked_at: null,
+    })).catch(() => null);
 
   /**
    * May the clan's model be used now, under the clan's monthly cap? Every
@@ -190,7 +249,7 @@ export function createModelService({
       return {
         set: Boolean(stored),
         refused: Boolean(stored?.refused_at),
-        model: stored?.model ?? null,
+        model_for: modelsFor(stored),
       };
     },
 
@@ -207,6 +266,8 @@ export function createModelService({
       const base = {
         clan_tag: clanTag,
         purposes: PURPOSES,
+        // Elixir Clan's choice for each use, as this key reaches it.
+        model_for: modelsFor(stored),
         per_day: USES_PER_DAY,
         keep_days: USE_KEEP_DAYS,
         max_spend_cap_usd: MAX_SPEND_CAP_USD,
@@ -266,11 +327,6 @@ export function createModelService({
         set_by: stored.set_by,
         set_by_name: stored.set_by_name ?? null,
         set_at: stored.set_at,
-        model: stored.model,
-        models: stored.models ?? [],
-        // Is the saved model still one the key lists? It stays chosen
-        // either way; the picker says so.
-        model_listed: (stored.models ?? []).some((m) => m.id === stored.model),
         models_refreshed_at: stored.models_refreshed_at ?? null,
         models_refresh_error: stored.models_refresh_error ?? null,
         refresh_due:
@@ -286,7 +342,7 @@ export function createModelService({
     },
 
     /** Add (or replace) the clan's key: checked with Anthropic first. */
-    async setKey(clanTag, who, { key, model = null } = {}) {
+    async setKey(clanTag, who, { key } = {}) {
       requireLeader(who);
       const k = String(key ?? "").trim();
       if (/^sk-ant-admin/.test(k))
@@ -301,13 +357,17 @@ export function createModelService({
       const r = await keyModels(anthropic, k);
       if (!r.ok) throw refusedKey(r);
       const { models } = r;
-      const chosen =
-        model && models.some((m) => m.id === model)
-          ? model
-          : chooseModel(models.map((m) => m.id));
-      if (!chosen)
+      // A key no use can run on is no use to the clan: say so now.
+      const ids = models.map((m) => m.id);
+      const reaches =
+        ids.length > 0 && Object.keys(MODEL_FOR).some((p) => modelFor(p, ids));
+      if (!reaches)
         throw new ManageError(400, "no_models", null, {
-          message: "This key cannot reach any Claude model.",
+          message: `This key cannot reach the models Elixir Clan uses (${[
+            ...new Set(Object.values(MODEL_FOR).flat()),
+          ]
+            .map(modelName)
+            .join(", ")}).`,
         });
       // The clan's cap outlives the key it was set beside.
       const previous = await ledger.modelKey(clanTag);
@@ -321,35 +381,17 @@ export function createModelService({
         set_by: who.player_tag,
         set_by_name: who.name ?? null,
         set_at: iso(),
-        model: chosen,
         models,
         models_checked_at: iso(),
         models_refreshed_at: iso(),
         models_refresh_error: null,
         refused_at: null,
       });
-      return { ok: true, model: chosen };
+      return { ok: true, model_for: modelsFor({ models }) };
     },
 
     /**
-     * Choose which of the key's models writes: any on the key's list as it
-     * was last read (when the key was added, or its latest refresh). A
-     * clan's saved choice is never changed for it.
-     */
-    async setModel(clanTag, who, model) {
-      requireLeader(who);
-      const stored = await ledger.modelKey(clanTag);
-      if (!stored) throw new ManageError(409, "no_model_key");
-      if (!(stored.models ?? []).some((m) => m.id === model))
-        throw new ManageError(400, "unknown_model", null, {
-          message: "That model is not one this key can reach.",
-        });
-      await ledger.saveModelKey(clanTag, { ...stored, model });
-      return { ok: true, model };
-    },
-
-    /**
-     * Read the key's model list again, when it is due. The picker asks
+     * Read the key's model list again, when it is due. Settings asks
      * for this after it has drawn, so a slow or failed read never holds
      * it up, and nothing on the drafting path waits for it. Bounded: the
      * attempt is recorded before the read, so another refresh waits
@@ -474,6 +516,9 @@ export function createModelService({
           message:
             "The recorded roster could not confirm who added this key. Try again shortly.",
         });
+      // Elixir Clan's model for this use, the first the key reaches.
+      const model = modelFor(request.purpose, listed(stored));
+      if (!model) throw unreachable(request.purpose);
       const today = iso().slice(0, 10);
       // The Discord activity rewrites have a cap of their own.
       const drafts = (await ledger.modelCalls(clanTag, today)).filter(
@@ -496,7 +541,7 @@ export function createModelService({
         by: who.player_tag,
         by_name: who.name ?? null,
         purpose: request.purpose,
-        model: stored.model,
+        model,
         ok: false,
         status: null,
         code: "outcome_pending",
@@ -507,7 +552,7 @@ export function createModelService({
       let r;
       try {
         r = await anthropic.write(key, {
-          model: stored.model,
+          model,
           system: request.system,
           prompt: request.prompt,
           tool: request.tool,
@@ -517,7 +562,7 @@ export function createModelService({
         r = { ok: false, status: 0, code: "outcome_unknown" };
       }
       await ledger.finishModelCall(clanTag, call, {
-        model: r.model ?? stored.model,
+        model: r.model ?? model,
         ok: r.ok,
         status: r.status ?? null,
         code: r.ok ? null : (r.code ?? null),
@@ -531,14 +576,13 @@ export function createModelService({
         throw new ManageError(409, "model_key_refused");
       }
       if (r.status === 404) {
-        // The saved model is gone for this key: the list is due now, so
-        // the picker is current when a leader comes to choose another.
-        // Best effort: the leader's answer is the 409 either way.
-        await updateKeyItem(clanTag, stored.sealed, {
-          models_checked_at: null,
-        }).catch(() => null);
+        // The model is gone for this key: the next draft runs on the
+        // purpose's next model, if the key reaches one.
+        await dropModel(clanTag, stored, model);
         throw new ManageError(409, "model_unavailable", null, {
-          model: stored.model,
+          model,
+          purpose: request.purpose,
+          message: `Anthropic no longer serves ${modelName(model)} to the clan's key. Try again: Elixir Clan uses the next model this key reaches.`,
         });
       }
       if (r.status === 429 || r.status === 529)
@@ -588,6 +632,8 @@ export function createModelService({
       const leads = await leadsNow(stored.set_by);
       if (leads === false) return { ok: false, code: "model_key_owner_left" };
       if (leads !== true) return { ok: false, code: "model_owner_unconfirmed" };
+      const model = modelFor(ACTIVITY, listed(stored));
+      if (!model) return { ok: false, code: "model_unavailable" };
       const today = iso().slice(0, 10);
       const used = (await ledger.modelCalls(clanTag, today)).filter(
         (c) => c.purpose === ACTIVITY,
@@ -602,7 +648,7 @@ export function createModelService({
         by: null,
         by_name: "Discord activity",
         purpose: ACTIVITY,
-        model: stored.model,
+        model,
         ok: false,
         status: null,
         code: "outcome_pending",
@@ -613,7 +659,7 @@ export function createModelService({
       let r;
       try {
         r = await anthropic.write(key, {
-          model: stored.model,
+          model,
           system: request.system,
           prompt: request.prompt,
           tool: request.tool,
@@ -623,7 +669,7 @@ export function createModelService({
         r = { ok: false, status: 0, code: "outcome_unknown" };
       }
       await ledger.finishModelCall(clanTag, call, {
-        model: r.model ?? stored.model,
+        model: r.model ?? model,
         ok: r.ok,
         status: r.status ?? null,
         code: r.ok ? null : (r.code ?? null),
@@ -636,9 +682,7 @@ export function createModelService({
         return { ok: false, code: "model_key_refused" };
       }
       if (r.status === 404) {
-        await updateKeyItem(clanTag, stored.sealed, {
-          models_checked_at: null,
-        }).catch(() => null);
+        await dropModel(clanTag, stored, model);
         return { ok: false, code: "model_unavailable" };
       }
       return { ok: false, code: r.code ?? "model_failed" };

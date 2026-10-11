@@ -60,10 +60,17 @@ export function createActivityService({ ledger, store, model = null }) {
       })),
       in_effect: activityCategories(saved?.categories ?? {}, values),
       // The rewrite needs the clan's own key (Settings, the clan's own
-      // model); without one the page asks a leader to add it.
+      // model); without one the page asks a leader to add it. `name` is
+      // the model Elixir Clan runs the rewrites on with this key, null
+      // when the key reaches none of them.
       model: key
-        ? { available: true, set: key.set, refused: key.refused }
-        : { available: false, set: false, refused: false },
+        ? {
+            available: true,
+            set: key.set,
+            refused: key.refused,
+            name: key.model_for?.discord_activity?.name ?? null,
+          }
+        : { available: false, set: false, refused: false, name: null },
       voice_max: VOICE_MAX,
       rewrites_per_day: ACTIVITY_USES_PER_DAY,
     };

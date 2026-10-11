@@ -473,21 +473,30 @@ behavior (the only door route that sees the session cookie is
   before the provider is contacted, so an interrupted claim is never spent
   again. No key, prompt or answer is logged. The sealed model key keeps its
   original derivation and AAD.
-- A model request is one forced tool call with nothing model-specific:
-  no temperature, top_p, top_k, thinking, effort or assistant prefill
-  (the Claude 5 models, Haiku 5.5 included, answer a 400 to each). The
-  answer is the `tool_use` block by type. A `refusal` or `max_tokens`
-  stop is an error (`model_refused`, `model_cut_off`) even with a tool
-  call in it, never a draft: the engine fills missing words with its
-  plain template. `MODEL_PREFERENCE` only names a default when a key is
-  added; a clan's saved model is never moved.
+- A model request is one tool call with nothing model-specific: no
+  temperature, top_p, top_k, thinking, effort or assistant prefill (the
+  Claude 5 models, Haiku 5.5 included, answer a 400 to each). The tool
+  is offered with `tool_choice: auto` (no parallel calls) and a system
+  line that asks for it, not forced: Opus 5.5 answers a 400 to a forced
+  `tool_choice`. Opus 5.5 always thinks and its thinking counts toward
+  `max_tokens`, so the transport adds `THINKING_ROOM` to the engine's
+  word budget. The answer is the `tool_use` block by type; an answer
+  without one is `no_answer`. A `refusal` or `max_tokens` stop is an
+  error (`model_refused`, `model_cut_off`) even with a tool call in it,
+  never a draft: the engine fills missing words with its plain template.
+- Which model a use runs on is `modelFor(purpose, ids)` over the one
+  constant `MODEL_FOR` (`packages/clan-engine/src/words.mjs`), against
+  the key item's stored `models` list; leaders never choose it, and a
+  `model` field left in a key item from before 2026-10-11 is never read.
+  Nothing reachable is `model_unavailable` before any reservation.
 - The key's model list refreshes through `refreshModels`, the key-add
   read (`keyModels`), at most once in `MODELS_REFRESH_MS` per clan (the
   attempt is recorded before the read), asked for by the Settings page
-  after it draws, and due at once after a `model_unavailable`. It merges
-  only the list fields into the key item re-read after the call (same key
-  compared by its sealed bytes, never by object identity), never
-  `model`. 401/403 sets `refused_at`; any other failure keeps the list
+  after it draws, and due at once after a 404, which also drops that
+  model from the stored list so the next use takes the next in
+  `MODEL_FOR`. It merges only the list fields into the key item re-read
+  after the call (same key compared by its sealed bytes, never by object
+  identity). 401/403 sets `refused_at`; any other failure keeps the list
   and records `models_refresh_error`.
 - Spend: `prices.mjs` prices a use from the tokens it recorded
   (`costOfUse`; update `PRICES_AS_OF` and the table when Anthropic's list

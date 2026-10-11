@@ -33,7 +33,9 @@ import { isDeepStrictEqual } from "node:util";
  *                            as award standings: the season and, per ref,
  *                            the member and place (manage/standings.mjs)
  *   model_key#<clan>         the clan's own Anthropic key, SEALED (see
- *                            manage/model.mjs), who added it, the model;
+ *                            manage/model.mjs), who added it, the models
+ *                            it reaches (a `model` from before 2026-10-11
+ *                            is never read);
  *                            outside the ByClan index on purpose, so no
  *                            listing of a clan's items ever carries it
  *   schedule#<clan>          the clan is on the morning evaluation's list

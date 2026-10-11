@@ -707,13 +707,12 @@ test.describe("signed in", () => {
             set_by: "#20QQL8CCRU",
             set_by_name: "Ada",
             set_at: "2026-09-25T10:00:00Z",
-            model: "claude-sonnet-5",
-            models: [
-              { id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5" },
-              { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
-              { id: "claude-haiku-5-5", name: "Claude Haiku 5.5" },
-            ],
-            model_listed: true,
+            model_for: {
+              recruit_pitch: {
+                id: "claude-opus-5-5",
+                name: "Claude Opus 5.5",
+              },
+            },
             models_refreshed_at: "2026-10-10T12:00:00Z",
             models_refresh_error: null,
             refresh_due: false,
@@ -739,7 +738,10 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("button", { name: "Remove cap" }),
     ).toBeVisible();
-    await expect(page.getByText("From Anthropic, 2026-10-10")).toBeVisible();
+    await expect(page.getByText("With Anthropic, 2026-10-10")).toBeVisible();
+    await expect(
+      page.getByText("Recruiting pitch: Claude Opus 5.5"),
+    ).toBeVisible();
     await accessible(page, "clan settings with a key");
   });
 
