@@ -37,7 +37,7 @@ NOTES and memory) and Jamie decided, one at a time:
    AI agents (Jamie: "C. Both, depending on the item"); your-account,
    agents and architecture say so. Jamie: "Yes."
 7. **Invites.** No referral codes, but a copy or share of Bring your
-   clanmates sends one aggregate `web.invite_copied` event valued by
+   clanmates sends one aggregate `console.invite_copied` event valued by
    channel (`chat`, `message`, `share`), as Clan's copy buttons do. (B.)
    Clan-visibility timeline items stay publishable to a person's
    cross-post. (A.)

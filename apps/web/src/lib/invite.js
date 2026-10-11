@@ -16,7 +16,7 @@ export const SITE = "elixir.poapkings.com";
 export const SIGNUP_URL = `https://${SITE}/console/signin?signup`;
 
 /** The aggregate event a copy or share sends, and its bounded values. */
-export const INVITE_EVENT = "web.invite_copied";
+export const INVITE_EVENT = "console.invite_copied";
 export const INVITE_CHANNELS = Object.freeze({
   chat: "chat",
   message: "message",

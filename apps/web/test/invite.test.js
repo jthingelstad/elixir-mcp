@@ -65,7 +65,7 @@ test("the invite link is the canonical signup, with no referral or tracking para
 });
 
 test("a copy is one aggregate event whose value is a channel, never a tag, a person or a URL", () => {
-  expect(INVITE_EVENT).toBe("web.invite_copied");
+  expect(INVITE_EVENT).toBe("console.invite_copied");
   expect(Object.values(INVITE_CHANNELS).sort()).toEqual([
     "chat",
     "message",
