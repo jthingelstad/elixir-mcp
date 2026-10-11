@@ -197,6 +197,7 @@ if (page.timeline.length === 0) return;           // nothing to consider
 for (const item of page.timeline) consider(item);  // item.text is the sentence; item.facts the numbers
 // To post: only item.publishable; once per item.id, edited on a higher
 // item.revision; the time as <t:${item.at_unix}:f>, never in the prose.
+// For the story behind one: call each item.follow[] { tool, args } as given.
 for (const entry of page.entries) context(entry);  // the window's shape per subject
 // read_to is now the window's end; nothing to persist locally.
 ```

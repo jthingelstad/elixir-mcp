@@ -416,3 +416,21 @@ test("an evidence read with no basis finds a poller's late item (Codex on #472)"
   assert.equal(read.applied.basis, "observed");
   assert.equal(read.evidence.count, late.facts.battles);
 });
+
+test("a full read's items say where they lead, and a sitting's own address reads it back (11.9.0)", async () => {
+  const ctx = { db, account: { accountId: owner, timezone: TZ } };
+  const window = { from: iso(SAT_FROM), to: iso(SAT_TO), basis: "occurred" };
+  const read = await elixir_timeline.handler(ctx, window);
+  assert.ok(read.timeline.every((it) => Array.isArray(it.follow)));
+  const [sitting] = sittings(read.timeline);
+  const tools = sitting.follow.map((x) => x.tool);
+  assert.deepEqual(tools, ["elixir_timeline", "battles_performance"]);
+  const back = await elixir_timeline.handler(ctx, sitting.follow[0].args);
+  assert.equal(back.timeline[0].id, sitting.id);
+  assert.equal(back.evidence.count, sitting.facts.battles);
+  const compact = await elixir_timeline.handler(ctx, {
+    ...window,
+    verbosity: "compact",
+  });
+  assert.ok(compact.timeline.every((it) => !("follow" in it)));
+});

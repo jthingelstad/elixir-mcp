@@ -1,4 +1,8 @@
-import { normalizeTag, responseMeta } from "@elixir-mcp/contracts";
+import {
+  normalizeTag,
+  responseMeta,
+  toolsHiddenFrom,
+} from "@elixir-mcp/contracts";
 import {
   ITEM_KINDS,
   buildTimeline,
@@ -6,6 +10,7 @@ import {
   timelineNews,
   readTimelineEvidence,
 } from "../../activity/entries.mjs";
+import { followFor, forCaller } from "../../activity/follow.mjs";
 import { resolveInstant } from "../../time.mjs";
 import {
   TAG_RULE_HINT,
@@ -380,7 +385,22 @@ export const elixir_timeline = {
     const pageMs = occurred
       ? (it) => Date.parse(it.sort_at ?? it.at)
       : observedMs;
-    const all = built.timeline.filter(shown);
+    // Where each item leads (11.9.0): the reads that expand it into its
+    // story, limited to the tools this caller may call. A full read only;
+    // it is counted against the page budget below like any other field.
+    const hidden = toolsHiddenFrom(ctx.account.kind ?? "person");
+    const followWindow = { ...built.window, basis };
+    const withFollow = (it) =>
+      compact
+        ? it
+        : {
+            ...it,
+            follow: forCaller(
+              followFor(it, followWindow),
+              (tool) => !hidden.has(tool),
+            ),
+          };
+    const all = built.timeline.filter(shown).map(withFollow);
     // A response also fits the result cap (6.34.2): items are taken from
     // the most recently observed back until the characters reach the
     // budget, and the cut falls on the first item that would not fit.

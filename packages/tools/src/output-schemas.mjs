@@ -3163,6 +3163,20 @@ export const OUTPUT_SCHEMAS = {
             },
             evidence: TIMELINE_EVIDENCE,
             facts: { type: "object" },
+            follow: {
+              type: "array",
+              description:
+                "11.9.0, full verbosity: where this item leads, the reads that expand it into its story. Each is a tool this caller may call and the arguments to call it with, built from the item itself. Addresses, not advice; empty when nothing more is recorded.",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  tool: { type: "string" },
+                  args: { type: "object" },
+                },
+                required: ["tool", "args"],
+              },
+            },
           },
           required: [
             "id",
