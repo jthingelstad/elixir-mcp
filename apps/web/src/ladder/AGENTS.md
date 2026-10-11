@@ -26,9 +26,10 @@ their shaping functions (`ladder*.js`) live here. Public docs:
   A number Ladder needs that no tool returns is a tool change
   (`.claude/skills/tool-change/`), never a client derivation.
 - **Facts, never verdicts.** Everything on a page is something a tool
-  returned. No pace, rating, coaching line or derived player metric
-  (`docs/DECISIONS.md`); the shaping functions route and shape, they
-  never rate.
+  returned. No pace, rating, coaching line or verdict word ("Elixir
+  rates no player", "Form is numbers only" in `docs/DECISIONS.md`); a
+  direction stated with its numbers ("up from 52% to 58%") is a fact.
+  The shaping functions route and shape, they never rate.
 - **Modes are different games.** Every read passes one `mode`, and nothing
   on a page pools across modes (`MODES` in `ladder.js`).
 - Tests: `apps/web/test/ladder*.test.js` (shaping) and

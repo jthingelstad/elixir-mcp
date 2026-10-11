@@ -260,7 +260,8 @@ story or how to name the moment to it:
 | `account_*` | nothing: `[]` |
 
 Call them as they are, in order of how close they stay to the moment. They
-are addresses, not advice: what to make of the answer is yours. A tool
+are addresses, not advice: what to make of the answer is yours (or your
+agent's). A tool
 your connection may not call is left out.
 
 ### Rendering an item
@@ -505,7 +506,8 @@ channels tells it twice.
   `next_war_day_opens_at`, `next_training_starts_at` and `week_ends_at` so a
   routine that cares schedules itself.
 - **It never gives advice.** "Passed 10 recorded-quiet days" is a fact with a
-  disclosed rung; whether that means anything is the reader's call. The same
+  disclosed rung; whether that means anything is the reader's call, or
+  their agent's, which may draw conclusions and suggest what to do. The same
   goes for a standout session: `crossed` names the rung, the reader decides
   whether five wins in a row is news in this clan.
 - **It never passes an app's word off as the game's.** An attested fact
