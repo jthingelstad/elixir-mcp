@@ -152,7 +152,11 @@ code sends, keeps or deletes.
 
 - Example: the email address released to any OAuth client with consent
   while the docs said "never shown to an MCP client"; session IPs kept
-  past the stated 30 days; analytics paths carrying record ids.
+  past the stated 30 days.
+- Not this class: a tag or record id in an analytics path, an issue or a
+  note. Tags are public game data and id masking is report hygiene
+  ("CR tags are not PII; email is", "Product identifiers are not
+  tracking identifiers"); `apps/web/test/analytics.test.js` keeps the
+  masking tidy, not private.
 - Fix: the code meets the promise, or Jamie changes the promise.
-- Guard: a test on the route or job that enforces the promise
-  (`apps/web/test/analytics.test.js` for path masking).
+- Guard: a test on the route or job that enforces the promise.

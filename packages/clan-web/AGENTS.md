@@ -16,7 +16,9 @@ Elixir Clan's views. Read `packages/clan/AGENTS.md` first, and
   ratchets inline styles down.
 - **Analytics** (`src/analytics.js`, Elixir's Tinylytics site): pages report
   as `/clan/...` with the tag masked; events are bounded labels, never free
-  text, a tag or a URL. The events, which this list must match:
+  text, a tag or a URL. That keeps the reports readable (one row per
+  page, not per clan); it is report hygiene, not privacy, since a tag is
+  public. The events, which this list must match:
   `clan.action_commented`, `clan.action_link_copied`,
   `clan.activity_discord_category`, `clan.activity_discord_preview`,
   `clan.activity_discord_removed`, `clan.activity_discord_rewrite`,

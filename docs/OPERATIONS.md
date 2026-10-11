@@ -358,8 +358,9 @@ every command, probe and diff listed so anyone can re-verify it.
   secret-shaped (tokens, keys, `.env` content, dumps with member data);
   `.gitignore` is not evidence, tracked state is. Local `.env` files are
   mode 0600. Secret flows move values file to AWS without printing them
-  (`docs/SECRETS.md`). Issues and pull requests carry no member, tag or
-  incident detail.
+  (`docs/SECRETS.md`). Issues and pull requests carry no email address,
+  account data or private incident detail; a tag is public game data and
+  may appear ("CR tags are not PII; email is").
 - **Access comes from the public contract.** Read
   `apps/site/src/docs/{roles,agents,integrations,connections,privacy,limits}.md`
   and the changed authorization declarations before judging a response.
