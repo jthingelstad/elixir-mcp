@@ -199,8 +199,9 @@ What the mail says is chosen from the timeline, never by changing it
   it as before.
 - **Quiet** players with `days_quiet` of 30 or more are one line, longest
   quiet first, with no day counts (`LONG_QUIET_DAYS` in the renderer).
-- **No attested facts:** what the family's apps attest (Clan's notes,
-  awards, aways; `ATTESTED_FACT_KINDS`) stays out of the tracking mail,
+- **No attested facts:** what the family's apps attest (Clan's
+  departures, role changes, awards, standings, aways and messages, Drop's
+  personal records; `ATTESTED_FACT_KINDS`) stays out of the tracking mail,
   so the cap is spent on game moments (`services/jobs/test/tracking.test.mjs`).
   This is an engineering choice about what the mail is for, not a
   visibility rule; the timeline still carries them to their readers.
