@@ -77,3 +77,24 @@ test("all twenty the history keeps are listed", () => {
   );
   expect(screen.getAllByRole("listitem")).toHaveLength(20);
 });
+
+test("a story the clan's channel skipped says why, and is not counted as missed", () => {
+  render(
+    <DiscordDeliveries
+      whole
+      entries={[
+        {
+          at: "2026-10-11T12:00:00Z",
+          outcome: "skipped",
+          ref: "tl_0123456789abcdef0123",
+          reason: "A badge level-up below its top level.",
+          excerpt: "Ada took Hog Mastery to level 5.",
+        },
+      ]}
+    />,
+  );
+  const [item] = screen.getAllByRole("listitem");
+  expect(item?.textContent).toContain("Skipped");
+  expect(item?.textContent).toContain("A badge level-up below its top level.");
+  expect(item?.className).not.toContain("text-warn");
+});

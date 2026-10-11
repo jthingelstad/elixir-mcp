@@ -13,6 +13,8 @@ import {
   discordWebhookCall,
   addDiscordDeliveries,
   discordNotDelivered,
+  DISCORD_CLAN_HISTORY_MAX,
+  OUTBOX_LANES,
 } from "../dist/index.js";
 
 const ID = "123456789012345678";
@@ -247,4 +249,60 @@ test("the relay's own records sit outside the notified timeline-discord/ prefix"
   const state = timelineDiscordStateKey("acct", "f".repeat(16), "tl_x");
   assert.ok(!state.startsWith("timeline-discord/"));
   assert.ok(!timelineDiscordStatusKey("acct").startsWith("timeline-discord/"));
+});
+
+test("a clan's channel hands over the stories it skipped, each with its reason; listed once, never counted as missed", () => {
+  const box = { v: 1, iv: "aXY=", tag: "dGFn", ct: "Y3Q=" };
+  const msg = {
+    v: 1,
+    kind: "clan_activity",
+    account_id: "0b6b5a59-0e4f-4f39-9d55-58e41b6a3e7a",
+    webhook: box,
+    posts: [],
+    skipped: [
+      {
+        key: "tl_0123456789abcdef0123",
+        reason: "A badge level-up below its top level.",
+        excerpt: "Ada took Hog Mastery to level 5.",
+      },
+    ],
+  };
+  assert.equal(validateTimelineDiscordMessage(msg).ok, true, "skips alone");
+  assert.deepEqual(
+    validateTimelineDiscordMessage({ ...msg, skipped: [] }).errors,
+    ["skipped:invalid", "posts:invalid"],
+  );
+  assert.deepEqual(
+    validateTimelineDiscordMessage({
+      ...msg,
+      skipped: [{ key: "x", reason: "", excerpt: 3 }],
+    }).errors,
+    [
+      "skipped[0].key:invalid",
+      "skipped[0].reason:invalid",
+      "skipped[0].excerpt:invalid",
+    ],
+  );
+  const now = Date.parse("2026-10-11T12:00:00Z");
+  const skip = {
+    at: "2026-10-11T12:00:00.000Z",
+    outcome: "skipped",
+    ref: "tl_0123456789abcdef0123",
+    reason: "A badge level-up below its top level.",
+  };
+  let h = addDiscordDeliveries(null, [skip], now, DISCORD_CLAN_HISTORY_MAX);
+  h = addDiscordDeliveries(h, [skip], now, DISCORD_CLAN_HISTORY_MAX);
+  assert.equal(h.entries.length, 1, "a skip is listed once");
+  assert.equal(discordNotDelivered(h, now), 0);
+  const many = Array.from({ length: 50 }, (_, i) => ({
+    at: new Date(now - i * 1000).toISOString(),
+    outcome: "posted",
+  }));
+  assert.equal(
+    addDiscordDeliveries(null, many, now, DISCORD_CLAN_HISTORY_MAX).entries
+      .length,
+    40,
+  );
+  assert.equal(addDiscordDeliveries(null, many, now).entries.length, 20);
+  assert.ok(OUTBOX_LANES.includes("timeline-hold"));
 });

@@ -125,11 +125,24 @@ function setup(
   let seq = 0;
   const deliver = async (
     posts,
-    { account = ACCOUNT, webhook = seal(hook, account), final = false } = {},
+    {
+      account = ACCOUNT,
+      webhook = seal(hook, account),
+      final = false,
+      kind = "timeline",
+      skipped = undefined,
+    } = {},
   ) => {
     const key = `timeline-discord/${account}.${(seq += 1)}.json`;
     store.objects.set(key, {
-      body: { v: 1, kind: "timeline", account_id: account, webhook, posts },
+      body: {
+        v: 1,
+        kind,
+        account_id: account,
+        webhook,
+        posts,
+        ...(skipped ? { skipped } : {}),
+      },
       etag: '"o"',
     });
     try {
@@ -217,6 +230,39 @@ test("a line the clan's model wrote is posted as it is and marked so in the hist
   assert.equal(e.outcome, "posted");
   assert.equal(e.excerpt, "Ada joined us");
   assert.equal(e.rewritten, true);
+});
+
+test("a clan's channel's skips are recorded with their reasons once the message is done, never sent, and listed once", async () => {
+  const s = setup();
+  const skipped = [
+    {
+      key: "tl_aaaaaaaaaaaaaaaaaaaa",
+      reason: "A badge level-up below its top level.",
+      excerpt: "Ada took Hog Mastery to level 5.",
+    },
+  ];
+  await s.deliver(
+    [{ key: ITEM, revision: 1, content: "Ada joined the clan." }],
+    {
+      kind: "clan_activity",
+      skipped,
+    },
+  );
+  assert.equal(s.calls.length, 1, "only the post reaches Discord");
+  const entries = history(s.store).entries;
+  assert.deepEqual(
+    entries.map((e) => [e.outcome, e.reason ?? null]),
+    [
+      ["skipped", "A badge level-up below its top level."],
+      ["posted", null],
+    ],
+  );
+  assert.equal(entries[0].excerpt, "Ada took Hog Mastery to level 5.");
+  // A message of skips alone calls Discord not at all; one listed
+  // already is not listed again.
+  await s.deliver([], { kind: "clan_activity", skipped });
+  assert.equal(s.calls.length, 1);
+  assert.equal(history(s.store).entries.length, 2);
 });
 
 test("a line deleted in the channel stays deleted", async () => {

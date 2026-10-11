@@ -275,10 +275,14 @@ export function validateEmailMessage(
  *  `timeline-sync/` wakes the VPC sync for one account (its queue feeds
  *  a VPC Lambda through an event source mapping, which needs no route),
  *  and `timeline-discord/` carries the posts to the relay, which alone
- *  talks to Discord (as it does for Clan's `clan-discord/`). */
+ *  talks to Discord (as it does for Clan's `clan-discord/`). Since
+ *  2026-10-11 `timeline-hold/` brings a clan's activity channel back
+ *  five minutes later for the stories it held (its own queue, the same
+ *  sync). */
 export const OUTBOX_LANES = [
   "email",
   "timeline-sync",
+  "timeline-hold",
   "timeline-discord",
 ] as const;
 export type OutboxLane = (typeof OUTBOX_LANES)[number];

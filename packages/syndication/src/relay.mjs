@@ -41,7 +41,9 @@
  *
  * The history (contracts DiscordDeliveryHistory: the last 20 deliveries
  * and the count not delivered over 30 days) sits beside the status for
- * the page that set the webhook up. The webhook arrives sealed and is
+ * the page that set the webhook up. A clan's activity channel keeps its
+ * last 40, with the stories it skipped and why (2026-10-11): a message's
+ * `skipped` list is recorded once the message is done, never sent. The webhook arrives sealed and is
  * opened only here; logs name the account and the webhook's fingerprint.
  */
 import {
@@ -53,6 +55,9 @@ import {
   timelineDiscordStatusKey,
   timelineDiscordHistoryKey,
   addDiscordDeliveries,
+  isClanDiscordKind,
+  DISCORD_CLAN_HISTORY_MAX,
+  DISCORD_HISTORY_MAX,
 } from "@elixir-mcp/contracts";
 
 /** A claim this old with no message id was a sender that stopped
@@ -274,13 +279,13 @@ export function createTimelineDiscordWorker({
       : {};
 
   /** Record this run's deliveries; best effort, never fails the run. */
-  async function remember(accountId, added) {
+  async function remember(accountId, added, max = DISCORD_HISTORY_MAX) {
     if (added.length === 0) return;
     const key = timelineDiscordHistoryKey(accountId);
     try {
       for (let i = 0; i < CONTENDED_TRIES; i += 1) {
         const cur = await store.read(key);
-        const body = addDiscordDeliveries(cur?.body ?? null, added, now());
+        const body = addDiscordDeliveries(cur?.body ?? null, added, now(), max);
         const ok = cur
           ? await store.replace(key, body, cur.etag)
           : await store.create(key, body);
@@ -331,6 +336,19 @@ export function createTimelineDiscordWorker({
         at: at(),
         ...extra,
       });
+    const keep = isClanDiscordKind(msg.kind)
+      ? DISCORD_CLAN_HISTORY_MAX
+      : DISCORD_HISTORY_MAX;
+    // The stories a clan's channel chose not to post: recorded when the
+    // message is done (a retry would list them twice otherwise).
+    const skips = () =>
+      (msg.skipped ?? []).map((k) => ({
+        at: at(),
+        outcome: "skipped",
+        ref: k.key,
+        reason: k.reason,
+        ...(k.excerpt ? { excerpt: k.excerpt } : {}),
+      }));
     const started = now();
     const until = started + budgetMs;
     let next = 0;
@@ -382,7 +400,7 @@ export function createTimelineDiscordWorker({
               ? "This webhook posts to a forum channel."
               : "Discord says this webhook no longer exists."),
         });
-        await remember(msg.account_id, added);
+        await remember(msg.account_id, [...added, ...skips()], keep);
         log.error(
           "timeline_discord_refused",
           msg.account_id,
@@ -394,7 +412,7 @@ export function createTimelineDiscordWorker({
         return;
       }
       if (!(err instanceof RetryLater) || !final) {
-        await remember(msg.account_id, added);
+        await remember(msg.account_id, added, keep);
         throw err;
       }
       // The queue's last attempt: what is still waiting is not delivered.
@@ -422,7 +440,7 @@ export function createTimelineDiscordWorker({
       });
     else if (counts.posted || counts.edited)
       await status("ok", { posted: counts.posted, edited: counts.edited });
-    await remember(msg.account_id, added);
+    await remember(msg.account_id, [...added, ...skips()], keep);
     log.log(
       "timeline_discord",
       msg.account_id,

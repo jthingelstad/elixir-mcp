@@ -115,6 +115,18 @@ export interface TimelineDiscordMessage {
   /** The webhook, sealed and bound to the account (or channel). */
   webhook: SealedBox;
   posts: TimelineDiscordPost[];
+  /** A clan's activity the channel did not post, by one of its rules
+   *  (2026-10-11, the editor): recorded in the delivery history with its
+   *  reason, never sent to Discord. A message may carry only these. */
+  skipped?: TimelineDiscordSkip[];
+}
+
+/** One story a clan's channel skipped: its key, why (the words the page
+ *  shows) and what it would have said. */
+export interface TimelineDiscordSkip {
+  key: string;
+  reason: string;
+  excerpt?: string;
 }
 
 export const TIMELINE_DISCORD_KINDS = [
@@ -157,9 +169,34 @@ export function validateTimelineDiscordMessage(
   if (typeof m.account_id !== "string" || !UUID.test(m.account_id))
     errors.push("account_id:invalid");
   if (!sealed(m.webhook)) errors.push("webhook:invalid");
+  const skips = m.skipped;
+  if (
+    skips !== undefined &&
+    (!Array.isArray(skips) ||
+      skips.length === 0 ||
+      skips.length > DISCORD_POSTS_MAX)
+  )
+    errors.push("skipped:invalid");
+  else
+    (skips ?? []).forEach((k, i) => {
+      if (typeof k?.key !== "string" || !POST_KEY.test(k.key))
+        errors.push(`skipped[${i}].key:invalid`);
+      if (
+        typeof k?.reason !== "string" ||
+        k.reason.length === 0 ||
+        k.reason.length > REASON_MAX
+      )
+        errors.push(`skipped[${i}].reason:invalid`);
+      if (
+        k?.excerpt !== undefined &&
+        (typeof k.excerpt !== "string" ||
+          k.excerpt.length > DISCORD_CONTENT_MAX)
+      )
+        errors.push(`skipped[${i}].excerpt:invalid`);
+    });
   if (
     !Array.isArray(m.posts) ||
-    m.posts.length === 0 ||
+    (m.posts.length === 0 && !(Array.isArray(skips) && skips.length > 0)) ||
     m.posts.length > DISCORD_POSTS_MAX
   )
     errors.push("posts:invalid");
@@ -232,9 +269,11 @@ export function timelineDiscordHistoryKey(accountId: string): string {
 
 /** One delivery as its page shows it: a line posted or edited, refused
  *  by Discord (with Discord's reason), unknown (sent, but no answer came;
- *  never sent again), or not delivered (given up after its retries). */
+ *  never sent again), not delivered (given up after its retries), or
+ *  skipped (a clan's channel chose not to post it, with its reason;
+ *  never sent, and not a delivery missed). */
 export type DiscordDeliveryOutcome =
-  "posted" | "edited" | "refused" | "unknown" | "not_delivered";
+  "posted" | "edited" | "refused" | "unknown" | "not_delivered" | "skipped";
 
 export interface DiscordDelivery {
   at: string;
@@ -259,6 +298,9 @@ export interface DiscordDeliveryHistory {
 }
 
 export const DISCORD_HISTORY_MAX = 20;
+/** A clan's activity channel keeps more: its skips are listed beside its
+ *  posts (2026-10-11, the editor). */
+export const DISCORD_CLAN_HISTORY_MAX = 40;
 export const DISCORD_HISTORY_DAYS = 30;
 // A Discord line is rarely longer: the page shows what was posted, and
 // for a clan's activity channel what the clan's model wrote (2026-10-11).
@@ -281,6 +323,7 @@ export function addDiscordDeliveries(
   history: DiscordDeliveryHistory | null | undefined,
   added: DiscordDelivery[],
   nowMs: number,
+  max: number = DISCORD_HISTORY_MAX,
 ): DiscordDeliveryHistory {
   const cutoff = nowMs - DISCORD_HISTORY_DAYS * 86_400_000;
   const day = (iso: string) => iso.slice(0, 10);
@@ -288,7 +331,18 @@ export function addDiscordDeliveries(
   for (const [d, n] of Object.entries(history?.missed ?? {}))
     if (Date.parse(`${d}T23:59:59Z`) >= cutoff && Number.isInteger(n) && n > 0)
       missed[d] = n;
-  const fresh = added.map((e) => {
+  // A skip is recorded once: a story's skip already listed is not again.
+  const listed = new Set(
+    (history?.entries ?? [])
+      .filter((e) => e.outcome === "skipped")
+      .map((e) => `${e.ref}|${e.reason}`),
+  );
+  const fresh = added.flatMap((e) => {
+    if (e.outcome === "skipped") {
+      const id = `${String(e.ref ?? "").slice(0, 40)}|${clip(e.reason, REASON_MAX)}`;
+      if (listed.has(id)) return [];
+      listed.add(id);
+    }
     const out: DiscordDelivery = { at: e.at, outcome: e.outcome };
     if (e.ref) out.ref = String(e.ref).slice(0, 40);
     if (Number.isInteger(e.http_status) && e.http_status)
@@ -299,11 +353,11 @@ export function addDiscordDeliveries(
     if (excerpt) out.excerpt = excerpt;
     if (e.rewritten === true) out.rewritten = true;
     if (MISSED.has(e.outcome)) missed[day(e.at)] = (missed[day(e.at)] ?? 0) + 1;
-    return out;
+    return [out];
   });
   const entries = [...fresh.reverse(), ...(history?.entries ?? [])]
     .filter((e) => Date.parse(e.at) >= cutoff)
-    .slice(0, DISCORD_HISTORY_MAX);
+    .slice(0, max);
   return { entries, missed };
 }
 

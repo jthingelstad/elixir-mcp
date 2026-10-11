@@ -494,8 +494,8 @@ chosen by category and set by the clan's policy, from Elixir Clan's
 Social ▸ Discord ([The clan's activity in
 Discord](/docs/clan-policy#the-clans-activity-in-discord)). The panel
 names each clan you follow that does, with one of your verified players
-in it: its lines are in your timeline too, so a server carrying both
-channels shows them twice.
+in it: what it tells is in your timeline too, so a server carrying
+both channels tells it twice.
 
 ## What the timeline never does
 

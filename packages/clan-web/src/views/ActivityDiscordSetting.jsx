@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DISCORD_CLAN_HISTORY_MAX } from "@elixir-mcp/contracts";
 import { DiscordDeliveries } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
@@ -98,9 +99,9 @@ export function ActivityDiscordSetting({ clan, navigate }) {
       <p className="page__lede m-0">
         Post the clan&rsquo;s activity to a Discord channel as it happens: who
         joins and departs, members&rsquo; milestones and the Clan Wars week,
-        each a short line with a link back here. This is its own webhook, apart
-        from the one Actions go to; members can read these lines, so any channel
-        the clan reads will do.
+        each moment told as a short story a few minutes after it lands. This is
+        its own webhook, apart from the one Actions go to; members can read
+        these posts, so any channel the clan reads will do.
       </p>
 
       {!d.policy.ready ? (
@@ -199,6 +200,8 @@ export function ActivityDiscordSetting({ clan, navigate }) {
               <DiscordDeliveries
                 entries={c.deliveries}
                 notDelivered={c.not_delivered ?? 0}
+                // The channel keeps its skips beside its posts.
+                show={DISCORD_CLAN_HISTORY_MAX}
                 whole
               />
             </div>
@@ -306,8 +309,8 @@ export function ActivityDiscordSetting({ clan, navigate }) {
               <div className="callout" role="status">
                 <span>
                   To have the posts written in the clan&rsquo;s own voice rather
-                  than Elixir&rsquo;s plain lines, add the clan&rsquo;s
-                  Anthropic API key in{" "}
+                  than Elixir&rsquo;s own, add the clan&rsquo;s Anthropic API
+                  key in{" "}
                   <a href={`${settings}#settings-model`} onClick={toSettings}>
                     Settings ›
                   </a>
@@ -319,8 +322,8 @@ export function ActivityDiscordSetting({ clan, navigate }) {
                   <div className="callout callout--warn" role="alert">
                     <span>
                       Anthropic stopped accepting the clan&rsquo;s key. Add it
-                      again in Settings; until then Elixir&rsquo;s own lines are
-                      posted.
+                      again in Settings; until then Elixir&rsquo;s own stories
+                      are posted.
                     </span>
                   </div>
                 ) : null}

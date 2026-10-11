@@ -18,6 +18,11 @@
  * under the clan's lock. When another holder has the lock it shares
  * itself (Clan does after every request, the morning run after its
  * sweep), so the wake is done.
+ *
+ * A clan's activity channel holds a story until it has been quiet a few
+ * minutes (2026-10-11): the run that held it writes timeline-hold/
+ * `{ v: 1, clan_tag }`, which its own queue delivers here five minutes
+ * later, and the clan's run goes again.
  */
 import { isCanonicalTag, outboxObjects } from "@elixir-mcp/contracts";
 
@@ -47,7 +52,10 @@ export function makeHandler({
     const objects = outboxObjects(body);
     if (objects === null) return "bad_message";
     for (const obj of objects) {
-      if (!obj.key.startsWith("timeline-sync/")) return "bad_message";
+      // A clan's held stories come back on the hold queue (2026-10-11),
+      // to the same run: only a clan's wake is read there.
+      const held = obj.key.startsWith("timeline-hold/");
+      if (!held && !obj.key.startsWith("timeline-sync/")) return "bad_message";
       const text = await readObject(obj);
       if (text === null) continue;
       let msg;
@@ -56,6 +64,8 @@ export function makeHandler({
       } catch {
         return "bad_message";
       }
+      if (held && !(msg?.v === 1 && typeof msg.clan_tag === "string"))
+        return "bad_message";
       if (msg?.v === 1 && typeof msg.clan_discord === "string") {
         if (!isCanonicalTag(msg.clan_discord) || !shareClanDiscord)
           return "bad_message";

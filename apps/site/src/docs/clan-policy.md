@@ -207,11 +207,37 @@ without a policy:
 **Social ▸ Discord**, a page in the rail for the leader and co-leaders,
 with or without a policy, is where they
 connect a Discord webhook of its own: not the one Actions go to, and not
-a person's [timeline cross-post](/docs/timeline). From then on the clan's
-timeline is posted there as it happens, as its members read it: one line
-each, with a link back to Elixir in angle brackets so Discord draws no
-preview. A line carries no time unless its item is over three hours old;
-then it says how long ago.
+a person's [timeline cross-post](/docs/timeline). From then on the
+channel tells what happens in the clan, as its members read it. It is an
+editor, not a copy of the timeline: Elixir gathers what one moment
+produced into one story and writes it as a sentence or two, with no
+time and no link, for example "Ada moved up to Magic Academy with a 3-0
+win over keyluis and set a new best of 12,005 trophies, joining Bo
+there. Their Hog Rider cycle deck is 9-2 on ladder this season." A story
+told more than three hours late says when in words ("Yesterday").
+
+- **What makes a story**: one member's one battle (the arena it moved
+  them into, the new best it set, the league it promoted them to, all in
+  one post); the same kind of milestone reached by several members at
+  once (up to five, one post naming each); a standout sitting, one post
+  that grows; and anything else on its own. From the record Elixir adds
+  what it knows: the deck the battle was won with and its record in that
+  mode this season (ladder or Ranked), a second promotion in a day, the
+  clanmates already in the arena a member reached, and for a sitting its
+  modes, its best win and its run.
+- **Skipped, with the reason**: a badge or mastery level-up below its
+  top level (the top level and a new badge are told); a story already
+  posted that only grew (a sitting with more battles but the same best
+  win and its run not five longer); and something already told (the same
+  member's same battle, or the same arena, league, trophy rung or
+  milestone reached again within a week). Each skip is listed on the
+  page with its reason.
+- **Held a few minutes**: a story is posted once nothing has been added
+  to it for four minutes, or ten minutes after it began, so what one
+  battle produced arrives as one post: usually about six minutes after
+  the activity lands in Elixir, at most about a quarter of an hour. A
+  post is edited in place only when its story truly grows (a sitting's
+  new best win, its run five longer), never posted twice.
 
 - **What is posted**: three groups a leader switches. **Members**: who
   joins and who departs, and role changes made in the game. **Milestones**:
@@ -230,14 +256,14 @@ then it says how long ago.
   message is edited to say the member was removed, or left on their own;
   it is never a second post, and a kick is never told as a leave.
 - **When**: posting starts when the webhook is connected (or turned back
-  on); nothing earlier is posted. Each line goes out within a few minutes
-  of the activity landing in Elixir, never on a timer, and an item that
-  grows is edited in place. Nothing pings anyone; items only the leaders
-  may see are never posted.
+  on); nothing earlier is posted. Each story goes out a few minutes after
+  the activity lands in Elixir, never on a schedule. Nothing pings
+  anyone; items only the leaders may see are never posted.
 - **Written by the clan's own model**: with the clan's own model key
-  set, a leader can have each line rewritten in the clan's voice, and
-  describe that voice in up to 400 characters. These lines are posted
-  without anyone reading them first. Each post's model is told the clan
+  set, a leader can have each story rewritten in the clan's voice, and
+  describe that voice in up to 400 characters. These posts are made
+  without anyone reading them first. Each post's model is told Elixir's
+  own words for the story, the clan
   (its name, recruiting words, goals, member count and last war weeks),
   the moment's own facts (the battle and who it beat, the badge, the
   best set, the week's place) and, for a member, what Elixir records
@@ -254,11 +280,9 @@ then it says how long ago.
   The model picks a detail or two that make the moment a story. A post
   that drops or changes a member's or opponent's name, carries a number
   or a name it was not given, carries a link or a mention, or runs long
-  keeps Elixir's own line, and so do all lines when the model cannot be
-  used. When several members reach the same kind of milestone at once
-  (two badges, three new bests), the model writes them as one post that
-  names each of them, up to 500 characters; refused, it is Elixir's
-  lines together in one message. At most 50 model requests a day (one
+  is Elixir's own story, and so is every post when the model cannot be
+  used. A story of several members' milestones is one post that names
+  each of them, up to 500 characters. At most 50 model requests a day (one
   request writes several posts), counted apart from the leaders' drafts
   and shown in the key's use log; the clan's monthly cap, when set,
   stops them as it stops drafts.
@@ -275,9 +299,11 @@ then it says how long ago.
   one line, only that line is skipped and the page shows what Discord
   said. Lines go at most about 25 a minute, under Discord's limit for a
   channel. Pausing or disconnecting leaves the messages already posted.
-- The page lists the channel's last 20 deliveries from the past 30 days,
-  each line whole as it was posted, with any line the clan's model wrote
-  marked **rewritten**. It also counts the lines not delivered.
+- The page lists the channel's last 40 deliveries and skips from the
+  past 30 days, each post whole as it was posted, with any the clan's
+  model wrote marked **rewritten**, and each skip with what it would
+  have said and why it was skipped. It also counts the posts not
+  delivered; a skip is not one of them.
 
 ## Agent context
 

@@ -208,7 +208,7 @@ export function rewriteLine(
   );
   const grouped = list.length > 1;
   const lines = [
-    `POST ${list[0].id} (${list[0].kind}${grouped ? `: ${list.length} moments of this kind together; write ONE post that tells all of them` : ""})`,
+    `POST ${list[0].id} (${list[0].kind}${grouped ? `: ${list.length} moments ${list.every((it) => it.kind === list[0].kind) ? "of this kind " : ""}together; write ONE post that tells all of them` : ""})`,
     ...said.map((s) => `Elixir's line: ${s}`),
   ];
   list.forEach((it, i) => {
