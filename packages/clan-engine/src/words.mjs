@@ -50,10 +50,11 @@ export const PURPOSES = {
   },
   // The one use whose words are sent unread (Jamie, 2026-10-10): the
   // clan's activity lines in its Discord, rewritten in the leaders'
-  // voice from what each line already says (activity.mjs).
+  // voice from the record: the clan, the item's facts and the member
+  // (activity.mjs, context.mjs).
   discord_activity: {
     label: "Discord activity",
-    why: "Rewrites the clan's activity posts in its Discord in the voice its leaders describe, from what each post already says; a post the check refuses keeps Elixir's own words.",
+    why: "Rewrites the clan's activity posts in its Discord in the voice its leaders describe, from what Elixir records about the moment, the clan and the member; a post the check refuses keeps Elixir's own words.",
   },
 };
 
@@ -472,7 +473,7 @@ export function leaderMessageFromDraft(
     if (complete.length > LEADER_MESSAGE.body)
       throw new RangeError("Awards need separate announcement parts.");
     // Every recipient in this segment is mandatory. Decorative model prose
-    // uses only the space left after the complete, locally restored list.
+    // uses only the space left after the complete list Elixir writes.
     const prose = chatSafe(body.replaceAll("{winners}", "")).trim();
     const room = LEADER_MESSAGE.body - complete.length - (complete ? 1 : 0);
     const intro = room >= 4 ? clipChat(prose, room) : "";
@@ -607,8 +608,8 @@ export function chatMessageRequest({
   };
 }
 
-/** Put the name in where the model left {name}, name the member when it
- *  did not, and keep the game's limits and warnings, with a check on any
+/** Name the member when the model did not (a stray {name} is filled
+ *  in), and keep the game's limits and warnings, with a check on any
  *  number or name it was not given (`told`). */
 export function chatMessageFromDraft(
   input,
