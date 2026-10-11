@@ -17,6 +17,7 @@
  * as they are touched.
  */
 
+import { FEEDBACK_STATUSES } from "@elixir-mcp/contracts";
 import clanContextSchema from "../../contracts/clan-policy-context.schema.json" with { type: "json" };
 
 const ISO = { type: "string", description: "ISO 8601 UTC instant." };
@@ -1537,6 +1538,8 @@ export const OUTPUT_SCHEMAS = {
       applied: { type: "object" },
       feedback: {
         type: "array",
+        description:
+          "Newest first. verbosity compact (11.10.0) serves the listing fields only: title in place of message, has_response in place of response.",
         items: {
           type: "object",
           properties: {
@@ -1547,13 +1550,39 @@ export const OUTPUT_SCHEMAS = {
             },
             created_at: ISO,
             surface: { type: ["string", "null"] },
+            area: { type: ["string", "null"] },
             category: { type: ["string", "null"] },
             message: { type: "string" },
+            title: {
+              type: "string",
+              description:
+                "compact: the message's first line, cut to 120 characters.",
+            },
+            refs: { type: "array", items: { type: "object" } },
+            follows_id: { type: ["string", "null"] },
+            related_ids: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "compact: your own items this one names as related (refs of kind feedback).",
+            },
+            followed_by: {
+              type: "array",
+              items: { type: "string" },
+              description: "feedback_id reads: your items that reply to it.",
+            },
+            related_by: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "feedback_id reads: your items that name it as related.",
+            },
             status: {
               type: "string",
-              enum: ["new", "seen", "planned", "done", "declined"],
+              enum: [...FEEDBACK_STATUSES],
             },
             response: { type: ["string", "null"] },
+            has_response: { type: "boolean" },
             responded_at: { type: ["string", "null"] },
             shipped_in: {
               type: ["string", "null"],
@@ -1567,12 +1596,9 @@ export const OUTPUT_SCHEMAS = {
           required: [
             "feedback_id",
             "created_at",
-            "message",
             "status",
-            "response",
             "responded_at",
             "shipped_in",
-            "related_tools",
           ],
         },
       },

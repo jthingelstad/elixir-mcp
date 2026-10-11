@@ -23,12 +23,23 @@ import { CONSOLE } from "../../lib/console.js";
  */
 
 /** One tone per status, read by the list and the record so the two can
- *  never disagree: new is unread (accent), planned is a promise still
- *  open (warn), done is kept (ok); seen and declined carry no tone. */
-const TONE = { new: "accent-bright", planned: "warn", done: "ok" };
+ *  never disagree: new is unread and needs_info is a question waiting on
+ *  you (accent), planned is a promise still open (warn), done is kept
+ *  (ok); seen and declined carry no tone. */
+const TONE = {
+  new: "accent-bright",
+  needs_info: "accent-bright",
+  planned: "warn",
+  done: "ok",
+};
 function statusChip(status) {
   return (
-    { new: "chip--info", planned: "chip--warn", done: "chip--ok" }[status] ?? ""
+    {
+      new: "chip--info",
+      needs_info: "chip--info",
+      planned: "chip--warn",
+      done: "chip--ok",
+    }[status] ?? ""
   );
 }
 
@@ -113,7 +124,10 @@ export function FeedbackItem({ id, navigate }) {
   const refs = item.refs ?? [];
   const calls = refs.filter((r) => r.kind === "call");
   const emails = refs.filter((r) => r.kind === "email");
-  const pointers = refs.filter((r) => r.kind !== "call" && r.kind !== "email");
+  const related = refs.filter((r) => r.kind === "feedback");
+  const pointers = refs.filter(
+    (r) => r.kind !== "call" && r.kind !== "email" && r.kind !== "feedback",
+  );
   return (
     <>
       <p className="page__crumb" style={{ marginBottom: "14px" }}>
@@ -169,7 +183,10 @@ export function FeedbackItem({ id, navigate }) {
         }}
       />
 
-      {(calls.length > 0 || emails.length > 0 || pointers.length > 0) && (
+      {(calls.length > 0 ||
+        emails.length > 0 ||
+        related.length > 0 ||
+        pointers.length > 0) && (
         <p style={{ margin: "-12px 0 22px", fontSize: "13px" }}>
           About{" "}
           {[
@@ -191,6 +208,16 @@ export function FeedbackItem({ id, navigate }) {
                 title="The email, as it was sent"
               >
                 email {r.ref.slice(0, 8)}
+              </Link>
+            )),
+            ...related.map((r) => (
+              <Link
+                key={`f${r.ref}`}
+                className="mono"
+                to={itemPath(r.ref)}
+                title="Related feedback"
+              >
+                fb_{r.ref}
               </Link>
             )),
             ...pointers.map((r) => (
@@ -237,6 +264,19 @@ export function FeedbackItem({ id, navigate }) {
         </p>
       )}
 
+      {item.related_by?.length > 0 && (
+        <p className="mt-[8px] mb-0 text-[13px]">
+          Named as related by{" "}
+          {item.related_by
+            .map((n) => (
+              <Link key={n} className="mono" to={itemPath(n)}>
+                fb_{n}
+              </Link>
+            ))
+            .flatMap((el, i) => (i ? [", ", el] : [el]))}
+        </p>
+      )}
+
       {/* Answering an answer (0204): a new item that follows this one,
           so the thread reads as one and the reply is answered too. Your
           own console only: an agent replies with elixir_send_feedback. */}
@@ -261,7 +301,7 @@ export function FeedbackItem({ id, navigate }) {
               onClick={() => setReplying(true)}
             >
               <Icon name="reply" size={16} />
-              Reply
+              {item.status === "needs_info" ? "Answer the question" : "Reply"}
             </button>
           )}
         </div>

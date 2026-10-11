@@ -128,11 +128,11 @@ test("a correct manifest files nothing; an added field is filed once; an absent 
   assert.equal(filed[0].status, "new");
   assert.deepEqual(filed[0].context, {
     endpoint: "player",
-    path: "towerTroopLevel",
-    first_seen: new Date(NOW).toISOString(),
     sample_type: "new_field",
-    seen_in: 1,
+    paths: ["towerTroopLevel"],
+    first_seen: new Date(NOW).toISOString(),
     sampled: 2,
+    seen_in: { towerTroopLevel: 1 },
   });
   assert.match(filed[0].message, /payload-keys\.mjs/);
 
@@ -182,7 +182,66 @@ test("a correct manifest files nothing; an added field is filed once; an absent 
   const {
     rows: [open],
   } = await db.query(
-    `select context from feedback where surface = 'recorder' and context->>'path' = 'kingTowerLevel'`,
+    `select context from feedback where surface = 'recorder' and context->'paths' ? 'kingTowerLevel'`,
   );
   assert.equal(open.context.sample_type, "absent_field");
+});
+
+test("one shape change is one item listing its fields, and a field an open item lists is not filed again (feedback #378)", async () => {
+  await db.query(`delete from feedback where surface = 'recorder'`);
+  await db.query(`delete from api_payload`);
+  const profile = JSON.parse(
+    await readFile(path.join(repoRoot, "fixtures/player/profile.json"), "utf8"),
+  );
+  // An item filed before 11.10.0 names one field in context.path.
+  const {
+    rows: [owner],
+  } = await db.query(
+    `select account_id from account where is_owner order by created_at limit 1`,
+  );
+  await db.query(
+    `insert into feedback (account_id, surface, area, category, message, context)
+     values ($1, 'recorder', 'recorder', 'data_quality', 'old', $2::jsonb)`,
+    [
+      owner.account_id,
+      JSON.stringify({ endpoint: "player", path: "alreadyOpen" }),
+    ],
+  );
+  const grown = structuredClone(profile);
+  grown.towerTroopLevel = 12;
+  grown.towerTroopName = "Dagger Duchess";
+  grown.towerTroopRarity = "legendary";
+  grown.alreadyOpen = true;
+  await archived("player", "#JYRQ8U92C", grown, "2026-09-17T22:40:34Z");
+  const run = await shapeCensus(DB_URL, deps());
+  const newFields = run.findings.filter(
+    (f) => f.endpoint === "player" && f.sample_type === "new_field",
+  );
+  assert.equal(newFields.length, 4, "the report still counts every field");
+  assert.equal(run.filed, 1, "one item for one cause");
+  assert.equal(run.fields_filed, 3);
+  assert.equal(run.already_open, 1, "the field the old item names");
+  const { rows } = await db.query(
+    `select message, context from feedback
+      where surface = 'recorder' and context ? 'paths'`,
+  );
+  assert.equal(rows.length, 1);
+  assert.deepEqual(rows[0].context.paths, [
+    "towerTroopLevel",
+    "towerTroopName",
+    "towerTroopRarity",
+  ]);
+  assert.match(
+    rows[0].message,
+    /3 fields payload-keys\.mjs has no disposition for/,
+  );
+  assert.match(
+    rows[0].message,
+    /- towerTroopName \(in 1 of 1 sampled payloads\)/,
+  );
+
+  // The next night files nothing: every field is on an open item.
+  const again = await shapeCensus(DB_URL, deps());
+  assert.equal(again.filed, 0);
+  assert.equal(again.already_open, 4);
 });

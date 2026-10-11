@@ -1410,6 +1410,7 @@ const FEEDBACK_AREA_LABEL = {
 const FEEDBACK_STATUS_LABEL = {
   seen: "Read",
   planned: "Planned",
+  needs_info: "A question for you",
   done: "Done",
   declined: "Declined",
 };
@@ -1437,7 +1438,8 @@ function feedbackAnswer(f, c) {
     ${c.cov("Reply from that page and your reply joins the same thread. Every item you file is answered, wherever you filed it.")}`;
   const preheader = clip(String(f.response ?? "").replace(/\s+/g, " "), 140);
   return {
-    subject: `Answered: “${clip(String(f.message ?? "").replace(/\s+/g, " "), 60)}”`,
+    // needs_info (11.10.0) is a question, not an answer: say so first.
+    subject: `${f.status === "needs_info" ? "A question about" : "Answered"}: “${clip(String(f.message ?? "").replace(/\s+/g, " "), 60)}”`,
     preheader,
     html: (links) =>
       c.shell({

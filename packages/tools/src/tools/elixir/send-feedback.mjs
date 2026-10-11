@@ -68,7 +68,7 @@ export const elixir_send_feedback = {
         type: "array",
         maxItems: 20,
         description:
-          "Beside the calls (11.3.0): what else this is about. kind email (a send id from a mail's footer), player or clan (a tag), clan_action, award or policy (Elixir Clan ids). A pointer that is malformed or not yours is dropped and named in notes; the report is kept.",
+          "Beside the calls (11.3.0): what else this is about. kind email (a send id from a mail's footer), feedback (one of your own feedback_ids this item belongs with, such as another facet of one review; not a reply, 11.10.0), player or clan (a tag), clan_action, award or policy (Elixir Clan ids). A pointer that is malformed or not yours is dropped and named in notes; the report is kept.",
         items: {
           type: "object",
           properties: {
@@ -83,12 +83,12 @@ export const elixir_send_feedback = {
         type: "integer",
         minimum: 1,
         description:
-          "Replying to an answer (11.3.0): the feedback_id of your own item this follows, so the thread reads as one.",
+          "The feedback_id of your own item this follows (11.3.0), so the thread reads as one: a reply to an answer, the answer to a needs_info question, or a correction to something you filed.",
       },
       on_behalf_of: {
         ...ON_BEHALF_OF_SCHEMA,
         description:
-          "Agent connections: the person on your surface this feedback came from (e.g. discord:1234), when you relay theirs. Kept with the report so the maintainer sees it was theirs; the answer still comes to you.",
+          "Agent connections only: the person on your surface this feedback came from (e.g. discord:1234), when you relay theirs. Kept with the report so the maintainer sees it was theirs; the answer still comes to you. A personal connection is its person's, so it has no such argument.",
       },
     },
     required: ["message"],

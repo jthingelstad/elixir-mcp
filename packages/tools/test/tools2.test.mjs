@@ -905,6 +905,72 @@ test("feedback pages fit the wire cap and acknowledge only delivered replies", a
   }
 });
 
+test("11.10.0 (#378): compact lists a whole page without bodies and marks nothing seen; feedback_id reads one whole", async () => {
+  // #378's own read: a 50-item request returned 19, the bodies filling
+  // the size bound. Sixty items with full 4,000-character bodies.
+  const { rows: inserted } = await db.query(
+    `insert into feedback
+       (account_id, surface, category, message, status, response, responded_at)
+     select $1, 'mcp', 'feature', 'Item ' || g || E' headline\n' || repeat('m', 4000),
+            case when g = 60 then 'needs_info' else 'done' end,
+            repeat('r', 4000), now()
+     from generate_series(1, 60) as g
+     returning feedback_id`,
+    [account.accountId],
+  );
+  const ids = inserted.map((r) => String(r.feedback_id));
+  try {
+    const page = await call("elixir_my_feedback", {
+      verbosity: "compact",
+      limit: 50,
+    });
+    assert.equal(page.isError, false, JSON.stringify(page.body));
+    assert.equal(page.body.feedback.length, 50, "the whole requested page");
+    assert.ok(JSON.stringify(page.body).length < 48_000);
+    const top = page.body.feedback[0];
+    assert.equal(top.feedback_id, ids.at(-1));
+    assert.equal(top.title, "Item 60 headline");
+    assert.equal(top.status, "needs_info");
+    assert.equal(top.has_response, true);
+    assert.equal(top.message, undefined);
+    assert.equal(top.response, undefined);
+    assert.ok(page.body.notes.some((n) => /needs_info/.test(n)));
+    const {
+      rows: [{ n }],
+    } = await db.query(
+      `select count(*)::int as n from feedback
+        where feedback_id = any($1::bigint[]) and response_seen_at is not null`,
+      [ids],
+    );
+    assert.equal(n, 0, "a compact page delivers no response, so none is seen");
+
+    const one = await call("elixir_my_feedback", { feedback_id: ids.at(-1) });
+    assert.equal(one.isError, false, JSON.stringify(one.body));
+    assert.equal(one.body.feedback.length, 1);
+    assert.match(one.body.feedback[0].response, /^r+$/);
+    assert.deepEqual(one.body.feedback[0].followed_by, []);
+    assert.ok(one.body.notes.some((x) => /follows_id: \d+/.test(x)));
+    const {
+      rows: [seen],
+    } = await db.query(
+      `select response_seen_at from feedback where feedback_id = $1`,
+      [ids.at(-1)],
+    );
+    assert.ok(seen.response_seen_at, "reading it whole is reading its answer");
+
+    const missing = await call("elixir_my_feedback", {
+      feedback_id: "999999999",
+    });
+    assert.equal(missing.isError, true);
+    assert.equal(missing.body.error.code, "not_found");
+  } finally {
+    await db.query(
+      `delete from feedback where feedback_id = any($1::bigint[])`,
+      [ids],
+    );
+  }
+});
+
 test("feedback round two: changelog since-filter, ship links, pending hint clears on read", async () => {
   const releases = [];
   let offset = 0;

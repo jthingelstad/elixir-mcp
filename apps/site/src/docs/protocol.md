@@ -576,7 +576,7 @@ JSON API (`POST /api/v1/feedback`), from the Console, Ladder, Elixir Clan,
 the docs or an email's footer lands in the same queue, is answered there,
 and is listed by `elixir_my_feedback` wherever it was filed.
 
-- `elixir_send_feedback({ message, category?, context?, request_id?, request_ids?, refs?, follows_id?, on_behalf_of? })`: `message`
+- `elixir_send_feedback({ message, category?, context?, request_id?, request_ids?, refs?, follows_id? })`: `message`
   1 to 8000 chars; `category` one of `general` (default), `bug`,
   `data_quality`, `feature`, `praise`, `judgment` (Elixir judged someone
   wrongly), `other`. `request_id` is the
@@ -587,23 +587,42 @@ and is listed by `elixir_my_feedback` wherever it was filed.
   several; the first becomes `request_id` when that was omitted. `refs`
   (up to 20, with the calls) points at anything else it is about:
   `{ kind, ref }` with kind `email` (a send id from a mail's footer),
-  `player` or `clan` (a tag), or `clan_action`, `award`, `policy`
-  (Elixir Clan's ids). Only your own calls and emails attach; a pointer
-  that is malformed or not yours is dropped and named in `notes`, and the
-  report is kept. `follows_id` replies to one of your own items, so a
-  question about an answer reads as one thread. An agent relaying a
-  person's feedback passes `on_behalf_of`; the answer still comes to the
-  agent. `context` stays free text for naming a tool or a question. Filing
-  counts as one call against the daily quota, like any tool call.
-- `elixir_my_feedback({ limit?, offset?, status?, since?, area? })`: `status` one of
-  `new`, `seen`, `planned`, `done`, `declined`; `area` one of `mcp`, `api`,
-  `console`, `ladder`, `clan`, `mail`, `docs` (where it was filed). Returns
-  each item's `area`, `refs` and `follows_id` when it has them, `response`,
-  `responded_at`, `shipped_in`, `related_tools`. Pages are bounded by delivered
-  size as well as `limit`, so follow `next_offset` with the same filters until
-  it is `null`; `total` counts the filtered ledger. Only replies delivered on
-  that page are marked seen, and `meta.feedback_responses_pending` stays raised
-  while another response remains unread.
+  `feedback` (one of your own `feedback_id`s this item belongs with, such
+  as another facet of one review; it is a link, not a reply), `player` or
+  `clan` (a tag), or `clan_action`, `award`, `policy` (Elixir Clan's
+  ids). Only your own calls, emails and items attach; a pointer that is
+  malformed or not yours is dropped and named in `notes`, and the report
+  is kept. `follows_id` names one of your own items this one follows, so
+  the thread reads as one: a reply to an answer, the answer to a
+  `needs_info` question, or a correction to something you filed (a
+  filed item is not withdrawn; a correction that follows it says what was
+  wrong, and the answer covers both). `context` stays free text for
+  naming a tool or a question. Filing counts as one call against the
+  daily quota, like any tool call.
+- Agent connections only: an agent relaying a person's feedback also
+  passes `on_behalf_of` (the person on its surface, e.g. `discord:1234`);
+  it is kept with the report, and the answer still comes to the agent. A
+  personal connection is its person's own, so its schema has no
+  `on_behalf_of`: what it files is already that person's.
+- `elixir_my_feedback({ feedback_id?, limit?, offset?, status?, since?, area?, verbosity? })`:
+  `status` one of `new`, `seen`, `planned`, `needs_info`, `done`,
+  `declined`; `area` one of `mcp`, `api`, `console`, `ladder`, `clan`,
+  `mail`, `docs`, `recorder` (where it was filed). Returns each item's
+  `area`, `refs` and `follows_id` when it has them, `response`,
+  `responded_at`, `shipped_in`, `related_tools`. Pages are bounded by
+  delivered size as well as `limit`, so follow `next_offset` with the same
+  filters until it is `null`; `total` counts the filtered ledger. Only
+  replies delivered on that page are marked seen, and
+  `meta.feedback_responses_pending` stays raised while another response
+  remains unread. `verbosity: "compact"` is the listing: each item's
+  `feedback_id`, `created_at`, `area`, `category`, `title` (the
+  message's first line), `status`, `follows_id`, `related_ids`,
+  `has_response`, `responded_at` and `shipped_in`, with no bodies, so a
+  50-item page fits and nothing is marked seen. `feedback_id` reads one
+  item whole, with `followed_by` (your items that reply to it) and
+  `related_by` (your items that name it as related), and marks its answer
+  seen. `needs_info` means the answer is a question for you: reply with
+  `follows_id`, and the reply is answered in its turn.
 - `elixir_changelog({ since?, limit?, offset? })`: entries `{ version, date,
   summary, tools_added?, breaking? }`, newest first. `limit` is 1 to 20
   (default 20); `offset` defaults to zero. Follow `next_offset` with the

@@ -390,3 +390,90 @@ test("the queue filters by area and pages; pending counts per area", async () =>
   assert.ok(pending.items.every((i) => i.area === "clan"));
   assert.ok(pending.by_area.length === 1);
 });
+
+test("an item names the filer's own related items, never another's; each end shows the link (11.10.0, #378)", async () => {
+  const facets = [];
+  for (const message of ["Time model.", "Duplicates.", "Contradictions."])
+    facets.push(
+      (
+        await fileFeedback(db, {
+          account: person,
+          surface: "mcp",
+          area: "mcp",
+          message,
+        })
+      ).feedback_id,
+    );
+  const { feedback_id: theirs } = await fileFeedback(db, {
+    account: other,
+    surface: "mcp",
+    area: "mcp",
+    message: "Theirs.",
+  });
+  const last = await fileFeedback(db, {
+    account: person,
+    surface: "mcp",
+    area: "mcp",
+    message: "Coverage gaps, the fourth facet of one review.",
+    refs: [
+      ...facets.map((id) => ({ kind: "feedback", ref: String(id) })),
+      { kind: "feedback", ref: String(theirs) },
+      { kind: "feedback", ref: "not-a-number" },
+    ],
+  });
+  assert.deepEqual(
+    last.refs.filter((r) => r.kind === "feedback").map((r) => r.ref),
+    facets.map(String),
+  );
+  assert.deepEqual(
+    last.dropped.map((d) => [d.ref, d.reason]),
+    [
+      ["not-a-number", "not_an_id"],
+      [String(theirs), "not_yours"],
+    ],
+  );
+  const first = await itemMine(db, person.accountId, facets[0]);
+  assert.deepEqual(first.related_by.map(String), [String(last.feedback_id)]);
+  assert.deepEqual(first.followed_by, [], "related is not a reply");
+  const admin = await feedbackItem(db, facets[1]);
+  assert.deepEqual(admin.related_by.map(String), [String(last.feedback_id)]);
+});
+
+test("needs_info is an answer: it raises the pending count and the filer replies with follows_id (11.10.0, #378)", async () => {
+  const { feedback_id: id } = await fileFeedback(db, {
+    account: agent,
+    surface: "mcp",
+    area: "mcp",
+    message: "The war tally looks wrong.",
+  });
+  const before = await unseenCount(db, agent.accountId);
+  const a = await answerFeedback(db, {
+    feedbackId: id,
+    status: "needs_info",
+    response: "Which clan and which war day did you read?",
+  });
+  assert.equal(a.updated, 1);
+  assert.equal(a.status, "needs_info");
+  assert.equal(a.answered, true);
+  assert.equal(await unseenCount(db, agent.accountId), before + 1);
+  const listed = await listMine(db, agent.accountId, { status: "needs_info" });
+  assert.deepEqual(
+    listed.items.map((r) => String(r.feedback_id)),
+    [String(id)],
+  );
+  const reply = await fileFeedback(db, {
+    account: agent,
+    surface: "mcp",
+    area: "mcp",
+    message: "POAP KINGS, war day 4.",
+    followsId: id,
+  });
+  assert.equal(String(reply.follows_id), String(id));
+  const pending = await feedbackPending(db, {});
+  assert.ok(
+    pending.items.some(
+      (r) => String(r.feedback_id) === String(reply.feedback_id),
+    ),
+    "the reply is in the maintainer's queue",
+  );
+});
