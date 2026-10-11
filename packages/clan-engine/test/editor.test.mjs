@@ -297,6 +297,11 @@ test("the checks: a post is refused for a link, a mention, a clock time, a lost 
     ok([KICK], "Good luck out there, Di! 👋 Di was removed from the clan."),
     null,
   );
+  // A whole emoji is fine: a skin tone, a flag (Codex on #509).
+  assert.equal(
+    ok([KICK], "Di was removed from the clan. Good luck out there! 👋🏽 🇺🇸"),
+    null,
+  );
   // Another script is refused, not read past (Codex on #507).
   assert.equal(
     ok([KICK], "Di was removed from the clan. 他很有毒。"),
