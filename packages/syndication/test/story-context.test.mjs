@@ -131,7 +131,33 @@ test("a battle story is told the deck's season record in its mode, a second prom
     },
     promotions: 2,
     mates: ["Bo"],
+    mates_total: 1,
   });
+});
+
+test("a promotion told late counts the day before it, not the day before the run", async () => {
+  const story = {
+    key: "tl_00000000000000000004",
+    items: [
+      {
+        id: "tl_00000000000000000004",
+        kind: "arena_changed",
+        at: at(T - 6 * H),
+        facts: {
+          player_tag: ADA,
+          from: 54000019,
+          to: 54000020,
+          promoted_by: { battle_id: "b3" },
+        },
+      },
+    ],
+  };
+  // Told at T + 20 h: the move at T - 2 h is after it, so it is the first.
+  const out = await storyContext(db, CLAN, [story], {
+    nowMs: T + 20 * H,
+    identities,
+  });
+  assert.equal(out.get(story.key).promotions, 1);
 });
 
 test("a story of several members, or with no battle, is told nothing more", async () => {

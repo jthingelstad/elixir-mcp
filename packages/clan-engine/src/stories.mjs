@@ -385,8 +385,10 @@ function battleStory(items, ctx) {
   if (clauses.length > 1) text += ` and ${andList(clauses.slice(1))}`;
   const arena = items.find((it) => it.kind === "arena_changed");
   const mates = ctx.mates ?? [];
-  if (arena && mates.length)
-    text += `, joining ${mates.length > 3 ? `${plural(mates.length, "clanmate")}` : andList(mates)} there`;
+  // The names read are capped; the count is the whole of them.
+  const matesTotal = Math.max(ctx.mates_total ?? 0, mates.length);
+  if (arena && matesTotal)
+    text += `, joining ${matesTotal > 3 || mates.length < matesTotal ? plural(matesTotal, "clanmate") : andList(mates)} there`;
   text += ".";
   const extra = [];
   const peak = laterBest(items);
@@ -520,8 +522,10 @@ export const leadSafe = (s) => (/^(?:#|-|\+|\d+\.)/.test(s) ? `\\${s}` : s);
 /**
  * Elixir's own post for a story: one or two sentences, no clock time
  * (a story told over three hours late says when in words), no link.
- * `ctx`: what the sync read for it (`deck`, `promotions`, `mates`) and
- * the members' records (`members`, story-facts), and `nowMs`.
+ * `ctx`: what the sync read for it (`deck`, `promotions`, `mates`,
+ * `mates_total`) and the members' records (`members`, story-facts), and
+ * `nowMs`, the time it is told at. Without `nowMs` it says no when: the
+ * engine keeps no clock of its own.
  * Returns plain text; the sync escapes it for Discord.
  */
 export function renderStory(story, ctx = {}) {
@@ -562,7 +566,7 @@ export function renderStory(story, ctx = {}) {
       ),
     ),
   );
-  const when = whenWords(lastAt, ctx.nowMs ?? Date.now());
+  const when = Number.isFinite(ctx.nowMs) ? whenWords(lastAt, ctx.nowMs) : "";
   const out = when ? `${when}: ${text}` : text;
   return out.length > STORY_TEXT_MAX
     ? `${out.slice(0, STORY_TEXT_MAX - 1)}…`
