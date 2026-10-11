@@ -14,8 +14,9 @@
  *
  *  Bounded: `EDITOR_LOOKUPS_MAX` a round, each answer at most
  *  `EDITOR_RESULT_MAX` characters, a name matched exactly (case aside)
- *  against the clan's current roster. A lookup that fails says so; the
- *  run goes on. */
+ *  against the clan's current roster; a name two current members share
+ *  is not looked up (a display name is not an identity). A lookup that
+ *  fails says so; the run goes on. */
 import { modeGroupOf } from "@elixir-mcp/contracts";
 import {
   EDITOR_LOOKUPS_MAX,
@@ -68,7 +69,8 @@ export function editorResearch(
   } = {},
 ) {
   let roster = null;
-  /** The current member by name, exactly as written (case aside). */
+  /** The current member by name, exactly as written (case aside); null
+   *  for none, `"ambiguous"` when two or more share it. */
   async function member(name) {
     roster ??= (
       await db.query(
@@ -83,17 +85,22 @@ export function editorResearch(
     const want = String(name ?? "")
       .trim()
       .toLowerCase();
-    return want
-      ? (roster.find((r) => r.name.trim().toLowerCase() === want) ?? null)
-      : null;
+    const found = want
+      ? roster.filter((r) => r.name.trim().toLowerCase() === want)
+      : [];
+    if (found.length > 1) return "ambiguous";
+    return found[0] ?? null;
   }
-  const notMember = (name) =>
-    `No current member of the clan is named "${String(name ?? "").slice(0, 40)}".`;
+  const said = (name) => String(name ?? "").slice(0, 40);
+  const notMember = (name, m) =>
+    m === "ambiguous"
+      ? `More than one current member is named "${said(name)}"; not looked up.`
+      : `No current member of the clan is named "${said(name)}".`;
 
   const lookups = {
     async member_record({ name }) {
       const m = await member(name);
-      if (!m) return notMember(name);
+      if (!m || m === "ambiguous") return notMember(name, m);
       const facts = await clanStoryFacts(db, clanTag, {
         playerTags: [m.player_tag],
         nowMs,
@@ -109,7 +116,7 @@ export function editorResearch(
 
     async member_battles({ name, mode = "any" }) {
       const m = await member(name);
-      if (!m) return notMember(name);
+      if (!m || m === "ambiguous") return notMember(name, m);
       const { rows } = await db.query(
         `select bp.battle_time, bp.type, b.event_tag, bp.outcome, bp.crowns,
                 bp.trophy_change, bp.deck_hash,

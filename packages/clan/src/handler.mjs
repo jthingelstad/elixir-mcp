@@ -524,7 +524,7 @@ export function createHandler({
           return json(200, await activity.remove(tag, who));
         return json(400, { error: "bad_request" });
       }
-      // A leader's preview of the rewrite: the last few items in a voice,
+      // A leader's preview of the editor: the last few stories in a voice,
       // posted nowhere; `pending` collects one that outlasted its request.
       if (activity && method === "POST" && rest === "/activity-discord/preview")
         return json(

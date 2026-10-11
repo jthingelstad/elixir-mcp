@@ -58,19 +58,18 @@ import {
   STORY_SKIPS,
   activityCategories,
   activityCategory,
-  activityRewriteRequest,
   activityShareable,
   buildStories,
   clanContext,
   declaredGoals,
   editorAnswer,
   editorNext,
+  editorPreviewRequest,
   editorRequest,
   editorStory,
   escapeDiscord,
   leadSafe,
   renderStory,
-  rewriteLine,
   storyBattleId,
   storyReady,
   storyValue,
@@ -618,7 +617,7 @@ async function planRun(
     itemIds: items.map((it) => it.id),
   };
   if (!modelOn) return plan;
-  const built = await rewritePackets(db, clanTag, row, batch, {
+  const built = await editorPackets(db, clanTag, row, batch, {
     policy,
     pitchFor,
     now,
@@ -638,7 +637,7 @@ async function planRun(
  * its story, its members' records and what the channel already told of
  * them this week.
  */
-async function rewritePackets(
+async function editorPackets(
   db,
   clanTag,
   row,
@@ -703,19 +702,10 @@ async function rewritePackets(
       })),
     };
   });
-  // The editor's stories, and the preview's lines (one request, no
-  // lookups) until the preview is the editor too.
   const stories = posts.map((p, i) =>
     editorStory(p, { ...about[i], edit: Boolean(p.edit || p.story.grown) }),
   );
-  const lines = posts.map((p, i) =>
-    rewriteLine(
-      p.story.items.map((it) => ({ ...it, id: p.key })),
-      [p.render],
-      about[i],
-    ),
-  );
-  return { context, stories, lines };
+  return { context, stories };
 }
 
 /** Move the clan's pointer on to `toMs`. */
@@ -909,14 +899,16 @@ async function writeRun(
 }
 
 /**
- * The clan's last few stories as its model would write them now, for a
- * leader to preview the voice (2026-10-11): the newest `PREVIEW_MAX`
- * stories the channel tells, from the last week, each with Elixir's own
- * words, and the request that rewrites them. Nothing is posted or
- * recorded here; the leader's use of the model is recorded by the model
- * service. `{ empty: true }` when there is nothing to preview.
+ * The clan's last few stories as its model would edit them now, for a
+ * leader to preview the editor in a voice (2026-10-11): the newest
+ * `PREVIEW_MAX` stories the channel tells, from the last week, each with
+ * Elixir's own words, the editor's packets (`stories`, for
+ * `editorAnswer`) and the one request that edits them, with no lookups.
+ * Nothing is posted or recorded here; the leader's use of the model is
+ * recorded by the model service. `{ empty: true }` when there is nothing
+ * to preview.
  */
-export async function clanRewritePreview(
+export async function clanEditorPreview(
   db,
   clanTag,
   { policyFor, pitchFor = null, voice = undefined, now = Date.now() },
@@ -976,7 +968,7 @@ export async function clanRewritePreview(
       members: story.members,
       nowMs: now,
     });
-  const built = await rewritePackets(
+  const built = await editorPackets(
     db,
     clanTag,
     // The voice being written in the page, when the leader is trying one.
@@ -986,16 +978,16 @@ export async function clanRewritePreview(
   );
   return {
     empty: false,
-    lines: built.lines,
     posts: posts.map((p) => ({
       key: p.key,
       kind: p.story.items[0].kind,
       at: p.story.items[0].at,
       elixir: p.render,
     })),
-    request: activityRewriteRequest({
+    stories: built.stories,
+    request: editorPreviewRequest({
       context: built.context,
-      lines: built.lines,
+      stories: built.stories,
     }),
   };
 }

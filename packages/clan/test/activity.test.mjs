@@ -1,7 +1,7 @@
 /**
  * The clan's activity in its own Discord channel (2026-10-10), over the
  * real handler: leaders alone connect it; the policy's defaults and its
- * ruled-out category hold; the rewrite needs the clan's own key; and the
+ * ruled-out category hold; the editor needs the clan's own key; and the
  * model's unattended use is bounded, recorded and never throws for the
  * clan's state. Anthropic and the store are scripted; no key or webhook
  * here is real.
@@ -11,9 +11,9 @@ import assert from "node:assert/strict";
 import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemoryLedger } from "@elixir-mcp/clan-state";
 import {
-  activityRewriteRequest,
+  editorPreviewRequest,
   editorRequest,
-  rewriteLine,
+  editorStory,
 } from "@elixir-mcp/clan-engine";
 import { createActivityService } from "@elixir-mcp/clan/manage/activity.mjs";
 import { fetchRoster } from "@elixir-mcp/clan/manage/service.mjs";
@@ -123,16 +123,16 @@ function fakeStore() {
       if (!rows.get(tag)) return { empty: true, reason: "not_connected" };
       return {
         empty: false,
-        lines: LINES,
-        posts: LINES.map((l) => ({
-          key: l.key,
-          kind: l.kind,
+        posts: STORIES.map((st) => ({
+          key: st.key,
+          kind: st.kind,
           at: "2026-10-10T11:00:00Z",
-          elixir: l.sentence,
+          elixir: st.render,
         })),
-        request: activityRewriteRequest({
+        stories: STORIES,
+        request: editorPreviewRequest({
           context: `${CONTEXT}\nHow its leaders want it to sound: ${voice ?? "saved"}`,
-          lines: LINES,
+          stories: STORIES,
         }),
       };
     },
@@ -203,7 +203,7 @@ test("activity: the policy sets the defaults and rules war out; a leader's switc
     view.body.categories.map((x) => x.key),
     ["members", "milestones", "war"],
   );
-  assert.equal(view.body.rewrites_per_day, ACTIVITY_USES_PER_DAY);
+  assert.equal(view.body.editor_runs_per_day, ACTIVITY_USES_PER_DAY);
 
   const none = await api(h, c, "PUT", PATH, { enabled: true });
   assert.equal(none.status, 400);
@@ -284,22 +284,34 @@ test("activity: only a leader or co-leader", async () => {
 });
 
 const CONTEXT = "THE CLAN\nName: Example Clan";
-const LINES = [
-  rewriteLine(
-    { id: "tl_1", kind: "member_joined", facts: { name: "Ada" } },
-    "Ada joined Example Clan.",
-  ),
-  rewriteLine(
-    {
-      id: "tl_2",
-      kind: "trophy_milestone",
-      facts: { name: "Bo", trophies: 9000 },
-    },
+const story = (key, kind, facts, render) => ({
+  ...editorStory({
+    key,
+    revision: 1,
+    story: { key, items: [{ id: key, kind, revision: 1, facts }] },
+    render,
+  }),
+  kind,
+});
+const STORIES = [
+  story("tl_1", "member_joined", { name: "Ada" }, "Ada joined Example Clan."),
+  story(
+    "tl_2",
+    "trophy_milestone",
+    { name: "Bo", trophies: 9000 },
     "Bo reached 9,000 trophies.",
+  ),
+  story("tl_3", "member_joined", { name: "Cy" }, "Cy joined Example Clan."),
+  story("tl_4", "member_left", { name: "Di" }, "Di departed Example Clan."),
+  story(
+    "tl_5",
+    "career_wins_step",
+    { name: "Eve", wins: 1000, step: 1000 },
+    "Eve passed 1,000 career wins.",
   ),
 ];
 const request = () =>
-  activityRewriteRequest({ context: CONTEXT, lines: LINES.slice(0, 1) });
+  editorPreviewRequest({ context: CONTEXT, stories: STORIES.slice(0, 1) });
 
 test("writeUnattended: recorded apart from the drafts, under its own day's cap", async () => {
   const h = harness();
@@ -532,7 +544,7 @@ test("writeUnattended: an owner who left, or one unconfirmed, is not used; Anthr
   );
 });
 
-test("preview: a leader's own use, counted with the drafts; each post comes back written or refused, and nothing is posted", async () => {
+test("preview: a leader's own use, counted with the drafts; each story comes back posted, told in another's post, skipped or kept with why, and nothing is posted", async () => {
   const h = harness();
   const c = await signedIn(h);
   const PREVIEW = `${PATH}/preview`;
@@ -554,9 +566,14 @@ test("preview: a leader's own use, counted with the drafts; each post comes back
     usage: { input_tokens: 400, output_tokens: 80 },
     input: {
       posts: [
-        { key: "tl_1", text: "Welcome aboard, Ada! 🎉" },
+        { keys: ["tl_3", "tl_1"], text: "Welcome aboard, Ada and Cy! 🎉" },
         // A number the packet never held is refused, as in the channel.
-        { key: "tl_2", text: "Bo hit 9,500 trophies!" },
+        { keys: ["tl_2"], text: "Bo hit 9,500 trophies!" },
+      ],
+      skips: [
+        { key: "tl_5", reason: "A small step." },
+        // A departure is always told.
+        { key: "tl_4", reason: "Old news." },
       ],
     },
   });
@@ -564,18 +581,34 @@ test("preview: a leader's own use, counted with the drafts; each post comes back
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(h.store.previews.at(-1).voice, "Hype and short");
   assert.equal(r.body.model, "claude-sonnet-5-5");
+  assert.deepEqual(r.body.posts[0], {
+    key: "tl_1",
+    kind: "member_joined",
+    at: "2026-10-10T11:00:00Z",
+    elixir: "Ada joined Example Clan.",
+    post: "Welcome aboard, Ada and Cy! 🎉",
+    with: ["tl_3"],
+    told_in: null,
+    skipped: null,
+    refused: null,
+  });
   assert.deepEqual(
-    r.body.posts.map((p) => [p.key, p.elixir, p.rewrite, p.refused]),
+    r.body.posts
+      .slice(1)
+      .map((p) => [p.key, p.post, p.told_in, p.skipped, p.refused]),
     [
-      ["tl_1", "Ada joined Example Clan.", "Welcome aboard, Ada! 🎉", null],
-      ["tl_2", "Bo reached 9,000 trophies.", null, "number_invented"],
+      ["tl_2", null, null, null, "number_invented"],
+      ["tl_3", null, "tl_1", null, null],
+      ["tl_4", null, null, null, "skip_refused"],
+      ["tl_5", null, null, "A small step.", null],
     ],
   );
-  const [, , sent] = h.anthropic.state.calls.at(-1);
+  const [kind, , sent] = h.anthropic.state.calls.at(-1);
+  assert.equal(kind, "write", "one request, no lookups");
   assert.equal(sent.model, "claude-sonnet-5-5");
   assert.equal(sent.effort, "low");
   assert.match(JSON.stringify(sent), /Hype and short/);
-  // Counted as a leader's use, apart from the channel's own rewrites.
+  // Counted as a leader's use, apart from the channel's own runs.
   const [call] = await h.ledger.modelCalls(TAG);
   assert.equal(call.purpose, "discord_activity");
   assert.equal(call.preview, true);

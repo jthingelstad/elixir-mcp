@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, contracts unchanged"
+reviewed: "2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -277,8 +277,9 @@ told more than three hours late says when in words ("Yesterday").
   and the weeks they played. Never a tag, a member's share of fame, an
   award not yet announced, or anything private to Clan.
   Before it answers, the model may look things up in the clan's record,
-  read-only, in up to two rounds of at most six lookups each: a current
-  member's record as above; a current member's battles in the last
+  read-only, in up to two rounds of at most six lookups each, a member
+  found by name (a name two current members share is not looked up): a
+  current member's record as above; a current member's battles in the last
   seven days (up to ten: the mode, the result and crowns, the opponent,
   the deck's archetype, the trophy change and roughly when, in words);
   and what the channel posted in the last three days. Then it edits: it
@@ -286,33 +287,41 @@ told more than three hours late says when in words ("Yesterday").
   (shown on the page), and tells the rest in one to three sentences. A
   departure is never skipped and never told with another story, and
   neither is a post being edited in place.
+  A departure keeps Elixir's sentence for it word for word (departed,
+  was removed, left on their own); the model may add a thank-you or a
+  farewell, never a reason.
   A post that drops or changes a member's or opponent's name, carries a
   number or a name it was neither given nor looked up, says a time of
-  day, carries a link or a mention, tells a departure in other words
-  than the record's (departed, was removed, left), or runs past 600
-  characters is refused, and its stories are Elixir's own. So is every
+  day, leaves out when a story over three hours late happened ("earlier
+  today", "yesterday"), changes a departure's sentence or gives it a reason, tells a
+  story another post already told, carries a link or a mention, or runs
+  past 600 characters is refused, and its stories are Elixir's own. So is every
   story the model leaves out, and every story when the model cannot be
   used or has not answered in time. At most 50 editor runs a day (a run
   is one to three requests: its lookups, then its answer), counted
   apart from the leaders' drafts and shown in the key's use log with
   each request; the clan's monthly cap, when set, stops them as it stops
   drafts. What a run costs is on [Limits](/docs/limits).
-  **Preview the last 5 in this voice** shows the five newest things the
-  channel could post, written in the voice in the box (saved or not),
-  each beside Elixir's line or with why it would be refused. It posts
-  nothing and counts as one of the leaders' drafts for the day.
+  **Preview the last 5 in this voice** hands the five newest stories
+  the channel could post from the last week to the editor, in the voice
+  in the box (saved or not), and shows what it would do: each post with
+  the stories it tells and Elixir's versions of them, each skip with its
+  reason, and each story kept in Elixir's words with why when the model's
+  post or skip was refused. It is one request with no lookups, so a
+  real run may say more. It posts nothing and counts as one of the
+  leaders' drafts for the day.
   Without a key, the page points to **The clan's own model** in Settings.
 - Connecting posts a short hello to check the webhook; it is kept
   encrypted and shown only shortened. A webhook may end in `?thread_id=`
   and a thread's id, to post into one thread; a forum channel's webhook
-  is refused, since a forum takes posts, not lines. If Discord stops
+  is refused, since a forum takes threads, not messages. If Discord stops
   taking it, posting turns off and the page says why. If Discord refuses
-  one line, only that line is skipped and the page shows what Discord
-  said. Lines go at most about 25 a minute, under Discord's limit for a
+  one post, only that post is skipped and the page shows what Discord
+  said. Posts go at most about 25 a minute, under Discord's limit for a
   channel. Pausing or disconnecting leaves the messages already posted.
 - The page lists the channel's last 40 deliveries and skips from the
   past 30 days, each post whole as it was posted, with any the clan's
-  model wrote marked **rewritten**, and each skip with what it would
+  model wrote marked **by the clan's model**, and each skip with what it would
   have said and why it was skipped, by Elixir's rule or by the clan's
   model. It also counts the posts not
   delivered; a skip is not one of them.

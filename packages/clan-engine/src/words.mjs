@@ -16,8 +16,8 @@
  *    save, with a warning on any number or name it was not given.
  *    Nothing a model writes is saved or sent by itself, with one
  *    exception Jamie asked for (2026-10-10): the clan's activity posts in
- *    its Discord (`discord_activity`, activity.mjs), which are checked
- *    line by line and refused, never warned.
+ *    its Discord (`discord_activity`, editor.mjs), which are checked
+ *    post by post and refused, never warned.
  *
  * Pure: context in, request out; answer in, values out.
  */
@@ -49,12 +49,12 @@ export const PURPOSES = {
     why: "Drafts a welcome or a message after a leader's decision, for a person to edit and send in the game.",
   },
   // The one use whose words are sent unread (Jamie, 2026-10-10): the
-  // clan's activity lines in its Discord, rewritten in the leaders'
-  // voice from the record: the clan, the item's facts and the member
-  // (activity.mjs, context.mjs).
+  // editor of the clan's activity channel in its Discord, in the
+  // leaders' voice from the record (Jamie, 2026-10-11: an editor that may
+  // look things up, skip and merge; editor.mjs, context.mjs).
   discord_activity: {
     label: "Discord activity",
-    why: "Rewrites the clan's activity posts in its Discord in the voice its leaders describe, from what Elixir records about the moment, the clan and the member; a post the check refuses keeps Elixir's own words.",
+    why: "Edits the clan's activity channel in its Discord in the voice its leaders describe: it reads Elixir's stories and may look up a member's record, battles and the channel's recent posts, then tells each story, tells a few together or skips one with a reason; a post the checks refuse keeps Elixir's own words.",
   },
 };
 
@@ -68,8 +68,8 @@ export const PURPOSES = {
  *
  * The leaders' drafts are read and edited before anything is sent and
  * are few, so they get the strongest writer. The Discord activity
- * rewrites are posted unread, are many and are checked line by line, so
- * they start one step down. Change the mapping here and nowhere else.
+ * editor's posts are sent unread, are many and are checked post by post,
+ * so they start one step down. Change the mapping here and nowhere else.
  */
 export const MODEL_FOR = {
   recruit_pitch: ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],

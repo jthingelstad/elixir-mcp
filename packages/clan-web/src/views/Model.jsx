@@ -178,12 +178,15 @@ export function Model({ clan }) {
       </p>
       <p className="page-head__note m-0">
         The one exception is the clan&rsquo;s activity in Discord (Social ▸
-        Discord), when a leader turns its rewrite on: each post is told the same
-        record and posted without a review. A post that drops or changes a name,
-        carries a number or a name it was not given, carries a link or a
-        mention, or runs long keeps Elixir&rsquo;s own line. Those uses are
-        counted apart from the drafts&rsquo;; a leader&rsquo;s preview of them
-        is a draft.
+        Discord), when a leader has the clan&rsquo;s model edit the channel: it
+        is told the same record, may look up a member&rsquo;s record and battles
+        and the channel&rsquo;s recent posts, may tell a few stories together or
+        skip one with a reason, and posts without a review. A post that drops or
+        changes a name, carries a number or a name it was not given, says a time
+        of day, changes a departure&rsquo;s sentence, carries a link or a
+        mention, or runs long keeps Elixir&rsquo;s own story. Its runs are
+        counted apart from the drafts; a leader&rsquo;s preview of it is a
+        draft.
       </p>
 
       {!d.set ? (

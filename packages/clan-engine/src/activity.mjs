@@ -2,9 +2,8 @@
  * The clan's activity in its Discord (Jamie, 2026-10-10): a leader
  * connects a webhook of its own (not the Actions one, not a person's
  * timeline cross-post) and chooses what of the clan's timeline is posted
- * there. Optionally the clan's own model rewrites each line in a voice
- * the leaders describe, so the posts read like the clan and not like a
- * template.
+ * there. Optionally the clan's own model edits the channel in a voice
+ * the leaders describe (`editor.mjs`).
  *
  * What is posted is the clan's timeline as its members read it (the
  * clan-visible items, never a leaders-only one), in three categories a
@@ -17,27 +16,16 @@
  * own, it edits the departure's post to say "was removed" or "left on
  * their own" (Jamie: a kick is never told as a leave).
  *
- * The rewrite (`activityRewriteRequest`, `activityRewritesFromDraft`) is
- * the one purpose whose words are sent without a person reading them
- * first, because Jamie asked for exactly that. The model is given what
- * the clan's members could read for themselves (Jamie, 2026-10-11): the
- * clan (`clanContext`), each moment's facts and its member's record
- * (`context.mjs`), never anything private to Clan. Every post it writes
- * is checked: the names its line says kept exactly, no number or proper
- * name that is not in what it was given, no link or mention. A post that
- * fails keeps Elixir's own sentence.
+ * The editor (`editor.mjs`) is the one purpose whose words are sent
+ * without a person reading them first, because Jamie asked for exactly
+ * that. Here are the voice and the words both it and Elixir's own render
+ * share: the names a post must keep (`namesIn`) and a model's post
+ * tidied (`rewriteText`).
  *
  * Pure: items and policy values in, decisions and words out.
  */
 
-import {
-  inventedNumbers,
-  itemFactLines,
-  memberLines,
-  namesInFacts,
-  strictTool,
-  unknownNames,
-} from "./context.mjs";
+import { namesInFacts } from "./context.mjs";
 
 /** The timeline's item kinds in each category a leader switches. */
 export const ACTIVITY_CATEGORIES = {
@@ -151,25 +139,8 @@ export function cleanVoice(text) {
 }
 
 /* ------------------------------------------------------------------ */
-/* The rewrite                                                         */
+/* The editor's words                                                  */
 /* ------------------------------------------------------------------ */
-
-/** A rewritten post is short: Discord is a channel, not a newsletter. */
-export const REWRITE_MAX = 280;
-/** A post that tells a run of same-kind moments at once. */
-export const REWRITE_GROUP_MAX = 500;
-/** Posts rewritten in one request; the relay sends at most this many. */
-export const REWRITE_BATCH_MAX = 20;
-/** How hard the model thinks for the posts (Claude's `effort`): `low`.
- *  They are many, short and posted inside a sync with a deadline, and the
- *  checks below, not the model's care, keep them true. */
-export const ACTIVITY_EFFORT = "low";
-
-/** Kinds told one at a time even in a run: each is its own story. */
-const NEVER_GROUPED = new Set(["session_standout", "legendary_badge_earned"]);
-/** Milestones of one kind that arrive together are one post. */
-export const groupable = (item) =>
-  activityCategory(item) === "milestones" && !NEVER_GROUPED.has(item?.kind);
 
 /** The names a line must keep exactly as recorded: the member's own, and
  *  every player or clan its sentence names (an opponent, a teammate, a
@@ -190,115 +161,6 @@ export function namesIn(item, sentence = "") {
   ];
 }
 
-/**
- * What one post hands the model: its key, kind, Elixir's sentence, the
- * facts behind it and, when the record has them, its member's lines
- * (`memberLines`) and how often the channel heard about them this week.
- * `items` is one item, or a run of same-kind milestones told as one post
- * (keyed by the first).
- */
-export function rewriteLine(
-  items,
-  sentences,
-  { members = [], history = [] } = {},
-) {
-  const list = Array.isArray(items) ? items : [items];
-  const said = (Array.isArray(sentences) ? sentences : [sentences]).map((s) =>
-    String(s ?? "").trim(),
-  );
-  const grouped = list.length > 1;
-  const lines = [
-    `POST ${list[0].id} (${list[0].kind}${grouped ? `: ${list.length} moments ${list.every((it) => it.kind === list[0].kind) ? "of this kind " : ""}together; write ONE post that tells all of them` : ""})`,
-    ...said.map((s) => `Elixir's line: ${s}`),
-  ];
-  list.forEach((it, i) => {
-    const facts = itemFactLines(it.facts);
-    if (facts.length)
-      lines.push(
-        grouped ? `Facts of moment ${i + 1}:` : "Facts:",
-        ...facts.map((f) => `- ${f}`),
-      );
-  });
-  // A member's record, as `memberLines` tells it; a departure's is their
-  // time in the clan and what they gave (`scope: "contribution"`).
-  for (const m of members.filter(Boolean))
-    lines.push(
-      ...memberLines(m, { label: "ABOUT", scope: m.scope ?? "full" }).map(
-        (l, i) => (i ? `- ${l}` : l),
-      ),
-    );
-  for (const h of history.filter((x) => x?.count > 0))
-    lines.push(
-      `The channel already told ${h.count} other ${h.kind.replaceAll("_", " ")} post${h.count === 1 ? "" : "s"} about ${h.name} in the last 7 days.`,
-    );
-  return {
-    key: list[0].id,
-    kind: list[0].kind,
-    sentence: said.join(" "),
-    max: grouped ? REWRITE_GROUP_MAX : REWRITE_MAX,
-    names: [...new Set(list.flatMap((it, i) => namesIn(it, said[i] ?? "")))],
-    packet: lines.join("\n"),
-  };
-}
-
-const REWRITE_TOOL = {
-  name: "write_posts",
-  description:
-    "The clan's Discord posts, one for each POST you were given, by its key.",
-  input_schema: {
-    type: "object",
-    properties: {
-      posts: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            key: { type: "string", description: "The post's key, as given." },
-            text: {
-              type: "string",
-              description: `The post: one or two sentences, at most ${REWRITE_MAX} characters (${REWRITE_GROUP_MAX} for a post that tells several moments).`,
-            },
-          },
-          required: ["key", "text"],
-        },
-      },
-    },
-    required: ["posts"],
-  },
-};
-
-const REWRITE_SYSTEM = [
-  "You write the posts a Clash Royale clan's Discord channel gets when something happens in the clan: a member joins, earns a badge, has a great session, the clan finishes its war week. Each post tells one moment from the clan's record, in the clan's own voice. Nobody reads your posts before they are sent.",
-  "After these instructions comes THE CLAN, then each POST: Elixir's plain line, the facts behind it and, for a member, what the record knows about them. All of it is verified. Use it: pick the one or two details that make the moment a story (the deciding battle and who it beat, the best it set, who carried the war week, a returning member's earlier time here) and leave the rest. Never list statistics.",
-  "Rules:",
-  "- Every name, number and event comes from that POST's facts or THE CLAN. Never invent a result, an opponent, a reason, a feeling or a plan. When the facts say little, write little.",
-  "- Name members and opponents exactly as written; never shorten, translate or correct a name. Keep the name of everyone Elixir's line names.",
-  "- Never judge a member: nobody is slacking, disappointing, lazy or in trouble. Celebrate what went well; state the rest plainly. A member's share of the clan's fame is never told.",
-  '- A departure says exactly what the line says ("departed", "was removed", "left on their own") and never guesses why.',
-  "- No links, @-mentions, hashtags, markdown or code. An emoji is fine when the clan's voice wants one.",
-  `- One or two sentences, at most ${REWRITE_MAX} characters a post; a POST that tells several moments may take up to ${REWRITE_GROUP_MAX} and must name each member it tells.`,
-  "- Write in English unless the clan's voice asks for another language.",
-  "Answer by calling write_posts with one post for every key.",
-].join("\n");
-
-/**
- * The request that rewrites a batch of posts. `context` is the clan
- * (`clanContext`, with the leaders' voice for the channel), the prefix
- * every request of the clan shares; `lines` are `rewriteLine`s.
- */
-export function activityRewriteRequest({ context = "", lines = [] } = {}) {
-  const batch = lines.slice(0, REWRITE_BATCH_MAX);
-  return {
-    purpose: "discord_activity",
-    effort: ACTIVITY_EFFORT,
-    max_tokens: Math.min(4000, 200 + 200 * batch.length),
-    system: REWRITE_SYSTEM,
-    context: String(context ?? ""),
-    prompt: batch.map((l) => l.packet).join("\n\n"),
-    tool: strictTool(REWRITE_TOOL),
-  };
-}
-
 /** A model's post, tidied: no mass mention, no angle brackets, one line.
  *  A link is refused before this, never stripped. Its markdown characters
  *  stay (a member's name may hold `_` or `*`); the sender escapes the
@@ -308,49 +170,3 @@ export const rewriteText = (v) =>
     .replace(/[<>]+/g, "")
     .replace(/\s+/g, " ")
     .trim();
-
-/**
- * Why a rewritten post is refused, or null when it may be posted: no
- * link or mention, every name its line says kept exactly, no number and
- * no proper name that neither the post's packet nor the clan holds,
- * within its limit. `context` is the request's clan block.
- */
-export function rewriteProblem(line, raw, context = "") {
-  const text = rewriteText(raw);
-  if (!text) return "empty";
-  if (
-    /https?:\/\/|www\.|\]\(|\b[a-z0-9-]+\.(?:com|gg|net|org|io|xyz)\b/i.test(
-      String(raw),
-    )
-  )
-    return "link";
-  if (/@(everyone|here)\b|<[@#]/i.test(String(raw))) return "mention";
-  if (text.length > (line.max ?? REWRITE_MAX)) return "too_long";
-  for (const name of line.names ?? [])
-    if (!text.includes(rewriteText(name))) return "name_changed";
-  const told = `${context}\n${line.packet ?? line.sentence ?? ""}`;
-  if (inventedNumbers(text, told).length) return "number_invented";
-  if (unknownNames(text, told).length) return "name_invented";
-  return null;
-}
-
-/**
- * The model's answer as the posts that passed, by key. A post missing
- * from the answer, or one that fails `rewriteProblem`, is left out: it
- * keeps Elixir's own sentence. `refused` counts the reasons.
- */
-export function activityRewritesFromDraft(input, lines, context = "") {
-  const byKey = new Map(lines.map((l) => [l.key, l]));
-  const posts = Array.isArray(input?.posts) ? input.posts : [];
-  const out = new Map();
-  const refused = {};
-  for (const p of posts) {
-    const line = byKey.get(p?.key);
-    if (!line || out.has(line.key)) continue;
-    // Never clipped: a post cut short is refused, never sent.
-    const problem = rewriteProblem(line, p.text, context);
-    if (problem) refused[problem] = (refused[problem] ?? 0) + 1;
-    else out.set(line.key, rewriteText(p.text));
-  }
-  return { rewrites: out, refused };
-}

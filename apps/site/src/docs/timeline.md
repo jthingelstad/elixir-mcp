@@ -462,7 +462,7 @@ set in the console only, never through MCP or the JSON API.
   posts with the next thing the record learns about that subject. Nothing from before it was turned on is posted. The
   cross-post's place never moves your read pointer, a reader's, or
   `meta.timeline_pending`.
-- **One line per story:** the item's sentence with names made literal,
+- **One line per item:** the item's sentence with names made literal,
   then links back to Elixir (the battle, the race week, the member, the
   subject) in the form Discord never previews. Discord's post time says
   when; only an item over three hours old (a late proof, a quiet rung)

@@ -14,10 +14,12 @@ import {
   EDITOR_STORIES_MAX,
   editorAnswer,
   editorNext,
+  editorPreviewRequest,
   editorProblem,
   editorRequest,
   editorStory,
 } from "../src/editor.mjs";
+import { PURPOSES } from "../src/words.mjs";
 
 const item = (id, kind, facts) => ({
   id,
@@ -93,12 +95,25 @@ test("a story's packet: its key and kind, Elixir's version, the facts, the membe
   assert.equal(JOIN.alone, false);
   // A departure says what the record says, and stands alone.
   assert.equal(LEFT.departure, "departed");
-  assert.match(LEFT.packet, /^A departure: say "departed"/m);
+  assert.match(
+    LEFT.packet,
+    /^A departure: keep this sentence word for word, and give no reason: Cy departed the clan after 40 days\.$/m,
+  );
+  assert.equal(LEFT.must, "Cy departed the clan after 40 days.");
+  const lateLeft = editorStory(
+    post(
+      "tl_6",
+      [item("tl_6", "member_left", { name: "Cy" })],
+      "Earlier today: Cy departed the clan.",
+    ),
+  );
+  assert.equal(lateLeft.must, "Cy departed the clan.", "the when is apart");
+  assert.equal(lateLeft.late, "Earlier today");
   assert.equal(LEFT.alone, true);
   // A leader's word edits the post already in the channel.
   assert.equal(KICK.departure, "kick");
   assert.match(KICK.packet, /^EDIT: this post is already in the channel/m);
-  assert.match(KICK.packet, /^A departure: say "was removed"/m);
+  assert.match(KICK.packet, /give no reason: Di was removed from the clan\.$/m);
 });
 
 test("the request: the stories and the round, the lookups and the answer as strict tools; each round adds the turn and the lookups' answers", () => {
@@ -156,6 +171,30 @@ test("the request: the stories and the round, the lookups and the answer as stri
   assert.equal(result.content.length, 1500, "an answer is clipped");
   assert.match(note.text, /^Round 3 of 3: no more lookups\. Answer now/);
   assert.equal(req.messages.length, 1, "the request is not changed");
+  assert.match(req.system, /member_record/);
+});
+
+test("a leader's preview: the same stories and rules in one request, the answer as its one strict tool, no lookups", () => {
+  const req = editorPreviewRequest({
+    context:
+      "THE CLAN\nName: The Clan\nHow its leaders want it to sound: Pirate talk",
+    stories: [JOIN, WINS],
+  });
+  assert.equal(req.purpose, "discord_activity");
+  assert.ok(PURPOSES[req.purpose], "a purpose the key may be used for");
+  assert.equal(req.effort, "low");
+  assert.equal(req.messages, undefined, "a draft's prompt, not a turn");
+  assert.equal(req.tools, undefined);
+  assert.equal(req.tool.name, EDITOR_ANSWER);
+  assert.equal(req.tool.strict, true);
+  assert.equal(req.tool.input_schema.additionalProperties, false);
+  assert.match(req.context, /Pirate talk/);
+  assert.match(req.prompt, /^STORY tl_1 /);
+  assert.match(req.prompt, /^STORY tl_2 /m);
+  assert.match(req.prompt, /no lookups\. Answer now by calling write_posts\.$/);
+  assert.doesNotMatch(req.system, /member_record|lookup/);
+  assert.match(req.system, /never a reason or a guess at why/);
+  assert.match(req.system, /share of the clan's fame is never told/);
 });
 
 test("the checks: a post is refused for a link, a mention, a clock time, a lost name, an invented number or name, or a departure's words", () => {
@@ -171,6 +210,32 @@ test("the checks: a post is refused for a link, a mention, a clock time, a lost 
   assert.ok(EDITOR_POST_MAX === 600);
   assert.equal(ok([JOIN], "Ada joined at 6:05 pm."), "clock_time");
   assert.equal(ok([JOIN], "Ada joined at 6pm."), "clock_time");
+  assert.equal(ok([JOIN], "Ada joined at 18:05."), "clock_time");
+  assert.equal(ok([JOIN], "Ada joined at 6.05 pm."), "clock_time");
+  // A late story says when, in words.
+  const LATE_WINS = editorStory(
+    post(
+      "tl_5",
+      [
+        item("tl_5", "career_wins_step", {
+          name: "Bo",
+          wins: 5000,
+          step: 5000,
+        }),
+      ],
+      "Yesterday: Bo passed 5,000 career wins.",
+    ),
+  );
+  assert.equal(LATE_WINS.late, "Yesterday");
+  assert.match(
+    LATE_WINS.packet,
+    /^LATE: this happened yesterday; the post must say "yesterday", never a time of day\.$/m,
+  );
+  assert.equal(
+    ok([LATE_WINS], "Bo passed 5,000 career wins! 🎉"),
+    "when_dropped",
+  );
+  assert.equal(ok([LATE_WINS], "Yesterday Bo passed 5,000 career wins!"), null);
   assert.equal(ok([JOIN], "A new member joined!"), "name_changed");
   assert.equal(
     ok([JOIN], "Ada joined with 12,000 trophies."),
@@ -191,12 +256,32 @@ test("the checks: a post is refused for a link, a mention, a clock time, a lost 
     ),
     null,
   );
-  assert.equal(ok([LEFT], "Cy departed the clan. Thanks, Cy!"), null);
+  assert.equal(
+    ok(
+      [LEFT],
+      "Cy departed the clan after 40 days. Thanks for everything, Cy!",
+    ),
+    null,
+  );
+  // Elixir's sentence word for word: shortened is refused.
+  assert.equal(
+    ok([LEFT], "Cy departed the clan. Thanks, Cy!"),
+    "departure_words",
+  );
   assert.equal(
     ok([LEFT], "Cy left the clan after 40 days."),
     "departure_words",
   );
   assert.equal(ok([KICK], "Di was removed from the clan."), null);
+  // No reason the record never gave, in the sentence or beside it.
+  assert.equal(
+    ok([KICK], "Di was removed from the clan for inactivity."),
+    "departure_words",
+  );
+  assert.equal(
+    ok([KICK], "Di was removed from the clan. Rules are rules."),
+    "departure_words",
+  );
   assert.equal(ok([KICK], "Di left; Di was removed."), "departure_words");
   assert.equal(ok([KICK], "Di is gone from the clan."), "departure_words");
 });
@@ -213,6 +298,11 @@ test("the answer: stories told together under the first one's key, skips with a 
         },
         // A departure told with another is refused, and posted as Elixir's.
         { keys: ["tl_3", "tl_4"], text: "Cy departed; Di was removed." },
+        // A story already told is never told again, nor trimmed away.
+        {
+          keys: ["tl_1", "tl_2"],
+          text: "Ada joined and Bo passed 5,000 career wins!",
+        },
         { keys: ["tl_4"], text: "Di was removed from the clan." },
       ],
       skips: [
@@ -237,7 +327,20 @@ test("the answer: stories told together under the first one's key, skips with a 
     [],
     "a departure is told; a told story is not skipped",
   );
-  assert.deepEqual(out.refused, { merge_refused: 1, skip_refused: 1 });
+  assert.deepEqual(out.refused, {
+    merge_refused: 1,
+    key_reused: 1,
+    skip_refused: 1,
+  });
+  assert.deepEqual(
+    out.rejected,
+    [
+      { keys: ["tl_3", "tl_4"], why: "merge_refused" },
+      { keys: ["tl_1", "tl_2"], why: "key_reused" },
+      { keys: ["tl_3"], why: "skip_refused" },
+    ],
+    "each refusal with the stories it was for, for the preview",
+  );
 
   const skipped = editorAnswer(
     {
@@ -261,5 +364,6 @@ test("the answer: stories told together under the first one's key, skips with a 
     posts: [],
     skips: [],
     refused: {},
+    rejected: [],
   });
 });

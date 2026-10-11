@@ -77,9 +77,7 @@ export function DiscordDeliveries({
             ) : null}
             <Fresh ts={r.at} />
             {r.rewritten ? (
-              <span className="hint">
-                {r.outcome === "skipped" ? "by the clan's model" : "rewritten"}
-              </span>
+              <span className="hint">by the clan&rsquo;s model</span>
             ) : null}
             {r.excerpt ? (
               <span

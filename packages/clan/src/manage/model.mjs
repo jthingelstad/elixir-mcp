@@ -85,8 +85,8 @@ export const ACTIVITY_USES_PER_DAY = 50;
 export const PENDING_MS = 110_000;
 const ACTIVITY = "discord_activity";
 /** A leader's own use, against the leaders' day: every draft, and a
- *  preview of the Discord rewrite (`preview`), which a leader asks for
- *  and reads. The unattended rewrites have their own day. */
+ *  preview of the Discord editor (`preview`), which a leader asks for
+ *  and reads. The editor's unattended runs have their own day. */
 const leaderUse = (c) => c.purpose !== ACTIVITY || c.preview === true;
 const unattendedUse = (c) => c.purpose === ACTIVITY && c.preview !== true;
 /** The editor runs among some uses: a run's rounds are one (`run`); a
@@ -446,7 +446,7 @@ export function createModelService({
         activity_per_day: ACTIVITY_USES_PER_DAY,
         uses: {
           // The leaders' drafts against their daily limit; the activity
-          // channel's rewrites have their own.
+          // channel's editor runs have their own.
           today: calls.filter((c) => c.at.startsWith(today) && leaderUse(c))
             .length,
           // The editor's runs today (a run's rounds are one).
@@ -691,8 +691,8 @@ export function createModelService({
       const model = modelFor(request.purpose, listed(stored));
       if (!model) throw unreachable(request.purpose);
       const today = iso().slice(0, 10);
-      // The Discord activity rewrites have a cap of their own; a
-      // leader's preview of them is a leader's use.
+      // The Discord activity editor has a cap of its own; a leader's
+      // preview of it is a leader's use.
       const drafts = (await ledger.modelCalls(clanTag, today)).filter(
         leaderUse,
       );
@@ -846,7 +846,7 @@ export function createModelService({
         runsOf(await ledger.modelCalls(clanTag, today)) >= ACTIVITY_USES_PER_DAY
       )
         return { ok: false, code: "model_daily_limit" };
-      // The leaders' monthly cap stops the rewrites too: every use counts.
+      // The leaders' monthly cap stops the editor too: every round counts.
       if (!(await spendNow(clanTag, stored)).allowed)
         return { ok: false, code: "model_spend_cap" };
       const call = await ledger.addModelCall(clanTag, {
