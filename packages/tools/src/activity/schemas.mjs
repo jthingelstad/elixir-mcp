@@ -40,9 +40,12 @@ export const TIMELINE_KIND_SCHEMAS = {
     facts: SITTING,
   },
   session_standout: {
-    version: 2,
+    // 3 (2026-10-11): crossings[] name their battle_id; teammate and
+    // best_win say how the sitting went.
+    version: 3,
     at: "the battle that crossed the newest rung this window learned (every rung's is crossings[].at); sort_at is the sitting's last battle",
     facts: [...SITTING, "crossed", "newly", "crossings"],
+    optional: ["teammate", "best_win"],
   },
   badge_earned: {
     version: 2,

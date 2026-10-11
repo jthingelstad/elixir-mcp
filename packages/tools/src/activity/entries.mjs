@@ -242,8 +242,20 @@ async function firstEventIds(db, ledger, rows) {
   ]);
   return new Map(found.map((r) => [r.event_id, r.first_id ?? r.event_id]));
 }
-const ledgerStory = (ledger, firstIds, row) =>
-  moment(ledger, firstIds.get(String(row.event_id)) ?? String(row.event_id));
+/**
+ * A crossing moment grows once: when its proof arrives late (the battle
+ * log catching up with a roster-written move, pinArenaMoment), the record
+ * learns it again and a poller is served it again, with the battle. Its
+ * revision is the proof's attachment revision, so the second serving is
+ * the same story grown and never a second story told (2026-10-09: one
+ * arena move served twice at revision 1 was posted twice).
+ */
+const ledgerStory = (ledger, firstIds, row) => ({
+  ...moment(ledger, firstIds.get(String(row.event_id)) ?? String(row.event_id)),
+  ...(ledger === "player_event" && CROSSINGS.has(row.event_type)
+    ? { revision: Math.max(1, Number(row.evidence_version) || 1) }
+    : {}),
+});
 
 /**
  * A sitting's story (battle_session and session_standout are one story):
@@ -310,6 +322,127 @@ async function sittingAnchors(db, sittings) {
       fingerprint: r.fingerprint,
       observed_at: iso(r.observed_at),
     };
+  return out;
+}
+/**
+ * How a standout sitting went (2026-10-11, "moments carry the story"):
+ * `teammate`, the partner in most of the sitting's 2v2 battles, so two
+ * clanmates' sittings of the same games say so and a narrator can tell
+ * them as one (feedback #370: two identical 8W-1L lines); and
+ * `best_win`, the win over the opponent who started it with the most
+ * trophies, as a crossing battle is said. Each from the sitting's own
+ * battles (never a boat defense or a late capture); absent when the
+ * record holds no partner, or no win over an opponent with recorded
+ * trophies: absence over a guess.
+ */
+async function sittingDetails(db, sittings) {
+  const out = sittings.map(() => ({}));
+  if (sittings.length === 0) return out;
+  const { rows } = await db.query(
+    `select t.i, bp.battle_id, bp.battle_time, b.type, b.event_tag, bp.side,
+            bp.outcome, bp.crowns, bp.trophy_change, bp.starting_trophies,
+            o.player_tag as other_tag, p.name as other_name, o.side as other_side,
+            o.crowns as other_crowns, o.starting_trophies as other_trophies
+       from unnest($1::int[], $2::text[], $3::float8[], $4::float8[]) as t(i, p, st, en)
+       join battle_participant bp on bp.player_tag = t.p
+        and bp.battle_time >= to_timestamp(t.st / 1000.0)
+        and bp.battle_time <= to_timestamp(t.en / 1000.0)
+       join battle b on b.battle_id = bp.battle_id
+       join battle_participant o on o.battle_id = bp.battle_id and o.player_tag <> bp.player_tag
+       left join player p on p.player_tag = o.player_tag
+      where ${OWN_BATTLE_SQL}
+      order by t.i, bp.battle_time, bp.battle_id, o.side, o.player_tag`,
+    [
+      sittings.map((_, i) => i),
+      sittings.map((x) => x.player_tag),
+      sittings.map((x) => x.startMs),
+      sittings.map((x) => x.endMs),
+    ],
+  );
+  const battles = sittings.map(() => new Map());
+  for (const r of rows) {
+    const byId = battles[r.i];
+    if (!byId.has(r.battle_id)) byId.set(r.battle_id, { ...r, others: [] });
+    byId.get(r.battle_id).others.push({
+      player_tag: r.other_tag,
+      name: r.other_name ?? null,
+      side: r.other_side,
+      crowns: r.other_crowns,
+      starting_trophies: r.other_trophies ?? null,
+    });
+  }
+  for (const [i, byId] of battles.entries()) {
+    const partners = new Map();
+    let best = null;
+    let bestRating = null;
+    for (const b of byId.values()) {
+      for (const o of b.others.filter((x) => x.side === b.side)) {
+        const had = partners.get(o.player_tag);
+        partners.set(o.player_tag, {
+          player_tag: o.player_tag,
+          name: o.name,
+          battles: (had?.battles ?? 0) + 1,
+        });
+      }
+      if (b.outcome !== "win") continue;
+      const opponents = b.others.filter((x) => x.side !== b.side);
+      const ratings = opponents
+        .map((o) => o.starting_trophies)
+        .filter((v) => typeof v === "number");
+      if (!opponents.length || !ratings.length) continue;
+      const rating = Math.max(...ratings);
+      // Highest-rated opponent first; then more crowns; then the earlier
+      // win (the rows come in battle order, so a tie keeps the first).
+      if (
+        best === null ||
+        rating > bestRating ||
+        (rating === bestRating && (b.crowns ?? 0) > (best.crowns ?? 0))
+      ) {
+        best = { ...b, opponents };
+        bestRating = rating;
+      }
+    }
+    if (partners.size) {
+      const [teammate] = [...partners.values()].sort(
+        (a, z) =>
+          z.battles - a.battles ||
+          String(a.name ?? "").localeCompare(String(z.name ?? "")) ||
+          a.player_tag.localeCompare(z.player_tag),
+      );
+      out[i].teammate = teammate;
+    }
+    if (best) {
+      const one = best.opponents.length === 1 ? best.opponents[0] : null;
+      out[i].best_win = {
+        battle_id: best.battle_id,
+        battle_time: iso(best.battle_time),
+        type: best.type,
+        mode: modeGroupOf(best.type, best.event_tag),
+        ...(one
+          ? {
+              opponent: {
+                player_tag: one.player_tag,
+                name: one.name,
+                starting_trophies: one.starting_trophies,
+              },
+            }
+          : {
+              opponents: best.opponents.map((o) => ({
+                player_tag: o.player_tag,
+                name: o.name,
+                starting_trophies: o.starting_trophies,
+              })),
+            }),
+        crowns: best.crowns,
+        crowns_against: best.opponents[0]?.crowns ?? null,
+        trophy_change: best.trophy_change,
+        ...(typeof best.starting_trophies === "number" &&
+        typeof best.trophy_change === "number"
+          ? { trophies_after: best.starting_trophies + best.trophy_change }
+          : {}),
+      };
+    }
+  }
   return out;
 }
 /** The story of one sitting: its id from the anchor, its revision. */
@@ -646,6 +779,8 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
             threshold: rung,
             value,
             at: iso(t),
+            // The battle that crossed it (2026-10-11): the how, by id.
+            battle_id: b.battle_id ?? null,
           };
           cur.crossings.push(crossing);
           if (learned(b))
@@ -2315,6 +2450,16 @@ export async function buildClanEntry(
   );
   const memberAnchored = anchored.slice(0, memberSessions.length);
   const standoutAnchored = anchored.slice(memberSessions.length);
+  const standoutDetails = await timed(perf, "clan.sitting_details", () =>
+    sittingDetails(
+      db,
+      standoutSessions.map((s) => ({
+        player_tag: s.player_tag,
+        startMs: Date.parse(s.started_at),
+        endMs: Date.parse(s.ended_at),
+      })),
+    ),
+  );
   for (const e of clanLedgerRows) {
     const warKind =
       e.event_type === "race_finished" ||
@@ -2401,8 +2546,10 @@ export async function buildClanEntry(
         ...sessionFacts(sess),
         crossed: sess.crossed,
         newly: sess.newly.map((n) => n.label),
-        // Each rung with the value that crossed it and when (#373).
+        // Each rung with the value that crossed it, when and by which
+        // battle (#373).
         crossings: sess.crossings,
+        ...standoutDetails[i],
       },
       [STORY]: sittingStory(
         sess.player_tag,

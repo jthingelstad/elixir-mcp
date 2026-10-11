@@ -198,6 +198,8 @@ test("a rung names the value that crossed it; the net and the peak are both told
   const [sitting] = sittings((await saturday("occurred")).timeline);
   // Both rungs fell on the fifth win; each names its own value there.
   const fifth = iso(SATURDAY_PLAY + 4 * 3 * 60_000);
+  // Three Friday games, then Saturday's fifth: the eighth battle seeded.
+  const FIFTH_ID = (8).toString(16).padStart(64, "0");
   assert.deepEqual(sitting.facts.newly, ["won_in_a_row>=5", "trophy_net>=150"]);
   assert.deepEqual(sitting.facts.crossings, [
     {
@@ -206,6 +208,7 @@ test("a rung names the value that crossed it; the net and the peak are both told
       threshold: 5,
       value: 5,
       at: fifth,
+      battle_id: FIFTH_ID,
     },
     {
       rung: "trophy_net>=150",
@@ -213,8 +216,13 @@ test("a rung names the value that crossed it; the net and the peak are both told
       threshold: 150,
       value: 150,
       at: fifth,
+      battle_id: FIFTH_ID,
     },
   ]);
+  // No opponent is recorded and no partner: absence over a guess.
+  assert.equal("best_win" in sitting.facts, false);
+  assert.equal("teammate" in sitting.facts, false);
+  assert.doesNotMatch(sitting.text, /best win|2v2/);
   assert.equal(sitting.facts.trophy_net, 120);
   assert.equal(sitting.facts.trophy_net_peak, 180);
   assert.match(sitting.text, /\+120 trophies, peak \+180/);

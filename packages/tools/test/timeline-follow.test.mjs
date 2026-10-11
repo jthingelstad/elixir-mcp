@@ -39,6 +39,11 @@ const VALUES = {
     battle_id: "example-battle",
     battle_time: "2026-10-10T14:21:00.000Z",
   },
+  best_win: {
+    battle_id: "example-battle",
+    battle_time: "2026-10-10T14:21:00.000Z",
+  },
+  teammate: { player_tag: "#2PYLQ8", name: "Example Mate", battles: 3 },
   card_id: 26000011,
   clan_tag: CLAN,
   season_id: 136,
@@ -99,12 +104,16 @@ test("every game story leads somewhere; the account's administration leads nowhe
   }
 });
 
-test("a sitting leads to its own evidence, from the window that served it, and to its span", () => {
+test("a sitting leads to its own evidence, from the window that served it, to its span and to its best win", () => {
   const item = itemOf(
     "session_standout",
     TIMELINE_KIND_SCHEMAS.session_standout,
   );
-  const [evidence, span] = followFor(item, WINDOW);
+  const [evidence, span, best] = followFor(item, WINDOW);
+  assert.deepEqual(best, {
+    tool: "battles_query",
+    args: { player_tag: PLAYER, battle_id: "example-battle" },
+  });
   assert.deepEqual(evidence, {
     tool: "elixir_timeline",
     args: { evidence_item_id: item.id, ...WINDOW },

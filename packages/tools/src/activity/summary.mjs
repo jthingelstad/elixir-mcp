@@ -307,13 +307,18 @@ export function clanSummaryParts(e, timeZone = "UTC") {
 /** ", on a 3-0 win over Jotaro (5,976), +30 to 6,000" - the battle a
  *  moment names (promoted_by / crossed_by), or nothing when the record did
  *  not hold the crossing. A 2v2 names the pair. */
+const rated = (o) =>
+  `${o.name ?? o.player_tag}${typeof o.starting_trophies === "number" ? ` (${num(o.starting_trophies)})` : ""}`;
+/** Who a battle was against: one opponent with their trophies, or a pair. */
+const against = (b) =>
+  b.opponent
+    ? rated(b.opponent)
+    : b.opponents?.length
+      ? b.opponents.map(rated).join(" and ")
+      : "an opponent";
 function onBattle(b) {
   if (!b) return "";
-  const who = b.opponent
-    ? `${b.opponent.name ?? b.opponent.player_tag}${typeof b.opponent.starting_trophies === "number" ? ` (${num(b.opponent.starting_trophies)})` : ""}`
-    : b.opponents?.length
-      ? b.opponents.map((o) => o.name ?? o.player_tag).join(" and ")
-      : "an opponent";
+  const who = against(b);
   const score = `${b.crowns ?? "?"}-${b.crowns_against ?? "?"}`;
   const change =
     typeof b.trophy_change === "number"
@@ -349,6 +354,27 @@ function played(f) {
   return `${decks.length ? `, with ${decks.join(", ")}` : ""}${events.length ? `, in ${events.join(", ")}` : ""}`;
 }
 
+/** Who carried a war week (2026-10-11, Jamie): the three members with the
+ *  most points, each with their points and decks used, as `members`
+ *  orders them. Points, never a member's share of fame; the week as a
+ *  whole, never a day. */
+const WEEK_LEADERS = 3;
+function carried(members) {
+  const top = (members ?? [])
+    .filter((m) => typeof m.points === "number" && m.points > 0)
+    .slice(0, WEEK_LEADERS)
+    .map(
+      (m) =>
+        `${m.name ?? m.player_tag} (${num(m.points)} points${typeof m.decks_used === "number" ? `, ${plural(m.decks_used, "deck")}` : ""})`,
+    );
+  if (!top.length) return "";
+  const list =
+    top.length === 1
+      ? top[0]
+      : `${top.slice(0, -1).join(", ")} and ${top[top.length - 1]}`;
+  return `, led by ${list}`;
+}
+
 /** Who attested a fact, and through which app. */
 const attester = (f) =>
   f.attested_by?.name ?? f.attested_by?.player_tag ?? f.attested_by?.app;
@@ -377,7 +403,15 @@ export function itemText(it, timeZone = "UTC") {
     case "session_standout": {
       const run =
         f.won_in_a_row >= 5 ? `, ${f.won_in_a_row} wins in a row` : "";
-      return `${member || subj} played ${plural(f.battles, "battle")} in one sitting (${sitting(f)}${run})${played(f)}${f.open ? ", still going" : ""}.`;
+      // A 2v2 pair's sittings are the same games: each says who with, so
+      // a narrator can tell them as one (feedback #370).
+      const mate = f.teammate
+        ? ` with ${f.teammate.name ?? f.teammate.player_tag} in 2v2`
+        : "";
+      const best = f.best_win
+        ? `; best win ${f.best_win.crowns ?? "?"}-${f.best_win.crowns_against ?? "?"} over ${against(f.best_win)}`
+        : "";
+      return `${member || subj} played ${plural(f.battles, "battle")} in one sitting${mate} (${sitting(f)}${run})${played(f)}${best}${f.open ? ", still going" : ""}.`;
     }
     // The badge as a player says it: a level above 1 is a level taken,
     // the first level (or a one-off) is a badge earned.
@@ -424,7 +458,7 @@ export function itemText(it, timeZone = "UTC") {
     case "race_finished":
       return `${subj} crossed the finish line${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}.`;
     case "week_resolved":
-      return `${subj} finished week ${(f.section_index ?? 0) + 1}${f.rank ? ` in place ${f.rank}` : ""}${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}${typeof f.trophy_change === "number" ? ` (${f.trophy_change > 0 ? "+" : ""}${f.trophy_change} war trophies)` : ""}.`;
+      return `${subj} finished week ${(f.section_index ?? 0) + 1}${f.rank ? ` in place ${f.rank}` : ""}${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}${typeof f.trophy_change === "number" ? ` (${f.trophy_change > 0 ? "+" : ""}${f.trophy_change} war trophies)` : ""}${carried(f.members)}.`;
     case "clan_joined":
       return `${subj} joined ${f.clan_name ?? f.clan_tag}.`;
     case "clan_left":
