@@ -1,0 +1,3 @@
+# Elixir Clan chooses the model for each use
+
+The clan's Anthropic key and its monthly cap are the leaders' to set; which model does each job is now Elixir Clan's choice, shown read-only in Manage ▸ Settings. Claude Opus 5.5 drafts the recruiting pitch and the messages on Actions, and Claude Sonnet 5.5 rewrites the activity channel's posts. When the key cannot reach that model, the job takes the other of the two, then Claude Haiku 5.5; it never falls back to an older model, and a key that reaches none of the three is not accepted. Each use in Settings still names the model it ran on. MCP 11.10.1 and JSON API 3.2.0 unchanged.

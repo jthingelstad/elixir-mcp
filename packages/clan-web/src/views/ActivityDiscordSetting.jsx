@@ -316,6 +316,9 @@ export function ActivityDiscordSetting({ clan, navigate }) {
                   <span>Rewrite each post with the clan&rsquo;s model</span>
                 </label>
                 <p className="page-head__note m-0">
+                  {d.model.name
+                    ? `Written by ${d.model.name}, the model Elixir Clan uses for these posts. `
+                    : ""}
                   Posted without anyone reading them first. The model sees only
                   what the line already says; a line that drops a member&rsquo;s
                   name, adds a number or carries a link keeps Elixir&rsquo;s own

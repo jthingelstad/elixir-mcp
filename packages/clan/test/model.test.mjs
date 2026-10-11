@@ -30,6 +30,16 @@ import {
   seedVersion,
 } from "./fakes.mjs";
 
+const HAIKU_45 = "claude-haiku-4-5-20251001";
+const HAIKU_55 = "claude-haiku-5-5";
+const OPUS_55 = "claude-opus-5-5";
+const SONNET_55 = "claude-sonnet-5-5";
+const SONNET = { id: "claude-sonnet-5", name: "Claude Sonnet 5" };
+const H45 = { id: HAIKU_45, name: "Claude Haiku 4.5" };
+const H55 = { id: HAIKU_55, name: "Claude Haiku 5.5" };
+const O55 = { id: OPUS_55, name: "Claude Opus 5.5" };
+const S55 = { id: SONNET_55, name: "Claude Sonnet 5.5" };
+
 const GOOD = `sk-ant-api03-${"a".repeat(40)}WXYZ`;
 const OTHER = `sk-ant-api03-${"b".repeat(40)}QRST`;
 const ADA = "#20QQL8CCRU";
@@ -71,10 +81,7 @@ function fakeAnthropic() {
       if (key !== GOOD && key !== OTHER) return { ok: false, status: 401 };
       return {
         ok: true,
-        models: state.models ?? [
-          { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5" },
-          { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
-        ],
+        models: state.models ?? [H45, SONNET, O55, S55, H55],
       };
     },
     async write(key, request) {
@@ -171,14 +178,21 @@ test("model: a leader adds the clan's key; it is checked, sealed, kept out of th
   assert.equal(before.body.set, false);
   const put = await api(h, c, "PUT", MODEL, { key: GOOD });
   assert.equal(put.status, 200, JSON.stringify(put.body));
-  assert.equal(put.body.model, "claude-sonnet-5", "the preferred model");
+  // Elixir Clan's model for each use, never one the leader picked.
+  assert.equal(put.body.model_for.recruit_pitch.id, OPUS_55);
+  assert.equal(put.body.model_for.discord_activity.id, SONNET_55);
   const s = await api(h, c, "GET", MODEL);
   assert.equal(s.body.set, true);
   assert.equal(s.body.hint, "sk-ant-…WXYZ");
   assert.equal(s.body.set_by, ADA);
   assert.equal(s.body.usable, true);
   assert.equal(s.body.owner_leads, true);
-  assert.equal(s.body.models.length, 2);
+  assert.deepEqual(s.body.model_for.leader_message, {
+    id: OPUS_55,
+    name: "Claude Opus 5.5",
+  });
+  for (const gone of ["model", "models", "model_listed"])
+    assert.equal(gone in s.body, false, gone);
   // Nothing the app answers or logs carries the key.
   assert.ok(!JSON.stringify(s.body).includes(GOOD));
   assert.ok(!JSON.stringify(put.body).includes(GOOD));
@@ -233,11 +247,9 @@ test("model: a leader drafts the pitch from clan facts only; the draft is tidied
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
   const view = await api(h, c, "GET", "/api/clans/2PQRJ8LV/recruit");
-  assert.deepEqual(view.body.model, {
-    set: true,
-    refused: false,
-    model: "claude-sonnet-5",
-  });
+  assert.equal(view.body.model.set, true);
+  assert.equal(view.body.model.refused, false);
+  assert.equal(view.body.model.model_for.recruit_pitch.id, OPUS_55);
   const r = await api(h, c, "POST", DRAFT, { note: "stress war days" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.draft.tagline, "War first, friends always");
@@ -257,7 +269,7 @@ test("model: a leader drafts the pitch from clan facts only; the draft is tidied
   // What was sent: clan facts, its words and the note; never a member.
   const [, key, sent] = h.anthropic.state.calls.at(-1);
   assert.equal(key, GOOD);
-  assert.equal(sent.model, "claude-sonnet-5");
+  assert.equal(sent.model, OPUS_55, "the leaders' drafts run on Opus 5.5");
   assert.match(sent.prompt, /Required trophies to join: 5,000/);
   assert.match(sent.prompt, /Steady wars, friendly chat/);
   assert.match(sent.prompt, /stress war days/);
@@ -803,42 +815,87 @@ test("model: an uncertain dispatch is counted and tells a leader to check uses b
   assert.equal(status.body.uses.recent[0].code, "outcome_unknown");
 });
 
-const HAIKU_45 = "claude-haiku-4-5-20251001";
-const HAIKU_55 = "claude-haiku-5-5";
-
-test("model: a key that reaches neither Sonnet 5 nor Opus 5.5 gets Haiku 5.5 by default", async () => {
+test("model: each use runs on the first of its 5.5 models the key reaches", async () => {
   const h = harness();
-  h.anthropic.state.models = [
-    { id: HAIKU_45, name: "Claude Haiku 4.5" },
-    { id: HAIKU_55, name: "Claude Haiku 5.5" },
-  ];
+  // Opus 5.5 out of this key's reach: the drafts take Sonnet 5.5.
+  h.anthropic.state.models = [H45, SONNET, S55, H55];
   const c = await signedIn(h);
   const put = await api(h, c, "PUT", MODEL, { key: GOOD });
   assert.equal(put.status, 200, JSON.stringify(put.body));
-  assert.equal(put.body.model, HAIKU_55);
+  assert.equal(put.body.model_for.recruit_pitch.id, SONNET_55);
   const r = await api(h, c, "POST", DRAFT, {});
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.equal(h.anthropic.state.calls.at(-1)[2].model, HAIKU_55);
+  assert.equal(r.body.model, SONNET_55);
+  assert.equal(h.anthropic.state.calls.at(-1)[2].model, SONNET_55);
+  const s = await api(h, c, "GET", MODEL);
+  assert.equal(s.body.uses.recent[0].model, SONNET_55, "the use names it");
+  // Only Haiku 5.5 in reach: every use runs on it.
+  const only = harness();
+  only.anthropic.state.models = [H45, H55];
+  const o = await signedIn(only);
+  await api(only, o, "PUT", MODEL, { key: GOOD });
+  await api(only, o, "POST", DRAFT, {});
+  assert.equal(only.anthropic.state.calls.at(-1)[2].model, HAIKU_55);
 });
 
-test("model: a clan that saved Haiku 4.5 keeps it: it validates, drafts on it and is never moved", async () => {
+test("model: a key that reaches no 5.5 model is refused when added, and a use none of whose models it reaches refuses before spending", async () => {
+  const h = harness();
+  h.anthropic.state.models = [H45, SONNET];
+  const c = await signedIn(h);
+  const put = await api(h, c, "PUT", MODEL, { key: GOOD });
+  assert.equal(put.status, 400);
+  assert.equal(put.body.error, "no_models");
+  assert.match(put.body.message, /Claude Opus 5\.5/);
+  assert.equal((await api(h, c, "GET", MODEL)).body.set, false);
+  // A key whose list no longer reaches the generation (as a refresh can
+  // find it): nothing older stands in.
+  h.anthropic.state.models = undefined;
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const stored = await h.ledger.modelKey("#2PQRJ8LV");
+  await h.ledger.saveModelKey("#2PQRJ8LV", { ...stored, models: [H45] });
+  const s = await api(h, c, "GET", MODEL);
+  assert.equal(s.body.model_for.recruit_pitch, null);
+  const r = await api(h, c, "POST", DRAFT, {});
+  assert.equal(r.status, 409);
+  assert.equal(r.body.error, "model_unavailable");
+  assert.match(r.body.message, /cannot reach the models Elixir Clan uses/);
+  assert.equal(
+    h.anthropic.state.calls.filter(([t]) => t === "write").length,
+    0,
+    "never sent",
+  );
+  assert.equal((await api(h, c, "GET", MODEL)).body.uses.today, 0);
+});
+
+test("model: the leader's choice of model is retired; a model saved before it is never read", async () => {
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
-  // As saved before Haiku 5.5: the key's list and the choice are the clan's.
+  // As saved before 2026-10-11: the clan had picked Haiku 4.5.
   const stored = await h.ledger.modelKey("#2PQRJ8LV");
   await h.ledger.saveModelKey("#2PQRJ8LV", { ...stored, model: HAIKU_45 });
-  const s = await api(h, c, "GET", MODEL);
-  assert.equal(s.body.model, HAIKU_45);
-  assert.equal(s.body.usable, true);
-  const chosen = await api(h, c, "PUT", MODEL, { model: HAIKU_45 });
-  assert.equal(chosen.status, 200, JSON.stringify(chosen.body));
+  const chosen = await api(h, c, "PUT", MODEL, { model: HAIKU_55 });
+  assert.equal(chosen.status, 410);
+  assert.equal(chosen.body.error, "model_choice_retired");
+  assert.match(chosen.body.message, /Elixir Clan chooses the model/);
+  // A key sent with a model is added; the model is ignored.
+  const withModel = await api(h, c, "PUT", MODEL, {
+    key: OTHER,
+    model: HAIKU_45,
+  });
+  assert.equal(withModel.status, 200, JSON.stringify(withModel.body));
+  await h.ledger.saveModelKey("#2PQRJ8LV", {
+    ...(await h.ledger.modelKey("#2PQRJ8LV")),
+    model: HAIKU_45,
+  });
   const r = await api(h, c, "POST", DRAFT, {});
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.equal(h.anthropic.state.calls.at(-1)[2].model, HAIKU_45);
-  const after = await h.ledger.modelKey("#2PQRJ8LV");
-  assert.equal(after.model, HAIKU_45, "the saved choice is untouched");
-  assert.deepEqual(after.models, stored.models);
+  assert.equal(h.anthropic.state.calls.at(-1)[2].model, OPUS_55);
+  assert.equal(
+    (await h.ledger.modelKey("#2PQRJ8LV")).model,
+    HAIKU_45,
+    "left as it was, harmless",
+  );
 });
 
 test("model: a refusal or a cut-off answer is an error with its own code, never a draft", async () => {
@@ -902,14 +959,13 @@ test("model: a refusal or a cut-off answer is an error with its own code, never 
 // ---------------------------------------------------- the key's model list
 
 const REFRESH = "/api/clans/2PQRJ8LV/model/refresh";
-const SONNET = { id: "claude-sonnet-5", name: "Claude Sonnet 5" };
-const H45 = { id: HAIKU_45, name: "Claude Haiku 4.5" };
-const H55 = { id: HAIKU_55, name: "Claude Haiku 5.5" };
 const modelsCalls = (h) =>
   h.anthropic.state.calls.filter(([type]) => type === "models").length;
+const listedIds = async (h) =>
+  ((await h.ledger.modelKey("#2PQRJ8LV")).models ?? []).map((m) => m.id);
 
-/** A clan whose key was added before Haiku 5.5 and before refreshing. */
-async function oldKey({ model = HAIKU_45 } = {}) {
+/** A clan whose key was read before refreshing existed: `models` as then. */
+async function oldKey({ models = [H45, SONNET] } = {}) {
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
@@ -920,35 +976,36 @@ async function oldKey({ model = HAIKU_45 } = {}) {
   delete before.models_refresh_error;
   await h.ledger.saveModelKey("#2PQRJ8LV", {
     ...before,
-    model,
-    models: [H45, SONNET],
+    model: HAIKU_45,
+    models,
   });
   return { h, c };
 }
 
-test("model list: a key added before Haiku 5.5 is due; one refresh offers Haiku 5.5 and keeps the saved model", async () => {
+test("model list: a key read before the 5.5 models is due; one refresh puts its uses on them", async () => {
   const { h, c } = await oldKey();
   const before = await api(h, c, "GET", MODEL);
   assert.equal(before.body.refresh_due, true);
   assert.equal(before.body.models_refreshed_at, null);
+  assert.equal(before.body.model_for.recruit_pitch, null);
   assert.equal(modelsCalls(h), 1, "reading the status never calls Anthropic");
+  assert.equal(
+    (await api(h, c, "POST", DRAFT, {})).body.error,
+    "model_unavailable",
+  );
   h.anthropic.state.models = [H45, H55, SONNET];
   const r = await api(h, c, "POST", REFRESH);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.refreshed, true);
   const after = await api(h, c, "GET", MODEL);
-  assert.deepEqual(
-    after.body.models.map((m) => m.id),
-    [HAIKU_45, HAIKU_55, "claude-sonnet-5"],
-  );
-  assert.equal(after.body.model, HAIKU_45, "the saved choice is untouched");
-  assert.equal(after.body.model_listed, true);
+  assert.deepEqual(await listedIds(h), [HAIKU_45, HAIKU_55, "claude-sonnet-5"]);
+  assert.equal(after.body.model_for.recruit_pitch.id, HAIKU_55);
+  assert.equal(after.body.model_for.discord_activity.id, HAIKU_55);
   assert.equal(after.body.refresh_due, false);
   assert.equal(after.body.models_refreshed_at, "2026-09-25T12:00:00.000Z");
   assert.equal(after.body.models_refresh_error, null);
-  // Haiku 5.5 can now be chosen without adding the key again.
-  const chosen = await api(h, c, "PUT", MODEL, { model: HAIKU_55 });
-  assert.equal(chosen.status, 200, JSON.stringify(chosen.body));
+  await api(h, c, "POST", DRAFT, {});
+  assert.equal(h.anthropic.state.calls.at(-1)[2].model, HAIKU_55);
   // Bounded: not again within the day, then due again.
   const again = await api(h, c, "POST", REFRESH);
   assert.equal(again.body.refreshed, false);
@@ -956,26 +1013,14 @@ test("model list: a key added before Haiku 5.5 is due; one refresh offers Haiku 
   assert.equal(modelsCalls(h), 2);
   h.clock.t += MODELS_REFRESH_MS;
   assert.equal((await api(h, c, "GET", MODEL)).body.refresh_due, true);
+  h.anthropic.state.models = [H55, O55];
   assert.equal((await api(h, c, "POST", REFRESH)).body.refreshed, true);
   assert.equal(modelsCalls(h), 3);
-  assert.equal((await h.ledger.modelKey("#2PQRJ8LV")).model, HAIKU_55);
-});
-
-test("model list: a saved model the key no longer lists stays chosen and is marked, never switched", async () => {
-  const { h, c } = await oldKey();
-  h.anthropic.state.models = [H55, SONNET];
-  assert.equal((await api(h, c, "POST", REFRESH)).body.refreshed, true);
-  const s = await api(h, c, "GET", MODEL);
-  assert.equal(s.body.model, HAIKU_45);
-  assert.equal(s.body.model_listed, false);
-  assert.deepEqual(
-    s.body.models.map((m) => m.id),
-    [HAIKU_55, "claude-sonnet-5"],
+  assert.equal(
+    (await api(h, c, "GET", MODEL)).body.model_for.clan_chat.id,
+    OPUS_55,
+    "a model the key gains is used as soon as the list shows it",
   );
-  // Drafting still sends the clan's own choice.
-  await api(h, c, "POST", DRAFT, {});
-  assert.equal(h.anthropic.state.calls.at(-1)[2].model, HAIKU_45);
-  assert.equal((await h.ledger.modelKey("#2PQRJ8LV")).model, HAIKU_45);
 });
 
 test("model list: a failed refresh keeps the old list, is recorded, and never blocks drafting", async () => {
@@ -1004,7 +1049,7 @@ test("model list: a failed refresh keeps the old list, is recorded, and never bl
       "no_models",
     ],
   ]) {
-    const { h, c } = await oldKey();
+    const { h, c } = await oldKey({ models: [H45, H55] });
     h.anthropic.state.modelsFn = fn;
     const r = await api(h, c, "POST", REFRESH);
     assert.equal(r.status, 200, `${name} ${JSON.stringify(r.body)}`);
@@ -1012,15 +1057,15 @@ test("model list: a failed refresh keeps the old list, is recorded, and never bl
     assert.equal(r.body.reason, "failed", name);
     const s = await api(h, c, "GET", MODEL);
     assert.deepEqual(
-      s.body.models.map((m) => m.id),
-      [HAIKU_45, "claude-sonnet-5"],
+      await listedIds(h),
+      [HAIKU_45, HAIKU_55],
       `${name}: the old list stays`,
     );
     assert.equal(s.body.models_refresh_error.code, code, name);
     assert.equal(s.body.refused_at, null, name);
     assert.equal(s.body.usable, true, name);
     assert.equal(s.body.refresh_due, false, `${name}: bounded`);
-    assert.equal(s.body.model, HAIKU_45, name);
+    assert.equal(s.body.model_for.recruit_pitch.id, HAIKU_55, name);
     const draft = await api(h, c, "POST", DRAFT, {});
     assert.equal(draft.status, 200, `${name}: drafting goes on`);
     assert.equal(
@@ -1033,7 +1078,7 @@ test("model list: a failed refresh keeps the old list, is recorded, and never bl
 
 test("model list: a 401 or 403 on refresh marks the key refused, as a draft does, and keeps the list", async () => {
   for (const status of [401, 403]) {
-    const { h, c } = await oldKey();
+    const { h, c } = await oldKey({ models: [H45, H55] });
     h.anthropic.state.modelsFn = () => ({
       ok: false,
       status,
@@ -1046,8 +1091,7 @@ test("model list: a 401 or 403 on refresh marks the key refused, as a draft does
     assert.ok(s.body.refused_at, String(status));
     assert.equal(s.body.usable, false);
     assert.equal(s.body.refresh_due, false);
-    assert.equal(s.body.models.length, 2);
-    assert.equal(s.body.model, HAIKU_45);
+    assert.deepEqual(await listedIds(h), [HAIKU_45, HAIKU_55]);
     const draft = await api(h, c, "POST", DRAFT, {});
     assert.equal(draft.body.error, "model_key_refused");
     // A refused key is not read again until a leader adds one.
@@ -1057,43 +1101,47 @@ test("model list: a 401 or 403 on refresh marks the key refused, as a draft does
   }
 });
 
-test("model list: a leader's choice made during a refresh is not written over", async () => {
+test("model list: a cap a leader sets during a refresh is not written over", async () => {
   const { h, c } = await oldKey();
   h.anthropic.state.modelsFn = async () => {
     const cur = await h.ledger.modelKey("#2PQRJ8LV");
-    await h.ledger.saveModelKey("#2PQRJ8LV", {
-      ...cur,
-      model: "claude-sonnet-5",
-    });
+    await h.ledger.saveModelKey("#2PQRJ8LV", { ...cur, spend_cap_usd: 7 });
     return { ok: true, status: 200, models: [H45, H55, SONNET] };
   };
   assert.equal((await api(h, c, "POST", REFRESH)).body.refreshed, true);
   const stored = await h.ledger.modelKey("#2PQRJ8LV");
-  assert.equal(stored.model, "claude-sonnet-5");
+  assert.equal(stored.spend_cap_usd, 7);
   assert.equal(stored.models.length, 3);
 });
 
-test("model list: drafting never reads the list; a draft whose model is gone makes it due at once", async () => {
+test("model list: drafting never reads the list; a model Anthropic no longer serves is dropped at once and the next draft takes the next", async () => {
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
   for (let i = 0; i < 3; i += 1) await api(h, c, "POST", DRAFT, {});
   assert.equal(modelsCalls(h), 1, "only adding the key read it");
   assert.equal((await api(h, c, "GET", MODEL)).body.refresh_due, false);
-  h.anthropic.state.write = () => ({
-    ok: false,
-    status: 404,
-    code: "not_found_error",
-  });
+  h.anthropic.state.write = (key, request) =>
+    request.model === OPUS_55
+      ? { ok: false, status: 404, code: "not_found_error" }
+      : {
+          ok: true,
+          model: request.model,
+          usage: { input_tokens: 700, output_tokens: 180 },
+          input: { tagline: "Hi", about: "A clan.", points: [] },
+        };
   const gone = await api(h, c, "POST", DRAFT, {});
+  assert.equal(gone.status, 409);
   assert.equal(gone.body.error, "model_unavailable");
+  assert.match(gone.body.message, /no longer serves Claude Opus 5\.5/);
   assert.equal(modelsCalls(h), 1, "the failing draft does not wait on a read");
-  assert.equal((await api(h, c, "GET", MODEL)).body.refresh_due, true);
-  h.anthropic.state.models = [H55];
-  assert.equal((await api(h, c, "POST", REFRESH)).body.refreshed, true);
+  assert.ok(!(await listedIds(h)).includes(OPUS_55), "off the list at once");
   const s = await api(h, c, "GET", MODEL);
-  assert.equal(s.body.model, "claude-sonnet-5", "still the clan's choice");
-  assert.equal(s.body.model_listed, false);
+  assert.equal(s.body.refresh_due, true);
+  assert.equal(s.body.model_for.recruit_pitch.id, SONNET_55);
+  const next = await api(h, c, "POST", DRAFT, {});
+  assert.equal(next.status, 200, JSON.stringify(next.body));
+  assert.equal(h.anthropic.state.calls.at(-1)[2].model, SONNET_55);
 });
 
 test("model list: only leaders refresh, and only while the key's owner leads", async () => {
@@ -1123,13 +1171,13 @@ test("model spend: each use is priced at list rates; the month is summed", async
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
-  assert.equal((await api(h, c, "GET", MODEL)).body.model, "claude-sonnet-5");
   await api(h, c, "POST", DRAFT, {});
   await api(h, c, "POST", DRAFT, {});
   const s = await api(h, c, "GET", MODEL);
-  // 700 in and 180 out on Sonnet 5 ($2 / $10 per million): $0.0032 each.
-  assert.equal(s.body.uses.recent[0].spend_usd, 0.0032);
-  assert.equal(s.body.uses.month.spend_usd, 0.0064);
+  // 700 in and 180 out on Opus 5.5 ($4 / $20 per million): $0.0064 each.
+  assert.equal(s.body.uses.recent[0].model, OPUS_55);
+  assert.equal(s.body.uses.recent[0].spend_usd, 0.0064);
+  assert.equal(s.body.uses.month.spend_usd, 0.0128);
   assert.equal(s.body.uses.month.spend_estimated, false);
   assert.equal(s.body.spend_cap_usd, null);
   assert.equal(s.body.cap_reached, false);
@@ -1140,10 +1188,10 @@ test("model spend: drafting stops at the clan's monthly cap, until it is raised,
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
-  const set = await api(h, c, "PUT", MODEL, { spend_cap_usd: 0.01 });
+  const set = await api(h, c, "PUT", MODEL, { spend_cap_usd: 0.02 });
   assert.equal(set.status, 200, JSON.stringify(set.body));
-  assert.equal(set.body.spend_cap_usd, 0.01);
-  // $0.0032 a draft: the fourth starts at $0.0096, still under the cap.
+  assert.equal(set.body.spend_cap_usd, 0.02);
+  // $0.0064 a draft: the fourth starts at $0.0192, still under the cap.
   for (let i = 0; i < 4; i += 1)
     assert.equal((await api(h, c, "POST", DRAFT, {})).status, 200, `#${i}`);
   const writes = () =>

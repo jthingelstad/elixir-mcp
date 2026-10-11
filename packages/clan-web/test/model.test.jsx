@@ -45,12 +45,9 @@ const status = (extra = {}) => ({
   set_by: "#20QQL8CCRU",
   set_by_name: "Ada",
   set_at: "2026-09-25T10:00:00Z",
-  model: "claude-sonnet-5",
-  models: [
-    { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
-    { id: "claude-haiku-5-5", name: "Claude Haiku 5.5" },
-    { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5" },
-  ],
+  model_for: {
+    recruit_pitch: { id: "claude-opus-5-5", name: "Claude Opus 5.5" },
+  },
   refused_at: null,
   readable: true,
   owner_leads: true,
@@ -83,8 +80,10 @@ describe("the clan's model", () => {
     ).toBeTruthy();
     expect(screen.getByText(/Nothing is posted automatically/)).toBeTruthy();
     expect(screen.getByText("2 of 20 uses")).toBeTruthy();
-    expect(screen.getByLabelText("Model").value).toBe("claude-sonnet-5");
-    expect(screen.getByText("Recruiting pitch")).toBeTruthy();
+    expect(screen.getByText("Recruiting pitch: Claude Opus 5.5")).toBeTruthy();
+    expect(screen.queryByLabelText("Model")).toBeNull();
+    // The recent use names the model it ran on.
+    expect(screen.getByText("Claude Sonnet 5")).toBeTruthy();
     const input = screen.getByPlaceholderText("sk-ant-…");
     expect(input.type).toBe("password");
     fireEvent.change(input, { target: { value: `  ${TYPED} ` } });
@@ -93,22 +92,34 @@ describe("the clan's model", () => {
     await waitFor(() => expect(input.value).toBe(""));
   });
 
-  test("a clan that saved Haiku 4.5 sees it chosen, beside the key's other models", async () => {
+  test("Elixir Clan chooses the model for each use: shown, never picked", async () => {
     vi.spyOn(manageApi, "model").mockResolvedValue({
       ok: true,
       status: 200,
-      data: status({ model: "claude-haiku-4-5-20251001" }),
+      data: status({
+        purposes: {
+          recruit_pitch: { label: "Recruiting pitch" },
+          discord_activity: { label: "Discord activity" },
+        },
+        model_for: {
+          recruit_pitch: { id: "claude-opus-5-5", name: "Claude Opus 5.5" },
+          discord_activity: {
+            id: "claude-sonnet-5-5",
+            name: "Claude Sonnet 5.5",
+          },
+        },
+      }),
     });
-    const choose = vi.spyOn(manageApi, "chooseModel");
     renderWithProviders(<Model clan={leaderClan} />);
-    const select = await screen.findByLabelText("Model");
-    expect(select.value).toBe("claude-haiku-4-5-20251001");
-    expect([...select.options].map((o) => o.value)).toEqual([
-      "claude-sonnet-5",
-      "claude-haiku-5-5",
-      "claude-haiku-4-5-20251001",
-    ]);
-    expect(choose).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Recruiting pitch: Claude Opus 5.5"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("Discord activity: Claude Sonnet 5.5"),
+    ).toBeTruthy();
+    expect(screen.getByText(/Elixir Clan chooses the model/)).toBeTruthy();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(manageApi.chooseModel).toBeUndefined();
   });
 
   test("asks for a refresh after drawing when the list is due, and reloads when it changed", async () => {
@@ -130,7 +141,7 @@ describe("the clan's model", () => {
     renderWithProviders(<Model clan={leaderClan} />);
     expect(await screen.findByText("sk-ant-…WXYZ")).toBeTruthy();
     await waitFor(() => expect(refresh).toHaveBeenCalledWith("#2PQRJ8LV"));
-    expect(await screen.findByText("From Anthropic, 2026-10-08")).toBeTruthy();
+    expect(await screen.findByText("With Anthropic, 2026-10-08")).toBeTruthy();
     expect(read).toHaveBeenCalledTimes(2);
     expect(refresh).toHaveBeenCalledTimes(1);
   });
@@ -158,33 +169,23 @@ describe("the clan's model", () => {
     renderWithProviders(<Model clan={leaderClan} />);
     expect(await screen.findByText("sk-ant-…WXYZ")).toBeTruthy();
     await waitFor(() => expect(failing).toHaveBeenCalledTimes(1));
-    expect(screen.getByLabelText("Model").value).toBe("claude-sonnet-5");
+    expect(screen.getByText("Recruiting pitch: Claude Opus 5.5")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  test("a chosen model the key no longer offers stays chosen and is marked", async () => {
+  test("a use the key cannot reach is named, and says it is not drafted", async () => {
     vi.spyOn(manageApi, "model").mockResolvedValue({
       ok: true,
       status: 200,
-      data: status({
-        model: "claude-haiku-4-5-20251001",
-        models: [
-          { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
-          { id: "claude-haiku-5-5", name: "Claude Haiku 5.5" },
-        ],
-      }),
+      data: status({ model_for: { recruit_pitch: null } }),
     });
-    const choose = vi.spyOn(manageApi, "chooseModel");
     renderWithProviders(<Model clan={leaderClan} />);
-    const select = await screen.findByLabelText("Model");
-    expect(select.value).toBe("claude-haiku-4-5-20251001");
-    const gone = [...select.options].find(
-      (o) => o.value === "claude-haiku-4-5-20251001",
-    );
-    expect(gone.disabled).toBe(true);
-    expect(gone.textContent).toMatch(/not offered by this key now/);
-    expect(screen.getByText(/is not one this key offers now/)).toBeTruthy();
-    expect(choose).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Recruiting pitch: not reachable with this key"),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/does not reach the model Elixir Clan uses for/),
+    ).toBeTruthy();
   });
 
   test("says why a key is not in use", async () => {
@@ -216,7 +217,13 @@ describe("the clan's model", () => {
       data: {
         clan_tag: "#2PQRJ8LV",
         can_edit: true,
-        model: { set: true, refused: false, model: "claude-sonnet-5" },
+        model: {
+          set: true,
+          refused: false,
+          model_for: {
+            recruit_pitch: { id: "claude-opus-5-5", name: "Claude Opus 5.5" },
+          },
+        },
         pitch,
         pitch_version: 1,
         fields: PITCH_FIELDS,

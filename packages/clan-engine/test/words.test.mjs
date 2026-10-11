@@ -5,10 +5,11 @@ import {
   chatMessageRequest,
   leaderMessageFromDraft,
   leaderMessageRequest,
-  MODEL_PREFERENCE,
+  MODEL_FOR,
   NOTE_MAX,
   PURPOSES,
-  chooseModel,
+  modelFor,
+  modelName,
   pitchFromDraft,
   pitchRequest,
 } from "../src/words.mjs";
@@ -220,36 +221,61 @@ test("departure prompts trust explicit confirmation, preserve observation uncert
   assert.doesNotMatch(missing.prompt, /recorded tenure/);
 });
 
-test("the default model is the first preferred one the key reaches", () => {
-  assert.deepEqual(MODEL_PREFERENCE, [
-    "claude-sonnet-5",
+test("Elixir Clan chooses each use's model: the 5.5 generation, in the purpose's order", () => {
+  // Every use has an ordered list, and only of the 5.5 generation (Jamie,
+  // 2026-10-11): an older model is never a fallback.
+  assert.deepEqual(Object.keys(MODEL_FOR), Object.keys(PURPOSES));
+  for (const [purpose, ids] of Object.entries(MODEL_FOR)) {
+    assert.ok(ids.length > 0, purpose);
+    assert.equal(new Set(ids).size, ids.length, `${purpose}: no repeats`);
+    for (const id of ids) assert.match(id, /^claude-[a-z]+-5-5$/, purpose);
+  }
+  // The leaders' drafts start on Opus 5.5; the unread Discord rewrites on
+  // Sonnet 5.5.
+  for (const p of ["recruit_pitch", "leader_message", "clan_chat"])
+    assert.equal(modelFor(p), "claude-opus-5-5", p);
+  assert.equal(modelFor("discord_activity"), "claude-sonnet-5-5");
+});
+
+test("a use takes the first of its models the key reaches, and none outside the generation", () => {
+  const all = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
+  assert.equal(modelFor("leader_message", all), "claude-opus-5-5");
+  assert.equal(modelFor("discord_activity", all), "claude-sonnet-5-5");
+  // Opus 5.5 out of reach: the drafts take Sonnet 5.5.
+  assert.equal(
+    modelFor("recruit_pitch", ["claude-haiku-5-5", "claude-sonnet-5-5"]),
+    "claude-sonnet-5-5",
+  );
+  // Sonnet 5.5 out of reach: the rewrites take Opus 5.5, then Haiku 5.5.
+  assert.equal(
+    modelFor("discord_activity", ["claude-opus-5-5", "claude-haiku-5-5"]),
     "claude-opus-5-5",
-    "claude-haiku-5-5",
-  ]);
-  assert.equal(
-    chooseModel(["claude-haiku-5-5", "claude-sonnet-5"]),
-    "claude-sonnet-5",
   );
   assert.equal(
-    chooseModel(["claude-haiku-5-5", "claude-opus-5-5"]),
-    "claude-opus-5-5",
-  );
-  // A key that reaches neither Sonnet 5 nor Opus 5.5 gets Haiku 5.5, not
-  // the Haiku 4.5 it also lists.
-  assert.equal(
-    chooseModel(["claude-haiku-4-5-20251001", "claude-haiku-5-5"]),
+    modelFor("discord_activity", ["claude-haiku-5-5"]),
     "claude-haiku-5-5",
   );
-  assert.equal(chooseModel(["claude-haiku-5-5"]), MODEL_PREFERENCE[2]);
-  // Haiku 4.5 is no longer preferred, but a key that reaches only it still
-  // gets a model.
+  // A key that reaches only older models gets none of them.
   assert.equal(
-    chooseModel(["claude-haiku-4-5-20251001"]),
-    "claude-haiku-4-5-20251001",
+    modelFor("clan_chat", [
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001",
+      "claude-opus-5",
+    ]),
+    null,
   );
-  assert.equal(chooseModel(["claude-new-thing"]), "claude-new-thing");
-  assert.equal(chooseModel(["gpt-x"]), null);
-  assert.equal(chooseModel([]), null);
+  // An unknown list (never read, or empty) takes the first.
+  assert.equal(modelFor("clan_chat", []), "claude-opus-5-5");
+  assert.equal(modelFor("clan_chat", null), "claude-opus-5-5");
+  assert.equal(modelFor("no_such_use", all), null);
+});
+
+test("a model's name reads as people write it", () => {
+  assert.equal(modelName("claude-opus-5-5"), "Claude Opus 5.5");
+  assert.equal(modelName("claude-sonnet-5"), "Claude Sonnet 5");
+  assert.equal(modelName("claude-haiku-4-5-20251001"), "Claude Haiku 4.5");
+  assert.equal(modelName("something-else"), "something-else");
+  assert.equal(modelName(null), "");
 });
 
 test("a pitch request carries the clan's facts, goals, rules, words and note, and never a member", () => {

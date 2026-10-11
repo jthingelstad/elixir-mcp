@@ -114,7 +114,16 @@ describe("the clan's activity in Discord", () => {
 
   test("with the key, the rewrite and the voice are saved", async () => {
     vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
-      ok(view({ model: { available: true, set: true, refused: false } })),
+      ok(
+        view({
+          model: {
+            available: true,
+            set: true,
+            refused: false,
+            name: "Claude Sonnet 5.5",
+          },
+        }),
+      ),
     );
     const save = vi
       .spyOn(manageApi, "saveActivityDiscord")
@@ -125,6 +134,11 @@ describe("the clan's activity in Discord", () => {
       expect(save).toHaveBeenCalledWith("#2PQRJ8LV", { rewrite: true }),
     );
     expect(screen.getByText(/at most 50 times a day/)).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Written by Claude Sonnet 5\.5, the model Elixir Clan uses/,
+      ),
+    ).toBeTruthy();
     fireEvent.change(screen.getByLabelText("How the posts should sound"), {
       target: { value: "Short and loud" },
     });

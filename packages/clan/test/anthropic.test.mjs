@@ -8,6 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   ANTHROPIC_VERSION,
+  THINKING_ROOM,
   createAnthropicClient,
 } from "@elixir-mcp/clan/anthropic.mjs";
 import { current, summarize, withTrace } from "@elixir-mcp/clan/trace.mjs";
@@ -24,7 +25,7 @@ const reply = (status, body) => ({
   json: async () => body,
 });
 
-test("anthropic: a message is one forced tool call on the clan's key, timed without the key or the words", async () => {
+test("anthropic: a message asks for one tool call on the clan's key, timed without the key or the words", async () => {
   const seen = [];
   const client = createAnthropicClient({
     url: "https://anthropic.test",
@@ -59,7 +60,14 @@ test("anthropic: a message is one forced tool call on the clan's key, timed with
   assert.equal(init.headers["x-api-key"], KEY);
   assert.equal(init.headers["anthropic-version"], ANTHROPIC_VERSION);
   const body = JSON.parse(init.body);
-  assert.deepEqual(body.tool_choice, { type: "tool", name: "write_pitch" });
+  // Never forced: Claude Opus 5.5 refuses a forced tool_choice with a 400.
+  assert.deepEqual(body.tool_choice, {
+    type: "auto",
+    disable_parallel_tool_use: true,
+  });
+  assert.match(body.system, /^SYSTEM WORDS\n\n/);
+  assert.match(body.system, /call the write_pitch tool once/);
+  assert.equal(body.max_tokens, 1200 + THINKING_ROOM);
   assert.equal(body.messages[0].content, "PROMPT WORDS");
   assert.equal(summary.model_calls, 1);
   assert.equal(summary.model[0].output_tokens, 120);
@@ -170,8 +178,8 @@ test("anthropic: Haiku 5.5 is sent no sampling params, thinking, effort or prefi
   ])
     assert.equal(k in body, false, k);
   assert.equal(body.model, "claude-haiku-5-5");
-  assert.equal(body.max_tokens, 1600);
-  assert.deepEqual(body.tool_choice, { type: "tool", name: "write_pitch" });
+  assert.equal(body.max_tokens, 1600 + THINKING_ROOM);
+  assert.equal(body.tool_choice.type, "auto");
   assert.deepEqual(
     body.messages.map((m) => m.role),
     ["user"],

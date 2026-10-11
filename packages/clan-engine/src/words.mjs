@@ -55,27 +55,51 @@ export const PURPOSES = {
 };
 
 /**
- * Models a clan's key may use, the first one the key can reach chosen
- * by default: a writer that is good and inexpensive for short copy, then
- * the rest. A leader may pick any model the key lists, and a clan keeps
- * the model it saved: this order only names a default when a key is
- * added. Haiku 5.5 took Haiku 4.5's place on 2026-10-08; a clan that
- * saved Haiku 4.5 still runs on it.
+ * The model each use runs on: Elixir Clan's choice, made for how the
+ * product should work, never the leaders' (Jamie, 2026-10-11: "The model
+ * is our selection based on how the product should work. The key and its
+ * budget are the external decisions."). Each purpose lists the 5.5
+ * generation in order; a use takes the first one the clan's key reaches
+ * (`modelFor`), and refuses rather than fall back to an older generation.
+ *
+ * The leaders' drafts are read and edited before anything is sent and
+ * are few, so they get the strongest writer. The Discord activity
+ * rewrites are posted unread, are many and are checked line by line, so
+ * they start one step down. Change the mapping here and nowhere else.
  */
-export const MODEL_PREFERENCE = [
-  "claude-sonnet-5",
-  "claude-opus-5-5",
-  "claude-haiku-5-5",
-];
+export const MODEL_FOR = {
+  recruit_pitch: ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
+  leader_message: ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
+  clan_chat: ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
+  discord_activity: [
+    "claude-sonnet-5-5",
+    "claude-opus-5-5",
+    "claude-haiku-5-5",
+  ],
+};
 
-/** The default model among the ids a key can reach, or null. */
-export function chooseModel(ids = []) {
+/**
+ * The model a use of `purpose` runs on: the first of its `MODEL_FOR` list
+ * that the key reaches. `ids` is the key's model list as last read; with
+ * no list (never read, or empty) the first is taken and Anthropic's
+ * answer decides. Null when the key reaches none of them, or for a
+ * purpose with no models.
+ */
+export function modelFor(purpose, ids = null) {
+  const wanted = MODEL_FOR[purpose] ?? [];
+  if (!ids?.length) return wanted[0] ?? null;
   const reach = new Set(ids);
-  return (
-    MODEL_PREFERENCE.find((id) => reach.has(id)) ??
-    ids.find((id) => /^claude-/.test(id)) ??
-    null
+  return wanted.find((id) => reach.has(id)) ?? null;
+}
+
+/** A model's name for people: `claude-opus-5-5` reads "Claude Opus 5.5". */
+export function modelName(id) {
+  const m = /^claude-([a-z]+)-(\d+)(?:-(\d))?(?:-\d{8})?$/.exec(
+    String(id ?? ""),
   );
+  if (!m) return String(id ?? "");
+  const family = m[1][0].toUpperCase() + m[1].slice(1);
+  return `Claude ${family} ${m[2]}${m[3] ? `.${m[3]}` : ""}`;
 }
 
 /** A leader's note to the model is short. */

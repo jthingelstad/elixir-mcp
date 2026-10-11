@@ -41,7 +41,12 @@ function fakeAnthropic() {
     async models() {
       return {
         ok: true,
-        models: [{ id: "claude-sonnet-5", name: "Claude Sonnet 5" }],
+        models: state.models ?? [
+          { id: "claude-sonnet-5", name: "Claude Sonnet 5" },
+          { id: "claude-opus-5-5", name: "Claude Opus 5.5" },
+          { id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5" },
+          { id: "claude-haiku-5-5", name: "Claude Haiku 5.5" },
+        ],
       };
     },
     async write(key, request) {
@@ -208,6 +213,7 @@ test("activity: the rewrite asks for the clan's key first; the voice is tidied",
     available: true,
     set: false,
     refused: false,
+    name: "Claude Sonnet 5.5",
   });
   const nokey = await api(h, c, "PUT", PATH, { rewrite: true });
   assert.equal(nokey.status, 409);
@@ -264,8 +270,10 @@ test("writeUnattended: recorded apart from the drafts, under its own day's cap",
   assert.deepEqual(r.input.posts[0], { key: "tl_1", text: "Ada joined!" });
   const [, key, sent] = h.anthropic.state.calls.at(-1);
   assert.equal(key, GOOD);
-  assert.equal(sent.model, "claude-sonnet-5");
+  // The rewrites run on Elixir Clan's model for them, Sonnet 5.5.
+  assert.equal(sent.model, "claude-sonnet-5-5");
   const [call] = await h.ledger.modelCalls(TAG);
+  assert.equal(call.model, "claude-sonnet-5-5");
   assert.equal(call.purpose, "discord_activity");
   assert.equal(call.by, null);
   assert.equal(call.ok, true);
@@ -287,6 +295,36 @@ test("writeUnattended: recorded apart from the drafts, under its own day's cap",
     true,
     "a new day",
   );
+});
+
+test("writeUnattended: Sonnet 5.5 out of reach takes the next 5.5 model; none in reach keeps Elixir's own lines", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  const leads = async () => true;
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const stored = await h.ledger.modelKey(TAG);
+  await h.ledger.saveModelKey(TAG, {
+    ...stored,
+    models: stored.models.filter((m) => m.id !== "claude-sonnet-5-5"),
+  });
+  assert.equal(
+    (await h.model.writeUnattended(TAG, request(), { ownerLeads: leads })).ok,
+    true,
+  );
+  assert.equal(h.anthropic.state.calls.at(-1)[2].model, "claude-opus-5-5");
+  // Only an older generation in reach: refused before anything is sent,
+  // and the caller posts Elixir's own lines.
+  await h.ledger.saveModelKey(TAG, {
+    ...stored,
+    models: [{ id: "claude-sonnet-5", name: "Claude Sonnet 5" }],
+  });
+  const writes = h.anthropic.state.calls.length;
+  assert.deepEqual(
+    await h.model.writeUnattended(TAG, request(), { ownerLeads: leads }),
+    { ok: false, code: "model_unavailable" },
+  );
+  assert.equal(h.anthropic.state.calls.length, writes, "never sent");
+  assert.equal((await h.ledger.modelCalls(TAG)).length, 1, "not a use");
 });
 
 test("writeUnattended: the leaders' monthly cap stops it too", async () => {

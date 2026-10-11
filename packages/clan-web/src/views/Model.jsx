@@ -1,4 +1,5 @@
 import { ago } from "@elixir-mcp/ui";
+import { modelName } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useModel } from "../lib/queries.js";
@@ -23,16 +24,47 @@ function usd(x) {
  * sealed and never shown again; it is used only while the person who
  * added it leads the clan, and every use is listed here.
  *
- * The key's model list refreshes itself: when the server says it is due
- * (`refresh_due`, about once a day), the page asks for a refresh after it
- * has drawn and reloads if the list changed. The page never waits on it,
- * and the clan's chosen model never changes by itself: a model the key no
- * longer lists stays chosen, marked as not offered.
+ * Which model each use runs on is Elixir Clan's choice, not the leaders'
+ * (2026-10-11): the page says which one, as the server works it out from
+ * the key's model list (`model_for`). The key and its monthly cap are the
+ * clan's. The key's model list refreshes itself: when the server says it
+ * is due (`refresh_due`, about once a day), the page asks for a refresh
+ * after it has drawn and reloads if the list changed. The page never
+ * waits on it.
  *
  * Spend (2026-10-10): the server prices each use's tokens at Anthropic's
  * list rates, so the month reads as about what it cost; a leader may set
  * a monthly cap, and drafting stops once the estimate reaches it.
  */
+/**
+ * Each use with the model it runs on: `[{ purpose, label, model }]`,
+ * where `model` is `{ id, name }` or null when the key reaches none.
+ */
+function modelUses(d) {
+  return Object.entries(d.purposes ?? {}).map(([purpose, p]) => ({
+    purpose,
+    label: p.label,
+    model: d.model_for?.[purpose] ?? null,
+  }));
+}
+
+/** Which model each use runs on: Elixir Clan's choice, read-only. */
+function ModelUses({ uses }) {
+  return (
+    <span className="grid gap-1">
+      {uses.map((u) => (
+        <span key={u.purpose}>
+          {u.label}: {u.model ? u.model.name : "not reachable with this key"}
+        </span>
+      ))}
+      <span className="page-head__note">
+        Elixir Clan chooses the model for each use. The key and its monthly cap
+        are yours.
+      </span>
+    </span>
+  );
+}
+
 export function Model({ clan }) {
   const { state, load } = useModel(clan.clan_tag);
   const [key, setKey] = useState("");
@@ -74,7 +106,7 @@ export function Model({ clan }) {
     );
   const d = state.data;
   if (!d) return <p className="page__lede">Reading…</p>;
-  const listed = (d.models ?? []).some((m) => m.id === d.model);
+  const uses = modelUses(d);
 
   const saveKey = async (e) => {
     e.preventDefault();
@@ -92,13 +124,6 @@ export function Model({ clan }) {
       return;
     }
     trackEvent("clan.model_key_set");
-    load();
-  };
-  const choose = async (model) => {
-    setBusy(true);
-    const r = await manageApi.chooseModel(clan.clan_tag, model);
-    setBusy(false);
-    if (!r.ok) setMessage(r.data?.message ?? "That did not save.");
     load();
   };
   const saveCap = async (e, value) => {
@@ -157,6 +182,13 @@ export function Model({ clan }) {
         drafts&rsquo;.
       </p>
 
+      {!d.set ? (
+        <section className="grid gap-1" aria-label="Models">
+          <span className="label">Models</span>
+          <ModelUses uses={uses} />
+        </section>
+      ) : null}
+
       {d.set ? (
         <section className="panel">
           <div className="panel__head flex-wrap gap-2">
@@ -177,32 +209,13 @@ export function Model({ clan }) {
             <span>
               {d.set_by_name ?? d.set_by} · {day(d.set_at)}
             </span>
-            <span className="label">Model</span>
-            <span>
-              <select
-                className="input"
-                aria-label="Model"
-                value={d.model}
-                disabled={busy}
-                onChange={(e) => choose(e.target.value)}
-              >
-                {d.model && !listed ? (
-                  <option value={d.model} disabled>
-                    {d.model} (not offered by this key now)
-                  </option>
-                ) : null}
-                {d.models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </span>
-            <span className="label">Model list</span>
+            <span className="label">Models</span>
+            <ModelUses uses={uses} />
+            <span className="label">Key checked</span>
             <span>
               {d.models_refreshed_at
-                ? `From Anthropic, ${day(d.models_refreshed_at)}`
-                : "From Anthropic, when the key was added"}
+                ? `With Anthropic, ${day(d.models_refreshed_at)}`
+                : "With Anthropic, when the key was added"}
               {d.models_refresh_error
                 ? ` · the check on ${day(d.models_refresh_error.at)} failed; it is tried again a day later`
                 : ""}
@@ -287,11 +300,16 @@ export function Model({ clan }) {
               </span>
             </div>
           ) : null}
-          {d.model && !listed && !d.refused_at ? (
+          {uses.some((u) => !u.model) && !d.refused_at ? (
             <div className="callout callout--warn m-3" role="status">
               <span>
-                The chosen model, {d.model}, is not one this key offers now. It
-                stays chosen until you pick another; drafts may fail until then.
+                This key does not reach the model Elixir Clan uses for{" "}
+                {uses
+                  .filter((u) => !u.model)
+                  .map((u) => u.label)
+                  .join(", ")}
+                , so those are not drafted. Settings checks the key with
+                Anthropic again about once a day.
               </span>
             </div>
           ) : null}
@@ -375,6 +393,7 @@ export function Model({ clan }) {
                   <th>When</th>
                   <th>By</th>
                   <th>For</th>
+                  <th>Model</th>
                   <th>Tokens</th>
                 </tr>
               </thead>
@@ -387,6 +406,7 @@ export function Model({ clan }) {
                       {d.purposes[u.purpose]?.label ?? u.purpose}
                       {u.ok ? "" : ` (failed${u.code ? `: ${u.code}` : ""})`}
                     </td>
+                    <td>{u.model ? modelName(u.model) : "—"}</td>
                     <td>
                       {n(u.input_tokens)} in · {n(u.output_tokens)} out
                       {u.spend_usd != null

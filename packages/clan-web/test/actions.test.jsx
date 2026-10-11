@@ -925,7 +925,7 @@ describe("the clan's model on a Leader Message", () => {
   test("a leader drafts it in the clan's voice, sees what to check, and can put back what they had", async () => {
     vi.spyOn(manageApi, "action").mockResolvedValue(
       one({
-        model: { set: true, refused: false, model: "claude-sonnet-5" },
+        model: { set: true, refused: false, model_for: {} },
         open: [
           {
             card_id: "r1",
