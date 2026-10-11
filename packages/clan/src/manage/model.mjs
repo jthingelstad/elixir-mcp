@@ -1,6 +1,6 @@
 /**
  * The clan's own model (2026-09-25): bring your own tokens. Elixir Clan
- * funds no model use (VISION, principle 8); a leader or co-leader adds
+ * funds no model use (DECISIONS "Elixir Clan chooses the model; the key and its budget are the clan's"); a leader or co-leader adds
  * the clan's Anthropic API key, and the clan's model may then write words
  * for the uses the engine names (`PURPOSES` in `words.mjs`), never a
  * judgment about a member.

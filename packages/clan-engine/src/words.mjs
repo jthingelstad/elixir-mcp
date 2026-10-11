@@ -1,7 +1,7 @@
 /**
  * Words by the clan's own model (2026-09-25): what a clan's own Anthropic
  * key may be used for, the request for each use, and the check on each
- * answer. A model writes WORDS, never judgments (VISION, principle 5):
+ * answer. A model writes WORDS, never judgments (DECISIONS "Clan drafts words; people decide"):
  *
  *  - the uses are a closed list (`PURPOSES`); no judgment about a member
  *    is ever one of them;

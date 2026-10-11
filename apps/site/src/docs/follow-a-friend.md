@@ -66,7 +66,7 @@ belong to your primary player and your alts.
 
 Give a friend a nickname on their page (**Nickname**, 1 to 40
 characters) or through a connected app with `elixir_nickname`. It is private
-to you, your connected apps see it, and Your friends this week uses it. A nickname
+to you (apps you connect as yourself see it; an agent keeps its own), and Your friends this week uses it. A nickname
 stays when you stop tracking the player, and an empty one clears it.
 
 ## The notifications switch
