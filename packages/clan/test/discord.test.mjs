@@ -7,10 +7,12 @@ import {
   discordRequestKey,
   discordReplyKey,
   discordClaimKey,
+  discordOpClaimKey,
 } from "../src/discord-bridge.mjs";
 import { createDiscordWebhook, parseWebhook } from "../src/discord-webhook.mjs";
 import { createDiscordService, PER_SWEEP } from "../src/manage/discord.mjs";
 import { createHandler } from "../src/handler.mjs";
+import { clanDiscordWake } from "../src/discord-wake.mjs";
 import {
   createTestAccount,
   cookieHeader,
@@ -49,14 +51,17 @@ function fakeDiscord() {
   return {
     messages,
     calls: [],
-    async post(url, content) {
+    opts: [],
+    async post(url, content, opts = {}) {
       this.calls.push(["post", content]);
+      this.opts.push(opts);
       const id = String(next++);
       messages.set(id, content);
       return { ok: true, status: 200, message_id: id, name: "Clan hook" };
     },
-    async edit(url, id, content) {
+    async edit(url, id, content, opts = {}) {
       this.calls.push(["edit", content]);
+      this.opts.push(opts);
       if (!messages.has(id))
         return { ok: false, status: 404, code: "message_gone" };
       messages.set(id, content);
@@ -82,11 +87,17 @@ function world({
       await relay();
     },
   });
+  const waits = [];
   const worker = createDiscordWorker({
     secret: SECRET,
     storage,
     discord,
     now,
+    // The worker's spacing moves the clock; nothing really waits.
+    pause: async (ms) => {
+      waits.push(ms);
+      clock.t += ms;
+    },
     log: { log() {} },
   });
   async function relay() {
@@ -94,6 +105,7 @@ function world({
       if (key.includes("/request/")) await worker(key);
   }
   const ledger = createMemoryLedger();
+  const wakes = [];
   const service = createDiscordService({
     ledger,
     bridge,
@@ -101,9 +113,21 @@ function world({
     appUrl: "https://elixir.test/clan",
     now,
     waitMs: () => 5000,
+    wake: async (tag) => void wakes.push(tag),
     log: { error() {} },
   });
-  return { storage, bridge, worker, relay, ledger, service, discord, clock };
+  return {
+    storage,
+    bridge,
+    worker,
+    relay,
+    ledger,
+    service,
+    discord,
+    clock,
+    waits,
+    wakes,
+  };
 }
 
 const card = (n, extra = {}) => ({
@@ -319,7 +343,7 @@ test("connecting posts a message first and keeps the webhook sealed; only leader
     url: HOOK,
     clanName: "Example",
   });
-  assert.deepEqual(r, { ok: true, name: "Clan hook" });
+  assert.deepEqual(r, { ok: true, name: "Clan hook", forum: false });
   assert.match(w.discord.calls[0][1], /Example's Actions here/);
   const stored = w.ledger.items.get(`discord#${CLAN}`);
   assert.ok(!JSON.stringify(stored).includes(TOKEN));
@@ -382,7 +406,7 @@ test("an Action closed before its post was answered is edited once the id arrive
   await w.service.share(CLAN);
   await w.ledger.putCard(CLAN, card(1, { status: "withdrawn" }));
   // The relay has not answered: nothing more is handed over yet.
-  assert.deepEqual(await w.service.share(CLAN), { shared: 0 });
+  assert.deepEqual(await w.service.share(CLAN), { shared: 0, waiting: 1 });
   await w.relay();
   assert.deepEqual(await w.service.share(CLAN), { shared: 1 });
   await w.relay();
@@ -395,7 +419,22 @@ test("a sweep hands over at most PER_SWEEP; the rest wait for the next", async (
   for (let n = 1; n <= PER_SWEEP + 3; n++)
     await w.ledger.putCard(CLAN, card(n));
   assert.equal((await w.service.share(CLAN)).shared, PER_SWEEP);
+  // One hand-off at a time: the next waits for its answers.
+  assert.deepEqual(await w.service.share(CLAN), {
+    shared: 0,
+    waiting: PER_SWEEP,
+  });
+  await w.relay();
   assert.equal((await w.service.share(CLAN)).shared, 3);
+  await w.relay();
+  // In Action number order, spaced, never faster than Discord's pace.
+  assert.deepEqual(
+    w.discord.calls.slice(1).map(([, text]) => Number(/#(\d+)/.exec(text)[1])),
+    Array.from({ length: PER_SWEEP + 3 }, (_, i) => i + 1),
+  );
+  assert.ok(
+    w.waits.length >= PER_SWEEP + 1 && w.waits.every((ms) => ms <= 2400),
+  );
 });
 
 test("a post with an unknown outcome is never made again; a gone webhook stops everything", async () => {
@@ -474,6 +513,11 @@ test("the routes: leaders connect, read and remove; a member is refused; the add
   const ben = await as(BEN);
   assert.equal((await ben("GET", path)).status, 403);
   assert.equal((await ben("PUT", path, { url: HOOK })).status, 403);
+  assert.equal(
+    (await ben("POST", `${path}/mention`, { role_id: "444444444444444444" }))
+      .status,
+    403,
+  );
   const ada = await as(ADA);
   assert.equal((await ada("GET", path)).body.set, false);
   const bad = await ada("PUT", path, { url: "https://example.com/x" });
@@ -485,6 +529,241 @@ test("the routes: leaders connect, read and remove; a member is refused; the add
   const read = await ada("GET", path);
   assert.equal(read.body.set, true);
   assert.ok(!read.raw.includes(TOKEN));
+  const role = await ada("POST", `${path}/mention`, {
+    role_id: "444444444444444444",
+  });
+  assert.equal(role.status, 200, role.raw);
+  assert.equal(
+    (await ada("GET", path)).body.mention_role,
+    "444444444444444444",
+  );
+  assert.equal(
+    (await ada("POST", `${path}/mention`, { role_id: "x" })).status,
+    400,
+  );
   assert.equal((await ada("DELETE", path)).status, 200);
   assert.equal((await ada("GET", path)).body.set, false);
+});
+
+test("a worker that stops part way is picked up where it stopped: the op it was calling is unknown, the rest still go", async () => {
+  const w = world();
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  w.discord.calls.length = 0;
+  for (let n = 1; n <= 3; n++) await w.ledger.putCard(CLAN, card(n));
+  await w.service.share(CLAN);
+  const key = [...w.storage.objects.keys()].find(
+    (k) =>
+      k.includes("/request/") &&
+      !w.storage.objects.has(k.replace("/request/", "/reply/")),
+  );
+  const id = /request\/(.+)\.json$/.exec(key)[1];
+  // A worker was calling #2 when it stopped: its claim is there, its
+  // answer never came.
+  await w.storage.put(
+    discordOpClaimKey(id, 1),
+    JSON.stringify({ at: w.clock.t }),
+  );
+  await assert.rejects(w.worker(key), /pending/);
+  assert.equal(w.discord.calls.length, 1, "#1 goes; #2's claim is fresh");
+  w.clock.t += 61_000;
+  await w.worker(key);
+  assert.deepEqual(
+    w.discord.calls.map(([, t]) => /#(\d)/.exec(t)[1]),
+    ["1", "3"],
+    "#2 is unknown, never sent again; #3 still goes",
+  );
+  await w.service.share(CLAN);
+  const posts = await w.ledger.discordPosts(CLAN);
+  const two = posts.find((p) => p.card_id === "c2");
+  assert.equal(two.gave_up, true);
+  assert.equal(two.error, "outcome_unknown");
+  assert.deepEqual(await w.service.share(CLAN), { shared: 0 });
+  const status = await w.service.status(CLAN, LEAD);
+  assert.deepEqual(
+    status.deliveries
+      .slice(0, 3)
+      .map((d) => [d.ref, d.outcome])
+      .sort(),
+    [
+      ["#1", "posted"],
+      ["#2", "unknown"],
+      ["#3", "posted"],
+    ],
+  );
+  assert.equal(status.not_delivered, 1);
+});
+
+test("the request's id is kept before it is in the outbox: a hand-off that never arrived is never posted twice (#453)", async () => {
+  const w = world();
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  w.discord.calls.length = 0;
+  await w.ledger.putCard(CLAN, card(1));
+  const put = w.storage.put;
+  w.storage.put = async (k, text) => {
+    if (k.includes("/request/")) throw new Error("timed out");
+    return put(k, text);
+  };
+  assert.deepEqual(await w.service.share(CLAN), { shared: 0 });
+  w.storage.put = put;
+  const [post] = await w.ledger.discordPosts(CLAN);
+  assert.ok(post.request_id, "reserved first");
+  assert.deepEqual(await w.service.share(CLAN), { shared: 0, waiting: 1 });
+  // An hour on, with no answer, it is unknown: never sent again.
+  w.clock.t += 3600_001;
+  assert.deepEqual(await w.service.share(CLAN), { shared: 0 });
+  assert.equal(w.discord.calls.length, 0);
+  assert.equal((await w.ledger.discordPosts(CLAN))[0].gave_up, true);
+});
+
+test("each hand-off wakes a look a minute on, until its answers are in", async () => {
+  const w = world();
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  await w.ledger.putCard(CLAN, card(1));
+  await w.service.share(CLAN);
+  assert.deepEqual(w.wakes, [CLAN]);
+  await w.service.share(CLAN);
+  assert.deepEqual(w.wakes, [CLAN, CLAN], "still unanswered: look again");
+  await w.relay();
+  await w.service.share(CLAN);
+  assert.equal(w.wakes.length, 2, "answered and nothing new: no wake");
+});
+
+test("a forum channel: each Action is a post of its own, named for it, and its close is edited inside it", async () => {
+  const discord = fakeDiscord();
+  const real = discord.post.bind(discord);
+  discord.post = async (url, content, opts = {}) => {
+    const r = await real(url, content, opts);
+    return opts.thread_name
+      ? { ...r, forum: true, thread_id: `7${r.message_id.slice(1)}` }
+      : r;
+  };
+  const w = world({ discord });
+  assert.deepEqual(await w.service.setWebhook(CLAN, LEAD, { url: HOOK }), {
+    ok: true,
+    name: "Clan hook",
+    forum: true,
+  });
+  assert.equal(w.discord.opts[0].thread_name, "Elixir Clan Actions");
+  assert.equal((await w.service.status(CLAN, LEAD)).forum, true);
+  await w.ledger.putCard(CLAN, card(1, { player_name: "*Ana*" }));
+  await w.service.share(CLAN);
+  await w.relay();
+  assert.equal(w.discord.opts[1].thread_name, "#1 Promote to Elder: *Ana*");
+  assert.equal(w.discord.opts[1].forum, true, "known to be a forum");
+  await w.service.share(CLAN);
+  const [post] = await w.ledger.discordPosts(CLAN);
+  assert.ok(post.thread_id);
+  await w.ledger.putCard(
+    CLAN,
+    card(1, { status: "declined", decided_by: "#L", decided_by_name: "Lead" }),
+  );
+  await w.service.share(CLAN);
+  await w.relay();
+  assert.equal(w.discord.calls.at(-1)[0], "edit");
+  assert.deepEqual(w.discord.opts.at(-1), { thread_id: post.thread_id });
+});
+
+test("a role a leader chose is mentioned on each new Action, never on its edit", async () => {
+  const w = world();
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  await assert.rejects(
+    w.service.setMentionRole(CLAN, LEAD, { role_id: "@everyone" }),
+    { code: "not_a_role" },
+  );
+  await assert.rejects(
+    w.service.setMentionRole(
+      CLAN,
+      { ...LEAD, role: "elder" },
+      {
+        role_id: "444444444444444444",
+      },
+    ),
+    { code: "leaders_only" },
+  );
+  await w.service.setMentionRole(CLAN, LEAD, {
+    role_id: "444444444444444444",
+  });
+  assert.equal(
+    (await w.service.status(CLAN, LEAD)).mention_role,
+    "444444444444444444",
+  );
+  await w.ledger.putCard(CLAN, card(1));
+  await w.service.share(CLAN);
+  await w.relay();
+  assert.match(w.discord.calls.at(-1)[1], /^<@&444444444444444444> \*\*#1 /);
+  assert.equal(w.discord.opts.at(-1).mention_role, "444444444444444444");
+  await w.service.share(CLAN);
+  await w.ledger.putCard(CLAN, card(1, { status: "withdrawn" }));
+  await w.service.share(CLAN);
+  await w.relay();
+  assert.equal(w.discord.calls.at(-1)[0], "edit");
+  assert.doesNotMatch(w.discord.calls.at(-1)[1], /<@&/);
+  // Off again.
+  await w.service.setMentionRole(CLAN, LEAD, { role_id: null });
+  assert.equal((await w.service.status(CLAN, LEAD)).mention_role, null);
+});
+
+test("Discord refusing one Action's post skips that one, says why, and the rest still go", async () => {
+  const discord = fakeDiscord();
+  const real = discord.post.bind(discord);
+  discord.post = async (url, content, opts) =>
+    /#2 /.test(content)
+      ? {
+          ok: false,
+          status: 400,
+          code: "bad_request",
+          reason: "Invalid Form Body: content",
+        }
+      : real(url, content, opts);
+  const w = world({ discord });
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  for (let n = 1; n <= 3; n++) await w.ledger.putCard(CLAN, card(n));
+  await w.service.share(CLAN);
+  await w.relay();
+  await w.service.share(CLAN);
+  assert.deepEqual(
+    w.discord.calls.slice(1).map(([, t]) => /#(\d)/.exec(t)[1]),
+    ["1", "3"],
+  );
+  const status = await w.service.status(CLAN, LEAD);
+  const two = status.deliveries.find((d) => d.ref === "#2");
+  assert.equal(two.outcome, "refused");
+  assert.equal(two.http_status, 400);
+  assert.equal(two.reason, "Invalid Form Body: content");
+  assert.equal(status.refused_at, null, "the webhook itself still works");
+  assert.equal(status.not_delivered, 1);
+});
+
+test("a connect Discord refuses says what Discord said", async () => {
+  const discord = fakeDiscord();
+  discord.post = async () => ({
+    ok: false,
+    status: 400,
+    code: "bad_request",
+    reason: "Cannot send messages in a voice channel",
+  });
+  const w = world({ discord });
+  await assert.rejects(w.service.setWebhook(CLAN, LEAD, { url: HOOK }), (e) => {
+    assert.equal(e.status ?? e.statusCode ?? 400, 400);
+    assert.equal(e.code, "discord_refused");
+    assert.match(JSON.stringify(e), /Cannot send messages in a voice channel/);
+    return true;
+  });
+});
+
+test("the wake is one timeline-sync object a clan a minute, or none without an outbox", async () => {
+  assert.equal(clanDiscordWake(null), null);
+  const written = [];
+  const wake = clanDiscordWake(
+    async (lane, message, opts) => void written.push([lane, message, opts]),
+    () => 29_340_000 * 60_000 + 59_000,
+  );
+  await wake(CLAN);
+  assert.deepEqual(written, [
+    [
+      "timeline-sync",
+      { v: 1, clan_discord: CLAN },
+      { id: "clan-discord-2PQRJ8LV.29340000", once: true },
+    ],
+  ]);
 });

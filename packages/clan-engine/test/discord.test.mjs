@@ -2,7 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   discordActionMessage,
+  discordActionTitle,
   discordShareable,
+  escapeDiscord,
   DISCORD_MAX_CHARS,
 } from "../src/discord.mjs";
 
@@ -45,7 +47,8 @@ test("a closed action is struck through and says how, and by whom", () => {
       card({ status: "declined", decided_by: "#L", decided_by_name: null }),
       where,
     ),
-    /\n❌ Declined by #L\n/,
+    // A tag is no one's name: an older Action without one says who led.
+    /\n❌ Declined by a leader\n/,
   );
   assert.match(
     discordActionMessage(card({ status: "withdrawn" }), where),
@@ -65,6 +68,23 @@ test("a name is shown as typed, never as Markdown", () => {
   assert.ok(text.includes("Elder: \\*bold\\*\\_x\\_\\`y\\`**"));
   assert.ok(text.includes("Completed by \\~z\\~"));
   assert.ok(text.length <= DISCORD_MAX_CHARS);
+  // Mentions too: a name like <@&1> or @everyone stays text.
+  const mention = discordActionMessage(
+    card({ player_name: "<@&123> @everyone" }),
+    where,
+  );
+  assert.ok(mention.includes("Elder: \\<\\@&123\\> \\@everyone**"));
+  assert.equal(escapeDiscord("a\nb"), "a b");
+});
+
+test("a forum post's name is the action's line, plain and within 100", () => {
+  assert.equal(
+    discordActionTitle(card({ player_name: "*bold*" })),
+    "#12 Promote to Elder: *bold*",
+  );
+  assert.ok(
+    discordActionTitle(card({ player_name: "x".repeat(300) })).length <= 100,
+  );
 });
 
 test("a member's own action is never posted; leader and elder ones are", () => {

@@ -1,0 +1,3 @@
+# Clan's Actions reach Discord in order, and can mention a role
+
+Elixir Clan now posts a clan's Actions to Discord in Action number order, up to ten at a time and spaced under Discord's limit, and looks again a minute later, so an Action completed or declined is edited in the channel within minutes instead of at the next visit. A forum channel's webhook works: each Action is a forum post of its own. A leader can name one Discord role to mention when an Action is first posted (never on an edit), and Settings lists the last deliveries with what Discord said when it refused one. MCP and JSON API unchanged.

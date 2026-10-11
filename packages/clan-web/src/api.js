@@ -128,6 +128,9 @@ export const manageApi = {
   discord: (tag) => get(`${clanBase(tag)}/discord`),
   setDiscord: (tag, url) => put(`${clanBase(tag)}/discord`, { url }),
   removeDiscord: (tag) => del(`${clanBase(tag)}/discord`),
+  // The one role a new Action mentions (2026-10-11), or null for none.
+  setDiscordMention: (tag, roleId) =>
+    post(`${clanBase(tag)}/discord/mention`, { role_id: roleId }),
   // The clan's activity in its own Discord channel (2026-10-10): a
   // separate webhook, the categories, the rewrite and its voice.
   activityDiscord: (tag) => get(`${clanBase(tag)}/activity-discord`),

@@ -157,3 +157,48 @@ test("a clan's wake with a tag that is not one, or with no clan sync, is refused
     console.error = error;
   }
 });
+
+test("a clan's Discord wake shares its Actions and deletes its object; a bad tag or no sharer is refused", async () => {
+  const key = "timeline-sync/clan-discord-J2RGCRVG.29340000.json";
+  const shared = [];
+  const deleted = [];
+  const log = console.log;
+  const error = console.error;
+  console.log = () => {};
+  console.error = () => {};
+  try {
+    const make = (tag, shareClanDiscord) =>
+      makeHandler({
+        connect: async () => ({ end: async () => {} }),
+        sync: async () => assert.fail("not an account's wake"),
+        syncClan: async () => assert.fail("not the activity channel"),
+        shareClanDiscord,
+        readObject: async () => JSON.stringify({ v: 1, clan_discord: tag }),
+        deleteObject: async (obj) => deleted.push(obj.key),
+      });
+    const share = async (_db, tag) => {
+      shared.push(tag);
+      return { shared: 2 };
+    };
+    const out = await make(
+      "#J2RGCRVG",
+      share,
+    )({
+      Records: [record("a", key)],
+    });
+    assert.deepEqual(out.batchItemFailures, []);
+    assert.deepEqual(shared, ["#J2RGCRVG"]);
+    assert.deepEqual(deleted, [key]);
+    for (const [tag, fn] of [
+      ["J2RGCRVG", share],
+      ["#J2RGCRVG", null],
+    ]) {
+      const bad = await make(tag, fn)({ Records: [record("b", key)] });
+      assert.deepEqual(bad.batchItemFailures, [{ itemIdentifier: "b" }]);
+    }
+    assert.equal(shared.length, 1);
+  } finally {
+    console.log = log;
+    console.error = error;
+  }
+});

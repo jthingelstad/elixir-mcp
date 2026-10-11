@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-10; Actions in the clan's Discord, contracts unchanged"
+reviewed: "2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries; contracts unchanged"
 ---
 
 # Actions
@@ -332,7 +332,22 @@ again.
   clan's leaders can read. The link opens the action only for someone
   signed in who could see it here.
 - Messages go out as Clan works: after a visit that raises or decides an
-  action, and after the morning read. Nothing in them pings anyone.
+  action, after the morning read, and a minute after each batch, so a
+  close is edited within minutes. They go in action number order, up to
+  ten at a time, spaced under Discord's limit for a channel; a long
+  backlog arrives over a few minutes.
+- Nothing pings anyone unless the leader or a co-leader names one Discord
+  role to mention (Settings, by the role's id). That role, and only it, is
+  mentioned when an action is first posted; an edit never mentions
+  anyone.
+- A forum channel's webhook works: each action becomes a forum post of its
+  own, named for it, and its close is edited in that post. A webhook
+  ending in `?thread_id=` posts every action into that one thread.
+- Settings lists the last deliveries: posted, edited, refused (with what
+  Discord said), and those Discord never answered, which may be in the
+  channel and are never sent again (a duplicate is worse than a missing
+  message). It counts what did not arrive in the last 30 days. When
+  Discord refuses one action's message, only that one is skipped.
 - Until a webhook is connected, the Actions page suggests one to the
   leader and co-leaders. If Discord stops taking it (the webhook was
   deleted, say), posting stops and Settings and the Actions page say so.

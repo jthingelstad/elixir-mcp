@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DiscordDeliveries } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
@@ -11,6 +12,11 @@ const day = (ts) => (ts ? ts.slice(0, 10) : "");
  * or elders can take is then posted there, and its message is updated
  * when the Action is completed, declined or withdrawn. The webhook is
  * checked by posting through it, kept sealed and never shown again.
+ *
+ * Since 2026-10-11: a forum channel's webhook works (each Action is a
+ * post of its own), the last deliveries are listed with Discord's words
+ * for a refusal, and a leader may name one role to mention on each new
+ * Action (opt in; an edit never mentions anyone).
  */
 export function DiscordSetting({ clan }) {
   const { state, load } = useDiscord(clan.clan_tag);
@@ -18,6 +24,8 @@ export function DiscordSetting({ clan }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [role, setRole] = useState(null);
+  const [roleMessage, setRoleMessage] = useState("");
   if (state.signedOut) return null;
   if (state.forbidden)
     return (
@@ -55,6 +63,20 @@ export function DiscordSetting({ clan }) {
     }
     trackEvent("clan.discord_set");
     refresh();
+  };
+  const saveRole = async (e, value) => {
+    e?.preventDefault();
+    setBusy(true);
+    setRoleMessage("");
+    const r = await manageApi.setDiscordMention(clan.clan_tag, value);
+    setBusy(false);
+    if (!r.ok) {
+      setRoleMessage(r.data?.message ?? "That did not save. Try again.");
+      return;
+    }
+    setRole(null);
+    trackEvent(value ? "clan.discord_mention_set" : "clan.discord_mention_off");
+    load();
   };
   const remove = async () => {
     if (
@@ -105,7 +127,70 @@ export function DiscordSetting({ clan }) {
             <span>
               {d.posted}
               {d.waiting ? ` · ${d.waiting} on the way` : ""}
+              {d.forum ? " · each as a forum post of its own" : ""}
             </span>
+            <span className="label">Mention</span>
+            <span>
+              {d.mention_role ? (
+                <>
+                  <code>{`<@&${d.mention_role}>`}</code> on each new Action{" "}
+                  <button
+                    type="button"
+                    className="link"
+                    disabled={busy}
+                    onClick={(e) => saveRole(e, null)}
+                  >
+                    stop mentioning
+                  </button>
+                </>
+              ) : (
+                "no one"
+              )}
+            </span>
+          </div>
+          <form
+            className="panel__body grid gap-2 pt-0"
+            onSubmit={(e) => saveRole(e, (role ?? "").trim() || null)}
+          >
+            <label className="field-label" htmlFor="discord-mention-role">
+              Mention a role on each new Action (optional): its id
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <input
+                id="discord-mention-role"
+                className="input mono flex-[1_1_220px]"
+                inputMode="numeric"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="Role id, a long number"
+                value={role ?? d.mention_role ?? ""}
+                onChange={(e) => setRole(e.target.value)}
+              />
+              <button
+                type="submit"
+                className="btn btn--sm"
+                disabled={busy || role === null}
+              >
+                Save
+              </button>
+            </div>
+            {roleMessage ? (
+              <p className="field-error m-0" role="alert">
+                {roleMessage}
+              </p>
+            ) : null}
+            <p className="page-head__note m-0">
+              In Discord, with Developer Mode on: Server Settings, Roles,
+              right-click the role, Copy Role ID. Only that role is ever
+              mentioned, only when an Action is first posted, and never when it
+              is updated.
+            </p>
+          </form>
+          <div className="panel__body pt-0">
+            <DiscordDeliveries
+              entries={d.deliveries}
+              notDelivered={d.not_delivered ?? 0}
+            />
           </div>
           {d.refused_at ? (
             <div className="callout callout--warn m-3" role="alert">
@@ -163,7 +248,8 @@ export function DiscordSetting({ clan }) {
         ) : null}
         <p className="page-head__note m-0">
           In Discord: the channel&rsquo;s settings, Integrations, Webhooks, New
-          Webhook, Copy Webhook URL. Connecting posts a short message there to
+          Webhook, Copy Webhook URL. A forum channel works too: each Action
+          becomes a post of its own. Connecting posts a short message there to
           check it. The address is kept encrypted and never shown again. Open
           Actions are posted once it is connected
           {d.set ? "; a new webhook starts over in its channel" : ""}.

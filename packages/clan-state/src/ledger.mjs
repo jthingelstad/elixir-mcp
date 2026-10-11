@@ -592,8 +592,18 @@ export function ledgerOver(io) {
     },
     async removeDiscordWebhook(clanTag) {
       await remove(`discord#${clanTag}`);
+      await remove(`discord_log#${clanTag}`);
       for (const item of await io.listByPrefix(clanTag, "discord_post#"))
         await remove(item.pk);
+    },
+    /** The last deliveries, for Settings (2026-10-11): bounded by the
+     *  service, kept out of the clan's listing like the webhook. */
+    async discordLog(clanTag) {
+      const item = await io.get(`discord_log#${clanTag}`);
+      return item ? stripKeys(item).history : null;
+    },
+    async saveDiscordLog(clanTag, history) {
+      await io.put({ pk: `discord_log#${clanTag}`, history });
     },
     async discordPosts(clanTag) {
       return (await io.listByPrefix(clanTag, "discord_post#")).map(stripKeys);

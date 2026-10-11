@@ -358,6 +358,24 @@ Resources:
       MessageRetentionPeriod: 1209600
       SqsManagedSseEnabled: true
 
+  # Actions in a clan's Discord (2026-10-11): a lane of their own, off the
+  # mail's queue, so a sweep's posts are never behind a burst of mail and
+  # a clan's close is edited within minutes. One record a run; the relay
+  # spaces a request's posts itself. A request whose post another run is
+  # still making comes back after the visibility (90 s, over the relay's
+  # 60 s timeout). What dead-letters joins the mail's dead letters, which
+  # already alarm, as it did on the mail's queue.
+  ClanDiscordQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-clan-discord
+      VisibilityTimeout: 90
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EmailDlq.Arn
+        maxReceiveCount: 5
+
   # ------------------------------------------------------------------- iam
   # One role per function (#24). These five used to share
   # elixir-mcp-vpc-lambda, so the two internet-facing Lambdas carried
@@ -664,7 +682,14 @@ Resources:
               # The morning run's Actions in a clan's Discord (2026-10-10):
               # posts and edits to the relay, and their answers back. A
               # missing answer is confirmed with an exact-key, one-result
-              # list, as the relay does.
+              # list, as the relay does. A hand-off wakes the timeline
+              # sync a minute on to collect the answers (2026-10-11).
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-sync/*
+                - !Ref AWS::NoValue
               - !If
                 - HasInternalClan
                 - Effect: Allow
@@ -773,8 +798,24 @@ Resources:
                     StringLike:
                       s3:prefix:
                         - clan-model/reply/*
+                        - clan-discord/reply/*
                     NumericLessThanEquals:
                       s3:max-keys: "1"
+                - !Ref AWS::NoValue
+              # Actions in a clan's Discord (2026-10-11): a minute after a
+              # hand-off the sync collects the relay's answers and hands
+              # over the next, as Clan does after a request.
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/request/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/reply/*
                 - !Ref AWS::NoValue
 
   # The email outbox connects VPC composers to the non-VPC relay.
@@ -813,7 +854,7 @@ Resources:
           - !If
             - HasInternalClan
             - Event: s3:ObjectCreated:*
-              Queue: !GetAtt EmailQueue.Arn
+              Queue: !GetAtt ClanDiscordQueue.Arn
               Filter:
                 S3Key:
                   { Rules: [{ Name: prefix, Value: clan-discord/request/ }] }
@@ -840,7 +881,12 @@ Resources:
     Type: AWS::SQS::QueuePolicy
     Properties:
       Queues:
-        [!Ref EmailQueue, !Ref TimelineSyncQueue, !Ref TimelineDiscordQueue]
+        [
+          !Ref EmailQueue,
+          !Ref TimelineSyncQueue,
+          !Ref TimelineDiscordQueue,
+          !Ref ClanDiscordQueue,
+        ]
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -851,6 +897,7 @@ Resources:
               - !GetAtt EmailQueue.Arn
               - !GetAtt TimelineSyncQueue.Arn
               - !GetAtt TimelineDiscordQueue.Arn
+              - !GetAtt ClanDiscordQueue.Arn
             Condition:
               ArnEquals:
                 aws:SourceArn: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
@@ -885,6 +932,7 @@ Resources:
                 Resource:
                   - !GetAtt EmailQueue.Arn
                   - !GetAtt TimelineDiscordQueue.Arn
+                  - !GetAtt ClanDiscordQueue.Arn
               # A Discord lane's record held back until Discord's limit
               # resets, rather than the queue's six minutes (2026-10-11).
               - Effect: Allow
@@ -1302,6 +1350,18 @@ Resources:
     Properties:
       FunctionName: !Ref EmailRelayFunction
       EventSourceArn: !GetAtt TimelineDiscordQueue.Arn
+      BatchSize: 1
+      ScalingConfig: { MaximumConcurrency: 2 }
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
+  # Actions in a clan's Discord (2026-10-11): one request a run. A clan
+  # has one request out at a time (manage/discord.mjs), so two runs are
+  # two clans; two is the least concurrency SQS allows.
+  ClanDiscordEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref EmailRelayFunction
+      EventSourceArn: !GetAtt ClanDiscordQueue.Arn
       BatchSize: 1
       ScalingConfig: { MaximumConcurrency: 2 }
       FunctionResponseTypes: [ReportBatchItemFailures]

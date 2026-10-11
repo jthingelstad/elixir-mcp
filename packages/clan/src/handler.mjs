@@ -538,6 +538,14 @@ export function createHandler({
           return json(200, await discord.removeWebhook(tag, who));
         return json(400, { error: "bad_request" });
       }
+      // The one role a new Action mentions (2026-10-11, opt in).
+      if (discord && rest === "/discord/mention" && method === "POST")
+        return json(
+          200,
+          await discord.setMentionRole(tag, who, {
+            role_id: body?.role_id ?? null,
+          }),
+        );
       // The key's model list, read again when it is due (Settings asks
       // after it has drawn; `refreshModels` bounds it to once a day).
       if (model && method === "POST" && rest === "/model/refresh")

@@ -23,8 +23,20 @@ export const DISCORD_MAX_CHARS = 2000;
 /** Whether an action is posted at all: every one but a member's own. */
 export const discordShareable = (card) => audienceOf(card).kind !== "member";
 
-/** Discord reads these as Markdown; a member's name is shown as typed. */
-const escape = (text) => String(text).replace(/([\\*_~`|>[\]()])/g, "\\$1");
+/** Discord reads these as Markdown, and `<` and `@` as mentions: escaped,
+ *  a name is shown as typed. Line breaks fold to spaces. One rule for
+ *  every Discord path (the timeline's lines re-export it). */
+export function escapeDiscord(s) {
+  return String(s ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/[\\*_~`|>[\]<@]/g, (c) => `\\${c}`);
+}
+const escape = escapeDiscord;
+
+/** A forum post's name for an action: its line, plain (a post's name is
+ *  not Markdown), within Discord's 100 characters. */
+export const discordActionTitle = (card) =>
+  actionLine(card).replace(/\s+/g, " ").trim().slice(0, 100);
 
 /** The text of an action's message: what it is, how it closed, the link. */
 export function discordActionMessage(card, { clanTag, appUrl }) {
@@ -34,7 +46,13 @@ export function discordActionMessage(card, { clanTag, appUrl }) {
     ...card,
     ...(card.player_name ? { player_name: escape(card.player_name) } : {}),
   }).slice(0, 300);
-  const by = escape(card.decided_by_name ?? card.decided_by ?? "").slice(0, 60);
+  // A name kept at the decision; an older Action holds only a tag, which
+  // is no one's name: "a leader" then.
+  const by = card.decided_by_name
+    ? escape(card.decided_by_name).slice(0, 60)
+    : card.decided_by
+      ? "a leader"
+      : "";
   const closed = {
     done: `✅ Completed${by ? ` by ${by}` : ""}`,
     declined: `❌ Declined${by ? ` by ${by}` : ""}`,

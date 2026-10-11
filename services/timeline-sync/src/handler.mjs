@@ -11,6 +11,13 @@
  * way, by `{ v: 1, clan_tag }`. Its run may wait on the clan's model, so
  * one that would start with less than `CLAN_RUN_MS` left is sent back
  * to the queue untouched and runs on a later delivery.
+ *
+ * A clan's Actions in its Discord (2026-10-11) are looked at again a
+ * minute after each hand-off to the relay, by `{ v: 1, clan_discord }`:
+ * the relay's answers are collected and the next Actions handed over,
+ * under the clan's lock. When another holder has the lock it shares
+ * itself (Clan does after every request, the morning run after its
+ * sweep), so the wake is done.
  */
 import { isCanonicalTag, outboxObjects } from "@elixir-mcp/contracts";
 
@@ -23,6 +30,7 @@ const CLAN_RUN_MS = 40_000;
  *   connect: () => Promise<import("pg").Client>,
  *   sync: (db: any, accountId: string) => Promise<object>,
  *   syncClan?: (db: any, clanTag: string, opts: { remainingMs: () => number }) => Promise<object>,
+ *   shareClanDiscord?: (db: any, clanTag: string) => Promise<object>,
  *   readObject: (obj: {bucket: string, key: string}) => Promise<string | null>,
  *   deleteObject: (obj: {bucket: string, key: string}) => Promise<unknown>,
  * }} deps
@@ -31,6 +39,7 @@ export function makeHandler({
   connect,
   sync,
   syncClan = null,
+  shareClanDiscord = null,
   readObject,
   deleteObject,
 }) {
@@ -47,7 +56,16 @@ export function makeHandler({
       } catch {
         return "bad_message";
       }
-      if (msg?.v === 1 && typeof msg.clan_tag === "string") {
+      if (msg?.v === 1 && typeof msg.clan_discord === "string") {
+        if (!isCanonicalTag(msg.clan_discord) || !shareClanDiscord)
+          return "bad_message";
+        const out = await shareClanDiscord(await db(), msg.clan_discord);
+        console.log(
+          "clan_discord_shared",
+          msg.clan_discord,
+          JSON.stringify(out),
+        );
+      } else if (msg?.v === 1 && typeof msg.clan_tag === "string") {
         if (!isCanonicalTag(msg.clan_tag) || !syncClan) return "bad_message";
         if (remainingMs() < CLAN_RUN_MS) return "later";
         const out = await syncClan(await db(), msg.clan_tag, { remainingMs });
