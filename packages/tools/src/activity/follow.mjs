@@ -14,9 +14,10 @@
  * a test (timeline-follow.test.mjs).
  */
 
-/** One second before an instant: windows select (from, to], so a span
- *  read from its first battle's own instant would leave that battle out. */
-const before = (isoAt) => new Date(Date.parse(isoAt) - 1000).toISOString();
+/** One second after an instant: battle windows select [from, to), so a
+ *  span read to its last battle's own instant would leave that battle out
+ *  (Codex on #476). Battle times are whole seconds. */
+const after = (isoAt) => new Date(Date.parse(isoAt) + 1000).toISOString();
 
 const player = (it) => it.facts?.player_tag ?? null;
 /** The clan an item is about: its clan subject, or the clan a roster
@@ -70,8 +71,8 @@ export function followFor(it, window) {
                 tool: "battles_performance",
                 args: {
                   player_tag: tag,
-                  from: before(f.started_at),
-                  to: f.ended_at,
+                  from: f.started_at,
+                  to: after(f.ended_at),
                 },
               },
             ]
@@ -109,18 +110,20 @@ export function followFor(it, window) {
         : [];
     case "member_joined":
     case "member_left":
-    case "member_role_changed":
-    case "clan_joined":
-    case "clan_left": {
+    case "member_role_changed": {
+      // A clan feed's move: the clan is one the reader records, so its
+      // roster is there to read.
       const clan = clanOf(it);
       return [
-        ...summary(
-          tag ??
-            (it.subjects?.[0]?.kind === "player" ? it.subjects[0].tag : null),
-        ),
+        ...summary(tag),
         ...(clan ? [{ tool: "clans_roster", args: { clan_tag: clan } }] : []),
       ];
     }
+    case "clan_joined":
+    case "clan_left":
+      // A player's own move may name a clan nobody records, whose roster
+      // read would answer not_recorded (Codex on #476): the member only.
+      return summary(tag);
     case "bracket_observed": {
       const clan = clanOf(it);
       const rivals = (f.rivals ?? []).map((r) => r.tag).filter(Boolean);

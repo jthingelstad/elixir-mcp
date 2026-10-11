@@ -252,7 +252,8 @@ story or how to name the moment to it:
 | `badge_earned`, `legendary_badge_earned` | `players_profile` |
 | `collection_level_step` | `players_collection` |
 | `card_unlocked`, `card_form_unlocked` | `players_collection`, then `cards_card` for that card and that player |
-| roster moves and clan moves | `players_summary` for the member, then `clans_roster` |
+| `member_joined`, `member_left`, `member_role_changed` | `players_summary` for the member, then `clans_roster` |
+| `clan_joined`, `clan_left` | `players_summary` (the clan may be one nobody records) |
 | `bracket_observed` | `war_rivals` for the clan and its bracket |
 | `race_finished`, `week_resolved` | `war_history` for that season and week |
 | `quiet_crossed`, `returned` | `players_summary`, then the member's last ten battles (`battles_query`) |
