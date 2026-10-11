@@ -462,11 +462,12 @@ set in the console only, never through MCP or the JSON API.
   posts with the next thing the record learns about that subject. Nothing from before it was turned on is posted. The
   cross-post's place never moves your read pointer, a reader's, or
   `meta.timeline_pending`.
-- **One line per story,** opening with a Discord timestamp of `at_unix`
-  that each reader sees on their own clock, then the item's sentence with names
-  made literal, then links back to Elixir (the battle, the race week, the
-  member, the subject) in the form Discord never previews. Nothing pings
-  anyone.
+- **One line per story:** the item's sentence with names made literal,
+  then links back to Elixir (the battle, the race week, the member, the
+  subject) in the form Discord never previews. Discord's post time says
+  when; only an item over three hours old (a late proof, a quiet rung)
+  adds how long ago (`<t:{at_unix}:R>`, from a sitting's last battle).
+  Nothing pings anyone.
 - **Edited, never repeated.** When an item grows (a sitting adds
   battles, or closes), its message is edited in place; a sitting posted
   while going is edited to its final count within about 45 minutes of

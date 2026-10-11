@@ -210,7 +210,8 @@ connect a Discord webhook of its own: not the one Actions go to, and not
 a person's [timeline cross-post](/docs/timeline). From then on the clan's
 timeline is posted there as it happens, as its members read it: one line
 each, with a link back to Elixir in angle brackets so Discord draws no
-preview.
+preview. A line carries no time unless its item is over three hours old;
+then it says how long ago.
 
 - **What is posted**: three groups a leader switches. **Members**: who
   joins and who departs, and role changes made in the game. **Milestones**:

@@ -125,7 +125,7 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   const sitting = first.posts[0];
   assert.match(
     sitting.content,
-    /^<t:\d+:t> .* played a session of 5 battles .*still going\./,
+    /^\S.* played a session of 5 battles .*still going\./,
   );
   assert.match(
     sitting.content,
@@ -148,6 +148,9 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   assert.equal(grown[0].key, sitting.key);
   assert.ok(grown[0].revision > sitting.revision);
   assert.match(grown[0].content, /a session of 10 battles .*still going/);
+  // The edit is built again and its last battle is minutes old: no time,
+  // as the first post had none (2026-10-11).
+  assert.doesNotMatch(grown[0].content, /<t:/);
 
   // Nothing new: nothing is written.
   await syncAccount(ctx.db, person, {
