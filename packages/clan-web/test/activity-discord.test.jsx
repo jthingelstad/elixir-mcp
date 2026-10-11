@@ -52,6 +52,42 @@ const view = (extra = {}) => ({
 const ok = (data) => ({ ok: true, status: 200, data });
 
 describe("the clan's activity in Discord", () => {
+  test("the channel's last deliveries show each line as posted, marked when the clan's model wrote it", async () => {
+    const base = view();
+    vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
+      ok({
+        ...base,
+        connection: {
+          ...base.connection,
+          deliveries: [
+            {
+              at: "2026-10-11T12:00:00Z",
+              outcome: "posted",
+              ref: "tl_0123456789abcdef0123",
+              excerpt: "Ada steps up to Elder!",
+              rewritten: true,
+            },
+            {
+              at: "2026-10-11T11:00:00Z",
+              outcome: "not_delivered",
+              excerpt: "Ben joined",
+              reason: "Discord kept asking Elixir to slow down.",
+            },
+          ],
+          not_delivered: 1,
+        },
+      }),
+    );
+    renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+    const list = await screen.findByRole("list", { name: "Last deliveries" });
+    const [first, second] = list.querySelectorAll("li");
+    expect(first.textContent).toContain("rewritten");
+    expect(first.textContent).toContain("Ada steps up to Elder!");
+    expect(second.textContent).toContain("Not delivered");
+    expect(second.textContent).not.toContain("rewritten");
+    expect(screen.getByText(/1 not delivered in 30 days/)).toBeTruthy();
+  });
+
   test("connecting sends the address once and clears it from the page", async () => {
     vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
       ok(view({ connection: null })),

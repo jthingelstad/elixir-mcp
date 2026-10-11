@@ -7,6 +7,7 @@
  *  line, so the owner sees at once that it works. */
 import {
   awaitFirstWord,
+  clanChannelsInTimeline,
   readDiscordSetting,
   refuseDiscordSetting,
   refusalOf,
@@ -23,8 +24,8 @@ const ERRORS = {
   ...WEBHOOK_REFUSALS,
 };
 
-/** `discord`: { seal, outbox, readStatus } (syndication webhookSeal and
- *  makeStatusReader). Without the sealing secret there is no `seal`, and
+/** `discord`: { seal, outbox, readStatus, readHistory } (syndication
+ *  webhookSeal, makeStatusReader and makeHistoryReader). Without the sealing secret there is no `seal`, and
  *  nothing can be saved; without the outbox no hello line is sent.
  *  After a hello the save waits up to `discord.helloWaitMs` (8 s) for the relay's
  *  first word: a forum channel's webhook, or one Discord says is gone,
@@ -37,9 +38,19 @@ export function timelineDiscordRoutes({ resolveAccount, discord = null }) {
       if (!account) return json(401, { error: "unauthenticated" });
       const row = await readDiscordSetting(db, account.accountId);
       let status = null;
+      let history = null;
       if (row && discord?.readStatus)
         status = await discord.readStatus(account.accountId).catch(() => null);
-      return json(200, settingView(row, status));
+      if (row && discord?.readHistory)
+        history = await discord
+          .readHistory(account.accountId)
+          .catch(() => null);
+      // Your own clans that post their activity to a channel of their
+      // own: the page says the same lines may reach Discord twice.
+      const clan_channels = row?.enabled
+        ? await clanChannelsInTimeline(db, account.accountId)
+        : [];
+      return json(200, { ...settingView(row, status, history), clan_channels });
     },
 
     "PUT /api/me/timeline/discord": async (db, event, body) => {

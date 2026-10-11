@@ -489,11 +489,21 @@ set in the console only, never through MCP or the JSON API.
   busy war day arrives over a few minutes rather than being dropped; a
   line that still cannot be delivered after many tries is counted as not
   delivered.
+- **The last deliveries.** The panel lists the last 20 lines from the past
+  30 days: posted, edited, refused (in Discord's words), not delivered,
+  or "no answer", meaning Discord was called but never answered. A line
+  with no answer may be in the channel, and it is never sent again,
+  because a duplicate is worse than a missing line. The panel also counts
+  the lines not delivered in those 30 days.
 
 A clan's leaders can also post the clan's own activity to a channel,
 chosen by category and set by the clan's policy, from Elixir Clan's
 Settings ([The clan's activity in
-Discord](/docs/clan-policy#the-clans-activity-in-discord)).
+Discord](/docs/clan-policy#the-clans-activity-in-discord)). If a clan
+you follow posts there and one of your verified players is a member, the
+panel names it. The clan's lines are in your timeline too, so they are
+posted to your channel as well. Nothing is filtered: a server that
+carries both channels shows them twice.
 
 ## What the timeline never does
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DiscordDeliveries } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
@@ -192,6 +193,15 @@ export function ActivityDiscordSetting({ clan, navigate }) {
               Disconnect
             </button>
           </div>
+          {c.deliveries?.length || c.not_delivered ? (
+            <div className="panel__body pt-0">
+              <DiscordDeliveries
+                entries={c.deliveries}
+                notDelivered={c.not_delivered ?? 0}
+                whole
+              />
+            </div>
+          ) : null}
         </section>
       ) : null}
 

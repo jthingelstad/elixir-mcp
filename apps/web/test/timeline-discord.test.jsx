@@ -158,3 +158,36 @@ test("off by the owner with a saved webhook: Turn on uses it", async () => {
   await waitFor(() => expect(puts.length).toBe(1));
   expect(puts[0]).toEqual({ enabled: true });
 });
+
+test("on: the last deliveries are listed, and your clan's own channel is named, nothing filtered", async () => {
+  setting = {
+    ...ON,
+    deliveries: [
+      {
+        at: "2026-10-10T15:00:00Z",
+        outcome: "refused",
+        ref: "tl_0123456789abcdef0123",
+        http_status: 400,
+        reason: "Invalid Form Body",
+        excerpt: "a line Discord would not take",
+      },
+      {
+        at: "2026-10-10T14:30:00Z",
+        outcome: "posted",
+        ref: "tl_0123456789abcdef0124",
+        excerpt: "five battles",
+      },
+    ],
+    not_delivered: 1,
+    clan_channels: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
+  };
+  await open();
+  const list = screen.getByRole("list", { name: "Last deliveries" });
+  expect(list.textContent).toContain("Discord: HTTP 400, Invalid Form Body");
+  expect(list.textContent).toContain("five battles");
+  expect(list.textContent).not.toContain("tl_", "an item's id says nothing");
+  expect(screen.getByText(/1 not delivered in 30 days/)).toBeTruthy();
+  expect(screen.getByRole("note").textContent).toMatch(
+    /POAP KINGS posts the clan’s activity to a Discord channel of its own.*Nothing here is filtered/,
+  );
+});

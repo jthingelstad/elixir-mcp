@@ -9,6 +9,8 @@ export interface DiscordDeliveryRow {
   http_status?: number;
   reason?: string | null;
   excerpt?: string | null;
+  /** The clan's own model wrote the line (a clan's activity channel). */
+  rewritten?: boolean;
 }
 
 const SAID: Record<DiscordDeliveryRow["outcome"], string> = {
@@ -32,10 +34,14 @@ export function DiscordDeliveries({
   entries,
   notDelivered = 0,
   show = 8,
+  whole = false,
 }: {
   entries: DiscordDeliveryRow[] | null | undefined;
   notDelivered?: number;
   show?: number;
+  /** Show each line whole rather than its first words (the clan's
+   *  activity channel, where leaders read what was posted). */
+  whole?: boolean;
 }) {
   const rows = (entries ?? []).slice(0, show);
   if (!rows.length && !notDelivered) return null;
@@ -59,10 +65,16 @@ export function DiscordDeliveries({
             <span className="font-semibold">
               {SAID[r.outcome] ?? r.outcome}
             </span>
-            {r.ref ? <span className="mono">{r.ref}</span> : null}
+            {/* An Action's number; a timeline item's id says nothing. */}
+            {r.ref?.startsWith("#") ? (
+              <span className="mono">{r.ref}</span>
+            ) : null}
             <Fresh ts={r.at} />
+            {r.rewritten ? <span className="hint">rewritten</span> : null}
             {r.excerpt ? (
-              <span className="min-w-0 flex-[1_1_12rem] truncate text-ink-faint">
+              <span
+                className={`min-w-0 flex-[1_1_12rem] text-ink-faint ${whole ? "w-full break-words" : "truncate"}`}
+              >
                 {r.excerpt}
               </span>
             ) : null}

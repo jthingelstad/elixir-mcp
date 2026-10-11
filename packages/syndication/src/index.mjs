@@ -15,6 +15,7 @@ export {
 } from "./wake.mjs";
 export {
   clanActivityRowView,
+  clanChannelsInTimeline,
   clanHelloContent,
   readClanActivity,
   refuseClanActivity,
@@ -30,7 +31,11 @@ export {
   settingView,
   WEBHOOK_REFUSALS,
 } from "./settings.mjs";
-export { makeStatusReader, timelineDiscordStore } from "./store.mjs";
+export {
+  makeHistoryReader,
+  makeStatusReader,
+  timelineDiscordStore,
+} from "./store.mjs";
 export {
   clanActivitySeal,
   webhookSeal,

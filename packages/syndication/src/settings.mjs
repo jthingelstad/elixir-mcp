@@ -7,6 +7,7 @@
 import { randomUUID } from "node:crypto";
 import {
   ELIXIR_ORIGIN,
+  discordNotDelivered,
   parseDiscordWebhook,
   webhookDisplay,
   webhookFingerprint,
@@ -98,8 +99,17 @@ export async function refuseDiscordSetting(
   return rows[0] ?? null;
 }
 
+/** The relay's last deliveries (newest first) and how many in 30 days
+ *  were not delivered, as a page shows them (2026-10-11). */
+export function deliveriesView(history, now = Date.now()) {
+  return {
+    deliveries: Array.isArray(history?.entries) ? history.entries : [],
+    not_delivered: discordNotDelivered(history, now),
+  };
+}
+
 /** What the console shows: never the URL, only its short form. */
-export function settingView(row, status = null) {
+export function settingView(row, status = null, history = null) {
   if (!row)
     return {
       enabled: false,
@@ -108,6 +118,7 @@ export function settingView(row, status = null) {
       disabled_reason: null,
       disabled_at: null,
       delivery: null,
+      ...deliveriesView(null),
     };
   const current = status && status.webhook === row.webhook_fp ? status : null;
   return {
@@ -126,6 +137,7 @@ export function settingView(row, status = null) {
           reason: current.reason ?? null,
         }
       : null,
+    ...deliveriesView(history),
   };
 }
 

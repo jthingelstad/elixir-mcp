@@ -9,7 +9,10 @@ import {
   DeleteObjectCommand,
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
-import { timelineDiscordStatusKey } from "@elixir-mcp/contracts";
+import {
+  timelineDiscordHistoryKey,
+  timelineDiscordStatusKey,
+} from "@elixir-mcp/contracts";
 
 const STATE =
   /^timeline-discord-state\/(?:[a-f0-9-]{36}\/[^/]+(?:\/[^/]+)?|pace\/[a-f0-9]{16})\.json$/;
@@ -121,4 +124,13 @@ export function makeStatusReader(bucket, s3) {
   const store = timelineDiscordStore(bucket, s3);
   return async (accountId) =>
     (await store.read(timelineDiscordStatusKey(accountId)))?.body ?? null;
+}
+
+/** The relay's last deliveries to an account's (or a clan channel's)
+ *  webhook (contracts DiscordDeliveryHistory), or null before the first. */
+export function makeHistoryReader(bucket, s3) {
+  if (!bucket) return async () => null;
+  const store = timelineDiscordStore(bucket, s3);
+  return async (accountId) =>
+    (await store.read(timelineDiscordHistoryKey(accountId)))?.body ?? null;
 }

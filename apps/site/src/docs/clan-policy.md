@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-11; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, contracts unchanged"
+reviewed: "2026-10-11; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, the last deliveries listed with rewritten lines marked, contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -248,6 +248,9 @@ preview.
   one line, only that line is skipped and the page shows what Discord
   said. Lines go at most about 25 a minute, under Discord's limit for a
   channel. Pausing or disconnecting leaves the messages already posted.
+- The page lists the channel's last 20 deliveries from the past 30 days,
+  each line whole as it was posted, with any line the clan's model wrote
+  marked **rewritten**. It also counts the lines not delivered.
 
 ## Agent context
 

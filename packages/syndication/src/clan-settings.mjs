@@ -14,6 +14,7 @@ import {
   webhookDisplay,
   webhookFingerprint,
 } from "@elixir-mcp/contracts";
+import { deliveriesView } from "./settings.mjs";
 
 const COLUMNS = `channel_id, webhook_sealed, webhook_fp, webhook_display,
   enabled, enabled_at, disabled_reason, disabled_at, categories, rewrite,
@@ -36,6 +37,36 @@ export function clanHelloContent(clanName, nowMs = Date.now()) {
   ].join("\n");
 }
 
+/**
+ * The clans in an account's own timeline that also post their activity
+ * to a Discord channel of their own (2026-10-11): followed with notify
+ * on, the channel on, and one of the account's verified players a
+ * member now. The timeline page says so, because the same lines may then
+ * reach Discord twice; nothing is filtered (Jamie, 2026-10-10). Only a
+ * member's own clans: whether another clan posts its activity is that
+ * clan's business.
+ */
+export async function clanChannelsInTimeline(db, accountId) {
+  const { rows } = await db.query(
+    `select d.clan_tag, cl.name
+       from clan_activity_discord d
+       join account_clan ac
+         on ac.clan_tag = d.clan_tag and ac.account_id = $1 and ac.notify
+       left join clan cl on cl.clan_tag = d.clan_tag
+      where d.enabled
+        and exists (
+          select 1 from claim c
+            join clan_membership cm
+              on cm.player_tag = c.player_tag and cm.left_observed_at is null
+           where c.account_id = $1 and c.status = 'verified'
+             and cm.clan_tag = d.clan_tag)
+      order by d.clan_tag
+      limit 5`,
+    [accountId],
+  );
+  return rows.map((r) => ({ clan_tag: r.clan_tag, name: r.name ?? null }));
+}
+
 export async function readClanActivity(db, clanTag) {
   const { rows } = await db.query(
     `select ${COLUMNS} from clan_activity_discord where clan_tag = $1`,
@@ -47,7 +78,7 @@ export async function readClanActivity(db, clanTag) {
 /** The connection as leaders read it: never the URL, only its short
  *  form, and the relay's last word on it (contracts
  *  TimelineDiscordStatus) when it is about this webhook. */
-export function clanActivityRowView(row, status = null) {
+export function clanActivityRowView(row, status = null, history = null) {
   if (!row) return null;
   const current = status && status.webhook === row.webhook_fp ? status : null;
   return {
@@ -70,6 +101,7 @@ export function clanActivityRowView(row, status = null) {
           reason: current.reason ?? null,
         }
       : null,
+    ...deliveriesView(history),
   };
 }
 

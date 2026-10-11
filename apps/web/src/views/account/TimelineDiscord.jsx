@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWrite } from "@elixir-mcp/client";
-import { Fresh, WriteError, useClock } from "@elixir-mcp/ui";
+import { DiscordDeliveries, Fresh, WriteError, useClock } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
 import { scopedKey, useTimelineDiscord } from "../../lib/queries.js";
 import { useScope } from "../../lib/scope.js";
@@ -133,6 +133,18 @@ export function TimelineDiscord() {
             <span className="mono break-all">{s.webhook}</span>.
           </p>
         ) : null}
+        {s.enabled && s.clan_channels?.length ? (
+          <div className="callout" role="note">
+            <span>
+              {s.clan_channels.map((c) => c.name ?? c.clan_tag).join(", ")}{" "}
+              {s.clan_channels.length > 1 ? "post" : "posts"} the clan&rsquo;s
+              activity to a Discord channel of its own (Elixir Clan). Those
+              lines are in your timeline too, so they are posted here as well: a
+              server that carries both channels shows them twice. Nothing here
+              is filtered.
+            </span>
+          </div>
+        ) : null}
 
         {asking ? (
           <form
@@ -230,6 +242,10 @@ export function TimelineDiscord() {
         )}
         {save.error ? <WriteError error={save.error} /> : null}
         {said ? <p role="status">{said}</p> : null}
+        <DiscordDeliveries
+          entries={s.deliveries}
+          notDelivered={s.not_delivered ?? 0}
+        />
       </div>
     </section>
   );
