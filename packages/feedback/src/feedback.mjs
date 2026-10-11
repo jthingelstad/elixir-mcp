@@ -538,6 +538,15 @@ export async function answerFeedback(
     response === null || response === undefined
       ? null
       : String(response).trim().slice(0, FEEDBACK_RESPONSE_MAX) || null;
+  // needs_info is a question (11.10.0): it must arrive with one, new.
+  // A status-only needs_info would raise no pending hint and send nothing,
+  // and an unchanged response would relabel the old answer as a question.
+  if (status === "needs_info" && !words)
+    throw new FeedbackError(
+      400,
+      "needs_question",
+      "needs_info asks the filer one question: pass it as the response.",
+    );
   // Unset (undefined or null) leaves shipped_in as it is; '' clears it.
   const shipped =
     shippedIn === undefined || shippedIn === null
@@ -558,6 +567,7 @@ export async function answerFeedback(
                            when $4 = '' then null else $4 end,
          related_tools = coalesce($5, related_tools)
        where feedback_id = $1
+         and ($2::text <> 'needs_info' or $3::text is distinct from response)
          and ($6::boolean = false or (
            status = $7 and response is not distinct from $8::text
            and responded_at is not distinct from $9::timestamptz))
@@ -590,7 +600,24 @@ export async function answerFeedback(
         status: rows[0].status,
         answered: rows[0].answered === true,
       }
-    : { updated: 0 };
+    : await unchangedQuestion(db, feedbackId, status, words);
+}
+
+/** Nothing updated: say so plainly when it was a needs_info repeating the
+ *  item's current response, rather than as a compare-and-set miss. */
+async function unchangedQuestion(db, feedbackId, status, words) {
+  if (status !== "needs_info") return { updated: 0 };
+  const { rows } = await db.query(
+    `select response from feedback where feedback_id = $1`,
+    [String(feedbackId)],
+  );
+  if (rows[0] && rows[0].response === words)
+    throw new FeedbackError(
+      400,
+      "needs_question",
+      "That is the item's current response; needs_info needs a new question.",
+    );
+  return { updated: 0 };
 }
 
 /** The fields the maintainer reads, on the queue and the item. */
