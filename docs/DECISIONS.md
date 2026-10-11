@@ -3,19 +3,35 @@
 What stands, one line each. The code and the public docs
 (`apps/site/src/docs/`) describe behaviour; this file records the choices
 that constrain it. The reasoning behind a line is in git history
-(`git log -S "<words from the line>" -- docs/`). Do not re-litigate a line. A
-change is a note in `docs/notes/` plus an edit here, written as the
-current rule, never as "was X, now Y".
+(`git log -S "<words from the line>" -- docs/`). A change is a note in
+`docs/notes/` plus an edit here, written as the current rule, never as
+"was X, now Y".
+
+Every line ends with who decided it:
+
+- **[Jamie, date]** is Jamie's decision. Do not re-litigate it; a
+  surface that disagrees with it is the defect, and a conflict you find
+  is a question for Jamie.
+- **[engineering, date]** is a default an agent chose. Follow it, and
+  propose a change with evidence (a note and an edit, in a pull request)
+  when it gets in the way.
+- **[Jamie, date; engineering: …]** is Jamie's decision with agent
+  detail; the part after "engineering" may be revisited like any
+  engineering line.
+
+A line says no more than the decision behind it. A guide, skill, page,
+comment or test that needs the rule names the line's heading rather than
+restating it in wider words.
 
 ## Scope and footprint
 
 - **Elixir is the recorder** — a Clash Royale recorder for a player, their friends and their clan: explored on the website, delivered in record-driven mail, and connected to a person's own agent over MCP as an extension. A feature must serve that circle without an autonomous elite population or game commentary; the top of the ladder and esports are out of scope.
-- **No recommendations** — no deck, upgrade or matchup advice, recommendation scoring, priors or candidate generation, and none rebuilt over friends, clans or any smaller population.
+- **No recommendations from Elixir** — Elixir's own outputs (tools, timeline, mail, Ladder and the site) give no deck, upgrade or matchup advice and carry no recommendation scoring, priors or candidate generation, over the whole game or any smaller population (friends, clans). Agents (a person's own, and the family's Discord agent) may coach and recommend from Elixir's facts; the suggestion is theirs, never presented as Elixir's.
 - **No game-wide statistics** — no corpus card or deck performance, meta tools, global comparisons or population rollups. The card catalog and art, canonical deck identity, archetype labels, the factual event calendar and scoped personal and clan history stay.
 - **No leaderboard capture or autonomous elite recording** — board endpoints are retired at plan, lease, submit and ingest (`RETIRED_RECORDING_ENDPOINTS`); a recorded player's own profile still supplies their rank.
 - **No named recording Collections** — followed players are organized as primary, alt, friend or watching; no replacement grouping, curated creator catalog, always-on recording or popularity quota exemption. A player's owned-card collection is a game fact and stays.
 - **History is kept for what someone tracks** — a roster poll of a clan nobody tracks keeps only the tracked players on it (membership, role, roster row, the clan's name) and writes no clan day row; a retained battle keeps every participant.
-- **No branded or derived player metric, ever** — no score, rating, residual ("Elixir Lift"), similarity, playstyle or adoption-cost number.
+- **Elixir rates no player** — no branded or invented player score or rating (Pilot Score, "Elixir Lift"), residual, similarity, playstyle or adoption-cost number. Plain derived facts (rates, counts, differences and their direction) are what a recorder serves.
 - **Every aggregate ships its control** — the control sits next to the number, in the service; a note fires on a detected confound, never as boilerplate.
 - **Elixir names decks, never judges them** — an archetype label is vocabulary, not a verdict; null is the correct answer for a card no public source attests; nothing clan-specific enters the vocabulary.
 - **Elixir is the system of record for game facts** — only collectors write the game record; what family apps attest is held apart and labelled (Data model).
@@ -119,12 +135,12 @@ current rule, never as "was X, now Y".
 - **Removing your primary is refused while you track others** — choose the new primary first; removing your last player is allowed.
 - **Agent-only tools** — `elixir_identify`, `elixir_my_identities` and `clans_context` are hidden from people and integrations; a personal connection ignores `on_behalf_of`.
 - **Universal reads** — all recorded game data is readable by every account; account data stays private.
-- **CR tags are not PII; email is.**
+- **CR tags are not PII; email is** — a tag is public game data like the rest of the record, so an issue, a note, an analytics path or a model request may carry one; masking a tag or a record id in analytics is report hygiene, never a privacy rule. Account data (claims, nicknames, connections, usage) is the account's. cr-agent-api-docs leaves real tags out as a public reference's tidiness.
 - **Nicknames and machine labels are private** — the card name is a collector's only public name; public operator credit shows the primary player only.
 - **The account's address goes only to the family's own apps** — `account:email` is refused at authorize for any non-family client and checked again at `/oauth/userinfo`.
 - **What is kept and counted, SETTLED** — game data is public and recorded; your account is first-party; measurement is aggregate, with no per-recipient open or click, ever; money is voluntary sponsorship that buys nothing.
 - **Product identifiers are not tracking identifiers** — a send id or request id is a pointer its holder can open, so it may appear in links.
-- **Invites carry no referral ids** — an invite line or link is the same for everyone (Elixir's plain signup address): no referral code, invite id or tracking parameter, and nothing records who copied or shared one.
+- **Invites carry no referral ids** — an invite line or link is the same for everyone (Elixir's plain signup address): no referral code, invite id or tracking parameter, and nothing records who copied or shared one; a copy is counted as one aggregate analytics event, as Clan's copy buttons are.
 - **The beta pulse is aggregate by signup week** — Admin ▸ Beta pulse counts people (never agents or integrations) by ISO signup week, from records Elixir already keeps, and never names, lists or links an account; staff and their `+tag` test mailboxes are left out and counted apart; it stores nothing new, and mail opens stay in Tinylytics (Jamie, 2026-10-08: "aggregate beta pulse funnel in elixir Admin"). Came back is a sign-in or a call of the person's own on a later day of the account's own time zone (UTC without one), never a session merely seen (Jamie, 2026-10-08: "agree").
 - **What we never do** — no ads, brokers, selling or sharing, engagement scoring, automation on read state, or commercial targeting from game data.
 - **Analytics is client-side Tinylytics only** — never proxied through our API; the servers send Tinylytics nothing; `/signin` loads no analytics.
@@ -163,13 +179,13 @@ current rule, never as "was X, now Y".
 - **Card art is Supercell's: hosted as byte-identical copies of the API's iconUrls, never resized, re-encoded or altered** (Jamie, 2026-10-08: "it is important with card art that we not modify it at all. we can host them locally, but you cannot resize the images or alter them in anyway.") — card responses carry `art` by form on Elixir's origin (Jamie, 2026-10-08: "Card art should be in the api response for cards"), one original file per card and form; display size comes from HTML/CSS only, never a resized copy; surfaces draw the played form, else the base card, else the name (mail decides at compose time); a listed form's image is expected to be missing for about two weeks after Supercell releases it (Jamie, 2026-10-08: "For some reason it takes a couple weeks for new cards art to show up… this happens every time"), and the base-art fallback is the designed behaviour; every deploy re-fetches every listed form, seeded from the bucket so a prune never takes art; no page, share image or mail hotlinks Supercell's CDN for card art. A composed image, such as the battle share PNG, may draw card art into itself (Jamie, 2026-10-08: "it is completely fine to encode card art into those battle images… other sites do that"); the stored files stay untouched.
 - **What you faced is ordered by the reader** — Ladder ▸ Cards reads the cards and opponents you faced most battles first; most losses first (`sort: "losses"` on `battles_cards` and `battles_opponents`) is a choice in the address, never the default; a row needs its floor (3 battles a card, 2 meetings a player), shown beside the choice, and carries its level gap; no row is labelled or advised on.
 - **Docs ship with the change** — the tool reference is generated from the registry; a docs pointer must resolve before a tool names it.
-- **Form is numbers only** — "am I improving?" is answered by setting two stretches of one mode's record side by side (the game week beside the four before it; the season before and since the most-played deck arrived), each number beside its count, from `battles_performance`'s compare and `before_after` windows shaped once in `@elixir-mcp/record/form` for Ladder and the Arena mail; no verdict word, arrow, colour, score or advice; a side under `FORM_MIN_BATTLES` (10, decided battles for the win rate, head-to-head for the three-crown rate) is not set beside the other, and below it for the win rate nothing is shown; never pooled across modes.
+- **Form is numbers only** — "am I improving?" is answered by setting two stretches of one mode's record side by side (the game week beside the four before it; the season before and since the most-played deck arrived), each number beside its count, from `battles_performance`'s compare and `before_after` windows shaped once in `@elixir-mcp/record/form` for Ladder and the Arena mail; no verdict word ("better", "improving", "good"), arrow, colour, score or advice, while a direction stated with its numbers ("up from 52% to 58%") is a fact; a side under `FORM_MIN_BATTLES` (10, decided battles for the win rate, head-to-head for the three-crown rate) is not set beside the other, and below it for the win rate nothing is shown; never pooled across modes.
 
 ## Email
 
 - **Send over SES, receive at Fastmail** — never create SES address identities under the stack's domain.
 - **Six product kinds** — clan, arena, friends (tracking), collector, milestone and Clan's actions-waiting; each is an account switch, default on; at most one mail per kind and subject per day (milestone exempt, one clan report per tracked clan); bulk kinds carry one-click unsubscribe; login mail is transactional.
-- **No editorial or model-written mail** — the retired `top_100` and `card_of_week` kinds stay valid only for sent history and old unsubscribe links.
+- **Ultimate Champions and Card of the Week are retired** — they left with global capture; the `top_100` and `card_of_week` kinds stay valid only for sent history and old unsubscribe links. Today's mail is composed by calling the tools; whether Elixir's own mail may ever use a model is an open product question, not a ban.
 - **Mail is composed by calling the tools** — never a second derivation.
 - **Milestone mail is the big firsts** — it mails when it happens only for a new arena (`arena_changed` up), a new league (`ranked_promotion` up), a new best trophy band (`best_trophies_band`), a new Evolution or Hero form (`card_form_unlocked`), a legendary badge (`legendary_badge_earned`) and the career milestones, `career_wins_step` and `collection_level_step`; card unlocks and badge levels (`card_unlocked`, `badge_earned`) never mail on their own and are counted in the Tuesday Arena week; each first mails once per account and subject, ever, checked hourly (Jamie, 2026-10-08: "Agree with recommendation"; legendary badges, "Approved: legendary badges send immediate milestone mail in elixir-mcp, PR and deploy").
 - **Mail collapses; the timeline does not** — the friends mail counts card unlocks and badges, draws a clan as its summary's first clause and at most three more, and names everyone quiet 30 or more days in one line; the timeline's items and order are untouched.

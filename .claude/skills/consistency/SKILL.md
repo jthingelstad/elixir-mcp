@@ -185,8 +185,12 @@ consistency round:
   (AGENTS.md, `docs/OPERATIONS.md`, the skills, the domain team's
   runbooks),
   not another copy of X.
-- Do not re-litigate a DECISIONS line. A surface that disagrees with it is
-  the defect; a line that contradicts another line is a product call.
+- Do not re-litigate a **[Jamie]** DECISIONS line. A surface that
+  disagrees with it is the defect; a line that contradicts another line
+  is a product call. An **[engineering]** line is a default: a finding
+  that it gets in the way is a proposal, not a defect.
+- A surface may be narrower than a line, never wider. Restating a line in
+  broader words (a ban the line does not make) is itself a finding.
 - The Gym tests tool families adversarially; this skill checks that
   decisions are realized across surfaces. A Gym finding about one tool is
   not a consistency finding unless another surface disagrees with it.
