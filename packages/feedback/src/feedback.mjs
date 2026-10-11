@@ -52,6 +52,10 @@ function cleanRef(input) {
   const raw = String(input?.ref ?? "").trim();
   if (!FEEDBACK_REF_KINDS.includes(kind))
     return { dropped: { kind, ref: raw, reason: "unknown_kind" } };
+  if (kind === "feedback")
+    return /^[1-9]\d{0,17}$/.test(raw)
+      ? { ref: { kind, ref: raw } }
+      : { dropped: { kind, ref: raw, reason: "not_an_id" } };
   if (kind === "call" || kind === "email")
     return UUID.test(raw)
       ? { ref: { kind, ref: raw.toLowerCase() } }
@@ -93,12 +97,14 @@ export function cleanRefs(list) {
   return { refs, dropped };
 }
 
-/** A call or an email is shown to the maintainer as the filer's, so it
- *  must be: a call by the filer or an agent they own, an email sent to
- *  the filer. Anything else is dropped as not_yours. */
+/** A call, an email or a related item is shown to the maintainer as the
+ *  filer's, so it must be: a call by the filer or an agent they own, an
+ *  email sent to the filer, a feedback item the filer filed (11.10.0).
+ *  Anything else is dropped as not_yours. */
 async function ownedRefs(db, accountId, refs) {
   const calls = refs.filter((r) => r.kind === "call").map((r) => r.ref);
   const emails = refs.filter((r) => r.kind === "email").map((r) => r.ref);
+  const items = refs.filter((r) => r.kind === "feedback").map((r) => r.ref);
   const ok = new Set();
   if (calls.length) {
     const { rows } = await db.query(
@@ -118,11 +124,19 @@ async function ownedRefs(db, accountId, refs) {
     );
     for (const r of rows) ok.add(`email\u0000${r.id}`);
   }
+  if (items.length) {
+    const { rows } = await db.query(
+      `select feedback_id::text as id from feedback
+        where feedback_id = any($1::bigint[]) and account_id = $2`,
+      [items, accountId],
+    );
+    for (const r of rows) ok.add(`feedback\u0000${r.id}`);
+  }
   const kept = [];
   const dropped = [];
   for (const r of refs) {
     if (
-      (r.kind === "call" || r.kind === "email") &&
+      (r.kind === "call" || r.kind === "email" || r.kind === "feedback") &&
       !ok.has(`${r.kind}\u0000${r.ref}`)
     )
       dropped.push({ ...r, reason: "not_yours" });
@@ -437,11 +451,28 @@ export async function itemMine(
     [rows[0].feedback_id, accountId],
   );
   const refs = await refsOf(db, [rows[0].feedback_id]);
+  const relatedBy = await relatedTo(db, rows[0].feedback_id, accountId);
   if (seen) await markSeen(db, accountId, [rows[0].feedback_id]);
   return {
     ...mine(rows[0], refs.get(String(rows[0].feedback_id))),
     followed_by: follows.map((f) => f.feedback_id),
+    related_by: relatedBy,
   };
+}
+
+/** The items that name this one as related (a `feedback` ref, 11.10.0),
+ *  the filer's own when an account is given: the other end of a link,
+ *  so either item shows the whole body of work. */
+async function relatedTo(db, feedbackId, accountId = null) {
+  const { rows } = await db.query(
+    `select r.feedback_id from feedback_ref r
+       join feedback f on f.feedback_id = r.feedback_id
+      where r.kind = 'feedback' and r.ref = $1
+        and ($2::uuid is null or f.account_id = $2)
+      order by r.feedback_id`,
+    [String(feedbackId), accountId],
+  );
+  return rows.map((r) => r.feedback_id);
 }
 
 /** Answers delivered to the filer, wherever they read them: the MCP page,
@@ -684,6 +715,7 @@ export async function feedbackItem(db, feedbackId) {
     created_at: iso(rows[0].created_at),
     response_seen_at: iso(rows[0].response_seen_at),
     refs: refs.get(String(rows[0].feedback_id)) ?? [],
+    related_by: await relatedTo(db, rows[0].feedback_id),
     thread: thread
       .filter((t) => String(t.feedback_id) !== String(rows[0].feedback_id))
       .map((t) => ({ ...t, created_at: iso(t.created_at) })),

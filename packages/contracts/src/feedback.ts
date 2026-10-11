@@ -20,11 +20,15 @@ export const FEEDBACK_CATEGORIES = [
 ] as const;
 export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
 
-/** Where an item stands. `new` is only ever the filing's own. */
+/** Where an item stands. `new` is only ever the filing's own.
+ *  `needs_info` (11.10.0): the answer is a question back to the filer,
+ *  who replies with follows_id; it raises feedback_responses_pending like
+ *  any answer. */
 export const FEEDBACK_STATUSES = [
   "new",
   "seen",
   "planned",
+  "needs_info",
   "done",
   "declined",
 ] as const;
@@ -33,6 +37,7 @@ export type FeedbackStatus = (typeof FEEDBACK_STATUSES)[number];
 export const FEEDBACK_ANSWER_STATUSES = [
   "seen",
   "planned",
+  "needs_info",
   "done",
   "declined",
 ] as const;
@@ -55,12 +60,15 @@ export type FeedbackArea = (typeof FEEDBACK_AREAS)[number];
 export const FEEDBACK_SURFACES = ["web", "mcp", "api", "recorder"] as const;
 export type FeedbackSurface = (typeof FEEDBACK_SURFACES)[number];
 
-/** What an item can point at. `call` (a request_id) and `email` (a
- *  send_id) are checked against the filer; the rest are pointers the
- *  maintainer reads, never something shown back as the filer's. */
+/** What an item can point at. `call` (a request_id), `email` (a
+ *  send_id) and `feedback` (a feedback_id, 11.10.0: a related item of
+ *  the filer's own, not a reply) are checked against the filer; the rest
+ *  are pointers the maintainer reads, never something shown back as the
+ *  filer's. */
 export const FEEDBACK_REF_KINDS = [
   "call",
   "email",
+  "feedback",
   "player",
   "clan",
   "clan_action",

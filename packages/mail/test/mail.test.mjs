@@ -1021,4 +1021,12 @@ test("feedback answer: their words clipped and escaped, the answer whole, status
   ).html;
   assert.doesNotMatch(hostile, /<script>|<img src=x/);
   assert.doesNotMatch(hostile, /shipped in/);
+  // needs_info (11.10.0, feedback #378): a question, labelled as one.
+  const asked = renderMail(
+    "feedback_answer",
+    { ...facts, status: "needs_info", shipped_in: null },
+    links,
+  );
+  assert.match(asked.subject, /^A question about: “The global board/);
+  assert.match(asked.html, />A question for you</);
 });

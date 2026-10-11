@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "3.1.0",
+    "version": "3.2.0",
     "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Integrations do not enroll players or clans for recording; people manage their own tracked record. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
@@ -1357,7 +1357,7 @@
     "/feedback": {
       "get": {
         "operationId": "myFeedback",
-        "summary": "The caller's own feedback and what happened to it (3.1.0): the elixir_my_feedback tool, every item filed anywhere in Elixir, with status, the maintainer's answer and what shipped. Pages: pass next_offset as offset until null. Answers on the page are marked read.",
+        "summary": "The caller's own feedback and what happened to it (3.1.0): the elixir_my_feedback tool, every item filed anywhere in Elixir, with status, the maintainer's answer and what shipped. Pages: pass next_offset as offset until null. Answers on a full page are marked read; verbosity compact (3.2.0) lists without bodies and marks nothing; feedback_id reads one item whole.",
         "x-permission": "feedback:write",
         "x-principals": ["person", "integration"],
         "x-tool": "elixir_my_feedback",
@@ -1370,6 +1370,15 @@
           }
         ],
         "parameters": [
+          {
+            "name": "feedback_id",
+            "in": "query",
+            "description": "Read one of the caller's items whole (3.2.0), with followed_by and related_by; the list filters are ignored.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,17}$"
+            }
+          },
           {
             "name": "limit",
             "in": "query",
@@ -1394,7 +1403,14 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": ["new", "seen", "planned", "done", "declined"]
+              "enum": [
+                "new",
+                "seen",
+                "planned",
+                "needs_info",
+                "done",
+                "declined"
+              ]
             }
           },
           {
@@ -1420,6 +1436,16 @@
                 "docs",
                 "recorder"
               ]
+            }
+          },
+          {
+            "name": "verbosity",
+            "in": "query",
+            "description": "compact (3.2.0): each item's listing fields (title in place of message, has_response in place of response); no answer is marked read.",
+            "schema": {
+              "type": "string",
+              "enum": ["full", "compact"],
+              "default": "full"
             }
           }
         ],
@@ -1535,7 +1561,7 @@
                   "refs": {
                     "type": "array",
                     "maxItems": 20,
-                    "description": "What else it is about. A pointer that is malformed or not the caller's is dropped and named in notes; the report is kept.",
+                    "description": "What else it is about. kind feedback (3.2.0) is one of the caller's own feedback_ids this item belongs with, not a reply. A pointer that is malformed or not the caller's is dropped and named in notes; the report is kept.",
                     "items": {
                       "type": "object",
                       "required": ["kind", "ref"],
@@ -1545,6 +1571,7 @@
                           "enum": [
                             "call",
                             "email",
+                            "feedback",
                             "player",
                             "clan",
                             "clan_action",
@@ -1563,7 +1590,7 @@
                   "follows_id": {
                     "type": "integer",
                     "minimum": 1,
-                    "description": "The caller's own item this replies to."
+                    "description": "The caller's own item this replies to: an answer, a needs_info question, or a correction to something filed."
                   }
                 },
                 "additionalProperties": false

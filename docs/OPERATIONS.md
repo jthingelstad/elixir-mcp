@@ -179,8 +179,11 @@ person, their inbox (`feedback_answer`, after ten quiet minutes).
   unanswered. Work oldest first (created time, then id).
 - **One item.** `{"feedback_read": {"feedback_id": 123}}` reads it with
   its refs and thread without moving the filer's read pointer. `call` and
-  `email` refs are the filer's own; `player`, `clan`, `clan_action`,
-  `award` and `policy` point into the record or Clan's ledger.
+  `email` refs are the filer's own; `feedback` refs name the filer's own
+  related items (11.10.0), and `related_by` lists the items naming this
+  one; `player`, `clan`, `clan_action`, `award` and `policy` point into
+  the record or Clan's ledger. Clan files here too since 2026-10-08 (the
+  old `clan_maintenance` feedback lanes are retired).
   `via.on_behalf_of` names a person an agent relayed for (the answer
   still goes to the agent). `follows_id` makes an item a reply: read the
   thread first. The caller's recent calls are in `mcp_call_audit`
@@ -193,7 +196,9 @@ person, their inbox (`feedback_answer`, after ten quiet minutes).
 - **A `recorder` item** is filed by the nightly shape census (jobs
   `{shape_census}`, ENGINEERING.md "Ingest invariants"): a field the API
   now sends that `packages/ingest/src/payload-keys.mjs` has no disposition
-  for, or a manifest field absent for seven days. It is product work,
+  for, or a manifest field absent for seven days. One kind of finding on
+  one endpoint is one item listing its fields (`context.paths`, 11.10.0),
+  never one per field. It is product work,
   never an incident: the manifest entry and projection, a contract bump
   if a shape moves, the site docs, and the `cr-agent-api-docs` entry.
 - **Answering** is a WRITE: `{feedback_respond}` through `npm run op`,
@@ -205,11 +210,10 @@ person, their inbox (`feedback_answer`, after ten quiet minutes).
   uncertain write, read the item back (`{feedback_read}`) before trying
   again; never replay one blindly, and skip an equivalent answer already
   delivered.
-- **Clan's private feedback** is `{"clan_maintenance": {"lane":
-  "feedback"}}`, oldest first, following `next_cursor`, without changing
-  seen pointers. Its reply is `lane: "respond"` with the item's freshly
-  read `expected_sha256` and an explicit `apply: true` (WRITE, takes the
-  lock).
+- **`needs_info`** (11.10.0) is a question for the filer: ask exactly one,
+  answerable in a reply, and say to answer with `follows_id` set to the
+  item. The reply arrives as a new pending item; answer it, and close the
+  original with the outcome.
 - **Friction** is feedback nobody filed: `{audit_census}` error codes by
   tool (a spike of `bad_request` on one tool is a schema ergonomics bug),
   truncation, refusals that look like confusion rather than probing,

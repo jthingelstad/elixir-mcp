@@ -64,8 +64,8 @@ is still recorded, and its first read comes with the scheduler's next round.
 
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
-| Record a player | `elixir_track_player({ player_tag, relationship? })` | Account → Tracking | `recordings:write` |
-| Record a clan | `elixir_track_clan({ clan_tag, scope? })` | Account → Tracking | `recordings:write` |
+| Record a player | `elixir_track_player({ player_tag, relationship?, action? })` | Account → Tracking | `recordings:write` |
+| Record a clan | `elixir_track_clan({ clan_tag, scope?, action? })` | Account → Tracking | `recordings:write` |
 | Stop | the same tools with `action: "remove"` | same | `recordings:write` |
 | Silence the feed without stopping | `action: "notify_off"` / `"notify_on"` | same | `recordings:write` |
 
@@ -378,7 +378,7 @@ when you ask for dates before snapshots began.
 
 ## Participation by week
 
-`clans_participation({ clan_tag?, weeks? })` answers, for every open
+`clans_participation({ clan_tag?, weeks?, verbosity? })` answers, for every open
 member of a clan and every member who left inside the window, in one
 call, what they did week by week and where they stood at each war finish: the raw material
 for a clan's own participation rules, which Elixir does not have. It

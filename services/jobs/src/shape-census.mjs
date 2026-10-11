@@ -8,11 +8,12 @@
  * Two findings per endpoint: a field present in the sample and absent
  * from the manifest (the API added something), and a manifest field
  * absent from every sampled payload for seven days (the API retired
- * something, as expLevel was). Each is filed once into feedback under
- * the owner account (category data_quality, surface recorder),
- * deduplicated on (endpoint, path) while an item is open, for Close the
- * Loop to turn into the change; the run returns the count. Nothing
- * mails anyone. On a correct manifest a
+ * something, as expLevel was). Each kind of finding on one endpoint is
+ * one root cause, filed as one item listing its fields (11.10.0; before
+ * it, one item per field) into feedback under the owner account
+ * (category data_quality, surface recorder), never again for a field an
+ * open item already lists, for Close the Loop to turn into the change;
+ * the run returns the counts. Nothing mails anyone. On a correct manifest a
  * night files nothing.
  */
 
@@ -28,7 +29,8 @@ import { archiveKey } from "@elixir-mcp/ingest/pipeline";
 
 const SAMPLE = 20;
 const ABSENT_DAYS = 7;
-const OPEN = ["new", "seen", "planned"];
+// needs_info (11.10.0) is open: a question on the item is not its answer.
+const OPEN = ["new", "seen", "planned", "needs_info"];
 
 /** `deps.getObject(key) -> Buffer` (gzip) is injectable for the tests;
  *  the Lambda uses S3. */
@@ -56,7 +58,13 @@ export async function shapeCensus(databaseUrl, deps = {}) {
     } = await db.query(
       `select account_id from account where is_owner order by created_at limit 1`,
     );
-    const report = { endpoints: {}, findings: [], filed: 0, already_open: 0 };
+    const report = {
+      endpoints: {},
+      findings: [],
+      filed: 0,
+      fields_filed: 0,
+      already_open: 0,
+    };
     for (const endpoint of Object.keys(PAYLOAD_KEYS)) {
       const { rows: sample } = await db.query(
         `select entity_key, payload_hash, first_fetched_at
@@ -155,43 +163,82 @@ export async function shapeCensus(databaseUrl, deps = {}) {
           sample_type: "absent_field",
           seen_in: 0,
           sampled: read,
+          last_seen: f.last_seen,
           message: `${endpoint}: ${f.path} is in payload-keys.mjs and absent from every sampled payload for ${ABSENT_DAYS} days (last seen ${f.last_seen ?? "never by the census"}). The API may have retired it; mark it optional or dropped with the reason, and record it in cr-agent-api-docs.`,
         });
     }
 
-    // File once per (endpoint, path) while an item is open.
+    // One item per root cause (11.10.0, feedback #378): every finding of
+    // one kind on one endpoint is one item listing its fields, so a shape
+    // change that moves twelve paths is one item, not twelve (#350-#361
+    // were one cause filed twelve times). A field already on an open
+    // item, per-path (before 11.10.0) or grouped, is not filed again.
+    const groups = new Map();
     for (const f of report.findings) {
+      const key = `${f.endpoint}\u0000${f.sample_type}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(f);
+    }
+    for (const findings of groups.values()) {
+      const { endpoint, sample_type: sampleType } = findings[0];
       const { rows: open } = await db.query(
-        `select 1 from feedback
-         where surface = 'recorder' and status = any($3::text[])
-           and context->>'endpoint' = $1 and context->>'path' = $2 limit 1`,
-        [f.endpoint, f.path, OPEN],
+        `select context from feedback
+         where surface = 'recorder' and status = any($2::text[])
+           and context->>'endpoint' = $1`,
+        [endpoint, OPEN],
       );
-      if (open.length) {
-        report.already_open += 1;
-        continue;
-      }
-      if (!owner) continue;
+      const openPaths = new Set(
+        open.flatMap((r) => [
+          ...(r.context?.path ? [r.context.path] : []),
+          ...(Array.isArray(r.context?.paths) ? r.context.paths : []),
+        ]),
+      );
+      const fresh = findings.filter((f) => !openPaths.has(f.path));
+      report.already_open += findings.length - fresh.length;
+      if (!fresh.length || !owner) continue;
       await db.query(
         `insert into feedback (account_id, surface, area, category, message, context)
          values ($1, 'recorder', 'recorder', 'data_quality', $2, $3::jsonb)`,
         [
           owner.account_id,
-          f.message,
+          groupMessage(endpoint, sampleType, fresh),
           JSON.stringify({
-            endpoint: f.endpoint,
-            path: f.path,
+            endpoint,
+            sample_type: sampleType,
+            paths: fresh.map((f) => f.path),
             first_seen: now.toISOString(),
-            sample_type: f.sample_type,
-            seen_in: f.seen_in,
-            sampled: f.sampled,
+            sampled: fresh[0].sampled,
+            seen_in: Object.fromEntries(fresh.map((f) => [f.path, f.seen_in])),
           }),
         ],
       );
       report.filed += 1;
+      report.fields_filed += fresh.length;
     }
     return { ...report, ms: Date.now() - started };
   } finally {
     await db.end();
   }
+}
+
+/** One item's words for a group of findings: a single field keeps its
+ *  own sentence; several are listed under one instruction. */
+function groupMessage(endpoint, sampleType, findings) {
+  if (findings.length === 1) return findings[0].message;
+  const { sampled } = findings[0];
+  if (sampleType === "new_field")
+    return [
+      `${endpoint}: the API sends ${findings.length} fields payload-keys.mjs has no disposition for, one shape change:`,
+      ...findings.map(
+        (f) => `- ${f.path} (in ${f.seen_in} of ${sampled} sampled payloads)`,
+      ),
+      "Decide where each lands or why not, project them, bump the contract, update the docs and cr-agent-api-docs.",
+    ].join("\n");
+  return [
+    `${endpoint}: ${findings.length} fields in payload-keys.mjs are absent from every sampled payload for ${ABSENT_DAYS} days, one shape change:`,
+    ...findings.map(
+      (f) => `- ${f.path} (last seen ${f.last_seen ?? "never by the census"})`,
+    ),
+    "The API may have retired them; mark each optional or dropped with the reason, and record it in cr-agent-api-docs.",
+  ].join("\n");
 }
