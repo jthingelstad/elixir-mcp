@@ -648,7 +648,9 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     "AHMOメŞΛDØW was promoted to Master 2, on a 1-0 win over XTRAXTOR, +30.",
   ]);
   assert.deepEqual(text("best_trophies_band"), [
-    "AHMOメŞΛDØW set a new best of 6,087 trophies, crossing 6,000, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
+    // The best (6,087) came after the crossing battle (to 6,000), so
+    // the crossing is told, then the peak (2026-10-11).
+    "AHMOメŞΛDØW passed 6,000 trophies for the first time, on a 3-0 win over Jotaro (5,976), +30 to 6,000, and went on to a best of 6,087.",
   ]);
   // Newest first (7.0.0).
   assert.deepEqual(text("career_wins_step"), [
