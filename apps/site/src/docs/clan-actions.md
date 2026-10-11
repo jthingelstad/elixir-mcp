@@ -216,9 +216,10 @@ member and this clan rather than anyone's (2026-10-11):
   timeline and the awards they hold here. For a removal or a departure
   only their time in the clan and the weeks they played: never their
   trophies, a week they missed or why they were removed.
-- **Your note**, as you wrote it.
+- **What you ask for** in **What should it say?**, as you wrote it.
 
-Never sent: a tag, another leader's private note, a hold, a removal's
+Never sent: a tag, a note saved on the Action (yours or another
+leader's), a hold, a removal's
 rationale or inactivity numbers, a member's share of the clan's fame, or
 anything the record does not hold. A fact the record lacks is left out.
 The model picks one or two details that make the moment personal and

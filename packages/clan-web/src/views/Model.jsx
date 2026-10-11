@@ -167,10 +167,10 @@ export function Model({ clan }) {
         Action&rsquo;s own evidence and the member it is about, by name, with
         their trophies, time in the clan, war weeks and recent moments. A
         removal or departure is told only the member&rsquo;s time in the clan
-        and the weeks they played. Tags, another leader&rsquo;s private note,
-        holds, a removal&rsquo;s reasons and a member&rsquo;s share of fame are
-        never sent. Chat drafts use fixed tone choices. Everything it writes is
-        a draft you review and edit, then save or copy into the game, with
+        and the weeks they played. Tags, notes saved on an Action, holds, a
+        removal&rsquo;s reasons and a member&rsquo;s share of fame are never
+        sent. Chat drafts use fixed tone choices. Everything it writes is a
+        draft you review and edit, then save or copy into the game, with
         anything it says that it was not told marked for you to check. Nothing
         is posted automatically. Drafts use the clan&rsquo;s saved recruiting
         words as its voice; add those in Recruit and choose the tone on the

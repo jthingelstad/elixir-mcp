@@ -481,7 +481,7 @@ behavior (the only door route that sees the session cookie is
   the model. The system prompt is the use's instructions, then the
   clan's context from `clan-engine/context.mjs` as the cached block; the
   packet (what happened, the member by name) is the user turn. Never in
-  a packet: tags, ids, another leader's note, holds, a removal's
+  a packet: tags, ids, a note saved on an Action (anyone's), holds, a removal's
   rationale or inactivity numbers, fame per member
   (`clan-engine/test/context.test.mjs`); an answer's number or name not
   in it is warned on a draft and refused on a post (`inventedNumbers`,
