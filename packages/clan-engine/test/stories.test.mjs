@@ -325,6 +325,33 @@ test("no clock time: a story over three hours late says when in words", () => {
   );
 });
 
+test("the clanmates there are counted whole; without a time to tell it at, no when", () => {
+  const arena = item("arena_changed", {
+    ...ADA,
+    from: 54000020,
+    to: 54000021,
+    to_name: "Magic Academy",
+    promoted_by: WIN,
+  });
+  assert.equal(
+    renderStory(
+      { key: arena.id, items: [arena] },
+      { mates: ["Bo", "Cy", "Di"], mates_total: 14, nowMs: T },
+    ),
+    "Ada moved up to Magic Academy with a 3-0 win over keyluis, joining 14 clanmates there.",
+  );
+  const late = item(
+    "card_unlocked",
+    { ...ADA, card: "Rune Giant" },
+    T - 30 * H,
+  );
+  assert.equal(
+    renderStory({ items: [late] }),
+    "Ada unlocked Rune Giant.",
+    "the engine keeps no clock",
+  );
+});
+
 test("a post never opens as Discord markdown", () => {
   assert.equal(leadSafe("# King joined"), "\\# King joined");
   assert.equal(leadSafe("1. Ada"), "\\1. Ada");

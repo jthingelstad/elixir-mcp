@@ -112,7 +112,15 @@ export async function storyContext(
         (it.kind === "arena_changed" && !(it.facts?.to < it.facts?.from)),
     );
     if (promoted.length) {
-      // Promotions in the day before, the same arena or league once.
+      // Promotions in the day before this one, the same arena or league
+      // once: the day ends at the promotion told, never at the run (a
+      // story told late is not counted against today's moves).
+      const atMs = Math.max(
+        ...promoted
+          .map((it) => Date.parse(it.at ?? ""))
+          .filter(Number.isFinite),
+      );
+      const endMs = Number.isFinite(atMs) ? atMs : nowMs;
       const {
         rows: [p],
       } = await db.query(
@@ -122,7 +130,7 @@ export async function storyContext(
             and ((event_type = 'arena_changed' and arena_to > arena_from)
                  or event_type = 'ranked_promotion')
             and window_end > $2 and window_end <= $3`,
-        [player, new Date(nowMs - DAY_MS), new Date(nowMs)],
+        [player, new Date(endMs - DAY_MS), new Date(endMs)],
       );
       ctx.promotions = Math.max(p?.n ?? 0, promoted.length);
     }
@@ -130,9 +138,10 @@ export async function storyContext(
       (it) => it.kind === "arena_changed" && it.facts?.to != null,
     );
     if (arena) {
-      // Clanmates whose latest profile is in that arena.
+      // Clanmates whose latest profile is in that arena: how many, and
+      // the first names (a few are named, more are counted).
       const { rows: mates } = await db.query(
-        `select p.name
+        `select p.name, count(*) over ()::int as total
            from clan_membership cm
            join player p on p.player_tag = cm.player_tag
            cross join lateral (
@@ -148,6 +157,7 @@ export async function storyContext(
         [clanTag, player, arena.facts.to],
       );
       ctx.mates = mates.map((m) => m.name);
+      ctx.mates_total = mates[0]?.total ?? 0;
     }
     out.set(story.key, ctx);
   }
