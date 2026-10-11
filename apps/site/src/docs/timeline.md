@@ -490,7 +490,7 @@ set in the console only, never through MCP or the JSON API.
 
 A clan's leaders can also post the clan's own activity to a channel,
 chosen by category and set by the clan's policy, from Elixir Clan's
-Settings ([The clan's activity in
+Social ▸ Discord ([The clan's activity in
 Discord](/docs/clan-policy#the-clans-activity-in-discord)). The panel
 names each clan you follow that does, with one of your verified players
 in it: its lines are in your timeline too, so a server carrying both

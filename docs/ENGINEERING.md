@@ -474,8 +474,18 @@ behavior (the only door route that sees the session cookie is
   again. No key, prompt or answer is logged. The sealed model key keeps its
   original derivation and AAD.
 - A model request is one tool call with nothing model-specific: no
-  temperature, top_p, top_k, thinking, effort or assistant prefill (the
-  Claude 5 models, Haiku 5.5 included, answer a 400 to each). The tool
+  temperature, top_p, top_k, thinking setting or assistant prefill (the
+  Claude 5 models, Haiku 5.5 included, answer a 400 to each). The use's
+  `effort` (`output_config.effort`: drafts `medium`, the Discord rewrite
+  `low`) and a strict tool are sent as the engine sets them, whatever
+  the model. The system prompt is the use's instructions, then the
+  clan's context from `clan-engine/context.mjs` as the cached block; the
+  packet (what happened, the member by name) is the user turn. Never in
+  a packet: tags, ids, another leader's note, holds, a removal's
+  rationale or inactivity numbers, fame per member
+  (`clan-engine/test/context.test.mjs`); an answer's number or name not
+  in it is warned on a draft and refused on a post (`inventedNumbers`,
+  `unknownNames`). The tool
   is offered with `tool_choice: auto` (no parallel calls) and a system
   line that asks for it, not forced: Opus 5.5 answers a 400 to a forced
   `tool_choice`. Opus 5.5 always thinks and its thinking counts toward

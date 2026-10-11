@@ -171,8 +171,10 @@ without a policy:
   Kicked or Left. Saved recruiting words provide the clan's voice. The
   model is told what Elixir records about the clan, the Action and the
   member it is about, by name ([what it
-  receives](/docs/clan-actions#the-words-to-send)); tags,
-  private notes, holds and a removal's rationale are never sent. Chat
+  receives](/docs/clan-actions#the-words-to-send)), with the leader's
+  note as written; tags, another leader's private note, holds, a
+  removal's rationale or inactivity numbers and a member's share of fame
+  are never sent. Chat
   drafts use fixed tone choices for welcomes, removals and farewells.
   Everything it writes is a draft a leader edits and copies into the
   game, marked where it carries a number or a name it was not given. It
@@ -238,7 +240,7 @@ preview.
   (its name, recruiting words, goals, member count and last war weeks),
   the moment's own facts (the battle and who it beat, the badge, the
   best set, the week's place) and, for a member, what Elixir records
-  about them: trophies, best, arena, career wins, time in the clan and
+  about them: trophies, best, arena, career wins, collection level, time in the clan and
   any earlier stint, recent war weeks as decks and points, and how often
   the channel already told about them this week. A departure's post is
   told only the member's time in the clan and the weeks they played.
