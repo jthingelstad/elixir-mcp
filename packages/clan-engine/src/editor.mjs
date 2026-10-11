@@ -18,8 +18,8 @@
  * `EDITOR_POST_MAX`; every name a story's render says kept exactly; no
  * number and no proper name that neither the clan, the stories nor the
  * lookups it made hold; a departure keeps Elixir's sentence for it word
- * for word ("departed", "was removed", "left on their own") and gives no
- * reason. A departure, a leader's word on one and an edit of a post
+ * for word ("departed", "was removed", "left on their own") and adds
+ * only a thank-you or a farewell (`FAREWELL`), never a reason. A departure, a leader's word on one and an edit of a post
  * already in the channel are never merged, and a departure is never
  * skipped. A post that names a story another post already told is
  * refused whole.
@@ -156,7 +156,7 @@ const system = ({ lookups = true } = {}) =>
     `- Every name, number and event comes from THE CLAN${lookups ? ", a STORY or a lookup's answer" : " or a STORY"}. Never invent a result, an opponent, a reason, a feeling or a plan. When the facts say little, write little.`,
     "- Name members and opponents exactly as written; never shorten, translate or correct a name. Keep every name a story's version says.",
     "- Never judge a member: nobody is slacking, disappointing, lazy or in trouble. Celebrate what went well; state the rest plainly. A member's share of the clan's fame is never told.",
-    "- A departure is never skipped and never told with another story. Keep its version's sentence word for word; you may add a thank-you or a farewell around it, never a reason or a guess at why.",
+    '- A departure is never skipped and never told with another story. Keep its version\'s sentence word for word; around it you may add only a short thank-you or farewell ("Thanks for everything!", "Good luck out there!"), never a reason, a guess at why or anything else.',
     "- A story marked EDIT is already in the channel and grew: its post is edited, so tell it alone and never skip it.",
     '- No clock time: never say at what time something happened. A story marked LATE happened a while ago: its post must say when in the words its LATE line gives ("earlier today", "yesterday", "3 days ago").',
     "- No links, @-mentions, hashtags, markdown or code. An emoji is fine when the clan's voice wants one.",
@@ -324,8 +324,32 @@ export function editorNext(request, reply, results, round) {
   };
 }
 
-// A time of day: 6:05, 18:05, 6pm, 6.05 pm. A decimal alone ("3.25") is not.
-const CLOCK = /\b\d{1,2}:\d{2}\b|\b\d{1,2}(?:[.:]\d{2})?\s*(?:am|pm)\b/i;
+// A time of day: 6:05, 18:05, 6pm, 6.05 pm, and a dotted or "h" time
+// after a word that sets a time ("at 18.05", "around 6h30"). A decimal
+// alone ("3.25") is not.
+const CLOCK =
+  /\b\d{1,2}:\d{2}\b|\b\d{1,2}(?:[.:]\d{2})?\s*(?:am|pm)\b|\b(?:at|by|around|about|before|after|until|till|since|from|near)\s+(?:about\s+)?\d{1,2}[.h]\d{2}\b/i;
+/** The only words a departure's post may add to Elixir's sentence: a
+ *  thank-you or a farewell. Anything else could be a reason the record
+ *  never gave, so it is refused rather than guessed at (Codex on #506). */
+const FAREWELL = new Set(
+  "thank thanks you good luck best of all the farewell goodbye bye so long take care safe travels gg we we'll ll miss see around out there for everything your time help donations battles in arena on ladder and wishing wish well".split(
+    " ",
+  ),
+);
+const farewellOnly = (rest, names) => {
+  let t = rest;
+  for (const n of names) t = t.split(rewriteText(n)).join(" ");
+  const words = t
+    .toLowerCase()
+    .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, " ")
+    .replace(/[’]/g, "'")
+    .replace(/[^a-z']+/g, " ")
+    .split(" ")
+    .filter(Boolean);
+  // A digit or a stray symbol is not a farewell either.
+  return !/[0-9]/.test(t) && words.every((w) => FAREWELL.has(w));
+};
 /** Words that give a departure a reason the record never gave. */
 const REASON =
   /\b(?:because|due to|reasons?|why|inactiv\w*|kick(?:ed)?|bann?(?:ed)?|for not|for being|for lack|rules?|warn(?:ed|ings?)?)\b/i;
@@ -368,6 +392,16 @@ export function editorProblem(stories, raw, read = "") {
     if (s.must && !text.includes(rewriteText(s.must))) return "departure_words";
     if (REASON.test(text.replace(rewriteText(s.must ?? ""), "")))
       return "departure_words";
+    if (s.must) {
+      // Around Elixir's sentence: its other sentences, when, and a farewell.
+      let rest = text.replace(rewriteText(s.must), " ");
+      for (const x of rewriteText(s.render)
+        .replace(LATE, "")
+        .split(/(?<=[.!?])\s+/))
+        if (x.trim()) rest = rest.split(x.trim()).join(" ");
+      if (s.late) rest = rest.replace(new RegExp(s.late, "i"), " ");
+      if (!farewellOnly(rest, s.names)) return "departure_words";
+    }
   }
   return null;
 }
