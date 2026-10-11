@@ -468,42 +468,33 @@ set in the console only, never through MCP or the JSON API.
   member, the subject) in the form Discord never previews. Nothing pings
   anyone.
 - **Edited, never repeated.** When an item grows (a sitting adds
-  battles, or closes), its message is edited in place. A sitting posted
-  while still going is edited to its final count within about 45 minutes
-  of its last battle, even when nothing else happens. A message
-  deleted in the channel stays deleted. When Discord's answer to a post
-  is lost, that line is not posted again: a missing line is better than
-  a duplicate.
-- **The webhook.** Only Discord's own webhook address is accepted, and
-  saving one posts a first line to the channel so you can see it works.
-  It may end in `?thread_id=` and a thread's id, to post into that one
-  thread. A forum channel takes posts, not lines, so its webhook is
-  refused when you save it (use a text channel's, or one thread's).
-  Elixir keeps it sealed, shows it shortened, and never logs it. When
-  Discord says the webhook no longer exists, cross-posting turns off and
-  the panel says why. Turning it back on, or a new webhook, starts from
-  that moment.
-- **When Discord refuses a line,** that line alone is skipped and the
-  panel shows what Discord said; the rest are still posted. Lines go at
-  most about 25 a minute to one channel, under Discord's own limit, so a
-  busy war day arrives over a few minutes rather than being dropped; a
-  line that still cannot be delivered after many tries is counted as not
-  delivered.
-- **The last deliveries.** The panel lists the last 20 lines from the past
-  30 days: posted, edited, refused (in Discord's words), not delivered,
-  or "no answer", meaning Discord was called but never answered. A line
-  with no answer may be in the channel, and it is never sent again,
-  because a duplicate is worse than a missing line. The panel also counts
-  the lines not delivered in those 30 days.
+  battles, or closes), its message is edited in place; a sitting posted
+  while going is edited to its final count within about 45 minutes of
+  its last battle. A message deleted in the channel stays deleted. A
+  post whose answer from Discord is lost is never sent again: a missing
+  line beats a duplicate.
+- **The webhook.** Only Discord's own webhook address is accepted;
+  saving one posts a first line so you can see it works. It may end in
+  `?thread_id=` and a thread's id, to post into that thread. A forum
+  channel's is refused (use a text channel's, or one thread's). Elixir
+  keeps it sealed, shows it shortened, and never logs it. When Discord
+  says it no longer exists, cross-posting turns off and the panel says
+  why; turning it back on, or a new webhook, starts from that moment.
+- **When Discord refuses a line,** it alone is skipped. Lines go at
+  most about 25 a minute to a channel, under Discord's limit, so a busy
+  war day arrives over a few minutes; a line still undelivered after
+  many tries counts as not delivered.
+- **The last deliveries.** The panel lists the last 20 lines of the past
+  30 days (posted, edited, refused in Discord's words, not delivered, or
+  "no answer") and counts those not delivered.
 
 A clan's leaders can also post the clan's own activity to a channel,
 chosen by category and set by the clan's policy, from Elixir Clan's
 Settings ([The clan's activity in
-Discord](/docs/clan-policy#the-clans-activity-in-discord)). If a clan
-you follow posts there and one of your verified players is a member, the
-panel names it. The clan's lines are in your timeline too, so they are
-posted to your channel as well. Nothing is filtered: a server that
-carries both channels shows them twice.
+Discord](/docs/clan-policy#the-clans-activity-in-discord)). The panel
+names each clan you follow that does, with one of your verified players
+in it: its lines are in your timeline too, so a server carrying both
+channels shows them twice.
 
 ## What the timeline never does
 
