@@ -70,7 +70,7 @@ describe("the clan's model", () => {
     expect(screen.getByText("in use")).toBeTruthy();
     expect(screen.getByText(/messages on Actions: welcomes/)).toBeTruthy();
     expect(
-      screen.getByText(/Tags, another leader’s private note, holds/),
+      screen.getByText(/Tags, notes saved on an Action, holds/),
     ).toBeTruthy();
     expect(screen.getByText(/the member it is about, by name/)).toBeTruthy();
     expect(screen.getByText(/Nothing is posted automatically/)).toBeTruthy();

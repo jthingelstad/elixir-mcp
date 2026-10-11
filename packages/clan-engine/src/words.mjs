@@ -8,8 +8,8 @@
  *  - a request carries what Elixir knows (Jamie, 2026-10-11, reversing
  *    "the model sees only the line"): the clan (`clanContext`), the
  *    moment and the member it is about, by name, with their record
- *    (`context.mjs`), and the leader's note as written. Never another
- *    leader's note, a hold, a removal's rationale or inactivity numbers,
+ *    (`context.mjs`), and the leader's note (the draft's "What should
+ *    it say?") as written. Never a note saved on an Action (anyone's), a hold, a removal's rationale or inactivity numbers,
  *    fame per member, or anything else private to Clan beyond the
  *    Action's own evidence;
  *  - every answer is checked here and handed to a person to edit and

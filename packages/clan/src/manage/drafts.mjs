@@ -4,9 +4,10 @@
  * even more contextual and pull in the variety of data elixir has"): the
  * clan (`clanContext`), the Action's own evidence in a person's terms
  * (`actionLines`), the member it is about by name with their record
- * (`memberLines`, from `storyFor`), and the leader's note as written.
- * A departure or a removal gives only the member's time in the clan and
- * what they gave; nothing gives another leader's note, a hold, a
+ * (`memberLines`, from `storyFor`), and the leader's note (the draft's
+ * "What should it say?") as written. A departure or a removal gives only
+ * the member's time in the clan and what they gave; nothing gives a note
+ * saved on an Action (anyone's), a hold, a
  * removal's rationale, inactivity numbers or fame per member.
  *
  * A person reviews, edits and sends; drafting only adds a log entry,
