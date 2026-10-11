@@ -167,7 +167,7 @@ export const ATTESTED_FACT_TYPES: Readonly<Record<string, FactType>> = {
       },
     },
     about:
-      "Where a member stands in one of the clan's own awards for a season running (or, until the next one closes, the final places of the season just closed), as the clan's app computed it from its rules: the place, the value and unit, as of when. previous_player_tag names who held first place before, when it changed hands.",
+      "Where a member stands in one of the clan's own awards for the season running (never a closed season: its result is award_granted), as the clan's app computed it from its rules: the place, the value and unit, as of when. previous_player_tag names who held first place before, when it changed hands.",
   },
 };
 

@@ -1,7 +1,7 @@
 /**
  * Award standings to Elixir (manage/standings.mjs), pure: the running
- * season's podium places and on-track members as facts, the latest closed
- * season's final places, and the plan that writes only what moved, names
+ * season's podium places and on-track members as facts (never a closed
+ * season's), and the plan that writes only what moved, names
  * the previous leader when first place changes hands between two single
  * leaders, and takes back what is no longer held.
  */
@@ -207,7 +207,7 @@ test("the plan writes only what moved, names the previous leader, and takes back
   assert.deepEqual(p3.removes, ["standing:136:points_podium:#DZ"]);
 });
 
-test("a closed season's final places stay up until the next season closes", () => {
+test("only the running season stands: a closed season's places are never written, and are taken back when it closes", () => {
   const live = standingsFrom(
     result(
       season(136, [
@@ -217,23 +217,29 @@ test("a closed season's final places stay up until the next season closes", () =
     ),
   );
   const p1 = planStandings(null, live);
-  // The season closes and the next begins: 136's final places stand
-  // (unchanged places write nothing), 137's first standings are written.
+  // The season closes and the next begins: 136's standings are taken
+  // back, 137's first standings are written, and nothing names 136.
   const rolled = standingsFrom(
     result(
       season(
         136,
         [
-          ["#AJ", 1, 7000],
-          ["#SA", 2, 6900],
+          ["#SA", 1, 7000],
+          ["#AJ", 2, 6900],
         ],
         { closed: true },
       ),
       season(137, [["#DZ", 1, 300]], { onTrack: [] }),
     ),
   );
+  assert.deepEqual(rolled.season_ids, [137]);
   const p2 = planStandings(p1.next, rolled);
-  assert.deepEqual(p2.removes, [], "the final places are not taken back");
+  assert.ok(
+    p2.writes.every((f) => f.detail.season_id === 137),
+    "a closed season's moved place is not news (2026-10-11: 'now leads ... for season 135' during 136)",
+  );
+  assert.ok(p2.removes.length >= 2);
+  assert.ok(p2.removes.every((r) => r.startsWith("standing:136:")));
   const first137 = p2.writes.find((f) => f.detail.season_id === 137);
   assert.equal(first137.player_tag, "#DZ");
   assert.equal(
@@ -241,16 +247,15 @@ test("a closed season's final places stay up until the next season closes", () =
     false,
     "a new season's first leader never names last season's",
   );
-  // When 137 closes too, 136's standings are taken back.
-  const later = standingsFrom(
-    result(
-      season(136, [["#AJ", 1, 7000]], { closed: true }),
-      season(137, [["#DZ", 1, 7100]], { closed: true, onTrack: [] }),
-    ),
+  // Between seasons (none running), nothing stands.
+  const between = standingsFrom(
+    result(season(137, [["#DZ", 1, 7100]], { closed: true, onTrack: [] })),
   );
-  const p3 = planStandings(p2.next, later);
-  assert.ok(p3.removes.every((r) => r.startsWith("standing:136:")));
-  assert.ok(p3.removes.length >= 2);
+  assert.equal(between.facts.size, 0);
+  assert.equal(between.season_id, null);
+  const p3 = planStandings(p2.next, between);
+  assert.equal(p3.writes.length, 0);
+  assert.ok(p3.removes.every((r) => r.startsWith("standing:137:")));
 });
 
 test("an attendance award has no leader: a member getting on track never names a previous one", () => {

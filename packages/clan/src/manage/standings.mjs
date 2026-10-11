@@ -24,25 +24,23 @@ const UNIT = {
   perfect_attendance: "war_decks",
 };
 
-/** The standings as facts, keyed by ref: the running season's, and the
- *  latest closed season's final places, which stay up until the next
- *  season closes (a grant reaches Elixir only when a leader announces it,
- *  and that action starts off, so without them the season's result
- *  vanished from the clan's agent the morning it closed). */
+/** The standings as facts, keyed by ref: the running season's only.
+ *  A closed season's places are not standings: until 2026-10-11 the latest
+ *  closed season's final places stayed up until the next one closed, and
+ *  a place that moved after the close (a member leaving the podium) was
+ *  written as news, so the clan's agent said "now leads the <award>
+ *  standings for season 135" during season 136. A season's result reaches
+ *  Elixir as `award_granted` when a leader announces it; the morning the
+ *  running season closes, its standings are taken back. */
 export function standingsFrom(result) {
   const out = new Map();
-  const complete = (result?.seasons ?? []).filter((s) => s.complete);
-  const running = complete.find((s) => !s.closed);
-  const closed = complete
-    .filter((s) => s.closed)
-    .sort((a, z) => z.season_id - a.season_id)[0];
-  const seasons = [running, closed].filter(Boolean);
-  if (!seasons.length) return { season_id: null, season_ids: [], facts: out };
+  const running = (result?.seasons ?? []).find((s) => s.complete && !s.closed);
+  if (!running) return { season_id: null, season_ids: [], facts: out };
+  const seasons = [running];
   const asOf = result.as_of ?? result.evaluated_at;
   for (const season of seasons)
     for (const award of season.awards) {
-      const want = season.closed ? "closed" : "live";
-      if (award.state !== want || !award.computed || !UNIT[award.kind])
+      if (award.state !== "live" || !award.computed || !UNIT[award.kind])
         continue;
       // Everyone on track holds an attendance award's one place, however
       // many, once a week has finished (before that nothing has been asked
@@ -81,7 +79,7 @@ export function standingsFrom(result) {
       }
     }
   return {
-    season_id: running?.season_id ?? closed.season_id,
+    season_id: running.season_id,
     season_ids: seasons.map((s) => s.season_id),
     facts: out,
   };
