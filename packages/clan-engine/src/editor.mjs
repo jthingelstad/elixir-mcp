@@ -342,7 +342,11 @@ const farewellOnly = (rest, names) => {
   for (const n of names) t = t.split(rewriteText(n)).join(" ");
   t = t
     .toLowerCase()
-    .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, " ")
+    // A whole emoji: its skin tone, a flag's letters, a tag sequence's tags.
+    .replace(
+      /\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|\u{FE0F}|\u{200D}|[\u{E0020}-\u{E007F}]/gu,
+      " ",
+    )
     .replace(/[’]/g, "'");
   // Only English letters, an apostrophe and plain punctuation are left
   // to check: any other script, a digit or a symbol is not a farewell we

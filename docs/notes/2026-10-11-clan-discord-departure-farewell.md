@@ -32,3 +32,6 @@ beside a departure's sentence (emoji and plain punctuation aside) is
 refused. A clan whose voice writes another language gets Elixir's
 English sentence for a departure, with no farewell, until the allowlist
 learns that language. What's new: `2026-10-11-21`.
+
+A whole emoji (a skin tone, a flag, a tag sequence) is stripped before
+the check, so "Good luck out there! 👋🏽" passes (Codex on #509).
