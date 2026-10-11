@@ -42,3 +42,26 @@ test("nothing is drawn before the first delivery", () => {
   const { container } = render(<DiscordDeliveries entries={[]} />);
   expect(container.textContent).toBe("");
 });
+
+test("a clan's activity line is shown whole and says when the clan's model wrote it; an item's id is not shown", () => {
+  const long = `Ada joined us ${"and stayed ".repeat(20)}`.trim();
+  render(
+    <DiscordDeliveries
+      whole
+      entries={[
+        {
+          at: "2026-10-11T12:00:00Z",
+          outcome: "posted",
+          ref: "tl_0123456789abcdef0123",
+          excerpt: long,
+          rewritten: true,
+        },
+      ]}
+    />,
+  );
+  const [item] = screen.getAllByRole("listitem");
+  expect(item?.textContent).toContain("rewritten");
+  expect(item?.textContent).toContain(long);
+  expect(item?.textContent).not.toContain("tl_");
+  expect(screen.getByText(long).className).not.toContain("truncate");
+});

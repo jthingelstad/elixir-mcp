@@ -97,6 +97,9 @@ export interface TimelineDiscordPost {
   key: string;
   revision: number;
   content: string;
+  /** A clan's activity line the clan's own model rewrote (2026-10-11):
+   *  its delivery is marked so on the clan's page. */
+  rewritten?: boolean;
 }
 
 /** The object the sync (or a save's test line) writes to the outbox's
@@ -172,6 +175,8 @@ export function validateTimelineDiscordMessage(
         p.content.length > DISCORD_CONTENT_MAX
       )
         errors.push(`posts[${i}].content:invalid`);
+      if (p?.rewritten !== undefined && typeof p.rewritten !== "boolean")
+        errors.push(`posts[${i}].rewritten:invalid`);
     });
   return errors.length === 0 ? { ok: true, msg: m } : { ok: false, errors };
 }
@@ -239,8 +244,10 @@ export interface DiscordDelivery {
   http_status?: number;
   /** Discord's own words for a refusal, or ours for one never sent. */
   reason?: string;
-  /** The line's start, as posted. */
+  /** The line as posted, to EXCERPT_MAX characters. */
   excerpt?: string;
+  /** The clan's own model rewrote the line (a clan's activity channel). */
+  rewritten?: boolean;
 }
 
 /** The last deliveries (newest first) and, by UTC day, how many were not
@@ -253,7 +260,9 @@ export interface DiscordDeliveryHistory {
 
 export const DISCORD_HISTORY_MAX = 20;
 export const DISCORD_HISTORY_DAYS = 30;
-const EXCERPT_MAX = 160;
+// A Discord line is rarely longer: the page shows what was posted, and
+// for a clan's activity channel what the clan's model wrote (2026-10-11).
+const EXCERPT_MAX = 500;
 const REASON_MAX = 200;
 const MISSED: ReadonlySet<string> = new Set([
   "refused",
@@ -288,6 +297,7 @@ export function addDiscordDeliveries(
     if (reason) out.reason = reason;
     const excerpt = clip(e.excerpt, EXCERPT_MAX);
     if (excerpt) out.excerpt = excerpt;
+    if (e.rewritten === true) out.rewritten = true;
     if (MISSED.has(e.outcome)) missed[day(e.at)] = (missed[day(e.at)] ?? 0) + 1;
     return out;
   });

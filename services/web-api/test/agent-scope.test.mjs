@@ -24,6 +24,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const discordSent = [];
 /** The relay's word on a webhook, as the save reads it after its hello. */
 let relayStatus = null;
+let relayHistory = null;
 const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -95,6 +96,7 @@ before(async () => {
       seal: webhookSeal(createBox("agent-scope-sealing", WEBHOOK_PURPOSE)).seal,
       outbox: async (lane, msg) => discordSent.push({ lane, msg }),
       readStatus: async () => relayStatus,
+      readHistory: async () => relayHistory,
       helloWaitMs: 0,
     },
   });
@@ -515,8 +517,18 @@ test("the timeline's Discord cross-post: set on the agent's console, the agent's
   assert.equal(discordSent[0].msg.account_id, agentId);
   assert.ok(!JSON.stringify(discordSent[0].msg).includes(token.slice(0, 20)));
 
+  relayHistory = {
+    entries: [
+      { at: new Date().toISOString(), outcome: "posted", excerpt: "a line" },
+    ],
+    missed: { [new Date().toISOString().slice(0, 10)]: 1 },
+  };
   const read = await handler(event({ path: agentPath, cookie: ownerCookie }));
+  relayHistory = null;
   assert.equal(parse(read).enabled, true);
+  assert.equal(parse(read).deliveries[0].excerpt, "a line");
+  assert.equal(parse(read).not_delivered, 1);
+  assert.deepEqual(parse(read).clan_channels, [], "no clan of its own posts");
   const mine = await handler(
     event({ path: "/api/me/timeline/discord", cookie: ownerCookie }),
   );

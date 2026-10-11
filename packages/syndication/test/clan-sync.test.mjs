@@ -19,6 +19,7 @@ import {
   CLAN_ACTIVITY_PURPOSE,
   clanActivityRowView,
   clanActivitySeal,
+  clanChannelsInTimeline,
   clansToWake,
   readClanActivity,
   removeClanActivity,
@@ -134,6 +135,16 @@ test("connecting seals the webhook to its channel and says hello; nothing earlie
 
   const view = clanActivityRowView(await readClanActivity(db, CLAN));
   assert.equal(view.enabled, true);
+  assert.deepEqual(view.deliveries, [], "nothing delivered yet");
+  assert.equal(view.not_delivered, 0);
+  const told = clanActivityRowView(await readClanActivity(db, CLAN), null, {
+    entries: [
+      { at: at(T), outcome: "posted", excerpt: "Ada joined", rewritten: true },
+    ],
+    missed: { [at(T).slice(0, 10)]: 2 },
+  });
+  assert.equal(told.deliveries[0].rewritten, true);
+  assert.equal(told.not_delivered, 2);
   assert.ok(!JSON.stringify(view).includes("b".repeat(68)), "never the URL");
   assert.equal(view.webhook_sealed, undefined);
 
@@ -259,6 +270,9 @@ test("the rewrite: lines the model may post are its own, the rest keep Elixir's 
   assert.match(promo.content, /^<t:\d+:/, "the stamp is Elixir's");
   assert.match(gone.content, /departed/);
   assert.doesNotMatch(gone.content, /400 wins/);
+  // Its delivery says the clan's model wrote it; Elixir's own does not.
+  assert.equal(promo.rewritten, true);
+  assert.equal("rewritten" in gone, false);
 });
 
 test("a rewrite the model cannot make posts Elixir's own lines", async () => {
@@ -344,4 +358,59 @@ test("refusals and removal", async () => {
   );
   assert.equal(await readClanActivity(db, CLAN), null);
   assert.equal(await removeClanActivity(db, CLAN), false);
+});
+
+test("a member's timeline page learns its own clan posts its activity; nobody else's", async () => {
+  await saveClanActivity(
+    db,
+    CLAN,
+    { url: HOOK, enabled: true },
+    { seal, who: WHO, now: T + 40 * H },
+  );
+  const account = async (hash) =>
+    (
+      await db.query(
+        `insert into account (email_hash, status) values ($1, 'approved')
+         returning account_id`,
+        [hash],
+      )
+    ).rows[0].account_id;
+  const member = await account("activity-member");
+  const follower = await account("activity-follower");
+  for (const [id, status] of [
+    [member, "verified"],
+    [follower, "unverified"],
+  ]) {
+    await db.query(
+      `insert into claim (account_id, player_tag, status, is_primary, relationship, notify)
+       values ($1, $2, $3, true, 'primary', true)`,
+      [id, STAYER, status],
+    );
+    await db.query(
+      `insert into account_clan (account_id, clan_tag, scope, notify)
+       values ($1, $2, 'comprehensive', true)`,
+      [id, CLAN],
+    );
+  }
+  assert.deepEqual(await clanChannelsInTimeline(db, member), [
+    { clan_tag: CLAN, name: "POAP KINGS" },
+  ]);
+  assert.deepEqual(
+    await clanChannelsInTimeline(db, follower),
+    [],
+    "a claim not verified says nothing about the clan",
+  );
+  await saveClanActivity(
+    db,
+    CLAN,
+    { enabled: false },
+    { seal, who: WHO, now: T + 41 * H },
+  );
+  assert.deepEqual(await clanChannelsInTimeline(db, member), []);
+  await db.query(`delete from account_clan where account_id = any($1)`, [
+    [member, follower],
+  ]);
+  await db.query(`delete from claim where account_id = any($1)`, [
+    [member, follower],
+  ]);
 });

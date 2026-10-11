@@ -203,6 +203,22 @@ test("a line is posted once, without previews or pings, then edited in place as 
   );
 });
 
+test("a line the clan's model wrote is posted as it is and marked so in the history", async () => {
+  const s = setup();
+  await s.deliver([
+    { key: ITEM, revision: 1, content: "Ada joined us", rewritten: true },
+  ]);
+  assert.deepEqual(s.calls[0].body, {
+    content: "Ada joined us",
+    allowed_mentions: { parse: [] },
+    flags: 4,
+  });
+  const [e] = history(s.store).entries;
+  assert.equal(e.outcome, "posted");
+  assert.equal(e.excerpt, "Ada joined us");
+  assert.equal(e.rewritten, true);
+});
+
 test("a line deleted in the channel stays deleted", async () => {
   const s = setup([
     { status: 200 },

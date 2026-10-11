@@ -154,7 +154,7 @@ export function makeHandler({
   /** (method) => the site's 404 page (routes/site-miss.mjs), for an
    *  address the site bucket missed; null = the JSON not_found. */
   siteMiss = null,
-  /** { outbox, readStatus } for the timeline's Discord cross-post
+  /** { outbox, readStatus, readHistory } for the timeline's Discord cross-post
    *  (routes/timeline-discord.mjs); null = no hello line, no status. */
   discord = null,
   /** Internal Clan request handler. Null until the reviewed state cutover;

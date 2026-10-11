@@ -114,6 +114,26 @@ test("a delivery history keeps the last twenty, thirty days, and counts what was
   assert.equal(discordNotDelivered(h, now + 31 * 86_400_000), 0);
 });
 
+test("a delivery keeps the line as posted, to 500 characters, and whether the clan's model wrote it", () => {
+  const now = Date.parse("2026-10-11T12:00:00Z");
+  const h = addDiscordDeliveries(
+    null,
+    [
+      {
+        at: "2026-10-11T11:00:00Z",
+        outcome: "posted",
+        excerpt: "x".repeat(700),
+        rewritten: true,
+      },
+      { at: "2026-10-11T11:01:00Z", outcome: "posted", rewritten: "yes" },
+    ],
+    now,
+  );
+  assert.equal(h.entries[1].excerpt.length, 500);
+  assert.equal(h.entries[1].rewritten, true);
+  assert.equal("rewritten" in h.entries[0], false, "only a true flag is kept");
+});
+
 test("anything but Discord's own webhook address is refused, so nothing else is ever called", () => {
   for (const s of [
     undefined,
@@ -154,6 +174,21 @@ test("a timeline Discord message is validated before the relay acts on it", () =
     posts: [{ key: "tl_0123456789abcdef0123", revision: 3, content: "a line" }],
   };
   assert.equal(validateTimelineDiscordMessage(ok).ok, true);
+  assert.equal(
+    validateTimelineDiscordMessage({
+      ...ok,
+      kind: "clan_activity",
+      posts: [{ ...ok.posts[0], rewritten: true }],
+    }).ok,
+    true,
+  );
+  assert.deepEqual(
+    validateTimelineDiscordMessage({
+      ...ok,
+      posts: [{ ...ok.posts[0], rewritten: "yes" }],
+    }).errors,
+    ["posts[0].rewritten:invalid"],
+  );
   assert.equal(
     validateTimelineDiscordMessage({
       ...ok,

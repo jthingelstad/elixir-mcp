@@ -14,6 +14,7 @@ import { makeShareImage } from "./share-image.mjs";
 import { createClanRequest } from "./clan.mjs";
 import { createBox } from "@elixir-mcp/clan/sealed.mjs";
 import {
+  makeHistoryReader,
   makeStatusReader,
   webhookSeal,
   WEBHOOK_PURPOSE,
@@ -52,6 +53,7 @@ export const handler = makeHandler({
           modelStorage: modelStorage(process.env.OUTBOX_BUCKET),
           outbox,
           readStatus: makeStatusReader(process.env.OUTBOX_BUCKET),
+          readHistory: makeHistoryReader(process.env.OUTBOX_BUCKET),
         })
       : null,
   databaseUrl: process.env.DATABASE_URL,
@@ -87,6 +89,7 @@ export const handler = makeHandler({
         ).seal,
         outbox,
         readStatus: makeStatusReader(process.env.OUTBOX_BUCKET),
+        readHistory: makeHistoryReader(process.env.OUTBOX_BUCKET),
       }
     : null,
   // Captured tool calls are read back for the console's call record;

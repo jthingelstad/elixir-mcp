@@ -285,6 +285,7 @@ async function syncLocked(
         nowMs: now,
         text: rewrites.get(p.key) ?? null,
       }),
+      ...(rewrites.has(p.key) ? { rewritten: true } : {}),
     }));
     for (let i = 0; i < content.length; i += DISCORD_POSTS_MAX)
       await outbox(

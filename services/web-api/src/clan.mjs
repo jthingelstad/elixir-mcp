@@ -148,6 +148,8 @@ export function createClanRequest({
   outbox = null,
   /** the relay's last word on a channel (`makeStatusReader`) */
   readStatus = async () => null,
+  /** the relay's last deliveries to a channel (`makeHistoryReader`) */
+  readHistory = async () => null,
 }) {
   const appUrl = `${origin}/clan`;
   // The clan's activity channel: its webhook sealed as it is saved.
@@ -294,7 +296,11 @@ export function createClanRequest({
             async read(clanTag) {
               const row = await readClanActivity(db, clanTag);
               return row
-                ? clanActivityRowView(row, await readStatus(row.channel_id))
+                ? clanActivityRowView(
+                    row,
+                    await readStatus(row.channel_id),
+                    await readHistory(row.channel_id).catch(() => null),
+                  )
                 : null;
             },
             async save(clanTag, change, { who, clanName }) {

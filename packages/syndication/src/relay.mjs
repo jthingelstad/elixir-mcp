@@ -262,6 +262,17 @@ export function createTimelineDiscordWorker({
     throw retry("state_contended", 1000);
   }
 
+  /** What a delivery is about: the line's key and text, and whether the
+   *  clan's own model wrote it. */
+  const about = (post) =>
+    post
+      ? {
+          ref: post.key,
+          excerpt: post.content,
+          ...(post.rewritten === true ? { rewritten: true } : {}),
+        }
+      : {};
+
   /** Record this run's deliveries; best effort, never fails the run. */
   async function remember(accountId, added) {
     if (added.length === 0) return;
@@ -338,8 +349,7 @@ export function createTimelineDiscordWorker({
         added.push({
           at: at(),
           outcome: r.outcome,
-          ref: post.key,
-          excerpt: post.content,
+          ...about(post),
           ...(r.status ? { http_status: r.status } : {}),
           ...(r.reason ? { reason: r.reason } : {}),
         });
@@ -364,8 +374,7 @@ export function createTimelineDiscordWorker({
         added.push({
           at: at(),
           outcome: "refused",
-          ref: msg.posts[next]?.key,
-          excerpt: msg.posts[next]?.content,
+          ...about(msg.posts[next]),
           http_status: err.status,
           reason:
             err.reason ??
@@ -393,8 +402,7 @@ export function createTimelineDiscordWorker({
         added.push({
           at: at(),
           outcome: "not_delivered",
-          ref: post.key,
-          excerpt: post.content,
+          ...about(post),
           reason: NOT_SENT[err.code] ?? "Elixir could not deliver it.",
         });
       log.error(

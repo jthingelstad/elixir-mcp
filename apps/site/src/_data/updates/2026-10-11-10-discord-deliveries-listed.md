@@ -1,0 +1,3 @@
+# The last Discord deliveries, on every Discord page
+
+Your timeline's cross-post panel now lists the last 20 lines it delivered over the past 30 days, along with how many were not delivered. Each line shows what happened to it, in Discord's words when Discord refused it. If a clan you are in also posts its activity to a channel of its own, the panel names that clan, because those lines reach Discord twice. Nothing is filtered. The clan's activity page lists its deliveries the same way, with each line shown whole as posted and any line the clan's own model wrote marked. MCP and JSON API unchanged.
