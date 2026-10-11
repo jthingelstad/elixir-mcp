@@ -266,3 +266,23 @@ test("a resolved week names who carried it, by points and decks; never fame per 
     "Example Clan finished week 1 in place 1 with 10,400 fame (+100 war trophies).",
   );
 });
+
+test("a sitting only partly with the partner says how much of it (Codex on #482)", () => {
+  const item = {
+    kind: "session_standout",
+    subject_name: "Example Clan",
+    facts: {
+      player_tag: ANN,
+      name: "Ann",
+      battles: 20,
+      wins: 12,
+      losses: 8,
+      teammate: { player_tag: BEA, name: "Bea", battles: 1 },
+    },
+  };
+  assert.match(
+    itemText(item),
+    /^Ann played 20 battles in one sitting, 1 of them with Bea in 2v2 \(/,
+  );
+  assert.doesNotMatch(itemText(item), /sitting with Bea/);
+});

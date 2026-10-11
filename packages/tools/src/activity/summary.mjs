@@ -404,10 +404,14 @@ export function itemText(it, timeZone = "UTC") {
       const run =
         f.won_in_a_row >= 5 ? `, ${f.won_in_a_row} wins in a row` : "";
       // A 2v2 pair's sittings are the same games: each says who with, so
-      // a narrator can tell them as one (feedback #370).
-      const mate = f.teammate
-        ? ` with ${f.teammate.name ?? f.teammate.player_tag} in 2v2`
-        : "";
+      // a narrator can tell them as one (feedback #370). A sitting only
+      // partly with the partner says how much of it (Codex on #482).
+      const partner = f.teammate?.name ?? f.teammate?.player_tag;
+      const mate = !f.teammate
+        ? ""
+        : f.teammate.battles >= f.battles
+          ? ` with ${partner} in 2v2`
+          : `, ${f.teammate.battles} of them with ${partner} in 2v2`;
       const best = f.best_win
         ? `; best win ${f.best_win.crowns ?? "?"}-${f.best_win.crowns_against ?? "?"} over ${against(f.best_win)}`
         : "";
