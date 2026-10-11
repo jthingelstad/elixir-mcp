@@ -1,0 +1,3 @@
+# What the clan's model is never told, said exactly
+
+Settings and the Clan docs said "private notes" are never sent to the clan's model. That was too broad: the note you write on an Action is sent as you wrote it. What is never sent is another leader's private note, along with tags, holds, a removal's reasons or inactivity numbers, and a member's share of the clan's fame. The awards page now says the model is told the winners and their numbers, while Elixir still writes the complete list of recipients itself. Nothing about what is sent has changed; only the wording. MCP and JSON API unchanged.
