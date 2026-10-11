@@ -22,8 +22,9 @@ game, and the action's log keeps what happened.
 ## Inspect a member's recorded activity
 
 Roster names, current members in Award races, Standing and The week, and
-member Actions link to **View member activity**, a private
-read for a current member of a clan you belong to. It shows four ISO weeks
+member Actions link to **View member activity**, a page for
+a current member of a clan you belong to (the counts are recorded game
+data; the page lives inside Clan). It shows four ISO weeks
 of clan-scoped recorded battle counts and observed donation counters, the
 recorded war weeks' deck usage and points, and paged battles grouped into
 recorded sessions. Each battle opens its full detail page. ISO

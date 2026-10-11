@@ -188,7 +188,8 @@ adding a new player, and otherwise at the next regular profile read. Each
 follow Elixir makes is in your account's activity log.
 
 `elixir_nickname({ player_tag, nickname })` stores a private label (1 to 40
-characters, `null` clears) that only your account and your agents see;
+characters, `null` clears) that only your account, and what you connect as
+yourself, sees (an agent is an account of its own and keeps its own);
 `players_search` ranks your nicknames first. It is the one write the website's
 Explore page performs.
 
