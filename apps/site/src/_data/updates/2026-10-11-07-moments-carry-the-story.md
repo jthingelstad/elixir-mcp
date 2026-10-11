@@ -1,0 +1,3 @@
+# Timeline moments say how they happened
+
+A standout sitting on your timeline now says how it went: the best win in it (the battle, the opponent and their trophies, the crowns), and the battle that crossed each milestone. A 2v2 sitting names the teammate, so two clanmates who played together read as a pair. A finished war week names the three members who carried it, by points and decks. A promotion proved after it was first shown comes back as the same story at a higher revision, so a Discord cross-post edits its line instead of reading as new. Award standings name only the season running. MCP 11.11.0; JSON API 3.2.0 unchanged.
