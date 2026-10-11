@@ -12,7 +12,7 @@ import {
 import { timelineDiscordStatusKey } from "@elixir-mcp/contracts";
 
 const STATE =
-  /^timeline-discord-state\/[a-f0-9-]{36}\/[^/]+(?:\/[^/]+)?\.json$/;
+  /^timeline-discord-state\/(?:[a-f0-9-]{36}\/[^/]+(?:\/[^/]+)?|pace\/[a-f0-9]{16})\.json$/;
 const signal = () => ({ abortSignal: AbortSignal.timeout(5000) });
 const precondition = (err) =>
   err?.name === "PreconditionFailed" ||

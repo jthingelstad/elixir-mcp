@@ -324,8 +324,12 @@ export function createClanRequest({
                   )
                 : null;
               const refused = refusalOf(status);
-              if (refused) {
-                const row = await refuseClanActivity(db, clanTag, refused);
+              // A save that replaced this webhook during the wait keeps
+              // its own.
+              const row = refused
+                ? await refuseClanActivity(db, clanTag, refused, r.fp)
+                : null;
+              if (row) {
                 return {
                   error: refused,
                   view: clanActivityRowView(row, status),

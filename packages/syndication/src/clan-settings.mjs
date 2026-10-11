@@ -206,20 +206,22 @@ export async function saveClanActivity(
 }
 
 /** Switch a clan's posting off for a webhook its hello showed unusable
- *  (`reason` webhook_forum or webhook_gone). */
+ *  (`reason` webhook_forum or webhook_gone), while that webhook (`fp`) is
+ *  still the saved one. Null when another save replaced it. */
 export async function refuseClanActivity(
   db,
   clanTag,
   reason,
+  fp,
   now = Date.now(),
 ) {
   const { rows } = await db.query(
     `update clan_activity_discord
         set enabled = false, disabled_reason = $2, disabled_at = $3,
             updated_at = $3
-      where clan_tag = $1
+      where clan_tag = $1 and webhook_fp = $4
       returning ${COLUMNS}`,
-    [clanTag, reason, new Date(now)],
+    [clanTag, reason, new Date(now), fp],
   );
   return rows[0] ?? null;
 }

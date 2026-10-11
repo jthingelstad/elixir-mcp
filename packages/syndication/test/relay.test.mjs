@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import {
   timelineDiscordHistoryKey,
   timelineDiscordStateKey,
+  timelineDiscordPaceKey,
   timelineDiscordStatusKey,
   webhookFingerprint,
 } from "@elixir-mcp/contracts";
@@ -124,11 +125,11 @@ function setup(
   let seq = 0;
   const deliver = async (
     posts,
-    { webhook = seal(hook, ACCOUNT), final = false } = {},
+    { account = ACCOUNT, webhook = seal(hook, account), final = false } = {},
   ) => {
-    const key = `timeline-discord/${ACCOUNT}.${(seq += 1)}.json`;
+    const key = `timeline-discord/${account}.${(seq += 1)}.json`;
     store.objects.set(key, {
-      body: { v: 1, kind: "timeline", account_id: ACCOUNT, webhook, posts },
+      body: { v: 1, kind: "timeline", account_id: account, webhook, posts },
       etag: '"o"',
     });
     try {
@@ -347,11 +348,18 @@ test("one webhook's lines are paced across runs, under Discord's per-channel lim
     { key: "tl_aaaaaaaaaaaaaaaaaaaa", revision: 1, content: "d" },
   ]);
   assert.deepEqual(s.waits, [2400, 2400, 2400]);
+  // And so does another destination posting through the same webhook (a
+  // person's timeline and their agent's): it is one channel.
+  await s.deliver(
+    [{ key: "tl_bbbbbbbbbbbbbbbbbbbb", revision: 1, content: "e" }],
+    { account: "22222222-2222-4222-8222-222222222222" },
+  );
+  assert.deepEqual(s.waits, [2400, 2400, 2400, 2400]);
 });
 
 test("a turn past the run's budget goes back to the queue with the wait, not the queue's six minutes", async () => {
   const s = setup([], { budgetMs: 1000 });
-  s.store.objects.set(timelineDiscordStateKey(ACCOUNT, FP, "pace"), {
+  s.store.objects.set(timelineDiscordPaceKey(FP), {
     body: { next_at: s.clock.t + 20_000 },
     etag: '"p"',
   });

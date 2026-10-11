@@ -22,7 +22,8 @@
  * newer one's.
  *
  * Pace (2026-10-11): one webhook's lines are spaced SPACING_MS apart
- * across every run (a pace record beside its posts), which keeps a big
+ * across every run and every destination that shares the webhook (its
+ * pace record, timeline-discord-state/pace/<fingerprint>), which keeps a big
  * clan's war-day burst under Discord's ~30 messages a minute per channel;
  * the client also waits out the webhook's own X-RateLimit budget. A line
  * that has to wait longer than the run may goes back to the queue with
@@ -48,6 +49,7 @@ import {
   validateTimelineDiscordMessage,
   webhookFingerprint,
   timelineDiscordStateKey,
+  timelineDiscordPaceKey,
   timelineDiscordStatusKey,
   timelineDiscordHistoryKey,
   addDiscordDeliveries,
@@ -305,11 +307,8 @@ export function createTimelineDiscordWorker({
       throw retry("bad_message");
     }
     const fingerprint = webhookFingerprint(hook.url);
-    const paceKey = timelineDiscordStateKey(
-      msg.account_id,
-      fingerprint,
-      "pace",
-    );
+    // Paced by the webhook alone: two destinations may share one.
+    const paceKey = timelineDiscordPaceKey(fingerprint);
     const counts = { posted: 0, edited: 0, skipped: 0, unknown: 0, refused: 0 };
     const added = [];
     const at = () => new Date(now()).toISOString();

@@ -186,6 +186,13 @@ export function timelineDiscordStateKey(
   return `timeline-discord-state/${accountId}/${fingerprint}/${key}.json`;
 }
 
+/** One webhook's pace record, shared by every destination that posts
+ *  through it (a person's timeline and their agent's, say), so a reused
+ *  webhook is paced as the one channel it is. */
+export function timelineDiscordPaceKey(fingerprint: string): string {
+  return `timeline-discord-state/pace/${fingerprint}.json`;
+}
+
 /** Where the relay says how the account's last delivery went. */
 export function timelineDiscordStatusKey(accountId: string): string {
   return `timeline-discord-state/${accountId}/status.json`;

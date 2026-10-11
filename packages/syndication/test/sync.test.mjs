@@ -273,7 +273,18 @@ test("a save waits for the hello's first word, and a forum's webhook is refused 
   );
   assert.equal(status.state, "forum");
   assert.equal(refusalOf(status), "webhook_forum");
-  const row = await refuseDiscordSetting(ctx.db, person, "webhook_forum");
+  // A save that replaced the webhook during the wait keeps its own.
+  assert.equal(
+    await refuseDiscordSetting(ctx.db, person, "webhook_forum", "0".repeat(16)),
+    null,
+  );
+  assert.equal((await readDiscordSetting(ctx.db, person)).enabled, true);
+  const row = await refuseDiscordSetting(
+    ctx.db,
+    person,
+    "webhook_forum",
+    saved.fp,
+  );
   assert.equal(row.enabled, false);
   assert.equal(row.disabled_reason, "webhook_forum");
   // No word in time is no refusal: the sync hears it later.

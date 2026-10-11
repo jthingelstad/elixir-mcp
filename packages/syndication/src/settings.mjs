@@ -77,20 +77,23 @@ export function refusalOf(status) {
 }
 
 /** Turn an account's cross-posting off for a webhook its hello showed
- *  unusable (`reason` webhook_forum or webhook_gone). */
+ *  unusable (`reason` webhook_forum or webhook_gone). Only while that
+ *  webhook (`fp`) is still the saved one: a save that replaced it during
+ *  the wait keeps its own. Null when it was replaced. */
 export async function refuseDiscordSetting(
   db,
   accountId,
   reason,
+  fp,
   now = Date.now(),
 ) {
   const { rows } = await db.query(
     `update timeline_discord
         set enabled = false, disabled_reason = $2, disabled_at = $3,
             updated_at = $3
-      where account_id = $1
+      where account_id = $1 and webhook_fp = $4
       returning ${COLUMNS}`,
-    [accountId, reason, new Date(now)],
+    [accountId, reason, new Date(now), fp],
   );
   return rows[0] ?? null;
 }
