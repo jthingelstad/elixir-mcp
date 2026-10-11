@@ -77,6 +77,8 @@ export function followFor(it, window) {
               },
             ]
           : []),
+        // A standout's best win, by its id (2026-10-11).
+        ...battle(tag, f.best_win),
       ];
     case "ranked_promotion":
     case "arena_changed":

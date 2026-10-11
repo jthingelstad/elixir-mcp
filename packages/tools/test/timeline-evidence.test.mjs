@@ -167,6 +167,14 @@ test("late arena proof freezes the legacy duplicate origin and records a new evi
   assert.equal(after.length, 1);
   assert.equal(after[0].id, before[0].id);
   assert.notEqual(after[0].evidence.version, before[0].evidence.version);
+  // Served again because the record learned the proof: the same story,
+  // grown, never a second one at the same revision (2026-10-09: one
+  // arena move served twice at revision 1 was posted twice).
+  assert.equal(before[0].revision, 1);
+  assert.equal(after[0].revision, 2);
+  assert.equal(after[0].revision, after[0].evidence.attachment_revision);
+  assert.ok(after[0].facts.promoted_by?.battle_id);
+  assert.match(after[0].text, / on a .* win over /);
   assert.equal(after[0].observed_at, at(40));
   assert.equal(after[0].evidence.observed_at, at(40));
   assert.equal(after[0].evidence.observation_window.to, at(10));
@@ -209,6 +217,7 @@ test("late arena proof freezes the legacy duplicate origin and records a new evi
   assert.equal(duplicate[0].id, before[0].id);
   assert.equal(duplicate[0].evidence.status, "proved");
   assert.equal(duplicate[0].evidence.version, after[0].evidence.version);
+  assert.equal(duplicate[0].revision, 2, "a later duplicate is no new growth");
   const narrow = (
     await feed(FROM + 39 * 60000, FROM + 46 * 60000)
   ).timeline.find((x) => x.kind === "arena_changed");
