@@ -183,7 +183,7 @@ export function DiscordSetting({ clan }) {
               In Discord, with Developer Mode on: Server Settings, Roles,
               right-click the role, Copy Role ID. Only that role is ever
               mentioned, only when an Action is first posted, and never when it
-              is updated.
+              is updated. Connecting a different webhook clears it.
             </p>
           </form>
           <div className="panel__body pt-0">

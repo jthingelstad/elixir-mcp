@@ -123,8 +123,20 @@ test("award plans and grant receipts survive duplicate writes without changing p
   const saved = (await ledger.awardPlans("#P0LYQ"))[0];
   assert.deepEqual(saved.grants, [grant]);
   assert.equal(saved.completed_at, "2026-10-05T10:01:00Z");
+  await ledger.saveDiscordLog("#P0LYQ", {
+    entries: [
+      { at: "2026-10-05T10:02:00Z", outcome: "posted", excerpt: "#1 Fixture" },
+    ],
+    missed: {},
+  });
+  assert.equal((await ledger.discordLog("#P0LYQ")).entries.length, 1);
   await ledger.deleteClan("#P0LYQ");
   assert.deepEqual(await ledger.awardPlans("#P0LYQ"), []);
+  assert.equal(
+    await ledger.discordLog("#P0LYQ"),
+    null,
+    "the delivery log goes with the clan",
+  );
 });
 test("canonical membership SQL keeps race absence separate from full donation-week absence", async () => {
   await db.query("begin");

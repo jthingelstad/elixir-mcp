@@ -339,7 +339,8 @@ again.
 - Nothing pings anyone unless the leader or a co-leader names one Discord
   role to mention (Settings, by the role's id). That role, and only it, is
   mentioned when an action is first posted; an edit never mentions
-  anyone.
+  anyone. Connecting a different webhook clears the role, since it may
+  be another server's channel.
 - A forum channel's webhook works: each action becomes a forum post of its
   own, named for it, and its close is edited in that post. A webhook
   ending in `?thread_id=` posts every action into that one thread.

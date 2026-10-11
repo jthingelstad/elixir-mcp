@@ -55,7 +55,13 @@ and a backlog over ten waited the same way.
 - **A role to mention, opt in.** `POST …/discord/mention { role_id }`
   (leaders) names one role; each Action's first post starts with
   `<@&id>` and allows only that role. Edits never mention anyone; every
-  other Discord path keeps `parse: []`. DECISIONS records it.
+  other Discord path keeps `parse: []`. DECISIONS records it. The role
+  stays only while the webhook does (its id, kept beside the sealed
+  address, says so): another webhook may be another server's, where the
+  role is nothing.
+- **Review (#488).** The delivery log goes with a deleted clan (it has
+  no index entry, so `deleteClan` names it); the mention's two analytics
+  events are on clan-web's list.
 - **The last deliveries.** `discord_log#<clan>` keeps the last 20 in 30
   days (posted, edited, refused with Discord's words, unknown, not
   delivered) with contracts' `addDiscordDeliveries`; Settings lists them
