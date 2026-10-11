@@ -1,0 +1,3 @@
+# Discord lines no longer open with a time
+
+A timeline cross-posted to Discord, and a clan's activity channel, used to open every line with the time the item happened. Discord already shows when each message was posted, so the line now starts with what happened. Only an item that is more than three hours old when it is posted (a late proof, a quiet rung) says how long ago, as "5 hours ago" on each reader's own clock. An edited line works the same way, so a sitting edited as it grows no longer gains a time it did not have, or a time later than its message ([cross-posting to Discord](/docs/timeline#cross-posting-to-discord)). MCP and JSON API unchanged.

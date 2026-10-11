@@ -162,7 +162,9 @@ test("a join is posted once, as members read it, with no backfill on a second ru
   assert.equal(msg.kind, "clan_activity");
   assert.equal(validateTimelineDiscordMessage(msg).ok, true);
   assert.match(msg.posts[0].content, /Joiner joined/);
-  assert.match(msg.posts[0].content, /^<t:\d+:/);
+  // An hour old: Discord's own post time says when (2026-10-11).
+  assert.match(msg.posts[0].content, /^Joiner joined/);
+  assert.doesNotMatch(msg.posts[0].content, /<t:/);
   const again = await sync(T + 3 * H + 10 * MIN);
   assert.equal(again.posted, 0);
   assert.equal(again.sent.length, 0);
@@ -190,6 +192,7 @@ test("a departure says departed; a leader's kick edits that post to say removed"
   assert.equal(edit.key, post.key, "the departure's own message is edited");
   assert.ok(edit.revision > post.revision);
   assert.match(edit.content, /was removed/);
+  assert.doesNotMatch(edit.content, /<t:/, "the edit gains no time");
 
   const again = await sync(T + 7 * H + 10 * MIN);
   assert.equal(again.posted, 0, "the classification is told once");
@@ -298,7 +301,7 @@ test("the rewrite: each post's packet carries the clan, the facts and the member
   assert.deepEqual(out.refused, { number_invented: 1 });
   const [promo, gone] = out.sent[0].message.posts;
   assert.match(promo.content, /Joiner steps up to Elder! 🔥/);
-  assert.match(promo.content, /^<t:\d+:/, "the stamp is Elixir's");
+  assert.match(promo.content, /^Joiner steps up/, "no time on a fresh line");
   assert.match(gone.content, /departed/);
   assert.doesNotMatch(gone.content, /400 wins/);
   // Its delivery says the clan's model wrote it; Elixir's own does not.
@@ -472,8 +475,9 @@ test("with the rewrite on, a run of same-kind milestones is one post under its f
   assert.deepEqual(refused.refused, { name_changed: 1 });
   const lines = refused.sent[0].message.posts[0].content.split("\n");
   assert.equal(lines.length, 2, "Elixir's two lines, one post");
-  assert.match(lines[0], /^<t:\d+:.*Joiner/);
-  assert.match(lines[1], /^<t:\d+:.*Stayer/);
+  assert.match(lines[0], /^POAP KINGS gave Joiner /);
+  assert.match(lines[1], /^POAP KINGS gave Stayer /);
+  assert.doesNotMatch(lines.join("\n"), /<t:/, "fresh lines carry no time");
 
   // A departure is told only time here and weeks played: never awards.
   await clanEvent("member_left", JOINER, T + 21 * H + 30 * MIN);
