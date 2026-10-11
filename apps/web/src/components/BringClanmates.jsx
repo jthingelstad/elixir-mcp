@@ -1,12 +1,19 @@
 import { Icon, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
+import { trackEvent } from "../analytics.js";
 import { useMyClans } from "../lib/queries.js";
-import { SIGNUP_URL, clanChatLine, clanMessage } from "../lib/invite.js";
+import {
+  INVITE_CHANNELS,
+  INVITE_EVENT,
+  SIGNUP_URL,
+  clanChatLine,
+  clanMessage,
+} from "../lib/invite.js";
 
 /** A line to copy: the words on screen to select by hand too, and one
- *  button. Deliberately no analytics event: nothing records who copied
- *  what (lib/invite.js). */
-function Copyable({ text, label, multiline = false }) {
+ *  button. A copy is counted as one aggregate event by channel; nothing
+ *  records who copied what (lib/invite.js). */
+function Copyable({ text, label, channel, multiline = false }) {
   const [done, setDone] = useState(false);
   return (
     <div className="flex items-start gap-2 rounded-control border border-line-soft bg-ground-sunken px-2.5 py-2 text-[13px]">
@@ -23,6 +30,7 @@ function Copyable({ text, label, multiline = false }) {
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(text);
+            trackEvent(INVITE_EVENT, channel);
             setDone(true);
             setTimeout(() => setDone(false), 1500);
           } catch {
@@ -70,11 +78,16 @@ export function BringClanmates({ className = "" }) {
           the clan&rsquo;s week by email every Monday. Free and unofficial.
         </p>
         <div className="label">For clan chat</div>
-        <Copyable text={chat} label="Copy the line for clan chat" />
+        <Copyable
+          text={chat}
+          label="Copy the line for clan chat"
+          channel={INVITE_CHANNELS.chat}
+        />
         <div className="label">For Discord or a message</div>
         <Copyable
           text={`${message}\n${SIGNUP_URL}`}
           label="Copy the message"
+          channel={INVITE_CHANNELS.message}
           multiline
         />
         {canShare && (
@@ -90,6 +103,7 @@ export function BringClanmates({ className = "" }) {
                     text: message,
                     url: SIGNUP_URL,
                   });
+                  trackEvent(INVITE_EVENT, INVITE_CHANNELS.share);
                 } catch (err) {
                   if (err?.name !== "AbortError")
                     setShareNote(

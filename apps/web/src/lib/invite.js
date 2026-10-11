@@ -8,10 +8,20 @@ import { CHAT_MAX, chatSafe } from "@elixir-mcp/clan-engine/chat";
  *
  * The link is the same for everyone: the canonical origin's signup, with
  * no referral code, invite id or tracking parameter (DECISIONS, "Invites
- * carry no referral ids"). Nothing records who copied or shared a line.
+ * carry no referral ids"). Nothing records who copied or shared a line;
+ * a copy or a share is counted as one aggregate event (`INVITE_EVENT`,
+ * valued by channel), as Clan's copy buttons are.
  */
 export const SITE = "elixir.poapkings.com";
 export const SIGNUP_URL = `https://${SITE}/console/signin?signup`;
+
+/** The aggregate event a copy or share sends, and its bounded values. */
+export const INVITE_EVENT = "web.invite_copied";
+export const INVITE_CHANNELS = Object.freeze({
+  chat: "chat",
+  message: "message",
+  share: "share",
+});
 
 /** The clan's name as the game's chat filter will pass it, or null. */
 const clanWords = (name) => {
