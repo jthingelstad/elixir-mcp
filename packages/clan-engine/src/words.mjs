@@ -4,18 +4,20 @@
  * answer. A model writes WORDS, never judgments (VISION, principle 5):
  *
  *  - the uses are a closed list (`PURPOSES`); no judgment about a member
- *    is ever one of them (an activity post names a member only to retell
- *    what the clan's timeline already shows of them);
- *  - a request carries clan-level facts only: the game's numbers for the
- *    clan, what it is for, how it runs, its own words. A welcome may carry
- *    its frozen recorded return or career detail; a confirmed departure
- *    its leader classification and recorded tenure. Never identity,
- *    private notes, removal rationale or broader member history;
+ *    is ever one of them;
+ *  - a request carries what Elixir knows (Jamie, 2026-10-11, reversing
+ *    "the model sees only the line"): the clan (`clanContext`), the
+ *    moment and the member it is about, by name, with their record
+ *    (`context.mjs`), and the leader's note as written. Never another
+ *    leader's note, a hold, a removal's rationale or inactivity numbers,
+ *    fame per member, or anything else private to Clan beyond the
+ *    Action's own evidence;
  *  - every answer is checked here and handed to a person to edit and
- *    save. Nothing a model writes is saved or sent by itself, with one
+ *    save, with a warning on any number or name it was not given.
+ *    Nothing a model writes is saved or sent by itself, with one
  *    exception Jamie asked for (2026-10-10): the clan's activity posts in
- *    its Discord (`discord_activity`, activity.mjs), which retell a line
- *    the clan's timeline already shows and are checked line by line.
+ *    its Discord (`discord_activity`, activity.mjs), which are checked
+ *    line by line and refused, never warned.
  *
  * Pure: context in, request out; answer in, values out.
  */
@@ -30,6 +32,7 @@ import {
   clipChat,
 } from "./chat.mjs";
 import { inGameCopy, LEADER_MESSAGE } from "./render.mjs";
+import { inventedNumbers, strictTool, unknownNames } from "./context.mjs";
 
 /** What a clan's model may write. */
 export const PURPOSES = {
@@ -235,9 +238,10 @@ export function pitchRequest({
     // in another language takes more again, so 1200 could cut a full
     // answer off; a cut-off answer is refused, never a draft.
     max_tokens: 1600,
+    effort: DRAFT_EFFORT,
     system: PITCH_SYSTEM,
     prompt: lines.join("\n"),
-    tool: PITCH_TOOL,
+    tool: strictTool(PITCH_TOOL),
   };
 }
 
@@ -300,6 +304,11 @@ export function pitchFromDraft(input, current = null, { prompt = "" } = {}) {
 
 // ---------------------------------------------------------------- Leader Messages
 
+/** How hard the model thinks for a leader's draft (Claude's `effort`):
+ *  the leaders read every draft, so a careful one; `medium` is also
+ *  Opus 5.5's own default, set here so a model change never changes it. */
+export const DRAFT_EFFORT = "medium";
+
 const MESSAGE_TOOL = {
   name: "write_leader_message",
   description:
@@ -320,108 +329,135 @@ const MESSAGE_TOOL = {
   },
 };
 
-const MESSAGE_SYSTEM = [
-  "You draft a Clan Leader Message for a Clash Royale clan, in the clan's own voice: the title-and-message mail a leader sends to every member's in-game Inbox. A leader edits it before sending.",
-  `Keep the title to ${LEADER_MESSAGE.title} characters and the message to ${LEADER_MESSAGE.body - 30}. Plain, warm, specific to what happened; no speeches.`,
+/**
+ * How the clan's model writes for the leaders (Jamie, 2026-10-11: the
+ * clan's voice "removes all context and makes it generic dribble. The
+ * intent is to become even more contextual and pull in the variety of
+ * data elixir has"). The model is given what Elixir knows and told to use
+ * it: one or two true details make a line the clan's own.
+ */
+const WRITING = [
+  "You write for a Clash Royale clan, in its own voice. A leader reads and edits every draft before anyone sees it.",
+  "After these instructions comes what Elixir knows: THE CLAN, then the moment (WHAT HAPPENED) and the member it is about. Every fact there comes from Elixir's record of the game. Use it. Pick the one or two details that make this moment belong to this person and this clan (a best they reached, a war week they carried, how long they have been here, an award they hold) and leave the rest out. Never list statistics.",
+  "Sound like a person in the clan talking to friends: warm, plain and specific. No speeches, no hype, no clichés.",
+  "Every name, number and event you write comes from those facts or from the leader's note. When something is not there, leave it out; never guess and never round a number up.",
   "The game's chat filter blanks some innocent text, so: write 'and', never '&'; never put '+' before a number; never join two words with a hyphen; never write 'phone'; no links, emoji, hashtags, markdown or @mentions.",
-  "Never write a score, a rank, a percentage or a number the clan's facts below do not give. Never invent an event, a reward or a rule.",
-  "Never write a member's name yourself: where the member goes write {name}; where the list of awards and their winners goes write {winners}. Use each placeholder you are told to, exactly once.",
+];
+
+const MESSAGE_SYSTEM = [
+  "You draft a Clan Leader Message: the title-and-message mail a leader sends to every member's in-game Inbox.",
+  ...WRITING,
+  `Keep the title to ${LEADER_MESSAGE.title} characters and the message to ${LEADER_MESSAGE.body - 30}.`,
+  "Write the member's name as it is given. For a season's awards write {winners} where the list of awards and winners goes: Elixir puts the complete list there, so never write the list yourself; the words around it may name a winner and their number.",
   "Answer by calling write_leader_message.",
 ].join("\n");
 
 const MESSAGE_KINDS = ["promotion", "demotion", "awards", "rules"];
 
+const ASK = {
+  promotion:
+    "Write the Leader Message that tells the clan this member is now an Elder. Thank them for something specific they did.",
+  demotion:
+    "Write the Leader Message that tells the clan this Elder moves back to Member for now. Kind and short, never shaming: thank them for what they gave, say Elder can come back, and never publish what they fell short of.",
+  awards:
+    "Write the Leader Message for the season's awards. Keep the words around {winners} short; a line on one winner's number is welcome.",
+  rules:
+    "Write the Leader Message that tells the clan how it runs now, in plain words members will read on their phones in the game. Say what changed, not the whole policy.",
+};
+
 /**
- * The request for a Clan Leader Message in the clan's voice. Names never
- * reach the model: it writes {name} or {winners} and Clan puts them in
- * (`leaderMessageFromDraft`). `voice` is the clan's own recruiting words,
- * `current` the template draft the action already carries.
+ * The prompt both draft requests share: the moment and its people (the
+ * packet), what the leader asks for, and the plain draft to improve on.
+ */
+function draftPrompt({ packet, ask, current = null, note = null }) {
+  const lines = [String(packet ?? "").trim()];
+  if (current?.title || current?.body || current?.line)
+    lines.push(
+      "",
+      "ELIXIR'S PLAIN DRAFT (improve on it; keep what is true)",
+      ...(current.line ? [current.line] : []),
+      ...(current.title ? [`Title: ${current.title}`] : []),
+      ...(current.body ? [`Message: ${current.body}`] : []),
+    );
+  const said = String(note ?? "")
+    .trim()
+    .slice(0, NOTE_MAX);
+  if (said)
+    lines.push(
+      "",
+      `THE LEADER'S NOTE (follow it; it may add facts of its own): ${said}`,
+    );
+  lines.push("", `THE ASK: ${ask}`);
+  return lines.join("\n").trim();
+}
+
+/**
+ * The request for a Clan Leader Message in the clan's voice. `context`
+ * is the clan (`clanContext`), the prefix every request of the clan
+ * shares; `packet` the moment and its member (`actionLines`,
+ * `memberLines`); `current` the template draft the action carries;
+ * `note` the leader's words, as written.
  */
 export function leaderMessageRequest({
   kind,
-  clanName = null,
-  voice = null,
-  goals = [],
-  changes = [],
-  first = false,
-  seasonId = null,
-  awardCount = 0,
+  context = "",
+  packet = "",
   current = null,
   note = null,
 } = {}) {
   if (!MESSAGE_KINDS.includes(kind))
     throw new Error(`no Leader Message for ${kind}`);
-  const lines = [`The clan: ${clanName ?? "a Clash Royale clan"}.`];
-  if (voice?.tagline || voice?.about)
-    lines.push(
-      "",
-      "The clan in its own words (write in this voice):",
-      ...(voice.tagline ? [`Tagline: ${voice.tagline}`] : []),
-      ...(voice.about ? [`About: ${voice.about}`] : []),
-    );
-  if (goals.length)
-    lines.push(
-      "",
-      `What the clan is for: ${goals.map((g) => GOALS[g]?.label ?? g).join(", ")}.`,
-    );
-  lines.push("", "What happened:");
-  if (kind === "promotion")
-    lines.push(
-      "A member was just promoted to Elder by the clan's own rules. Write {name} for them.",
-    );
-  else if (kind === "demotion")
-    lines.push(
-      "An Elder moves back to Member for now, by the clan's own rules; it can come back. Write {name} for them. Kind, never shaming.",
-    );
-  else if (kind === "awards")
-    lines.push(
-      `Season ${seasonId ?? "?"} closed and the clan granted ${awardCount} award${awardCount === 1 ? "" : "s"}. Write {winners} where the list goes; keep the rest short.`,
-    );
-  else if (first)
-    lines.push(
-      "The clan now runs with Elixir Clan: members can sign in with Elixir to see how it works and where they stand.",
-    );
-  else
-    lines.push(
-      `The clan changed how it runs: ${changes.join(", ") || "some settings"}. Members can see how it works in Elixir Clan.`,
-    );
-  if (current?.title || current?.body)
-    lines.push(
-      "",
-      "The plain draft to improve on:",
-      `Title: ${current.title ?? ""}`,
-      `Message: ${current.body ?? ""}`,
-    );
-  const ask = String(note ?? "")
-    .trim()
-    .slice(0, NOTE_MAX);
-  if (ask) lines.push("", `The leader's note: ${ask}`);
   return {
     purpose: "leader_message",
+    effort: DRAFT_EFFORT,
     max_tokens: 400,
     system: MESSAGE_SYSTEM,
-    prompt: lines.join("\n"),
-    tool: MESSAGE_TOOL,
+    context: String(context ?? ""),
+    prompt: draftPrompt({ packet, ask: ASK[kind], current, note }),
+    tool: strictTool(MESSAGE_TOOL),
   };
 }
 
+/** What a leader should check in a draft: a number or a name the model
+ *  was not given (`told`: everything the request carried). */
+function toldChecks(text, told) {
+  if (told == null) return [];
+  const out = [];
+  const numbers = inventedNumbers(text, told);
+  if (numbers.length)
+    out.push(
+      `${numbers.map((x) => x.toLocaleString("en-US")).join(", ")} ${numbers.length === 1 ? "is" : "are"} not in anything Elixir told the model: check ${numbers.length === 1 ? "it" : "them"} before sending`,
+    );
+  const names = unknownNames(text, told);
+  if (names.length)
+    out.push(
+      `${names.join(", ")} ${names.length === 1 ? "is" : "are"} not a name Elixir told the model: check before sending`,
+    );
+  return out;
+}
+
 /**
- * A model's Leader Message, made safe to send: the member's name and the
- * awards list put in where the model left {name} and {winners} (or added
- * when it left them out), the game's chat filter rules applied, and each
- * part clipped to the game's limits. `warnings` are what a leader should
- * still look at (a score or rank, text the filter would blank).
+ * A model's Leader Message, made safe to send: the awards list put in
+ * where the model left {winners} (or added when it left it out), a
+ * promotion's or demotion's member named when the model did not, the
+ * game's chat filter rules applied, and each part clipped to the game's
+ * limits. `warnings` are what a leader should still look at: a score or
+ * rank, text the filter would blank, and a number or name the model was
+ * not given (`told`: the request's context and prompt).
  */
 export function leaderMessageFromDraft(
   input,
-  { kind, name = null, awards = [] } = {},
+  { kind, name = null, awards = [], told = null } = {},
 ) {
   const a = input && typeof input === "object" ? input : {};
   const who = chatSafe(name ?? "a member");
   const put = (text) => String(text ?? "").replaceAll("{name}", who);
   let title = put(a.title).replaceAll("{winners}", "").trim();
   let body = put(a.body);
-  if ((kind === "promotion" || kind === "demotion") && !body.includes(who))
+  if (
+    (kind === "promotion" || kind === "demotion") &&
+    !chatSafe(body).includes(who)
+  )
     body = `${who}: ${body}`;
   if (kind === "awards") {
     const winners = awards
@@ -451,6 +487,7 @@ export function leaderMessageFromDraft(
     warnings: [
       ...chatWarnings(title, LEADER_MESSAGE.title),
       ...chatWarnings(body, LEADER_MESSAGE.body),
+      ...toldChecks(`${title}. ${body}`, told),
     ],
   };
 }
@@ -495,103 +532,87 @@ function frozenDeparture(departure) {
   };
 }
 
-/** Short chat copy for an existing action. Welcomes use one frozen detail;
- * departures their confirmed classification and recorded tenure. Identity
- * and all other member evidence stay local. */
+const CHAT_ASK = {
+  welcome:
+    "Write one clan-chat line welcoming this member. Make them feel seen with one true detail about them (back again, a best, their arena, their career wins), and make no promises or demands.",
+  returning:
+    "Write one clan-chat line welcoming this member back: the record shows an earlier time in this clan. One true detail about them is welcome; make no promises or demands.",
+  member_left:
+    "A leader confirmed this member left on their own. Write one friendly clan-chat farewell: thank them for something specific they gave the clan and wish them well. Never invent why they left.",
+  member_kicked:
+    "A leader confirmed this member was removed. Write one brief, respectful clan-chat line: thank them for their time and what they gave, without blame and without a reason. Never describe it as a voluntary leave, never mention inactivity, and promise nothing about returning.",
+  removal:
+    "Prepare one kind clan-chat line to use only AFTER a leader decides to remove this member for inactivity and does it. Thank them for their time, and say they are welcome back when they are playing again. Never mention numbers about their inactivity, never shame, never give or invent a reason, and never advise whether to remove them.",
+};
+
+/**
+ * Short chat copy for an existing action: a welcome, a confirmed
+ * departure, or the words for after a removal. `context` is the clan,
+ * `packet` the moment and the member (a departure or removal: their time
+ * in the clan and what they gave, never inactivity numbers), `tone` the
+ * leader's choice from `CHAT_TONES`.
+ */
 export function chatMessageRequest({
   kind,
-  clanName = null,
-  voice = null,
-  goals = [],
-  note = null,
+  context = "",
+  packet = "",
+  tone = null,
   welcome = null,
   departure = null,
 } = {}) {
   if (!["welcome", "removal", "departure"].includes(kind))
     throw new Error(`no chat draft for ${kind}`);
   const max = kind === "welcome" ? WELCOME_MAX : CHAT_MAX;
-  const detail = kind === "welcome" ? frozenWelcome(welcome) : null;
   const confirmed = kind === "departure" ? frozenDeparture(departure) : null;
   if (kind === "departure" && !confirmed)
     throw new Error("departure is not confirmed");
-  const lines = [`The clan: ${clanName ?? "a Clash Royale clan"}.`];
-  if (voice?.tagline || voice?.about)
-    lines.push(
-      "The clan's own voice:",
-      `Tagline: ${voice.tagline ?? ""}`,
-      `About: ${voice.about ?? ""}`,
-    );
-  if (goals.length)
-    lines.push(
-      `What the clan is for: ${goals.map((g) => GOALS[g]?.label ?? g).join(", ")}.`,
-    );
-  lines.push(
-    kind === "welcome"
-      ? "Welcome a new member. Write {name} for them. Be friendly and make no promises or demands."
-      : kind === "departure"
-        ? confirmed.classification === "member_left"
-          ? "A leader explicitly confirmed that the member left. Write a friendly farewell thanking {name} for their time in the clan and wishing them well. Do not describe a kick or invent why they left."
-          : "A leader explicitly confirmed that the member was kicked. Write a brief, respectful departure message for {name}, without blame or an invented reason. Do not describe a voluntary leave or infer inactivity, and make no promises about returning."
-        : "Prepare a kind clan-chat message to use only AFTER a leader decides and carries out removal for inactivity. Write {name} for the member. Say they are welcome back when playing again. Do not advise whether to remove them, invent a reason, or shame them.",
-  );
-  if (detail)
-    lines.push(
-      "Frozen context approved for this welcome:",
-      detail.returning
-        ? "This is a recorded return to the clan. Welcome them back."
-        : `Include this recorded career fact without changing its meaning: ${detail.fact}`,
-      detail.source_as_of
-        ? `Source observed at ${detail.source_as_of}.`
-        : "The source observation time is unknown.",
-      "This context was frozen with the action. Do not claim it is current, newly achieved or a recent milestone. The observation timestamp is provenance only; do not put it in the chat line.",
-    );
-  if (confirmed) {
-    lines.push(
-      `Classification source: explicit leader confirmation at ${confirmed.confirmed_at}.`,
-      confirmed.observed_left_at
-        ? `The roster departure was observed at ${confirmed.observed_left_at}.`
-        : "The roster departure observation time is unknown.",
-    );
-    if (confirmed.tenure_days)
-      lines.push(
-        `Frozen predeparture context: recorded tenure ${confirmed.tenure_days} days. Its metric observation time is not stored. This is recorded context, not proof of their full or exact time in the clan.`,
-      );
-    lines.push(
-      "The raw roster observation did not distinguish kick from leave; only the leader confirmation does. Timestamps are provenance, not chat copy. Private decision notes and internal removal rationale are not supplied and must not be invented.",
-    );
-  }
-  if (note && !Object.hasOwn(CHAT_TONES, note))
+  if (tone && !Object.hasOwn(CHAT_TONES, tone))
     throw new Error("invalid chat tone");
-  if (note) lines.push(`The tone: ${CHAT_TONES[note]}.`);
+  const ask =
+    kind === "welcome"
+      ? CHAT_ASK[welcome?.returning === true ? "returning" : "welcome"]
+      : kind === "departure"
+        ? CHAT_ASK[confirmed.classification]
+        : CHAT_ASK.removal;
   return {
     purpose: "clan_chat",
+    effort: DRAFT_EFFORT,
     max_tokens: 250,
     system: [
-      "Write one short Clash Royale clan-chat line in the clan's voice. A person edits it and sends it in the game; nothing is posted automatically.",
-      `Keep it within ${max - 30} characters, leaving room for the member's name. Use {name} exactly once.`,
-      detail || confirmed
-        ? "Never judge a member or invent a score, rank, number, rule, reward or event. Use only the clan context and the supplied frozen message context; no other personal facts. Write in English unless asked otherwise."
-        : "Never judge a member or write a score, rank, number, rule, reward, or event. Use only the clan context supplied. Write in English unless asked otherwise.",
-      "Plain text only: no links, emoji, markdown, @mentions, '&', 'phone', or hyphens inside words. Answer by calling write_chat_message.",
+      "You write one Clash Royale clan-chat line. A person edits it and sends it in the game; nothing is posted automatically.",
+      ...WRITING,
+      `Keep it within ${max - 30} characters, and write the member's name as it is given.`,
+      "Never judge a member, and never write a score or a rank. Write in English unless the leader's note asks otherwise.",
+      "Answer by calling write_chat_message.",
     ].join("\n"),
-    prompt: lines.join("\n"),
-    tool: {
+    context: String(context ?? ""),
+    prompt: draftPrompt({
+      packet,
+      ask: `${ask}${tone ? ` Tone: ${CHAT_TONES[tone]}.` : ""}`,
+    }),
+    tool: strictTool({
       name: "write_chat_message",
       description: "One clan-chat line for a person to review, edit and send.",
       input_schema: {
         type: "object",
-        properties: { line: { type: "string", maxLength: max - 30 } },
+        properties: {
+          line: {
+            type: "string",
+            description: `At most ${max - 30} characters.`,
+          },
+        },
         required: ["line"],
-        additionalProperties: false,
       },
-    },
+    }),
   };
 }
 
-/** Put the name back locally and retain the same game limits and warnings. */
+/** Put the name in where the model left {name}, name the member when it
+ *  did not, and keep the game's limits and warnings, with a check on any
+ *  number or name it was not given (`told`). */
 export function chatMessageFromDraft(
   input,
-  { kind, name = null, welcome = null, departure = null } = {},
+  { kind, name = null, welcome = null, departure = null, told = null } = {},
 ) {
   if (!["welcome", "removal", "departure"].includes(kind))
     throw new Error(`no chat draft for ${kind}`);
@@ -609,7 +630,10 @@ export function chatMessageFromDraft(
         : kind === "departure"
           ? inGameCopy("farewell", { name: who })
           : `${who} was removed for inactivity. Welcome back when you are playing again.`;
-  else if (!line.includes(who)) line = `${who}: ${line}`;
+  else if (!chatSafe(line).includes(who)) line = `${who}: ${line}`;
   line = clipChat(chatSafe(line), max);
-  return { line, warnings: chatWarnings(line, max) };
+  return {
+    line,
+    warnings: [...chatWarnings(line, max), ...toldChecks(line, told)],
+  };
 }

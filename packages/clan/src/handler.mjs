@@ -478,7 +478,9 @@ export function createHandler({
       if (recruit && method === "POST" && rest === "/recruit/draft")
         return json(
           200,
-          await recruit.draft(tag, who, token, body.note ?? null),
+          await recruit.draft(tag, who, token, body.note ?? null, {
+            pending: body.pending ?? null,
+          }),
         );
       // The clan's own model: leaders add, replace and remove its key and
       // set its monthly cap. It works for any clan, with or without a
@@ -522,6 +524,16 @@ export function createHandler({
           return json(200, await activity.remove(tag, who));
         return json(400, { error: "bad_request" });
       }
+      // A leader's preview of the rewrite: the last few items in a voice,
+      // posted nowhere; `pending` collects one that outlasted its request.
+      if (activity && method === "POST" && rest === "/activity-discord/preview")
+        return json(
+          200,
+          await activity.preview(tag, who, token, {
+            voice: body.voice,
+            pending: body.pending ?? null,
+          }),
+        );
       // Actions in the clan's Discord: leaders connect and remove the
       // webhook. Any clan, with or without a policy, like the model.
       if (discord && rest === "/discord") {
@@ -561,6 +573,8 @@ export function createHandler({
             clanName: clan.name ?? null,
             expectedDraftVersion: body.expected_draft_version ?? null,
             channel: body.channel ?? null,
+            // A draft that outlasted its first request: asked for again.
+            pending: body.pending ?? null,
           }),
         );
       }

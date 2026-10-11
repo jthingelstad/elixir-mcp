@@ -11,7 +11,9 @@
  * `store`:
  *  - read(clanTag) → the connection as leaders see it, or null;
  *  - save(clanTag, change, { who, clanName }) → { view } | { error };
- *  - remove(clanTag) → whether there was one.
+ *  - remove(clanTag) → whether there was one;
+ *  - preview(clanTag, { voice }) → the newest shareable items and the
+ *    model request for them (`clanRewritePreview`), posting nothing.
  */
 
 import {
@@ -21,6 +23,8 @@ import {
   activityCategories,
   activityPolicy,
   cleanVoice,
+  rewriteProblem,
+  rewriteText,
 } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 import { ACTIVITY_USES_PER_DAY } from "./model.mjs";
@@ -156,6 +160,59 @@ export function createActivityService({ ledger, store, model = null }) {
       const r = await store.save(clanTag, change, { who, clanName });
       if (r.error) throw refusals[r.error] ?? new ManageError(400, r.error);
       return view(clanTag, r.view);
+    },
+
+    /**
+     * The last few shareable items as the clan's model would write them
+     * in `voice` (the saved voice when absent): a leader's own use,
+     * counted with the leaders' drafts, that posts and records nothing
+     * in Discord. Each post comes back with Elixir's line and either the
+     * rewrite or why it would be refused. A preview that outlasts the
+     * request is `{ pending }`; asking again with it collects it.
+     */
+    async preview(clanTag, who, token, { voice, pending = null } = {}) {
+      requireLeader(who);
+      if (!model || !store.preview) throw new ManageError(404, "not_found");
+      if (voice !== undefined && voice !== null && typeof voice !== "string")
+        throw new ManageError(400, "bad_request");
+      if (pending != null && typeof pending !== "string")
+        throw new ManageError(400, "bad_request");
+      const built = await store.preview(clanTag, {
+        voice: voice === undefined ? undefined : cleanVoice(voice),
+      });
+      if (built.empty) return { empty: true, reason: built.reason, posts: [] };
+      const answer = pending
+        ? await model.collect(clanTag, who, pending)
+        : await model.write(clanTag, who, token, built.request, {
+            defer: true,
+          });
+      if (answer.pending) return { pending: answer.pending };
+      const lines = new Map(built.lines.map((l) => [l.key, l]));
+      const written = new Map();
+      for (const p of Array.isArray(answer.input?.posts)
+        ? answer.input.posts
+        : [])
+        if (lines.has(p?.key) && !written.has(p.key))
+          written.set(p.key, p.text);
+      return {
+        empty: false,
+        model: answer.model,
+        posts: built.posts.map((p) => {
+          const text = written.get(p.key);
+          const problem =
+            text === undefined
+              ? "not_written"
+              : rewriteProblem(lines.get(p.key), text, built.request.context);
+          return {
+            key: p.key,
+            kind: p.kind,
+            at: p.at,
+            elixir: p.elixir,
+            rewrite: problem ? null : rewriteText(text),
+            refused: problem ?? null,
+          };
+        }),
+      };
     },
 
     /** Disconnect: nothing more is posted; messages already there stay. */

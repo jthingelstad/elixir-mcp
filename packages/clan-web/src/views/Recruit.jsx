@@ -4,6 +4,7 @@ import { manageApi } from "../api.js";
 import { useRecruit } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
+import { untilWritten } from "../lib/pending.js";
 
 /**
  * Recruit: a page every member can use. The clan's pitch (a leader's
@@ -283,6 +284,9 @@ const DRAFT_ERROR = {
     "The clan's model has drafted as many times as it may today. Try again tomorrow.",
   model_spend_cap:
     "The clan's model has reached this month's spend cap. A leader can raise it in Settings.",
+  still_pending:
+    "The model is taking longer than usual. Its draft is counted in Settings; try again in a minute.",
+  no_pending_draft: "That draft is no longer waiting. Ask for another.",
 };
 
 /**
@@ -315,7 +319,9 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
   const draft = async () => {
     setBusy(true);
     setResult(null);
-    const r = await manageApi.draftPitch(clan.clan_tag, ask.trim() || null);
+    const r = await untilWritten((pending) =>
+      manageApi.draftPitch(clan.clan_tag, ask.trim() || null, pending),
+    );
     setBusy(false);
     if (!r.ok) {
       const e = r.data ?? {};

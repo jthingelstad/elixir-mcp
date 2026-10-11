@@ -36,3 +36,18 @@ test("prices: a use that reported no tokens has no cost", () => {
   assert.equal(costOfUse("claude-sonnet-5", null, null), null);
   assert.equal(usd("claude-sonnet-5", 1000, null), 0.002);
 });
+
+test("prices: cache writes cost 1.25 times the input rate, reads a twentieth on Opus and Sonnet 5.5", () => {
+  // Opus 5.5: $4 input. 1,000 written = $0.005, 1,000 read = $0.0002.
+  assert.equal(
+    usd("claude-opus-5-5", 0, 0, { cacheWrite: 1000, cacheRead: 0 }),
+    0.005,
+  );
+  assert.equal(
+    usd("claude-opus-5-5", 0, 0, { cacheWrite: 0, cacheRead: 1000 }),
+    0.0002,
+  );
+  assert.equal(usd("claude-sonnet-5-5", 100, 100, { cacheRead: 1000 }), 0.0013);
+  // Others read at a tenth.
+  assert.equal(usd("claude-haiku-5-5", 0, 0, { cacheRead: 50_000 }), 0.0005);
+});

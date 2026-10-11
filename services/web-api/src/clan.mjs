@@ -11,6 +11,7 @@ import { createBox } from "@elixir-mcp/clan/sealed.mjs";
 import {
   awaitFirstWord,
   clanActivityRowView,
+  clanRewritePreview,
   clanActivitySeal,
   readClanActivity,
   refuseClanActivity,
@@ -19,6 +20,7 @@ import {
   saveClanActivity,
   wakeAfterFact,
   CLAN_ACTIVITY_PURPOSE,
+  clanStoryFacts,
 } from "@elixir-mcp/syndication";
 /** Clan inside the web API: the authenticated Elixir person, the request's
  * connected Postgres client, and the same recorded facts the public doors
@@ -347,6 +349,14 @@ export function createClanRequest({
               return { view: clanActivityRowView(r.row, status) };
             },
             remove: (clanTag) => removeClanActivity(db, clanTag),
+            // The newest items as the clan's model would write them, for
+            // a leader's preview; nothing is posted or told.
+            preview: (clanTag, { voice }) =>
+              clanRewritePreview(db, clanTag, {
+                voice,
+                policyFor: (_db, tag) => ledger.currentPolicy(tag),
+                pitchFor: (_db, tag) => ledger.currentPitch(tag),
+              }),
           },
         })
       : null;
@@ -362,6 +372,10 @@ export function createClanRequest({
         ledger,
         model,
         requireRemovalSafety: manage.requireRemovalSafety,
+        // What the record says about the clan and the Action's member,
+        // for the clan's model (2026-10-11).
+        storyFor: (clanTag, playerTags) =>
+          clanStoryFacts(db, clanTag, { playerTags, moments: true }),
       }),
       recruit: createRecruitService({ ledger, mcp, model }),
       scout: createScout({ mcp }),

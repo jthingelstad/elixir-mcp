@@ -142,7 +142,8 @@ test("sealed requests and replies complete through the existing worker without e
       async write(k, r) {
         calls++;
         assert.equal(k, key);
-        assert.deepEqual(r, input);
+        // The relay waits no longer than the caller does.
+        assert.deepEqual(r, { ...input, timeoutMs: 25_000 });
         return {
           ok: true,
           input: { text: "Private draft" },
@@ -353,4 +354,64 @@ test("a paid attempt is durable before dispatch, even when the final ledger upda
       interruption === "provider" ? "outcome_unknown" : "outcome_pending",
     );
   }
+});
+
+test("a started write is collected later: no reply yet is null, the reply when it lands, and the relay's wait travels sealed", async () => {
+  const storage = memory();
+  const seen = [];
+  let t = 0;
+  const worker = createModelWorker({
+    secret: "s",
+    storage,
+    now: () => t,
+    provider: {
+      async write(k, r) {
+        seen.push(r);
+        return { ok: true, input: { text: "Late draft" } };
+      },
+    },
+  });
+  const bridge = createModelBridge({
+    secret: "s",
+    storage,
+    now: () => t,
+    pause: async (ms) => {
+      t += ms;
+    },
+  });
+  const strict = {
+    ...input,
+    effort: "medium",
+    context: "THE CLAN",
+    tool: { ...input.tool, strict: true },
+  };
+  const started = await bridge.start(key, strict, { relayMs: 55_000 });
+  assert.equal(started.ok, true);
+  assert.equal(await bridge.collect(started.id, 1000), null);
+  await worker(modelRequestKey(started.id));
+  assert.deepEqual(seen, [{ ...strict, timeoutMs: 55_000 }]);
+  const reply = await bridge.collect(started.id, 0);
+  assert.equal(reply.input.text, "Late draft");
+  // Collected again, the same reply: a page that asks twice spends nothing.
+  assert.equal((await bridge.collect(started.id, 0)).input.text, "Late draft");
+  assert.equal(seen.length, 1);
+  assert.equal((await bridge.collect("not-an-id", 0)).code, "outcome_unknown");
+  // A relay wait past 55 s, an unknown effort or a loose tool is refused.
+  assert.equal(
+    (await bridge.start(key, strict, { relayMs: 90_000 })).code,
+    "invalid_model_request",
+  );
+  assert.equal(
+    (await bridge.start(key, { ...strict, effort: "max" })).code,
+    "invalid_model_request",
+  );
+  assert.equal(
+    (
+      await bridge.start(key, {
+        ...strict,
+        tool: { ...strict.tool, strict: "yes" },
+      })
+    ).code,
+    "invalid_model_request",
+  );
 });

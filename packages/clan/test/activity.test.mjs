@@ -10,7 +10,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHandler } from "@elixir-mcp/clan/handler.mjs";
 import { createMemoryLedger } from "@elixir-mcp/clan-state";
-import { activityRewriteRequest } from "@elixir-mcp/clan-engine";
+import { activityRewriteRequest, rewriteLine } from "@elixir-mcp/clan-engine";
 import { createActivityService } from "@elixir-mcp/clan/manage/activity.mjs";
 import { fetchRoster } from "@elixir-mcp/clan/manage/service.mjs";
 import {
@@ -91,6 +91,25 @@ function fakeStore() {
     },
     async remove(tag) {
       return rows.delete(tag);
+    },
+    previews: [],
+    async preview(tag, { voice }) {
+      this.previews.push({ tag, voice });
+      if (!rows.get(tag)) return { empty: true, reason: "not_connected" };
+      return {
+        empty: false,
+        lines: LINES,
+        posts: LINES.map((l) => ({
+          key: l.key,
+          kind: l.kind,
+          at: "2026-10-10T11:00:00Z",
+          elixir: l.sentence,
+        })),
+        request: activityRewriteRequest({
+          context: `${CONTEXT}\nHow its leaders want it to sound: ${voice ?? "saved"}`,
+          lines: LINES,
+        }),
+      };
     },
   };
 }
@@ -239,19 +258,23 @@ test("activity: only a leader or co-leader", async () => {
   assert.equal(r.body.error, "leaders_only");
 });
 
+const CONTEXT = "THE CLAN\nName: Example Clan";
+const LINES = [
+  rewriteLine(
+    { id: "tl_1", kind: "member_joined", facts: { name: "Ada" } },
+    "Ada joined Example Clan.",
+  ),
+  rewriteLine(
+    {
+      id: "tl_2",
+      kind: "trophy_milestone",
+      facts: { name: "Bo", trophies: 9000 },
+    },
+    "Bo reached 9,000 trophies.",
+  ),
+];
 const request = () =>
-  activityRewriteRequest({
-    clanName: "Example Clan",
-    lines: [
-      {
-        key: "tl_1",
-        kind: "member_joined",
-        sentence: "Ada joined Example Clan.",
-        facts: {},
-        names: ["Ada"],
-      },
-    ],
-  });
+  activityRewriteRequest({ context: CONTEXT, lines: LINES.slice(0, 1) });
 
 test("writeUnattended: recorded apart from the drafts, under its own day's cap", async () => {
   const h = harness();
@@ -399,4 +422,67 @@ test("writeUnattended: an owner who left, or one unconfirmed, is not used; Anthr
     ),
     (e) => e.code === "unknown_purpose",
   );
+});
+
+test("preview: a leader's own use, counted with the drafts; each post comes back written or refused, and nothing is posted", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  const PREVIEW = `${PATH}/preview`;
+  const nothing = await api(h, c, "POST", PREVIEW, {});
+  assert.equal(nothing.status, 200);
+  assert.deepEqual(nothing.body, {
+    empty: true,
+    reason: "not_connected",
+    posts: [],
+  });
+  await api(h, c, "PUT", PATH, { url: "https://discord.com/x" });
+  const nokey = await api(h, c, "POST", PREVIEW, {});
+  assert.equal(nokey.status, 409);
+  assert.equal(nokey.body.error, "no_model_key");
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  h.anthropic.state.write = (_key, req) => ({
+    ok: true,
+    model: req.model,
+    usage: { input_tokens: 400, output_tokens: 80 },
+    input: {
+      posts: [
+        { key: "tl_1", text: "Welcome aboard, Ada! 🎉" },
+        // A number the packet never held is refused, as in the channel.
+        { key: "tl_2", text: "Bo hit 9,500 trophies!" },
+      ],
+    },
+  });
+  const r = await api(h, c, "POST", PREVIEW, { voice: "  Hype <and> short " });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(h.store.previews.at(-1).voice, "Hype and short");
+  assert.equal(r.body.model, "claude-sonnet-5-5");
+  assert.deepEqual(
+    r.body.posts.map((p) => [p.key, p.elixir, p.rewrite, p.refused]),
+    [
+      ["tl_1", "Ada joined Example Clan.", "Welcome aboard, Ada! 🎉", null],
+      ["tl_2", "Bo reached 9,000 trophies.", null, "number_invented"],
+    ],
+  );
+  const [, , sent] = h.anthropic.state.calls.at(-1);
+  assert.equal(sent.model, "claude-sonnet-5-5");
+  assert.equal(sent.effort, "low");
+  assert.match(JSON.stringify(sent), /Hype and short/);
+  // Counted as a leader's use, apart from the channel's own rewrites.
+  const [call] = await h.ledger.modelCalls(TAG);
+  assert.equal(call.purpose, "discord_activity");
+  assert.equal(call.preview, true);
+  assert.equal(call.by, ADA);
+  const status = await api(h, c, "GET", MODEL);
+  assert.equal(status.body.uses.today, 1);
+  assert.equal(status.body.uses.activity_today, 0);
+  assert.equal(status.body.uses.recent[0].preview, true);
+});
+
+test("preview: only a leader or co-leader", async () => {
+  const h = harness({ role: "elder" });
+  const c = await signedIn(h);
+  const r = await api(h, c, "POST", `${PATH}/preview`, {});
+  assert.equal(r.status, 403);
+  assert.equal(r.body.error, "leaders_only");
+  assert.equal(h.store.previews.length, 0);
 });

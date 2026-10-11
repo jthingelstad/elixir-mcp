@@ -259,7 +259,7 @@ describe("the clan's model", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Draft it" }));
     await waitFor(() =>
-      expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "war days"),
+      expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "war days", null),
     );
     expect(
       await screen.findByDisplayValue("War first, friends always"),

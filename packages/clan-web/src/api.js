@@ -18,7 +18,7 @@ const options = {
 const client = createClient(options);
 const modelClient = createClient({ ...options, timeoutMs: 30_000 });
 
-const SLOW = /\/(?:model|draft|discord)$/;
+const SLOW = /\/(?:model|draft|discord|preview)$/;
 const get = (path) => client.get(path);
 const post = (path, body) =>
   (SLOW.test(path) ? modelClient : client).post(path, body);
@@ -64,6 +64,7 @@ export const manageApi = {
     note,
     expectedDraftVersion = null,
     channel = null,
+    pending = null,
   ) =>
     post(`${clanBase(tag)}/actions/${id}/draft`, {
       note,
@@ -71,6 +72,8 @@ export const manageApi = {
         ? { expected_draft_version: expectedDraftVersion }
         : {}),
       ...(channel ? { channel } : {}),
+      // A draft that outlasted its request, asked for again (`untilWritten`).
+      ...(pending ? { pending } : {}),
     }),
   commentAction: (tag, id, text) =>
     post(`${clanBase(tag)}/actions/${id}/comments`, { text }),
@@ -113,7 +116,11 @@ export const manageApi = {
   savePitch: (tag, values, note) =>
     post(`${clanBase(tag)}/recruit`, { values, note }),
   // The clan's own model (2026-09-25): its key, and a draft of the pitch.
-  draftPitch: (tag, note) => post(`${clanBase(tag)}/recruit/draft`, { note }),
+  draftPitch: (tag, note, pending = null) =>
+    post(`${clanBase(tag)}/recruit/draft`, {
+      note,
+      ...(pending ? { pending } : {}),
+    }),
   model: (tag) => get(`${clanBase(tag)}/model`),
   setModelKey: (tag, key) => put(`${clanBase(tag)}/model`, { key }),
   // The clan's monthly spend cap, in dollars; null removes it.
@@ -137,6 +144,12 @@ export const manageApi = {
   saveActivityDiscord: (tag, body) =>
     put(`${clanBase(tag)}/activity-discord`, body),
   removeActivityDiscord: (tag) => del(`${clanBase(tag)}/activity-discord`),
+  // The last few items in a voice, by the clan's model, posted nowhere.
+  previewActivityDiscord: (tag, voice, pending = null) =>
+    post(`${clanBase(tag)}/activity-discord/preview`, {
+      voice,
+      ...(pending ? { pending } : {}),
+    }),
   // Social (2026-09-26): the clan map, and the switch leaders turn off.
   map: (tag) => get(`${clanBase(tag)}/map`),
   social: (tag) => get(`${clanBase(tag)}/social`),

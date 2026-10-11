@@ -50,8 +50,9 @@ async function leadsNow(db, clanTag, playerTag) {
 /**
  * The clan's model, for its channel's rewrite: the clan's key through
  * Clan's model bridge (the relay calls Anthropic), recorded in the
- * clan's ledger on a connection of its own, so the use is on record
- * whatever becomes of the sync's transaction. Without the secret there
+ * clan's ledger on a connection of its own. The sync asks it outside
+ * any transaction (`syncClan`'s phase two), so no row is locked while
+ * the model writes. Without the secret there
  * is no rewrite and Elixir's own lines are posted.
  */
 const rewriter = (remainingMs) =>
@@ -115,6 +116,7 @@ export const handler = makeHandler({
       outbox,
       readStatus,
       policyFor: (d, tag) => createPostgresLedger(d).currentPolicy(tag),
+      pitchFor: (d, tag) => createPostgresLedger(d).currentPitch(tag),
       rewrite: rewriter(remainingMs),
     }),
   shareClanDiscord,

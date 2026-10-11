@@ -8,6 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   ANTHROPIC_VERSION,
+  MODEL_TIMEOUT_MS,
   THINKING_ROOM,
   createAnthropicClient,
 } from "@elixir-mcp/clan/anthropic.mjs";
@@ -65,8 +66,10 @@ test("anthropic: a message asks for one tool call on the clan's key, timed witho
     type: "auto",
     disable_parallel_tool_use: true,
   });
-  assert.match(body.system, /^SYSTEM WORDS\n\n/);
-  assert.match(body.system, /call the write_pitch tool once/);
+  assert.match(body.system[0].text, /^SYSTEM WORDS\n\n/);
+  assert.match(body.system[0].text, /call the write_pitch tool once/);
+  // No clan context: the instructions are the cached block.
+  assert.deepEqual(body.system[0].cache_control, { type: "ephemeral" });
   assert.equal(body.max_tokens, 1200 + THINKING_ROOM);
   assert.equal(body.messages[0].content, "PROMPT WORDS");
   assert.equal(summary.model_calls, 1);
@@ -145,7 +148,7 @@ function scripted(body) {
   return { sent, write };
 }
 
-test("anthropic: Haiku 5.5 is sent no sampling params, thinking, effort or prefill, and its tool call is read after a thinking block", async () => {
+test("anthropic: Haiku 5.5 is sent no sampling params, thinking setting or prefill, and its tool call is read after a thinking block", async () => {
   const { sent, write } = scripted({
     model: "claude-haiku-5-5",
     stop_reason: "tool_use",
@@ -169,13 +172,7 @@ test("anthropic: Haiku 5.5 is sent no sampling params, thinking, effort or prefi
     "tool_choice",
     "tools",
   ]);
-  for (const k of [
-    "temperature",
-    "top_p",
-    "top_k",
-    "thinking",
-    "output_config",
-  ])
+  for (const k of ["temperature", "top_p", "top_k", "thinking"])
     assert.equal(k in body, false, k);
   assert.equal(body.model, "claude-haiku-5-5");
   assert.equal(body.max_tokens, 1600 + THINKING_ROOM);
@@ -185,6 +182,76 @@ test("anthropic: Haiku 5.5 is sent no sampling params, thinking, effort or prefi
     ["user"],
     "no assistant prefill",
   );
+});
+
+test("anthropic: the use's effort and strict tool are sent, the clan's context is the cached block, and cache tokens are read back", async () => {
+  const seen = [];
+  const client = createAnthropicClient({
+    url: "https://anthropic.test",
+    fetch: async (url, init) => {
+      seen.push(init);
+      return reply(200, {
+        model: "claude-opus-5-5",
+        stop_reason: "tool_use",
+        usage: {
+          input_tokens: 90,
+          output_tokens: 60,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 820,
+        },
+        content: [{ type: "tool_use", name: "write_pitch", input: { a: 1 } }],
+      });
+    },
+  });
+  const tool = { ...TOOL, strict: true };
+  const r = await client.write(KEY, {
+    model: "claude-opus-5-5",
+    system: "SYSTEM WORDS",
+    context: "THE CLAN\nName: Example Clan",
+    prompt: "WHAT HAPPENED",
+    tool,
+    max_tokens: 400,
+    effort: "medium",
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.usage.cache_read_input_tokens, 820);
+  const body = JSON.parse(seen[0].body);
+  assert.deepEqual(body.output_config, { effort: "medium" });
+  assert.equal(body.tools[0].strict, true);
+  assert.equal(body.system.length, 2);
+  assert.equal(body.system[0].cache_control, undefined);
+  assert.equal(body.system[1].text, "THE CLAN\nName: Example Clan");
+  assert.deepEqual(body.system[1].cache_control, { type: "ephemeral" });
+  assert.equal(body.messages[0].content, "WHAT HAPPENED");
+});
+
+test("anthropic: the wait is 55 s, and a request may only shorten it", async () => {
+  const waits = [];
+  const realTimeout = AbortSignal.timeout;
+  AbortSignal.timeout = (ms) => {
+    waits.push(ms);
+    return realTimeout.call(AbortSignal, ms);
+  };
+  try {
+    const client = createAnthropicClient({
+      url: "https://anthropic.test",
+      fetch: async () => reply(500, {}),
+    });
+    const base = {
+      model: "claude-opus-5-5",
+      system: "S",
+      prompt: "P",
+      tool: TOOL,
+      max_tokens: 400,
+    };
+    await client.write(KEY, base);
+    await client.write(KEY, { ...base, timeoutMs: 30_000 });
+    await client.write(KEY, { ...base, timeoutMs: 600_000 });
+  } finally {
+    AbortSignal.timeout = realTimeout;
+  }
+  assert.equal(MODEL_TIMEOUT_MS, 55_000);
+  assert.deepEqual(waits, [55_000, 30_000, 55_000]);
 });
 
 test("anthropic: a refusal or a max_tokens stop is never an answer, even with a tool call in it", async () => {

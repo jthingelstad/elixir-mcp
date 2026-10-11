@@ -49,7 +49,16 @@
  * nothing more until the month turns or the cap is raised or removed. A
  * draft that starts under the cap may finish a little over it. The cap is
  * Elixir Clan's own stop, never Anthropic's spend limit; it stays with
- * the clan when the key is replaced.
+ * the clan when the key is replaced. A use whose outcome is pending or
+ * unknown reported no tokens; it counts at its reservation's estimate
+ * (its prompt's length and its whole output budget), so an uncertain
+ * call is never free (#455).
+ *
+ * A leader's draft may outlast one web request (Opus 5.5 at medium
+ * effort, 2026-10-11): `write` with `defer` starts it on the bridge and
+ * answers `{ pending }` when the reply has not landed in the request's
+ * time; the page then asks `collect` until it has, for up to
+ * `PENDING_MS`. Past that the use is recorded `outcome_unknown`.
  */
 
 import { createBox } from "../sealed.mjs";
@@ -61,13 +70,24 @@ import {
 } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 import { PRICES_AS_OF, roundUsd, costOfUse } from "./prices.mjs";
+import { THINKING_ROOM } from "../anthropic.mjs";
 
 export const USES_PER_DAY = 20;
 /** The clan's Discord activity rewrites (`writeUnattended`): a day's
- *  cap of their own, apart from the leaders' drafts. Past it, the posts
- *  keep Elixir's own lines until the day turns (UTC). */
+ *  cap of their own, apart from the leaders' drafts, counted in requests
+ *  to the model (one request rewrites up to `REWRITE_BATCH_MAX` posts).
+ *  Past it, the posts keep Elixir's own lines until the day turns (UTC). */
 export const ACTIVITY_USES_PER_DAY = 50;
+/** How long a started draft may be collected before its outcome is
+ *  recorded unknown: the relay's 55 s wait for Anthropic, its queue and
+ *  a Lambda start, with room. */
+export const PENDING_MS = 110_000;
 const ACTIVITY = "discord_activity";
+/** A leader's own use, against the leaders' day: every draft, and a
+ *  preview of the Discord rewrite (`preview`), which a leader asks for
+ *  and reads. The unattended rewrites have their own day. */
+const leaderUse = (c) => c.purpose !== ACTIVITY || c.preview === true;
+const unattendedUse = (c) => c.purpose === ACTIVITY && c.preview !== true;
 /** How often a key's model list may be read again, success or not. */
 export const MODELS_REFRESH_MS = 24 * 3600_000;
 const USE_KEEP_DAYS = 90;
@@ -84,18 +104,73 @@ export const MAX_SPEND_CAP_USD = 1000;
 const sameSealed = (a, b) =>
   Boolean(a && b) && a.iv === b.iv && a.tag === b.tag && a.ct === b.ct;
 
+/**
+ * About what one use cost: its reported tokens at list prices, or, for a
+ * use that reported none (pending, or its outcome unknown), its
+ * reservation's estimate, marked estimated (#455). Null only for a use
+ * recorded before reservations carried an estimate.
+ */
+function callCost(c) {
+  const cost = costOfUse(c.model, c.input_tokens, c.output_tokens, {
+    cacheWrite: c.cache_creation_input_tokens,
+    cacheRead: c.cache_read_input_tokens,
+  });
+  if (cost) return cost;
+  if (c.ok || (c.est_input_tokens == null && c.est_output_tokens == null))
+    return null;
+  const guess = costOfUse(c.model, c.est_input_tokens, c.est_output_tokens);
+  return guess && { usd: guess.usd, estimated: true };
+}
+
 /** About what a list of uses cost: `{ usd, estimated }`. */
 function spendOf(calls) {
   let usd = 0;
   let estimated = false;
   for (const c of calls) {
-    const cost = costOfUse(c.model, c.input_tokens, c.output_tokens);
+    const cost = callCost(c);
     if (!cost) continue;
     usd += cost.usd;
     estimated ||= cost.estimated;
   }
   return { usd: roundUsd(usd), estimated };
 }
+
+/** The request the bridge carries for one use: the engine's words and
+ *  settings, on the model Elixir Clan chose. */
+const dispatch = (model, request) => ({
+  model,
+  system: request.system,
+  ...(request.context ? { context: request.context } : {}),
+  prompt: request.prompt,
+  tool: request.tool,
+  max_tokens: request.max_tokens,
+  ...(request.effort ? { effort: request.effort } : {}),
+});
+
+/** A reservation's estimate: about 3.5 characters a token for what is
+ *  sent, and the whole output budget, thinking included. */
+const estimate = (request) => ({
+  est_input_tokens: Math.ceil(
+    (String(request.system ?? "").length +
+      String(request.context ?? "").length +
+      String(request.prompt ?? "").length +
+      JSON.stringify(request.tool ?? {}).length) /
+      3.5,
+  ),
+  est_output_tokens: (request.max_tokens ?? 0) + THINKING_ROOM,
+});
+
+/** What a finished use records of its answer: never the words. */
+const finished = (r, model) => ({
+  model: r.model ?? model,
+  ok: r.ok,
+  status: r.status ?? null,
+  code: r.ok ? null : (r.code ?? null),
+  input_tokens: r.usage?.input_tokens ?? null,
+  output_tokens: r.usage?.output_tokens ?? null,
+  cache_creation_input_tokens: r.usage?.cache_creation_input_tokens ?? null,
+  cache_read_input_tokens: r.usage?.cache_read_input_tokens ?? null,
+});
 
 /** Seal and open a clan's key under a key derived from the app secret. */
 export function sealer(secret) {
@@ -241,6 +316,72 @@ export function createModelService({
     return Boolean(m && LEADERS.has(m.role));
   }
 
+  /** The use a started draft reserved, found by its bridge id. */
+  async function pendingCall(clanTag, requestId) {
+    if (typeof requestId !== "string" || !requestId) return null;
+    const t = now();
+    const months = [
+      ...new Set([
+        new Date(t).toISOString().slice(0, 7),
+        new Date(t - PENDING_MS).toISOString().slice(0, 7),
+      ]),
+    ];
+    for (const month of months) {
+      const found = (await ledger.modelCalls(clanTag, month)).find(
+        (c) => c.request_id === requestId,
+      );
+      if (found) return found;
+    }
+    return null;
+  }
+
+  /**
+   * A use's answer, recorded (when `call` is still open) and turned into
+   * the draft's input or the error a leader reads.
+   */
+  async function settle(clanTag, stored, model, purpose, call, r) {
+    if (call) await ledger.finishModelCall(clanTag, call, finished(r, model));
+    if (r.ok) return { input: r.input, model: r.model, usage: r.usage ?? null };
+    if (r.status === 401 || r.status === 403) {
+      await ledger.saveModelKey(clanTag, { ...stored, refused_at: iso() });
+      throw new ManageError(409, "model_key_refused");
+    }
+    if (r.status === 404) {
+      // The model is gone for this key: the next draft runs on the
+      // purpose's next model, if the key reaches one.
+      await dropModel(clanTag, stored, model);
+      throw new ManageError(409, "model_unavailable", null, {
+        model,
+        purpose,
+        message: `Anthropic no longer serves ${modelName(model)} to the clan's key. Try again: Elixir Clan uses the next model this key reaches.`,
+      });
+    }
+    if (r.status === 429 || r.status === 529)
+      throw new ManageError(429, "anthropic_busy", null, {
+        message: "Anthropic is busy. Try again in a minute.",
+      });
+    // An answer that is no draft (`anthropic.mjs`): the model declined,
+    // or stopped before it finished. Never parsed into empty words.
+    if (r.code === "refusal")
+      throw new ManageError(422, "model_refused", null, {
+        message:
+          r.message ??
+          "The model declined to write this draft. Your words are unchanged.",
+      });
+    if (r.code === "max_tokens")
+      throw new ManageError(502, "model_cut_off", null, {
+        message:
+          r.message ??
+          "The model stopped before it finished the draft. Your words are unchanged.",
+      });
+    throw new ManageError(502, "model_failed", null, {
+      message:
+        r.code === "outcome_unknown"
+          ? "The draft's outcome is unknown and this attempt is counted. Check the use log in Settings before requesting another draft."
+          : (r.message ?? "The model did not answer."),
+    });
+  }
+
   return {
     spendNow,
 
@@ -277,11 +418,10 @@ export function createModelService({
         uses: {
           // The leaders' drafts against their daily limit; the activity
           // channel's rewrites have their own.
-          today: calls.filter(
-            (c) => c.at.startsWith(today) && c.purpose !== ACTIVITY,
-          ).length,
+          today: calls.filter((c) => c.at.startsWith(today) && leaderUse(c))
+            .length,
           activity_today: calls.filter(
-            (c) => c.at.startsWith(today) && c.purpose === ACTIVITY,
+            (c) => c.at.startsWith(today) && unattendedUse(c),
           ).length,
           month: {
             count: calls.length,
@@ -297,18 +437,20 @@ export function createModelService({
             .slice(-10)
             .reverse()
             .map((c) => {
-              const cost = costOfUse(c.model, c.input_tokens, c.output_tokens);
+              const cost = callCost(c);
               return {
                 at: c.at,
                 by: c.by,
                 by_name: c.by_name ?? null,
                 purpose: c.purpose,
+                preview: c.preview === true,
                 model: c.model,
                 ok: c.ok,
                 code: c.code ?? null,
                 input_tokens: c.input_tokens ?? null,
                 output_tokens: c.output_tokens ?? null,
                 spend_usd: cost ? roundUsd(cost.usd) : null,
+                spend_estimated: cost?.estimated ?? false,
               };
             }),
         },
@@ -498,7 +640,7 @@ export function createModelService({
      * (`words.mjs`) on the clan's key. Returns the tool's input; the
      * caller checks it and a person edits it.
      */
-    async write(clanTag, who, token, request) {
+    async write(clanTag, who, token, request, { defer = false } = {}) {
       requireLeader(who);
       if (!PURPOSES[request?.purpose])
         throw new ManageError(400, "unknown_purpose");
@@ -521,9 +663,10 @@ export function createModelService({
       const model = modelFor(request.purpose, listed(stored));
       if (!model) throw unreachable(request.purpose);
       const today = iso().slice(0, 10);
-      // The Discord activity rewrites have a cap of their own.
+      // The Discord activity rewrites have a cap of their own; a
+      // leader's preview of them is a leader's use.
       const drafts = (await ledger.modelCalls(clanTag, today)).filter(
-        (c) => c.purpose !== ACTIVITY,
+        leaderUse,
       );
       if (drafts.length >= USES_PER_DAY)
         throw new ManageError(429, "model_daily_limit", null, {
@@ -542,74 +685,90 @@ export function createModelService({
         by: who.player_tag,
         by_name: who.name ?? null,
         purpose: request.purpose,
+        ...(request.purpose === ACTIVITY ? { preview: true } : {}),
         model,
         ok: false,
         status: null,
         code: "outcome_pending",
         input_tokens: null,
         output_tokens: null,
+        ...estimate(request),
         ttl: Math.floor(now() / 1000) + USE_KEEP_DAYS * 86400,
       });
+      const input = dispatch(model, request);
+      if (defer && anthropic.start && anthropic.collect) {
+        let r;
+        let id = null;
+        try {
+          const started = await anthropic.start(key, input);
+          if (started.ok) id = started.id;
+          else r = started;
+        } catch {
+          r = { ok: false, status: 0, code: "outcome_unknown" };
+        }
+        if (id) {
+          await ledger
+            .finishModelCall(clanTag, call, {
+              request_id: id,
+              ref: call,
+              pending_until: new Date(now() + PENDING_MS).toISOString(),
+            })
+            .catch(() => {});
+          r = await anthropic.collect(id).catch(() => ({
+            ok: false,
+            status: 0,
+            code: "outcome_unknown",
+          }));
+          if (r === null) return { pending: id, model };
+        }
+        return settle(clanTag, stored, model, request.purpose, call, r);
+      }
       let r;
       try {
-        r = await anthropic.write(key, {
-          model,
-          system: request.system,
-          prompt: request.prompt,
-          tool: request.tool,
-          max_tokens: request.max_tokens,
-        });
+        r = await anthropic.write(key, input);
       } catch {
         r = { ok: false, status: 0, code: "outcome_unknown" };
       }
-      await ledger.finishModelCall(clanTag, call, {
-        model: r.model ?? model,
-        ok: r.ok,
-        status: r.status ?? null,
-        code: r.ok ? null : (r.code ?? null),
-        input_tokens: r.usage?.input_tokens ?? null,
-        output_tokens: r.usage?.output_tokens ?? null,
-      });
-      if (r.ok)
-        return { input: r.input, model: r.model, usage: r.usage ?? null };
-      if (r.status === 401 || r.status === 403) {
-        await ledger.saveModelKey(clanTag, { ...stored, refused_at: iso() });
-        throw new ManageError(409, "model_key_refused");
+      return settle(clanTag, stored, model, request.purpose, call, r);
+    },
+
+    /**
+     * A started draft's answer (`write` with `defer`), for the leader who
+     * started it: `{ pending }` while it has not landed, the answer when
+     * it has (as `write` returns it), and `outcome_unknown` once
+     * `PENDING_MS` has passed. Asking again after the answer gives it
+     * again and records nothing more.
+     */
+    async collect(clanTag, who, requestId) {
+      requireLeader(who);
+      const call = await pendingCall(clanTag, requestId);
+      if (!call) throw new ManageError(404, "no_pending_draft");
+      if (call.by !== who.player_tag) throw new ManageError(403, "not_yours");
+      const stored = await ledger.modelKey(clanTag);
+      if (!stored) throw new ManageError(409, "no_model_key");
+      let r = await anthropic.collect(requestId).catch(() => ({
+        ok: false,
+        status: 0,
+        code: "outcome_unknown",
+      }));
+      if (r === null) {
+        if (now() < Date.parse(call.pending_until))
+          return { pending: requestId, model: call.model };
+        r = {
+          ok: false,
+          status: 0,
+          code: "outcome_unknown",
+        };
       }
-      if (r.status === 404) {
-        // The model is gone for this key: the next draft runs on the
-        // purpose's next model, if the key reaches one.
-        await dropModel(clanTag, stored, model);
-        throw new ManageError(409, "model_unavailable", null, {
-          model,
-          purpose: request.purpose,
-          message: `Anthropic no longer serves ${modelName(model)} to the clan's key. Try again: Elixir Clan uses the next model this key reaches.`,
-        });
-      }
-      if (r.status === 429 || r.status === 529)
-        throw new ManageError(429, "anthropic_busy", null, {
-          message: "Anthropic is busy. Try again in a minute.",
-        });
-      // An answer that is no draft (`anthropic.mjs`): the model declined,
-      // or stopped before it finished. Never parsed into empty words.
-      if (r.code === "refusal")
-        throw new ManageError(422, "model_refused", null, {
-          message:
-            r.message ??
-            "The model declined to write this draft. Your words are unchanged.",
-        });
-      if (r.code === "max_tokens")
-        throw new ManageError(502, "model_cut_off", null, {
-          message:
-            r.message ??
-            "The model stopped before it finished the draft. Your words are unchanged.",
-        });
-      throw new ManageError(502, "model_failed", null, {
-        message:
-          r.code === "outcome_unknown"
-            ? "The draft's outcome is unknown and this attempt is counted. Check the use log in Settings before requesting another draft."
-            : (r.message ?? "The model did not answer."),
-      });
+      const open = call.code === "outcome_pending";
+      return settle(
+        clanTag,
+        stored,
+        call.model,
+        call.purpose,
+        open ? call.ref : null,
+        r,
+      );
     },
 
     /**
@@ -637,7 +796,7 @@ export function createModelService({
       if (!model) return { ok: false, code: "model_unavailable" };
       const today = iso().slice(0, 10);
       const used = (await ledger.modelCalls(clanTag, today)).filter(
-        (c) => c.purpose === ACTIVITY,
+        unattendedUse,
       ).length;
       if (used >= ACTIVITY_USES_PER_DAY)
         return { ok: false, code: "model_daily_limit" };
@@ -655,28 +814,16 @@ export function createModelService({
         code: "outcome_pending",
         input_tokens: null,
         output_tokens: null,
+        ...estimate(request),
         ttl: Math.floor(now() / 1000) + USE_KEEP_DAYS * 86400,
       });
       let r;
       try {
-        r = await anthropic.write(key, {
-          model,
-          system: request.system,
-          prompt: request.prompt,
-          tool: request.tool,
-          max_tokens: request.max_tokens,
-        });
+        r = await anthropic.write(key, dispatch(model, request));
       } catch {
         r = { ok: false, status: 0, code: "outcome_unknown" };
       }
-      await ledger.finishModelCall(clanTag, call, {
-        model: r.model ?? model,
-        ok: r.ok,
-        status: r.status ?? null,
-        code: r.ok ? null : (r.code ?? null),
-        input_tokens: r.usage?.input_tokens ?? null,
-        output_tokens: r.usage?.output_tokens ?? null,
-      });
+      await ledger.finishModelCall(clanTag, call, finished(r, model));
       if (r.ok) return { ok: true, input: r.input, model: r.model };
       if (r.status === 401 || r.status === 403) {
         await ledger.saveModelKey(clanTag, { ...stored, refused_at: iso() });

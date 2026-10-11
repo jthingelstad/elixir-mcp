@@ -168,14 +168,15 @@ without a policy:
   action, the reviewed message (clan chat or a Clan Leader Message) for a promotion, demotion, awards
   announcement or policy-change announcement, plus welcome and post-decision
   removal chat lines, plus a departure message after a leader confirms
-  Kicked or Left. Saved recruiting words provide the clan's voice. Welcome
-  drafts may use the Action's frozen recorded return or career detail;
-  departure drafts use the confirmed classification and recorded tenure when
-  known, with provenance and uncertainty. Names, tags, private notes, internal
-  rationale and broader member history stay local; chat drafts use fixed tone
-  choices for welcomes, removals and farewells. Keep member details out of a
-  message note. Everything it writes is a draft a leader edits
-  and copies into the game. It never makes or completes a decision.
+  Kicked or Left. Saved recruiting words provide the clan's voice. The
+  model is told what Elixir records about the clan, the Action and the
+  member it is about, by name ([what it
+  receives](/docs/clan-actions#the-words-to-send)); tags,
+  private notes, holds and a removal's rationale are never sent. Chat
+  drafts use fixed tone choices for welcomes, removals and farewells.
+  Everything it writes is a draft a leader edits and copies into the
+  game, marked where it carries a number or a name it was not given. It
+  never makes or completes a decision.
   Elixir Clan chooses the model for each use, and Settings shows which:
   Claude Opus 5.5 drafts the recruiting pitch and the messages on
   Actions, and Claude Sonnet 5.5 rewrites the activity channel's posts.
@@ -196,7 +197,8 @@ without a policy:
   is the one Anthropic keeps.
   The one use nobody reviews is the activity channel's rewrite, when a
   leader turns it on (below); its uses are counted apart, and the cap
-  stops them too.
+  stops them too. A use whose answer never arrived (the provider may
+  still have charged for it) is counted toward the cap at its estimate.
 
 ## The clan's activity in Discord
 
@@ -232,13 +234,30 @@ preview.
 - **Written by the clan's own model**: with the clan's own model key
   set, a leader can have each line rewritten in the clan's voice, and
   describe that voice in up to 400 characters. These lines are posted
-  without anyone reading them first. The model is sent only what the line
-  already says, member names included, never a tag or anything private
-  to Clan. A rewritten line that changes a member's name, adds a number
-  the line did not give, or runs long keeps Elixir's own words, and so do
-  all lines when the model cannot be used. At most 50 rewrites a day,
-  counted apart from the leaders' drafts and shown in the key's use log;
-  the clan's monthly cap, when set, stops them as it stops drafts.
+  without anyone reading them first. Each post's model is told the clan
+  (its name, recruiting words, goals, member count and last war weeks),
+  the moment's own facts (the battle and who it beat, the badge, the
+  best set, the week's place) and, for a member, what Elixir records
+  about them: trophies, best, arena, career wins, time in the clan and
+  any earlier stint, recent war weeks as decks and points, and how often
+  the channel already told about them this week. A departure's post is
+  told only the member's time in the clan and the weeks they played.
+  Never a tag, a member's share of fame, or anything private to Clan.
+  The model picks a detail or two that make the moment a story. A post
+  that drops or changes a member's or opponent's name, carries a number
+  or a name it was not given, carries a link or a mention, or runs long
+  keeps Elixir's own line, and so do all lines when the model cannot be
+  used. When several members reach the same kind of milestone at once
+  (two badges, three new bests), the model writes them as one post that
+  names each of them, up to 500 characters; refused, it is Elixir's
+  lines together in one message. At most 50 model requests a day (one
+  request writes several posts), counted apart from the leaders' drafts
+  and shown in the key's use log; the clan's monthly cap, when set,
+  stops them as it stops drafts.
+  **Preview the last 5 in this voice** shows the five newest things the
+  channel could post, written in the voice in the box (saved or not),
+  each beside Elixir's line or with why it would be refused. It posts
+  nothing and counts as one of the leaders' drafts for the day.
   Without a key, the page points to **The clan's own model** in Settings.
 - Connecting posts a short hello to check the webhook; it is kept
   encrypted and shown only shortened. A webhook may end in `?thread_id=`

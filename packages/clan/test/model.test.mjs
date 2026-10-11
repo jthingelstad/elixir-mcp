@@ -16,6 +16,7 @@ import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
 import { draftContextVersion } from "@elixir-mcp/clan/manage/actions.mjs";
 import {
   MODELS_REFRESH_MS,
+  PENDING_MS,
   USES_PER_DAY,
   createModelService,
   sealer,
@@ -71,6 +72,44 @@ const PITCH = {
   contact: "Request to join in game.",
 };
 
+/** What the record knows, as `clanStoryFacts` gathers it: the clan and
+ *  one member (who missed week 3 and played week 4). */
+const STORY = (tags) => ({
+  clan: {
+    name: "Example Clan",
+    members: 40,
+    war: [{ season_id: 135, section_index: 3, rank: 2, trophy_change: 40 }],
+  },
+  members: Object.fromEntries(
+    tags
+      .filter((t) => t === BEA)
+      .map((t) => [
+        t,
+        {
+          name: "Secretname",
+          role: "member",
+          trophies: 8000,
+          best_trophies: 8400,
+          arena: "Legendary Arena",
+          joined_at: "2026-08-16T00:00:00Z",
+          tenure_days: 40,
+          stints_before: 1,
+          last_left_at: "2026-05-01T00:00:00Z",
+          war: [
+            { season_id: 135, section_index: 3, decks_used: 16, points: 2900 },
+            { season_id: 135, section_index: 2, decks_used: 0, points: 0 },
+          ],
+          moments: [
+            {
+              at: "2026-09-20T00:00:00Z",
+              text: "Secretname reached a new best.",
+            },
+          ],
+        },
+      ]),
+  ),
+});
+
 function fakeAnthropic() {
   const state = { calls: [], write: null };
   return {
@@ -83,6 +122,21 @@ function fakeAnthropic() {
         ok: true,
         models: state.models ?? [H45, SONNET, O55, S55, H55],
       };
+    },
+    // The bridge's start/collect, when a test turns them on (`deferred`):
+    // a started write answers only when `state.replies` holds its reply.
+    get start() {
+      if (!state.deferred) return undefined;
+      return async (key, request) => {
+        state.calls.push(["write", key, request]);
+        const id = `00000000-0000-4000-8000-${String(state.calls.length).padStart(12, "0")}`;
+        state.started = id;
+        return { ok: true, id };
+      };
+    },
+    get collect() {
+      if (!state.deferred) return undefined;
+      return async (id) => (state.replies ?? {})[id] ?? null;
     },
     async write(key, request) {
       state.calls.push(["write", key, request]);
@@ -144,6 +198,7 @@ function harness({ players = [player()] } = {}) {
       // This suite isolates prompt/privacy behavior; admission races are
       // exercised through the real Manage guard in removal-safety.test.
       requireRemovalSafety: async () => ({ evidence_version: "fixture-proof" }),
+      storyFor: async (clanTag, tags) => STORY(tags),
     }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
@@ -350,7 +405,7 @@ test("model: a sealed key opens only for its clan and the person who added it, u
   assert.ok(!JSON.stringify(box).includes(GOOD));
 });
 
-test("model: a leader drafts an open action's Leader Message in the clan's voice; the model never sees the member's name", async () => {
+test("model: a leader drafts an open action's Leader Message with what Elixir knows: the member by name, the rule's evidence, the note as written", async () => {
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
@@ -363,6 +418,17 @@ test("model: a leader drafts an open action's Leader Message in the clan's voice
     player_name: "Secretname",
     raised_at: "2026-09-25T11:00:00.000Z",
     evidence: {
+      phrase: "played every war deck for three weeks",
+      facts: [
+        {
+          key: "war_decks",
+          label: "War decks",
+          value: "48 of 48",
+          window: "last 3 weeks",
+        },
+      ],
+      rationale: { headline: "INTERNAL HEADLINE" },
+      days_idle: 0,
       message: {
         title: "Congrats, new Elder!",
         body: "Secretname is now an Elder. Thank you for showing up.",
@@ -375,38 +441,87 @@ test("model: a leader drafts an open action's Leader Message in the clan's voice
     card_id: "done1",
     status: "done",
   });
+  await h.ledger.putGrant("#2PQRJ8LV", {
+    season_id: 134,
+    award_id: "cup",
+    name: "Cup",
+    player_tag: "#8QCV",
+    player_name: "Secretname",
+    metric_value: 3100,
+    metric_unit: "points",
+    note: "PRIVATE GRANT NOTE",
+    granted_at: "2026-09-01T10:00:00Z",
+  });
   h.anthropic.state.write = (key, request) => ({
     ok: true,
     model: request.model,
     usage: { input_tokens: 300, output_tokens: 40 },
     input: {
       title: "A new Elder & a toast",
-      body: "Three cheers for {name}, our newest Elder. See you in war!",
+      body: "Three cheers for Secretname, our newest Elder: 2,900 points in week 4. See you in war!",
     },
   });
   const path = "/api/clans/2PQRJ8LV/actions/promo1/draft";
-  const r = await api(h, c, "POST", path, { note: "keep it short" });
+  const r = await api(h, c, "POST", path, {
+    note: "mention Secretname's war week",
+  });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.title, "A new Elder and a toast");
   assert.equal(
     r.body.body,
-    "Three cheers for Secretname, our newest Elder. See you in war!",
+    "Three cheers for Secretname, our newest Elder: 2,900 points in week 4. See you in war!",
   );
   assert.deepEqual(r.body.warnings, []);
   const [, , sent] = h.anthropic.state.calls.at(-1);
   assert.equal(sent.tool.name, "write_leader_message");
-  assert.doesNotMatch(sent.prompt, /Secretname/, "names never reach the model");
-  assert.match(sent.prompt, /keep it short/);
+  assert.equal(sent.tool.strict, true);
+  assert.equal(sent.tool.input_schema.additionalProperties, false);
+  assert.equal(sent.effort, "medium");
+  // The clan is the cached prefix; the moment and the member the packet.
+  assert.match(sent.context, /^THE CLAN\nName: Example Clan/);
+  assert.match(sent.context, /Its tagline: Steady wars, friendly chat/);
+  assert.match(sent.context, /season 135 week 4: place 2/);
+  assert.match(sent.prompt, /MEMBER: Secretname/);
+  assert.match(sent.prompt, /War decks: 48 of 48 \(last 3 weeks\)/);
+  assert.match(sent.prompt, /In short: played every war deck/);
+  assert.match(sent.prompt, /Trophies: 8,000; best ever 8,400/);
+  assert.match(sent.prompt, /season 135 week 4: 16 decks, 2,900 points/);
+  assert.match(sent.prompt, /Cup \(season 134, 3,100 points\)/);
+  assert.match(sent.prompt, /THE LEADER'S NOTE.*mention Secretname's war week/);
+  assert.doesNotMatch(
+    JSON.stringify(sent),
+    /INTERNAL HEADLINE|PRIVATE GRANT NOTE|fame|8QCV/,
+  );
   const log = await h.ledger.actionLog("#2PQRJ8LV", "promo1");
   assert.ok(log.some((e) => e.kind === "drafted"));
   const s = await api(h, c, "GET", MODEL);
   assert.equal(s.body.uses.recent[0].purpose, "leader_message");
+  // A number or a name the model was not given is flagged, never dropped.
+  h.anthropic.state.write = (key, request) => ({
+    ok: true,
+    model: request.model,
+    input: {
+      title: "New Elder",
+      body: "Secretname beat Jotaro with 4,100 points.",
+    },
+  });
+  const flagged = await api(h, c, "POST", path, {});
+  assert.equal(flagged.status, 200, JSON.stringify(flagged.body));
+  assert.match(flagged.body.warnings.join(" "), /4,100 is not in anything/);
+  assert.match(flagged.body.warnings.join(" "), /Jotaro is not a name/);
+  h.anthropic.state.write = (key, request) => ({
+    ok: true,
+    model: request.model,
+    input: {
+      title: "A new Elder & a toast",
+      body: "Three cheers for {name}, our newest Elder. See you in war!",
+    },
+  });
   const chat = await api(h, c, "POST", path, { channel: "clan_chat" });
   assert.equal(chat.status, 200, JSON.stringify(chat.body));
   assert.deepEqual(chat.body.lines, [
     "A new Elder and a toast: Three cheers for Secretname, our newest Elder. See you in war!",
   ]);
-  assert.doesNotMatch(h.anthropic.state.calls.at(-1)[2].prompt, /Secretname/);
   // A closed action, or one without a Leader Message, is not drafted.
   const closed = await api(
     h,
@@ -427,10 +542,24 @@ test("model: only leaders draft Leader Messages", async () => {
   assert.equal(r.status, 403);
 });
 
-test("model: award recipients stay local and oversized legacy announcements refuse before spending", async () => {
+test("model: an awards draft names its winners with their numbers; Elixir still writes the complete list, and oversized announcements refuse before spending", async () => {
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
+  for (const [tag, name, value] of [
+    ["#8QCV", "Secretname", 3100],
+    ["#P0LYQ", "Anotherwinner", 2900],
+  ])
+    await h.ledger.putGrant("#2PQRJ8LV", {
+      season_id: 135,
+      award_id: "cup",
+      name: "Cup",
+      player_tag: tag,
+      player_name: name,
+      metric_value: value,
+      metric_unit: "points",
+      granted_at: "2026-10-06T10:00:00Z",
+    });
   const card = {
     card_id: "awards1",
     clan_tag: "#2PQRJ8LV",
@@ -461,16 +590,17 @@ test("model: award recipients stay local and oversized legacy announcements refu
     c,
     "POST",
     "/api/clans/2PQRJ8LV/actions/awards1/draft",
-    {
-      note: "Celebrate Secretname, Anotherwinner and #8QCV and #P0LYQ and Ab-Cdef and 8QCV",
-    },
+    { note: "Celebrate Secretname" },
   );
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.match(r.body.body, /Cup: Secretname, Anotherwinner/);
-  assert.doesNotMatch(
-    h.anthropic.state.calls.at(-1)[2].prompt,
-    /Secretname|Anotherwinner|8QCV|P0LYQ|Ab.Cdef/,
-  );
+  assert.match(r.body.body, /Cup: Secretname, Anotherwinner, Ab Cdef/);
+  const sent = h.anthropic.state.calls.at(-1)[2];
+  assert.match(sent.prompt, /Season 135 closed/);
+  assert.match(sent.prompt, /- Cup: Secretname \(3,100 points\)/);
+  assert.match(sent.prompt, /- Cup: Anotherwinner \(2,900 points\)/);
+  assert.match(sent.prompt, /Celebrate Secretname/);
+  assert.match(sent.system, /\{winners\}/);
+  assert.doesNotMatch(sent.prompt, /8QCV|P0LYQ/);
   const calls = h.anthropic.state.calls.length;
   await h.ledger.putCard("#2PQRJ8LV", {
     ...card,
@@ -492,7 +622,7 @@ test("model: award recipients stay local and oversized legacy announcements refu
   assert.equal(h.anthropic.state.calls.length, calls);
 });
 
-test("model: welcome and removal chat drafts disclose no member evidence and leave the action proposed", async () => {
+test("model: a welcome tells the member's record; a removal only their time and what they gave, never inactivity; both leave the action proposed", async () => {
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
@@ -526,11 +656,28 @@ test("model: welcome and removal chat drafts disclose no member evidence and lea
     assert.equal(r.body.line, "Welcome back, Secretname!");
     const [, , request] = h.anthropic.state.calls.at(-1);
     assert.equal(request.tool.name, "write_chat_message");
+    assert.equal(request.tool.strict, true);
+    assert.equal(request.effort, "medium");
+    assert.match(request.prompt, /MEMBER: Secretname/);
+    assert.match(request.prompt, /Gentle and respectful/);
+    assert.match(request.context, /Steady wars, friendly chat/);
     assert.doesNotMatch(
-      request.prompt,
-      /Secretname|8QCV|999|Private evidence|0\.1234/,
+      JSON.stringify(request),
+      /8QCV|999|Private evidence|0\.1234/,
     );
-    assert.match(request.prompt, /Steady wars, friendly chat/);
+    if (type === "welcome") {
+      assert.match(request.prompt, /Trophies: 8,000; best ever 8,400/);
+      assert.match(request.prompt, /Their recent moments/);
+    } else {
+      // Contribution only: no trophies, no moments, no week they missed.
+      assert.doesNotMatch(request.prompt, /Trophies|moments|0 decks|week 3/);
+      assert.match(request.prompt, /season 135 week 4: 16 decks, 2,900 points/);
+      assert.match(request.prompt, /Time in the clan: 40 days/);
+      assert.match(
+        request.system + request.prompt,
+        /Never mention numbers about their inactivity/,
+      );
+    }
     assert.equal((await h.ledger.card("#2PQRJ8LV", type)).status, "proposed");
   }
   const invalidNote = await api(
@@ -603,17 +750,10 @@ test("model: unverified leaders and verified elders cannot spend on either chat 
   }
 });
 
-test("model: welcome drafting uses only its frozen detail with the original provenance", async () => {
+test("model: a returning member's welcome says so, from the Action and the record's earlier stint", async () => {
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
-  const welcome = {
-    kind: "career_wins",
-    value: 12456,
-    fact: "12,000+ career wins.",
-    source_as_of: "2026-09-24T12:00:00Z",
-    private_note: "Private evidence",
-  };
   const card = {
     card_id: "frozen",
     type: "welcome",
@@ -622,7 +762,7 @@ test("model: welcome drafting uses only its frozen detail with the original prov
     player_name: "Secretname",
     evidence: {
       joined_at: "2026-09-25T10:00:00Z",
-      welcome,
+      welcome: { returning: true, source_as_of: "2026-09-24T12:00:00Z" },
       score: 0.1234,
       notes: "Private evidence",
     },
@@ -632,7 +772,7 @@ test("model: welcome drafting uses only its frozen detail with the original prov
   h.anthropic.state.write = (key, request) => ({
     ok: true,
     model: request.model,
-    input: { line: "Welcome, {name}! 12,000+ career wins." },
+    input: { line: "Welcome back, Secretname! Good to see you again." },
   });
   const response = await api(
     h,
@@ -642,23 +782,20 @@ test("model: welcome drafting uses only its frozen detail with the original prov
     { expected_draft_version: draftContextVersion(card) },
   );
   assert.equal(response.status, 200, JSON.stringify(response.body));
-  assert.match(response.body.line, /Secretname.*12,000\+ career wins/);
+  assert.equal(
+    response.body.line,
+    "Welcome back, Secretname! Good to see you again.",
+  );
   assert.equal(response.body.draft_context_version, draftContextVersion(card));
   const request = h.anthropic.state.calls.at(-1)[2];
-  assert.match(request.prompt, /12,000\+ career wins/);
-  assert.match(request.prompt, /2026-09-24T12:00:00.000Z/);
-  assert.doesNotMatch(
-    JSON.stringify(request),
-    /Secretname|8QCV|Private evidence|0\.1234|12456/,
-  );
+  assert.match(request.prompt, /A member came back/);
+  assert.match(request.prompt, /1 earlier stint, the last ending 2026-05-01/);
+  assert.match(request.prompt, /welcoming this member back/);
+  assert.doesNotMatch(JSON.stringify(request), /8QCV|Private evidence|0\.1234/);
   assert.deepEqual(await h.ledger.card("#2PQRJ8LV", card.card_id), card);
-  assert.equal(
-    h.mcp.calls.filter(([name]) => name === "players_profile").length,
-    0,
-  );
 });
 
-test("model: confirmed kick and leave guide departure drafts; unconfirmed and ignored do not spend", async () => {
+test("model: confirmed kick and leave guide departure drafts with tenure and contribution; unconfirmed and ignored do not spend", async () => {
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", MODEL, { key: GOOD });
@@ -699,12 +836,15 @@ test("model: confirmed kick and leave guide departure drafts; unconfirmed and ig
     const request = h.anthropic.state.calls.at(-1)[2];
     assert.match(
       request.prompt,
-      classification === "member_left" ? /member left/ : /member was kicked/,
+      classification === "member_left"
+        ? /left the clan on their own/
+        : /was removed from the clan/,
     );
-    assert.match(request.prompt, /recorded tenure 38 days/);
+    assert.match(request.prompt, /Time in the clan: 38 days/);
+    assert.match(request.prompt, /16 decks, 2,900 points/);
     assert.doesNotMatch(
       JSON.stringify(request),
-      /Secretname|8QCV|Private reason|Private evidence|999|recommended/,
+      /8QCV|Private reason|Private evidence|999|recommended|Trophies/,
     );
     assert.deepEqual(await h.ledger.card("#2PQRJ8LV", card.card_id), card);
   }
@@ -1291,4 +1431,104 @@ test("model spend: a cap is dollars to the cent, set by leaders, and outlives th
     403,
   );
   assert.equal((await h.ledger.modelKey("#2PQRJ8LV")).spend_cap_usd, 3);
+});
+
+test("model: a draft that outlasts the request is collected by its id, once recorded; past its time it counts at its estimate (#455)", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const card = {
+    card_id: "promo1",
+    clan_tag: "#2PQRJ8LV",
+    type: "promotion",
+    status: "proposed",
+    player_tag: BEA,
+    player_name: "Secretname",
+    evidence: {
+      message: { title: "New Elder", body: "Secretname is now an Elder." },
+    },
+  };
+  await h.ledger.putCard("#2PQRJ8LV", card);
+  await h.ledger.putCard("#2PQRJ8LV", { ...card, card_id: "promo2" });
+  h.anthropic.state.deferred = true;
+  const path = "/api/clans/2PQRJ8LV/actions/promo1/draft";
+  const started = await api(h, c, "POST", path, {});
+  assert.equal(started.status, 200, JSON.stringify(started.body));
+  const id = started.body.pending;
+  assert.match(id, /^[0-9a-f-]{36}$/);
+  assert.equal(started.body.draft_context_version, draftContextVersion(card));
+  // Asked again before it lands: still pending, nothing spent twice.
+  const again = await api(h, c, "POST", path, { pending: id });
+  assert.equal(again.body.pending, id);
+  // Only the leader who started it collects it.
+  h.mcp.state.players = [
+    player({ player_tag: BEA, name: "Bea", clan_role: "coLeader" }),
+  ];
+  h.mcp.state.roster = rosterBody([
+    { player_tag: ADA, name: "Ada", role: "leader" },
+    { player_tag: BEA, name: "Bea", role: "coLeader" },
+  ]);
+  const bea = await signedIn(h);
+  assert.equal(
+    (await api(h, bea, "POST", path, { pending: id })).body.error,
+    "not_yours",
+  );
+  assert.equal(
+    (
+      await api(h, bea, "POST", path, {
+        pending: "00000000-0000-4000-8000-999999999999",
+      })
+    ).body.error,
+    "no_pending_draft",
+  );
+  h.mcp.state.players = [player()];
+  h.anthropic.state.replies = {
+    [id]: {
+      ok: true,
+      model: OPUS_55,
+      usage: { input_tokens: 900, output_tokens: 60 },
+      input: { title: "New Elder", body: "Cheers, Secretname!" },
+    },
+  };
+  const done = await api(h, c, "POST", path, { pending: id });
+  assert.equal(done.status, 200, JSON.stringify(done.body));
+  assert.equal(done.body.body, "Cheers, Secretname!");
+  const writes = h.anthropic.state.calls.filter(([t]) => t === "write");
+  assert.equal(writes.length, 1, "one request to the model");
+  let s = await api(h, c, "GET", MODEL);
+  assert.equal(s.body.uses.recent.length, 1);
+  assert.equal(s.body.uses.recent[0].ok, true);
+  assert.equal(s.body.uses.recent[0].input_tokens, 900);
+  assert.equal(s.body.uses.recent[0].spend_estimated, false);
+  // A draft that never lands: unknown past its time, and counted at its
+  // reservation's estimate, never free.
+  h.clock.t += 60_000;
+  const lost = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/promo2/draft",
+    {},
+  );
+  const lostId = lost.body.pending;
+  assert.ok(lostId);
+  h.clock.t += PENDING_MS + 1;
+  const unknown = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/promo2/draft",
+    { pending: lostId },
+  );
+  assert.equal(unknown.status, 502);
+  assert.equal(unknown.body.error, "model_failed");
+  assert.match(unknown.body.message, /outcome is unknown/);
+  s = await api(h, c, "GET", MODEL);
+  const last = s.body.uses.recent[0];
+  assert.equal(last.code, "outcome_unknown");
+  assert.equal(last.input_tokens, null);
+  assert.ok(last.spend_usd > 0, "an unknown outcome is priced");
+  assert.equal(last.spend_estimated, true);
+  assert.equal(s.body.uses.month.spend_estimated, true);
+  assert.ok(s.body.uses.month.spend_usd > s.body.uses.recent[1].spend_usd);
 });

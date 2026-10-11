@@ -32,6 +32,10 @@ const FACTS = {
   top_donors: [{ name: "Givername", value: 800 }],
 };
 
+const CONTEXT = "THE CLAN\nName: Example Clan\nIts tagline: Play together";
+const PACKET =
+  "WHAT HAPPENED\nA new member joined the clan.\n\nMEMBER: Secretname\nBest trophies: 9,000";
+
 test("a model writes words for a closed list of uses, none a judgment about a member", () => {
   assert.deepEqual(Object.keys(PURPOSES), [
     "recruit_pitch",
@@ -45,26 +49,33 @@ test("a model writes words for a closed list of uses, none a judgment about a me
   );
 });
 
-test("chat drafts carry clan voice and a fixed purpose, never evidence for a judgment", () => {
+test("chat drafts carry the clan as a cached prefix, the moment as the packet, a tone, medium effort and a strict tool", () => {
   for (const kind of ["welcome", "removal"]) {
     const r = chatMessageRequest({
       kind,
-      clanName: "Example Clan",
-      voice: { tagline: "Play together" },
-      goals: ["war"],
-      note: "warm",
+      context: CONTEXT,
+      packet: PACKET,
+      tone: "warm",
     });
     assert.equal(r.purpose, "clan_chat");
+    assert.equal(r.effort, "medium");
     assert.equal(r.max_tokens, 250);
     assert.equal(r.tool.name, "write_chat_message");
-    assert.match(r.prompt, /Play together/);
-    assert.match(r.prompt, /Warm and brief/);
+    assert.equal(r.tool.strict, true);
+    assert.equal(r.tool.input_schema.additionalProperties, false);
+    assert.equal(r.context, CONTEXT);
+    assert.match(r.prompt, /MEMBER: Secretname/);
+    assert.match(r.prompt, /Tone: Warm and brief/);
     assert.match(r.system, /Never judge a member/);
-    if (kind === "removal")
+    assert.match(r.system, /never '&'/);
+    assert.match(r.system, /write the member's name as it is given/);
+    if (kind === "removal") {
       assert.match(r.prompt, /only AFTER a leader decides/);
+      assert.match(r.prompt, /Never mention numbers about their inactivity/);
+    }
   }
   assert.throws(() =>
-    chatMessageRequest({ kind: "welcome", note: "Secretname idle 999 days" }),
+    chatMessageRequest({ kind: "welcome", tone: "Secretname idle 999 days" }),
   );
   assert.throws(() => chatMessageRequest({ kind: "departure" }));
   assert.throws(() => chatMessageFromDraft({}, { kind: "departure" }));
@@ -94,55 +105,17 @@ test("chat drafts restore names locally, keep game limits, and flag scoring lang
   );
 });
 
-test("welcome prompts preserve frozen approved facts and provenance, never arbitrary evidence", () => {
+test("a welcome's ask follows the Action: back again, or new; its frozen detail still words the plain fallback", () => {
   const stamp = "2026-09-24T12:00:00Z";
-  for (const [welcome, expected] of [
-    [{ returning: true, source_as_of: stamp }, /recorded return/],
-    [
-      { kind: "career_wins", value: 12456, source_as_of: stamp },
-      /12,000\+ career wins/,
-    ],
-    [
-      { kind: "best_trophies", value: 9000, source_as_of: stamp },
-      /Recorded best: 9,000 trophies/,
-    ],
-  ]) {
-    const frozen = {
-      ...welcome,
-      fact: "Secretname #8QCV private note score 0.1234",
-      private_note: "hidden",
-    };
-    const request = chatMessageRequest({ kind: "welcome", welcome: frozen });
-    assert.match(request.prompt, expected);
-    assert.match(request.prompt, /2026-09-24T12:00:00.000Z/);
-    assert.match(
-      request.prompt,
-      /not claim it is current, newly achieved or a recent milestone/,
-    );
-    assert.doesNotMatch(
-      JSON.stringify(request),
-      /Secretname|8QCV|private note|hidden|0\.1234|12456/,
-    );
-    assert.deepEqual(frozen, {
-      ...welcome,
-      fact: "Secretname #8QCV private note score 0.1234",
-      private_note: "hidden",
-    });
-  }
-  for (const welcome of [
-    null,
-    { fact: "Unsupported private text" },
-    { kind: "career_wins", value: 999, source_as_of: stamp },
-    { kind: "best_trophies", value: -1, source_as_of: stamp },
-    { kind: "best_trophies", value: 9000, source_as_of: "Secretname" },
-    { kind: "score", value: 9000, source_as_of: stamp },
-  ]) {
-    const request = chatMessageRequest({ kind: "welcome", welcome });
-    assert.doesNotMatch(
-      request.prompt,
-      /Frozen context|Unsupported private text|Secretname|9,000/,
-    );
-  }
+  assert.match(
+    chatMessageRequest({ kind: "welcome", welcome: { returning: true } })
+      .prompt,
+    /welcoming this member back/,
+  );
+  assert.match(
+    chatMessageRequest({ kind: "welcome", welcome: null }).prompt,
+    /one true detail about them/,
+  );
   assert.match(
     chatMessageFromDraft(
       {},
@@ -161,9 +134,20 @@ test("welcome prompts preserve frozen approved facts and provenance, never arbit
     ).line,
     /12,000\+ career wins/,
   );
+  // A name or a number the model was not told is flagged for the leader.
+  const told = `${CONTEXT}\n${PACKET}`;
+  const checked = chatMessageFromDraft(
+    {
+      line: "Welcome Secretname, 9,000 trophies! Say hi to Jotaro, 4,400 wins.",
+    },
+    { kind: "welcome", name: "Secretname", told },
+  );
+  assert.ok(checked.warnings.some((w) => /4,400 is not in anything/.test(w)));
+  assert.ok(checked.warnings.some((w) => /Jotaro is not a name/.test(w)));
+  assert.ok(!checked.warnings.some((w) => /9,000/.test(w)));
 });
 
-test("departure prompts trust explicit confirmation, preserve observation uncertainty and omit private rationale", () => {
+test("departure drafts need a leader's confirmation and ask by its classification; nothing private rides in the request", () => {
   for (const classification of ["member_left", "member_kicked"]) {
     const departure = {
       classification,
@@ -172,27 +156,25 @@ test("departure prompts trust explicit confirmation, preserve observation uncert
       tenure_days: 38,
       days_idle: 999,
       removal_state: "recommended",
-      phrase: "Secretname Private evidence",
+      phrase: "Private evidence",
       decision_note: "Private reason",
     };
-    const request = chatMessageRequest({ kind: "departure", departure });
-    assert.match(
-      request.prompt,
-      /explicit leader confirmation at 2026-09-25T12:00:00.000Z/,
-    );
-    assert.match(request.prompt, /observed at 2026-09-24T12:00:00.000Z/);
-    assert.match(request.prompt, /recorded tenure 38 days/);
-    assert.match(request.prompt, /metric observation time is not stored/);
-    assert.match(request.prompt, /raw roster observation did not distinguish/);
+    const request = chatMessageRequest({
+      kind: "departure",
+      departure,
+      context: CONTEXT,
+      packet: "WHAT HAPPENED\nMEMBER: Secretname\nTime in the clan: 38 days",
+    });
     assert.match(
       request.prompt,
       classification === "member_left"
-        ? /member left.*friendly farewell/
-        : /member was kicked.*respectful departure/,
+        ? /left on their own.*friendly clan-chat farewell/
+        : /was removed.*respectful.*Never describe it as a voluntary leave/,
     );
+    assert.match(request.prompt, /Time in the clan: 38 days/);
     assert.doesNotMatch(
       JSON.stringify(request),
-      /999|recommended|Secretname|Private evidence|Private reason/,
+      /999|recommended|Private evidence|Private reason/,
     );
     const output = chatMessageFromDraft(
       {},
@@ -210,15 +192,6 @@ test("departure prompts trust explicit confirmation, preserve observation uncert
       () => chatMessageRequest({ kind: "departure", departure }),
       /not confirmed/,
     );
-  const missing = chatMessageRequest({
-    kind: "departure",
-    departure: {
-      classification: "member_left",
-      confirmed_at: "2026-09-25T12:00:00Z",
-    },
-  });
-  assert.match(missing.prompt, /observation time is unknown/);
-  assert.doesNotMatch(missing.prompt, /recorded tenure/);
 });
 
 test("Elixir Clan chooses each use's model: the 5.5 generation, in the purpose's order", () => {
@@ -351,26 +324,48 @@ test("a draft is tidied, clipped to each field, keeps the clan's own website and
   assert.ok(empty.errors.tagline && empty.errors.about);
 });
 
-test("a Leader Message request never carries a member's name; the model writes placeholders", () => {
+test("a Leader Message request carries the clan, the member by name, the leader's note as written and the plain draft", () => {
   const r = leaderMessageRequest({
     kind: "promotion",
-    clanName: "Example Clan",
-    voice: { tagline: "Steady wars", about: "We war." },
-    goals: ["war"],
-    current: { title: "Congrats, new Elder!", body: "{name} is now an Elder." },
+    context: CONTEXT,
+    packet:
+      "WHAT HAPPENED\nThe clan's own rules just made this member an Elder.\n\nMEMBER: Secretname",
+    current: {
+      title: "Congrats, new Elder!",
+      body: "Secretname is now an Elder.",
+    },
+    note: "Mention the Colosseum week & keep it short",
   });
   assert.equal(r.purpose, "leader_message");
-  assert.match(r.system, /Never write a member's name/);
+  assert.equal(r.effort, "medium");
+  assert.equal(r.tool.strict, true);
+  assert.equal(r.context, CONTEXT);
+  assert.match(r.system, /Write the member's name as it is given/);
+  assert.match(r.system, /Pick the one or two details/);
+  assert.match(r.system, /Never list statistics/);
   assert.match(r.system, /never '&'/);
-  assert.match(r.prompt, /Write \{name\}/);
-  assert.match(r.prompt, /Tagline: Steady wars/);
+  assert.doesNotMatch(r.system, /Never write a member's name/);
+  assert.match(r.prompt, /MEMBER: Secretname/);
+  assert.match(
+    r.prompt,
+    /ELIXIR'S PLAIN DRAFT[\s\S]*Message: Secretname is now an Elder\./,
+  );
+  assert.match(
+    r.prompt,
+    /THE LEADER'S NOTE \(follow it; it may add facts of its own\): Mention the Colosseum week & keep it short/,
+  );
+  assert.match(
+    r.prompt,
+    /THE ASK: Write the Leader Message that tells the clan this member is now an Elder/,
+  );
   const awards = leaderMessageRequest({
     kind: "awards",
-    seasonId: 131,
-    awardCount: 2,
+    packet:
+      "WHAT HAPPENED\nSeason 131 closed and the clan granted these awards:\n- Cup: Ada (3,100 points)",
   });
   assert.match(awards.prompt, /Season 131 closed/);
-  assert.match(awards.prompt, /\{winners\}/);
+  assert.match(awards.prompt, /Cup: Ada \(3,100 points\)/);
+  assert.match(awards.system, /\{winners\}/);
   assert.throws(() => leaderMessageRequest({ kind: "removal" }));
 });
 

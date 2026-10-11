@@ -169,11 +169,15 @@ export function createRecruitService({
     /**
      * A pitch drafted by the clan's own model from what the clan is (the
      * game's facts, never a member), what it is for and how it runs, for
-     * a leader to edit and save. Nothing is saved here.
+     * a leader to edit and save. Nothing is saved here. A draft that
+     * outlasts the request is `{ pending }`, collected by asking again
+     * with it (2026-10-11).
      */
-    async draft(clanTag, who, token, note = null) {
+    async draft(clanTag, who, token, note = null, { pending = null } = {}) {
       if (!isLeader(who)) throw new ManageError(403, "leaders_only");
       if (!model) throw new ManageError(404, "not_found");
+      if (pending != null && typeof pending !== "string")
+        throw new ManageError(400, "bad_request");
       const pitch = await pitchFor(clanTag);
       const { facts } = await factsFor(clanTag, token);
       const policy = await ledger.currentPolicy(clanTag);
@@ -186,7 +190,10 @@ export function createRecruitService({
         pitch: pitch.version > 0 ? pitch.values : null,
         note,
       });
-      const answer = await model.write(clanTag, who, token, request);
+      const answer = pending
+        ? await model.collect(clanTag, who, pending)
+        : await model.write(clanTag, who, token, request, { defer: true });
+      if (answer.pending) return { pending: answer.pending };
       const draft = pitchFromDraft(answer.input, pitch.values, {
         prompt: request.prompt,
       });

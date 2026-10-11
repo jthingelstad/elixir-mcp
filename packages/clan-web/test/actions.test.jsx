@@ -976,6 +976,7 @@ describe("the clan's model on a Leader Message", () => {
         "warm",
         null,
         "leader_message",
+        null,
       ),
     );
     expect(await screen.findByDisplayValue("Our way, in brief")).toBeTruthy();
@@ -1152,7 +1153,14 @@ describe("editable clan chat", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
     await screen.findByDisplayValue("Glad you joined, Sleepy!");
-    expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "a1", null, null);
+    expect(draft).toHaveBeenCalledWith(
+      "#2PQRJ8LV",
+      "a1",
+      null,
+      null,
+      null,
+      null,
+    );
     expect(decide).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("Put back what I had"));
     await screen.findByDisplayValue("Welcome aboard, Sleepy!");
@@ -1251,7 +1259,14 @@ describe("editable clan chat", () => {
       target: { value: "Old left words" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
-    expect(draft).toHaveBeenCalledWith("#2PQRJ8LV", "a1", null, "left-version");
+    expect(draft).toHaveBeenCalledWith(
+      "#2PQRJ8LV",
+      "a1",
+      null,
+      "left-version",
+      null,
+      null,
+    );
     expect(
       screen.getByRole("button", { name: "Copy the chat message" }).disabled,
     ).toBe(true);

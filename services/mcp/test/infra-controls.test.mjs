@@ -71,6 +71,7 @@ test("SQS visibility outlasts each Lambda timeout by six times", async () => {
 
   assert.match(emailQueue, /^      VisibilityTimeout: 360$/m);
   for (const [queue, next] of [
+    ["ClanModelQueue", "EmailDlq"],
     ["TimelineSyncQueue", "TimelineSyncDlq"],
     ["TimelineDiscordQueue", "TimelineDiscordDlq"],
   ])
@@ -80,6 +81,42 @@ test("SQS visibility outlasts each Lambda timeout by six times", async () => {
       queue,
     );
   assert.doesNotMatch(template, /^  Editor(?:Function|Queue|EventSource):/m);
+});
+
+test("the clan's model requests have a queue of their own, one request a relay run, inside the relay's timeout", async () => {
+  // 2026-10-11: a leader's draft may wait 50 s for the provider
+  // (`DEFERRED_RELAY_MS`); batched with mail it could outlast the run.
+  const template = await readFile(templateUrl, "utf8");
+  const mapping = resource(
+    template,
+    "ClanModelEventSource",
+    "TimelineDiscordEventSource",
+  );
+  assert.match(mapping, /EventSourceArn: !GetAtt ClanModelQueue\.Arn/);
+  assert.match(mapping, /^      BatchSize: 1$/m);
+  assert.match(
+    template,
+    /Queue: !GetAtt ClanModelQueue\.Arn\n\s+Filter:\n\s+S3Key: \{ Rules: \[\{ Name: prefix, Value: clan-model\/request\/ \}\] \}/,
+  );
+  assert.doesNotMatch(
+    template,
+    /Queue: !GetAtt EmailQueue\.Arn\n\s+Filter:\n\s+S3Key: \{ Rules: \[\{ Name: prefix, Value: clan-model\//,
+  );
+  const relay = resource(template, "EmailRelayFunction", "EmailEventSource");
+  const timeout = Number(/^      Timeout: (\d+)$/m.exec(relay)[1]);
+  const bridge = await readFile(
+    new URL("../../../packages/clan/src/model-bridge.mjs", import.meta.url),
+    "utf8",
+  );
+  const deferred = Number(
+    /export const DEFERRED_RELAY_MS = ([\d_]+);/
+      .exec(bridge)[1]
+      .replaceAll("_", ""),
+  );
+  assert.ok(
+    deferred + 5000 <= timeout * 1000,
+    `${deferred} ms in ${timeout} s`,
+  );
 });
 
 test("database-facing Lambda concurrency remains bounded", async () => {
