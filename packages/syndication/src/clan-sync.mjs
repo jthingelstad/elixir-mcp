@@ -22,8 +22,9 @@
  *  service's unattended use: its caps, its record). Each post hands the
  *  model what Elixir knows (2026-10-11): the clan (`clanContext`: its
  *  name, words, goals, members and last war weeks), the item's facts,
- *  its member's record (`clanStoryFacts`) and how often the channel told
- *  of them this week. A run of same-kind milestones is one post, keyed
+ *  its member's record (`clanStoryFacts`: with the awards the clan
+ *  announced and, while the channel posts milestones, their last three
+ *  moments) and how often the channel told of them this week. A run of same-kind milestones is one post, keyed
  *  by its first item, so the relay edits it in place like any other. A
  *  line the model does not return, or one that fails the engine's
  *  checks, keeps Elixir's own sentence (a group: Elixir's lines, one
@@ -69,6 +70,11 @@ const CLASSIFIED_REVISION = 1000;
 const DEPARTURE_NEAR_MS = DAY_MS;
 /** Same-kind milestones told as one post, at most. */
 const GROUP_MAX = 5;
+/** A member's recent moments told with a rewritten post, and for how
+ *  many of a run's members (each is one timeline read before the
+ *  model's wait). */
+const REWRITE_MOMENTS_MAX = 3;
+const REWRITE_MOMENT_MEMBERS = 8;
 /** The posts a leader may preview in the clan's voice. */
 const PREVIEW_MAX = 5;
 /** How far back the channel's history about a member is told. */
@@ -372,6 +378,9 @@ async function planRun(
     policy,
     pitchFor,
     now,
+    // A member's recent moments only while the channel posts milestones:
+    // the leaders' switch holds for what the model may tell, too.
+    moments: categories.milestones === true,
   });
   plan.lines = built.lines;
   plan.request = activityRewriteRequest({
@@ -391,15 +400,23 @@ async function rewritePackets(
   clanTag,
   row,
   posts,
-  { policy = null, pitchFor = null, now = Date.now() } = {},
+  { policy = null, pitchFor = null, now = Date.now(), moments = false } = {},
 ) {
   const tags = [
     ...new Set(posts.flatMap((p) => p.items.map(memberTag)).filter(Boolean)),
   ];
-  // One pg client: one query at a time (docs/ENGINEERING.md).
+  // One pg client: one query at a time (docs/ENGINEERING.md). Moments
+  // are one timeline read per member inside the timeline-sync Lambda's
+  // budget, before the model's wait: a few, for the first members, and
+  // never the items this run is posting.
   const story = await clanStoryFacts(db, clanTag, {
     playerTags: tags,
     nowMs: now,
+    moments: moments && {
+      max: REWRITE_MOMENTS_MAX,
+      members: REWRITE_MOMENT_MEMBERS,
+      except: posts.flatMap((p) => [p.key, ...p.items.map((it) => it.id)]),
+    },
   });
   const pitch = pitchFor ? await pitchFor(db, clanTag).catch(() => null) : null;
   const history = tags.length
@@ -627,7 +644,8 @@ export async function clanRewritePreview(
     // The voice being written in the page, when the leader is trying one.
     voice === undefined ? row : { ...row, voice },
     posts,
-    { policy, pitchFor, now },
+    // Told what a real post is told.
+    { policy, pitchFor, now, moments: categories.milestones === true },
   );
   return {
     empty: false,

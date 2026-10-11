@@ -2,7 +2,9 @@
  * What the record tells the clan's own model about a clan and its
  * members (2026-10-11): recorded facts only, decks and points (never a
  * member's fame), time in the clan with earlier stints, the clan's last
- * finished war weeks. On a scratch database (golden rule 9).
+ * finished war weeks, the awards the clan announced this season and
+ * last, and recent moments, bounded for the Discord run. On a scratch
+ * database (golden rule 9).
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -74,6 +76,28 @@ test("a clan's story facts: its name, members and finished weeks; a member's pro
         [CLAN, s, w, ADA, 2000 + w, w === 2 ? 0 : 16],
       );
     }
+    // The clan's awards as it announced them (award_granted): NOW is in
+    // season 137, so 136's count and 135's does not; another clan's and
+    // a player's own facts are not this clan's awards.
+    for (const [clan, kind, season, award, ref] of [
+      [CLAN, "clan", 136, "War Champ", "a1"],
+      [CLAN, "clan", 135, "Iron King", "a2"],
+      ["#OTHERCLAN", "clan", 136, "Elsewhere", "a3"],
+    ])
+      await db.query(
+        `insert into attested_fact
+           (subject_kind, clan_tag, player_tag, fact_type, detail, visibility,
+            source, source_ref, occurred_at, recorded_at)
+         values ($1, $2, $3, 'award_granted', $4, 'clan', 'test', $5, $6, $6)`,
+        [
+          kind,
+          clan,
+          ADA,
+          JSON.stringify({ award, season_id: season }),
+          ref,
+          new Date(NOW - 3 * 24 * 3600_000),
+        ],
+      );
     const story = await clanStoryFacts(db, CLAN, {
       playerTags: [ADA, BEN, "#NOBODY", ADA],
       nowMs: NOW,
@@ -131,6 +155,7 @@ test("a clan's story facts: its name, members and finished weeks; a member's pro
         last_left_at: "2026-05-01T00:00:00.000Z",
         war: 4,
         moments: [],
+        awards: [{ name: "War Champ", season_id: 136 }],
       },
     );
     assert.deepEqual(ada.war[0], {
@@ -154,6 +179,46 @@ test("a clan's story facts: its name, members and finished weeks; a member's pro
       moments: true,
     });
     assert.deepEqual(withMoments.members[ADA].moments, []);
+    // Four legendary badges in the last fortnight: a draft is told up to
+    // five, newest first; the Discord run its own few, never the item it
+    // is posting, and no member past its `members` bound.
+    for (let d = 1; d <= 4; d += 1)
+      await db.query(
+        `insert into player_event (player_tag, event_type, timing, window_start, window_end, badge_name)
+         values ($1, 'legendary_badge_earned', 'estimated', $2, $2, $3)`,
+        [ADA, new Date(NOW - d * 24 * 3600_000), `Badge${d}`],
+      );
+    const drafted = (
+      await clanStoryFacts(db, CLAN, {
+        playerTags: [ADA],
+        nowMs: NOW,
+        moments: true,
+      })
+    ).members[ADA].moments;
+    assert.equal(drafted.length, 4);
+    assert.ok(drafted[0].at > drafted[1].at, "newest first");
+    const { timeline } = await (
+      await import("@elixir-mcp/tools/activity/entries")
+    ).buildTimeline(db, [{ kind: "player", tag: ADA }], {
+      fromMs: NOW - 2 * 24 * 3600_000,
+      toMs: NOW,
+    });
+    const newest = timeline.find((it) => it.kind === "legendary_badge_earned");
+    const posting = await clanStoryFacts(db, CLAN, {
+      playerTags: [ADA],
+      nowMs: NOW,
+      moments: { max: 3, members: 8, except: [newest.id] },
+    });
+    assert.deepEqual(
+      posting.members[ADA].moments.map((m) => m.at),
+      drafted.slice(1, 4).map((m) => m.at),
+    );
+    const bounded = await clanStoryFacts(db, CLAN, {
+      playerTags: [ADA],
+      nowMs: NOW,
+      moments: { max: 3, members: 0, except: [] },
+    });
+    assert.deepEqual(bounded.members[ADA].moments, []);
     // The clan alone, and a clan the record does not hold.
     assert.deepEqual(
       (await clanStoryFacts(db, CLAN, { nowMs: NOW })).members,

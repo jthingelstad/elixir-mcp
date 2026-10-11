@@ -170,6 +170,12 @@ describe("the clan's activity in Discord", () => {
       expect(save).toHaveBeenCalledWith("#2PQRJ8LV", { rewrite: true }),
     );
     expect(screen.getByText(/at most 50 requests a day/)).toBeTruthy();
+    // What keeps Elixir's own words, as the engine refuses it.
+    expect(
+      screen.getByText(
+        /drops or changes a name, carries a number or a name it was not given, carries a link or a mention, or runs long keeps/,
+      ),
+    ).toBeTruthy();
     expect(
       screen.getByText(
         /Written by Claude Sonnet 5\.5, the model Elixir Clan uses/,

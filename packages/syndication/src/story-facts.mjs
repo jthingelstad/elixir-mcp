@@ -9,14 +9,18 @@
  *  trophies); a member's latest profile (trophies, best, arena, career
  *  wins, collection level), time in the clan and earlier stints, their
  *  war weeks as decks used and points (never fame: a member earns
- *  points, the boat earns fame), and their recent milestones in the
- *  timeline. Nothing private to Clan (notes, holds, rationale) is read
- *  here. A fact the record lacks is absent, never filled in. */
+ *  points, the boat earns fame), the clan's awards they hold as the
+ *  clan announced them (`award_granted`, this season and last), and
+ *  their recent milestones in the timeline. Nothing private to Clan
+ *  (notes, holds, rationale, a grant not yet announced) is read here. A
+ *  fact the record lacks is absent, never filled in. */
 import {
   buildTimeline,
+  factItems,
   isPublishable,
 } from "@elixir-mcp/tools/activity/entries";
 import { activityCategory } from "@elixir-mcp/clan-engine";
+import { seasonFromDate } from "@elixir-mcp/record/war-clock";
 
 const DAY_MS = 24 * 3600_000;
 /** Finished war weeks told: the clan's and each member's. */
@@ -24,6 +28,8 @@ const STORY_WEEKS = 4;
 /** How far back a member's moments are read, and how many are kept. */
 const MOMENT_DAYS = 14;
 const MOMENTS_MAX = 5;
+/** Announced awards told per member, newest season first. */
+const AWARDS_MAX = 6;
 
 const iso = (d) => (d instanceof Date ? d.toISOString() : (d ?? null));
 const int = (x) => (x == null ? null : Number(x));
@@ -31,9 +37,13 @@ const int = (x) => (x == null ? null : Number(x));
 /**
  * @param {import("pg").ClientBase} db
  * @param {string} clanTag
- * @param {{ playerTags?: string[], nowMs?: number, moments?: boolean }} [opts]
- *   `moments`: read each member's recent milestones from the timeline
- *   (a leader's draft; the Discord run has the moments it is posting).
+ * @param {{ playerTags?: string[], nowMs?: number,
+ *   moments?: boolean | { max?: number, members?: number, except?: string[] } }} [opts]
+ *   `moments`: read each member's recent milestones from the timeline.
+ *   `true` for a leader's draft (one member, five moments); the Discord
+ *   run bounds it (`max` moments each, for the first `members` members,
+ *   one timeline read per member inside the sync's time budget) and
+ *   leaves out the items it is posting (`except`, by id).
  * @returns {Promise<{ clan: object|null, members: Record<string, object> }>}
  */
 export async function clanStoryFacts(
@@ -113,6 +123,7 @@ export async function clanStoryFacts(
         last_left_at: iso(r.last_left_at),
         war: [],
         moments: [],
+        awards: [],
       };
     }
     if (weeks.length) {
@@ -142,8 +153,46 @@ export async function clanStoryFacts(
           points: int(w.points),
         });
     }
-    if (moments)
-      for (const tag of tags.filter((t) => members[t])) {
+    // The clan's awards they hold, as the clan announced them: this
+    // season's and last (an award is granted when its season closes).
+    // Read as the clan's members read its facts (`factItems`, the one
+    // reader of attested facts and their visibility rule), recorded
+    // since last season began.
+    const season = seasonFromDate(nowMs);
+    const since = seasonFromDate(season.seasonStartMs - 1);
+    const held = (
+      await factItems(db, [{ kind: "clan", tag: clanTag }], {
+        fromMs: since.seasonStartMs,
+        toMs: nowMs,
+        clanMember: true,
+      })
+    )
+      .filter(
+        (it) =>
+          it.kind === "award_granted" &&
+          members[it.facts?.player_tag] &&
+          it.facts.award &&
+          Number(it.facts.season_id) >= season.seasonId - 1,
+      )
+      .sort(
+        (a, b) =>
+          Number(b.facts.season_id) - Number(a.facts.season_id) ||
+          String(b.at ?? "").localeCompare(String(a.at ?? "")),
+      );
+    for (const it of held) {
+      const list = members[it.facts.player_tag].awards;
+      if (list.length < AWARDS_MAX)
+        list.push({
+          name: it.facts.award,
+          season_id: Number(it.facts.season_id),
+        });
+    }
+    const want = moments === true ? {} : moments || null;
+    const skip = new Set(want?.except ?? []);
+    if (want)
+      for (const tag of tags
+        .filter((t) => members[t])
+        .slice(0, want.members ?? tags.length)) {
         const { timeline } = await buildTimeline(
           db,
           [{ kind: "player", tag }],
@@ -155,9 +204,9 @@ export async function clanStoryFacts(
           },
         );
         members[tag].moments = timeline
-          .filter((it) => it.text)
+          .filter((it) => it.text && !skip.has(it.id))
           .sort((a, b) => String(b.at ?? "").localeCompare(String(a.at ?? "")))
-          .slice(0, MOMENTS_MAX)
+          .slice(0, Math.min(want.max ?? MOMENTS_MAX, MOMENTS_MAX))
           .map((it) => ({ at: it.at, text: it.text }));
       }
   }

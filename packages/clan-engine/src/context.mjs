@@ -131,7 +131,7 @@ export function memberLines(m, { scope = "full", label = "MEMBER" } = {}) {
         .map((x) => `${day(x.at) ?? ""} ${one(x.text, 220)}`.trim())
         .join(" | ")}`,
     );
-  if (m.awards?.length)
+  if (scope === "full" && m.awards?.length)
     lines.push(
       `Awards they hold in this clan: ${m.awards
         .slice(0, 6)

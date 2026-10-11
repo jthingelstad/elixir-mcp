@@ -1,7 +1,7 @@
 ---
 slug: limits
 title: "Limits"
-description: "Every quota and rate limit in one table, with the exact refusal each produces: the hourly bucket, daily tool calls, live fetches, slots, agents, OAuth registration, sign-in codes, the collector door and the REST API."
+description: "Every quota and rate limit in one table, with the exact refusal each produces: the hourly bucket, daily tool calls, live fetches, slots, agents, OAuth registration, sign-in codes, the collector door, the REST API and Elixir Clan's model."
 section: agent
 order: 7
 navTitle: "Limits"
@@ -61,6 +61,9 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Read deadline | every other read-only tool, on MCP, in Explore and on `/api/v1` | per call | the function's remaining time less 1.5 seconds (about 23 seconds on MCP, 17 on the web door); a read waits at most 5 seconds for a lock | the same `query_timeout` (HTTP 503 with `retry_after_s` on `/api/v1`); a write is never raced, so a retry cannot double-apply it |
 | Response size | every tool result | per call | 48,000 characters | `result_too_large` "Result is N characters; the cap is 48000.", with a hint naming the arguments that narrow it (see [Protocol](/docs/protocol#the-response-cap)); `live_fetch` refuses a battle-log path with the same code before spending the lane |
 | Audit argument size | the call log | per call | 4,000 bytes | arguments are trimmed in the log only; the call is unaffected |
+| Elixir Clan model drafts per day | a clan's own model key, used by its leader and co-leaders: the words on an Action, the recruiting pitch, and a preview of the activity channel's rewrite | per clan, UTC date | 20 | HTTP 429 `{"error":"model_daily_limit","per_day":20}`; the page says to try again tomorrow |
+| Elixir Clan Discord rewrites per day | the clan's activity channel rewritten in its voice ([Clan policy](/docs/clan-policy#the-clans-activity-in-discord)); each model request writes up to 20 posts | per clan, UTC date, counted apart from the drafts | 50 requests | none: the posts keep Elixir's own lines until the day turns |
+| Elixir Clan monthly spend cap | every use of the clan's model, drafts and rewrites alike, priced from its tokens at Anthropic's list rates (an estimate, not the bill) | per clan, UTC month; kept when the key is replaced | none until the leader or a co-leader sets one, $0.01 to $1,000; a draft that starts under it may finish a little over | a draft: HTTP 429 `{"error":"model_spend_cap","spend_cap_usd":N,"spend_usd":N}`; a rewrite: Elixir's own lines |
 
 ## Reading your balance
 

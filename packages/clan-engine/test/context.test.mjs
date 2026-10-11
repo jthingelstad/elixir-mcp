@@ -107,15 +107,17 @@ test("a member in full: record, time here, war weeks as decks and points, moment
 });
 
 test("a member for a departure or a removal: time here and what they gave, nothing else", () => {
+  // Awards held stay out by scope, whoever gathered them (the Discord
+  // run reads the announced ones for every member it tells).
   const lines = memberLines(
-    { ...MEMBER, war: MEMBER.war.filter((w) => w.decks_used > 0), awards: [] },
+    { ...MEMBER, war: MEMBER.war.filter((w) => w.decks_used > 0) },
     { scope: "contribution" },
   ).join("\n");
   assert.match(lines, /Time in the clan: 102 days/);
   assert.match(lines, /16 decks, 2,900 points/);
   assert.doesNotMatch(
     lines,
-    /Trophies|Arena|Career|Collection|moments|0 decks|Elder/,
+    /Trophies|Arena|Career|Collection|moments|Awards|Cup|0 decks|Elder/,
   );
 });
 

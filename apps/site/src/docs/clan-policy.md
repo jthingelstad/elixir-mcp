@@ -241,10 +241,15 @@ preview.
   the moment's own facts (the battle and who it beat, the badge, the
   best set, the week's place) and, for a member, what Elixir records
   about them: trophies, best, arena, career wins, collection level, time in the clan and
-  any earlier stint, recent war weeks as decks and points, and how often
-  the channel already told about them this week. A departure's post is
-  told only the member's time in the clan and the weeks they played.
-  Never a tag, a member's share of fame, or anything private to Clan.
+  any earlier stint, recent war weeks as decks and points, the clan's
+  awards they hold as announced this season and last, their last three
+  moments from the past two weeks while the channel posts Milestones
+  (never the one being posted; for up to eight members in one run), and
+  how often the channel already told
+  about them this week. A departure's post is told only the member's
+  time in the clan and the weeks they played. Never a tag, a member's
+  share of fame, an award not yet announced, or anything private to
+  Clan.
   The model picks a detail or two that make the moment a story. A post
   that drops or changes a member's or opponent's name, carries a number
   or a name it was not given, carries a link or a mention, or runs long

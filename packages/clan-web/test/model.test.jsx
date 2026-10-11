@@ -74,6 +74,12 @@ describe("the clan's model", () => {
     ).toBeTruthy();
     expect(screen.getByText(/the member it is about, by name/)).toBeTruthy();
     expect(screen.getByText(/Nothing is posted automatically/)).toBeTruthy();
+    // The rewrite's refusals, as the engine makes them.
+    expect(
+      screen.getByText(
+        /drops or changes a name, carries a number or a name it was not given, carries a link or a mention, or runs long keeps/,
+      ),
+    ).toBeTruthy();
     expect(screen.getByText("2 of 20 uses")).toBeTruthy();
     expect(screen.getByText("Recruiting pitch: Claude Opus 5.5")).toBeTruthy();
     expect(screen.queryByLabelText("Model")).toBeNull();
