@@ -265,7 +265,11 @@ test("a use takes the first of its models the key reaches, and none outside the 
     null,
   );
   // An unknown list (never read, or empty) takes the first.
-  assert.equal(modelFor("clan_chat", []), "claude-opus-5-5");
+  assert.equal(
+    modelFor("clan_chat", []),
+    null,
+    "an emptied list is known: it reaches nothing",
+  );
   assert.equal(modelFor("clan_chat", null), "claude-opus-5-5");
   assert.equal(modelFor("no_such_use", all), null);
 });

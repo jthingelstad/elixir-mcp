@@ -13,7 +13,8 @@ confirmed the mapping the same day.
   `claude-opus-5-5`, then `claude-sonnet-5-5`, then `claude-haiku-5-5`;
   `discord_activity` takes `claude-sonnet-5-5`, then `claude-opus-5-5`,
   then `claude-haiku-5-5`. `modelFor(purpose, ids)` takes the first the
-  key's stored list reaches (the first, for an empty list), or null.
+  key's stored list reaches (the first, for a list never read), or null;
+  a list a 404 emptied is known and reaches nothing (Codex, #481).
   `MODEL_PREFERENCE` and `chooseModel` are gone.
 - `manage/model.mjs`: a use resolves its model before the reservation
   and refuses `model_unavailable` (409) when nothing is reachable,
