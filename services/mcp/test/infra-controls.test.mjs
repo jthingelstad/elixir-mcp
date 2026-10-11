@@ -72,7 +72,8 @@ test("SQS visibility outlasts each Lambda timeout by six times", async () => {
   assert.match(emailQueue, /^      VisibilityTimeout: 360$/m);
   for (const [queue, next] of [
     ["ClanModelQueue", "EmailDlq"],
-    ["TimelineSyncQueue", "TimelineSyncDlq"],
+    ["TimelineSyncQueue", "TimelineHoldQueue"],
+    ["TimelineHoldQueue", "TimelineSyncDlq"],
     ["TimelineDiscordQueue", "TimelineDiscordDlq"],
   ])
     assert.match(
@@ -81,6 +82,15 @@ test("SQS visibility outlasts each Lambda timeout by six times", async () => {
       queue,
     );
   assert.doesNotMatch(template, /^  Editor(?:Function|Queue|EventSource):/m);
+  // A clan's held stories (2026-10-11): five minutes on their own queue,
+  // into the sync's dead letters, read by the same function.
+  const hold = resource(template, "TimelineHoldQueue", "TimelineSyncDlq");
+  assert.match(hold, /^      DelaySeconds: 300$/m);
+  assert.match(hold, /deadLetterTargetArn: !GetAtt TimelineSyncDlq\.Arn/);
+  assert.match(
+    resource(template, "TimelineHoldEventSource", "MigrateLogGroup"),
+    /FunctionName: !Ref TimelineSyncFunction\n\s+EventSourceArn: !GetAtt TimelineHoldQueue\.Arn/,
+  );
 });
 
 test("the clan's model requests have a queue of their own, one request a relay run, inside the relay's timeout", async () => {

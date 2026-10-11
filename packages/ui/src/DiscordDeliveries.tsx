@@ -4,7 +4,8 @@ import { Fresh } from "./Fresh.tsx";
  *  `DiscordDelivery`). */
 export interface DiscordDeliveryRow {
   at: string;
-  outcome: "posted" | "edited" | "refused" | "unknown" | "not_delivered";
+  outcome:
+    "posted" | "edited" | "refused" | "unknown" | "not_delivered" | "skipped";
   ref?: string | null;
   http_status?: number;
   reason?: string | null;
@@ -19,6 +20,9 @@ const SAID: Record<DiscordDeliveryRow["outcome"], string> = {
   refused: "Refused",
   unknown: "No answer",
   not_delivered: "Not delivered",
+  // A clan's activity channel chose not to post it (2026-10-11): never
+  // sent, and never counted as not delivered.
+  skipped: "Skipped",
 };
 const MISSED = new Set(["refused", "unknown", "not_delivered"]);
 
@@ -79,6 +83,9 @@ export function DiscordDeliveries({
               >
                 {r.excerpt}
               </span>
+            ) : null}
+            {r.outcome === "skipped" && r.reason ? (
+              <span className="w-full text-ink-faint">{r.reason}</span>
             ) : null}
             {r.outcome === "refused" && (r.reason || r.http_status) ? (
               <span className="w-full text-ink-faint">

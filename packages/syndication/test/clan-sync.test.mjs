@@ -16,6 +16,7 @@ import {
   webhookFingerprint,
 } from "@elixir-mcp/contracts";
 import { createBox } from "../../clan/src/sealed.mjs";
+import { emitEvent } from "../../ingest/src/events.mjs";
 import {
   CLAN_ACTIVITY_PURPOSE,
   clanActivityRowView,
@@ -422,7 +423,7 @@ async function award(player, name, ms) {
   );
 }
 
-test("with the rewrite on, a run of same-kind milestones is one post under its first item's key; refused, it stacks Elixir's lines", async () => {
+test("same-kind milestones are one story under its first item's key; a refused rewrite tells Elixir's own story", async () => {
   await award(JOINER, "Cup", T + 18 * H);
   await award(STAYER, "Cup", T + 18 * H + MIN);
   let packet = null;
@@ -473,11 +474,14 @@ test("with the rewrite on, a run of same-kind milestones is one post under its f
   });
   assert.equal(refused.posted, 1);
   assert.deepEqual(refused.refused, { name_changed: 1 });
-  const lines = refused.sent[0].message.posts[0].content.split("\n");
-  assert.equal(lines.length, 2, "Elixir's two lines, one post");
-  assert.match(lines[0], /^POAP KINGS gave Joiner /);
-  assert.match(lines[1], /^POAP KINGS gave Stayer /);
-  assert.doesNotMatch(lines.join("\n"), /<t:/, "fresh lines carry no time");
+  // Refused, the story is Elixir's own: one sentence naming both, with
+  // no time and no link (2026-10-11, the editor).
+  const story = refused.sent[0].message.posts[0].content;
+  assert.equal(
+    story,
+    "Joiner and Stayer took the clan's Shield for season 136.",
+  );
+  assert.equal("rewritten" in refused.sent[0].message.posts[0], false);
 
   // A departure is told only time here and weeks played: never awards.
   await clanEvent("member_left", JOINER, T + 21 * H + 30 * MIN);
@@ -542,6 +546,58 @@ test("a leader's word on a departure edits the departure it is about, not the me
   );
   const stray = await sync(T + 94 * H);
   assert.equal(stray.posted, 0);
+});
+
+test("the editor: a badge level-up below the top is skipped with its reason; a story is held until quiet, then posted once with no time or link", async () => {
+  const badge = (name, level, max, ms) =>
+    emitEvent(db, "badge_earned", {
+      tag: STAYER,
+      windowStart: at(ms - MIN),
+      windowEnd: at(ms),
+      payload: { name, level, prior_level: level - 1, max_level: max },
+    });
+  await badge("MasteryHog", 5, 10, T + 96 * H);
+  await badge("Played2Years", 2, 2, T + 96 * H);
+  const early = await sync(T + 96 * H + MIN);
+  assert.equal(early.posted, 0, "a minute old: held");
+  assert.equal(early.held, 1);
+  assert.equal(early.skips, 1);
+  const told = early.sent.find((s) => s.lane === "timeline-discord");
+  assert.equal(validateTimelineDiscordMessage(told.message).ok, true);
+  assert.deepEqual(told.message.posts, [], "nothing posted yet");
+  const [skip] = told.message.skipped;
+  assert.equal(skip.reason, "A badge level-up below its top level.");
+  assert.match(skip.excerpt, /^Stayer took Hog Mastery to level 5\.$/);
+  // The hold queue brings the clan back: one wake a minute.
+  const hold = early.sent.find((s) => s.lane === "timeline-hold");
+  assert.deepEqual(hold.message, { v: 1, clan_tag: CLAN });
+  assert.equal(hold.opts.once, true);
+  assert.match(hold.opts.id, /^clan-J2RGCRVG\.\d+$/);
+
+  const quiet = await sync(T + 96 * H + 6 * MIN);
+  assert.equal(quiet.posted, 1);
+  assert.equal(quiet.skips, 0, "a skip is handed over once");
+  const [post] = quiet.sent[0].message.posts;
+  assert.match(post.content, /^Stayer took .+ to its top level, 2\.$/);
+  assert.doesNotMatch(post.content, /<t:|https?:/, "no time and no link");
+  assert.equal(quiet.sent.length, 1, "no further hold");
+
+  const again = await sync(T + 96 * H + 12 * MIN);
+  assert.equal(again.posted, 0);
+  assert.deepEqual(again.sent, []);
+  const { rows } = await db.query(
+    `select skipped, skip_reason, story_key = item_id as own
+       from clan_activity_discord_told
+      where clan_tag = $1 and kind = 'badge_earned' order by item_at, skipped`,
+    [CLAN],
+  );
+  assert.deepEqual(
+    rows.map((r) => [r.skipped, r.skip_reason, r.own]),
+    [
+      [false, null, true],
+      [true, "badge_level", true],
+    ],
+  );
 });
 
 test("a leader's preview: the newest shareable items as packets, in the voice being tried; nothing is posted or told", async () => {

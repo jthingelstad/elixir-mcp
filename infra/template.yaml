@@ -341,6 +341,23 @@ Resources:
         deadLetterTargetArn: !GetAtt TimelineSyncDlq.Arn
         maxReceiveCount: 5
 
+  # A clan's activity channel holds a story until it has been quiet a
+  # few minutes (2026-10-11, the editor): a run that holds one writes a
+  # timeline-hold/ object, one per clan a minute, which this queue holds
+  # five minutes before the same sync runs again. Its failures share the
+  # sync's dead-letter queue.
+  TimelineHoldQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-timeline-hold
+      DelaySeconds: 300
+      VisibilityTimeout: 360
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TimelineSyncDlq.Arn
+        maxReceiveCount: 5
+
   TimelineSyncDlq:
     Type: AWS::SQS::Queue
     Properties:
@@ -767,10 +784,16 @@ Resources:
                     sqs:GetQueueAttributes,
                     sqs:GetQueueUrl,
                   ]
-                Resource: !GetAtt TimelineSyncQueue.Arn
+                Resource:
+                  - !GetAtt TimelineSyncQueue.Arn
+                  - !GetAtt TimelineHoldQueue.Arn
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-sync/*
+              # A clan's held stories: the wake that brings it back.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-hold/*
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord/*
@@ -878,6 +901,10 @@ Resources:
             Queue: !GetAtt TimelineSyncQueue.Arn
             Filter:
               S3Key: { Rules: [{ Name: prefix, Value: timeline-sync/ }] }
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt TimelineHoldQueue.Arn
+            Filter:
+              S3Key: { Rules: [{ Name: prefix, Value: timeline-hold/ }] }
           - !If
             - HasInternalClan
             - Event: s3:ObjectCreated:*
@@ -898,6 +925,7 @@ Resources:
           !Ref EmailQueue,
           !Ref ClanModelQueue,
           !Ref TimelineSyncQueue,
+          !Ref TimelineHoldQueue,
           !Ref TimelineDiscordQueue,
           !Ref ClanDiscordQueue,
         ]
@@ -911,6 +939,7 @@ Resources:
               - !GetAtt EmailQueue.Arn
               - !GetAtt ClanModelQueue.Arn
               - !GetAtt TimelineSyncQueue.Arn
+              - !GetAtt TimelineHoldQueue.Arn
               - !GetAtt TimelineDiscordQueue.Arn
               - !GetAtt ClanDiscordQueue.Arn
             Condition:
@@ -1438,6 +1467,17 @@ Resources:
     Properties:
       FunctionName: !Ref TimelineSyncFunction
       EventSourceArn: !GetAtt TimelineSyncQueue.Arn
+      BatchSize: 10
+      ScalingConfig: { MaximumConcurrency: 2 }
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
+  # A clan's held stories, back after the hold (one clan at a time by
+  # its session lock, as on the sync's own queue).
+  TimelineHoldEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref TimelineSyncFunction
+      EventSourceArn: !GetAtt TimelineHoldQueue.Arn
       BatchSize: 10
       ScalingConfig: { MaximumConcurrency: 2 }
       FunctionResponseTypes: [ReportBatchItemFailures]

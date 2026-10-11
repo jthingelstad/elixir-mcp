@@ -202,3 +202,37 @@ test("a clan's Discord wake shares its Actions and deletes its object; a bad tag
     console.error = error;
   }
 });
+
+test("a clan's held stories come back on the hold queue to the same run; only a clan's wake is read there", async () => {
+  const key = "timeline-hold/clan-J2RGCRVG.29340005.json";
+  const account = `timeline-hold/${ACCOUNT}.29340005.json`;
+  const synced = [];
+  const deleted = [];
+  const objects = new Map([
+    [key, JSON.stringify({ v: 1, clan_tag: "#J2RGCRVG" })],
+    [account, JSON.stringify({ v: 1, account_id: ACCOUNT })],
+  ]);
+  const handler = makeHandler({
+    connect: async () => ({ end: async () => {} }),
+    sync: async () => assert.fail("an account is never held"),
+    syncClan: async (_db, tag) => {
+      synced.push(tag);
+      return { posted: 1 };
+    },
+    readObject: async (obj) => objects.get(obj.key) ?? null,
+    deleteObject: async (obj) => deleted.push(obj.key),
+  });
+  const log = console.log;
+  console.log = () => {};
+  try {
+    const out = await handler(
+      { Records: [record("a", key), record("b", account)] },
+      { getRemainingTimeInMillis: () => 55_000 },
+    );
+    assert.deepEqual(out.batchItemFailures, [{ itemIdentifier: "b" }]);
+  } finally {
+    console.log = log;
+  }
+  assert.deepEqual(synced, ["#J2RGCRVG"]);
+  assert.deepEqual(deleted, [key]);
+});
