@@ -9370,12 +9370,63 @@
     "request_id": "116b6f17-fc6d-4440-8ffd-0976897f1daf",
     "assert": [
       {
+        "eq": ["has_more", true]
+      },
+      {
+        "has": "timeline_more_to"
+      },
+      {
+        "lte": ["timeline_more", 20]
+      }
+    ],
+    "amended": "Amended for 11.8.0 (#373-#376): items carry their time, subjects, visibility and schema, so this 51-item filtered window is two pages under the 40,000-character page budget. #244's point stands: the filter applies before the cap, so the page counts only filtered items (15 left, not the bug's 32 of 50) and names its cut; 244.4, the continuation to the cut, serves those 15 and nothing is lost."
+  },
+  {
+    "id": "244.4",
+    "feedback": 244,
+    "stability": "frozen",
+    "tool": "elixir_timeline",
+    "args": {
+      "from": "2026-09-21T00:00:00Z",
+      "to": "2026-09-21T21:32:39.000Z",
+      "mark_read": false,
+      "verbosity": "compact",
+      "kinds": [
+        "battle_session",
+        "session_standout",
+        "badge_earned",
+        "legendary_badge_earned",
+        "arena_changed",
+        "ranked_promotion",
+        "best_trophies_band",
+        "collection_level_step",
+        "career_wins_step",
+        "card_unlocked",
+        "clan_joined",
+        "clan_left",
+        "member_joined",
+        "member_left",
+        "member_role_changed",
+        "bracket_observed",
+        "race_finished",
+        "week_resolved",
+        "quiet_crossed",
+        "returned"
+      ],
+      "basis": "observed"
+    },
+    "assert": [
+      {
         "eq": ["has_more", false]
       },
       {
         "eq": ["timeline_more", 0]
+      },
+      {
+        "count_eq": ["timeline[]", 15]
       }
-    ]
+    ],
+    "amended": "Added for 11.8.0: 244.1's continuation, the same from with to at its cut (timeline_more_to on 2026-10-11). With 244.1's 36 items it is the whole filtered window of 51."
   },
   {
     "id": "244.3",
@@ -12579,7 +12630,7 @@
     "request_id": "cbe2ad37-f962-4106-a0a3-d0a1fcf644fd",
     "assert": [
       {
-        "contains": ["entries[0].summary", "VVSBUDGET +3;"]
+        "contains": ["entries[0].summary", "VVSBUDGET +3 more;"]
       },
       {
         "eq": ["entries[0].presence.returned.more", 0]
@@ -12597,7 +12648,7 @@
         ]
       }
     ],
-    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded."
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. Amended for 11.8.0 (#376): a capped list's remainder reads \"+N more\", so it never reads as a number of the last name's."
   },
   {
     "id": "304.1",

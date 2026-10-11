@@ -340,12 +340,13 @@ export const elixir_timeline = {
             aboutMember(it),
         });
     // A member session the window cuts recurs in the next read (Gym
-    // #302); a read that holds each sitting whole says nothing.
+    // #302); a read that holds each sitting whole says nothing. Since
+    // 11.8.0 a standout sitting is the member's session too (#374).
     const sittingCut =
       Boolean(memberTag) &&
       built.timeline.some(
         (it) =>
-          it.kind === "battle_session" &&
+          (it.kind === "battle_session" || it.kind === "session_standout") &&
           (it.facts?.open ||
             Date.parse(it.facts?.started_at ?? it.at) < fromMs),
       );
@@ -613,7 +614,7 @@ export const elixir_timeline = {
           ? "Evolution and Hero form unlocks are timeline items from contract 9.14.0, deployed 2026-09-28: a form unlocked before then is in players_collection.forms_unlocked and never here."
           : null,
         !occurred && timeline.some((it) => it.late)
-          ? `An observed read: ${timeline.filter((it) => it.late).length} item(s) here happened before from and were learned in this window (late: true). For what happened in a window, read with basis occurred.`
+          ? `An observed read selects items by when the record OBSERVED them and dates each at when it HAPPENED (at): ${timeline.filter((it) => it.late).length} item(s) here happened before from and were learned in this window (late: true). For what happened in a window, read with basis occurred.`
           : null,
         !occurred &&
           entries.some(
