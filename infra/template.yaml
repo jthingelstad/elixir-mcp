@@ -358,6 +358,23 @@ Resources:
         deadLetterTargetArn: !GetAtt TimelineSyncDlq.Arn
         maxReceiveCount: 5
 
+  # A clan whose own model edits its activity channel (2026-10-11, the
+  # editor) runs on a queue of its own, one clan an invocation: the
+  # model may take three rounds, and a wait that long never holds up a
+  # timeline's sync in the same batch. A wake on the sync or hold queue
+  # for such a clan writes a timeline-editor/ object, one per clan a
+  # minute. Its failures share the sync's dead-letter queue.
+  TimelineEditorQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-timeline-editor
+      VisibilityTimeout: 360
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TimelineSyncDlq.Arn
+        maxReceiveCount: 3
+
   TimelineSyncDlq:
     Type: AWS::SQS::Queue
     Properties:
@@ -787,6 +804,7 @@ Resources:
                 Resource:
                   - !GetAtt TimelineSyncQueue.Arn
                   - !GetAtt TimelineHoldQueue.Arn
+                  - !GetAtt TimelineEditorQueue.Arn
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-sync/*
@@ -794,6 +812,10 @@ Resources:
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-hold/*
+              # A clan's run for its own model: the wake that sends it there.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-editor/*
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord/*
@@ -905,6 +927,10 @@ Resources:
             Queue: !GetAtt TimelineHoldQueue.Arn
             Filter:
               S3Key: { Rules: [{ Name: prefix, Value: timeline-hold/ }] }
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt TimelineEditorQueue.Arn
+            Filter:
+              S3Key: { Rules: [{ Name: prefix, Value: timeline-editor/ }] }
           - !If
             - HasInternalClan
             - Event: s3:ObjectCreated:*
@@ -926,6 +952,7 @@ Resources:
           !Ref ClanModelQueue,
           !Ref TimelineSyncQueue,
           !Ref TimelineHoldQueue,
+          !Ref TimelineEditorQueue,
           !Ref TimelineDiscordQueue,
           !Ref ClanDiscordQueue,
         ]
@@ -940,6 +967,7 @@ Resources:
               - !GetAtt ClanModelQueue.Arn
               - !GetAtt TimelineSyncQueue.Arn
               - !GetAtt TimelineHoldQueue.Arn
+              - !GetAtt TimelineEditorQueue.Arn
               - !GetAtt TimelineDiscordQueue.Arn
               - !GetAtt ClanDiscordQueue.Arn
             Condition:
@@ -1437,7 +1465,9 @@ Resources:
       Architectures: [arm64]
       Handler: index.handler
       MemorySize: 512
-      Timeout: 60
+      # Three rounds of a clan's model (2026-10-11, the editor), each a
+      # wait of 50 s at most; a sync or hold wake needs a minute.
+      Timeout: 180
       Role: !GetAtt TimelineSyncRole.Arn
       Code: { S3Bucket: !Ref CodeBucket, S3Key: !Ref TimelineSyncCodeKey }
       VpcConfig:
@@ -1479,6 +1509,16 @@ Resources:
       FunctionName: !Ref TimelineSyncFunction
       EventSourceArn: !GetAtt TimelineHoldQueue.Arn
       BatchSize: 10
+      ScalingConfig: { MaximumConcurrency: 2 }
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
+  # A clan's run with its own model as the editor: one an invocation.
+  TimelineEditorEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref TimelineSyncFunction
+      EventSourceArn: !GetAtt TimelineEditorQueue.Arn
+      BatchSize: 1
       ScalingConfig: { MaximumConcurrency: 2 }
       FunctionResponseTypes: [ReportBatchItemFailures]
 

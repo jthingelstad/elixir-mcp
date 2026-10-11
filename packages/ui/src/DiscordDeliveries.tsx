@@ -76,7 +76,11 @@ export function DiscordDeliveries({
               <span className="mono">{r.ref}</span>
             ) : null}
             <Fresh ts={r.at} />
-            {r.rewritten ? <span className="hint">rewritten</span> : null}
+            {r.rewritten ? (
+              <span className="hint">
+                {r.outcome === "skipped" ? "by the clan's model" : "rewritten"}
+              </span>
+            ) : null}
             {r.excerpt ? (
               <span
                 className={`min-w-0 flex-[1_1_12rem] text-ink-faint ${whole ? "w-full break-words" : "truncate"}`}

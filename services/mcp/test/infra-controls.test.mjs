@@ -88,8 +88,35 @@ test("SQS visibility outlasts each Lambda timeout by six times", async () => {
   assert.match(hold, /^      DelaySeconds: 300$/m);
   assert.match(hold, /deadLetterTargetArn: !GetAtt TimelineSyncDlq\.Arn/);
   assert.match(
-    resource(template, "TimelineHoldEventSource", "MigrateLogGroup"),
+    resource(template, "TimelineHoldEventSource", "TimelineEditorEventSource"),
     /FunctionName: !Ref TimelineSyncFunction\n\s+EventSourceArn: !GetAtt TimelineHoldQueue\.Arn/,
+  );
+  // A clan whose own model edits (2026-10-11): its own queue, one clan
+  // an invocation, into the sync's dead letters; the function has room
+  // for three rounds of 50 s and the queue hides a message longer.
+  const editor = resource(template, "TimelineEditorQueue", "TimelineSyncDlq");
+  assert.match(editor, /^      VisibilityTimeout: 360$/m);
+  assert.doesNotMatch(editor, /DelaySeconds/);
+  assert.match(editor, /deadLetterTargetArn: !GetAtt TimelineSyncDlq\.Arn/);
+  const mapping = resource(
+    template,
+    "TimelineEditorEventSource",
+    "MigrateLogGroup",
+  );
+  assert.match(
+    mapping,
+    /FunctionName: !Ref TimelineSyncFunction\n\s+EventSourceArn: !GetAtt TimelineEditorQueue\.Arn\n\s+BatchSize: 1$/m,
+  );
+  const fn = resource(
+    template,
+    "TimelineSyncFunction",
+    "TimelineSyncEventSource",
+  );
+  const timeout = Number(/^      Timeout: (\d+)$/m.exec(fn)[1]);
+  assert.ok(timeout >= 3 * 50 + 25 && timeout < 360, `timeout ${timeout}`);
+  assert.match(
+    template,
+    /Queue: !GetAtt TimelineEditorQueue\.Arn\n\s+Filter:\n\s+S3Key: \{ Rules: \[\{ Name: prefix, Value: timeline-editor\/ \}\] \}/,
   );
 });
 

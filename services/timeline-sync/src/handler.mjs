@@ -23,18 +23,26 @@
  * minutes (2026-10-11): the run that held it writes timeline-hold/
  * `{ v: 1, clan_tag }`, which its own queue delivers here five minutes
  * later, and the clan's run goes again.
+ *
+ * A clan whose own model edits its channel (2026-10-11, the editor) is
+ * sent from either queue to timeline-editor/, whose queue delivers one
+ * clan an invocation: the model's rounds may take two minutes, and no
+ * other wake waits behind them.
  */
 import { isCanonicalTag, outboxObjects } from "@elixir-mcp/contracts";
 
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
-/** Room a clan's run needs: its reads, and the model's 25 s at most. */
+/** Room a clan's run needs: its reads (a model's run is sent on). */
 const CLAN_RUN_MS = 40_000;
+/** Room an editor's run needs to start: its reads and one round. */
+const EDITOR_RUN_MS = 60_000;
+const LANES = ["timeline-sync/", "timeline-hold/", "timeline-editor/"];
 
 /**
  * @param {{
  *   connect: () => Promise<import("pg").Client>,
  *   sync: (db: any, accountId: string) => Promise<object>,
- *   syncClan?: (db: any, clanTag: string, opts: { remainingMs: () => number }) => Promise<object>,
+ *   syncClan?: (db: any, clanTag: string, opts: { remainingMs: () => number, editor: boolean }) => Promise<object>,
  *   shareClanDiscord?: (db: any, clanTag: string) => Promise<object>,
  *   readObject: (obj: {bucket: string, key: string}) => Promise<string | null>,
  *   deleteObject: (obj: {bucket: string, key: string}) => Promise<unknown>,
@@ -53,9 +61,12 @@ export function makeHandler({
     if (objects === null) return "bad_message";
     for (const obj of objects) {
       // A clan's held stories come back on the hold queue (2026-10-11),
-      // to the same run: only a clan's wake is read there.
-      const held = obj.key.startsWith("timeline-hold/");
-      if (!held && !obj.key.startsWith("timeline-sync/")) return "bad_message";
+      // to the same run, and its model's run has a queue of its own:
+      // only a clan's wake is read on either.
+      const lane = LANES.find((l) => obj.key.startsWith(l));
+      if (!lane) return "bad_message";
+      const held = lane !== "timeline-sync/";
+      const editor = lane === "timeline-editor/";
       const text = await readObject(obj);
       if (text === null) continue;
       let msg;
@@ -77,8 +88,12 @@ export function makeHandler({
         );
       } else if (msg?.v === 1 && typeof msg.clan_tag === "string") {
         if (!isCanonicalTag(msg.clan_tag) || !syncClan) return "bad_message";
-        if (remainingMs() < CLAN_RUN_MS) return "later";
-        const out = await syncClan(await db(), msg.clan_tag, { remainingMs });
+        if (remainingMs() < (editor ? EDITOR_RUN_MS : CLAN_RUN_MS))
+          return "later";
+        const out = await syncClan(await db(), msg.clan_tag, {
+          remainingMs,
+          editor,
+        });
         console.log("clan_activity_synced", msg.clan_tag, JSON.stringify(out));
       } else {
         if (

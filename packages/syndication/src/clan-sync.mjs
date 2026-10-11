@@ -31,34 +31,42 @@
  *  told as a leave). When both arrive in one run, the departure is
  *  posted once, already classified.
  *
- *  With the rewrite on, the clan's own model rewrites the run's stories
- *  in the leaders' voice before they are written (`rewrite`, the model
- *  service's unattended use: its caps, its record), told Elixir's own
- *  post for each and what Elixir knows: the clan (`clanContext`), the
- *  items' facts, its members' records (`clanStoryFacts`) and how often
- *  the channel told of them this week. A post the model does not return,
- *  or one that fails the engine's checks, is Elixir's own; so is every
- *  post when the model cannot be used.
+ *  With the clan's model on, the model is the editor (clan-engine
+ *  editor.mjs): it is handed the run's stories, each with Elixir's own
+ *  post and what Elixir knows (the clan, `clanContext`; the items'
+ *  facts; its members' records, `clanStoryFacts`; how often the channel
+ *  told of them this week), may look things up in the clan's record for
+ *  two rounds (`editorResearch`, read-only), and answers in the third at
+ *  the latest: posts, each telling one story or several together, and
+ *  skips with a reason. Each round is one request of the model service's
+ *  unattended use (`rewrite`: its caps, its record), and the run is one
+ *  use against the day's cap. A story the model does not tell, or a post
+ *  that fails the engine's checks, is Elixir's own; so is every story
+ *  when the model cannot be used or the run's time runs short.
  *
  *  The model is asked outside any transaction: the run plans under the
- *  row's lock and commits, asks, then writes under the lock again, and
+ *  row's lock and commits, edits, then writes under the lock again, and
  *  writes nothing when the connection changed meanwhile. A session lock
  *  per clan keeps one run at a time across the wait. */
 import { DISCORD_CONTENT_MAX, DISCORD_POSTS_MAX } from "@elixir-mcp/contracts";
 import {
   ACTIVITY_CATEGORIES,
   DEPARTURE_CLASSIFIED,
-  REWRITE_BATCH_MAX,
+  EDITOR_ROUNDS,
+  EDITOR_STORIES_MAX,
   STORY_RETOLD_MS,
   STORY_SKIPS,
   activityCategories,
   activityCategory,
   activityRewriteRequest,
-  activityRewritesFromDraft,
   activityShareable,
   buildStories,
   clanContext,
   declaredGoals,
+  editorAnswer,
+  editorNext,
+  editorRequest,
+  editorStory,
   escapeDiscord,
   leadSafe,
   renderStory,
@@ -75,6 +83,7 @@ import {
 import { postRevision, readCapped } from "./sync.mjs";
 import { clanStoryFacts } from "./story-facts.mjs";
 import { storyContext } from "./story-context.mjs";
+import { editorResearch } from "./editor-research.mjs";
 
 const DAY_MS = 24 * 3600_000;
 const REACH_MS = 30 * DAY_MS;
@@ -94,6 +103,11 @@ const REWRITE_MOMENT_MEMBERS = 8;
 const PREVIEW_MAX = 5;
 /** How far back the channel's history about a member is told. */
 const HISTORY_MS = 7 * DAY_MS;
+/** A story the clan's model chose not to tell, as its told row says. */
+const EDITOR_SKIP = "editor";
+/** Time a round of the editor needs to start: the model's wait (at
+ *  most 50 s, the bridge's) and the write after it. */
+const EDITOR_ROUND_MS = 25_000;
 /** The session lock's namespace ("clan"), beside the clan's tag. */
 const LOCK_NS = 0x636c616e;
 
@@ -138,29 +152,67 @@ const ROW_SQL = `select d.channel_id, d.webhook_sealed, d.webhook_fp, d.enabled,
  *   readStatus?: (channelId: string) => Promise<object|null>,
  *   policyFor: (db: any, clanTag: string) => Promise<object|null>,
  *   pitchFor?: ((db: any, clanTag: string) => Promise<object|null>) | null,
- *   rewrite?: ((db: any, clanTag: string, request: object) =>
- *     Promise<{ ok: boolean, input?: object, code?: string }>) | null,
+ *   rewrite?: ((db: any, clanTag: string, request: object,
+ *     opts: { run: string, round: number }) => Promise<{ ok: boolean,
+ *     answer?: object, calls?: object[], content?: object[],
+ *     code?: string }>) | null,
+ *   readHistory?: (channelId: string) => Promise<object|null>,
+ *   remainingMs?: () => number,
+ *   editor?: boolean,
  *   now?: number,
  * }} deps
  */
 export async function syncClan(db, clanTag, given) {
   const deps = { ...given, now: given.now ?? Date.now() };
+  const minute = `${clanWakeId(clanTag)}.${Math.floor(deps.now / 60_000)}`;
   // One run per clan at a time, held across the model's wait without a
   // transaction or a row lock (a leader's save is never held up by it).
-  await db.query("select pg_advisory_lock($1, hashtext($2))", [
-    LOCK_NS,
-    clanTag,
-  ]);
+  // A run that finds another under way comes back after the hold: never
+  // waiting here, which would hold up the wakes batched with it.
+  const {
+    rows: [{ locked }],
+  } = await db.query(
+    "select pg_try_advisory_lock($1, hashtext($2)) as locked",
+    [LOCK_NS, clanTag],
+  );
+  if (!locked) {
+    await deps.outbox(
+      "timeline-hold",
+      { v: 1, clan_tag: clanTag },
+      { id: minute, once: true },
+    );
+    return { skipped: "busy" };
+  }
   try {
     const plan = await inTransaction(db, async () => {
       const p = await planRun(db, clanTag, deps);
-      if (p.out || p.request) return p;
+      if (p.out || p.request || p.editor) return p;
       return { out: await writeRun(db, clanTag, deps, p, null) };
     });
     if (plan.out) return plan.out;
-    const r = await deps
-      .rewrite(db, clanTag, plan.request)
-      .catch(() => ({ ok: false, code: "error" }));
+    // The clan's model edits on the editor's own queue, one clan a run.
+    if (plan.editor) {
+      await deps.outbox(
+        "timeline-editor",
+        { v: 1, clan_tag: clanTag },
+        { id: minute, once: true },
+      );
+      return { editor: "queued", ready: plan.editor };
+    }
+    const run = `${clanWakeId(clanTag)}.${deps.now}`;
+    const r = await edit(plan.request, {
+      turn: (request, round) =>
+        deps
+          .rewrite(db, clanTag, request, { run, round })
+          .catch(() => ({ ok: false, code: "error" })),
+      research: editorResearch(db, clanTag, {
+        nowMs: deps.now,
+        history: () =>
+          deps.readHistory?.(plan.row.channel_id) ?? Promise.resolve(null),
+        except: plan.itemIds,
+      }),
+      remainingMs: deps.remainingMs,
+    });
     return await inTransaction(db, async () => {
       // The connection as it is now: written only while it is the same.
       const {
@@ -171,7 +223,7 @@ export async function syncClan(db, clanTag, given) {
         row.webhook_fp !== plan.row.webhook_fp ||
         row.synced_to.getTime() !== plan.row.synced_to.getTime()
       )
-        return { skipped: "changed", rewrite_code: r?.ok ? null : r?.code };
+        return { skipped: "changed", rewrite_code: r.ok ? null : r.code };
       return writeRun(db, clanTag, deps, { ...plan, row }, r);
     });
   } finally {
@@ -179,6 +231,34 @@ export async function syncClan(db, clanTag, given) {
       .query("select pg_advisory_unlock($1, hashtext($2))", [LOCK_NS, clanTag])
       .catch(() => {});
   }
+}
+
+/**
+ * The editor's rounds: each a request to the clan's model; between them
+ * the lookups it asked for, run read-only. Its answer by the last round,
+ * or why there is none. `read` is every lookup's answer, which the
+ * checks count as what the model was given.
+ */
+async function edit(request, { turn, research, remainingMs = null }) {
+  let req = request;
+  const read = [];
+  let lookups = 0;
+  for (let round = 1; round <= EDITOR_ROUNDS; round += 1) {
+    const stats = { read, rounds: round - 1, lookups };
+    if (remainingMs && remainingMs() < EDITOR_ROUND_MS)
+      return { ok: false, code: "deadline", ...stats };
+    const r = await turn(req, round);
+    stats.rounds = round;
+    if (!r?.ok) return { ok: false, code: r?.code ?? "error", ...stats };
+    if (r.answer !== undefined) return { ok: true, answer: r.answer, ...stats };
+    if (round === EDITOR_ROUNDS || !r.calls?.length)
+      return { ok: false, code: "no_answer", ...stats };
+    const results = await research(r.calls);
+    lookups += results.length;
+    read.push(...results.map((x) => `${x.text}`));
+    req = editorNext(req, r, results, round + 1);
+  }
+  return { ok: false, code: "no_answer", read, rounds: EDITOR_ROUNDS, lookups };
 }
 
 /** The categories in effect and the kinds they post. */
@@ -275,6 +355,7 @@ async function planRun(
     policyFor,
     pitchFor = null,
     rewrite = null,
+    editor = false,
     now = Date.now(),
   },
 ) {
@@ -441,6 +522,7 @@ async function planRun(
       key: left.item_id,
       revision,
       story: { key: left.item_id, items: [c] },
+      edit: true,
     });
     toldNow.push({
       ...toldRow(c, {}),
@@ -471,7 +553,10 @@ async function planRun(
     )
     .map(memberTag);
   const modelOn = Boolean(posts.length && row.rewrite && rewrite);
-  const batch = modelOn ? posts.slice(0, REWRITE_BATCH_MAX) : [];
+  // Stories for the clan's model, outside its own queue: sent there,
+  // and nothing is written here (that run reads them again).
+  if (modelOn && !editor) return { editor: posts.length };
+  const batch = modelOn ? posts.slice(0, EDITOR_STORIES_MAX) : [];
   const tags = [
     ...new Set(
       [
@@ -530,6 +615,7 @@ async function planRun(
     toMs,
     narrowed,
     request: null,
+    itemIds: items.map((it) => it.id),
   };
   if (!modelOn) return plan;
   const built = await rewritePackets(db, clanTag, row, batch, {
@@ -538,10 +624,10 @@ async function planRun(
     now,
     story,
   });
-  plan.lines = built.lines;
-  plan.request = activityRewriteRequest({
+  plan.stories = built.stories;
+  plan.request = editorRequest({
     context: built.context,
-    lines: built.lines,
+    stories: built.stories,
   });
   return plan;
 }
@@ -587,42 +673,49 @@ async function rewritePackets(
   });
   const told = (kind, tag) =>
     history.find((h) => h.kind === kind && h.player_tag === tag)?.n ?? 0;
-  const lines = posts.map((p) => {
+  const about = posts.map((p) => {
     const items = p.story.items;
     const departing = items.some(
       (it) => it.kind === "member_left" || it.kind === DEPARTURE_CLASSIFIED,
     );
     const people = [...new Set(items.map(memberTag).filter(Boolean))];
-    return rewriteLine(
-      items.map((it) => ({ ...it, id: p.key })),
-      [p.render],
-      {
-        members: people
-          .map((tag) => story.members[tag])
-          .filter(Boolean)
-          .map((m) =>
-            departing
-              ? {
-                  ...m,
-                  scope: "contribution",
-                  war: m.war.filter((w) => w.decks_used > 0),
-                }
-              : m,
-          ),
-        history: people.map((tag) => ({
-          kind: items[0].kind,
-          name: story.members[tag]?.name ?? tag,
-          // A grown story was told before: itself is not "another".
-          count: Math.max(
-            0,
-            told(items[0].kind, tag) -
-              (p.story.grown || p.revision > 1 ? 1 : 0),
-          ),
-        })),
-      },
-    );
+    return {
+      members: people
+        .map((tag) => story.members[tag])
+        .filter(Boolean)
+        .map((m) =>
+          departing
+            ? {
+                ...m,
+                scope: "contribution",
+                war: m.war.filter((w) => w.decks_used > 0),
+              }
+            : m,
+        ),
+      history: people.map((tag) => ({
+        kind: items[0].kind,
+        name: story.members[tag]?.name ?? tag,
+        // A grown story was told before: itself is not "another".
+        count: Math.max(
+          0,
+          told(items[0].kind, tag) - (p.story.grown || p.revision > 1 ? 1 : 0),
+        ),
+      })),
+    };
   });
-  return { context, lines };
+  // The editor's stories, and the preview's lines (one request, no
+  // lookups) until the preview is the editor too.
+  const stories = posts.map((p, i) =>
+    editorStory(p, { ...about[i], edit: Boolean(p.edit || p.story.grown) }),
+  );
+  const lines = posts.map((p, i) =>
+    rewriteLine(
+      p.story.items.map((it) => ({ ...it, id: p.key })),
+      [p.render],
+      about[i],
+    ),
+  );
+  return { context, stories, lines };
 }
 
 /** Move the clan's pointer on to `toMs`. */
@@ -634,10 +727,12 @@ const advance = (db, clanTag, toMs) =>
   );
 
 /**
- * The planned stories written: each in the model's words when they
- * passed the engine's checks, Elixir's otherwise; the skips handed to
- * the relay for the delivery history; everything recorded as told; the
- * pointer moved on; and a wake for the held stories.
+ * The planned stories written: with the clan's model on, as its edit
+ * (posts in its words that passed the engine's checks, stories told
+ * together, stories it skipped with its reason), and every story it did
+ * not tell in Elixir's words; the skips handed to the relay for the
+ * delivery history; everything recorded as told; the pointer moved on;
+ * and a wake for the held stories.
  */
 async function writeRun(
   db,
@@ -651,34 +746,65 @@ async function writeRun(
     toldNow,
     toMs,
     narrowed,
-    lines = [],
+    stories = [],
     request = null,
   },
   r,
 ) {
-  let rewrites = new Map();
-  let refused = {};
+  let edited = { posts: [], skips: [], refused: {} };
   let rewriteCode = null;
   if (request) {
     if (r?.ok)
-      ({ rewrites, refused } = activityRewritesFromDraft(
-        r.input,
-        lines,
-        request.context,
-      ));
+      // What the model was given: the clan, and every lookup's answer
+      // (each post's own stories are added by the checks).
+      edited = editorAnswer(
+        r.answer,
+        stories,
+        [request.context, ...(r.read ?? [])].join("\n"),
+      );
     else rewriteCode = r?.code ?? "error";
   }
-  const content = posts.map((p) => ({
-    key: p.key,
-    revision: p.revision,
-    content: postContent(rewrites.get(p.key) ?? p.render),
-    ...(rewrites.has(p.key) ? { rewritten: true } : {}),
-  }));
-  const skips = skipped.map((k) => ({
-    key: k.key,
-    reason: k.reason,
-    ...(k.excerpt ? { excerpt: postContent(k.excerpt) } : {}),
-  }));
+  // The model's posts: the first story's key, under the newest revision
+  // of those it tells; a story told with another is recorded under it.
+  const byKey = new Map(posts.map((p) => [p.key, p]));
+  const toldBy = new Map();
+  const content = [];
+  const modelPost = new Map(edited.posts.map((e) => [e.key, e]));
+  const modelSkip = new Map(edited.skips.map((k) => [k.key, k]));
+  for (const e of edited.posts)
+    for (const k of e.keys.slice(1)) toldBy.set(k, e.key);
+  for (const p of posts) {
+    if (toldBy.has(p.key) || modelSkip.has(p.key)) continue;
+    const e = modelPost.get(p.key);
+    content.push({
+      key: p.key,
+      revision: e
+        ? Math.max(...e.keys.map((k) => byKey.get(k)?.revision ?? 1))
+        : p.revision,
+      content: postContent(e ? e.text : p.render),
+      ...(e ? { rewritten: true } : {}),
+    });
+  }
+  for (const t of toldNow) {
+    if (toldBy.has(t.story_key)) t.story_key = toldBy.get(t.story_key);
+    else if (modelSkip.has(t.story_key)) {
+      t.skipped = true;
+      t.skip_reason = EDITOR_SKIP;
+    }
+  }
+  const skips = [
+    ...skipped.map((k) => ({
+      key: k.key,
+      reason: k.reason,
+      ...(k.excerpt ? { excerpt: postContent(k.excerpt) } : {}),
+    })),
+    ...edited.skips.map((k) => ({
+      key: k.key,
+      reason: k.reason,
+      excerpt: postContent(byKey.get(k.key).render),
+      rewritten: true,
+    })),
+  ];
   const chunks = Math.max(
     Math.ceil(content.length / DISCORD_POSTS_MAX),
     Math.ceil(skips.length / DISCORD_POSTS_MAX),
@@ -768,12 +894,16 @@ async function writeRun(
       { id: `${clanWakeId(clanTag)}.${Math.floor(now / 60_000)}`, once: true },
     );
   return {
-    posted: posts.length,
-    skips: skipped.length,
+    posted: content.length,
+    skips: skips.length,
     held,
-    rewritten: rewrites.size,
-    refused,
+    rewritten: content.filter((c) => c.rewritten).length,
+    merged: toldBy.size,
+    model_skips: edited.skips.length,
+    refused: edited.refused,
     rewrite_code: rewriteCode,
+    rounds: r?.rounds ?? 0,
+    lookups: r?.lookups ?? 0,
     narrowed,
   };
 }

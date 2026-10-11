@@ -283,3 +283,91 @@ test("anthropic: a refusal or a max_tokens stop is never an answer, even with a 
     }
   }
 });
+
+test("anthropic: an editor's round may ask several lookups at once and gets its turn back whole; its answer is the answer tool's input; a refusal or a silent turn is never an answer", async () => {
+  const bodies = [];
+  let next = null;
+  const client = createAnthropicClient({
+    url: "https://anthropic.test",
+    fetch: async (url, init) => {
+      bodies.push(JSON.parse(init.body));
+      return reply(200, next);
+    },
+  });
+  const tools = [
+    { name: "member_record", strict: true, input_schema: { type: "object" } },
+    { name: "write_posts", strict: true, input_schema: { type: "object" } },
+  ];
+  const round = (messages) =>
+    client.turn(KEY, {
+      model: "claude-sonnet-5-5",
+      system: "EDIT",
+      context: "THE CLAN\nName: Example Clan",
+      messages,
+      tools,
+      answer: "write_posts",
+      max_tokens: 650,
+      effort: "low",
+    });
+  const content = [
+    { type: "thinking", thinking: "", signature: "sig" },
+    {
+      type: "tool_use",
+      id: "t1",
+      name: "member_record",
+      input: { name: "Ada" },
+    },
+    {
+      type: "tool_use",
+      id: "t2",
+      name: "member_record",
+      input: { name: "Bo" },
+    },
+  ];
+  next = {
+    model: "claude-sonnet-5-5",
+    stop_reason: "tool_use",
+    usage: { input_tokens: 1200, output_tokens: 80 },
+    content,
+  };
+  const looked = await round([{ role: "user", content: "STORY tl_1" }]);
+  assert.equal(looked.ok, true);
+  assert.deepEqual(looked.calls, [
+    { id: "t1", name: "member_record", input: { name: "Ada" } },
+    { id: "t2", name: "member_record", input: { name: "Bo" } },
+  ]);
+  assert.deepEqual(looked.content, content, "thinking included, as it came");
+  const body = bodies[0];
+  assert.deepEqual(body.tool_choice, { type: "auto" }, "parallel lookups");
+  assert.equal(body.max_tokens, 650 + THINKING_ROOM);
+  assert.deepEqual(body.output_config, { effort: "low" });
+  assert.deepEqual(body.system[1].cache_control, { type: "ephemeral" });
+  assert.equal("thinking" in body, false);
+
+  next = {
+    ...next,
+    content: [
+      {
+        type: "tool_use",
+        id: "t3",
+        name: "write_posts",
+        input: { posts: [], skips: [] },
+      },
+    ],
+  };
+  const answered = await round([{ role: "user", content: "STORY tl_1" }]);
+  assert.deepEqual(answered.answer, { posts: [], skips: [] });
+  assert.equal("calls" in answered, false);
+
+  next = { ...next, stop_reason: "refusal" };
+  assert.equal((await round([{ role: "user", content: "x" }])).code, "refusal");
+  next = {
+    ...next,
+    stop_reason: "end_turn",
+    content: [{ type: "text", text: "Done." }],
+  };
+  assert.equal(
+    (await round([{ role: "user", content: "x" }])).code,
+    "no_answer",
+  );
+});

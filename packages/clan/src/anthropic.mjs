@@ -78,6 +78,52 @@ export function messageBody({
   };
 }
 
+/**
+ * The body of one round of the activity channel's editor (2026-10-11,
+ * exported for its tests): the instructions and the clan's context as
+ * the cached system blocks, the conversation so far, the lookups and the
+ * answer tool, all strict. The model may call several lookups at once
+ * (`auto`, parallel calls allowed); its answer is one call of `answer`.
+ */
+export function turnBody({
+  model,
+  system,
+  context = "",
+  messages,
+  tools,
+  answer,
+  max_tokens,
+  effort = null,
+}) {
+  const blocks = [
+    {
+      type: "text",
+      text: `${system}\n\nLook things up with the other tools only when it helps; answer by calling the ${answer} tool once.`,
+    },
+  ];
+  if (context) blocks.push({ type: "text", text: context });
+  blocks.at(-1).cache_control = { type: "ephemeral" };
+  return {
+    model,
+    max_tokens: max_tokens + THINKING_ROOM,
+    system: blocks,
+    messages,
+    tools,
+    tool_choice: { type: "auto" },
+    ...(effort ? { output_config: { effort } } : {}),
+  };
+}
+
+const usageOf = (body) => {
+  const u = body?.usage ?? {};
+  return {
+    input_tokens: u.input_tokens ?? null,
+    output_tokens: u.output_tokens ?? null,
+    cache_creation_input_tokens: u.cache_creation_input_tokens ?? null,
+    cache_read_input_tokens: u.cache_read_input_tokens ?? null,
+  };
+};
+
 export function createAnthropicClient({
   fetch = globalThis.fetch,
   url = ANTHROPIC_URL,
@@ -183,13 +229,7 @@ export function createAnthropicClient({
             : timeoutMs,
         );
         if (!r.ok) return r;
-        const u = r.body?.usage ?? {};
-        const usage = {
-          input_tokens: u.input_tokens ?? null,
-          output_tokens: u.output_tokens ?? null,
-          cache_creation_input_tokens: u.cache_creation_input_tokens ?? null,
-          cache_read_input_tokens: u.cache_read_input_tokens ?? null,
-        };
+        const usage = usageOf(r.body);
         const stop = r.body?.stop_reason ?? null;
         if (stop === "refusal")
           return {
@@ -226,6 +266,55 @@ export function createAnthropicClient({
           input: use.input ?? null,
           model: r.body?.model ?? model,
           usage,
+        };
+      });
+    },
+
+    /**
+     * One round of the activity channel's editor: `{ ok, answer, calls,
+     * content, model, usage }`. `answer` is the answer tool's input when
+     * the model called it (its lookups in the same turn are not run);
+     * otherwise `calls` are the lookups it asked for (`{ id, name,
+     * input }`) and `content` its turn exactly as it came, thinking
+     * included, which the next round sends back. A refusal or a
+     * `max_tokens` stop is never an answer; a turn with neither an answer
+     * nor a lookup is `no_answer`.
+     */
+    turn(key, { timeoutMs: wait = null, ...input }) {
+      return timedModel("messages", async () => {
+        const r = await call(
+          key,
+          "/v1/messages",
+          { method: "POST", body: JSON.stringify(turnBody(input)) },
+          Number.isFinite(wait) && wait > 0
+            ? Math.min(wait, timeoutMs)
+            : timeoutMs,
+        );
+        if (!r.ok) return r;
+        const usage = usageOf(r.body);
+        const stop = r.body?.stop_reason ?? null;
+        if (stop === "refusal" || stop === "max_tokens")
+          return { ok: false, status: r.status, code: stop, usage };
+        const content = Array.isArray(r.body?.content) ? r.body.content : [];
+        const uses = content.filter((c) => c?.type === "tool_use");
+        const answer = uses.find((c) => c.name === input.answer);
+        const calls = uses
+          .filter((c) => c.name !== input.answer)
+          .map((c) => ({ id: c.id, name: c.name, input: c.input ?? {} }));
+        if (!answer && !calls.length)
+          return {
+            ok: false,
+            status: r.status,
+            code: "no_answer",
+            message: `The model stopped without an answer (${stop ?? "unknown"}).`,
+            usage,
+          };
+        return {
+          ok: true,
+          status: r.status,
+          model: r.body?.model ?? input.model,
+          usage,
+          ...(answer ? { answer: answer.input ?? null } : { calls, content }),
         };
       });
     },
