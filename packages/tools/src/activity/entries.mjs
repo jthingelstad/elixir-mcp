@@ -46,6 +46,8 @@ import {
   CLAN_EVENT_COLUMNS,
 } from "../event-payloads.mjs";
 import { collectionLevelStep } from "@elixir-mcp/ingest/snapshots";
+import { deckIdentities } from "../tools/shared.mjs";
+import { itemSchema } from "./schemas.mjs";
 import {
   summarizePlayer,
   summarizeClan,
@@ -582,12 +584,19 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
         drawn: 0,
         by_mode: {},
         trophy_net: 0,
+        // The running ladder net furthest from zero, signed: a rung on
+        // the net is crossed by how far it moved, which the final net
+        // need not show (#373: crossed 150, ended at +117).
+        trophy_net_peak: 0,
         run: 0,
         won_in_a_row: 0,
         // Rungs crossed so far, and which of those crossings this window
         // learned (the battle that crossed it, for the item's instant).
         crossed: [],
+        crossings: [],
         newly: [],
+        decks: new Map(),
+        events: new Map(),
         // When the record LEARNED this session (Gym #162): the latest
         // commit of a battle this window learned, the instant that
         // selects the session into a window.
@@ -612,13 +621,33 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     }
     const g = modeGroupOf(b.type, b.event_tag);
     cur.by_mode[g] = (cur.by_mode[g] ?? 0) + 1;
-    if (g === "ladder") cur.trophy_net += b.trophy_change ?? 0;
+    if (g === "ladder") {
+      cur.trophy_net += b.trophy_change ?? 0;
+      if (Math.abs(cur.trophy_net) > Math.abs(cur.trophy_net_peak))
+        cur.trophy_net_peak = cur.trophy_net;
+    }
+    if (b.deck_hash)
+      cur.decks.set(b.deck_hash, (cur.decks.get(b.deck_hash) ?? 0) + 1);
+    if (b.event_tag && g === "event")
+      cur.events.set(b.event_tag, (cur.events.get(b.event_tag) ?? 0) + 1);
     for (const [key, rungs] of Object.entries(SESSION_RUNGS)) {
-      const value = key === "trophy_net" ? Math.abs(cur.trophy_net) : cur[key];
+      // The value the rung is judged on, signed: a trophy rung is crossed
+      // by the net's distance from zero, up or down.
+      const value = cur[key];
       for (const rung of rungs) {
         const label = `${key}>=${rung}`;
-        if (value >= rung && !cur.crossed.includes(label)) {
+        const reached =
+          key === "trophy_net" ? Math.abs(value) >= rung : value >= rung;
+        if (reached && !cur.crossed.includes(label)) {
           cur.crossed.push(label);
+          const crossing = {
+            rung: label,
+            key,
+            threshold: rung,
+            value,
+            at: iso(t),
+          };
+          cur.crossings.push(crossing);
           if (learned(b))
             cur.newly.push({
               label,
@@ -632,22 +661,99 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
   return sessions.map((s) => ({
     started_at: iso(s.startMs),
     ended_at: iso(s.endMs),
+    duration_s: Math.round((s.endMs - s.startMs) / 1000),
     battles: s.battles,
     won: s.won,
     lost: s.lost,
     drawn: s.drawn,
     by_mode: s.by_mode,
     trophy_net: s.trophy_net,
+    trophy_net_peak: s.trophy_net_peak,
     won_in_a_row: s.won_in_a_row,
     open: toMs - s.endMs < SESSION_GAP_MS,
     crossed: s.crossed,
+    crossings: s.crossings,
     newly: s.newly,
+    deckCounts: s.decks,
+    eventCounts: s.events,
     learned_at: s.learnedMs === null ? null : iso(s.learnedMs),
   }));
 }
 
+/** The decks and named events a sitting was played with (#375): each
+ *  deck by its archetype label, most played first, and each in-game
+ *  event by the title /events gave it. Labels come from the record
+ *  (deckIdentities, game_event), never a hand list. */
+const SESSION_DECKS_CAP = 3;
+async function nameSessions(db, sessions) {
+  const hashes = sessions.flatMap((s) => [...s.deckCounts.keys()]);
+  const tags = [...new Set(sessions.flatMap((s) => [...s.eventCounts.keys()]))];
+  const ids = hashes.length ? await deckIdentities(db, hashes) : new Map();
+  const { rows } = tags.length
+    ? await db.query(
+        `select event_tag, title from game_event where event_tag = any($1::text[])`,
+        [tags],
+      )
+    : { rows: [] };
+  const titles = new Map(rows.map((r) => [r.event_tag, r.title]));
+  for (const s of sessions) {
+    // Deck labels merge: two forms of one archetype are one deck to say.
+    const byLabel = new Map();
+    for (const [hash, n] of s.deckCounts) {
+      // A deck with no card costs recorded has no shape to name.
+      const archetype = ids.get(hash)?.archetype;
+      if (!archetype?.label || archetype.family === "unclassified") continue;
+      byLabel.set(archetype.label, (byLabel.get(archetype.label) ?? 0) + n);
+    }
+    s.decks = [...byLabel.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, SESSION_DECKS_CAP)
+      .map(([label, battles]) => ({ label, battles }));
+    s.events = [...s.eventCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([event_tag, battles]) => ({
+        event_tag,
+        name: titles.get(event_tag) ?? null,
+        battles,
+      }));
+  }
+  return sessions;
+}
+
+/**
+ * Whether a clan entry's war line tallies decks: only the war day IN
+ * PROGRESS of the week in progress (Jamie 2026-09-25: a closed day's
+ * per-member decks would place the game's counter on a day the record
+ * cannot place reliably), and only until the race finishes, since decks
+ * count against four a war day up to the finish (DECISIONS; #376: a
+ * 09:48 finish, then "war day 4: 49 untouched" read from the next day).
+ */
+export function warDeckTallyOpen({
+  period,
+  sameWeek,
+  finishedAt,
+  toMs,
+  nowMs,
+}) {
+  if (!period || !sameWeek) return false;
+  if (nowMs < period.startMs || nowMs >= period.endMs) return false;
+  const finishedBy =
+    finishedAt !== null &&
+    finishedAt !== undefined &&
+    Date.parse(finishedAt) <= Math.min(toMs, nowMs);
+  return !finishedBy;
+}
+
 /** The wire shape of a session: the bookkeeping fields stay here. */
-function sessionFacts({ crossed: _c, newly: _n, learned_at: _l, ...rest }) {
+function sessionFacts({
+  crossed: _c,
+  crossings: _x,
+  newly: _n,
+  learned_at: _l,
+  deckCounts: _d,
+  eventCounts: _e,
+  ...rest
+}) {
   return rest;
 }
 
@@ -660,7 +766,7 @@ async function snapshotAt(db, tag, atMs) {
     `select profile_observed_at as observed_at, trophies, best_trophies, arena_id,
             collection_level, wins, battle_count,
             donations,
-            pol_league as league
+            pol_league as league, pol_trophies as rating, pol_rank as rank
        from player_snapshot_daily
       where player_tag = $1 and profile_observed_at is not null
         and profile_observed_at <= ${ts(atMs)}
@@ -670,18 +776,51 @@ async function snapshotAt(db, tag, atMs) {
   return rows[0] ?? null;
 }
 
-async function playerLedger(db, tag, fromMs, toMs) {
+/**
+ * A window's basis (#373): `observed` selects what the record LEARNED in
+ * (from, to], which is what a poller holding a pointer needs; `occurred`
+ * selects what HAPPENED in it, as the record knows it now, which is what
+ * "what happened on Saturday" means. A ledger row is observed at its
+ * evidence or window end and happened at its occurred_at (or window end);
+ * a row cannot be observed before it happened, so the observed column's
+ * lower bound keeps an occurred read on its index.
+ */
+const OBSERVED_COL = (a) =>
+  `coalesce(${a}evidence_observed_at, ${a}window_end)`;
+const OCCURRED_COL = (a) => `coalesce(${a}occurred_at, ${a}window_end)`;
+function ledgerWindowSql(
+  alias,
+  fromMs,
+  toMs,
+  basis,
+  observedCol = OBSERVED_COL,
+) {
+  const a = alias ? `${alias}.` : "";
+  const observed = observedCol(a);
+  if (basis === "occurred")
+    return `${observed} >= ${ts(fromMs + 1)} and ${OCCURRED_COL(a)} >= ${ts(fromMs + 1)} and ${OCCURRED_COL(a)} < ${ts(toMs + 1)}`;
+  return `${observed} >= ${ts(fromMs + 1)} and ${observed} < ${ts(toMs + 1)}`;
+}
+const ledgerInWindow = (r, fromMs, toMs, basis) => {
+  const t = new Date(
+    basis === "occurred"
+      ? (r.occurred_at ?? r.window_end)
+      : (r.evidence_observed_at ?? r.window_end),
+  ).getTime();
+  return t > fromMs && t <= toMs;
+};
+
+async function playerLedger(db, tag, fromMs, toMs, basis) {
   const { rows } = await db.query(
     `select ${PLAYER_EVENT_COLUMNS}
        from player_event
-      where player_tag = $1 and coalesce(evidence_observed_at, window_end) >= ${ts(fromMs + 1)} and coalesce(evidence_observed_at, window_end) < ${ts(toMs + 1)}
+      where player_tag = $1 and ${ledgerWindowSql("", fromMs, toMs, basis)}
       order by event_id`,
     [tag],
   );
-  return (await hydratePlayerEvents(db, rows)).filter((r) => {
-    const observed = new Date(r.evidence_observed_at ?? r.window_end).getTime();
-    return observed > fromMs && observed <= toMs;
-  });
+  return (await hydratePlayerEvents(db, rows)).filter((r) =>
+    ledgerInWindow(r, fromMs, toMs, basis),
+  );
 }
 
 /**
@@ -696,15 +835,21 @@ async function playerLedger(db, tag, fromMs, toMs) {
  * 2026-09-24; 0171): an enemy attacked their boat and their defense deck
  * answered, so it never counts here.
  */
-async function playerBattles(db, tag, fromMs, toMs) {
+async function playerBattles(db, tag, fromMs, toMs, basis = "observed") {
+  // Learned in the window (observed), or played in it (occurred); either
+  // way never a late capture, which is counted, not narrated.
+  const selected =
+    basis === "occurred"
+      ? `bp.battle_time >= ${ts(fromMs + 1)} and bp.battle_time < ${ts(toMs + 1)}`
+      : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
+        and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`;
   const { rows } = await db.query(
     `select b.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.crowns,
-            bp.trophy_change, bp.clan_tag
+            bp.trophy_change, bp.clan_tag, bp.deck_hash
        from battle_participant bp
        join battle b on b.battle_id = bp.battle_id
       where bp.player_tag = $1
-        and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
-        and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
+        and ${selected}
         and b.battle_time >= b.created_at - interval '1 day'
         and not (b.boat_battle_side is not null
                  and (b.boat_battle_side = 'defender') = (bp.side = 0))
@@ -715,7 +860,11 @@ async function playerBattles(db, tag, fromMs, toMs) {
     `select count(*)::int as n
        from battle b
        join battle_participant bp on bp.battle_id = b.battle_id
-      where b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
+      where ${
+        basis === "occurred"
+          ? `bp.battle_time >= ${ts(fromMs + 1)} and bp.battle_time < ${ts(toMs + 1)}`
+          : `b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
+      }
         and b.battle_time < b.created_at - interval '1 day'
         and bp.player_tag = $1`,
     [tag],
@@ -857,6 +1006,7 @@ export async function buildPlayerEntry(
     toMs,
     timezone = "UTC",
     perf = null,
+    basis = "observed",
   },
 ) {
   const { rows: who } = await db.query(
@@ -871,7 +1021,7 @@ export async function buildPlayerEntry(
   const name = who[0]?.name ?? null;
 
   const { rows: played, late } = await timed(perf, "player.battles", () =>
-    playerBattles(db, tag, fromMs, toMs),
+    playerBattles(db, tag, fromMs, toMs, basis),
   );
   const byMode = {};
   let won = 0;
@@ -889,7 +1039,9 @@ export async function buildPlayerEntry(
   const trophyNet = played
     .filter((b) => modeGroupOf(b.type, b.event_tag) === "ladder")
     .reduce((s, b) => s + (b.trophy_change ?? 0), 0);
-  const sessions = sessionsOf(played, toMs);
+  const sessions = await timed(perf, "player.sessions", () =>
+    nameSessions(db, sessionsOf(played, toMs)),
+  );
 
   const before = await timed(perf, "player.snapshot", () =>
     snapshotAt(db, tag, fromMs),
@@ -909,11 +1061,13 @@ export async function buildPlayerEntry(
   const best = diff("best_trophies");
   const arena = diff("arena_id");
   const league = diff("league");
+  const rating = diff("rating");
+  const rank = diff("rank");
   const collectionLevel = diff("collection_level");
   const wins = diff("wins");
 
   const ledger = await timed(perf, "player.ledger", () =>
-    playerLedger(db, tag, fromMs, toMs),
+    playerLedger(db, tag, fromMs, toMs, basis),
   );
   const ofKind = (k) => ledger.filter((r) => r.event_type === k);
   const arenaNames = await arenaNamesFor(db, [
@@ -1029,8 +1183,10 @@ export async function buildPlayerEntry(
       trophy_net_ladder: trophyNet,
       late_captures: late,
     },
+    // Only when the ladder moved (#376: a ranked player's
+    // "14,000 -> 14,000" said nothing); ranked movement is `ranked`.
     trophies:
-      trophies || best
+      trophies?.changed || best?.changed
         ? {
             from: trophies?.from ?? null,
             to: trophies?.to ?? null,
@@ -1047,9 +1203,23 @@ export async function buildPlayerEntry(
           to_id: arena.to,
         }
       : null,
-    ranked: league?.changed
-      ? { from: leagueName(league.from), to: leagueName(league.to) }
-      : null,
+    // The ranked ladder's own movement (#376): league, rating and rank
+    // as the profile read them at each end, when any moved. A league
+    // lower at the end may be the season's reset; these are the two
+    // readings, not a demotion.
+    ranked:
+      league?.changed || rating?.changed || rank?.changed
+        ? {
+            from: leagueName(league?.from ?? null),
+            to: leagueName(league?.to ?? null),
+            league_changed: Boolean(league?.changed),
+            rating: rating?.changed
+              ? { from: rating.from, to: rating.to }
+              : null,
+            rank: rank?.changed ? { from: rank.from, to: rank.to } : null,
+            as_of: iso(after?.observed_at),
+          }
+        : null,
     collection: {
       level: collectionLevel?.changed
         ? { from: collectionLevel.from, to: collectionLevel.to }
@@ -1090,7 +1260,17 @@ export async function buildPlayerEntry(
 
   // What the timeline needs from this build, without a second read.
   const items = [];
-  const subject = { subject_tag: tag, subject_name: nickname ?? name };
+  // The in-game name is the subject's name everywhere it is said; a
+  // reader's nickname is theirs, a field of its own (DECISIONS:
+  // nicknames are private; #374: the same member was "Tyler" in one copy
+  // and "raquaza" in the other, and the bot posted the nickname).
+  const subject = {
+    subject_tag: tag,
+    subject_name: name,
+    ...(nickname ? { nickname } : {}),
+    subjects: [{ tag, kind: "player", name }],
+  };
+  const self = { player_tag: tag, name };
   const anchored = await timed(perf, "player.sittings", () =>
     sittingAnchors(
       db,
@@ -1108,7 +1288,7 @@ export async function buildPlayerEntry(
       observed_at: s.learned_at ?? s.started_at,
       kind: "battle_session",
       section: "battles",
-      facts: sessionFacts(s),
+      facts: { ...self, ...sessionFacts(s) },
       [STORY]: sittingStory(tag, anchored[i], s.started_at),
       ...sessionEvidence(tag, anchored[i], s.ended_at, s.open),
     });
@@ -1129,7 +1309,7 @@ export async function buildPlayerEntry(
       observed_at: iso(r.evidence_observed_at ?? r.window_end),
       kind: r.event_type,
       section: sectionOfKind(r.event_type),
-      facts: decorate(r.event_type, r.payload, arenaNames),
+      facts: { ...self, ...decorate(r.event_type, r.payload, arenaNames) },
       [STORY]: ledgerStory("player_event", firstIds, r),
       ...crossingEvidence(r, firstIds.get(String(r.event_id))),
     });
@@ -1140,7 +1320,11 @@ export async function buildPlayerEntry(
       at: c.at,
       kind,
       section: "clan",
-      facts: c,
+      subjects: [
+        ...subject.subjects,
+        { tag: c.clan_tag, kind: "clan", name: c.clan_name ?? null },
+      ],
+      facts: { ...self, ...c },
       [STORY]: moment(kind, tag, c.clan_tag, c.at),
     });
   }
@@ -1152,7 +1336,7 @@ export async function buildPlayerEntry(
       at: presence.returned.at,
       kind: "returned",
       section: "presence",
-      facts: { after_days: presence.returned.after_days },
+      facts: { ...self, after_days: presence.returned.after_days },
       [STORY]: moment("returned", tag, presence.returned.at),
     });
   if (presence.rungCrossed)
@@ -1170,6 +1354,7 @@ export async function buildPlayerEntry(
       // As of the crossing, not the window's end (Gym #119): quiet for
       // exactly the rung's days at `at`.
       facts: {
+        ...self,
         rung: presence.rungCrossed.rung,
         days_quiet: presence.rungCrossed.rung,
         days_since_poll: presence.days_since_poll,
@@ -1186,13 +1371,14 @@ export async function buildPlayerEntry(
  *  clan's at all, split into played within a day of the window (the
  *  narrated ones) and late captures. Exported so {explain_timeline} can
  *  EXPLAIN the same statement the tool runs. */
-export function clanLearnedQuery({ tag, fromMs, toMs }) {
+export function clanLearnedQuery({ tag, fromMs, toMs, basis = "observed" }) {
+  const col = basis === "occurred" ? "bp.battle_time" : "b.created_at";
   return {
     text: `select count(distinct b.battle_id) filter (where b.battle_time >= b.created_at - interval '1 day')::int as recent,
                   count(distinct b.battle_id) filter (where b.battle_time < b.created_at - interval '1 day')::int as late
              from battle b
              join battle_participant bp on bp.battle_id = b.battle_id
-            where b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
+            where ${col} >= ${ts(fromMs + 1)} and ${col} < ${ts(toMs + 1)}
               and bp.clan_tag = $1`,
     values: [tag],
   };
@@ -1200,16 +1386,32 @@ export function clanLearnedQuery({ tag, fromMs, toMs }) {
 
 /** The day-wide member battle fetch behind sessions and standouts: the
  *  statement an empty window used to pay for. */
-export function clanMemberBattlesQuery({ tag, fromMs, toMs }) {
+export function clanMemberBattlesQuery({
+  tag,
+  fromMs,
+  toMs,
+  basis = "observed",
+}) {
+  // `learned` marks the rows this window selects: learned in it
+  // (observed), or played in it (occurred, as the record knows now).
+  const occurred = basis === "occurred";
   return {
-    text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.trophy_change,
-                  (b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
+    text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.trophy_change, bp.deck_hash,
+                  (${
+                    occurred
+                      ? `bp.battle_time >= ${ts(fromMs + 1)}`
+                      : `b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
+                  }
                    and b.battle_time >= b.created_at - interval '1 day') as learned
              from battle_participant bp
              join battle b on b.battle_id = bp.battle_id
             where bp.clan_tag = $1
-              and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
-              and b.created_at < ${ts(toMs + 1)}
+              and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}${
+                occurred
+                  ? ""
+                  : `
+              and b.created_at < ${ts(toMs + 1)}`
+              }
             order by bp.player_tag, b.battle_time`,
     values: [tag],
   };
@@ -1225,8 +1427,10 @@ export async function buildClanEntry(
     timezone = "UTC",
     perf = null,
     memberTag = null,
+    basis = "observed",
   },
 ) {
+  const occurred = basis === "occurred";
   const { rows: clanRows } = await db.query(
     `select name from clan where clan_tag = $1`,
     [tag],
@@ -1260,13 +1464,13 @@ export async function buildClanEntry(
   // skipped. The probe splits the learned count into played-within-a-day
   // (narrated) and late captures, so the late count comes for free.
   const { rows: learnedRows } = await timed(perf, "clan.learned", () =>
-    db.query(clanLearnedQuery({ tag, fromMs, toMs })),
+    db.query(clanLearnedQuery({ tag, fromMs, toMs, basis })),
   );
   const learnedRecent = learnedRows[0]?.recent ?? 0;
   const lateCount = learnedRows[0]?.late ?? 0;
   const { rows: allBattles } = learnedRecent
     ? await timed(perf, "clan.member_battles", () =>
-        db.query(clanMemberBattlesQuery({ tag, fromMs, toMs })),
+        db.query(clanMemberBattlesQuery({ tag, fromMs, toMs, basis })),
       )
     : { rows: [] };
   const memberBattles = allBattles.filter((r) => r.learned);
@@ -1300,6 +1504,7 @@ export async function buildClanEntry(
         { learned: (b) => b.learned },
       ).filter((x) => x.battles >= 2 && x.learned_at !== null)
     : [];
+  await nameSessions(db, memberSessions);
   // Session standouts: every member's sessions over the wider fetch, kept
   // when a rung was crossed by a battle this window learned. Named below,
   // once the roster query has the names.
@@ -1313,13 +1518,14 @@ export async function buildClanEntry(
     for (const sess of sessionsOf(rows, toMs, { learned: (b) => b.learned }))
       if (sess.newly.length)
         standoutSessions.push({ player_tag: playerTag, ...sess });
+  await timed(perf, "clan.sessions", () => nameSessions(db, standoutSessions));
 
   // Roster moves and war resolutions from the subject ledger, named.
   const { rows: ledgerRows } = await timed(perf, "clan.ledger", () =>
     db.query(
       `select ${CLAN_EVENT_COLUMNS} from clan_event
       where clan_tag = $1
-        and window_end >= ${ts(fromMs + 1)} and window_end < ${ts(toMs + 1)}
+        and ${ledgerWindowSql("", fromMs, toMs, basis, (a) => `${a}window_end`)}
       order by event_id`,
       [tag],
     ),
@@ -1394,6 +1600,43 @@ export async function buildClanEntry(
   const bounced = joined.filter((j) =>
     left.some((l) => l.tag === j.tag),
   ).length;
+  // A resolved week's members as the race recorded them (#375): each
+  // member's decks used and points for the WEEK (war facts are weekly
+  // aggregates; points are the race's per-member points, not fame).
+  const weekKey = (x) => `${x?.season_id}|${x?.section_index}`;
+  const resolvedWeeks = ledger.filter(
+    (e) => e.event_type === "week_resolved" && e.payload,
+  );
+  const weekMembers = new Map();
+  if (resolvedWeeks.length) {
+    const { rows: wm } = await timed(perf, "clan.week_members", () =>
+      db.query(
+        `select wp.season_id, wp.section_index, wp.player_tag, p.name,
+                wp.decks_used, wp.points
+           from war_participation wp
+           join player p on p.player_tag = wp.player_tag
+           join unnest($2::int[], $3::int[]) as w(season_id, section_index)
+             on w.season_id = wp.season_id and w.section_index = wp.section_index
+          where wp.clan_tag = $1
+          order by wp.points desc, wp.decks_used desc, p.name nulls last, wp.player_tag`,
+        [
+          tag,
+          resolvedWeeks.map((e) => e.payload.season_id),
+          resolvedWeeks.map((e) => e.payload.section_index),
+        ],
+      ),
+    );
+    for (const r of wm) {
+      const k = weekKey(r);
+      if (!weekMembers.has(k)) weekMembers.set(k, []);
+      weekMembers.get(k).push({
+        player_tag: r.player_tag,
+        name: r.name,
+        decks_used: r.decks_used,
+        points: r.points,
+      });
+    }
+  }
 
   // War: the week the window ENDS in (Gym #166: a past window had
   // served the current week's race under the past day's label), or the
@@ -1518,12 +1761,15 @@ export async function buildClanEntry(
         war.place_of_five = null;
       }
     }
-    // The deck tally is the day IN PROGRESS only (Jamie 2026-09-25): a
-    // closed war day's per-member decks would place the game's counter
-    // and recorded battles on a day the record cannot place reliably.
-    const nowMs = Date.now();
-    const dayInProgress = p && nowMs >= p.startMs && nowMs < p.endMs;
-    if (p && sameWeek && dayInProgress) {
+    if (
+      warDeckTallyOpen({
+        period: p,
+        sameWeek,
+        finishedAt,
+        toMs,
+        nowMs: Date.now(),
+      })
+    ) {
       if (p.warDay) {
         // The game's own counter, as war_current.decks_today reads it
         // (9.1.2, Jamie 2026-09-25): no longer raised to war battles
@@ -1667,7 +1913,11 @@ export async function buildClanEntry(
         // A return is the battle that closes a long gap, observed when
         // the record learned it (Gym #272: a return whose absence began
         // inside the window was missed).
-        const learnedMs = open ? null : learnedAt.get(`${m.player_tag}|${end}`);
+        const learnedMs = open
+          ? null
+          : occurred
+            ? end
+            : learnedAt.get(`${m.player_tag}|${end}`);
         if (
           !open &&
           memberAt(m, end) &&
@@ -1738,6 +1988,7 @@ export async function buildClanEntry(
     name: memberName.get(sess.player_tag) ?? null,
     ...sessionFacts(sess),
     crossed: sess.crossed,
+    crossings: sess.crossings,
   }));
   // Returns come from the battle gaps below (Gym #272), which also see
   // a return whose absence began inside the window.
@@ -1751,8 +2002,12 @@ export async function buildClanEntry(
        join battle b on b.battle_id = bp.battle_id
        join player p on p.player_tag = bp.player_tag
       where bp.clan_tag = $1
-        and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
-        and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}
+        and ${
+          occurred
+            ? `bp.battle_time >= ${ts(fromMs + 1)} and bp.battle_time < ${ts(toMs + 1)}`
+            : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
+        and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
+        }
         and b.battle_time >= b.created_at - interval '1 day'
       group by bp.player_tag, p.name
       order by battles desc, p.name nulls last limit $2`,
@@ -1768,7 +2023,7 @@ export async function buildClanEntry(
         and cm.clan_tag = $1 and cm.left_observed_at is null
        join player p on p.player_tag = pe.player_tag
       where pe.event_type = any($2::text[])
-        and coalesce(pe.evidence_observed_at, pe.window_end) >= ${ts(fromMs + 1)} and coalesce(pe.evidence_observed_at, pe.window_end) < ${ts(toMs + 1)}
+        and ${ledgerWindowSql("pe", fromMs, toMs, basis)}
       order by pe.event_id`,
       [tag, PLAYER_MOMENT_KINDS],
     ),
@@ -1777,12 +2032,7 @@ export async function buildClanEntry(
   // entry too, as in the items (Gym #250: "Aaqib Javed -> Master 2"
   // twice in the standouts and the summary while the items said it once).
   const moments = (await hydratePlayerEvents(db, momentRows))
-    .filter((m) => {
-      const observed = new Date(
-        m.evidence_observed_at ?? m.window_end,
-      ).getTime();
-      return observed > fromMs && observed <= toMs;
-    })
+    .filter((m) => ledgerInWindow(m, fromMs, toMs, basis))
     .filter(
       ((seen) => (m) => {
         const key = `${m.player_tag}|${m.event_type}|${JSON.stringify(m.payload ?? null)}`;
@@ -1885,18 +2135,19 @@ export async function buildClanEntry(
   // (a history backfill, a late poll): activity counts what the window
   // learned, so a backfilled week read "0 battles by 0 of 48 members"
   // where clans_standings, which counts by play time, had 3,547 (Gym #248).
-  const { rows: laterRows } = comprehensive
-    ? await timed(perf, "clan.learned_later", () =>
-        db.query(
-          `select count(distinct b.battle_id)::int as n
+  const { rows: laterRows } =
+    comprehensive && !occurred
+      ? await timed(perf, "clan.learned_later", () =>
+          db.query(
+            `select count(distinct b.battle_id)::int as n
              from battle_participant bp join battle b on b.battle_id = bp.battle_id
             where bp.clan_tag = $1
               and bp.battle_time >= ${ts(fromMs + 1)} and bp.battle_time < ${ts(toMs + 1)}
               and b.created_at >= ${ts(toMs + 1)}`,
-          [tag],
-        ),
-      )
-    : { rows: [] };
+            [tag],
+          ),
+        )
+      : { rows: [] };
   const learnedLater = laterRows[0]?.n ?? 0;
   const entry = {
     kind: "clan_activity",
@@ -1920,7 +2171,9 @@ export async function buildClanEntry(
           learned_here_played_before: memberBattles.filter(
             (r) => r.battle_time.getTime() <= fromMs,
           ).length,
-          basis: "recorded",
+          // What the counts select by: battles the record learned in the
+          // window, or battles played in it (an occurred read).
+          basis: occurred ? "played" : "recorded",
         }
       : {
           battles: null,
@@ -1997,7 +2250,20 @@ export async function buildClanEntry(
   // Timeline items for this clan: the ledger, member moments (bounded),
   // and the derived presence moments.
   const items = [];
-  const subject = { subject_tag: tag, subject_name: name };
+  const clanSubject = { tag, kind: "clan", name };
+  const subject = {
+    subject_tag: tag,
+    subject_name: name,
+    subjects: [clanSubject],
+  };
+  // A story about a member names the member first, then the clan.
+  const aboutMember = (playerTag, playerName) =>
+    playerTag
+      ? [
+          { tag: playerTag, kind: "player", name: playerName ?? null },
+          clanSubject,
+        ]
+      : [clanSubject];
   const clanLedgerRows = ledger.filter((e) =>
     CLAN_LEDGER_KINDS.includes(e.event_type),
   );
@@ -2020,10 +2286,12 @@ export async function buildClanEntry(
         startMs: Date.parse(s.started_at),
         upToMs: Date.parse(s.ended_at),
       })),
+      // Through the sitting's last battle, as its facts are (#375: the
+      // facts said 24 battles and the evidence 20, cut at the crossing).
       ...standoutSessions.map((s) => ({
         player_tag: s.player_tag,
         startMs: Date.parse(s.started_at),
-        upToMs: Math.max(...s.newly.map((n) => n.at)),
+        upToMs: Date.parse(s.ended_at),
       })),
     ]),
   );
@@ -2036,16 +2304,23 @@ export async function buildClanEntry(
       e.event_type === "bracket_observed";
     items.push({
       ...subject,
+      subjects: warKind
+        ? [clanSubject]
+        : aboutMember(e.payload?.player_tag, e.payload?.name),
       at: iso(e.occurred_at ?? e.window_end),
       kind:
         e.event_type === "role_changed" ? "member_role_changed" : e.event_type,
       section: warKind ? "war" : "roster",
-      facts: e.payload,
+      facts:
+        e.event_type === "week_resolved"
+          ? { ...e.payload, members: weekMembers.get(weekKey(e.payload)) ?? [] }
+          : e.payload,
       [STORY]: ledgerStory("clan_event", clanFirstIds, e),
     });
   }
   const memberItems = memberRows.map((m) => ({
     ...subject,
+    subjects: aboutMember(m.player_tag, m.name),
     at: iso(m.occurred_at ?? m.window_end),
     observed_at: iso(m.evidence_observed_at ?? m.window_end),
     kind: m.event_type,
@@ -2072,7 +2347,7 @@ export async function buildClanEntry(
       ...subject,
       // The member is who played it; the item stays on the clan's
       // timeline (Gym #265: the text named the clan as the player).
-      subject_name: memberName.get(memberTag) ?? memberTag,
+      subjects: aboutMember(memberTag, memberName.get(memberTag)),
       at: sess.started_at,
       observed_at: sess.learned_at ?? sess.started_at,
       kind: "battle_session",
@@ -2093,8 +2368,13 @@ export async function buildClanEntry(
   for (const [i, sess] of standoutSessions.entries())
     items.push({
       ...subject,
+      subjects: aboutMember(sess.player_tag, memberName.get(sess.player_tag)),
+      // The sitting's start, as its battle_session says it (one story,
+      // one instant); each rung's own battle is in crossings[].at.
+      // The standout's moment is the battle that crossed its rung (each
+      // rung's own is in crossings[]); the sitting's span is in facts.
       at: iso(sess.newly[0].at),
-      observed_at: iso(sess.newly[0].learnedAt),
+      observed_at: iso(Math.max(...sess.newly.map((n) => n.learnedAt))),
       kind: "session_standout",
       section: "standouts",
       facts: {
@@ -2103,6 +2383,8 @@ export async function buildClanEntry(
         ...sessionFacts(sess),
         crossed: sess.crossed,
         newly: sess.newly.map((n) => n.label),
+        // Each rung with the value that crossed it and when (#373).
+        crossings: sess.crossings,
       },
       [STORY]: sittingStory(
         sess.player_tag,
@@ -2112,7 +2394,7 @@ export async function buildClanEntry(
       ...sessionEvidence(
         sess.player_tag,
         standoutAnchored[i],
-        iso(Math.max(...sess.newly.map((n) => n.at))),
+        sess.ended_at,
         sess.open,
       ),
     });
@@ -2120,6 +2402,7 @@ export async function buildClanEntry(
     for (const q of crossings)
       items.push({
         ...subject,
+        subjects: aboutMember(q.tag, q.name),
         at: q.at,
         kind: "quiet_crossed",
         section: "presence",
@@ -2137,6 +2420,7 @@ export async function buildClanEntry(
     for (const r of returns)
       items.push({
         ...subject,
+        subjects: aboutMember(r.tag, r.name),
         at: r.at,
         observed_at: r.observed_at,
         kind: "returned",
@@ -2161,23 +2445,50 @@ export async function buildClanEntry(
 /* The timeline                                                        */
 /* ------------------------------------------------------------------ */
 
+/** Account events of one kind this close together are one item (#376:
+ *  six connections revoked in one second were six items). */
+const ACCOUNT_BURST_MS = 60_000;
 async function accountItems(db, accountId, fromMs, toMs) {
   if (!accountId) return [];
+  // The app a connection event is about, by the name its client gave
+  // (the account's own administration: never published).
   const { rows } = await db.query(
-    `select event_id, kind, detail, created_at from account_event
-      where account_id = $1 and created_at >= ${ts(fromMs + 1)} and created_at < ${ts(toMs + 1)}
-      order by event_id`,
+    `select e.event_id, e.kind, e.detail, e.created_at, oc.client_name as app
+       from account_event e
+       left join oauth_family f on f.family_id::text = e.detail->>'family_id'
+       left join oauth_client oc
+         on oc.client_id = coalesce(f.client_id, e.detail->>'client_id')
+      where e.account_id = $1 and e.created_at >= ${ts(fromMs + 1)} and e.created_at < ${ts(toMs + 1)}
+      order by e.event_id`,
     [accountId],
   );
-  return rows.map((r) => ({
-    subject_tag: null,
-    subject_name: "your account",
-    at: iso(r.created_at),
-    kind: `account_${r.kind}`,
-    section: "account",
-    facts: r.detail ?? {},
-    [STORY]: moment("account_event", String(r.event_id)),
-  }));
+  const bursts = [];
+  for (const r of rows) {
+    const last = bursts.at(-1);
+    if (
+      last &&
+      last.kind === r.kind &&
+      r.created_at.getTime() - last.rows.at(-1).created_at.getTime() <=
+        ACCOUNT_BURST_MS
+    )
+      last.rows.push(r);
+    else bursts.push({ kind: r.kind, rows: [r] });
+  }
+  return bursts.map(({ kind, rows: group }) => {
+    const first = group[0];
+    const apps = [...new Set(group.map((r) => r.app).filter(Boolean))];
+    return {
+      subject_tag: null,
+      subject_name: "your account",
+      subjects: [],
+      at: iso(first.created_at),
+      observed_at: iso(group.at(-1).created_at),
+      kind: `account_${kind}`,
+      section: "account",
+      facts: { ...(first.detail ?? {}), count: group.length, apps },
+      [STORY]: moment("account_event", String(first.event_id)),
+    };
+  });
 }
 
 const ROLE_RANK_SQL = `max(case cm.role when 'leader' then 3 when 'coLeader' then 2
@@ -2218,7 +2529,14 @@ const FACT_KINDS_SEEN_BY = (visibility) =>
 export async function factItems(
   db,
   subjects,
-  { accountId, fromMs, toMs, interactive = false, clanMember = false },
+  {
+    accountId,
+    fromMs,
+    toMs,
+    interactive = false,
+    clanMember = false,
+    basis = "observed",
+  },
 ) {
   if (!accountId && !clanMember) return [];
   const clanTags = subjects.filter((s) => s.kind === "clan").map((s) => s.tag);
@@ -2230,6 +2548,7 @@ export async function factItems(
     return readFactItems(db, subjects, {
       fromMs,
       toMs,
+      basis,
       inClan: clanTags,
       leads: [],
       playerTags: [],
@@ -2263,6 +2582,7 @@ export async function factItems(
   return readFactItems(db, subjects, {
     fromMs,
     toMs,
+    basis,
     inClan,
     leads,
     playerTags,
@@ -2272,7 +2592,7 @@ export async function factItems(
 async function readFactItems(
   db,
   subjects,
-  { fromMs, toMs, inClan, leads, playerTags },
+  { fromMs, toMs, basis = "observed", inClan, leads, playerTags },
 ) {
   const { rows } = await db.query(
     `select f.*, cl.name as clan_name, p.name as player_name,
@@ -2282,7 +2602,8 @@ async function readFactItems(
        left join player p on p.player_tag = f.player_tag
        left join player ap on ap.player_tag = f.attester_tag
        left join player pp on pp.player_tag = f.detail->>'previous_player_tag'
-      where f.recorded_at >= ${ts(fromMs + 1)} and f.recorded_at < ${ts(toMs + 1)}
+      where f.recorded_at >= ${ts(fromMs + 1)}
+        and ${basis === "occurred" ? `f.occurred_at >= ${ts(fromMs + 1)} and f.occurred_at < ${ts(toMs + 1)}` : `f.recorded_at < ${ts(toMs + 1)}`}
         and ((f.subject_kind = 'clan' and f.fact_type = any($4::text[])
               and f.clan_tag = any($1::text[]))
           or (f.subject_kind = 'clan' and f.fact_type = any($5::text[])
@@ -2304,18 +2625,24 @@ async function readFactItems(
   );
   return rows.map((f) => {
     const clan = f.subject_kind === "clan";
+    const nickname = clan ? null : nicknames.get(f.player_tag);
     return {
       subject_tag: clan ? f.clan_tag : f.player_tag,
-      subject_name: clan
-        ? f.clan_name
-        : (nicknames.get(f.player_tag) ?? f.player_name),
+      subject_name: clan ? f.clan_name : f.player_name,
+      ...(nickname ? { nickname } : {}),
+      subjects: [
+        ...(f.player_tag
+          ? [{ tag: f.player_tag, kind: "player", name: f.player_name }]
+          : []),
+        ...(clan ? [{ tag: f.clan_tag, kind: "clan", name: f.clan_name }] : []),
+      ],
       at: iso(f.occurred_at),
       observed_at: iso(f.recorded_at),
       kind: f.fact_type,
       section: "attested",
       facts: {
         ...f.detail,
-        ...(clan && f.player_tag
+        ...(f.player_tag
           ? { player_tag: f.player_tag, name: f.player_name }
           : {}),
         // The name beside the tag of who held a place before (9.10.1): a
@@ -2373,6 +2700,9 @@ export async function buildTimeline(
     // No account: the clan's own channel, reading its clan's facts as a
     // member does (factItems).
     clanMember = false,
+    // What the window selects by (ledgerWindowSql): what the record
+    // learned in it, or what happened in it.
+    basis = "observed",
   },
 ) {
   const entries = [];
@@ -2392,6 +2722,7 @@ export async function buildTimeline(
         timezone,
         perf,
         memberTag,
+        basis,
       });
       entries.push(built.entry);
       items.push(...built.items);
@@ -2407,6 +2738,7 @@ export async function buildTimeline(
       toMs,
       timezone,
       perf,
+      basis,
     });
     const e = built.entry;
     const said =
@@ -2442,6 +2774,7 @@ export async function buildTimeline(
       toMs,
       interactive,
       clanMember,
+      basis,
     })),
   );
   items.sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
@@ -2533,33 +2866,186 @@ export async function buildTimeline(
   // cap (Gym #244: the cap counted items the filter then removed, so a
   // filtered reader got 18 of 50 items and a busy-window note).
   if (filter) items = items.filter(filter);
-  // Deduplicated oldest first (a moment is kept at its first instant),
-  // then served newest first.
-  items.reverse();
-  // The cap cuts in OBSERVED order, the order a window pages by (Gym
-  // #317): cut by `at`, an item learned 17 h late was the oldest left
-  // out, its observed_at became the boundary, and a continuation to that
-  // instant held the same item and served nothing, forever. Display order
-  // stays newest `at` first.
-  const observed = (it) => Date.parse(it.observed_at ?? it.at);
+  // One item per story (#374): a member followed as a player and seen on
+  // their clan's timeline was two items under one id.
+  items = mergeStories(items);
+  for (const it of items) it.sort_at = sortAt(it);
+  // Served newest first by when the story last moved (sort_at).
+  const sortMs = (it) => Date.parse(it.sort_at ?? it.at);
+  items.sort((a, b) => sortMs(b) - sortMs(a));
+  // The cap cuts in the order the window SELECTS by (Gym #317): cut by
+  // `at`, an item learned 17 h late was the oldest left out, its
+  // observed_at became the boundary, and a continuation to that instant
+  // held the same item and served nothing, forever. An occurred read
+  // selects by sort_at, so it cuts by it. Display order stays sort_at.
+  const pageMs = basis === "occurred" ? sortMs : observedOf;
   const { kept, cut } = capTimeline(
-    [...items].sort((a, b) => observed(b) - observed(a)),
+    [...items].sort((a, b) => pageMs(b) - pageMs(a)),
   );
   const keptSet = new Set(kept);
   more += cut.length;
   dropped.push(...cut);
   items = items.filter((it) => keptSet.has(it));
-  for (const it of items) it.text = itemText(it, timezone);
+  for (const it of items) finishItem(it, { fromMs, basis, timezone });
   return {
     window: { from: iso(fromMs), to: iso(toMs) },
     timeline: items,
     timeline_more: more,
-    timeline_dropped: dropped.map((it) =>
-      it.id === undefined ? told(it) : it,
-    ),
+    timeline_dropped: dropped.map((it) => {
+      const t = it.id === undefined ? told(it) : it;
+      t.sort_at ??= sortAt(t);
+      return t;
+    }),
     entries,
     quiet,
   };
+}
+
+const observedOf = (it) => Date.parse(it.observed_at ?? it.at);
+
+/** The instant a story sorts by: a sitting's last battle (it moved
+ *  then), every other item's own instant. */
+const SITTINGS = new Set(["battle_session", "session_standout"]);
+const sortAt = (it) =>
+  SITTINGS.has(it.kind) && it.facts?.ended_at ? it.facts.ended_at : it.at;
+
+/** Which copy of a story tells it: the richer kind, then the copy whose
+ *  facts say more. */
+const KIND_RANK = { session_standout: 1 };
+const copyRank = (it) => [
+  KIND_RANK[it.kind] ?? 0,
+  Object.keys(it.facts ?? {}).length,
+];
+const isPlayerCopy = (it) =>
+  Boolean(it.subject_tag) &&
+  it.subjects?.[0]?.kind === "player" &&
+  it.subjects[0].tag === it.subject_tag;
+
+/**
+ * Copies of one story (one id) become one item: the richer copy's kind
+ * and facts, every subject either copy names (players first, then
+ * clans), the highest revision, the latest observation and the latest
+ * evidence. subject_tag is the player when the reader follows the
+ * player, else the clan whose timeline holds it.
+ */
+export function mergeStories(items) {
+  const byId = new Map();
+  const out = [];
+  for (const it of items) {
+    const kept = byId.get(it.id);
+    if (!kept) {
+      byId.set(it.id, it);
+      out.push(it);
+      continue;
+    }
+    const [ra, rb] = [copyRank(kept), copyRank(it)];
+    const better = rb[0] > ra[0] || (rb[0] === ra[0] && rb[1] > ra[1]);
+    const base = better ? it : kept;
+    const other = better ? kept : it;
+    const player = [kept, it].find(isPlayerCopy);
+    const subjects = [];
+    for (const sub of [...(base.subjects ?? []), ...(other.subjects ?? [])])
+      if (!subjects.some((x) => x.tag === sub.tag && x.kind === sub.kind))
+        subjects.push(sub);
+    subjects.sort(
+      (a, b) => (a.kind === "player" ? 0 : 1) - (b.kind === "player" ? 0 : 1),
+    );
+    const evidenceFrom =
+      (other.evidence?.count ?? -1) > (base.evidence?.count ?? -1) ||
+      (other.evidence?.count === base.evidence?.count &&
+        (other.evidence?.observed_at ?? "") >
+          (base.evidence?.observed_at ?? ""))
+        ? other
+        : base;
+    const merged = {
+      ...base,
+      subject_tag: (player ?? base).subject_tag,
+      subject_name: (player ?? base).subject_name,
+      subjects,
+      revision: Math.max(base.revision ?? 1, other.revision ?? 1),
+      observed_at:
+        observedOf(other) > observedOf(base)
+          ? other.observed_at
+          : base.observed_at,
+      ...(evidenceFrom.evidence
+        ? {
+            evidence: evidenceFrom.evidence,
+            [EVIDENCE]: evidenceFrom[EVIDENCE],
+          }
+        : {}),
+    };
+    const nickname = player?.nickname ?? base.nickname ?? other.nickname;
+    delete merged.nickname;
+    if (nickname) merged.nickname = nickname;
+    for (const k of Reflect.ownKeys(kept)) delete kept[k];
+    Object.assign(kept, merged);
+  }
+  return out;
+}
+
+/** Who may see an item, by its source (DECISIONS: leaders-only items and
+ *  the account's own administration never leave Elixir; attested facts
+ *  by their type's rule): public is the game record; clan and player are
+ *  the attested rules; leaders and owner never publish. */
+export function itemVisibility(it) {
+  if (it.section === "account") return "owner";
+  if (it.section === "attested")
+    return ATTESTED_FACT_TYPES[it.kind]?.visibility ?? "owner";
+  return "public";
+}
+const PUBLISHABLE = new Set(["public", "clan", "player"]);
+/** Whether an item may leave Elixir (cross-posting reads this, server
+ *  side): usable as a buildTimeline filter, before the item is finished. */
+export const isPublishable = (it) => PUBLISHABLE.has(itemVisibility(it));
+
+/** The local reading of an instant in the reader's zone. */
+function localOf(isoAt, timeZone) {
+  const d = new Date(isoAt);
+  const parts = (tz) =>
+    Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      })
+        .formatToParts(d)
+        .map((x) => [x.type, x.value]),
+    );
+  let tz = timeZone;
+  let p;
+  try {
+    p = parts(tz);
+  } catch {
+    tz = "UTC";
+    p = parts(tz);
+  }
+  return {
+    date: `${p.year}-${p.month}-${p.day}`,
+    time: `${p.hour}:${p.minute}`,
+    weekday: p.weekday,
+    tz,
+  };
+}
+
+/** The fields every served item carries beside its story (#373-#376):
+ *  its instants in three forms, whether a poller learned it late, who
+ *  may see it, its facts' schema, and its time-free sentence. */
+function finishItem(it, { fromMs, basis, timezone }) {
+  it.sort_at ??= sortAt(it);
+  it.at_unix = Math.floor(Date.parse(it.at) / 1000);
+  it.local = localOf(it.at, timezone);
+  // Happened before the window that selected it: an observed read
+  // learned it late (it belongs to an earlier day's story).
+  it.late = basis === "observed" && Date.parse(it.sort_at) <= fromMs;
+  it.visibility = itemVisibility(it);
+  it.publishable = PUBLISHABLE.has(it.visibility);
+  it.schema = itemSchema(it.kind);
+  it.text = itemText(it);
 }
 
 /**

@@ -56,16 +56,20 @@ export async function buildTracking({ db, account, week, season }) {
   });
   // Each subject's newest moments, newest first: the timeline's own
   // order, a newsfeed (Jamie, 2026-09-23).
+  // A story about a followed member and their clan is one item naming
+  // both (11.8.0), told under each subject as before.
   const momentsFor = (tag) =>
     items
-      .filter((it) => it.subject_tag === tag)
+      .filter(
+        (it) =>
+          it.subject_tag === tag || it.subjects?.some((s) => s.tag === tag),
+      )
       .slice(0, 8)
-      .map((it) => {
-        const text = it.text ?? itemText(it, tz);
-        // "Wed 22:57 thingles joined Elixir Kings." -> when + the rest
-        const m = /^(\w{3} \d{2}:\d{2})\s+(.*)$/.exec(text);
-        return m ? { when: m[1], text: m[2] } : { when: "", text };
-      });
+      .map((it) => ({
+        // The sentence is time-free; the when is the reader's clock.
+        when: it.local ? `${it.local.weekday} ${it.local.time}` : "",
+        text: it.text ?? itemText(it, tz),
+      }));
   const players = entries.filter((e) => e.kind === "player_activity");
   const clans = entries.filter((e) => e.kind === "clan_activity");
   const one = (e) => ({

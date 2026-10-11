@@ -1,8 +1,8 @@
 /** One timeline item as one Discord line (Jamie, 2026-10-10: "plain
  *  lines", with links back to Elixir that never unfurl into embeds).
  *
- *  The item's own sentence (itemText), with its time lead replaced by a
- *  Discord timestamp, which every reader sees on their own clock. Names
+ *  The item's own sentence (itemText, time-free), after a Discord
+ *  timestamp, which every reader sees on their own clock. Names
  *  are escaped so a player called `*_King_*` cannot restyle the channel,
  *  and every link is a masked link around an angle-bracketed address,
  *  the form Discord never previews; the relay also sends the message
@@ -87,11 +87,9 @@ function discordStamp(atIso, nowMs = Date.now()) {
   return `<t:${Math.floor(ms / 1000)}:${style}>`;
 }
 
-// The time lead itemText writes ("Sat 11:18 "), which the stamp replaces.
-const LEAD = /^\s*(?:[A-Z][a-z]{2} \d{2}:\d{2} )?/;
-
-/** The item's own sentence, without its time lead. */
-export const itemSentence = (it) => String(it.text ?? "").replace(LEAD, "");
+/** The item's own sentence: time-free since 11.8.0, so the stamp is the
+ *  only time a post carries. */
+export const itemSentence = (it) => String(it.text ?? "");
 
 /** The item as one Discord message's content, at most 2,000 characters:
  *  the links survive a long sentence (a clan chat message), the

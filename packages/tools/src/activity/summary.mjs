@@ -36,19 +36,15 @@ function sinceLabel(fromIso, toIso, timeZone = "UTC") {
   );
 }
 
-/** "Sat 11:18" for an item's instant. */
-const atLabel = (iso, timeZone) =>
-  fmt(iso, timeZone, {
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+/** "Oct 14" for a day an item names (an away's end): a date, never a
+ *  clock time. */
+const dayLabel = (iso, timeZone) =>
+  fmt(iso, timeZone, { month: "short", day: "numeric" });
 
+// The in-game name: a reader's nickname is a field of its own, never
+// the text (#374; DECISIONS: nicknames are private).
 const who = (e) => {
-  const base = e.nickname
-    ? `${e.nickname} (${e.name ?? e.subject_tag})`
-    : (e.name ?? e.subject_tag);
+  const base = e.name ?? e.subject_tag;
   return e.relationship && e.relationship !== "primary"
     ? `${base}, ${e.relationship}`
     : base;
@@ -83,6 +79,12 @@ export function summarizePlayer(e, timeZone = "UTC") {
     const d = e.trophies.to - e.trophies.from;
     parts.push(
       `trophies ${num(e.trophies.from)} → ${num(e.trophies.to)} (${d > 0 ? "+" : ""}${d})`,
+    );
+  }
+  if (e.ranked?.rating) {
+    const d = e.ranked.rating.to - e.ranked.rating.from;
+    parts.push(
+      `ranked rating ${num(e.ranked.rating.from)} → ${num(e.ranked.rating.to)} (${d > 0 ? "+" : ""}${d})`,
     );
   }
   for (const n of e.notables) {
@@ -125,12 +127,12 @@ export function summarizePlayer(e, timeZone = "UTC") {
   }
   if (e.collection.unlocked.items.length > 0)
     parts.push(
-      `unlocked ${e.collection.unlocked.items.slice(0, 3).join(", ")}${e.collection.unlocked.more ? ` +${e.collection.unlocked.more}` : ""}`,
+      `unlocked ${e.collection.unlocked.items.slice(0, 3).join(", ")}${e.collection.unlocked.more ? ` +${e.collection.unlocked.more} more` : ""}`,
     );
   const forms = e.collection.forms_unlocked;
   if (forms?.items.length > 0)
     parts.push(
-      `unlocked ${forms.items.slice(0, 3).join(", ")}${forms.more ? ` +${forms.more}` : ""}`,
+      `unlocked ${forms.items.slice(0, 3).join(", ")}${forms.more ? ` +${forms.more} more` : ""}`,
     );
   if (e.war.battles > 0) parts.push(`${plural(e.war.battles, "war battle")}`);
   if (
@@ -174,7 +176,7 @@ export function clanSummaryParts(e, timeZone = "UTC") {
       .map((m) => m.name ?? m.tag)
       .join(
         ", ",
-      )}${list.items.length > cap || list.more ? ` +${list.items.length - cap + list.more}` : ""}`;
+      )}${list.items.length > cap || list.more ? ` +${Math.max(0, list.items.length - cap) + list.more} more` : ""}`;
   const moves = [];
   if (r.joined.items.length) moves.push(`joined: ${names(r.joined, 5)}`);
   if (r.left.items.length) moves.push(`left: ${names(r.left, 5)}`);
@@ -213,11 +215,12 @@ export function clanSummaryParts(e, timeZone = "UTC") {
   const p = e.presence;
   // What a capped list left out, said (Gym #303: "back:" named 3 of 12
   // returns with no +N and read as complete): the items past the cut
-  // plus the ones the list itself already counted as more.
+  // plus the ones the list itself already counted as more. "more", so it
+  // never reads as a number of the last name's (#376: "dez42 ... +1").
   const rest = (list, shown) => {
     const n =
       Math.max(0, (list?.items?.length ?? 0) - shown) + (list?.more ?? 0);
-    return n ? ` +${n}` : "";
+    return n ? ` +${n} more` : "";
   };
   // Grouped by the rung each member crossed (Gym #267: "quiet past 10d"
   // headed a list where four had crossed only 5 days).
@@ -279,7 +282,7 @@ export function clanSummaryParts(e, timeZone = "UTC") {
           .slice(0, 3)
           .map(
             (m) =>
-              `${m.name ?? m.tag} ${m.won}W-${m.lost}L${m.trophy_net ? ` ${m.trophy_net > 0 ? "+" : ""}${m.trophy_net}` : ""}${m.won_in_a_row >= 5 ? ` (${m.won_in_a_row} in a row)` : ""}`,
+              `${m.name ?? m.tag} ${m.won}W-${m.lost}L${m.trophy_net ? ` ${m.trophy_net > 0 ? "+" : ""}${m.trophy_net} trophies` : ""}${m.won_in_a_row >= 5 ? ` (${m.won_in_a_row} in a row)` : ""}`,
           )
           .join(", ")}${rest(s.sessions, 3)}`,
       );
@@ -319,6 +322,33 @@ function onBattle(b) {
   return `, on a ${score} win over ${who}${change}`;
 }
 
+const signed = (n) => `${n > 0 ? "+" : ""}${num(n)}`;
+/** A sitting's record, modes and ladder net. The net's peak rides along
+ *  when it differs, so a trophy rung the final net no longer shows is
+ *  still said (#373: crossed 150, ended at +117). */
+function sitting(f) {
+  const m = modes(f.by_mode);
+  const net =
+    typeof f.trophy_net === "number" && f.trophy_net !== 0
+      ? `, ${signed(f.trophy_net)} trophies`
+      : "";
+  const peak =
+    typeof f.trophy_net_peak === "number" &&
+    f.trophy_net_peak !== 0 &&
+    f.trophy_net_peak !== f.trophy_net
+      ? `${net ? "" : ", net 0"}, peak ${signed(f.trophy_net_peak)}`
+      : "";
+  return `${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net}${peak}`;
+}
+/** The decks and named events a sitting was played with. */
+function played(f) {
+  const decks = (f.decks ?? []).map((d) => `${d.label} (${d.battles})`);
+  const events = (f.events ?? [])
+    .filter((e) => e.name)
+    .map((e) => `${e.name} (${e.battles})`);
+  return `${decks.length ? `, with ${decks.join(", ")}` : ""}${events.length ? `, in ${events.join(", ")}` : ""}`;
+}
+
 /** Who attested a fact, and through which app. */
 const attester = (f) =>
   f.attested_by?.name ?? f.attested_by?.player_tag ?? f.attested_by?.app;
@@ -339,56 +369,44 @@ export function formLabel(f) {
 /** One timeline item as a sentence. */
 export function itemText(it, timeZone = "UTC") {
   const f = it.facts ?? {};
-  const at = it.at ? atLabel(it.at, timeZone) : "";
   const subj = it.subject_name ?? it.subject_tag ?? "";
   const member = f.name ?? f.player_tag ?? "";
   switch (it.kind) {
-    case "battle_session": {
-      const m = modes(f.by_mode);
-      const net =
-        typeof f.trophy_net === "number" && f.trophy_net !== 0
-          ? `, ${f.trophy_net > 0 ? "+" : ""}${f.trophy_net} trophies`
-          : "";
-      return `${at} ${subj} played a session of ${plural(f.battles, "battle")} (${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net})${f.open ? ", still going" : ""}.`;
-    }
+    case "battle_session":
+      return `${member || subj} played a session of ${plural(f.battles, "battle")} (${sitting(f)})${played(f)}${f.open ? ", still going" : ""}.`;
     case "session_standout": {
-      const m = modes(f.by_mode);
-      const net =
-        typeof f.trophy_net === "number" && f.trophy_net !== 0
-          ? `, ${f.trophy_net > 0 ? "+" : ""}${f.trophy_net} trophies`
-          : "";
       const run =
         f.won_in_a_row >= 5 ? `, ${f.won_in_a_row} wins in a row` : "";
-      return `${at} ${member || subj} played ${plural(f.battles, "battle")} in one sitting (${record(f.won, f.lost, f.drawn)}${m ? `; ${m}` : ""}${net}${run})${f.open ? ", still going" : ""}.`;
+      return `${member || subj} played ${plural(f.battles, "battle")} in one sitting (${sitting(f)}${run})${played(f)}${f.open ? ", still going" : ""}.`;
     }
     // The badge as a player says it: a level above 1 is a level taken,
     // the first level (or a one-off) is a badge earned.
     case "badge_earned":
-      return `${at} ${member || subj} ${f.level > 1 ? `took ${badgeLabel(f.badge ?? f.name)} to level ${f.level}` : `earned ${badgeLabel(f.badge ?? f.name)}`}.`;
+      return `${member || subj} ${f.level > 1 ? `took ${badgeLabel(f.badge ?? f.name)} to level ${f.level}` : `earned ${badgeLabel(f.badge ?? f.name)}`}.`;
     case "legendary_badge_earned":
-      return `${at} ${member || subj} earned ${badgeLabel(f.badge ?? f.name)}.`;
+      return `${member || subj} earned ${badgeLabel(f.badge ?? f.name)}.`;
     case "arena_changed":
-      return `${at} ${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}${onBattle(f.promoted_by)}.`;
+      return `${member || subj} moved to ${f.to_name ?? `arena ${f.to}`}${f.from_name ? ` from ${f.from_name}` : ""}${onBattle(f.promoted_by)}.`;
     case "ranked_promotion":
-      return `${at} ${member || subj} was promoted to ${f.to_name ?? `league ${f.to}`}${onBattle(f.promoted_by)}.`;
+      return `${member || subj} was promoted to ${f.to_name ?? `league ${f.to}`}${onBattle(f.promoted_by)}.`;
     case "best_trophies_band":
-      return `${at} ${member || subj} set a new best of ${num(f.best)} trophies${f.crossed_by ? `, crossing ${num(f.band)}${onBattle(f.crossed_by)}` : ""}.`;
+      return `${member || subj} set a new best of ${num(f.best)} trophies${f.crossed_by ? `, crossing ${num(f.band)}${onBattle(f.crossed_by)}` : ""}.`;
     case "collection_level_step":
-      return `${at} ${member || subj} reached collection level ${f.level}.`;
+      return `${member || subj} reached collection level ${f.level}.`;
     case "career_wins_step":
-      return `${at} ${member || subj} passed ${num(f.wins)} career wins${f.crossed_by ? `, the ${num(f.step)}th${onBattle(f.crossed_by)}` : ""}.`;
+      return `${member || subj} passed ${num(f.wins)} career wins${f.crossed_by ? `, the ${num(f.step)}th${onBattle(f.crossed_by)}` : ""}.`;
     case "card_unlocked":
-      return `${at} ${member || subj} unlocked ${f.card ?? f.name ?? `card ${f.card_id}`}.`;
+      return `${member || subj} unlocked ${f.card ?? f.name ?? `card ${f.card_id}`}.`;
     case "card_form_unlocked":
-      return `${at} ${member || subj} unlocked ${formLabel(f)}.`;
+      return `${member || subj} unlocked ${formLabel(f)}.`;
     case "member_joined":
-      return `${at} ${f.name ?? f.player_tag} joined ${subj}${f.role && f.role !== "member" ? ` as ${f.role}` : ""}.`;
+      return `${f.name ?? f.player_tag} joined ${subj}${f.role && f.role !== "member" ? ` as ${f.role}` : ""}.`;
     // The roster sees only that a member went, never whether they left or
     // were removed (Jamie, 2026-10-10: a kick is "was removed", never
     // "left", wherever the timeline is told), so the roster's own item
     // says neither; a leader's departure_classified says which.
     case "member_left":
-      return `${at} ${f.name ?? f.player_tag} departed ${subj}${f.role_at_departure ? ` (was ${f.role_at_departure})` : ""}.`;
+      return `${f.name ?? f.player_tag} departed ${subj}${f.role_at_departure ? ` (was ${f.role_at_departure})` : ""}.`;
     case "member_role_changed": {
       // Rows written before 3.0.0 carry no direction; the roles say it.
       const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
@@ -397,50 +415,50 @@ export function itemText(it, timeZone = "UTC") {
         ((rank[f.role_after] ?? 0) < (rank[f.role_before] ?? 0)
           ? "demoted"
           : "promoted");
-      return `${at} ${f.name ?? f.player_tag} was ${dir} from ${f.role_before} to ${f.role_after} in ${subj}.`;
+      return `${f.name ?? f.player_tag} was ${dir} from ${f.role_before} to ${f.role_after} in ${subj}.`;
     }
     case "bracket_observed": {
       const rivals = (f.rivals ?? []).map((r) => r.name ?? r.tag).join(", ");
-      return `${at} ${subj}'s week ${(f.section_index ?? 0) + 1}${f.is_colosseum ? " (Colosseum)" : ""} bracket: ${rivals || "no rivals recorded"}.`;
+      return `${subj}'s week ${(f.section_index ?? 0) + 1}${f.is_colosseum ? " (Colosseum)" : ""} bracket: ${rivals || "no rivals recorded"}.`;
     }
     case "race_finished":
-      return `${at} ${subj} crossed the finish line${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}.`;
+      return `${subj} crossed the finish line${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}.`;
     case "week_resolved":
-      return `${at} ${subj} finished week ${(f.section_index ?? 0) + 1}${f.rank ? ` in place ${f.rank}` : ""}${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}${typeof f.trophy_change === "number" ? ` (${f.trophy_change > 0 ? "+" : ""}${f.trophy_change} war trophies)` : ""}.`;
+      return `${subj} finished week ${(f.section_index ?? 0) + 1}${f.rank ? ` in place ${f.rank}` : ""}${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}${typeof f.trophy_change === "number" ? ` (${f.trophy_change > 0 ? "+" : ""}${f.trophy_change} war trophies)` : ""}.`;
     case "clan_joined":
-      return `${at} ${subj} joined ${f.clan_name ?? f.clan_tag}.`;
+      return `${subj} joined ${f.clan_name ?? f.clan_tag}.`;
     case "clan_left":
-      return `${at} ${subj} departed ${f.clan_name ?? f.clan_tag}${f.role && f.role !== "member" ? ` (was ${f.role})` : ""}.`;
+      return `${subj} departed ${f.clan_name ?? f.clan_tag}${f.role && f.role !== "member" ? ` (was ${f.role})` : ""}.`;
     case "quiet_crossed":
-      return `${at} ${member || subj} passed ${f.rung} recorded-quiet days${f.days_since_poll ? ` (last polled ${plural(f.days_since_poll, "day")} ago)` : ""}.`;
+      return `${member || subj} passed ${f.rung} recorded-quiet days${f.days_since_poll ? ` (last polled ${plural(f.days_since_poll, "day")} ago)` : ""}.`;
     case "returned":
-      return `${at} ${member || subj} played again after ${plural(f.after_days, "quiet day")}.`;
+      return `${member || subj} played again after ${plural(f.after_days, "quiet day")}.`;
     // Attested facts (9.2.0): said by a person through a family app, and
     // said as theirs.
     case "departure_classified":
-      return `${at} ${said(f)} ${member} ${f.kind === "kick" ? "was removed from" : "left"} ${subj}${f.kind === "kick" ? "" : " on their own"}.`;
+      return `${said(f)} ${member} ${f.kind === "kick" ? "was removed from" : "left"} ${subj}${f.kind === "kick" ? "" : " on their own"}.`;
     case "role_change_made": {
       const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
       const dir =
         (rank[f.to] ?? 0) < (rank[f.from] ?? 0) ? "demoted" : "promoted";
-      return `${at} ${by(f)} ${dir} ${member} from ${f.from} to ${f.to} in ${subj}.`;
+      return `${by(f)} ${dir} ${member} from ${f.from} to ${f.to} in ${subj}.`;
     }
     case "award_granted":
-      return `${at} ${subj} gave ${member} ${f.award}${f.place ? ` (place ${f.place})` : ""} for season ${f.season_id}${via(f)}.`;
+      return `${subj} gave ${member} ${f.award}${f.place ? ` (place ${f.place})` : ""} for season ${f.season_id}${via(f)}.`;
     case "member_away":
-      return `${at} ${member} said they are away from ${subj}${f.until ? ` until ${atLabel(f.until, timeZone)}` : ""}${via(f)}.`;
+      return `${member} said they are away from ${subj}${f.until ? ` until ${dayLabel(f.until, timeZone)}` : ""}${via(f)}.`;
     case "clan_message":
       return f.channel === "leader_message"
-        ? `${at} ${by(f)} sent ${subj} a Clan Leader Message${f.title ? `, "${f.title}"` : ""}: "${f.body}"`
-        : `${at} ${by(f)} said in ${subj}'s clan chat: "${f.body}"`;
+        ? `${by(f)} sent ${subj} a Clan Leader Message${f.title ? `, "${f.title}"` : ""}: "${f.body}"`
+        : `${by(f)} said in ${subj}'s clan chat: "${f.body}"`;
     case "personal_record":
-      return `${at} ${subj} set a new personal best in ${f.game}: ${num(f.score)}${typeof f.previous_best === "number" ? ` (was ${num(f.previous_best)})` : ""}${via(f)}.`;
+      return `${subj} set a new personal best in ${f.game}: ${num(f.score)}${typeof f.previous_best === "number" ? ` (was ${num(f.previous_best)})` : ""}${via(f)}.`;
     case "award_standing": {
       const unit =
         { points: "points", donations: "donations", war_decks: "war decks" }[
           f.unit
         ] ?? f.unit;
-      return `${at} ${member} stands ${f.place === 1 ? "first" : `in place ${f.place}`} in ${subj}'s ${f.award} for season ${f.season_id} with ${num(f.value)} ${unit}${f.previous_player_tag ? `, taking it from ${f.previous_name ?? f.previous_player_tag}` : ""}${via(f)}.`;
+      return `${member} stands ${f.place === 1 ? "first" : `in place ${f.place}`} in ${subj}'s ${f.award} for season ${f.season_id} with ${num(f.value)} ${unit}${f.previous_player_tag ? `, taking it from ${f.previous_name ?? f.previous_player_tag}` : ""}${via(f)}.`;
     }
     default:
       if (it.kind.startsWith("account_")) {
@@ -463,8 +481,16 @@ export function itemText(it, timeZone = "UTC") {
               ? `, automatically: ${f.player_tag}'s clan`
               : ", automatically"
             : "";
-        return `${at} your account: ${what}${detail ? ` (${detail}${auto})` : ""}.`;
+        // A burst is one item (#376): six connections revoked in a second
+        // said once, with the apps they were.
+        const apps = f.apps?.length ? f.apps.join(", ") : "";
+        if (f.count > 1)
+          return `your account: ${what}, ${f.count} at once${apps ? ` (${apps})` : ""}.`;
+        const named = [apps, detail ? `${detail}${auto}` : ""]
+          .filter(Boolean)
+          .join(", ");
+        return `your account: ${what}${named ? ` (${named})` : ""}.`;
       }
-      return `${at} ${subj}: ${it.kind.replaceAll("_", " ")}.`;
+      return `${subj}: ${it.kind.replaceAll("_", " ")}.`;
   }
 }

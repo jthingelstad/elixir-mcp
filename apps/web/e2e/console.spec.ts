@@ -324,11 +324,11 @@ test.describe("signed in", () => {
     await rendered(page);
   });
 
-  test("a form unlock reads as its sentence, the item's time lead dropped (9.14.0, #110)", async ({
+  test("a form unlock reads as its sentence beside its own WHEN column (9.14.0, #110)", async ({
     page,
   }) => {
-    // The server writes the text (itemText); the console shows it after
-    // its own WHEN column, so the "Sun 05:05" lead is stripped.
+    // The server writes the text (itemText), time-free since 11.8.0
+    // (#373); the console shows it after its own WHEN column.
     await mockApi(page, {
       ...signedIn(),
       "GET /api/me/timeline": [
@@ -342,7 +342,7 @@ test.describe("signed in", () => {
               subject_name: "King Thing",
               kind: "card_form_unlocked",
               section: "collection",
-              text: "Sun 05:05 King Thing unlocked Hero Valkyrie.",
+              text: "King Thing unlocked Hero Valkyrie.",
               facts: {
                 card: "Valkyrie",
                 card_id: 26000011,

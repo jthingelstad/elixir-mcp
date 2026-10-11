@@ -51,7 +51,9 @@ Timeline items carry `observed_at`, the moment the recorder noticed the
 change, which is "observed between two polls": a member who left at 09:05
 and was noticed at 09:15 is observed at 09:15. Their `at` is when the moment
 happened, the battle's own instant where the record holds the battle that
-did it ([Timeline](/docs/timeline)).
+did it, with `at_unix` and `local` (the reader's date, time and weekday)
+beside it; a timeline item's `text` never carries a time
+([Timeline](/docs/timeline)).
 
 ## The game day
 
@@ -156,7 +158,8 @@ Every windowed tool takes the same bounds and echoes what it used:
 
 - `from` is inclusive and `to` exclusive, except on the daily series (whole
   game days, both ends included; below) and `elixir_timeline`, which selects
-  over (`from`, `to`] by when the record observed an item. Each is an ISO
+  over (`from`, `to`], by when an item happened or (a poller's read) when
+  the record observed it. Each is an ISO
   8601 instant, taken as given, or a date `YYYY-MM-DD`, resolved in a
   timezone. A date-only `from`
   is local midnight; a date-only `to` covers **that whole day**, ending at the

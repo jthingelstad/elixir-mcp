@@ -26,7 +26,7 @@ test("the time lead becomes a Discord timestamp, and every link is masked around
       subject_tag: "#J2RGCRVG",
       subject_name: "POAP KINGS",
       section: "standouts",
-      text: "Sat 11:18 King_Thing was promoted to Champion on a battle.",
+      text: "King_Thing was promoted to Champion on a battle.",
       facts: {
         player_tag: "#20JJJ2CCRU",
         name: "King_Thing",
@@ -57,7 +57,7 @@ test("a race week links its week; an older item carries its date", () => {
     subject_tag: "#J2RGCRVG",
     subject_name: "POAP KINGS",
     section: "war",
-    text: "Mon 05:00 POAP KINGS finished week 2 in place 1.",
+    text: "POAP KINGS finished week 2 in place 1.",
     facts: { season_id: 136, section_index: 1 },
   };
   assert.deepEqual(
@@ -82,7 +82,7 @@ test("a long sentence is cut, its links kept, inside Discord's 2,000 characters"
       subject_tag: "#J2RGCRVG",
       subject_name: "POAP KINGS",
       section: "attested",
-      text: `Sat 12:00 A leader said in POAP KINGS's clan chat: "${"word ".repeat(600)}"`,
+      text: `A leader said in POAP KINGS's clan chat: "${"word ".repeat(600)}"`,
       facts: {},
     },
     { nowMs: NOW, clanTags: new Set(["#J2RGCRVG"]) },

@@ -36,6 +36,7 @@ import {
 } from "@elixir-mcp/clan-engine";
 import {
   buildTimeline,
+  isPublishable,
   timelineNews,
 } from "@elixir-mcp/tools/activity/entries";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
@@ -149,8 +150,9 @@ async function syncLocked(
   let toMs = now;
   const subjects = [{ kind: "clan", tag: clanTag, scope: "comprehensive" }];
   const wanted = (it) =>
-    activityShareable(it, categories) ||
-    (it.kind === DEPARTURE_CLASSIFIED && categories.members);
+    isPublishable(it) &&
+    (activityShareable(it, categories) ||
+      (it.kind === DEPARTURE_CLASSIFIED && categories.members));
   let narrowed = false;
   let items = [];
   if (
