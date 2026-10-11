@@ -1899,7 +1899,8 @@
     "args": {
       "from": "2026-09-21T16:37:10.458Z",
       "to": "2026-09-22T16:37:10.458Z",
-      "mark_read": false
+      "mark_read": false,
+      "basis": "observed"
     },
     "request_id": "e8d9967a-038d-49cd-934e-de6bdf14b552",
     "assert": [
@@ -1920,7 +1921,8 @@
     "args": {
       "from": "2026-09-21T16:37:10.458Z",
       "to": "2026-09-22T16:37:10.458Z",
-      "mark_read": false
+      "mark_read": false,
+      "basis": "observed"
     },
     "request_id": "e8d9967a-038d-49cd-934e-de6bdf14b552",
     "assert": [
@@ -1944,7 +1946,8 @@
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z",
       "mark_read": false,
-      "kinds": ["quiet_crossed"]
+      "kinds": ["quiet_crossed"],
+      "basis": "observed"
     },
     "request_id": "179e5c6f-234d-49b0-8d24-c5740a8e1978",
     "for_each": "timeline[]",
@@ -1966,7 +1969,8 @@
     "args": {
       "from": "2026-09-21T16:37:10.458Z",
       "to": "2026-09-22T16:37:10.458Z",
-      "mark_read": false
+      "mark_read": false,
+      "basis": "observed"
     },
     "request_id": "e8d9967a-038d-49cd-934e-de6bdf14b552",
     "for_each": "timeline[]",
@@ -1990,7 +1994,8 @@
       "to": "2026-09-23T16:40:30.377Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"],
+      "basis": "observed"
     },
     "request_id": "a7abba56-3041-40cc-88dc-471a10af52d1",
     "assert": [
@@ -2015,7 +2020,8 @@
       "to": "2026-09-23T16:40:30.377Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"],
+      "basis": "observed"
     },
     "request_id": "839e38ea-601a-4f8d-a931-b7fbd30bd775",
     "when": {
@@ -2044,7 +2050,8 @@
         "best_trophies_band",
         "badge_earned",
         "card_unlocked"
-      ]
+      ],
+      "basis": "observed"
     },
     "request_id": "fd15d0de-b992-4eeb-bbe2-75bdff45674e",
     "assert": [
@@ -2062,7 +2069,8 @@
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-17T00:00:00Z",
       "mark_read": false,
-      "kinds": ["collection_level_step"]
+      "kinds": ["collection_level_step"],
+      "basis": "observed"
     },
     "request_id": "dab6f00d-4a6c-44ca-bb21-1af675377c0f",
     "for_each": "timeline[]",
@@ -2081,7 +2089,8 @@
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-15T00:00:00Z",
       "mark_read": false,
-      "kinds": ["collection_level_step", "ranked_promotion"]
+      "kinds": ["collection_level_step", "ranked_promotion"],
+      "basis": "observed"
     },
     "request_id": "18073d4b-e8b8-40af-8d7b-00e3b4f0681f",
     "assert": [
@@ -2103,7 +2112,8 @@
       "from": "2026-09-18T00:00:00Z",
       "to": "2026-09-21T00:00:00Z",
       "mark_read": false,
-      "kinds": ["collection_level_step"]
+      "kinds": ["collection_level_step"],
+      "basis": "observed"
     },
     "request_id": "d37770b2-4cd4-4dff-b2d8-8ca5a88b12ed",
     "for_each": "timeline[]",
@@ -2124,7 +2134,8 @@
       "to": "2026-09-23T16:40:30.377Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"],
+      "basis": "observed"
     },
     "request_id": "a7abba56-3041-40cc-88dc-471a10af52d1",
     "assert": [
@@ -2224,7 +2235,8 @@
       "to": "2026-09-23",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"],
+      "basis": "observed"
     },
     "request_id": "9a28d868-e508-416f-8749-e766e5bd2f2a",
     "assert": [
@@ -4498,7 +4510,8 @@
         "best_trophies_band",
         "career_wins_step",
         "session_standout"
-      ]
+      ],
+      "basis": "observed"
     },
     "request_id": "3d5d6242-c3f2-4742-9b64-03306ff2b831",
     "when": {
@@ -4520,7 +4533,8 @@
       "to": "2026-09-23T21:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["session_standout"]
+      "kinds": ["session_standout"],
+      "basis": "observed"
     },
     "request_id": "f44406db-a9ea-42ae-a265-de892e3676c4",
     "for_each": "timeline[]",
@@ -4546,7 +4560,8 @@
       "to": "2026-09-23T16:40:30.377Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"]
+      "kinds": ["badge_earned", "collection_level_step", "card_unlocked"],
+      "basis": "observed"
     },
     "request_id": "3a5fa4e3-a1a3-4520-863e-62cea66f5a23",
     "when": {
@@ -4567,7 +4582,8 @@
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z",
       "mark_read": false,
-      "kinds": ["quiet_crossed"]
+      "kinds": ["quiet_crossed"],
+      "basis": "observed"
     },
     "request_id": "c5cb48c3-9c69-4b5c-ac43-ba9ed97d8a69",
     "for_each": "timeline[]",
@@ -4586,7 +4602,8 @@
       "from": "2026-09-16T00:00:00Z",
       "to": "2026-09-23T21:00:00Z",
       "mark_read": false,
-      "kinds": ["quiet_crossed", "returned"]
+      "kinds": ["quiet_crossed", "returned"],
+      "basis": "observed"
     },
     "request_id": "d9c9f66a-b333-4fe3-9f6d-a4306f02db2b",
     "for_each": "timeline[]",
@@ -4611,7 +4628,8 @@
     "args": {
       "days": 7,
       "mark_read": false,
-      "kinds": ["quiet_crossed"]
+      "kinds": ["quiet_crossed"],
+      "basis": "observed"
     },
     "request_id": "9e858633-1a61-4fa2-90ed-2cd2d106c7ba",
     "for_each": "timeline[]",
@@ -4631,7 +4649,8 @@
       "to": "2026-09-23T21:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["session_standout"]
+      "kinds": ["session_standout"],
+      "basis": "observed"
     },
     "request_id": "196a2740-1cba-40df-81ac-3b7106c3ce1f",
     "when": {
@@ -4656,7 +4675,8 @@
       "to": "2026-09-21T00:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["session_standout"]
+      "kinds": ["session_standout"],
+      "basis": "observed"
     },
     "request_id": "bf54efa0-ebba-41a1-acbc-e2182a5ee86a",
     "when": {
@@ -4682,7 +4702,8 @@
       "to": "2026-09-23T21:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["session_standout"]
+      "kinds": ["session_standout"],
+      "basis": "observed"
     },
     "request_id": "f44406db-a9ea-42ae-a265-de892e3676c4",
     "assert": [
@@ -4706,7 +4727,8 @@
       "from": "2026-09-14T10:00:00Z",
       "to": "2026-09-21T10:00:00Z",
       "mark_read": false,
-      "sections": ["donations"]
+      "sections": ["donations"],
+      "basis": "observed"
     },
     "request_id": "c1298af8-be8e-46b5-8eb9-326c07e6abb2",
     "assert": [
@@ -4762,7 +4784,8 @@
       "from": "2026-09-07T10:00:00Z",
       "to": "2026-09-14T10:00:00Z",
       "mark_read": false,
-      "sections": ["donations"]
+      "sections": ["donations"],
+      "basis": "observed"
     },
     "request_id": "77c30628-4755-4263-957b-7e2dc3d00c2a",
     "assert": [
@@ -4782,7 +4805,8 @@
       "to": "2026-09-21T09:59:59Z",
       "mark_read": false,
       "sections": ["donations"],
-      "verbosity": "full"
+      "verbosity": "full",
+      "basis": "observed"
     },
     "request_id": "c48852d0-ebda-472e-b443-86cc69cf5ce6",
     "assert": [
@@ -4839,7 +4863,8 @@
         "best_trophies_band",
         "badge_earned",
         "card_unlocked"
-      ]
+      ],
+      "basis": "observed"
     },
     "request_id": "427c317f-3521-48fb-ac77-1cf9ac446933",
     "assert": [
@@ -4946,7 +4971,8 @@
     "args": {
       "from": "2026-09-21T16:37:10.458Z",
       "to": "2026-09-22T16:37:10.458Z",
-      "mark_read": false
+      "mark_read": false,
+      "basis": "observed"
     },
     "request_id": "344f01d9-65c5-4cf2-b757-29f9d5e2556f",
     "assert": [
@@ -4968,7 +4994,8 @@
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z",
       "mark_read": false,
-      "kinds": ["quiet_crossed"]
+      "kinds": ["quiet_crossed"],
+      "basis": "observed"
     },
     "request_id": "c5cb48c3-9c69-4b5c-ac43-ba9ed97d8a69",
     "for_each": "timeline[]",
@@ -4993,7 +5020,8 @@
         "best_trophies_band",
         "badge_earned",
         "card_unlocked"
-      ]
+      ],
+      "basis": "observed"
     },
     "request_id": "427c317f-3521-48fb-ac77-1cf9ac446933",
     "assert": [
@@ -7182,7 +7210,8 @@
       "to": "2026-09-18T08:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["session_standout"]
+      "kinds": ["session_standout"],
+      "basis": "observed"
     },
     "request_id": "444edc7b-1960-4d83-8f9f-a82eacb5edd0",
     "assert": [
@@ -7202,7 +7231,8 @@
       "to": "2026-09-23T00:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["session_standout"]
+      "kinds": ["session_standout"],
+      "basis": "observed"
     },
     "request_id": "ce467ce2-d2e7-4658-9e1e-1cf07676fb29",
     "assert": [
@@ -7223,7 +7253,8 @@
       "from": "2026-09-17T12:00:00Z",
       "to": "2026-09-18T12:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "7a8644aa-c109-4774-b376-ec59d09fb2fe",
     "assert": [
@@ -7244,7 +7275,8 @@
       "from": "2026-09-12T00:00:00Z",
       "to": "2026-09-15T00:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "ba75f8b3-e6c3-483f-bfb3-732ca0152fa1",
     "assert": [
@@ -7266,7 +7298,8 @@
       "from": "2026-09-19T12:00:00Z",
       "to": "2026-09-20T12:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "1f869311-4bae-4986-9e5c-2045f2637276",
     "assert": [
@@ -7393,7 +7426,8 @@
       "from": "2026-09-03T00:00:00Z",
       "to": "2026-09-14T00:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "c7e18f15-3dd8-49ec-9a5f-4f85af6da7e8",
     "assert": [
@@ -7410,7 +7444,8 @@
     "args": {
       "from": "2026-08-08T00:00:00Z",
       "to": "2026-09-07T00:00:00Z",
-      "mark_read": false
+      "mark_read": false,
+      "basis": "observed"
     },
     "request_id": "8f2a4a8a-ca4f-46d2-82ae-a93184048035",
     "when": {
@@ -7432,7 +7467,8 @@
       "from": "2026-09-19T00:00:00Z",
       "to": "2026-09-22T00:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "21281a61-3cb8-48f8-8e0b-4d101f60fa37",
     "assert": [
@@ -7488,7 +7524,8 @@
       "from": "2026-09-07T10:00:00Z",
       "to": "2026-09-14T10:00:00Z",
       "mark_read": false,
-      "sections": ["donations"]
+      "sections": ["donations"],
+      "basis": "observed"
     },
     "request_id": "feb36904-2138-4cfb-b008-2eec8ea488ac",
     "assert": [
@@ -7584,7 +7621,8 @@
       "from": "2026-09-16T00:00:00Z",
       "to": "2026-09-23T21:00:00Z",
       "mark_read": false,
-      "kinds": ["quiet_crossed", "returned"]
+      "kinds": ["quiet_crossed", "returned"],
+      "basis": "observed"
     },
     "request_id": "54f633b9-dfa6-44cb-8be4-e150ff0e1970",
     "for_each": "timeline[]",
@@ -7610,7 +7648,8 @@
       "from": "2026-09-14T10:00:00Z",
       "to": "2026-09-21T10:00:00Z",
       "mark_read": false,
-      "sections": ["donations"]
+      "sections": ["donations"],
+      "basis": "observed"
     },
     "request_id": "0eb41921-02df-48e9-aa39-457b2299882c",
     "assert": [
@@ -9325,7 +9364,8 @@
         "week_resolved",
         "quiet_crossed",
         "returned"
-      ]
+      ],
+      "basis": "observed"
     },
     "request_id": "116b6f17-fc6d-4440-8ffd-0976897f1daf",
     "assert": [
@@ -9368,7 +9408,8 @@
         "week_resolved",
         "quiet_crossed",
         "returned"
-      ]
+      ],
+      "basis": "observed"
     },
     "request_id": "061678e7-c5d5-4562-9598-706f041de625",
     "assert": [
@@ -9389,7 +9430,8 @@
     "args": {
       "from": "2026-09-23T04:43:00.427Z",
       "to": "2026-09-23T17:06:27.573Z",
-      "mark_read": false
+      "mark_read": false,
+      "basis": "observed"
     },
     "request_id": "dabf5a77-c0fa-4e2b-8b31-984778d3a32b",
     "assert": [
@@ -9444,7 +9486,8 @@
       "from": "2026-09-23T20:00:00Z",
       "to": "2026-09-23T23:00:00Z",
       "mark_read": false,
-      "kinds": ["member_joined", "member_left"]
+      "kinds": ["member_joined", "member_left"],
+      "basis": "observed"
     },
     "request_id": "3f9d649d-64dd-4734-850c-f07b27d96943",
     "assert": [
@@ -9574,7 +9617,8 @@
       "to": "2026-09-19T00:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["quiet_crossed", "returned"]
+      "kinds": ["quiet_crossed", "returned"],
+      "basis": "observed"
     },
     "request_id": "2571548c-d304-4346-b133-5449ecbd4931",
     "assert": [
@@ -9599,7 +9643,8 @@
       "from": "2026-08-08T00:00:00Z",
       "to": "2026-08-15T00:00:00Z",
       "mark_read": false,
-      "sections": ["activity"]
+      "sections": ["activity"],
+      "basis": "observed"
     },
     "request_id": "8eb24eb7-0024-4fc7-8517-0e4d6b828784",
     "assert": [
@@ -9618,7 +9663,8 @@
       "from": "2026-09-01T00:00:00Z",
       "to": "2026-09-07T00:00:00Z",
       "mark_read": false,
-      "sections": ["activity"]
+      "sections": ["activity"],
+      "basis": "observed"
     },
     "request_id": "517f7c78-7748-4242-8673-5d20d047a9d6",
     "assert": [
@@ -9637,7 +9683,8 @@
     "args": {
       "from": "2026-09-23T04:43:00.427Z",
       "to": "2026-09-24T04:43:00.427Z",
-      "mark_read": false
+      "mark_read": false,
+      "basis": "observed"
     },
     "request_id": "c25d1b62-35f1-4c5b-a83a-0a055b5a77a0",
     "assert": [
@@ -9905,7 +9952,8 @@
       "to": "2026-09-11T00:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["quiet_crossed", "returned"]
+      "kinds": ["quiet_crossed", "returned"],
+      "basis": "observed"
     },
     "request_id": "dfdb6cee-83ee-44b7-a3b6-85d93092991d",
     "assert": [
@@ -9925,7 +9973,8 @@
       "to": "2026-09-10T00:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["quiet_crossed", "returned"]
+      "kinds": ["quiet_crossed", "returned"],
+      "basis": "observed"
     },
     "request_id": "374c4b6b-f6e0-4efe-92fd-0aead7db9a8d",
     "assert": [
@@ -9943,7 +9992,8 @@
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2"
+      "player_tag": "#C920YGLC2",
+      "basis": "observed"
     },
     "request_id": "e24e96c1-5980-4a0e-baaa-546a4862b3df",
     "assert": [
@@ -9965,7 +10015,8 @@
       "from": "2026-09-14T00:00:00Z",
       "to": "2026-09-21T00:00:00Z",
       "mark_read": false,
-      "kinds": ["ranked_promotion"]
+      "kinds": ["ranked_promotion"],
+      "basis": "observed"
     },
     "request_id": "c7cd0f62-087b-47db-a195-ae7406c278cf",
     "assert": [
@@ -9986,7 +10037,8 @@
     "args": {
       "from": "2026-09-23T04:43:00.427Z",
       "to": "2026-09-24T04:43:00.427Z",
-      "mark_read": false
+      "mark_read": false,
+      "basis": "observed"
     },
     "request_id": "c25d1b62-35f1-4c5b-a83a-0a055b5a77a0",
     "assert": [
@@ -10084,7 +10136,8 @@
       "from": "2026-09-24T03:00:00Z",
       "to": "2026-09-24T04:00:00Z",
       "mark_read": false,
-      "kinds": ["ranked_promotion", "session_standout"]
+      "kinds": ["ranked_promotion", "session_standout"],
+      "basis": "observed"
     },
     "request_id": "058cd3fb-42c3-4dab-91c6-05946bcd3ed5",
     "assert": [
@@ -10148,7 +10201,8 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#20JJJ2CCRU"
+      "player_tag": "#20JJJ2CCRU",
+      "basis": "observed"
     },
     "request_id": "586c4c0e-869c-4e7d-ab1c-8c60bccf9d3f",
     "assert": [
@@ -10169,7 +10223,8 @@
       "days": 7,
       "mark_read": false,
       "player_tag": "#VJG0J29QP",
-      "verbosity": "compact"
+      "verbosity": "compact",
+      "basis": "observed"
     },
     "request_id": "0990704b-be32-44e1-b535-f44cffa7f397",
     "assert": [
@@ -10189,7 +10244,8 @@
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
       "player_tag": "#YC8LLR8Q2",
-      "verbosity": "compact"
+      "verbosity": "compact",
+      "basis": "observed"
     },
     "request_id": "58777005-b4d1-4869-82aa-6dabc27abe83",
     "for_each": "timeline[]",
@@ -10208,7 +10264,8 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#20JJJ2CCRU"
+      "player_tag": "#20JJJ2CCRU",
+      "basis": "observed"
     },
     "request_id": "586c4c0e-869c-4e7d-ab1c-8c60bccf9d3f",
     "assert": [
@@ -10227,7 +10284,8 @@
       "from": "2026-09-10T10:00:00Z",
       "to": "2026-09-11T10:00:00Z",
       "mark_read": false,
-      "sections": ["activity", "standouts"]
+      "sections": ["activity", "standouts"],
+      "basis": "observed"
     },
     "request_id": "cacd92da-cf81-43b6-98f8-b0be35112a23",
     "assert": [
@@ -10557,7 +10615,8 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#JYRQ8U92C"
+      "player_tag": "#JYRQ8U92C",
+      "basis": "observed"
     },
     "request_id": "79423f25-e973-40c0-8a4f-cc43d96fb110",
     "for_each": "timeline[]",
@@ -10581,7 +10640,8 @@
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
       "player_tag": "#YC8LLR8Q2",
-      "kinds": ["badge_earned", "ranked_promotion", "session_standout"]
+      "kinds": ["badge_earned", "ranked_promotion", "session_standout"],
+      "basis": "observed"
     },
     "request_id": "bb8fd1b8-44b3-4fcc-b864-3eaf9cb2deb4",
     "for_each": "timeline[]",
@@ -10600,7 +10660,8 @@
       "from": "2026-09-21T12:00:00Z",
       "to": "2026-09-22T12:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "6015f427-f4ee-40e1-8e23-bdf65b00a066",
     "assert": [
@@ -10619,7 +10680,8 @@
       "from": "2026-09-15T12:00:00Z",
       "to": "2026-09-16T12:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "7d2a4440-6b0a-412e-9e5c-95eb55db13c5",
     "assert": [
@@ -10641,7 +10703,8 @@
       "from": "2026-09-17T15:00:00Z",
       "to": "2026-09-18T15:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "f256de56-e2f7-4775-bbc4-32c524495f47",
     "assert": [
@@ -10662,7 +10725,8 @@
       "from": "2026-09-14T10:00:00Z",
       "to": "2026-09-21T10:00:00Z",
       "mark_read": false,
-      "sections": ["activity", "roster", "war", "donations", "presence"]
+      "sections": ["activity", "roster", "war", "donations", "presence"],
+      "basis": "observed"
     },
     "request_id": "1c1fa61f-937c-4c9c-8cb7-50e8492677f0",
     "assert": [
@@ -10681,7 +10745,8 @@
       "from": "2026-09-23T15:00:00Z",
       "to": "2026-09-23T16:00:00Z",
       "mark_read": false,
-      "sections": ["presence"]
+      "sections": ["presence"],
+      "basis": "observed"
     },
     "request_id": "782c8078-5472-445e-ba64-9ca1a556d7c6",
     "assert": [
@@ -10768,7 +10833,8 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2"
+      "player_tag": "#C920YGLC2",
+      "basis": "observed"
     },
     "request_id": "9830ed46-5add-47e3-9f08-272bd8085e4d",
     "for_each": "timeline[]",
@@ -10790,7 +10856,8 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#20JJJ2CCRU"
+      "player_tag": "#20JJJ2CCRU",
+      "basis": "observed"
     },
     "request_id": "7515fdac-83ed-4545-9d4c-7862a75e3406",
     "for_each": "timeline[]",
@@ -10813,7 +10880,8 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2"
+      "player_tag": "#C920YGLC2",
+      "basis": "observed"
     },
     "request_id": "9830ed46-5add-47e3-9f08-272bd8085e4d",
     "assert": [
@@ -10876,7 +10944,8 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2"
+      "player_tag": "#C920YGLC2",
+      "basis": "observed"
     },
     "request_id": "9830ed46-5add-47e3-9f08-272bd8085e4d",
     "assert": [
@@ -11080,7 +11149,8 @@
       "from": "2026-09-08T00:00:00Z",
       "to": "2026-09-19T00:00:00Z",
       "mark_read": false,
-      "sections": ["presence"]
+      "sections": ["presence"],
+      "basis": "observed"
     },
     "request_id": "35c9794c-eb61-4003-b0e7-834ab6a51a64",
     "assert": [
@@ -11100,7 +11170,8 @@
       "to": "2026-09-19T00:00:00Z",
       "mark_read": false,
       "verbosity": "compact",
-      "kinds": ["quiet_crossed", "returned"]
+      "kinds": ["quiet_crossed", "returned"],
+      "basis": "observed"
     },
     "request_id": "199aa006-5e2e-408a-82e1-ac0e4be12c31",
     "assert": [
@@ -11235,7 +11306,8 @@
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
       "player_tag": "#C920YGLC2",
-      "sections": ["activity"]
+      "sections": ["activity"],
+      "basis": "observed"
     },
     "request_id": "bbaf81c5-b3fc-4d3e-83a5-69457278dea5",
     "assert": [
@@ -12307,7 +12379,8 @@
       "to": "2026-09-23T18:00:00Z",
       "mark_read": false,
       "player_tag": "#C920YGLC2",
-      "verbosity": "compact"
+      "verbosity": "compact",
+      "basis": "observed"
     },
     "request_id": "5017bee0-017d-4183-823e-688dfa5d82c3",
     "when": {
@@ -12330,7 +12403,8 @@
       "to": "2026-09-23T22:00:00Z",
       "mark_read": false,
       "player_tag": "#C920YGLC2",
-      "verbosity": "compact"
+      "verbosity": "compact",
+      "basis": "observed"
     },
     "request_id": "d7733a01-2f45-4ff0-a20b-8746488faa36",
     "assert": [
@@ -12350,7 +12424,8 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2"
+      "player_tag": "#C920YGLC2",
+      "basis": "observed"
     },
     "request_id": "3bf107f2-cc87-43b0-85a9-f58a72274e45",
     "assert": [
@@ -12382,7 +12457,8 @@
       "to": "2026-09-23T09:00:00Z",
       "mark_read": false,
       "player_tag": "#C920YGLC2",
-      "verbosity": "compact"
+      "verbosity": "compact",
+      "basis": "observed"
     },
     "request_id": "d89f850b-b07e-4d07-a7d6-47eb5beff7e9",
     "assert": [
@@ -12409,7 +12485,8 @@
       "from": "2026-08-25T00:00:00Z",
       "to": "2026-09-24T00:00:00Z",
       "mark_read": false,
-      "sections": ["presence"]
+      "sections": ["presence"],
+      "basis": "observed"
     },
     "request_id": "cbe2ad37-f962-4106-a0a3-d0a1fcf644fd",
     "assert": [
@@ -12437,7 +12514,8 @@
       "from": "2026-09-08T00:00:00Z",
       "to": "2026-09-19T00:00:00Z",
       "mark_read": false,
-      "sections": ["presence"]
+      "sections": ["presence"],
+      "basis": "observed"
     },
     "request_id": "9989491f-5630-46fb-afe8-60b57a7efa43",
     "assert": [
@@ -12469,7 +12547,8 @@
       "from": "2026-09-14T10:00:00Z",
       "to": "2026-09-21T10:00:00Z",
       "mark_read": false,
-      "sections": ["presence"]
+      "sections": ["presence"],
+      "basis": "observed"
     },
     "request_id": "a7954f41-fab2-4004-8f2f-ffc99dfe30ab",
     "assert": [
@@ -12494,7 +12573,8 @@
       "from": "2026-08-25T00:00:00Z",
       "to": "2026-09-24T00:00:00Z",
       "mark_read": false,
-      "sections": ["presence"]
+      "sections": ["presence"],
+      "basis": "observed"
     },
     "request_id": "cbe2ad37-f962-4106-a0a3-d0a1fcf644fd",
     "assert": [
@@ -12596,7 +12676,7 @@
         "absent": "w.timeline[?observed_at=2026-09-09T09:01:57.000Z]"
       }
     ],
-    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The original 18 moments restore pax and Ditaka crossings during their September 3-11 tenures and remove VVSBUDGET\u2019s September 9 return before the September 12 join: 19 moments."
+    "amended": "2026-10-02: Jamie approved historical presence by observed membership at each moment and at window end (DECISIONS; 9.19.1). Later departures must preserve earlier membership, and crossings or returns outside a tenure are excluded. The original 18 moments restore pax and Ditaka crossings during their September 3-11 tenures and remove VVSBUDGET’s September 9 return before the September 12 join: 19 moments."
   },
   {
     "id": "304.3",
@@ -12608,7 +12688,8 @@
       "from": "2026-09-23T05:19:59.822Z",
       "to": "2026-09-24T05:19:59.826Z",
       "mark_read": false,
-      "player_tag": "#C920YGLC2"
+      "player_tag": "#C920YGLC2",
+      "basis": "observed"
     },
     "request_id": "3bf107f2-cc87-43b0-85a9-f58a72274e45",
     "for_each": "timeline[]",
@@ -12634,7 +12715,8 @@
       "from": "2026-09-21T12:00:00Z",
       "to": "2026-09-22T12:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "4a8d2b5c-25ce-4166-babe-0900a34cc259",
     "assert": [
@@ -13510,7 +13592,7 @@
   },
   {
     "id": "314.3",
-    "amended": "2026-10-05: compare the observed race with today\u2019s policy clock only after a race observation in that day. Documented post-rollover 404 standby can leave the prior race on record. All fresh-record equality assertions remain.",
+    "amended": "2026-10-05: compare the observed race with today’s policy clock only after a race observation in that day. Documented post-rollover 404 standby can leave the prior race on record. All fresh-record equality assertions remain.",
     "when": {
       "gte": ["w.period.source_observed_at", "g.day_started_at"]
     },
@@ -13667,7 +13749,8 @@
       "mark_read": false,
       "verbosity": "compact",
       "to": "2026-09-24T08:42:41.000Z",
-      "kinds": ["account_feedback_responded", "ranked_promotion"]
+      "kinds": ["account_feedback_responded", "ranked_promotion"],
+      "basis": "observed"
     },
     "request_id": "314cfd5f-e221-4ace-8c3b-86c5c91917c4",
     "when": {
@@ -13689,7 +13772,8 @@
       "mark_read": false,
       "verbosity": "compact",
       "to": "2026-09-24T14:26:46.819Z",
-      "kinds": ["account_feedback_responded", "ranked_promotion"]
+      "kinds": ["account_feedback_responded", "ranked_promotion"],
+      "basis": "observed"
     },
     "request_id": "1896e74b-bcfd-4269-bc99-8aa6f16f0f2c",
     "assert": [
@@ -13709,7 +13793,8 @@
       "mark_read": false,
       "verbosity": "compact",
       "to": "2026-09-24T14:26:46.819Z",
-      "kinds": ["account_feedback_responded"]
+      "kinds": ["account_feedback_responded"],
+      "basis": "observed"
     },
     "request_id": "f55d7e93-08a1-4350-a302-a6f11c14226a",
     "when": {
@@ -13739,7 +13824,8 @@
         "presence",
         "standouts",
         "donations"
-      ]
+      ],
+      "basis": "observed"
     },
     "request_id": "f2028be2-d799-4cff-9ae5-521e582bd8f3",
     "assert": [
@@ -13792,7 +13878,8 @@
       "from": "2026-09-16T02:00:00Z",
       "to": "2026-09-16T02:33:43.000Z",
       "mark_read": false,
-      "sections": ["presence"]
+      "sections": ["presence"],
+      "basis": "observed"
     },
     "request_id": "01a9976d-8a46-40f9-ab67-be84f25c28a5",
     "assert": [
@@ -13818,7 +13905,8 @@
         "presence",
         "standouts",
         "donations"
-      ]
+      ],
+      "basis": "observed"
     },
     "request_id": "5795b1c0-2817-4286-85e0-00744d82f660",
     "assert": [
@@ -13837,7 +13925,8 @@
       "from": "2026-09-15T22:00:00Z",
       "to": "2026-09-15T22:57:43.644Z",
       "mark_read": false,
-      "sections": ["presence"]
+      "sections": ["presence"],
+      "basis": "observed"
     },
     "request_id": "ce069746-f442-4481-b01e-dd3802b14db8",
     "assert": [
@@ -13856,7 +13945,8 @@
       "from": "2026-09-16T02:33:43.000Z",
       "to": "2026-09-16T03:00:00Z",
       "mark_read": false,
-      "kinds": ["quiet_crossed"]
+      "kinds": ["quiet_crossed"],
+      "basis": "observed"
     },
     "request_id": "8881b8e8-efa6-4258-9697-1d3842a12349",
     "assert": [
@@ -13876,7 +13966,8 @@
       "from": "2026-09-16T02:00:00Z",
       "to": "2026-09-16T02:33:43.001Z",
       "mark_read": false,
-      "kinds": ["quiet_crossed"]
+      "kinds": ["quiet_crossed"],
+      "basis": "observed"
     },
     "request_id": "41a8087d-436c-4c17-85e7-7da0e61158c6",
     "assert": [
@@ -13894,7 +13985,8 @@
     "args": {
       "days": 1,
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "03c7d63a-7d27-4ecd-a349-c40a66bc930b",
     "when": {
@@ -13919,7 +14011,8 @@
       "from": "2026-09-16T14:00:00Z",
       "to": "2026-09-17T14:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "e9fbdd5f-1da8-424b-a253-4dc18718797c",
     "assert": [
@@ -13947,7 +14040,8 @@
       "from": "2026-09-10T14:00:00Z",
       "to": "2026-09-11T14:00:00Z",
       "mark_read": false,
-      "sections": ["war"]
+      "sections": ["war"],
+      "basis": "observed"
     },
     "request_id": "2e90445f-e2e8-429c-863b-333f17a91e67",
     "assert": [
@@ -14013,7 +14107,8 @@
         "presence",
         "standouts",
         "donations"
-      ]
+      ],
+      "basis": "observed"
     },
     "request_id": "6678ae52-498f-41aa-872c-573d583b9dcb",
     "assert": [
@@ -14027,7 +14122,7 @@
   },
   {
     "id": "321.2",
-    "amended": "Amended for 9.15.0 (#111, Jamie 2026-09-28, lane B: every timeline item carries a story id and a revision): the recurring-sitting note says the sitting comes back under the same id with a higher revision, where it said the same started_at.",
+    "amended": "Amended for 9.15.0 (#111, Jamie 2026-09-28, lane B: every timeline item carries a story id and a revision): the recurring-sitting note says the sitting comes back under the same id with a higher revision, where it said the same started_at. Amended for 11.8.0 (#374): one story is one item, so the member's session and its standout are served once, as the session_standout; basis observed pins the window these cases were filed under, the only basis then.",
     "feedback": 321,
     "control": true,
     "stability": "frozen",
@@ -14037,7 +14132,8 @@
       "to": "2026-09-23T19:00:00Z",
       "mark_read": false,
       "player_tag": "#C920YGLC2",
-      "verbosity": "compact"
+      "verbosity": "compact",
+      "basis": "observed"
     },
     "request_id": "f563afe9-1433-4741-9077-3905839047e1",
     "assert": [
@@ -14048,7 +14144,7 @@
         "has": "timeline[?kind=session_standout]"
       },
       {
-        "has": "timeline[?kind=battle_session]"
+        "unique_by": ["timeline[]", ["id"]]
       }
     ]
   },

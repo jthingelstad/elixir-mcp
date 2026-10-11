@@ -1,0 +1,3 @@
+# Timeline items ready to publish
+
+A timeline item's sentence no longer starts with a time, so it reads right wherever it is posted. Its time comes as fields instead (`at_unix` for a renderer's own stamp, `local` in your time zone), and the feed is ordered by when each story finished. One story is one item now, with every player and clan it is about in `subjects`. Each item also says whether it may be published, and Elixir's Discord posts only the ones that may. An ad hoc read with a window shows what happened in that window. A poller that names a reader still reads what the record learned since its pointer. Standouts give each rung's value and the battle that crossed it, and a resolved war week lists each member's decks and points. MCP 11.8.0; JSON API 3.1.0 unchanged.

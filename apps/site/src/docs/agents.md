@@ -195,6 +195,8 @@ const page = await call("elixir_timeline", {
 });
 if (page.timeline.length === 0) return;           // nothing to consider
 for (const item of page.timeline) consider(item);  // item.text is the sentence; item.facts the numbers
+// To post: only item.publishable; once per item.id, edited on a higher
+// item.revision; the time as <t:${item.at_unix}:f>, never in the prose.
 for (const entry of page.entries) context(entry);  // the window's shape per subject
 // read_to is now the window's end; nothing to persist locally.
 ```
@@ -211,13 +213,25 @@ own when no reader has ever marked, so a reader that marks sees it fall to
 0 after its read and can skip the next poll when it is 0 on any call it was
 making anyway.
 
+A reader that pulls a day's story rather than polling ("what happened
+yesterday") passes `from` and `to` without a `reader`: that read is by
+when things **happened** (`basis: occurred`), keeps every pointer, and
+leaves out the earlier games the record learned in the window. A poller's
+read is by when the record **learned** them, so nothing learned late is
+skipped, and an item that happened before `from` says `late: true`
+([Two kinds of window](/docs/timeline#two-kinds-of-window)).
+
 The item and entry shapes are on [Timeline](/docs/timeline), with the
-`facts` keys each `kind` carries (a `battle_session` has `battles`, `won`,
-`lost`, `by_mode` and `trophy_net`; a `session_standout` adds `crossed` and
-`newly`; a `ranked_promotion` has `from`, `to` and their names and, when the
+`facts` keys each `kind` carries and its version (a `battle_session` has
+`battles`, `won`, `lost`, `by_mode`, `trophy_net` and `trophy_net_peak`;
+a `session_standout` adds `crossed`, `newly` and `crossings`, the value at
+each rung's battle; a `ranked_promotion` has `from`, `to` and their names and, when the
 record holds it, the promoting battle under `promoted_by`; a clan's
 `member_left` has the departing member's `player_tag`, `name` and
-`role_at_departure`). Branch on `kind` and `facts`; `text` is for the person.
+`role_at_departure`). Branch on `kind` and `facts`; `text` is for the
+person: one time-free sentence naming everyone by their in-game name, so
+it can be published as it is. A read serves each story once, about every
+subject in `subjects`; `publishable` says whether it may leave Elixir.
 `meta.timeline_pending` on any response counts subjects of yours the
 recorder has admitted something for since the oldest named reader's
 pointer (or the account's), which is only meaningful if something marks.

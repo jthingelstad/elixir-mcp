@@ -457,7 +457,7 @@ test("ranked proof and ladder sessions keep canonical mode and result provenance
   );
 });
 
-test("a clan standout summarizes the whole sitting while evidence ends at its last new milestone", async () => {
+test("a clan standout's evidence is the whole sitting it counts (11.8.0, #375)", async () => {
   const player = "#P0YQ2LC",
     clan = "#P0YQ2L0";
   await db.query(
@@ -516,16 +516,15 @@ test("a clan standout summarizes the whole sitting while evidence ends at its la
   assert.equal(item.facts.lost, 6);
   assert.equal(item.facts.ended_at, at(15));
   assert.deepEqual(item.facts.newly, ["won_in_a_row>=5"]);
-  assert.equal(item.evidence.count, 10);
-  assert.equal(item.evidence.through, at(10));
+  // The rung's own battle is in crossings; the evidence is the sitting
+  // the item counts, so the two numbers agree (#375 read 20 vs 24).
+  assert.equal(item.facts.crossings[0].at, at(10));
+  assert.equal(item.evidence.count, item.facts.battles);
+  assert.equal(item.evidence.through, at(15));
   const page = await readTimelineEvidence(db, item);
   assert.deepEqual(
     page.battles.map((x) => x.battle_id),
-    Array.from({ length: 10 }, (_, i) => id(5001 + i)),
+    Array.from({ length: 15 }, (_, i) => id(5001 + i)),
   );
-  assert.equal(
-    page.next_offset,
-    null,
-    "all ten games in this milestone scope are present; later sitting games are not another page",
-  );
+  assert.equal(page.next_offset, null);
 });

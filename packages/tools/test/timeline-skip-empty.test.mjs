@@ -354,7 +354,13 @@ test("a kinds filter asks only the sources that can serve those kinds", async ()
   assert.equal(acct.any, true);
 });
 
-const EMPTY = { from: at(T + 8 * H + 30 * MIN), to: at(T + 8 * H + 35 * MIN) };
+// Empty by observation: a poller's window (an occurred read's news check
+// runs to now, so it may build where this one skips).
+const EMPTY = {
+  from: at(T + 8 * H + 30 * MIN),
+  to: at(T + 8 * H + 35 * MIN),
+  basis: "observed",
+};
 
 test("skip_empty on an empty window: no build, entries_skipped, the same cursor and window as a full read", async () => {
   counted = 0;

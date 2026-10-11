@@ -68,15 +68,17 @@ export function Timeline() {
   const rows = (timeline?.timeline ?? []).map((it) => {
     // Unread is a state of the row: past the account's read pointer, or
     // everything when no connection has ever marked it.
+    // The pointer is an instant the record LEARNED things by, so the
+    // row's is observed_at (an item learned late happened before it).
     const unread =
-      !timeline?.read_to || String(it.at) > String(timeline.read_to);
+      !timeline?.read_to ||
+      String(it.observed_at ?? it.at) > String(timeline.read_to);
     return [
       stamp(it.at),
       it.subject_name ?? it.subject_tag ?? "your account",
-      // The item's own "Sat 11:18" lead carries no zone; the WHEN column
-      // already says the time in yours (DECISIONS: the console tells time
-      // in the account's zone), so the sentence starts after it.
-      String(it.text ?? "").replace(/^[A-Z][a-z]{2} \d{2}:\d{2} /, ""),
+      // Time-free (11.8.0): the WHEN column says the time in the
+      // account's zone (DECISIONS: the console tells time in it).
+      String(it.text ?? ""),
       unread ? { text: "unread", tone: "accent-bright" } : "read",
       it.evidence
         ? {

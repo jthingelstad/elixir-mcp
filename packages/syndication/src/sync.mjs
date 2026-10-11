@@ -12,6 +12,7 @@
 import { DISCORD_POSTS_MAX } from "@elixir-mcp/contracts";
 import {
   buildTimeline,
+  isPublishable,
   subjectsFor,
   timelineNews,
 } from "@elixir-mcp/tools/activity/entries";
@@ -123,10 +124,10 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
   const clanTags = new Set(
     subjects.filter((s) => s.kind === "clan").map((s) => s.tag),
   );
-  // Not filtered (Jamie, 2026-10-10), but an account's own
-  // administration ("your account: ...") is not the game and stays in
-  // the console.
-  const game = (it) => it.section !== "account";
+  // Not filtered (Jamie, 2026-10-10), but what may not leave Elixir
+  // stays in the console: the account's own administration and
+  // leaders-only items (the item's `publishable`, 11.8.0).
+  const game = isPublishable;
   const read = (from, to, filter = game) =>
     buildTimeline(db, subjects, {
       fromMs: from,

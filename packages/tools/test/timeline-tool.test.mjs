@@ -267,7 +267,11 @@ test("mark_read moves the bookmark to the window end; the next read resumes ther
   );
 
   const to = new Date().toISOString();
-  const read = await call("elixir_timeline", { from: "2026-09-03", to });
+  const read = await call("elixir_timeline", {
+    from: "2026-09-03",
+    to,
+    basis: "observed",
+  });
   assert.equal(read.isError, false);
   assert.equal(read.body.read_to, read.body.window.to);
   const { rows } = await ctx.db.query(
@@ -410,21 +414,30 @@ test("the timeline: battle sessions break on a 30-minute gap, items are newest f
     mark_read: false,
   });
   assert.equal(isError, false, JSON.stringify(body));
-  const sessions = body.timeline.filter((it) => it.kind === "battle_session");
+  const sessions = body.timeline.filter((it) =>
+    ["battle_session", "session_standout"].includes(it.kind),
+  );
   // The fixture log: two battles on 09-01 21:56/21:59, then 09-02 runs with
   // gaps of 42+ minutes between 08:08 and 08:50, 09:08 and 10:34, 10:49 and
   // 11:51, 11:51 and 17:46, 18:33 and 19:20, then one on 09-03: eight
-  // sessions of one player.
+  // sessions of one player. The 08:50 sitting is also a clan standout,
+  // and one story is one item (11.8.0, #374): the standout's telling.
   assert.equal(sessions.length, 8, JSON.stringify(sessions.map((s) => s.at)));
+  assert.equal(new Set(sessions.map((s) => s.id)).size, 8);
   assert.ok(sessions.every((s) => s.subject_tag === OBSERVER));
   assert.ok(
-    sessions.every((s) => /played a session of \d+ battles?/.test(s.text)),
+    sessions.every((s) =>
+      /played (a session of \d+ battles?|\d+ battles in one sitting)/.test(
+        s.text,
+      ),
+    ),
   );
   // Newest first, a newsfeed (7.0.0): the 09-01 pair is last.
   const first = sessions.at(-1);
   assert.equal(first.facts.battles, 2);
   assert.equal(first.section, "battles");
-  const ats = body.timeline.map((it) => it.at);
+  // By sort_at: a sitting sorts at its last battle (11.8.0).
+  const ats = body.timeline.map((it) => it.sort_at);
   assert.deepEqual(ats, [...ats].sort().reverse(), "newest first");
   assert.ok(
     body.timeline.every(
@@ -506,7 +519,7 @@ test("an arena move names the win that carried the player over the floor, at tha
   assert.equal(moved.facts.promoted_by.opponent.name, "Jotaro");
   assert.equal(
     moved.text,
-    "Wed 01:46 AHMOメŞΛDØW moved to Royal Crypt from Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
+    "AHMOメŞΛDØW moved to Royal Crypt from Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
   );
 });
 
@@ -623,21 +636,24 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     from: "2026-09-02",
     to: "2026-09-03",
     sections: ["ranked", "trophies", "battles"],
+    // The moments are learned in this window; two happened the evening
+    // before it (Chicago), so the window is by observation.
+    basis: "observed",
     mark_read: false,
   });
   assert.equal(isError, false, JSON.stringify(body));
   const text = (kind) =>
     body.timeline.filter((it) => it.kind === kind).map((it) => it.text);
   assert.deepEqual(text("ranked_promotion"), [
-    "Tue 23:34 AHMOメŞΛDØW was promoted to Master 2, on a 1-0 win over XTRAXTOR, +30.",
+    "AHMOメŞΛDØW was promoted to Master 2, on a 1-0 win over XTRAXTOR, +30.",
   ]);
   assert.deepEqual(text("best_trophies_band"), [
-    "Tue 23:40 AHMOメŞΛDØW set a new best of 6,087 trophies, crossing 6,000, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
+    "AHMOメŞΛDØW set a new best of 6,087 trophies, crossing 6,000, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
   ]);
   // Newest first (7.0.0).
   assert.deepEqual(text("career_wins_step"), [
-    "Wed 04:00 AHMOメŞΛDØW passed 12,003 career wins.",
-    "Tue 23:45 AHMOメŞΛDØW passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #2VVVV.",
+    "AHMOメŞΛDØW passed 12,003 career wins.",
+    "AHMOメŞΛDØW passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #2VVVV.",
   ]);
 });
 
@@ -687,6 +703,7 @@ test("3.9.0: a member's session is a clan standout once per rung, named, at the 
     from: "2026-09-06T12:20:00Z",
     to: "2026-09-06T12:35:00Z",
     kinds: ["session_standout"],
+    basis: "observed",
     mark_read: false,
   });
   assert.equal(first.isError, false, JSON.stringify(first.body));
@@ -713,6 +730,16 @@ test("3.9.0: a member's session is a clan standout once per rung, named, at the 
     new Date(base + 4 * 4 * 60_000).toISOString(),
     "the crossing battle's instant",
   );
+  // 11.8.0: sort_at is the sitting's last battle; each rung names the
+  // battle that crossed it and the value there.
+  assert.equal(item.sort_at, new Date(base + 4 * 4 * 60_000).toISOString());
+  assert.deepEqual(
+    item.facts.crossings.map((c) => [c.rung, c.value, c.at]),
+    [
+      ["won_in_a_row>=5", 5, new Date(base + 4 * 4 * 60_000).toISOString()],
+      ["trophy_net>=150", 150, new Date(base + 4 * 4 * 60_000).toISOString()],
+    ],
+  );
   assert.match(
     item.text,
     /played 5 battles in one sitting \(5W-0L; 5 ladder, \+150 trophies, 5 wins in a row\), still going\.$/,
@@ -727,6 +754,7 @@ test("3.9.0: a member's session is a clan standout once per rung, named, at the 
     from: "2026-09-06T12:35:00Z",
     to: "2026-09-06T12:45:00Z",
     kinds: ["session_standout"],
+    basis: "observed",
     mark_read: false,
   });
   assert.equal(
@@ -804,14 +832,11 @@ test("3.9.0: a badge or card moment keeps the member's name; the badge's is unde
   // as a player says it (badge-names.mjs).
   const hog = badges.find((b) => b.facts.badge === "MasteryHog");
   assert.equal(hog.facts.badge_label, "Hog Mastery");
-  assert.equal(
-    hog.text,
-    `Tue 05:02 ${member.name} took Hog Mastery to level 5.`,
-  );
+  assert.equal(hog.text, `${member.name} took Hog Mastery to level 5.`);
   const card = body.timeline.find((it) => it.kind === "card_unlocked");
   assert.equal(card.facts.card, "Lava Hound");
   assert.equal(card.facts.name, member.name);
-  assert.equal(card.text, `Tue 05:04 ${member.name} unlocked Lava Hound.`);
+  assert.equal(card.text, `${member.name} unlocked Lava Hound.`);
   // The entry still counts every level-up.
   const clanEntry = body.entries.find((e) => e.kind === "clan_activity");
   const counted = clanEntry.standouts.badges.find(
@@ -930,6 +955,7 @@ test("9.15.0: one sitting read through overlapping windows is one story, its rev
       from,
       to,
       kinds: ["battle_session"],
+      basis: "observed",
       mark_read: false,
     });
     assert.equal(isError, false, JSON.stringify(body));
@@ -984,6 +1010,7 @@ test("9.15.0: a standout crossing 20 then 40 battles keeps its id and raises its
       from,
       to,
       kinds: ["session_standout"],
+      basis: "observed",
       mark_read: false,
     });
     const found = body.timeline.filter((it) => it.facts.player_tag === member);
@@ -1001,18 +1028,27 @@ test("9.15.0: a standout crossing 20 then 40 battles keeps its id and raises its
   const both = await standout("2026-09-08T13:20:00Z", "2026-09-08T13:50:00Z");
   assert.equal(both.id, twenty.id);
   assert.equal(both.revision, 40);
-  // The member's own session of that sitting is the same story.
+  // The member's own session of that sitting is the same story, served
+  // once (11.8.0, #374): the standout's telling, about both subjects.
   const { body } = await call("elixir_timeline", {
     from: "2026-09-08T13:40:00Z",
     to: "2026-09-08T13:50:00Z",
     kinds: ["battle_session", "session_standout"],
     player_tag: member,
+    basis: "observed",
     mark_read: false,
   });
-  const kinds = Object.fromEntries(body.timeline.map((it) => [it.kind, it]));
-  assert.equal(kinds.battle_session?.id, twenty.id, JSON.stringify(body));
-  assert.equal(kinds.battle_session.revision, 40);
-  assert.equal(kinds.session_standout.id, twenty.id);
+  const ofIt = body.timeline.filter((it) => it.id === twenty.id);
+  assert.equal(ofIt.length, 1, JSON.stringify(body.timeline));
+  assert.equal(ofIt[0].kind, "session_standout");
+  assert.equal(ofIt[0].revision, 40);
+  assert.deepEqual(
+    ofIt[0].subjects.map((s) => [s.kind, s.tag]),
+    [
+      ["player", member],
+      ["clan", CLAN],
+    ],
+  );
 });
 
 test("9.15.0: a duplicated ledger moment keeps one id whichever row a window holds; ledgers never collide (#111)", async () => {

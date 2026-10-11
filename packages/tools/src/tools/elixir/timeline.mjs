@@ -36,7 +36,7 @@ const PAGE_CHAR_BUDGET = 40_000;
 
 export const elixir_timeline = {
   description:
-    "Your newest-first timeline for tracked players and clans: named moments plus subject summaries. Sessions, crossings, badges, unlocks, roster/war and attested facts keep their provenance and visibility. Omit from to start at your pointer (default 24 hours, cap 30 days); mark_read false keeps it. evidence_item_id reads one visible item's ordered canonical games with mode/result provenance and version-pinned pages; evidence reads always keep every pointer. Facts, never advice; game_clock supplies timing.",
+    "Your newest-first timeline for tracked players and clans: one item per story (time-free text, subjects, visibility, publishable) plus subject summaries. basis occurred reads what happened in a window; a poller (reader, pointer) reads what the record learned, and omitting from starts at the pointer (default 24 hours, cap 30 days). evidence_item_id reads one item's ordered canonical games, version-pinned; evidence reads keep every pointer. Facts, never advice; game_clock supplies timing.",
   inputSchema: {
     type: "object",
     properties: {
@@ -46,8 +46,14 @@ export const elixir_timeline = {
       season: SEASON_ARG_SCHEMA,
       // The timeline selects by when the record OBSERVED an item, over
       // (from, to] at the millisecond it serves (7.1.5, Gym #273).
-      from: { type: "string", description: WINDOW_OBSERVED_FROM_DESC },
-      to: { type: "string", description: WINDOW_OBSERVED_TO_DESC },
+      from: {
+        type: "string",
+        description: `${WINDOW_OBSERVED_FROM_DESC} With basis occurred, when items happened instead.`,
+      },
+      to: {
+        type: "string",
+        description: `${WINDOW_OBSERVED_TO_DESC} With basis occurred, when items happened instead.`,
+      },
       evidence_item_id: {
         type: "string",
         pattern: "^tl_[a-f0-9]{20}$",
@@ -69,9 +75,14 @@ export const elixir_timeline = {
       },
       mark_read: {
         type: "boolean",
-        default: true,
         description:
-          "Move the read pointer (the reader's, or the account's) to this window's end; false is a dry run that keeps it.",
+          "Move the read pointer (the reader's, or the account's) to this window's end; false is a dry run that keeps it. Defaults to true on an observed read and false on an occurred one, which never moves a pointer.",
+      },
+      basis: {
+        type: "string",
+        enum: ["occurred", "observed"],
+        description:
+          "What the window bounds (11.8.0). occurred: items that HAPPENED in (from, to], by sort_at, for 'what happened on Saturday'; never moves a pointer. observed: items the record LEARNED in (from, to], for polling, so nothing learned late is skipped; an item that happened before from carries late: true. Default: observed for a poller (a reader, the stored pointer, or mark_read true), otherwise occurred.",
       },
       reader: {
         type: "string",
@@ -191,6 +202,21 @@ export const elixir_timeline = {
         "from must be before to.",
         "Pass a from earlier than to, or omit both for the window since your read pointer.",
       );
+    // The window's basis (11.8.0, #373): a poller reads what the record
+    // learned, so a late observation is never skipped; anyone else reads
+    // what happened, so Friday's games stay out of Saturday's window.
+    if (args.basis === "occurred" && args.mark_read === true)
+      throw new ToolFailure(
+        "bad_request",
+        "An occurred read never moves a read pointer: it would carry the pointer past items the record learns later about earlier games.",
+        "Poll with basis observed (the default for a reader or the stored pointer), or read with basis occurred and mark_read false.",
+      );
+    const basis =
+      args.basis ??
+      (reader || source === "pointer" || args.mark_read === true
+        ? "observed"
+        : "occurred");
+    const occurred = basis === "occurred";
 
     const PLAYER_SECTIONS = [
       "battles",
@@ -284,7 +310,9 @@ export const elixir_timeline = {
       !(
         await timelineNews(ctx.db, subjects, {
           fromMs,
-          toMs,
+          // An item that happened in the window was learned after from
+          // and by now: the observed check to now is a superset.
+          toMs: occurred ? Date.now() : toMs,
           accountId: ctx.account.accountId,
           kinds,
         })
@@ -302,6 +330,7 @@ export const elixir_timeline = {
           toMs,
           timezone: tz,
           accountId: ctx.account.accountId,
+          basis,
           // Leaders-only facts need the person's own consent, not a key.
           interactive: ctx.account.credentialType === "oauth",
           memberTag,
@@ -343,6 +372,11 @@ export const elixir_timeline = {
     // the same from, with to at that instant.
     const droppedShown = (built.timeline_dropped ?? []).filter(shown);
     const observedMs = (it) => Date.parse(it.observed_at ?? it.at);
+    // The page cuts on the instant the window bounds: when the record
+    // learned an item, or (occurred) when it happened.
+    const pageMs = occurred
+      ? (it) => Date.parse(it.sort_at ?? it.at)
+      : observedMs;
     const all = built.timeline.filter(shown);
     // A response also fits the result cap (6.34.2): items are taken from
     // the most recently observed back until the characters reach the
@@ -352,25 +386,25 @@ export const elixir_timeline = {
     const entriesChars = JSON.stringify(entries).length;
     let used = entriesChars;
     let sizeCutMs = null;
-    const byObserved = [...all].sort((a, b) => observedMs(b) - observedMs(a));
+    const byObserved = [...all].sort((a, b) => pageMs(b) - pageMs(a));
     for (const [i, it] of byObserved.entries()) {
       used += JSON.stringify(it).length + 1;
       if (used > PAGE_CHAR_BUDGET) {
         // Every response keeps at least its newest item, or one whose
         // entries alone fill the budget would serve nothing.
         const at =
-          i === 0 ? byObserved.find((x) => observedMs(x) < observedMs(it)) : it;
-        sizeCutMs = at ? observedMs(at) : null;
+          i === 0 ? byObserved.find((x) => pageMs(x) < pageMs(it)) : it;
+        sizeCutMs = at ? pageMs(at) : null;
         break;
       }
     }
     const newestLeftOut = Math.max(
-      ...droppedShown.map(observedMs),
+      ...droppedShown.map(pageMs),
       sizeCutMs ?? -Infinity,
     );
     let cutMs = Number.isFinite(newestLeftOut) ? newestLeftOut : null;
     let timeline =
-      cutMs === null ? all : all.filter((it) => observedMs(it) > cutMs);
+      cutMs === null ? all : all.filter((it) => pageMs(it) > cutMs);
     // More items than a page holds share the window's last observed
     // instant (one poll learning a burst): no `to` can split them, so the
     // page serves what fits of them rather than nothing with has_more
@@ -384,7 +418,9 @@ export const elixir_timeline = {
         if (timeline.length > 0 && size > PAGE_CHAR_BUDGET) break;
         timeline.push(it);
       }
-      timeline.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+      timeline.sort(
+        (a, b) => Date.parse(b.sort_at ?? b.at) - Date.parse(a.sort_at ?? a.at),
+      );
       stuckAt = cutMs;
       cutMs = null;
     }
@@ -396,10 +432,6 @@ export const elixir_timeline = {
     // counted, not queued.
     const endMs = toMs;
     // How late the record learned this page's items, for the widen advice.
-    const lagHours = Math.ceil(
-      Math.max(0, ...timeline.map((it) => observedMs(it) - Date.parse(it.at))) /
-        3_600_000,
-    );
 
     // A member read never moves the pointer: it served one member's items
     // and would carry the reader past everything it filtered out (Gym
@@ -423,6 +455,7 @@ export const elixir_timeline = {
       return {
         applied: appliedBlock({
           window: { ...built.window, source },
+          basis,
           mark_read: false,
           evidence_item_id: args.evidence_item_id,
           evidence_offset: evidence.offset,
@@ -451,7 +484,10 @@ export const elixir_timeline = {
         }),
       };
     const marking =
-      args.mark_read !== false && !memberTag && !args.evidence_item_id;
+      !occurred &&
+      args.mark_read !== false &&
+      !memberTag &&
+      !args.evidence_item_id;
     // The pointer only moves forward; read_to reports the one STORED (Gym
     // #251: a past `to` echoed a move that never happened).
     let storedMs = null;
@@ -523,6 +559,7 @@ export const elixir_timeline = {
           source,
           ...seasonFields.echo,
         },
+        basis,
         mark_read: marking,
         ...(reader ? { reader } : {}),
         ...(memberTag ? { player_tag: memberTag } : {}),
@@ -546,14 +583,14 @@ export const elixir_timeline = {
       next_cursor: iso(endMs),
       has_more: cutMs !== null,
       // The cut as a field (9.1.0; it was only in the note): the older,
-      // counted items are read by passing the same from with this as to
-      // and mark_read false. Null when nothing was cut.
+      // counted items are read by passing the same from with this as to,
+      // the same basis and mark_read false. Null when nothing was cut.
       timeline_more_to: cutMs !== null ? iso(cutMs) : null,
       notes: notes(
         seasonFields.seasonNotes,
         subjects.length === 0
           ? "No subjects: track a player or clan (notify defaults on) and it appears here."
-          : "timeline is newest first, a newsfeed: named moments with an instant, each with text a person can read; entries summarize the same window per subject. Each item's id is the story it tells, the same in every read, and revision is how far it has grown: tell a story once per id, and update it (never retell it) when a read serves a higher revision. Nothing here is advice, and nothing announces the time: schedule from game_clock.",
+          : `basis ${occurred ? "occurred: items that happened in the window" : "observed: items the record learned in the window"}. timeline is newest first by sort_at, a newsfeed: one item per story, its text a time-free sentence about its subjects, its time in at, at_unix and local. id is the story, the same in every read; revision is how far it has grown: tell it once per id and update it on a higher revision. Publish only publishable items. Nothing here is advice; schedule from game_clock.`,
         skipped
           ? "skip_empty: nothing in this window is an item this read keeps, so the entries were not built (entries_skipped). The pointer and next_cursor moved as on any read; read without skip_empty for the subjects' summaries."
           : null,
@@ -575,14 +612,15 @@ export const elixir_timeline = {
         fromMs < FORM_MOMENTS_FROM_MS
           ? "Evolution and Hero form unlocks are timeline items from contract 9.14.0, deployed 2026-09-28: a form unlocked before then is in players_collection.forms_unlocked and never here."
           : null,
-        timeline.some((it) => Date.parse(it.at) < fromMs)
-          ? `A window selects moments by when the record OBSERVED them and dates each at when it HAPPENED (at): ${timeline.filter((it) => Date.parse(it.at) < fromMs).length} item(s) here happened before from, and a moment that happened in this window but was observed after to is in the next one. For "what happened on a day", widen to by the record's lag (the longest here is ${lagHours} h, observed_at minus at) and filter on at.`
+        !occurred && timeline.some((it) => it.late)
+          ? `An observed read: ${timeline.filter((it) => it.late).length} item(s) here happened before from and were learned in this window (late: true). For what happened in a window, read with basis occurred.`
           : null,
-        entries.some(
-          (e) =>
-            e.activity?.played_here_learned_later > 0 ||
-            e.activity?.learned_here_played_before > 0,
-        )
+        !occurred &&
+          entries.some(
+            (e) =>
+              e.activity?.played_here_learned_later > 0 ||
+              e.activity?.learned_here_played_before > 0,
+          )
           ? `A clan entry's activity counts the battles the record LEARNED in this window, which is not the same as the battles PLAYED in it: activity.learned_here_played_before counts ones played in the day before from and recorded here (counted), activity.played_here_learned_later ones played here and recorded after to (not counted) (${entries
               .filter(
                 (e) =>
@@ -608,7 +646,7 @@ export const elixir_timeline = {
           ? `More items than a page holds were observed at one instant (${iso(stuckAt)}), so no window can split them: this page serves those that fit and timeline_more (${remaining}) counts the rest. A kinds or sections filter narrows them onto a page.`
           : null,
         cutMs !== null
-          ? `A busy window: timeline holds the newest items, those the record observed after ${iso(cutMs)}, and timeline_more (${remaining}) older ones are counted, not served; has_more is true. The entries still summarize the whole window. next_cursor is the window's end${marking ? " and the read pointer moved to it" : ""}, so the next read continues from the present; to read the older items, pass the same from with to ${iso(cutMs)}${marking ? " and mark_read false" : ""}.`
+          ? `A busy window: timeline holds the newest items, those ${occurred ? "that ended" : "the record observed"} after ${iso(cutMs)}, and timeline_more (${remaining}) older ones are counted, not served; has_more is true. The entries still summarize the whole window. next_cursor is the window's end${marking ? " and the read pointer moved to it" : ""}, so the next read continues from the present; to read the older items, pass the same from with to ${iso(cutMs)} and basis ${occurred ? "occurred" : "observed"}${marking ? " and mark_read false" : ""}.`
           : "Pass next_cursor as from to continue from here without moving the pointer.",
       ),
       docs: FEED_DOCS,

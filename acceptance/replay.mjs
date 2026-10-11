@@ -10,10 +10,23 @@
 
 import { participationObjects } from "../packages/tools/src/participation-table.mjs";
 
+/** Before 11.8.0 the timeline had one basis, observed (#373): a capture
+ *  from then is the read a case pinning basis observed makes. */
+function asCalled(c) {
+  const args = c.request.arguments ?? {};
+  const [major, minor] = String(c.contract_version ?? "0.0")
+    .split(".")
+    .map(Number);
+  const before = major < 11 || (major === 11 && minor < 8);
+  return c.request.tool === "elixir_timeline" && before && !("basis" in args)
+    ? { ...args, basis: "observed" }
+    : args;
+}
+
 export function replayDoor(captures, { tools = [] } = {}) {
   const key = (tool, args) => `${tool}:${canonical(args ?? {})}`;
   const index = new Map(
-    captures.map((c) => [key(c.request.tool, c.request.arguments), c]),
+    captures.map((c) => [key(c.request.tool, asCalled(c)), c]),
   );
   return {
     async toolsList() {

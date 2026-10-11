@@ -3068,25 +3068,99 @@ export const OUTPUT_SCHEMAS = {
             id: {
               type: "string",
               description:
-                "9.15.0: the story this item tells, opaque and stable across reads and windows; a member's moment carries one id on the clan's timeline and the player's own, and battle_session and session_standout of one sitting share it. Tell a story once per id.",
+                "9.15.0: the story this item tells, opaque and stable across reads and windows. 11.8.0: a read serves each id once; a story about a followed player and their clan is one item naming both in subjects, and a sitting that is also a standout is served as the session_standout. Tell a story once per id.",
             },
             revision: {
               type: "integer",
               minimum: 1,
               description:
-                "9.15.0: how far the story has grown; 1 for a moment; a late proof changes evidence.version while the story revision stays 1. A sitting's is its battles counted from its first (a standout's, up to the last rung this window learned), so a higher revision under a told id is the same story grown: update it, never retell it.",
+                "9.15.0: how far the story has grown; 1 for a moment; a late proof changes evidence.version while the story revision stays 1. A sitting's is its battles the record holds so far, so a higher revision under a told id is the same story grown: update it, never retell it.",
             },
-            at: ISO,
+            at: {
+              ...ISO,
+              description:
+                "When it happened; what that means per kind is the kind's schema (docs: timeline, The facts keys by kind). A sitting's at is its first battle.",
+            },
+            sort_at: {
+              ...ISO,
+              description:
+                "11.8.0: the instant the feed is ordered by and an occurred window selects on: a sitting's last battle, else at.",
+            },
+            at_unix: {
+              type: "integer",
+              description:
+                "11.8.0: at in Unix seconds, for a renderer's own clock (Discord: <t:at_unix:f> or <t:at_unix:R>).",
+            },
+            local: {
+              type: "object",
+              description:
+                "11.8.0: at on the reader's clock (timezone): date YYYY-MM-DD, time HH:MM, weekday, tz.",
+              properties: {
+                date: { type: "string" },
+                time: { type: "string" },
+                weekday: { type: "string" },
+                tz: { type: "string" },
+              },
+              required: ["date", "time", "weekday", "tz"],
+            },
             observed_at: {
               ...ISO,
               description:
-                "6.25.0: when the record observed the moment, which is what selects it into a window; at is when it happened.",
+                "6.25.0: when the record observed the moment, which selects it into an observed window; at is when it happened.",
+            },
+            late: {
+              type: "boolean",
+              description:
+                "11.8.0: an observed read learned this in its window but it happened before from (sort_at at or before from). Always false on an occurred read.",
             },
             subject_tag: { type: ["string", "null"] },
-            subject_name: { type: ["string", "null"] },
+            subject_name: {
+              type: ["string", "null"],
+              description:
+                "The subject's in-game name (11.8.0: never the reader's nickname, which is its own field).",
+            },
+            nickname: {
+              type: "string",
+              description:
+                "11.8.0: the reader's private nickname for the subject player, when they set one. Never publish it.",
+            },
+            subjects: {
+              type: "array",
+              description:
+                "11.8.0: every player and clan the story is about, players first. Empty for the account's own administration.",
+              items: {
+                type: "object",
+                properties: {
+                  tag: TAG,
+                  kind: { type: "string", enum: ["player", "clan"] },
+                  name: { type: ["string", "null"] },
+                },
+                required: ["tag", "kind", "name"],
+              },
+            },
             kind: { type: "string" },
+            schema: {
+              type: "string",
+              description:
+                "11.8.0: <kind>/<version>, the facts shape this item follows (docs: timeline). A kind's version moves when its facts or the meaning of its at change.",
+            },
             section: { type: "string" },
-            text: { type: "string" },
+            text: {
+              type: "string",
+              description:
+                "One sentence a person can read, time-free since 11.8.0: render the time from at_unix or local.",
+            },
+            visibility: {
+              type: "string",
+              enum: ["public", "clan", "player", "leaders", "owner"],
+              description:
+                "11.8.0: who may see it. public is the game record; clan, player and leaders are an attested fact's rule; owner is the account's own administration.",
+            },
+            publishable: {
+              type: "boolean",
+              description:
+                "11.8.0: whether the item may be posted outside Elixir (visibility public, clan or player). Elixir's own cross-posting posts only these; a consumer that publishes should too.",
+            },
             evidence: TIMELINE_EVIDENCE,
             facts: { type: "object" },
           },
@@ -3094,9 +3168,17 @@ export const OUTPUT_SCHEMAS = {
             "id",
             "revision",
             "at",
+            "sort_at",
+            "at_unix",
+            "local",
+            "late",
             "kind",
+            "schema",
             "section",
+            "subjects",
             "text",
+            "visibility",
+            "publishable",
             "facts",
           ],
         },
