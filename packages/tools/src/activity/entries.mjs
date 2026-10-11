@@ -837,13 +837,16 @@ async function playerLedger(db, tag, fromMs, toMs, basis) {
  */
 async function playerBattles(db, tag, fromMs, toMs, basis = "observed") {
   // Learned in the window (observed), or played in it (occurred); either
-  // way never a late capture, which is counted, not narrated.
-  const selected =
-    basis === "occurred"
-      ? `bp.battle_time >= ${ts(fromMs + 1)} and bp.battle_time < ${ts(toMs + 1)}`
-      : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
+  // way never a late capture, which is counted, not narrated. An occurred
+  // read also fetches the day before `from` (`wide`), so a sitting begun
+  // before the window is built whole (Codex on #472): its id, totals,
+  // decks and evidence are the sitting's, not the window's slice of it.
+  const occurred = basis === "occurred";
+  const selected = occurred
+    ? `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}`
+    : `bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}
         and b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`;
-  const { rows } = await db.query(
+  const { rows: wide } = await db.query(
     `select b.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.crowns,
             bp.trophy_change, bp.clan_tag, bp.deck_hash
        from battle_participant bp
@@ -869,7 +872,10 @@ async function playerBattles(db, tag, fromMs, toMs, basis = "observed") {
         and bp.player_tag = $1`,
     [tag],
   );
-  return { rows, late: late[0]?.n ?? 0 };
+  const rows = occurred
+    ? wide.filter((r) => r.battle_time.getTime() > fromMs)
+    : wide;
+  return { rows, wide, late: late[0]?.n ?? 0 };
 }
 
 async function presenceOf(db, tag, played, fromMs, toMs) {
@@ -1020,7 +1026,11 @@ export async function buildPlayerEntry(
   );
   const name = who[0]?.name ?? null;
 
-  const { rows: played, late } = await timed(perf, "player.battles", () =>
+  const {
+    rows: played,
+    wide,
+    late,
+  } = await timed(perf, "player.battles", () =>
     playerBattles(db, tag, fromMs, toMs, basis),
   );
   const byMode = {};
@@ -1039,8 +1049,16 @@ export async function buildPlayerEntry(
   const trophyNet = played
     .filter((b) => modeGroupOf(b.type, b.event_tag) === "ladder")
     .reduce((s, b) => s + (b.trophy_change ?? 0), 0);
+  // Whole sittings from the wider fetch, kept when the window holds one
+  // of their battles; the counts above are the window's own.
+  const inWindow = new Set(played);
   const sessions = await timed(perf, "player.sessions", () =>
-    nameSessions(db, sessionsOf(played, toMs)),
+    nameSessions(
+      db,
+      sessionsOf(wide, toMs, { learned: (b) => inWindow.has(b) }).filter(
+        (x) => x.learned_at !== null,
+      ),
+    ),
   );
 
   const before = await timed(perf, "player.snapshot", () =>
@@ -3045,7 +3063,7 @@ function finishItem(it, { fromMs, basis, timezone }) {
   it.visibility = itemVisibility(it);
   it.publishable = PUBLISHABLE.has(it.visibility);
   it.schema = itemSchema(it.kind);
-  it.text = itemText(it);
+  it.text = itemText(it, timezone);
 }
 
 /**

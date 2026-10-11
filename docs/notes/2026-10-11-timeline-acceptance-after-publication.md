@@ -25,5 +25,19 @@ were intended changes, so their cases were amended.
   continuation serves the rest. Both assertions still bite on the
   7.1.3 answer (18 served, 32 counted).
 
+Codex's review of #472 found three more defects, all fixed here:
+
+- **Occurred reads cut sittings.** An occurred read fetched only the
+  battles played in the window, so a sitting begun before `from` lost
+  its earlier games, with wrong totals, decks and evidence. The player
+  path now reads the day before, as the clan path already did, and
+  builds whole sittings. The window's own counts stay the window's.
+- **Evidence reads lost late items.** An evidence read with no reader
+  defaulted to occurred, so a poller's late item was missing and came
+  back `evidence_unavailable`. A read that names no basis now looks in
+  the other kind of window before answering that.
+- **`member_away` dates were UTC.** `finishItem` passes the reader's
+  zone to `itemText` again.
+
 Measured live with the acceptance token: `subjects` is the heaviest
 addition, at about 120 characters an item.

@@ -371,3 +371,48 @@ test("a member read whose window cuts a standout sitting says it recurs under th
     "a standout begun before from is a cut sitting too",
   );
 });
+
+test("an occurred window that starts mid-sitting serves the whole sitting (Codex on #472)", async () => {
+  // The player's own timeline only: the clan's standout is built from a
+  // day-wide fetch already and would mask the player path.
+  const playerOnly = (await subjectsFor(db, owner)).filter(
+    (x) => x.kind === "player",
+  );
+  const out = await buildTimeline(db, playerOnly, {
+    fromMs: SATURDAY_PLAY + 10 * 60_000,
+    toMs: SAT_TO,
+    accountId: owner,
+    timezone: TZ,
+    interactive: true,
+    basis: "occurred",
+  });
+  const [sitting] = sittings(out.timeline);
+  assert.ok(sitting, "the sitting ended in the window");
+  assert.equal(
+    sitting.facts.battles,
+    8,
+    "every battle of the sitting, not the window's slice",
+  );
+  assert.equal(sitting.facts.started_at, iso(SATURDAY_PLAY));
+});
+
+test("an evidence read with no basis finds a poller's late item (Codex on #472)", async () => {
+  const ctx = { db, account: { accountId: owner, timezone: TZ } };
+  const window = { from: iso(SAT_FROM), to: iso(SAT_TO) };
+  const polled = await elixir_timeline.handler(ctx, {
+    ...window,
+    reader: "example-bot",
+    mark_read: false,
+  });
+  const late = polled.timeline.find(
+    (it) => it.late && it.kind === "battle_session",
+  );
+  assert.ok(late, "Friday's sitting reached the poller late");
+  const read = await elixir_timeline.handler(ctx, {
+    ...window,
+    evidence_item_id: late.id,
+  });
+  assert.equal(read.timeline[0].id, late.id);
+  assert.equal(read.applied.basis, "observed");
+  assert.equal(read.evidence.count, late.facts.battles);
+});

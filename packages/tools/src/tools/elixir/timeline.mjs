@@ -317,6 +317,21 @@ export const elixir_timeline = {
           kinds,
         })
       ).any;
+    const buildFor = (b) =>
+      buildTimeline(ctx.db, subjects, {
+        fromMs,
+        toMs,
+        timezone: tz,
+        accountId: ctx.account.accountId,
+        basis: b,
+        // Leaders-only facts need the person's own consent, not a key.
+        interactive: ctx.account.credentialType === "oauth",
+        memberTag,
+        filter: (it) =>
+          (!sections || sections.includes(it.section)) &&
+          (!kinds || kinds.includes(it.kind)) &&
+          aboutMember(it),
+      });
     const built = skipped
       ? {
           window: { from: iso(fromMs), to: iso(toMs) },
@@ -325,20 +340,7 @@ export const elixir_timeline = {
           entries: [],
           quiet: [],
         }
-      : await buildTimeline(ctx.db, subjects, {
-          fromMs,
-          toMs,
-          timezone: tz,
-          accountId: ctx.account.accountId,
-          basis,
-          // Leaders-only facts need the person's own consent, not a key.
-          interactive: ctx.account.credentialType === "oauth",
-          memberTag,
-          filter: (it) =>
-            (!sections || sections.includes(it.section)) &&
-            (!kinds || kinds.includes(it.kind)) &&
-            aboutMember(it),
-        });
+      : await buildFor(basis);
     // A member session the window cuts recurs in the next read (Gym
     // #302); a read that holds each sitting whole says nothing. Since
     // 11.8.0 a standout sitting is the member's session too (#374).
@@ -438,8 +440,20 @@ export const elixir_timeline = {
     // and would carry the reader past everything it filtered out (Gym
     // #271: 73 items skipped, three of them clan moments).
     let evidence;
+    let item = null;
+    let evidenceBasis = basis;
     if (args.evidence_item_id) {
-      const item = all.find((it) => it.id === args.evidence_item_id);
+      item = all.find((it) => it.id === args.evidence_item_id);
+      // An evidence read names an item from an earlier response; when it
+      // names no basis, the item may come from either kind of window (a
+      // poller's late item is in no occurred window). Look in the other
+      // before calling it unavailable (Codex on #472).
+      if (!item && args.basis === undefined) {
+        const other = occurred ? "observed" : "occurred";
+        const alt = (await buildFor(other)).timeline.filter(shown);
+        item = alt.find((it) => it.id === args.evidence_item_id) ?? null;
+        if (item) evidenceBasis = other;
+      }
       evidence = await readTimelineEvidence(ctx.db, item, {
         offset: args.evidence_offset ?? 0,
         limit: args.evidence_limit ?? 25,
@@ -456,7 +470,7 @@ export const elixir_timeline = {
       return {
         applied: appliedBlock({
           window: { ...built.window, source },
-          basis,
+          basis: evidenceBasis,
           mark_read: false,
           evidence_item_id: args.evidence_item_id,
           evidence_offset: evidence.offset,
@@ -465,7 +479,7 @@ export const elixir_timeline = {
         }),
         window: built.window,
         read_to: pointerMs === null ? null : new Date(pointerMs).toISOString(),
-        timeline: [all.find((it) => it.id === args.evidence_item_id)],
+        timeline: [item],
         timeline_more: 0,
         timeline_more_to: null,
         entries: [],
