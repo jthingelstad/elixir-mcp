@@ -289,7 +289,7 @@ told more than three hours late says when in words ("Yesterday").
   neither is a post being edited in place.
   A departure keeps Elixir's sentence for it word for word (departed,
   was removed, left on their own); the model may add only a thank-you
-  or a farewell, never a reason or anything else.
+  or a farewell in English, never a reason or anything else.
   A post that drops or changes a member's or opponent's name, carries a
   number or a name it was neither given nor looked up, says a time of
   day, leaves out when a story over three hours late happened ("earlier

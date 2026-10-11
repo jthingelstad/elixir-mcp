@@ -22,3 +22,13 @@ contracts unchanged.
 
 `/docs/clan-policy` and DECISIONS 147 say the departure rule as it now
 stands.
+
+## Follow-up (Codex on #507)
+
+The first version deleted every character outside a-z before reading
+the words, so a reason in another script ("他很有毒。") left nothing to
+check and passed. Now any letter outside English, a digit or a symbol
+beside a departure's sentence (emoji and plain punctuation aside) is
+refused. A clan whose voice writes another language gets Elixir's
+English sentence for a departure, with no farewell, until the allowlist
+learns that language. What's new: `2026-10-11-21`.

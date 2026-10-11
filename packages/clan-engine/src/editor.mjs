@@ -340,15 +340,19 @@ const FAREWELL = new Set(
 const farewellOnly = (rest, names) => {
   let t = rest;
   for (const n of names) t = t.split(rewriteText(n)).join(" ");
-  const words = t
+  t = t
     .toLowerCase()
     .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, " ")
-    .replace(/[’]/g, "'")
+    .replace(/[’]/g, "'");
+  // Only English letters, an apostrophe and plain punctuation are left
+  // to check: any other script, a digit or a symbol is not a farewell we
+  // can read, so it is refused rather than deleted (Codex on #507).
+  if (/[^a-z'\s.,!?;:\-–—]/.test(t)) return false;
+  return t
     .replace(/[^a-z']+/g, " ")
     .split(" ")
-    .filter(Boolean);
-  // A digit or a stray symbol is not a farewell either.
-  return !/[0-9]/.test(t) && words.every((w) => FAREWELL.has(w));
+    .filter(Boolean)
+    .every((w) => FAREWELL.has(w));
 };
 /** Words that give a departure a reason the record never gave. */
 const REASON =
