@@ -162,24 +162,26 @@ export function Model({ clan }) {
         a model drafts the recruiting pitch in Recruit and messages on Actions:
         welcomes, promotions, demotions, awards, policy announcements and a chat
         line after a removal decision. It never decides what should happen to a
-        member. It is told the game&rsquo;s numbers for the clan, what the clan
-        is for, how it runs and its own words. Member names, tags and private
-        notes stay local. Welcome drafts can use the Action&rsquo;s frozen
-        return or recorded career detail. Departure drafts use a leader&rsquo;s
-        confirmed Kicked or Left classification and recorded tenure when known,
-        without private reasons. Keep member details out of a Leader Message
-        note; chat drafts use fixed tone choices. Everything it writes is a
-        draft you review and edit, then save or copy into the game. Nothing is
-        posted automatically. Drafts use the clan’s saved recruiting words as
-        its voice; add those in Recruit and choose the tone on the action.
+        member. It is told what Elixir records: the clan (its name, its own
+        words, what it is for, its members and last war weeks), the
+        Action&rsquo;s own evidence and the member it is about, by name, with
+        their trophies, time in the clan, war weeks and recent moments. A
+        removal or departure is told only the member&rsquo;s time in the clan
+        and the weeks they played. Tags, private notes, holds and a
+        removal&rsquo;s reasons are never sent. Chat drafts use fixed tone
+        choices. Everything it writes is a draft you review and edit, then save
+        or copy into the game, with anything it says that it was not told marked
+        for you to check. Nothing is posted automatically. Drafts use the
+        clan&rsquo;s saved recruiting words as its voice; add those in Recruit
+        and choose the tone on the action.
       </p>
       <p className="page-head__note m-0">
         The one exception is the clan&rsquo;s activity in Discord (Social ▸
-        Discord), when a leader turns its rewrite on: each line is sent as
-        members already read it, names included, and posted without a review. A
-        line that changes a name, adds a number or carries a link keeps
-        Elixir&rsquo;s own words. Those uses are counted apart from the
-        drafts&rsquo;.
+        Discord), when a leader turns its rewrite on: each post is told the same
+        record and posted without a review. A post that changes a name, carries
+        a number or a name it was not given, or carries a link keeps
+        Elixir&rsquo;s own line. Those uses are counted apart from the
+        drafts&rsquo;; a leader&rsquo;s preview of them is a draft.
       </p>
 
       {!d.set ? (
@@ -404,6 +406,7 @@ export function Model({ clan }) {
                     <td>{u.by_name ?? u.by}</td>
                     <td>
                       {d.purposes[u.purpose]?.label ?? u.purpose}
+                      {u.preview ? " (preview)" : ""}
                       {u.ok ? "" : ` (failed${u.code ? `: ${u.code}` : ""})`}
                     </td>
                     <td>{u.model ? modelName(u.model) : "—"}</td>

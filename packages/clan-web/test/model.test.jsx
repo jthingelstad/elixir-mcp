@@ -70,14 +70,9 @@ describe("the clan's model", () => {
     expect(screen.getByText("in use")).toBeTruthy();
     expect(screen.getByText(/messages on Actions: welcomes/)).toBeTruthy();
     expect(
-      screen.getByText(/names, tags and private notes stay local/),
+      screen.getByText(/Tags, private notes, holds and a removal’s reasons/),
     ).toBeTruthy();
-    expect(
-      screen.getByText(/frozen return or recorded career detail/),
-    ).toBeTruthy();
-    expect(
-      screen.getByText(/confirmed Kicked or Left classification/),
-    ).toBeTruthy();
+    expect(screen.getByText(/the member it is about, by name/)).toBeTruthy();
     expect(screen.getByText(/Nothing is posted automatically/)).toBeTruthy();
     expect(screen.getByText("2 of 20 uses")).toBeTruthy();
     expect(screen.getByText("Recruiting pitch: Claude Opus 5.5")).toBeTruthy();
