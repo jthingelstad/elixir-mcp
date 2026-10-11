@@ -25,7 +25,7 @@ const DAY_MS = 24 * HOUR_MS;
 const REACH_MS = 30 * DAY_MS;
 /** An open sitting is re-read from its start for this long, so its edit
  *  tells the whole sitting; longer than any sitting is played. */
-const OPEN_MS = 12 * HOUR_MS;
+export const OPEN_MS = 12 * HOUR_MS;
 /** Told rows outlive the timeline's reach by a day, then go. */
 const TOLD_KEEP_DAYS = 31;
 /** A window the timeline's cap cut is narrowed at most this often. */

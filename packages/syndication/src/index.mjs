@@ -10,6 +10,7 @@ export {
   accountsToWake,
   clansToWake,
   wakeAfterFact,
+  wakeClosingSittings,
   wakeSyndication,
 } from "./wake.mjs";
 export {

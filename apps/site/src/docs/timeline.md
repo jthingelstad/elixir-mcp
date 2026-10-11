@@ -471,7 +471,9 @@ set in the console only, never through MCP or the JSON API.
   member, the subject) in the form Discord never previews. Nothing pings
   anyone.
 - **Edited, never repeated.** When an item grows (a sitting adds
-  battles, or closes), its message is edited in place. A message
+  battles, or closes), its message is edited in place. A sitting posted
+  while still going is edited to its final count within about 45 minutes
+  of its last battle, even when nothing else happens. A message
   deleted in the channel stays deleted. When Discord's answer to a post
   is lost, that line is not posted again: a missing line is better than
   a duplicate.
