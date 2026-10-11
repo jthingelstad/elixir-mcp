@@ -4,6 +4,7 @@ import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
 import { clanPath } from "../lib/base.js";
+import { untilWritten } from "../lib/pending.js";
 
 const day = (ts) => (ts ? ts.slice(0, 10) : "");
 
@@ -346,11 +347,14 @@ export function ActivityDiscordSetting({ clan, navigate }) {
                   {d.model.name
                     ? `Written by ${d.model.name}, the model Elixir Clan uses for these posts. `
                     : ""}
-                  Posted without anyone reading them first. The model sees only
-                  what the line already says; a line that drops a member&rsquo;s
-                  name, adds a number or carries a link keeps Elixir&rsquo;s own
-                  words. Uses the clan&rsquo;s key, at most {d.rewrites_per_day}{" "}
-                  times a day, and never past the clan&rsquo;s monthly cap.
+                  Posted without anyone reading them first. The model is told
+                  what Elixir records about the moment, the clan and the member
+                  it is about, and picks a detail or two; a post that drops a
+                  member&rsquo;s name, carries a number or a name it was not
+                  given, or a link keeps Elixir&rsquo;s own words. Uses the
+                  clan&rsquo;s key, at most {d.rewrites_per_day} requests a day
+                  (one request writes several posts), and never past the
+                  clan&rsquo;s monthly cap.
                 </p>
                 <form
                   className="grid gap-2"
@@ -383,10 +387,109 @@ export function ActivityDiscordSetting({ clan, navigate }) {
                     </span>
                   </div>
                 </form>
+                <RewritePreview
+                  tag={clan.clan_tag}
+                  voice={voiceNow}
+                  disabled={busy || d.model.refused}
+                />
               </>
             )}
           </fieldset>
         </>
+      ) : null}
+    </div>
+  );
+}
+
+/** Why a previewed post would keep Elixir's own line. */
+const REFUSED = {
+  not_written: "the model wrote nothing for it",
+  empty: "the model wrote nothing for it",
+  link: "it carried a link",
+  mention: "it carried a mention",
+  too_long: "it was too long",
+  name_changed: "it dropped or changed a member's name",
+  number_invented: "it carried a number the record did not give it",
+  name_invented: "it carried a name the record did not give it",
+};
+
+const PREVIEW_ERROR = {
+  still_pending:
+    "The model is taking longer than usual. The use is counted in Settings; try again in a minute.",
+  model_daily_limit:
+    "The clan's model has drafted as many times as it may today. Try again tomorrow.",
+  model_spend_cap:
+    "The clan's model has reached this month's spend cap. A leader can raise it in Settings.",
+};
+
+/**
+ * The last few things the channel could post, as the clan's model would
+ * write them in the voice in the box (saved or not). A leader's own use,
+ * counted with the drafts in Settings; nothing is posted (2026-10-11).
+ */
+function RewritePreview({ tag, voice, disabled }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const run = async () => {
+    setBusy(true);
+    setError("");
+    const r = await untilWritten((pending) =>
+      manageApi.previewActivityDiscord(tag, voice, pending),
+    );
+    setBusy(false);
+    if (!r.ok) {
+      setResult(null);
+      setError(
+        PREVIEW_ERROR[r.data?.error] ??
+          r.data?.message ??
+          "The model did not answer. Check Settings before trying again.",
+      );
+      return;
+    }
+    trackEvent("clan.activity_discord_preview");
+    setResult(r.data);
+  };
+  return (
+    <div className="grid gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="btn btn--sm"
+          disabled={disabled || busy}
+          onClick={run}
+        >
+          {busy ? "Writing…" : "Preview the last 5 in this voice"}
+        </button>
+        <span className="page-head__note">
+          Counts as one of the leaders&rsquo; drafts today. Nothing is posted.
+        </span>
+      </div>
+      {error ? (
+        <p className="field-error m-0" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {result?.empty ? (
+        <p className="page-head__note m-0" role="status">
+          Nothing from the last week would be posted to preview.
+        </p>
+      ) : null}
+      {result && !result.empty ? (
+        <ol className="grid gap-2 m-0 p-0 list-none" aria-label="Preview">
+          {result.posts.map((p) => (
+            <li key={p.key} className="panel">
+              <div className="panel__body grid gap-1">
+                <span>{p.rewrite ?? p.elixir}</span>
+                <span className="page-head__note">
+                  {p.rewrite
+                    ? `Elixir's line: ${p.elixir}`
+                    : `Elixir's own line would be posted: ${REFUSED[p.refused] ?? "the model's post was refused"}.`}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ol>
       ) : null}
     </div>
   );

@@ -1,24 +1,32 @@
 /**
- * Words for an existing action, through the clan's own model. Leader
- * Messages retain their existing context; welcome and removal chat copy
- * receives clan voice/goals and a fixed tone. Welcomes additionally use
- * their frozen return or career detail; all other member evidence stays
- * local. Confirmed departures use classification and recorded tenure,
- * never private decision reasons. Names are substituted after the answer.
- * A person reviews,
- * edits and sends; drafting only adds a log entry, never a decision.
+ * Words for an existing action, through the clan's own model. The model
+ * is told what Elixir knows (Jamie, 2026-10-11: "The intent is to become
+ * even more contextual and pull in the variety of data elixir has"): the
+ * clan (`clanContext`), the Action's own evidence in a person's terms
+ * (`actionLines`), the member it is about by name with their record
+ * (`memberLines`, from `storyFor`), and the leader's note as written.
+ * A departure or a removal gives only the member's time in the clan and
+ * what they gave; nothing gives another leader's note, a hold, a
+ * removal's rationale, inactivity numbers or fame per member.
+ *
+ * A person reviews, edits and sends; drafting only adds a log entry,
+ * never a decision. A draft that outlasts the request (`pending`) is
+ * collected by asking again with its id.
  */
 
 import {
   actionDelivery,
+  actionLines,
   CHAT_TONES,
   chatMessageFromDraft,
   chatMessageRequest,
-  chatSafe,
   chatLines,
+  clanContext,
   declaredGoals,
+  describePolicy,
   leaderMessageFromDraft,
   leaderMessageRequest,
+  memberLines,
 } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 import {
@@ -37,14 +45,94 @@ const KIND = {
   removal: "removal",
   departure: "departure",
 };
+/** Kinds whose member block is their time in the clan and what they
+ *  gave, never their trophies, moments or a week they missed. */
+const CONTRIBUTION = new Set(["removal", "departure"]);
 
+/** A grant's reference on an awards Action: `season:award:tag`. */
+const grantRef = (g) => `${g.season_id}:${g.award_id}:${g.player_tag}`;
+
+/**
+ * @param {{
+ *   ledger: any, model: any,
+ *   requireRemovalSafety?: Function | null,
+ *   storyFor?: ((clanTag: string, playerTags: string[]) =>
+ *     Promise<{ clan: object|null, members: Record<string, object> }>) | null,
+ *   now?: () => number,
+ * }} deps
+ */
 export function createDrafts({
   ledger,
   model,
   requireRemovalSafety = null,
+  storyFor = null,
   now = () => Date.now(),
 }) {
   const { logAction, person } = createActionStore({ ledger, now });
+
+  /** What the model is told for this Action: the clan block (the cached
+   *  prefix) and the packet (the moment and its people). */
+  async function told(clanTag, card, kind, { policy, pitch, clanName }) {
+    const ev = card.evidence ?? {};
+    const all = kind === "awards" ? await ledger.grants(clanTag) : [];
+    const refs = new Set(ev.grant_refs ?? []);
+    const grants = all.filter((g) => refs.has(grantRef(g)));
+    const subject =
+      kind === "awards" || kind === "rules" ? null : card.player_tag;
+    const story = storyFor
+      ? await storyFor(clanTag, subject ? [subject] : []).catch(() => null)
+      : null;
+    const context = clanContext({
+      name: clanName ?? story?.clan?.name ?? null,
+      pitch: pitch?.values ?? null,
+      goals: policy ? declaredGoals(policy.values) : [],
+      facts: story?.clan ?? null,
+    });
+    const lines = actionLines(kind, {
+      card,
+      grants,
+      policyLines:
+        kind === "rules" && policy
+          ? describePolicy(policy.values).flatMap((s) => s.lines ?? [])
+          : [],
+    });
+    if (subject) {
+      const recorded = story?.members?.[subject] ?? {};
+      const held = (
+        subject && !CONTRIBUTION.has(kind) ? await ledger.grants(clanTag) : []
+      )
+        .filter((g) => g.player_tag === subject)
+        .map((g) => ({
+          name: g.name ?? g.award_id,
+          season_id: g.season_id,
+          value: g.metric_value ?? null,
+          unit: g.metric_unit ?? null,
+        }));
+      const member = {
+        ...recorded,
+        name: card.player_name ?? recorded.name ?? null,
+        // A departure's tenure is the one the Action recorded.
+        ...(kind === "departure" && Number.isSafeInteger(ev.tenure_days)
+          ? { tenure_days: ev.tenure_days, joined_at: recorded.joined_at }
+          : {}),
+        ...(CONTRIBUTION.has(kind)
+          ? {
+              // What they gave: weeks they played, never one they missed.
+              war: (recorded.war ?? []).filter((w) => w.decks_used > 0),
+              awards: [],
+            }
+          : { awards: held }),
+      };
+      lines.push(
+        "",
+        ...memberLines(member, {
+          scope: CONTRIBUTION.has(kind) ? "contribution" : "full",
+        }),
+      );
+    }
+    return { context, packet: lines.join("\n"), grants };
+  }
+
   return {
     async leaderMessage(
       clanTag,
@@ -56,6 +144,7 @@ export function createDrafts({
         clanName = null,
         expectedDraftVersion = null,
         channel = null,
+        pending = null,
       } = {},
     ) {
       if (!LEADERS.has(who.role) || who.verified === false)
@@ -96,6 +185,8 @@ export function createDrafts({
         throw new ManageError(400, "bad_draft_tone");
       if (!kind || (!chat && !actionDelivery(card)))
         throw new ManageError(400, "no_leader_message");
+      if (pending != null && typeof pending !== "string")
+        throw new ManageError(400, "bad_message");
       const [policy, pitch] = await Promise.all([
         ledger.currentPolicy(clanTag),
         ledger.currentPitch(clanTag),
@@ -110,65 +201,38 @@ export function createDrafts({
           throw error;
         }
       }
-      // The action's subject stays local, including in a leader's optional note.
-      const anonymous = (text) => {
-        let value =
-          kind === "awards" ? chatSafe(String(text ?? "")) : String(text ?? "");
-        for (const privateValue of [
-          card.player_name,
-          card.player_tag,
-          ...(kind === "awards"
-            ? (ev.awards ?? []).flatMap((a) => a.winners ?? [])
-            : []),
-          ...(kind === "awards"
-            ? (ev.grant_refs ?? []).flatMap((ref) => {
-                const tag = ref.split(":").at(-1);
-                return [tag, tag.replace(/^#/, "")];
-              })
-            : []),
-        ])
-          if (privateValue)
-            value = value.replaceAll(
-              kind === "awards" ? chatSafe(privateValue) : privateValue,
-              "{name}",
-            );
-        return value;
-      };
-      const context = {
-        kind,
+      const departure =
+        kind === "departure"
+          ? {
+              classification: card.outcome.classification,
+              confirmed_at: card.decided_at,
+              observed_left_at: ev.left_at,
+              tenure_days: ev.tenure_days,
+            }
+          : null;
+      const { context, packet } = await told(clanTag, card, kind, {
+        policy,
+        pitch,
         clanName,
-        voice: pitch?.values ?? null,
-        goals: policy ? declaredGoals(policy.values) : [],
-        note: chat ? note : anonymous(note),
-        welcome: kind === "welcome" ? ev.welcome : null,
-        departure:
-          kind === "departure"
-            ? {
-                classification: card.outcome.classification,
-                confirmed_at: card.decided_at,
-                observed_left_at: ev.left_at,
-                tenure_days: ev.tenure_days,
-              }
-            : null,
-      };
+      });
       const request = chat
-        ? chatMessageRequest(context)
+        ? chatMessageRequest({
+            kind,
+            context,
+            packet,
+            tone: note,
+            welcome: kind === "welcome" ? ev.welcome : null,
+            departure,
+          })
         : leaderMessageRequest({
-            ...context,
-            changes: ev.changes ?? [],
-            first: kind === "rules" && ev.version === 1,
-            seasonId: ev.season_id ?? null,
-            awardCount: (ev.awards ?? []).length,
-            // The template the action carries, with the name taken out again.
+            kind,
+            context,
+            packet,
+            note,
             current:
               kind === "awards"
                 ? { title: `Season ${ev.season_id} awards`, body: "{winners}" }
-                : ev.message
-                  ? {
-                      title: anonymous(ev.message.title),
-                      body: anonymous(ev.message.body),
-                    }
-                  : null,
+                : (ev.message ?? null),
           });
       const unchanged = async () => {
         const current = await ledger.card(clanTag, cardId);
@@ -177,7 +241,11 @@ export function createDrafts({
         await removalProof();
       };
       await unchanged();
-      const answer = await model.write(clanTag, who, token, request);
+      const answer = pending
+        ? await model.collect(clanTag, who, pending)
+        : await model.write(clanTag, who, token, request, { defer: true });
+      if (answer.pending)
+        return { pending: answer.pending, draft_context_version: version };
       await unchanged();
       const draft = (chat ? chatMessageFromDraft : leaderMessageFromDraft)(
         answer.input,
@@ -186,7 +254,8 @@ export function createDrafts({
           name: card.player_name ?? null,
           awards: ev.awards ?? [],
           welcome: kind === "welcome" ? ev.welcome : null,
-          departure: context.departure,
+          departure,
+          told: `${request.context}\n${request.prompt}`,
         },
       );
       await logAction(clanTag, card.card_id, "drafted", {

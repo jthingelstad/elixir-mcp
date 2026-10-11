@@ -66,8 +66,10 @@ or workflow of its own.
   sync are `packages/syndication` (`clan-settings.mjs`, `clan-sync.mjs`),
   the rules `clan-engine/activity.mjs`, the leaders' service
   `src/manage/activity.mjs`. Its rewrite is the one model use posted
-  unread (`writeUnattended`, purpose `discord_activity`): only the line
-  goes to the model, and the engine's checks decide what is posted.
+  unread (`writeUnattended`, purpose `discord_activity`): the model is
+  told the record (`clan-engine/context.mjs`, the same builder as the
+  drafts), and the engine's checks decide what is posted. Its model call
+  runs outside the sync's transaction, under the clan's session lock.
 - **`ClanInternal`** (stack parameter, `CLAN_INTERNAL`) is the feature
   switch. Turning it off disables Clan's API and morning run; it never
   resumes another runtime.

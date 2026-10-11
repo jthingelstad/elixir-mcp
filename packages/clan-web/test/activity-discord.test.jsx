@@ -169,7 +169,7 @@ describe("the clan's activity in Discord", () => {
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith("#2PQRJ8LV", { rewrite: true }),
     );
-    expect(screen.getByText(/at most 50 times a day/)).toBeTruthy();
+    expect(screen.getByText(/at most 50 requests a day/)).toBeTruthy();
     expect(
       screen.getByText(
         /Written by Claude Sonnet 5\.5, the model Elixir Clan uses/,
@@ -184,6 +184,79 @@ describe("the clan's activity in Discord", () => {
         voice: "Short and loud",
       }),
     );
+  });
+
+  test("a leader previews the last few posts in the voice in the box; a draft that outlasts its request is asked for again", async () => {
+    vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
+      ok(
+        view({
+          model: { available: true, set: true, refused: false, name: "X" },
+        }),
+      ),
+    );
+    const preview = vi
+      .spyOn(manageApi, "previewActivityDiscord")
+      .mockResolvedValueOnce(ok({ pending: "req-1" }))
+      .mockResolvedValueOnce(
+        ok({
+          empty: false,
+          model: "claude-sonnet-5-5",
+          posts: [
+            {
+              key: "tl_1",
+              kind: "member_joined",
+              elixir: "Ada joined Example Clan.",
+              rewrite: "Welcome aboard, Ada!",
+              refused: null,
+            },
+            {
+              key: "tl_2",
+              kind: "trophy_milestone",
+              elixir: "Bo reached 9,000 trophies.",
+              rewrite: null,
+              refused: "number_invented",
+            },
+          ],
+        }),
+      );
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+      fireEvent.change(
+        await screen.findByLabelText("How the posts should sound"),
+        {
+          target: { value: "Pirate talk" },
+        },
+      );
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: "Preview the last 5 in this voice",
+        }),
+      );
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(await screen.findByText("Welcome aboard, Ada!")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(preview).toHaveBeenNthCalledWith(
+      1,
+      "#2PQRJ8LV",
+      "Pirate talk",
+      null,
+    );
+    expect(preview).toHaveBeenNthCalledWith(
+      2,
+      "#2PQRJ8LV",
+      "Pirate talk",
+      "req-1",
+    );
+    expect(screen.getByText("Bo reached 9,000 trophies.")).toBeTruthy();
+    expect(
+      screen.getByText(/a number the record did not give it/),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/Counts as one of the leaders’ drafts/),
+    ).toBeTruthy();
   });
 
   test("a webhook Discord stopped accepting says so", async () => {

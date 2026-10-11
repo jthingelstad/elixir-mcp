@@ -197,22 +197,42 @@ Action can also draft a respectful departure message or farewell. An observed
 departure alone does not say which happened; an unconfirmed or ignored
 departure has no voice draft.
 
-The model may use the welcome Action's frozen return or recorded career
-detail with its original observation time. Freshness was checked when that
-detail was saved; drafting does not fetch a new profile or turn a career total
-into a newly reached milestone. For a confirmed departure it receives the
-leader's classification and confirmation time, the observed departure time,
-and recorded tenure when known. Tenure's metric observation time is not stored;
-it does not prove the member's exact or entire time in the clan.
+The model is told what Elixir records, so the words can be about this
+member and this clan rather than anyone's (2026-10-11):
 
-Member names, tags, private decision notes, inactivity rationale, scores and
-broader history stay local. Clan puts the name back into the model's
-placeholder. The model never decides whether to promote, demote or remove
-anyone. Drafts are bound to the Action's context: a changed confirmation or
-frozen detail clears older words and rejects an in-flight result.
+- **The clan**: its name, its recruiting words and declared goals, its
+  member count and its last few finished war weeks (place and war
+  trophies).
+- **What happened**: the Action's own evidence in plain words. For a
+  promotion or demotion, what the rules counted (war decks, donations,
+  time in the clan) against the policy's bar; for the season's awards,
+  each award with its winner and number; for a policy change, what the
+  policy now says; for a welcome, the frozen return or recorded career
+  detail with when it was observed; for a confirmed departure, the
+  leader's classification and the recorded tenure.
+- **The member**, by name: trophies and best, arena, career wins,
+  collection level, time in the clan and any earlier stint, their recent
+  war weeks as decks used and points, their recent moments in the clan's
+  timeline and the awards they hold here. For a removal or a departure
+  only their time in the clan and the weeks they played: never their
+  trophies, a week they missed or why they were removed.
+- **Your note**, as you wrote it.
 
-The clan's saved words in **Recruit** supply its voice. Choose a fixed tone for a welcome, removal or farewell line, or add a short message note
-without member details; review and edit the answer.
+Never sent: a tag, another leader's private note, a hold, a removal's
+rationale or inactivity numbers, a member's share of the clan's fame, or
+anything the record does not hold. A fact the record lacks is left out.
+The model picks one or two details that make the moment personal and
+leaves the rest. A draft that carries a number or a name the model was
+not given is marked for you to check before sending; it is still your
+draft to edit. The model never decides whether to promote, demote or
+remove anyone. Drafts are bound to the Action's context: a changed
+confirmation or frozen detail clears older words and rejects an
+in-flight result. A careful draft can take longer than one request; the
+page keeps asking until it lands, for up to about 100 seconds.
+
+The clan's saved words in **Recruit** supply its voice. Choose a fixed
+tone for a welcome, removal or farewell line, or add a short note on what
+the message should stress; review and edit the answer.
 **Put back what I had** restores your previous words. Elders can edit and
 copy welcomes without using the clan's model. Completing a welcome records
 the words as edited. Drafting completes no action and sends no game message.

@@ -21,6 +21,7 @@ import {
 } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
+import { untilWritten } from "../lib/pending.js";
 import { trackEvent } from "../analytics.js";
 import { CLAN, clanPath, memberPath } from "../lib/base.js";
 import { MemberSheet } from "./MemberSheet.jsx";
@@ -704,6 +705,12 @@ const DRAFT_ERROR = {
     "The clan's model has reached this month's spend cap. A leader can raise it in Settings.",
   model_key_owner_left:
     "The clan's key was added by someone who no longer leads the clan. Add a key of yours in Settings.",
+  still_pending:
+    "The model is taking longer than usual. Its draft is counted in Settings; try again in a minute.",
+  outcome_unknown:
+    "The model did not answer in time. The attempt is counted in Settings; try again in a minute.",
+  no_pending_draft: "That draft is no longer waiting. Ask for another.",
+  not_yours: "That draft was started by another leader. Ask for your own.",
 };
 
 /** Who wrote a log entry. */
@@ -889,12 +896,17 @@ function BoundActionCard({
     (action.can_act !== false || (departureCopy && action.can_draft)) &&
     ["leader", "coLeader"].includes(who?.role)
       ? async (note) => {
-          const r = await manageApi.draftLeaderMessage(
-            clan.clan_tag,
-            action.card_id,
-            note,
-            action.draft_context_version ?? null,
-            ...(delivery.words ? [delivery.words.channel] : []),
+          // Opus at medium effort can outlast one request: the API
+          // answers `pending` and the page asks again until it lands.
+          const r = await untilWritten((pending) =>
+            manageApi.draftLeaderMessage(
+              clan.clan_tag,
+              action.card_id,
+              note,
+              action.draft_context_version ?? null,
+              delivery.words?.channel ?? null,
+              pending,
+            ),
           );
           if (!r.ok) {
             if (

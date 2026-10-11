@@ -303,6 +303,20 @@ Resources:
         deadLetterTargetArn: !GetAtt EmailDlq.Arn
         maxReceiveCount: 5
 
+  # The clan's own model (2026-10-11): one sealed request a relay run,
+  # so a leader's draft, which may wait 50 s for the provider, has the
+  # relay's 60 s to itself. Its failures share the email dead letters.
+  ClanModelQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: elixir-mcp-clan-model
+      VisibilityTimeout: 360
+      MessageRetentionPeriod: 345600
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EmailDlq.Arn
+        maxReceiveCount: 5
+
   EmailDlq:
     Type: AWS::SQS::Queue
     Properties:
@@ -846,7 +860,7 @@ Resources:
           - !If
             - HasInternalClan
             - Event: s3:ObjectCreated:*
-              Queue: !GetAtt EmailQueue.Arn
+              Queue: !GetAtt ClanModelQueue.Arn
               Filter:
                 S3Key: { Rules: [{ Name: prefix, Value: clan-model/request/ }] }
             - !Ref AWS::NoValue
@@ -882,6 +896,7 @@ Resources:
       Queues:
         [
           !Ref EmailQueue,
+          !Ref ClanModelQueue,
           !Ref TimelineSyncQueue,
           !Ref TimelineDiscordQueue,
           !Ref ClanDiscordQueue,
@@ -894,6 +909,7 @@ Resources:
             Action: sqs:SendMessage
             Resource:
               - !GetAtt EmailQueue.Arn
+              - !GetAtt ClanModelQueue.Arn
               - !GetAtt TimelineSyncQueue.Arn
               - !GetAtt TimelineDiscordQueue.Arn
               - !GetAtt ClanDiscordQueue.Arn
@@ -930,6 +946,7 @@ Resources:
                   ]
                 Resource:
                   - !GetAtt EmailQueue.Arn
+                  - !GetAtt ClanModelQueue.Arn
                   - !GetAtt TimelineDiscordQueue.Arn
                   - !GetAtt ClanDiscordQueue.Arn
               # A Discord lane's record held back until Discord's limit
@@ -1339,6 +1356,15 @@ Resources:
       FunctionName: !Ref EmailRelayFunction
       EventSourceArn: !GetAtt EmailQueue.Arn
       BatchSize: 5
+      FunctionResponseTypes: [ReportBatchItemFailures]
+
+  # The clan's own model: one request a run (`ClanModelQueue`).
+  ClanModelEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      FunctionName: !Ref EmailRelayFunction
+      EventSourceArn: !GetAtt ClanModelQueue.Arn
+      BatchSize: 1
       FunctionResponseTypes: [ReportBatchItemFailures]
 
   # The timeline's lines (2026-10-10): one object a run, at most two runs

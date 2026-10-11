@@ -19,11 +19,22 @@
  *
  *  With the rewrite on, the clan's own model rewrites the run's lines in
  *  the leaders' voice before they are written (`rewrite`, the model
- *  service's unattended use: its caps, its record). A line the model
- *  does not return, or one that fails the engine's checks, keeps
- *  Elixir's own sentence; so does every line when the model cannot be
- *  used. The stamp and the links are always Elixir's. */
-import { DISCORD_POSTS_MAX } from "@elixir-mcp/contracts";
+ *  service's unattended use: its caps, its record). Each post hands the
+ *  model what Elixir knows (2026-10-11): the clan (`clanContext`: its
+ *  name, words, goals, members and last war weeks), the item's facts,
+ *  its member's record (`clanStoryFacts`) and how often the channel told
+ *  of them this week. A run of same-kind milestones is one post, keyed
+ *  by its first item, so the relay edits it in place like any other. A
+ *  line the model does not return, or one that fails the engine's
+ *  checks, keeps Elixir's own sentence (a group: Elixir's lines, one
+ *  under the other); so does every line when the model cannot be used.
+ *  The stamp and the links are always Elixir's.
+ *
+ *  The model is asked outside any transaction: the run plans under the
+ *  row's lock and commits, asks, then writes under the lock again, and
+ *  writes nothing when the connection changed meanwhile. A session lock
+ *  per clan keeps one run at a time across the wait. */
+import { DISCORD_CONTENT_MAX, DISCORD_POSTS_MAX } from "@elixir-mcp/contracts";
 import {
   ACTIVITY_CATEGORIES,
   DEPARTURE_CLASSIFIED,
@@ -32,6 +43,9 @@ import {
   activityRewriteRequest,
   activityRewritesFromDraft,
   activityShareable,
+  clanContext,
+  declaredGoals,
+  groupable,
   rewriteLine,
 } from "@elixir-mcp/clan-engine";
 import {
@@ -42,6 +56,7 @@ import {
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { discordLine, itemBattleId, itemSentence } from "./lines.mjs";
 import { postRevision, readCapped } from "./sync.mjs";
+import { clanStoryFacts } from "./story-facts.mjs";
 
 const DAY_MS = 24 * 3600_000;
 const REACH_MS = 30 * DAY_MS;
@@ -49,6 +64,17 @@ const TOLD_KEEP_DAYS = 31;
 /** A departure's post edited by a leader's word on it: above any
  *  revision the roster's own item reaches. */
 const CLASSIFIED_REVISION = 1000;
+/** A leader's word on a departure edits the departure nearest it, within
+ *  this much (its left_at, or the word itself for a removal). */
+const DEPARTURE_NEAR_MS = DAY_MS;
+/** Same-kind milestones told as one post, at most. */
+export const GROUP_MAX = 5;
+/** The posts a leader may preview in the clan's voice. */
+export const PREVIEW_MAX = 5;
+/** How far back the channel's history about a member is told. */
+const HISTORY_MS = 7 * DAY_MS;
+/** The session lock's namespace ("clan"), beside the clan's tag. */
+const LOCK_NS = 0x636c616e;
 
 const observedMs = (it) => Date.parse(it.observed_at ?? it.at);
 const memberTag = (it) => it.facts?.player_tag ?? null;
@@ -57,22 +83,10 @@ const memberTag = (it) => it.facts?.player_tag ?? null;
  *  queue logs read plainly. */
 export const clanWakeId = (clanTag) => `clan-${String(clanTag).slice(1)}`;
 
-/**
- * @param {import("pg").ClientBase} db
- * @param {string} clanTag
- * @param {{
- *   outbox: Function,
- *   readStatus?: (channelId: string) => Promise<object|null>,
- *   policyFor: (db: any, clanTag: string) => Promise<object|null>,
- *   rewrite?: ((db: any, clanTag: string, request: object) =>
- *     Promise<{ ok: boolean, input?: object, code?: string }>) | null,
- *   now?: number,
- * }} deps
- */
-export async function syncClan(db, clanTag, deps) {
+async function inTransaction(db, fn) {
   await db.query("begin");
   try {
-    const out = await syncLocked(db, clanTag, deps);
+    const out = await fn();
     await db.query("commit");
     return out;
   } catch (err) {
@@ -81,31 +95,110 @@ export async function syncClan(db, clanTag, deps) {
   }
 }
 
-async function syncLocked(
-  db,
-  clanTag,
-  {
-    outbox,
-    readStatus = async () => null,
-    policyFor,
-    rewrite = null,
-    now = Date.now(),
-  },
-) {
-  // One sync per clan at a time.
-  const {
-    rows: [row],
-  } = await db.query(
-    `select d.channel_id, d.webhook_sealed, d.webhook_fp, d.enabled,
+const ROW_SQL = `select d.channel_id, d.webhook_sealed, d.webhook_fp, d.enabled,
             d.enabled_at, d.synced_to, d.updated_at, d.categories,
             d.rewrite, d.voice, c.name as clan_name
        from clan_activity_discord d
        left join clan c on c.clan_tag = d.clan_tag
-      where d.clan_tag = $1
-        for update of d`,
-    [clanTag],
-  );
-  if (!row || !row.enabled) return { skipped: "off" };
+      where d.clan_tag = $1`;
+
+/**
+ * @param {import("pg").ClientBase} db
+ * @param {string} clanTag
+ * @param {{
+ *   outbox: Function,
+ *   readStatus?: (channelId: string) => Promise<object|null>,
+ *   policyFor: (db: any, clanTag: string) => Promise<object|null>,
+ *   pitchFor?: ((db: any, clanTag: string) => Promise<object|null>) | null,
+ *   rewrite?: ((db: any, clanTag: string, request: object) =>
+ *     Promise<{ ok: boolean, input?: object, code?: string }>) | null,
+ *   now?: number,
+ * }} deps
+ */
+export async function syncClan(db, clanTag, given) {
+  const deps = { ...given, now: given.now ?? Date.now() };
+  // One run per clan at a time, held across the model's wait without a
+  // transaction or a row lock (a leader's save is never held up by it).
+  await db.query("select pg_advisory_lock($1, hashtext($2))", [
+    LOCK_NS,
+    clanTag,
+  ]);
+  try {
+    const plan = await inTransaction(db, async () => {
+      const p = await planRun(db, clanTag, deps);
+      if (p.out || p.request) return p;
+      return { out: await writeRun(db, clanTag, deps, p, null) };
+    });
+    if (plan.out) return plan.out;
+    const r = await deps
+      .rewrite(db, clanTag, plan.request)
+      .catch(() => ({ ok: false, code: "error" }));
+    return await inTransaction(db, async () => {
+      // The connection as it is now: written only while it is the same.
+      const {
+        rows: [row],
+      } = await db.query(`${ROW_SQL} for update of d`, [clanTag]);
+      if (
+        !row?.enabled ||
+        row.webhook_fp !== plan.row.webhook_fp ||
+        row.synced_to.getTime() !== plan.row.synced_to.getTime()
+      )
+        return { skipped: "changed", rewrite_code: r?.ok ? null : r?.code };
+      return writeRun(db, clanTag, deps, { ...plan, row }, r);
+    });
+  } finally {
+    await db
+      .query("select pg_advisory_unlock($1, hashtext($2))", [LOCK_NS, clanTag])
+      .catch(() => {});
+  }
+}
+
+/** The categories in effect and the kinds they post. */
+async function postingKinds(db, clanTag, row, policyFor) {
+  const policy = await policyFor(db, clanTag);
+  const categories = activityCategories(row.categories, policy?.values ?? null);
+  const kinds = Object.entries(categories)
+    .filter(([, on]) => on)
+    .flatMap(([key]) => ACTIVITY_CATEGORIES[key].kinds);
+  if (categories.members) kinds.push(DEPARTURE_CLASSIFIED);
+  return { categories, kinds, policy };
+}
+
+/** The item a post is nearest to `ms`, within the departure window. */
+function nearest(list, ms, atOf) {
+  let best = null;
+  let gap = Infinity;
+  for (const x of list) {
+    const d = Math.abs(atOf(x) - ms);
+    if (Number.isFinite(d) && d <= DEPARTURE_NEAR_MS && d < gap) {
+      best = x;
+      gap = d;
+    }
+  }
+  return best;
+}
+
+/**
+ * The run under the row's lock: what to post (each post a key, a
+ * revision and its items), what to record as told, and, with the
+ * rewrite on, the request for the clan's model. `out` when the run is
+ * over before posting anything.
+ */
+async function planRun(
+  db,
+  clanTag,
+  {
+    readStatus = async () => null,
+    policyFor,
+    pitchFor = null,
+    rewrite = null,
+    now = Date.now(),
+  },
+) {
+  const {
+    rows: [row],
+  } = await db.query(`${ROW_SQL} for update of d`, [clanTag]);
+  if (!row || !row.enabled) return { out: { skipped: "off" } };
 
   const status = await readStatus(row.channel_id);
   if (
@@ -122,29 +215,21 @@ async function syncLocked(
         where clan_tag = $1`,
       [clanTag, new Date(now), reason],
     );
-    return { disabled: reason };
+    return { out: { disabled: reason } };
   }
 
-  const advance = (toMs) =>
-    db.query(
-      `update clan_activity_discord set synced_to = greatest(synced_to, $2)
-        where clan_tag = $1`,
-      [clanTag, new Date(toMs)],
-    );
   // What is on: the leaders' switches over the policy's defaults. No
   // policy, or nothing on, posts nothing, and the pointer moves on (no
   // backfill when a category is turned on later).
-  const categories = activityCategories(
-    row.categories,
-    (await policyFor(db, clanTag))?.values ?? null,
+  const { categories, kinds, policy } = await postingKinds(
+    db,
+    clanTag,
+    row,
+    policyFor,
   );
-  const kinds = Object.entries(categories)
-    .filter(([, on]) => on)
-    .flatMap(([key]) => ACTIVITY_CATEGORIES[key].kinds);
-  if (categories.members) kinds.push(DEPARTURE_CLASSIFIED);
   if (!kinds.length) {
-    await advance(now);
-    return { skipped: "nothing_on" };
+    await advance(db, clanTag, now);
+    return { out: { skipped: "nothing_on" } };
   }
 
   const enabledMs = row.enabled_at.getTime();
@@ -194,17 +279,18 @@ async function syncLocked(
     .filter((it) => it.kind === DEPARTURE_CLASSIFIED && !told.has(it.id))
     .sort(byTime);
 
-  // A post: the item it tells, the key and revision it goes under.
+  // A post: the key and revision it goes under, and the items it tells.
   const posts = fresh.map((it) => ({
-    item: it,
     key: it.id,
     revision: postRevision(it),
+    items: [it],
   }));
   const toldNow = fresh.map((it) => ({
     item_id: it.id,
     revision: postRevision(it),
     kind: it.kind,
     player_tag: memberTag(it),
+    item_at: it.at ?? null,
   }));
   for (const c of classified) {
     toldNow.push({
@@ -212,79 +298,220 @@ async function syncLocked(
       revision: 1,
       kind: c.kind,
       player_tag: memberTag(c),
+      item_at: c.at ?? null,
     });
     const tag = memberTag(c);
     if (!tag) continue;
+    // The departure this word is about: the one nearest its left_at (a
+    // leader's answer to a departure) or the word itself (a removal,
+    // said as it is done), never just the player's latest.
+    const target = Date.parse(c.facts?.left_at ?? c.at);
     // Posted in this run: post it once, as the leader told it.
-    const here = posts.findLast(
-      (p) => p.item.kind === "member_left" && memberTag(p.item) === tag,
+    const here = nearest(
+      posts.filter(
+        (p) =>
+          p.items[0].kind === "member_left" && memberTag(p.items[0]) === tag,
+      ),
+      target,
+      (p) => Date.parse(p.items[0].at),
     );
     if (here) {
-      here.item = c;
+      here.items = [c];
       here.revision = CLASSIFIED_REVISION + 1;
       toldNow.find((t) => t.item_id === here.key).revision = here.revision;
       continue;
     }
-    // Posted before: edit that post.
-    const {
-      rows: [left],
-    } = await db.query(
-      `select item_id, revision from clan_activity_discord_told
-        where clan_tag = $1 and kind = 'member_left' and player_tag = $2
-        order by told_at desc limit 1`,
+    // Posted before: edit that post. A row told before 0220 has no
+    // time; it is used only when it is the player's one departure.
+    const { rows } = await db.query(
+      `select item_id, revision, item_at from clan_activity_discord_told
+        where clan_tag = $1 and kind = 'member_left' and player_tag = $2`,
       [clanTag, tag],
     );
+    const left =
+      nearest(
+        rows.filter((r) => r.item_at),
+        target,
+        (r) => r.item_at.getTime(),
+      ) ?? (rows.length === 1 && !rows[0].item_at ? rows[0] : null);
     if (!left) continue;
     const revision = Math.max(left.revision, CLASSIFIED_REVISION) + 1;
-    posts.push({ item: c, key: left.item_id, revision });
+    posts.push({ key: left.item_id, revision, items: [c] });
     toldNow.push({
       item_id: left.item_id,
       revision,
       kind: "member_left",
       player_tag: tag,
+      item_at: left.item_at ? left.item_at.toISOString() : null,
     });
   }
 
-  let rewritten = 0;
+  const plan = { row, posts, toldNow, toMs, narrowed, request: null };
+  if (!posts.length || !row.rewrite || !rewrite) return plan;
+
+  // With the rewrite on, a run of never-told milestones of one kind is
+  // one post under its first item's key.
+  const grouped = [];
+  const runs = new Map();
+  for (const p of posts) {
+    const it = p.items[0];
+    if (p.items.length === 1 && !told.has(it.id) && groupable(it)) {
+      const run = runs.get(it.kind);
+      if (run && run.items.length < GROUP_MAX) {
+        run.items.push(it);
+        run.revision = Math.max(run.revision, p.revision);
+        continue;
+      }
+      runs.set(it.kind, p);
+    }
+    grouped.push(p);
+  }
+  plan.posts = grouped;
+  const batch = grouped.slice(0, REWRITE_BATCH_MAX);
+  const built = await rewritePackets(db, clanTag, row, batch, {
+    policy,
+    pitchFor,
+    now,
+  });
+  plan.lines = built.lines;
+  plan.request = activityRewriteRequest({
+    context: built.context,
+    lines: built.lines,
+  });
+  return plan;
+}
+
+/**
+ * What the clan's model is told for some posts: the clan block (the
+ * cached prefix) and one packet per post, with its members' records and
+ * what the channel already told of them this week.
+ */
+async function rewritePackets(
+  db,
+  clanTag,
+  row,
+  posts,
+  { policy = null, pitchFor = null, now = Date.now() } = {},
+) {
+  const tags = [
+    ...new Set(posts.flatMap((p) => p.items.map(memberTag)).filter(Boolean)),
+  ];
+  const [story, pitch, history] = await Promise.all([
+    clanStoryFacts(db, clanTag, { playerTags: tags, nowMs: now }),
+    pitchFor ? pitchFor(db, clanTag).catch(() => null) : null,
+    tags.length
+      ? db
+          .query(
+            `select kind, player_tag, count(*)::int as n
+               from clan_activity_discord_told
+              where clan_tag = $1 and player_tag = any($2::text[])
+                and told_at > $3
+              group by kind, player_tag`,
+            [clanTag, tags, new Date(now - HISTORY_MS)],
+          )
+          .then((r) => r.rows)
+      : [],
+  ]);
+  const context = clanContext({
+    name: row.clan_name,
+    pitch: pitch?.values ?? null,
+    voice: row.voice,
+    goals: policy ? declaredGoals(policy.values) : [],
+    facts: story.clan,
+  });
+  const told = (kind, tag) =>
+    history.find((h) => h.kind === kind && h.player_tag === tag)?.n ?? 0;
+  const lines = posts.map((p) => {
+    const departing = p.items.some(
+      (it) => it.kind === "member_left" || it.kind === DEPARTURE_CLASSIFIED,
+    );
+    const people = [...new Set(p.items.map(memberTag).filter(Boolean))];
+    return rewriteLine(
+      p.items.map((it) => ({ ...it, id: p.key })),
+      p.items.map(itemSentence),
+      {
+        members: people
+          .map((tag) => story.members[tag])
+          .filter(Boolean)
+          .map((m) =>
+            departing
+              ? {
+                  ...m,
+                  scope: "contribution",
+                  war: m.war.filter((w) => w.decks_used > 0),
+                }
+              : m,
+          ),
+        history: people.map((tag) => ({
+          kind: p.items[0].kind,
+          name: story.members[tag]?.name ?? tag,
+          // A grown item was told before: itself is not "another".
+          count: Math.max(
+            0,
+            told(p.items[0].kind, tag) - (p.revision > 1 ? 1 : 0),
+          ),
+        })),
+      },
+    );
+  });
+  return { context, lines };
+}
+
+/** Move the clan's pointer on to `toMs`. */
+const advance = (db, clanTag, toMs) =>
+  db.query(
+    `update clan_activity_discord set synced_to = greatest(synced_to, $2)
+      where clan_tag = $1`,
+    [clanTag, new Date(toMs)],
+  );
+
+/**
+ * The planned posts written: each in the model's words when it passed
+ * the engine's checks, Elixir's otherwise; recorded as told; the
+ * pointer moved on.
+ */
+async function writeRun(
+  db,
+  clanTag,
+  { outbox, now = Date.now() },
+  { row, posts, toldNow, toMs, narrowed, lines = [], request = null },
+  r,
+) {
+  let rewrites = new Map();
   let refused = {};
   let rewriteCode = null;
+  if (request) {
+    if (r?.ok)
+      ({ rewrites, refused } = activityRewritesFromDraft(
+        r.input,
+        lines,
+        request.context,
+      ));
+    else rewriteCode = r?.code ?? "error";
+  }
   if (posts.length) {
-    // The clan's model, when the leaders turned it on: one request for
-    // the run's first REWRITE_BATCH_MAX lines; the rest keep Elixir's.
-    let rewrites = new Map();
-    if (row.rewrite && rewrite) {
-      const lines = posts
-        .slice(0, REWRITE_BATCH_MAX)
-        .map((p) =>
-          rewriteLine({ ...p.item, id: p.key }, itemSentence(p.item)),
-        );
-      const r = await rewrite(
-        db,
-        clanTag,
-        activityRewriteRequest({
-          clanName: row.clan_name,
-          voice: row.voice,
-          lines,
-        }),
-      ).catch(() => ({ ok: false, code: "error" }));
-      if (r?.ok) {
-        ({ rewrites, refused } = activityRewritesFromDraft(r.input, lines));
-        rewritten = rewrites.size;
-      } else rewriteCode = r?.code ?? "error";
-    }
     const battles = await battleLinks(
       db,
-      posts.map((p) => itemBattleId(p.item)).filter(Boolean),
+      posts.flatMap((p) => p.items.map(itemBattleId)).filter(Boolean),
     );
-    const content = posts.map((p) => ({
-      key: p.key,
-      revision: p.revision,
-      content: discordLine(p.item, {
+    const line = (it, text = null) =>
+      discordLine(it, {
         battles,
         clanTags: new Set([clanTag]),
         nowMs: now,
-        text: rewrites.get(p.key) ?? null,
-      }),
+        text,
+      });
+    const content = posts.map((p) => ({
+      key: p.key,
+      revision: p.revision,
+      content:
+        p.items.length > 1 && !rewrites.has(p.key)
+          ? // A group the model did not write: Elixir's lines, stacked.
+            p.items
+              .map((it) => line(it))
+              .join("\n")
+              .slice(0, DISCORD_CONTENT_MAX)
+          : line(p.items[0], rewrites.get(p.key) ?? null),
       ...(rewrites.has(p.key) ? { rewritten: true } : {}),
     }));
     for (let i = 0; i < content.length; i += DISCORD_POSTS_MAX)
@@ -303,13 +530,16 @@ async function syncLocked(
   if (toldNow.length)
     await db.query(
       `insert into clan_activity_discord_told
-              (clan_tag, item_id, revision, kind, player_tag, told_at)
-       select $1, x.item_id, x.revision, x.kind, x.player_tag, $2
-         from unnest($3::text[], $4::int[], $5::text[], $6::text[])
-           as x(item_id, revision, kind, player_tag)
+              (clan_tag, item_id, revision, kind, player_tag, item_at, told_at)
+       select $1, x.item_id, x.revision, x.kind, x.player_tag, x.item_at, $2
+         from unnest($3::text[], $4::int[], $5::text[], $6::text[],
+                     $7::timestamptz[])
+           as x(item_id, revision, kind, player_tag, item_at)
        on conflict (clan_tag, item_id) do update
           set revision = greatest(clan_activity_discord_told.revision,
                                   excluded.revision),
+              item_at = coalesce(excluded.item_at,
+                                 clan_activity_discord_told.item_at),
               told_at = excluded.told_at`,
       [
         clanTag,
@@ -318,6 +548,7 @@ async function syncLocked(
         toldNow.map((t) => t.revision),
         toldNow.map((t) => t.kind),
         toldNow.map((t) => t.player_tag),
+        toldNow.map((t) => t.item_at),
       ],
     );
   await db.query(
@@ -325,7 +556,7 @@ async function syncLocked(
       where clan_tag = $1 and told_at < $2`,
     [clanTag, new Date(now - TOLD_KEEP_DAYS * DAY_MS)],
   );
-  await advance(toMs);
+  await advance(db, clanTag, toMs);
   if (narrowed)
     await outbox(
       "timeline-sync",
@@ -334,9 +565,80 @@ async function syncLocked(
     );
   return {
     posted: posts.length,
-    rewritten,
+    rewritten: rewrites.size,
     refused,
     rewrite_code: rewriteCode,
     narrowed,
+  };
+}
+
+/**
+ * The clan's last few posts as its model would write them now, for a
+ * leader to preview the voice (2026-10-11): the newest `PREVIEW_MAX`
+ * items the channel posts, from the last week, each with Elixir's line,
+ * and the request that rewrites them. Nothing is posted or recorded
+ * here; the leader's use of the model is recorded by the model service.
+ * `{ empty: true }` when there is nothing to preview.
+ */
+export async function clanRewritePreview(
+  db,
+  clanTag,
+  { policyFor, pitchFor = null, voice = undefined, now = Date.now() },
+) {
+  const {
+    rows: [row],
+  } = await db.query(ROW_SQL, [clanTag]);
+  if (!row) return { empty: true, reason: "not_connected" };
+  const { categories, kinds, policy } = await postingKinds(
+    db,
+    clanTag,
+    row,
+    policyFor,
+  );
+  if (!kinds.length) return { empty: true, reason: "nothing_on" };
+  const { timeline } = await buildTimeline(
+    db,
+    [{ kind: "clan", tag: clanTag, scope: "comprehensive" }],
+    {
+      fromMs: now - HISTORY_MS,
+      toMs: now,
+      clanMember: true,
+      filter: (it) =>
+        isPublishable(it) &&
+        it.kind !== DEPARTURE_CLASSIFIED &&
+        activityShareable(it, categories),
+    },
+  );
+  const items = [...timeline]
+    .sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""))
+    .slice(0, PREVIEW_MAX)
+    .reverse();
+  if (!items.length) return { empty: true, reason: "nothing_recent" };
+  const posts = items.map((it) => ({
+    key: it.id,
+    revision: postRevision(it),
+    items: [it],
+  }));
+  const built = await rewritePackets(
+    db,
+    clanTag,
+    // The voice being written in the page, when the leader is trying one.
+    voice === undefined ? row : { ...row, voice },
+    posts,
+    { policy, pitchFor, now },
+  );
+  return {
+    empty: false,
+    lines: built.lines,
+    posts: items.map((it) => ({
+      key: it.id,
+      kind: it.kind,
+      at: it.at,
+      elixir: itemSentence(it),
+    })),
+    request: activityRewriteRequest({
+      context: built.context,
+      lines: built.lines,
+    }),
   };
 }
