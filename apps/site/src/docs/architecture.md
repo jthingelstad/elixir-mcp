@@ -164,7 +164,7 @@ connected: yours on your own connection, the agent's on an agent's);
 people file it from the Console, Ladder, Elixir Clan, the docs and an
 email's footer, and integrations over the JSON API. It is one record
 for all of Elixir, each item tagged with the part of Elixir it is about
-and what it points at (a call, an email, a clan action). Every item gets a maintainer response —
+and what it points at (a call, an email, a clan action). Every item gets a maintainer response, sometimes written with help from AI agents —
 `elixir_my_feedback` pages through the full ledger, an
 `account_feedback_responded` item lands on the filer's timeline, and
 shipped fixes link the change. The same loop feeds the public

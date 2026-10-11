@@ -60,12 +60,18 @@ and sends the newsletter, and Tinylytics does the counting.
 Fonts are served from this site, so reading a page tells no one else
 what you read.
 
+**A clan's own AI key.** If a clan's leaders add their own Anthropic
+key, Elixir Clan sends Anthropic what it needs to draft the clan's
+messages, including member names, and the clan's key pays for it.
+
 **Discord.** If you cross-post your timeline (or an agent's) to a
 Discord channel, each new item on it is posted there, where Discord
 keeps it under its own terms and everyone in the channel can read it.
 Elixir keeps the webhook sealed and never shows it whole. Turning
 cross-posting off stops new posts; lines already in the channel are
-Discord's to delete.
+Discord's to delete. If a clan's leaders connect the clan's Discord,
+Elixir Clan posts the clan's activity and its Actions there, member
+names included.
 
 **What Elixir keeps about its Discord posts.** For every message Elixir
 posts, edits or decides not to post in a Discord channel (a timeline's

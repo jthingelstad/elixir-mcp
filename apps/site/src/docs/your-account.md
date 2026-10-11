@@ -125,7 +125,8 @@ player, the clan action, the call or the email), so you write only what
 you think. Sending feedback needs you signed in; without an account,
 write to [admin@poapkings.com](mailto:admin@poapkings.com).
 
-Every item is answered. **Console ▸ Feedback** lists what you have sent
+Every item is answered, by Elixir's maintainer, sometimes with help
+from AI agents. **Console ▸ Feedback** lists what you have sent
 with its state and the maintainer's answer, and an item's own page
 shows the whole thread: answer an answer with **Reply** and the two
 stay linked. A new answer comes to your inbox too, ten minutes after it
