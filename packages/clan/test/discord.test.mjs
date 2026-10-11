@@ -177,6 +177,84 @@ test("the webhook client allows no mentions or previews, waits out a 429, and ne
   assert.equal(seen.at(-1)[1], "PATCH");
 });
 
+test("a forum channel gets a post of its own, named; edits find it in its thread; Discord's words come back", async () => {
+  const seen = [];
+  let answers = [
+    {
+      status: 400,
+      body: {
+        code: 220001,
+        message:
+          "Webhooks posted to forum channels must have a thread_name or thread_id",
+      },
+    },
+    {
+      status: 200,
+      body: { id: "222222222222222222", channel_id: "333333333333333333" },
+    },
+  ];
+  const client = createDiscordWebhook({
+    pause: async () => {},
+    fetch: async (url, init) => {
+      seen.push([url, init.method, JSON.parse(init.body)]);
+      const a = answers.shift();
+      return { ok: a.status < 300, status: a.status, json: async () => a.body };
+    },
+  });
+  const r = await client.post(HOOK, "**Promote Ana**", {
+    thread_name: "Promote  Ana\nto Elder",
+    mention_role: "444444444444444444",
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.forum, true);
+  assert.equal(r.thread_id, "333333333333333333");
+  assert.equal(seen.length, 2, "the plain message first, then the forum post");
+  assert.equal(seen[1][2].thread_name, "Promote Ana to Elder");
+  assert.deepEqual(seen[1][2].allowed_mentions, {
+    parse: [],
+    roles: ["444444444444444444"],
+  });
+  // Known to be a forum: straight to the post.
+  answers = [{ status: 200, body: { id: "5", channel_id: "6" } }];
+  await client.post(HOOK, "x", { thread_name: "X", forum: true });
+  assert.equal(seen.length, 3);
+  assert.equal(seen[2][2].thread_name, "X");
+  // A role id that is not one is never sent.
+  answers = [{ status: 200, body: { id: "7" } }];
+  await client.post(HOOK, "y", { mention_role: "everyone" });
+  assert.deepEqual(seen[3][2].allowed_mentions, { parse: [] });
+  // An edit never pings, and goes to the post's thread.
+  answers = [{ status: 200, body: { id: "222222222222222222" } }];
+  await client.edit(HOOK, "222222222222222222", "~~done~~", {
+    thread_id: "333333333333333333",
+  });
+  assert.equal(
+    seen[4][0],
+    `${HOOK}/messages/222222222222222222?thread_id=333333333333333333`,
+  );
+  assert.deepEqual(seen[4][2].allowed_mentions, { parse: [] });
+  // Without a name a forum's refusal is the answer, in Discord's words.
+  answers = [
+    {
+      status: 400,
+      body: {
+        code: 220001,
+        message:
+          "Webhooks posted to forum channels must have a thread_name or thread_id",
+      },
+    },
+  ];
+  const plain = await client.post(HOOK, "z");
+  assert.equal(plain.code, "forum_needs_thread");
+  assert.equal(plain.discord_code, 220001);
+  assert.match(plain.reason, /forum channels/);
+  // A long rate limit is handed back with its wait.
+  answers = [{ status: 429, body: { retry_after: 42 } }];
+  const busy = await client.post(HOOK, "w");
+  assert.equal(busy.code, "rate_limited");
+  assert.equal(busy.retry_after_ms, 42_000);
+});
+
 test("a redelivered request posts once, and the payloads in the outbox are sealed", async () => {
   const w = world();
   const sent = await w.bridge.send({

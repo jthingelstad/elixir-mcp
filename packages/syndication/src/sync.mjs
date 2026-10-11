@@ -103,18 +103,20 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
   // console says why.
   const status = await readStatus(accountId);
   if (
-    status?.state === "gone" &&
+    (status?.state === "gone" || status?.state === "forum") &&
     status.webhook === row.webhook_fp &&
     Date.parse(status.at) >= row.updated_at.getTime()
   ) {
+    // A forum channel's webhook takes no plain message (2026-10-11).
+    const reason = status.state === "forum" ? "webhook_forum" : "webhook_gone";
     await db.query(
       `update timeline_discord
-          set enabled = false, disabled_reason = 'webhook_gone',
+          set enabled = false, disabled_reason = $3,
               disabled_at = $2
         where account_id = $1`,
-      [accountId, new Date(now)],
+      [accountId, new Date(now), reason],
     );
-    return { disabled: "webhook_gone" };
+    return { disabled: reason };
   }
 
   const enabledMs = row.enabled_at.getTime();

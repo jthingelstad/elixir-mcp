@@ -6,8 +6,12 @@
  *  and is never logged. Saving one turns cross-posting on from now and sends a hello
  *  line, so the owner sees at once that it works. */
 import {
+  awaitFirstWord,
   readDiscordSetting,
+  refuseDiscordSetting,
+  refusalOf,
   saveDiscordSetting,
+  WEBHOOK_REFUSALS,
 } from "@elixir-mcp/syndication";
 import { settingView } from "@elixir-mcp/syndication/settings";
 import { json } from "../http.mjs";
@@ -16,12 +20,17 @@ const ERRORS = {
   webhook_invalid:
     "That is not a Discord webhook address. In Discord: channel settings › Integrations › Webhooks › Copy Webhook URL.",
   webhook_required: "Add the Discord webhook to post to.",
+  ...WEBHOOK_REFUSALS,
 };
 
 /** `discord`: { seal, outbox, readStatus } (syndication webhookSeal and
  *  makeStatusReader). Without the sealing secret there is no `seal`, and
- *  nothing can be saved; without the outbox no hello line is sent. */
+ *  nothing can be saved; without the outbox no hello line is sent.
+ *  After a hello the save waits up to `discord.helloWaitMs` (8 s) for the relay's
+ *  first word: a forum channel's webhook, or one Discord says is gone,
+ *  is turned off at once and the save answers why (2026-10-11). */
 export function timelineDiscordRoutes({ resolveAccount, discord = null }) {
+  const helloWaitMs = discord?.helloWaitMs ?? 8000;
   return {
     "GET /api/me/timeline/discord": async (db, event) => {
       const account = await resolveAccount(db, event);
@@ -58,8 +67,26 @@ export function timelineDiscordRoutes({ resolveAccount, discord = null }) {
       );
       if (out.error)
         return json(400, { error: out.error, message: ERRORS[out.error] });
+      let status = null;
+      if (out.hello && discord.readStatus)
+        status = await awaitFirstWord(
+          discord.readStatus,
+          account.accountId,
+          out.fp,
+          out.hello_at,
+          { waitMs: helloWaitMs },
+        );
+      const refused = refusalOf(status);
+      if (refused) {
+        const row = await refuseDiscordSetting(db, account.accountId, refused);
+        return json(400, {
+          error: refused,
+          message: ERRORS[refused],
+          setting: settingView(row, status),
+        });
+      }
       return json(200, {
-        ...settingView(out.row),
+        ...settingView(out.row, status),
         hello_sent: out.hello === true,
       });
     },

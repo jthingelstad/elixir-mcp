@@ -20,6 +20,9 @@ import {
   wakeSyndication,
   saveDiscordSetting,
   readDiscordSetting,
+  awaitFirstWord,
+  refuseDiscordSetting,
+  refusalOf,
 } from "../src/index.mjs";
 import { settingView } from "../src/settings.mjs";
 import { webhookSeal, WEBHOOK_PURPOSE } from "../src/seal.mjs";
@@ -221,6 +224,71 @@ test("off, or a webhook Discord says is gone, posts nothing", async () => {
     { skipped: "off" },
   );
   assert.equal(sent.length, 1);
+});
+
+test("a forum channel's webhook turns cross-posting off with its own reason", async () => {
+  await enable(person, "2026-09-02T17:00Z");
+  const { sent, outbox } = recorder();
+  const forum = {
+    state: "forum",
+    webhook: webhookFingerprint(HOOK),
+    at: "2026-09-02T18:20:00Z",
+  };
+  const out = await syncAccount(ctx.db, person, {
+    outbox,
+    readStatus: async () => forum,
+    now: Date.parse("2026-09-02T18:40Z"),
+  });
+  assert.deepEqual(out, { disabled: "webhook_forum" });
+  assert.equal(sent.length, 0);
+  const row = await readDiscordSetting(ctx.db, person);
+  assert.equal(row.enabled, false);
+  assert.equal(settingView(row, forum).disabled_reason, "webhook_forum");
+  assert.equal(settingView(row, forum).delivery.state, "forum");
+});
+
+test("a save waits for the hello's first word, and a forum's webhook is refused at once", async () => {
+  const { outbox } = recorder();
+  const saved = await saveDiscordSetting(
+    ctx.db,
+    person,
+    { url: HOOK, enabled: true },
+    { outbox, seal, now: Date.parse("2026-10-11T12:00:00Z") },
+  );
+  assert.equal(saved.hello, true);
+  assert.equal(saved.fp, webhookFingerprint(HOOK));
+  let t = Date.parse("2026-10-11T12:00:00Z");
+  const said = [
+    null,
+    // An older word about this webhook is not this hello's.
+    { state: "ok", webhook: saved.fp, at: "2026-10-11T11:00:00Z" },
+    { state: "forum", webhook: saved.fp, at: "2026-10-11T12:00:03Z" },
+  ];
+  const status = await awaitFirstWord(
+    async () => said.shift() ?? null,
+    person,
+    saved.fp,
+    saved.hello_at,
+    { now: () => t, pause: async (ms) => void (t += ms) },
+  );
+  assert.equal(status.state, "forum");
+  assert.equal(refusalOf(status), "webhook_forum");
+  const row = await refuseDiscordSetting(ctx.db, person, "webhook_forum");
+  assert.equal(row.enabled, false);
+  assert.equal(row.disabled_reason, "webhook_forum");
+  // No word in time is no refusal: the sync hears it later.
+  t = 0;
+  assert.equal(
+    await awaitFirstWord(async () => null, person, saved.fp, 0, {
+      waitMs: 2000,
+      now: () => t,
+      pause: async (ms) => void (t += ms),
+    }),
+    null,
+  );
+  assert.equal(refusalOf(null), null);
+  assert.equal(refusalOf({ state: "ok" }), null);
+  assert.equal(refusalOf({ state: "gone" }), "webhook_gone");
 });
 
 test("an admission wakes the accounts its tag reaches, once a minute each", async () => {

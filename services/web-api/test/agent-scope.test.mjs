@@ -18,9 +18,12 @@ import { emailHash } from "../../../packages/auth/src/index.mjs";
 import { AGENT_SCOPED_ROUTES, makeHandler } from "../src/handler.mjs";
 import { createBox } from "@elixir-mcp/clan/sealed.mjs";
 import { webhookSeal, WEBHOOK_PURPOSE } from "@elixir-mcp/syndication";
+import { webhookFingerprint } from "@elixir-mcp/contracts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const discordSent = [];
+/** The relay's word on a webhook, as the save reads it after its hello. */
+let relayStatus = null;
 const repoRoot = path.resolve(here, "../../..");
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -91,7 +94,8 @@ before(async () => {
     discord: {
       seal: webhookSeal(createBox("agent-scope-sealing", WEBHOOK_PURPOSE)).seal,
       outbox: async (lane, msg) => discordSent.push({ lane, msg }),
-      readStatus: async () => null,
+      readStatus: async () => relayStatus,
+      helloWaitMs: 0,
     },
   });
   await db.query(
@@ -521,6 +525,21 @@ test("the timeline's Discord cross-post: set on the agent's console, the agent's
   const off = await put(agentPath, { enabled: false });
   assert.equal(parse(off).enabled, false);
   assert.equal(parse(off).disabled_reason, "owner");
+
+  // A forum channel's webhook: the hello's first word refuses the save,
+  // and the setting is kept, off, saying why.
+  relayStatus = {
+    state: "forum",
+    webhook: webhookFingerprint(hook),
+    at: new Date(Date.now() + 1000).toISOString(),
+  };
+  const forum = await put(agentPath, { url: hook, enabled: true });
+  relayStatus = null;
+  assert.equal(forum.statusCode, 400);
+  assert.equal(parse(forum).error, "webhook_forum");
+  assert.match(parse(forum).message, /forum channel/);
+  assert.equal(parse(forum).setting.enabled, false);
+  assert.equal(parse(forum).setting.disabled_reason, "webhook_forum");
   await db.query(`delete from timeline_discord where account_id = $1`, [
     agentId,
   ]);

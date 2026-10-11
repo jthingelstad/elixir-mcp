@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { renderEmail } from "../src/templates.mjs";
-import { makeHandler } from "../src/handler.mjs";
+import { makeHandler, queueUrlOf } from "../src/handler.mjs";
 import { makeButtondownEnroller } from "../src/index.mjs";
 import { makeSesSender } from "../src/ses.mjs";
 
@@ -629,4 +629,68 @@ test("verified signup welcome carries the explicit enrollment decision; unflagge
   const welcome = renderEmail({ v: 1, kind: "welcome", to: "new@example.com" });
   assert.match(welcome.text, /Add your player in Console/);
   assert.doesNotMatch(welcome.text, /already being recorded/);
+});
+
+test("a Discord lane that knows when to try again holds its record back that long; the last receive is final", async () => {
+  const deferred = [];
+  const seen = [];
+  const later = Object.assign(new Error("timeline_discord_rate_limited"), {
+    code: "rate_limited",
+    retryAfterMs: 61_500,
+  });
+  let answer = later;
+  const handler = makeHandler({
+    send: async () => {},
+    timelineDiscordObject: async (obj, opts) => {
+      seen.push(opts);
+      if (answer) throw answer;
+    },
+    defer: async (record, seconds) => {
+      deferred.push([record.receiptHandle, seconds]);
+    },
+    discordMaxReceives: 20,
+  });
+  const record = (count) => ({
+    messageId: `m${count}`,
+    receiptHandle: `rh${count}`,
+    eventSourceARN:
+      "arn:aws:sqs:us-east-1:123456789012:elixir-mcp-timeline-discord",
+    attributes: { ApproximateReceiveCount: String(count) },
+    body: JSON.stringify({
+      Records: [
+        {
+          eventSource: "aws:s3",
+          s3: {
+            bucket: { name: "outbox" },
+            object: { key: "timeline-discord/x.json" },
+          },
+        },
+      ],
+    }),
+  });
+  const out = await handler({ Records: [record(1)] });
+  assert.deepEqual(out.batchItemFailures, [{ itemIdentifier: "m1" }]);
+  assert.deepEqual(deferred, [["rh1", 62]], "Discord's wait, not six minutes");
+  assert.deepEqual(seen, [{ final: false }]);
+
+  // An error with no wait keeps the queue's own timeout.
+  answer = new Error("boom");
+  await handler({ Records: [record(2)] });
+  assert.equal(deferred.length, 1);
+
+  answer = null;
+  const last = await handler({ Records: [record(20)] });
+  assert.deepEqual(last.batchItemFailures, []);
+  assert.deepEqual(seen.at(-1), { final: true });
+});
+
+test("a record's queue is found from its ARN", () => {
+  assert.equal(
+    queueUrlOf(
+      "arn:aws:sqs:us-east-1:123456789012:elixir-mcp-timeline-discord",
+    ),
+    "https://sqs.us-east-1.amazonaws.com/123456789012/elixir-mcp-timeline-discord",
+  );
+  assert.equal(queueUrlOf("arn:aws:sns:us-east-1:123456789012:x"), null);
+  assert.equal(queueUrlOf(undefined), null);
 });

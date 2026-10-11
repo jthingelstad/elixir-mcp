@@ -9,6 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  timelineDiscordHistoryKey,
   timelineDiscordStateKey,
   timelineDiscordStatusKey,
   webhookFingerprint,
@@ -77,7 +78,10 @@ function fakeDiscord(script) {
       (init.method === "POST"
         ? { id: `98765432109876${(id += 1)}` }
         : { id: "x" });
-    return new Response(JSON.stringify(body), { status: next.status });
+    return new Response(JSON.stringify(body), {
+      status: next.status,
+      headers: next.headers ?? {},
+    });
   };
   const pauses = [];
   const discord = createDiscordWebhook({
@@ -85,11 +89,16 @@ function fakeDiscord(script) {
     pause: async (ms) => {
       pauses.push(ms);
     },
+    // A still clock: a wait for Discord's bucket is exact.
+    clock: () => 0,
   });
   return { calls, pauses, discord };
 }
 
-function setup(script = [], { now = Date.parse("2026-10-10T12:00:00Z") } = {}) {
+function setup(
+  script = [],
+  { now = Date.parse("2026-10-10T12:00:00Z"), hook = HOOK, ...opts } = {},
+) {
   const store = memoryStore();
   const d = fakeDiscord(script);
   const logged = [];
@@ -97,34 +106,47 @@ function setup(script = [], { now = Date.parse("2026-10-10T12:00:00Z") } = {}) {
     log: (...a) => logged.push(a.join(" ")),
     error: (...a) => logged.push(a.join(" ")),
   };
+  const clock = { t: now };
+  const waits = [];
   const work = createTimelineDiscordWorker({
     discord: d.discord,
     store,
     open,
-    now: () => now,
+    now: () => clock.t,
+    // The worker's own waits (its pace) move the clock.
+    pause: async (ms) => {
+      waits.push(ms);
+      clock.t += ms;
+    },
     log,
+    ...opts,
   });
   let seq = 0;
-  const deliver = async (posts, { webhook = seal(HOOK, ACCOUNT) } = {}) => {
+  const deliver = async (
+    posts,
+    { webhook = seal(hook, ACCOUNT), final = false } = {},
+  ) => {
     const key = `timeline-discord/${ACCOUNT}.${(seq += 1)}.json`;
     store.objects.set(key, {
       body: { v: 1, kind: "timeline", account_id: ACCOUNT, webhook, posts },
       etag: '"o"',
     });
     try {
-      await work({ bucket: BUCKET, key });
-      return { key, retry: null };
+      await work({ bucket: BUCKET, key }, { final });
+      return { key, retry: null, after: null };
     } catch (err) {
-      return { key, retry: err.message };
+      return { key, retry: err.message, after: err.retryAfterMs ?? null };
     }
   };
-  return { store, ...d, deliver, logged };
+  return { store, ...d, deliver, logged, clock, waits };
 }
 
 const state = (store, item = ITEM) =>
   store.objects.get(timelineDiscordStateKey(ACCOUNT, FP, item))?.body;
 const status = (store) =>
   store.objects.get(timelineDiscordStatusKey(ACCOUNT))?.body;
+const history = (store) =>
+  store.objects.get(timelineDiscordHistoryKey(ACCOUNT))?.body;
 
 test("a line is posted once, without previews or pings, then edited in place as it grows", async () => {
   const s = setup();
@@ -217,12 +239,216 @@ test("a webhook Discord says is gone or refused stops the batch and tells the sy
   }
 });
 
-test("any other refusal is recorded as failing and dropped", async () => {
-  const s = setup([{ status: 400, body: { code: 50035 } }]);
-  const out = await s.deliver([{ key: ITEM, revision: 1, content: "a" }]);
+test("a line Discord refuses is skipped alone, with Discord's reason; the rest are delivered", async () => {
+  const OTHER = "tl_aaaaaaaaaaaaaaaaaaaa";
+  const s = setup([
+    {
+      status: 400,
+      body: {
+        code: 50035,
+        message: "Invalid Form Body",
+        errors: {
+          content: {
+            _errors: [
+              {
+                code: "BASE_TYPE_MAX_LENGTH",
+                message: "Must be 2000 or fewer in length.",
+              },
+            ],
+          },
+        },
+      },
+    },
+    { status: 200 },
+  ]);
+  const out = await s.deliver([
+    { key: ITEM, revision: 1, content: "a" },
+    { key: OTHER, revision: 1, content: "b" },
+  ]);
   assert.equal(out.retry, null);
+  assert.equal(s.calls.length, 2, "the second line is still posted");
   assert.equal(status(s.store).state, "failing");
-  assert.equal(state(s.store), undefined);
+  assert.equal(
+    status(s.store).reason,
+    "Invalid Form Body: Must be 2000 or fewer in length.",
+  );
+  assert.deepEqual(state(s.store), { refused: true, revision: 1 });
+  assert.equal(state(s.store, OTHER).revision, 1);
+  assert.deepEqual(
+    history(s.store).entries.map((e) => [e.outcome, e.ref]),
+    [
+      ["posted", OTHER],
+      ["refused", ITEM],
+    ],
+  );
+  assert.equal(history(s.store).entries[1].http_status, 400);
+  assert.deepEqual(history(s.store).missed, { "2026-10-10": 1 });
+  // Not again at this revision; a newer one is posted.
+  await s.deliver([{ key: ITEM, revision: 1, content: "a" }]);
+  assert.equal(s.calls.length, 2);
+  await s.deliver([{ key: ITEM, revision: 2, content: "a, shorter" }]);
+  assert.equal(s.calls.length, 3);
+  assert.equal(s.calls[2].method, "POST");
+  assert.equal(status(s.store).state, "ok");
+});
+
+test("a forum channel's webhook is refused as a whole and tells the sync", async () => {
+  const s = setup([
+    {
+      status: 400,
+      body: {
+        code: 220001,
+        message:
+          "Webhooks posted to forum channels must have a thread_name or thread_id",
+      },
+    },
+  ]);
+  const out = await s.deliver([
+    { key: ITEM, revision: 1, content: "a" },
+    { key: "tl_aaaaaaaaaaaaaaaaaaaa", revision: 1, content: "b" },
+  ]);
+  assert.equal(out.retry, null);
+  assert.equal(s.calls.length, 1, "the rest of the batch is dropped");
+  assert.equal(status(s.store).state, "forum");
+  assert.equal(state(s.store), undefined, "the claim is freed");
+  assert.equal(history(s.store).entries[0].outcome, "refused");
+});
+
+test("a webhook into one thread posts and edits there", async () => {
+  const THREAD = "998877665544332211";
+  const hook = `${HOOK}?thread_id=${THREAD}`;
+  const s = setup([], { hook });
+  const fp = webhookFingerprint(hook);
+  await s.deliver([{ key: ITEM, revision: 1, content: "a" }]);
+  assert.equal(s.calls[0].url, `${HOOK}?wait=true&thread_id=${THREAD}`);
+  assert.ok(
+    s.store.objects.has(timelineDiscordStateKey(ACCOUNT, fp, ITEM)),
+    "filed under the thread webhook's own fingerprint",
+  );
+  await s.deliver([{ key: ITEM, revision: 2, content: "b" }]);
+  assert.equal(
+    s.calls[1].url,
+    `${HOOK}/messages/987654321098761001?thread_id=${THREAD}`,
+  );
+});
+
+test("one webhook's lines are paced across runs, under Discord's per-channel limit", async () => {
+  const s = setup();
+  const posts = ["a", "b", "c"].map((c, i) => ({
+    key: `tl_${String(i).repeat(20)}`,
+    revision: 1,
+    content: c,
+  }));
+  await s.deliver(posts);
+  assert.equal(s.calls.length, 3);
+  assert.deepEqual(s.waits, [2400, 2400]);
+  // Another run for the same webhook waits its turn too.
+  await s.deliver([
+    { key: "tl_aaaaaaaaaaaaaaaaaaaa", revision: 1, content: "d" },
+  ]);
+  assert.deepEqual(s.waits, [2400, 2400, 2400]);
+});
+
+test("a turn past the run's budget goes back to the queue with the wait, not the queue's six minutes", async () => {
+  const s = setup([], { budgetMs: 1000 });
+  s.store.objects.set(timelineDiscordStateKey(ACCOUNT, FP, "pace"), {
+    body: { next_at: s.clock.t + 20_000 },
+    etag: '"p"',
+  });
+  const out = await s.deliver([{ key: ITEM, revision: 1, content: "a" }]);
+  assert.equal(out.retry, "timeline_discord_paced");
+  assert.equal(out.after, 20_000);
+  assert.equal(s.calls.length, 0);
+});
+
+test("on the queue's last attempt, lines still waiting are recorded as not delivered", async () => {
+  const s = setup([{ status: 429, body: { retry_after: 60 } }]);
+  const out = await s.deliver(
+    [
+      { key: ITEM, revision: 1, content: "a" },
+      { key: "tl_aaaaaaaaaaaaaaaaaaaa", revision: 1, content: "b" },
+    ],
+    { final: true },
+  );
+  assert.equal(out.retry, null, "finished, not dead-lettered");
+  assert.equal(s.store.objects.has(out.key), false);
+  assert.deepEqual(
+    history(s.store).entries.map((e) => e.outcome),
+    ["not_delivered", "not_delivered"],
+  );
+  assert.match(history(s.store).entries[0].reason, /slow down/);
+  assert.deepEqual(history(s.store).missed, { "2026-10-10": 2 });
+  assert.ok(s.logged.some((l) => l.includes("timeline_discord_not_delivered")));
+});
+
+test("an edit is claimed before Discord is called: an older revision never lands over a newer one (#454)", async () => {
+  const now = Date.parse("2026-10-10T12:00:00Z");
+  const s = setup([], { now });
+  const key = timelineDiscordStateKey(ACCOUNT, FP, ITEM);
+  s.store.objects.set(key, {
+    body: {
+      message_id: "987654321098761001",
+      revision: 2,
+      editing: { revision: 5, at: now - 1000 },
+    },
+    etag: '"e"',
+  });
+  // Another run is writing revision 5: revision 4 has nothing to add.
+  let out = await s.deliver([{ key: ITEM, revision: 4, content: "four" }]);
+  assert.equal(out.retry, null);
+  assert.equal(s.calls.length, 0);
+  // Revision 6 waits for it, and says when to look again.
+  out = await s.deliver([{ key: ITEM, revision: 6, content: "six" }]);
+  assert.equal(out.retry, "timeline_discord_edit_in_flight");
+  assert.equal(out.after, 2 * 60_000 - 1000);
+  assert.equal(s.calls.length, 0);
+  // A claim left by a run that stopped is taken over.
+  s.clock.t += 5 * 60_000;
+  out = await s.deliver([{ key: ITEM, revision: 6, content: "six" }]);
+  assert.equal(out.retry, null);
+  assert.equal(s.calls.length, 1);
+  assert.deepEqual(state(s.store), {
+    message_id: "987654321098761001",
+    revision: 6,
+  });
+});
+
+test("an edit Discord refuses keeps the message's last text and is not tried again at that revision", async () => {
+  const s = setup([
+    { status: 200 },
+    { status: 400, body: { code: 50035, message: "Invalid Form Body" } },
+  ]);
+  await s.deliver([{ key: ITEM, revision: 1, content: "a" }]);
+  const out = await s.deliver([{ key: ITEM, revision: 3, content: "b" }]);
+  assert.equal(out.retry, null);
+  assert.deepEqual(state(s.store), {
+    message_id: "987654321098761001",
+    revision: 3,
+  });
+  assert.equal(history(s.store).entries[0].outcome, "refused");
+  assert.equal(history(s.store).entries[0].reason, "Invalid Form Body");
+});
+
+test("Discord's rate-limit headers are honoured before the next call", async () => {
+  const s = setup(
+    [
+      {
+        status: 200,
+        headers: {
+          "x-ratelimit-remaining": "0",
+          "x-ratelimit-reset-after": "1.5",
+        },
+      },
+      { status: 200 },
+    ],
+    { spacingMs: 0 },
+  );
+  await s.deliver([
+    { key: ITEM, revision: 1, content: "a" },
+    { key: "tl_aaaaaaaaaaaaaaaaaaaa", revision: 1, content: "b" },
+  ]);
+  assert.equal(s.calls.length, 2);
+  assert.deepEqual(s.pauses, [1500], "the client waited for the bucket");
 });
 
 test("a short rate limit is waited out; a long one goes back to the queue with the claim freed", async () => {
@@ -238,6 +464,7 @@ test("a short rate limit is waited out; a long one goes back to the queue with t
   const s = setup([{ status: 429, body: { retry_after: 60 } }]);
   const out = await s.deliver([{ key: ITEM, revision: 1, content: "a" }]);
   assert.equal(out.retry, "timeline_discord_rate_limited");
+  assert.equal(out.after, 60_000, "the queue waits what Discord asked");
   assert.ok(s.store.objects.has(out.key), "the object waits for the retry");
   assert.equal(state(s.store), undefined, "nothing claimed");
 });
@@ -276,6 +503,7 @@ test("a post another copy is sending waits; a stale claim settles as unknown, ne
   });
   let out = await s.deliver([{ key: ITEM, revision: 1, content: "a" }]);
   assert.equal(out.retry, "timeline_discord_post_in_flight");
+  assert.equal(out.after, 2 * 60_000 - 30_000);
   assert.equal(s.calls.length, 0);
 
   s.store.objects.set(key, {
@@ -314,6 +542,7 @@ test("past its time budget a run starts no new line; the retry skips what was to
     now: () => t,
     log: { log() {}, error() {} },
     budgetMs: 1000,
+    spacingMs: 0,
   });
   const key = `timeline-discord/${ACCOUNT}.budget.json`;
   const posts = ["a", "b", "c"].map((c, i) => ({

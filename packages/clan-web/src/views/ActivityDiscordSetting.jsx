@@ -57,6 +57,8 @@ export function ActivityDiscordSetting({ clan, navigate }) {
       setMessage(
         r.data?.message ?? "Elixir Clan did not answer. Try again in a minute.",
       );
+      // A forum channel's webhook is kept, switched off: show it.
+      invalidate(keys.activityDiscord(clan.clan_tag));
       return false;
     }
     if (event) trackEvent(event, label);
@@ -85,7 +87,10 @@ export function ActivityDiscordSetting({ clan, navigate }) {
     invalidate(keys.activityDiscord(clan.clan_tag));
   };
 
-  const posting = c?.enabled && c?.delivery?.state !== "gone";
+  const dead = (st) => st === "gone" || st === "forum";
+  const posting = c?.enabled && !dead(c?.delivery?.state);
+  const forum =
+    c?.disabled_reason === "webhook_forum" || c?.delivery?.state === "forum";
   return (
     <div className="grid gap-3">
       <p className="page__lede m-0">
@@ -132,8 +137,19 @@ export function ActivityDiscordSetting({ clan, navigate }) {
               </>
             ) : null}
           </div>
-          {c.disabled_reason === "webhook_gone" ||
-          c.delivery?.state === "gone" ? (
+          {forum ? (
+            <div className="callout callout--warn m-3" role="alert">
+              <span>
+                This webhook belongs to a forum channel, which takes posts, not
+                lines, so nothing is posted. Connect a text channel&rsquo;s
+                webhook below, or post into one thread: add{" "}
+                <code>?thread_id=</code> and the thread&rsquo;s id
+                (Discord&rsquo;s Developer Mode, Copy Thread ID) to the end of
+                the webhook.
+              </span>
+            </div>
+          ) : c.disabled_reason === "webhook_gone" ||
+            c.delivery?.state === "gone" ? (
             <div className="callout callout--warn m-3" role="alert">
               <span>
                 Discord stopped accepting this webhook
@@ -144,13 +160,14 @@ export function ActivityDiscordSetting({ clan, navigate }) {
           ) : c.delivery?.state === "failing" ? (
             <div className="callout callout--warn m-3" role="status">
               <span>
-                Discord did not take the last post ({day(c.delivery.at)}).
-                Elixir Clan tries again with the next one.
+                Discord refused a line ({day(c.delivery.at)}
+                {c.delivery.reason ? `: ${c.delivery.reason}` : ""}). That line
+                was skipped; the others are still posted.
               </span>
             </div>
           ) : null}
           <div className="panel__body flex flex-wrap gap-2 pt-0">
-            {c.disabled_reason !== "webhook_gone" ? (
+            {!["webhook_gone", "webhook_forum"].includes(c.disabled_reason) ? (
               <button
                 type="button"
                 className="btn btn--sm"

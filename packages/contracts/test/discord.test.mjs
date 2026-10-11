@@ -10,6 +10,9 @@ import {
   outboxKey,
   isClanDiscordKind,
   TIMELINE_DISCORD_KINDS,
+  discordWebhookCall,
+  addDiscordDeliveries,
+  discordNotDelivered,
 } from "../dist/index.js";
 
 const ID = "123456789012345678";
@@ -30,7 +33,85 @@ test("a Discord webhook is normalized to discord.com, whatever spelling Discord 
       url: URL,
       id: ID,
       token: TOKEN,
+      thread_id: null,
     });
+});
+
+test("a webhook may name one thread (a thread, or a forum's post); every call carries it", () => {
+  const THREAD = "998877665544332211";
+  const hook = parseDiscordWebhook(
+    `https://discordapp.com/api/v10/webhooks/${ID}/${TOKEN}?thread_id=${THREAD}`,
+  );
+  assert.deepEqual(hook, {
+    url: `${URL}?thread_id=${THREAD}`,
+    id: ID,
+    token: TOKEN,
+    thread_id: THREAD,
+  });
+  // The canonical spelling parses to itself.
+  assert.deepEqual(parseDiscordWebhook(hook.url), hook);
+  assert.equal(
+    discordWebhookCall(hook, "", { wait: "true" }),
+    `${URL}?wait=true&thread_id=${THREAD}`,
+  );
+  assert.equal(
+    discordWebhookCall(hook, "/messages/123456789012345678"),
+    `${URL}/messages/123456789012345678?thread_id=${THREAD}`,
+  );
+  assert.equal(
+    discordWebhookCall(parseDiscordWebhook(URL), "", { wait: "true" }),
+    `${URL}?wait=true`,
+  );
+  assert.equal(
+    webhookDisplay(hook.url),
+    `discord.com/api/webhooks/${ID}/…${TOKEN.slice(-4)} (thread ${THREAD})`,
+  );
+  assert.notEqual(webhookFingerprint(hook.url), webhookFingerprint(URL));
+});
+
+test("a delivery history keeps the last twenty, thirty days, and counts what was not delivered", () => {
+  const now = Date.parse("2026-10-11T12:00:00Z");
+  let h = addDiscordDeliveries(
+    {
+      entries: [{ at: "2026-09-01T00:00:00Z", outcome: "posted" }],
+      missed: { "2026-09-01": 4 },
+    },
+    [
+      {
+        at: "2026-10-11T11:00:00Z",
+        outcome: "posted",
+        ref: "tl_1",
+        excerpt: "a  line\nmore",
+      },
+      {
+        at: "2026-10-11T11:01:00Z",
+        outcome: "refused",
+        http_status: 400,
+        reason: "Invalid Form Body",
+      },
+    ],
+    now,
+  );
+  assert.deepEqual(
+    h.entries.map((e) => e.outcome),
+    ["refused", "posted"],
+    "newest first; the September entry is past thirty days",
+  );
+  assert.equal(h.entries[1].excerpt, "a line more");
+  assert.equal(h.entries[0].reason, "Invalid Form Body");
+  assert.deepEqual(h.missed, { "2026-10-11": 1 });
+  assert.equal(discordNotDelivered(h, now), 1);
+  h = addDiscordDeliveries(
+    h,
+    Array.from({ length: 30 }, (_, i) => ({
+      at: new Date(now - 1000 * (30 - i)).toISOString(),
+      outcome: "unknown",
+    })),
+    now,
+  );
+  assert.equal(h.entries.length, 20);
+  assert.equal(discordNotDelivered(h, now), 31);
+  assert.equal(discordNotDelivered(h, now + 31 * 86_400_000), 0);
 });
 
 test("anything but Discord's own webhook address is refused, so nothing else is ever called", () => {
@@ -48,6 +129,8 @@ test("anything but Discord's own webhook address is refused, so nothing else is 
     `https://discord.com/api/webhooks/${ID}/short`,
     `https://discord.com/api/webhooks/${ID}/${TOKEN}/slack`,
     `https://discord.com/api/webhooks/${ID}/${TOKEN}?thread_id=1`,
+    `https://discord.com/api/webhooks/${ID}/${TOKEN}?wait=true`,
+    `https://discord.com/api/webhooks/${ID}/${TOKEN}?thread_id=123456789012345678&wait=true`,
     `https://discord.com/api/webhooks/${ID}/${TOKEN}#x`,
     `https://discord.com/api/channels/${ID}/${TOKEN}`,
   ])

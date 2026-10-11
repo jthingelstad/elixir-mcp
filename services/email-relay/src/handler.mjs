@@ -28,6 +28,15 @@ import {
 } from "@elixir-mcp/contracts";
 import { renderEmail } from "./templates.mjs";
 
+/** The queue a record came from, by its ARN
+ *  (arn:aws:sqs:<region>:<account>:<name>). */
+export function queueUrlOf(arn) {
+  const m = /^arn:aws:sqs:([a-z0-9-]+):(\d{12}):([A-Za-z0-9_-]+)$/.exec(
+    String(arn ?? ""),
+  );
+  return m ? `https://sqs.${m[1]}.amazonaws.com/${m[2]}/${m[3]}` : null;
+}
+
 /** `readObject(obj)` returns the object's text, or null when it no longer
  *  exists; `deleteObject(obj)` removes it once it is sent. */
 export function makeHandler({
@@ -39,6 +48,13 @@ export function makeHandler({
   discordObject = null,
   timelineDiscordObject = null,
   upgradeDelivery = null,
+  /** `(record, seconds)`: hold a record back that long (SQS
+   *  ChangeMessageVisibility), for a Discord lane that knows when to try
+   *  again (2026-10-11). Without it the queue's own timeout stands. */
+  defer = null,
+  /** The Discord lanes' maxReceiveCount: the receive that reaches it is
+   *  the last, and its worker records what it could not deliver. */
+  discordMaxReceives = 5,
 }) {
   /** One message: "sent" (or dropped by design) or "bad_message"; a
    *  transport failure throws so the record retries. */
@@ -141,7 +157,7 @@ export function makeHandler({
 
   /** One queue record: the outbox objects it names, or the message it
    *  carries. */
-  async function fromRecord(body) {
+  async function fromRecord(body, final = false) {
     const objects = outboxObjects(body);
     if (objects === null) return deliver(JSON.parse(body));
     // One object per notification; S3's own test event names none.
@@ -161,7 +177,7 @@ export function makeHandler({
       // or edit (packages/syndication/src/relay.mjs).
       if (obj.key.startsWith("timeline-discord/")) {
         if (!timelineDiscordObject) return "bad_message";
-        await timelineDiscordObject(obj);
+        await timelineDiscordObject(obj, { final });
         continue;
       }
       const text = await readObject(obj);
@@ -183,14 +199,32 @@ export function makeHandler({
     const batchItemFailures = [];
     for (const record of event.Records ?? []) {
       let outcome;
+      const final =
+        Number(record.attributes?.ApproximateReceiveCount ?? 0) >=
+        discordMaxReceives;
       try {
-        outcome = await fromRecord(record.body);
-      } catch {
+        outcome = await fromRecord(record.body, final);
+      } catch (err) {
+        outcome = "retry";
+        // A Discord lane that knows when to try again (a rate limit, its
+        // pace) says so: the record comes back then, not after the
+        // queue's six minutes. Its code is ours, never Discord's text.
+        const afterMs = Number(err?.retryAfterMs);
+        if (defer && Number.isFinite(afterMs) && afterMs > 0) {
+          const seconds = Math.min(900, Math.max(1, Math.ceil(afterMs / 1000)));
+          console.error("send_deferred", String(err.code ?? "retry"), seconds);
+          try {
+            await defer(record, seconds);
+          } catch {
+            console.error("send_defer_failed", "transport_error");
+          }
+          batchItemFailures.push({ itemIdentifier: record.messageId });
+          continue;
+        }
         // The message goes back for a retry. Transport errors are
         // untrusted and may include recipient or body data, so only a
         // bounded class reaches the log.
         console.error("send_retry", "transport_error");
-        outcome = "retry";
       }
       if (outcome !== "sent")
         batchItemFailures.push({ itemIdentifier: record.messageId });

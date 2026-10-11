@@ -13,16 +13,21 @@
 import { createHash } from "node:crypto";
 
 /** Discord's own webhook address, on any of its hostnames and API
- *  versions. A query string is refused rather than dropped:
- *  `?thread_id=` would change where the messages go. */
+ *  versions, optionally naming one thread of its channel
+ *  (`?thread_id=<id>`: a thread, or a post in a forum channel; 2026-10-11).
+ *  Any other query string is refused rather than dropped: it would change
+ *  where, or how, the messages go. */
 const WEBHOOK_URL =
-  /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api(?:\/v\d{1,2})?\/webhooks\/([0-9]{15,25})\/([A-Za-z0-9_-]{40,120})$/;
+  /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api(?:\/v\d{1,2})?\/webhooks\/([0-9]{15,25})\/([A-Za-z0-9_-]{40,120})(?:\/?\?thread_id=([0-9]{15,25}))?$/;
 
 export interface DiscordWebhook {
-  /** Normalized: https://discord.com/api/webhooks/<id>/<token>. */
+  /** Normalized: https://discord.com/api/webhooks/<id>/<token>, with
+   *  ?thread_id=<id> when it posts into one thread. */
   url: string;
   id: string;
   token: string;
+  /** The thread every message goes to, or null for the channel itself. */
+  thread_id: string | null;
 }
 
 /** A pasted webhook in its one canonical spelling, or null. */
@@ -32,7 +37,28 @@ export function parseDiscordWebhook(input: unknown): DiscordWebhook | null {
   if (!m) return null;
   const id = m[1] ?? "";
   const token = m[2] ?? "";
-  return { url: `https://discord.com/api/webhooks/${id}/${token}`, id, token };
+  const threadId = m[3] ?? null;
+  const base = `https://discord.com/api/webhooks/${id}/${token}`;
+  return {
+    url: threadId ? `${base}?thread_id=${threadId}` : base,
+    id,
+    token,
+    thread_id: threadId,
+  };
+}
+
+/** The address of one call on a webhook: `path` under it (a message's
+ *  `/messages/<id>`), with its thread and any other query. Built from the
+ *  parsed parts, never by appending to a pasted string. */
+export function discordWebhookCall(
+  hook: DiscordWebhook,
+  path = "",
+  query: Record<string, string> = {},
+): string {
+  const params = new URLSearchParams(query);
+  if (hook.thread_id) params.set("thread_id", hook.thread_id);
+  const q = params.toString();
+  return `https://discord.com/api/webhooks/${hook.id}/${hook.token}${path}${q ? `?${q}` : ""}`;
 }
 
 /** A short, stable name for one webhook that is not the credential:
@@ -47,7 +73,8 @@ export function webhookFingerprint(url: string): string {
 export function webhookDisplay(url: string): string {
   const w = parseDiscordWebhook(url);
   if (!w) return "a Discord webhook";
-  return `discord.com/api/webhooks/${w.id}/…${w.token.slice(-4)}`;
+  const shown = `discord.com/api/webhooks/${w.id}/…${w.token.slice(-4)}`;
+  return w.thread_id ? `${shown} (thread ${w.thread_id})` : shown;
 }
 
 /** Discord's limit on a message's content. */
@@ -166,13 +193,111 @@ export function timelineDiscordStatusKey(accountId: string): string {
 
 /** The relay's last word on an account's webhook: `ok` after a
  *  delivery, `gone` when Discord said the webhook no longer exists or
- *  refused it (the sync then turns the account's cross-posting off),
- *  `failing` when Discord refused one message for another reason. */
+ *  refused it, `forum` when it posts to a forum channel, which takes no
+ *  plain message (the sync then turns the cross-posting off for either),
+ *  `failing` when Discord refused a message for another reason (that
+ *  line is skipped; the rest are still delivered). */
 export interface TimelineDiscordStatus {
-  state: "ok" | "gone" | "failing";
+  state: "ok" | "gone" | "forum" | "failing";
   webhook: string;
   at: string;
   http_status?: number;
   posted?: number;
   edited?: number;
+  /** Discord's own words for the last refusal, when it gave any. */
+  reason?: string;
+}
+
+/** Discord's error code for a message sent to a forum channel's webhook
+ *  without naming a post: a forum takes threads, not plain messages. */
+export const DISCORD_FORUM_NEEDS_THREAD = 220001;
+
+/** Where the relay keeps the account's (or clan channel's) recent
+ *  deliveries, for the page that set it up. */
+export function timelineDiscordHistoryKey(accountId: string): string {
+  return `timeline-discord-state/${accountId}/history.json`;
+}
+
+/** One delivery as its page shows it: a line posted or edited, refused
+ *  by Discord (with Discord's reason), unknown (sent, but no answer came;
+ *  never sent again), or not delivered (given up after its retries). */
+export type DiscordDeliveryOutcome =
+  "posted" | "edited" | "refused" | "unknown" | "not_delivered";
+
+export interface DiscordDelivery {
+  at: string;
+  outcome: DiscordDeliveryOutcome;
+  /** What it was about: a timeline item's id, an Action's number. */
+  ref?: string;
+  http_status?: number;
+  /** Discord's own words for a refusal, or ours for one never sent. */
+  reason?: string;
+  /** The line's start, as posted. */
+  excerpt?: string;
+}
+
+/** The last deliveries (newest first) and, by UTC day, how many were not
+ *  delivered: bounded to DISCORD_HISTORY_MAX entries and
+ *  DISCORD_HISTORY_DAYS days. */
+export interface DiscordDeliveryHistory {
+  entries: DiscordDelivery[];
+  missed: Record<string, number>;
+}
+
+export const DISCORD_HISTORY_MAX = 20;
+export const DISCORD_HISTORY_DAYS = 30;
+const EXCERPT_MAX = 160;
+const REASON_MAX = 200;
+const MISSED: ReadonlySet<string> = new Set([
+  "refused",
+  "unknown",
+  "not_delivered",
+]);
+
+const clip = (s: unknown, n: number): string | undefined => {
+  if (typeof s !== "string" || s.length === 0) return undefined;
+  const one = s.replace(/\s+/g, " ").trim();
+  return one.length > n ? `${one.slice(0, n - 1)}…` : one;
+};
+
+/** `history` with `added` (oldest first) recorded, bounded. Pure. */
+export function addDiscordDeliveries(
+  history: DiscordDeliveryHistory | null | undefined,
+  added: DiscordDelivery[],
+  nowMs: number,
+): DiscordDeliveryHistory {
+  const cutoff = nowMs - DISCORD_HISTORY_DAYS * 86_400_000;
+  const day = (iso: string) => iso.slice(0, 10);
+  const missed: Record<string, number> = {};
+  for (const [d, n] of Object.entries(history?.missed ?? {}))
+    if (Date.parse(`${d}T23:59:59Z`) >= cutoff && Number.isInteger(n) && n > 0)
+      missed[d] = n;
+  const fresh = added.map((e) => {
+    const out: DiscordDelivery = { at: e.at, outcome: e.outcome };
+    if (e.ref) out.ref = String(e.ref).slice(0, 40);
+    if (Number.isInteger(e.http_status) && e.http_status)
+      out.http_status = e.http_status;
+    const reason = clip(e.reason, REASON_MAX);
+    if (reason) out.reason = reason;
+    const excerpt = clip(e.excerpt, EXCERPT_MAX);
+    if (excerpt) out.excerpt = excerpt;
+    if (MISSED.has(e.outcome)) missed[day(e.at)] = (missed[day(e.at)] ?? 0) + 1;
+    return out;
+  });
+  const entries = [...fresh.reverse(), ...(history?.entries ?? [])]
+    .filter((e) => Date.parse(e.at) >= cutoff)
+    .slice(0, DISCORD_HISTORY_MAX);
+  return { entries, missed };
+}
+
+/** How many deliveries in the last DISCORD_HISTORY_DAYS were not made. */
+export function discordNotDelivered(
+  history: DiscordDeliveryHistory | null | undefined,
+  nowMs: number,
+): number {
+  const cutoff = nowMs - DISCORD_HISTORY_DAYS * 86_400_000;
+  let n = 0;
+  for (const [d, c] of Object.entries(history?.missed ?? {}))
+    if (Date.parse(`${d}T23:59:59Z`) >= cutoff) n += c;
+  return n;
 }

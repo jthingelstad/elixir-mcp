@@ -336,6 +336,10 @@ Resources:
 
   # The sync's lines, to the relay (which also sends the mail): a queue
   # of their own, so a busy timeline never holds up a sign-in email.
+  # Twenty receives (2026-10-11): a big batch is delivered over several
+  # runs at Discord's pace, and a run that must wait sets its own record's
+  # visibility to the wait (DISCORD_MAX_RECEIVES on the relay matches, so
+  # the last receive records what it could not deliver).
   TimelineDiscordQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -345,7 +349,7 @@ Resources:
       SqsManagedSseEnabled: true
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt TimelineDiscordDlq.Arn
-        maxReceiveCount: 5
+        maxReceiveCount: 20
 
   TimelineDiscordDlq:
     Type: AWS::SQS::Queue
@@ -881,6 +885,12 @@ Resources:
                 Resource:
                   - !GetAtt EmailQueue.Arn
                   - !GetAtt TimelineDiscordQueue.Arn
+              # A Discord lane's record held back until Discord's limit
+              # resets, rather than the queue's six minutes (2026-10-11).
+              - Effect: Allow
+                Action: sqs:ChangeMessageVisibility
+                Resource:
+                  - !GetAtt TimelineDiscordQueue.Arn
               # Its lane of the outbox: read the message, delete it once sent.
               - Effect: Allow
                 Action: [s3:GetObject, s3:DeleteObject]
@@ -1268,6 +1278,7 @@ Resources:
           BUTTONDOWN_API_TOKEN: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:buttondown_api_token}}"
           SECRET_EPOCH: !Ref SecretEpoch
           OUTBOX_BUCKET: !Ref OutboxBucket
+          DISCORD_MAX_RECEIVES: "20"
           CLAN_MODEL_SECRET:
             !If [
               HasInternalClan,
@@ -1284,7 +1295,8 @@ Resources:
       FunctionResponseTypes: [ReportBatchItemFailures]
 
   # The timeline's lines (2026-10-10): one object a run, at most two runs
-  # at once, so a webhook is posted to at Discord's pace.
+  # at once (SQS's least); the relay's pace record keeps each webhook at
+  # Discord's pace across both.
   TimelineDiscordEventSource:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
