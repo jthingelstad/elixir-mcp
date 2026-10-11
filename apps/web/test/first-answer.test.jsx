@@ -15,6 +15,7 @@ import {
   fireEvent,
   waitFor,
   cleanup,
+  configure,
 } from "@testing-library/react";
 import { FirstAnswer } from "../src/components/FirstAnswer.jsx";
 import {
@@ -24,6 +25,14 @@ import {
 } from "../src/hooks/useFirstAnswer.js";
 import { ConnectionQuestions } from "../src/components/ConnectionQuestions.jsx";
 import { App } from "../src/App.jsx";
+
+// Two of these tests render the whole App, routes and all, from a cold
+// module graph. Under a loaded machine (a full verify beside a deploy's
+// build) the first paint took past Testing Library's 1 s default and the
+// journey failed on "Your account is open". Bound the wait as the other
+// whole-App journeys do (account-journeys.test.jsx), so a slow runner is
+// not read as a missing element.
+configure({ asyncUtilTimeout: 5000 });
 
 const connection = {
   active_connections: 0,
@@ -61,112 +70,125 @@ beforeEach(() => {
   respond();
 });
 
-test("account journey: add a player, capture arrives, copy a question, open personal connections", async () => {
-  let added = false;
-  let captured = false;
-  const copy = vi.fn().mockResolvedValue();
-  Object.defineProperty(navigator, "clipboard", {
-    value: { writeText: copy },
-    configurable: true,
-  });
-  global.fetch = vi.fn(async (path, init = {}) => {
-    let data;
-    switch (path.split("?")[0]) {
-      case "/api/me":
-        data = {
-          authenticated: true,
-          role: "member",
-          timezone: "UTC",
-          claims: added
-            ? [{ player_tag: player.player_tag, is_primary: true }]
-            : [],
-          recordings: [],
-        };
-        break;
-      case "/api/me/clans":
-        data = { clans: [] };
-        break;
-      case "/api/me/connections":
-        data = { connections: [] };
-        break;
-      // Connections lists agents beside clients now: one table for
-      // everything that can call with your authority.
-      case "/api/me/principals":
-        data = { agents: [] };
-        break;
-      case "/api/claims":
-        expect(init.method).toBe("POST");
-        expect(JSON.parse(init.body).player_tag).toBe(player.player_tag);
-        added = true;
-        data = { ok: true };
-        break;
-      case "/api/me/first-answer":
-        data = {
-          player: added ? { ...player, profile_available: captured } : null,
-          connection,
-        };
-        break;
-      default:
-        throw new Error(`unmocked request: ${path}`);
-    }
-    return { ok: true, text: async () => JSON.stringify(data) };
-  });
-  window.history.pushState({}, "", "/console/account/overview");
-  render(<App />);
+test(
+  "account journey: add a player, capture arrives, copy a question, open personal connections",
+  { timeout: 20000 },
+  async () => {
+    let added = false;
+    let captured = false;
+    const copy = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: copy },
+      configurable: true,
+    });
+    global.fetch = vi.fn(async (path, init = {}) => {
+      let data;
+      switch (path.split("?")[0]) {
+        case "/api/me":
+          data = {
+            authenticated: true,
+            role: "member",
+            timezone: "UTC",
+            claims: added
+              ? [{ player_tag: player.player_tag, is_primary: true }]
+              : [],
+            recordings: [],
+          };
+          break;
+        case "/api/me/clans":
+          data = { clans: [] };
+          break;
+        case "/api/me/connections":
+          data = { connections: [] };
+          break;
+        // Connections lists agents beside clients now: one table for
+        // everything that can call with your authority.
+        case "/api/me/principals":
+          data = { agents: [] };
+          break;
+        case "/api/claims":
+          expect(init.method).toBe("POST");
+          expect(JSON.parse(init.body).player_tag).toBe(player.player_tag);
+          added = true;
+          data = { ok: true };
+          break;
+        case "/api/me/first-answer":
+          data = {
+            player: added ? { ...player, profile_available: captured } : null,
+            connection,
+          };
+          break;
+        default:
+          throw new Error(`unmocked request: ${path}`);
+      }
+      return { ok: true, text: async () => JSON.stringify(data) };
+    });
+    window.history.pushState({}, "", "/console/account/overview");
+    render(<App />);
 
-  // Overview reports and sends you to Tracking; it no longer carries the
-  // field itself, because nothing on Overview can be got wrong.
-  expect(await screen.findByText("Your account is open")).toBeTruthy();
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Add your player", exact: true }),
-  );
-  await waitFor(() =>
-    expect(window.location.pathname).toBe("/console/account/tracking"),
-  );
-  const input = document.getElementById("add-player-tag");
-  fireEvent.change(input, { target: { value: player.player_tag } });
-  fireEvent.click(input.parentElement.querySelector("button"));
+    // Overview reports and sends you to Tracking; it no longer carries the
+    // field itself, because nothing on Overview can be got wrong.
+    expect(await screen.findByText("Your account is open")).toBeTruthy();
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Add your player",
+        exact: true,
+      }),
+    );
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/console/account/tracking"),
+    );
+    const input = document.getElementById("add-player-tag");
+    fireEvent.change(input, { target: { value: player.player_tag } });
+    fireEvent.click(input.parentElement.querySelector("button"));
 
-  await waitFor(() =>
-    expect(window.location.pathname).toBe("/console/account/tracking/2PP0V90Y"),
-  );
-  cleanup();
-  captured = true;
-  window.history.pushState({}, "", "/console/account/connections");
-  render(<App />);
-  fireEvent.click(
-    await screen.findByRole("button", {
-      name: "Copy question: Start with your player snapshot",
-    }),
-  );
-  await screen.findByText("Copied — paste into your connected client.");
-  expect(copy.mock.calls[0][0]).toContain(player.player_tag);
-});
+    await waitFor(() =>
+      expect(window.location.pathname).toBe(
+        "/console/account/tracking/2PP0V90Y",
+      ),
+    );
+    cleanup();
+    captured = true;
+    window.history.pushState({}, "", "/console/account/connections");
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Copy question: Start with your player snapshot",
+      }),
+    );
+    await screen.findByText("Copied — paste into your connected client.");
+    expect(copy.mock.calls[0][0]).toContain(player.player_tag);
+  },
+);
 
-test("no player: Overview says so and offers one action, and asks nothing", async () => {
-  global.fetch = vi.fn(async (path) => {
-    const data =
-      path === "/api/me"
-        ? { authenticated: true, role: "member", claims: [], recordings: [] }
-        : path === "/api/me/first-answer"
-          ? { player: null, connection }
-          : { clans: [] };
-    return { ok: true, text: async () => JSON.stringify(data) };
-  });
-  const navigate = vi.fn();
-  window.history.pushState({}, "", "/console/account/overview");
-  render(<App />);
-  expect(
-    await screen.findByText("No players yet — nothing here defaults to you."),
-  ).toBeTruthy();
-  expect(
-    await screen.findByText("Start with your player tag in Tracking."),
-  ).toBeTruthy();
-  expect(screen.queryByText(/\d of 6/)).toBeNull();
-  expect(screen.getByText("nothing here defaults to you")).toBeTruthy();
-  expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
-  expect(navigate).not.toHaveBeenCalled();
-});
+test(
+  "no player: Overview says so and offers one action, and asks nothing",
+  { timeout: 20000 },
+  async () => {
+    global.fetch = vi.fn(async (path) => {
+      const data =
+        path === "/api/me"
+          ? { authenticated: true, role: "member", claims: [], recordings: [] }
+          : path === "/api/me/first-answer"
+            ? { player: null, connection }
+            : { clans: [] };
+      return { ok: true, text: async () => JSON.stringify(data) };
+    });
+    const navigate = vi.fn();
+    window.history.pushState({}, "", "/console/account/overview");
+    render(<App />);
+    expect(
+      await screen.findByText("No players yet — nothing here defaults to you."),
+    ).toBeTruthy();
+    expect(
+      await screen.findByText("Start with your player tag in Tracking."),
+    ).toBeTruthy();
+    expect(screen.queryByText(/\d of 6/)).toBeNull();
+    expect(screen.getByText("nothing here defaults to you")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
+    expect(navigate).not.toHaveBeenCalled();
+  },
+);
 
 test("readiness names what each line is waiting for, not just that it is not done", async () => {
   respond();
