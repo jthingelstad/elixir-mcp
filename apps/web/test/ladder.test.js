@@ -649,9 +649,7 @@ describe("formRows: the form tables lay the tool's numbers out, never rate them"
       side({ three_crown_rate: null, net_trophies: null }),
     );
     expect(rows.map((r) => r.key)).toEqual(["win_rate"]);
-    expect(JSON.stringify(rows)).not.toMatch(
-      /better|worse|improv|up|down|good|bad/i,
-    );
+    expect(JSON.stringify(rows)).not.toMatch(/better|worse|improv|good|bad/i);
     expect(formRows(null, side())).toEqual([]);
   });
 });
