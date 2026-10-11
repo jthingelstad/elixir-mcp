@@ -338,10 +338,15 @@ async function sittingAnchors(db, sittings) {
 async function sittingDetails(db, sittings) {
   const out = sittings.map(() => ({}));
   if (sittings.length === 0) return out;
+  // The other participants of the sitting's wins (the opponents best_win
+  // rates) and of its 2v2 games (the partner), without their names: a
+  // month of a clan's standouts is thousands of games, and a name lookup
+  // per participant cost 3.2 s live (acceptance, 2026-10-11). Names are
+  // read after, for the few players the details name.
   const { rows } = await db.query(
     `select t.i, bp.battle_id, bp.battle_time, b.type, b.event_tag, bp.side,
             bp.outcome, bp.crowns, bp.trophy_change, bp.starting_trophies,
-            o.player_tag as other_tag, p.name as other_name, o.side as other_side,
+            o.player_tag as other_tag, o.side as other_side,
             o.crowns as other_crowns, o.starting_trophies as other_trophies
        from unnest($1::int[], $2::text[], $3::float8[], $4::float8[]) as t(i, p, st, en)
        join battle_participant bp on bp.player_tag = t.p
@@ -349,7 +354,7 @@ async function sittingDetails(db, sittings) {
         and bp.battle_time <= to_timestamp(t.en / 1000.0)
        join battle b on b.battle_id = bp.battle_id
        join battle_participant o on o.battle_id = bp.battle_id and o.player_tag <> bp.player_tag
-       left join player p on p.player_tag = o.player_tag
+        and (o.side = bp.side or bp.outcome = 'win')
       where ${OWN_BATTLE_SQL}
       order by t.i, bp.battle_time, bp.battle_id, o.side, o.player_tag`,
     [
@@ -365,7 +370,6 @@ async function sittingDetails(db, sittings) {
     if (!byId.has(r.battle_id)) byId.set(r.battle_id, { ...r, others: [] });
     byId.get(r.battle_id).others.push({
       player_tag: r.other_tag,
-      name: r.other_name ?? null,
       side: r.other_side,
       crowns: r.other_crowns,
       starting_trophies: r.other_trophies ?? null,
@@ -380,7 +384,6 @@ async function sittingDetails(db, sittings) {
         const had = partners.get(o.player_tag);
         partners.set(o.player_tag, {
           player_tag: o.player_tag,
-          name: o.name,
           battles: (had?.battles ?? 0) + 1,
         });
       }
@@ -405,9 +408,7 @@ async function sittingDetails(db, sittings) {
     if (partners.size) {
       const [teammate] = [...partners.values()].sort(
         (a, z) =>
-          z.battles - a.battles ||
-          String(a.name ?? "").localeCompare(String(z.name ?? "")) ||
-          a.player_tag.localeCompare(z.player_tag),
+          z.battles - a.battles || a.player_tag.localeCompare(z.player_tag),
       );
       out[i].teammate = teammate;
     }
@@ -422,14 +423,12 @@ async function sittingDetails(db, sittings) {
           ? {
               opponent: {
                 player_tag: one.player_tag,
-                name: one.name,
                 starting_trophies: one.starting_trophies,
               },
             }
           : {
               opponents: best.opponents.map((o) => ({
                 player_tag: o.player_tag,
-                name: o.name,
                 starting_trophies: o.starting_trophies,
               })),
             }),
@@ -442,6 +441,34 @@ async function sittingDetails(db, sittings) {
           : {}),
       };
     }
+  }
+  const tags = new Set();
+  for (const d of out) {
+    if (d.teammate) tags.add(d.teammate.player_tag);
+    const opponents = d.best_win
+      ? (d.best_win.opponents ?? [d.best_win.opponent])
+      : [];
+    for (const o of opponents) tags.add(o.player_tag);
+  }
+  if (tags.size === 0) return out;
+  const { rows: named } = await db.query(
+    `select player_tag, name from player where player_tag = any($1::text[])`,
+    [[...tags]],
+  );
+  const names = new Map(named.map((r) => [r.player_tag, r.name]));
+  const name = (o) => ({
+    player_tag: o.player_tag,
+    name: names.get(o.player_tag) ?? null,
+    ...(o.battles === undefined ? {} : { battles: o.battles }),
+    ...(o.starting_trophies === undefined
+      ? {}
+      : { starting_trophies: o.starting_trophies }),
+  });
+  for (const d of out) {
+    if (d.teammate) d.teammate = name(d.teammate);
+    if (d.best_win?.opponent) d.best_win.opponent = name(d.best_win.opponent);
+    if (d.best_win?.opponents)
+      d.best_win.opponents = d.best_win.opponents.map(name);
   }
   return out;
 }
