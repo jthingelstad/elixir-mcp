@@ -68,9 +68,9 @@ const CLASSIFIED_REVISION = 1000;
  *  this much (its left_at, or the word itself for a removal). */
 const DEPARTURE_NEAR_MS = DAY_MS;
 /** Same-kind milestones told as one post, at most. */
-export const GROUP_MAX = 5;
+const GROUP_MAX = 5;
 /** The posts a leader may preview in the clan's voice. */
-export const PREVIEW_MAX = 5;
+const PREVIEW_MAX = 5;
 /** How far back the channel's history about a member is told. */
 const HISTORY_MS = 7 * DAY_MS;
 /** The session lock's namespace ("clan"), beside the clan's tag. */
@@ -396,22 +396,24 @@ async function rewritePackets(
   const tags = [
     ...new Set(posts.flatMap((p) => p.items.map(memberTag)).filter(Boolean)),
   ];
-  const [story, pitch, history] = await Promise.all([
-    clanStoryFacts(db, clanTag, { playerTags: tags, nowMs: now }),
-    pitchFor ? pitchFor(db, clanTag).catch(() => null) : null,
-    tags.length
-      ? db
-          .query(
-            `select kind, player_tag, count(*)::int as n
-               from clan_activity_discord_told
-              where clan_tag = $1 and player_tag = any($2::text[])
-                and told_at > $3
-              group by kind, player_tag`,
-            [clanTag, tags, new Date(now - HISTORY_MS)],
-          )
-          .then((r) => r.rows)
-      : [],
-  ]);
+  // One pg client: one query at a time (docs/ENGINEERING.md).
+  const story = await clanStoryFacts(db, clanTag, {
+    playerTags: tags,
+    nowMs: now,
+  });
+  const pitch = pitchFor ? await pitchFor(db, clanTag).catch(() => null) : null;
+  const history = tags.length
+    ? (
+        await db.query(
+          `select kind, player_tag, count(*)::int as n
+             from clan_activity_discord_told
+            where clan_tag = $1 and player_tag = any($2::text[])
+              and told_at > $3
+            group by kind, player_tag`,
+          [clanTag, tags, new Date(now - HISTORY_MS)],
+        )
+      ).rows
+    : [];
   const context = clanContext({
     name: row.clan_name,
     pitch: pitch?.values ?? null,
