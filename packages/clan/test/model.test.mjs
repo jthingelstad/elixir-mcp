@@ -1144,6 +1144,44 @@ test("model list: drafting never reads the list; a model Anthropic no longer ser
   assert.equal(h.anthropic.state.calls.at(-1)[2].model, SONNET_55);
 });
 
+test("model list: a 404 that empties the list leaves nothing reachable; the next use refuses before spending", async () => {
+  const h = harness();
+  h.anthropic.state.models = [H45, O55];
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  h.anthropic.state.write = () => ({
+    ok: false,
+    status: 404,
+    code: "not_found_error",
+  });
+  const gone = await api(h, c, "POST", DRAFT, {});
+  assert.equal(gone.body.error, "model_unavailable");
+  assert.deepEqual(await listedIds(h), [HAIKU_45]);
+  const writes = () =>
+    h.anthropic.state.calls.filter(([t]) => t === "write").length;
+  const sent = writes();
+  const today = (await api(h, c, "GET", MODEL)).body.uses.today;
+  const again = await api(h, c, "POST", DRAFT, {});
+  assert.equal(again.status, 409);
+  assert.equal(again.body.error, "model_unavailable");
+  assert.equal(writes(), sent, "not sent again");
+  assert.equal((await api(h, c, "GET", MODEL)).body.uses.today, today);
+  // Emptied outright: known, and reaches nothing.
+  await h.ledger.saveModelKey("#2PQRJ8LV", {
+    ...(await h.ledger.modelKey("#2PQRJ8LV")),
+    models: [],
+  });
+  assert.equal(
+    (await api(h, c, "GET", MODEL)).body.model_for.recruit_pitch,
+    null,
+  );
+  assert.equal(
+    (await api(h, c, "POST", DRAFT, {})).body.error,
+    "model_unavailable",
+  );
+  assert.equal(writes(), sent);
+});
+
 test("model list: only leaders refresh, and only while the key's owner leads", async () => {
   const { h } = await oldKey();
   h.mcp.state.roster = rosterBody([

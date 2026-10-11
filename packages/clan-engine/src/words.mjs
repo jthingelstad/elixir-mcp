@@ -80,14 +80,14 @@ export const MODEL_FOR = {
 
 /**
  * The model a use of `purpose` runs on: the first of its `MODEL_FOR` list
- * that the key reaches. `ids` is the key's model list as last read; with
- * no list (never read, or empty) the first is taken and Anthropic's
- * answer decides. Null when the key reaches none of them, or for a
- * purpose with no models.
+ * that the key reaches. `ids` is the key's model list as last read. With
+ * no list at all (null: never read) the first is taken and Anthropic's
+ * answer decides; an empty list is known and reaches nothing (a 404 can
+ * empty it), so it is null, as is a purpose with no models.
  */
 export function modelFor(purpose, ids = null) {
   const wanted = MODEL_FOR[purpose] ?? [];
-  if (!ids?.length) return wanted[0] ?? null;
+  if (ids == null) return wanted[0] ?? null;
   const reach = new Set(ids);
   return wanted.find((id) => reach.has(id)) ?? null;
 }

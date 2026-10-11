@@ -104,8 +104,9 @@ export function sealer(secret) {
 
 const boundTo = (clanTag, playerTag) => `${clanTag}|${playerTag}`;
 
-/** The ids on a key's model list as last read (empty when never read). */
-const listed = (stored) => (stored?.models ?? []).map((m) => m.id);
+/** The key's model ids as last read; null when it was never read. */
+const listed = (stored) =>
+  Array.isArray(stored?.models) ? stored.models.map((m) => m.id) : null;
 
 /**
  * The model each use runs on with this key now: `{ purpose: { id, name }
