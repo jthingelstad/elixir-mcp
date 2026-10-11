@@ -12,8 +12,16 @@ import {
   cleanup,
   fireEvent,
   act,
+  configure,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+
+// This file renders the whole App, routes and all, from a cold module
+// graph. Testing Library's 1 s default wait reads a slow first paint on a
+// loaded machine as a missing element (first-answer failed so, #488).
+// Bound the wait as the other whole-App journeys do
+// (account-journeys.test.jsx), with a 20 s bound on each test that renders it.
+configure({ asyncUtilTimeout: 5000 });
 
 const ME = {
   authenticated: true,
@@ -181,161 +189,181 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test("the picker lists the account's players and a start shows the eight-card brief", async () => {
-  window.history.pushState({}, "", "/console/account/verify");
-  render(<App />);
-  await waitFor(() => screen.getByRole("heading", { name: "Verify" }));
-  await waitFor(() => screen.getByText("King Thing"));
-  // A friend is not listed at all; a verified alt carries the mark and no button.
-  expect(screen.queryByText("A Friend")).toBeNull();
-  expect(screen.getByText("My Alt")).toBeTruthy();
-  expect(screen.getAllByRole("button", { name: "Verify" }).length).toBe(1);
-  expect(screen.getAllByLabelText("Verified").length).toBeGreaterThanOrEqual(1);
-  fireEvent.click(screen.getByRole("button", { name: "Verify" }));
-  await waitFor(() =>
-    screen.getByRole("heading", { name: "Play one battle with this deck" }),
-  );
-  expect(posts).toEqual([{ player_tag: "#2PP0V90Y" }]);
-  const target = screen.getByRole("list", { name: "The deck to play" });
-  expect(target.querySelectorAll(".deck__slot").length).toBe(8);
-  expect(target.querySelectorAll("img").length).toBe(8);
-  // The player's own deck with two marked swaps, and the lead says so.
-  expect(target.querySelectorAll(".deck__slot--swapped").length).toBe(2);
-  expect(screen.getAllByLabelText("swapped in").length).toBe(2);
-  expect(
-    screen.getByText(/your own recent Trophy Road deck with two cards swapped/),
-  ).toBeTruthy();
-  expect(screen.getByText(/Any mode counts/)).toBeTruthy();
-  // No battle yet: eight empty slots on the live side.
-  const seen = screen.getByRole("list", {
-    name: "The deck in your latest battle",
-  });
-  expect(seen.querySelectorAll(".deck__slot--empty").length).toBe(8);
-  expect(screen.getByRole("status").textContent).toMatch(
-    /No battle since you started/,
-  );
-  expect(screen.getByText(/19 min left/)).toBeTruthy();
-});
-
-test("the live half polls every 15 s, lights matched cards up, then unlocks and says to switch back", async () => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
-  window.history.pushState({}, "", "/console/account/verify");
-  render(<App />);
-  await waitFor(() => screen.getByText("King Thing"));
-  fireEvent.click(screen.getByRole("button", { name: "Verify" }));
-  await waitFor(() =>
-    screen.getByRole("heading", { name: "Play one battle with this deck" }),
-  );
-
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(15_100);
-  });
-  await waitFor(() =>
+test(
+  "the picker lists the account's players and a start shows the eight-card brief",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/console/account/verify");
+    render(<App />);
+    await waitFor(() => screen.getByRole("heading", { name: "Verify" }));
+    await waitFor(() => screen.getByText("King Thing"));
+    // A friend is not listed at all; a verified alt carries the mark and no button.
+    expect(screen.queryByText("A Friend")).toBeNull();
+    expect(screen.getByText("My Alt")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Verify" }).length).toBe(1);
+    expect(screen.getAllByLabelText("Verified").length).toBeGreaterThanOrEqual(
+      1,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    await waitFor(() =>
+      screen.getByRole("heading", { name: "Play one battle with this deck" }),
+    );
+    expect(posts).toEqual([{ player_tag: "#2PP0V90Y" }]);
+    const target = screen.getByRole("list", { name: "The deck to play" });
+    expect(target.querySelectorAll(".deck__slot").length).toBe(8);
+    expect(target.querySelectorAll("img").length).toBe(8);
+    // The player's own deck with two marked swaps, and the lead says so.
+    expect(target.querySelectorAll(".deck__slot--swapped").length).toBe(2);
+    expect(screen.getAllByLabelText("swapped in").length).toBe(2);
+    expect(
+      screen.getByText(
+        /your own recent Trophy Road deck with two cards swapped/,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(/Any mode counts/)).toBeTruthy();
+    // No battle yet: eight empty slots on the live side.
+    const seen = screen.getByRole("list", {
+      name: "The deck in your latest battle",
+    });
+    expect(seen.querySelectorAll(".deck__slot--empty").length).toBe(8);
     expect(screen.getByRole("status").textContent).toMatch(
-      /3 of 8 in that deck · Loss 1-3 vs Rival · Ladder/,
-    ),
-  );
-  const target = screen.getByRole("list", { name: "The deck to play" });
-  expect(target.querySelectorAll(".deck__slot--matched").length).toBe(3);
-  expect(screen.getByRole("status").textContent).toMatch(
-    /log read \d\d:\d\d:\d\d/,
-  );
+      /No battle since you started/,
+    );
+    expect(screen.getByText(/19 min left/)).toBeTruthy();
+  },
+);
 
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(15_100);
-  });
-  await waitFor(() => screen.getByText(/switch your deck back now/));
-  expect(screen.getByRole("status").textContent).toMatch(/Verified/);
-  expect(screen.getByText(/The proof: Win 3-1 vs Rival/)).toBeTruthy();
-  expect(screen.getByText(/28 seconds/)).toBeTruthy();
-  expect(document.querySelectorAll(".verify__spark").length).toBe(12);
-  // The unlock lands on the same page: the brief and the proving battle
-  // stay, with all eight lit, and the timer is gone.
-  expect(
-    screen.getByRole("heading", { name: "Play one battle with this deck" }),
-  ).toBeTruthy();
-  const lit = screen.getByRole("list", { name: "The deck to play" });
-  expect(lit.querySelectorAll(".deck__slot--matched").length).toBe(8);
-  expect(screen.queryByText(/min left/)).toBeNull();
-  // The poll stops once verified: no further status reads.
-  const before = global.fetch.mock.calls.filter((c) =>
-    String(c[0]).startsWith("/api/me/verify/"),
-  ).length;
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(31_000);
-  });
-  const after = global.fetch.mock.calls.filter((c) =>
-    String(c[0]).startsWith("/api/me/verify/"),
-  ).length;
-  expect(after).toBe(before);
-});
+test(
+  "the live half polls every 15 s, lights matched cards up, then unlocks and says to switch back",
+  { timeout: 20000 },
+  async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    window.history.pushState({}, "", "/console/account/verify");
+    render(<App />);
+    await waitFor(() => screen.getByText("King Thing"));
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    await waitFor(() =>
+      screen.getByRole("heading", { name: "Play one battle with this deck" }),
+    );
 
-test("reduced motion: the badge lands without sparks", async () => {
-  vi.stubGlobal("matchMedia", (q) => ({
-    matches: q.includes("prefers-reduced-motion"),
-    media: q,
-    addEventListener() {},
-    removeEventListener() {},
-    addListener() {},
-    removeListener() {},
-  }));
-  statusQueue = [VERIFIED];
-  vi.useFakeTimers({ shouldAdvanceTime: true });
-  window.history.pushState({}, "", "/console/account/verify");
-  render(<App />);
-  await waitFor(() => screen.getByText("King Thing"));
-  fireEvent.click(screen.getByRole("button", { name: "Verify" }));
-  await waitFor(() =>
-    screen.getByRole("heading", { name: "Play one battle with this deck" }),
-  );
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(15_100);
-  });
-  await waitFor(() => screen.getByText(/switch your deck back now/));
-  expect(document.querySelectorAll(".verify__spark").length).toBe(0);
-  expect(document.querySelector(".verify__burst").dataset.motion).toBe(
-    "reduced",
-  );
-});
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_100);
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toMatch(
+        /3 of 8 in that deck · Loss 1-3 vs Rival · Ladder/,
+      ),
+    );
+    const target = screen.getByRole("list", { name: "The deck to play" });
+    expect(target.querySelectorAll(".deck__slot--matched").length).toBe(3);
+    expect(screen.getByRole("status").textContent).toMatch(
+      /log read \d\d:\d\d:\d\d/,
+    );
 
-test("a start that finds no collection yet says so and retries", async () => {
-  let n = 0;
-  const base = global.fetch;
-  global.fetch = vi.fn(async (path, init) => {
-    if (
-      String(path) === "/api/me/verify" &&
-      (init?.method ?? "GET") === "POST"
-    ) {
-      n += 1;
-      const body =
-        n === 1
-          ? {
-              state: "collecting",
-              player_tag: "#2PP0V90Y",
-              live_pending: true,
-              retry_after_s: 15,
-            }
-          : OPEN;
-      return {
-        ok: n !== 1,
-        status: n === 1 ? 202 : 200,
-        json: async () => body,
-        text: async () => JSON.stringify(body),
-      };
-    }
-    return base(path, init);
-  });
-  vi.useFakeTimers({ shouldAdvanceTime: true });
-  window.history.pushState({}, "", "/console/account/verify");
-  render(<App />);
-  await waitFor(() => screen.getByText("King Thing"));
-  fireEvent.click(screen.getByRole("button", { name: "Verify" }));
-  await waitFor(() => screen.getByText(/for the first time/));
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(15_100);
-  });
-  await waitFor(() =>
-    screen.getByRole("heading", { name: "Play one battle with this deck" }),
-  );
-  expect(n).toBe(2);
-});
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_100);
+    });
+    await waitFor(() => screen.getByText(/switch your deck back now/));
+    expect(screen.getByRole("status").textContent).toMatch(/Verified/);
+    expect(screen.getByText(/The proof: Win 3-1 vs Rival/)).toBeTruthy();
+    expect(screen.getByText(/28 seconds/)).toBeTruthy();
+    expect(document.querySelectorAll(".verify__spark").length).toBe(12);
+    // The unlock lands on the same page: the brief and the proving battle
+    // stay, with all eight lit, and the timer is gone.
+    expect(
+      screen.getByRole("heading", { name: "Play one battle with this deck" }),
+    ).toBeTruthy();
+    const lit = screen.getByRole("list", { name: "The deck to play" });
+    expect(lit.querySelectorAll(".deck__slot--matched").length).toBe(8);
+    expect(screen.queryByText(/min left/)).toBeNull();
+    // The poll stops once verified: no further status reads.
+    const before = global.fetch.mock.calls.filter((c) =>
+      String(c[0]).startsWith("/api/me/verify/"),
+    ).length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(31_000);
+    });
+    const after = global.fetch.mock.calls.filter((c) =>
+      String(c[0]).startsWith("/api/me/verify/"),
+    ).length;
+    expect(after).toBe(before);
+  },
+);
+
+test(
+  "reduced motion: the badge lands without sparks",
+  { timeout: 20000 },
+  async () => {
+    vi.stubGlobal("matchMedia", (q) => ({
+      matches: q.includes("prefers-reduced-motion"),
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+      addListener() {},
+      removeListener() {},
+    }));
+    statusQueue = [VERIFIED];
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    window.history.pushState({}, "", "/console/account/verify");
+    render(<App />);
+    await waitFor(() => screen.getByText("King Thing"));
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    await waitFor(() =>
+      screen.getByRole("heading", { name: "Play one battle with this deck" }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_100);
+    });
+    await waitFor(() => screen.getByText(/switch your deck back now/));
+    expect(document.querySelectorAll(".verify__spark").length).toBe(0);
+    expect(document.querySelector(".verify__burst").dataset.motion).toBe(
+      "reduced",
+    );
+  },
+);
+
+test(
+  "a start that finds no collection yet says so and retries",
+  { timeout: 20000 },
+  async () => {
+    let n = 0;
+    const base = global.fetch;
+    global.fetch = vi.fn(async (path, init) => {
+      if (
+        String(path) === "/api/me/verify" &&
+        (init?.method ?? "GET") === "POST"
+      ) {
+        n += 1;
+        const body =
+          n === 1
+            ? {
+                state: "collecting",
+                player_tag: "#2PP0V90Y",
+                live_pending: true,
+                retry_after_s: 15,
+              }
+            : OPEN;
+        return {
+          ok: n !== 1,
+          status: n === 1 ? 202 : 200,
+          json: async () => body,
+          text: async () => JSON.stringify(body),
+        };
+      }
+      return base(path, init);
+    });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    window.history.pushState({}, "", "/console/account/verify");
+    render(<App />);
+    await waitFor(() => screen.getByText("King Thing"));
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    await waitFor(() => screen.getByText(/for the first time/));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_100);
+    });
+    await waitFor(() =>
+      screen.getByRole("heading", { name: "Play one battle with this deck" }),
+    );
+    expect(n).toBe(2);
+  },
+);

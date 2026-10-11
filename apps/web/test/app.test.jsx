@@ -6,8 +6,16 @@ import {
   waitFor,
   within,
   cleanup,
+  configure,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+
+// This file renders the whole App, routes and all, from a cold module
+// graph. Testing Library's 1 s default wait reads a slow first paint on a
+// loaded machine as a missing element (first-answer failed so, #488).
+// Bound the wait as the other whole-App journeys do
+// (account-journeys.test.jsx), with a 20 s bound on each test that renders it.
+configure({ asyncUtilTimeout: 5000 });
 
 function mockFetch(routes) {
   return vi.fn(async (path, init = {}) => {
@@ -31,18 +39,24 @@ beforeEach(() => {
   window.history.pushState({}, "", "/");
 });
 
-test("a path the app does not own leaves for the static site", async () => {
-  // Home, docs, updates and the changelog are real documents built by
-  // apps/site. The app must hand those paths back rather than render an
-  // empty main - the state the old catch-all Landing fallback hid.
-  const replace = vi.fn();
-  vi.stubGlobal("location", { ...window.location, replace });
-  window.history.pushState({}, "", "/");
-  global.fetch = mockFetch({ "GET /api/me": [200, { authenticated: false }] });
-  render(<App />);
-  await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
-  vi.unstubAllGlobals();
-});
+test(
+  "a path the app does not own leaves for the static site",
+  { timeout: 20000 },
+  async () => {
+    // Home, docs, updates and the changelog are real documents built by
+    // apps/site. The app must hand those paths back rather than render an
+    // empty main - the state the old catch-all Landing fallback hid.
+    const replace = vi.fn();
+    vi.stubGlobal("location", { ...window.location, replace });
+    window.history.pushState({}, "", "/");
+    global.fetch = mockFetch({
+      "GET /api/me": [200, { authenticated: false }],
+    });
+    render(<App />);
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+    vi.unstubAllGlobals();
+  },
+);
 
 test("the app owns /console and disowns everything else", async () => {
   const { legalRoute, STATIC_LINKS } = await import("../src/App.jsx");
@@ -76,321 +90,341 @@ test("the app owns /console and disowns everything else", async () => {
   }
 });
 
-test("sign-in flow: email step then code step authenticates", async () => {
-  global.fetch = mockFetch({
-    "GET /api/me": [200, { authenticated: false }],
-    "GET /api/public/stats": [
-      200,
-      {
-        totals: {
-          battles: 1,
-          players: 1,
-          clans: 1,
-          collectors_active: 1,
+test(
+  "sign-in flow: email step then code step authenticates",
+  { timeout: 20000 },
+  async () => {
+    global.fetch = mockFetch({
+      "GET /api/me": [200, { authenticated: false }],
+      "GET /api/public/stats": [
+        200,
+        {
+          totals: {
+            battles: 1,
+            players: 1,
+            clans: 1,
+            collectors_active: 1,
+          },
+          series: {
+            battles_daily: [],
+            players_observed_daily: [],
+            fetches_daily: [],
+          },
         },
-        series: {
-          battles_daily: [],
-          players_observed_daily: [],
-          fetches_daily: [],
-        },
+      ],
+      "POST /api/auth": [200, { ok: true }],
+      "POST /api/auth/code": (init) => {
+        expect(JSON.parse(init.body)).toEqual({
+          email: "j@x.com",
+          code: "123456",
+        });
+        return [200, { authenticated: true }];
       },
-    ],
-    "POST /api/auth": [200, { ok: true }],
-    "POST /api/auth/code": (init) => {
-      expect(JSON.parse(init.body)).toEqual({
-        email: "j@x.com",
-        code: "123456",
-      });
-      return [200, { authenticated: true }];
-    },
-  });
-  render(<App />);
-  // Signed out, the bar's account slot is "Sign in", routed in-app.
-  fireEvent.click(await screen.findByRole("link", { name: "Sign in" }));
-  fireEvent.change(await screen.findByLabelText(/Email/), {
-    target: { value: "j@x.com" },
-  });
-  fireEvent.click(screen.getByText("Send sign-in email"));
-  fireEvent.change(await screen.findByLabelText(/6-digit code/), {
-    target: { value: "123456" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-  await waitFor(() =>
-    expect(global.fetch).toHaveBeenCalledWith(
-      "/api/auth/code",
-      expect.anything(),
-    ),
-  );
-});
+    });
+    render(<App />);
+    // Signed out, the bar's account slot is "Sign in", routed in-app.
+    fireEvent.click(await screen.findByRole("link", { name: "Sign in" }));
+    fireEvent.change(await screen.findByLabelText(/Email/), {
+      target: { value: "j@x.com" },
+    });
+    fireEvent.click(screen.getByText("Send sign-in email"));
+    fireEvent.change(await screen.findByLabelText(/6-digit code/), {
+      target: { value: "123456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/auth/code",
+        expect.anything(),
+      ),
+    );
+  },
+);
 
-test("tracking renders claims, recording state, and notify switches", async () => {
-  // The table moved off Overview with the 2026-09-09 split: Overview
-  // reports these, Tracking is where they can be changed.
-  window.history.pushState({}, "", "/console/account/tracking");
-  global.fetch = mockFetch({
-    "GET /api/me": [
-      200,
-      {
-        authenticated: true,
-        is_owner: false,
-        timezone: "America/Chicago",
-        claims: [
-          {
-            player_tag: "#20JJJ2CCRU",
-            status: "verified",
-            is_primary: true,
-            notify: true,
-            name: "Jamie",
-            last_known_clan_tag: "#J2RGCRVG",
-          },
-        ],
-        recordings: [
-          {
-            subject_tag: "#20JJJ2CCRU",
-            status: "active",
-            freshest_poll: new Date().toISOString(),
-          },
-        ],
-      },
-    ],
-    "GET /api/me/activity": [
-      200,
-      {
-        events: [
-          {
-            kind: "signed_in",
-            detail: null,
-            created_at: new Date().toISOString(),
-          },
-        ],
-      },
-    ],
-    "GET /api/me/connections": [
-      200,
-      {
-        connections: [
-          {
-            family_id: "fam1",
-            client_name: "Claude",
-            scope: "cr:read",
-            created_at: new Date().toISOString(),
-            last_token_at: new Date().toISOString(),
-          },
-        ],
-      },
-    ],
-    "GET /api/me/usage": [
-      200,
-      {
-        days: [{ day: "2026-09-03", calls: 12, errors: 0 }],
-        top_tools: [{ tool: "get_player", calls: 7 }],
-        today_calls: 12,
-        live_today: 1,
-        live_max: 50,
-        quota_max: 500,
-      },
-    ],
-    "GET /api/me/clans": [
-      200,
-      {
-        clans: [],
-        home_clan: null,
-        slots: {
-          activity: { used: 0, limit: 1 },
-          comprehensive: { used: 0, limit: 0 },
+test(
+  "tracking renders claims, recording state, and notify switches",
+  { timeout: 20000 },
+  async () => {
+    // The table moved off Overview with the 2026-09-09 split: Overview
+    // reports these, Tracking is where they can be changed.
+    window.history.pushState({}, "", "/console/account/tracking");
+    global.fetch = mockFetch({
+      "GET /api/me": [
+        200,
+        {
+          authenticated: true,
+          is_owner: false,
+          timezone: "America/Chicago",
+          claims: [
+            {
+              player_tag: "#20JJJ2CCRU",
+              status: "verified",
+              is_primary: true,
+              notify: true,
+              name: "Jamie",
+              last_known_clan_tag: "#J2RGCRVG",
+            },
+          ],
+          recordings: [
+            {
+              subject_tag: "#20JJJ2CCRU",
+              status: "active",
+              freshest_poll: new Date().toISOString(),
+            },
+          ],
         },
-      },
-    ],
-  });
-  render(<App />);
-  // The list: what is tracked, how it relates to you, and how fresh it
-  // is. One table over players and clans — a player and a clan are both
-  // something you track.
-  expect(await screen.findByText("#20JJJ2CCRU")).toBeTruthy();
-  // In the page; the bar's account button says the name too.
-  expect(
-    within(document.querySelector("main")).getByText("Jamie"),
-  ).toBeTruthy();
-  expect(screen.getByText("you")).toBeTruthy();
-  expect(screen.getAllByText("Manage").length).toBeGreaterThan(0);
-  // The controls are NOT in the row: a row with four controls in it is a
-  // form pretending to be a list.
-  expect(screen.queryByRole("switch")).toBeNull();
-  // Both kinds can be added, from the same page.
-  expect(screen.getAllByRole("button", { name: "Track" })).toHaveLength(2);
-  expect(screen.getByLabelText("Player tag")).toBeTruthy();
-  expect(screen.getByLabelText("Clan tag")).toBeTruthy();
-});
+      ],
+      "GET /api/me/activity": [
+        200,
+        {
+          events: [
+            {
+              kind: "signed_in",
+              detail: null,
+              created_at: new Date().toISOString(),
+            },
+          ],
+        },
+      ],
+      "GET /api/me/connections": [
+        200,
+        {
+          connections: [
+            {
+              family_id: "fam1",
+              client_name: "Claude",
+              scope: "cr:read",
+              created_at: new Date().toISOString(),
+              last_token_at: new Date().toISOString(),
+            },
+          ],
+        },
+      ],
+      "GET /api/me/usage": [
+        200,
+        {
+          days: [{ day: "2026-09-03", calls: 12, errors: 0 }],
+          top_tools: [{ tool: "get_player", calls: 7 }],
+          today_calls: 12,
+          live_today: 1,
+          live_max: 50,
+          quota_max: 500,
+        },
+      ],
+      "GET /api/me/clans": [
+        200,
+        {
+          clans: [],
+          home_clan: null,
+          slots: {
+            activity: { used: 0, limit: 1 },
+            comprehensive: { used: 0, limit: 0 },
+          },
+        },
+      ],
+    });
+    render(<App />);
+    // The list: what is tracked, how it relates to you, and how fresh it
+    // is. One table over players and clans — a player and a clan are both
+    // something you track.
+    expect(await screen.findByText("#20JJJ2CCRU")).toBeTruthy();
+    // In the page; the bar's account button says the name too.
+    expect(
+      within(document.querySelector("main")).getByText("Jamie"),
+    ).toBeTruthy();
+    expect(screen.getByText("you")).toBeTruthy();
+    expect(screen.getAllByText("Manage").length).toBeGreaterThan(0);
+    // The controls are NOT in the row: a row with four controls in it is a
+    // form pretending to be a list.
+    expect(screen.queryByRole("switch")).toBeNull();
+    // Both kinds can be added, from the same page.
+    expect(screen.getAllByRole("button", { name: "Track" })).toHaveLength(2);
+    expect(screen.getByLabelText("Player tag")).toBeTruthy();
+    expect(screen.getByLabelText("Clan tag")).toBeTruthy();
+  },
+);
 
-test("the tracked record holds the controls, and says what stopping costs", async () => {
-  window.history.pushState(
-    {},
-    "",
-    `/console/account/tracking/${encodeURIComponent("#20JJJ2CCRU")}`,
-  );
-  global.fetch = mockFetch({
-    "GET /api/me": [
-      200,
-      {
-        authenticated: true,
-        is_owner: false,
-        claims: [
-          {
-            player_tag: "#20JJJ2CCRU",
-            is_primary: true,
-            notify: true,
-            name: "Jamie",
-            relationship: "you",
-          },
-        ],
-        recordings: [
-          {
-            subject_tag: "#20JJJ2CCRU",
-            status: "active",
-            freshest_poll: new Date().toISOString(),
-            fetches_24h: 38,
-          },
-        ],
-      },
-    ],
-    "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
-  });
-  render(<App />);
-  await screen.findByRole("switch", { name: "Notifications" });
-  expect(
-    screen.getByText(/controls inclusion in Your friends this week/),
-  ).toBeTruthy();
-  expect(
-    screen.getByRole("link", { name: "Email settings" }).getAttribute("href"),
-  ).toBe("/console/account/profile/email");
-  expect(
-    within(document.querySelector("main")).getByText("Jamie"),
-  ).toBeTruthy();
-  expect(screen.getByText("active")).toBeTruthy();
-  // The consequence sits beside the control, and the control asks once
-  // before it writes (2026-10-08): a stray click stopped a recording.
-  const stop = screen.getByRole("button", { name: "Stop tracking" });
-  expect(screen.getByText("History already recorded is kept.")).toBeTruthy();
-  const writes = () =>
-    global.fetch.mock.calls.filter(([, init]) => init?.method === "POST");
-  fireEvent.click(stop);
-  const ask = screen.getByRole("group", { name: "Stop tracking #20JJJ2CCRU?" });
-  expect(within(ask).getByText("#20JJJ2CCRU")).toBeTruthy();
-  expect(writes()).toEqual([]);
-  fireEvent.click(within(ask).getByRole("button", { name: "Cancel" }));
-  expect(screen.getByRole("button", { name: "Stop tracking" })).toBeTruthy();
-  expect(writes()).toEqual([]);
-});
+test(
+  "the tracked record holds the controls, and says what stopping costs",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState(
+      {},
+      "",
+      `/console/account/tracking/${encodeURIComponent("#20JJJ2CCRU")}`,
+    );
+    global.fetch = mockFetch({
+      "GET /api/me": [
+        200,
+        {
+          authenticated: true,
+          is_owner: false,
+          claims: [
+            {
+              player_tag: "#20JJJ2CCRU",
+              is_primary: true,
+              notify: true,
+              name: "Jamie",
+              relationship: "you",
+            },
+          ],
+          recordings: [
+            {
+              subject_tag: "#20JJJ2CCRU",
+              status: "active",
+              freshest_poll: new Date().toISOString(),
+              fetches_24h: 38,
+            },
+          ],
+        },
+      ],
+      "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
+    });
+    render(<App />);
+    await screen.findByRole("switch", { name: "Notifications" });
+    expect(
+      screen.getByText(/controls inclusion in Your friends this week/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: "Email settings" }).getAttribute("href"),
+    ).toBe("/console/account/profile/email");
+    expect(
+      within(document.querySelector("main")).getByText("Jamie"),
+    ).toBeTruthy();
+    expect(screen.getByText("active")).toBeTruthy();
+    // The consequence sits beside the control, and the control asks once
+    // before it writes (2026-10-08): a stray click stopped a recording.
+    const stop = screen.getByRole("button", { name: "Stop tracking" });
+    expect(screen.getByText("History already recorded is kept.")).toBeTruthy();
+    const writes = () =>
+      global.fetch.mock.calls.filter(([, init]) => init?.method === "POST");
+    fireEvent.click(stop);
+    const ask = screen.getByRole("group", {
+      name: "Stop tracking #20JJJ2CCRU?",
+    });
+    expect(within(ask).getByText("#20JJJ2CCRU")).toBeTruthy();
+    expect(writes()).toEqual([]);
+    fireEvent.click(within(ask).getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Stop tracking" })).toBeTruthy();
+    expect(writes()).toEqual([]);
+  },
+);
 
 // 2026-10-08, the fresh-person journey: a typo'd tag read "Tag not
 // found" as plain text beside a green "active" chip and a fresh poll (the
 // empty battle log of an unknown tag is admitted), with the fix on
 // another page. Now it is an error, with the fix in it, and nothing on
 // the page says the recording is healthy.
-test("a tag the game did not find is an error with the fix beside it", async () => {
-  window.history.pushState({}, "", "/console/account/tracking/2PP0V90Y");
-  const posts = [];
-  let claims = [
-    {
-      player_tag: "#2PP0V90Y",
-      is_primary: true,
-      notify: true,
-      name: null,
-      relationship: "you",
-    },
-  ];
-  global.fetch = mockFetch({
-    "GET /api/me": () => [
-      200,
+test(
+  "a tag the game did not find is an error with the fix beside it",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/console/account/tracking/2PP0V90Y");
+    const posts = [];
+    let claims = [
       {
-        authenticated: true,
-        is_owner: false,
-        claims,
-        recordings: [
-          {
-            subject_tag: "#2PP0V90Y",
-            status: "active",
-            freshest_poll: new Date().toISOString(),
-            fetches_24h: 2,
-          },
-        ],
+        player_tag: "#2PP0V90Y",
+        is_primary: true,
+        notify: true,
+        name: null,
+        relationship: "you",
       },
-    ],
-    "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
-    "GET /api/me/battle-activity/2PP0V90Y": [200, { days: [] }],
-    "GET /api/me/first-answer?player_tag=%232PP0V90Y": [
-      200,
-      {
-        as_of: new Date().toISOString(),
-        player: {
-          player_tag: "#2PP0V90Y",
-          is_primary: true,
-          recording_status: "active",
-          profile_available: false,
-          battlelog_observed_at: new Date().toISOString(),
-          last_battle_at: null,
-          battles_30d: 0,
-          tracked_since: new Date().toISOString(),
-          capture_attempts: [
+    ];
+    global.fetch = mockFetch({
+      "GET /api/me": () => [
+        200,
+        {
+          authenticated: true,
+          is_owner: false,
+          claims,
+          recordings: [
             {
-              endpoint: "player",
-              last_admitted_at: null,
-              last_failed_at: new Date(Date.now() - 60_000).toISOString(),
-              last_failed_status: 404,
-            },
-            {
-              endpoint: "player_battlelog",
-              last_admitted_at: new Date().toISOString(),
+              subject_tag: "#2PP0V90Y",
+              status: "active",
+              freshest_poll: new Date().toISOString(),
+              fetches_24h: 2,
             },
           ],
         },
-        connection: { active_connections: 0 },
-        clan: null,
+      ],
+      "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
+      "GET /api/me/battle-activity/2PP0V90Y": [200, { days: [] }],
+      "GET /api/me/first-answer?player_tag=%232PP0V90Y": [
+        200,
+        {
+          as_of: new Date().toISOString(),
+          player: {
+            player_tag: "#2PP0V90Y",
+            is_primary: true,
+            recording_status: "active",
+            profile_available: false,
+            battlelog_observed_at: new Date().toISOString(),
+            last_battle_at: null,
+            battles_30d: 0,
+            tracked_since: new Date().toISOString(),
+            capture_attempts: [
+              {
+                endpoint: "player",
+                last_admitted_at: null,
+                last_failed_at: new Date(Date.now() - 60_000).toISOString(),
+                last_failed_status: 404,
+              },
+              {
+                endpoint: "player_battlelog",
+                last_admitted_at: new Date().toISOString(),
+              },
+            ],
+          },
+          connection: { active_connections: 0 },
+          clan: null,
+        },
+      ],
+      "POST /api/claims": (init) => {
+        const body = JSON.parse(init.body);
+        posts.push(body);
+        if (body.action === "add")
+          claims = [{ ...claims[0], player_tag: body.player_tag }];
+        return [200, { ok: true, player_tag: body.player_tag }];
       },
-    ],
-    "POST /api/claims": (init) => {
-      const body = JSON.parse(init.body);
-      posts.push(body);
-      if (body.action === "add")
-        claims = [{ ...claims[0], player_tag: body.player_tag }];
-      return [200, { ok: true, player_tag: body.player_tag }];
-    },
-  });
-  render(<App />);
-  const alert = await screen.findByRole("alert");
-  expect(within(alert).getByText("Tag not found")).toBeTruthy();
-  expect(alert.textContent).toContain("so nothing is being recorded");
-  // Never "active", never a healthy poll, for a tag the game does not know.
-  expect(screen.getByText("tag not found")).toBeTruthy();
-  expect(screen.queryByText("active")).toBeNull();
-  expect(screen.getByText(/the game does not know this tag/)).toBeTruthy();
-  expect(screen.queryByText(/recording active/)).toBeNull();
-  // The fix is in the callout: the right tag in this one's place.
-  const input = within(alert).getByLabelText("Correct tag");
-  fireEvent.change(input, { target: { value: "2PP0V90Y" } });
-  fireEvent.click(
-    within(alert).getByRole("button", { name: "Track this tag instead" }),
-  );
-  expect(
-    await within(alert).findByText("That is the tag the game did not find."),
-  ).toBeTruthy();
-  expect(posts).toEqual([]);
-  fireEvent.change(input, { target: { value: "#2pyq8gj0" } });
-  fireEvent.click(
-    within(alert).getByRole("button", { name: "Track this tag instead" }),
-  );
-  await waitFor(() => expect(posts).toHaveLength(2));
-  // Added first, as the primary, so the typo can be stopped.
-  expect(posts).toEqual([
-    { player_tag: "#2PYQ8GJ0", action: "add", make_primary: true },
-    { player_tag: "#2PP0V90Y", action: "remove" },
-  ]);
-  await waitFor(() =>
-    expect(window.location.pathname).toBe("/console/account/tracking/2PYQ8GJ0"),
-  );
-});
+    });
+    render(<App />);
+    const alert = await screen.findByRole("alert");
+    expect(within(alert).getByText("Tag not found")).toBeTruthy();
+    expect(alert.textContent).toContain("so nothing is being recorded");
+    // Never "active", never a healthy poll, for a tag the game does not know.
+    expect(screen.getByText("tag not found")).toBeTruthy();
+    expect(screen.queryByText("active")).toBeNull();
+    expect(screen.getByText(/the game does not know this tag/)).toBeTruthy();
+    expect(screen.queryByText(/recording active/)).toBeNull();
+    // The fix is in the callout: the right tag in this one's place.
+    const input = within(alert).getByLabelText("Correct tag");
+    fireEvent.change(input, { target: { value: "2PP0V90Y" } });
+    fireEvent.click(
+      within(alert).getByRole("button", { name: "Track this tag instead" }),
+    );
+    expect(
+      await within(alert).findByText("That is the tag the game did not find."),
+    ).toBeTruthy();
+    expect(posts).toEqual([]);
+    fireEvent.change(input, { target: { value: "#2pyq8gj0" } });
+    fireEvent.click(
+      within(alert).getByRole("button", { name: "Track this tag instead" }),
+    );
+    await waitFor(() => expect(posts).toHaveLength(2));
+    // Added first, as the primary, so the typo can be stopped.
+    expect(posts).toEqual([
+      { player_tag: "#2PYQ8GJ0", action: "add", make_primary: true },
+      { player_tag: "#2PP0V90Y", action: "remove" },
+    ]);
+    await waitFor(() =>
+      expect(window.location.pathname).toBe(
+        "/console/account/tracking/2PYQ8GJ0",
+      ),
+    );
+  },
+);
 
-test("admin view is admin-gated in the UI", async () => {
+test("admin view is admin-gated in the UI", { timeout: 20000 }, async () => {
   window.history.pushState({}, "", "/console/admin");
   global.fetch = mockFetch({
     "GET /api/me": [
@@ -402,23 +436,29 @@ test("admin view is admin-gated in the UI", async () => {
   expect(await screen.findByText("Sign in first")).toBeTruthy();
 });
 
-test("signed-out Ladder says what it is and offers an account", async () => {
-  window.history.pushState({}, "", "/ladder/cards");
-  global.fetch = mockFetch({
-    "GET /api/me": [200, { authenticated: false }],
-  });
-  render(<App />);
-  expect(await screen.findByText("Your season, read back")).toBeTruthy();
-  expect(screen.queryByText("Sign in first")).toBeNull();
-  expect(
-    screen
-      .getByRole("link", { name: "Create your account" })
-      .getAttribute("href"),
-  ).toBe("/console/signin?signup&return_to=%2Fladder%2Fcards");
-  expect(
-    screen.getByRole("link", { name: "How Ladder works" }).getAttribute("href"),
-  ).toBe("/docs/ladder");
-});
+test(
+  "signed-out Ladder says what it is and offers an account",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/ladder/cards");
+    global.fetch = mockFetch({
+      "GET /api/me": [200, { authenticated: false }],
+    });
+    render(<App />);
+    expect(await screen.findByText("Your season, read back")).toBeTruthy();
+    expect(screen.queryByText("Sign in first")).toBeNull();
+    expect(
+      screen
+        .getByRole("link", { name: "Create your account" })
+        .getAttribute("href"),
+    ).toBe("/console/signin?signup&return_to=%2Fladder%2Fcards");
+    expect(
+      screen
+        .getByRole("link", { name: "How Ladder works" })
+        .getAttribute("href"),
+    ).toBe("/docs/ladder");
+  },
+);
 
 test("the tab title names the page, most specific part first", async () => {
   // A browser tab truncates from the right, so the distinguishing word
@@ -485,147 +525,159 @@ test("an empty body is still a success", async () => {
   sessionStorage.removeItem("elixir-trail");
 });
 
-test("the Overview opens on the battle-activity graphic, with a chip per tracked player and a link to the record", async () => {
-  window.history.pushState({}, "", "/console/account");
-  const days = [];
-  const end = Date.parse("2026-09-13T00:00:00Z");
-  for (let i = 364; i >= 0; i -= 1) {
-    const day = new Date(end - i * 86_400_000).toISOString().slice(0, 10);
-    days.push({
-      day,
-      battles: day === "2026-09-12" ? 4 : 0,
-      coverage:
-        day >= "2026-09-03" && day < "2026-09-13" ? "complete" : "unknown",
-      status: day >= "2026-09-03" ? "recorded" : "not_recorded",
+test(
+  "the Overview opens on the battle-activity graphic, with a chip per tracked player and a link to the record",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/console/account");
+    const days = [];
+    const end = Date.parse("2026-09-13T00:00:00Z");
+    for (let i = 364; i >= 0; i -= 1) {
+      const day = new Date(end - i * 86_400_000).toISOString().slice(0, 10);
+      days.push({
+        day,
+        battles: day === "2026-09-12" ? 4 : 0,
+        coverage:
+          day >= "2026-09-03" && day < "2026-09-13" ? "complete" : "unknown",
+        status: day >= "2026-09-03" ? "recorded" : "not_recorded",
+      });
+    }
+    const activity = {
+      player_tag: "#20JJJ2CCRU",
+      as_of: "2026-09-13T05:30:00Z",
+      computed_at: "2026-09-13T05:30:00Z",
+      window_days: 365,
+      half_life_days: 28,
+      rhythm: new Array(168).fill(0),
+      rhythm_battles: 4,
+      days,
+    };
+    global.fetch = mockFetch({
+      "GET /api/me": [
+        200,
+        {
+          authenticated: true,
+          is_owner: false,
+          claims: [
+            { player_tag: "#20JJJ2CCRU", is_primary: true, name: "Jamie" },
+            {
+              player_tag: "#VJG0J29QP",
+              is_primary: false,
+              name: "Big Thing",
+              relationship: "alt",
+            },
+          ],
+          recordings: [],
+        },
+      ],
+      "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
+      "GET /api/me/first-answer": [200, { suggestions: [] }],
+      "GET /api/me/battle-activity/20JJJ2CCRU": [200, activity],
+      "GET /api/me/battle-activity/VJG0J29QP": [
+        200,
+        {
+          ...activity,
+          player_tag: "#VJG0J29QP",
+          computed_at: null,
+          days: days.map((d) => ({
+            ...d,
+            battles: 0,
+            coverage: "unknown",
+            status: "not_recorded",
+          })),
+        },
+      ],
     });
-  }
-  const activity = {
-    player_tag: "#20JJJ2CCRU",
-    as_of: "2026-09-13T05:30:00Z",
-    computed_at: "2026-09-13T05:30:00Z",
-    window_days: 365,
-    half_life_days: 28,
-    rhythm: new Array(168).fill(0),
-    rhythm_battles: 4,
-    days,
-  };
-  global.fetch = mockFetch({
-    "GET /api/me": [
-      200,
-      {
-        authenticated: true,
-        is_owner: false,
-        claims: [
-          { player_tag: "#20JJJ2CCRU", is_primary: true, name: "Jamie" },
-          {
-            player_tag: "#VJG0J29QP",
-            is_primary: false,
-            name: "Big Thing",
-            relationship: "alt",
-          },
-        ],
-        recordings: [],
-      },
-    ],
-    "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
-    "GET /api/me/first-answer": [200, { suggestions: [] }],
-    "GET /api/me/battle-activity/20JJJ2CCRU": [200, activity],
-    "GET /api/me/battle-activity/VJG0J29QP": [
-      200,
-      {
-        ...activity,
-        player_tag: "#VJG0J29QP",
-        computed_at: null,
-        days: days.map((d) => ({
-          ...d,
-          battles: 0,
-          coverage: "unknown",
-          status: "not_recorded",
-        })),
-      },
-    ],
-  });
-  render(<App />);
-  // The primary's year is drawn first, without a click.
-  expect(
-    await screen.findByRole("button", {
-      name: /^Sat 12 Sep 2026: 4 battles recorded · complete day capture$/,
-    }),
-  ).toBeTruthy();
-  expect(screen.getByText("Battle activity")).toBeTruthy();
-  const alt = screen.getByRole("button", { name: "Big Thing" });
-  expect(alt.getAttribute("aria-pressed")).toBe("false");
-  fireEvent.click(alt);
-  // The alt has no nightly row: its unknown evidence renders without leaking
-  // the primary's positive count or inheriting its completeness flags.
-  expect(
-    await screen.findByRole("button", {
-      name: /Sat 12 Sep 2026: capture unknown/,
-    }),
-  ).toBeTruthy();
-  expect(
-    screen.queryByRole("button", { name: /4 battles recorded/ }),
-  ).toBeNull();
-  expect(alt.getAttribute("aria-pressed")).toBe("true");
-  expect(screen.getByText("Record ›")).toBeTruthy();
-});
+    render(<App />);
+    // The primary's year is drawn first, without a click.
+    expect(
+      await screen.findByRole("button", {
+        name: /^Sat 12 Sep 2026: 4 battles recorded · complete day capture$/,
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText("Battle activity")).toBeTruthy();
+    const alt = screen.getByRole("button", { name: "Big Thing" });
+    expect(alt.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(alt);
+    // The alt has no nightly row: its unknown evidence renders without leaking
+    // the primary's positive count or inheriting its completeness flags.
+    expect(
+      await screen.findByRole("button", {
+        name: /Sat 12 Sep 2026: capture unknown/,
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /4 battles recorded/ }),
+    ).toBeNull();
+    expect(alt.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Record ›")).toBeTruthy();
+  },
+);
 
-test("a partial path is redirected and the ADDRESS BAR follows it", async () => {
-  // The old REDIRECTS rendered the new page under the old address, so a
-  // link to /status credited the old path in the report and
-  // /status/service looked unvisited. The router replaces the entry.
-  window.history.pushState({}, "", "/console/status");
-  global.fetch = mockFetch({
-    "GET /api/me": [200, { authenticated: false }],
-  });
-  render(<App />);
-  await waitFor(() =>
-    expect(window.location.pathname).toBe("/console/status/service"),
-  );
-  // The bare Console is Overview, with or without the trailing slash.
-  for (const bare of ["/console", "/console/"]) {
+test(
+  "a partial path is redirected and the ADDRESS BAR follows it",
+  { timeout: 20000 },
+  async () => {
+    // The old REDIRECTS rendered the new page under the old address, so a
+    // link to /status credited the old path in the report and
+    // /status/service looked unvisited. The router replaces the entry.
+    window.history.pushState({}, "", "/console/status");
+    global.fetch = mockFetch({
+      "GET /api/me": [200, { authenticated: false }],
+    });
+    render(<App />);
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/console/status/service"),
+    );
+    // The bare Console is Overview, with or without the trailing slash.
+    for (const bare of ["/console", "/console/"]) {
+      cleanup();
+      window.history.pushState({}, "", bare);
+      render(<App />);
+      await waitFor(() =>
+        expect(window.location.pathname).toBe("/console/account/overview"),
+      );
+    }
+    // A partial path lands on the section's first page the same way.
     cleanup();
-    window.history.pushState({}, "", bare);
+    window.history.pushState({}, "", "/console/account");
     render(<App />);
     await waitFor(() =>
       expect(window.location.pathname).toBe("/console/account/overview"),
     );
-  }
-  // A partial path lands on the section's first page the same way.
-  cleanup();
-  window.history.pushState({}, "", "/console/account");
-  render(<App />);
-  await waitFor(() =>
-    expect(window.location.pathname).toBe("/console/account/overview"),
-  );
-  // And the query string rides along.
-  cleanup();
-  window.history.pushState({}, "", "/console/admin?x=1");
-  render(<App />);
-  await waitFor(() =>
-    expect(window.location.pathname).toBe("/console/admin/requests"),
-  );
-  expect(window.location.search).toBe("?x=1");
-});
+    // And the query string rides along.
+    cleanup();
+    window.history.pushState({}, "", "/console/admin?x=1");
+    render(<App />);
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/console/admin/requests"),
+    );
+    expect(window.location.search).toBe("?x=1");
+  },
+);
 
-test("the bare Activity path was the timeline's address, and still opens it", async () => {
-  // The timeline left Activity for its own rail item (2026-09-23); a
-  // bookmark or a docs link to /account/activity meant the timeline.
-  window.history.pushState({}, "", "/console/account/activity");
-  global.fetch = mockFetch({
-    "GET /api/me": [200, { authenticated: false }],
-  });
-  render(<App />);
-  await waitFor(() =>
-    expect(window.location.pathname).toBe("/console/account/timeline"),
-  );
-  // Activity's own pages keep their addresses.
-  cleanup();
-  window.history.pushState({}, "", "/console/account/activity/requests");
-  render(<App />);
-  await waitFor(() => expect(document.querySelector(".page")).toBeTruthy());
-  expect(window.location.pathname).toBe("/console/account/activity/requests");
-});
+test(
+  "the bare Activity path was the timeline's address, and still opens it",
+  { timeout: 20000 },
+  async () => {
+    // The timeline left Activity for its own rail item (2026-09-23); a
+    // bookmark or a docs link to /account/activity meant the timeline.
+    window.history.pushState({}, "", "/console/account/activity");
+    global.fetch = mockFetch({
+      "GET /api/me": [200, { authenticated: false }],
+    });
+    render(<App />);
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/console/account/timeline"),
+    );
+    // Activity's own pages keep their addresses.
+    cleanup();
+    window.history.pushState({}, "", "/console/account/activity/requests");
+    render(<App />);
+    await waitFor(() => expect(document.querySelector(".page")).toBeTruthy());
+    expect(window.location.pathname).toBe("/console/account/activity/requests");
+  },
+);
 
 test("every app section in the route table has a route under /console, and nothing else does", async () => {
   const { routeTree, SECTIONS } = await import("../src/App.jsx");
@@ -652,87 +704,95 @@ test("every app section in the route table has a route under /console, and nothi
   expect(routed.size).toBe(Object.keys(SECTIONS).length + 1);
 });
 
-test("the console prints times on the account's clock, and UTC when none is set", async () => {
-  // Jamie, 2026-09-23: the console knew the zone and printed UTC anyway.
-  const timeline = {
-    window: { from: "2026-09-06T02:30:00Z", to: "2026-09-13T02:30:00Z" },
-    read_to: null,
-    timeline: [
-      {
-        at: "2026-09-13T02:30:00Z",
-        subject_tag: "#20JJJ2CCRU",
-        subject_name: "Jamie",
-        kind: "battle_session",
-        section: "battles",
-        text: "Played a battle session.",
-        facts: {},
-      },
-    ],
-    timeline_more: 0,
-    entries: [],
-    quiet: [],
-  };
-  const signedIn = (timezone) =>
-    mockFetch({
-      "GET /api/me": [
-        200,
-        { authenticated: true, timezone, claims: [], recordings: [] },
+test(
+  "the console prints times on the account's clock, and UTC when none is set",
+  { timeout: 20000 },
+  async () => {
+    // Jamie, 2026-09-23: the console knew the zone and printed UTC anyway.
+    const timeline = {
+      window: { from: "2026-09-06T02:30:00Z", to: "2026-09-13T02:30:00Z" },
+      read_to: null,
+      timeline: [
+        {
+          at: "2026-09-13T02:30:00Z",
+          subject_tag: "#20JJJ2CCRU",
+          subject_name: "Jamie",
+          kind: "battle_session",
+          section: "battles",
+          text: "Played a battle session.",
+          facts: {},
+        },
       ],
-      "GET /api/me/timeline": [200, timeline],
-    });
-
-  window.history.pushState({}, "", "/console/account/timeline");
-  global.fetch = signedIn("America/Chicago");
-  render(<App />);
-  // The evening before, in Chicago, and named as Chicago's clock.
-  expect(await screen.findByText("09-12 21:30 CDT")).toBeTruthy();
-
-  cleanup();
-  window.history.pushState({}, "", "/console/account/timeline");
-  global.fetch = signedIn(null);
-  render(<App />);
-  expect(await screen.findByText("09-13 02:30Z")).toBeTruthy();
-});
-
-test("the timeline lists newest first, and says when a busy week was cut", async () => {
-  // Jamie, 2026-09-23: the timeline is a newsfeed, newest first
-  // everywhere (contract 7.0.0); the page keeps the API's order.
-  const item = (at, text) => ({
-    at,
-    subject_tag: "#20JJJ2CCRU",
-    subject_name: "Jamie",
-    kind: "battle_session",
-    section: "battles",
-    text,
-    facts: {},
-  });
-  window.history.pushState({}, "", "/console/account/timeline");
-  global.fetch = mockFetch({
-    "GET /api/me": [200, { authenticated: true, claims: [], recordings: [] }],
-    "GET /api/me/timeline": [
-      200,
-      {
-        read_to: null,
-        timeline: [
-          item("2026-09-12T10:00:00Z", "The newer session."),
-          item("2026-09-10T10:00:00Z", "The older session."),
+      timeline_more: 0,
+      entries: [],
+      quiet: [],
+    };
+    const signedIn = (timezone) =>
+      mockFetch({
+        "GET /api/me": [
+          200,
+          { authenticated: true, timezone, claims: [], recordings: [] },
         ],
-        timeline_more: 7,
-        entries: [],
-        quiet: [],
-      },
-    ],
-  });
-  render(<App />);
-  await screen.findByText("The newer session.");
-  const texts = [...document.querySelectorAll("tbody tr")].map(
-    (tr) => tr.children[2].textContent,
-  );
-  expect(texts).toEqual(["The newer session.", "The older session."]);
-  expect(
-    screen.getByText(/the 2 newest are shown, and 7 more this week are not/),
-  ).toBeTruthy();
-});
+        "GET /api/me/timeline": [200, timeline],
+      });
+
+    window.history.pushState({}, "", "/console/account/timeline");
+    global.fetch = signedIn("America/Chicago");
+    render(<App />);
+    // The evening before, in Chicago, and named as Chicago's clock.
+    expect(await screen.findByText("09-12 21:30 CDT")).toBeTruthy();
+
+    cleanup();
+    window.history.pushState({}, "", "/console/account/timeline");
+    global.fetch = signedIn(null);
+    render(<App />);
+    expect(await screen.findByText("09-13 02:30Z")).toBeTruthy();
+  },
+);
+
+test(
+  "the timeline lists newest first, and says when a busy week was cut",
+  { timeout: 20000 },
+  async () => {
+    // Jamie, 2026-09-23: the timeline is a newsfeed, newest first
+    // everywhere (contract 7.0.0); the page keeps the API's order.
+    const item = (at, text) => ({
+      at,
+      subject_tag: "#20JJJ2CCRU",
+      subject_name: "Jamie",
+      kind: "battle_session",
+      section: "battles",
+      text,
+      facts: {},
+    });
+    window.history.pushState({}, "", "/console/account/timeline");
+    global.fetch = mockFetch({
+      "GET /api/me": [200, { authenticated: true, claims: [], recordings: [] }],
+      "GET /api/me/timeline": [
+        200,
+        {
+          read_to: null,
+          timeline: [
+            item("2026-09-12T10:00:00Z", "The newer session."),
+            item("2026-09-10T10:00:00Z", "The older session."),
+          ],
+          timeline_more: 7,
+          entries: [],
+          quiet: [],
+        },
+      ],
+    });
+    render(<App />);
+    await screen.findByText("The newer session.");
+    const texts = [...document.querySelectorAll("tbody tr")].map(
+      (tr) => tr.children[2].textContent,
+    );
+    expect(texts).toEqual(["The newer session.", "The older session."]);
+    expect(
+      screen.getByText(/the 2 newest are shown, and 7 more this week are not/),
+    ).toBeTruthy();
+  },
+);
 
 describe("an agent's console (2026-09-23)", () => {
   const PERSON = {
@@ -790,124 +850,138 @@ describe("an agent's console (2026-09-23)", () => {
     quiet: [],
   });
 
-  test("the rail head switches consoles, and each reads only its own account", async () => {
-    const fetch = mockFetch({
-      "GET /api/me": [200, PERSON],
-      "GET /api/me/timeline": [200, timeline("Yours.")],
-      "GET /api/agent/abcd1234": [200, AGENT],
-      "GET /api/agent/abcd1234/timeline": [200, timeline("The agent's.")],
-    });
-    global.fetch = fetch;
-    window.history.pushState({}, "", "/console/account/timeline");
-    render(<App />);
-    await screen.findByText("Yours.");
-    // Your console: the head names you, and offers the agent.
-    // (The rail's head, not the bar's account button beside it.)
-    const head = await waitFor(() =>
-      within(document.querySelector(".rail")).getByRole("button", {
-        name: /Jamie/,
-      }),
-    );
-    fireEvent.click(head);
-    fireEvent.click(await screen.findByRole("link", { name: /poap-bot/ }));
-    await waitFor(() =>
-      expect(window.location.pathname).toBe("/console/agent/abcd1234/overview"),
-    );
-    // On the agent's console the head names the agent, tinted, and its
-    // rail has no person's pages.
-    const agentHead = await screen.findByRole("button", { name: /poap-bot/ });
-    expect(agentHead.closest(".rail__switch").getAttribute("data-scoped")).toBe(
-      "true",
-    );
-    const rail = document.querySelector(".rail");
-    expect(rail.textContent).toContain("Settings");
-    expect(rail.textContent).not.toContain("Verify");
-    expect(rail.textContent).not.toContain("Collections");
-    // Its Timeline reads the agent's route and never yours.
-    fireEvent.click(screen.getByRole("link", { name: /^Timeline/ }));
-    await screen.findByText("The agent's.");
-    const paths = fetch.mock.calls.map(([p]) => p);
-    expect(paths).toContain("/api/agent/abcd1234/timeline");
-    expect(
-      paths.filter((p) => p === "/api/me/timeline").length,
-      "yours was read once, on your console",
-    ).toBe(1);
-  });
+  test(
+    "the rail head switches consoles, and each reads only its own account",
+    { timeout: 20000 },
+    async () => {
+      const fetch = mockFetch({
+        "GET /api/me": [200, PERSON],
+        "GET /api/me/timeline": [200, timeline("Yours.")],
+        "GET /api/agent/abcd1234": [200, AGENT],
+        "GET /api/agent/abcd1234/timeline": [200, timeline("The agent's.")],
+      });
+      global.fetch = fetch;
+      window.history.pushState({}, "", "/console/account/timeline");
+      render(<App />);
+      await screen.findByText("Yours.");
+      // Your console: the head names you, and offers the agent.
+      // (The rail's head, not the bar's account button beside it.)
+      const head = await waitFor(() =>
+        within(document.querySelector(".rail")).getByRole("button", {
+          name: /Jamie/,
+        }),
+      );
+      fireEvent.click(head);
+      fireEvent.click(await screen.findByRole("link", { name: /poap-bot/ }));
+      await waitFor(() =>
+        expect(window.location.pathname).toBe(
+          "/console/agent/abcd1234/overview",
+        ),
+      );
+      // On the agent's console the head names the agent, tinted, and its
+      // rail has no person's pages.
+      const agentHead = await screen.findByRole("button", { name: /poap-bot/ });
+      expect(
+        agentHead.closest(".rail__switch").getAttribute("data-scoped"),
+      ).toBe("true");
+      const rail = document.querySelector(".rail");
+      expect(rail.textContent).toContain("Settings");
+      expect(rail.textContent).not.toContain("Verify");
+      expect(rail.textContent).not.toContain("Collections");
+      // Its Timeline reads the agent's route and never yours.
+      fireEvent.click(screen.getByRole("link", { name: /^Timeline/ }));
+      await screen.findByText("The agent's.");
+      const paths = fetch.mock.calls.map(([p]) => p);
+      expect(paths).toContain("/api/agent/abcd1234/timeline");
+      expect(
+        paths.filter((p) => p === "/api/me/timeline").length,
+        "yours was read once, on your console",
+      ).toBe(1);
+    },
+  );
 
-  test("its Tracking: the clan it acts for, a rival it watches, and re-pointing it", async () => {
-    const posts = [];
-    global.fetch = mockFetch({
-      "GET /api/me": [200, PERSON],
-      "GET /api/agent/abcd1234": [
-        200,
-        {
-          ...AGENT,
-          claims: [
-            {
-              player_tag: "#PQLGR2C9",
-              name: "Rival Star",
-              relationship: "watching",
-              notify: true,
+  test(
+    "its Tracking: the clan it acts for, a rival it watches, and re-pointing it",
+    { timeout: 20000 },
+    async () => {
+      const posts = [];
+      global.fetch = mockFetch({
+        "GET /api/me": [200, PERSON],
+        "GET /api/agent/abcd1234": [
+          200,
+          {
+            ...AGENT,
+            claims: [
+              {
+                player_tag: "#PQLGR2C9",
+                name: "Rival Star",
+                relationship: "watching",
+                notify: true,
+              },
+            ],
+            entitlements: {
+              player_slots: { used: 4, limit: 50 },
+              activity_clans: { used: 2, limit: 3 },
+              comprehensive_clans: { used: 1, limit: 3 },
             },
-          ],
-          entitlements: {
-            player_slots: { used: 4, limit: 50 },
-            activity_clans: { used: 2, limit: 3 },
-            comprehensive_clans: { used: 1, limit: 3 },
           },
+        ],
+        "GET /api/agent/abcd1234/clans": [
+          200,
+          {
+            clans: [
+              {
+                clan_tag: "#J2RGCRVG",
+                name: "POAP KINGS",
+                scope: "comprehensive",
+                notify: true,
+                is_primary: true,
+              },
+              {
+                clan_tag: "#PGLQYRJ2",
+                name: "Rivals",
+                scope: "activity",
+                notify: true,
+                is_primary: false,
+              },
+            ],
+          },
+        ],
+        "POST /api/agent/abcd1234/clans": (init) => {
+          posts.push(JSON.parse(init.body));
+          return [200, { ok: true }];
         },
-      ],
-      "GET /api/agent/abcd1234/clans": [
-        200,
-        {
-          clans: [
-            {
-              clan_tag: "#J2RGCRVG",
-              name: "POAP KINGS",
-              scope: "comprehensive",
-              notify: true,
-              is_primary: true,
-            },
-            {
-              clan_tag: "#PGLQYRJ2",
-              name: "Rivals",
-              scope: "activity",
-              notify: true,
-              is_primary: false,
-            },
-          ],
-        },
-      ],
-      "POST /api/agent/abcd1234/clans": (init) => {
-        posts.push(JSON.parse(init.body));
-        return [200, { ok: true }];
-      },
-    });
-    window.history.pushState({}, "", "/console/agent/abcd1234/tracking");
-    render(<App />);
-    await screen.findByText("Rivals");
-    expect(screen.getByText("acts for")).toBeTruthy();
-    expect(screen.getByText("Rival Star")).toBeTruthy();
-    expect(screen.getByText(/activity 2 of 3/)).toBeTruthy();
-    // The clan it acts for offers no removal; the rival can take its place.
-    expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(2);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Make it the clan it acts for" }),
-    );
-    await waitFor(() =>
-      expect(posts).toEqual([{ clan_tag: "#PGLQYRJ2", action: "primary" }]),
-    );
-  });
+      });
+      window.history.pushState({}, "", "/console/agent/abcd1234/tracking");
+      render(<App />);
+      await screen.findByText("Rivals");
+      expect(screen.getByText("acts for")).toBeTruthy();
+      expect(screen.getByText("Rival Star")).toBeTruthy();
+      expect(screen.getByText(/activity 2 of 3/)).toBeTruthy();
+      // The clan it acts for offers no removal; the rival can take its place.
+      expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(2);
+      fireEvent.click(
+        screen.getByRole("button", { name: "Make it the clan it acts for" }),
+      );
+      await waitFor(() =>
+        expect(posts).toEqual([{ clan_tag: "#PGLQYRJ2", action: "primary" }]),
+      );
+    },
+  );
 
-  test("an agent that is not yours says so, and shows nothing of anyone's", async () => {
-    global.fetch = mockFetch({
-      "GET /api/me": [200, PERSON],
-      "GET /api/agent/zzzz9999": [404, { error: "not_found" }],
-    });
-    window.history.pushState({}, "", "/console/agent/zzzz9999/timeline");
-    render(<App />);
-    expect(
-      await screen.findByText(/No agent here on your account/),
-    ).toBeTruthy();
-  });
+  test(
+    "an agent that is not yours says so, and shows nothing of anyone's",
+    { timeout: 20000 },
+    async () => {
+      global.fetch = mockFetch({
+        "GET /api/me": [200, PERSON],
+        "GET /api/agent/zzzz9999": [404, { error: "not_found" }],
+      });
+      window.history.pushState({}, "", "/console/agent/zzzz9999/timeline");
+      render(<App />);
+      expect(
+        await screen.findByText(/No agent here on your account/),
+      ).toBeTruthy();
+    },
+  );
 });

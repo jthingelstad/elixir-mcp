@@ -13,8 +13,21 @@
  * survive and the error must be readable, whatever the server said.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  cleanup,
+  configure,
+} from "@testing-library/react";
 import { App, SECTIONS } from "../src/App.jsx";
+
+// This file renders the whole App, routes and all, from a cold module
+// graph. Testing Library's 1 s default wait reads a slow first paint on a
+// loaded machine as a missing element (first-answer failed so, #488).
+// Bound the wait as the other whole-App journeys do
+// (account-journeys.test.jsx), with a 20 s bound on each test that renders it.
+configure({ asyncUtilTimeout: 5000 });
 
 const ME = {
   authenticated: true,
@@ -74,27 +87,32 @@ routes.push(
 );
 
 for (const route of routes) {
-  test(`signed in, ${route} survives data it did not expect`, async () => {
-    window.history.pushState({}, "", route);
-    render(<App />);
-    // The navigation is the thing that must never disappear: without it a
-    // failed page is a dead end rather than a bad page.
-    // Two navs by design: tier 1 is the site row, tier 2 the section's pages.
-    await waitFor(() =>
-      expect(screen.getAllByRole("navigation").length).toBeGreaterThan(0),
-    );
-    const nav = screen.getAllByRole("navigation")[0];
-    expect(nav.textContent.length, `nav vanished on ${route}`).toBeGreaterThan(
-      0,
-    );
-    // Either the view coped, or the boundary caught it and said so. What must
-    // not happen is an empty main with no explanation.
-    const main = document.querySelector("main");
-    expect(
-      (main?.textContent ?? "").trim().length,
-      `blank main with no error shown on ${route}`,
-    ).toBeGreaterThan(0);
-  });
+  test(
+    `signed in, ${route} survives data it did not expect`,
+    { timeout: 20000 },
+    async () => {
+      window.history.pushState({}, "", route);
+      render(<App />);
+      // The navigation is the thing that must never disappear: without it a
+      // failed page is a dead end rather than a bad page.
+      // Two navs by design: tier 1 is the site row, tier 2 the section's pages.
+      await waitFor(() =>
+        expect(screen.getAllByRole("navigation").length).toBeGreaterThan(0),
+      );
+      const nav = screen.getAllByRole("navigation")[0];
+      expect(
+        nav.textContent.length,
+        `nav vanished on ${route}`,
+      ).toBeGreaterThan(0);
+      // Either the view coped, or the boundary caught it and said so. What must
+      // not happen is an empty main with no explanation.
+      const main = document.querySelector("main");
+      expect(
+        (main?.textContent ?? "").trim().length,
+        `blank main with no error shown on ${route}`,
+      ).toBeGreaterThan(0);
+    },
+  );
 }
 
 /**
@@ -106,42 +124,49 @@ for (const route of routes) {
  * blanked EVERY /admin page at once: the throw happens in the shared Admin
  * component, above the per-page switch.
  */
-test("an agent account does not blank the admin pages", async () => {
-  const AGENT = {
-    account_id: "aaaaaaaa-0000-0000-0000-000000000002",
-    email_hash: null, // <- the whole bug
-    kind: "agent",
-    principal_name: "poap-kings-agent",
-    public_id: "jamie/poap-kings",
-    status: "approved",
-    role: "member",
-    is_owner: false,
-  };
-  global.fetch = vi.fn(async (path) => {
-    const p = String(path);
-    const body = p.includes("/api/me")
-      ? ME
-      : p.includes("/admin/accounts")
-        ? { accounts: [AGENT] }
-        : p.includes("/admin/usage")
-          ? { accounts: [{ ...AGENT, calls_today: 3, calls_7d: 9 }], tools: [] }
-          : { requests: [], gateways: [], feedback: [], tokens: [] };
-    return {
-      ok: true,
-      status: 200,
-      json: async () => body,
-      text: async () => JSON.stringify(body),
+test(
+  "an agent account does not blank the admin pages",
+  { timeout: 20000 },
+  async () => {
+    const AGENT = {
+      account_id: "aaaaaaaa-0000-0000-0000-000000000002",
+      email_hash: null, // <- the whole bug
+      kind: "agent",
+      principal_name: "poap-kings-agent",
+      public_id: "jamie/poap-kings",
+      status: "approved",
+      role: "member",
+      is_owner: false,
     };
-  });
+    global.fetch = vi.fn(async (path) => {
+      const p = String(path);
+      const body = p.includes("/api/me")
+        ? ME
+        : p.includes("/admin/accounts")
+          ? { accounts: [AGENT] }
+          : p.includes("/admin/usage")
+            ? {
+                accounts: [{ ...AGENT, calls_today: 3, calls_7d: 9 }],
+                tools: [],
+              }
+            : { requests: [], gateways: [], feedback: [], tokens: [] };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    });
 
-  window.history.pushState({}, "", "/console/admin/accounts");
-  render(<App />);
-  // Named, not dashed: a table that says who did what must say who.
-  await waitFor(() =>
-    expect(screen.getAllByText(/poap-kings-agent/).length).toBeGreaterThan(0),
-  );
-  expect(screen.queryByText(/This section failed to render/)).toBeNull();
-});
+    window.history.pushState({}, "", "/console/admin/accounts");
+    render(<App />);
+    // Named, not dashed: a table that says who did what must say who.
+    await waitFor(() =>
+      expect(screen.getAllByText(/poap-kings-agent/).length).toBeGreaterThan(0),
+    );
+    expect(screen.queryByText(/This section failed to render/)).toBeNull();
+  },
+);
 
 /**
  * The agent detail page shows what you need in order to USE the agent.
@@ -151,105 +176,115 @@ test("an agent account does not blank the admin pages", async () => {
  * the difference between "an agent exists" and "an agent is usable", so they
  * are pinned here rather than left to a screenshot.
  */
-test("the agent detail page offers its connect URL and a rename", async () => {
-  const AGENT = {
-    account_id: "00000000-0000-0000-0000-0000000000ag",
-    kind: "agent",
-    public_id: "272bd891a21d",
-    role: "leader",
-    status: "approved",
-    clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", is_primary: true }],
-    tokens: [{ token_id: 1, name: "poap-kings", revoked_at: null }],
-  };
-  global.fetch = vi.fn(async (path) => {
-    const body =
-      path === "/api/me" ? ME : { agents: [AGENT], integrations: [] };
-    return {
-      ok: true,
-      status: 200,
-      json: async () => body,
-      text: async () => JSON.stringify(body),
+test(
+  "the agent detail page offers its connect URL and a rename",
+  { timeout: 20000 },
+  async () => {
+    const AGENT = {
+      account_id: "00000000-0000-0000-0000-0000000000ag",
+      kind: "agent",
+      public_id: "272bd891a21d",
+      role: "leader",
+      status: "approved",
+      clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", is_primary: true }],
+      tokens: [{ token_id: 1, name: "poap-kings", revoked_at: null }],
     };
-  });
+    global.fetch = vi.fn(async (path) => {
+      const body =
+        path === "/api/me" ? ME : { agents: [AGENT], integrations: [] };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    });
 
-  // The old address of the agent page opens the agent's own console.
-  window.history.pushState(
-    {},
-    "",
-    `/console/account/agents/${AGENT.account_id}`,
-  );
-  render(<App />);
+    // The old address of the agent page opens the agent's own console.
+    window.history.pushState(
+      {},
+      "",
+      `/console/account/agents/${AGENT.account_id}`,
+    );
+    render(<App />);
 
-  // The agent's own door, not the personal /mcp. Asserting the whole path
-  // because /a/<id>/mcp is the part a person cannot guess.
-  const url = await screen.findByText(
-    `${window.location.origin}/a/272bd891a21d/mcp`,
-  );
-  expect(url).toBeTruthy();
-  expect(window.location.pathname).toBe("/console/agent/272bd891a21d/overview");
-  // The clan it acts for is named, with the tag beside the name - never
-  // the tag alone (the lede and the Clan row both render it).
-  expect(screen.getAllByText("POAP KINGS").length).toBeGreaterThanOrEqual(2);
-  expect(screen.getAllByText("#J2RGCRVG").length).toBeGreaterThanOrEqual(2);
+    // The agent's own door, not the personal /mcp. Asserting the whole path
+    // because /a/<id>/mcp is the part a person cannot guess.
+    const url = await screen.findByText(
+      `${window.location.origin}/a/272bd891a21d/mcp`,
+    );
+    expect(url).toBeTruthy();
+    expect(window.location.pathname).toBe(
+      "/console/agent/272bd891a21d/overview",
+    );
+    // The clan it acts for is named, with the tag beside the name - never
+    // the tag alone (the lede and the Clan row both render it).
+    expect(screen.getAllByText("POAP KINGS").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("#J2RGCRVG").length).toBeGreaterThanOrEqual(2);
 
-  // What you change is its Settings.
-  cleanup();
-  window.history.pushState({}, "", "/console/agent/272bd891a21d/settings");
-  render(<App />);
-  expect(await screen.findByText("rename")).toBeTruthy();
-  // The documented emergency path. /docs/agents has promised "Account →
-  // Agents → Revoke key" since agents shipped, while the route, the client
-  // method and no button at all existed.
-  expect(screen.getByText("Revoke key")).toBeTruthy();
-});
+    // What you change is its Settings.
+    cleanup();
+    window.history.pushState({}, "", "/console/agent/272bd891a21d/settings");
+    render(<App />);
+    expect(await screen.findByText("rename")).toBeTruthy();
+    // The documented emergency path. /docs/agents has promised "Account →
+    // Agents → Revoke key" since agents shipped, while the route, the client
+    // method and no button at all existed.
+    expect(screen.getByText("Revoke key")).toBeTruthy();
+  },
+);
 
-test("an agent whose new key has never been used says so, rather than looking idle", async () => {
-  // The failure this exists for: rotate a key, the runtime keeps presenting
-  // the old one, every call 401s before it can be audited — so the page shows
-  // an agent that was active minutes ago and no error anywhere.
-  const AGENT = {
-    account_id: "00000000-0000-0000-0000-0000000000ag",
-    kind: "agent",
-    public_id: "272bd891a21d",
-    role: "leader",
-    status: "approved",
-    last_call_at: "2026-09-09T02:51:00.000Z",
-    clans: [{ clan_tag: "#J2RGCRVG", is_primary: true }],
-    tokens: [
-      {
-        token_id: 2,
-        name: "poap-kings",
-        created_at: "2026-09-09T02:55:00.000Z",
-        last_used_at: null,
-        revoked_at: null,
-      },
-      {
-        token_id: 1,
-        name: "poap-kings",
-        created_at: "2026-09-08T01:00:00.000Z",
-        last_used_at: "2026-09-09T02:51:00.000Z",
-        revoked_at: "2026-09-09T02:55:00.000Z",
-      },
-    ],
-  };
-  global.fetch = vi.fn(async (path) => {
-    const body =
-      path === "/api/me" ? ME : { agents: [AGENT], integrations: [] };
-    return {
-      ok: true,
-      status: 200,
-      json: async () => body,
-      text: async () => JSON.stringify(body),
+test(
+  "an agent whose new key has never been used says so, rather than looking idle",
+  { timeout: 20000 },
+  async () => {
+    // The failure this exists for: rotate a key, the runtime keeps presenting
+    // the old one, every call 401s before it can be audited — so the page shows
+    // an agent that was active minutes ago and no error anywhere.
+    const AGENT = {
+      account_id: "00000000-0000-0000-0000-0000000000ag",
+      kind: "agent",
+      public_id: "272bd891a21d",
+      role: "leader",
+      status: "approved",
+      last_call_at: "2026-09-09T02:51:00.000Z",
+      clans: [{ clan_tag: "#J2RGCRVG", is_primary: true }],
+      tokens: [
+        {
+          token_id: 2,
+          name: "poap-kings",
+          created_at: "2026-09-09T02:55:00.000Z",
+          last_used_at: null,
+          revoked_at: null,
+        },
+        {
+          token_id: 1,
+          name: "poap-kings",
+          created_at: "2026-09-08T01:00:00.000Z",
+          last_used_at: "2026-09-09T02:51:00.000Z",
+          revoked_at: "2026-09-09T02:55:00.000Z",
+        },
+      ],
     };
-  });
+    global.fetch = vi.fn(async (path) => {
+      const body =
+        path === "/api/me" ? ME : { agents: [AGENT], integrations: [] };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+      };
+    });
 
-  window.history.pushState(
-    {},
-    "",
-    `/console/account/agents/${AGENT.account_id}`,
-  );
-  render(<App />);
-  expect(
-    await screen.findByText(/current key has never been used/i),
-  ).toBeTruthy();
-});
+    window.history.pushState(
+      {},
+      "",
+      `/console/account/agents/${AGENT.account_id}`,
+    );
+    render(<App />);
+    expect(
+      await screen.findByText(/current key has never been used/i),
+    ).toBeTruthy();
+  },
+);
