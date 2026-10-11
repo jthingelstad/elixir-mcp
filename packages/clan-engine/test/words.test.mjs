@@ -69,6 +69,9 @@ test("chat drafts carry the clan as a cached prefix, the moment as the packet, a
     assert.match(r.system, /Never judge a member/);
     assert.match(r.system, /never '&'/);
     assert.match(r.system, /write the member's name as it is given/);
+    // A chat draft takes a tone, never a note: the prompt names none.
+    assert.doesNotMatch(r.system, /note/i);
+    assert.doesNotMatch(r.prompt, /NOTE/);
     if (kind === "removal") {
       assert.match(r.prompt, /only AFTER a leader decides/);
       assert.match(r.prompt, /Never mention numbers about their inactivity/);
@@ -344,6 +347,7 @@ test("a Leader Message request carries the clan, the member by name, the leader'
   assert.match(r.system, /Pick the one or two details/);
   assert.match(r.system, /Never list statistics/);
   assert.match(r.system, /never '&'/);
+  assert.match(r.system, /from those facts or from the leader's note/);
   assert.doesNotMatch(r.system, /Never write a member's name/);
   assert.match(r.prompt, /MEMBER: Secretname/);
   assert.match(

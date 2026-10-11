@@ -411,7 +411,8 @@ async function award(player, name, ms) {
     [
       CLAN,
       player,
-      JSON.stringify({ award: name, season_id: 135 }),
+      // T is in season 137: the clan's awards for 136, announced.
+      JSON.stringify({ award: name, season_id: 136 }),
       `award-${player}-${ms}`,
       at(ms),
     ],
@@ -436,6 +437,11 @@ test("with the rewrite on, a run of same-kind milestones is one post under its f
   });
   assert.match(packet, /2 moments of this kind together; write ONE post/);
   assert.match(packet, /Facts of moment 2:/);
+  // Each member's ABOUT block names the awards the clan announced.
+  assert.match(
+    packet,
+    /ABOUT: Joiner\n(?:- .*\n)*- Awards they hold in this clan: Cup \(season 136\)/,
+  );
   assert.equal(out.posted, 1);
   assert.equal(out.rewritten, 1);
   const [post] = out.sent[0].message.posts;
@@ -468,6 +474,18 @@ test("with the rewrite on, a run of same-kind milestones is one post under its f
   assert.equal(lines.length, 2, "Elixir's two lines, one post");
   assert.match(lines[0], /^<t:\d+:.*Joiner/);
   assert.match(lines[1], /^<t:\d+:.*Stayer/);
+
+  // A departure is told only time here and weeks played: never awards.
+  await clanEvent("member_left", JOINER, T + 21 * H + 30 * MIN);
+  let departing = null;
+  await sync(T + 21 * H + 40 * MIN, {
+    rewrite: async (_db, _tag, req) => {
+      departing = req.prompt;
+      return { ok: false, code: "no_key" };
+    },
+  });
+  assert.match(departing, /\(member_left\)/);
+  assert.doesNotMatch(departing, /Awards they hold|Cup|Shield/);
 });
 
 test("a leader's word on a departure edits the departure it is about, not the member's latest", async () => {

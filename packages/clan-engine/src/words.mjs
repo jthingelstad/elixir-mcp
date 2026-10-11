@@ -337,17 +337,19 @@ const MESSAGE_TOOL = {
  * data elixir has"). The model is given what Elixir knows and told to use
  * it: one or two true details make a line the clan's own.
  */
-const WRITING = [
+const writing = ({ note }) => [
   "You write for a Clash Royale clan, in its own voice. A leader reads and edits every draft before anyone sees it.",
   "After these instructions comes what Elixir knows: THE CLAN, then the moment (WHAT HAPPENED) and the member it is about. Every fact there comes from Elixir's record of the game. Use it. Pick the one or two details that make this moment belong to this person and this clan (a best they reached, a war week they carried, how long they have been here, an award they hold) and leave the rest out. Never list statistics.",
   "Sound like a person in the clan talking to friends: warm, plain and specific. No speeches, no hype, no clichés.",
-  "Every name, number and event you write comes from those facts or from the leader's note. When something is not there, leave it out; never guess and never round a number up.",
+  note
+    ? "Every name, number and event you write comes from those facts or from the leader's note. When something is not there, leave it out; never guess and never round a number up."
+    : "Every name, number and event you write comes from those facts. When something is not there, leave it out; never guess and never round a number up.",
   "The game's chat filter blanks some innocent text, so: write 'and', never '&'; never put '+' before a number; never join two words with a hyphen; never write 'phone'; no links, emoji, hashtags, markdown or @mentions.",
 ];
 
 const MESSAGE_SYSTEM = [
   "You draft a Clan Leader Message: the title-and-message mail a leader sends to every member's in-game Inbox.",
-  ...WRITING,
+  ...writing({ note: true }),
   `Keep the title to ${LEADER_MESSAGE.title} characters and the message to ${LEADER_MESSAGE.body - 30}.`,
   "Write the member's name as it is given. For a season's awards write {winners} where the list of awards and winners goes: Elixir puts the complete list there, so never write the list yourself; the words around it may name a winner and their number.",
   "Answer by calling write_leader_message.",
@@ -581,9 +583,10 @@ export function chatMessageRequest({
     max_tokens: 250,
     system: [
       "You write one Clash Royale clan-chat line. A person edits it and sends it in the game; nothing is posted automatically.",
-      ...WRITING,
+      // A chat draft takes a tone choice, never a leader's note.
+      ...writing({ note: false }),
       `Keep it within ${max - 30} characters, and write the member's name as it is given.`,
-      "Never judge a member, and never write a score or a rank. Write in English unless the leader's note asks otherwise.",
+      "Never judge a member, and never write a score or a rank. Write in English.",
       "Answer by calling write_chat_message.",
     ].join("\n"),
     context: String(context ?? ""),

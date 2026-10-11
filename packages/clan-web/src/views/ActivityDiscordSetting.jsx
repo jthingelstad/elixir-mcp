@@ -349,12 +349,12 @@ export function ActivityDiscordSetting({ clan, navigate }) {
                     : ""}
                   Posted without anyone reading them first. The model is told
                   what Elixir records about the moment, the clan and the member
-                  it is about, and picks a detail or two; a post that drops a
-                  member&rsquo;s name, carries a number or a name it was not
-                  given, or a link keeps Elixir&rsquo;s own words. Uses the
-                  clan&rsquo;s key, at most {d.rewrites_per_day} requests a day
-                  (one request writes several posts), and never past the
-                  clan&rsquo;s monthly cap.
+                  it is about, and picks a detail or two; a post that drops or
+                  changes a name, carries a number or a name it was not given,
+                  carries a link or a mention, or runs long keeps Elixir&rsquo;s
+                  own words. Uses the clan&rsquo;s key, at most{" "}
+                  {d.rewrites_per_day} requests a day (one request writes
+                  several posts), and never past the clan&rsquo;s monthly cap.
                 </p>
                 <form
                   className="grid gap-2"
