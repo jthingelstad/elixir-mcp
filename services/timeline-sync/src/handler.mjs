@@ -7,7 +7,7 @@
  * non-VPC relay. A failed run leaves the object and retries; an object
  * already gone was run by an earlier copy of the notification.
  *
- * A clan's activity channel (Clan Settings, Social) is woken the same
+ * A clan's activity channel (Social ▸ Discord) is woken the same
  * way, by `{ v: 1, clan_tag }`. Its run may wait on the clan's model, so
  * one that would start with less than `CLAN_RUN_MS` left is sent back
  * to the queue untouched and runs on a later delivery.

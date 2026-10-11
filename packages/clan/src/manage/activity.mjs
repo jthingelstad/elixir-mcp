@@ -2,7 +2,7 @@
  * The clan's activity in its Discord (Jamie, 2026-10-10): Social's
  * Discord item. A leader or co-leader connects a webhook of the clan's
  * own (not the Actions one), chooses which of the clan's timeline is
- * posted there, and may have the clan's own model rewrite the posts in a
+ * posted there, and may have the clan's own model edit the channel in a
  * voice the leaders describe. The rules of what is posted are the
  * engine's (`activity.mjs`); the connection is kept and synced in
  * packages/syndication, handed in here as `store`, so this service never
@@ -12,8 +12,9 @@
  *  - read(clanTag) → the connection as leaders see it, or null;
  *  - save(clanTag, change, { who, clanName }) → { view } | { error };
  *  - remove(clanTag) → whether there was one;
- *  - preview(clanTag, { voice }) → the newest shareable items and the
- *    model request for them (`clanRewritePreview`), posting nothing.
+ *  - preview(clanTag, { voice }) → the newest stories, the editor's
+ *    packets and the one request that edits them (`clanEditorPreview`),
+ *    posting nothing.
  */
 
 import {
@@ -23,8 +24,7 @@ import {
   activityCategories,
   activityPolicy,
   cleanVoice,
-  rewriteProblem,
-  rewriteText,
+  editorAnswer,
 } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 import { ACTIVITY_USES_PER_DAY } from "./model.mjs";
@@ -43,7 +43,7 @@ const refusals = {
   // switched off, so the page shows it and why.
   webhook_forum: new ManageError(400, "webhook_forum", null, {
     message:
-      "That webhook belongs to a forum channel, which takes posts, not lines. Use a text channel's webhook, or post into one thread: add ?thread_id= and the thread's id (Discord's Developer Mode, Copy Thread ID) to the end of the webhook.",
+      "That webhook belongs to a forum channel, which takes threads, not messages. Use a text channel's webhook, or post into one thread: add ?thread_id= and the thread's id (Discord's Developer Mode, Copy Thread ID) to the end of the webhook.",
   }),
   webhook_gone: new ManageError(400, "webhook_gone", null, {
     message:
@@ -73,9 +73,9 @@ export function createActivityService({ ledger, store, model = null }) {
         why: ACTIVITY_CATEGORIES[k].why,
       })),
       in_effect: activityCategories(saved?.categories ?? {}, values),
-      // The rewrite needs the clan's own key (Settings, the clan's own
+      // The editor needs the clan's own key (Settings, the clan's own
       // model); without one the page asks a leader to add it. `name` is
-      // the model Elixir Clan runs the rewrites on with this key, null
+      // the model Elixir Clan runs the editor on with this key, null
       // when the key reaches none of them.
       model: key
         ? {
@@ -86,7 +86,7 @@ export function createActivityService({ ledger, store, model = null }) {
           }
         : { available: false, set: false, refused: false, name: null },
       voice_max: VOICE_MAX,
-      rewrites_per_day: ACTIVITY_USES_PER_DAY,
+      editor_runs_per_day: ACTIVITY_USES_PER_DAY,
     };
   }
 
@@ -99,7 +99,7 @@ export function createActivityService({ ledger, store, model = null }) {
     /**
      * Connect or replace the webhook, switch posting on or off, switch a
      * category (true, false, or null for the policy's default), the
-     * rewrite and the voice. Only what the body names changes.
+     * editor (`rewrite`) and the voice. Only what the body names changes.
      */
     async save(clanTag, who, body = {}, { clanName = null } = {}) {
       requireLeader(who);
@@ -163,12 +163,15 @@ export function createActivityService({ ledger, store, model = null }) {
     },
 
     /**
-     * The last few shareable items as the clan's model would write them
-     * in `voice` (the saved voice when absent): a leader's own use,
-     * counted with the leaders' drafts, that posts and records nothing
-     * in Discord. Each post comes back with Elixir's line and either the
-     * rewrite or why it would be refused. A preview that outlasts the
-     * request is `{ pending }`; asking again with it collects it.
+     * The last few stories as the clan's editor would tell them in
+     * `voice` (the saved voice when absent): a leader's own use, counted
+     * with the leaders' drafts, in one request with no lookups, that
+     * posts and records nothing in Discord. Each story comes back with
+     * Elixir's version and what the editor did with it: its post (and
+     * the stories told in it), the post it is told in, its skip and
+     * reason, or Elixir's version kept (and why, when a post or skip was
+     * refused). A preview that outlasts the request is `{ pending }`;
+     * asking again with it collects it.
      */
     async preview(clanTag, who, token, { voice, pending = null } = {}) {
       requireLeader(who);
@@ -187,29 +190,32 @@ export function createActivityService({ ledger, store, model = null }) {
             defer: true,
           });
       if (answer.pending) return { pending: answer.pending };
-      const lines = new Map(built.lines.map((l) => [l.key, l]));
-      const written = new Map();
-      for (const p of Array.isArray(answer.input?.posts)
-        ? answer.input.posts
-        : [])
-        if (lines.has(p?.key) && !written.has(p.key))
-          written.set(p.key, p.text);
+      const edited = editorAnswer(
+        answer.input,
+        built.stories,
+        built.request.context,
+      );
       return {
         empty: false,
         model: answer.model,
         posts: built.posts.map((p) => {
-          const text = written.get(p.key);
-          const problem =
-            text === undefined
-              ? "not_written"
-              : rewriteProblem(lines.get(p.key), text, built.request.context);
+          const post = edited.posts.find((x) => x.keys.includes(p.key));
+          const skip = edited.skips.find((x) => x.key === p.key);
+          const lead = post?.key === p.key;
           return {
             key: p.key,
             kind: p.kind,
             at: p.at,
             elixir: p.elixir,
-            rewrite: problem ? null : rewriteText(text),
-            refused: problem ?? null,
+            post: lead ? post.text : null,
+            with: lead ? post.keys.slice(1) : [],
+            told_in: post && !lead ? post.key : null,
+            skipped: skip?.reason ?? null,
+            refused:
+              post || skip
+                ? null
+                : (edited.rejected.find((r) => r.keys.includes(p.key))?.why ??
+                  null),
           };
         }),
       };

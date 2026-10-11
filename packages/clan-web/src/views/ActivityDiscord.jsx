@@ -6,7 +6,7 @@ import { ActivityDiscordSetting } from "./ActivityDiscordSetting.jsx";
  * channel of its own, a page in the rail's Social group for the leader
  * and co-leaders, beside the map and Recruit. Not a Settings section:
  * Settings keeps the Actions webhook and the clan's own model, which the
- * rewrite here points to.
+ * editor here points to.
  */
 export function ActivityDiscord({ clan, navigate }) {
   return (

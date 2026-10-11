@@ -60,7 +60,7 @@ test("a clan's activity line is shown whole and says when the clan's model wrote
     />,
   );
   const [item] = screen.getAllByRole("listitem");
-  expect(item?.textContent).toContain("rewritten");
+  expect(item?.textContent).toContain("by the clan’s model");
   expect(item?.textContent).toContain(long);
   expect(item?.textContent).not.toContain("tl_");
   expect(screen.getByText(long).className).not.toContain("truncate");

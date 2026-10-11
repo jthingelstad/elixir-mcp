@@ -139,7 +139,7 @@ export const manageApi = {
   setDiscordMention: (tag, roleId) =>
     post(`${clanBase(tag)}/discord/mention`, { role_id: roleId }),
   // The clan's activity in its own Discord channel (2026-10-10): a
-  // separate webhook, the categories, the rewrite and its voice.
+  // separate webhook, the categories, the editor and its voice.
   activityDiscord: (tag) => get(`${clanBase(tag)}/activity-discord`),
   saveActivityDiscord: (tag, body) =>
     put(`${clanBase(tag)}/activity-discord`, body),

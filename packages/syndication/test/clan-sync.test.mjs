@@ -22,7 +22,7 @@ import {
   clanActivityRowView,
   clanActivitySeal,
   clanChannelsInTimeline,
-  clanRewritePreview,
+  clanEditorPreview,
   clansToWake,
   readClanActivity,
   removeClanActivity,
@@ -354,7 +354,10 @@ test("the editor's run: sent to its own queue, then each story's packet carries 
     /^STORY tl_[a-f0-9]{20} \(member role changed\)\nElixir's version: Joiner was promoted/m,
   );
   assert.match(packet, /- role_after: elder/);
-  assert.match(packet, /\(member left\)\nA departure: say "departed"/);
+  assert.match(
+    packet,
+    /\(member left\)\nA departure: keep this sentence word for word, and give no reason: Joiner departed the clan\.\n/,
+  );
   assert.doesNotMatch(packet, /#PYL0Q2G8/, "no tags reach the model");
   // The lookups' answers, read-only, as the second round's tool results.
   const results = second.messages[2].content;
@@ -635,7 +638,10 @@ test("same-kind milestones are one story under its first item's key; a refused p
       return { ok: false, code: "no_key" };
     },
   });
-  assert.match(departing, /\(member left\)\nA departure: say "departed"/);
+  assert.match(
+    departing,
+    /\(member left\)\nA departure: keep this sentence word for word, and give no reason: Joiner departed the clan\.\n/,
+  );
   assert.doesNotMatch(departing, /Awards they hold|Cup|Shield/);
 });
 
@@ -743,7 +749,7 @@ test("the editor: a badge level-up below the top is skipped with its reason; a s
   );
 });
 
-test("a leader's preview: the newest shareable items as packets, in the voice being tried; nothing is posted or told", async () => {
+test("a leader's preview: the newest stories as the editor's packets, in one request without lookups, in the voice being tried; nothing is posted or told", async () => {
   const count = async () =>
     Number(
       (
@@ -754,14 +760,14 @@ test("a leader's preview: the newest shareable items as packets, in the voice be
       ).rows[0].count,
     );
   const told = await count();
-  const p = await clanRewritePreview(db, CLAN, {
+  const p = await clanEditorPreview(db, CLAN, {
     policyFor,
     voice: "Pirate talk.",
     now: T + 95 * H,
   });
   assert.equal(p.empty, false);
   assert.ok(p.posts.length > 0 && p.posts.length <= 5);
-  const keys = [...p.request.prompt.matchAll(/^POST (tl_[a-f0-9]{20})/gm)].map(
+  const keys = [...p.request.prompt.matchAll(/^STORY (tl_[a-f0-9]{20})/gm)].map(
     (m) => m[1],
   );
   assert.deepEqual(
@@ -769,15 +775,17 @@ test("a leader's preview: the newest shareable items as packets, in the voice be
     p.posts.map((x) => x.key),
   );
   assert.deepEqual(
-    p.lines.map((l) => l.key),
+    p.stories.map((st) => st.key),
     keys,
   );
+  assert.equal(p.request.tool.name, "write_posts");
+  assert.equal(p.request.tools, undefined, "no lookups");
   for (const x of p.posts) assert.ok(x.elixir && x.kind && x.at);
   assert.match(p.request.context, /Name: POAP KINGS/);
   assert.match(p.request.context, /Pirate talk\./);
   assert.equal(p.request.effort, "low");
   assert.equal(await count(), told, "nothing told");
-  const quiet = await clanRewritePreview(db, CLAN, {
+  const quiet = await clanEditorPreview(db, CLAN, {
     policyFor,
     now: T + 400 * H,
   });

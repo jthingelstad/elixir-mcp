@@ -473,10 +473,14 @@ behavior (the only door route that sees the session cookie is
   before the provider is contacted, so an interrupted claim is never spent
   again. No key, prompt or answer is logged. The sealed model key keeps its
   original derivation and AAD.
-- A model request is one tool call with nothing model-specific: no
+- A draft is one request and one tool call; the activity channel's
+  editor (`clan-engine/editor.mjs`) is up to three requests of one run,
+  its read-only lookups offered as strict tools beside its answer, in
+  parallel when the model asks for several, each round's turn sent back
+  as it came. Either way nothing model-specific is sent: no
   temperature, top_p, top_k, thinking setting or assistant prefill (the
   Claude 5 models, Haiku 5.5 included, answer a 400 to each). The use's
-  `effort` (`output_config.effort`: drafts `medium`, the Discord rewrite
+  `effort` (`output_config.effort`: drafts `medium`, the Discord editor
   `low`) and a strict tool are sent as the engine sets them, whatever
   the model. The system prompt is the use's instructions, then the
   clan's context from `clan-engine/context.mjs` as the cached block; the
@@ -486,7 +490,8 @@ behavior (the only door route that sees the session cookie is
   (`clan-engine/test/context.test.mjs`); an answer's number or name not
   in it is warned on a draft and refused on a post (`inventedNumbers`,
   `unknownNames`). The tool
-  is offered with `tool_choice: auto` (no parallel calls) and a system
+  is offered with `tool_choice: auto` (a draft's one tool; the editor
+  may call its lookups in parallel) and a system
   line that asks for it, not forced: Opus 5.5 answers a 400 to a forced
   `tool_choice`. Opus 5.5 always thinks and its thinking counts toward
   `max_tokens`, so the transport adds `THINKING_ROOM` to the engine's

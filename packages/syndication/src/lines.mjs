@@ -113,20 +113,13 @@ export const itemSentence = (it) => String(it.text ?? "");
 /** The item as one Discord message's content, at most 2,000 characters:
  *  the sentence, the stamp when the item is old (discordStamp), then
  *  the links. The links survive a long sentence (a clan chat message),
- *  the sentence is cut. `text`, when given, is told instead of the
- *  item's own sentence (a clan's model rewrote it), with the same stamp
- *  and links, escaped the same way. */
+ *  the sentence is cut. */
 export function discordLine(
   it,
-  {
-    battles = new Map(),
-    clanTags = new Set(),
-    nowMs = Date.now(),
-    text = null,
-  } = {},
+  { battles = new Map(), clanTags = new Set(), nowMs = Date.now() } = {},
 ) {
   const stamp = discordStamp(it, nowMs);
-  const sentence = literalLead(escapeDiscord(text ?? itemSentence(it)));
+  const sentence = literalLead(escapeDiscord(itemSentence(it)));
   const links = itemLinks(it, { battles, clanTags })
     .map((l) => `[${escapeDiscord(l.label)}](<${l.url}>)`)
     .join(" · ");

@@ -17,10 +17,12 @@
  * The checks (`editorProblem`): no link, mention or clock time; within
  * `EDITOR_POST_MAX`; every name a story's render says kept exactly; no
  * number and no proper name that neither the clan, the stories nor the
- * lookups it made hold; a departure says what the record says
- * ("departed", "was removed", "left"). A departure, a leader's word on
- * one and an edit of a post already in the channel are never merged, and
- * a departure is never skipped.
+ * lookups it made hold; a departure keeps Elixir's sentence for it word
+ * for word ("departed", "was removed", "left on their own") and gives no
+ * reason. A departure, a leader's word on one and an edit of a post
+ * already in the channel are never merged, and a departure is never
+ * skipped. A post that names a story another post already told is
+ * refused whole.
  *
  * Pure: packets, requests and answers in and out; the sync runs the
  * lookups and the model service sends the requests.
@@ -140,24 +142,44 @@ const ANSWER = {
 
 export const EDITOR_ANSWER = ANSWER.name;
 
-const SYSTEM = [
-  "You are the editor of a Clash Royale clan's Discord channel. Elixir, which records the clan, hands you what happened in the clan in the last few minutes as STORIES: each has Elixir's own version, the facts behind it and what the record knows about its member. You decide what is worth a post and tell it well, in the clan's voice. Nobody reads your posts before they are sent.",
-  "You may:",
-  "- Look things up first, when a fact would make a story better: member_record (a member's record), member_battles (a member's battles this week: a streak, a rival, a deck's run) and channel_recent (what the channel already said). Lookups are optional; most stories need none.",
-  "- Tell several stories in one post when they belong together (members reaching the same arena, one member's milestones from one session), listing every key the post tells.",
-  "- Skip a story not worth a post (a small step, something the channel just said) with a short reason. A story you neither post nor skip is posted in Elixir's version.",
-  "Rules:",
-  "- Every name, number and event comes from THE CLAN, a STORY or a lookup's answer. Never invent a result, an opponent, a reason, a feeling or a plan. When the facts say little, write little.",
-  "- Name members and opponents exactly as written; never shorten, translate or correct a name. Keep every name a story's version says.",
-  "- Never judge a member: nobody is slacking, disappointing, lazy or in trouble. Celebrate what went well; state the rest plainly. A member's share of the clan's fame is never told.",
-  '- A departure is never skipped and never told with another story. It says exactly what its version says ("departed", "was removed", "left on their own") and never guesses why.',
-  "- A story marked EDIT is already in the channel and grew: its post is edited, so tell it alone and never skip it.",
-  '- No clock time: never say at what time something happened. A version that says "Earlier today" or "Yesterday" may keep it.',
-  "- No links, @-mentions, hashtags, markdown or code. An emoji is fine when the clan's voice wants one.",
-  `- One to three sentences, at most ${EDITOR_POST_MAX} characters a post.`,
-  "- Write in English unless the clan's voice asks for another language.",
-  `Answer by calling ${ANSWER.name} once.`,
-].join("\n");
+/** The editor's instructions; a preview has no lookups. */
+const system = ({ lookups = true } = {}) =>
+  [
+    "You are the editor of a Clash Royale clan's Discord channel. Elixir, which records the clan, hands you what happened in the clan in the last few minutes as STORIES: each has Elixir's own version, the facts behind it and what the record knows about its member. You decide what is worth a post and tell it well, in the clan's voice. Nobody reads your posts before they are sent.",
+    "You may:",
+    lookups
+      ? "- Look things up first, when a fact would make a story better: member_record (a member's record), member_battles (a member's battles this week: a streak, a rival, a deck's run) and channel_recent (what the channel already said). Lookups are optional; most stories need none."
+      : null,
+    "- Tell several stories in one post when they belong together (members reaching the same arena, one member's milestones from one session), listing every key the post tells.",
+    "- Skip a story not worth a post (a small step, something the channel just said) with a short reason. A story you neither post nor skip is posted in Elixir's version.",
+    "Rules:",
+    `- Every name, number and event comes from THE CLAN${lookups ? ", a STORY or a lookup's answer" : " or a STORY"}. Never invent a result, an opponent, a reason, a feeling or a plan. When the facts say little, write little.`,
+    "- Name members and opponents exactly as written; never shorten, translate or correct a name. Keep every name a story's version says.",
+    "- Never judge a member: nobody is slacking, disappointing, lazy or in trouble. Celebrate what went well; state the rest plainly. A member's share of the clan's fame is never told.",
+    "- A departure is never skipped and never told with another story. Keep its version's sentence word for word; you may add a thank-you or a farewell around it, never a reason or a guess at why.",
+    "- A story marked EDIT is already in the channel and grew: its post is edited, so tell it alone and never skip it.",
+    '- No clock time: never say at what time something happened. A story marked LATE happened a while ago: its post must say when in the words its LATE line gives ("earlier today", "yesterday", "3 days ago").',
+    "- No links, @-mentions, hashtags, markdown or code. An emoji is fine when the clan's voice wants one.",
+    `- One to three sentences, at most ${EDITOR_POST_MAX} characters a post.`,
+    "- Write in English unless the clan's voice asks for another language.",
+    `Answer by calling ${ANSWER.name} once.`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+/** How late Elixir's version says a story is (`whenWords`, its prefix),
+ *  or null: a late story's post must say it too. */
+const LATE = /^(Earlier today|Yesterday|\d+ days ago): /;
+const lateWords = (render) => LATE.exec(String(render ?? ""))?.[1] ?? null;
+
+/** The sentence of Elixir's version that tells the departure, kept word
+ *  for word in the model's post (without the version's "when"). */
+const departureSentence = (render) =>
+  String(render ?? "")
+    .replace(LATE, "")
+    .split(/(?<=[.!?])\s+/)
+    .find((x) => /\b(?:departed|was removed|left)\b/.test(x))
+    ?.trim() ?? null;
 
 /** What the record says a departure must say, or null. */
 function departureWord(items) {
@@ -186,9 +208,17 @@ export function editorStory(
   ];
   if (edit)
     head.push("EDIT: this post is already in the channel; tell it alone.");
+  const late = lateWords(post.render);
+  if (late)
+    head.push(
+      `LATE: this happened ${/^\d/.test(late) ? late : late.toLowerCase()}; the post must say "${late.toLowerCase()}", never a time of day.`,
+    );
+  const must = departure ? departureSentence(post.render) : null;
   if (departure)
     head.push(
-      `A departure: say ${departure === "kick" ? '"was removed"' : departure === "leave" ? '"left on their own"' : '"departed"'}, as Elixir's version does.`,
+      must
+        ? `A departure: keep this sentence word for word, and give no reason: ${must}`
+        : `A departure: say ${departure === "kick" ? '"was removed"' : departure === "leave" ? '"left on their own"' : '"departed"'}, as Elixir's version does, and give no reason.`,
     );
   const lines = [...head, `Elixir's version: ${post.render}`];
   items.forEach((it, i) => {
@@ -214,6 +244,8 @@ export function editorStory(
     render: post.render,
     names: [...new Set(items.flatMap((it) => namesIn(it, post.render)))],
     departure,
+    must,
+    late,
     alone: Boolean(departure || edit),
     packet: lines.join("\n"),
   };
@@ -235,7 +267,7 @@ export function editorRequest({ context = "", stories = [] } = {}) {
     purpose: "discord_activity",
     effort: EDITOR_EFFORT,
     max_tokens: Math.min(4000, 400 + 250 * batch.length),
-    system: SYSTEM,
+    system: system(),
     context: String(context ?? ""),
     messages: [
       {
@@ -245,6 +277,24 @@ export function editorRequest({ context = "", stories = [] } = {}) {
     ],
     tools: [...Object.values(EDITOR_LOOKUPS), ANSWER].map(strictTool),
     answer: ANSWER.name,
+  };
+}
+
+/**
+ * A leader's preview of the editor (2026-10-11): the same stories and
+ * checks in one request, as a leader's draft (`prompt` and its one tool,
+ * the answer), with no lookups. Nothing it writes is posted.
+ */
+export function editorPreviewRequest({ context = "", stories = [] } = {}) {
+  const batch = stories.slice(0, EDITOR_STORIES_MAX);
+  return {
+    purpose: "discord_activity",
+    effort: EDITOR_EFFORT,
+    max_tokens: Math.min(4000, 400 + 250 * batch.length),
+    system: system({ lookups: false }),
+    context: String(context ?? ""),
+    prompt: `${batch.map((s) => s.packet).join("\n\n")}\n\nThis is a preview for the clan's leaders, with no lookups. Answer now by calling ${ANSWER.name}.`,
+    tool: strictTool(ANSWER),
   };
 }
 
@@ -274,7 +324,11 @@ export function editorNext(request, reply, results, round) {
   };
 }
 
-const CLOCK = /\b\d{1,2}[:.]\d{2}\s*(?:am|pm)?\b|\b\d{1,2}\s*(?:am|pm)\b/i;
+// A time of day: 6:05, 18:05, 6pm, 6.05 pm. A decimal alone ("3.25") is not.
+const CLOCK = /\b\d{1,2}:\d{2}\b|\b\d{1,2}(?:[.:]\d{2})?\s*(?:am|pm)\b/i;
+/** Words that give a departure a reason the record never gave. */
+const REASON =
+  /\b(?:because|due to|reasons?|why|inactiv\w*|kick(?:ed)?|bann?(?:ed)?|for not|for being|for lack|rules?|warn(?:ed|ings?)?)\b/i;
 const MUST = {
   departed: [/\bdeparted\b/i, /\b(?:removed|kicked|left)\b/i],
   kick: [/\bremoved\b/i, /\bleft\b/i],
@@ -298,14 +352,21 @@ export function editorProblem(stories, raw, read = "") {
   if (/@(everyone|here)\b|<[@#]|(^|\s)@\w/i.test(String(raw))) return "mention";
   if (text.length > EDITOR_POST_MAX) return "too_long";
   if (CLOCK.test(text)) return "clock_time";
+  for (const s of stories)
+    if (s.late && !text.toLowerCase().includes(s.late.toLowerCase()))
+      return "when_dropped";
   for (const name of stories.flatMap((s) => s.names))
     if (!text.includes(rewriteText(name))) return "name_changed";
   const told = `${read}\n${stories.map((s) => s.packet).join("\n")}`;
   if (inventedNumbers(text, told).length) return "number_invented";
   if (unknownNames(text, told).length) return "name_invented";
   for (const s of stories) {
+    if (!s.departure) continue;
     const must = MUST[s.departure];
     if (must && (!must[0].test(text) || must[1].test(text)))
+      return "departure_words";
+    if (s.must && !text.includes(rewriteText(s.must))) return "departure_words";
+    if (REASON.test(text.replace(rewriteText(s.must ?? ""), "")))
       return "departure_words";
   }
   return null;
@@ -325,7 +386,8 @@ const reasonText = (v) =>
  * `{ key, keys, text }`, `key` the earliest story it tells (the post's
  * key; the others are told inside it); `skips` are `{ key, reason }`. A
  * story in neither is Elixir's own. `refused` counts the reasons a post
- * or a skip was not taken.
+ * or a skip was not taken, and `rejected` lists them (`{ keys, why }`)
+ * for a leader's preview.
  */
 export function editorAnswer(input, stories, read = "") {
   const order = new Map(stories.map((s, i) => [s.key, i]));
@@ -334,24 +396,32 @@ export function editorAnswer(input, stories, read = "") {
   const posts = [];
   const skips = [];
   const refused = {};
-  const refuse = (why) => (refused[why] = (refused[why] ?? 0) + 1);
+  const rejected = [];
+  const refuse = (why, keys) => {
+    refused[why] = (refused[why] ?? 0) + 1;
+    rejected.push({ keys, why });
+  };
   for (const p of Array.isArray(input?.posts) ? input.posts : []) {
     const keys = [
       ...new Set(
-        (Array.isArray(p?.keys) ? p.keys : []).filter(
-          (k) => byKey.has(k) && !used.has(k),
-        ),
+        (Array.isArray(p?.keys) ? p.keys : []).filter((k) => byKey.has(k)),
       ),
     ].sort((a, b) => order.get(a) - order.get(b));
     if (!keys.length) continue;
+    // A story already told: the post would tell it twice. Refused whole,
+    // never trimmed to the rest, since its words still tell it.
+    if (keys.some((k) => used.has(k))) {
+      refuse("key_reused", keys);
+      continue;
+    }
     const list = keys.map((k) => byKey.get(k));
     if (list.length > 1 && list.some((s) => s.alone)) {
-      refuse("merge_refused");
+      refuse("merge_refused", keys);
       continue;
     }
     const problem = editorProblem(list, p.text, read);
     if (problem) {
-      refuse(problem);
+      refuse(problem, keys);
       continue;
     }
     for (const k of keys) used.add(k);
@@ -362,7 +432,7 @@ export function editorAnswer(input, stories, read = "") {
     if (!s || used.has(s.key)) continue;
     // A departure is always told, and an edit keeps its post right.
     if (s.alone) {
-      refuse("skip_refused");
+      refuse("skip_refused", [s.key]);
       continue;
     }
     used.add(s.key);
@@ -371,5 +441,5 @@ export function editorAnswer(input, stories, read = "") {
       reason: reasonText(k.reason) || "not worth a post",
     });
   }
-  return { posts, skips, refused };
+  return { posts, skips, refused, rejected };
 }

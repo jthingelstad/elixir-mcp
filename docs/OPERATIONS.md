@@ -119,6 +119,23 @@ failure, and never delete what you have not read.
   fix the source, and only then redrive the DLQ so the worker reads the
   object again. Objects and DLQ messages live 14 days. A successful
   worker deletes its own object; never delete one unexamined.
+  The timeline's lanes work the same way. `timeline-sync/` (60 s
+  delay), `timeline-hold/` (300 s: a story still being held) and
+  `timeline-editor/` (a clan's model editing its activity channel, one
+  clan an invocation, up to three model rounds) wake
+  `elixir-mcp-timeline-sync` (180 s timeout) and share the DLQ
+  `elixir-mcp-timeline-sync-dlq` (alarm `elixir-mcp-dlq-timeline-sync`);
+  A sync wake (`{ v: 1, clan_tag }`, or a person's) carries no post, so
+  redriving one only runs the sync again, which never posts a story
+  twice; read `/aws/lambda/elixir-mcp-timeline-sync` for
+  `clan_activity_synced` (its `editor`, `rounds`, `lookups`, `merged`,
+  `model_skips`, `refused` and `rewrite_code`) first. `timeline-discord/`
+  is the Discord sends themselves (a person's cross-post and a clan's
+  channel), drained by the VPC-less `elixir-mcp-email-relay`, with
+  `elixir-mcp-timeline-discord-dlq` (alarm
+  `elixir-mcp-dlq-timeline-discord`): its objects are the posts, and a
+  send whose outcome is unknown is never made again, so read the relay's
+  log before any redrive.
 - **Owner notifications** (`owner_notify`) are best-effort by design
   (2026-09-09): one attempt and a log line, never a dead letter. What
   they announce is durable in the database.

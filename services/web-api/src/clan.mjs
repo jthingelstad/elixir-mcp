@@ -11,7 +11,7 @@ import { createBox } from "@elixir-mcp/clan/sealed.mjs";
 import {
   awaitFirstWord,
   clanActivityRowView,
-  clanRewritePreview,
+  clanEditorPreview,
   clanActivitySeal,
   readClanActivity,
   refuseClanActivity,
@@ -349,10 +349,10 @@ export function createClanRequest({
               return { view: clanActivityRowView(r.row, status) };
             },
             remove: (clanTag) => removeClanActivity(db, clanTag),
-            // The newest items as the clan's model would write them, for
-            // a leader's preview; nothing is posted or told.
+            // The newest stories as the clan's editor would tell them,
+            // for a leader's preview; nothing is posted or told.
             preview: (clanTag, { voice }) =>
-              clanRewritePreview(db, clanTag, {
+              clanEditorPreview(db, clanTag, {
                 voice,
                 policyFor: (_db, tag) => ledger.currentPolicy(tag),
                 pitchFor: (_db, tag) => ledger.currentPitch(tag),

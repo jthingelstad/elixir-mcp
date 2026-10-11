@@ -45,7 +45,7 @@ const view = (extra = {}) => ({
   in_effect: { members: true, milestones: false, war: false },
   model: { available: true, set: false, refused: false },
   voice_max: 400,
-  rewrites_per_day: 50,
+  editor_runs_per_day: 50,
   ...extra,
 });
 
@@ -81,10 +81,10 @@ describe("the clan's activity in Discord", () => {
     renderWithProviders(<ActivityDiscordSetting clan={clan} />);
     const list = await screen.findByRole("list", { name: "Last deliveries" });
     const [first, second] = list.querySelectorAll("li");
-    expect(first.textContent).toContain("rewritten");
+    expect(first.textContent).toContain("by the clan’s model");
     expect(first.textContent).toContain("Ada steps up to Elder!");
     expect(second.textContent).toContain("Not delivered");
-    expect(second.textContent).not.toContain("rewritten");
+    expect(second.textContent).not.toContain("by the clan’s model");
     expect(screen.getByText(/1 not delivered in 30 days/)).toBeTruthy();
   });
 
@@ -134,21 +134,21 @@ describe("the clan's activity in Discord", () => {
     );
   });
 
-  test("without the clan's key, the rewrite asks for one in Settings", async () => {
+  test("without the clan's key, the editor asks for one in Settings", async () => {
     vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(ok(view()));
     const navigate = vi.fn();
     renderWithProviders(<ActivityDiscord clan={clan} navigate={navigate} />);
     expect(
       await screen.findByText(/add the clan’s Anthropic API key/),
     ).toBeTruthy();
-    expect(screen.queryByLabelText(/Rewrite each post/)).toBeNull();
+    expect(screen.queryByLabelText(/edit the channel/)).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "Settings ›" }));
     expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/manage/settings", {
       hash: "settings-model",
     });
   });
 
-  test("with the key, the rewrite and the voice are saved", async () => {
+  test("with the key, the editor and the voice are saved", async () => {
     vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
       ok(
         view({
@@ -165,20 +165,26 @@ describe("the clan's activity in Discord", () => {
       .spyOn(manageApi, "saveActivityDiscord")
       .mockResolvedValue(ok(view()));
     renderWithProviders(<ActivityDiscordSetting clan={clan} />);
-    fireEvent.click(await screen.findByLabelText(/Rewrite each post/));
+    fireEvent.click(
+      await screen.findByLabelText("Have the clan’s model edit the channel"),
+    );
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith("#2PQRJ8LV", { rewrite: true }),
     );
-    expect(screen.getByText(/at most 50 requests a day/)).toBeTruthy();
-    // What keeps Elixir's own words, as the engine refuses it.
+    expect(screen.getByText(/at most 50 runs a day/)).toBeTruthy();
+    // What the editor may do, and what keeps Elixir's own words, as the
+    // engine refuses it.
+    expect(
+      screen.getByText(/tells a few together, or skips one with a reason/),
+    ).toBeTruthy();
     expect(
       screen.getByText(
-        /drops or changes a name, carries a number or a name it was not given, carries a link or a mention, or runs long keeps/,
+        /drops or changes a name, carries a number or a name it was not given, says a time of day, carries a link or a mention, or runs long keeps/,
       ),
     ).toBeTruthy();
     expect(
       screen.getByText(
-        /Written by Claude Sonnet 5\.5, the model Elixir Clan uses/,
+        /Edited by Claude Sonnet 5\.5, the model Elixir Clan uses/,
       ),
     ).toBeTruthy();
     fireEvent.change(screen.getByLabelText("How the posts should sound"), {
@@ -192,7 +198,7 @@ describe("the clan's activity in Discord", () => {
     );
   });
 
-  test("a leader previews the last few posts in the voice in the box; a draft that outlasts its request is asked for again", async () => {
+  test("a leader previews the editor on the last few stories in the voice in the box: posts, stories told together, skips and refusals; a draft that outlasts its request is asked for again", async () => {
     vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
       ok(
         view({
@@ -212,15 +218,41 @@ describe("the clan's activity in Discord", () => {
               key: "tl_1",
               kind: "member_joined",
               elixir: "Ada joined Example Clan.",
-              rewrite: "Welcome aboard, Ada!",
+              post: "Welcome aboard, Ada and Cy!",
+              with: ["tl_3"],
+              told_in: null,
+              skipped: null,
               refused: null,
             },
             {
               key: "tl_2",
               kind: "trophy_milestone",
               elixir: "Bo reached 9,000 trophies.",
-              rewrite: null,
+              post: null,
+              with: [],
+              told_in: null,
+              skipped: null,
               refused: "number_invented",
+            },
+            {
+              key: "tl_3",
+              kind: "member_joined",
+              elixir: "Cy joined Example Clan.",
+              post: null,
+              with: [],
+              told_in: "tl_1",
+              skipped: null,
+              refused: null,
+            },
+            {
+              key: "tl_4",
+              kind: "career_wins_step",
+              elixir: "Eve passed 1,000 career wins.",
+              post: null,
+              with: [],
+              told_in: null,
+              skipped: "A small step.",
+              refused: null,
             },
           ],
         }),
@@ -240,7 +272,9 @@ describe("the clan's activity in Discord", () => {
         }),
       );
       await vi.advanceTimersByTimeAsync(3000);
-      expect(await screen.findByText("Welcome aboard, Ada!")).toBeTruthy();
+      expect(
+        await screen.findByText("Welcome aboard, Ada and Cy!"),
+      ).toBeTruthy();
     } finally {
       vi.useRealTimers();
     }
@@ -259,6 +293,17 @@ describe("the clan's activity in Discord", () => {
     expect(screen.getByText("Bo reached 9,000 trophies.")).toBeTruthy();
     expect(
       screen.getByText(/a number the record did not give it/),
+    ).toBeTruthy();
+    // Cy's story is told in Ada's post, not on its own.
+    expect(
+      screen.getByText(
+        "Tells 2 stories. Elixir's versions: Ada joined Example Clan. · Cy joined Example Clan.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.getByText("Skipped: A small step.")).toBeTruthy();
+    expect(
+      screen.getByText("Elixir’s version: Eve passed 1,000 career wins."),
     ).toBeTruthy();
     expect(
       screen.getByText(/Counts as one of the leaders’ drafts/),

@@ -14,8 +14,8 @@ const day = (ts) => (ts ? ts.slice(0, 10) : "");
  * the body of Social ▸ Discord. A webhook of its own (not the one Actions go
  * to), the categories of the clan's timeline posted there (the policy
  * sets the defaults and can rule one out), and the clan's own model
- * rewriting the posts in a voice the leaders describe. Without the
- * clan's key the rewrite asks for one in Settings. The
+ * editing the channel in a voice the leaders describe (2026-10-11).
+ * Without the clan's key the editor asks for one in Settings. The
  * webhook is kept sealed and shown only in its short form.
  */
 export function ActivityDiscordSetting({ clan, navigate }) {
@@ -143,9 +143,9 @@ export function ActivityDiscordSetting({ clan, navigate }) {
           {forum ? (
             <div className="callout callout--warn m-3" role="alert">
               <span>
-                This webhook belongs to a forum channel, which takes posts, not
-                lines, so nothing is posted. Connect a text channel&rsquo;s
-                webhook below, or post into one thread: add{" "}
+                This webhook belongs to a forum channel, which takes threads,
+                not messages, so nothing is posted. Connect a text
+                channel&rsquo;s webhook below, or post into one thread: add{" "}
                 <code>?thread_id=</code> and the thread&rsquo;s id
                 (Discord&rsquo;s Developer Mode, Copy Thread ID) to the end of
                 the webhook.
@@ -163,8 +163,8 @@ export function ActivityDiscordSetting({ clan, navigate }) {
           ) : c.delivery?.state === "failing" ? (
             <div className="callout callout--warn m-3" role="status">
               <span>
-                Discord refused a line ({day(c.delivery.at)}
-                {c.delivery.reason ? `: ${c.delivery.reason}` : ""}). That line
+                Discord refused a post ({day(c.delivery.at)}
+                {c.delivery.reason ? `: ${c.delivery.reason}` : ""}). That post
                 was skipped; the others are still posted.
               </span>
             </div>
@@ -303,14 +303,14 @@ export function ActivityDiscordSetting({ clan, navigate }) {
 
           <fieldset className="grid gap-2" disabled={busy}>
             <legend className="field-label font-semibold">
-              Written by the clan&rsquo;s own model
+              Edited by the clan&rsquo;s own model
             </legend>
             {!d.model.set ? (
               <div className="callout" role="status">
                 <span>
-                  To have the posts written in the clan&rsquo;s own voice rather
-                  than Elixir&rsquo;s own, add the clan&rsquo;s Anthropic API
-                  key in{" "}
+                  To have the clan&rsquo;s own model edit the channel in the
+                  clan&rsquo;s voice rather than post Elixir&rsquo;s own
+                  stories, add the clan&rsquo;s Anthropic API key in{" "}
                   <a href={`${settings}#settings-model`} onClick={toSettings}>
                     Settings ›
                   </a>
@@ -344,20 +344,25 @@ export function ActivityDiscordSetting({ clan, navigate }) {
                       )
                     }
                   />
-                  <span>Rewrite each post with the clan&rsquo;s model</span>
+                  <span>Have the clan&rsquo;s model edit the channel</span>
                 </label>
                 <p className="page-head__note m-0">
                   {d.model.name
-                    ? `Written by ${d.model.name}, the model Elixir Clan uses for these posts. `
+                    ? `Edited by ${d.model.name}, the model Elixir Clan uses for this channel. `
                     : ""}
-                  Posted without anyone reading them first. The model is told
-                  what Elixir records about the moment, the clan and the member
-                  it is about, and picks a detail or two; a post that drops or
+                  Posted without anyone reading them first. The model reads
+                  Elixir&rsquo;s stories with what the record says about the
+                  clan and each member, and may look up a member&rsquo;s record,
+                  their battles this week and what the channel posted lately.
+                  Then it tells each story, tells a few together, or skips one
+                  with a reason the deliveries above show. A departure is always
+                  told, alone, in the record&rsquo;s words. A post that drops or
                   changes a name, carries a number or a name it was not given,
-                  carries a link or a mention, or runs long keeps Elixir&rsquo;s
-                  own words. Uses the clan&rsquo;s key, at most{" "}
-                  {d.rewrites_per_day} requests a day (one request writes
-                  several posts), and never past the clan&rsquo;s monthly cap.
+                  says a time of day, carries a link or a mention, or runs long
+                  keeps Elixir&rsquo;s own words. Uses the clan&rsquo;s key, at
+                  most {d.editor_runs_per_day} runs a day (a run edits up to 12
+                  stories ready then; any more are Elixir&rsquo;s own), and
+                  never past the clan&rsquo;s monthly cap.
                 </p>
                 <form
                   className="grid gap-2"
@@ -390,7 +395,7 @@ export function ActivityDiscordSetting({ clan, navigate }) {
                     </span>
                   </div>
                 </form>
-                <RewritePreview
+                <EditorPreview
                   tag={clan.clan_tag}
                   voice={voiceNow}
                   disabled={busy || d.model.refused}
@@ -404,16 +409,23 @@ export function ActivityDiscordSetting({ clan, navigate }) {
   );
 }
 
-/** Why a previewed post would keep Elixir's own line. */
+/** Why a previewed story would keep Elixir's own words. */
 const REFUSED = {
-  not_written: "the model wrote nothing for it",
-  empty: "the model wrote nothing for it",
-  link: "it carried a link",
-  mention: "it carried a mention",
-  too_long: "it was too long",
-  name_changed: "it dropped or changed a member's name",
-  number_invented: "it carried a number the record did not give it",
-  name_invented: "it carried a name the record did not give it",
+  empty: "the model's post was empty",
+  link: "the model's post carried a link",
+  mention: "the model's post carried a mention",
+  too_long: "the model's post was too long",
+  clock_time: "the model's post said a time of day",
+  name_changed: "the model's post dropped or changed a member's name",
+  number_invented:
+    "the model's post carried a number the record did not give it",
+  name_invented: "the model's post carried a name the record did not give it",
+  departure_words:
+    "the model's post changed Elixir's sentence for a departure or gave a reason",
+  merge_refused:
+    "the model told it with another story, and this one is told alone",
+  skip_refused: "the model skipped it, and a departure is always told",
+  key_reused: "the model told it in a post with a story already told",
 };
 
 const PREVIEW_ERROR = {
@@ -426,11 +438,14 @@ const PREVIEW_ERROR = {
 };
 
 /**
- * The last few things the channel could post, as the clan's model would
- * write them in the voice in the box (saved or not). A leader's own use,
- * counted with the drafts in Settings; nothing is posted (2026-10-11).
+ * The last few stories the channel could post, as the clan's editor
+ * would tell them in the voice in the box (saved or not): each post with
+ * the stories it tells, each skip with its reason, and each story kept
+ * in Elixir's words with why. A leader's own use, counted with the
+ * drafts in Settings, in one request with no lookups; nothing is posted
+ * (2026-10-11).
  */
-function RewritePreview({ tag, voice, disabled }) {
+function EditorPreview({ tag, voice, disabled }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -453,6 +468,7 @@ function RewritePreview({ tag, voice, disabled }) {
     trackEvent("clan.activity_discord_preview");
     setResult(r.data);
   };
+  const elixirOf = new Map((result?.posts ?? []).map((p) => [p.key, p.elixir]));
   return (
     <div className="grid gap-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -462,10 +478,11 @@ function RewritePreview({ tag, voice, disabled }) {
           disabled={disabled || busy}
           onClick={run}
         >
-          {busy ? "Writing…" : "Preview the last 5 in this voice"}
+          {busy ? "Editing…" : "Preview the last 5 in this voice"}
         </button>
         <span className="page-head__note">
-          Counts as one of the leaders&rsquo; drafts today. Nothing is posted.
+          Counts as one of the leaders&rsquo; drafts today. Nothing is posted,
+          and the preview looks nothing up.
         </span>
       </div>
       {error ? (
@@ -480,18 +497,47 @@ function RewritePreview({ tag, voice, disabled }) {
       ) : null}
       {result && !result.empty ? (
         <ol className="grid gap-2 m-0 p-0 list-none" aria-label="Preview">
-          {result.posts.map((p) => (
-            <li key={p.key} className="panel">
-              <div className="panel__body grid gap-1">
-                <span>{p.rewrite ?? p.elixir}</span>
-                <span className="page-head__note">
-                  {p.rewrite
-                    ? `Elixir's line: ${p.elixir}`
-                    : `Elixir's own line would be posted: ${REFUSED[p.refused] ?? "the model's post was refused"}.`}
-                </span>
-              </div>
-            </li>
-          ))}
+          {result.posts
+            .filter((p) => !p.told_in)
+            .map((p) => (
+              <li key={p.key} className="panel">
+                <div className="panel__body grid gap-1">
+                  {p.post ? (
+                    <>
+                      <span>{p.post}</span>
+                      <span className="page-head__note">
+                        {p.with?.length
+                          ? `Tells ${p.with.length + 1} stories. Elixir's versions: ${[
+                              p.elixir,
+                              ...p.with.map((k) => elixirOf.get(k)),
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}`
+                          : `Elixir's version: ${p.elixir}`}
+                      </span>
+                    </>
+                  ) : p.skipped ? (
+                    <>
+                      <span className="page-head__note">
+                        Skipped: {p.skipped}
+                      </span>
+                      <span className="page-head__note">
+                        Elixir&rsquo;s version: {p.elixir}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{p.elixir}</span>
+                      <span className="page-head__note">
+                        {p.refused
+                          ? `Elixir's version would be posted: ${REFUSED[p.refused] ?? "the model's post was refused"}.`
+                          : "Elixir's version would be posted, as the model left it."}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
         </ol>
       ) : null}
     </div>

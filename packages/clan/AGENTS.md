@@ -63,13 +63,16 @@ or workflow of its own.
 - **The clan's activity in Discord** (Social ▸ Discord, its own page in
   the rail) is the
   timeline cross-post's pipeline, not Clan's bridges: the connection and
-  sync are `packages/syndication` (`clan-settings.mjs`, `clan-sync.mjs`),
-  the rules `clan-engine/activity.mjs`, the leaders' service
-  `src/manage/activity.mjs`. Its rewrite is the one model use posted
-  unread (`writeUnattended`, purpose `discord_activity`): the model is
-  told the record (`clan-engine/context.mjs`, the same builder as the
-  drafts), and the engine's checks decide what is posted. Its model call
-  runs outside the sync's transaction, under the clan's session lock.
+  sync are `packages/syndication` (`clan-settings.mjs`, `clan-sync.mjs`,
+  the editor's read-only lookups `editor-research.mjs`), the rules
+  `clan-engine/activity.mjs`, the stories and Elixir's render
+  `clan-engine/stories.mjs`, the editor `clan-engine/editor.mjs`, the
+  leaders' service `src/manage/activity.mjs`. The editor is the one model
+  use posted unread (`writeUnattended`, purpose `discord_activity`, up to
+  three rounds a run on the `timeline-editor/` queue): the model is told
+  the record (`clan-engine/context.mjs`, the same builder as the drafts),
+  and the engine's checks decide what is posted. Its model calls run
+  outside the sync's transaction, under the clan's session lock.
 - **`ClanInternal`** (stack parameter, `CLAN_INTERNAL`) is the feature
   switch. Turning it off disables Clan's API and morning run; it never
   resumes another runtime.

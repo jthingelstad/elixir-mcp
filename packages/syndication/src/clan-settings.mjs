@@ -1,7 +1,7 @@
-/** A clan's activity channel (Clan Settings, Social; Jamie, 2026-10-10):
+/** A clan's activity channel (Social ▸ Discord; Jamie, 2026-10-10):
  *  the clan's own Discord webhook, which categories of its timeline are
- *  posted there, and whether the clan's model rewrites them in the
- *  leaders' voice. Leaders' alone, through Elixir Clan; never MCP or
+ *  told there, and whether the clan's model edits the channel in the
+ *  leaders' voice (the `rewrite` column). Leaders' alone, through Elixir Clan; never MCP or
  *  `/api/v1`. The webhook is sealed as it is saved, bound to a random
  *  channel id that a new webhook replaces, and never read back whole:
  *  leaders see its shortened form, and only the relay opens it. What the

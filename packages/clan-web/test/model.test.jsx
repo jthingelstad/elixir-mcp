@@ -77,7 +77,7 @@ describe("the clan's model", () => {
     // The rewrite's refusals, as the engine makes them.
     expect(
       screen.getByText(
-        /drops or changes a name, carries a number or a name it was not given, carries a link or a mention, or runs long keeps/,
+        /drops or changes a name, carries a number or a name it was not given, says a time of day, changes a departure’s sentence, carries a link or a mention, or runs long keeps/,
       ),
     ).toBeTruthy();
     expect(screen.getByText("2 of 20 uses")).toBeTruthy();

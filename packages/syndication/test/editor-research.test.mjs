@@ -14,6 +14,8 @@ const CLAN = "#2PP2PP2P";
 const ADA = "#PYL0Q2G8";
 const GONE = "#PYL0Q2G9";
 const OPP = "#PYL0Q2GR";
+const TWIN_A = "#PYL0Q2GY";
+const TWIN_B = "#PYL0Q2GQ";
 const T = Date.parse("2026-10-11T18:00:00Z");
 const H = 3_600_000;
 const at = (ms) => new Date(ms).toISOString();
@@ -54,6 +56,8 @@ before(async () => {
     [ADA, "Ada"],
     [GONE, "Gone"],
     [OPP, "keyluis"],
+    [TWIN_A, "Twin"],
+    [TWIN_B, "twin"],
   ])
     await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
       tag,
@@ -63,6 +67,11 @@ before(async () => {
     `insert into clan_membership (clan_tag, player_tag, role, joined_observed_at, left_observed_at)
      values ($1, $2, 'elder', $3, null), ($1, $4, 'member', $3, $5)`,
     [CLAN, ADA, at(T - 40 * 24 * H), GONE, at(T - 24 * H)],
+  );
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, role, joined_observed_at)
+     values ($1, $2, 'member', $4), ($1, $3, 'member', $4)`,
+    [CLAN, TWIN_A, TWIN_B, at(T - 20 * 24 * H)],
   );
   await db.query(
     `insert into deck (deck_hash, card_count, first_seen_at, last_seen_at)
@@ -109,7 +118,7 @@ test("a member's battles this week, newest first, by mode, with the opponent, th
   assert.equal(war.text, "No war battles recorded for Ada in the last 7 days.");
 });
 
-test("a member's record; a former member or a stranger is not looked up; the channel's posts; bounds and failures", async () => {
+test("a member's record; a former member, a stranger or a shared name is not looked up; the channel's posts; bounds and failures", async () => {
   let reads = 0;
   const research = editorResearch(db, CLAN, {
     nowMs: T,
@@ -134,6 +143,14 @@ test("a member's record; a former member or a stranger is not looked up; the cha
     { id: "6", name: "channel_recent", input: {} },
     { id: "7", name: "channel_recent", input: {} },
   ]);
+  // Two current members share a name: neither is looked up.
+  const [twin] = await research([
+    { id: "t", name: "member_battles", input: { name: "TWIN", mode: "any" } },
+  ]);
+  assert.equal(
+    twin.text,
+    'More than one current member is named "TWIN"; not looked up.',
+  );
   assert.deepEqual(
     out.map((r) => r.id),
     ["1", "2", "3", "4", "5", "6", "7"],
