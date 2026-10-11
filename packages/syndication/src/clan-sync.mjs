@@ -109,18 +109,20 @@ async function syncLocked(
 
   const status = await readStatus(row.channel_id);
   if (
-    status?.state === "gone" &&
+    (status?.state === "gone" || status?.state === "forum") &&
     status.webhook === row.webhook_fp &&
     Date.parse(status.at) >= row.updated_at.getTime()
   ) {
+    // A forum channel's webhook takes no plain message (2026-10-11).
+    const reason = status.state === "forum" ? "webhook_forum" : "webhook_gone";
     await db.query(
       `update clan_activity_discord
-          set enabled = false, disabled_reason = 'webhook_gone',
+          set enabled = false, disabled_reason = $3,
               disabled_at = $2
         where clan_tag = $1`,
-      [clanTag, new Date(now)],
+      [clanTag, new Date(now), reason],
     );
-    return { disabled: "webhook_gone" };
+    return { disabled: reason };
   }
 
   const advance = (toMs) =>

@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-10; the clan's activity in Discord on its own Social page, contracts unchanged"
+reviewed: "2026-10-11; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -241,9 +241,13 @@ preview.
   the clan's monthly cap, when set, stops them as it stops drafts.
   Without a key, the page points to **The clan's own model** in Settings.
 - Connecting posts a short hello to check the webhook; it is kept
-  encrypted and shown only shortened. If Discord stops taking it, posting
-  turns off and the page says why. Pausing or disconnecting leaves the
-  messages already posted.
+  encrypted and shown only shortened. A webhook may end in `?thread_id=`
+  and a thread's id, to post into one thread; a forum channel's webhook
+  is refused, since a forum takes posts, not lines. If Discord stops
+  taking it, posting turns off and the page says why. If Discord refuses
+  one line, only that line is skipped and the page shows what Discord
+  said. Lines go at most about 25 a minute, under Discord's limit for a
+  channel. Pausing or disconnecting leaves the messages already posted.
 
 ## Agent context
 

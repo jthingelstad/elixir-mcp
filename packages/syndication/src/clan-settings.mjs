@@ -67,6 +67,7 @@ export function clanActivityRowView(row, status = null) {
           state: current.state,
           at: current.at,
           http_status: current.http_status ?? null,
+          reason: current.reason ?? null,
         }
       : null,
   };
@@ -195,7 +196,32 @@ export async function saveClanActivity(
         },
       ],
     });
-  return { row: rows[0], hello: fresh && !!outbox };
+  return {
+    row: rows[0],
+    hello: fresh && !!outbox,
+    ...(fresh && outbox
+      ? { hello_at: now, fp: next.fp, channel_id: channelId }
+      : {}),
+  };
+}
+
+/** Switch a clan's posting off for a webhook its hello showed unusable
+ *  (`reason` webhook_forum or webhook_gone). */
+export async function refuseClanActivity(
+  db,
+  clanTag,
+  reason,
+  now = Date.now(),
+) {
+  const { rows } = await db.query(
+    `update clan_activity_discord
+        set enabled = false, disabled_reason = $2, disabled_at = $3,
+            updated_at = $3
+      where clan_tag = $1
+      returning ${COLUMNS}`,
+    [clanTag, reason, new Date(now)],
+  );
+  return rows[0] ?? null;
 }
 
 /** Disconnect: the row and what it told go; messages already in the

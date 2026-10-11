@@ -477,10 +477,19 @@ set in the console only, never through MCP or the JSON API.
   a duplicate.
 - **The webhook.** Only Discord's own webhook address is accepted, and
   saving one posts a first line to the channel so you can see it works.
+  It may end in `?thread_id=` and a thread's id, to post into that one
+  thread. A forum channel takes posts, not lines, so its webhook is
+  refused when you save it (use a text channel's, or one thread's).
   Elixir keeps it sealed, shows it shortened, and never logs it. When
   Discord says the webhook no longer exists, cross-posting turns off and
   the panel says why. Turning it back on, or a new webhook, starts from
   that moment.
+- **When Discord refuses a line,** that line alone is skipped and the
+  panel shows what Discord said; the rest are still posted. Lines go at
+  most about 25 a minute to one channel, under Discord's own limit, so a
+  busy war day arrives over a few minutes rather than being dropped; a
+  line that still cannot be delivered after many tries is counted as not
+  delivered.
 
 A clan's leaders can also post the clan's own activity to a channel,
 chosen by category and set by the clan's policy, from Elixir Clan's

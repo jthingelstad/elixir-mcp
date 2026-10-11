@@ -8,9 +8,12 @@ import { createDiscordService } from "@elixir-mcp/clan/manage/discord.mjs";
 import { createActivityService } from "@elixir-mcp/clan/manage/activity.mjs";
 import { createBox } from "@elixir-mcp/clan/sealed.mjs";
 import {
+  awaitFirstWord,
   clanActivityRowView,
   clanActivitySeal,
   readClanActivity,
+  refuseClanActivity,
+  refusalOf,
   removeClanActivity,
   saveClanActivity,
   wakeAfterFact,
@@ -298,7 +301,37 @@ export function createClanRequest({
                 who,
                 clanName,
               });
-              return r.error ? r : { view: clanActivityRowView(r.row) };
+              if (r.error) return r;
+              // The hello's first word: a forum channel's webhook, or one
+              // Discord says is gone, is switched off at once (2026-10-11).
+              const status = r.hello
+                ? await awaitFirstWord(
+                    readStatus,
+                    r.channel_id,
+                    r.fp,
+                    r.hello_at,
+                    {
+                      waitMs: Math.max(
+                        0,
+                        Math.min(
+                          8000,
+                          (event.softDeadlineAt ?? Date.now() + 28_000) -
+                            Date.now() -
+                            5000,
+                        ),
+                      ),
+                    },
+                  )
+                : null;
+              const refused = refusalOf(status);
+              if (refused) {
+                const row = await refuseClanActivity(db, clanTag, refused);
+                return {
+                  error: refused,
+                  view: clanActivityRowView(row, status),
+                };
+              }
+              return { view: clanActivityRowView(r.row, status) };
             },
             remove: (clanTag) => removeClanActivity(db, clanTag),
           },

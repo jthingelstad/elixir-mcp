@@ -27,6 +27,74 @@ export function helloContent(nowMs = Date.now()) {
   ].join("\n");
 }
 
+/** What an owner or leader reads when a save's hello line shows the
+ *  webhook cannot be used (2026-10-11): a forum channel takes posts, not
+ *  lines; a deleted webhook takes nothing. */
+export const WEBHOOK_REFUSALS = {
+  webhook_forum:
+    "That webhook belongs to a forum channel, which takes posts, not lines. Use a text channel's webhook, or post into one thread: add ?thread_id= and the thread's id (Discord's Developer Mode, Copy Thread ID) to the end of the webhook.",
+  webhook_gone:
+    "Discord says that webhook no longer exists. Copy it again from the channel's settings, Integrations, Webhooks.",
+};
+
+/**
+ * After a save sends its hello line: the relay's first word on this
+ * webhook (contracts TimelineDiscordStatus), or null when none came in
+ * `waitMs`. `id` is the account, or a clan's channel id; `fp` the
+ * webhook's fingerprint; `sinceMs` when the hello was sent.
+ */
+export async function awaitFirstWord(
+  readStatus,
+  id,
+  fp,
+  sinceMs,
+  {
+    waitMs = 8000,
+    pause = (ms) => new Promise((r) => setTimeout(r, ms)),
+    now = () => Date.now(),
+  } = {},
+) {
+  const end = now() + waitMs;
+  for (;;) {
+    const status = await readStatus(id).catch(() => null);
+    // Two seconds of slack for the relay's clock.
+    if (
+      status &&
+      status.webhook === fp &&
+      Date.parse(status.at) >= sinceMs - 2000
+    )
+      return status;
+    if (now() >= end) return null;
+    await pause(Math.min(750, Math.max(1, end - now())));
+  }
+}
+
+/** The refusal a status says the save should answer, or null. */
+export function refusalOf(status) {
+  if (status?.state === "forum") return "webhook_forum";
+  if (status?.state === "gone") return "webhook_gone";
+  return null;
+}
+
+/** Turn an account's cross-posting off for a webhook its hello showed
+ *  unusable (`reason` webhook_forum or webhook_gone). */
+export async function refuseDiscordSetting(
+  db,
+  accountId,
+  reason,
+  now = Date.now(),
+) {
+  const { rows } = await db.query(
+    `update timeline_discord
+        set enabled = false, disabled_reason = $2, disabled_at = $3,
+            updated_at = $3
+      where account_id = $1
+      returning ${COLUMNS}`,
+    [accountId, reason, new Date(now)],
+  );
+  return rows[0] ?? null;
+}
+
 /** What the console shows: never the URL, only its short form. */
 export function settingView(row, status = null) {
   if (!row)
@@ -45,12 +113,14 @@ export function settingView(row, status = null) {
     enabled_at: row.enabled_at?.toISOString() ?? null,
     disabled_reason: row.disabled_reason ?? null,
     disabled_at: row.disabled_at?.toISOString() ?? null,
-    // The relay's last delivery to this webhook: ok, gone or failing.
+    // The relay's last delivery to this webhook: ok, gone, forum or
+    // failing, with Discord's words for a refusal.
     delivery: current
       ? {
           state: current.state,
           at: current.at,
           http_status: current.http_status ?? null,
+          reason: current.reason ?? null,
         }
       : null,
   };
@@ -146,5 +216,9 @@ export async function saveDiscordSetting(
         },
       ],
     });
-  return { row: rows[0], hello: fresh && !!outbox };
+  return {
+    row: rows[0],
+    hello: fresh && !!outbox,
+    ...(fresh && outbox ? { hello_at: now, fp: next.fp } : {}),
+  };
 }

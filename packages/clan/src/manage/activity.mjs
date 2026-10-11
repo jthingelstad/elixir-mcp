@@ -35,6 +35,16 @@ const refusals = {
   webhook_required: new ManageError(400, "webhook_required", null, {
     message: "Connect a Discord webhook first.",
   }),
+  // The hello line's first word (2026-10-11): the connection is kept,
+  // switched off, so the page shows it and why.
+  webhook_forum: new ManageError(400, "webhook_forum", null, {
+    message:
+      "That webhook belongs to a forum channel, which takes posts, not lines. Use a text channel's webhook, or post into one thread: add ?thread_id= and the thread's id (Discord's Developer Mode, Copy Thread ID) to the end of the webhook.",
+  }),
+  webhook_gone: new ManageError(400, "webhook_gone", null, {
+    message:
+      "Discord says that webhook no longer exists. Copy it again from the channel's settings, Integrations, Webhooks.",
+  }),
 };
 
 export function createActivityService({ ledger, store, model = null }) {

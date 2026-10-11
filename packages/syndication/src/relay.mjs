@@ -17,14 +17,31 @@
  * timeline-discord-state/<account>/<webhook fingerprint>/<item>.json,
  * written with S3's conditional writes: a post is claimed before it is
  * sent, so two copies of a notification (S3 delivers at least once)
- * never post one line twice, and an edit is recorded only over the
- * state it read.
+ * never post one line twice, and an edit is claimed the same way
+ * (2026-10-11, #454), so an older revision's edit never lands after a
+ * newer one's.
  *
- * Discord saying the webhook is gone or refused writes `gone` to the
- * account's status, which the sync reads and turns cross-posting off;
- * the rest of the batch is dropped. Any other refusal writes `failing`
- * and drops the batch. The webhook arrives sealed and is opened only
- * here; logs name the account and the webhook's fingerprint.
+ * Pace (2026-10-11): one webhook's lines are spaced SPACING_MS apart
+ * across every run (a pace record beside its posts), which keeps a big
+ * clan's war-day burst under Discord's ~30 messages a minute per channel;
+ * the client also waits out the webhook's own X-RateLimit budget. A line
+ * that has to wait longer than the run may goes back to the queue with
+ * the wait (`retryAfterMs`, which the relay's handler turns into the
+ * message's visibility), not the queue's six minutes.
+ *
+ * Refusals: Discord saying the webhook is gone or refused writes `gone`
+ * to the status, and a forum channel's webhook (which takes no plain
+ * message) writes `forum`; the sync reads either and turns the posting
+ * off, and the rest of the batch is dropped. Discord refusing one line
+ * for anything else (a 400) skips that line alone, with Discord's reason
+ * in the delivery history, and the rest are still delivered (2026-10-11).
+ * On the queue's last attempt a line still waiting is recorded as not
+ * delivered rather than vanishing into the dead-letter queue.
+ *
+ * The history (contracts DiscordDeliveryHistory: the last 20 deliveries
+ * and the count not delivered over 30 days) sits beside the status for
+ * the page that set the webhook up. The webhook arrives sealed and is
+ * opened only here; logs name the account and the webhook's fingerprint.
  */
 import {
   parseDiscordWebhook,
@@ -32,27 +49,55 @@ import {
   webhookFingerprint,
   timelineDiscordStateKey,
   timelineDiscordStatusKey,
+  timelineDiscordHistoryKey,
+  addDiscordDeliveries,
 } from "@elixir-mcp/contracts";
 
 /** A claim this old with no message id was a sender that stopped
- *  mid-call: its post's outcome is unknown, and it is never made again. */
+ *  mid-call: its post's outcome is unknown, and it is never made again.
+ *  An edit claimed this long ago may be made again. */
 const CLAIM_SETTLE_MS = 2 * 60_000;
 const CONTENDED_TRIES = 4;
 /** No new line is started past this in one run (the relay's timeout is
  *  60 s, and a 429 may be waited up to 10 s): the rest go back to the
  *  queue, and the lines already told are skipped next time. */
 const BUDGET_MS = 35_000;
+/** One webhook's calls at most this often: 25 a minute, under Discord's
+ *  ~30 messages a minute for one channel. */
+export const SPACING_MS = 2_400;
 const DEAD = new Set(["webhook_gone", "webhook_refused"]);
+/** Why a line still waiting at the queue's last attempt was not sent. */
+const NOT_SENT = {
+  rate_limited: "Discord kept asking Elixir to slow down.",
+  paced: "Too many lines at once for one channel.",
+  time_budget: "Too many lines at once for one channel.",
+  post_in_flight: "Another delivery of this line never finished.",
+  edit_in_flight: "Another edit of this line never finished.",
+  discord_error: "Discord did not answer.",
+  outcome_unknown: "Discord did not answer.",
+  state_contended: "Too many deliveries of this line at once.",
+};
 
-/** Discord refused the batch: the webhook is gone, or this message. */
+/** Discord refused the webhook itself: it is gone, or a forum's. */
 class Refused extends Error {
-  constructor(gone, status) {
-    super(gone ? "timeline_discord_gone" : "timeline_discord_refused");
-    this.gone = gone;
+  constructor(state, status, reason = null) {
+    super(`timeline_discord_${state}`);
+    this.state = state;
     this.status = status;
+    this.reason = reason;
   }
 }
-const retry = (code) => new Error(`timeline_discord_${code}`);
+/** Not now: the line goes back to the queue, after `retryAfterMs`. */
+export class RetryLater extends Error {
+  constructor(code, afterMs = null) {
+    super(`timeline_discord_${code}`);
+    this.code = code;
+    this.retryAfterMs = Number.isFinite(afterMs)
+      ? Math.max(1000, Math.ceil(afterMs))
+      : null;
+  }
+}
+const retry = (code, afterMs) => new RetryLater(code, afterMs);
 
 /**
  * @param {{
@@ -60,6 +105,7 @@ const retry = (code) => new Error(`timeline_discord_${code}`);
  *   store: ReturnType<typeof import("./store.mjs").timelineDiscordStore>,
  *   open: (sealed: object, accountId: string, kind: string) => string | null,
  *   now?: () => number,
+ *   pause?: (ms: number) => Promise<void>,
  *   log?: Pick<Console, "log" | "error">,
  * }} deps
  */
@@ -68,44 +114,90 @@ export function createTimelineDiscordWorker({
   store,
   open,
   now = () => Date.now(),
+  pause = (ms) => new Promise((r) => setTimeout(r, ms)),
   log = console,
   budgetMs = BUDGET_MS,
+  spacingMs = SPACING_MS,
 }) {
   const claim = (revision) => ({ pending: true, revision, at: now() });
 
-  /** One line: "posted", "edited", "skipped" or "unknown". */
-  async function deliverPost(url, key, post) {
+  /** Wait for this webhook's next turn, shared by every run through the
+   *  pace record; a turn past `until` goes back to the queue instead. */
+  async function pace(paceKey, until) {
+    for (let i = 0; i < CONTENDED_TRIES; i += 1) {
+      const cur = await store.read(paceKey);
+      const slot = Math.max(now(), Number(cur?.body?.next_at) || 0);
+      if (slot > until) throw retry("paced", slot - now());
+      const body = { next_at: slot + spacingMs };
+      const etag = cur
+        ? await store.replace(paceKey, body, cur.etag)
+        : await store.create(paceKey, body);
+      if (!etag) continue;
+      if (slot > now()) await pause(slot - now());
+      return;
+    }
+    throw retry("state_contended", 1000);
+  }
+
+  /** One line: { outcome: posted | edited | skipped | unknown | refused,
+   *  status?, reason? }. Throws Refused (the webhook) or RetryLater. */
+  async function deliverPost(url, key, post, paceKey, until) {
     for (let i = 0; i < CONTENDED_TRIES; i += 1) {
       const cur = await store.read(key);
       const state = cur?.body ?? null;
       // Never again: a post whose outcome was unknown, or a line deleted
       // in the channel.
-      if (state?.unknown || state?.deleted) return "skipped";
+      if (state?.unknown || state?.deleted) return { outcome: "skipped" };
       if (state?.message_id) {
-        if (state.revision >= post.revision) return "skipped";
-        const r = await discord.edit(url, state.message_id, post.content);
-        if (!r.ok) {
-          if (DEAD.has(r.code)) throw new Refused(true, r.status);
-          if (r.code === "message_gone") {
-            if (await store.replace(key, { ...state, deleted: true }, cur.etag))
-              return "skipped";
-            continue;
-          }
-          if (r.code === "bad_request") throw new Refused(false, r.status);
-          throw retry(r.code);
+        if (state.revision >= post.revision) return { outcome: "skipped" };
+        const told = { message_id: state.message_id, revision: state.revision };
+        const editing = state.editing;
+        if (editing && now() - editing.at < CLAIM_SETTLE_MS) {
+          // Another run is editing it: to this revision or a newer one,
+          // this one has nothing to add; an older one, wait for it.
+          if (editing.revision >= post.revision) return { outcome: "skipped" };
+          throw retry("edit_in_flight", CLAIM_SETTLE_MS - (now() - editing.at));
         }
-        if (
+        await pace(paceKey, until);
+        const etag = await store.replace(
+          key,
+          { ...told, editing: { revision: post.revision, at: now() } },
+          cur.etag,
+        );
+        if (!etag) continue;
+        const r = await discord.edit(url, state.message_id, post.content);
+        if (r.ok) {
+          // Over our own claim; a newer claim over a stale one of ours
+          // keeps its own.
           await store.replace(
             key,
             { message_id: state.message_id, revision: post.revision },
-            cur.etag,
-          )
-        )
-          return "edited";
-        continue;
+            etag,
+          );
+          return { outcome: "edited" };
+        }
+        if (r.code === "message_gone") {
+          await store.replace(key, { ...told, deleted: true }, etag);
+          return { outcome: "skipped" };
+        }
+        if (r.code === "bad_request") {
+          // Discord will not take this text: the message keeps the last
+          // one, and this revision is not tried again.
+          await store.replace(
+            key,
+            { message_id: state.message_id, revision: post.revision },
+            etag,
+          );
+          return { outcome: "refused", status: r.status, reason: r.reason };
+        }
+        await store.replace(key, told, etag).catch(() => {});
+        if (DEAD.has(r.code)) throw new Refused("gone", r.status, r.reason);
+        throw retry(r.code, r.retry_after_ms);
       }
       if (state?.pending) {
-        if (now() - state.at < CLAIM_SETTLE_MS) throw retry("post_in_flight");
+        const age = now() - state.at;
+        if (age < CLAIM_SETTLE_MS)
+          throw retry("post_in_flight", CLAIM_SETTLE_MS - age);
         // The sender that claimed it stopped mid-call.
         if (
           await store.replace(
@@ -114,9 +206,13 @@ export function createTimelineDiscordWorker({
             cur.etag,
           )
         )
-          return "unknown";
+          return { outcome: "unknown" };
         continue;
       }
+      // Refused before at this revision or a newer one: not again.
+      if (state?.refused && state.revision >= post.revision)
+        return { outcome: "skipped" };
+      await pace(paceKey, until);
       const etag = cur
         ? await store.replace(key, claim(post.revision), cur.etag)
         : await store.create(key, claim(post.revision));
@@ -130,31 +226,64 @@ export function createTimelineDiscordWorker({
           { message_id: String(r.message_id), revision: post.revision },
           etag,
         );
-        return "posted";
+        return { outcome: "posted" };
       }
       // Refused outright: Discord did not take it, so it may be sent again.
-      if (
-        r.code === "rate_limited" ||
-        DEAD.has(r.code) ||
-        r.code === "bad_request"
-      ) {
+      if (r.code === "rate_limited") {
         await store.remove(key).catch(() => {});
-        if (r.code === "rate_limited") throw retry("rate_limited");
-        throw new Refused(DEAD.has(r.code), r.status);
+        throw retry("rate_limited", r.retry_after_ms);
+      }
+      if (DEAD.has(r.code) || r.code === "forum_needs_thread") {
+        await store.remove(key).catch(() => {});
+        throw new Refused(
+          r.code === "forum_needs_thread" ? "forum" : "gone",
+          r.status,
+          r.reason,
+        );
+      }
+      if (r.code === "bad_request") {
+        // This line alone: a newer revision of it may be posted.
+        await store.replace(
+          key,
+          { refused: true, revision: post.revision },
+          etag,
+        );
+        return { outcome: "refused", status: r.status, reason: r.reason };
       }
       await store.replace(
         key,
         { unknown: true, revision: post.revision },
         etag,
       );
-      return "unknown";
+      return { outcome: "unknown" };
     }
-    throw retry("state_contended");
+    throw retry("state_contended", 1000);
+  }
+
+  /** Record this run's deliveries; best effort, never fails the run. */
+  async function remember(accountId, added) {
+    if (added.length === 0) return;
+    const key = timelineDiscordHistoryKey(accountId);
+    try {
+      for (let i = 0; i < CONTENDED_TRIES; i += 1) {
+        const cur = await store.read(key);
+        const body = addDiscordDeliveries(cur?.body ?? null, added, now());
+        const ok = cur
+          ? await store.replace(key, body, cur.etag)
+          : await store.create(key, body);
+        if (ok) return;
+      }
+      log.error("timeline_discord_history_contended", accountId);
+    } catch {
+      log.error("timeline_discord_history_failed", accountId);
+    }
   }
 
   /** One timeline-discord/ outbox object: every line, in order. Throws
-   *  to send the notification back for a retry. */
-  return async function work(obj) {
+   *  to send the notification back for a retry (RetryLater says when);
+   *  on the queue's last attempt (`final`) the lines still waiting are
+   *  recorded as not delivered instead. */
+  return async function work(obj, { final = false } = {}) {
     if (!obj.key.startsWith("timeline-discord/"))
       throw retry("unsupported_object");
     const text = await store.readObject(obj);
@@ -176,44 +305,117 @@ export function createTimelineDiscordWorker({
       throw retry("bad_message");
     }
     const fingerprint = webhookFingerprint(hook.url);
-    const counts = { posted: 0, edited: 0, skipped: 0, unknown: 0 };
-    let refused = null;
+    const paceKey = timelineDiscordStateKey(
+      msg.account_id,
+      fingerprint,
+      "pace",
+    );
+    const counts = { posted: 0, edited: 0, skipped: 0, unknown: 0, refused: 0 };
+    const added = [];
+    const at = () => new Date(now()).toISOString();
+    let lastRefusal = null;
     const status = (state, extra = {}) =>
       store.put(timelineDiscordStatusKey(msg.account_id), {
         state,
         webhook: fingerprint,
-        at: new Date(now()).toISOString(),
+        at: at(),
         ...extra,
       });
     const started = now();
+    const until = started + budgetMs;
+    let next = 0;
     try {
-      for (const post of msg.posts) {
-        if (now() - started > budgetMs) throw retry("time_budget");
+      for (; next < msg.posts.length; next += 1) {
+        const post = msg.posts[next];
+        if (now() > until) throw retry("time_budget", 1000);
         const key = timelineDiscordStateKey(
           msg.account_id,
           fingerprint,
           post.key,
         );
-        counts[await deliverPost(hook.url, key, post)] += 1;
+        const r = await deliverPost(hook.url, key, post, paceKey, until);
+        counts[r.outcome] += 1;
+        if (r.outcome === "skipped") continue;
+        added.push({
+          at: at(),
+          outcome: r.outcome,
+          ref: post.key,
+          excerpt: post.content,
+          ...(r.status ? { http_status: r.status } : {}),
+          ...(r.reason ? { reason: r.reason } : {}),
+        });
+        if (r.outcome === "refused") {
+          lastRefusal = r;
+          log.error(
+            "timeline_discord_line_refused",
+            msg.account_id,
+            fingerprint,
+            r.status,
+          );
+        }
       }
     } catch (err) {
-      if (!(err instanceof Refused)) throw err;
-      refused = err;
-      await status(err.gone ? "gone" : "failing", {
-        http_status: err.status,
-        posted: counts.posted,
-        edited: counts.edited,
-      });
+      if (err instanceof Refused) {
+        await status(err.state, {
+          http_status: err.status,
+          posted: counts.posted,
+          edited: counts.edited,
+          ...(err.reason ? { reason: err.reason } : {}),
+        });
+        added.push({
+          at: at(),
+          outcome: "refused",
+          ref: msg.posts[next]?.key,
+          excerpt: msg.posts[next]?.content,
+          http_status: err.status,
+          reason:
+            err.reason ??
+            (err.state === "forum"
+              ? "This webhook posts to a forum channel."
+              : "Discord says this webhook no longer exists."),
+        });
+        await remember(msg.account_id, added);
+        log.error(
+          "timeline_discord_refused",
+          msg.account_id,
+          fingerprint,
+          err.state,
+          err.status,
+        );
+        await finish(obj);
+        return;
+      }
+      if (!(err instanceof RetryLater) || !final) {
+        await remember(msg.account_id, added);
+        throw err;
+      }
+      // The queue's last attempt: what is still waiting is not delivered.
+      for (const post of msg.posts.slice(next))
+        added.push({
+          at: at(),
+          outcome: "not_delivered",
+          ref: post.key,
+          excerpt: post.content,
+          reason: NOT_SENT[err.code] ?? "Elixir could not deliver it.",
+        });
       log.error(
-        "timeline_discord_refused",
+        "timeline_discord_not_delivered",
         msg.account_id,
         fingerprint,
-        err.gone ? "gone" : "refused",
-        err.status,
+        msg.posts.length - next,
+        err.code,
       );
     }
-    if (!refused && (counts.posted || counts.edited))
+    if (lastRefusal)
+      await status("failing", {
+        http_status: lastRefusal.status,
+        posted: counts.posted,
+        edited: counts.edited,
+        ...(lastRefusal.reason ? { reason: lastRefusal.reason } : {}),
+      });
+    else if (counts.posted || counts.edited)
       await status("ok", { posted: counts.posted, edited: counts.edited });
+    await remember(msg.account_id, added);
     log.log(
       "timeline_discord",
       msg.account_id,
@@ -223,11 +425,16 @@ export function createTimelineDiscordWorker({
       counts.edited,
       counts.skipped,
       counts.unknown,
+      counts.refused,
     );
+    await finish(obj);
+  };
+
+  async function finish(obj) {
     await store.deleteObject(obj).catch(() => {
       // The lifecycle expires it; a duplicate notification before then
       // finds every line already told and skips it.
       log.error("outbox_delete_failed", "transport_error");
     });
-  };
+  }
 }

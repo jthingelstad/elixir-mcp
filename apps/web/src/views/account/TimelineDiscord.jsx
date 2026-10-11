@@ -35,12 +35,18 @@ export function TimelineDiscord() {
     );
 
   const gone = !s.enabled && s.disabled_reason === "webhook_gone";
+  const forum = !s.enabled && s.disabled_reason === "webhook_forum";
   const failing = s.enabled && s.delivery?.state === "failing";
-  const asking = !s.enabled ? !s.webhook || gone || editing : editing;
+  const asking = !s.enabled ? !s.webhook || gone || forum || editing : editing;
   const run = async (body, done) => {
     setSaid("");
     const r = await save.run(body);
-    if (!r.ok) return;
+    // A refused save may still have changed the setting (a forum
+    // channel's webhook is kept, off): read it again.
+    if (!r.ok) {
+      query.refetch?.();
+      return;
+    }
     setEditing(false);
     setUrl("");
     setSaid(done(r.data));
@@ -76,15 +82,29 @@ export function TimelineDiscord() {
             </span>
           </div>
         ) : null}
+        {forum ? (
+          <div className="callout callout--warn" role="alert">
+            <span>
+              That webhook belongs to a forum channel, which takes posts, not
+              lines, so cross-posting is off. Use a text channel&rsquo;s
+              webhook, or post into one thread: add{" "}
+              <span className="mono">?thread_id=</span> and the thread&rsquo;s
+              id (Discord&rsquo;s Developer Mode, Copy Thread ID) to the end of
+              the webhook.
+            </span>
+          </div>
+        ) : null}
         {failing ? (
           <div className="callout callout--warn" role="alert">
             <span>
-              Discord refused the last post
+              Discord refused a line
               {s.delivery.http_status
-                ? ` (HTTP ${s.delivery.http_status})`
-                : ""}
-              , <Fresh ts={s.delivery.at} />. Check the webhook still posts to
-              the channel, or change it.
+                ? ` (HTTP ${s.delivery.http_status}${s.delivery.reason ? `: ${s.delivery.reason}` : ""})`
+                : s.delivery.reason
+                  ? ` (${s.delivery.reason})`
+                  : ""}
+              , <Fresh ts={s.delivery.at} />. That line was skipped; the others
+              are still posted.
             </span>
           </div>
         ) : null}
@@ -99,7 +119,7 @@ export function TimelineDiscord() {
               </>
             ) : null}
           </p>
-        ) : s.webhook && !gone ? (
+        ) : s.webhook && !gone && !forum ? (
           <p>
             Off. The saved webhook is{" "}
             <span className="mono break-all">{s.webhook}</span>.
@@ -221,5 +241,7 @@ export function TimelineDiscordState({ agent = null }) {
     );
   return s.disabled_reason === "webhook_gone"
     ? "off: Discord said the webhook no longer exists"
-    : "off";
+    : s.disabled_reason === "webhook_forum"
+      ? "off: the webhook belongs to a forum channel"
+      : "off";
 }

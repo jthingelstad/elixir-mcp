@@ -24,9 +24,10 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { SQSClient, ChangeMessageVisibilityCommand } from "@aws-sdk/client-sqs";
 import { upgradeDeliveryStore } from "./upgrade-delivery.mjs";
 import { makeSesSender } from "./ses.mjs";
-import { makeHandler } from "./handler.mjs";
+import { makeHandler, queueUrlOf } from "./handler.mjs";
 
 /** Buttondown answers 400 for both "you already have this address" and
  *  "this request is wrong". Treating the whole status as success (as we
@@ -93,6 +94,7 @@ export function makeButtondownEnroller({
 }
 
 const s3 = new S3Client({});
+const sqs = new SQSClient({});
 
 const modelWorker =
   process.env.CLAN_MODEL_SECRET && process.env.OUTBOX_BUCKET
@@ -137,6 +139,19 @@ const timelineDiscordWorker =
 
 export const handler = makeHandler({
   timelineDiscordObject: timelineDiscordWorker,
+  // A Discord lane's record held back until Discord's limit resets.
+  defer: async (record, seconds) => {
+    const QueueUrl = queueUrlOf(record.eventSourceARN);
+    if (!QueueUrl) throw new Error("unknown queue");
+    await sqs.send(
+      new ChangeMessageVisibilityCommand({
+        QueueUrl,
+        ReceiptHandle: record.receiptHandle,
+        VisibilityTimeout: seconds,
+      }),
+    );
+  },
+  discordMaxReceives: Number(process.env.DISCORD_MAX_RECEIVES) || 5,
   discordObject: discordWorker
     ? async ({ bucket, key }) => {
         if (bucket !== process.env.OUTBOX_BUCKET)
