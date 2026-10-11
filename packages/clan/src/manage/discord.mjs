@@ -327,9 +327,15 @@ export function createDiscordService({
         set_at: iso(),
         refused_at: null,
         forum: reply.forum === true,
-        // A role chosen before stays chosen for the new channel's server
-        // only if it is the same server; a leader sets it again if not.
-        mention_role: previous?.mention_role ?? null,
+        // The webhook's id (not its token) says whether it is the same
+        // webhook, so the same server: only then does a role chosen
+        // before stay. Another webhook may be another server, where that
+        // role is nothing; a leader sets it again.
+        webhook_id: hook.id,
+        mention_role:
+          previous?.webhook_id === hook.id
+            ? (previous?.mention_role ?? null)
+            : null,
       });
       await remember(clanTag, [
         { at: iso(), outcome: "posted", ref: null, excerpt: text },

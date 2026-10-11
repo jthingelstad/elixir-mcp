@@ -652,6 +652,8 @@ export function ledgerOver(io) {
       await remove(`recruit#${clanTag}`);
       await remove(`model_key#${clanTag}`);
       await remove(`discord#${clanTag}`);
+      // No gsi: listByPrefix cannot find it (it holds Actions' lines).
+      await remove(`discord_log#${clanTag}`);
       await remove(`schedule#${clanTag}`);
       await remove(`morning#${clanTag}`);
       await remove(`action_seq#${clanTag}`);

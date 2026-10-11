@@ -698,7 +698,21 @@ test("a role a leader chose is mentioned on each new Action, never on its edit",
   await w.relay();
   assert.equal(w.discord.calls.at(-1)[0], "edit");
   assert.doesNotMatch(w.discord.calls.at(-1)[1], /<@&/);
+  // The same webhook again keeps the role; another may be another
+  // server, where that role is nothing, so it is cleared.
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  assert.equal(
+    (await w.service.status(CLAN, LEAD)).mention_role,
+    "444444444444444444",
+  );
+  await w.service.setWebhook(CLAN, LEAD, {
+    url: HOOK.replace("123456789012345678", "223456789012345678"),
+  });
+  assert.equal((await w.service.status(CLAN, LEAD)).mention_role, null);
   // Off again.
+  await w.service.setMentionRole(CLAN, LEAD, {
+    role_id: "444444444444444444",
+  });
   await w.service.setMentionRole(CLAN, LEAD, { role_id: null });
   assert.equal((await w.service.status(CLAN, LEAD)).mention_role, null);
 });
