@@ -34,10 +34,18 @@ export function TimelineDiscord() {
       </p>
     );
 
-  const gone = !s.enabled && s.disabled_reason === "webhook_gone";
-  const forum = !s.enabled && s.disabled_reason === "webhook_forum";
+  // The relay's word can come after the save's wait, before the next
+  // sync turns the setting off: read it from the delivery too.
+  const gone =
+    (!s.enabled && s.disabled_reason === "webhook_gone") ||
+    (s.enabled && s.delivery?.state === "gone");
+  const forum =
+    (!s.enabled && s.disabled_reason === "webhook_forum") ||
+    (s.enabled && s.delivery?.state === "forum");
   const failing = s.enabled && s.delivery?.state === "failing";
-  const asking = !s.enabled ? !s.webhook || gone || forum || editing : editing;
+  const asking = !s.enabled
+    ? !s.webhook || gone || forum || editing
+    : editing || gone || forum;
   const run = async (body, done) => {
     setSaid("");
     const r = await save.run(body);
@@ -108,7 +116,7 @@ export function TimelineDiscord() {
             </span>
           </div>
         ) : null}
-        {s.enabled ? (
+        {s.enabled && !gone && !forum ? (
           <p>
             On since {stamp(s.enabled_at)}, posting to{" "}
             <span className="mono break-all">{s.webhook}</span>.

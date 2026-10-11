@@ -54,3 +54,17 @@ Unchanged by design: no embeds; the cross-post stays unfiltered; a post
 whose outcome is unknown is never made again; no mentions anywhere on
 these two paths. No MCP or JSON API contract moves. Migrations 0218,
 0219. No acceptance run: no tool changed.
+
+## Follow-up: the review's three findings (#483)
+
+- **Pace by the webhook.** The pace record moved to
+  `timeline-discord-state/pace/<fingerprint>.json`: a webhook saved on a
+  person's timeline and on their agent's is one channel, paced once.
+- **A refusal is scoped to its webhook.** A save's wait for the hello's
+  word turns the setting off only while that webhook is still the saved
+  one (`webhook_fp` in the update's `where`); a save that replaced it
+  during the wait keeps its own.
+- **A late word shows.** The timeline page reads `forum` or `gone` from
+  the delivery as well as from the setting, so a refusal that arrived
+  after the save's wait shows its guidance before the next sync turns
+  the setting off.

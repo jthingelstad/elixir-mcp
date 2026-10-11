@@ -77,8 +77,11 @@ export function timelineDiscordRoutes({ resolveAccount, discord = null }) {
           { waitMs: helloWaitMs },
         );
       const refused = refusalOf(status);
-      if (refused) {
-        const row = await refuseDiscordSetting(db, account.accountId, refused);
+      // A save that replaced this webhook during the wait keeps its own.
+      const row = refused
+        ? await refuseDiscordSetting(db, account.accountId, refused, out.fp)
+        : null;
+      if (row) {
         return json(400, {
           error: refused,
           message: ERRORS[refused],
