@@ -1532,3 +1532,58 @@ test("model: a draft that outlasts the request is collected by its id, once reco
   assert.equal(s.body.uses.month.spend_estimated, true);
   assert.ok(s.body.uses.month.spend_usd > s.body.uses.recent[1].spend_usd);
 });
+
+test("model: a started draft settles on the key that sent it; a key replaced or removed since is never marked (#492)", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const card = {
+    card_id: "promo1",
+    clan_tag: "#2PQRJ8LV",
+    type: "promotion",
+    status: "proposed",
+    player_tag: BEA,
+    player_name: "Secretname",
+    evidence: {
+      message: { title: "New Elder", body: "Secretname is now an Elder." },
+    },
+  };
+  await h.ledger.putCard("#2PQRJ8LV", card);
+  h.anthropic.state.deferred = true;
+  const path = "/api/clans/2PQRJ8LV/actions/promo1/draft";
+  const first = (await api(h, c, "POST", path, {})).body.pending;
+  assert.ok(first);
+  // A leader puts in a new key while the old key's request is out, and
+  // the old request comes back refused: the new key is not marked.
+  h.clock.t += 1000;
+  await api(h, c, "PUT", MODEL, { key: OTHER });
+  h.anthropic.state.replies = { [first]: { ok: false, status: 401 } };
+  const refused = await api(h, c, "POST", path, { pending: first });
+  assert.equal(refused.body.error, "model_key_refused");
+  const after = await h.ledger.modelKey("#2PQRJ8LV");
+  assert.equal(after.refused_at ?? null, null, "the new key is untouched");
+  assert.equal((await api(h, c, "GET", MODEL)).body.refused_at, null);
+  // The key is removed while a request is out: its paid answer is still
+  // collected and recorded.
+  const second = (await api(h, c, "POST", path, {})).body.pending;
+  assert.ok(second);
+  await api(h, c, "DELETE", MODEL);
+  h.anthropic.state.replies = {
+    [second]: {
+      ok: true,
+      model: OPUS_55,
+      usage: { input_tokens: 900, output_tokens: 60 },
+      input: { title: "New Elder", body: "Cheers, Secretname!" },
+    },
+  };
+  const done = await api(h, c, "POST", path, { pending: second });
+  assert.equal(done.status, 200, JSON.stringify(done.body));
+  assert.equal(done.body.body, "Cheers, Secretname!");
+  const uses = await h.ledger.modelCalls(
+    "#2PQRJ8LV",
+    new Date(h.clock.t).toISOString().slice(0, 7),
+  );
+  const call = uses.find((u) => u.request_id === second);
+  assert.equal(call.ok, true);
+  assert.equal(call.input_tokens, 900);
+});

@@ -188,15 +188,18 @@ export function actionLines(
     lines.push(
       `Season ${ev.season_id ?? "?"} closed and the clan granted these awards:`,
     );
-    const named = grants.length
-      ? grants.map(
-          (g) =>
-            `- ${one(g.name ?? g.award_id, 60)}: ${one(g.player_name ?? g.player_tag, 40)}${isNum(g.metric_value) ? ` (${n(g.metric_value)} ${UNIT[g.metric_unit] ?? g.metric_unit ?? ""})`.replace(" )", ")") : ""}`,
-        )
-      : (ev.awards ?? []).map(
-          (a) =>
-            `- ${one(a.name, 60)}: ${(a.winners ?? []).map((w) => one(w, 40)).join(", ")}`,
-        );
+    // A grant names its winner by display name, never a tag: one without
+    // a name falls back to the evidence's winners, which carry names.
+    const named =
+      grants.length && grants.every((g) => g?.player_name)
+        ? grants.map(
+            (g) =>
+              `- ${one(g.name ?? g.award_id, 60)}: ${one(g.player_name, 40)}${isNum(g.metric_value) ? ` (${n(g.metric_value)} ${UNIT[g.metric_unit] ?? g.metric_unit ?? ""})`.replace(" )", ")") : ""}`,
+          )
+        : (ev.awards ?? []).map(
+            (a) =>
+              `- ${one(a.name, 60)}: ${(a.winners ?? []).map((w) => one(w, 40)).join(", ")}`,
+          );
     lines.push(...named);
     if (isNum(ev.parts) && ev.parts > 1)
       lines.push(`This is announcement ${ev.part} of ${ev.parts}.`);
@@ -218,6 +221,8 @@ export function actionLines(
         : "A new member joined the clan.",
     );
     if (ev.joined_at) lines.push(`Joined: ${day(ev.joined_at)}`);
+    const fact = welcomeFact(ev.welcome);
+    if (fact) lines.push(fact);
   } else if (kind === "departure") {
     const c = card?.outcome?.classification;
     lines.push(
@@ -232,6 +237,20 @@ export function actionLines(
     );
   }
   return lines;
+}
+
+/** The one detail frozen with a welcome when it was raised, with when the
+ *  record saw it: from its typed value, never free text, so a later
+ *  profile read never stands in for what the Action was raised on. */
+function welcomeFact(w) {
+  const seen = day(w?.source_as_of);
+  if (!seen || w?.returning === true || !Number.isSafeInteger(w?.value))
+    return null;
+  if (w.kind === "career_wins" && w.value >= 1000)
+    return `From their profile as the record saw it on ${seen}: ${n(Math.floor(w.value / 1000) * 1000)}+ career wins`;
+  if (w.kind === "best_trophies" && w.value > 0)
+    return `From their profile as the record saw it on ${seen}: best ever ${n(w.value)} trophies`;
+  return null;
 }
 
 /** A timeline item's facts as labelled lines: nested values flattened to

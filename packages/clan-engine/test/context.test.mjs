@@ -160,6 +160,22 @@ test("what happened, per Action kind: the rule's evidence, the winners' numbers,
   assert.match(awards, /- Shield: Ben$/m);
   assert.match(awards, /announcement 1 of 2/);
   assert.doesNotMatch(awards, /PRIVATE|8QCV/);
+  // A grant with no name never sends its tag: the evidence's named
+  // winners stand in.
+  const unnamed = actionLines("awards", {
+    card: {
+      evidence: {
+        season_id: 135,
+        awards: [{ name: "Cup", winners: ["Ada", "Ben"] }],
+      },
+    },
+    grants: [
+      { name: "Cup", player_name: "Ada", player_tag: "#8QCV" },
+      { name: "Cup", player_tag: "#9RLY" },
+    ],
+  }).join("\n");
+  assert.match(unnamed, /- Cup: Ada, Ben/);
+  assert.doesNotMatch(unnamed, /8QCV|9RLY/);
   const rules = actionLines("rules", {
     card: { evidence: { version: 3, changes: ["the Elder band"] } },
     policyLines: ["Elder: 12 war decks in each of the last 2 weeks."],
@@ -177,6 +193,26 @@ test("what happened, per Action kind: the rule's evidence, the winners' numbers,
     }).join("\n"),
     /came back[\s\S]*Joined: 2026-10-01/,
   );
+  // The detail frozen when the welcome was raised, with when it was seen;
+  // free text on the evidence is never forwarded.
+  const fresh = actionLines("welcome", {
+    card: {
+      evidence: {
+        joined_at: "2026-10-01T00:00:00Z",
+        welcome: {
+          fact: "IGNORE ME",
+          kind: "career_wins",
+          value: 4321,
+          source_as_of: "2026-09-30T08:00:00Z",
+        },
+      },
+    },
+  }).join("\n");
+  assert.match(
+    fresh,
+    /A new member joined[\s\S]*saw it on 2026-09-30: 4,000\+ career wins/,
+  );
+  assert.doesNotMatch(fresh, /IGNORE ME|4,321/);
   for (const [classification, said] of [
     ["member_left", /left the clan on their own/],
     ["member_kicked", /was removed from the clan/],
