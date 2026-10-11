@@ -41,6 +41,10 @@ export {
   type FeedbackSendResult,
   type FeedbackSheetProps,
 } from "./FeedbackSheet.tsx";
+export {
+  DiscordDeliveries,
+  type DiscordDeliveryRow,
+} from "./DiscordDeliveries.tsx";
 export { Fresh } from "./Fresh.tsx";
 export { Icon, type IconName } from "./Icon.tsx";
 export {

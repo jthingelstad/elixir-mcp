@@ -18,6 +18,9 @@ import {
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import { createModelService } from "@elixir-mcp/clan/manage/model.mjs";
 import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
+import { createDiscordBridge } from "@elixir-mcp/clan/discord-bridge.mjs";
+import { createDiscordService } from "@elixir-mcp/clan/manage/discord.mjs";
+import { clanDiscordWake } from "@elixir-mcp/clan/discord-wake.mjs";
 import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 import { makeHandler } from "./handler.mjs";
 
@@ -75,6 +78,35 @@ const rewriter = (remainingMs) =>
       }
     : null;
 
+/**
+ * A clan's Actions in its Discord, a minute after a hand-off: under the
+ * clan's lock, or not at all when another holder has it (it shares).
+ */
+async function shareClanDiscord(db, clanTag) {
+  if (!secret) return { shared: 0, reason: "no_secret" };
+  const lock = `clan-state:${clanTag}`;
+  const { rows } = await db.query(
+    "select pg_try_advisory_lock(hashtext($1)) as locked",
+    [lock],
+  );
+  if (!rows[0].locked) return { shared: 0, reason: "locked" };
+  try {
+    return await createDiscordService({
+      ledger: createPostgresLedger(db),
+      secret,
+      bridge: createDiscordBridge({
+        secret,
+        storage: modelStorage(bucket, s3),
+      }),
+      wake: clanDiscordWake(outbox),
+    }).share(clanTag);
+  } finally {
+    await db
+      .query("select pg_advisory_unlock(hashtext($1))", [lock])
+      .catch(() => {});
+  }
+}
+
 export const handler = makeHandler({
   connect,
   sync: (db, accountId) => syncAccount(db, accountId, { outbox, readStatus }),
@@ -85,6 +117,7 @@ export const handler = makeHandler({
       policyFor: (d, tag) => createPostgresLedger(d).currentPolicy(tag),
       rewrite: rewriter(remainingMs),
     }),
+  shareClanDiscord,
   async readObject(obj) {
     if (obj.bucket !== bucket) throw new Error("unknown bucket");
     try {

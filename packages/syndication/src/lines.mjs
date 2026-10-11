@@ -8,6 +8,7 @@
  *  the form Discord never previews; the relay also sends the message
  *  with embeds suppressed. */
 import { ELIXIR_ORIGIN, DISCORD_CONTENT_MAX } from "@elixir-mcp/contracts";
+import { escapeDiscord } from "@elixir-mcp/clan-engine";
 
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
@@ -21,14 +22,10 @@ const weekUrl = (tag, season, sectionIndex) =>
   `${ELIXIR_ORIGIN}/console/explore/week/${tagPath(tag)}~${encodeURIComponent(season)}~${Number(sectionIndex)}`;
 
 /** Discord markdown, mentions, timestamps and masked-link brackets, made
- *  literal. The line starts with its stamp, so a leading # or - in a
- *  name is never a heading or a list.
- *  Line breaks fold to spaces: one item is one line. */
-export function escapeDiscord(s) {
-  return String(s ?? "")
-    .replace(/\s+/g, " ")
-    .replace(/[\\*_~`|>[\]<@]/g, (c) => `\\${c}`);
-}
+ *  literal (one rule with Clan's Actions, kept in the engine). The line
+ *  starts with its stamp, so a leading # or - in a name is never a
+ *  heading or a list. Line breaks fold to spaces: one item is one line. */
+export { escapeDiscord };
 
 /** The battle an item names (a promotion, a crossing), if any. */
 export function itemBattleId(it) {

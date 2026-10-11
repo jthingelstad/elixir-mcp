@@ -19,11 +19,12 @@ export function modelStorage(bucket, s3 = new S3Client({ maxAttempts: 2 })) {
       } catch (e) {
         if (["NoSuchKey", "NotFound"].includes(e.name)) return null;
         // Prefix-scoped listing does not authorize an unrestricted missing-key
-        // lookup. Confirm absence using only the exact reply/claim key; a
+        // lookup. Confirm absence using only the exact reply/claim key (or
+        // one op's, `<id>.<n>`, in a request of Discord ops); a
         // denied list or a listed object keeps the original lookup failure.
         if (
           e.name === "AccessDenied" &&
-          /^clan-(?:model|discord)\/(?:reply|claim)\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\.json$/.test(
+          /^clan-(?:model|discord)\/(?:reply|claim)\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}(?:\.\d{1,2})?\.json$/.test(
             key,
           )
         ) {
