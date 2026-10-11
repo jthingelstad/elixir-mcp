@@ -127,9 +127,9 @@ to send in the game themselves.
 Long lists are split into numbered, game-sized messages that name every recipient;
 send every part. Later manual choices update pending copy or create new copy if
 the earlier message was sent. Taking back a manual choice removes it from pending
-copy. Completed messages keep their history. Model drafting restores the complete
-recipient list locally and uses only the remaining room for prose. Nothing is
-posted automatically.
+copy. Completed messages keep their history. A model draft is told the winners
+and their numbers, but Elixir writes the complete recipient list itself; the
+model's prose gets only the room left over. Nothing is posted automatically.
 
 **On Elixir.** When that announcement is marked sent, each winner it
 names is shared with Elixir as a fact the leader attested, for everyone

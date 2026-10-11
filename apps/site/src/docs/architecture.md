@@ -179,7 +179,7 @@ The VPC has no NAT — cloud components cannot reach the internet at
 all, which is a security posture worth keeping. They reach S3 and
 nothing else, so anything bound for the internet leaves as an object in
 an **outbox** bucket: S3 notifies a queue, and a small non-VPC **relay**
-Lambda reads the object, acts on it and deletes it. The relay has three
+Lambda reads the object, acts on it and deletes it. The relay has four
 jobs, with deliberately different guarantees:
 
 - **Mail**, every email Elixir sends, over Amazon SES: retried hard and
@@ -193,6 +193,10 @@ jobs, with deliberately different guarantees:
   requests and replies are sealed, short-lived objects, and a request is
   claimed before the provider is called, so a redelivery never spends the
   clan's tokens twice.
+- **Discord posts**, a clan's Actions and activity and a person's
+  timeline cross-post, each to a sealed webhook: a post is claimed before
+  Discord is called, and one whose outcome is unknown is never made
+  again.
 
 Elixir's servers send nothing to analytics.
 
