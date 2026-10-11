@@ -243,7 +243,9 @@ export function itemFactLines(facts, { max = 40 } = {}) {
     if (out.length >= max || value == null) return;
     const key = path.at(-1) ?? "";
     if (
-      /(_tag|_id|^id|^tag|url|_at|^at|_ms)$/i.test(key) ||
+      // A season is the moment's, not an id: it stays.
+      (key !== "season_id" &&
+        /(_tag|_id|^id|^tag|url|_at|^at|_ms)$/i.test(key)) ||
       // Bookkeeping, not the moment: the attester's stamp and who sees it.
       ["evidence", "attested_by", "visibility"].includes(key)
     )
