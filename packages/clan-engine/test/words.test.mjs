@@ -81,7 +81,7 @@ test("chat drafts carry the clan as a cached prefix, the moment as the packet, a
   assert.throws(() => chatMessageFromDraft({}, { kind: "departure" }));
 });
 
-test("chat drafts restore names locally, keep game limits, and flag scoring language", () => {
+test("chat drafts always name the member, keep game limits, and flag scoring language", () => {
   const welcome = chatMessageFromDraft(
     { line: "Welcome, {name} & friends!" },
     { kind: "welcome", name: "Ab-Cdef" },
@@ -369,7 +369,7 @@ test("a Leader Message request carries the clan, the member by name, the leader'
   assert.throws(() => leaderMessageRequest({ kind: "removal" }));
 });
 
-test("a drafted Leader Message gets its names back, the game's filter rules and its limits", () => {
+test("a drafted Leader Message names its member and the full winners list, with the game's filter rules and its limits", () => {
   const promo = leaderMessageFromDraft(
     {
       title: "New Elder & friends",
@@ -380,7 +380,7 @@ test("a drafted Leader Message gets its names back, the game's filter rules and 
   assert.equal(promo.title, "New Elder and friends");
   assert.equal(promo.body, "Cheers to Ab Cd for every war day 4!");
   assert.deepEqual(promo.warnings, []);
-  // A model that forgot the placeholder still names the member.
+  // A draft that leaves the member out still names them.
   const forgot = leaderMessageFromDraft(
     { title: "Elder update", body: "Back to Member for now." },
     { kind: "demotion", name: "Sleepy" },
