@@ -156,22 +156,23 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   });
   assert.equal(sent.length, 2);
 
-  // No admission comes when a sitting ends (#454): once nothing of it
-  // has been told for half an hour, its account is woken, once a
-  // quarter hour, so the sync can edit it closed.
+  // No admission comes when a sitting ends (#454): half an hour after
+  // its last battle (18:33:43), whenever its line was last told (18:40),
+  // its account is woken, once a quarter hour, so the sync can edit it
+  // closed.
   const wakes = recorder();
   assert.equal(
     await wakeClosingSittings(ctx.db, {
       outbox: wakes.outbox,
-      now: Date.parse("2026-09-02T19:05Z"),
+      now: Date.parse("2026-09-02T19:00Z"),
     }),
     0,
-    "told 25 minutes ago: maybe still being played",
+    "its last battle 26 minutes ago: maybe still being played",
   );
   assert.equal(
     await wakeClosingSittings(ctx.db, {
       outbox: wakes.outbox,
-      now: Date.parse("2026-09-02T19:20Z"),
+      now: Date.parse("2026-09-02T19:05Z"),
     }),
     1,
   );

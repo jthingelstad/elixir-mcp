@@ -5,7 +5,7 @@ This is the other half of #454; #483 fixed the edit race. A sitting told to Disc
 - **`wakeClosingSittings`** (syndication `wake.mjs`) finds accounts where all of these hold:
   - the cross-post is on;
   - a told row still has `open_from` within `OPEN_MS` (12 h, the sync's own reach for an open sitting);
-  - that row was told more than 31 minutes ago (the timeline's 30-minute session gap and a minute for the read).
+  - the sitting's player has no battle in the last 31 minutes (the timeline's 30-minute session gap and a minute for the read), counted from the last battle (`battle_participant` by player and time) and not from when the line was told, so a sitting told late closes just as soon.
 
   Each such account gets one `timeline-sync` object, written once per quarter hour (`<account>.sitting.<slot>`). The sync then reads the sitting from its start, finds it closed and edits it, which clears `open_from`. A wake that still finds it open changes nothing.
 - **The jobs Lambda runs it every five minutes**, through its own rule `elixir-mcp-discord-sittings` (`{"discord_sittings": true}`). The jobs role's `timeline-sync/*` put no longer depends on `ClanInternal`, since the timeline's cross-post is not Clan's.
@@ -13,3 +13,5 @@ This is the other half of #454; #483 fixed the edit race. A sitting told to Disc
 It wakes only accounts that already have a line waiting to close, so it does not poll the timeline. Jamie's "event driven, not polling" (DECISIONS, the cross-post line) still holds for what gets posted: every new line still comes from an admission.
 
 Worst case for one account is a wake every 15 minutes for up to 12 hours, if the record never shows the sitting closed.
+
+Review (#491): the quiet is measured from the player's last battle, not from `told_at`, so the edit lands within about 37 minutes of the last battle (31, then up to 5 for the rule and 1 for the queue), inside the documented 45.
