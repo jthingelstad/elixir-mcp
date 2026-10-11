@@ -193,7 +193,10 @@ test("a leader's preview: the same stories and rules in one request, the answer 
   assert.match(req.prompt, /^STORY tl_2 /m);
   assert.match(req.prompt, /no lookups\. Answer now by calling write_posts\.$/);
   assert.doesNotMatch(req.system, /member_record|lookup/);
-  assert.match(req.system, /never a reason or a guess at why/);
+  assert.match(
+    req.system,
+    /only a short thank-you or farewell .*never a reason, a guess at why or anything else/,
+  );
   assert.match(req.system, /share of the clan's fame is never told/);
 });
 
@@ -210,6 +213,8 @@ test("the checks: a post is refused for a link, a mention, a clock time, a lost 
   assert.ok(EDITOR_POST_MAX === 600);
   assert.equal(ok([JOIN], "Ada joined at 6:05 pm."), "clock_time");
   assert.equal(ok([JOIN], "Ada joined at 6pm."), "clock_time");
+  assert.equal(ok([JOIN], "Ada joined at 18.05."), "clock_time");
+  assert.equal(ok([JOIN], "Ada joined around 6h30."), "clock_time");
   assert.equal(ok([JOIN], "Ada joined at 18:05."), "clock_time");
   assert.equal(ok([JOIN], "Ada joined at 6.05 pm."), "clock_time");
   // A late story says when, in words.
@@ -280,6 +285,38 @@ test("the checks: a post is refused for a link, a mention, a clock time, a lost 
   );
   assert.equal(
     ok([KICK], "Di was removed from the clan. Rules are rules."),
+    "departure_words",
+  );
+  // Around the sentence, only a thank-you or a farewell: anything else
+  // could be a reason (Codex on #506).
+  assert.equal(
+    ok([KICK], "Di was removed from the clan. They were toxic."),
+    "departure_words",
+  );
+  assert.equal(
+    ok([KICK], "Good luck out there, Di! 👋 Di was removed from the clan."),
+    null,
+  );
+  const late = editorStory(
+    post(
+      "tl_5",
+      [item("tl_5", "member_left", { player_tag: "#EEE", name: "Ed" })],
+      "Yesterday: Ed departed the clan after 12 days. Ed donated 1,200 cards.",
+    ),
+  );
+  assert.equal(
+    ok(
+      [late],
+      "Yesterday, Ed departed the clan after 12 days. Ed donated 1,200 cards. We'll miss you, Ed!",
+    ),
+    null,
+    "when, Elixir's other sentences and a farewell",
+  );
+  assert.equal(
+    ok(
+      [late],
+      "Yesterday, Ed departed the clan after 12 days. Not a big loss.",
+    ),
     "departure_words",
   );
   assert.equal(ok([KICK], "Di left; Di was removed."), "departure_words");

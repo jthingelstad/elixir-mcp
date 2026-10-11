@@ -288,12 +288,12 @@ told more than three hours late says when in words ("Yesterday").
   departure is never skipped and never told with another story, and
   neither is a post being edited in place.
   A departure keeps Elixir's sentence for it word for word (departed,
-  was removed, left on their own); the model may add a thank-you or a
-  farewell, never a reason.
+  was removed, left on their own); the model may add only a thank-you
+  or a farewell, never a reason or anything else.
   A post that drops or changes a member's or opponent's name, carries a
   number or a name it was neither given nor looked up, says a time of
   day, leaves out when a story over three hours late happened ("earlier
-  today", "yesterday"), changes a departure's sentence or gives it a reason, tells a
+  today", "yesterday"), changes a departure's sentence or adds more than a thank-you or a farewell to it, tells a
   story another post already told, carries a link or a mention, or runs
   past 600 characters is refused, and its stories are Elixir's own. So is every
   story the model leaves out, and every story when the model cannot be
