@@ -35,8 +35,8 @@ and its current clan is what omitting `clan_tag` means. It is never
 reassigned for you: removing it is refused while you track other players
 (make another primary first).
 
-**reason** — why a subject is recorded: claimed, tracked as a clan, or recorded
-by the maintainer. The widest reason wins; the recording stops
+**reason** — why a subject is recorded: claimed, or tracked as a clan. Only
+people's tracking is a reason. The widest reason wins; the recording stops
 only when no reason remains. See [One recording, many reasons](/docs/recording#added-means-recorded).
 
 **scope** — how deeply a clan is recorded. `activity` polls the roster,
