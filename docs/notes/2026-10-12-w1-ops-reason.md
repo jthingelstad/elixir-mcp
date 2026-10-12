@@ -56,16 +56,5 @@ reason is retired: only people's tracking records."
 ## Census
 
 Run after the deploy with `npm run op -- '{"ops_recordings": {"dry_run": true}}'`
-(a read), after the deploy of 42d4ea64 on 2026-10-12:
-
-| `subject_type` | `status` | rows with origin `ops` |
-|---|---|---|
-| player | any | 0 |
-| clan | active | 1 |
-| clan | stopped | 10 |
-
-`subjects` 1; `would_stop_count` `{player: 0, clan: 0}`: the one active
-`ops` clan is still tracked, so it keeps recording. The 2026-10-07
-relabel did cover every player; the 0042-era clan rows are stopped
-history. Nothing is left for `{ops_recordings: {dry_run: false}}` to do.
-Tags are not written here.
+(a read). The counts are in the pull request's follow-up comment; tags
+are not written here.
