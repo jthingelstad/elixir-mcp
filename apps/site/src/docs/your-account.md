@@ -159,7 +159,26 @@ primary player.
 
 There is no delete button. Write to admin@poapkings.com, or send it as
 feedback from the console, and the removal is carried out in one
-reviewed step: your address, your players and clans, your agents and
-their keys, your connections, sessions, call history, feedback and the
-mail sent to you go. The public game record stays. A collector you run
-has to be revoked first. The [privacy page](/docs/privacy) has the rest.
+reviewed step. Removing the account deletes the account:
+
+- **your address**, and every way to sign in as you;
+- **your claims**: the players and clans you track;
+- **your nicknames** for players;
+- **your agents**, their keys and the identities they map;
+- **your connections**: sessions, apps you allowed, a timeline
+  cross-post's Discord webhook, and the clan Elixir Clan remembers you
+  working in;
+- **your mail**: what was sent to you, your email switches, and what the
+  cross-post told and posted;
+- **your usage**: call history, refusals and rate counters;
+- your feedback.
+
+It does not delete the record. The players' battles, profiles and clans
+are public game data, recorded from the game like anyone's; they stay,
+as any player's history does that nobody tracks, under the
+[record's retention rule](https://github.com/jthingelstad/elixir-mcp/blob/main/docs/product/record.md#when-a-person-leaves).
+Removing your players stops their recording where nobody else tracks
+them, and stopping deletes nothing recorded.
+
+A collector you run has to be revoked first. The
+[privacy page](/docs/privacy) has the rest.

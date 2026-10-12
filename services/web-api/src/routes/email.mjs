@@ -225,7 +225,15 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
         );
       if (c.kind !== "all" && !isProductEmailKind(c.kind))
         return json(400, { error: "bad_kind" });
-      await setPref(db, c.accountId, c.kind, false, "one_click");
+      // A removed account keeps no switches ({account_remove}): a late
+      // one-click on an old mail answers as done and writes nothing to the
+      // tombstone, which has no address to mail anyway.
+      const { rows: removed } = await db.query(
+        `select 1 from account where account_id = $1 and email_hash like 'removed:%'`,
+        [c.accountId],
+      );
+      if (!removed.length)
+        await setPref(db, c.accountId, c.kind, false, "one_click");
       // A mail client's one-click POST wants a 2xx and nothing else; a
       // person's button wants a page.
       const wantsHtml = /text\/html/.test(event.headers?.accept ?? "");
