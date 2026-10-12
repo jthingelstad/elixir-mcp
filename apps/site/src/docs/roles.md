@@ -8,7 +8,7 @@ navTitle: "Roles and tiers"
 icon: shield-check
 lede: "What each tier records for you — never what you may read."
 console: ["Your tier", "/console/account/profile", "Account settings ▸ Profile"]
-reviewed: "2026-10-06 for public member signup, contract 11.2.3"
+reviewed: "2026-10-12 a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup, contract 11.2.3"
 ---
 
 # Roles and quotas
@@ -48,7 +48,10 @@ battles and profile, following membership as it changes. This is the tier
 a clan's own agent needs.
 
 **family** — you run a clan family: a main plus feeders. Multiple
-comprehensive watches for the clans you follow.
+comprehensive watches for the clans you follow. A family is how they are
+recorded; in [Elixir Clan](/docs/bring-your-clan#your-role-here)
+each clan keeps its own policy, standing, Actions and awards, and a
+leader switches between them.
 
 **partner** — you run serious tooling (a clan bot, a community service)
 on top of Elixir. Community-scale slots and budgets — and an expectation:

@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Elixir Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-10-12; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -84,8 +84,15 @@ lost those powers by the time it lets them through. Reading pages, a
 member's own away notice, the policy preview and Scout never wait.
 
 If two of your players are in the same clan, the higher role counts.
-If your players are in different clans, Clan asks which one to work in
-and remembers it; change it at any time under **Clans**.
+
+**One clan at a time, by design.** Each clan in Clan has its own policy,
+standing, Actions and awards, and nothing is pooled across clans. If
+your players are in different clans (a clan family's main and its
+feeders, say), Clan asks which one to work in and remembers it; switch
+at any time under **Clans**. A family is how Elixir *records* clans:
+the Family tier's several comprehensive watches ([Roles](/docs/roles)).
+Clan does not know which clans make up a family, only which clans your
+own players are in.
 
 ## Finding your way
 

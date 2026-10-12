@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-12; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
+reviewed: "2026-10-12; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
 ---
 
 # Actions
@@ -332,6 +332,12 @@ the same message is edited to say so and by whom; when Clan withdraws it,
 the message says that. A declined action that is reopened reads as open
 again.
 
+- The channel only receives. An action is decided here, in Clan, never
+  from Discord; whether a leader may one day act from Discord (deciding an
+  action, a member marking themselves away) is deliberately left open
+  while we learn what clans do there. Clan does not answer questions in
+  Discord either: conversation is the [Discord bot](/family/discord)'s,
+  which a clan runs on its own keys.
 - Actions already open when the webhook is connected are posted too; one
   that closes before it was ever posted is not.
 - A member's own **Going to be away?** prompt is never posted.
