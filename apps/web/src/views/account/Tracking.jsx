@@ -1,5 +1,5 @@
 import { ago, Icon, Link, secsSince, Tag, TagText } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
@@ -52,6 +52,14 @@ export function Tracking({ me, refresh, navigate }) {
   const [clanScope, setClanScope] = useState("activity");
   const [clanErr, setClanErr] = useState("");
   const [now] = useState(() => Date.now());
+  // A new account that gave no tag at signup lands here
+  // (#add-player-tag): the field it came to fill is ready to type in.
+  const tagInput = useRef(null);
+  useEffect(() => {
+    if (window.location.hash !== "#add-player-tag") return;
+    tagInput.current?.scrollIntoView?.({ block: "center" });
+    tagInput.current?.focus({ preventScroll: true });
+  }, []);
 
   // A tracking change moves the rail's count as well as this list, so
   // it invalidates everything that is the reader's own, not just clans.
@@ -335,6 +343,7 @@ export function Tracking({ me, refresh, navigate }) {
             style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
           >
             <input
+              ref={tagInput}
               id="add-player-tag"
               aria-label="Player tag"
               aria-describedby="add-player-tag-hint"

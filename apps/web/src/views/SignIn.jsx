@@ -38,13 +38,15 @@ const primary = {
 // A form draft, never an account preference. Keep an unchecked choice through
 // an interrupted request/reload; the server freezes it in each emailed proof.
 const PRODUCT_NEWS_DRAFT = "elixir.signup_product_news";
-function finishSignIn(onAuthed) {
+/** `newAccount` is the server's word that this proof opened the account
+ *  ({ player_tag } or null otherwise): App lands a new person on it. */
+function finishSignIn(onAuthed, newAccount = null) {
   try {
     window.sessionStorage.removeItem(PRODUCT_NEWS_DRAFT);
   } catch {
     // Storage is optional; email proof still carries the selected choice.
   }
-  return onAuthed();
+  return onAuthed(newAccount ?? null);
 }
 
 function Eyebrow({ icon, tone, children }) {
@@ -78,9 +80,17 @@ export function SignIn({ onAuthed }) {
   // email | code | redeeming | expired | pending | handoff
   const [step, setStep] = useState("email");
   const submitting = useRef(false);
-  const creating =
-    new URLSearchParams(window.location.search).has("signup") ||
-    new URLSearchParams(window.location.search).has("request");
+  // The signup form: `?signup` (and the retired `?request`), or "New
+  // here?" from plain sign-in. Only it asks for a player tag.
+  const [creating, setCreating] = useState(
+    () =>
+      new URLSearchParams(window.location.search).has("signup") ||
+      new URLSearchParams(window.location.search).has("request"),
+  );
+  const [playerTag, setPlayerTag] = useState("");
+  // What the proof said about a new account, held while a cross-device
+  // handoff is answered first.
+  const newAccount = useRef(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -127,11 +137,12 @@ export function SignIn({ onAuthed }) {
         return setStep(
           res.data?.error === "not_approved" ? "pending" : "expired",
         );
+      newAccount.current = res.data?.new_account ?? null;
       if (res.data?.handoff?.state === "confirm") {
         setHandoff(res.data.handoff);
         return setStep("handoff");
       }
-      finishSignIn(onAuthedRef.current);
+      finishSignIn(onAuthedRef.current, newAccount.current);
     });
   }, []);
 
@@ -164,18 +175,25 @@ export function SignIn({ onAuthed }) {
     submitting.current = true;
     setError("");
     setBusy(true);
-    const res = await api.sendLoginEmail(email, productNews, browserZone());
+    const res = await api.sendLoginEmail(
+      email,
+      productNews,
+      browserZone(),
+      creating ? playerTag : "",
+    );
     submitting.current = false;
     setBusy(false);
     if (!res.ok) {
       setError(
-        res.data?.error === "bad_request"
-          ? "Enter a valid email address."
-          : writeErrorText({
-              status: res.status,
-              transport: res.error,
-              data: res.data,
-            }),
+        res.data?.error === "invalid_tag"
+          ? "That doesn't look like a player tag. Check it, or leave it empty and add your player after signing in."
+          : res.data?.error === "bad_request"
+            ? "Enter a valid email address."
+            : writeErrorText({
+                status: res.status,
+                transport: res.error,
+                data: res.data,
+              }),
       );
       return;
     }
@@ -239,7 +257,7 @@ export function SignIn({ onAuthed }) {
                   data: r.data,
                 }),
               );
-            finishSignIn(onAuthed);
+            finishSignIn(onAuthed, newAccount.current);
           }}
         >
           {busy ? "Signing it in…" : "Yes, that was me"}
@@ -253,7 +271,7 @@ export function SignIn({ onAuthed }) {
           className="btn"
           style={{ ...primary, marginTop: "10px" }}
           disabled={busy}
-          onClick={() => finishSignIn(onAuthed)}
+          onClick={() => finishSignIn(onAuthed, newAccount.current)}
         >
           No, just here
         </button>
@@ -371,7 +389,8 @@ export function SignIn({ onAuthed }) {
             const res = await api.redeemCode(email, code);
             submitting.current = false;
             setBusy(false);
-            if (res.ok) return finishSignIn(onAuthed);
+            if (res.ok)
+              return finishSignIn(onAuthed, res.data?.new_account ?? null);
             if (res.data?.error === "not_approved") return setStep("pending");
             setError(
               res.status >= 500 || res.error
@@ -445,7 +464,7 @@ export function SignIn({ onAuthed }) {
             Send another email
           </button>
         </div>
-        <p className="footnote" style={{ margin: "14px 0 0" }}>
+        <p className="footnote mt-3.5 mb-0">
           Five tries, then the code is spent. The link expires either way.
         </p>
       </div>
@@ -484,6 +503,30 @@ export function SignIn({ onAuthed }) {
           onChange={(e) => setEmail(e.target.value)}
           style={field}
         />
+        {creating && (
+          <>
+            <label className="field-label" htmlFor="signin-player-tag">
+              Your player tag (optional)
+            </label>
+            <input
+              id="signin-player-tag"
+              className="mono"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              placeholder="#2PYQ8GJ0"
+              aria-describedby="signin-player-tag-hint"
+              value={playerTag}
+              onChange={(e) => setPlayerTag(e.target.value)}
+              style={field}
+            />
+            <p id="signin-player-tag-hint" className="footnote -mt-2 mb-4">
+              In Clash Royale, open your profile: the tag starting with # is
+              below your name. Elixir starts recording it once you verify your
+              email. Leave it empty to add your player after signing in.
+            </p>
+          </>
+        )}
         <label className="mb-2 flex items-start gap-2 text-[13px] text-ink-body">
           <input
             type="checkbox"
@@ -523,11 +566,22 @@ export function SignIn({ onAuthed }) {
           {busy ? "Sending…" : "Send sign-in email"}
         </button>
       </form>
-      <p
-        className="footnote"
-        style={{ margin: "16px 0 0", textWrap: "pretty" }}
-      >
-        New here? After signing in, add your player under Console ▸ Tracking.
+      <p className="footnote mt-4 mb-0 text-pretty">
+        {creating ? (
+          "A tag you give is for a new account only; one you already have keeps its players. "
+        ) : (
+          <>
+            New here?{" "}
+            <button
+              type="button"
+              className="link"
+              onClick={() => setCreating(true)}
+            >
+              Create an account
+            </button>{" "}
+            and add your player tag as you do.{" "}
+          </>
+        )}
         Product news is your choice above. Reports have their own off switches.
         A new account starts on this device's time zone; Profile changes it. See{" "}
         <a href="/docs/privacy">Privacy</a> and <a href="/docs/email">Emails</a>

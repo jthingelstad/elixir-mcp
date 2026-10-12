@@ -38,6 +38,8 @@ import { exploreRoutes } from "./routes/explore.mjs";
 import { feedbackRoutes } from "./routes/feedback.mjs";
 import { adminRoutes } from "./routes/admin.mjs";
 import { onboardAccount } from "@elixir-mcp/tools/onboard";
+import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
+import { enqueueJob } from "@elixir-mcp/ledger";
 import { resolveOwnedAgent } from "./agent-scope.mjs";
 import { deadlineMs } from "./deadline.mjs";
 import { principalsRoutes } from "./routes/principals.mjs";
@@ -161,7 +163,11 @@ export function makeHandler({
   /** Internal Clan request handler. Null until the reviewed state cutover;
    * the old origin continues to serve Clan during preparation. */
   clan = null,
+  /** The live lane for first reads (tools live.mjs makeLive); null = the
+   *  ledger's, charged to nobody, as Tracking's add uses. */
+  live = null,
 }) {
+  const liveRead = live ?? makeLive({ enqueue: enqueueJob });
   // What unsubscribe links are signed and checked with: their own key
   // when there is one, and the session secrets for links sent before it.
   const unsubscribeKeys =
@@ -236,6 +242,7 @@ export function makeHandler({
       verifiedEmail = null,
       verifiedNewsletter = true,
       verifiedZone = null,
+      verifiedPlayerTag = null,
     } = {},
   ) {
     const opened = verifiedEmail
@@ -244,6 +251,7 @@ export function makeHandler({
           email: verifiedEmail,
           newsletterOptIn: verifiedNewsletter,
           timezone: verifiedZone,
+          playerTag: verifiedPlayerTag,
         })
       : null;
     const account = await approvedAccount(db, hash);
@@ -282,10 +290,25 @@ export function makeHandler({
     // The second chance at approval-time tracking: at the decision we may
     // not have fetched the requested player yet, so their clan was not
     // knowable. It no-ops once account.onboarded_at is set (0065).
-    await onboardAccount(db, account.account_id);
+    const onboarded = await onboardAccount(db, account.account_id);
+    // A player the signup form named is claimed above, after proof; its
+    // first read is asked for as a Tracking add asks (requestFirstRead,
+    // the pool's daily first reads), so "Tag not found" or the capture
+    // shows in seconds rather than at the scheduler's next pass.
+    if (onboarded?.player === true && onboarded.tag)
+      await requestFirstRead(db, liveRead, onboarded.tag, account.account_id);
+    // Only the verification that created the account says where a new
+    // person lands: their player's record, or Tracking to add one.
+    const landing = opened?.created
+      ? {
+          new_account: {
+            player_tag: onboarded?.player === true ? onboarded.tag : null,
+          },
+        }
+      : {};
     return json(
       200,
-      { authenticated: true, ...extra },
+      { authenticated: true, ...landing, ...extra },
       { "set-cookie": sessionCookie(minted.token, 90 * 24 * 3600) },
     );
   }

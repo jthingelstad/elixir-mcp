@@ -103,7 +103,7 @@ test("both public signup and legacy request links use the same email verificatio
       screen.getByRole("heading", { name: "Create your Elixir account" }),
     ).toBeTruthy();
     expect(screen.getByLabelText("Email")).toBeTruthy();
-    expect(screen.queryByLabelText("Your player tag")).toBeNull();
+    expect(screen.getByLabelText("Your player tag (optional)")).toBeTruthy();
     expect(
       screen.getByText(/No password, invitation or collector needed/),
     ).toBeTruthy();
@@ -234,4 +234,75 @@ test("an unchecked new-account choice survives interruption, remount and resend;
   expect(screen.getByLabelText("Send me Elixir product news").checked).toBe(
     true,
   );
+});
+
+// The signup form's optional player tag (2026-10-12).
+test("plain sign-in asks for no tag; New here? opens the signup form with one", () => {
+  render(<SignIn onAuthed={vi.fn()} />);
+  expect(screen.queryByLabelText("Your player tag (optional)")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Create an account" }));
+  expect(
+    screen.getByRole("heading", { name: "Create your Elixir account" }),
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Your player tag (optional)")).toBeTruthy();
+});
+
+test("signup sends the tag with the email; a refused tag is a form error, not a code step", async () => {
+  window.history.pushState({}, "", "/console/signin?signup");
+  const sent = [];
+  global.fetch = vi.fn(async (path, init) => {
+    sent.push(JSON.parse(init.body));
+    return {
+      ok: false,
+      status: 400,
+      json: async () => ({ error: "invalid_tag" }),
+      text: async () => JSON.stringify({ error: "invalid_tag" }),
+    };
+  });
+  render(<SignIn onAuthed={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText("Email"), {
+    target: { value: "new@example.com" },
+  });
+  fireEvent.change(screen.getByLabelText("Your player tag (optional)"), {
+    target: { value: " #2pyq8gj0 " },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
+  expect(
+    await screen.findByText(/doesn't look like a player tag/),
+  ).toBeTruthy();
+  expect(sent[0].player_tag).toBe("#2pyq8gj0");
+  expect(screen.queryByLabelText("6-digit code")).toBeNull();
+  expect(screen.getByLabelText("Your player tag (optional)")).toBeTruthy();
+});
+
+test("an empty tag is not sent, and a new account's landing reaches onAuthed", async () => {
+  window.history.pushState({}, "", "/console/signin?signup");
+  const sent = [];
+  const done = vi.fn();
+  global.fetch = vi.fn(async (path, init) => {
+    sent.push([path, JSON.parse(init.body)]);
+    const body =
+      path === "/api/auth/code"
+        ? { authenticated: true, new_account: { player_tag: null } }
+        : { ok: true };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  });
+  render(<SignIn onAuthed={done} />);
+  fireEvent.change(screen.getByLabelText("Email"), {
+    target: { value: "new@example.com" },
+  });
+  fireEvent.change(screen.getByLabelText("Your player tag (optional)"), {
+    target: { value: "   " },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send sign-in email" }));
+  const code = await screen.findByLabelText("6-digit code");
+  expect("player_tag" in sent[0][1]).toBe(false);
+  fireEvent.change(code, { target: { value: "123456" } });
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  await waitFor(() => expect(done).toHaveBeenCalledWith({ player_tag: null }));
 });

@@ -7,7 +7,7 @@ order: 2
 navTitle: "Quickstart"
 icon: rocket
 lede: "Create your account, track your player, and read captured history in Ladder. Add clan war history or an AI client when you want them."
-reviewed: "2026-10-08 against contract 11.4.0"
+reviewed: "2026-10-12 against contract 11.11.2"
 ---
 
 # Get started with Elixir
@@ -25,10 +25,21 @@ the six-digit code or one-click link (15 minutes, five code attempts).
 Signing in and creating an account use the same form. No invitation or
 collector is required. Restricted accounts stay restricted.
 
+The signup form also asks for **your player tag**, optionally (plain sign-in
+does not). A tag that is not a Clash Royale tag is refused on the form,
+before any email is sent; leave the field empty to add your player later.
+Nothing happens with the tag until you verify the email: then the new
+account tracks it as your primary, and you land on that player's page with
+the first capture on its way (or **Tag not found** there, with the place to
+fix it). An account opened without a tag lands on Tracking with the tag
+field ready. A tag given while signing in to an account that already exists
+is ignored; that account keeps its players.
+
 ## 2. Track your player
 
-Open [Console ▸ Tracking](/console/account/tracking) and add your Clash Royale
-player tag. Your first player is your **primary**, which is what every tool
+If you gave your tag at signup, this step is done: skip to the capture
+below. Otherwise open [Console ▸ Tracking](/console/account/tracking) and add
+your Clash Royale player tag. Your first player is your **primary**, which is what every tool
 means when you omit `player_tag`. Tracking **is** recording: Elixir reads
 your profile straight away and your battle log at the scheduler's next tick,
 so the first capture usually lands within a few minutes, with roughly your

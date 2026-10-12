@@ -16,8 +16,16 @@ const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 const name = `elixir_mcp_test_signup_${process.pid}`;
 const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
-let db, handler;
+let db, handler, tagged;
 const mails = [];
+// The live lane a signup's first read goes through, faked: a call is a
+// read asked for, and beforeMint is the pool's daily first-read charge.
+const liveCalls = [];
+async function fakeLive(_db, { endpoint, entityKey, beforeMint }) {
+  await beforeMint();
+  liveCalls.push({ endpoint, entityKey });
+  return { ok: false, reason: "pending", queued: true, minted: true };
+}
 const welcomes = [];
 let request = 0;
 function event(p, body, cookie, ip = `198.51.100.${++request}`) {
@@ -63,6 +71,14 @@ before(async () => {
     sendLoginEmail: async (m) => mails.push(m),
     notifyOwner: async () => {},
     sendWelcomeEmail: async (m) => welcomes.push(m),
+  });
+  tagged = makeHandler({
+    databaseUrl,
+    secret: "signup-test-secret",
+    sendLoginEmail: async (m) => mails.push(m),
+    notifyOwner: async () => {},
+    sendWelcomeEmail: async (m) => welcomes.push(m),
+    live: fakeLive,
   });
 });
 after(async () => {
@@ -696,4 +712,173 @@ test("distinct concurrent verified links keep one identity and send one welcome"
     1,
   );
   assert.equal(welcomes.filter((m) => m.email === email).length, 1);
+});
+
+// The signup form's optional player tag (2026-10-12): normalized at the
+// request, frozen with the code like the news choice and the zone, and
+// applied only after the address is proved.
+async function askTagged(email, player_tag, ip) {
+  const response = await tagged(
+    event("/api/auth", { email, player_tag }, null, ip),
+  );
+  return { response, mail: mails.findLast((m) => m.email === email) };
+}
+const accountOf = async (email) =>
+  (
+    await db.query(
+      "select account_id, requested_player_tag, onboarded_at from account where email_hash=$1",
+      [emailHash(email)],
+    )
+  ).rows[0];
+
+test("a signup tag is frozen at the request and claimed, with its clan, only after proof", async () => {
+  const email = "tagged-signup@example.com";
+  // Elixir already knows this player's clan (another account records it).
+  await db.query(
+    "insert into player (player_tag, last_known_clan_tag) values ('#2PYQ8GJ0', '#QPPPP')",
+  );
+  const before = liveCalls.length;
+  const { response, mail } = await askTagged(email, " 2pyq8gjo ");
+  assert.equal(response.statusCode, 200, response.body);
+  assert.ok(mail?.code);
+  const {
+    rows: [frozen],
+  } = await db.query(
+    "select context from magic_login where email_hash=$1 order by created_at desc limit 1",
+    [emailHash(email)],
+  );
+  assert.equal(frozen.context.signup_player_tag, "#2PYQ8GJ0");
+  assert.equal(await accountOf(email), undefined, "nothing before proof");
+  assert.equal(liveCalls.length, before, "no read for an unproved address");
+
+  const verified = await tagged(
+    event("/api/auth/code", { email, code: mail.code, player_tag: "#GGGG" }),
+  );
+  assert.equal(verified.statusCode, 200, verified.body);
+  assert.deepEqual(parse(verified).new_account, { player_tag: "#2PYQ8GJ0" });
+  const account = await accountOf(email);
+  assert.equal(account.requested_player_tag, "#2PYQ8GJ0");
+  assert.ok(account.onboarded_at, "onboarding finished with the clan known");
+  const claims = async () =>
+    (
+      await db.query(
+        "select player_tag, is_primary from claim where account_id=$1",
+        [account.account_id],
+      )
+    ).rows;
+  const clans = async () =>
+    (
+      await db.query(
+        "select clan_tag, scope from account_clan where account_id=$1",
+        [account.account_id],
+      )
+    ).rows;
+  assert.deepEqual(await claims(), [
+    { player_tag: "#2PYQ8GJ0", is_primary: true },
+  ]);
+  assert.deepEqual(await clans(), [{ clan_tag: "#QPPPP", scope: "activity" }]);
+  assert.deepEqual(liveCalls.slice(before), [
+    { endpoint: "player", entityKey: "#2PYQ8GJ0" },
+  ]);
+
+  // A second sign-in, even naming another tag, changes nothing.
+  const again = await askTagged(email, "#GGGG");
+  const second = await tagged(
+    event("/api/auth/code", { email, code: again.mail.code }),
+  );
+  assert.equal(second.statusCode, 200, second.body);
+  assert.equal(parse(second).new_account, undefined);
+  assert.deepEqual(await claims(), [
+    { player_tag: "#2PYQ8GJ0", is_primary: true },
+  ]);
+  assert.deepEqual(await clans(), [{ clan_tag: "#QPPPP", scope: "activity" }]);
+  assert.equal((await accountOf(email)).requested_player_tag, "#2PYQ8GJ0");
+  assert.equal(liveCalls.length, before + 1);
+});
+
+test("a link carries a new account's landing through the handoff answer", async () => {
+  const email = "tagged-link@example.com";
+  const { mail } = await askTagged(email, "#LQQQQ", "198.51.100.201");
+  const redeemed = await tagged(
+    event("/api/auth/redeem", { token: mail.token }, null, "198.51.100.202"),
+  );
+  assert.equal(redeemed.statusCode, 200, redeemed.body);
+  const body = parse(redeemed);
+  assert.deepEqual(body.new_account, { player_tag: "#LQQQQ" });
+  assert.equal(body.handoff.state, "confirm");
+});
+
+test("a malformed signup tag is refused before any mail; an empty one is no tag", async () => {
+  const sent = mails.length;
+  for (const [player_tag, error] of [
+    ["not a tag!", "invalid_tag"],
+    ["#AB", "invalid_tag"],
+    ["#" + "2".repeat(13), "invalid_tag"],
+    [42, "bad_request"],
+    [["#2PYQ8GJ0"], "bad_request"],
+  ]) {
+    const { response } = await askTagged(
+      "malformed-tag@example.com",
+      player_tag,
+    );
+    assert.equal(response.statusCode, 400, JSON.stringify(player_tag));
+    assert.equal(parse(response).error, error);
+  }
+  assert.equal(mails.length, sent, "no code was mailed");
+  assert.equal(await accountOf("malformed-tag@example.com"), undefined);
+
+  for (const [i, player_tag] of ["", "   ", null].entries()) {
+    const email = `empty-tag-${i}@example.com`;
+    const { response, mail } = await askTagged(email, player_tag);
+    assert.equal(response.statusCode, 200, response.body);
+    const verified = await tagged(
+      event("/api/auth/code", { email, code: mail.code }),
+    );
+    assert.deepEqual(parse(verified).new_account, { player_tag: null });
+    const account = await accountOf(email);
+    assert.equal(account.requested_player_tag, null);
+    assert.equal(
+      (
+        await db.query("select 1 from claim where account_id=$1", [
+          account.account_id,
+        ])
+      ).rowCount,
+      0,
+    );
+  }
+});
+
+test("a signup tag Elixir has never seen is claimed; its clan waits for the first profile", async () => {
+  const email = "unseen-tag@example.com";
+  const { mail } = await askTagged(email, "#CCCCC");
+  const verified = await tagged(
+    event("/api/auth/code", { email, code: mail.code }),
+  );
+  assert.deepEqual(parse(verified).new_account, { player_tag: "#CCCCC" });
+  const account = await accountOf(email);
+  const {
+    rows: [claim],
+  } = await db.query(
+    "select player_tag, is_primary from claim where account_id=$1",
+    [account.account_id],
+  );
+  assert.deepEqual(claim, { player_tag: "#CCCCC", is_primary: true });
+  // No clan is knowable yet: the primary's clan is followed when its
+  // first profile is admitted (claims followClanForPlayer), which this
+  // new account is switched on for.
+  const {
+    rows: [acct],
+  } = await db.query(
+    "select auto_follow_clan from account where account_id=$1",
+    [account.account_id],
+  );
+  assert.equal(acct.auto_follow_clan, true);
+  assert.equal(
+    (
+      await db.query("select 1 from account_clan where account_id=$1", [
+        account.account_id,
+      ])
+    ).rowCount,
+    0,
+  );
 });
