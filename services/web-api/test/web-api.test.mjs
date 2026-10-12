@@ -481,13 +481,15 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
     [acct[0].account_id],
   );
   // A Ladder read (the site's own: logged, never charged, #538), an
-  // Elixir Clan read, a Clan morning read and an /api/v1 call (none of
-  // them spends the daily tool-call budget).
+  // Elixir Clan read, a Clan morning read, a Console nickname edit (the
+  // bridge's one write: uncharged, and not a read) and an /api/v1 call
+  // (none of them spends the daily tool-call budget).
   await db.query(
     `insert into mcp_call_audit (account_id, tool, surface, client_name)
      values ($1, 'battles_query', 'web', null),
             ($1, 'clans_participation', 'web', 'Clan'),
             ($1, 'clans_roster', 'web', 'Clan morning'),
+            ($1, 'elixir_nickname', 'web', null),
             ($1, 'players_summary', 'rest', null)`,
     [acct[0].account_id],
   );
@@ -525,7 +527,7 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
     "the label can name the player",
   );
   // The fleet view counts every recorded call, whatever spent the budget.
-  assert.equal(row.calls_7d, 7);
+  assert.equal(row.calls_7d, 8);
   assert.equal(row.errors_7d, 1);
   assert.ok(fleet.tools.some((t) => t.tool === "battles_query"));
   // A day's capacity is the planner's bulk share, not rate x 86,400 (#64).

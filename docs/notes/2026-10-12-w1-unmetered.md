@@ -37,8 +37,10 @@ leaves them" [Jamie, 2026-10-12]:
   web surface is the Console, Ladder and Clan, none of which the daily
   limiter charges), so `today_calls`, the day bars and an agent console's
   `budget_today_calls` count only what `mcpday#` counts. The person's own
-  web reads are a separate, uncharged count, `web_calls` (surface `web`
-  and no client name), per day and as `web_calls_today`. [engineering,
+  web reads are a separate, uncharged count, `web_calls` (surface `web`,
+  no client name, and not `elixir_nickname`, the bridge's one write: a
+  nickname edit is logged and uncharged but is not a read; Codex on
+  #552), per day and as `web_calls_today`. [engineering,
   2026-10-12]
 - **Where the person sees them.** Usage's lede says how many of the day's
   reads were the Console's and Ladder's and that they are not counted
