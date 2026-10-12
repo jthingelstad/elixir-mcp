@@ -16,7 +16,13 @@
  * stops part way is picked up where it stopped: the op it was calling is
  * unknown (never sent again), the ones after it are still sent. A
  * webhook Discord says is gone, or a rate limit longer than the client
- * waits, ends the run: the rest are `not_sent`, for the next sweep. */
+ * waits, ends the run: the rest are `not_sent`, for the next sweep.
+ *
+ * A request of ops may also name up to three of the webhook's earlier
+ * Actions to read back (`reads`, the quality ledger's one read-back a
+ * day after posting): read after the ops, never waiting, never retried,
+ * none after a stop; the answers go in the reply's `reads`, under each
+ * read's `ref` (its ledger row). */
 import { randomUUID } from "node:crypto";
 import { createBox } from "./sealed.mjs";
 import {
@@ -25,6 +31,7 @@ import {
   validRoleId,
 } from "./discord-webhook.mjs";
 import { DISCORD_MAX_CHARS } from "@elixir-mcp/clan-engine";
+import { webhookFingerprint } from "@elixir-mcp/contracts";
 
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const PREFIX = "clan-discord/";
@@ -44,6 +51,18 @@ export const SPACING_MS = 2400;
 const BUDGET_MS = 35_000;
 /** Answers after which the rest of a request is not sent. */
 const STOPS = new Set(["webhook_gone", "webhook_refused", "rate_limited"]);
+/** The most Actions one request reads back. */
+export const DISCORD_READS_MAX = 3;
+/** Answers the DiscordUndelivered alarm counts: Discord refused the
+ *  call, or may never have seen it. */
+const UNDELIVERED = {
+  webhook_gone: "refused",
+  webhook_refused: "refused",
+  bad_request: "refused",
+  forum_needs_thread: "refused",
+  outcome_unknown: "unknown",
+  discord_error: "unknown",
+};
 export const discordRequestKey = (id) => `${PREFIX}request/${id}.json`;
 export const discordReplyKey = (id) => `${PREFIX}reply/${id}.json`;
 export const discordClaimKey = (id) => `${PREFIX}claim/${id}.json`;
@@ -98,6 +117,13 @@ function validOp(r) {
     (r.mention_role == null || validRoleId(r.mention_role))
   );
 }
+/** One Action to read back: its ledger row, its message and thread. */
+const validRead = (r) =>
+  !!r &&
+  typeof r.ref === "string" &&
+  UUID.test(r.ref) &&
+  validMessageId(r.message_id) &&
+  (r.thread_id == null || validMessageId(r.thread_id));
 function validRequest(r) {
   if (
     !r ||
@@ -113,9 +139,13 @@ function validRequest(r) {
       Array.isArray(r.ops) &&
       r.ops.length >= 1 &&
       r.ops.length <= DISCORD_OPS_MAX &&
-      r.ops.every(validOp)
+      r.ops.every(validOp) &&
+      (r.reads === undefined ||
+        (Array.isArray(r.reads) &&
+          r.reads.length <= DISCORD_READS_MAX &&
+          r.reads.every(validRead)))
     );
-  return validOp(r);
+  return r.reads === undefined && validOp(r);
 }
 const unknown = () => ({ ok: false, status: 0, code: "outcome_unknown" });
 
@@ -166,11 +196,12 @@ export function createDiscordBridge({
      * A sweep's ops, sealed under a new id but not yet in the outbox: the
      * caller records the id first, then `publish`es it (#453).
      */
-    prepare({ url, ops, forum = null }) {
+    prepare({ url, ops, forum = null, reads = [] }) {
       const id = randomUUID();
       const request = {
         url,
         ops,
+        ...(reads.length ? { reads } : {}),
         ...(forum !== null ? { forum } : {}),
         expires_at: now() + DISCORD_REQUEST_LIFETIME_MS,
       };
@@ -240,6 +271,49 @@ export function createDiscordWorker({
   // Never the URL: its last part is the webhook's secret.
   const said = (method, response) =>
     log.log("clan_discord", method, response.ok ? "ok" : response.code);
+  /** One line per Action Discord refused or may never have seen (the
+   *  DiscordUndelivered alarm). A connection's check is not counted:
+   *  its leader reads the answer at once. */
+  const counted = (request, response) => {
+    const outcome = response.ok ? null : UNDELIVERED[response.code];
+    if (outcome)
+      log.error?.(
+        "discord_undelivered",
+        "clan_actions",
+        outcome,
+        webhookFingerprint(request.url),
+      );
+  };
+
+  /** The request's reads, after its ops: none after a stop, none past
+   *  the budget, a 429 or a refused webhook ends them. */
+  async function runReads(request, results, started) {
+    const reads = [];
+    if (!request.reads?.length || !discord.read) return reads;
+    if (results.some((r) => !r.ok && STOPS.has(r.code))) return reads;
+    for (const want of request.reads) {
+      if (now() - started > budgetMs || request.expires_at <= now()) break;
+      let r;
+      try {
+        r = await discord.read(request.url, want.message_id, {
+          thread_id: want.thread_id ?? null,
+        });
+      } catch {
+        break;
+      }
+      if (r.ok)
+        reads.push({
+          ref: want.ref,
+          at: now(),
+          present: r.present,
+          ...(r.present
+            ? { reactions: r.reactions ?? null, thread: r.thread === true }
+            : {}),
+        });
+      else if (STOPS.has(r.code)) break;
+    }
+    return reads;
+  }
 
   /** A sweep's ops, in order; each answer recorded as it comes. */
   async function runOps(id, request) {
@@ -293,6 +367,7 @@ export function createDiscordWorker({
       }
       // Only what was decided here is recorded: an op not sent stays
       // open for a later run of this request only through its reply.
+      counted(request, response);
       if (!["not_sent", "expired"].includes(response.code))
         await storage.put(
           discordOpReplyKey(id, n),
@@ -300,7 +375,8 @@ export function createDiscordWorker({
         );
       results.push(response);
     }
-    return { ok: true, results };
+    const reads = await runReads(request, results, started);
+    return { ok: true, results, ...(reads.length ? { reads } : {}) };
   }
 
   return async function work(key) {

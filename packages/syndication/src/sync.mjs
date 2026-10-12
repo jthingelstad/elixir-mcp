@@ -18,7 +18,12 @@ import {
 } from "@elixir-mcp/tools/activity/entries";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { discordLine, itemBattleId } from "./lines.mjs";
-import { aside, newLedgerId, recordPosts } from "./quality.mjs";
+import {
+  aside,
+  newLedgerId,
+  readbackCandidates,
+  recordPosts,
+} from "./quality.mjs";
 
 const HOUR_MS = 3600_000;
 const DAY_MS = 24 * HOUR_MS;
@@ -219,6 +224,16 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
         })),
       ),
     );
+    // The quality ledger's read-back rides this delivery: up to three
+    // of the webhook's posts a day old, read after these lines.
+    const readback =
+      (await aside(db, "timeline_readback", () =>
+        readbackCandidates(db, {
+          destination: accountId,
+          webhook_fp: row.webhook_fp,
+          nowMs: now,
+        }),
+      )) ?? [];
     for (let i = 0; i < posts.length; i += DISCORD_POSTS_MAX)
       await outbox(
         "timeline-discord",
@@ -229,6 +244,7 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
           // Sealed: the sync copies it and cannot open it.
           webhook: row.webhook_sealed,
           posts: posts.slice(i, i + DISCORD_POSTS_MAX),
+          ...(i === 0 && readback.length ? { readback } : {}),
         },
         { id: `${accountId}.${now}.${i / DISCORD_POSTS_MAX}` },
       );

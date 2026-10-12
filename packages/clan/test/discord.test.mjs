@@ -60,6 +60,18 @@ function fakeDiscord() {
       messages.set(id, content);
       return { ok: true, status: 200, message_id: id, name: "Clan hook" };
     },
+    async read(url, id, opts = {}) {
+      this.calls.push(["read", id]);
+      this.opts.push(opts);
+      if (!messages.has(id)) return { ok: true, status: 404, present: false };
+      return {
+        ok: true,
+        status: 200,
+        present: true,
+        reactions: null,
+        thread: false,
+      };
+    },
     async edit(url, id, content, opts = {}) {
       this.calls.push(["edit", content]);
       this.opts.push(opts);
@@ -77,6 +89,7 @@ function world({
   discord = fakeDiscord(),
   clock = { t: Date.UTC(2026, 9, 10) },
   quality = null,
+  workerLog = { log() {} },
 } = {}) {
   const storage = memory();
   const now = () => clock.t;
@@ -100,7 +113,7 @@ function world({
       waits.push(ms);
       clock.t += ms;
     },
-    log: { log() {} },
+    log: workerLog,
   });
   async function relay() {
     for (const key of [...storage.objects.keys()])
@@ -852,4 +865,185 @@ test("the quality ledger: each hand-off recorded, each answer settled under it; 
     false,
     "not settled while it is still to be tried",
   );
+});
+
+test("the webhook client reads a message back without waiting: present with its reactions and thread, deleted, or rate limited at once", async () => {
+  const seen = [];
+  const answers = [
+    {
+      status: 200,
+      body: {
+        id: "111111111111111111",
+        content: "not kept",
+        thread: { id: "333333333333333333" },
+        reactions: [
+          { count: 2, emoji: { id: null, name: "👍" } },
+          { count: 0, emoji: { id: null, name: "👎" } },
+        ],
+      },
+    },
+    { status: 404, body: { code: 10008, message: "Unknown Message" } },
+    { status: 429, body: { retry_after: 1 } },
+    { status: 200, body: { id: "111111111111111111" } },
+  ];
+  const pauses = [];
+  const client = createDiscordWebhook({
+    pause: async (ms) => void pauses.push(ms),
+    fetch: async (url, init) => {
+      seen.push([url, init.method, init.body, init.headers]);
+      const a = answers.shift();
+      return { ok: a.status < 300, status: a.status, json: async () => a.body };
+    },
+  });
+  assert.deepEqual(
+    await client.read(HOOK, "111111111111111111", {
+      thread_id: "333333333333333333",
+    }),
+    {
+      ok: true,
+      status: 200,
+      present: true,
+      reactions: [{ emoji: "👍", count: 2 }],
+      thread: true,
+    },
+  );
+  assert.equal(
+    seen[0][0],
+    `${HOOK}/messages/111111111111111111?thread_id=333333333333333333`,
+  );
+  assert.equal(seen[0][1], "GET");
+  assert.equal(seen[0][2], undefined, "a read sends no body");
+  assert.equal("content-type" in seen[0][3], false);
+  assert.deepEqual(await client.read(HOOK, "111111111111111111"), {
+    ok: true,
+    status: 404,
+    present: false,
+  });
+  assert.equal(
+    (await client.read(HOOK, "111111111111111111")).code,
+    "rate_limited",
+  );
+  assert.deepEqual(pauses, [], "a read never waits out a 429");
+  // No reactions on the message: none to read, never zero.
+  assert.equal((await client.read(HOOK, "111111111111111111")).reactions, null);
+  assert.equal((await client.read(HOOK, "nope")).code, "bad_request");
+});
+
+test("a hand-off of Actions reads back the ones the ledger names, after its ops; what it found is settled in the ledger", async () => {
+  const recorded = [];
+  const settled = [];
+  let wanted = [];
+  const quality = {
+    record: async (rows) => void recorded.push(...rows),
+    settle: async (list) => void settled.push(...list),
+    candidates: async (where) => {
+      assert.equal(where.destination, CLAN);
+      assert.equal(where.webhook_fp, webhookFingerprint(HOOK));
+      return wanted;
+    },
+  };
+  const discord = fakeDiscord();
+  const w = world({ discord, quality });
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  await w.ledger.putCard(CLAN, card(1));
+  await w.service.share(CLAN);
+  await w.relay();
+  await w.service.share(CLAN);
+  const posted = recorded.find((r) => r.post_key === "c1");
+  // A day on, the ledger names Action 1 to read back; Action 2 is new.
+  wanted = [
+    { ledger_id: posted.post_id, key: "c1" },
+    { ledger_id: "00000000-0000-4000-8000-000000000009", key: "gone-card" },
+  ];
+  discord.calls.length = 0;
+  await w.ledger.putCard(CLAN, card(2));
+  await w.service.share(CLAN);
+  await w.relay();
+  await w.service.share(CLAN);
+  assert.deepEqual(
+    discord.calls.map(([m]) => m),
+    ["post", "read"],
+    "the op first, then the one read whose message Clan holds",
+  );
+  const read = settled.find(
+    (r) => r.ledger_id === posted.post_id && "present" in r,
+  );
+  assert.equal(read.present, true);
+  assert.equal(read.reactions, null);
+  assert.equal(read.thread, false);
+  assert.equal("outcome" in read, false);
+});
+
+test("a request's reads stop after a stop, and are never sent on their own", async () => {
+  const discord = fakeDiscord();
+  discord.post = async () => ({ ok: false, status: 404, code: "webhook_gone" });
+  const w = world({ discord });
+  const prepared = w.bridge.prepare({
+    url: HOOK,
+    ops: [{ method: "post", content: "x" }],
+    reads: [
+      {
+        ref: "00000000-0000-4000-8000-000000000001",
+        message_id: "111111111111111111",
+      },
+    ],
+  });
+  assert.equal(prepared.ok, true);
+  await w.bridge.publish(prepared);
+  await w.relay();
+  const reply = await w.bridge.reply(prepared.id);
+  assert.equal(reply.reads, undefined);
+  assert.equal(
+    discord.calls.some(([m]) => m === "read"),
+    false,
+  );
+  // Too many, or a ref that is not a ledger row's, is refused whole.
+  for (const reads of [
+    Array.from({ length: 4 }, () => ({
+      ref: "00000000-0000-4000-8000-000000000001",
+      message_id: "111111111111111111",
+    })),
+    [{ ref: "nope", message_id: "111111111111111111" }],
+  ])
+    assert.equal(
+      w.bridge.prepare({
+        url: HOOK,
+        ops: [{ method: "post", content: "x" }],
+        reads,
+      }).ok,
+      false,
+    );
+});
+
+test("an Action Discord refused or never answered is one line for the alarm, by outcome and fingerprint; a slow-down is not", async () => {
+  const lines = [];
+  const discord = fakeDiscord();
+  const w = world({
+    discord,
+    workerLog: { log() {}, error: (...a) => lines.push(a.join(" ")) },
+  });
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  const answers = [
+    { ok: false, status: 429, code: "rate_limited" },
+    { ok: false, status: 0, code: "outcome_unknown" },
+    {
+      ok: false,
+      status: 400,
+      code: "bad_request",
+      reason: "Invalid Form Body",
+    },
+  ];
+  discord.post = async () => answers.shift();
+  for (const n of [1, 2, 3]) {
+    await w.ledger.putCard(CLAN, card(n));
+    await w.service.share(CLAN);
+    await w.relay();
+    await w.service.share(CLAN);
+  }
+  const fp = webhookFingerprint(HOOK);
+  assert.deepEqual(lines, [
+    `discord_undelivered clan_actions unknown ${fp}`,
+    `discord_undelivered clan_actions refused ${fp}`,
+  ]);
+  assert.ok(lines.every((l) => !l.includes(TOKEN)));
 });

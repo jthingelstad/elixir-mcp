@@ -99,11 +99,11 @@ export function createDiscordWebhook({
       resetAt.set(hookId, clock() + Math.ceil(after * 1000));
   }
 
-  async function call(hookId, method, url, body) {
+  async function call(hookId, method, url, body, { patient = true } = {}) {
     for (let attempt = 0; ; attempt++) {
       const wait = (resetAt.get(hookId) ?? 0) - clock();
       if (wait > 0) {
-        if (wait > maxWaitMs)
+        if (wait > maxWaitMs || !patient)
           return {
             ok: false,
             status: 429,
@@ -116,11 +116,11 @@ export function createDiscordWebhook({
       try {
         res = await fetch(url, {
           method,
-          headers: {
-            "content-type": "application/json",
-            "user-agent": userAgent,
-          },
-          body: JSON.stringify(body),
+          headers:
+            body === undefined
+              ? { "user-agent": userAgent }
+              : { "content-type": "application/json", "user-agent": userAgent },
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
           signal: AbortSignal.timeout(timeoutMs),
         });
       } catch {
@@ -140,6 +140,7 @@ export function createDiscordWebhook({
           message_id: json?.id ?? null,
           name: json?.author?.username ?? null,
           channel_id: json?.channel_id ?? null,
+          ...(method === "GET" ? { message: json } : {}),
         };
       if (res.status === 429) {
         const seconds = Number(
@@ -148,7 +149,7 @@ export function createDiscordWebhook({
         const waitMs = Math.ceil(
           (Number.isFinite(seconds) ? seconds : 1) * 1000,
         );
-        if (attempt < retries && waitMs <= maxWaitMs) {
+        if (patient && attempt < retries && waitMs <= maxWaitMs) {
           await pause(Math.max(waitMs, 250));
           continue;
         }
@@ -251,5 +252,65 @@ export function createDiscordWebhook({
         body(content),
       );
     },
+    /**
+     * Read one of the webhook's own messages back (the quality ledger's
+     * one read-back, a day after posting): still there or deleted, its
+     * reactions when Discord returns them, and whether a thread was
+     * started from it. Never waits: a 429 (or a budget Discord already
+     * said is spent) answers "rate_limited" at once, and the reads stop.
+     * The read's budget is kept apart from the posts' (Discord limits
+     * each route on its own), so a read never delays a post.
+     */
+    async read(url, messageId, { thread_id = null } = {}) {
+      const hook = parseDiscordWebhook(String(url ?? ""));
+      if (!hook || !validMessageId(messageId))
+        return { ok: false, status: 0, code: "bad_request" };
+      if (thread_id !== null && !validMessageId(thread_id))
+        return { ok: false, status: 0, code: "bad_request" };
+      const target = thread_id ? { ...hook, thread_id } : hook;
+      const r = await call(
+        `${hook.id}:read`,
+        "GET",
+        discordWebhookCall(target, `/messages/${messageId}`),
+        undefined,
+        { patient: false },
+      );
+      if (r.ok) return { ok: true, status: r.status, ...readBack(r.message) };
+      if (r.code === "message_gone")
+        return { ok: true, status: r.status, present: false };
+      return r;
+    },
+  };
+}
+
+/** HAS_THREAD: a thread has been started from this message. */
+const HAS_THREAD = 1 << 5;
+const EMOJI_MAX = 64;
+const REACTIONS_MAX = 20;
+
+/**
+ * What the ledger keeps of a message read back: present, its reactions
+ * as `[{emoji, count}]` (a custom emoji by its name, never its image) or
+ * null when Discord returned none to read, and whether a thread was
+ * started from it. Nothing else of the message, and never who reacted.
+ */
+export function readBack(message) {
+  const list = Array.isArray(message?.reactions)
+    ? message.reactions
+        .filter((r) => Number.isInteger(r?.count) && r.count > 0)
+        .slice(0, REACTIONS_MAX)
+        .map((r) => ({
+          emoji: String(r.emoji?.name ?? r.emoji?.id ?? "?").slice(
+            0,
+            EMOJI_MAX,
+          ),
+          count: r.count,
+        }))
+    : null;
+  const flags = Number.isInteger(message?.flags) ? message.flags : 0;
+  return {
+    present: true,
+    reactions: list,
+    thread: Boolean(message?.thread) || (flags & HAS_THREAD) !== 0,
   };
 }

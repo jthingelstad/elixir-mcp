@@ -122,7 +122,22 @@ export interface TimelineDiscordMessage {
    *  (2026-10-11, the editor): recorded in the delivery history with its
    *  reason, never sent to Discord. A message may carry only these. */
   skipped?: TimelineDiscordSkip[];
+  /** Posts of this webhook to read back once, a day after they were
+   *  posted (the quality ledger, 0222): the ledger row and the post's
+   *  key, whose message id the relay keeps. Read after the delivery,
+   *  never retried; a message may carry them with no posts of its own
+   *  only beside posts or skips. */
+  readback?: TimelineDiscordReadback[];
 }
+
+/** One post to read back: its quality ledger row and its key. */
+export interface TimelineDiscordReadback {
+  ledger_id: string;
+  key: string;
+}
+
+/** The most posts one message asks the relay to read back. */
+export const DISCORD_READBACK_MAX = 3;
 
 /** One story a clan's channel skipped: its key, why (the words the page
  *  shows) and what it would have said. `rewritten`: the clan's own model
@@ -208,6 +223,21 @@ export function validateTimelineDiscordMessage(
       )
         errors.push(`skipped[${i}].ledger_id:invalid`);
     });
+  const reads = m.readback;
+  if (
+    reads !== undefined &&
+    (!Array.isArray(reads) ||
+      reads.length === 0 ||
+      reads.length > DISCORD_READBACK_MAX ||
+      reads.some(
+        (r) =>
+          typeof r?.ledger_id !== "string" ||
+          !UUID.test(r.ledger_id) ||
+          typeof r?.key !== "string" ||
+          !POST_KEY.test(r.key),
+      ))
+  )
+    errors.push("readback:invalid");
   if (
     !Array.isArray(m.posts) ||
     (m.posts.length === 0 && !(Array.isArray(skips) && skips.length > 0)) ||

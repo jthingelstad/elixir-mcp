@@ -30,6 +30,7 @@ import {
   syncClan,
   wakeSyndication,
 } from "../src/index.mjs";
+import { applyReceipts } from "../src/quality.mjs";
 
 const CLAN = "#J2RGCRVG";
 const JOINER = "#PYL0Q2G8";
@@ -178,6 +179,16 @@ test("a departure says departed; a leader's kick edits that post to say removed"
   const post = left.sent[0].message.posts[0];
   assert.match(post.content, /departed/);
   assert.doesNotMatch(post.content, /\bleft\b/);
+  assert.equal(left.sent[0].message.readback, undefined);
+  // Posted, by its receipt, over a day before the next delivery: that
+  // delivery reads it back.
+  await applyReceipts(db, [
+    {
+      ledger_id: post.ledger_id,
+      outcome: "posted",
+      at: at(T + 7 * H - 25 * H),
+    },
+  ]);
 
   await db.query(
     `insert into attested_fact
@@ -194,6 +205,9 @@ test("a departure says departed; a leader's kick edits that post to say removed"
   assert.ok(edit.revision > post.revision);
   assert.match(edit.content, /was removed/);
   assert.doesNotMatch(edit.content, /<t:/, "the edit gains no time");
+  assert.deepEqual(kicked.sent[0].message.readback, [
+    { ledger_id: post.ledger_id, key: post.key },
+  ]);
 
   const again = await sync(T + 7 * H + 10 * MIN);
   assert.equal(again.posted, 0, "the classification is told once");
@@ -478,6 +492,13 @@ test("a model the clan cannot use, or one that never answers in time, posts Elix
   });
   assert.equal(changed.skipped, "changed");
   assert.deepEqual(changed.sent ?? [], []);
+  // The run itself still reaches the quality ledger (Codex, #511).
+  const { rows: changedRuns } = await db.query(
+    `select outcome, posts from discord_run
+      where clan_tag = $1 and at = $2`,
+    [CLAN, at(T + 15 * H + 40 * MIN)],
+  );
+  assert.deepEqual(changedRuns, [{ outcome: "changed", posts: 0 }]);
   const { rows: told } = await db.query(
     `select 1 from clan_activity_discord_told
       where clan_tag = $1 and player_tag = $2 and kind = 'member_joined'

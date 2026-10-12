@@ -140,7 +140,19 @@ failure, and never delete what you have not read.
   by `elixir-mcp-timeline-sync` and deleted (`discord_receipt` in its
   log, `discord_receipt_bad` for one it could not read). They share the
   timeline-sync DLQ, and a redrive is safe: an answer never overwrites
-  another. A ledger write that fails is logged `discord_quality_failed`
+  another. The same lane carries the read-backs: after its own sends,
+  the relay reads up to three of the webhook's posts that are a day to
+  a week old and not yet read (`timeline_discord_read` with how many it
+  read, `timeline_discord_read_failed` when a read threw), and Clan's
+  Actions do the same inside their sealed hand-off; the first read of a post stands. A slow-down or a
+  refused webhook stops the reads for that delivery, never a send.
+  Discord's refusals and sends with no answer, for all three features,
+  are one line each in the relay's log (`discord_undelivered <feature>
+  <refused|unknown|not_delivered> <fingerprint>`), counted by
+  `ElixirMCP/Discord Undelivered`; `elixir-mcp-discord-undelivered`
+  fires at five in an hour. Read the relay's log for the fingerprints,
+  then the ledger rows under them; a connection's check is never
+  counted. A ledger write that fails is logged `discord_quality_failed`
   and never stops a delivery; the relay's `timeline_discord_receipt_failed`
   and the sync's `clan_activity_capture_failed` (a raw editor run not
   written to the archive's `discord-runs/`) leave a row without its

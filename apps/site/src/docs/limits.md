@@ -103,6 +103,6 @@ if the quota store is unreachable, active accounts keep working.
 | Integration usage rows | 90 days |
 | Integration refresh requests | 24 hours (status returns 404 after) |
 | Job ledger | done 7 days, dead 30 days |
-| Discord post records (each post, edit or skip to a Discord channel, and what Discord answered) | 90 days |
+| Discord post records (each post, edit or skip to a Discord channel, what Discord answered, and the one read-back a day later) | 90 days |
 | A clan model's editor runs: the run's record, and its raw inputs and answers | 90 days for the record; 30 days for the raw inputs and answers (S3 lifecycle expiry) |
 | Database backups | about a week, rolling; something cleared above can stay in a backup for a few more days |

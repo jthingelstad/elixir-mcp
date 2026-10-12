@@ -15,6 +15,13 @@
  * clan's model as its channel's editor is a `discord_run` row, its raw
  * inputs and answers an object in the archive bucket (discord-runs/).
  *
+ * Read-back: each post is read back from Discord once, a day after it
+ * was posted (still there or deleted, its reactions when Discord returns
+ * them, whether a thread was started from it). No timer of its own: the
+ * next delivery to the same webhook names up to three posts a day to a
+ * week old that are not yet read (`readbackCandidates`), the relay reads
+ * them after its own posts, and the answers come back as receipts.
+ *
  * The ledger is for reading, never for delivering: a write here never
  * fails or holds up a post (`aside`: a savepoint inside a transaction,
  * and every failure logged and dropped). No webhook, no key, no player
@@ -48,6 +55,14 @@ const TEXT_MAX = 4000;
 const REASON_MAX = 300;
 /** Receipts one object may carry: a message's posts and its skips. */
 export const RECEIPTS_MAX = 100;
+/** A post is read back once it is this old ... */
+export const READBACK_AFTER_MS = 24 * 3600_000;
+/** ... and asked for until it is this old: a quiet webhook's posts are
+ *  never read. */
+export const READBACK_UNTIL_MS = 7 * 24 * 3600_000;
+/** Posts one delivery reads back. */
+export const READBACK_PER_DELIVERY = 3;
+const REACTIONS_MAX = 20;
 
 export const newLedgerId = () => randomUUID();
 export const isLedgerId = (v) => typeof v === "string" && UUID.test(v);
@@ -173,10 +188,33 @@ export async function recordPosts(db, rows) {
   return ok.length;
 }
 
-/** One receipt as the ledger takes it, or null. */
+/** A read-back's reactions as the ledger keeps them, or null when
+ *  Discord returned none to read. */
+function reactionsOf(list) {
+  if (!Array.isArray(list)) return null;
+  return list
+    .filter((x) => x && Number.isInteger(x.count) && x.count > 0)
+    .slice(0, REACTIONS_MAX)
+    .map((x) => ({
+      emoji: String(x.emoji ?? "?").slice(0, 64),
+      count: x.count,
+    }));
+}
+
+/** One receipt as the ledger takes it, or null: Discord's answer to a
+ *  post (`outcome`), or what a read-back found (`present`). */
 export function receiptRow(r) {
-  if (!r || !isLedgerId(r.ledger_id) || !RECEIPT_OUTCOMES.has(r.outcome))
-    return null;
+  if (!r || !isLedgerId(r.ledger_id)) return null;
+  if (r.outcome === undefined && typeof r.present === "boolean")
+    return {
+      ledger_id: r.ledger_id,
+      read: true,
+      at: when(r.at) ?? new Date(),
+      present: r.present,
+      reactions: r.present ? reactionsOf(r.reactions) : null,
+      thread: r.present ? r.thread === true : null,
+    };
+  if (!RECEIPT_OUTCOMES.has(r.outcome)) return null;
   return {
     ledger_id: r.ledger_id,
     outcome: r.outcome,
@@ -194,8 +232,11 @@ export function receiptRow(r) {
  * Returns how many rows took an answer.
  */
 export async function applyReceipts(db, receipts) {
-  const ok = receipts.map(receiptRow).filter(Boolean);
-  if (!ok.length) return 0;
+  const rows = receipts.map(receiptRow).filter(Boolean);
+  const reads = rows.filter((r) => r.read);
+  const ok = rows.filter((r) => !r.read);
+  const readCount = reads.length ? await applyReads(db, reads) : 0;
+  if (!ok.length) return readCount;
   const { rowCount } = await db.query(
     `update discord_post p
         set outcome = x.outcome, outcome_at = x.at,
@@ -226,11 +267,69 @@ export async function applyReceipts(db, receipts) {
           and o.destination = e.destination
           and o.webhook_fp = e.webhook_fp
           and o.post_key = e.post_key
-          and o.outcome = 'posted'
+          and o.action = 'post'
+          and (o.outcome = 'posted' or o.outcome is null)
           and o.checked_at is null`,
       [gone.map((r) => r.ledger_id), gone.map((r) => r.at)],
     );
+  return (rowCount ?? 0) + readCount;
+}
+
+/** What the read-backs found, each into its post once: the first read
+ *  stands. */
+async function applyReads(db, reads) {
+  const { rowCount } = await db.query(
+    `update discord_post p
+        set checked_at = x.at, present = x.present,
+            reactions = x.reactions, thread = x.thread
+       from unnest($1::uuid[], $2::timestamptz[], $3::boolean[], $4::jsonb[],
+                   $5::boolean[]) as x(ledger_id, at, present, reactions, thread)
+      where p.post_id = x.ledger_id and p.action = 'post'
+        and p.checked_at is null`,
+    [
+      reads.map((r) => r.ledger_id),
+      reads.map((r) => r.at),
+      reads.map((r) => r.present),
+      reads.map((r) =>
+        r.reactions === null ? null : JSON.stringify(r.reactions),
+      ),
+      reads.map((r) => r.thread),
+    ],
+  );
   return rowCount ?? 0;
+}
+
+/**
+ * The posts a delivery to this webhook reads back: posted a day to a
+ * week ago, not yet read, oldest first, at most three. `[{ledger_id,
+ * key}]`, the key the relay (or Clan's ledger) finds the message by.
+ */
+export async function readbackCandidates(
+  db,
+  {
+    destination,
+    webhook_fp,
+    nowMs = Date.now(),
+    limit = READBACK_PER_DELIVERY,
+  },
+) {
+  if (!destination || !FP.test(String(webhook_fp ?? ""))) return [];
+  const { rows } = await db.query(
+    `select post_id, post_key from discord_post
+      where webhook_fp = $1 and destination = $2
+        and action = 'post' and outcome = 'posted' and checked_at is null
+        and outcome_at <= $3 and outcome_at > $4
+      order by outcome_at
+      limit $5`,
+    [
+      webhook_fp,
+      destination,
+      new Date(nowMs - READBACK_AFTER_MS),
+      new Date(nowMs - READBACK_UNTIL_MS),
+      Math.min(limit, READBACK_PER_DELIVERY),
+    ],
+  );
+  return rows.map((r) => ({ ledger_id: r.post_id, key: r.post_key }));
 }
 
 /** A relay receipt object's receipts, or null when it is not one. */
@@ -295,6 +394,14 @@ export function discordQuality(db, log = console) {
     settle: (receipts) =>
       aside(db, "settle", () => applyReceipts(db, receipts), log),
     run: (run) => aside(db, "run", () => recordRun(db, run), log),
+    /** Never in the way: a failed read is no read-back this time. */
+    candidates: async (where) =>
+      (await aside(
+        db,
+        "candidates",
+        () => readbackCandidates(db, where),
+        log,
+      )) ?? [],
   };
 }
 

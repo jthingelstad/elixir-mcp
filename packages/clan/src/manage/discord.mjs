@@ -197,6 +197,18 @@ export function createDiscordService({
           reply = undefined;
         }
         replies.set(post.request_id, reply);
+        // What the request's read-backs found, once per request.
+        for (const read of Array.isArray(reply?.reads) ? reply.reads : [])
+          receipts.push({
+            ledger_id: read.ref,
+            at: Number.isFinite(read.at)
+              ? new Date(read.at).toISOString()
+              : iso(),
+            present: read.present === true,
+            ...(read.present
+              ? { reactions: read.reactions ?? null, thread: read.thread }
+              : {}),
+          });
       }
       const whole = replies.get(post.request_id);
       if (whole === undefined) {
@@ -468,9 +480,26 @@ export function createDiscordService({
           });
       }
       if (!picked.length) return { shared: 0 };
+      // The quality ledger's read-back rides the hand-off: up to three
+      // Actions posted a day to a week ago, read after these ops.
+      const reads = [];
+      if (quality?.candidates)
+        for (const c of await quality.candidates({
+          destination: clanTag,
+          webhook_fp: webhookFingerprint(url),
+        })) {
+          const post = byCard.get(c.key);
+          if (post?.message_id)
+            reads.push({
+              ref: c.ledger_id,
+              message_id: post.message_id,
+              ...(post.thread_id ? { thread_id: post.thread_id } : {}),
+            });
+        }
       const prepared = bridge.prepare({
         url,
         ops: picked.map((p) => p.op),
+        ...(reads.length ? { reads } : {}),
         ...(current?.forum ? { forum: true } : {}),
       });
       if (!prepared.ok) {

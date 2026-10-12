@@ -306,3 +306,32 @@ test("a clan's channel hands over the stories it skipped, each with its reason; 
   assert.equal(addDiscordDeliveries(null, many, now).entries.length, 20);
   assert.ok(OUTBOX_LANES.includes("timeline-hold"));
 });
+
+test("a message may name up to three posts to read back, each a ledger row and a post key", () => {
+  const ok = {
+    v: 1,
+    kind: "timeline",
+    account_id: "0b6b5a59-0e4f-4f39-9d55-58e41b6a3e7a",
+    webhook: { v: 1, iv: "aXY=", tag: "dGFn", ct: "Y3Q=" },
+    posts: [{ key: "tl_0123456789abcdef0123", revision: 1, content: "x" }],
+  };
+  const read = {
+    ledger_id: "00000000-0000-4000-8000-000000000001",
+    key: "tl_0123456789abcdef0123",
+  };
+  for (const readback of [undefined, [read], [read, read, read]])
+    assert.equal(validateTimelineDiscordMessage({ ...ok, readback }).ok, true);
+  for (const readback of [
+    [],
+    [read, read, read, read],
+    [{ ...read, ledger_id: "nope" }],
+    [{ ...read, key: "has spaces" }],
+    "x",
+  ])
+    assert.ok(
+      validateTimelineDiscordMessage({ ...ok, readback }).errors?.includes(
+        "readback:invalid",
+      ),
+      JSON.stringify(readback),
+    );
+});

@@ -1081,3 +1081,23 @@ test("a site miss fails over to the site's 404 page, on the site behaviour alone
     /arn:aws:s3:::elixir-mcp-site-\$\{AWS::AccountId\}\/404\.html/,
   );
 });
+
+test("Discord posts refused or lost across every webhook page the ops queue, from the relay's log", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const filter = resource(
+    template,
+    "DiscordUndeliveredFilter",
+    "DiscordUndeliveredAlarm",
+  );
+  assert.match(filter, /LogGroupName: !Ref EmailRelayLogGroup/);
+  assert.match(filter, /FilterPattern: '"discord_undelivered"'/);
+  assert.match(filter, /MetricName: Undelivered\n/);
+  const alarm = resource(
+    template,
+    "DiscordUndeliveredAlarm",
+    "WarUnresolvedAlarm",
+  );
+  assert.match(alarm, /Period: 3600/);
+  assert.match(alarm, /Threshold: 5/);
+  assert.match(alarm, /AlarmActions: \[!Ref AlarmTopic\]/);
+});
