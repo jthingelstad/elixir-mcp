@@ -59,6 +59,7 @@ test("op: reads are reads", () => {
     { capture_audit: { days: 1 } },
     { profile_tool: { tool: "clans_standings", explain: true } },
     { feedback_pending: true },
+    { discord_review: { key: "#J2RGCRVG" } },
     { backends: true },
     { ledger: true },
     { ledger: { op: "dead" } },

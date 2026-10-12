@@ -90,6 +90,7 @@ const MIGRATE_READS = {
   series_census_self: anyArgs,
   feedback_pending: anyArgs,
   feedback_read: anyArgs,
+  discord_review: anyArgs,
   poll_state: anyArgs,
   backends: anyArgs,
   // Read in one shape, a write in every other.

@@ -68,6 +68,7 @@ import {
   feedbackRead,
   feedbackRespond,
 } from "./ops-feedback.mjs";
+import { discordReview } from "./ops-discord.mjs";
 import {
   seriesStatus,
   seriesBackfill,
@@ -255,6 +256,14 @@ async function dispatch(event) {
     const result = await feedbackPending(
       process.env.DATABASE_URL,
       event.feedback_pending,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.discord_review) {
+    const result = await discordReview(
+      process.env.DATABASE_URL,
+      event.discord_review,
     );
     console.log(JSON.stringify(result));
     return result;

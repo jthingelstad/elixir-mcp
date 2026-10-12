@@ -168,7 +168,17 @@ failure, and never delete what you have not read.
   each refusal. A rating is ordinary feedback (area `console` for a
   timeline, `clan` for the two clan features; `praise` for 👍, `general`
   for 👎) with a `discord_post` ref, answered in the one queue; Jamie is
-  notified of a 👎 or a note only.
+  notified of a 👎 or a note only. Only a post that reached the channel
+  takes a rating, and every count reads each person's latest.
+  An agent reads the same with `npm run op -- '{"discord_review": {"days": 7}}'`
+  (`{"key": "#TAG" | "<account id>", "feature"?}` for one destination,
+  `{"ratings": true}` for the ratings to answer), under the
+  `discord-review` skill's rubric. `npm run editor-replay -- <run_id>`
+  runs a clan's raw model run (30 days) through today's checks
+  (`--checks-only`) or today's editor on the maintainer's own key from
+  `ELIXIR_REPLAY_ANTHROPIC_KEY` (never a clan's, never printed); it reads
+  one object as cloud-engineer and posts nothing, and its output names
+  members, so it stays local.
 - **Owner notifications** (`owner_notify`) are best-effort by design
   (2026-09-09): one attempt and a log line, never a dead letter. What
   they announce is durable in the database.

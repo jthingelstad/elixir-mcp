@@ -487,8 +487,8 @@ set in the console only, never through MCP or the JSON API.
   delivered.
 - **The last deliveries.** The panel lists the last 20 lines of the past
   30 days (posted, edited, refused in Discord's words, not delivered, or
-  "no answer") and counts those not delivered. Rate a line 👍 or 👎, with
-  a note if you like: feedback to Elixir, which cannot see your channel.
+  "no answer") and counts those not delivered. Rate a posted line 👍 or 👎,
+  with a note: feedback to Elixir, which cannot see your channel.
 
 A clan's leaders can also post the clan's own activity to a channel,
 chosen by category and set by the clan's policy, from Elixir Clan's

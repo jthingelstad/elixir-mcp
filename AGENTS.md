@@ -65,7 +65,8 @@ docs is cleanup, not a feature to preserve.
   (adding or changing an MCP tool), `migration` (a schema change or
   backfill), `ops` (live diagnostics and every migrate op), `consistency`
   (a decision reaching every surface), `gym` (adversarial tool testing),
-  `reference-audit` (the payload archive against cr-agent-api-docs).
+  `reference-audit` (the payload archive against cr-agent-api-docs),
+  `discord-review` (judging the Discord posts Elixir cannot see).
 
 ## Golden rules
 
