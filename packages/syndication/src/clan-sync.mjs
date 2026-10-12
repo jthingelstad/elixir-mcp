@@ -380,8 +380,8 @@ const TODAY_BATTLES_MS = STORY_TODAY_MS + 6 * 3600_000;
 /**
  * What the channel posted about these members today (`foldToday`'s
  * `today`), each post newest first: when it was first posted, its
- * revision, its items' moments and battles, whether it tells a sitting,
- * its words as last sent, and whether it may still be edited (one
+ * revision, the member's own moments, battles and kinds in it, whether
+ * it tells their sitting, its words as last sent, and whether it may still be edited (one
  * member's, recent, one of the channel's newest, its items read again).
  * And each member's battle times today, which say what one sitting is.
  */
@@ -417,18 +417,26 @@ async function toldToday(db, clanTag, row, tags, now) {
       players: new Set(),
       item_ids: [],
       moments: [],
-      battles: [],
-      sitting: false,
-      kinds: [],
       revision: 0,
       told_ms: 0,
+      of: new Map(),
     };
     if (r.player_tag) p.players.add(r.player_tag);
     p.item_ids.push(r.item_id);
     if (r.item_at) p.moments.push(r.item_at.getTime());
-    if (r.battle_id) p.battles.push(r.battle_id);
-    if (r.kind === "session_standout") p.sitting = true;
-    if (!p.kinds.includes(r.kind)) p.kinds.push(r.kind);
+    // What it told about each member: a post the editor told for several
+    // members is each one's own moments, battles and kinds (Codex on #542).
+    const m = p.of.get(r.player_tag) ?? {
+      moments: [],
+      battles: [],
+      sitting: false,
+      kinds: [],
+    };
+    if (r.item_at) m.moments.push(r.item_at.getTime());
+    if (r.battle_id) m.battles.push(r.battle_id);
+    if (r.kind === "session_standout") m.sitting = true;
+    if (!m.kinds.includes(r.kind)) m.kinds.push(r.kind);
+    p.of.set(r.player_tag, m);
     p.revision = Math.max(p.revision, r.revision);
     p.told_ms = Math.max(p.told_ms, r.told_at.getTime());
     byKey.set(r.post_key, p);
@@ -493,7 +501,8 @@ async function toldToday(db, clanTag, row, tags, now) {
   }
   for (const p of mine.sort((a, b) => b.first_ms - a.first_ms))
     for (const t of p.players)
-      if (tags.includes(t)) posts.set(t, [...(posts.get(t) ?? []), p]);
+      if (tags.includes(t))
+        posts.set(t, [...(posts.get(t) ?? []), { ...p, ...p.of.get(t) }]);
   return { posts, battles };
 }
 
