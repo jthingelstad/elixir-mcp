@@ -381,8 +381,11 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
   it on either is refused.
 - **A new test pins the owner-only read.** Beside the war-intent tests
   (`services/migrate/test/clan-context.test.mjs`, scratch Postgres), a
-  clan of two members where the other member is on a clock and the
-  subject of an open removal Action, with a note and a hold on them.
+  clan of ten members (`MIN_MEMBERS`, `packages/clan-engine/src/policy.mjs:34`,
+  so the active view is reached) with a current snapshot, where one
+  other member is on a clock and the subject of an open removal Action,
+  with a note and a hold on them; and a separate nine-member clan that
+  must answer `too_few_members` with no standing or Actions.
   It asserts the reader returns nothing for: an agent (including the
   person's own agent holding a war-intent grant), an integration, a
   person without the grant, a person whose grant is on another
