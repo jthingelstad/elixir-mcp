@@ -203,6 +203,10 @@ export function ActivityDiscordSetting({ clan, navigate }) {
                 // The channel keeps its skips beside its posts.
                 show={DISCORD_CLAN_HISTORY_MAX}
                 whole
+                ratings={d.ratings}
+                onRate={(body) =>
+                  manageApi.rateActivityDiscord(clan.clan_tag, body)
+                }
               />
             </div>
           ) : null}

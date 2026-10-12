@@ -142,7 +142,7 @@ failure, and never delete what you have not read.
   timeline-sync DLQ, and a redrive is safe: an answer never overwrites
   another. The same lane carries the read-backs: after its own sends,
   the relay reads up to three of the webhook's posts that are a day to
-  a week old and not yet read (`timeline_discord_read` with how many it
+  a week old and never asked for, each marked asked as the sync takes it (`timeline_discord_read` with how many it
   read, `timeline_discord_read_failed` when a read threw), and Clan's
   Actions do the same inside their sealed hand-off; the first read of a post stands. A slow-down or a
   refused webhook stops the reads for that delivery, never a send.
@@ -157,6 +157,18 @@ failure, and never delete what you have not read.
   and the sync's `clan_activity_capture_failed` (a raw editor run not
   written to the archive's `discord-runs/`) leave a row without its
   answer or its raw run, nothing more.
+- **Judging the Discord posts.** Admin ▸ Discord (admins only) is the
+  ledger read across every clan and timeline: a window's numbers per
+  feature (posts, edits and skips; delivered, refused, lost and waiting;
+  the read-back's deleted posts, reactions and threads; 👍, 👎 and notes;
+  Elixir's own latency at p50 and p90), the clans' model runs, and the
+  destinations with the most refused, lost or deleted first. Open one for
+  its posts whole, each with Discord's answer, its read-back and every
+  rating linked to its feedback item, and a clan's last 20 model runs with
+  each refusal. A rating is ordinary feedback (area `console` for a
+  timeline, `clan` for the two clan features; `praise` for 👍, `general`
+  for 👎) with a `discord_post` ref, answered in the one queue; Jamie is
+  notified of a 👎 or a note only.
 - **Owner notifications** (`owner_notify`) are best-effort by design
   (2026-09-09): one attempt and a log line, never a dead letter. What
   they announce is durable in the database.

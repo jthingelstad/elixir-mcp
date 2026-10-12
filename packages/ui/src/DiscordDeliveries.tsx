@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Fresh } from "./Fresh.tsx";
 
 /** One delivery as the relay or Clan recorded it (contracts
@@ -12,7 +13,28 @@ export interface DiscordDeliveryRow {
   excerpt?: string | null;
   /** The clan's own model wrote the line (a clan's activity channel). */
   rewritten?: boolean;
+  /** The quality ledger's row (0222): what a rating names. */
+  ledger_id?: string;
 }
+
+export type DiscordRating = "up" | "down";
+
+/** The viewer's own ratings, by ledger_id. */
+export type DiscordRatings = Record<string, { rating: DiscordRating }>;
+
+/** Sends one rating; `{ ok }`, or the refusal's words. */
+export type RateDiscordPost = (body: {
+  ledger_id: string;
+  rating: DiscordRating;
+  note?: string;
+}) => Promise<{ ok: boolean; data?: { message?: string } | null }>;
+
+/** contracts DISCORD_RATING_NOTE_MAX */
+const NOTE_MAX = 1000;
+const THUMB: Record<DiscordRating, string> = {
+  up: "\u{1F44D}",
+  down: "\u{1F44E}",
+};
 
 const SAID: Record<DiscordDeliveryRow["outcome"], string> = {
   posted: "Posted",
@@ -41,6 +63,8 @@ export function DiscordDeliveries({
   // pages promise the last 20.
   show = 20,
   whole = false,
+  ratings = null,
+  onRate = null,
 }: {
   entries: DiscordDeliveryRow[] | null | undefined;
   notDelivered?: number;
@@ -48,6 +72,11 @@ export function DiscordDeliveries({
   /** Show each line whole rather than its first words (the clan's
    *  activity channel, where leaders read what was posted). */
   whole?: boolean;
+  /** The viewer's ratings so far (2026-10-11). */
+  ratings?: DiscordRatings | null;
+  /** Rate a post: thumbs up or down and a note, sent to Elixir as
+   *  feedback. Without it no row offers a rating. */
+  onRate?: RateDiscordPost | null;
 }) {
   const rows = (entries ?? []).slice(0, show);
   if (!rows.length && !notDelivered) return null;
@@ -96,9 +125,103 @@ export function DiscordDeliveries({
                 {r.reason ?? ""}
               </span>
             ) : null}
+            {onRate && r.ledger_id ? (
+              <RateRow
+                ledgerId={r.ledger_id}
+                rated={ratings?.[r.ledger_id]?.rating ?? null}
+                onRate={onRate}
+              />
+            ) : null}
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * A thumbs up or down on one post, and a note if there is more to say
+ * (2026-10-11): it reaches Elixir as feedback about that post, which is
+ * how Elixir judges posts in channels it cannot see. Rating again
+ * follows the first.
+ */
+function RateRow({
+  ledgerId,
+  rated,
+  onRate,
+}: {
+  ledgerId: string;
+  rated: DiscordRating | null;
+  onRate: RateDiscordPost;
+}) {
+  const [choice, setChoice] = useState<DiscordRating | null>(null);
+  const [note, setNote] = useState("");
+  const [sent, setSent] = useState<DiscordRating | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
+  const current = sent ?? rated;
+  const send = async () => {
+    if (!choice) return;
+    setBusy(true);
+    setFailed(null);
+    const words = note.trim();
+    try {
+      const r = await onRate({
+        ledger_id: ledgerId,
+        rating: choice,
+        ...(words ? { note: words } : {}),
+      });
+      if (r.ok) {
+        setSent(choice);
+        setChoice(null);
+        setNote("");
+      } else setFailed(r.data?.message ?? "That rating was not sent.");
+    } catch {
+      setFailed("That rating was not sent.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <span className="flex w-full flex-wrap items-center gap-1">
+      {(["up", "down"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          className={`btn btn--quiet btn--sm ${choice === v || (!choice && current === v) ? "btn--selected" : ""}`}
+          aria-pressed={choice === v || (!choice && current === v)}
+          aria-label={v === "up" ? "A good post" : "A poor post"}
+          onClick={() => setChoice(choice === v ? null : v)}
+        >
+          {THUMB[v]}
+        </button>
+      ))}
+      {current && !choice ? (
+        <span className="hint">
+          {sent ? "Thanks: Elixir reads every rating." : "Your rating"}
+        </span>
+      ) : null}
+      {choice ? (
+        <>
+          <input
+            className="input min-w-0 flex-[1_1_12rem]"
+            aria-label="A note (optional)"
+            placeholder="What was good or wrong about it? (optional)"
+            maxLength={NOTE_MAX}
+            value={note}
+            onChange={(e) => setNote(e.currentTarget.value)}
+          />
+          <button
+            type="button"
+            className="btn btn--sm"
+            disabled={busy}
+            onClick={() => void send()}
+          >
+            Send
+          </button>
+        </>
+      ) : null}
+      {failed ? <span className="w-full text-warn">{failed}</span> : null}
+    </span>
   );
 }

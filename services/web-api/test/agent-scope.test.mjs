@@ -556,3 +556,102 @@ test("the timeline's Discord cross-post: set on the agent's console, the agent's
     agentId,
   ]);
 });
+
+test("a cross-posted line is rated on the agent's console as its owner, and only a line of theirs", async () => {
+  const theirs = "bbbbbbbb-0000-4000-8000-000000000001";
+  const strangers = "bbbbbbbb-0000-4000-8000-000000000002";
+  const {
+    rows: [stranger],
+  } = await db.query(
+    `insert into account (email_hash, status) values ('rate-stranger', 'approved')
+     returning account_id`,
+  );
+  for (const [id, account] of [
+    [theirs, agentId],
+    [strangers, stranger.account_id],
+  ])
+    await db.query(
+      `insert into discord_post (post_id, feature, account_id, destination,
+         webhook_fp, post_key, revision, action, mode, handed_at, outcome)
+       values ($1, 'timeline', $2::uuid, $2::text, '0123456789abcdef', 'tl_x', 1, 'post',
+               'line', now(), 'posted')`,
+      [id, account],
+    );
+  const rate = (body, cookie = ownerCookie) =>
+    handler(
+      event({
+        method: "POST",
+        path: `/api/agent/${agentPid}/timeline/discord/rate`,
+        body,
+        cookie,
+      }),
+    );
+  const ok = await rate({
+    ledger_id: theirs,
+    rating: "down",
+    note: "Said a loss was a win.",
+  });
+  assert.equal(ok.statusCode, 200, ok.body);
+  const {
+    rows: [filed],
+  } = await db.query(
+    `select f.account_id, f.area, r.ref from feedback f
+       join feedback_ref r using (feedback_id)
+      where f.feedback_id = $1 and r.kind = 'discord_post'`,
+    [parse(ok).feedback_id],
+  );
+  assert.equal(filed.account_id, ownerId, "filed as the owner, not the agent");
+  assert.equal(filed.area, "console");
+  assert.equal(filed.ref, theirs);
+  assert.equal(
+    (await rate({ ledger_id: strangers, rating: "up" })).statusCode,
+    404,
+  );
+  assert.equal(
+    (await rate({ ledger_id: theirs, rating: "up" }, strangerCookie))
+      .statusCode,
+    404,
+    "a stranger never reaches the agent's page",
+  );
+  assert.equal(
+    (await rate({ ledger_id: theirs, rating: "meh" })).statusCode,
+    400,
+  );
+
+  // The history is read only while a webhook is set.
+  const hook = `https://discord.com/api/webhooks/123456789012345678/${"r".repeat(68)}`;
+  const on = await handler(
+    event({
+      method: "PUT",
+      path: `/api/agent/${agentPid}/timeline/discord`,
+      body: { url: hook, enabled: true },
+      cookie: ownerCookie,
+    }),
+  );
+  assert.equal(on.statusCode, 200, on.body);
+  relayHistory = {
+    entries: [
+      {
+        at: new Date().toISOString(),
+        outcome: "posted",
+        excerpt: "a line",
+        ledger_id: theirs,
+      },
+    ],
+    missed: {},
+  };
+  const read = await handler(
+    event({
+      path: `/api/agent/${agentPid}/timeline/discord`,
+      cookie: ownerCookie,
+    }),
+  );
+  relayHistory = null;
+  assert.equal(parse(read).ratings[theirs].rating, "down");
+  await db.query(`delete from discord_post where post_id = any($1::uuid[])`, [
+    [theirs, strangers],
+  ]);
+  await db.query(`delete from timeline_discord where account_id = $1`, [
+    agentId,
+  ]);
+});

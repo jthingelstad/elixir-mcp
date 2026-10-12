@@ -60,7 +60,7 @@ import {
 import { createBox } from "../sealed.mjs";
 import { parseWebhook, validRoleId } from "../discord-webhook.mjs";
 import { DISCORD_REQUEST_LIFETIME_MS } from "../discord-bridge.mjs";
-import { ManageError } from "./service.mjs";
+import { ManageError, rateWith, ratingsOf } from "./service.mjs";
 
 const LEADERS = new Set(["leader", "coLeader"]);
 /** Posts and edits handed to the relay in one request; the rest wait. */
@@ -141,6 +141,10 @@ export function createDiscordService({
   log = console,
   /** The quality ledger (syndication `discordQuality`), or null. */
   quality = null,
+  /** A leader's ratings of the posts (2026-10-11), filed as feedback by
+   *  the host: `{ rate({ feature, clanTag, postId, rating, note }),
+   *  mine(postIds) }`, or null. */
+  ratings = null,
 }) {
   if (!secret) throw new Error("the Discord service needs the app secret");
   const box = createBox(secret, "clan discord webhook v1");
@@ -325,7 +329,15 @@ export function createDiscordService({
         waiting: posts.filter((p) => p.request_id).length,
         deliveries: history?.entries ?? [],
         not_delivered: discordNotDelivered(history, now()),
+        ratings: await ratingsOf(ratings, history?.entries),
       };
+    },
+
+    /** A leader's thumbs up or down on one delivered Action, with an
+     *  optional note: feedback about that post, to Elixir. */
+    async rate(clanTag, who, body = {}) {
+      requireLeader(who);
+      return rateWith(ratings, "clan_actions", clanTag, body);
     },
 
     /**

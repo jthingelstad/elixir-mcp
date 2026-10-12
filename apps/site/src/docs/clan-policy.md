@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, contracts unchanged"
+reviewed: "2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -325,6 +325,11 @@ told more than three hours late says when in words ("Yesterday").
   have said and why it was skipped, by Elixir's rule or by the clan's
   model. It also counts the posts not
   delivered; a skip is not one of them.
+- A leader or co-leader can rate each post with 👍 or 👎, and a note if
+  they like. Elixir cannot see the clan's channel, so this is how it
+  learns which posts read well there: the rating goes to Elixir as
+  feedback about that post from the leader's own account, and each
+  leader sees only their own.
 
 ## Agent context
 

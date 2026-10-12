@@ -15,6 +15,8 @@
  *  - preview(clanTag, { voice }) → the newest stories, the editor's
  *    packets and the one request that edits them (`clanEditorPreview`),
  *    posting nothing.
+ * `ratings` (2026-10-11): a leader's thumbs up or down on a post of the
+ * channel, filed as feedback by the host (`{ rate, mine }`), or null.
  */
 
 import {
@@ -26,7 +28,7 @@ import {
   cleanVoice,
   editorAnswer,
 } from "@elixir-mcp/clan-engine";
-import { ManageError } from "./service.mjs";
+import { ManageError, rateWith, ratingsOf } from "./service.mjs";
 import { ACTIVITY_USES_PER_DAY } from "./model.mjs";
 
 const LEADERS = new Set(["leader", "coLeader"]);
@@ -51,7 +53,12 @@ const refusals = {
   }),
 };
 
-export function createActivityService({ ledger, store, model = null }) {
+export function createActivityService({
+  ledger,
+  store,
+  model = null,
+  ratings = null,
+}) {
   const requireLeader = (who) => {
     if (!LEADERS.has(who.role) || who.verified === false)
       throw new ManageError(403, "leaders_only");
@@ -66,6 +73,7 @@ export function createActivityService({ ledger, store, model = null }) {
     return {
       clan_tag: clanTag,
       connection: saved,
+      ratings: await ratingsOf(ratings, saved?.deliveries),
       policy: activityPolicy(values),
       categories: ACTIVITY_CATEGORY_KEYS.map((k) => ({
         key: k,
@@ -94,6 +102,13 @@ export function createActivityService({ ledger, store, model = null }) {
     async status(clanTag, who) {
       requireLeader(who);
       return view(clanTag);
+    },
+
+    /** A leader's thumbs up or down on one post of the channel, with an
+     *  optional note: feedback about that post, to Elixir. */
+    async rate(clanTag, who, body = {}) {
+      requireLeader(who);
+      return rateWith(ratings, "clan_activity", clanTag, body);
     },
 
     /**

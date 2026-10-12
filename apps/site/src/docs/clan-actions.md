@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries; contracts unchanged"
+reviewed: "2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
 ---
 
 # Actions
@@ -370,6 +370,10 @@ again.
   channel and are never sent again (a duplicate is worse than a missing
   message). It counts what did not arrive in the last 30 days. When
   Discord refuses one action's message, only that one is skipped.
+- A leader or co-leader can rate each delivered message with 👍 or 👎,
+  and a note if they like: feedback to Elixir about that message from
+  their own account (Elixir cannot see the channel), and each sees only
+  their own.
 - Until a webhook is connected, the Actions page suggests one to the
   leader and co-leaders. If Discord stops taking it (the webhook was
   deleted, say), posting stops and Settings and the Actions page say so.

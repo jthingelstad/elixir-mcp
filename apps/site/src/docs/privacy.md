@@ -81,7 +81,10 @@ own messages, never anyone else's. When a clan's own model writes its activity
 channel, the record also holds each run's counts, about what it cost,
 and any text Elixir's checks refused, with the reason; what each run
 was given and looked up, and the model's full answers, are kept 30
-days. Elixir's operators read these records to judge the posts' quality
+days. If you rate one of these posts (👍 or 👎 on a delivery list, with
+an optional note), the rating is a feedback item from your account that
+points at the post's record, kept and answered like any other feedback.
+Elixir's operators read these records to judge the posts' quality
 and fix what is wrong; they are never published and are not part of
 the game record.
 

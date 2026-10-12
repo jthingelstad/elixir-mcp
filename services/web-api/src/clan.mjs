@@ -8,6 +8,13 @@ import { createDiscordService } from "@elixir-mcp/clan/manage/discord.mjs";
 import { clanDiscordWake } from "@elixir-mcp/clan/discord-wake.mjs";
 import { discordQuality } from "@elixir-mcp/syndication/quality";
 import { createActivityService } from "@elixir-mcp/clan/manage/activity.mjs";
+import { ManageError } from "@elixir-mcp/clan/manage/service.mjs";
+import {
+  FeedbackError,
+  discordRatings,
+  rateDiscordPost,
+} from "@elixir-mcp/feedback";
+import { senderRef } from "@elixir-mcp/outbox/notify";
 import { createBox } from "@elixir-mcp/clan/sealed.mjs";
 import {
   awaitFirstWord,
@@ -153,6 +160,8 @@ export function createClanRequest({
   readStatus = async () => null,
   /** the relay's last deliveries to a channel (`makeHistoryReader`) */
   readHistory = async () => null,
+  /** tells Jamie of a leader's thumbs down or note on a Discord post */
+  notifyOwner = null,
 }) {
   const appUrl = `${origin}/clan`;
   // The clan's activity channel: its webhook sealed as it is saved.
@@ -264,6 +273,33 @@ export function createClanRequest({
             }),
           })
         : null;
+    // A leader's ratings of the clan's Discord posts (2026-10-11): filed
+    // as the signed-in person, about a post of this clan's; the services
+    // check the leader first.
+    const ratings = {
+      async rate({ feature, clanTag, postId, rating, note }) {
+        try {
+          return await rateDiscordPost(db, {
+            account,
+            feature,
+            clanTag,
+            postId,
+            rating,
+            note,
+            via: { principal_kind: account.kind ?? "person" },
+            from: senderRef(account),
+            notifyOwner,
+          });
+        } catch (err) {
+          if (err instanceof FeedbackError)
+            throw new ManageError(err.status, err.code, err.message, {
+              message: err.message,
+            });
+          throw err;
+        }
+      },
+      mine: (ids) => discordRatings(db, account.accountId, ids),
+    };
     // Actions in the clan's Discord ride the same sealed outbox bridge
     // and secret as the clan's model.
     const discord =
@@ -279,6 +315,7 @@ export function createClanRequest({
             // A minute on, the timeline sync collects the relay's answers.
             wake: clanDiscordWake(outbox),
             quality: discordQuality(db),
+            ratings,
             waitMs: () =>
               Math.max(
                 1,
@@ -296,6 +333,7 @@ export function createClanRequest({
       ? createActivityService({
           ledger,
           model,
+          ratings,
           store: {
             async read(clanTag) {
               const row = await readClanActivity(db, clanTag);

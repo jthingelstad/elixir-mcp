@@ -135,6 +135,8 @@ export const manageApi = {
   discord: (tag) => get(`${clanBase(tag)}/discord`),
   setDiscord: (tag, url) => put(`${clanBase(tag)}/discord`, { url }),
   removeDiscord: (tag) => del(`${clanBase(tag)}/discord`),
+  // A leader's thumbs up or down on one delivered Action (2026-10-11).
+  rateDiscord: (tag, body) => post(`${clanBase(tag)}/discord/rate`, body),
   // The one role a new Action mentions (2026-10-11), or null for none.
   setDiscordMention: (tag, roleId) =>
     post(`${clanBase(tag)}/discord/mention`, { role_id: roleId }),
@@ -144,6 +146,9 @@ export const manageApi = {
   saveActivityDiscord: (tag, body) =>
     put(`${clanBase(tag)}/activity-discord`, body),
   removeActivityDiscord: (tag) => del(`${clanBase(tag)}/activity-discord`),
+  // A leader's thumbs up or down on one post of the channel (2026-10-11).
+  rateActivityDiscord: (tag, body) =>
+    post(`${clanBase(tag)}/activity-discord/rate`, body),
   // The last few items in a voice, by the clan's model, posted nowhere.
   previewActivityDiscord: (tag, voice, pending = null) =>
     post(`${clanBase(tag)}/activity-discord/preview`, {

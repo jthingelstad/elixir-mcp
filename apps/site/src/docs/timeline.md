@@ -450,24 +450,24 @@ Discord**. Profile, and each agent's page, say whether it is on. It is
 set in the console only, never through MCP or the JSON API.
 
 - **What posts.** Every `publishable` item the timeline holds for that
-  account, not otherwise filtered: the same subjects, sections and kinds a
-  scheduled agent reads. What is not publishable never leaves Elixir: an
-  item only a clan's leaders may see (a member's away), and your account's
-  own administration.
-- **When.** When the record learns something about one of the subjects,
-  the account's timeline is read about a minute later from the
-  cross-post's own place in it, and anything new is posted. Nothing
-  polls. An attested fact (a leader's word in Elixir Clan, a family
-  app's record) wakes it the same way. A quiet rung crossed by the clock
-  posts with the next thing the record learns about that subject. Nothing from before it was turned on is posted. The
-  cross-post's place never moves your read pointer, a reader's, or
-  `meta.timeline_pending`.
+  account, not otherwise filtered: the same subjects, sections and kinds
+  a scheduled agent reads. What is not publishable never leaves Elixir:
+  an item only a clan's leaders may see (a member's away), and your
+  account's own administration.
+- **When.** About a minute after the record learns something about one
+  of the subjects, the timeline is read from the cross-post's own place
+  in it and anything new is posted. Nothing polls. An attested fact (a
+  leader's word in Elixir Clan, a family app's record) wakes it the same
+  way. A quiet rung crossed by the clock posts with the next thing the
+  record learns about that subject. Nothing from before it was turned on
+  is posted. The cross-post's place never moves your read pointer, a
+  reader's, or `meta.timeline_pending`.
 - **One line per item:** the item's sentence with names made literal,
   then links back to Elixir (the battle, the race week, the member, the
-  subject) in the form Discord never previews. Discord's post time says
-  when; only an item over three hours old (a late proof, a quiet rung)
-  adds how long ago (`<t:{at_unix}:R>`, from a sitting's last battle).
-  Nothing pings anyone.
+  subject), never previewed. Discord's post time says when; only an item
+  over three hours old (a late proof, a quiet rung) adds how long ago
+  (`<t:{at_unix}:R>`, from a sitting's last battle). Nothing pings
+  anyone.
 - **Edited, never repeated.** When an item grows (a sitting adds
   battles, or closes), its message is edited in place; a sitting posted
   while going is edited to its final count within about 45 minutes of
@@ -481,21 +481,22 @@ set in the console only, never through MCP or the JSON API.
   keeps it sealed, shows it shortened, and never logs it. When Discord
   says it no longer exists, cross-posting turns off and the panel says
   why; turning it back on, or a new webhook, starts from that moment.
-- **When Discord refuses a line,** it alone is skipped. Lines go at
-  most about 25 a minute to a channel, under Discord's limit, so a busy
-  war day arrives over a few minutes; a line still undelivered after
-  many tries counts as not delivered.
+- **When Discord refuses a line,** it alone is skipped. Lines go at most
+  about 25 a minute, under Discord's limit, so a busy war day takes a
+  few minutes; a line still undelivered after many tries counts as not
+  delivered.
 - **The last deliveries.** The panel lists the last 20 lines of the past
   30 days (posted, edited, refused in Discord's words, not delivered, or
-  "no answer") and counts those not delivered.
+  "no answer") and counts those not delivered. Rate a line 👍 or 👎, with
+  a note if you like: feedback to Elixir, which cannot see your channel.
 
 A clan's leaders can also post the clan's own activity to a channel,
 chosen by category and set by the clan's policy, from Elixir Clan's
 Social ▸ Discord ([The clan's activity in
 Discord](/docs/clan-policy#the-clans-activity-in-discord)). The panel
 names each clan you follow that does, with one of your verified players
-in it: what it tells is in your timeline too, so a server carrying
-both channels tells it twice.
+in it: what it tells is in your timeline too, so a server carrying both
+channels tells it twice.
 
 ## What the timeline never does
 

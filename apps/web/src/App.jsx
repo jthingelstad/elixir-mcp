@@ -154,6 +154,7 @@ export const SECTIONS = {
       { slug: "connections", label: "Connections" },
       { slug: "feedback", label: "Feedback" },
       { slug: "emails", label: "Emails" },
+      { slug: "discord", label: "Discord" },
       { slug: "usage", label: "Usage" },
       { slug: "cards", label: "Cards" },
       { slug: "collectors", label: "Collectors", ownerOnly: true },
@@ -318,6 +319,14 @@ export const ADMIN_RAIL = [
     label: "Emails",
     icon: "mail",
     to: `${CONSOLE}/admin/emails`,
+  },
+  // What Elixir posted to Discord, across clans and timelines, and how
+  // it fared: the quality ledger (2026-10-11), never the channels.
+  {
+    key: "discord",
+    label: "Discord",
+    icon: "megaphone",
+    to: `${CONSOLE}/admin/discord`,
   },
   {
     group: "Access",
@@ -872,6 +881,18 @@ export const DOC_LINKS = {
     [
       ["Email", "/docs/email"],
       ["What the mail counts", "/docs/email#what-the-mail-counts"],
+    ],
+  ],
+  "admin:discord": [
+    "What Elixir posts to Discord",
+    [
+      ["Timeline cross-post", "/docs/timeline#cross-posting-to-discord"],
+      ["Actions in Discord", "/docs/clan-actions#actions-in-the-clans-discord"],
+      [
+        "The clan's activity",
+        "/docs/clan-policy#the-clans-activity-in-discord",
+      ],
+      ["Privacy", "/docs/privacy"],
     ],
   ],
   "admin:usage": [

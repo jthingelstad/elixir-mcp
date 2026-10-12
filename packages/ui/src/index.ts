@@ -44,6 +44,9 @@ export {
 export {
   DiscordDeliveries,
   type DiscordDeliveryRow,
+  type DiscordRating,
+  type DiscordRatings,
+  type RateDiscordPost,
 } from "./DiscordDeliveries.tsx";
 export { Fresh } from "./Fresh.tsx";
 export { Icon, type IconName } from "./Icon.tsx";

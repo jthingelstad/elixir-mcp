@@ -289,6 +289,17 @@ test("a webhook's posts a day to a week old, not yet read, are the read-back's, 
     "oldest first, at most three, only this webhook's posts in the window",
   );
   assert.equal(first[0].ledger_id, rows[3].post_id);
+  // A second delivery queued before the first's answers arrive asks for
+  // none of those again (0225): one read of a message, never two.
+  const again = await readbackCandidates(ctx.db, {
+    destination: ACCOUNT,
+    webhook_fp: FP2,
+    nowMs: now,
+  });
+  assert.deepEqual(
+    again.map((c) => c.key),
+    ["tl_r0000000000000000001"],
+  );
   await applyReceipts(ctx.db, [
     {
       ledger_id: rows[3].post_id,
@@ -322,8 +333,9 @@ test("a webhook's posts a day to a week old, not yet read, are the read-back's, 
     nowMs: now,
   });
   assert.deepEqual(
-    next.map((c) => c.key),
-    ["tl_r0000000000000000001"],
+    next,
+    [],
+    "asked once, answered or not, a post is never asked again",
   );
   assert.deepEqual(
     await readbackCandidates(ctx.db, {

@@ -3357,3 +3357,39 @@ test("admin beta pulse: counts by signup week for an admin, refused to a member"
   );
   assert.equal(member.statusCode, 403);
 });
+
+test("admin Discord: the window's numbers and one clan's posts for an admin, refused to a member", async () => {
+  const id = "cccccccc-0000-4000-8000-000000000001";
+  await db.query(
+    `insert into discord_post (post_id, feature, clan_tag, destination,
+       webhook_fp, post_key, revision, action, mode, content, handed_at, outcome)
+     values ($1, 'clan_actions', '#J2RGCRVG', '#J2RGCRVG', '0123456789abcdef',
+             '12', 1, 'post', 'code', 'Promote Ada to Elder', now(), 'posted')`,
+    [id],
+  );
+  const get = (path, cookie = bossCookie, query = undefined) =>
+    handler({
+      ...event({ method: "GET", path, cookie, body: undefined }),
+      ...(query ? { queryStringParameters: query } : {}),
+    });
+  const summary = await get("/api/admin/discord", bossCookie, { days: "3" });
+  assert.equal(summary.statusCode, 200, summary.body);
+  const s = parse(summary);
+  assert.equal(s.days, 3);
+  assert.equal(
+    s.features.find((f) => f.feature === "clan_actions").outcomes.posted,
+    1,
+  );
+  const detail = await get("/api/admin/discord/J2RGCRVG", bossCookie, {
+    feature: "clan_actions",
+  });
+  assert.equal(detail.statusCode, 200, detail.body);
+  assert.equal(parse(detail).posts[0].content, "Promote Ada to Elder");
+  assert.equal((await get("/api/admin/discord/not%20a%20tag")).statusCode, 404);
+  assert.equal((await get("/api/admin/discord", memberCookie)).statusCode, 403);
+  assert.equal(
+    (await get("/api/admin/discord/J2RGCRVG", memberCookie)).statusCode,
+    403,
+  );
+  await db.query(`delete from discord_post where post_id = $1`, [id]);
+});

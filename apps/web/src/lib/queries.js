@@ -46,6 +46,14 @@ export const keys = {
   adminAccounts: ["admin", "accounts"],
   adminUsage: ["admin", "usage"],
   adminPulse: ["admin", "pulse"],
+  adminDiscord: (days) => ["admin", "discord", days],
+  adminDiscordDetail: (key, feature) => [
+    "admin",
+    "discord",
+    "detail",
+    key,
+    feature ?? "",
+  ],
   adminConnections: ["admin", "connections"],
   adminFeedback: ["admin", "feedback"],
   adminFeedbackPage: (q) => ["admin", "feedback", "queue", q],
@@ -238,6 +246,19 @@ export const useAdminAccounts = adminRead(
 export const useAdminUsage = adminRead(keys.adminUsage, api.adminUsage);
 /** The beta pulse: counts by signup week, never a person. */
 export const useAdminPulse = adminRead(keys.adminPulse, api.adminPulse);
+/** The Discord features' quality over a window (the ledger, 0222). */
+export const useAdminDiscord = (days) =>
+  useQuery({
+    queryKey: keys.adminDiscord(days),
+    queryFn: payload(() => api.adminDiscord(days)),
+  });
+/** One clan's (by tag) or one timeline's (by account id) posts whole. */
+export const useAdminDiscordDetail = (key, feature) =>
+  useQuery({
+    queryKey: keys.adminDiscordDetail(key, feature),
+    queryFn: payload(() => api.adminDiscordDetail(key, feature)),
+    enabled: Boolean(key),
+  });
 export const useAdminConnections = adminRead(
   keys.adminConnections,
   api.adminConnections,

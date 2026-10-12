@@ -86,6 +86,7 @@ export const AGENT_SCOPED_ROUTES = new Set([
   // The agent's timeline cross-posted to Discord (0213), set by its owner.
   "GET /api/me/timeline/discord",
   "PUT /api/me/timeline/discord",
+  "POST /api/me/timeline/discord/rate",
   "GET /api/me/requests",
   "GET /api/me/activity/calls/*",
   "GET /api/me/activity",
@@ -303,7 +304,7 @@ export function makeHandler({
       capture,
       clanInternal: Boolean(clan),
     }),
-    ...timelineDiscordRoutes({ resolveAccount, discord }),
+    ...timelineDiscordRoutes({ resolveAccount, discord, notifyOwner }),
     ...clansRoutes({ resolveAccount, logEvent }),
     ...publicRoutes({ deadLetters }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),

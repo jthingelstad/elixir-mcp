@@ -524,6 +524,9 @@ export function createHandler({
           return json(200, await activity.remove(tag, who));
         return json(400, { error: "bad_request" });
       }
+      // A leader's rating of one post of the channel (2026-10-11).
+      if (activity && method === "POST" && rest === "/activity-discord/rate")
+        return json(200, await activity.rate(tag, who, body));
       // A leader's preview of the editor: the last few stories in a voice,
       // posted nowhere; `pending` collects one that outlasted its request.
       if (activity && method === "POST" && rest === "/activity-discord/preview")
@@ -550,6 +553,9 @@ export function createHandler({
           return json(200, await discord.removeWebhook(tag, who));
         return json(400, { error: "bad_request" });
       }
+      // A leader's rating of one delivered Action (2026-10-11).
+      if (discord && rest === "/discord/rate" && method === "POST")
+        return json(200, await discord.rate(tag, who, body));
       // The one role a new Action mentions (2026-10-11, opt in).
       if (discord && rest === "/discord/mention" && method === "POST")
         return json(

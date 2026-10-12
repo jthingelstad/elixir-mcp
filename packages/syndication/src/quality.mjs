@@ -19,7 +19,7 @@
  * was posted (still there or deleted, its reactions when Discord returns
  * them, whether a thread was started from it). No timer of its own: the
  * next delivery to the same webhook names up to three posts a day to a
- * week old that are not yet read (`readbackCandidates`), the relay reads
+ * week old never asked for (`readbackCandidates`, marking each), the relay reads
  * them after its own posts, and the answers come back as receipts.
  *
  * The ledger is for reading, never for delivering: a write here never
@@ -301,8 +301,10 @@ async function applyReads(db, reads) {
 
 /**
  * The posts a delivery to this webhook reads back: posted a day to a
- * week ago, not yet read, oldest first, at most three. `[{ledger_id,
- * key}]`, the key the relay (or Clan's ledger) finds the message by.
+ * week ago, never asked for before, oldest first, at most three, each
+ * marked asked as it is taken (0225), so it is read at most once even
+ * when two deliveries are queued before an answer. `[{ledger_id, key}]`,
+ * the key the relay (or Clan's ledger) finds the message by.
  */
 export async function readbackCandidates(
   db,
@@ -314,22 +316,32 @@ export async function readbackCandidates(
   },
 ) {
   if (!destination || !FP.test(String(webhook_fp ?? ""))) return [];
+  // Taken, not just chosen (0225): a second delivery queued before this
+  // one's answer arrives never asks for the same post again.
   const { rows } = await db.query(
-    `select post_id, post_key from discord_post
-      where webhook_fp = $1 and destination = $2
-        and action = 'post' and outcome = 'posted' and checked_at is null
-        and outcome_at <= $3 and outcome_at > $4
-      order by outcome_at
-      limit $5`,
+    `update discord_post p set read_asked_at = $6
+      where p.post_id in (
+        select post_id from discord_post
+         where webhook_fp = $1 and destination = $2
+           and action = 'post' and outcome = 'posted' and checked_at is null
+           and read_asked_at is null
+           and outcome_at <= $3 and outcome_at > $4
+         order by outcome_at
+         limit $5
+         for update skip locked)
+      returning p.post_id, p.post_key, p.outcome_at`,
     [
       webhook_fp,
       destination,
       new Date(nowMs - READBACK_AFTER_MS),
       new Date(nowMs - READBACK_UNTIL_MS),
       Math.min(limit, READBACK_PER_DELIVERY),
+      new Date(nowMs),
     ],
   );
-  return rows.map((r) => ({ ledger_id: r.post_id, key: r.post_key }));
+  return rows
+    .sort((a, b) => a.outcome_at - b.outcome_at)
+    .map((r) => ({ ledger_id: r.post_id, key: r.post_key }));
 }
 
 /** A relay receipt object's receipts, or null when it is not one. */

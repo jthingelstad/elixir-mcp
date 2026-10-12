@@ -84,6 +84,34 @@ export class ManageError extends Error {
   }
 }
 
+/** The viewer's ratings of a delivery history's posts, `{ledger_id:
+ *  {rating, feedback_id}}`; none when the host gave no `ratings` or it
+ *  failed (the history is shown anyway). */
+export async function ratingsOf(ratings, entries) {
+  if (!ratings) return {};
+  const ids = (entries ?? []).map((e) => e?.ledger_id).filter(Boolean);
+  if (!ids.length) return {};
+  try {
+    return (await ratings.mine(ids)) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** One rating through the host's `ratings`, its refusal as the page's. */
+export async function rateWith(ratings, feature, clanTag, body) {
+  if (!ratings) throw new ManageError(503, "ratings_unavailable");
+  if (!body || typeof body !== "object")
+    throw new ManageError(400, "bad_request");
+  return ratings.rate({
+    feature,
+    clanTag,
+    postId: body.ledger_id,
+    rating: body.rating,
+    note: body.note ?? null,
+  });
+}
+
 /** Below the smallest clan a policy engages with: say how many there are. */
 export const tooFewMembers = (members) =>
   new ManageError(409, "too_few_members", null, {

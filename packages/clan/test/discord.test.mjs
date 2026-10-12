@@ -90,6 +90,7 @@ function world({
   clock = { t: Date.UTC(2026, 9, 10) },
   quality = null,
   workerLog = { log() {} },
+  ratings = null,
 } = {}) {
   const storage = memory();
   const now = () => clock.t;
@@ -131,6 +132,7 @@ function world({
     wake: async (tag) => void wakes.push(tag),
     log: { error() {} },
     quality,
+    ratings,
   });
   return {
     storage,
@@ -1046,4 +1048,60 @@ test("an Action Discord refused or never answered is one line for the alarm, by 
     `discord_undelivered clan_actions refused ${fp}`,
   ]);
   assert.ok(lines.every((l) => !l.includes(TOKEN)));
+});
+
+test("a leader rates a delivered Action; Settings shows their ratings; an elder may not, and with no host to file it nothing is rated", async () => {
+  const POST = "aaaaaaaa-0000-4000-8000-000000000004";
+  const rated = [];
+  const ratings = {
+    async rate(input) {
+      rated.push(input);
+      return { ok: true, feedback_id: "9", rating: input.rating };
+    },
+    async mine(ids) {
+      return Object.fromEntries(ids.map((id) => [id, { rating: "up" }]));
+    },
+  };
+  const w = world({ ratings });
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  await w.ledger.saveDiscordLog(CLAN, {
+    entries: [
+      {
+        at: "2026-10-10T00:00:00Z",
+        outcome: "posted",
+        ref: "#1",
+        ledger_id: POST,
+      },
+    ],
+    missed: {},
+  });
+  assert.deepEqual((await w.service.status(CLAN, LEAD)).ratings, {
+    [POST]: { rating: "up" },
+  });
+  assert.deepEqual(
+    await w.service.rate(CLAN, LEAD, { ledger_id: POST, rating: "up" }),
+    { ok: true, feedback_id: "9", rating: "up" },
+  );
+  assert.deepEqual(rated, [
+    {
+      feature: "clan_actions",
+      clanTag: CLAN,
+      postId: POST,
+      rating: "up",
+      note: null,
+    },
+  ]);
+  await assert.rejects(
+    w.service.rate(
+      CLAN,
+      { ...LEAD, role: "elder" },
+      { ledger_id: POST, rating: "up" },
+    ),
+    (err) => err.code === "leaders_only",
+  );
+  const bare = world();
+  await assert.rejects(
+    bare.service.rate(CLAN, LEAD, { ledger_id: POST, rating: "up" }),
+    (err) => err.status === 503,
+  );
 });
