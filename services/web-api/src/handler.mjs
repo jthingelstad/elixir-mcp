@@ -310,9 +310,16 @@ export function makeHandler({
     // shows in seconds rather than at the scheduler's next pass.
     if (onboarded?.player === true && onboarded.tag)
       await requestFirstRead(db, liveRead, onboarded.tag, account.account_id);
-    // Only the verification that created the account says where a new
-    // person lands: their player's record, or Tracking to add one.
-    const landing = opened?.created
+    // Only a first use says where a new person lands: their player's
+    // record, or Tracking to add one. That is the verification that
+    // created the account, or the first sign-in to one made for them
+    // ({account_enroll}, an approval): onboarding claims its player or,
+    // with no tag, stamps it, once.
+    const firstUse =
+      opened?.created ||
+      onboarded?.player === true ||
+      onboarded?.skipped === "no_requested_tag";
+    const landing = firstUse
       ? {
           new_account: {
             player_tag: onboarded?.player === true ? onboarded.tag : null,

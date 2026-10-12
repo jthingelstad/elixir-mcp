@@ -447,18 +447,23 @@ export async function accountEnrollOp(databaseUrl, spec) {
         const {
           rows: [created],
         } = await db.query(
-          `insert into account (email_hash, email, status, role, kind,
-                                requested_player_tag, decided_at)
-           values ($1, $2, 'approved', 'member', 'person', $3, now())
-           returning account_id`,
-          [hash, email, tag],
+          // The choice rides in the insert, so no account is left with
+          // the default instead; absent, the column default (0051) stands.
+          newsletter === null
+            ? `insert into account (email_hash, email, status, role, kind,
+                                    requested_player_tag, decided_at)
+               values ($1, $2, 'approved', 'member', 'person', $3, now())
+               returning account_id`
+            : `insert into account (email_hash, email, status, role, kind,
+                                    requested_player_tag, decided_at,
+                                    newsletter_opt_in)
+               values ($1, $2, 'approved', 'member', 'person', $3, now(), $4)
+               returning account_id`,
+          newsletter === null
+            ? [hash, email, tag]
+            : [hash, email, tag, newsletter],
         );
         accountId = created.account_id;
-        if (newsletter !== null)
-          await db.query(
-            `update account set newsletter_opt_in = $2 where account_id = $1`,
-            [accountId, newsletter],
-          );
       }
       await db.query(
         `insert into account_event (account_id, kind, detail) values ($1, $2, $3)`,

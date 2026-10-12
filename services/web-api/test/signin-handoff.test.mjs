@@ -74,9 +74,12 @@ before(async () => {
   });
   db = new pg.Client({ connectionString: DB_URL });
   await db.connect();
+  // Members who have signed in before (onboarded): a first sign-in would
+  // carry the new-account landing, which is not what these tests are about.
   for (const email of [MEMBER, OTHER])
     await db.query(
-      `insert into account (email_hash, status) values ($1, 'approved')`,
+      `insert into account (email_hash, status, onboarded_at)
+       values ($1, 'approved', now())`,
       [emailHash(email)],
     );
   handler = makeHandler({
