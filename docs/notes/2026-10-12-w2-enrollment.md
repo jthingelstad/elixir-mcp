@@ -50,7 +50,16 @@ DECISIONS, "Zero-trust collectors, open enrollment" [Jamie, 2026-09-06,
    collector with its operator, state and heartbeat. The raise still
    emails the maintainer; the note now says the collector is approved
    and where to revoke it.
-6. **What about a raise that never runs?** Unchanged rule: a `probation`
+6. **Can one account raise without limit?** [engineering, 2026-10-12]
+   One unproven collector at a time (Codex on #554). Every raise now
+   mints a usable token, and the door's budget, lease cap and drain are
+   per gateway, so unbounded raises would multiply them. A raise is
+   refused (409 `unproven_collector`) while the account holds a
+   collector on `probation`, or a `draining` one with no
+   `last_success_at`; a revoke or an admitted fetch frees it. Proven
+   collectors never count, which keeps "any account can raise any
+   number" (2026-09-11) one proof at a time. The owner is exempt.
+7. **What about a raise that never runs?** Unchanged rule: a `probation`
    collector that has not checked in for an hour reads `silent`
    (`packages/ingest/src/fleet.mjs` counts from `enrolled_at` when there
    is no heartbeat), and the maintainer is told once. That is true of an
@@ -78,6 +87,8 @@ Read at 36068cb8.
 - Missed-streak drain: ten expired leases in a row and the door stops
   leasing and drains the collector (`door.mjs:449-472`).
 - Revoke: the maintainer's, a row update the door checks on every call.
+- One unproven collector per account: `POST /api/gateways`
+  (`services/web-api/src/routes/gateways.mjs`).
 
 The minimum version: `versionRefusal` (`door.mjs:236-240`) is off in
 code and refuses lease and submit below `min_client_version` only when

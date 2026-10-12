@@ -240,6 +240,30 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         [name],
       );
       if (dupe.rows.length > 0) return json(409, { error: "name_taken" });
+      // One UNPROVEN collector per account (Codex on #554). The door's
+      // budget, lease cap and missed-streak drain are all per gateway, so
+      // with every raise minting a usable token, an account free to raise
+      // at will could multiply them with throwaway collectors. Unproven
+      // means on probation, or drained without one admitted fetch ever
+      // (last_success_at is stamped by ingest on admission only); it
+      // counts until it delivers or the maintainer revokes it. A proven
+      // collector never blocks the next raise, so "any account can raise
+      // any number" (2026-09-11) still holds, one proof at a time.
+      if (!account.isOwner) {
+        const { rows: unproven } = await db.query(
+          `select coalesce(card_name, name) as label from gateway
+           where owner_account_id = $1
+             and (status = 'probation'
+                  or (status = 'draining' and last_success_at is null))
+           order by enrolled_at limit 1`,
+          [account.accountId],
+        );
+        if (unproven[0])
+          return json(409, {
+            error: "unproven_collector",
+            message: `Your collector ${unproven[0].label} has not delivered a fetch yet. Run it first: once one of its results is admitted you can raise another.`,
+          });
+      }
       const token = mintToken();
       let rows;
       try {

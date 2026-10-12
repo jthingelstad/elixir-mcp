@@ -43,6 +43,11 @@ results must pass, on every submit:
 - **Your own leases only, and few of them.** A collector can hand back
   only the work it was given, holds at most two unfinished jobs at a
   time, and has an hourly request budget.
+- **One new collector at a time.** Until a collector of yours has
+  delivered a result that passes, raising another is refused; one that
+  was drained without ever delivering still counts until the maintainer
+  revokes it. Collectors that have delivered never count, so you can run
+  as many as you like, proving each in turn.
 - **Drain and revoke.** Ten jobs in a row left to expire drain a
   collector automatically, and the maintainer can revoke any
   collector's token at any time, with immediate effect. When this page
