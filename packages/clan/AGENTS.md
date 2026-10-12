@@ -28,7 +28,8 @@ or workflow of its own.
   (`src/recorded-client.mjs`): a fixed set of reads with a request-local
   credential made after Elixir authenticates the person, never a browser
   token, OAuth grant or integration key. Membership, verification and role
-  are current checks on every request.
+  are current checks on every request, and a leader's change also needs
+  the roster read within the hour (`src/role-freshness.mjs`).
 - **Private Clan state never reaches MCP or public tools.** The one
   exception is `clans_context`, through `@elixir-mcp/auth/clan-context`;
   `services/web-api/test/clan-boundary.test.mjs` pins the boundary.

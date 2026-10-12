@@ -9,6 +9,7 @@ import {
   serverTiming,
 } from "./trace.mjs";
 import { roleLabel, roleRank } from "./roles.mjs";
+import { confirmRole, isLeaderMutation } from "./role-freshness.mjs";
 
 const json = (statusCode, body, extra = {}) => ({
   statusCode,
@@ -424,6 +425,10 @@ export function createHandler({
       method === "GET" || method === "DELETE" ? {} : parseBody(event);
     if (body === null) return json(400, { error: "bad_request" });
     try {
+      // A leader's role is the record's; before acting on it, the record
+      // must have read the roster within the hour (role-freshness.mjs).
+      if (isLeaderMutation(method, rest, who.role))
+        await confirmRole({ mcp, token, clanTag: tag, now: now() });
       const memberPath = /^\/members\/([0-9A-Za-z]{3,12})\/activity$/.exec(
         rest,
       );

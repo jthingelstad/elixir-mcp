@@ -59,6 +59,12 @@ before(async () => {
     "insert into clan_membership(clan_tag,player_tag,role,joined_observed_at) values ($1,$2,'leader',now())",
     [CLAN, TAG],
   );
+  // The roster reads as fresh for the whole run, so leader mutations act on the role
+  // (packages/clan/src/role-freshness.mjs; clan-role-freshness.test.mjs).
+  await scratch.db.query(
+    "insert into poll_state(subject_tag,endpoint,last_admitted_at) values ($1,'clan',now() + interval '1 day')",
+    [CLAN],
+  );
   const session = await createSession(scratch.db, {
     secret: "test",
     accountId,
