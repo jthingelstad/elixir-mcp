@@ -135,6 +135,33 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   const [row] = await told(person);
   assert.equal(row.item_id, sitting.key);
   assert.equal(row.open_from.toISOString(), "2026-09-02T17:46:25.000Z");
+  // The quality ledger (0222): the line as handed over, under the id the
+  // relay echoes in its receipt; the webhook only as its fingerprint.
+  const ledger = async () =>
+    (
+      await ctx.db.query(
+        `select post_id, feature, account_id, destination, webhook_fp,
+                post_key, revision, action, mode, items, content, outcome,
+                observed_at, handed_at
+           from discord_post where account_id = $1 order by handed_at`,
+        [person],
+      )
+    ).rows;
+  const [posted] = await ledger();
+  assert.equal(posted.post_id, sitting.ledger_id);
+  assert.equal(posted.feature, "timeline");
+  assert.equal(posted.destination, person);
+  assert.equal(posted.webhook_fp, webhookFingerprint(HOOK));
+  assert.equal(posted.post_key, sitting.key);
+  assert.equal(posted.revision, sitting.revision);
+  assert.equal(posted.action, "post");
+  assert.equal(posted.mode, "line");
+  assert.equal(posted.content, sitting.content);
+  assert.equal(posted.outcome, null, "until the relay's receipt");
+  assert.equal(posted.items.length, 1);
+  assert.equal(posted.items[0].id, sitting.key);
+  assert.equal(typeof posted.items[0].kind, "string");
+  assert.ok(posted.observed_at <= posted.handed_at);
 
   // 18:40: more battles of the same sitting, read from its start, so the
   // edit tells all of it under the same key at a higher revision.
@@ -148,6 +175,10 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   assert.equal(grown[0].key, sitting.key);
   assert.ok(grown[0].revision > sitting.revision);
   assert.match(grown[0].content, /a session of 10 battles .*still going/);
+  const after = await ledger();
+  assert.equal(after.length, 2);
+  assert.equal(after[1].post_id, grown[0].ledger_id);
+  assert.equal(after[1].action, "edit", "told before: the relay edits it");
   // The edit is built again and its last battle is minutes old: no time,
   // as the first post had none (2026-10-11).
   assert.doesNotMatch(grown[0].content, /<t:/);

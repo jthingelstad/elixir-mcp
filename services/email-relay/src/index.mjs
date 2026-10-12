@@ -125,17 +125,22 @@ const clanSeal = process.env.CLAN_MODEL_SECRET
       createBox(process.env.CLAN_MODEL_SECRET, CLAN_ACTIVITY_PURPOSE),
     )
   : null;
-const timelineDiscordWorker =
+const timelineDiscordRecords =
   process.env.CLAN_MODEL_SECRET && process.env.OUTBOX_BUCKET
-    ? createTimelineDiscordWorker({
-        discord: createDiscordWebhook({
-          userAgent: "Elixir (https://elixir.poapkings.com, 1)",
-        }),
-        store: timelineDiscordStore(process.env.OUTBOX_BUCKET, s3),
-        open: (sealed, id, kind) =>
-          (isClanDiscordKind(kind) ? clanSeal : timelineSeal).open(sealed, id),
-      })
+    ? timelineDiscordStore(process.env.OUTBOX_BUCKET, s3)
     : null;
+const timelineDiscordWorker = timelineDiscordRecords
+  ? createTimelineDiscordWorker({
+      discord: createDiscordWebhook({
+        userAgent: "Elixir (https://elixir.poapkings.com, 1)",
+      }),
+      store: timelineDiscordRecords,
+      open: (sealed, id, kind) =>
+        (isClanDiscordKind(kind) ? clanSeal : timelineSeal).open(sealed, id),
+      // What Discord answered, for the quality ledger (0222).
+      receipt: (body) => timelineDiscordRecords.receipt(body),
+    })
+  : null;
 
 export const handler = makeHandler({
   timelineDiscordObject: timelineDiscordWorker,

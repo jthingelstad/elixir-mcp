@@ -39,7 +39,13 @@
  *
  * What happened is kept for Settings: the last 20 deliveries in 30 days
  * (posted, edited, refused with Discord's words, unknown, not delivered).
+ *
+ * And for Elixir's operators, in the quality ledger (0222, `quality`,
+ * injected by the service that shares): each post or edit as handed over
+ * and, once settled, what Discord answered. An attempt Discord never saw
+ * keeps its row and is handed over again under it.
  */
+import { randomUUID } from "node:crypto";
 
 import {
   discordActionMessage,
@@ -49,6 +55,7 @@ import {
 import {
   addDiscordDeliveries,
   discordNotDelivered,
+  webhookFingerprint,
 } from "@elixir-mcp/contracts";
 import { createBox } from "../sealed.mjs";
 import { parseWebhook, validRoleId } from "../discord-webhook.mjs";
@@ -103,6 +110,7 @@ function delivery(post, reply, at, triesLeft) {
     at,
     ref: Number.isInteger(post.number) ? `#${post.number}` : null,
     excerpt: post.pending_text,
+    ...(post.ledger_open ? { ledger_id: post.ledger_open } : {}),
   };
   if (reply.ok)
     return {
@@ -131,6 +139,8 @@ export function createDiscordService({
   wake = null,
   now = () => Date.now(),
   log = console,
+  /** The quality ledger (syndication `discordQuality`), or null. */
+  quality = null,
 }) {
   if (!secret) throw new Error("the Discord service needs the app secret");
   const box = createBox(secret, "clan discord webhook v1");
@@ -170,6 +180,7 @@ export function createDiscordService({
   async function settleAll(clanTag, posts, stored) {
     const replies = new Map();
     const added = [];
+    const receipts = [];
     let refused = null;
     let forum = null;
     const out = [];
@@ -245,7 +256,19 @@ export function createDiscordService({
           ? !next.gone
           : !next.gave_up && (next.tries ?? 0) < POST_TRIES;
       const entry = delivery(post, reply, iso(), triesLeft);
-      if (entry) added.push(entry);
+      if (entry) {
+        added.push(entry);
+        if (post.ledger_open)
+          receipts.push({
+            ledger_id: post.ledger_open,
+            outcome: entry.outcome,
+            at: entry.at,
+            ...(entry.http_status ? { http_status: entry.http_status } : {}),
+            ...(entry.reason ? { reason: entry.reason } : {}),
+            ...(reply.code === "message_gone" ? { deleted: true } : {}),
+          });
+        next.ledger_open = null;
+      }
       await ledger.saveDiscordPost(clanTag, next);
       out.push(next);
     }
@@ -256,6 +279,7 @@ export function createDiscordService({
         ...(refused ? { refused_at: iso(), refused_code: refused } : {}),
       });
     await remember(clanTag, added);
+    if (quality && receipts.length) await quality.settle(receipts);
     return out;
   }
 
@@ -455,7 +479,31 @@ export function createDiscordService({
       }
       // The request's id is on its Actions before it is in the outbox.
       const at = iso();
-      for (const [n, { card, post, text, op }] of picked.entries())
+      const rows = [];
+      for (const [n, { card, post, text, op }] of picked.entries()) {
+        const ledgerId = post?.ledger_open ?? randomUUID();
+        rows.push({
+          post_id: ledgerId,
+          feature: "clan_actions",
+          clan_tag: clanTag,
+          destination: clanTag,
+          webhook_fp: webhookFingerprint(url),
+          post_key: card.card_id,
+          revision: 0,
+          action: op.method === "post" ? "post" : "edit",
+          mode: "code",
+          items: [{ id: card.card_id, kind: card.type ?? null }],
+          content: op.content,
+          event_at:
+            op.method === "post"
+              ? card.raised_at
+              : (card.decided_at ?? card.withdrawn_at ?? card.raised_at),
+          observed_at:
+            op.method === "post"
+              ? card.raised_at
+              : (card.decided_at ?? card.withdrawn_at ?? null),
+          handed_at: at,
+        });
         await ledger.saveDiscordPost(clanTag, {
           card_id: card.card_id,
           number: card.number ?? null,
@@ -469,7 +517,10 @@ export function createDiscordService({
           pending_kind: op.method,
           pending_text: text,
           error: null,
+          ledger_open: ledgerId,
         });
+      }
+      if (quality) await quality.record(rows);
       const r = await bridge.publish(prepared);
       // Not in the outbox, or not known to be: the hour's wait answers it
       // unknown, so a post is never made twice.

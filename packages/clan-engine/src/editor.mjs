@@ -428,8 +428,9 @@ const reasonText = (v) =>
  * `{ key, keys, text }`, `key` the earliest story it tells (the post's
  * key; the others are told inside it); `skips` are `{ key, reason }`. A
  * story in neither is Elixir's own. `refused` counts the reasons a post
- * or a skip was not taken, and `rejected` lists them (`{ keys, why }`)
- * for a leader's preview.
+ * or a skip was not taken, and `rejected` lists them (`{ keys, why,
+ * text }`, the refused words) for a leader's preview and the quality
+ * ledger.
  */
 export function editorAnswer(input, stories, read = "") {
   const order = new Map(stories.map((s, i) => [s.key, i]));
@@ -439,9 +440,15 @@ export function editorAnswer(input, stories, read = "") {
   const skips = [];
   const refused = {};
   const rejected = [];
-  const refuse = (why, keys) => {
+  // The refused words are kept with the reason (the quality ledger,
+  // 0222): an operator reads what the checks stopped, not just a count.
+  const refuse = (why, keys, text) => {
     refused[why] = (refused[why] ?? 0) + 1;
-    rejected.push({ keys, why });
+    rejected.push({
+      keys,
+      why,
+      ...(typeof text === "string" ? { text: text.slice(0, 4000) } : {}),
+    });
   };
   for (const p of Array.isArray(input?.posts) ? input.posts : []) {
     const keys = [
@@ -453,17 +460,17 @@ export function editorAnswer(input, stories, read = "") {
     // A story already told: the post would tell it twice. Refused whole,
     // never trimmed to the rest, since its words still tell it.
     if (keys.some((k) => used.has(k))) {
-      refuse("key_reused", keys);
+      refuse("key_reused", keys, p.text);
       continue;
     }
     const list = keys.map((k) => byKey.get(k));
     if (list.length > 1 && list.some((s) => s.alone)) {
-      refuse("merge_refused", keys);
+      refuse("merge_refused", keys, p.text);
       continue;
     }
     const problem = editorProblem(list, p.text, read);
     if (problem) {
-      refuse(problem, keys);
+      refuse(problem, keys, p.text);
       continue;
     }
     for (const k of keys) used.add(k);
@@ -474,7 +481,7 @@ export function editorAnswer(input, stories, read = "") {
     if (!s || used.has(s.key)) continue;
     // A departure is always told, and an edit keeps its post right.
     if (s.alone) {
-      refuse("skip_refused", [s.key]);
+      refuse("skip_refused", [s.key], k.reason);
       continue;
     }
     used.add(s.key);

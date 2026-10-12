@@ -873,12 +873,22 @@ export function createModelService({
       } catch {
         r = { ok: false, status: 0, code: "outcome_unknown" };
       }
-      await ledger.finishModelCall(clanTag, call, finished(r, model));
+      const done = finished(r, model);
+      await ledger.finishModelCall(clanTag, call, done);
+      // About what the round cost, for the quality ledger (0222): from
+      // the reported tokens, or the estimate when none were reported.
+      const cost = callCost({ ...estimate(request), ...done });
+      const spent = {
+        model: done.model,
+        ...(cost
+          ? { cost: { usd: cost.usd, estimated: !!cost.estimated } }
+          : {}),
+      };
       if (r.ok && turn)
         return r.answer !== undefined
-          ? { ok: true, answer: r.answer, model: r.model }
-          : { ok: true, calls: r.calls, content: r.content, model: r.model };
-      if (r.ok) return { ok: true, input: r.input, model: r.model };
+          ? { ok: true, answer: r.answer, ...spent }
+          : { ok: true, calls: r.calls, content: r.content, ...spent };
+      if (r.ok) return { ok: true, input: r.input, ...spent };
       if (r.status === 401 || r.status === 403) {
         await updateKeyItem(clanTag, stored.sealed, { refused_at: iso() });
         return { ok: false, code: "model_key_refused" };
@@ -887,7 +897,7 @@ export function createModelService({
         await dropModel(clanTag, stored, model);
         return { ok: false, code: "model_unavailable" };
       }
-      return { ok: false, code: r.code ?? "model_failed" };
+      return { ok: false, code: r.code ?? "model_failed", ...spent };
     },
   };
 }

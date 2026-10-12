@@ -15,6 +15,7 @@ import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
 import { createDiscordService } from "@elixir-mcp/clan/manage/discord.mjs";
 import { createDiscordBridge } from "@elixir-mcp/clan/discord-bridge.mjs";
 import { clanDiscordWake } from "@elixir-mcp/clan/discord-wake.mjs";
+import { discordQuality } from "@elixir-mcp/syndication/quality";
 import { makeOutbox } from "@elixir-mcp/outbox";
 import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 import {
@@ -223,6 +224,7 @@ export async function runClanEvaluation({
               }),
               // A minute on, the timeline sync collects the answers.
               wake: clanDiscordWake(makeOutbox(outboxBucket)),
+              quality: discordQuality(db),
             })
           : null,
       manage: createManageService({

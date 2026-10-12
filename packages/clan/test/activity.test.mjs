@@ -519,7 +519,12 @@ test("writeUnattended: an owner who left, or one unconfirmed, is not used; Anthr
   const unknown = await h.model.writeUnattended(TAG, request(), {
     ownerLeads: async () => true,
   });
-  assert.deepEqual(unknown, { ok: false, code: "outcome_unknown" });
+  // Sent with no answer: about what it may have cost, by the estimate
+  // (the quality ledger, 0222).
+  assert.equal(unknown.ok, false);
+  assert.equal(unknown.code, "outcome_unknown");
+  assert.equal(unknown.cost.estimated, true);
+  assert.ok(unknown.cost.usd > 0);
 
   h.anthropic.state.write = async () => ({ ok: false, status: 401 });
   const refused = await h.model.writeUnattended(TAG, request(), {

@@ -67,6 +67,18 @@ Elixir keeps the webhook sealed and never shows it whole. Turning
 cross-posting off stops new posts; lines already in the channel are
 Discord's to delete.
 
+**What Elixir keeps about its Discord posts.** For every message Elixir
+posts, edits or decides not to post in a Discord channel (a timeline's
+cross-post, a clan's Actions, a clan's activity channel), it keeps a
+record for 90 days: the account or clan it was for, a fingerprint of
+the webhook (never the webhook itself), which timeline items or Action
+it told, the text as sent, what Discord answered, how long it took, and
+why anything was skipped. When a clan's own model writes its activity
+channel, Elixir also keeps what each run was given, what it looked up
+and wrote, and what Elixir's checks refused, for 30 days. Elixir's
+operators read these records to judge the posts' quality and fix what
+is wrong; they are never published, and nothing in them is a game fact.
+
 **Collectors.** If you run a collector for the service, its card name,
 status and fetch counts are public and credited to your claimed player.
 Your machine's own name and address are not published.

@@ -1,0 +1,3 @@
+# Elixir keeps a record of its Discord posts
+
+Elixir now keeps a record of every message it posts, edits or decides not to post in a Discord channel, for a timeline's cross-post, a clan's Actions and a clan's activity channel, so its operators can judge the posts' quality and fix what is wrong without being in the channel. The record holds the text as sent, which timeline items or Action it told, what Discord answered and why anything was skipped, never the webhook itself, and is kept 90 days. When a clan's own model writes its activity channel, what each run was given, looked up and wrote is kept 30 days. The [privacy page](/docs/privacy) and [limits](/docs/limits#retention-windows) say so. Nothing changes in what is posted. MCP and JSON API unchanged.

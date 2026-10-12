@@ -386,11 +386,19 @@ test("the answer: stories told together under the first one's key, skips with a 
   assert.deepEqual(
     out.rejected,
     [
-      { keys: ["tl_3", "tl_4"], why: "merge_refused" },
-      { keys: ["tl_1", "tl_2"], why: "key_reused" },
-      { keys: ["tl_3"], why: "skip_refused" },
+      {
+        keys: ["tl_3", "tl_4"],
+        why: "merge_refused",
+        text: "Cy departed; Di was removed.",
+      },
+      {
+        keys: ["tl_1", "tl_2"],
+        why: "key_reused",
+        text: "Ada joined and Bo passed 5,000 career wins!",
+      },
+      { keys: ["tl_3"], why: "skip_refused", text: "Not news." },
     ],
-    "each refusal with the stories it was for, for the preview",
+    "each refusal with the stories it was for and the refused words",
   );
 
   const skipped = editorAnswer(

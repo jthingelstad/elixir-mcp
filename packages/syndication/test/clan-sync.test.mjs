@@ -627,6 +627,27 @@ test("same-kind milestones are one story under its first item's key; a refused p
     "Joiner and Stayer took the clan's Shield for season 136.",
   );
   assert.equal("rewritten" in refused.sent[0].message.posts[0], false);
+  // The ledger keeps the refusal with the words the checks stopped, and
+  // the post as Elixir's own, a fallback of the run.
+  const {
+    rows: [run],
+  } = await db.query(
+    "select refusals, fallbacks, posts, raw_key from discord_run where run_id = $1",
+    [`clan-${CLAN.slice(1)}.${T + 21 * H}`],
+  );
+  assert.equal(run.refusals[0].why, "name_changed");
+  assert.equal(run.refusals[0].text, "Shields for Joiner!");
+  assert.equal(run.fallbacks, 1);
+  assert.equal(run.posts, 0);
+  assert.equal(run.raw_key, null, "nowhere to keep the raw run: none named");
+  const {
+    rows: [fallback],
+  } = await db.query(
+    "select mode, run_id from discord_post where post_id = $1",
+    [refused.sent[0].message.posts[0].ledger_id],
+  );
+  assert.equal(fallback.mode, "code");
+  assert.equal(fallback.run_id, `clan-${CLAN.slice(1)}.${T + 21 * H}`);
 
   // A departure is told only time here and weeks played: never awards.
   await clanEvent("member_left", JOINER, T + 21 * H + 30 * MIN);
@@ -807,8 +828,12 @@ test("the editor may tell two stories in one post and skip one with its reason; 
   });
   await award(STAYER, "Star", T + 100 * H + MIN);
   let packet = null;
+  const captured = [];
   const out = await sync(T + 101 * H, {
     editor: true,
+    captureRun: async (key, body) => {
+      captured.push({ key, body });
+    },
     rewrite: async (_db, _tag, req) => {
       packet = req.messages[0].content;
       const key = (kind) =>
@@ -817,6 +842,8 @@ test("the editor may tell two stories in one post and skip one with its reason; 
         )[1];
       return {
         ok: true,
+        model: "a-model",
+        cost: { usd: 0.0042, estimated: false },
         answer: {
           posts: [
             {
@@ -855,6 +882,7 @@ test("the editor may tell two stories in one post and skip one with its reason; 
       reason: "Badges are told on Sundays here.",
       excerpt: message.skipped[0].excerpt,
       rewritten: true,
+      ledger_id: message.skipped[0].ledger_id,
     },
   ]);
   assert.match(
@@ -875,6 +903,49 @@ test("the editor may tell two stories in one post and skip one with its reason; 
       ["member_joined", join, false, null],
     ],
   );
+  // The quality ledger (0222): the post with both stories' items, the
+  // model's skip with its reason, both under the run; the run itself,
+  // and its raw record in the archive.
+  const run = `clan-${CLAN.slice(1)}.${T + 101 * H}`;
+  const { rows: ledger } = await db.query(
+    `select post_id, feature, clan_tag, destination, action, mode, items,
+            content, skip_reason, outcome, run_id
+       from discord_post where run_id = $1 order by action`,
+    [run],
+  );
+  assert.deepEqual(
+    ledger.map((r) => [r.action, r.mode, r.outcome]),
+    [
+      ["post", "model", null],
+      ["skip", "model", "skipped"],
+    ],
+  );
+  assert.equal(ledger[0].post_id, message.posts[0].ledger_id);
+  assert.equal(ledger[0].feature, "clan_activity");
+  assert.equal(ledger[0].clan_tag, CLAN);
+  assert.equal(ledger[0].content, message.posts[0].content);
+  assert.deepEqual(ledger[0].items.map((i) => i.kind).sort(), [
+    "award_granted",
+    "member_joined",
+  ]);
+  assert.equal(ledger[1].skip_reason, "Badges are told on Sundays here.");
+  assert.equal(ledger[1].post_id, message.skipped[0].ledger_id);
+  const {
+    rows: [runRow],
+  } = await db.query("select * from discord_run where run_id = $1", [run]);
+  assert.equal(runRow.model, "a-model");
+  assert.equal(runRow.outcome, "ok");
+  assert.equal(runRow.rounds, 1);
+  assert.equal(runRow.posts, 1);
+  assert.equal(runRow.merged, 1);
+  assert.equal(runRow.model_skips, 1);
+  assert.equal(Number(runRow.cost_usd), 0.0042);
+  assert.equal(captured.length, 1);
+  assert.equal(runRow.raw_key, captured[0].key);
+  assert.match(captured[0].key, /^discord-runs\/2026-10-\d\d\/clan-/);
+  assert.equal(captured[0].body.run_id, run);
+  assert.equal(captured[0].body.stories.length, 3);
+  assert.equal(captured[0].body.rounds[0].answer.posts.length, 1);
   const again = await sync(T + 101 * H + 10 * MIN, {
     editor: true,
     rewrite: async () => assert.fail("nothing to tell"),

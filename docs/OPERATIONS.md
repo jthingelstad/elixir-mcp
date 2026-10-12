@@ -346,7 +346,12 @@ every command, probe and diff listed so anyone can re-verify it.
   operator by primary player only, never an IP, a machine label, the
   account or another claimed player. Buttondown holds the addresses of
   people who signed in and nothing more; an unsubscribe is never
-  overridden. What reaches SES and Anthropic matches the privacy page.
+  overridden. What reaches SES matches the privacy page, and so does
+  what Elixir keeps about its own Discord posts (`discord_post` and
+  `discord_run` 90 days, raw editor runs 30). What reaches Anthropic (a
+  clan's prompts, on the clan's own key) is not on the privacy page yet:
+  that wording is Jamie's call, pending, so the sweep reports it as a
+  known gap rather than a match.
 - **Blast radius** of the period's diffs: new environment variables, IAM
   grants, outbound calls from the email relay (the non-VPC worker), new
   outbox lanes and queue consumers, each justified or challenged.
