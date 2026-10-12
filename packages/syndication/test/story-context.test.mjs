@@ -192,3 +192,24 @@ test("a story of several members, or with no battle, is told nothing more", asyn
   });
   assert.deepEqual(told.get(won.key), {});
 });
+
+test("a move the roster saw before its battle is told the clanmates there and the day's promotions, never a deck", async () => {
+  // 2026-10-12: such a move went out as one bare clause.
+  const story = {
+    key: "tl_00000000000000000005",
+    items: [
+      {
+        id: "tl_00000000000000000005",
+        kind: "arena_changed",
+        at: at(T - 2 * H),
+        facts: { player_tag: ADA, name: "Ada", from: 54000020, to: 54000021 },
+      },
+    ],
+  };
+  const out = await storyContext(db, CLAN, [story], { nowMs: T, identities });
+  assert.deepEqual(out.get(story.key), {
+    promotions: 2,
+    mates: ["Bo"],
+    mates_total: 1,
+  });
+});

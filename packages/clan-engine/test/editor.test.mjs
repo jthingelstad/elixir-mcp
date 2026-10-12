@@ -12,6 +12,8 @@ import {
   EDITOR_POST_MAX,
   EDITOR_ROUNDS,
   EDITOR_STORIES_MAX,
+  EDITOR_TODAY_MAX,
+  EDITOR_TODAY_TEXT_MAX,
   editorAnswer,
   editorNext,
   editorPreviewRequest,
@@ -425,4 +427,52 @@ test("the answer: stories told together under the first one's key, skips with a 
     refused: {},
     rejected: [],
   });
+});
+
+test("a story carries what the channel already told about its member today", () => {
+  const told = editorStory(
+    post(
+      "tl_9",
+      [
+        item("tl_9", "best_trophies_band", {
+          player_tag: "#AAA",
+          name: "Ada",
+          band: 11_500,
+          best: 11_510,
+        }),
+      ],
+      "Ada set a new best of 11,510 trophies, passing 11,500.",
+    ),
+    {
+      today: [
+        {
+          name: "Ada",
+          posts: [
+            { ago: "within the hour", text: "Ada moved up\nto Summit!" },
+            { ago: "a couple of hours ago", text: "x".repeat(400) },
+            { ago: "earlier today", text: "Third." },
+            { ago: "this morning", text: "Fourth." },
+          ],
+        },
+        { name: "Bo", posts: [] },
+      ],
+    },
+  );
+  const lines = told.packet.split("\n");
+  const at = lines.indexOf("TOLD TODAY about Ada:");
+  assert.ok(at > 0);
+  assert.equal(lines[at + 1], "- within the hour: Ada moved up to Summit!");
+  assert.equal(
+    lines[at + 2],
+    `- a couple of hours ago: ${"x".repeat(EDITOR_TODAY_TEXT_MAX)}`,
+  );
+  assert.equal(EDITOR_TODAY_MAX, 3);
+  assert.doesNotMatch(told.packet, /Fourth|TOLD TODAY about Bo/);
+  // Nothing told today: no section.
+  assert.doesNotMatch(WINS.packet, /TOLD TODAY/);
+  // The editor is told what the section means.
+  assert.match(
+    editorRequest({ context: "C", stories: [told] }).system,
+    /TOLD TODAY/,
+  );
 });

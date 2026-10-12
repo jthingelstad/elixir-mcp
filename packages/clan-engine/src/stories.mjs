@@ -47,6 +47,18 @@ export const STORY_TEXT_MAX = 600;
 /** A story older than this says when, in words. */
 const STORY_LATE_MS = 3 * 3600_000;
 
+/** What the channel told about a member that long ago is "today": one
+ *  member's sitting is told once in it (2026-10-12). */
+export const STORY_TODAY_MS = 24 * 3600_000;
+/** A post about a member is edited with more of their sitting while it
+ *  is this recent... */
+export const STORY_EDIT_MS = 2 * 3600_000;
+/** ...and still one of the channel's this many newest posts; otherwise
+ *  the more is skipped as told already today. */
+export const STORY_EDIT_LATEST = 3;
+/** Battles this far apart are two sittings (the timeline's own gap). */
+const SITTING_GAP_MS = 30 * 60_000;
+
 /** Why a story was not posted, as the delivery history says it. */
 export const STORY_SKIPS = {
   badge_level: "A badge level-up below its top level.",
@@ -54,6 +66,8 @@ export const STORY_SKIPS = {
     "Told already; it only grew (more battles, the same best win and run).",
   already_told:
     "Told already: the same battle, or the same milestone reached again this week.",
+  already_told_today:
+    "Told already today: the same sitting as an earlier post about this member.",
 };
 
 /** Kinds told one at a time: each is its own story. */
@@ -123,16 +137,13 @@ const RUN_STEP = 5;
  * so a late proof (the battle behind an arena move) edits the post.
  */
 export function storyDigest(story) {
-  const items = story?.items ?? [];
-  if (items.length === 1 && items[0].kind === "session_standout") {
-    const f = items[0].facts ?? {};
+  const part = (it) => {
+    if (it.kind !== "session_standout") return `${it.id}@${it.revision ?? 1}`;
+    const f = it.facts ?? {};
     const run = Math.floor((Number(f.won_in_a_row) || 0) / RUN_STEP);
     return `sitting:${f.best_win?.battle_id ?? "-"}:${run}`;
-  }
-  return items
-    .map((it) => `${it.id}@${it.revision ?? 1}`)
-    .sort()
-    .join(",");
+  };
+  return (story?.items ?? []).map(part).sort().join(",");
 }
 
 /**
@@ -282,6 +293,169 @@ export function storyReady(story, nowMs, observedMs) {
 }
 
 /* ------------------------------------------------------------------ */
+/* One member's day                                                    */
+/* ------------------------------------------------------------------ */
+
+/** What one member's sitting produces: its moves, its bests, itself. */
+const SITTING_KINDS = new Set([
+  "arena_changed",
+  "ranked_promotion",
+  "best_trophies_band",
+  "session_standout",
+]);
+
+/** When an item happened, for its member's day: a sitting's first
+ *  battle, the battle that made a move, else when the record saw it (a
+ *  move the roster saw before the battle log delivered its battle). */
+export function storyMoment(it) {
+  const f = it?.facts ?? {};
+  if (it?.kind === "session_standout")
+    return Date.parse(f.started_at ?? it.at ?? "");
+  return Date.parse(battleOf(it)?.battle_time ?? it?.at ?? "");
+}
+
+/**
+ * The sitting a moment is in, by its first battle: the member's run of
+ * battles, each under `SITTING_GAP_MS` after the one before, holding the
+ * latest battle at or before the moment. Null when no battle is that
+ * near. `times` are the member's battle times in ms, oldest first.
+ */
+export function sittingOf(times, ms) {
+  if (!Number.isFinite(ms) || !times?.length) return null;
+  let i = -1;
+  // A second's slack: a fact's battle_time and the log's are one battle.
+  for (let j = 0; j < times.length && times[j] <= ms + 1000; j += 1) i = j;
+  if (i < 0 || ms - times[i] >= SITTING_GAP_MS) return null;
+  while (i > 0 && times[i] - times[i - 1] < SITTING_GAP_MS) i -= 1;
+  return times[i];
+}
+
+/**
+ * One member's sitting is one story, told once a day (2026-10-12: one
+ * member's morning was told four times in two hours). A new story of one
+ * member's sitting kinds (an arena, a league, a best, the sitting itself)
+ * that shares a battle with a post the channel made about them today, or
+ * is the same sitting, is part of that post, unless it happened after
+ * the post was made (a later promotion or a higher rung is news). Part
+ * of a post that is recent (`STORY_EDIT_MS`) and one of the channel's
+ * newest (`STORY_EDIT_LATEST`), it edits that post, told with what the
+ * post told; part of an older one, it is skipped as `already_told_today`.
+ * A member's second sitting in a day is skipped the same way. Stories
+ * of one sitting in one run are one post.
+ *
+ * @param {object[]} stories the run's ready stories (buildStories)
+ * @param {Map<string, {
+ *   key: string, first_ms: number|null, revision: number,
+ *   moments: number[], battles: string[], sitting: boolean,
+ *   editable: boolean, items: object[]|null }[]>} today the posts the
+ *   channel made about each member today, newest first: when each was
+ *   first posted, its revision, its items' moments and battles, whether
+ *   it tells a sitting, whether it may be edited and its items as they
+ *   are now (for its edit)
+ * @param {{ battles?: Map<string, number[]> }} [opts] each member's
+ *   battle times today, oldest first
+ * @returns {{ stories: object[], skips: object[] }} the stories to post
+ *   (an edit of an earlier post is `edit` with its `base_revision`) and
+ *   the skips, as buildStories gives them
+ */
+export function foldToday(
+  stories,
+  today = new Map(),
+  { battles = new Map() } = {},
+) {
+  const out = [];
+  const skips = [];
+  const edits = new Map();
+  const local = new Map();
+  const grownAt = new Map(
+    stories.filter((s) => s.grown).map((s) => [s.key, s]),
+  );
+  for (const s of stories) {
+    const players = new Set(s.items.map(playerOf));
+    const tag = players.size === 1 ? playerOf(s.items[0]) : null;
+    if (s.grown || !tag || !s.items.every((it) => SITTING_KINDS.has(it.kind))) {
+      out.push(s);
+      continue;
+    }
+    const times = battles.get(tag) ?? [];
+    const moments = s.items.map(storyMoment).filter(Number.isFinite);
+    const sittings = new Set(
+      moments.map((ms) => sittingOf(times, ms)).filter((x) => x != null),
+    );
+    const ids = new Set(s.items.map(storyBattleId).filter(Boolean));
+    const isSitting = s.items.some((it) => it.kind === "session_standout");
+    const same = (battleIds, sittingStarts) =>
+      battleIds.some((b) => ids.has(b)) ||
+      sittingStarts.some((x) => x != null && sittings.has(x));
+
+    // Told in this run already: the same sitting is the same post.
+    const mine = local.get(tag) ?? [];
+    const here = mine.find((l) => same([...l.ids], [...l.sittings]));
+    if (here) {
+      here.story.items.push(...s.items);
+      for (const x of sittings) here.sittings.add(x);
+      for (const b of ids) here.ids.add(b);
+      continue;
+    }
+    const posts = today.get(tag) ?? [];
+    // A post today it is part of: before it was made, or the sitting
+    // it told (a sitting's later battles are its own growth).
+    const part = posts.find(
+      (p) =>
+        same(
+          p.battles,
+          p.moments.map((ms) => sittingOf(times, ms)),
+        ) &&
+        (isSitting ||
+          p.first_ms == null ||
+          moments.some((ms) => ms <= p.first_ms)),
+    );
+    const skip = () =>
+      s.items.forEach((item, i) =>
+        skips.push({
+          item,
+          reason: "already_told_today",
+          story_key: s.key,
+          record: i === 0,
+          ...(i ? { silent: true } : {}),
+        }),
+      );
+    if (part) {
+      let edit = edits.get(part.key);
+      if (!edit && part.editable) {
+        const grown = grownAt.get(part.key);
+        if (grown) edit = grown;
+        else if (part.items?.length) {
+          edit = { key: part.key, items: [...part.items], grown: true };
+          out.push(edit);
+        }
+        if (edit) {
+          edit.edit = true;
+          edit.base_revision = part.revision;
+          edits.set(part.key, edit);
+        }
+      }
+      if (edit) edit.items.push(...s.items);
+      else skip();
+      continue;
+    }
+    // One sitting a member a day.
+    if (
+      isSitting &&
+      (posts.some((p) => p.sitting) || mine.some((l) => l.sitting))
+    ) {
+      skip();
+      continue;
+    }
+    out.push(s);
+    mine.push({ story: s, sittings, ids, sitting: isSitting });
+    local.set(tag, mine);
+  }
+  for (const s of out) s.digest = storyDigest(s);
+  return { stories: out, skips };
+}
+
+/* ------------------------------------------------------------------ */
 /* Elixir's own words for a story                                      */
 /* ------------------------------------------------------------------ */
 
@@ -373,23 +547,44 @@ function deckWords(deck) {
   return `their ${deck.label} deck is ${rec} ${where} this season`;
 }
 
-/** One member's battle: what it did, the win, and what the record adds. */
+/** One member's battles: a sentence a battle (the first names them, the
+ *  next say "They also"), each with its win, then what the record adds.
+ *  A move the roster saw before its battle was delivered is a sentence
+ *  of its own: which battle made it is never guessed. */
 function battleStory(items, ctx) {
-  const first = items[0];
-  const b = battleOf(items.find(battleOf) ?? first);
-  const clauses = items.map(clause).filter(Boolean);
-  if (!clauses.length) return null;
-  let text = `${who(first)} ${clauses[0]}`;
-  if (b && b.crowns != null)
-    text += ` with a ${score(b)} win over ${opponent(b)}`;
-  if (clauses.length > 1) text += ` and ${andList(clauses.slice(1))}`;
-  const arena = items.find((it) => it.kind === "arena_changed");
+  const groups = [];
+  const byBattle = new Map();
+  for (const it of items) {
+    const id = storyBattleId(it);
+    if (id && byBattle.has(id)) {
+      byBattle.get(id).push(it);
+      continue;
+    }
+    const g = [it];
+    if (id) byBattle.set(id, g);
+    groups.push(g);
+  }
   const mates = ctx.mates ?? [];
   // The names read are capped; the count is the whole of them.
   const matesTotal = Math.max(ctx.mates_total ?? 0, mates.length);
-  if (arena && matesTotal)
-    text += `, joining ${matesTotal > 3 || mates.length < matesTotal ? plural(matesTotal, "clanmate") : andList(mates)} there`;
-  text += ".";
+  let joined = false;
+  const sentences = [];
+  for (const g of groups) {
+    const b = battleOf(g.find(battleOf) ?? g[0]);
+    const clauses = g.map(clause).filter(Boolean);
+    if (!clauses.length) continue;
+    let text = `${sentences.length ? "They also" : who(items[0])} ${clauses[0]}`;
+    if (b && b.crowns != null)
+      text += ` with a ${score(b)} win over ${opponent(b)}`;
+    if (clauses.length > 1) text += ` and ${andList(clauses.slice(1))}`;
+    if (!joined && matesTotal && g.some((it) => it.kind === "arena_changed")) {
+      joined = true;
+      text += `, joining ${matesTotal > 3 || mates.length < matesTotal ? plural(matesTotal, "clanmate") : andList(mates)} there`;
+    }
+    sentences.push(`${text}.`);
+  }
+  if (!sentences.length) return null;
+  const text = sentences.join(" ");
   const extra = [];
   const peak = laterBest(items);
   if (peak) extra.push(peak);
@@ -400,8 +595,9 @@ function battleStory(items, ctx) {
   return [text, ...extra.map((e) => `${e}.`)].join(" ");
 }
 
-/** A sitting: the record, the modes, the run, the best win, the deck. */
-function sittingStory(it) {
+/** A sitting: the record, the modes, the run, the best win, the deck.
+ *  `after` tells it after its member's moves of the same sitting. */
+function sittingStory(it, { after = false, told = new Set() } = {}) {
   const f = it.facts ?? {};
   const rec = `${f.won ?? 0}-${f.lost ?? 0}${f.drawn ? `-${f.drawn}` : ""}`;
   const decks = (f.decks ?? []).map((d) => d.label).filter(Boolean);
@@ -409,7 +605,9 @@ function sittingStory(it) {
     .sort((a, b) => b[1] - a[1])
     .map(([m, n]) => `${n} ${m}`);
   const partner = f.teammate?.name;
-  let text = `${who(it)} went ${rec} over ${plural(f.battles ?? 0, "battle")} in one sitting`;
+  let text = after
+    ? `In the same sitting they went ${rec} over ${plural(f.battles ?? 0, "battle")}`
+    : `${who(it)} went ${rec} over ${plural(f.battles ?? 0, "battle")} in one sitting`;
   if (partner)
     text +=
       f.teammate.battles >= f.battles
@@ -421,7 +619,12 @@ function sittingStory(it) {
     text += `, +${num(f.trophy_net)} trophies`;
   if (f.won_in_a_row >= 3) text += `, winning ${num(f.won_in_a_row)} in a row`;
   text += ".";
-  if (f.best_win && f.best_win.crowns != null)
+  // Its best win, unless the moves before it were told with it.
+  if (
+    f.best_win &&
+    f.best_win.crowns != null &&
+    !told.has(f.best_win.battle_id)
+  )
     text += ` The best was a ${score(f.best_win)} win over ${opponent(f.best_win)}.`;
   return text;
 }
@@ -533,11 +736,28 @@ export function renderStory(story, ctx = {}) {
   const first = items[0];
   if (!first) return "";
   let text = null;
-  if (first.kind === "session_standout") text = sittingStory(first);
-  else if (activityCategory(first) === "members")
+  const sitting = items.find((it) => it.kind === "session_standout");
+  const moves = items.filter((it) => it !== sitting);
+  const oneMember = new Set(items.map(playerOf)).size === 1;
+  if (sitting && !moves.length) text = sittingStory(sitting);
+  else if (sitting && oneMember) {
+    // One member's sitting told with its moves: the moves, then it.
+    const lead = battleStory(moves, ctx);
+    text = lead
+      ? `${lead} ${sittingStory(sitting, {
+          after: true,
+          told: new Set(moves.map(storyBattleId).filter(Boolean)),
+        })}`
+      : sittingStory(sitting);
+  } else if (activityCategory(first) === "members")
     text = rosterStory(first, ctx.members?.[playerOf(first)]);
   else if (activityCategory(first) === "war") text = warStory(first);
-  else if (items.some(battleOf) && new Set(items.map(playerOf)).size === 1)
+  else if (
+    oneMember &&
+    (items.length > 1 || items.some(battleOf) || SITTING_KINDS.has(first.kind))
+  )
+    // One member's battle, or a move whose battle is not delivered yet:
+    // told the same way, with what the record adds (2026-10-12).
     text = battleStory(items, ctx);
   else if (items.length > 1) {
     // Same-kind milestones across members: one sentence naming each,

@@ -1,0 +1,3 @@
+# Clan's Discord activity tells a member's sitting once a day
+
+A member's arena move, new best and standout sitting from one session of play are one post in the clan's activity channel. When part of it arrives after the post went up, the post is edited to tell it too while it is under two hours old and one of the channel's three newest; later than that, it is skipped and listed with the reason "Told already today". A member's second sitting in a day is skipped the same way, and a promotion or new best from a later battle is still its own post. A move the roster saw before its battle now says who in the clan is already there. MCP 11.11.2; JSON API 3.2.0 unchanged.

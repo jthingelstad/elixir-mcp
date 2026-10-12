@@ -44,7 +44,9 @@ export function agoWords(atMs, nowMs) {
   return `${Math.floor(age / DAY_MS)} days ago`;
 }
 
-const unescape = (s) => String(s ?? "").replace(/\\([\\*_~`|>[\]<@#-])/g, "$1");
+/** A post's words as sent, without Discord's escapes. */
+export const unescape = (s) =>
+  String(s ?? "").replace(/\\([\\*_~`|>[\]<@#-])/g, "$1");
 const clip = (s) =>
   s.length > EDITOR_RESULT_MAX ? `${s.slice(0, EDITOR_RESULT_MAX - 1)}…` : s;
 

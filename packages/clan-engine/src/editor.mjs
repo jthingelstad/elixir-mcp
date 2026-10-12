@@ -47,6 +47,10 @@ export const EDITOR_STORIES_MAX = 12;
 export const EDITOR_LOOKUPS_MAX = 6;
 /** One lookup's answer, at most, in characters. */
 export const EDITOR_RESULT_MAX = 1500;
+/** A member's posts today shown with a story, at most, and each one's
+ *  words, at most. */
+export const EDITOR_TODAY_MAX = 3;
+export const EDITOR_TODAY_TEXT_MAX = 300;
 /** A skip's reason as a leader reads it on the page. */
 export const EDITOR_SKIP_REASON_MAX = 120;
 /** How hard the model thinks (Claude's `effort`): the checks, not its
@@ -158,6 +162,7 @@ const system = ({ lookups = true } = {}) =>
     "- Never judge a member: nobody is slacking, disappointing, lazy or in trouble. Celebrate what went well; state the rest plainly. A member's share of the clan's fame is never told.",
     '- A departure is never skipped and never told with another story. Keep its version\'s sentence word for word; around it you may add only a short thank-you or farewell ("Thanks for everything!", "Good luck out there!"), never a reason, a guess at why or anything else.',
     "- A story marked EDIT is already in the channel and grew: its post is edited, so tell it alone and never skip it.",
+    "- TOLD TODAY lists what the channel already posted about a member today. Never tell it again: skip a story that only repeats it, or tell only what is new.",
     '- No clock time: never say at what time something happened. A story marked LATE happened a while ago: its post must say when in the words its LATE line gives ("earlier today", "yesterday", "3 days ago").',
     "- No links, @-mentions, hashtags, markdown or code. An emoji is fine when the clan's voice wants one.",
     `- One to three sentences, at most ${EDITOR_POST_MAX} characters a post.`,
@@ -194,11 +199,12 @@ function departureWord(items) {
  * channel (a story that grew, or a departure a leader's word edits).
  * `members` are the records of its members (`memberLines`; a departure's
  * is its contribution only), `history` how often the channel told of
- * them this week.
+ * them this week, and `today` what it posted about them today
+ * (`[{ name, posts: [{ ago, text }] }]`, its other posts, newest first).
  */
 export function editorStory(
   post,
-  { members = [], history = [], edit = false } = {},
+  { members = [], history = [], edit = false, today = [] } = {},
 ) {
   const items = post.story.items;
   const departure = departureWord(items);
@@ -238,6 +244,16 @@ export function editorStory(
   for (const h of history.filter((x) => x?.count > 0))
     lines.push(
       `The channel already told ${h.count} other ${h.kind.replaceAll("_", " ")} post${h.count === 1 ? "" : "s"} about ${h.name} in the last 7 days.`,
+    );
+  for (const t of today.filter((x) => x?.posts?.length))
+    lines.push(
+      `TOLD TODAY about ${t.name}:`,
+      ...t.posts.slice(0, EDITOR_TODAY_MAX).map(
+        (p) =>
+          `- ${p.ago}: ${String(p.text ?? "")
+            .replace(/\s+/g, " ")
+            .slice(0, EDITOR_TODAY_TEXT_MAX)}`,
+      ),
     );
   return {
     key: post.key,
