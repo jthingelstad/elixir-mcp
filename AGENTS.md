@@ -35,6 +35,13 @@ not a feature to preserve.
 - **Product behaviour:** the public docs, `apps/site/src/docs/` (served at
   `/docs`, and to agents by `elixir_docs`). They are the only description
   of what the service does; do not write a second one here.
+- **`docs/product/`:** one brief per surface, ratified by Jamie: what it
+  is for, who it serves, its principles, what it never does, what is
+  open. Intent, not behaviour: read the brief before building on a
+  surface, list the product questions a change raises with the brief's
+  answer in its design note, and take the brief's default mid-build
+  (tagged `[engineering]`, listed in the pull request) rather than
+  asking one question at a time.
 - **`docs/DECISIONS.md`:** what stands, one line each, each tagged with
   who decided it. A **[Jamie]** line is not re-litigated, and a surface
   that disagrees with it is the defect; an **[engineering]** line is a
