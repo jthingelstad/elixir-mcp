@@ -11,7 +11,13 @@ import { renderWithProviders } from "./helpers.jsx";
 import { Policy } from "../src/views/Policy.jsx";
 import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
-import { FIELDS, GROUPS, TABS, defaults } from "@elixir-mcp/clan-engine";
+import {
+  FIELDS,
+  GROUPS,
+  TABS,
+  defaults,
+  policyCapabilities,
+} from "@elixir-mcp/clan-engine";
 
 afterEach(() => {
   cleanup();
@@ -108,7 +114,7 @@ describe("policy: tabs along the top", () => {
     expect(save.mock.calls[0][1].war_intent).toBe("not_participating");
     expect(save.mock.calls[0][1].war_enabled).toBe(true);
   });
-  test("preview holds a threshold-crossed removal without all-mode proof", async () => {
+  test("preview says a threshold-crossed removal is not enforceable (#426)", async () => {
     vi.spyOn(manageApi, "previewPolicy").mockResolvedValue({
       ok: true,
       status: 200,
@@ -136,9 +142,49 @@ describe("policy: tabs along the top", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Preview the last reviews" }),
     );
-    expect(await screen.findByText("removal evidence held")).toBeTruthy();
+    expect(await screen.findByText("removal not enforceable")).toBeTruthy();
     expect(screen.queryByText("removal recommended")).toBeNull();
   });
+  test("#426: the Inactivity tab is labelled not yet enforceable, its numbers stay editable, and the saved policy says what it can do today", async () => {
+    const values = {
+      ...defaults(),
+      elder_mode: "hand",
+      removal_enabled: true,
+      at_risk_days: 9,
+      confirm_days: 5,
+    };
+    await render({
+      ...view,
+      set: true,
+      current: { set: true, values, version: 2 },
+      can_do: policyCapabilities(values, { members: 24 }),
+    });
+    const canDo = screen.getByRole("region", {
+      name: "What this policy can do today",
+    });
+    expect(canDo.textContent).toMatch(
+      /Remove inactive members: Not enforceable/,
+    );
+    expect(canDo.textContent).toMatch(/Promote and demote Elders: Off/);
+    open("Inactivity");
+    expect(screen.getByText("Not yet enforceable")).toBeTruthy();
+    expect(
+      screen.getByText(/cannot prove that a member played no battle/),
+    ).toBeTruthy();
+    const atRisk = screen.getByLabelText(/^At risk/);
+    expect(atRisk.value).toBe("9");
+    expect(atRisk.disabled).toBe(false);
+    fireEvent.change(atRisk, { target: { value: "12" } });
+    expect(screen.getByLabelText(/^At risk/).value).toBe("12");
+  });
+
+  test("an unsaved policy shows no can-do box", async () => {
+    await render();
+    expect(
+      screen.queryByRole("region", { name: "What this policy can do today" }),
+    ).toBeNull();
+  });
+
   test("leaders prepare a small clan's policy without starting operational reviews", async () => {
     const save = vi
       .spyOn(manageApi, "savePolicy")

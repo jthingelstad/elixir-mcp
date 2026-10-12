@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createMemoryLedger } from "@elixir-mcp/clan-state";
-import { evaluate } from "@elixir-mcp/clan-engine";
+import { evaluate, REMOVAL_NOT_ENFORCEABLE } from "@elixir-mcp/clan-engine";
 import {
   member,
   participation,
@@ -283,7 +283,8 @@ test("fresh evaluation withdraws unsafe pending removal with an audit reason and
   });
   const c = await h.ledger.card(clan, h.card.card_id);
   assert.equal(c.status, "withdrawn");
-  assert.match(c.withdraw_reason, /positive counter bracket/);
+  // Since #426 every open removal is withdrawn as not enforceable.
+  assert.equal(c.withdraw_reason, REMOVAL_NOT_ENFORCEABLE);
   assert.deepEqual(c.evidence, h.card.evidence);
   assert.equal(c.decided_by, undefined);
   assert.equal(

@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
+reviewed: "2026-10-12; no removal Action is raised while removal is not enforceable (#426); 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
 ---
 
 # Actions
@@ -52,7 +52,7 @@ against current profile observations.
 |---|---|---|
 | Promote to Elder | the leader and co-leaders | clan chat |
 | Demote to Member | the leader and co-leaders | clan chat |
-| Remove from the clan | the leader and co-leaders | a line for clan chat |
+| Remove from the clan (not raised: [not yet enforceable](#the-inactivity-clock)) | the leader and co-leaders | a line for clan chat |
 | Departure: kicked, left, or ignore? | the leader and co-leaders | none |
 | Welcome a newcomer | elders, co-leaders and the leader | a line for clan chat |
 | Going to be away? | the quiet member alone | none |
@@ -253,8 +253,11 @@ an existing object still fails without starting another model call.
 ## The inactivity clock
 
 When the clan turns on **Suggest removals**, recorded battles and profile
-counter increases inform a clock: **getting quiet**, then **at risk**. Crossing
-the policy's time threshold alone does not admit a removal Action.
+counter increases inform a clock: **getting quiet**, then **at risk**.
+**Removal is not yet enforceable** ([the policy](/docs/clan-policy#removal-is-not-yet-enforceable)):
+no removal Action is raised, whatever the clock reads, until Elixir
+records a source that can prove absence in every mode. The clock is
+inactivity triage on Board for the leader and co-leaders.
 The leader, co-leaders, members on a hold and, unless the clan allows
 it, Elders are shown as **Protected** on Board and are never put up for removal. When the
 record cannot establish the required quiet window, removal eligibility holds.
@@ -268,7 +271,7 @@ the member; the age of the last captured battle is historical evidence, not
 A removal needs proof of no own-player battle activity in **every mode** over
 the policy window. Logging in and collecting rewards do not count as battle
 activity. The current counters and bounded battle log do not establish that
-absence, so recommendations remain **Evidence held**, even when evaluation
+absence, so the clock stops at **Evidence held**, even when evaluation
 is exactly at the latest profile observation. Flat counters never override it.
 
 Comparable profile counter observations remain useful evidence, with their
@@ -285,13 +288,13 @@ never proof that every game mode was observed. Captured activity, positive
 counter intervals and optional away questions remain visible; an away question
 does not grant removal permission.
 
-Every removal list/detail read checks current evidence independently of the
-saved evaluation. Held Actions show a warning and withhold removal copy,
-model drafting, completion and reopening. Leadership can still explicitly
-Decline an open Action. Drafting checks before and after the model request;
-a new observation invalidates an older draft. Fresh evaluation withdraws an
-unsupported pending recommendation with an audited system reason; its number,
-original evidence, log and earlier leader decisions remain recorded.
+A removal Action raised before this rule is withdrawn at the clan's next
+evaluation, with the system reason "Removal is not enforceable" in its log;
+its number, original evidence, log and earlier leader decisions remain
+recorded. Until then, every removal list/detail read checks current
+evidence independently of the saved evaluation: the Action shows **Removal
+is not enforceable** and withholds removal copy, model drafting, completion
+and reopening. Leadership can still explicitly Decline it.
 
 Board distinguishes **Protected**, **Not currently a removal candidate**,
 **Evidence held** and **Eligible**. Protected roles and recent recorded play

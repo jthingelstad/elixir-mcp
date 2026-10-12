@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
+reviewed: "2026-10-12; removal labelled not yet enforceable and the What this policy can do today box (#426); 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -45,9 +45,9 @@ tab is filled from it, yours to change before you save:
 **How strict** (relaxed, standard or strict) sets where the minimums
 and clocks start. **Playing together** can be said but is never
 measured: the game does not say who plays with whom. On a saved policy,
-a starting point replaces the whole draft. Every preset enables removal
-suggestions, welcomes, departure questions and announcements; review those
-tabs before saving. Changing How strict alone does not retune fields already
+a starting point replaces the whole draft. Every preset turns on the
+inactivity clock, welcomes, departure questions and announcements; review
+those tabs before saving. Changing How strict alone does not retune fields already
 in the draft.
 
 **Clan War participation** comes first on About and in the **Draft agreement**
@@ -72,7 +72,7 @@ scheduled war-deck check; other agent content keeps its own rules.
 | Clan Wars, Ranked play, Donations, Trophy road | whether each is counted, its window (trophy road has none) and its minimum |
 | Elder | by hand or by participation, each category's weight, days in the clan before a promotion, the band, how many reviews a promotion or demotion needs and how long a declined one waits, what members see, and the window for checking a completed action |
 | Minimums | the shared window and any-one/all rule for enabled thresholds above zero; these affect Elder eligibility and inactivity grace, separately from category score windows |
-| Inactivity | **Suggest removals**: the getting quiet, at risk and removal days, grace for meeting the minimums, whether Elders can get removal actions, how long members may mark themselves away, and whether to ask quiet members |
+| Inactivity | **Suggest removals**: the getting quiet, at risk and removal days, grace for meeting the minimums, whether Elders are shown as Protected, how long members may mark themselves away, and whether to ask quiet members. Labelled **Not yet enforceable** ([below](#removal-is-not-yet-enforceable)) |
 | Arrivals and departures | **Ask about departures** and **Suggest welcoming newcomers** |
 | Announcements | **Announce each season's awards** and **Tell the clan when the rules change** |
 
@@ -80,6 +80,36 @@ A tab that is off shows only its switch; turning it on fills it from the
 clan's How strict. Every setting carries a line saying what it does.
 [Standing](/docs/standing) explains what the categories, minimums and
 band mean.
+
+### Removal is not yet enforceable
+
+The Inactivity tab carries the label **Not yet enforceable**: Elixir
+cannot prove that a member played no battle in every mode from the
+evidence it records today. The battle log does not carry every mode, and
+a flat profile counter is not proof of absence. So the clock runs and
+Board shows it to the leader and co-leaders as inactivity triage, and no
+removal Action is raised, however long a member has been quiet. Its
+switch and numbers stay editable, and are what the clock uses. A removal
+Action that was already open is withdrawn by Elixir Clan with the
+reason "removal not enforceable" in its log; its number, evidence and
+earlier decisions stay recorded. Removing anyone stays a leader's call
+in the game.
+
+## What this policy can do today
+
+Once a policy is saved, the top of the page lists each judgment it asks
+for, with one of:
+
+| Status | Means |
+|---|---|
+| Live | Elixir Clan acts on it now |
+| Needs more evidence | it will act once the record has what is named: 10 members, a saved policy, or one finished review week |
+| Not enforceable | the record cannot support it yet; today only removal |
+| Off | the policy does not ask for it |
+
+The judgments listed are promoting and demoting Elders, removing
+inactive members, asking quiet members if they are away, asking how a
+member left, and welcoming newcomers.
 
 ## Preview before you save
 
@@ -122,8 +152,9 @@ Under **Manage**, beside the policy:
 - **Board**: every member as the policy reads them today, grouped as
   actionable, building, held or clear. Group links jump to the members;
   held promotion and demotion counts are separate from removal evidence.
-  Removal evidence stays held until absence of battle activity in every mode
-  can be established; even perfectly fresh flat profile counters are insufficient.
+  The inactivity clock shows here as triage, never as a removal Action
+  ([not yet enforceable](#removal-is-not-yet-enforceable)); even perfectly
+  fresh flat profile counters do not prove absence in every mode.
   Open a member for their evidence,
   a note, and a **hold**, which shields removal eligibility for a member
   who said they will be away, until a date or until cleared.

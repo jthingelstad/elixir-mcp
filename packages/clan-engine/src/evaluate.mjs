@@ -17,10 +17,22 @@
 import { factsAt } from "./facts.mjs";
 import { band, scores, passesMinimums, LEADERSHIP } from "./standing.mjs";
 import { elderWeights, ranksElder } from "./policy.mjs";
+import { REMOVAL_ENFORCEABLE, REMOVAL_NOT_ENFORCEABLE } from "./inactivity.mjs";
 
 const DAY_MS = 86400_000;
 
-export const CARD_TYPES = ["promotion", "demotion", "removal"];
+/** The judging Actions the verdicts raise and withdraw. Removal is not one
+ *  while it is not enforceable (#426): its open Actions are retired by
+ *  `unenforceableRemovals`, never reconciled here. */
+export const CARD_TYPES = ["promotion", "demotion"];
+
+/** Open removal Actions to withdraw, each with the reason its log keeps. */
+export function unenforceableRemovals(openCards) {
+  if (REMOVAL_ENFORCEABLE) return [];
+  return openCards
+    .filter((c) => c.type === "removal" && c.status === "proposed")
+    .map((card) => ({ card, reason: REMOVAL_NOT_ENFORCEABLE }));
+}
 
 /** The weekly review instants inside the record, oldest first: war-week
  *  finishes when the policy weighs Clan Wars for Elder, else whole ISO
@@ -331,7 +343,10 @@ export function evaluate({
         dState === "eligible" &&
         bandNow.demotable.has(tag) &&
         past("demotion"),
+      // Never while removal is not enforceable (#426): the clock above
+      // stays a Standing fact, and nothing here raises a removal Action.
       removal:
+        REMOVAL_ENFORCEABLE &&
         removalJudgment === "ready" &&
         rState === "recommended" &&
         past("removal"),
@@ -522,19 +537,6 @@ function withdrawReason(type, m) {
   // A completed or declined one of the same kind is waiting it out.
   if (m[type]?.cooldown_until)
     return "A leader already decided this; it waits for the record to show the change.";
-  if (type === "removal") {
-    if (m.removal.shielded === "hold") return "The member is on hold.";
-    if (
-      m.removal.triage.status === "not_candidate" &&
-      (m.removal.state === "none" || m.removal.state === "watch")
-    )
-      return m.removal.triage.reason;
-    if (m.judgment.removal !== "ready")
-      return `Inactivity is not established. ${m.facts.activity_evidence?.reason ?? "Comparable profile observations do not cover the policy window."}`;
-    if (m.removal.state === "none" || m.removal.state === "watch")
-      return "The member played; the inactivity clock reset.";
-    return "The removal no longer qualifies under the policy.";
-  }
   if (type === "promotion") {
     if (m.role !== "member") return "The role changed.";
     if (m.judgment.promotion !== "ready") return "The evidence is held.";

@@ -29,6 +29,8 @@ import {
   participationPhrase,
   ranksElder,
   reconcileCards,
+  unenforceableRemovals,
+  policyCapabilities,
   standingForMembers,
   validate,
   FIELDS,
@@ -499,6 +501,15 @@ export function createManageService({
   }) {
     const t = now();
     const policy = await requirePolicy(clanTag, { size: false });
+    // Removal is not enforceable (#426): an open removal Action is
+    // withdrawn with its reason in the log, before any size check, so one
+    // in a clan below the minimum never stays open either.
+    for (const { card, reason } of unenforceableRemovals(
+      await ledger.cards(clanTag),
+    ))
+      await withdrawAction(clanTag, card, reason, {
+        rule: "removal_not_enforceable",
+      });
     const cached = await ledger.latestVerdicts(clanTag);
     // A clan last seen below the minimum is re-read, never served a cache.
     const known = await ledger.clanSize(clanTag);
@@ -570,18 +581,7 @@ export function createManageService({
     const open = cards.filter((c) => c.status === "proposed");
     const { raise, withdraw } = reconcileCards(verdicts, open);
     for (const { card, reason } of withdraw)
-      await withdrawAction(
-        clanTag,
-        card,
-        reason,
-        card.type === "removal"
-          ? {
-              activity_evidence:
-                verdicts.members.find((m) => m.player_tag === card.player_tag)
-                  ?.facts.activity_evidence ?? null,
-            }
-          : null,
-      );
+      await withdrawAction(clanTag, card, reason);
     for (const { player_tag, type, verdict } of raise) {
       const raised_at = new Date(t).toISOString();
       const facts = cardFacts(verdict, policy.values);
@@ -1262,8 +1262,18 @@ export function createManageService({
       const members = await currentSize(clanTag, token);
       const versions = await ledger.policyVersions(clanTag);
       const names = await knownNames(clanTag);
+      const latest = await ledger.latestVerdicts(clanTag);
       return {
         can_edit: isLeader(who),
+        // What the saved policy can do today, judgment by judgment.
+        can_do: policyCapabilities(policy.values, {
+          set: policy.set,
+          members,
+          boundaries:
+            latest?.policy_version === policy.version
+              ? (latest.boundaries ?? null)
+              : null,
+        }),
         set: policy.set,
         members,
         min_members: MIN_MEMBERS,

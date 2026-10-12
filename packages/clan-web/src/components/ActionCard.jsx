@@ -1093,7 +1093,7 @@ function BoundActionCard({
         </div>
         {removalHeld ? (
           <div className="callout callout--warn flex-col gap-2" role="alert">
-            <strong>Removal held: inactivity is not established.</strong>
+            <strong>Removal is not enforceable.</strong>
             <p className="m-0">{action.removal_safety.reason}</p>
             {action.removal_safety.latest_activity_interval ? (
               <p className="m-0">

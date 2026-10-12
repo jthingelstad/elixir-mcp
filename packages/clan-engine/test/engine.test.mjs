@@ -11,7 +11,12 @@ import {
   reconcileCards,
   replayMachines,
   reviewBoundaries,
+  unenforceableRemovals,
 } from "../src/evaluate.mjs";
+import {
+  ALL_MODE_COVERAGE_CONTRACT,
+  REMOVAL_NOT_ENFORCEABLE,
+} from "../src/inactivity.mjs";
 import { member, participation, NOW, EXAMPLE_POLICY } from "./fixture.mjs";
 
 const policy = EXAMPLE_POLICY;
@@ -703,7 +708,7 @@ test("a declined card blocks re-nomination until the cooldown lapses; a complete
   );
 });
 
-test("reconcile: an open action about someone no longer in the clan is withdrawn; other kinds are left to their own rules", () => {
+test("reconcile: an open action about someone no longer in the clan is withdrawn; other kinds are left to their own rules (removal to unenforceableRemovals, #426)", () => {
   const others = Array.from({ length: 11 }, (_, i) => member(`#O${i}`));
   const v = evaluate({
     participation: participation(others),
@@ -717,10 +722,7 @@ test("reconcile: an open action about someone no longer in the clan is withdrawn
   ]);
   assert.deepEqual(
     withdraw.map((w) => [w.card.card_id, w.reason]),
-    [
-      ["gone", "They are no longer in the clan."],
-      ["gone2", "They are no longer in the clan."],
-    ],
+    [["gone2", "They are no longer in the clan."]],
   );
 });
 
@@ -739,22 +741,25 @@ test("reconcile: raise for actionable verdicts without an open card, withdraw op
     policy,
     now: NOW,
   });
-  const { raise, withdraw } = reconcileCards(v, [
-    { card_id: "c1", player_tag: "#BACK", type: "removal" },
-    { card_id: "c2", player_tag: "#IDLE", type: "removal" },
-  ]);
+  const open = [
+    { card_id: "c1", player_tag: "#BACK", type: "removal", status: "proposed" },
+    { card_id: "c2", player_tag: "#IDLE", type: "removal", status: "proposed" },
+    { card_id: "c3", player_tag: "#IDLE", type: "removal", status: "done" },
+  ];
+  const { raise, withdraw } = reconcileCards(v, open);
   assert.deepEqual(
     raise.filter((r) => r.type === "removal"),
     [],
   );
-  assert.equal(withdraw.length, 2);
-  assert.match(
-    withdraw.find((w) => w.card.card_id === "c1").reason,
-    /battle was captured/,
-  );
-  assert.match(
-    withdraw.find((w) => w.card.card_id === "c2").reason,
-    /Inactivity is not established/,
+  // Removal is not a reconciled kind: every open one is withdrawn with
+  // the one reason, whatever the member did; a closed one is left alone.
+  assert.deepEqual(withdraw, []);
+  assert.deepEqual(
+    unenforceableRemovals(open).map((w) => [w.card.card_id, w.reason]),
+    [
+      ["c1", REMOVAL_NOT_ENFORCEABLE],
+      ["c2", REMOVAL_NOT_ENFORCEABLE],
+    ],
   );
   const fresh = reconcileCards(v, []);
   assert.deepEqual(
@@ -930,4 +935,38 @@ test("an unrecorded battle log holds every judgment that could card its construc
     demotion: false,
     removal: false,
   });
+});
+
+test("#426: removal is never actionable until a named all-mode coverage contract exists", () => {
+  // Naming a contract is Jamie's product call (#426). This test is the
+  // tripwire: whoever names one rewrites it with the proof the contract
+  // brings, never by flipping the constant alone.
+  assert.equal(ALL_MODE_COVERAGE_CONTRACT, null);
+  const others = Array.from({ length: 11 }, (_, i) => member(`#O${i}`));
+  // The strongest case the record can make today: no battle in 60 days,
+  // the profile counter flat and measured to now, an empty roster cap,
+  // no hold, no earlier decision, every removal switch on.
+  const idle = member("#IDLE", {
+    lastBattleDaysAgo: 60,
+    war: [0, 0, 0, 0, 0, 0],
+  });
+  for (const extra of [
+    {},
+    { removal_includes_elders: true, confirm_days: 0, at_risk_days: 1 },
+  ]) {
+    const v = evaluate({
+      participation: participation([...others, idle]),
+      policy: { ...policy, removal_enabled: true, ...extra },
+      now: NOW,
+    });
+    const r = v.members.find((m) => m.player_tag === "#IDLE");
+    assert.equal(r.removal.state, "recommended", "the clock still runs");
+    assert.equal(r.facts.activity_evidence.counter_window_measured, true);
+    assert.notEqual(r.judgment.removal, "ready");
+    for (const m of v.members) assert.equal(m.actionable.removal, false);
+    assert.deepEqual(
+      reconcileCards(v, []).raise.filter((x) => x.type === "removal"),
+      [],
+    );
+  }
 });

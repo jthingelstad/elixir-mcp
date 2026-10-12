@@ -9,7 +9,8 @@ clan's policy. Read `packages/clan/AGENTS.md` first.
   defaults; `test/no-clan-specifics.test.mjs` fails on them.
 - **Absence needs proof.** Inactivity means no battle activity in any mode,
   and a flat counter cannot admit a removal while all-mode absence is
-  unproven (`src/inactivity.mjs`). War judgments read the race's weekly
+  unproven (`src/inactivity.mjs`). Removal is not enforceable until
+  `ALL_MODE_COVERAGE_CONTRACT` names a source (#426): no removal card. War judgments read the race's weekly
   `decksUsed`, never a per-day split.
 - Tests: `test/*.test.mjs` over the shared fixture (`test/fixture.mjs`,
   exported as `@elixir-mcp/clan-engine/fixtures`).

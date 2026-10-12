@@ -106,7 +106,7 @@ function ActionRow({ action, clan, navigate, scope }) {
                 : ""}
           {comments ? ` · ${comments} comment${comments === 1 ? "" : "s"}` : ""}
           {action.removal_safety?.status === "held"
-            ? " · Held: inactivity not established"
+            ? " · Removal not enforceable"
             : ""}
         </span>
       </span>

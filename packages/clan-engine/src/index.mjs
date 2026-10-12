@@ -22,3 +22,4 @@ export * from "./activity.mjs";
 export * from "./context.mjs";
 export * from "./stories.mjs";
 export * from "./editor.mjs";
+export * from "./capabilities.mjs";
