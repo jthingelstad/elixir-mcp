@@ -2,6 +2,7 @@ import {
   Fresh,
   Icon,
   Link,
+  MODE_LABEL,
   ago,
   stamp,
   useClock,
@@ -18,6 +19,7 @@ import {
   actionDelivery,
   chatLines,
   deliveryWords,
+  REMOVAL_UNSEEN,
 } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
@@ -38,6 +40,59 @@ import { RoleChip } from "./RoleChip.jsx";
  */
 
 const LEADER_TYPES = new Set(["promotion", "demotion", "removal"]);
+
+/** A removal's "Rests on" row (#532), drawn from its fields so its times
+ *  read in the reader's zone; the saved text is the fallback. */
+function RestsOn({ fact, zone }) {
+  const { last_battle: b, joined, counter } = fact;
+  if (!joined || !counter) return fact.value;
+  const at = (iso) => (
+    <time dateTime={iso}>{stamp(iso, zone, { year: true })}</time>
+  );
+  const day = (iso) => <time dateTime={iso}>{iso.slice(0, 10)}</time>;
+  const rise = counter.rise;
+  return (
+    <>
+      {b ? (
+        <>
+          Last recorded battle {at(b.at)},{" "}
+          {MODE_LABEL[b.mode_group] ?? b.game_mode ?? "mode not recorded"}
+        </>
+      ) : (
+        "No battle recorded"
+      )}
+      ;{" "}
+      {joined.at ? (
+        joined.known ? (
+          <>joined {day(joined.at)}</>
+        ) : (
+          <>in the clan before recording began, first seen {day(joined.at)}</>
+        )
+      ) : (
+        "join not recorded"
+      )}
+      ;{" "}
+      {rise ? (
+        <>
+          battle count rose by {rise.counter_increase} between{" "}
+          {at(rise.observed_from)} and {at(rise.observed_to)}
+          {counter.last_read_at && counter.last_read_at > rise.observed_to ? (
+            <>, unchanged to {at(counter.last_read_at)}</>
+          ) : null}
+        </>
+      ) : counter.reads > 1 ? (
+        <>
+          battle count unchanged across {counter.reads} reads from{" "}
+          {at(counter.first_read_at)} to {at(counter.last_read_at)}
+        </>
+      ) : counter.reads === 1 ? (
+        <>battle count read once, {at(counter.first_read_at)}</>
+      ) : (
+        "battle count never read"
+      )}
+    </>
+  );
+}
 const ROLE = {
   leader: "Leader",
   coLeader: "Co-leader",
@@ -1237,7 +1292,11 @@ function BoundActionCard({
                   {f.label}
                 </span>
                 <span className="grow text-[13.5px] text-ink-body">
-                  {f.value}{" "}
+                  {f.key === "rests_on" ? (
+                    <RestsOn fact={f} zone={zone} />
+                  ) : (
+                    f.value
+                  )}{" "}
                   <span className="page-head__note">
                     ({f.window}
                     {f.fidelity !== "daily" ? `, ${f.fidelity}` : ""})
@@ -1246,6 +1305,11 @@ function BoundActionCard({
               </div>
             ))}
           </div>
+        ) : null}
+        {action.type === "removal" ? (
+          <p className="m-0 text-[13.5px] leading-[1.5] text-ink-body">
+            {REMOVAL_UNSEEN}
+          </p>
         ) : null}
         {contextInvalid ? (
           <div className="callout callout--warn" role="alert">

@@ -22,6 +22,8 @@ export function inactivityEvidence(member, at) {
 
   // Each rise in the battle count between two comparable reads.
   const intervals = [];
+  // Every read the clock could compare, for the removal card (#532).
+  const reads = [];
   let previous = null;
   for (const row of rows) {
     const t = stamp(row.profile_observed_at);
@@ -35,6 +37,7 @@ export function inactivityEvidence(member, at) {
       previous = null;
       continue;
     }
+    reads.push(t);
     if (previous && t > previous.t && count > previous.count)
       intervals.push({
         observed_from: new Date(previous.t).toISOString(),
@@ -68,6 +71,15 @@ export function inactivityEvidence(member, at) {
       (r) => stamp(r.observed_to) >= now - 7 * DAY,
     ),
     latest_activity_interval: increase,
+    counter_reads: {
+      reads: reads.length,
+      first_read_at: reads.length
+        ? new Date(Math.min(...reads)).toISOString()
+        : null,
+      last_read_at: reads.length
+        ? new Date(Math.max(...reads)).toISOString()
+        : null,
+    },
     captured_battle_at: Number.isFinite(captured)
       ? new Date(captured).toISOString()
       : null,

@@ -73,6 +73,16 @@ test("a rise in the profile's battle count is play: it moves the clock forward, 
   assert.equal(proof.latest_activity_interval.no_battles_captured, true);
   assert.equal(proof.days_since_possible_activity, 2);
   assert.equal(proof.captured_battle_age_days, 20);
+  // The reads the card names as the counter it watched (#532).
+  assert.equal(proof.counter_reads.reads, 3);
+  assert.equal(
+    proof.counter_reads.first_read_at,
+    m.activity_evidence.observations[0].profile_observed_at,
+  );
+  assert.equal(
+    proof.counter_reads.last_read_at,
+    m.activity_evidence.observations[2].profile_observed_at,
+  );
   const v = judge(m);
   assert.equal(v.removal.state, "none");
   assert.equal(v.actionable.removal, false);

@@ -242,6 +242,8 @@ export function factsAt(participation, policy, at, { trophies = null } = {}) {
       },
       trophies: { count: trophyCount },
       last_battle_time: m.last_battle_time ?? null,
+      last_battle_mode_group: m.last_battle_mode_group ?? null,
+      last_battle_game_mode: m.last_battle_game_mode ?? null,
       days_idle: daysIdle === null ? null : Number(daysIdle.toFixed(2)),
     };
   });

@@ -44,6 +44,18 @@ test("private activity proof is batched for current clan members and uses daily 
       Date.parse(evidence.get("#9QY").last_battle_time) <
         Date.now() - 2 * 86400_000,
     );
+    // The last battle's mode rides with it (#532): the boat attack, never
+    // the later automatic defense.
+    assert.equal(evidence.get("#9QY").last_battle_mode_group, "war");
+    assert.equal(evidence.get("#9QY").last_battle_game_mode, null);
+    await db.query(
+      `update battle set game_mode_name='CW_Battle_1v1' where battle_id='own-attack'`,
+    );
+    assert.equal(
+      (await clanActivityEvidence(db, "#PYL", ["#9QY"])).get("#9QY")
+        .last_battle_game_mode,
+      "CW_Battle_1v1",
+    );
     await db.query(
       `update player_snapshot_daily set battle_count=102 where player_tag='#9QY' and snapshot_kind='daily' and snapshot_date=current_date-1`,
     );

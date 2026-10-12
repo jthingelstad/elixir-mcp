@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-12; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
+reviewed: "2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
 ---
 
 # Actions
@@ -269,6 +269,16 @@ removal.
 The clock waits only when it cannot be read: Elixir could not read the
 member's activity just now, or the player is no longer in the clan. The
 next run reads it again. Missing days of profile reads do not hold it.
+
+A removal Action says what it rests on. Its **Rests on** row names the
+member's last recorded battle, with its time and mode (or that no battle
+is recorded), when they joined (or that they were in the clan before
+recording began), and what the battle count on their profile did across
+Elixir's reads: when it last rose, or that it did not. Under it, every
+removal says: modes the battle log does not carry are not seen, so the
+leader weighs it. The clan's Discord and the morning email name only the
+Action and the member. A removal raised before this row existed keeps
+its saved evidence and still carries the sentence.
 
 A removal Action is withdrawn at the next evaluation when the member
 plays, with the reason in its log; its number, evidence and earlier
