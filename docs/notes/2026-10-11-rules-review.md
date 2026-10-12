@@ -23,7 +23,8 @@ NOTES and memory) and Jamie decided, one at a time:
    stay out. The Ladder form test no longer bans "up" and "down". (A.)
 4. **Advice.** Elixir's outputs recommend nothing; agents (a person's own,
    and the family's Discord agent) may coach from Elixir's facts, the
-   suggestion theirs. Scope in AGENTS.md and the timeline pages say so;
+   suggestion theirs. Scope in AGENTS.md says so (the timeline page is
+   at its size limit, and its "reader's call" already leaves room);
    elixir-mcp-discord's ask lane changes in its own pull request. (A.)
 5. **Tags.** "CR tags are not PII; email is" now says what follows: a tag
    may appear in an issue, a note, an analytics path or a model request;

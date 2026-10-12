@@ -505,8 +505,7 @@ channels tells it twice.
   `next_war_day_opens_at`, `next_training_starts_at` and `week_ends_at` so a
   routine that cares schedules itself.
 - **It never gives advice.** "Passed 10 recorded-quiet days" is a fact with a
-  disclosed rung; whether that means anything is the reader's call, or
-  their agent's, which may suggest what to do. The same
+  disclosed rung; whether that means anything is the reader's call. The same
   goes for a standout session: `crossed` names the rung, the reader decides
   whether five wins in a row is news in this clan.
 - **It never passes an app's word off as the game's.** An attested fact
