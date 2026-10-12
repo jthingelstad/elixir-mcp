@@ -553,3 +553,30 @@ export function formRows(a, b) {
     });
   return rows;
 }
+
+/** How long a record counts as young: the season home offers one next
+ *  step until the player's recording is this many days old. 28 is
+ *  engineering's default (2026-10-12), four game weeks: by then "This
+ *  week vs your last 4" has its weeks to read. One line to change. */
+export const YOUNG_RECORD_DAYS = 28;
+
+/**
+ * The season home's next step while the record is young (2026-10-12):
+ * the record's age in whole days from the recording's start
+ * (`recording_active_since`, the tools' meta) and one step, in this
+ * order: not verified, Verify (Elixir Clan's role powers wait for it);
+ * verified and in a recorded clan, open Clan; otherwise, follow a
+ * friend. The order is engineering's default, not a ranking of the
+ * player. `clanRecorded` null means not known yet, which shows nothing
+ * rather than a step that may change on the next read. Null when
+ * there is nothing to show.
+ */
+export function youngRecord({ activeSince, now, verified, clanRecorded }) {
+  const start = Date.parse(activeSince ?? "");
+  if (!Number.isFinite(start)) return null;
+  const days = Math.max(0, Math.floor((now - start) / 86_400_000));
+  if (days >= YOUNG_RECORD_DAYS) return null;
+  if (!verified) return { days, step: "verify" };
+  if (clanRecorded == null) return null;
+  return { days, step: clanRecorded ? "clan" : "follow" };
+}

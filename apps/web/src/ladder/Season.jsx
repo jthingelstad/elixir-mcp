@@ -19,6 +19,7 @@ import {
 import { useToolRead } from "../lib/queries.js";
 import { BringClanmates } from "../components/BringClanmates.jsx";
 import { DeckForm, WeekForm } from "./Form.jsx";
+import { YoungRecord } from "./YoungRecord.jsx";
 import {
   LadderHead,
   Loading,
@@ -108,6 +109,8 @@ export function Season({
           seasonName={head.name}
         />
       )}
+      {/* While the record is young, the one thing to do next. */}
+      <YoungRecord player={player} summary={summary} className="mt-6" />
       <BringClanmates className="mt-6" />
     </div>
   );

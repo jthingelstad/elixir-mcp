@@ -118,6 +118,13 @@ unless you picked another), from
   that mode's own; across modes it would pool them. Shown for the running
   season only; a past season links its decks instead.
 
+While your record is young (recorded for under 28 days, counted from
+the start of recording the tools report), the season home also says
+**Your record is N days old** and offers one next step: **Verify your
+player** if it is not verified; **Open Clan** if it is verified and its
+clan is recorded; otherwise **Follow a friend**. It is a link, not advice
+about play, and it is gone from day 28.
+
 The season itself runs first Monday to first Monday at 10:00 UTC, which
 the page gives in your own timezone, as it gives every time, naming the
 zone ("5:00 am CDT"). A new account starts on its signup browser's time
