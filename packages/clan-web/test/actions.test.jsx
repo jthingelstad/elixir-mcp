@@ -11,8 +11,12 @@ import { ActionDetail, Actions } from "../src/views/Actions.jsx";
 import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
 import { ActionCard } from "../src/components/ActionCard.jsx";
-import { ZoneProvider } from "@elixir-mcp/ui";
-import { actionDelivery } from "@elixir-mcp/clan-engine";
+import { MODE_LABEL, ZoneProvider } from "@elixir-mcp/ui";
+import {
+  MODE_GROUP_LABEL,
+  REMOVAL_UNSEEN,
+  actionDelivery,
+} from "@elixir-mcp/clan-engine";
 
 afterEach(() => {
   cleanup();
@@ -95,6 +99,85 @@ const view = (extra = {}) => ({
 });
 
 describe("actions", () => {
+  test("a removal says what it rests on, in the reader's zone, and what it cannot see (#532)", () => {
+    const restsOn = {
+      key: "rests_on",
+      label: "Rests on",
+      value:
+        "Last recorded battle 2026-08-23 20:00 UTC, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, unchanged to 2026-09-12 20:00 UTC",
+      window: "record",
+      fidelity: "daily",
+      last_battle: {
+        at: "2026-08-23T20:00:00.000Z",
+        mode_group: "ranked",
+        game_mode: "Ranked1v1_NewArena",
+      },
+      joined: { at: "2026-05-15T20:00:00.000Z", known: true },
+      counter: {
+        rise: {
+          counter_increase: 1,
+          observed_from: "2026-05-14T20:00:00.000Z",
+          observed_to: "2026-08-23T20:00:00.000Z",
+        },
+        reads: 3,
+        first_read_at: "2026-05-14T20:00:00.000Z",
+        last_read_at: "2026-09-12T20:00:00.000Z",
+      },
+      note: REMOVAL_UNSEEN,
+    };
+    renderWithProviders(
+      <ZoneProvider zone="America/Chicago">
+        <ActionCard
+          clan={clan}
+          who={{ role: "leader" }}
+          reasons={[]}
+          action={{
+            ...removal,
+            evidence: { ...removal.evidence, facts: [restsOn] },
+          }}
+        />
+      </ZoneProvider>,
+    );
+    const row = screen.getByText("Rests on").parentElement;
+    expect(row.textContent).toBe(
+      "Rests onLast recorded battle 2026-08-23 15:00 CDT, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 15:00 CDT and 2026-08-23 15:00 CDT, unchanged to 2026-09-12 15:00 CDT (record)",
+    );
+    expect(row.querySelectorAll("time")).toHaveLength(5);
+    expect(row.textContent).not.toContain("Ranked1v1");
+    expect(
+      screen.getByText(
+        "Modes the battle log does not carry are not seen, so the leader weighs it.",
+      ),
+    ).toBeTruthy();
+    cleanup();
+    // A removal raised before the row existed still says what it cannot see.
+    renderWithProviders(
+      <ActionCard
+        clan={clan}
+        who={{ role: "leader" }}
+        reasons={[]}
+        action={removal}
+      />,
+    );
+    expect(screen.getByText(REMOVAL_UNSEEN)).toBeTruthy();
+    expect(screen.queryByText("Rests on")).toBeNull();
+    cleanup();
+    // A promotion never carries it.
+    renderWithProviders(
+      <ActionCard
+        clan={clan}
+        who={{ role: "leader" }}
+        reasons={[]}
+        action={{ ...removal, type: "promotion", label: "Promote" }}
+      />,
+    );
+    expect(screen.queryByText(REMOVAL_UNSEEN)).toBeNull();
+  });
+
+  test("the engine names a battle's mode in the family's words", () => {
+    expect(MODE_GROUP_LABEL).toEqual(MODE_LABEL);
+  });
+
   test("a withdrawn removal warning is stacked, uses the reader's timezone and offers no new decline or decision", () => {
     const decide = vi.spyOn(manageApi, "decideAction");
     renderWithProviders(

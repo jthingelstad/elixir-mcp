@@ -552,7 +552,7 @@ export function createManageService({
       !participation &&
       !small &&
       cached &&
-      cached.removal_evidence_schema === 4 &&
+      cached.removal_evidence_schema === 5 &&
       cached.policy_version === policy.version &&
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
@@ -617,7 +617,7 @@ export function createManageService({
       await withdrawAction(clanTag, card, reason);
     for (const { player_tag, type, verdict } of raise) {
       const raised_at = new Date(t).toISOString();
-      const facts = cardFacts(verdict, policy.values);
+      const facts = cardFacts(verdict, policy.values, type);
       const rationale = cardRationale(type, verdict, policy.values, verdicts);
       await raiseAction(
         clanTag,
@@ -938,7 +938,7 @@ export function createManageService({
     // The snapshot is what the pages read; keep it small.
     const snapshot = {
       ...verdicts,
-      removal_evidence_schema: 4,
+      removal_evidence_schema: 5,
       members: verdicts.members.map((m) => ({
         ...m,
         trail: m.trail.slice(-4),

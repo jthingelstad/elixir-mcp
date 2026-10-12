@@ -10,6 +10,7 @@ import {
   judgmentReasons,
   describePolicy,
   inGameCopy,
+  REMOVAL_UNSEEN,
 } from "../src/render.mjs";
 import { defaults } from "../src/policy.mjs";
 import { member, participation, NOW, EXAMPLE_POLICY } from "./fixture.mjs";
@@ -143,6 +144,88 @@ test("card facts state windows and fidelity; an unknown is said, never zeroed", 
   assert.match(tenure.value, /at least 9 days/);
   assert.equal(tenure.fidelity, "unknown");
   assert.equal(facts.find((f) => f.key === "war").window, "last 4 war weeks");
+});
+
+test("an eligible removal card says what it rests on and what it cannot see (#532)", () => {
+  const others = Array.from({ length: 10 }, (_, i) => member(`#O${i}`));
+  const idle = member("#X", { lastBattleDaysAgo: 20, war: [0, 0, 0, 0, 0, 0] });
+  idle.last_battle_mode_group = "ranked";
+  idle.last_battle_game_mode = "Ranked1v1_NewArena";
+  const v = evaluate({
+    participation: participation([...others, idle]),
+    policy,
+    now: NOW,
+  });
+  const m = v.members.find((x) => x.player_tag === "#X");
+  assert.equal(m.actionable.removal, true);
+  const row = cardFacts(m, policy, "removal").at(-1);
+  assert.equal(row.key, "rests_on");
+  assert.equal(row.label, "Rests on");
+  assert.equal(
+    row.value,
+    "Last recorded battle 2026-08-23 20:00 UTC, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, unchanged to 2026-09-12 20:00 UTC",
+  );
+  assert.deepEqual(row.last_battle, {
+    at: "2026-08-23T20:00:00.000Z",
+    mode_group: "ranked",
+    game_mode: "Ranked1v1_NewArena",
+  });
+  assert.deepEqual(row.joined, { at: "2026-05-15T20:00:00.000Z", known: true });
+  assert.equal(row.counter.reads, 3);
+  assert.equal(row.counter.rise.counter_increase, 1);
+  assert.equal(
+    row.note,
+    "Modes the battle log does not carry are not seen, so the leader weighs it.",
+  );
+  assert.equal(row.note, REMOVAL_UNSEEN);
+  // A promotion or demotion card has no such row.
+  assert.ok(!cardFacts(m, policy).some((f) => f.key === "rests_on"));
+  assert.ok(
+    !cardFacts(m, policy, "demotion").some((f) => f.key === "rests_on"),
+  );
+});
+
+test("a removal with no recorded battle says so, and runs from the join", () => {
+  const others = Array.from({ length: 10 }, (_, i) => member(`#O${i}`));
+  const never = member("#N", {
+    lastBattleDaysAgo: null,
+    tenureDays: 30,
+    war: [0, 0, 0, 0, 0, 0],
+  });
+  const v = evaluate({
+    participation: participation([...others, never]),
+    policy,
+    now: NOW,
+  });
+  const m = v.members.find((x) => x.player_tag === "#N");
+  assert.equal(m.actionable.removal, true);
+  const row = cardFacts(m, policy, "removal").at(-1);
+  assert.equal(
+    row.value,
+    "No battle recorded; joined 2026-08-13; battle count unchanged across 2 reads from 2026-08-12 20:00 UTC to 2026-09-12 20:00 UTC",
+  );
+  assert.equal(row.last_battle, null);
+  assert.equal(row.fidelity, "unknown");
+  assert.equal(row.counter.rise, null);
+  // A join that predates the record, a mode the record does not group,
+  // and no profile reads at all are each said, never guessed.
+  never.tenure_known = false;
+  never.last_battle_time = "2026-08-01T09:30:00.000Z";
+  never.last_battle_game_mode = "Some_New_Mode";
+  never.activity_evidence = { current_member: true, observations: [] };
+  const w = evaluate({
+    participation: participation([...others, never]),
+    policy,
+    now: NOW,
+  });
+  assert.equal(
+    cardFacts(
+      w.members.find((x) => x.player_tag === "#N"),
+      policy,
+      "removal",
+    ).at(-1).value,
+    "Last recorded battle 2026-08-01 09:30 UTC, Some_New_Mode; in the clan before recording began, first seen 2026-08-13; battle count never read",
+  );
 });
 
 test("rationales name the policy clauses that fired", () => {

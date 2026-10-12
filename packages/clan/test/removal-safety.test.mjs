@@ -163,7 +163,7 @@ test("verdicts cached under the old hold are judged again on the battle-log cloc
   assert.deepEqual(stored.evidence, h.card.evidence);
   assert.equal(
     (await h.ledger.latestVerdicts(clan)).removal_evidence_schema,
-    4,
+    5,
   );
 });
 

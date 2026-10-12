@@ -103,8 +103,97 @@ export function participationPhrase(v, policy) {
   return bits.join(", ");
 }
 
-/** Facts for a card, each with its window and how it was known. */
-export function cardFacts(v, policy) {
+/**
+ * What a removal cannot see, said once on every removal Action (Jamie,
+ * 2026-10-12, #532). General until cr-agent-api-docs#9 establishes which
+ * modes the battle log omits; never a list of modes before then.
+ */
+export const REMOVAL_UNSEEN =
+  "Modes the battle log does not carry are not seen, so the leader weighs it.";
+
+/** A recorded battle group's name, the family's words (`MODE_LABEL` in
+ *  @elixir-mcp/ui; a clan-web test pins the two equal). */
+export const MODE_GROUP_LABEL = {
+  ladder: "Trophy Road",
+  ranked: "Path of Legends",
+  war: "War",
+  casual: "Friendly",
+  challenge: "Challenge",
+  event: "Event",
+  tournament: "Tournament",
+};
+
+/** "2026-09-22 18:00 UTC": the saved text of a fact; the card draws the
+ *  same instant in the reader's zone. */
+const utc = (iso) => `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
+
+/**
+ * What a removal rests on (#532): the last recorded battle (its time and
+ * mode), the join, and the profile's battle count the clock watched. The
+ * fields beside `value` let the card draw times in the reader's zone.
+ */
+function restsOn(f) {
+  const a = f.activity_evidence ?? {};
+  const last = f.last_battle_time ?? null;
+  const mode = last
+    ? (MODE_GROUP_LABEL[f.last_battle_mode_group] ??
+      f.last_battle_game_mode ??
+      null)
+    : null;
+  const joined = f.joined_observed_at ?? null;
+  const rise = a.latest_activity_interval ?? null;
+  const reads = a.counter_reads ?? { reads: 0 };
+  const parts = [
+    last
+      ? `last recorded battle ${utc(last)}, ${mode ?? "mode not recorded"}`
+      : "no battle recorded",
+    joined
+      ? f.tenure_known
+        ? `joined ${joined.slice(0, 10)}`
+        : `in the clan before recording began, first seen ${joined.slice(0, 10)}`
+      : "join not recorded",
+    rise
+      ? `battle count rose by ${rise.counter_increase} between ${utc(rise.observed_from)} and ${utc(rise.observed_to)}${reads.last_read_at && reads.last_read_at > rise.observed_to ? `, unchanged to ${utc(reads.last_read_at)}` : ""}`
+      : reads.reads > 1
+        ? `battle count unchanged across ${reads.reads} reads from ${utc(reads.first_read_at)} to ${utc(reads.last_read_at)}`
+        : reads.reads === 1
+          ? `battle count read once, ${utc(reads.first_read_at)}`
+          : "battle count never read",
+  ];
+  const value = parts.join("; ");
+  return {
+    key: "rests_on",
+    label: "Rests on",
+    value: value[0].toUpperCase() + value.slice(1),
+    window: "record",
+    fidelity: last ? "daily" : "unknown",
+    last_battle: last
+      ? {
+          at: last,
+          mode_group: f.last_battle_mode_group ?? null,
+          game_mode: f.last_battle_game_mode ?? null,
+        }
+      : null,
+    joined: { at: joined, known: Boolean(f.tenure_known) },
+    counter: {
+      rise: rise
+        ? {
+            counter_increase: rise.counter_increase,
+            observed_from: rise.observed_from,
+            observed_to: rise.observed_to,
+          }
+        : null,
+      reads: reads.reads ?? 0,
+      first_read_at: reads.first_read_at ?? null,
+      last_read_at: reads.last_read_at ?? null,
+    },
+    note: REMOVAL_UNSEEN,
+  };
+}
+
+/** Facts for a card, each with its window and how it was known; a removal
+ *  adds what it rests on. */
+export function cardFacts(v, policy, type = null) {
   const f = v.facts;
   const counted = new Set(countedCategories(policy));
   const facts = [];
@@ -172,6 +261,7 @@ export function cardFacts(v, policy) {
       fidelity: f.tenure_known ? "daily" : "unknown",
     },
   );
+  if (type === "removal") facts.push(restsOn(f));
   return facts;
 }
 
