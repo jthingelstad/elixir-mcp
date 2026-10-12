@@ -347,6 +347,18 @@ test("seed: a recorded clan the newcomer belongs to", async () => {
   );
 });
 
+// A collector that delivered an admitted fetch (ingest stamps
+// last_success_at; the door's own test covers the promotion) and was then
+// drained: proven, so it no longer holds back its operator's next raise,
+// and not active, so later tests do not see an operator bonus.
+async function deliveredThenDrained(name) {
+  await db.query(
+    `update gateway set status = 'draining', last_success_at = now()
+     where name = $1 and status = 'probation'`,
+    [name],
+  );
+}
+
 test("open enrollment (#540): a raised hand is approved at once, token staged; the operator re-stages; the owner still drains and revokes", async () => {
   const cookie = memberCookie;
   const notesBefore = ownerNotes.length;
@@ -400,6 +412,15 @@ test("open enrollment (#540): a raised hand is approved at once, token staged; t
     }),
   );
   assert.equal(dupe.statusCode, 409, "names are unique among live gateways");
+
+  // One unproven collector per account (Codex on #554): every raise
+  // mints a usable token, and the door's limits are per collector.
+  const second = await handler(
+    event({ path: "/api/gateways", cookie, body: { name: "kitchen-pi" } }),
+  );
+  assert.equal(second.statusCode, 409);
+  assert.equal(parse(second).error, "unproven_collector");
+  assert.match(parse(second).message, /kitchen-mac/);
 
   const mine = parse(
     await handler(
@@ -518,6 +539,22 @@ test("open enrollment (#540): a raised hand is approved at once, token staged; t
     }),
   );
   assert.equal(again.statusCode, 200);
+
+  // A drained collector that never delivered still counts; a proven one
+  // never does.
+  await db.query(
+    `update gateway set status = 'draining'
+     where name = 'kitchen-mac' and status = 'probation'`,
+  );
+  const stillHeld = await handler(
+    event({ path: "/api/gateways", cookie, body: { name: "kitchen-pi" } }),
+  );
+  assert.equal(parse(stillHeld).error, "unproven_collector");
+  await db.query(
+    `update gateway set status = 'probation'
+     where name = 'kitchen-mac' and status = 'draining'`,
+  );
+  await deliveredThenDrained("kitchen-mac");
 });
 
 test("usage: member sees own daily counts and quota; admin sees the fleet", async () => {
@@ -2035,6 +2072,7 @@ test("admin provisioning says what it did: staged state and ownership on the adm
     true,
     "the admin owns this one: the reveal is theirs",
   );
+  await deliveredThenDrained("regress-op-nas");
 });
 
 test("the address is kept, and sign-in fills it in for older accounts", async () => {
@@ -3164,9 +3202,9 @@ test("an operator picks their collector's card; a card is one live collector's",
   assert.equal(g.card_name, first);
   assert.equal(g.card_icon, byName[first].icon);
 
-  // A second collector from the same account is fine - raising is the
-  // only way one comes to exist and there is no cap - but not on the
-  // same card.
+  // A second collector from the same account is fine once the first has
+  // delivered (one unproven at a time, #540) - but not on the same card.
+  await deliveredThenDrained("picker-one");
   const twin = await handler(
     event({
       path: "/api/gateways",

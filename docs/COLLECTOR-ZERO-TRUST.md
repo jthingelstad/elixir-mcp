@@ -48,6 +48,13 @@ What that trust rests on, all of it code that runs on every call:
    (`MISSED_STREAK_QUARANTINE`).
 8. **Revoke**: the maintainer's, a row update the door checks on every
    call, with instant effect.
+9. **One unproven collector per account**: `POST /api/gateways` refuses
+   a raise (409 `unproven_collector`) while the account holds a
+   collector on `probation`, or one `draining` with no
+   `last_success_at` (never an admitted fetch). Checks 5 to 7 are per
+   gateway, so without this an account could multiply them with
+   throwaway collectors now that every raise mints a usable token (Codex
+   on #554). The owner's account is exempt.
 
 Monotonic MAX-merge counters bound the rest: a lie cannot walk recorded
 numbers backwards.
