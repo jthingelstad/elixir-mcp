@@ -155,6 +155,8 @@ function Hours({ daily }) {
  *
  * Lifecycle is forward-only — pending → probation → active → draining →
  * probation — so exactly one move is offered, named for what it does.
+ * A raise lands on probation and its first admitted fetch makes it
+ * active (#540); pending is only an older raise's state.
  * Provisioning stages a token server-side for the operator's one-time
  * reveal, which is why it reports rather than silently refreshing.
  */
@@ -356,6 +358,48 @@ function YourCard({ own, navigate }) {
             </div>
           </>
         )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The operator's own token, staged again (#540, open enrollment): the
+ * one staged at the raise lapsed after 72 hours unclaimed, or the
+ * machine's copy is lost. A new one replaces the token the machine
+ * holds, so the click is a confirm, and the page then offers the
+ * one-time reveal above.
+ */
+function NewToken({ own }) {
+  const [sure, setSure] = useState(false);
+  const [error, setError] = useState("");
+  const invalidate = useInvalidate();
+  return (
+    <section className="panel mb-[14px]">
+      <div className="panel__head">New token</div>
+      <div className="panel__body flex flex-wrap items-center gap-3">
+        <span className="footnote m-0 max-w-[52ch]">
+          {sure
+            ? "The token your machine holds stops working the moment you stage a new one."
+            : "Lost the token, or let 72 hours pass before revealing it? Stage a new one here."}
+        </span>
+        <button
+          className="btn btn--sm ml-auto"
+          onClick={async () => {
+            if (!sure) {
+              setSure(true);
+              return;
+            }
+            const r = await api.gatewayToken(own.gateway_id);
+            if (r.ok) {
+              setSure(false);
+              invalidate(keys.gateways);
+            } else setError(r.data?.error ?? `HTTP ${r.status}`);
+          }}
+        >
+          {sure ? "Replace the token" : "New token"}
+        </button>
+        {error && <span className="field-error m-0">{error}</span>}
       </div>
     </section>
   );
@@ -576,9 +620,13 @@ export function CollectorPage({ id, navigate, me }) {
           <div className="panel__foot">
             Paste it into the collector&rsquo;s <code>.env</code> with your own
             Clash Royale key beside it. We kept only its hash; if you lose it,
-            ask the owner to re-provision, which invalidates this one.
+            stage a new one on this page, which invalidates this one.
           </div>
         </section>
+      )}
+
+      {own && !own.provision_ready && !revealed && own.status !== "revoked" && (
+        <NewToken own={own} />
       )}
 
       {own && <Hours daily={detail?.daily} />}

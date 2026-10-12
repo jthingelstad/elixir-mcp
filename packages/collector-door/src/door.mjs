@@ -673,11 +673,16 @@ export function makeCollectorDoor({
       // Contact, not success: last_success_at is owned by ingest and
       // advances only on ADMISSION (issue #7) — a client-declared "ok"
       // whose payload was rejected must not look like a good fetch.
+      // Open enrollment (#540): a raised hand starts on probation, and
+      // its first ADMITTED fetch makes it active, the state that counts
+      // as running one. A rejection or a fetch error promotes nothing.
       await db.query(
         `update gateway set results_submitted = results_submitted + 1,
-                missed_streak = 0
+                missed_streak = 0,
+                status = case when $2 and status = 'probation'
+                              then 'active' else status end
          where gateway_id = $1`,
-        [gw.gateway_id],
+        [gw.gateway_id, outcome?.outcome === "admitted"],
       );
       return {
         status: 200,

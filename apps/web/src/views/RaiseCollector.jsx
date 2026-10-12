@@ -21,7 +21,8 @@ import { CONSOLE } from "../lib/console.js";
  * manages what was raised. The operator names the machine (private)
  * and picks the Clash Royale card it wears (public, and one nobody
  * else holds). A raise lands on the new collector's own record, where
- * its pending state and, later, its token live.
+ * its token waits to be revealed once: whoever raises a hand is
+ * approved (Jamie, 2026-10-12, #540).
  */
 export function RaiseCollector({ navigate }) {
   const mine = useMyGateways().data?.gateways ?? null;
@@ -117,7 +118,8 @@ export function RaiseCollector({ navigate }) {
           Operators guide <Icon name="arrow-right" size={15} />
         </a>
         <span className="footnote">
-          {note || "Raising your hand emails the owner. Approval is by hand."}
+          {note ||
+            "Approved at once: its token waits on its own page, to reveal once."}
         </span>
       </div>
     </>

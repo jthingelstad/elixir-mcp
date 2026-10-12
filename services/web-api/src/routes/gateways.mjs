@@ -13,6 +13,14 @@ import {
   signatureState,
 } from "@elixir-mcp/collector-door/signature";
 
+// A collector token: the raw goes to the operator's one-time reveal,
+// only its sha256 is kept. Staged for 72 hours, then discarded unclaimed.
+function mintToken() {
+  const raw = "emcg_" + crypto.randomBytes(32).toString("base64url");
+  return { raw, hash: crypto.createHash("sha256").update(raw).digest("hex") };
+}
+const PROVISION_TTL = "72 hours";
+
 // The two ways a pick is refused, worded for the form that shows them.
 const cardRefusal = (error) =>
   error === "card_taken"
@@ -202,6 +210,13 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
     // account can raise any number, and the admin lane manages what was
     // raised rather than creating. The operator names their favourite
     // card as its public face; a card is one live collector's.
+    //
+    // Open enrollment (Jamie, 2026-10-12, #540): whoever raises a hand is
+    // approved, and the admission checks are the trust. The collector is
+    // born on probation, the state the door leases to, with its token
+    // staged for the operator's one-time reveal; its first admitted
+    // submit makes it active (the door), so a raise alone earns nothing
+    // that running one earns. The maintainer keeps drain and revoke.
     "POST /api/gateways": async (db, event, body) => {
       const account = await resolveAccount(db, event, {
         requireContractHeader: true,
@@ -225,12 +240,25 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         [name],
       );
       if (dupe.rows.length > 0) return json(409, { error: "name_taken" });
+      const token = mintToken();
       let rows;
       try {
         ({ rows } = await db.query(
-          `insert into gateway (owner_account_id, name, card_name, card_icon)
-           values ($1, $2, $3, $4) returning gateway_id`,
-          [account.accountId, name, card?.name ?? null, card?.icon ?? null],
+          `insert into gateway (owner_account_id, name, card_name, card_icon,
+                                status, token_hash, provision_env,
+                                provision_expires_at)
+           values ($1, $2, $3, $4, 'probation', $5, $6,
+                   now() + $7::interval)
+           returning gateway_id`,
+          [
+            account.accountId,
+            name,
+            card?.name ?? null,
+            card?.icon ?? null,
+            token.hash,
+            token.raw,
+            PROVISION_TTL,
+          ],
         ));
       } catch (err) {
         if (isCardTakenError(err)) return json(...cardRefusal("card_taken"));
@@ -244,10 +272,40 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       return json(200, {
         ok: true,
         gateway_id: rows[0].gateway_id,
-        status: "pending",
+        status: "probation",
+        provision_ready: true,
         card: card?.name ?? null,
-        next: "Once approved you get a one-time collector token to download; you bring your own CR API key (IP-bound by Supercell to your machine). Setup: https://elixir.poapkings.com/docs/operators",
+        next: "Approved: your collector token waits on the collector's own page, to reveal once within 72 hours. You bring your own CR API key (IP-bound by Supercell to your machine). Setup: https://elixir.poapkings.com/docs/operators",
       });
+    },
+
+    // The operator stages a fresh token for their own collector: the
+    // staged one lapsed unclaimed, or the machine's copy is lost. It
+    // replaces the token the machine holds (open enrollment, #540: no
+    // maintainer step stands between an operator and their own token).
+    "POST /api/me/gateway-token": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const id = String(body.id ?? "");
+      if (!UUID_RE.test(id)) return json(404, { error: "not_found" });
+      const token = mintToken();
+      const { rows } = await db.query(
+        `update gateway
+         set token_hash = $3, provision_env = $4,
+             provision_claimed_at = null,
+             provision_expires_at = now() + $5::interval
+         where gateway_id = $1 and owner_account_id = $2
+           and status <> 'revoked'
+         returning name`,
+        [id, account.accountId, token.hash, token.raw, PROVISION_TTL],
+      );
+      if (!rows[0]) return json(404, { error: "not_found" });
+      await logEvent(db, account.accountId, "gateway_token_staged", {
+        gateway: rows[0].name,
+      });
+      return json(200, { ok: true, staged: true });
     },
 
     // An operator can re-pick their own collector's card - the ones
@@ -330,24 +388,23 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       // file-download flow was IAM-era baggage). The raw token exists
       // in the database only between this click and the reveal.
       if (body.action === "provision_token") {
-        const raw = "emcg_" + crypto.randomBytes(32).toString("base64url");
+        const token = mintToken();
         const { rows: minted } = await db.query(
           `update gateway
            set token_hash = $2, provision_env = $3,
                provision_claimed_at = null,
-               provision_expires_at = now() + interval '72 hours'
+               provision_expires_at = now() + $4::interval
            where gateway_id::text = $1 and status <> 'revoked'
            returning gateway_id, name, channel, status`,
-          [
-            String(body.gateway_id ?? ""),
-            crypto.createHash("sha256").update(raw).digest("hex"),
-            raw,
-          ],
+          [String(body.gateway_id ?? ""), token.hash, token.raw, PROVISION_TTL],
         );
         if (!minted[0]) return json(404, { error: "not_found" });
         return json(200, { ok: true, staged: true, gateway: minted[0] });
       }
       // Forward-only lifecycle; probation is the only entry to active.
+      // A raise lands on probation and the door activates it on its
+      // first admitted submit (#540); these are the maintainer's moves
+      // for an older pending row, a drain, a retry and a revoke.
       const TRANSITIONS = {
         probation: ["pending", "draining"],
         activate: ["probation"],

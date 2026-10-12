@@ -1406,7 +1406,7 @@ function AdminCollectors() {
     <LogTable
       crumb="Admin"
       title="Collector fleet"
-      note="Lifecycle is forward-only: pending, then probation once the key is issued and it is heartbeating, then active. Open one to act on it."
+      note="Enrollment is open: a raised hand starts on probation with its token staged, and its first admitted fetch makes it active. Open one to drain or revoke it."
       cols={[
         ["COLLECTOR", "left"],
         ["OPERATOR", "left"],

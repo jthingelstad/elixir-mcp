@@ -213,6 +213,9 @@ export const api = {
   // reachable by a link scanner, a prefetch, or a cross-site top-level
   // navigation (#31).
   gatewayEnv: (id) => request("POST", "/api/me/gateway-env", { id }),
+  // The operator stages a fresh token for their own collector (#540); it
+  // replaces the one the machine holds.
+  gatewayToken: (id) => request("POST", "/api/me/gateway-token", { id }),
   gatewayDetail: (id) =>
     request("GET", `/api/me/gateway-detail?id=${encodeURIComponent(id)}`),
   myClanAction: (body, agent) => request("POST", `${home(agent)}/clans`, body),

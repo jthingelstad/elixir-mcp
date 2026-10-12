@@ -131,7 +131,7 @@ at a cabin. What makes the fleet interesting:
   never stops collection; a dev build never self-updates.
 - **Misbehavior is bounded.** At most two unsubmitted leases at a time;
   leases that expire unsubmitted redeliver their jobs and count against
-  the collector, and a streak of them quarantines it automatically: the
+  the collector, and a streak of ten drains it automatically: the
   door stops serving it work and tells its owner. Every payload is
   provenance-stamped with the collector that fetched it and kept in the
   archive for good, so a late-discovered bad actor's contributions can be

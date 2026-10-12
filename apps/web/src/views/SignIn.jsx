@@ -585,8 +585,8 @@ export function SignIn({ onAuthed }) {
         Product news is your choice above. Reports have their own off switches.
         A new account starts on this device's time zone; Profile changes it. See{" "}
         <a href="/docs/privacy">Privacy</a> and <a href="/docs/email">Emails</a>
-        . Collectors need separate approval; recording stays within your
-        account's limits.
+        . Running a collector is optional and open to anyone signed in;
+        recording stays within your account's limits.
       </p>
     </div>
   );
