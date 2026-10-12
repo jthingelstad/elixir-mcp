@@ -400,8 +400,15 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
   or one without the person's verdict, gives `standing: null`,
   `actions: null`, `reason: "not_evaluated"`, even with an open Action
   from the older version in the ledger; an unnumbered Action gives
-  `number: null`. The read runs inside
-  `set transaction read only`, so it can never write.
+  `number: null`. Authorization and projection share one database
+  snapshot, as `readAgentPolicyContext` does in one statement
+  (`packages/auth/src/clan-context.mjs:70-103`): either one statement,
+  or a transaction begun `isolation level repeatable read, read only`,
+  since read-committed takes a new snapshot per statement and a grant
+  or membership revoked between the check and the ledger read would
+  still leak. The test revokes the grant between the two reads of a
+  repeatable-read transaction and asserts the answer is the refusal or
+  the pre-revocation view, never a mix; and the read can never write.
 
 ## 6. Effort, risk, and what it waits on
 
