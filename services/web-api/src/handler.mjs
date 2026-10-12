@@ -108,6 +108,19 @@ export const AGENT_SCOPED_ROUTES = new Set([
 
 const AGENT_PATH = /^\/api\/agent\/([a-z0-9]{8,16})(\/.*)?$/;
 
+/**
+ * The Clan door's answers that need no sign-in (#526): its health check
+ * and the retired OAuth callback, keyed "METHOD path" or "ANY path".
+ * Everything else under /api/clan/ is resolved to a person first (a GET
+ * of auth/login with none is sent to sign in), so an unsigned exception
+ * is added here or nowhere; the public-boundary test pins this list.
+ */
+export const CLAN_UNSIGNED = Object.freeze({
+  "GET /api/clan/health": () => json(200, { ok: true }),
+  "ANY /api/clan/auth/callback": () =>
+    json(410, { error: "retired_oauth_callback" }),
+});
+
 /** The route for a path and the key it is registered under. */
 function findRoute(routes, method, path, event) {
   const exact = `${method} ${path}`;
@@ -379,10 +392,10 @@ export function makeHandler({
         ? {
             key: `${method} /api/clan/*`,
             route: async (db, event, body) => {
-              if (method === "GET" && path === "/api/clan/health")
-                return json(200, { ok: true });
-              if (path === "/api/clan/auth/callback")
-                return json(410, { error: "retired_oauth_callback" });
+              const unsigned =
+                CLAN_UNSIGNED[`${method} ${path}`] ??
+                CLAN_UNSIGNED[`ANY ${path}`];
+              if (unsigned) return unsigned();
               const person = await resolvePerson(db, event, {
                 requireContractHeader: !["GET", "HEAD"].includes(method),
               });

@@ -16,7 +16,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
-import { makeHandler } from "../src/handler.mjs";
+import { CLAN_UNSIGNED, makeHandler } from "../src/handler.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -154,10 +154,23 @@ test("the doors by prefix refuse with no credential", async () => {
     (await call("GET", "/api/agent/abcdefgh/timeline")).statusCode,
     401,
   );
-  // Clan: only its health and its sign-in redirect answer unsigned.
+  // Clan: its health and the retired callback are its only unsigned
+  // answers, both in CLAN_UNSIGNED; a GET of auth/login with no session
+  // is sent to sign in, and everything else resolves a person first.
+  assert.deepEqual(Object.keys(CLAN_UNSIGNED).sort(), [
+    "ANY /api/clan/auth/callback",
+    "GET /api/clan/health",
+  ]);
   assert.equal((await call("GET", "/api/clan/home")).statusCode, 401);
   assert.equal((await call("POST", "/api/clan/actions")).statusCode, 401);
+  assert.equal((await call("POST", "/api/clan/health")).statusCode, 401);
+  assert.equal((await call("POST", "/api/clan/auth/login")).statusCode, 401);
   assert.equal((await call("GET", "/api/clan/health")).statusCode, 200);
+  for (const method of ["GET", "POST"])
+    assert.equal(
+      (await call(method, "/api/clan/auth/callback")).statusCode,
+      410,
+    );
   const login = await call("GET", "/api/clan/auth/login");
   assert.equal(login.statusCode, 303);
   assert.match(login.headers.location, /^\/console\/signin/);
