@@ -202,7 +202,7 @@ claimant may be another member.
 | --- | --- | --- |
 | Who | `player_tag`, `role` (the person's own) | the verified claim and `clan_membership.role`, as `auth/clan-context.mjs:87-92` |
 | Policy summary | `set`, `active`, `version`, `members`, `min_members`, `ranks_elder`, `removal`, `away`, `members_see_standing` | `policySummary`, service.mjs:1245-1259 |
-| Standing line (when active) | `version`, `goals`, `counted`, `ranks_elder`, `status` (a group, never a score), `evidence`, `next`, `minimums` {`set`, `met`, `passes`, `unknown`, `rule`, `window_weeks`}, `tenure_min_days`, and `inactivity` {`state` (`recommended` folded into `at_risk`), `days_idle`, `at_risk_days`, `judgment`, `activity_evidence`} when removal is on | `memberView`'s `clan`, service.mjs:1006-1036 |
+| Standing line (when active) | `policy_version`, `goals`, `counted`, `ranks_elder`, `status` (a group, never a score), `evidence`, `next`, `minimums` {`set`, `met`, `passes`, `unknown`, `rule`, `window_weeks`}, `tenure_min_days`, and `inactivity` {`state` (`recommended` folded into `at_risk`), `days_idle`, `at_risk_days`, `judgment`, `activity_evidence`} when removal is on | `memberView`'s `clan`, service.mjs:1006-1036 |
 | Actions waiting for them | per open Action of a shown type: `number` (null for an Action raised before numbering), `type`, `label`, `subject_name`, `raised_at`, `url` (the Action in Clan); `count` is the length of that list, never Clan's rail count | `actionsView`'s `open`, :1164-1166, :1186-1188, filtered by `canAct` |
 | Freshness | `evaluated_at` of the snapshot read, `read_at` | `verdicts#<clan>`, :938-947 |
 
@@ -312,6 +312,7 @@ with `additionalProperties: false`):
 {
   "view": {
     "schema_version": 1,
+    "reason": null,
     "clan_tag": "#...",
     "you": { "player_tag": "#...", "role": "member" },
     "policy": {
@@ -334,7 +335,7 @@ with `additionalProperties: false`):
       "count": 1,
       "waiting": [
         { "number": 37, "type": "away", "label": "Going to be away?",
-          "subject_name": "...", "raised_at": "...", "url": "/clan/..." }
+          "subject_name": "...", "raised_at": "...", "url": "https://elixir.poapkings.com/clan/..." }
       ]
     },
     "read_at": "..."
@@ -346,10 +347,19 @@ with `additionalProperties: false`):
 }
 ```
 
-`standing` is null with a `reason` when the policy is not active
-(`no_policy`, `too_few_members`); `standing` and `actions` are both
-null with `not_evaluated` when no snapshot matches the current policy
-or holds the person's verdict. Refusals:
+`view.reason` is required and nullable: null when `standing` and
+`actions` are given; otherwise one of `no_policy`, `too_few_members`
+(no policy is active, so Clan has no standing and raises no Actions)
+or `not_evaluated` (no snapshot matches the current policy or holds
+the person's verdict), and then `standing` and `actions` are both null.
+The policy summary is always given. The standing line's version is
+published as `policy_version`, the name `clans_context` uses; Clan's
+`/me` calls the same value `clan.version`, and the tool maps it at its
+one boundary while the shaping stays shared. Every `url` is absolute
+on Elixir's origin, as battle links are (`battleUrl`,
+`packages/contracts/src/battle-link.ts:46`), so it opens from any
+client: an Action's own page, or Clan's Actions list for an unnumbered
+one. Refusals:
 `not_entitled` (no grant, unverified, not a member), as `clans_context`
 refuses today (`tools/clan-context.mjs:16-21`), and `no_subject` (no
 clan given and no primary clan), as the person's other tools do. The JSON API gains nothing: programs
