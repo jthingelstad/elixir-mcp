@@ -11,8 +11,10 @@ provenance. Avoid autonomous elite populations, game commentary, gameplay
 recommendations and replacement player scores.
 
 The [product guide](apps/site/src/docs/about.md) describes the experience;
-[DECISIONS](docs/DECISIONS.md) holds the standing boundaries. This page is
-the shared direction, not a second behavior specification.
+the [product briefs](docs/product/README.md) say what each surface is for
+and the principles that decide its details; [DECISIONS](docs/DECISIONS.md)
+holds the standing boundaries one line at a time. This page is the shared
+direction, not a second behavior specification.
 
 Current release priorities (Jamie, October 3, 2026):
 
