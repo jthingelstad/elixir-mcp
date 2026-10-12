@@ -177,8 +177,11 @@ else's approval.
 Exactly the person's own lines, for one clan: with no clan given, the
 primary's current clan, else `no_subject` (`agents.md:32-36`); a named
 clan only where one of the person's verified claims (primary or alt)
-is a current member, and then as that player and role. An unverified
-claim is refused [engineering]: it proves no ownership of the player
+is a current member. When two of their verified players are in that
+clan, the read acts as the one Clan acts as: the highest acting role,
+then the higher in-game role (`clansOf`, `packages/clan/src/gate.mjs:66-73`),
+since the role decides which Actions `canAct` lets them see. An
+unverified claim is refused [engineering]: it proves no ownership of the player
 whose line it would show, and `/policy/context` already requires
 verification (`handler.mjs:637-641`).
 
@@ -189,7 +192,7 @@ verification (`handler.mjs:637-641`).
 | Standing line (when active) | `version`, `goals`, `counted`, `ranks_elder`, `status` (a group, never a score), `evidence`, `next`, `minimums` {`set`, `met`, `passes`, `unknown`, `rule`, `window_weeks`}, `tenure_min_days`, and `inactivity` {`state` (`recommended` folded into `at_risk`), `days_idle`, `at_risk_days`, `judgment`, `activity_evidence`} when removal is on | `memberView`'s `clan`, service.mjs:1006-1036 |
 | Their hold | `kind`, `until` | `memberView`, :1069-1071 |
 | Their awards | `season_id`, `award_id`, `name`, `rank`, `manual` | `memberView`, :1043-1057 |
-| Actions waiting for them | `open_in_clan` (the count Clan's rail shows them) and, per open Action of a shown type: `number`, `type`, `label`, `subject_name`, `raised_at`, `url` (the Action in Clan) | `actionsView`'s `open`, :1164-1166, :1186-1188, filtered by `canAct` |
+| Actions waiting for them | per open Action of a shown type: `number`, `type`, `label`, `subject_name`, `raised_at`, `url` (the Action in Clan); `count` is the length of that list, never Clan's rail count | `actionsView`'s `open`, :1164-1166, :1186-1188, filtered by `canAct` |
 | Freshness | `evaluated_at` of the snapshot read, `read_at` | `verdicts#<clan>`, :938-947 |
 
 **Excluded.**
@@ -200,7 +203,11 @@ verification (`handler.mjs:637-641`).
   other rows only under `members_see_standing` or to a leader,
   service.mjs:2178-2179), holds, notes and away.
 - **Any removal**: no Action of type `removal`, for anyone, including
-  a leader who would decide it, and no `removal_safety`. The engine's
+  a leader who would decide it, no `removal_safety`, and no count that
+  includes one: Clan's rail count (`openActionCount`, service.mjs:1131-1138)
+  counts a leader's removal Actions, so set beside the list it would
+  say how many are hidden. A leader's answer always carries the same
+  note that some Actions are shown only in Clan. The engine's
   `recommended` state reaches the agent only as `at_risk`, as Clan's own
   page shows it.
 - **Any deciding or acting**: no Action evidence, log, comments, words
@@ -293,7 +300,7 @@ with `additionalProperties: false`):
     "hold": null,
     "awards": [],
     "actions": {
-      "open_in_clan": 2,
+      "count": 1,
       "waiting": [
         { "number": 37, "type": "away", "label": "Going to be away?",
           "subject_name": "...", "raised_at": "...", "url": "/clan/..." }
@@ -338,8 +345,11 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
   connection, an unverified claim, a player who has left, and a clan
   the person is not in. For the granted person, the serialized answer
   contains none of the other member's tag, name, days idle, hold or
-  note, no `removal` Action (also when the person is its subject), and
-  no key outside the output schema. The read runs inside
+  note, no `removal` Action (also when the person is its subject), an
+  Actions `count` equal to the items shown (a leader with an open
+  removal gets the same count as without one), and no key outside the
+  output schema. A person with two verified players in the clan reads
+  as the one `clansOf` picks. The read runs inside
   `set transaction read only`, so it can never write.
 
 ## 6. Effort, risk, and what it waits on
@@ -369,7 +379,8 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
 - [engineering] The grant is per connection, made by the person, off by
   default; a table row, not a scope.
 - [engineering] An unverified claim is refused; no clan given means the
-  primary's current clan.
+  primary's current clan; two verified players in one clan read as the
+  one Clan acts as (`clansOf`).
 - [engineering] No `removal` Action is ever shown, including one whose
   subject is the person.
 - [engineering] Actions are summary lines with a link, not the whole
