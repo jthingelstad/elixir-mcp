@@ -286,9 +286,9 @@ export default [
         icon: "server",
         label: "Run a collector",
         title: "Run a collector",
-        lede: "Volunteer a machine that fetches for the recorder. It is named for a card, credited to you, and it raises what Elixir records for you.",
+        lede: "Volunteer a machine that fetches for the recorder. It is named for a card, credited to you, and while it is active it earns you the Family tier.",
         reads: [
-          "The collector fleet: points, credits, last success",
+          "The collector fleet: cards, status, last success",
           "Coverage on your own tag: polls, captures, completeness",
           "The operators guide, served over MCP",
         ],
@@ -302,7 +302,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Quota, mostly — and a more complete record of your own tag.\n\n**The fleet right now:** three collectors, all active. Ram Rider (11,114 points, 1,111 quota credits earned), Tesla (8,378 / 837) and Wall Breakers (1,961 / 196). All three fetched within the last minute.\n\n**What you earn:** a point for every fetch that adds something new to the record, and every 10 points adds one daily tool call to your budget, capped at 4× your tier's base, plus bonus recording slots. The budget they work inside is shared — more collectors are resilience, never more Clash API quota.\n\n**What it costs:** a machine that is usually on with a static IP, and your own Clash Royale API key allowlisted to it. Per the operators guide the collector holds exactly two secrets and has no cloud access.\n\n**Why it matters to you:** coverage on your tag today is complete — 5 of 5 expected battles captured in the latest interval, 100% over the 78 hours we could measure — because three machines are polling. That is the thing you would be adding to.",
+              text: "The Family tier — and a more complete record of your own tag.\n\n**The fleet right now:** three collectors, all active: Ram Rider, Tesla and Wall Breakers. All three fetched within the last minute.\n\n**What you earn:** while your collector is active, your account holds the Family tier, with more clan slots and a bigger daily call budget than Member (the roles page has the numbers). That is the whole reward: there are no points, credits or bonus slots. The budget the fleet works inside is shared — more collectors are resilience, never more Clash API quota.\n\n**What it costs:** a machine that is usually on with a static IP, and your own Clash Royale API key allowlisted to it. Per the operators guide the collector holds exactly two secrets and has no cloud access.\n\n**Why it matters to you:** coverage on your tag today is complete — 5 of 5 expected battles captured in the latest interval, 100% over the 78 hours we could measure — because three machines are polling. That is the thing you would be adding to.",
             },
           ],
         },
