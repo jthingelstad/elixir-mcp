@@ -25,6 +25,8 @@ const MATES_MAX = 10;
 const DAY_MS = 24 * 3600_000;
 
 const playerOf = (it) => it?.facts?.player_tag ?? null;
+/** The kinds that move a member up: told the clanmates there. */
+const MOVES = new Set(["arena_changed", "ranked_promotion"]);
 
 /**
  * @param {import("pg").ClientBase} db
@@ -46,14 +48,19 @@ export async function storyContext(
   const battles = stories
     .map((s) => {
       const players = new Set(s.items.map(playerOf));
-      const battle = s.items.map(storyBattleId).find(Boolean);
-      return players.size === 1 && battle
+      const battle = s.items.map(storyBattleId).find(Boolean) ?? null;
+      // A move the roster saw before the battle log delivered its battle
+      // is still told who is there and the day's promotions (2026-10-12:
+      // such a post went out bare); only the deck needs the battle.
+      const moved = s.items.some((it) => MOVES.has(it.kind));
+      return players.size === 1 && (battle || moved)
         ? { story: s, player: playerOf(s.items[0]), battle }
         : null;
     })
     .filter(Boolean)
     .slice(0, CONTEXT_STORIES_MAX);
   if (!battles.length) return out;
+  const withBattle = battles.filter((b) => b.battle);
 
   // The deck each battle was won with, and its mode.
   const { rows: played } = await db.query(
@@ -62,7 +69,7 @@ export async function storyContext(
        join battle b on b.battle_id = bp.battle_id
       where (bp.battle_id, bp.player_tag) in
             (select * from unnest($1::text[], $2::text[]))`,
-    [battles.map((b) => b.battle), battles.map((b) => b.player)],
+    [withBattle.map((b) => b.battle), withBattle.map((b) => b.player)],
   );
   const deckOf = new Map(
     played.map((r) => [`${r.player_tag}|${r.battle_id}`, r]),

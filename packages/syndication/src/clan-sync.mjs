@@ -54,8 +54,12 @@ import {
   DEPARTURE_CLASSIFIED,
   EDITOR_ROUNDS,
   EDITOR_STORIES_MAX,
+  EDITOR_TODAY_MAX,
+  STORY_EDIT_LATEST,
+  STORY_EDIT_MS,
   STORY_RETOLD_MS,
   STORY_SKIPS,
+  STORY_TODAY_MS,
   activityCategories,
   activityCategory,
   activityShareable,
@@ -68,6 +72,7 @@ import {
   editorRequest,
   editorStory,
   escapeDiscord,
+  foldToday,
   leadSafe,
   renderStory,
   storyBattleId,
@@ -82,7 +87,7 @@ import {
 import { postRevision, readCapped } from "./sync.mjs";
 import { clanStoryFacts } from "./story-facts.mjs";
 import { storyContext } from "./story-context.mjs";
-import { editorResearch } from "./editor-research.mjs";
+import { agoWords, editorResearch, unescape } from "./editor-research.mjs";
 import {
   aside,
   newLedgerId,
@@ -115,6 +120,9 @@ const EDITOR_SKIP = "editor";
 /** Time a round of the editor needs to start: the model's wait (at
  *  most 50 s, the bridge's) and the write after it. */
 const EDITOR_ROUND_MS = 25_000;
+/** An edited post's items are read again from this long before it was
+ *  first posted (what it told was learned a few minutes before). */
+const REREAD_MS = 3600_000;
 /** The session lock's namespace ("clan"), beside the clan's tag. */
 const LOCK_NS = 0x636c616e;
 
@@ -365,6 +373,126 @@ async function storyMemory(db, clanTag, items, now) {
   return { told, battlesTold, valuesTold };
 }
 
+/** A member's battles read for their day: today and the sitting that
+ *  began before it. */
+const TODAY_BATTLES_MS = STORY_TODAY_MS + 6 * 3600_000;
+
+/**
+ * What the channel posted about these members today (`foldToday`'s
+ * `today`), each post newest first: when it was first posted, its
+ * revision, its items' moments and battles, whether it tells a sitting,
+ * its words as last sent, and whether it may still be edited (one
+ * member's, recent, one of the channel's newest, its items read again).
+ * And each member's battle times today, which say what one sitting is.
+ */
+async function toldToday(db, clanTag, row, tags, now) {
+  const posts = new Map();
+  const battles = new Map();
+  if (!tags.length) return { posts, battles };
+  const since = new Date(now - STORY_TODAY_MS);
+  const { rows } = await db.query(
+    `select coalesce(story_key, item_id) as post_key, item_id, kind,
+            player_tag, item_at, revision, battle_id, told_at
+       from clan_activity_discord_told
+      where clan_tag = $1 and not skipped and told_at > $2`,
+    [clanTag, since],
+  );
+  const byKey = new Map();
+  for (const r of rows) {
+    const p = byKey.get(r.post_key) ?? {
+      key: r.post_key,
+      players: new Set(),
+      item_ids: [],
+      moments: [],
+      battles: [],
+      sitting: false,
+      revision: 0,
+      told_ms: 0,
+    };
+    if (r.player_tag) p.players.add(r.player_tag);
+    p.item_ids.push(r.item_id);
+    if (r.item_at) p.moments.push(r.item_at.getTime());
+    if (r.battle_id) p.battles.push(r.battle_id);
+    if (r.kind === "session_standout") p.sitting = true;
+    p.revision = Math.max(p.revision, r.revision);
+    p.told_ms = Math.max(p.told_ms, r.told_at.getTime());
+    byKey.set(r.post_key, p);
+  }
+  const mine = [...byKey.values()].filter((p) =>
+    tags.some((t) => p.players.has(t)),
+  );
+  if (!mine.length) return { posts, battles };
+  // The channel's posts as the quality ledger has them: when each was
+  // first posted, which are the newest, and their words as last sent.
+  const { rows: sent } = await db.query(
+    `select post_key,
+            min(handed_at) filter (where action = 'post') as first_at,
+            (array_agg(content order by handed_at desc))[1] as content
+       from discord_post
+      where clan_tag = $1 and feature = 'clan_activity' and webhook_fp = $2
+        and action in ('post', 'edit') and handed_at > $3
+      group by post_key`,
+    [clanTag, row.webhook_fp, since],
+  );
+  const ledger = new Map(sent.map((r) => [r.post_key, r]));
+  const newest = new Set(
+    sent
+      .filter((r) => r.first_at)
+      .sort((a, b) => b.first_at - a.first_at)
+      .slice(0, STORY_EDIT_LATEST)
+      .map((r) => r.post_key),
+  );
+  for (const p of mine) {
+    const l = ledger.get(p.key);
+    p.first_ms = l?.first_at?.getTime() ?? p.told_ms;
+    p.content = l?.content ? unescape(l.content) : null;
+    p.editable =
+      p.players.size === 1 &&
+      newest.has(p.key) &&
+      p.first_ms >= now - STORY_EDIT_MS;
+    p.items = null;
+  }
+  // An edit tells what the post told: its items, read again.
+  const editable = mine.filter((p) => p.editable);
+  if (editable.length) {
+    const ids = new Set(editable.flatMap((p) => p.item_ids));
+    const { timeline } = await buildTimeline(
+      db,
+      [{ kind: "clan", tag: clanTag, scope: "comprehensive" }],
+      {
+        fromMs:
+          Math.min(...editable.flatMap((p) => [p.first_ms, ...p.moments])) -
+          REREAD_MS,
+        toMs: now,
+        clanMember: true,
+        filter: (it) => ids.has(it.id),
+      },
+    );
+    const found = new Map(timeline.map((it) => [it.id, it]));
+    for (const p of editable) {
+      const items = p.item_ids.map((id) => found.get(id));
+      // Not all of it read again: it is not edited, never half told.
+      p.items = items.every(Boolean) ? items.sort(byTime) : null;
+      p.editable = p.items !== null;
+    }
+  }
+  for (const p of mine.sort((a, b) => b.first_ms - a.first_ms))
+    for (const t of p.players)
+      if (tags.includes(t)) posts.set(t, [...(posts.get(t) ?? []), p]);
+  const { rows: played } = await db.query(
+    `select player_tag, battle_time from battle_participant
+      where player_tag = any($1::text[]) and battle_time > $2
+      order by battle_time`,
+    [tags, new Date(now - TODAY_BATTLES_MS)],
+  );
+  for (const r of played)
+    battles.set(r.player_tag, [
+      ...(battles.get(r.player_tag) ?? []),
+      r.battle_time.getTime(),
+    ]);
+  return { posts, battles };
+}
+
 /** One told row: what the channel remembers of an item. */
 const toldRow = (it, extra) => ({
   item_id: it.id,
@@ -482,26 +610,46 @@ async function planRun(
   const { stories, skips } = buildStories(fresh, memory);
   // A story is held until it has been quiet a few minutes: the items one
   // moment produces arrive as one post. The pointer stays before it.
-  const ready = [];
+  const waiting = [];
   const held = [];
   for (const s of stories)
-    (storyReady(s, now, observedMs) ? ready : held).push(s);
+    (storyReady(s, now, observedMs) ? waiting : held).push(s);
+  // One member's sitting is one story a day (2026-10-12): what the
+  // channel told about them today takes in more of it, or skips it.
+  const today = await toldToday(
+    db,
+    clanTag,
+    row,
+    [...new Set(waiting.flatMap((s) => s.items.map(memberTag)))].filter(
+      Boolean,
+    ),
+    now,
+  );
+  const folded = foldToday(waiting, today.posts, { battles: today.battles });
+  const ready = folded.stories;
+  skips.push(...folded.skips);
 
   // A post: the key and revision it goes under, and the story it tells.
-  const posts = ready.map((s) => ({
-    key: s.key,
-    revision: Math.max(...s.items.map(postRevision)),
-    story: s,
-    // Told before: the relay edits its post (the quality ledger's action).
-    retold: told.has(s.key),
-  }));
+  const posts = ready.map((s) => {
+    const revision = Math.max(...s.items.map(postRevision));
+    return {
+      key: s.key,
+      // An earlier post told with more: above any revision it was sent at.
+      revision: s.edit ? Math.max(revision, s.base_revision + 1) : revision,
+      story: s,
+      // Told before: the relay edits its post (the quality ledger's action).
+      retold: Boolean(s.edit) || told.has(s.key),
+    };
+  });
   const toldNow = [];
-  for (const s of ready)
-    for (const it of s.items)
+  for (const p of posts)
+    for (const it of p.story.items)
       toldNow.push(
         toldRow(it, {
-          story_key: s.key,
-          digest: it.id === s.key ? s.digest : null,
+          story_key: p.key,
+          digest: it.id === p.key ? p.story.digest : null,
+          // An edit's revision is its post's, so the next one is above it.
+          ...(p.story.edit && it.id === p.key ? { revision: p.revision } : {}),
         }),
       );
   for (const k of skips)
@@ -669,6 +817,7 @@ async function planRun(
     pitchFor,
     now,
     story,
+    today: today.posts,
   });
   plan.stories = built.stories;
   plan.request = editorRequest({
@@ -689,7 +838,13 @@ async function editorPackets(
   clanTag,
   row,
   posts,
-  { policy = null, pitchFor = null, now = Date.now(), story },
+  {
+    policy = null,
+    pitchFor = null,
+    now = Date.now(),
+    story,
+    today = new Map(),
+  },
 ) {
   const tags = [
     ...new Set(
@@ -746,6 +901,20 @@ async function editorPackets(
           0,
           told(items[0].kind, tag) - (p.story.grown || p.revision > 1 ? 1 : 0),
         ),
+      })),
+      // The channel's other posts about them today, in its words; a
+      // departure is told nothing but its own sentence.
+      today: (departing ? [] : people).map((tag) => ({
+        name: story.members[tag]?.name ?? tag,
+        posts: (today.get(tag) ?? [])
+          .filter(
+            (x) =>
+              x.key !== p.key &&
+              x.content &&
+              !items.some((it) => x.item_ids.includes(it.id)),
+          )
+          .slice(0, EDITOR_TODAY_MAX)
+          .map((x) => ({ ago: agoWords(x.first_ms, now), text: x.content })),
       })),
     };
   });

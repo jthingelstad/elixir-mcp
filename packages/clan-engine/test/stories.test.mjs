@@ -12,8 +12,10 @@ import {
   STORY_HOLD_QUIET_MS,
   STORY_SKIPS,
   buildStories,
+  foldToday,
   leadSafe,
   renderStory,
+  sittingOf,
   storyDigest,
   storyReady,
   whenWords,
@@ -356,4 +358,203 @@ test("a post never opens as Discord markdown", () => {
   assert.equal(leadSafe("# King joined"), "\\# King joined");
   assert.equal(leadSafe("1. Ada"), "\\1. Ada");
   assert.equal(leadSafe("Ada joined"), "Ada joined");
+});
+
+/* One member's morning, told once (2026-10-12): an arena move the roster
+ * saw before its battle, then the sitting, then the rung from the same
+ * battle, were four posts in two hours. */
+const MORNING = Date.parse("2026-10-12T12:00:00Z");
+const HAR = { player_tag: "#HHH", name: "Har" };
+const CROSS = {
+  battle_id: "m3",
+  battle_time: at(MORNING + 10 * MIN),
+  crowns: 2,
+  crowns_against: 1,
+  opponent: { name: "Zed" },
+  trophies_after: 11_510,
+};
+// Four battles a few minutes apart: one sitting, from MORNING.
+const PLAYED = new Map([
+  ["#HHH", [0, 5, 10, 30].map((m) => MORNING + m * MIN)],
+]);
+const moved = () =>
+  item(
+    "arena_changed",
+    { ...HAR, from: 54000021, to: 54000022, to_name: "Summit of Heroes" },
+    MORNING + 15 * MIN,
+  );
+const sat = () =>
+  item(
+    "session_standout",
+    {
+      ...HAR,
+      battles: 4,
+      won: 3,
+      lost: 1,
+      started_at: at(MORNING),
+      ended_at: at(MORNING + 30 * MIN),
+      best_win: CROSS,
+      won_in_a_row: 3,
+      open: false,
+    },
+    MORNING + 10 * MIN,
+  );
+const rung = () =>
+  item(
+    "best_trophies_band",
+    { ...HAR, band: 11_500, best: 11_510, crossed_by: CROSS },
+    MORNING + 10 * MIN,
+  );
+/** The arena move as the channel posted it, three minutes after. */
+const postOf = (arena, extra = {}) => ({
+  key: arena.id,
+  first_ms: MORNING + 18 * MIN,
+  revision: 3,
+  moments: [MORNING + 15 * MIN],
+  battles: [],
+  sitting: false,
+  editable: true,
+  items: [arena],
+  item_ids: [arena.id],
+  ...extra,
+});
+
+test("a sitting is a member's battles each under half an hour apart", () => {
+  const times = PLAYED.get("#HHH");
+  assert.equal(sittingOf(times, MORNING + 15 * MIN), MORNING);
+  assert.equal(sittingOf(times, MORNING + 59 * MIN), MORNING);
+  assert.equal(sittingOf(times, MORNING + 61 * MIN), null, "too long after");
+  assert.equal(sittingOf(times, MORNING - MIN), null, "before any battle");
+  assert.equal(sittingOf([], MORNING), null);
+});
+
+test("told today: the same sitting edits a recent post, told with what it told", () => {
+  const arena = moved();
+  const sitting = sat();
+  const band = rung();
+  const { stories, skips } = foldToday(
+    [
+      { key: sitting.id, items: [sitting] },
+      { key: band.id, items: [band] },
+    ],
+    new Map([["#HHH", [postOf(arena)]]]),
+    { battles: PLAYED },
+  );
+  assert.deepEqual(skips, []);
+  assert.equal(stories.length, 1, "one post, not three");
+  const [edit] = stories;
+  assert.equal(edit.key, arena.id, "the post already made");
+  assert.equal(edit.edit, true);
+  assert.equal(edit.base_revision, 3);
+  assert.deepEqual(
+    edit.items.map((it) => it.kind),
+    ["arena_changed", "session_standout", "best_trophies_band"],
+  );
+  assert.equal(edit.digest, storyDigest(edit));
+  assert.equal(
+    renderStory(edit, { mates: ["Ak", "Tere"], mates_total: 2 }),
+    "Har moved up to Summit of Heroes, joining Ak and Tere there. They also set a new best of 11,510 trophies, passing 11,500 with a 2-1 win over Zed. In the same sitting they went 3-1 over 4 battles, winning 3 in a row.",
+  );
+});
+
+test("told today: part of a post too old or too far down to edit is skipped, said once", () => {
+  const arena = moved();
+  for (const post of [
+    postOf(arena, { editable: false }),
+    // Shares the battle, with no sitting read: still the same story.
+    postOf(arena, { editable: false, battles: ["m3"], moments: [] }),
+  ]) {
+    const band = rung();
+    const { stories, skips } = foldToday(
+      [{ key: band.id, items: [band] }],
+      new Map([["#HHH", [post]]]),
+      { battles: post.moments.length ? PLAYED : new Map() },
+    );
+    assert.equal(stories.length, 0);
+    assert.deepEqual(
+      skips.map((k) => [k.item.id, k.reason, k.record, k.story_key]),
+      [[band.id, "already_told_today", true, band.id]],
+    );
+    assert.ok(STORY_SKIPS.already_told_today);
+  }
+});
+
+test("told today: a later result is its own story, and a second sitting in a day is not told", () => {
+  const arena = moved();
+  // A promotion from a battle after the post: news, even in that sitting.
+  const later = item(
+    "ranked_promotion",
+    {
+      ...HAR,
+      to_name: "Master I",
+      promoted_by: {
+        ...CROSS,
+        battle_id: "m4",
+        battle_time: at(MORNING + 30 * MIN),
+      },
+    },
+    MORNING + 30 * MIN,
+  );
+  const kept = foldToday(
+    [{ key: later.id, items: [later] }],
+    new Map([["#HHH", [postOf(arena)]]]),
+    { battles: PLAYED },
+  );
+  assert.deepEqual(
+    kept.stories.map((s) => [s.key, Boolean(s.edit)]),
+    [[later.id, false]],
+  );
+  assert.deepEqual(kept.skips, []);
+
+  // The evening's sitting, after the morning's was told: one a day.
+  const evening = {
+    ...sat(),
+    facts: {
+      ...sat().facts,
+      started_at: at(MORNING + 8 * H),
+      best_win: { ...CROSS, battle_id: "e1" },
+    },
+  };
+  const morning = postOf(sat(), { sitting: true, editable: false });
+  const capped = foldToday(
+    [{ key: evening.id, items: [evening] }],
+    new Map([["#HHH", [morning]]]),
+    { battles: new Map([["#HHH", [MORNING, MORNING + 8 * H]]]) },
+  );
+  assert.equal(capped.stories.length, 0);
+  assert.deepEqual(
+    capped.skips.map((k) => k.reason),
+    ["already_told_today"],
+  );
+});
+
+test("told today: one sitting's stories in one run are one post; others pass untouched", () => {
+  const arena = moved();
+  const sitting = sat();
+  const award = item("award_granted", { ...BO, award: "Cup" }, MORNING);
+  const { stories, skips } = foldToday(
+    [
+      { key: arena.id, items: [arena] },
+      { key: sitting.id, items: [sitting] },
+      { key: award.id, items: [award] },
+    ],
+    new Map(),
+    { battles: PLAYED },
+  );
+  assert.deepEqual(skips, []);
+  assert.deepEqual(
+    stories.map((s) => s.items.map((it) => it.kind)),
+    [["arena_changed", "session_standout"], ["award_granted"]],
+  );
+});
+
+test("a move the roster saw before its battle is still told who is there", () => {
+  const arena = moved();
+  assert.equal(
+    renderStory(
+      { key: arena.id, items: [arena] },
+      { mates: ["Ak", "Tere"], mates_total: 2, promotions: 2 },
+    ),
+    "Har moved up to Summit of Heroes, joining Ak and Tere there. It's their second promotion in a day.",
+  );
 });

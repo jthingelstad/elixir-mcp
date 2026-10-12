@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-12; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
+reviewed: "2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -256,15 +256,25 @@ told more than three hours late says when in words ("Yesterday").
   that grows; and anything else on its own. From the record Elixir adds
   what it knows: the deck the battle was won with and its record in that
   mode this season (ladder or Ranked), a second promotion in a day, the
-  clanmates already in the arena a member reached, and for a sitting its
-  modes, its best win and its run.
+  clanmates already in the arena a member reached (also when the roster
+  saw the move before its battle arrived), and for a sitting its modes,
+  its best win and its run.
+- **One sitting, one post a day**: a member's sitting (battles less
+  than half an hour apart) is told once a day. A new story from a battle
+  or a sitting the channel already posted about that member today, and
+  from before that post went up, is part of it: the post is edited to
+  tell it too when it is under two hours old and one of the channel's
+  three newest, otherwise the story is skipped. A member's second
+  sitting in a day is skipped the same way. A promotion or a new best
+  from a later battle is still its own post.
 - **Skipped, with the reason**: a badge or mastery level-up below its
   top level (the top level and a new badge are told); a story already
   posted that only grew (a sitting with more battles but the same best
   win and its run not five longer); and something already told (the same
   member's same battle, or the same arena, league, trophy rung or
-  milestone reached again within a week). Each skip is listed on the
-  page with its reason.
+  milestone reached again within a week); and what is already told
+  today (the same sitting as an earlier post about the member). Each
+  skip is listed on the page with its reason.
 - **Held a few minutes**: a story is posted once nothing has been added
   to it for four minutes, or ten minutes after it began, so what one
   battle produced arrives as one post: usually about six minutes after
@@ -305,8 +315,9 @@ told more than three hours late says when in words ("Yesterday").
   the clan's awards they hold as announced this season and last, their
   last three moments from the past two weeks while the channel posts
   Milestones (never the one being posted; for up to eight members in
-  one run), and how often the channel already told about them this
-  week. A departure's story is told only the member's time in the clan
+  one run), how often the channel already told about them this week,
+  and the channel's own words in its last three posts about them
+  today. A departure's story is told only the member's time in the clan
   and the weeks they played. Never a tag, a member's share of fame, an
   award not yet announced, or anything private to Clan.
   Before it answers, the model may look things up in the clan's record,

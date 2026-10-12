@@ -31,6 +31,7 @@ import {
   wakeSyndication,
 } from "../src/index.mjs";
 import { applyReceipts } from "../src/quality.mjs";
+import { STORY_SKIPS } from "@elixir-mcp/clan-engine";
 
 const CLAN = "#J2RGCRVG";
 const JOINER = "#PYL0Q2G8";
@@ -972,6 +973,133 @@ test("the editor may tell two stories in one post and skip one with its reason; 
     rewrite: async () => assert.fail("nothing to tell"),
   });
   assert.equal(again.posted, 0);
+});
+
+test("one member's morning is one post: a move told before its battle names who is there, and the rung from that sitting edits it", async () => {
+  // 2026-10-12: a move, its sitting and its rung were posted apart, and
+  // the move as one bare clause.
+  const B = T + 500 * H;
+  const MATE = "#PYL0Q2GV";
+  await db.query(`insert into player (player_tag, name) values ($1, 'Matey')`, [
+    MATE,
+  ]);
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, role, joined_observed_at)
+     values ($1, $2, 'member', $3)`,
+    [CLAN, MATE, at(B - 40 * 24 * H)],
+  );
+  await db.query(
+    `insert into player_snapshot_daily (player_tag, snapshot_date, arena_id, profile_observed_at)
+     values ($1, $2, 54000022, $3)`,
+    [MATE, at(B).slice(0, 10), at(B - H)],
+  );
+  for (const [id, m] of [
+    ["sit-1", 0],
+    ["sit-2", 5],
+    ["sit-3", 10],
+  ]) {
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, game_mode_name)
+       values ($1, $2, 'PvP', 'pvp', 'Ladder')`,
+      [id, at(B + m * MIN)],
+    );
+    await db.query(
+      `insert into battle_participant
+         (battle_id, player_tag, side, outcome, battle_time, type, type_class, crowns)
+       values ($1, $2, 0, 'win', $3, 'PvP', 'pvp', 3)`,
+      [id, STAYER, at(B + m * MIN)],
+    );
+  }
+  // The roster saw the move before the battle log brought its battle.
+  await emitEvent(db, "arena_changed", {
+    tag: STAYER,
+    windowStart: at(B + 14 * MIN),
+    windowEnd: at(B + 15 * MIN),
+    payload: { from: 54000021, to: 54000022, to_name: "Summit of Heroes" },
+  });
+  // The model is unreachable: the post is Elixir's own, and as rich.
+  const moved = await sync(B + 20 * MIN, {
+    editor: true,
+    rewrite: async () => ({ ok: false, code: "no_key" }),
+  });
+  assert.equal(moved.posted, 1);
+  const [first] = moved.sent[0].message.posts;
+  assert.equal(
+    first.content,
+    "Stayer moved up to Summit of Heroes, joining Matey there.",
+  );
+
+  // Twenty minutes on, the rung that battle crossed: the same sitting.
+  await emitEvent(db, "best_trophies_band", {
+    tag: STAYER,
+    windowStart: at(B + 38 * MIN),
+    windowEnd: at(B + 39 * MIN),
+    payload: { best: 11_510, band: 11_500, crossed_by: { battle_id: "sit-3" } },
+  });
+  let packet = null;
+  const rung = await sync(B + 45 * MIN, {
+    editor: true,
+    rewrite: async (_db, _tag, req) => {
+      packet = req.messages[0].content;
+      return { ok: false, code: "no_key" };
+    },
+  });
+  assert.equal(rung.posted, 1);
+  const [edit] = rung.sent[0].message.posts;
+  assert.equal(edit.key, first.key, "the morning's post, edited");
+  assert.ok(edit.revision > first.revision);
+  assert.match(
+    edit.content,
+    /^Stayer moved up to Summit of Heroes, joining Matey there\. They also /,
+  );
+  assert.match(edit.content, /11,500/);
+  assert.match(
+    packet,
+    /\(arena changed, best trophies band; 2 moments\)\nEDIT: this post is already in the channel/,
+  );
+  assert.doesNotMatch(packet, /TOLD TODAY/, "its own post is the story");
+  const { rows } = await db.query(
+    `select kind, story_key, skipped from clan_activity_discord_told
+      where clan_tag = $1 and player_tag = $2 and item_at >= $3
+      order by kind`,
+    [CLAN, STAYER, at(B)],
+  );
+  assert.deepEqual(
+    rows.map((r) => [r.kind, r.story_key, r.skipped]),
+    [
+      ["arena_changed", first.key, false],
+      ["best_trophies_band", first.key, false],
+    ],
+  );
+  const again = await sync(B + 55 * MIN, {
+    editor: true,
+    rewrite: async () => assert.fail("nothing new"),
+  });
+  assert.equal(again.posted, 0);
+
+  // Hours later, a league from a battle of that sitting: too old to
+  // edit, so it is skipped, with its reason.
+  await emitEvent(db, "ranked_promotion", {
+    tag: STAYER,
+    windowStart: at(B + 3 * H),
+    windowEnd: at(B + 3 * H + MIN),
+    payload: { from: 3, to: 4, promoted_by: { battle_id: "sit-2" } },
+  });
+  const late = await sync(B + 3 * H + 10 * MIN, {
+    editor: true,
+    rewrite: async () => assert.fail("nothing to tell"),
+  });
+  assert.equal(late.posted, 0);
+  const [said] = late.sent[0].message.skipped;
+  assert.equal(said.reason, STORY_SKIPS.already_told_today);
+  const {
+    rows: [skip],
+  } = await db.query(
+    `select skipped, skip_reason from clan_activity_discord_told
+      where clan_tag = $1 and kind = 'ranked_promotion' and player_tag = $2`,
+    [CLAN, STAYER],
+  );
+  assert.deepEqual(skip, { skipped: true, skip_reason: "already_told_today" });
 });
 
 test("refusals and removal", async () => {
