@@ -366,6 +366,15 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.ops_recordings) {
+    const { opsRecordingsOp } = await import("./ops-ops-recordings.mjs");
+    const result = await opsRecordingsOp(
+      process.env.DATABASE_URL,
+      event.ops_recordings,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.account_role) {
     const result = await accountRoleOp(
       process.env.DATABASE_URL,

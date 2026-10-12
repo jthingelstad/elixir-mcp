@@ -98,7 +98,7 @@ before(async () => {
   // Bulk fixtures represent actively requested recordings.
   await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, origin)
-    select 'player', tag, (select account_id from account limit 1), 'ops'
+    select 'player', tag, (select account_id from account limit 1), 'claim'
     from unnest($1::text[]) tag`,
     [
       [

@@ -79,9 +79,11 @@ const COUNTS = `(a.kind <> 'agent' or a.status = 'approved')`;
  * Make the recording match the reasons to record.
  *
  * A subject is recorded while ANY reason holds: an account claims the player or
- * follows the clan. When the last one goes, the recording stops.
- * An ops recording is never touched - it exists precisely because
- * somebody decided to record a subject nobody subscribes to.
+ * follows the clan. When the last one goes, the recording stops. Only
+ * people's tracking is a reason (Jamie, 2026-10-12): the maintainer's
+ * `ops` reason is retired, so a recording whose origin is still `ops`
+ * (the 0042 backfill's label) stops like any other once nobody tracks
+ * the subject. Stopping deletes nothing.
  *
  * Callers must already hold the subject lock.
  */
@@ -111,13 +113,10 @@ export async function reconcileRecording(
                        and ${COUNTS})) as added_deep,
        exists (select 1 from recording
                where subject_type = $2 and subject_tag = $1
-                 and status = 'active' and origin = 'ops') as ops,
-       exists (select 1 from recording
-               where subject_type = $2 and subject_tag = $1
                  and status = 'active') as active`,
     [tag, subjectType],
   );
-  const { claimed, added, added_deep, ops, active } = rows[0];
+  const { claimed, added, added_deep, active } = rows[0];
   const wanted = claimed || added;
   // A claim means somebody added this player to their account, which has
   // always meant full capture. A clan carries the depth each account
@@ -126,11 +125,10 @@ export async function reconcileRecording(
 
   if (dryRun)
     return {
-      started: wanted && !active && !ops,
-      stopped: !wanted && active && !ops,
-      retained: wanted || ops,
+      started: wanted && !active,
+      stopped: !wanted && active,
+      retained: wanted,
     };
-  if (ops) return { started: false, stopped: false };
 
   if (wanted && !active) {
     if (subjectType === "player") {
@@ -176,7 +174,7 @@ export async function reconcileRecording(
     const { rowCount } = await db.query(
       `update recording set status = 'stopped'
        where subject_type = $2 and subject_tag = $1
-         and status = 'active' and origin <> 'ops'`,
+         and status = 'active'`,
       [tag, subjectType],
     );
     return { started: false, stopped: rowCount > 0 };
@@ -356,7 +354,8 @@ export async function addPlayer(
  * - A claim-origin recording now stops when its LAST subscriber leaves,
  *   whoever created it. It used to require the remover to be the
  *   original requester, so the wrong removal order orphaned it forever
- *   (#9). Ops recordings are matched by origin and never stopped here.
+ *   (#9). Since 2026-10-12 that includes a recording whose origin is
+ *   `ops`: the maintainer's reason is retired.
  */
 export async function removePlayer(db, account, { tag, via }) {
   await db.query("begin");
