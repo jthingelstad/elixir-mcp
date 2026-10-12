@@ -57,6 +57,10 @@ export function rosterBody(members) {
  * real tool falls back to the account's default recorded clan).
  * `refuse` makes every call answer HTTP 401 until cleared, which is how
  * an expired or revoked access token looks from here.
+ * The roster's `meta.source_polls.clan.observed_at` is now unless
+ * `state.rosterObservedAt` names another instant (a stale roster makes a
+ * leader mutation ask for a live read: role-freshness.mjs); a live ask
+ * answers `state.liveStatus`, pending by default.
  */
 import { timedElixir } from "@elixir-mcp/clan/trace.mjs";
 
@@ -155,7 +159,16 @@ export function fakeMcp({
             error: roster.error.message,
             hint: roster.error.hint,
           };
-        return { ok: true, body: roster ?? rosterBody([]) };
+        const body = structuredClone(roster ?? rosterBody([]));
+        if (body.meta?.source_polls?.clan)
+          body.meta.source_polls.clan.observed_at =
+            state.rosterObservedAt ?? new Date().toISOString();
+        if (args?.live === true)
+          body.live_status = state.liveStatus ?? {
+            state: "pending",
+            retry_after_s: 15,
+          };
+        return { ok: true, body };
       }
       return { ok: false, code: "unknown", error: `no fake for ${name}` };
     },

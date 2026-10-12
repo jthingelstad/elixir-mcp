@@ -5,6 +5,7 @@
 
 import { createClient } from "@elixir-mcp/client";
 import { routeLabel, trackEvent } from "./analytics.js";
+import { confirmingRole } from "./lib/role.js";
 
 const options = {
   headers: { "x-elixir-client": "web" },
@@ -20,11 +21,16 @@ const modelClient = createClient({ ...options, timeoutMs: 30_000 });
 
 const SLOW = /\/(?:model|draft|discord|preview)$/;
 const get = (path) => client.get(path);
+// A leader's change can wait on their role in the game (lib/role.js).
 const post = (path, body) =>
-  (SLOW.test(path) ? modelClient : client).post(path, body);
+  confirmingRole(() =>
+    (SLOW.test(path) ? modelClient : client).post(path, body),
+  );
 const put = (path, body) =>
-  (SLOW.test(path) ? modelClient : client).request("PUT", path, body);
-const del = (path) => client.request("DELETE", path);
+  confirmingRole(() =>
+    (SLOW.test(path) ? modelClient : client).request("PUT", path, body),
+  );
+const del = (path) => confirmingRole(() => client.request("DELETE", path));
 
 /** Where Clan's API answers on Elixir's origin. */
 const API = "/api/clan";

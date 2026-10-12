@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Elixir Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-10-12; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -72,6 +72,16 @@ afterwards.
 
 A leader, co-leader or elder signing in unverified is asked to verify
 first, or to go on as a member for now.
+
+The record learns a role change when it next reads the clan's roster
+from the game. So before the leader or a co-leader changes anything
+(saving the policy, deciding an Action, a hold, a note, the clan's
+settings), Clan checks that the roster was read within the last hour.
+If it was not, Elixir reads it now and Clan says **Confirming your role
+in the game; try again in a minute**, with **Try again**; nothing is
+changed until then. A leader who was kicked or demoted in the game has
+lost those powers by the time it lets them through. Reading pages, a
+member's own away notice, the policy preview and Scout never wait.
 
 If two of your players are in the same clan, the higher role counts.
 If your players are in different clans, Clan asks which one to work in

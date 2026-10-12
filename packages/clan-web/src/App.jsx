@@ -28,6 +28,7 @@ import { keys, useMeQuery } from "./lib/queries.js";
 import { railItems, railKey } from "./lib/rail.js";
 import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
 import { RoleChip } from "./components/RoleChip.jsx";
+import { RoleConfirming } from "./components/RoleConfirming.jsx";
 import { feedbackItemHref } from "./components/ReportThis.jsx";
 import { Clan } from "./views/Clan.jsx";
 import { Clans } from "./views/Clans.jsx";
@@ -551,6 +552,7 @@ export function ClanShell({
                   </a>
                 </div>
               ) : null}
+              <RoleConfirming />
               <ErrorBoundary key={path}>
                 {me && !me.signed_in && app !== "/" ? (
                   <Landing error={me.expired ? "session_expired" : null} />
