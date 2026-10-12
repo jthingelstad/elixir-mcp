@@ -234,19 +234,17 @@ re-upgrade after a rollback is a new event. Approval, person kind,
 current ownership, revocation and preference are checked before
 composing. An available release is never announced as installed.
 
-**Answers to feedback** (`feedback_answer`,
-`services/jobs/src/email/feedback-answers.mjs`, migration 0204) ride the
-same minute rule (`{collector_upgrades:true, feedback_answers:true}`),
-after the upgrade drain. The journal is the item: `response_mailed_at`
-is the `responded_at` whose answer was handled, sent or skipped, so a
-revised answer is owed a mail again and a status-only change never is.
-An answer settles ten minutes first; it sends only when it has words,
-is still unread (`response_seen_at` null: reading it where it was filed
-is the delivery), the `feedback_answer` preference is on, and the filer
-is an approved person with an address who is not the owner. Each answer
-is its own issue (`feedback-answer/<id>/<responded_at>`), so a retry
-after an unmarked enqueue finds it sent and only marks it. The update
-compares `responded_at` as text: a JS Date drops the microseconds.
+**Answers to feedback** (`feedback_answer`; what the filer gets is
+`/docs/email`): `runFeedbackAnswers` in
+`services/jobs/src/email/feedback-answers.mjs`, on the minute rule
+(`{collector_upgrades:true, feedback_answers:true}`) after the upgrade
+drain. Journal: `feedback.response_mailed_at` (0204), the
+`responded_at` handled, compared as text (a JS Date drops the
+microseconds). Settle: `SETTLE_MINUTES`. Gates: `response_seen_at`,
+the `account_email_pref` row, the account's kind, status and owner flag.
+Issue key `feedback-answer/<id>/<responded_at>`. It reads its own SQL,
+not the `account_feedback_responded` item: the stage-1 gap in
+`docs/notes/2026-10-12-w3-spine.md`.
 
 `collector_release_note` stores the GitHub notes and URL from the
 verifying naming script, plus an optional maintainer `--reason=`. It
@@ -276,26 +274,13 @@ Subject and body say historical test. No force bypass exists.
 
 ### `milestone`: hourly
 
-Congratulations for a big FIRST on the recipient's primary or alts, from
-the named moments the timeline serves (`services/jobs/src/email/build-milestone.mjs`,
-`MILESTONE_MAIL_KINDS`; Jamie, 2026-10-08): `arena_changed` up,
-`ranked_promotion` up, `best_trophies_band`, `card_form_unlocked` (an
-Evolution and a Hero of one card are two firsts), the career
-milestones `career_wins_step` and `collection_level_step`, and
-`legendary_badge_earned` (Jamie, 2026-10-08, approving it; it leads
-beside a new best). Card unlocks and badge levels (`card_unlocked`,
-`badge_earned`) never mail on their own: the Tuesday Arena week counts
-them. Three weeks of a beta inbox had held about forty
-milestone mails, mostly an alt's card unlocks and badge levels, and
-none was kept. Each moment's own
-identity (`arena:<id>`, `league:<id>`, `form:<card>:<form>`,
-`wins:<step>`…) mails once per account and subject, ever
-(`email_milestone`), so a season's re-climb is silent; a move down never
-keys. Hourly, reading 26 hours back from the account's last clean look
-(`email_milestone_look`, capped at seven days). The period key is the
-date plus a hash of the moments (`milestonePeriodKey`): new moments are a
-new mail, a retry of the same moments is the same mail. Friends' and
-watchers' moments are the friends report's.
+What a recipient gets is `/docs/email` (Milestones are firsts).
+`buildMilestone` in `services/jobs/src/email/build-milestone.mjs`
+(`MILESTONE_MAIL_KINDS`, `momentKey`), composed through
+`services/jobs/src/email/digest.mjs` (`windowItems`, `digest`; #536
+stage 1). Tables: `email_milestone` (account, subject, kind, moment key:
+the firsts told) and `email_milestone_look` (0194; `milestoneFromMs`).
+Period key: `milestonePeriodKey`. Rule: `elixir-mcp-email-milestone`.
 
 ### `clan_actions_waiting`: after Clan's morning run
 

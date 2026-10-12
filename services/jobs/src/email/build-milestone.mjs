@@ -5,10 +5,10 @@
  *  subject, ever (email_milestone), so a season's re-climb of an arena
  *  already celebrated is silent and a higher one is news. Bundled:
  *  everything new since the last look goes in one mail. */
-import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { formLabel, itemText } from "@elixir-mcp/tools/activity/summary";
+import { digest, windowItems } from "./digest.mjs";
 import { myPlayers } from "./shared.mjs";
 import { whenLabel } from "./week.mjs";
 
@@ -202,41 +202,19 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
   );
   if (players.length === 0) return null;
   const tz = account.timezone;
-  const fresh = [];
-  for (const p of players) {
-    const { items } = await buildPlayerEntry(db, {
-      tag: p.tag,
-      relationship: p.relationship,
-      nickname: p.nickname,
-      fromMs,
-      toMs,
-      timezone: tz,
-    });
-    for (const it of items) {
-      if (!KINDS.has(it.kind)) continue;
-      const key = momentKey(it.kind, it.facts ?? {});
-      if (!key) continue;
-      fresh.push({
-        subject: p,
-        kind: it.kind,
-        key,
-        at: it.at,
-        facts: it.facts ?? {},
-      });
-    }
-  }
+  const fresh = await windowItems(db, {
+    subjects: players,
+    fromMs,
+    toMs,
+    timezone: tz,
+    kinds: KINDS,
+    keyOf: momentKey,
+  });
   if (fresh.length === 0) return null;
   const { rows: seen } = await db.query(
     `select subject_tag, kind, moment_key from email_milestone where account_id = $1`,
     [account.accountId],
   );
-  const seenSet = new Set(
-    seen.map((r) => `${r.subject_tag}|${r.kind}|${r.moment_key}`),
-  );
-  const news = fresh.filter(
-    (m) => !seenSet.has(`${m.subject.tag}|${m.kind}|${m.key}`),
-  );
-  if (news.length === 0) return null;
   // The biggest moment leads: arena and league first, then bests and
   // legendary badges, then the rest, newest first inside a rank.
   const rank = {
@@ -249,9 +227,19 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
     // The collection change players care about most (#110).
     card_form_unlocked: 2,
   };
-  news.sort((a, b) => rank[a.kind] - rank[b.kind] || b.at.localeCompare(a.at));
-  const lead = news.filter((m) => rank[m.kind] <= 1).slice(0, 4);
-  const milestones = (lead.length ? lead : news.slice(0, 3)).map((m) => ({
+  const { news, shown, rest } = digest(fresh, {
+    told: new Set(
+      seen.map((r) => `${r.subject_tag}|${r.kind}|${r.moment_key}`),
+    ),
+    order: (a, b) => rank[a.kind] - rank[b.kind] || b.at.localeCompare(a.at),
+    // Up to four that lead (rank 1 or better), else the first three.
+    fold: (n) => {
+      const lead = n.filter((m) => rank[m.kind] <= 1).slice(0, 4);
+      return lead.length ? lead : n.slice(0, 3);
+    },
+  });
+  if (news.length === 0) return null;
+  const milestones = shown.map((m) => ({
     kind: m.kind,
     subject: {
       tag: m.subject.tag,
@@ -273,9 +261,6 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
   for (const m of milestones)
     if (m.battle?.battle_id)
       m.battle.url = links.get(m.battle.battle_id)?.url ?? null;
-  const rest = news.filter(
-    (m) => !(lead.length ? lead : news.slice(0, 3)).includes(m),
-  );
   return {
     account: {
       name:
