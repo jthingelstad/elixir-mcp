@@ -26,6 +26,7 @@ import {
   refusalOf,
 } from "../src/index.mjs";
 import { settingView } from "../src/settings.mjs";
+import { applyReceipts } from "../src/quality.mjs";
 import { webhookSeal, WEBHOOK_PURPOSE } from "../src/seal.mjs";
 
 const OBSERVER = "#UVQ8RJYG9"; // the battlelog fixture's own player
@@ -162,6 +163,12 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   assert.equal(posted.items[0].id, sitting.key);
   assert.equal(typeof posted.items[0].kind, "string");
   assert.ok(posted.observed_at <= posted.handed_at);
+  assert.equal(sent[0].message.readback, undefined, "nothing a day old yet");
+  // Its receipt says it was posted over a day before the next run, so
+  // the next delivery reads it back.
+  await applyReceipts(ctx.db, [
+    { ledger_id: posted.post_id, outcome: "posted", at: "2026-09-01T12:00Z" },
+  ]);
 
   // 18:40: more battles of the same sitting, read from its start, so the
   // edit tells all of it under the same key at a higher revision.
@@ -179,6 +186,9 @@ test("a sitting is posted once, edited as it grows, and edited once more when it
   assert.equal(after.length, 2);
   assert.equal(after[1].post_id, grown[0].ledger_id);
   assert.equal(after[1].action, "edit", "told before: the relay edits it");
+  assert.deepEqual(sent[1].message.readback, [
+    { ledger_id: posted.post_id, key: sitting.key },
+  ]);
   // The edit is built again and its last battle is minutes old: no time,
   // as the first post had none (2026-10-11).
   assert.doesNotMatch(grown[0].content, /<t:/);

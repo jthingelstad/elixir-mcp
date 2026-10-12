@@ -51,6 +51,15 @@
  * discord-receipt/ lane once the run is done (and before a retry, for
  * the posts already answered), which the timeline sync reads into the
  * ledger. Best effort: a receipt never holds up or fails a delivery.
+ *
+ * Read-back (the same ledger): a message may name up to three of the
+ * webhook's earlier posts, a day old, to read back once after its own
+ * lines are delivered, with no timer of its own. Each is read from
+ * Discord by its message id (kept here), never waiting: still there or
+ * deleted, its reactions when Discord returns them, whether a thread was
+ * started from it. A 429 or a refused webhook stops the reads, and a
+ * read is never retried, nor ever a post: what was not read is asked
+ * for again by a later message, for a week.
  */
 import {
   parseDiscordWebhook,
@@ -122,9 +131,14 @@ export class RetryLater extends Error {
 }
 const retry = (code, afterMs) => new RetryLater(code, afterMs);
 
+/** Outcomes the alarm counts: refused, unknown, not delivered. */
+const UNDELIVERED = new Set(["refused", "unknown", "not_delivered"]);
+/** Answers after which this run reads nothing more back. */
+const READ_STOPS = new Set(["rate_limited", ...DEAD]);
+
 /**
  * @param {{
- *   discord: { post: Function, edit: Function },
+ *   discord: { post: Function, edit: Function, read?: Function },
  *   store: ReturnType<typeof import("./store.mjs").timelineDiscordStore>,
  *   open: (sealed: object, accountId: string, kind: string) => string | null,
  *   now?: () => number,
@@ -337,6 +351,47 @@ export function createTimelineDiscordWorker({
     }
   }
 
+  /** Read back the posts the message names, after its own lines: each
+   *  answer is a receipt for its ledger row. Never retried, never waits,
+   *  never past the run's budget; best effort. */
+  async function readBack(msg, url, fingerprint, until) {
+    const out = [];
+    if (!discord.read || !msg.readback?.length) return out;
+    for (const want of msg.readback) {
+      if (now() > until) break;
+      try {
+        const state = (
+          await store.read(
+            timelineDiscordStateKey(msg.account_id, fingerprint, want.key),
+          )
+        )?.body;
+        if (state?.deleted) {
+          out.push({ ledger_id: want.ledger_id, at: at(), present: false });
+          continue;
+        }
+        if (!state?.message_id) continue;
+        const r = await discord.read(url, state.message_id);
+        if (r.ok)
+          out.push({
+            ledger_id: want.ledger_id,
+            at: at(),
+            present: r.present,
+            ...(r.present
+              ? { reactions: r.reactions ?? null, thread: r.thread === true }
+              : {}),
+          });
+        else if (READ_STOPS.has(r.code)) break;
+      } catch {
+        log.error("timeline_discord_read_failed", msg.account_id, fingerprint);
+        break;
+      }
+    }
+    if (out.length)
+      log.log("timeline_discord_read", msg.account_id, fingerprint, out.length);
+    return out;
+  }
+  const at = () => new Date(now()).toISOString();
+
   /** One timeline-discord/ outbox object: every line, in order. Throws
    *  to send the notification back for a retry (RetryLater says when);
    *  on the queue's last attempt (`final`) the lines still waiting are
@@ -369,6 +424,10 @@ export function createTimelineDiscordWorker({
     const added = [];
     const receipts = [];
     const answer = (post, outcome, extra = {}) => {
+      // One line per post Discord refused or may never have seen, across
+      // every webhook: the DiscordUndelivered alarm counts them.
+      if (UNDELIVERED.has(outcome))
+        log.error("discord_undelivered", msg.kind, outcome, fingerprint);
       if (post?.ledger_id)
         receipts.push({
           ledger_id: post.ledger_id,
@@ -377,7 +436,6 @@ export function createTimelineDiscordWorker({
           ...extra,
         });
     };
-    const at = () => new Date(now()).toISOString();
     let lastRefusal = null;
     const status = (state, extra = {}) =>
       store.put(timelineDiscordStatusKey(msg.account_id), {
@@ -513,6 +571,7 @@ export function createTimelineDiscordWorker({
     else if (counts.posted || counts.edited)
       await status("ok", { posted: counts.posted, edited: counts.edited });
     await remember(msg.account_id, [...added, ...skips()], keep);
+    receipts.push(...(await readBack(msg, hook.url, fingerprint, until)));
     await sendReceipts(msg.account_id, receipts);
     log.log(
       "timeline_discord",

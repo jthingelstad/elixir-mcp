@@ -2906,6 +2906,37 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
+  # Discord refusing posts, or posts whose outcome is unknown, across
+  # every webhook (the timeline cross-post, a clan's activity channel,
+  # Clan's Actions): the relay logs one discord_undelivered line each.
+  # A single channel's webhook going away is one line and its owner's
+  # page says so; five in an hour is Elixir's problem, not a channel's.
+  DiscordUndeliveredFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref EmailRelayLogGroup
+      FilterPattern: '"discord_undelivered"'
+      MetricTransformations:
+        - MetricNamespace: ElixirMCP/Discord
+          MetricName: Undelivered
+          MetricValue: "1"
+          # No DefaultValue, as EmailComposeFailedFilter: the metric
+          # exists only in an hour a post is refused or lost.
+  DiscordUndeliveredAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-discord-undelivered
+      AlarmDescription: Discord refused posts or their outcome is unknown across all webhooks (discord_undelivered in the email relay log, by feature, outcome and webhook fingerprint); read the discord_post ledger for which channels and why
+      Namespace: ElixirMCP/Discord
+      MetricName: Undelivered
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
   # A war-typed battle in the last seven days outside every war_period
   # row (the diagnostics probe's UNRESOLVED bucket, emitted hourly by the
   # meta rollup job): the scheduler's season upsert failed and the war

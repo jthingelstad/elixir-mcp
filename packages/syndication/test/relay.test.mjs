@@ -71,7 +71,11 @@ function fakeDiscord(script) {
   const calls = [];
   let id = 1000;
   const fetch = async (url, init) => {
-    calls.push({ url, method: init.method, body: JSON.parse(init.body) });
+    calls.push({
+      url,
+      method: init.method,
+      body: init.body === undefined ? null : JSON.parse(init.body),
+    });
     const next = script.shift() ?? { status: 200 };
     if (next.throws) throw new Error(`connect ECONNRESET ${url}`);
     const body =
@@ -131,6 +135,7 @@ function setup(
       final = false,
       kind = "timeline",
       skipped = undefined,
+      readback = undefined,
     } = {},
   ) => {
     const key = `timeline-discord/${account}.${(seq += 1)}.json`;
@@ -142,6 +147,7 @@ function setup(
         webhook,
         posts,
         ...(skipped ? { skipped } : {}),
+        ...(readback ? { readback } : {}),
       },
       etag: '"o"',
     });
@@ -710,4 +716,132 @@ test("a receipt that cannot be written never holds up a delivery", async () => {
   assert.ok(
     s.logged.some((l) => l.includes("timeline_discord_receipt_failed")),
   );
+});
+
+test("a delivery reads back the posts it names, after its own lines: present with reactions and a thread, deleted, and none after a 429", async () => {
+  const receipts = [];
+  const L = (n) => `00000000-0000-4000-8000-00000000000${n}`;
+  const OLD = ["tl_aaaaaaaaaaaaaaaaaaaa", "tl_bbbbbbbbbbbbbbbbbbbb"];
+  const s = setup(
+    [
+      // The day's line.
+      { status: 200 },
+      // The first read: still there, two kinds of reaction, a thread.
+      {
+        status: 200,
+        body: {
+          id: "111111111111111111",
+          content: "never kept",
+          flags: 4 | 32,
+          reactions: [
+            { count: 3, me: false, emoji: { id: null, name: "🔥" } },
+            {
+              count: 1,
+              me: false,
+              emoji: { id: "222222222222222222", name: "pk" },
+            },
+          ],
+        },
+      },
+      // The second: deleted in the channel.
+      { status: 404, body: { code: 10008, message: "Unknown Message" } },
+    ],
+    { receipt: async (body) => void receipts.push(...body.receipts) },
+  );
+  for (const [i, key] of OLD.entries())
+    s.store.objects.set(timelineDiscordStateKey(ACCOUNT, FP, key), {
+      body: { message_id: `11111111111111111${i + 1}`, revision: 1 },
+      etag: '"s"',
+    });
+  // A third the relay already knows is deleted: no call.
+  s.store.objects.set(
+    timelineDiscordStateKey(ACCOUNT, FP, "tl_cccccccccccccccccccc"),
+    {
+      body: { message_id: "111111111111111113", revision: 1, deleted: true },
+      etag: '"s"',
+    },
+  );
+  await s.deliver(
+    [{ key: ITEM, revision: 1, content: "new", ledger_id: L(1) }],
+    {
+      readback: [
+        { ledger_id: L(2), key: OLD[0] },
+        { ledger_id: L(3), key: OLD[1] },
+        { ledger_id: L(4), key: "tl_cccccccccccccccccccc" },
+      ],
+    },
+  );
+  assert.deepEqual(
+    s.calls.map((c) => c.method),
+    ["POST", "GET", "GET"],
+    "the line first, then the reads; never a post again",
+  );
+  assert.equal(s.calls[1].url, `${HOOK}/messages/111111111111111111`);
+  assert.equal(s.calls[1].body, null, "a read sends nothing");
+  const by = new Map(receipts.map((r) => [r.ledger_id, r]));
+  assert.equal(by.get(L(1)).outcome, "posted");
+  assert.deepEqual(
+    { ...by.get(L(2)), at: undefined },
+    {
+      ledger_id: L(2),
+      at: undefined,
+      present: true,
+      reactions: [
+        { emoji: "🔥", count: 3 },
+        { emoji: "pk", count: 1 },
+      ],
+      thread: true,
+    },
+  );
+  assert.equal(by.get(L(3)).present, false);
+  assert.equal(by.get(L(4)).present, false);
+  assert.ok(receipts.every((r) => !JSON.stringify(r).includes("never kept")));
+
+  // Discord asks to slow down: no wait, no retry, the rest not read.
+  const t = setup(
+    [{ status: 200 }, { status: 429, body: { retry_after: 0.5 } }],
+    { receipt: async (body) => void receipts.push(...body.receipts) },
+  );
+  for (const [i, key] of OLD.entries())
+    t.store.objects.set(timelineDiscordStateKey(ACCOUNT, FP, key), {
+      body: { message_id: `11111111111111111${i + 1}`, revision: 1 },
+      etag: '"s"',
+    });
+  receipts.length = 0;
+  const out = await t.deliver(
+    [{ key: ITEM, revision: 1, content: "new", ledger_id: L(1) }],
+    {
+      readback: [
+        { ledger_id: L(2), key: OLD[0] },
+        { ledger_id: L(3), key: OLD[1] },
+      ],
+    },
+  );
+  assert.equal(out.retry, null, "a read never sends the delivery back");
+  assert.deepEqual(
+    t.calls.map((c) => c.method),
+    ["POST", "GET"],
+  );
+  assert.deepEqual(t.pauses, [], "a read never waits");
+  assert.deepEqual(
+    receipts.map((r) => r.ledger_id),
+    [L(1)],
+  );
+});
+
+test("a refused or lost post is logged once for the alarm, by kind, outcome and fingerprint, never the webhook", async () => {
+  const s = setup([
+    { status: 400, body: { code: 50035, message: "Invalid Form Body" } },
+    { throws: true },
+  ]);
+  await s.deliver([
+    { key: ITEM, revision: 1, content: "a" },
+    { key: "tl_aaaaaaaaaaaaaaaaaaaa", revision: 1, content: "b" },
+  ]);
+  const lines = s.logged.filter((l) => l.startsWith("discord_undelivered"));
+  assert.deepEqual(lines, [
+    `discord_undelivered timeline refused ${FP}`,
+    `discord_undelivered timeline unknown ${FP}`,
+  ]);
+  assert.ok(s.logged.every((l) => !l.includes(TOKEN)));
 });

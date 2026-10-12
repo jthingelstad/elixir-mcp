@@ -86,6 +86,7 @@ import { editorResearch } from "./editor-research.mjs";
 import {
   aside,
   newLedgerId,
+  readbackCandidates,
   recordPosts,
   recordRun,
   runRawKey,
@@ -231,8 +232,12 @@ export async function syncClan(db, clanTag, given) {
         !row?.enabled ||
         row.webhook_fp !== plan.row.webhook_fp ||
         row.synced_to.getTime() !== plan.row.synced_to.getTime()
-      )
+      ) {
+        // Nothing of it is posted, but the run happened and cost the
+        // clan: the quality ledger keeps it, as "changed".
+        await recordChangedRun(db, clanTag, deps, plan, { ...r, run });
         return { skipped: "changed", rewrite_code: r.ok ? null : r.code };
+      }
       return writeRun(db, clanTag, deps, { ...plan, row }, { ...r, run });
     });
   } finally {
@@ -878,6 +883,17 @@ async function writeRun(
     Math.ceil(content.length / DISCORD_POSTS_MAX),
     Math.ceil(skips.length / DISCORD_POSTS_MAX),
   );
+  // The quality ledger's read-back rides the delivery: up to three of
+  // the channel's posts a day old, read after this run's.
+  const readback = chunks
+    ? ((await aside(db, "clan_activity_readback", () =>
+        readbackCandidates(db, {
+          destination: row.channel_id,
+          webhook_fp: row.webhook_fp,
+          nowMs: now,
+        }),
+      )) ?? [])
+    : [];
   for (let i = 0; i < chunks; i += 1) {
     const part = (list) =>
       list.slice(i * DISCORD_POSTS_MAX, (i + 1) * DISCORD_POSTS_MAX);
@@ -890,6 +906,7 @@ async function writeRun(
         webhook: row.webhook_sealed,
         posts: part(content),
         ...(part(skips).length ? { skipped: part(skips) } : {}),
+        ...(i === 0 && readback.length ? { readback } : {}),
       },
       { id: `${clanWakeId(clanTag)}.${now}.${i}` },
     );
@@ -1029,6 +1046,41 @@ async function recordQuality(
     })),
   ];
   await aside(db, "clan_activity", () => recordPosts(db, rows));
+}
+
+/**
+ * A run whose connection changed while the model was answering (turned
+ * off, replaced, or moved on by another run): nothing is posted, but
+ * the run is recorded, its answer checked as it would have been, with
+ * outcome "changed".
+ */
+async function recordChangedRun(
+  db,
+  clanTag,
+  { captureRun = null, now = Date.now() },
+  { request, stories = [] },
+  r,
+) {
+  if (!request || !r?.run) return;
+  const edited = r.ok
+    ? editorAnswer(
+        r.answer,
+        stories,
+        [request.context, ...(r.read ?? [])].join("\n"),
+      )
+    : { posts: [], skips: [], rejected: [] };
+  await recordEditorRun(db, clanTag, {
+    captureRun,
+    now,
+    r,
+    request,
+    stories,
+    edited,
+    content: [],
+    skips: [],
+    merged: 0,
+    outcome: "changed",
+  });
 }
 
 /**

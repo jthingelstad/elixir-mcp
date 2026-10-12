@@ -16,6 +16,7 @@ import {
   newLedgerId,
   postRow,
   purgeQuality,
+  readbackCandidates,
   receiptsOf,
   recordPosts,
   recordRun,
@@ -129,6 +130,33 @@ test("an edit that found its message deleted marks the post it edits as gone", a
   assert.equal(p.checked_at.toISOString(), "2026-10-11T13:00:05.000Z");
 });
 
+test("an edit's 'deleted' read before its post's own answer still marks the post gone (Codex, #511)", async () => {
+  const post = row({ post_key: "tl_00000000000000000004" });
+  const edit = row({
+    post_key: post.post_key,
+    action: "edit",
+    revision: 4,
+    handed_at: "2026-10-11T13:00:00Z",
+  });
+  await recordPosts(ctx.db, [post, edit]);
+  await applyReceipts(ctx.db, [
+    {
+      ledger_id: edit.post_id,
+      outcome: "unchanged",
+      at: "2026-10-11T13:00:05Z",
+      reason: "Deleted in the channel.",
+      deleted: true,
+    },
+  ]);
+  await applyReceipts(ctx.db, [
+    { ledger_id: post.post_id, outcome: "posted", at: "2026-10-11T12:06Z" },
+  ]);
+  const p = await read(post.post_id);
+  assert.equal(p.outcome, "posted");
+  assert.equal(p.present, false);
+  assert.equal(p.checked_at.toISOString(), "2026-10-11T13:00:05.000Z");
+});
+
 test("a receipt object is read only when it is one", () => {
   assert.equal(receiptsOf({ v: 2, receipts: [] }), null);
   assert.equal(receiptsOf({ v: 1 }), null);
@@ -214,4 +242,95 @@ test("the sweep keeps 90 days", async () => {
   assert.equal(out.runs, 1);
   assert.equal(await read(stale.post_id), undefined);
   assert.ok(await read(fresh.post_id));
+});
+
+test("a webhook's posts a day to a week old, not yet read, are the read-back's, three at a time; each read lands once", async () => {
+  const now = Date.parse("2026-10-20T12:00:00Z");
+  const FP2 = "fedcba9876543210";
+  const ago = (h) => new Date(now - h * 3600_000).toISOString();
+  const mk = (key, hours, extra = {}) =>
+    row({
+      post_key: key,
+      webhook_fp: FP2,
+      handed_at: ago(hours),
+      ...extra,
+    });
+  const rows = [
+    mk("tl_r0000000000000000001", 30),
+    mk("tl_r0000000000000000002", 50),
+    mk("tl_r0000000000000000003", 100),
+    mk("tl_r0000000000000000004", 120),
+    mk("tl_r0000000000000000005", 10), // too young
+    mk("tl_r0000000000000000006", 200), // past the week
+    mk("tl_r0000000000000000007", 40, { action: "edit" }),
+    mk("tl_r0000000000000000008", 40, { destination: "elsewhere" }),
+  ];
+  await recordPosts(ctx.db, rows);
+  await applyReceipts(
+    ctx.db,
+    rows.map((r) => ({
+      ledger_id: r.post_id,
+      outcome: r.action === "edit" ? "edited" : "posted",
+      at: r.handed_at,
+    })),
+  );
+  const first = await readbackCandidates(ctx.db, {
+    destination: ACCOUNT,
+    webhook_fp: FP2,
+    nowMs: now,
+  });
+  assert.deepEqual(
+    first.map((c) => c.key),
+    [
+      "tl_r0000000000000000004",
+      "tl_r0000000000000000003",
+      "tl_r0000000000000000002",
+    ],
+    "oldest first, at most three, only this webhook's posts in the window",
+  );
+  assert.equal(first[0].ledger_id, rows[3].post_id);
+  await applyReceipts(ctx.db, [
+    {
+      ledger_id: rows[3].post_id,
+      at: "2026-10-20T12:00:05Z",
+      present: true,
+      reactions: [
+        { emoji: "🔥", count: 3 },
+        { emoji: "x", count: 0 },
+      ],
+      thread: true,
+    },
+    { ledger_id: rows[2].post_id, at: "2026-10-20T12:00:06Z", present: false },
+    // Discord returned no reactions to read: null, never zero.
+    { ledger_id: rows[1].post_id, at: "2026-10-20T12:00:07Z", present: true },
+  ]);
+  // A second read of the same post never replaces the first.
+  await applyReceipts(ctx.db, [
+    { ledger_id: rows[3].post_id, at: "2026-10-21T12:00:00Z", present: false },
+  ]);
+  const r3 = await read(rows[3].post_id);
+  assert.equal(r3.present, true);
+  assert.deepEqual(r3.reactions, [{ emoji: "🔥", count: 3 }]);
+  assert.equal(r3.thread, true);
+  assert.equal((await read(rows[2].post_id)).present, false);
+  const r1 = await read(rows[1].post_id);
+  assert.equal(r1.reactions, null);
+  assert.equal(r1.thread, false);
+  const next = await readbackCandidates(ctx.db, {
+    destination: ACCOUNT,
+    webhook_fp: FP2,
+    nowMs: now,
+  });
+  assert.deepEqual(
+    next.map((c) => c.key),
+    ["tl_r0000000000000000001"],
+  );
+  assert.deepEqual(
+    await readbackCandidates(ctx.db, {
+      destination: ACCOUNT,
+      webhook_fp: "not-a-print",
+      nowMs: now,
+    }),
+    [],
+  );
 });

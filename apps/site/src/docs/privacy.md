@@ -73,7 +73,11 @@ cross-post, a clan's Actions, a clan's activity channel), it keeps a
 record for 90 days: the account or clan it was for, a fingerprint of
 the webhook (never the webhook itself), which timeline items or Action
 it told, the text as sent, what Discord answered, how long it took, and
-why anything was skipped. When a clan's own model writes its activity
+why anything was skipped. About a day after a message is posted, Elixir
+reads it back once through the same webhook: whether it is still in the
+channel, how many of each reaction it has (counts only, never who
+reacted), and whether a thread was started from it. It reads only its
+own messages, never anyone else's. When a clan's own model writes its activity
 channel, the record also holds each run's counts, about what it cost,
 and any text Elixir's checks refused, with the reason; what each run
 was given and looked up, and the model's full answers, are kept 30
