@@ -1,6 +1,13 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { mockApi, signedIn, ME } from "./fixtures.ts";
+import {
+  FIELDS,
+  GROUPS,
+  TABS,
+  policyCapabilities,
+  policyFromGoals,
+} from "@elixir-mcp/clan-engine";
 
 for (const size of ["wide", "@narrow"])
   test(`withdrawn removal warning and Board triage remain readable without decision controls ${size}`, async ({
@@ -306,9 +313,7 @@ for (const size of ["wide", "@narrow"])
       }),
     );
     await page.goto("/clan/2PQRJ8LV/actions");
-    await expect(
-      page.getByText(/Held: inactivity not established/),
-    ).toBeVisible();
+    await expect(page.getByText(/Removal not enforceable/)).toBeVisible();
     await page.getByRole("link", { name: /#45/ }).click();
     await expect(page.getByRole("alert")).toContainText(
       "counter increased by 1",
@@ -332,7 +337,7 @@ for (const size of ["wide", "@narrow"])
     await expect(page.getByText(/Saved rationale at the time/)).toBeVisible();
     await page.goto("/clan/2PQRJ8LV/actions/45");
     await expect(page.getByRole("alert")).toContainText(
-      "inactivity is not established",
+      "Removal is not enforceable",
     );
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.getByRole("button", { name: "Decline", exact: true }).click();
@@ -350,4 +355,70 @@ for (const size of ["wide", "@narrow"])
       reason: "evidence_wrong",
     });
     expect(forbidden).toBe(0);
+  });
+
+for (const size of ["wide", "@narrow"])
+  test(`#426: the Policy page labels removal not yet enforceable and keeps its numbers editable ${size}`, async ({
+    page,
+  }) => {
+    if (size === "wide")
+      await page.setViewportSize({ width: 1100, height: 900 });
+    const values = {
+      ...policyFromGoals(["war"], "standard"),
+      removal_enabled: true,
+      at_risk_days: 9,
+      confirm_days: 5,
+    };
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/clan/clans/2PQRJ8LV/policy": [
+          200,
+          {
+            can_edit: true,
+            set: true,
+            members: 30,
+            min_members: 10,
+            big_enough: true,
+            can_do: policyCapabilities(values, { members: 30 }),
+            current: {
+              set: true,
+              version: 3,
+              values,
+              saved_at: "2026-10-01T12:00:00Z",
+              saved_by: "#20QQL8CCRU",
+              saved_by_name: "Ada",
+            },
+            tabs: TABS,
+            groups: GROUPS,
+            fields: FIELDS,
+            versions: [],
+          },
+        ],
+      }),
+    );
+    await page.goto("/clan/2PQRJ8LV/manage/policy");
+    const canDo = page.getByRole("region", {
+      name: "What this policy can do today",
+    });
+    await expect(canDo).toContainText(
+      "Remove inactive members: Not enforceable",
+    );
+    await expect(canDo).toContainText("Promote and demote Elders: Live");
+    await page
+      .getByRole("tablist", { name: "Policy" })
+      .getByRole("tab", { name: /^Inactivity/ })
+      .click();
+    await expect(
+      page.getByText("Not yet enforceable", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        /cannot prove that a member played no battle in every mode/,
+      ),
+    ).toBeVisible();
+    await expect(page.getByLabel(/^At risk/)).toHaveValue("9");
+    await expect(page.getByLabel(/^At risk/)).toBeEditable();
+    await expect(page.getByLabel(/^Removal action after/)).toHaveValue("5");
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   });

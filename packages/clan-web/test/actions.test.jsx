@@ -180,7 +180,7 @@ describe("actions", () => {
       />,
     );
     expect(screen.getByRole("alert").textContent).toMatch(
-      /inactivity is not established/,
+      /Removal is not enforceable/,
     );
     expect(screen.getByRole("alert").textContent).toMatch(
       /counter increased by 1/,

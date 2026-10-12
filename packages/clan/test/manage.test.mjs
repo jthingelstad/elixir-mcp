@@ -26,6 +26,7 @@ import {
   EXAMPLE_POLICY,
   seasonRecordFixture,
 } from "@elixir-mcp/clan-engine/fixtures";
+import { REMOVAL_NOT_ENFORCEABLE } from "@elixir-mcp/clan-engine";
 
 const DAY = 86400_000;
 
@@ -309,38 +310,66 @@ test("cards: decide freezes; a second decision is refused; declined blocks re-no
   assert.equal(hist.body.cards[0].status, "declined");
 });
 
-test("cards: auto-withdraw when the member plays; done removal verified when the membership closes", async () => {
+test("cards (#426): an open removal is withdrawn as not enforceable on the next evaluation, with its log line; none is raised again", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
   const card = await historicalRemoval(h);
-  // The member played: the card is withdrawn with the reason.
-  const played = participation(
-    [
-      king,
-      ...others,
-      member("#8QCV", {
-        name: "Sleepy",
-        lastBattleDaysAgo: 0.2,
-        war: [0, 0, 0, 0, 0, 0],
-      }),
-    ],
-    { clan_tag: "#2PQRJ8LV" },
-  );
-  h.activity.part = played;
-  h.mcp.callTool = ((orig) => (token, name, args) =>
-    name === "clans_participation"
-      ? Promise.resolve({ ok: true, body: played })
-      : orig(token, name, args))(h.mcp.callTool);
+  // Still idle, still over every threshold: withdrawn all the same, by
+  // the system, and the cached evaluation that follows raises nothing.
   h.clock.t += 6 * 60_000;
   const second = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
   assert.equal(
-    second.body.inbox.length,
-    second.body.inbox.filter((c) => c.card_id !== card.card_id).length,
+    second.body.inbox.filter((c) => c.card_id === card.card_id).length,
+    0,
   );
   const hist = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/history");
   const w = hist.body.cards.find((c) => c.card_id === card.card_id);
   assert.equal(w.status, "withdrawn");
-  assert.match(w.withdraw_reason, /battle was captured/);
+  assert.equal(w.withdraw_reason, REMOVAL_NOT_ENFORCEABLE);
+  const log = await h.ledger.actionLog("#2PQRJ8LV", card.card_id);
+  assert.deepEqual(
+    log.map((e) => [e.kind, e.text, e.detail?.rule, e.by?.system]),
+    [
+      [
+        "withdrawn",
+        REMOVAL_NOT_ENFORCEABLE,
+        "removal_not_enforceable",
+        "elixir-clan",
+      ],
+    ],
+  );
+  h.clock.t += 6 * 60_000;
+  await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/actions?refresh=1");
+  const removals = (await h.ledger.cards("#2PQRJ8LV")).filter(
+    (c) => c.type === "removal",
+  );
+  assert.deepEqual(
+    removals.map((c) => [c.card_id, c.status]),
+    [[card.card_id, "withdrawn"]],
+  );
+});
+
+test("cards (#426): a member over every removal threshold raises no removal Action, on fresh or cached evaluation", async () => {
+  const h = harness({ part: partClan() });
+  const cookies = await leader(h);
+  const policy = await h.manage.policyFor("#2PQRJ8LV");
+  assert.equal(policy.values.removal_enabled, true);
+  for (const path of [
+    "/api/clans/2PQRJ8LV/manage?refresh=1",
+    "/api/clans/2PQRJ8LV/manage",
+    "/api/clans/2PQRJ8LV/actions?refresh=1",
+  ]) {
+    const r = await api(h, cookies, "GET", path);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+  }
+  const verdicts = await h.ledger.latestVerdicts("#2PQRJ8LV");
+  const sleepy = verdicts.members.find((m) => m.player_tag === idle.player_tag);
+  assert.equal(sleepy.removal.state, "recommended", "the clock still runs");
+  assert.equal(sleepy.actionable.removal, false);
+  assert.deepEqual(
+    (await h.ledger.cards("#2PQRJ8LV")).filter((c) => c.type === "removal"),
+    [],
+  );
 });
 
 test("cards: a done removal is verified when the record no longer lists the member; otherwise flagged after the window", async () => {

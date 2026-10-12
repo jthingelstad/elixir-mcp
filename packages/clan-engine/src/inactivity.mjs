@@ -1,5 +1,22 @@
 const DAY = 86400_000;
 
+/**
+ * The source that would prove a member played no battle in ANY mode over
+ * a window: none exists (#426). The battle log the collectors read does
+ * not carry every mode, and a flat profile counter bounds play only
+ * between two observations. Until a contract is named here, removal is
+ * not enforceable: the inactivity clock is a Standing fact (inactivity
+ * triage, the away question) and never an Action, and an open removal
+ * Action is withdrawn saying so. Naming one is Jamie's product call.
+ */
+export const ALL_MODE_COVERAGE_CONTRACT = null;
+export const REMOVAL_ENFORCEABLE = ALL_MODE_COVERAGE_CONTRACT !== null;
+
+/** What a person reads where a removal would have been: the withdrawn
+ *  Action's log line, the Policy page and its "can do today" box. */
+export const REMOVAL_NOT_ENFORCEABLE =
+  "Removal is not enforceable: absence of battle activity across every mode cannot be proven from the evidence Elixir records today.";
+
 /** Counter increases prove play inside an observation bracket, never a
  * precise battle time or mode. A missing capture is not proof of no play.
  * No freshness allowance is invented for the unmeasured tail. */

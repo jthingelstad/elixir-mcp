@@ -1,0 +1,3 @@
+# Elixir Clan says removal is not enforceable yet
+
+Elixir cannot yet prove that a quiet member played no battle in any mode, so Elixir Clan no longer raises removal Actions it could never let you complete. The policy's Inactivity tab is labelled **Not yet enforceable** and says why; its numbers stay editable, and Board still shows the clock to the leader and co-leaders. A removal Action that was open is withdrawn, with the reason in its log. A saved policy now opens with **What this policy can do today**: each judgment it asks for, as live, needing more evidence (and what), not enforceable, or off. MCP and JSON API unchanged.

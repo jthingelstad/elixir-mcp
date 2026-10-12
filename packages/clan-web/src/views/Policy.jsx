@@ -241,9 +241,9 @@ export function Policy({ clan }) {
             {draft.removal_enabled
               ? `on: the at-risk clock is ${draft.at_risk_days} ${noun(draft.at_risk_days, "day")}, the removal threshold ${draft.at_risk_days + draft.confirm_days} ${noun(draft.at_risk_days + draft.confirm_days, "day")} before contribution grace or holds`
               : "off"}
-            . A removal Action also requires proof of no battle activity across
-            every mode. That proof is currently unavailable; fresh flat counters
-            and recorded gaps cannot establish it.
+            . Removal is not yet enforceable: absence of battle activity across
+            every mode cannot be proven from the evidence Elixir records today,
+            so the clock is shown on the board and no removal Action is raised.
           </p>
           <p className="page-head__note m-0">
             Example: an expectation about participation is checked against
@@ -269,6 +269,8 @@ export function Policy({ clan }) {
           </span>
         </div>
       )}
+
+      {view.set && view.can_do?.length ? <CanDo lines={view.can_do} /> : null}
 
       <div className="segmented flex-wrap" role="tablist" aria-label="Policy">
         {tabs.map((t) => {
@@ -393,6 +395,12 @@ export function Policy({ clan }) {
                     <h2 className="label m-0">{g.title}</h2>
                   ) : null}
                   <p className="page__lede m-0">{g.why}</p>
+                  {g.notice ? (
+                    <div className="callout callout--warn flex-col gap-1">
+                      <strong>{g.notice.label}</strong>
+                      <span>{g.notice.why}</span>
+                    </div>
+                  ) : null}
                   {off ? (
                     <p className="page-head__note m-0">
                       Off: this clan does not use it. Turn it on above to set it
@@ -665,8 +673,9 @@ function Preview({ preview }) {
     if (m.demotion !== "none") return `demotion ${m.demotion}`;
     if (m.removal !== "none") {
       if (m.removal_triage?.status === "protected") return "removal protected";
-      if (m.removal_judgment === "held") return "removal evidence held";
-      return `removal ${m.removal.replace("_", " ")}`;
+      // Past the threshold is as far as the clock goes (#426).
+      if (m.removal === "recommended") return "removal not enforceable";
+      return `inactivity ${m.removal.replace("_", " ")}`;
     }
     return "—";
   };
@@ -728,5 +737,31 @@ function Preview({ preview }) {
         </p>
       )}
     </div>
+  );
+}
+
+/** What the saved policy can do today: each judgment as live, needing
+ *  more evidence (and what), not enforceable, or off (#426). */
+function CanDo({ lines }) {
+  return (
+    <section className="panel" aria-labelledby="policy-can-do">
+      <h2 id="policy-can-do" className="panel__head m-0">
+        What this policy can do today
+      </h2>
+      <div className="panel__body">
+        <ul className="m-0 grid list-none gap-2 p-0">
+          {lines.map((l) => (
+            <li key={l.key} className="grid gap-0.5">
+              <span>
+                <strong>{l.label}</strong>
+                {": "}
+                <span data-status={l.status}>{l.status_label}</span>
+              </span>
+              <span className="page-head__note">{l.detail}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }

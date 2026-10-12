@@ -107,6 +107,12 @@ export const GROUPS = [
     key: "removal",
     title: "Inactivity and removal",
     why: "Measured from battles played, never from logins, and counted from the later of the last battle and the join.",
+    // The label and its one sentence, shown above the fields, which stay
+    // editable so a saved policy keeps its numbers (#426).
+    notice: {
+      label: "Not yet enforceable",
+      why: "Elixir cannot prove that a member played no battle in every mode from the evidence it records today, so the clock is shown on the board and no removal action is raised.",
+    },
   },
   {
     key: "departures",
@@ -532,7 +538,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "Track inactivity and suggest removal to leaders as an action.",
+    why: "Track inactivity and show it to leaders on the board. A removal action waits until removal is enforceable.",
   },
   watch_days: {
     group: "removal",
@@ -564,7 +570,7 @@ export const FIELDS = {
     min: 0,
     max: 90,
     default: 7,
-    why: "At risk plus this many days suggests a removal action.",
+    why: "At risk plus this many days is when a removal action would be suggested, once removal is enforceable.",
     when: [{ removal_enabled: true }],
   },
   contribution_grace_max_days: {
@@ -595,7 +601,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "Off, Elders are shown as Protected on Board and never get a removal action. Leaders and co-leaders are always protected.",
+    why: "Off, Elders are shown as Protected on Board. Leaders and co-leaders are always protected.",
     when: [{ removal_enabled: true }],
   },
   away_max_days: {
