@@ -185,11 +185,11 @@ test("clans lead with yours; today's calls say the cap and when the count resets
   ).toBe("/console/account/usage");
 });
 
-test("a person with no agent is told today's calls were the site's own reads", async () => {
+test("the site's own reads are counted apart, never against the day's budget", async () => {
   stub({
     ...ROUTES,
     "/api/me/usage": {
-      today_calls: 6,
+      today_calls: 0,
       web_calls_today: 6,
       quota_max: 500,
       live_today: 0,
@@ -199,9 +199,9 @@ test("a person with no agent is told today's calls were the site's own reads", a
   const today = (
     await screen.findByRole("heading", { name: /tool calls today/ })
   ).closest("section");
-  expect(today.textContent).toContain("6 tool calls today");
+  expect(today.textContent).toContain("0 tool calls today");
   expect(today.textContent).toContain(
-    "6 of 500 for the day · all of them the Console's and Ladder's own reads, which count like an agent's · the count resets",
+    "0 of 500 for the day · plus 6 Console and Ladder reads, which are not counted · the count resets",
   );
 });
 

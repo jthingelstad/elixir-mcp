@@ -387,8 +387,9 @@ export const useCardCatalog = ({ enabled = true } = {}) =>
  *  the body, or a thrown error carrying the tool's code when the tool
  *  refused. Keyed under the reader's root, because what it reads is
  *  theirs and a timezone change (the days a battle falls on) or a sign
- *  in must refetch it. Ladder pages cache for minutes and never poll
- *  (the Ladder brief: every read is priced against the reader's quota). */
+ *  in must refetch it. Ladder pages cache for minutes and never poll:
+ *  a person's own reads spend no daily quota (#538) but do share the
+ *  hourly bucket with their own MCP clients. */
 async function toolRead(tool, args) {
   const r = unwrap(await api.explore(tool, args));
   if (r?.is_error) {
@@ -425,7 +426,7 @@ export const useToolReads = (tool, list, { enabled = true } = {}) =>
   });
 
 /** The most pages one sweep reads: 12 of 40 is the newest 480 battles,
- *  twelve calls of the reader's daily quota at most. */
+ *  twelve calls of the reader's hourly bucket at most. */
 const SWEEP_PAGES = 12;
 
 export const useBattleSweep = (

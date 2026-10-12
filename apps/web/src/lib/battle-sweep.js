@@ -20,7 +20,7 @@ export function fittingLimit(error, limit) {
 
 /**
  * Every page of `args` through next_cursor, at most `pages` reads (a
- * refused read counts: each is one call of the reader's quota). `read`
+ * refused read counts: each is one call of the reader's hourly bucket). `read`
  * is battles_query through the explore bridge: the body, or a thrown
  * error carrying the tool's code and hint. Returns the battles newest
  * first, the first page's answer (its applied window, meta and

@@ -9,9 +9,11 @@ their shaping functions (`ladder*.js`) live here. Public docs:
 
 - **Ladder has no API of its own.** Every read is an MCP tool answered
   through the Explore bridge (`api.explore`, hooks in
-  `src/lib/queries.js` under `["me", "ladder", ...]`), so it is priced
-  against the reader's own quota. Pages cache for minutes and never poll.
-  Two exceptions (2026-10-08), both unmetered account state: before a
+  `src/lib/queries.js` under `["me", "ladder", ...]`). A person's own
+  reads spend no daily tool-call quota (#538, Jamie 2026-10-12) but share
+  the hourly bucket (`mcp#<account>`, 300) with their own MCP clients, so
+  pages cache for minutes and never poll. Two exceptions (2026-10-08),
+  both account state and not tool reads: before a
   player's first capture lands, `Pending.jsx` shows "Your first capture
   is on its way" and polls the Console's capture status
   (`/api/me/first-answer`, every 5 s for the first 3 minutes after the

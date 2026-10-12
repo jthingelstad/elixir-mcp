@@ -38,6 +38,10 @@ their agents, a member's away only to the clan's leaders.
 | Live CR fetches / day | 20 | 100 | 250 | 1,000 | unlimited | unlimited |
 | Agents | 3 | 5 | 10 | 25 | unlimited | unlimited |
 
+Tool calls are what your agents and connected apps spend at the MCP door.
+Your own reads on Elixir's website, the Console and Ladder, never count
+against them; they share only the hourly limit ([Limits](/docs/limits)).
+
 **member** — the default. You, a couple of alts, and your clan at
 activity scope (roster + war, no member fan-out). Elixir fills that clan
 slot with your primary player's clan for you when it is free ([Your
@@ -164,7 +168,8 @@ overrides exist for cases the ladder doesn't fit — just ask.
 ## The fine print
 
 - Quotas reset at midnight UTC. Recorded-data reads are only bounded by
-  the daily tool-call budget — never by tier.
+  the daily tool-call budget — never by tier — and your own reads on the
+  Console and Ladder are not bounded by it at all.
 - Feedback has no limit of its own. Sent from the website it costs
   nothing; sent by your agent it is one tool call like any other.
   Telling us what's wrong should always be close to free.

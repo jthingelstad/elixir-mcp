@@ -480,12 +480,14 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
      values ($1, 'war_current', 'not_entitled')`,
     [acct[0].account_id],
   );
-  // A Ladder read (charged, the site's own), an Elixir Clan read and an
-  // /api/v1 call (neither spends the daily tool-call budget).
+  // A Ladder read (the site's own: logged, never charged, #538), an
+  // Elixir Clan read, a Clan morning read and an /api/v1 call (none of
+  // them spends the daily tool-call budget).
   await db.query(
     `insert into mcp_call_audit (account_id, tool, surface, client_name)
      values ($1, 'battles_query', 'web', null),
             ($1, 'clans_participation', 'web', 'Clan'),
+            ($1, 'clans_roster', 'web', 'Clan morning'),
             ($1, 'players_summary', 'rest', null)`,
     [acct[0].account_id],
   );
@@ -495,8 +497,13 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
       event({ method: "GET", path: "/api/me/usage", cookie, body: undefined }),
     ),
   );
-  assert.equal(mine.today_calls, 4, "what the daily limiter charged");
-  assert.equal(mine.web_calls_today, 1, "the Console's and Ladder's share");
+  assert.equal(mine.today_calls, 3, "what the daily limiter charged");
+  assert.equal(
+    mine.web_calls_today,
+    1,
+    "the Console's and Ladder's reads, counted apart and uncharged",
+  );
+  assert.equal(mine.days[0].web_calls, 1, "and on the day's row");
   assert.equal(mine.quota_max, 500, "default quota surfaced");
   assert.equal(mine.days[0].errors, 1);
   assert.ok(mine.top_tools.some((t) => t.tool === "players_profile"));
@@ -518,7 +525,7 @@ test("usage: member sees own daily counts and quota; admin sees the fleet", asyn
     "the label can name the player",
   );
   // The fleet view counts every recorded call, whatever spent the budget.
-  assert.equal(row.calls_7d, 6);
+  assert.equal(row.calls_7d, 7);
   assert.equal(row.errors_7d, 1);
   assert.ok(fleet.tools.some((t) => t.tool === "battles_query"));
   // A day's capacity is the planner's bulk share, not rate x 86,400 (#64).
@@ -2606,7 +2613,7 @@ test("malformed ids are 400s, never uuid or bigint syntax errors", async () => {
   assert.equal(fb.statusCode, 400);
 });
 
-test("the explorer is metered and capped like the MCP door, and read-only", async () => {
+test("the explorer takes the hourly bucket but no daily quota, and is read-only", async () => {
   const cookie = memberCookie;
   const { rows: acct } = await db.query(
     `select account_id from account where email_hash = $1`,
@@ -2616,9 +2623,44 @@ test("the explorer is metered and capped like the MCP door, and read-only", asyn
   const call = (tool, args = {}) =>
     handler(event({ path: "/api/explore", cookie, body: { tool, args } }));
 
-  // Read-only tools serve; writes other than the console's nickname editor
-  // are refused before any quota is spent.
+  // A person's own web read (#538, Jamie 2026-10-12): it bumps the hourly
+  // bucket, leaves the daily tool-call counter alone, and is still written
+  // to the call log, on the web surface with no client name.
+  const today = new Date().toISOString().slice(0, 10);
+  const counter = async (bucket) => {
+    const { rows } = await db.query(
+      `select coalesce(sum(count), 0)::int as n from rate_limit where bucket = $1`,
+      [bucket],
+    );
+    return rows[0].n;
+  };
+  const logged = async () => {
+    const { rows } = await db.query(
+      `select count(*)::int as n from mcp_call_audit
+        where account_id = $1 and tool = 'elixir_my_players'
+          and surface = 'web' and client_name is null`,
+      [accountId],
+    );
+    return rows[0].n;
+  };
+  const hourBefore = await counter(`mcp#${accountId}`);
+  const dayBefore = await counter(`mcpday#${accountId}`);
+  const logBefore = await logged();
   assert.equal((await call("elixir_my_players")).statusCode, 200);
+  assert.equal(
+    await counter(`mcp#${accountId}`),
+    hourBefore + 1,
+    "a web read bumps the hourly bucket",
+  );
+  assert.equal(
+    await counter(`mcpday#${accountId}`),
+    dayBefore,
+    "a web read leaves the daily tool-call counter untouched",
+  );
+  assert.equal(await logged(), logBefore + 1, "and is written to the log");
+
+  // Read-only tools serve; writes other than the console's nickname editor
+  // are refused.
   for (const w of [
     "elixir_track_player",
     "elixir_track_clan",
@@ -2630,17 +2672,20 @@ test("the explorer is metered and capped like the MCP door, and read-only", asyn
     200,
   );
 
-  // The daily quota is the account's, shared with /mcp: fill it and the
-  // explorer refuses too.
-  const today = new Date().toISOString().slice(0, 10);
+  // The daily quota is the MCP door's alone: an account whose agents and
+  // clients have spent the whole day still reads its own record here.
   await db.query(
     `insert into rate_limit (bucket, window_start, count) values ($1, $2::date, 100000)
      on conflict (bucket, window_start) do update set count = 100000`,
     [`mcpday#${accountId}`, today],
   );
-  const quota = await call("elixir_my_players");
-  assert.equal(quota.statusCode, 429);
-  assert.equal(parse(quota).error, "quota_exceeded");
+  const spent = await call("elixir_my_players");
+  assert.equal(spent.statusCode, 200, "a full daily quota refuses no web read");
+  assert.equal(
+    await counter(`mcpday#${accountId}`),
+    100000,
+    "and the read does not add to it",
+  );
   await db.query(`delete from rate_limit where bucket = $1`, [
     `mcpday#${accountId}`,
   ]);

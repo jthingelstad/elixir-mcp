@@ -1,0 +1,3 @@
+# Your own reads on Elixir's website no longer spend your daily quota
+
+Reading your own record on the Console and on Ladder no longer counts against your daily tool-call quota, so an agent that has spent the day's calls never leaves your own pages refusing. Those reads still share the hourly limit of 300 calls with your own connected apps. Agents, integrations and the live lane are metered as before. Usage still lists every read: the Console's and Ladder's are counted apart from the budget, on the day's bars and in the lede. [Limits](/docs/limits) and [Roles and quotas](/docs/roles) say it. MCP 11.11.2 and JSON API 3.2.0 unchanged.
