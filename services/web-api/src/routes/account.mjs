@@ -36,8 +36,11 @@ import { loadCallRecord } from "../call-record.mjs";
  *  services/jobs/src/clan.mjs) spend no daily tool-call budget. */
 const CHARGED = `coalesce(surface, '') not in ('rest', 'web')`;
 /** The Console's and Ladder's own reads (POST /api/explore, which names
- *  no client): logged, shown on Usage, never charged. */
-const WEB_READS = `(surface = 'web' and client_name is null)`;
+ *  no client): logged, shown on Usage, never charged. The bridge's one
+ *  write, the nickname editor (explore.mjs CONSOLE_WRITES), is logged
+ *  there too and is not a read. */
+const WEB_READS = `(surface = 'web' and client_name is null
+  and tool <> 'elixir_nickname')`;
 
 export function accountRoutes({
   resolveAccount,
