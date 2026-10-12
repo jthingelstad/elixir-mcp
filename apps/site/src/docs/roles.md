@@ -50,8 +50,9 @@ a clan's own agent needs.
 **family** — you run a clan family: a main plus feeders. Multiple
 comprehensive watches for the clans you follow. A family is how they are
 recorded; in [Elixir Clan](/docs/bring-your-clan#your-role-here)
-each clan keeps its own policy, standing, Actions and awards, and a
-leader switches between them.
+each clan keeps its own policy, standing, Actions and awards, and you
+switch between the clans your own players (your primary and alts) are
+in. A clan you only record or watch does not appear there.
 
 **partner** — you run serious tooling (a clan bot, a community service)
 on top of Elixir. Community-scale slots and budgets — and an expectation:
