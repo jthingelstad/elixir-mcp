@@ -503,14 +503,14 @@ export function CollectorPage({ id, navigate, me }) {
       {own && (
         <div className="stats" style={{ marginBottom: "14px" }}>
           <div className="stats__cell">
-            <div className="label">tier</div>
+            <div className="label">earns</div>
             <div className="stats__value">
               {status_ === "active" ? "Family" : "—"}
             </div>
             <div className="stats__note">
               {status_ === "active"
-                ? "earned while this collector is active"
-                : "earned again once it is active"}
+                ? "the Family tier, while active; a granted tier above it stands"
+                : "the Family tier again once it is active"}
             </div>
           </div>
           <div className="stats__cell">
