@@ -1167,7 +1167,7 @@ function collector(f, c) {
       <td valign="middle" style="padding:9px 10px 9px 14px;${line}"><div style="font-family:${FONT};font-size:15px;font-weight:600;color:${M.ink};">${esc(x.name)}${x.version ? ` <span style="font-family:${MONO};font-size:11.5px;font-weight:400;color:${M.dim};">${esc(x.version)}</span>` : ""}</div>
         <div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};margin-top:3px;">${statusLine(x)}</div>
         ${x.signature_state ? `<div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${x.signature_state === "mismatch" ? M.warn : M.faint};margin-top:4px;">${esc(collectorSecurity(x.signature_state))}</div>` : ""}</td>
-      <td align="right" valign="middle" style="padding:9px 0;white-space:nowrap;${line}">${x.new_facts != null ? `<div style="font-family:${MONO};font-size:15px;font-weight:700;color:${M.ink};">${n(x.new_facts)}</div><div style="font-family:${FONT};font-size:11.5px;color:${M.faint};">new facts this week</div>` : ""}</td>
+      <td align="right" valign="middle" style="padding:9px 0;white-space:nowrap;${line}">${x.adding_fetches != null ? `<div style="font-family:${MONO};font-size:15px;font-weight:700;color:${M.ink};">${n(x.adding_fetches)}</div><div style="font-family:${FONT};font-size:11.5px;color:${M.faint};">fetches with new facts</div>` : ""}</td>
     </tr>`;
     })
     .join("")}</table>`;

@@ -37,7 +37,10 @@ export async function buildCollector({ db, account, week, now = new Date() }) {
             coalesce(sum(api_bytes), 0)::bigint as api_bytes,
             coalesce(sum(coalesce(observed, 0) - coalesce(filtered, 0)), 0)::bigint as kept,
             coalesce(sum(coalesce(filtered, 0)), 0)::bigint as filtered,
-            coalesce(sum(new_facts), 0)::bigint as new_facts
+            coalesce(sum(new_facts), 0)::bigint as new_facts,
+            -- Fetches that added to the record (ingest/pipeline.mjs,
+            -- new_facts > 0), not the facts they added.
+            count(*) filter (where admission <> 'rejected' and new_facts > 0)::int as adding_fetches
        from api_receipt
       where gateway_id = any($1) and fetched_at >= $2 and fetched_at < $3
       group by gateway_id`,
@@ -92,7 +95,7 @@ export async function buildCollector({ db, account, week, now = new Date() }) {
       note: q
         ? `${q.stretches} quiet stretch${q.stretches === 1 ? "" : "es"} of 3 h or more`
         : null,
-      new_facts: Number(p?.new_facts ?? 0),
+      adding_fetches: Number(p?.adding_fetches ?? 0),
     };
   });
   const fetches = collectors.reduce((s, c) => s + c.fetches, 0);

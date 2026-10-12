@@ -9,6 +9,7 @@
  */
 
 import { mintServiceTokenValue, normalizeScope } from "@elixir-mcp/auth";
+import { tierSql } from "@elixir-mcp/contracts";
 import {
   createPrincipal,
   normalizePrincipalName,
@@ -18,7 +19,7 @@ import {
 /** Everything the owner has that a principal could be pointed at. */
 export async function listPrincipals(db, ownerAccountId) {
   const { rows } = await db.query(
-    `select a.account_id, a.kind, a.public_id, a.role, a.created_at, a.status,
+    `select a.account_id, a.kind, a.public_id, ${tierSql("a")} as role, a.created_at, a.status,
             a.removed_at,
             -- Its name is its key's: the newest, a live one first, so an
             -- agent whose key was revoked keeps its name (the rail head's

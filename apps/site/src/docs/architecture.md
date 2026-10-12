@@ -85,8 +85,8 @@ must reach the internet ([below](#the-outbound-relay)).
 The only machines with Clash Royale API keys are **collectors** —
 operator-run workers that lease fetch jobs from the job ledger, fetch
 with their IP-allowlisted key, and post results back. They never choose
-their own targets, hold no user data, and earn points for every fetch
-that adds something to the record. The fleet shares **one global rate budget** by design:
+their own targets, hold no user data, and earn their operator the
+Family tier while active. The fleet shares **one global rate budget** by design:
 more collectors mean resilience, never more API load. The budget is a token
 bucket the scheduler plans from, and everything that asks the API for a read
 spends it: each scheduled job, and each live read an agent, a JSON API
