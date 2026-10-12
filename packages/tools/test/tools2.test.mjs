@@ -662,19 +662,26 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   assert.equal(removed.body.removed, true);
   assert.equal(removed.body.recording_stopped, true);
 
-  // Clan add at comprehensive scope: member tier has no slots.
+  // Clan add at comprehensive scope: member tier has no slots. This
+  // account runs the fixture collector, which earns Family (#539) while
+  // it is active; drained, the account is a member.
+  await db.query(
+    `update gateway set status = 'draining' where name = 'tools2-gw'`,
+  );
   const tierBlocked = await call("elixir_track_clan", {
     clan_tag: "#J2RGCRVG",
   });
   assert.equal(tierBlocked.isError, true);
   assert.equal(tierBlocked.body.error.code, "quota_exceeded");
-  assert.match(tierBlocked.body.error.hint, /upgrade|leader/i);
+  // The hint names the earned tiers, never a request (#530).
+  assert.match(tierBlocked.body.error.hint, /lead.*clan you track/i);
+  assert.doesNotMatch(tierBlocked.body.error.hint, /request|upgrade/i);
 
-  // The leader tier has the slot: added = recorded, immediately.
-  await db.query(`update account set role = 'leader' where account_id = $1`, [
-    account.accountId,
-  ]);
-  account.role = "leader";
+  // Active again, the collector earns Family, which has the slot:
+  // added = recorded, immediately.
+  await db.query(
+    `update gateway set status = 'active' where name = 'tools2-gw'`,
+  );
   const clanAdd = await call("elixir_track_clan", { clan_tag: "#J2RGCRVG" });
   assert.equal(clanAdd.isError, false, JSON.stringify(clanAdd.body));
   assert.equal(clanAdd.body.recording, "active");
@@ -713,13 +720,15 @@ test("Elixir MCP service domain: added = recorded, notify is the only toggle", a
   assert.ok(insights.body.battles.recorded > 0);
   assert.ok(insights.body.battles.first <= insights.body.battles.last);
 
-  // Collectors: card-derived identity + quota credits, no arenas, and
+  // Collectors: card-derived identity, points and credits retired to 0
+  // (#539; the fields go at a later major), no arenas, and
   // no machine label - the operator's name for their own box is private
   // and this tool used to hand it to every connected agent (#28).
   const collectors = await call("elixir_collectors", {});
   assert.ok(collectors.body.collectors.length >= 1);
   const c0 = collectors.body.collectors[0];
-  assert.ok("quota_credits" in c0);
+  assert.equal(c0.quota_credits, 0);
+  assert.ok(collectors.body.collectors.every((c) => c.points === 0));
   assert.ok(!("arena" in c0), "arenas are gone");
   assert.ok(!("machine" in c0), "machine labels are not fleet data");
   assert.ok(

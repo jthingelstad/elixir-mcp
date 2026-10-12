@@ -36,9 +36,9 @@ has the schedule and what each poll reads.
 
 Every tracked player takes one of your tier's player slots, whatever
 the relationship; **Console ▸ Tracking** shows how many you use. When
-they are full, adding another is refused until you remove one, ask for
-more on your profile, or run a collector for bonus slots.
-[Roles and tiers](/docs/roles) has the numbers.
+they are full, adding another is refused until you remove one or your tier
+rises: lead a clan you track, or run a collector.
+[Roles and tiers](/docs/roles#upgrades) has the numbers.
 
 ## What you see
 

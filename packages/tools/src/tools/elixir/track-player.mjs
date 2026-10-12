@@ -95,7 +95,7 @@ export const elixir_track_player = {
       throw new ToolFailure(
         "quota_exceeded",
         `Tracked players are capped at ${r.limit} for the ${r.role} tier.`,
-        "Remove one, request a tier upgrade on the website, or run a collector for bonus slots.",
+        "Remove one, or raise your tier: lead a clan you track (Leader) or run a collector (Family).",
       );
     }
     if (!r.ok && r.error === "not_entitled")

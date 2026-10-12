@@ -58,17 +58,6 @@ export function ownerNotifyMessage(spec) {
         },
         link: `${SITE}/console/admin/feedback`,
       };
-    case "role_upgrade_request":
-      return {
-        ...base,
-        note: `${spec.from ?? "An account"} asked for ${spec.requestedRole} (currently ${spec.currentRole ?? "member"}).${spec.reason ? ` Their note: ${excerpt(spec.reason)}` : ""}`,
-        detail: {
-          requested_role: String(spec.requestedRole),
-          current_role: String(spec.currentRole ?? "member"),
-          from: spec.from ?? "an account",
-        },
-        link: `${SITE}/console/admin`,
-      };
     case "gateway_request":
       return {
         ...base,

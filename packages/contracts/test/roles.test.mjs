@@ -5,8 +5,11 @@ import {
   ROLE_ORDER,
   roleQuotas,
   isRole,
-  OPERATOR_BONUS,
+  canSetRole,
+  tierSql,
+  ADMIN_SETTABLE,
 } from "../dist/index.js";
+import * as contracts from "../dist/index.js";
 
 test("the ladder is monotonic - no quota shrinks as you climb", () => {
   const keys = Object.keys(ROLES.member);
@@ -29,18 +32,36 @@ test("unknown or null role resolves to member - never a crash, never more", () =
   assert.equal(isRole("family"), true);
 });
 
-test("operator bonus stacks on member/leader/family, never partner/admin", () => {
-  const m = roleQuotas("member", { operator: true });
-  assert.equal(
-    m.player_slots,
-    ROLES.member.player_slots + OPERATOR_BONUS.player_slots,
-  );
-  assert.equal(
-    m.activity_clans,
-    ROLES.member.activity_clans + OPERATOR_BONUS.activity_clans,
-  );
-  assert.deepEqual(roleQuotas("partner", { operator: true }), ROLES.partner);
-  assert.deepEqual(roleQuotas("admin", { operator: true }), ROLES.admin);
+test("no operator bonus: running a collector earns Family, nothing on top (#539)", () => {
+  assert.equal(contracts.OPERATOR_BONUS, undefined);
+  assert.deepEqual(roleQuotas("member", { operator: true }), ROLES.member);
+  assert.deepEqual(roleQuotas("family"), ROLES.family);
+});
+
+test("Leader and Family are earned, never granted (#530)", () => {
+  assert.deepEqual(ADMIN_SETTABLE, ["member", "partner"]);
+  for (const actor of ["owner", "admin"]) {
+    assert.equal(canSetRole(actor, "member", "leader"), false, actor);
+    assert.equal(canSetRole(actor, "member", "family"), false, actor);
+    assert.equal(canSetRole(actor, "member", "partner"), true, actor);
+    assert.equal(canSetRole(actor, "partner", "member"), true, actor);
+    // A stored grant from before 2026-10-12 can be moved off.
+    assert.equal(canSetRole(actor, "leader", "member"), true, actor);
+  }
+  assert.equal(canSetRole("admin", "member", "admin"), false);
+  assert.equal(canSetRole("owner", "member", "admin"), true);
+  assert.equal(canSetRole("owner", "owner", "member"), false);
+  assert.equal(canSetRole("partner", "member", "partner"), false);
+});
+
+test("tierSql reads grants for partner and up, grounds below, and refuses a bad alias", () => {
+  const sql = tierSql("a");
+  assert.match(sql, /a\.role in \('partner', ?'admin', ?'owner'\)/);
+  assert.match(sql, /status = 'active'/);
+  assert.match(sql, /status = 'verified'/);
+  assert.match(sql, /'leader', ?'coLeader'/);
+  assert.match(sql, /left_observed_at is null/);
+  assert.throws(() => tierSql("a; drop table account"));
 });
 
 test("admin is unlimited on every axis", () => {

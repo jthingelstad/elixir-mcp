@@ -11,6 +11,7 @@ import {
 } from "./session.mjs";
 
 import { ABSOLUTE_CAP_DAYS } from "./session.mjs";
+import { tierSql } from "@elixir-mcp/contracts";
 
 export async function createSession(
   db,
@@ -64,7 +65,9 @@ export async function resolveSession(
        and s.revoked_at is null
        and s.sliding_expires_at > now()
        and s.absolute_expires_at > now()
-     returning a.account_id, a.email_hash, a.is_owner, a.timezone, a.role, a.kind,
+     returning a.account_id, a.email_hash, a.is_owner, a.timezone,
+               -- The tier is earned in the game (#530): read, never stored.
+               ${tierSql("a")} as role, a.kind,
                a.mcp_daily_quota, a.live_daily_quota`,
     [
       claims.sid,

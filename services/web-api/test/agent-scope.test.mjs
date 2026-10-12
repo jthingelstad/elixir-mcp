@@ -316,11 +316,13 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
       .statusCode,
     429,
   );
-  // One more slot for the owner (an override): now the rival fits, in
-  // the agent's own copy.
-  await db.query(`update account set role = 'family' where account_id = $1`, [
-    ownerId,
-  ]);
+  // More slots for the owner (an active collector earns Family, #539):
+  // now the rival fits, in the agent's own copy.
+  await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'agent-scope-gw', '203.0.113.77', 'active')`,
+    [ownerId],
+  );
   const added = await post("/clans", {
     clan_tag: "#PGLQYRJ2",
     scope: "activity",

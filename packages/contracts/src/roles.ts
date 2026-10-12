@@ -39,7 +39,7 @@ export interface RoleQuotas {
   activity_clans: number;
   /** Clan watches at comprehensive scope (every member's battles). */
   comprehensive_clans: number;
-  /** MCP tool calls per UTC day (collector credits may extend it). */
+  /** MCP tool calls per UTC day. */
   mcp_calls_per_day: number;
   /** live_fetch calls per UTC day — these spend the global CR budget. */
   live_fetches_per_day: number;
@@ -126,10 +126,24 @@ export function consoleAccess(role: string | null | undefined): ConsoleAccess {
   return "none";
 }
 
-/** Roles an admin-level actor may assign. Owner may assign anything
- *  except "owner" itself (exactly one, held, never granted by API);
- *  admins stop at partner and may not touch admin/owner accounts. */
-export const ADMIN_SETTABLE: Role[] = ["member", "leader", "family", "partner"];
+/** Tiers come from two places (Jamie, 2026-10-12, #530): Member, Leader
+ *  and Family are EARNED in the game and computed on every read (see
+ *  `tierSql`); Partner, admin and owner are GRANTS stored on the account.
+ *  A stored "leader" or "family" is a pre-2026-10-12 hand grant: it counts
+ *  for nothing now, and a tier earned is lost when its ground goes. */
+export const EARNED_ROLES: Role[] = ["member", "leader", "family"];
+export const GRANTED_ROLES: Role[] = ["partner", "admin", "owner"];
+
+/** Roles an admin-level actor may assign: Member (which takes a grant
+ *  away) and Partner, which stays Jamie's to grant. Leader and Family are
+ *  earned, never set. Owner may also assign admin, never "owner" itself
+ *  (exactly one, held, never granted by API); admins may not touch
+ *  admin/owner accounts. */
+export const ADMIN_SETTABLE: Role[] = ["member", "partner"];
+
+/** The stored roles an admin may change: a legacy hand-granted leader or
+ *  family included, so it can be moved to member or partner. */
+const ADMIN_TOUCHABLE: Role[] = ["member", "leader", "family", "partner"];
 
 export function canSetRole(
   actorRole: string | null | undefined,
@@ -137,39 +151,96 @@ export function canSetRole(
   newRole: string,
 ): boolean {
   if (!isRole(newRole) || newRole === "owner") return false;
+  if (EARNED_ROLES.includes(newRole) && newRole !== "member") return false;
   if (targetCurrentRole === "owner") return false;
   if (actorRole === "owner") return true;
   if (actorRole !== "admin") return false;
   return (
-    ADMIN_SETTABLE.includes(targetCurrentRole as Role) &&
+    ADMIN_TOUCHABLE.includes(targetCurrentRole as Role) &&
     ADMIN_SETTABLE.includes(newRole as Role)
   );
 }
-
-/** Running a live collector earns extra capture — capacity begets
- *  collection. Stacks on member/leader/family; partner's tier already
- *  assumes a collector; admin is unbounded anyway. */
-export const OPERATOR_BONUS = {
-  player_slots: 2,
-  activity_clans: 1,
-} as const;
 
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && value in ROLES;
 }
 
-/** Effective quotas for an account: role defaults, plus the operator
- *  bonus when the account runs an active collector. */
-export function roleQuotas(
-  role: string | null | undefined,
-  { operator = false }: { operator?: boolean } = {},
-): RoleQuotas {
-  const base = ROLES[isRole(role) ? role : "member"];
-  if (!operator || role === "admin" || role === "owner" || role === "partner")
-    return base;
-  return {
-    ...base,
-    player_slots: base.player_slots + OPERATOR_BONUS.player_slots,
-    activity_clans: base.activity_clans + OPERATOR_BONUS.activity_clans,
-  };
+/** Effective quotas for a tier. Running a collector no longer adds
+ *  slots: it earns the Family tier, and that is the reward (Jamie,
+ *  2026-10-12, #539). */
+export function roleQuotas(role: string | null | undefined): RoleQuotas {
+  return ROLES[isRole(role) ? role : "member"];
+}
+
+const ALIAS = /^[a-z_][a-z0-9_]*$/;
+function alias(a: string): string {
+  if (!ALIAS.test(a)) throw new Error(`bad alias ${a}`);
+  return a;
+}
+
+/** The Family ground, as a SQL predicate over account row `a`. */
+export function familyGroundSql(a: string = "a"): string {
+  alias(a);
+  return `exists (select 1 from gateway tier_g
+                  where tier_g.owner_account_id = ${a}.account_id
+                    and tier_g.status = 'active')`;
+}
+
+/** The Leader ground, as a SQL predicate over account row `a`. */
+export function leaderGroundSql(a: string = "a"): string {
+  alias(a);
+  return `exists (select 1 from claim tier_c
+                   join clan_membership tier_m
+                     on tier_m.player_tag = tier_c.player_tag
+                    and tier_m.left_observed_at is null
+                    and tier_m.role in ('leader', 'coLeader')
+                   join account_clan tier_ac
+                     on tier_ac.account_id = ${a}.account_id
+                    and tier_ac.clan_tag = tier_m.clan_tag
+                  where tier_c.account_id = ${a}.account_id
+                    and tier_c.status = 'verified'
+                    and (tier_c.is_primary or tier_c.relationship = 'alt'))`;
+}
+
+/**
+ * A person's tier, as SQL over an account row aliased `a`: the current
+ * check, read on every request like Clan's role check, never stored.
+ *
+ *   - partner, admin, owner: the stored grant
+ *   - family: the account owns a collector whose status is `active` (its
+ *     last admitted fetch came after its last probation; drained,
+ *     probation and revoked do not count)
+ *   - leader: one of the person's own players (primary or alt) is
+ *     VERIFIED and is in an open membership as leader or co-leader of a
+ *     clan the account tracks. Verified, because several accounts may
+ *     claim one tag unverified; only Verify proves whose it is.
+ *   - member: otherwise, a stored hand-granted leader or family included
+ *
+ * The higher earned tier wins: a leader who runs a collector is Family.
+ */
+function personTierSql(a: string): string {
+  return `case
+    when ${a}.role in ('partner', 'admin', 'owner') then ${a}.role
+    when ${familyGroundSql(a)} then 'family'
+    when ${leaderGroundSql(a)} then 'leader'
+    else 'member' end`;
+}
+
+/**
+ * The tier of the account row aliased `a`, as a SQL expression to select
+ * in place of `a.role`. An integration keeps its stored role (Partner
+ * access is admin-provisioned). An agent is capped at its owner's tier
+ * and never above leader (DECISIONS: principals), so it follows its
+ * owner's earned tier rather than the snapshot taken at its creation.
+ */
+export function tierSql(a: string = "a"): string {
+  alias(a);
+  return `(case
+    when ${a}.kind = 'integration' then ${a}.role
+    when ${a}.kind = 'agent' then coalesce(
+      (select case when (${personTierSql("tier_o")}) = 'member'
+                   then 'member' else 'leader' end
+         from account tier_o where tier_o.account_id = ${a}.owned_by_account_id),
+      'member')
+    else ${personTierSql(a)} end)`;
 }

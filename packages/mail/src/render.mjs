@@ -1167,48 +1167,42 @@ function collector(f, c) {
       <td valign="middle" style="padding:9px 10px 9px 14px;${line}"><div style="font-family:${FONT};font-size:15px;font-weight:600;color:${M.ink};">${esc(x.name)}${x.version ? ` <span style="font-family:${MONO};font-size:11.5px;font-weight:400;color:${M.dim};">${esc(x.version)}</span>` : ""}</div>
         <div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};margin-top:3px;">${statusLine(x)}</div>
         ${x.signature_state ? `<div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${x.signature_state === "mismatch" ? M.warn : M.faint};margin-top:4px;">${esc(collectorSecurity(x.signature_state))}</div>` : ""}</td>
-      <td align="right" valign="middle" style="padding:9px 0;white-space:nowrap;${line}"><div style="font-family:${MONO};font-size:15px;font-weight:700;color:${M.ink};">${n(x.lifetime_points)}</div><div style="font-family:${FONT};font-size:11.5px;color:${M.faint};">points to date</div></td>
+      <td align="right" valign="middle" style="padding:9px 0;white-space:nowrap;${line}">${x.new_facts != null ? `<div style="font-family:${MONO};font-size:15px;font-weight:700;color:${M.ink};">${n(x.new_facts)}</div><div style="font-family:${FONT};font-size:11.5px;color:${M.faint};">new facts this week</div>` : ""}</td>
     </tr>`;
     })
     .join("")}</table>`;
-  const cr = f.credits ?? {};
-  const week = [
-    `<strong style="color:${M.ink};">+${n(cr.earned)} credits</strong>${cr.points_week != null ? ` from ${n(cr.points_week)} points` : ""}`,
-    cr.base
-      ? `your daily tool calls stand at ${n(cr.applied)}${cr.capped ? ", the four-times cap" : ` on a base of ${n(cr.base)}`}`
-      : null,
-    cr.slots?.players || cr.slots?.clans
-      ? `running a collector also adds ${cr.slots.players} player slot${cr.slots.players === 1 ? "" : "s"} and ${cr.slots.clans} clan watch${cr.slots.clans === 1 ? "" : "es"}, once per account`
-      : null,
-  ]
-    .filter(Boolean)
-    .join("; ");
-  const leader = [...list].sort(
-    (a, b) => (b.lifetime_points ?? 0) - (a.lifetime_points ?? 0),
-  )[0];
+  // What running one earns: the Family tier, and nothing else (#539). An
+  // issue stored before 2026-10-12 carries credits instead and says no
+  // tier line; its retired points lines are not drawn.
+  const tier = f.tier ?? null;
+  const tierLine = !tier
+    ? null
+    : tier.granted
+      ? `your tier is ${esc(tier.role)}, granted, which already sits above Family`
+      : tier.family_earned
+        ? "your active collector earns your account the Family tier"
+        : "a collector earns the Family tier while it is active, and none of yours is active right now";
   const firstStopped = list.find((x) => stateOf(x) === "draining");
   const firstSilent = list.find((x) => stateOf(x) === "silent");
   const body = `
     ${c.p(`Your ${k === 1 ? "collector" : `${k} collectors`} made <strong style="color:${M.ink};">${n(t.fetches)} fetches</strong> this week${t.of_fleet != null ? `, ${pct(t.of_fleet)} of everything the fleet recorded` : ""}${t.saved_share != null ? `, and filtered ${pct(t.saved_share)} of what they read at the edge as already recorded` : ""}. Thank you: every battle, roster and board in the record came through a machine somebody chose to run.`)}
     ${rowsHtml}
-    ${c.small("A point is a fetch that added something to the record; one that brought nothing new earns none. Every 10 points adds one daily tool call, up to four times your base.")}
     ${c.small("More collectors add resilience, not more Clash Royale budget: the whole fleet shares one rate limit.")}
     ${c.small("Security status uses the dashboard’s self-reported version and binary hash; it is not remote attestation. A signed build can still be behind the current release.")}
-    ${c.h2("This week")}${c.p(`${week}.`, "margin:0;")}
+    ${tierLine ? `${c.h2("Your tier")}${c.p(`${tierLine[0].toUpperCase()}${tierLine.slice(1)}.`, "margin:0;")}` : ""}
     ${f.fleet_note ? c.small(esc(f.fleet_note)) : ""}
     ${c.button("Open your collectors", `${SITE}/console/status/collectors`)}
     ${c.cov(esc(f.coverage))}`;
   const preheader = [
-    leader
-      ? `${leader.name} leads with ${n(leader.lifetime_points)} points.`
-      : null,
     firstSilent
       ? `${firstSilent.name} has been silent${firstSilent.since ? ` since ${c.date(firstSilent.since)}` : ""}.`
       : null,
     firstStopped
       ? `${firstStopped.name} is stopped${firstStopped.since ? `, last checked in on ${c.date(firstStopped.since)}` : ""}.`
       : null,
-    `+${n(cr.earned)} credits this week.`,
+    tier && !tier.granted && tier.family_earned
+      ? "Your active collector earns the Family tier."
+      : null,
   ]
     .filter(Boolean)
     .join(" ");

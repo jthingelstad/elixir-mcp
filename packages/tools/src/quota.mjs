@@ -13,15 +13,10 @@
 import { roleQuotas } from "@elixir-mcp/contracts";
 import { liveBudgetFor } from "./tools/shared.mjs";
 
-// Collector credits (Jamie, 2026-09-04): every 10 fetches your
-// collectors perform adds 1 to your daily quota, capped at 4x base.
 /** Calls per hour per principal: MCP and the web explorer share the
  *  bucket. The daily quota below is the MCP door's alone; the Console's
  *  and Ladder's own reads spend none of it (#538). */
 export const HOURLY_RATE_LIMIT = 300;
-
-const CREDIT_DIVISOR = 10;
-const CREDIT_CAP_MULTIPLE = 4;
 
 /** Next UTC midnight: when both daily buckets roll. */
 function quotaResetsAt(now = new Date()) {
@@ -34,7 +29,7 @@ function quotaResetsAt(now = new Date()) {
 export function makeQuota({ db, account }) {
   // WHOSE budget this call spends. An agent spends its owner's — that is the
   // deal that lets every clan leader have one without a tier gate — so the
-  // counter, the ceiling and the collector credits all key on the owner. An
+  // counter and the ceiling both key on the owner. An
   // integration pays for itself from its own key. A person is both.
   // The fallback keeps pre-0053 shapes (and every test that builds an account
   // by hand) behaving exactly as before.
@@ -68,22 +63,9 @@ export function makeQuota({ db, account }) {
   }
 
   async function spendQuota() {
-    let max = base;
-    if (!unlimited) {
-      try {
-        const { rows } = await db.query(
-          `select coalesce(sum(fetch_points), 0)::bigint as points
-           from gateway where owner_account_id = $1 and status <> 'revoked'`,
-          [budget.accountId],
-        );
-        max = Math.min(
-          base * CREDIT_CAP_MULTIPLE,
-          base + Math.floor(Number(rows[0].points) / CREDIT_DIVISOR),
-        );
-      } catch {
-        // Credits are a bonus; quota falls back to base if the read fails.
-      }
-    }
+    // The tier's ceiling, nothing added: collector call credits retired
+    // with the points economy (#539); running a collector earns Family.
+    const max = base;
     let count = 0;
     try {
       const { rows } = await db.query(

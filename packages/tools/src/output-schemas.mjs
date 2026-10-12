@@ -1159,12 +1159,12 @@ export const OUTPUT_SCHEMAS = {
             points: {
               type: ["number", "null"],
               description:
-                "One per fetch that added something to the record (new_facts > 0); a fetch that returned nothing new earns none.",
+                "Retired with the points economy: always 0. Running a collector earns the Family tier instead.",
             },
             quota_credits: {
               type: ["number", "null"],
               description:
-                "points / 10, the calls a day this collector adds to its operator's quota.",
+                "Retired: always 0. Collectors no longer add calls to a quota.",
             },
             silent_since: { type: ["string", "null"] },
             status: { type: ["string", "null"] },

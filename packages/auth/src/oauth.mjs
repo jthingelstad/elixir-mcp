@@ -19,6 +19,7 @@ import {
   DEFAULT_OAUTH_SCOPE,
   OAUTH_SCOPES,
   FULL_OAUTH_SCOPE,
+  tierSql,
 } from "@elixir-mcp/contracts";
 
 export { OAUTH_SCOPES };
@@ -538,8 +539,8 @@ export async function validateAccessToken(db, token, { resource } = {}) {
   const { rows } = await db.query(
     `select f.client_id, f.scope, f.resource, f.family_id, c.client_name, c.redirect_uris,
             a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota,
-            a.role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
-            o.role as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
+            ${tierSql("a")} as role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
+            ${tierSql("o")} as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
             o.live_daily_quota as owner_live_daily_quota,
             fc.client_id is not null as provisioned
      from oauth_token t
@@ -704,8 +705,8 @@ const SERVICE_ACCOUNT_SELECT = `select t.token_id, t.name, t.scope as token_scop
             t.daily_quota as token_daily_quota,
             t.hourly_rate_limit as token_rate_limit,
             a.account_id, a.email_hash, a.is_owner, a.timezone, a.mcp_daily_quota,
-            a.role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
-            o.role as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
+            ${tierSql("a")} as role, a.live_daily_quota, a.kind, a.owned_by_account_id, a.public_id,
+            ${tierSql("o")} as owner_role, o.mcp_daily_quota as owner_mcp_daily_quota,
             o.live_daily_quota as owner_live_daily_quota
      from service_token t
      join account a on a.account_id = t.account_id

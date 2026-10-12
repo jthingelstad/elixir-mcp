@@ -10,6 +10,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { ROLES } from "@elixir-mcp/contracts";
 import { makeQuota } from "../src/quota.mjs";
 
 const OWNER = "11111111-1111-1111-1111-111111111111";
@@ -20,7 +21,8 @@ function spyDb(count = 1) {
   return {
     buckets,
     query: async (sql, params) => {
-      if (sql.includes("from gateway")) return { rows: [{ points: 0 }] };
+      // Collector credits are retired (#539): the ceiling never reads gateways.
+      if (sql.includes("gateway")) throw new Error("quota read the gateway");
       if (sql.includes("insert into rate_limit")) {
         buckets.push(params[0]);
         return { rows: [{ count }] };
@@ -130,4 +132,14 @@ test("the meta.quota block satisfies the response contract, capped or not", asyn
     assert.doesNotThrow(() =>
       responseMeta({ as_of: new Date().toISOString(), quota }),
     );
+});
+
+test("the ceiling is the tier's base: Family has no collector credits on top (#539)", async () => {
+  const db = spyDb();
+  const spend = makeQuota({
+    db,
+    account: { accountId: OWNER, role: "family", override: null },
+  });
+  const result = await spend();
+  assert.equal(result.max, ROLES.family.mcp_calls_per_day);
 });

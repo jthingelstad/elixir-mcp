@@ -34,10 +34,10 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       if (!account) return json(401, { error: "unauthenticated" });
       await ensureGatewayCards(db);
       const { rows } = await db.query(
-        `select gateway_id, status, fetch_points, card_name, card_icon,
+        `select gateway_id, status, card_name, card_icon,
                 (owner_account_id = $1) as mine
          from gateway where status <> 'revoked'
-         order by fetch_points desc, enrolled_at`,
+         order by enrolled_at`,
         [account.accountId],
       );
       // Card-derived identity (Jamie, 2026-09-06): the CARD is the
@@ -53,8 +53,6 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         ladder: rows.map((g) => ({
           name: g.card_name ?? "Collector",
           status: g.status,
-          points: Number(g.fetch_points),
-          credits: Math.floor(Number(g.fetch_points) / 10),
           card: g.card_name,
           card_icon: g.card_icon,
           mine: g.mine === true,
@@ -103,7 +101,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       if (!account) return json(401, { error: "unauthenticated" });
       const id = String(event.queryStringParameters?.id ?? "");
       const { rows: gw } = await db.query(
-        `select gateway_id, name, status, fetch_points, last_success_at,
+        `select gateway_id, name, status, last_success_at,
                 last_seen_sha, enrolled_at
          from gateway
          where gateway_id::text = $1 and owner_account_id = $2`,
@@ -144,7 +142,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
         `select g.gateway_id, g.name, g.card_name, g.card_icon, g.status, g.channel,
                 g.owner_account_id, g.static_ip, g.key_source,
                 g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
-                g.fetch_points, g.last_seen_sha,
+                g.last_seen_sha,
                 g.binary_sha256, g.release_key_fingerprints,
                 ${RELEASE_SIGNED_SQL},
                 (g.provision_env is not null
@@ -395,7 +393,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       await ensureGatewayCards(db);
       const { rows } = await db.query(
         `select g.gateway_id, g.name, g.status, g.channel, g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
-                g.fetch_points, g.card_name, g.card_icon,
+                g.card_name, g.card_icon,
                 (g.provision_env is not null
                  and g.provision_expires_at > now()) as provision_ready,
                 (select count(*)::int from api_receipt ar
@@ -404,13 +402,9 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
          from gateway g where g.owner_account_id = $1 order by g.enrolled_at`,
         [account.accountId],
       );
-      return json(200, {
-        gateways: rows.map((g) => ({
-          ...g,
-          fetch_points: Number(g.fetch_points),
-          credits: Math.floor(Number(g.fetch_points) / 10),
-        })),
-      });
+      // Points and credits retired with the points economy (#539): a
+      // collector earns its operator the Family tier while it is active.
+      return json(200, { gateways: rows });
     },
 
     "POST /api/admin/gateways": async (db, event, body) => {

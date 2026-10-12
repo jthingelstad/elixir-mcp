@@ -105,10 +105,10 @@ at a cabin. What makes the fleet interesting:
   publicly only by that card name; machine labels and IPs stay private. The console's [Status](/console/status/service) page shows
   each card's heartbeat and hourly fetch rate, and `/api/public/status`
   publishes the same fleet without a session.
-- **Credits.** A fetch that added something new to the record earns a
-  point (a fetch that found nothing new earns none), and points convert to
-  the operator's own daily tool-call quota at 10:1 (capped at 4× the tier
-  base). Running a collector literally buys your agent more questions.
+- **The Family tier.** An operator whose collector is active holds the
+  Family tier while it stays active; there are no points, credits or bonus
+  slots, and more collectors never buy more of the rate budget. See
+  [Roles and tiers](/docs/roles#upgrades).
 - **Zero trust, zero AWS.** A collector holds exactly two secrets: its
   operator's own IP-bound Clash Royale key, and a bearer token we
   issue. It speaks three HTTPS routes (config / lease / submit) —

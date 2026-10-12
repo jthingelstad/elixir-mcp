@@ -375,6 +375,15 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.tier_census) {
+    const { tierCensusOp } = await import("./ops-tier-census.mjs");
+    const result = await tierCensusOp(
+      process.env.DATABASE_URL,
+      event.tier_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.account_role) {
     const result = await accountRoleOp(
       process.env.DATABASE_URL,

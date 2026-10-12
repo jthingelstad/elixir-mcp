@@ -347,7 +347,7 @@ export async function handleMcpMessage(message, context) {
           `Daily tool-call quota reached (${quota.max} per day). It resets at midnight UTC.`,
           {
             code: "quota_exceeded",
-            hint: "Recorded-data reads are bounded only by this daily budget; elixir_docs({ page: 'limits' }) has the ladder, and running a collector earns credits.",
+            hint: "Recorded-data reads are bounded only by this daily budget; elixir_docs({ page: 'limits' }) has the ladder; leading a clan you track or running a collector raises your tier.",
           },
         ),
       };

@@ -8,7 +8,7 @@ navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."
 console: ["Your budget and what spent it", "/console/account/usage", "Console ▸ Usage"]
-reviewed: "2026-10-08 against contract 11.5.1 and JSON API 3.1.0"
+reviewed: "2026-10-12 collector credits and bonus slots retired, the upgrade request removed; 2026-10-08 against contract 11.5.1 and JSON API 3.1.0"
 ---
 
 # Limits
@@ -30,12 +30,12 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 |---|---|---|---|---|
 | MCP calls per hour | every credential on the door, keyed by the **principal** that made the call: a person or an integration its own account, and each agent its own bucket at its owner's tier rate, so one busy agent cannot refuse its owner or its sibling agents (the daily quotas below stay the owner's) | `mcp#<principal>`, or `mcp#token#<key>` for a key with its own ceiling | 300 (per-token override possible) | HTTP 429 in the standard error envelope, `error.code` `quota_exceeded`, naming the ceiling that applied, with `meta.request_id` and a `Retry-After` giving the seconds left in the hourly window |
 | Explorer calls per hour | your own reads on the website: the Console's Explore page and Ladder | the signed-in person's bucket above, shared with your own MCP clients | 300 | HTTP 429 `{"error":"rate_limited"}` |
-| Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` + collector credits (one per 10 collector points, a point being a fetch that added to the record), capped at 4× base; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
+| Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` (the tier read now) or the account override; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
 | Explorer calls per day | the Console's Explore page and Ladder | none: your own reads on Elixir's website spend no daily tool-call quota, and neither do Elixir Clan's reads or `/api/v1` | no daily ceiling; each read is still in the call log, and Usage counts the Console's and Ladder's reads apart from the budget | never refused for the day; the hourly bucket above still applies |
 | Live fetches per day | `live_fetch`, and `live: true` on {{ tools.liveFlagNames }}; every agent shares its owner's lane | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> tier, shared with your owner's other agents)." |
 | Live fetches, fleet-wide | every new live read (the live lane, a JSON API profile refresh, a card first seen in a deck) | the one global bucket the scheduler plans from | one token per new live read, from the same bucket scheduled collection spends; it accrues at the fleet's rate (1 request per second by default), settles at each scheduler tick, and banks at most 300 seconds' worth | nothing is queued and nothing is charged against your own quota: `live_status` `pending` with `retry_after_s` at the next scheduler tick and a note saying the budget had no room; on `/api/v1` HTTP 429 `rate_limited` with `Retry-After` |
-| Player slots | `elixir_track_player`, `POST /api/claims` | live count across you and your active agents | 50 (member to partner), +2 with an active collector below partner; override `max_player_recordings` | MCP: `quota_exceeded` "Tracked players are capped at N for the <role> tier." Web: HTTP 429 same message |
-| Clan slots, activity | `elixir_track_clan`, `POST /api/me/clans` | live count per scope | 1 / 1 / 3 / 10, +1 with an active collector below partner | `not_entitled` "The <role> tier has no activity-scope clan slots" or `quota_exceeded` "Your activity-scope clan slots are full (N for the <role> tier)." Web: HTTP 429 |
+| Player slots | `elixir_track_player`, `POST /api/claims` | live count across you and your active agents | 50 (member to partner); override `max_player_recordings`. A tier lost leaves what you track in place; only the next add is refused | MCP: `quota_exceeded` "Tracked players are capped at N for the <role> tier." Web: HTTP 429 same message |
+| Clan slots, activity | `elixir_track_clan`, `POST /api/me/clans` | live count per scope | 1 / 1 / 3 / 10 | `not_entitled` "The <role> tier has no activity-scope clan slots" or `quota_exceeded` "Your activity-scope clan slots are full (N for the <role> tier)." Web: HTTP 429 |
 | Clan slots, comprehensive | same | same | 0 / 1 / 3 / 5 | same wording with `comprehensive` |
 | Agents | `POST /api/me/agents` | live count of active agents | 3 / 5 / 10 / 25 | HTTP 400 `{"error":"not_entitled","reason":"agent_limit","limit":N,"role":"…"}` |
 | OAuth client registration | `POST /oauth/register` | `dcr#<ip>`, `dcr#global` | 20 per hour per address; 5,000 per day in total | HTTP 429 `{"error":"temporarily_unavailable"}` |
@@ -43,7 +43,6 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with OAuth consent | HTTP 200 with `limited: true` and a message saying the limit was reached; no mail is sent |
 | Sign-in code attempts | code verification | per pending code | 5, then the code is dead | HTTP 400 `{"error":"invalid_or_expired","reason":"attempts_exhausted"}` (console); the OAuth page says "Too many attempts on that code" |
 | Legacy access requests | `POST /api/request-access` | `reqaccess#<ip>` | 5 per hour | HTTP 429 `{"error":"rate_limited"}` |
-| Role-upgrade requests | `POST /api/me/role-request` | pending state | one pending at a time | HTTP 409 |
 | Verification starts | `POST /api/me/verify` | `verify#<account>`, `verify-tag#<tag>` | 5 per hour per account; 5 per hour per tag | HTTP 429 `{"error":"rate_limited","message":"At most 5 verification starts an hour."}` |
 | Verification live reads | an open challenge's battle-log checks | `verify-read#<tag>`, the current clock hour and the 23 before it | 120, whoever's challenges asked; removing and adding the player again does not reset it | none: the challenge stays open and the check waits for the player's regular recording |
 | First reads of added players | the one live read of a profile when you add a player (`elixir_track_player`, `POST /api/claims`); you and your agents share it | `firstread#<account>`, UTC date | one per player slot a day (your slot ceiling above); owner/admin unlimited; a tag read or queued already costs nothing | none: the player is added and recorded, and its first read comes with the scheduler's next round instead of within minutes (`first_read: false`) |
@@ -75,8 +74,9 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
            "resets_at": "{{ build.nextResetAt }}" }
 ```
 
-`max` and `remaining` are `null` when unlimited. Collector credits are already
-in `calls.max`. The balance is described after the call, so a live fetch the
+`max` and `remaining` are `null` when unlimited; `calls.max` is your
+tier's daily calls (collectors add no credits). The balance is described
+after the call, so a live fetch the
 call made is already counted. Usage shows the same numbers with the
 agents' share broken out.
 

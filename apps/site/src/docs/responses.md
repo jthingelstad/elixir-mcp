@@ -91,8 +91,7 @@ Every tool call costs one call; `live_fetch`, and `live: true` on
 read is queued, never for a read already in hand or for the follow-up call
 that finds it landed. `max` and `remaining` are `null`
 when the budget is unlimited (owner and admin). `resets_at` is the next UTC
-midnight, when both counters roll. Collector credits are already included in
-`calls.max`. An agent spends its owner's call budget and its owner's live
+midnight, when both counters roll. An agent spends its owner's call budget and its owner's live
 lane, so every agent on one account reads the same balances. The hourly
 rate limit is the exception: each agent has its own hour (see
 [Limits](/docs/limits#the-table)).
