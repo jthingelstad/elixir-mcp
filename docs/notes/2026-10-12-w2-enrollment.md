@@ -56,7 +56,9 @@ DECISIONS, "Zero-trust collectors, open enrollment" [Jamie, 2026-09-06,
    per gateway, so unbounded raises would multiply them. A raise is
    refused (409 `unproven_collector`) while the account holds a
    collector on `probation`, or a `draining` one with no
-   `last_success_at`; a revoke or an admitted fetch frees it. Proven
+   `last_success_at`; a revoke or an admitted fetch frees it. The check
+   and the insert are one transaction under an advisory lock on the
+   account, so concurrent raises cannot all pass (Codex's second finding). Proven
    collectors never count, which keeps "any account can raise any
    number" (2026-09-11) one proof at a time. The owner is exempt.
 7. **What about a raise that never runs?** Unchanged rule: a `probation`
