@@ -19,7 +19,10 @@ VPC, S3 (payload archive, outbox, web), CloudFront in front of one origin.
   gateway endpoint; S3 notifies SQS, which holds retries and the
   dead-letter queue. The timeline's Discord lines have a queue of their own
   (batch 1), so a busy channel never delays sign-in mail. A collector
-  admission wakes the timeline sync the same way (`timeline-sync/`).
+  admission wakes the timeline sync the same way (`timeline-sync/`), and
+  the relay's receipts for the Discord quality ledger come back to it on
+  `discord-receipt/`. Raw editor runs are `discord-runs/` in the archive
+  bucket, expired at 30 days by its lifecycle.
 - **Read budgets:** each function's `statement_timeout` (PGOPTIONS) sits
   just under its Lambda timeout. Migrate, jobs and scheduler run at
   reserved concurrency 1, so never run a backfill and a deploy together.

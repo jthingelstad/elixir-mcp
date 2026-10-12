@@ -59,7 +59,10 @@ or workflow of its own.
   relay claims each post or edit before calling Discord, a post whose
   outcome is unknown is never made again, and nothing logs the webhook's
   address. `share` runs inside the clan's lock after each request and
-  after the morning run.
+  after the morning run. Each post and edit, and what Discord answered,
+  is a row in the Discord quality ledger (`quality` dep,
+  `@elixir-mcp/syndication/quality`; the delivery history carries its
+  `ledger_id`).
 - **The clan's activity in Discord** (Social ▸ Discord, its own page in
   the rail) is the
   timeline cross-post's pipeline, not Clan's bridges: the connection and
@@ -72,7 +75,11 @@ or workflow of its own.
   three rounds a run on the `timeline-editor/` queue): the model is told
   the record (`clan-engine/context.mjs`, the same builder as the drafts),
   and the engine's checks decide what is posted. Its model calls run
-  outside the sync's transaction, under the clan's session lock.
+  outside the sync's transaction, under the clan's session lock. Each
+  run is a `discord_run` row and its raw record (context, stories,
+  every round's answer and lookups, the checks) an archive object under
+  `discord-runs/` for 30 days: anything added to the editor's request
+  lands there too, never a key or a webhook.
 - **`ClanInternal`** (stack parameter, `CLAN_INTERNAL`) is the feature
   switch. Turning it off disables Clan's API and morning run; it never
   resumes another runtime.

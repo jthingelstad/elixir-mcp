@@ -16,8 +16,9 @@
 --     timeline items or the Action, by id and kind), how it was written
 --     (line, code or model), the text as handed to the relay, and when.
 --     The relay's answer (Discord's status and words) arrives later as a
---     receipt and fills outcome*, and the one read-back a day on fills
---     checked_at, present, reactions and thread. Discord's message ids
+--     receipt and fills outcome*; checked_at, present, reactions and
+--     thread are what a read of the message found (an edit that found
+--     it deleted fills present already). Discord's message ids
 --     stay with the relay (0213), except Actions', which Clan's own
 --     ledger already holds.
 --   discord_run: one row per run of a clan's model as the activity
@@ -29,8 +30,7 @@
 -- Not the record: no game fact lives here, and both tables are kept 90
 -- days (the jobs Lambda's hourly sweep deletes older rows), as the
 -- privacy and limits pages say. Never MCP, /api/v1 or a public tool;
--- read by the owner or the clan's leaders for their own posts (ratings)
--- and by Elixir's operators (Admin, the {discord_review} op).
+-- Elixir's operators read it to judge and fix the posts' quality.
 -- Locks: new tables only.
 
 create table discord_post (

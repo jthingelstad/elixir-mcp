@@ -135,7 +135,16 @@ failure, and never delete what you have not read.
   `elixir-mcp-timeline-discord-dlq` (alarm
   `elixir-mcp-dlq-timeline-discord`): its objects are the posts, and a
   send whose outcome is unknown is never made again, so read the relay's
-  log before any redrive.
+  log before any redrive. `discord-receipt/` runs the other way: the
+  relay's answers for the quality ledger (0222), read into `discord_post`
+  by `elixir-mcp-timeline-sync` and deleted (`discord_receipt` in its
+  log, `discord_receipt_bad` for one it could not read). They share the
+  timeline-sync DLQ, and a redrive is safe: an answer never overwrites
+  another. A ledger write that fails is logged `discord_quality_failed`
+  and never stops a delivery; the relay's `timeline_discord_receipt_failed`
+  and the sync's `clan_activity_capture_failed` (a raw editor run not
+  written to the archive's `discord-runs/`) leave a row without its
+  answer or its raw run, nothing more.
 - **Owner notifications** (`owner_notify`) are best-effort by design
   (2026-09-09): one attempt and a log line, never a dead letter. What
   they announce is durable in the database.
