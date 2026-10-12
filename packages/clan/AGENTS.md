@@ -32,7 +32,10 @@ or workflow of its own.
   the roster read within the hour (`src/role-freshness.mjs`).
 - **Private Clan state never reaches MCP or public tools.** The one
   exception is `clans_context`, through `@elixir-mcp/auth/clan-context`;
-  `services/web-api/test/clan-boundary.test.mjs` pins the boundary.
+  `services/web-api/test/clan-boundary.test.mjs` pins the boundary. A
+  person's own agent reading that person's own Clan view (#535) is
+  decided in principle and designed, not built:
+  `docs/notes/2026-10-12-w2-agent-clan-seam.md`.
 - **Facts versus judgments.** Game facts come from the record; Clan's own
   results that other apps read (`award_standing`, clan facts) are attested
   facts written through `@elixir-mcp/record/attested-facts`, labelled and
