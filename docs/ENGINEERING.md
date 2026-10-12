@@ -383,7 +383,10 @@ outbox bucket (`email/`, `clan-model/`, `clan-discord/`,
 which holds retries and the dead-letter queue. The collector wakes the
 timeline sync the same way (`timeline-sync/`, held a minute so a burst is
 one sync). The timeline's Discord lines ride a queue of their own at batch
-size 1, so a busy channel never holds up sign-in mail. Metrics ride the EMF log line; a custom metric exists
+size 1, so a busy channel never holds up sign-in mail. The relay answers
+back the same way: its receipts for the Discord quality ledger
+(`discord-receipt/`) wake the timeline sync, which reads them into the
+database. Metrics ride the EMF log line; a custom metric exists
 only to back an alarm.
 
 ## Services share through packages, never each other
@@ -403,7 +406,7 @@ imported by name.
 | `collector-door` | collectors' `config`, `lease`, `submit` and the release-signature state |
 | `auth` | sessions, OAuth, tokens, integration accounts, the `clans_context` reader |
 | `mail`, `outbox` | rendering, the send ledger and archive, delivery; the S3 outbox |
-| `syndication` | the timeline cross-posted to Discord: the setting, the wake, the sync, its lines and the relay's worker |
+| `syndication` | the timeline cross-posted to Discord and a clan's activity channel: the setting, the wake, the sync, its lines, the relay's worker and the quality ledger (`quality.mjs`) |
 | `clan-engine`, `clan`, `clan-state`, `clan-web` | Elixir Clan (`packages/clan/AGENTS.md`) |
 | `docs` | the public docs as a corpus the MCP door serves |
 | `design`, `ui`, `client` | the web kit (`apps/web/AGENTS.md`) |

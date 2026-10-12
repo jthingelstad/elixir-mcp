@@ -74,10 +74,12 @@ record for 90 days: the account or clan it was for, a fingerprint of
 the webhook (never the webhook itself), which timeline items or Action
 it told, the text as sent, what Discord answered, how long it took, and
 why anything was skipped. When a clan's own model writes its activity
-channel, Elixir also keeps what each run was given, what it looked up
-and wrote, and what Elixir's checks refused, for 30 days. Elixir's
-operators read these records to judge the posts' quality and fix what
-is wrong; they are never published, and nothing in them is a game fact.
+channel, the record also holds each run's counts, about what it cost,
+and any text Elixir's checks refused, with the reason; what each run
+was given and looked up, and the model's full answers, are kept 30
+days. Elixir's operators read these records to judge the posts' quality
+and fix what is wrong; they are never published and are not part of
+the game record.
 
 **Collectors.** If you run a collector for the service, its card name,
 status and fetch counts are public and credited to your claimed player.
