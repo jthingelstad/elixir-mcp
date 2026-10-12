@@ -153,9 +153,9 @@ function restsOn(f) {
         : `in the clan before recording began, first seen ${joined.slice(0, 10)}`
       : "join not recorded",
     rise
-      ? `battle count rose by ${rise.counter_increase} between ${utc(rise.observed_from)} and ${utc(rise.observed_to)}${reads.last_read_at && reads.last_read_at > rise.observed_to ? `, unchanged to ${utc(reads.last_read_at)}` : ""}`
+      ? `battle count rose by ${rise.counter_increase} between ${utc(rise.observed_from)} and ${utc(rise.observed_to)}${reads.last_read_at && reads.last_read_at > rise.observed_to ? `, not since (last read ${utc(reads.last_read_at)})` : ""}`
       : reads.reads > 1
-        ? `battle count unchanged across ${reads.reads} reads from ${utc(reads.first_read_at)} to ${utc(reads.last_read_at)}`
+        ? `battle count did not rise across ${reads.reads} reads from ${utc(reads.first_read_at)} to ${utc(reads.last_read_at)}`
         : reads.reads === 1
           ? `battle count read once, ${utc(reads.first_read_at)}`
           : "battle count never read",
