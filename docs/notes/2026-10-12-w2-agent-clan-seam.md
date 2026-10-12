@@ -203,7 +203,7 @@ claimant may be another member.
 | Who | `player_tag`, `role` (the person's own) | the verified claim and `clan_membership.role`, as `auth/clan-context.mjs:87-92` |
 | Policy summary | `set`, `active`, `version`, `members`, `min_members`, `ranks_elder`, `removal`, `away`, `members_see_standing` | `policySummary`, service.mjs:1245-1259 |
 | Standing line (when active) | `version`, `goals`, `counted`, `ranks_elder`, `status` (a group, never a score), `evidence`, `next`, `minimums` {`set`, `met`, `passes`, `unknown`, `rule`, `window_weeks`}, `tenure_min_days`, and `inactivity` {`state` (`recommended` folded into `at_risk`), `days_idle`, `at_risk_days`, `judgment`, `activity_evidence`} when removal is on | `memberView`'s `clan`, service.mjs:1006-1036 |
-| Actions waiting for them | per open Action of a shown type: `number`, `type`, `label`, `subject_name`, `raised_at`, `url` (the Action in Clan); `count` is the length of that list, never Clan's rail count | `actionsView`'s `open`, :1164-1166, :1186-1188, filtered by `canAct` |
+| Actions waiting for them | per open Action of a shown type: `number` (null for an Action raised before numbering), `type`, `label`, `subject_name`, `raised_at`, `url` (the Action in Clan); `count` is the length of that list, never Clan's rail count | `actionsView`'s `open`, :1164-1166, :1186-1188, filtered by `canAct` |
 | Freshness | `evaluated_at` of the snapshot read, `read_at` | `verdicts#<clan>`, :938-947 |
 
 **Excluded.**
@@ -266,10 +266,19 @@ evaluates and never writes, as `policyContext` (service.mjs:1264) and
 the war-intent read do. It uses the snapshot only when its
 `policy_version` is the current policy's and the clan is not below the
 minimum, the test `actionsView` applies before reusing one
-(service.mjs:1149-1155). Otherwise (a policy saved or revised since the
-last evaluation, or none yet) `standing` is null with `reason:
-"not_evaluated"`, and the Actions list, which reads the ledger's open
-Actions and needs no snapshot, is still given. Clan's own `/me` evaluates live, so the agent's
+(service.mjs:1149-1155), and only when it holds the acting player's
+verdict (a member who joined since the last evaluation has none). The
+open Actions depend on the same evaluation: when the policy changes,
+`actionsView` re-evaluates and `reconcileCards` withdraws and raises
+Actions (service.mjs:613-654), so Actions read under an older snapshot
+may no longer be waiting. Otherwise (a policy saved or revised since the
+last evaluation, none yet, or no verdict for the player) both
+`standing` and `actions` are null with `reason: "not_evaluated"`; the
+policy summary is still given. An open Action raised before Actions
+were numbered has no number until Clan's own Actions page numbers it
+(`numberActions`, `packages/clan/src/manage/actions.mjs:111-122`, a
+write); the read never numbers one, so such an Action carries
+`number: null` and a `url` to Clan's Actions list. Clan's own `/me` evaluates live, so the agent's
 standing line can be up to a day older than the page; it carries
 `evaluated_at`. Both shape the line with the same pure engine
 functions; the build moves `memberView`'s `clan` block (:1006-1036)
@@ -338,8 +347,9 @@ with `additionalProperties: false`):
 ```
 
 `standing` is null with a `reason` when the policy is not active
-(`no_policy`, `too_few_members`) or no snapshot matches the current
-policy (`not_evaluated`). Refusals:
+(`no_policy`, `too_few_members`); `standing` and `actions` are both
+null with `not_evaluated` when no snapshot matches the current policy
+or holds the person's verdict. Refusals:
 `not_entitled` (no grant, unverified, not a member), as `clans_context`
 refuses today (`tools/clan-context.mjs:16-21`), and `no_subject` (no
 clan given and no primary clan), as the person's other tools do. The JSON API gains nothing: programs
@@ -373,8 +383,11 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
   Actions `count` equal to the items shown (a leader with an open
   removal gets the same count as without one), and no key outside the
   output schema. A person with two verified players in the clan reads
-  as the one `clansOf` picks. A snapshot from an older policy version
-  gives `standing: null`, `reason: "not_evaluated"`. The read runs inside
+  as the one `clansOf` picks. A snapshot from an older policy version,
+  or one without the person's verdict, gives `standing: null`,
+  `actions: null`, `reason: "not_evaluated"`, even with an open Action
+  from the older version in the ledger; an unnumbered Action gives
+  `number: null`. The read runs inside
   `set transaction read only`, so it can never write.
 
 ## 6. Effort, risk, and what it waits on
@@ -414,6 +427,8 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
   Action.
 - [engineering] Only the three named things: no hold, away or awards.
 - [engineering] The read projects the saved snapshot only when its
-  policy version is current; it never evaluates or writes.
+  policy version is current and it holds the person's verdict, for both
+  the standing line and the Actions; it never evaluates, numbers or
+  writes.
 - [engineering] A new person-only tool, `clans_my_view`, not a wider
   `clans_context`.
