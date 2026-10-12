@@ -104,7 +104,7 @@ describe("actions", () => {
       key: "rests_on",
       label: "Rests on",
       value:
-        "Last recorded battle 2026-08-23 20:00 UTC, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, unchanged to 2026-09-12 20:00 UTC",
+        "Last recorded battle 2026-08-23 20:00 UTC, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, not since (last read 2026-09-12 20:00 UTC)",
       window: "record",
       fidelity: "daily",
       last_battle: {
@@ -140,7 +140,7 @@ describe("actions", () => {
     );
     const row = screen.getByText("Rests on").parentElement;
     expect(row.textContent).toBe(
-      "Rests onLast recorded battle 2026-08-23 15:00 CDT, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 15:00 CDT and 2026-08-23 15:00 CDT, unchanged to 2026-09-12 15:00 CDT (record)",
+      "Rests onLast recorded battle 2026-08-23 15:00 CDT, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 15:00 CDT and 2026-08-23 15:00 CDT, not since (last read 2026-09-12 15:00 CDT) (record)",
     );
     expect(row.querySelectorAll("time")).toHaveLength(5);
     expect(row.textContent).not.toContain("Ranked1v1");

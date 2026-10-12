@@ -163,7 +163,7 @@ test("an eligible removal card says what it rests on and what it cannot see (#53
   assert.equal(row.label, "Rests on");
   assert.equal(
     row.value,
-    "Last recorded battle 2026-08-23 20:00 UTC, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, unchanged to 2026-09-12 20:00 UTC",
+    "Last recorded battle 2026-08-23 20:00 UTC, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 20:00 UTC and 2026-08-23 20:00 UTC, not since (last read 2026-09-12 20:00 UTC)",
   );
   assert.deepEqual(row.last_battle, {
     at: "2026-08-23T20:00:00.000Z",
@@ -202,7 +202,7 @@ test("a removal with no recorded battle says so, and runs from the join", () => 
   const row = cardFacts(m, policy, "removal").at(-1);
   assert.equal(
     row.value,
-    "No battle recorded; joined 2026-08-13; battle count unchanged across 2 reads from 2026-08-12 20:00 UTC to 2026-09-12 20:00 UTC",
+    "No battle recorded; joined 2026-08-13; battle count did not rise across 2 reads from 2026-08-12 20:00 UTC to 2026-09-12 20:00 UTC",
   );
   assert.equal(row.last_battle, null);
   assert.equal(row.fidelity, "unknown");
@@ -225,6 +225,28 @@ test("a removal with no recorded battle says so, and runs from the join", () => 
       "removal",
     ).at(-1).value,
     "Last recorded battle 2026-08-01 09:30 UTC, Some_New_Mode; in the clan before recording began, first seen 2026-08-13; battle count never read",
+  );
+  // A later read lower than an earlier one is not called unchanged: only
+  // a rise is play, so the row says the count did not rise (Codex, #551).
+  never.activity_evidence = {
+    current_member: true,
+    observations: [
+      { profile_observed_at: "2026-09-01T00:00:00.000Z", battle_count: 5 },
+      { profile_observed_at: "2026-09-10T00:00:00.000Z", battle_count: 3 },
+    ],
+  };
+  const lower = evaluate({
+    participation: participation([...others, never]),
+    policy,
+    now: NOW,
+  });
+  assert.match(
+    cardFacts(
+      lower.members.find((x) => x.player_tag === "#N"),
+      policy,
+      "removal",
+    ).at(-1).value,
+    /; battle count did not rise across 2 reads from 2026-09-01 00:00 UTC to 2026-09-10 00:00 UTC$/,
   );
 });
 

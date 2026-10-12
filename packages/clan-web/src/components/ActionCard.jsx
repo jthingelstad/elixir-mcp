@@ -77,12 +77,12 @@ function RestsOn({ fact, zone }) {
           battle count rose by {rise.counter_increase} between{" "}
           {at(rise.observed_from)} and {at(rise.observed_to)}
           {counter.last_read_at && counter.last_read_at > rise.observed_to ? (
-            <>, unchanged to {at(counter.last_read_at)}</>
+            <>, not since (last read {at(counter.last_read_at)})</>
           ) : null}
         </>
       ) : counter.reads > 1 ? (
         <>
-          battle count unchanged across {counter.reads} reads from{" "}
+          battle count did not rise across {counter.reads} reads from{" "}
           {at(counter.first_read_at)} to {at(counter.last_read_at)}
         </>
       ) : counter.reads === 1 ? (
