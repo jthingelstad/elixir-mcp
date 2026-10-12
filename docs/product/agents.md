@@ -1,6 +1,6 @@
 # MCP and agents
 
-*Draft. Not yet ratified.*
+*Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
 ## What it is for
 
@@ -45,7 +45,7 @@ an extension of the recorder, not a requirement. [Jamie, VISION, about]
    the record; recording is a separate ask. [Jamie, 2026-10-08]
 6. **A person's agent sees what the person sees.** In Clan too: the
    Actions waiting for them, their own standing, the policy; never
-   another member's clock, and it never decides. `[proposed]` A clan
+   another member's clock, and it never decides. A clan
    agent sees the clan's attested facts and war intent, as today.
    [Jamie, 2026-10-04, 2026-10-12]
 7. **Majors track domain shifts.** An agent reasons from the current

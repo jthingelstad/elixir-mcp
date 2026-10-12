@@ -1,6 +1,6 @@
 # Collectors and operators
 
-*Draft. Not yet ratified.*
+*Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
 ## What it is for
 
