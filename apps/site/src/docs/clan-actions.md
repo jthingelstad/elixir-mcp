@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-12; no removal Action is raised while removal is not enforceable (#426); 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
+reviewed: "2026-10-12; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
 ---
 
 # Actions
@@ -52,7 +52,7 @@ against current profile observations.
 |---|---|---|
 | Promote to Elder | the leader and co-leaders | clan chat |
 | Demote to Member | the leader and co-leaders | clan chat |
-| Remove from the clan (not raised: [not yet enforceable](#the-inactivity-clock)) | the leader and co-leaders | a line for clan chat |
+| Remove from the clan ([the inactivity clock](#the-inactivity-clock)) | the leader and co-leaders | a line for clan chat |
 | Departure: kicked, left, or ignore? | the leader and co-leaders | none |
 | Welcome a newcomer | elders, co-leaders and the leader | a line for clan chat |
 | Going to be away? | the quiet member alone | none |
@@ -252,49 +252,31 @@ an existing object still fails without starting another model call.
 
 ## The inactivity clock
 
-When the clan turns on **Suggest removals**, recorded battles and profile
-counter increases inform a clock: **getting quiet**, then **at risk**.
-**Removal is not yet enforceable** ([the policy](/docs/clan-policy#removal-is-not-yet-enforceable)):
-no removal Action is raised, whatever the clock reads, until Elixir
-records a source that can prove absence in every mode. The clock is
-inactivity triage on Board for the leader and co-leaders.
+When the clan turns on **Suggest removals**, each member has a clock: the
+days since their last battle in Elixir's record, or since they joined if
+they have not battled since. A rise in the battle count on their profile
+between two reads is play too, so it can only move the clock forward.
+Logging in and collecting rewards are not battles. The clock passes
+**getting quiet**, then **at risk**, then the policy's **removal day**,
+each a number of days without a battle. On the removal day (plus any
+grace for meeting the minimums) the leader and co-leaders get a
+**Remove from the clan** Action; a member at risk is asked **Going to be
+away?** first, when the policy asks quiet members.
 The leader, co-leaders, members on a hold and, unless the clan allows
-it, Elders are shown as **Protected** on Board and are never put up for removal. When the
-record cannot establish the required quiet window, removal eligibility holds.
+it, Elders are shown as **Protected** on Board and are never put up for
+removal.
 
-A positive lifetime battle-counter increase proves play between two profile
-observations, even if no battle details were captured. It does not supply an
-exact battle time or mode. The latest possible play in that bracket protects
-the member; the age of the last captured battle is historical evidence, not
-"battle-free days."
+The clock waits only when it cannot be read: Elixir could not read the
+member's activity just now, or the player is no longer in the clan. The
+next run reads it again. Missing days of profile reads do not hold it.
 
-A removal needs proof of no own-player battle activity in **every mode** over
-the policy window. Logging in and collecting rewards do not count as battle
-activity. The current counters and bounded battle log do not establish that
-absence, so the clock stops at **Evidence held**, even when evaluation
-is exactly at the latest profile observation. Flat counters never override it.
-
-Comparable profile counter observations remain useful evidence, with their
-scope stated. Roster-only daily rows are not profile observations; missing days
-remain gaps and never establish quiet time across them. Missing baselines,
-null or decreasing counters, ambiguous timestamps,
-failed current reads and time after the latest profile observation hold it.
-There is no implicit freshness allowance for that unmeasured tail; in normal
-operation this also holds removals. A proposed freshness allowance cannot
-replace the missing all-mode proof. Successful admitted unchanged profile
-reads advance the existing daily profile stamp without earning a new fact for
-that timestamp-only update. The counter only describes the play it counts,
-never proof that every game mode was observed. Captured activity, positive
-counter intervals and optional away questions remain visible; an away question
-does not grant removal permission.
-
-A removal Action raised before this rule is withdrawn at the clan's next
-evaluation, with the system reason "Removal is not enforceable" in its log;
-its number, original evidence, log and earlier leader decisions remain
-recorded. Until then, every removal list/detail read checks current
-evidence independently of the saved evaluation: the Action shows **Removal
-is not enforceable** and withholds removal copy, model drafting, completion
-and reopening. Leadership can still explicitly Decline it.
+A removal Action is withdrawn at the next evaluation when the member
+plays, with the reason in its log; its number, evidence and earlier
+decisions stay recorded. Every time a removal is opened, drafted,
+completed or reopened, Elixir Clan checks the current record again. A
+removal that no longer qualifies says so, and withholds its copy, model
+drafting, completion and reopening; leadership can still explicitly
+Decline it.
 
 Board distinguishes **Protected**, **Not currently a removal candidate**,
 **Evidence held** and **Eligible**. Protected roles and recent recorded play

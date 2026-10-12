@@ -201,7 +201,7 @@ export function Scout({ clan }) {
                 </span>{" "}
                 <span className="page-head__note">
                   {a.inactivity.days_idle} {noun(a.inactivity.days_idle, "day")}{" "}
-                  since the last recorded battle. {a.inactivity.reason}
+                  since the last recorded battle.
                 </span>
               </div>
             ) : null}

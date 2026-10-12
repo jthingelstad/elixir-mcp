@@ -140,9 +140,9 @@ export function policyFromGoals(goals = [], posture = "standard") {
   Object.assign(
     v,
     by(posture, {
-      relaxed: { watch_days: 7, at_risk_days: 14, confirm_days: 7 },
-      standard: { watch_days: 3, at_risk_days: 7, confirm_days: 7 },
-      strict: { watch_days: 2, at_risk_days: 4, confirm_days: 3 },
+      relaxed: { watch_days: 7, at_risk_days: 14, confirm_days: 21 },
+      standard: { watch_days: 3, at_risk_days: 7, confirm_days: 14 },
+      strict: { watch_days: 2, at_risk_days: 4, confirm_days: 7 },
     }),
   );
   v.contribution_grace_max_days = by(posture, {

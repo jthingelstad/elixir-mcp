@@ -11,12 +11,7 @@ import {
   reconcileCards,
   replayMachines,
   reviewBoundaries,
-  unenforceableRemovals,
 } from "../src/evaluate.mjs";
-import {
-  ALL_MODE_COVERAGE_CONTRACT,
-  REMOVAL_NOT_ENFORCEABLE,
-} from "../src/inactivity.mjs";
 import { member, participation, NOW, EXAMPLE_POLICY } from "./fixture.mjs";
 
 const policy = EXAMPLE_POLICY;
@@ -664,7 +659,7 @@ test("a declined card blocks re-nomination until the cooldown lapses; a complete
   });
   assert.equal(
     v2.members.find((m) => m.player_tag === "#X").actionable.removal,
-    false,
+    true,
   );
   // Completed three days ago: past the 48-hour outcome window.
   const done = [{ ...declined[0], status: "done" }];
@@ -676,7 +671,7 @@ test("a declined card blocks re-nomination until the cooldown lapses; a complete
   });
   assert.equal(
     v3.members.find((m) => m.player_tag === "#X").actionable.removal,
-    false,
+    true,
   );
   // Completed an hour ago and the member still on the roster (the kick
   // not polled yet): no new removal until the window passes (2026-09-25).
@@ -695,7 +690,7 @@ test("a declined card blocks re-nomination until the cooldown lapses; a complete
   const r4 = v4.members.find((m) => m.player_tag === "#X");
   assert.equal(r4.actionable.removal, false, "waits for the record");
   assert.ok(r4.removal.cooldown_until);
-  // A flagged outcome does not supply the missing all-mode absence proof.
+  // One the record never confirmed (flagged) may be raised again.
   const v5 = evaluate({
     participation: participation([...others, idle]),
     policy,
@@ -704,11 +699,11 @@ test("a declined card blocks re-nomination until the cooldown lapses; a complete
   });
   assert.equal(
     v5.members.find((m) => m.player_tag === "#X").actionable.removal,
-    false,
+    true,
   );
 });
 
-test("reconcile: an open action about someone no longer in the clan is withdrawn; other kinds are left to their own rules (removal to unenforceableRemovals, #426)", () => {
+test("reconcile: an open action about someone no longer in the clan is withdrawn; other kinds are left to their own rules", () => {
   const others = Array.from({ length: 11 }, (_, i) => member(`#O${i}`));
   const v = evaluate({
     participation: participation(others),
@@ -722,7 +717,10 @@ test("reconcile: an open action about someone no longer in the clan is withdrawn
   ]);
   assert.deepEqual(
     withdraw.map((w) => [w.card.card_id, w.reason]),
-    [["gone2", "They are no longer in the clan."]],
+    [
+      ["gone", "They are no longer in the clan."],
+      ["gone2", "They are no longer in the clan."],
+    ],
   );
 });
 
@@ -741,32 +739,23 @@ test("reconcile: raise for actionable verdicts without an open card, withdraw op
     policy,
     now: NOW,
   });
-  const open = [
-    { card_id: "c1", player_tag: "#BACK", type: "removal", status: "proposed" },
-    { card_id: "c2", player_tag: "#IDLE", type: "removal", status: "proposed" },
-    { card_id: "c3", player_tag: "#IDLE", type: "removal", status: "done" },
-  ];
-  const { raise, withdraw } = reconcileCards(v, open);
+  const { raise, withdraw } = reconcileCards(v, [
+    { card_id: "c1", player_tag: "#BACK", type: "removal" },
+    { card_id: "c2", player_tag: "#IDLE", type: "removal" },
+  ]);
   assert.deepEqual(
     raise.filter((r) => r.type === "removal"),
     [],
   );
-  // Removal is not a reconciled kind: every open one is withdrawn with
-  // the one reason, whatever the member did; a closed one is left alone.
-  assert.deepEqual(withdraw, []);
-  assert.deepEqual(
-    unenforceableRemovals(open).map((w) => [w.card.card_id, w.reason]),
-    [
-      ["c1", REMOVAL_NOT_ENFORCEABLE],
-      ["c2", REMOVAL_NOT_ENFORCEABLE],
-    ],
-  );
+  assert.equal(withdraw.length, 1);
+  assert.equal(withdraw[0].card.card_id, "c1");
+  assert.match(withdraw[0].reason, /played/);
   const fresh = reconcileCards(v, []);
   assert.deepEqual(
     fresh.raise
       .filter((r) => r.type === "removal")
       .map((r) => `${r.player_tag}:${r.type}`),
-    [],
+    ["#IDLE:removal"],
   );
 });
 
@@ -828,7 +817,7 @@ test("a clan that does not count Clan Wars is reviewed at the end of each whole 
   );
 });
 
-test("including Elders does not bypass all-mode proof; role protection remains", () => {
+test("including Elders makes an idle Elder removable; leaders stay protected", () => {
   const others = Array.from({ length: 10 }, (_, i) => member(`#O${i}`));
   const elder = member("#E", {
     role: "elder",
@@ -850,8 +839,8 @@ test("including Elders does not bypass all-mode proof; role protection remains",
     now: NOW,
   });
   assert.equal(find(included, "#E").removal.state, "recommended");
-  assert.equal(find(included, "#E").actionable.removal, false);
-  assert.equal(find(included, "#E").removal.triage.status, "evidence_held");
+  assert.equal(find(included, "#E").actionable.removal, true);
+  assert.equal(find(included, "#E").removal.triage.status, "eligible");
   assert.equal(find(shielded, "#E").removal.triage.status, "protected");
   assert.equal(find(included, "#C").removal.shielded, "role");
 });
@@ -935,38 +924,4 @@ test("an unrecorded battle log holds every judgment that could card its construc
     demotion: false,
     removal: false,
   });
-});
-
-test("#426: removal is never actionable until a named all-mode coverage contract exists", () => {
-  // Naming a contract is Jamie's product call (#426). This test is the
-  // tripwire: whoever names one rewrites it with the proof the contract
-  // brings, never by flipping the constant alone.
-  assert.equal(ALL_MODE_COVERAGE_CONTRACT, null);
-  const others = Array.from({ length: 11 }, (_, i) => member(`#O${i}`));
-  // The strongest case the record can make today: no battle in 60 days,
-  // the profile counter flat and measured to now, an empty roster cap,
-  // no hold, no earlier decision, every removal switch on.
-  const idle = member("#IDLE", {
-    lastBattleDaysAgo: 60,
-    war: [0, 0, 0, 0, 0, 0],
-  });
-  for (const extra of [
-    {},
-    { removal_includes_elders: true, confirm_days: 0, at_risk_days: 1 },
-  ]) {
-    const v = evaluate({
-      participation: participation([...others, idle]),
-      policy: { ...policy, removal_enabled: true, ...extra },
-      now: NOW,
-    });
-    const r = v.members.find((m) => m.player_tag === "#IDLE");
-    assert.equal(r.removal.state, "recommended", "the clock still runs");
-    assert.equal(r.facts.activity_evidence.counter_window_measured, true);
-    assert.notEqual(r.judgment.removal, "ready");
-    for (const m of v.members) assert.equal(m.actionable.removal, false);
-    assert.deepEqual(
-      reconcileCards(v, []).raise.filter((x) => x.type === "removal"),
-      [],
-    );
-  }
 });

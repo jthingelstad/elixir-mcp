@@ -352,8 +352,8 @@ export function YouHere({ clan, navigate }) {
                     <div className="callout callout--warn">
                       <span>
                         {c.inactivity.judgment === "held"
-                          ? `Activity is uncertain. ${c.inactivity.activity_evidence?.reason ?? "Comparable observations do not cover the policy window."}`
-                          : `The observed activity clock is ${Math.floor(c.inactivity.days_idle)} days; this clan counts a member at risk from ${c.inactivity.at_risk_days}.`}
+                          ? `Your activity could not be read just now. ${c.inactivity.activity_evidence?.reason ?? ""}`.trim()
+                          : `${Math.floor(c.inactivity.days_idle)} days since your last battle; this clan counts a member at risk from ${c.inactivity.at_risk_days}.`}
                       </span>
                     </div>
                   ) : null}

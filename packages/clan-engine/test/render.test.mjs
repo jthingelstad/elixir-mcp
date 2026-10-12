@@ -18,14 +18,14 @@ const policy = EXAMPLE_POLICY;
 
 test("removal evidence explanations have one terminal period", () => {
   const p = participation([member("#QUIET", { lastBattleDaysAgo: 20 })]);
-  p.members[0].activity_evidence.observations.at(-1).battle_count = null;
+  p.members[0].activity_evidence = { unavailable: true, observations: [] };
   const v = evaluate({ participation: p, policy, now: NOW });
   const reasons = judgmentReasons(v.members[0], v.boundaries, policy);
   assert.ok(
     reasons.some(
       (r) =>
         r ===
-        "Removal held: Profile counters or observation times are not comparable.",
+        "Removal held: Elixir could not read the member's activity just now.",
     ),
   );
   assert.ok(reasons.every((r) => !r.endsWith("..")));
@@ -62,7 +62,7 @@ test("held and unknown judgments explain the missing evidence without changing t
     "Demotion held: war record incomplete in the review window.",
   ]);
   assert.deepEqual(reasons("#ANCHOR"), [
-    "Removal held: Absence of battle activity across every mode is not established.",
+    "Removal held: There is no recorded battle or join to start the clock from.",
   ]);
   const noReviews = evaluate({
     participation: participation([member("#NEW")], { war_weeks: [] }),
@@ -155,9 +155,9 @@ test("rationales name the policy clauses that fired", () => {
   });
   const m = v.members.find((x) => x.player_tag === "#X");
   const r = cardRationale("removal", m, policy, v);
-  assert.match(
+  assert.equal(
     r.headline,
-    /20.00 days with no recorded battle or profile counter increase/,
+    "20 days without a battle: at risk at 5, an action at 8.",
   );
   assert.deepEqual(r.clauses, ["at_risk_days", "confirm_days"]);
 });
@@ -225,11 +225,7 @@ test("how it works here is written from the policy, and leaves out what the clan
   );
   assert.match(
     text,
-    /Measured counter quiet for 5 days reaches the at-risk clock; 8 days is the removal threshold/,
-  );
-  assert.match(
-    text,
-    /cannot raise a removal Action without proof of no battle activity across every mode/,
+    /A member with no battle for 5 days is at risk; at 8 days without one the leaders decide on removal/,
   );
   assert.match(text, /Elders are not removed for inactivity/);
   assert.doesNotMatch(text, /percentile|median|margin|score|slot/i);

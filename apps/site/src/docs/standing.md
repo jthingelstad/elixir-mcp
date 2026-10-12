@@ -7,7 +7,7 @@ order: 3
 navTitle: "Standing"
 icon: chart-no-axes-column
 lede: "Standing is taking part in what your clan counts, compared across its members. Everyone sees how it works and where they stand; nobody below co-leader sees a removal or a clock."
-reviewed: "2026-10-12; removal not yet enforceable (#426); 2026-10-01 against contract 9.17.1"
+reviewed: "2026-10-12; inactivity runs from the battle log and raises removal Actions again; 2026-10-01 against contract 9.17.1"
 ---
 
 # Standing and the Elder band
@@ -15,10 +15,10 @@ reviewed: "2026-10-12; removal not yet enforceable (#426); 2026-10-01 against co
 A clan on Elixir Clan writes down what it counts, in its
 [policy](/docs/clan-policy), and **Standing** reads every member against
 it. It is participation, not skill: wins, win rates and trophies won are
-not weighed. Inactivity uses recorded battles and profile-counter observations;
-positive uncaptured play resets the possible-activity bound, and removal is
-not yet enforceable, so the clock is triage for leaders and never a removal
-Action ([Actions](/docs/clan-actions#the-inactivity-clock)). Standing appears once the clan has a policy and at least
+not weighed. Inactivity is the days since a member's last recorded battle
+(a rise in their profile's battle count counts as play), and a member past
+the policy's removal day becomes a removal Action for the leaders
+([Actions](/docs/clan-actions#the-inactivity-clock)). Standing appears once the clan has a policy and at least
 10 members.
 
 ## What a clan can count

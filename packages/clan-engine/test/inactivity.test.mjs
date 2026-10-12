@@ -1,173 +1,173 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { inactivityEvidence } from "../src/inactivity.mjs";
+import { inactivityEvidence, removalDay } from "../src/inactivity.mjs";
 import { evaluate } from "../src/evaluate.mjs";
 import { member, participation, NOW, EXAMPLE_POLICY } from "./fixture.mjs";
 
 const DAY = 86400_000;
+const ago = (days) => new Date(NOW.getTime() - days * DAY).toISOString();
 const row = (days, count) => ({
-  profile_observed_at: new Date(NOW.getTime() - days * DAY).toISOString(),
+  profile_observed_at: ago(days),
   battle_count: count,
 });
-const subject = () => ({
-  ...member("#SYNTHETIC", { lastBattleDaysAgo: 8.02, war: [0, 0, 0, 0, 0, 0] }),
-  activity_evidence: {
-    current_member: true,
-    observations: [
-      row(9, 100),
-      row(7, 101),
-      row(5, 102),
-      row(2, 102),
-      row(1, 103),
-      row(0.25, 103),
-    ],
-  },
-});
-
-test("three uncaptured increments reset the possible-activity bound and hold an eight-day removal", () => {
-  const m = subject();
-  const proof = inactivityEvidence(m, NOW);
-  assert.equal(proof.positive_intervals.length, 3);
-  assert.equal(proof.latest_activity_interval.no_battles_captured, true);
-  assert.equal(proof.days_since_possible_activity, 1);
-  assert.equal(proof.captured_battle_age_days, 8.02);
-  assert.equal(proof.unmeasured_tail_hours, 6);
-  assert.equal(proof.status, "held");
-  const v = evaluate({
+// No grace: a full roster earns none, so the removal day is the policy's.
+const POLICY = { ...EXAMPLE_POLICY, contribution_grace_max_days: 0 };
+const judge = (m, options = {}) =>
+  evaluate({
     participation: participation([m]),
-    policy: EXAMPLE_POLICY,
+    policy: POLICY,
     now: NOW,
+    ...options,
   }).members[0];
-  assert.equal(v.judgment.removal, "held");
-  assert.equal(v.actionable.removal, false);
-});
-
-test("a threshold-straddling increase cannot supply an exact last-play time", () => {
-  const m = subject();
-  m.activity_evidence.observations = [row(20, 100), row(7, 101), row(0, 101)];
-  const proof = inactivityEvidence(m, NOW);
-  assert.equal(proof.days_since_possible_activity, 7);
-  assert.equal(proof.counter_quiet_days, 7);
-  const v = evaluate({
-    participation: participation([m]),
-    policy: { ...EXAMPLE_POLICY, contribution_grace_max_days: 0 },
-    now: NOW,
-  }).members[0];
-  assert.equal(v.actionable.removal, false);
-});
-
-test("flat counters cannot qualify at the exact observation time or afterward without all-mode absence proof", () => {
-  const m = member("#SYNTHETIC", {
-    lastBattleDaysAgo: 20,
+const idle = (days, opts = {}) =>
+  member("#SYNTHETIC", {
+    lastBattleDaysAgo: days,
     war: [0, 0, 0, 0, 0, 0],
+    ...opts,
   });
-  const judge = () =>
+
+test("the clock runs from the last recorded battle, and the removal day raises the Action", () => {
+  assert.equal(removalDay(POLICY), POLICY.confirm_days);
+  for (const [days, state, actionable] of [
+    [1, "none", false],
+    [POLICY.watch_days, "watch", false],
+    [POLICY.at_risk_days, "at_risk", false],
+    [POLICY.confirm_days - 0.01, "at_risk", false],
+    [POLICY.confirm_days, "recommended", true],
+    [30, "recommended", true],
+  ]) {
+    const v = judge(idle(days));
+    assert.equal(v.facts.days_idle, days, `${days}`);
+    assert.equal(v.removal.state, state, `${days}`);
+    assert.equal(v.judgment.removal, "ready", `${days}`);
+    assert.equal(v.actionable.removal, actionable, `${days}`);
+  }
+  const past = judge(idle(20));
+  assert.equal(past.removal.triage.status, "eligible");
+  assert.equal(past.removal.removal_day, POLICY.confirm_days);
+});
+
+test("the removal day is a day count, never added to at risk, and never before it", () => {
+  // Jamie, 2026-10-12: at risk at 7, "10 being the absolute number".
+  const policy = { ...POLICY, at_risk_days: 7, confirm_days: 10 };
+  assert.equal(removalDay(policy), 10);
+  const at = (days) =>
     evaluate({
-      participation: participation([m]),
-      policy: EXAMPLE_POLICY,
+      participation: participation([idle(days)]),
+      policy,
       now: NOW,
     }).members[0];
-  assert.equal(judge().actionable.removal, false);
-  const exact = inactivityEvidence(m, NOW);
-  assert.equal(exact.unmeasured_tail_hours, 0);
-  assert.equal(exact.counter_quiet_days, 20);
-  assert.equal(exact.status, "held");
-  assert.match(exact.reason, /across every mode is not established/);
-  for (const elapsed of [1, 3600_000, 30 * 3600_000]) {
-    const at = new Date(NOW.getTime() + elapsed);
-    const later = evaluate({
-      participation: participation([m]),
-      policy: EXAMPLE_POLICY,
-      now: at,
-    }).members[0];
-    assert.equal(later.actionable.removal, false);
-    assert.equal(later.judgment.removal, "held");
-    assert.equal(later.removal.triage.status, "evidence_held");
-    assert.equal(later.facts.activity_evidence.counter_quiet_days, 20);
-  }
+  assert.equal(at(9.9).actionable.removal, false);
+  assert.equal(at(10).actionable.removal, true);
+  // A saved day before at risk is read as at risk.
+  assert.equal(removalDay({ at_risk_days: 7, confirm_days: 3 }), 7);
+  assert.equal(removalDay({ at_risk_days: 7, confirm_days: 3 }, 2), 9);
+});
+
+test("a rise in the profile's battle count is play: it moves the clock forward, never back", () => {
+  const m = idle(20);
+  m.activity_evidence.observations = [row(30, 100), row(6, 100), row(2, 103)];
+  const proof = inactivityEvidence(m, NOW);
+  assert.equal(proof.status, "ready");
+  assert.equal(proof.latest_activity_interval.counter_increase, 3);
+  assert.equal(proof.latest_activity_interval.no_battles_captured, true);
+  assert.equal(proof.days_since_possible_activity, 2);
+  assert.equal(proof.captured_battle_age_days, 20);
+  const v = judge(m);
+  assert.equal(v.removal.state, "none");
+  assert.equal(v.actionable.removal, false);
+
+  // A flat or missing count changes nothing: the battle log decides.
   for (const observations of [
     [],
     [row(0, 100)],
-    [row(7, 100), row(0, 100)],
-    [row(20, 100), row(0.1, 100)],
-    [row(20, null), row(0, 100)],
+    [row(20, 100), row(0, 100)],
     [row(20, 101), row(0, 100)],
-    [row(0, 100), row(20, 100)],
+    [row(20, null), row(0, 100)],
     [row(20, 100), { profile_observed_at: "invalid", battle_count: 100 }],
-    [row(20, 100), row(-1, 100)],
   ]) {
     m.activity_evidence = { current_member: true, observations };
-    assert.equal(
-      judge().actionable.removal,
-      false,
-      JSON.stringify(observations),
-    );
-    assert.equal(judge().judgment.removal, "held");
+    const w = judge(m);
+    assert.equal(w.facts.days_idle, 20, JSON.stringify(observations));
+    assert.equal(w.actionable.removal, true, JSON.stringify(observations));
   }
   delete m.activity_evidence;
-  assert.equal(judge().actionable.removal, false);
+  assert.equal(judge(m).actionable.removal, true);
 });
 
-test("removal triage separates protected roles and recent play from held evidence without permitting removal", () => {
-  const judge = (m, options = {}) =>
-    evaluate({
-      participation: participation([m]),
-      policy: EXAMPLE_POLICY,
-      now: NOW,
-      ...options,
-    }).members[0];
-  for (const role of ["leader", "coLeader", "elder"]) {
-    const m = subject();
-    m.role = role;
-    const v = judge(m);
-    assert.equal(v.removal.triage.status, "protected");
-    assert.equal(v.actionable.removal, false);
-  }
-  const recent = subject();
-  recent.last_battle_time = row(0.5, 0).profile_observed_at;
-  recent.activity_evidence.observations[0].battle_count = null;
-  const captured = judge(recent);
-  assert.equal(captured.removal.triage.status, "not_candidate");
-  assert.match(captured.removal.triage.reason, /battle was captured/);
-  assert.equal(captured.judgment.removal, "held");
-  assert.equal(captured.actionable.removal, false);
-  const counted = judge(subject());
-  assert.equal(counted.removal.triage.status, "not_candidate");
-  assert.match(counted.removal.triage.reason, /positive counter bracket/);
-  assert.equal(counted.actionable.removal, false);
-  const old = member("#SYNTHETIC", {
-    lastBattleDaysAgo: 20,
-    war: [0, 0, 0, 0, 0, 0],
-  });
-  old.activity_evidence.observations.at(-1).profile_observed_at = row(
-    0.1,
-    1,
-  ).profile_observed_at;
-  assert.equal(judge(old).removal.triage.status, "evidence_held");
-  assert.equal(judge(old).actionable.removal, false);
+test("with no battle since joining, the clock runs from the join", () => {
+  const m = idle(null, { tenureDays: 12 });
+  m.activity_evidence.observations = [];
+  const v = judge(m);
+  assert.equal(v.facts.days_idle, 12);
+  assert.equal(v.actionable.removal, true);
+  const newcomer = judge(idle(null, { tenureDays: 2 }));
+  assert.equal(newcomer.actionable.removal, false);
   assert.equal(
-    judge(old, { holds: [{ player_tag: old.player_tag, until: null }] }).removal
-      .triage.status,
-    "protected",
+    newcomer.removal.triage.reason,
+    "The member joined inside the getting-quiet window.",
   );
 });
 
-test("missing profile days cannot supply counter brackets or quiet time across a gap", () => {
-  const m = subject();
-  m.activity_evidence.observations = [row(20, 100), row(0, 101)];
-  m.activity_evidence.profile_gaps = [
-    { snapshot_date: row(2, 0).profile_observed_at.slice(0, 10) },
-  ];
-  const p = inactivityEvidence(m, NOW);
-  assert.equal(p.status, "held");
-  assert.match(p.reason, /observations are missing/);
-  assert.equal(p.latest_activity_interval, null);
-  assert.equal(p.counter_quiet_days, null);
-  const v = evaluate({
-    participation: participation([m]),
-    policy: EXAMPLE_POLICY,
-    now: NOW,
-  }).members[0];
-  assert.equal(v.removal.triage.status, "evidence_held");
+test("removal waits only when the clock cannot be read: a failed read, a departed player, an unrecorded log", () => {
+  const unavailable = idle(20);
+  unavailable.activity_evidence = { unavailable: true, observations: [] };
+  const a = judge(unavailable);
+  assert.equal(a.judgment.removal, "held");
+  assert.equal(a.actionable.removal, false);
+  assert.equal(a.removal.triage.status, "evidence_held");
+  assert.match(a.removal.triage.reason, /could not read/);
+
+  const gone = idle(20);
+  gone.activity_evidence = { current_member: false, observations: [] };
+  assert.equal(judge(gone).actionable.removal, false);
+
+  const unrecorded = idle(20);
+  unrecorded.log_recorded = false;
+  const u = judge(unrecorded);
+  assert.equal(u.judgment.removal, "held");
+  assert.equal(u.actionable.removal, false);
+});
+
+test("protections stand: leaders, elders unless included, holds, and removal turned off", () => {
+  for (const role of ["leader", "coLeader", "elder"]) {
+    const m = idle(20);
+    m.role = role;
+    const v = judge(m);
+    assert.equal(v.removal.triage.status, "protected", role);
+    assert.equal(v.actionable.removal, false, role);
+  }
+  const elder = idle(20);
+  elder.role = "elder";
+  assert.equal(
+    evaluate({
+      participation: participation([elder]),
+      policy: { ...POLICY, removal_includes_elders: true },
+      now: NOW,
+    }).members[0].actionable.removal,
+    true,
+  );
+  const held = idle(20);
+  const v = judge(held, {
+    holds: [{ player_tag: held.player_tag, until: null }],
+  });
+  assert.equal(v.removal.triage.status, "protected");
   assert.equal(v.actionable.removal, false);
+  assert.equal(
+    evaluate({
+      participation: participation([idle(20)]),
+      policy: { ...POLICY, removal_enabled: false },
+      now: NOW,
+    }).members[0].actionable.removal,
+    false,
+  );
+});
+
+test("a battle inside the getting-quiet window says so", () => {
+  const v = judge(idle(1));
+  assert.equal(v.removal.triage.status, "not_candidate");
+  assert.equal(
+    v.removal.triage.reason,
+    "A battle was recorded inside the getting-quiet window.",
+  );
 });

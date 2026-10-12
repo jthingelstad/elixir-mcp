@@ -7,10 +7,11 @@ clan's policy. Read `packages/clan/AGENTS.md` first.
   argument; the same inputs give the same verdicts, Actions and words.
 - **Nothing clan-specific.** No POAP KINGS names, tags, thresholds or
   defaults; `test/no-clan-specifics.test.mjs` fails on them.
-- **Absence needs proof.** Inactivity means no battle activity in any mode,
-  and a flat counter cannot admit a removal while all-mode absence is
-  unproven (`src/inactivity.mjs`). Removal is not enforceable until
-  `ALL_MODE_COVERAGE_CONTRACT` names a source (#426): no removal card. War judgments read the race's weekly
+- **Inactivity runs from the battle log.** The clock is the days since
+  the last recorded battle, or the join; a profile battle-count rise only
+  moves it forward. It waits only when it cannot be read
+  (`src/inactivity.mjs`). `confirm_days` is the removal day itself, never
+  added to at risk (`removalDay`). War judgments read the race's weekly
   `decksUsed`, never a per-day split.
 - Tests: `test/*.test.mjs` over the shared fixture (`test/fixture.mjs`,
   exported as `@elixir-mcp/clan-engine/fixtures`).

@@ -239,11 +239,9 @@ export function Policy({ clan }) {
           <p className="m-0">
             Removal suggestions are{" "}
             {draft.removal_enabled
-              ? `on: the at-risk clock is ${draft.at_risk_days} ${noun(draft.at_risk_days, "day")}, the removal threshold ${draft.at_risk_days + draft.confirm_days} ${noun(draft.at_risk_days + draft.confirm_days, "day")} before contribution grace or holds`
+              ? `on: a member is at risk after ${draft.at_risk_days} battle-free ${noun(draft.at_risk_days, "day")}, and the leaders get a removal Action at ${Math.max(draft.confirm_days, draft.at_risk_days)} before contribution grace or holds`
               : "off"}
-            . Removal is not yet enforceable: absence of battle activity across
-            every mode cannot be proven from the evidence Elixir records today,
-            so the clock is shown on the board and no removal Action is raised.
+            .
           </p>
           <p className="page-head__note m-0">
             Example: an expectation about participation is checked against
@@ -395,12 +393,6 @@ export function Policy({ clan }) {
                     <h2 className="label m-0">{g.title}</h2>
                   ) : null}
                   <p className="page__lede m-0">{g.why}</p>
-                  {g.notice ? (
-                    <div className="callout callout--warn flex-col gap-1">
-                      <strong>{g.notice.label}</strong>
-                      <span>{g.notice.why}</span>
-                    </div>
-                  ) : null}
                   {off ? (
                     <p className="page-head__note m-0">
                       Off: this clan does not use it. Turn it on above to set it
@@ -673,9 +665,8 @@ function Preview({ preview }) {
     if (m.demotion !== "none") return `demotion ${m.demotion}`;
     if (m.removal !== "none") {
       if (m.removal_triage?.status === "protected") return "removal protected";
-      // Past the threshold is as far as the clock goes (#426).
-      if (m.removal === "recommended") return "removal not enforceable";
-      return `inactivity ${m.removal.replace("_", " ")}`;
+      if (m.removal_judgment === "held") return "removal evidence held";
+      return `removal ${m.removal.replace("_", " ")}`;
     }
     return "—";
   };
@@ -741,7 +732,7 @@ function Preview({ preview }) {
 }
 
 /** What the saved policy can do today: each judgment as live, needing
- *  more evidence (and what), not enforceable, or off (#426). */
+ *  more evidence (and what), or off. */
 function CanDo({ lines }) {
   return (
     <section className="panel" aria-labelledby="policy-can-do">
