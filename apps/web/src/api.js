@@ -139,6 +139,14 @@ export const api = {
     request("POST", "/api/me/principals/scope", { account_id, scope }),
   adminUsage: () => request("GET", "/api/admin/usage"),
   adminPulse: () => request("GET", "/api/admin/pulse"),
+  // The Discord quality ledger (2026-10-11): a window's numbers, and one
+  // clan's or one timeline's posts whole.
+  adminDiscord: (days) => request("GET", `/api/admin/discord?days=${days}`),
+  adminDiscordDetail: (key, feature) =>
+    request(
+      "GET",
+      `/api/admin/discord/${encodeURIComponent(key)}${feature ? `?feature=${encodeURIComponent(feature)}` : ""}`,
+    ),
   adminRequests: () => request("GET", "/api/admin/requests"),
   adminDecide: (email_hash, decision) =>
     request("POST", "/api/admin/decide", { email_hash, decision }),
@@ -189,6 +197,10 @@ export const api = {
   timelineDiscord: (agent) => request("GET", `${home(agent)}/timeline/discord`),
   saveTimelineDiscord: (body, agent) =>
     request("PUT", `${home(agent)}/timeline/discord`, body),
+  // A thumbs up or down on one cross-posted line: { ledger_id, rating,
+  // note? }, filed as feedback (2026-10-11).
+  rateTimelineDiscord: (body, agent) =>
+    request("POST", `${home(agent)}/timeline/discord/rate`, body),
   // A POST: claiming spends a one-time credential, so it must not be
   // reachable by a link scanner, a prefetch, or a cross-site top-level
   // navigation (#31).

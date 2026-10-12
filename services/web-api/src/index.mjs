@@ -54,6 +54,7 @@ export const handler = makeHandler({
           outbox,
           readStatus: makeStatusReader(process.env.OUTBOX_BUCKET),
           readHistory: makeHistoryReader(process.env.OUTBOX_BUCKET),
+          notifyOwner,
         })
       : null,
   databaseUrl: process.env.DATABASE_URL,

@@ -15,6 +15,12 @@ import {
   WEBHOOK_REFUSALS,
 } from "@elixir-mcp/syndication";
 import { settingView } from "@elixir-mcp/syndication/settings";
+import {
+  FeedbackError,
+  discordRatings,
+  rateDiscordPost,
+} from "@elixir-mcp/feedback";
+import { senderRef } from "@elixir-mcp/outbox/notify";
 import { json } from "../http.mjs";
 
 const ERRORS = {
@@ -30,7 +36,11 @@ const ERRORS = {
  *  After a hello the save waits up to `discord.helloWaitMs` (8 s) for the relay's
  *  first word: a forum channel's webhook, or one Discord says is gone,
  *  is turned off at once and the save answers why (2026-10-11). */
-export function timelineDiscordRoutes({ resolveAccount, discord = null }) {
+export function timelineDiscordRoutes({
+  resolveAccount,
+  discord = null,
+  notifyOwner = null,
+}) {
   const helloWaitMs = discord?.helloWaitMs ?? 8000;
   return {
     "GET /api/me/timeline/discord": async (db, event) => {
@@ -50,7 +60,43 @@ export function timelineDiscordRoutes({ resolveAccount, discord = null }) {
       const clan_channels = row?.enabled
         ? await clanChannelsInTimeline(db, account.accountId)
         : [];
-      return json(200, { ...settingView(row, status, history), clan_channels });
+      // The viewer's own ratings of the posts listed (2026-10-11): on an
+      // agent's page the owner rates, so the owner's.
+      const view = settingView(row, status, history);
+      const ratings = await discordRatings(
+        db,
+        (account.owner ?? account).accountId,
+        (view.deliveries ?? []).map((e) => e.ledger_id),
+      ).catch(() => ({}));
+      return json(200, { ...view, clan_channels, ratings });
+    },
+
+    // A thumbs up or down on one post of the history, with an optional
+    // note (2026-10-11): feedback with a discord_post ref, filed as the
+    // person (on an agent's page, its owner) about a post of theirs or
+    // their agent's.
+    "POST /api/me/timeline/discord/rate": async (db, event, body) => {
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const person = account.owner ?? account;
+      try {
+        const out = await rateDiscordPost(db, {
+          account: person,
+          feature: "timeline",
+          postId: body?.ledger_id,
+          rating: body?.rating,
+          note: body?.note ?? null,
+          via: { principal_kind: person.kind ?? "person" },
+          from: senderRef(person),
+          notifyOwner,
+        });
+        return json(200, out);
+      } catch (err) {
+        if (!(err instanceof FeedbackError)) throw err;
+        return json(err.status, { error: err.code, message: err.message });
+      }
     },
 
     "PUT /api/me/timeline/discord": async (db, event, body) => {

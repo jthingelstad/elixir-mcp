@@ -15,6 +15,10 @@ import {
   loadSendRecord,
 } from "../send-record.mjs";
 import { betaPulse } from "../beta-pulse.mjs";
+import {
+  qualityDetail,
+  qualitySummary,
+} from "@elixir-mcp/syndication/quality-report";
 const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
 
 export function adminRoutes({
@@ -133,6 +137,39 @@ export function adminRoutes({
         })),
         aliases,
       });
+    },
+
+    // The Discord posts' quality (2026-10-11, Jamie: "judge the quality
+    // of those without having any access or visibility to the client
+    // discord server"): a window's numbers by feature, and the
+    // destinations worth a look first. Operators only, as the privacy
+    // page says.
+    "GET /api/admin/discord": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const days = Number(event.queryStringParameters?.days ?? 7);
+      return json(200, await qualitySummary(db, { days }));
+    },
+
+    // One destination's recent posts whole: a clan by tag (no #), or a
+    // timeline's account by id; each with its ratings, and a clan's
+    // model runs with their refusals.
+    "GET /api/admin/discord/*": async (db, event) => {
+      const account = await resolveAccount(db, event);
+      if (!account?.isAdmin) return json(403, { error: "not_entitled" });
+      const q = event.queryStringParameters ?? {};
+      const feature = ["timeline", "clan_actions", "clan_activity"].includes(
+        q.feature,
+      )
+        ? q.feature
+        : null;
+      const detail = await qualityDetail(db, {
+        key: event.pathParam,
+        feature,
+        limit: Number(q.limit ?? 50),
+      });
+      if (!detail) return json(404, { error: "not_found" });
+      return json(200, detail);
     },
 
     "GET /api/admin/pulse": async (db, event) => {

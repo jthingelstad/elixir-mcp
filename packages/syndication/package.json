@@ -12,7 +12,8 @@
     "./seal": "./src/seal.mjs",
     "./store": "./src/store.mjs",
     "./clan-settings": "./src/clan-settings.mjs",
-    "./quality": "./src/quality.mjs"
+    "./quality": "./src/quality.mjs",
+    "./quality-report": "./src/quality-report.mjs"
   },
   "scripts": {
     "test": "node --test"

@@ -20,7 +20,10 @@
  */
 
 import {
+  DISCORD_RATINGS,
+  DISCORD_RATING_NOTE_MAX,
   FEEDBACK_ANSWER_STATUSES,
+  FEEDBACK_PAGE_REF_KINDS,
   FEEDBACK_AREAS,
   FEEDBACK_CATEGORIES,
   FEEDBACK_MESSAGE_MAX,
@@ -200,6 +203,8 @@ export function isOwnerOwned(account) {
  * unknown category, area or surface; drops (and reports) a pointer that
  * is malformed or not the filer's, and a follows_id that is not theirs.
  * `notifyOwner` (best-effort, after the row is durable) tells Jamie.
+ * `checkedRefs` are page pointers (FEEDBACK_PAGE_REF_KINDS) the door has
+ * already checked as the filer's; only `rateDiscordPost` passes them.
  */
 export async function fileFeedback(
   db,
@@ -215,6 +220,7 @@ export async function fileFeedback(
     followsId = null,
     from = null,
     notifyOwner = null,
+    checkedRefs = [],
   },
 ) {
   const text = String(message ?? "").trim();
@@ -245,7 +251,15 @@ export async function fileFeedback(
 
   const cleaned = cleanRefs(refs);
   const owned = await ownedRefs(db, account.accountId, cleaned.refs);
-  const kept = owned.kept;
+  const kept = [
+    ...owned.kept,
+    ...checkedRefs
+      .filter(
+        (r) =>
+          FEEDBACK_PAGE_REF_KINDS.includes(r?.kind) && UUID.test(r?.ref ?? ""),
+      )
+      .map((r) => ({ kind: r.kind, ref: r.ref.toLowerCase() })),
+  ];
   const dropped = [...cleaned.dropped, ...owned.dropped];
 
   let follows = null;
@@ -790,4 +804,129 @@ export async function feedbackPending(db, { area = null } = {}) {
       refs: refs.get(String(r.feedback_id)) ?? [],
     })),
   };
+}
+
+/** The features a rating can be about, and the page each is rated on. */
+const RATED = {
+  timeline: { area: "console", label: "timeline cross-post" },
+  clan_actions: { area: "clan", label: "Actions in Discord" },
+  clan_activity: { area: "clan", label: "clan activity channel" },
+};
+
+/**
+ * A rating of one Discord post from its delivery history (2026-10-11):
+ * thumbs up or down and an optional note, filed as feedback with a
+ * `discord_post` ref to the quality ledger's row (0222), so the one
+ * queue reads it beside everything else. The door names the scope it
+ * checked: a timeline post must be the filer's or one of their agents'
+ * (`feature: "timeline"`); a clan's must be that clan's, and the caller
+ * has already checked the filer leads it (`clan_tag`). A post outside the
+ * scope is `not_found`, whether or not it exists. A second rating of the
+ * same post by the same person follows their first. Jamie hears about a
+ * thumbs down or a note, never a bare thumbs up.
+ */
+export async function rateDiscordPost(
+  db,
+  {
+    account,
+    feature,
+    clanTag = null,
+    postId,
+    rating,
+    note = null,
+    via = null,
+    from = null,
+    notifyOwner = null,
+  },
+) {
+  const rated = RATED[feature];
+  if (!rated)
+    throw new FeedbackError(400, "bad_feature", "Not a Discord feature.");
+  if (!DISCORD_RATINGS.includes(rating))
+    throw new FeedbackError(400, "bad_rating", "A rating is up or down.");
+  const words = note === null || note === undefined ? "" : String(note).trim();
+  if (words.length > DISCORD_RATING_NOTE_MAX)
+    throw new FeedbackError(
+      400,
+      "bad_note",
+      `A note is up to ${DISCORD_RATING_NOTE_MAX.toLocaleString("en-US")} characters; this is ${words.length.toLocaleString("en-US")}.`,
+    );
+  const id = UUID.test(String(postId ?? ""))
+    ? String(postId).toLowerCase()
+    : null;
+  const notFound = () =>
+    new FeedbackError(404, "not_found", "That post is not in this history.");
+  let tag = null;
+  if (feature !== "timeline")
+    try {
+      tag = normalizeTag(String(clanTag ?? ""));
+    } catch {
+      throw notFound();
+    }
+  if (!id) throw notFound();
+  const { rows } =
+    feature === "timeline"
+      ? await db.query(
+          `select post_id, action, outcome from discord_post
+            where post_id = $1 and feature = 'timeline'
+              and (account_id = $2 or account_id in
+                   (select account_id from account where owned_by_account_id = $2))`,
+          [id, account.accountId],
+        )
+      : await db.query(
+          `select post_id, action, outcome from discord_post
+            where post_id = $1 and feature = $2 and clan_tag = $3`,
+          [id, feature, tag],
+        );
+  const post = rows[0];
+  if (!post) throw notFound();
+  const before = await discordRatings(db, account.accountId, [id]);
+  const filed = await fileFeedback(db, {
+    account,
+    surface: "web",
+    area: rated.area,
+    category: rating === "up" ? "praise" : "general",
+    message: `${rating === "up" ? "\u{1F44D}" : "\u{1F44E}"} A post of the ${rated.label}${words ? `: ${words}` : "."}`,
+    context: {
+      rating,
+      feature,
+      action: post.action,
+      ...(post.outcome ? { outcome: post.outcome } : {}),
+      ...(tag ? { clan: tag } : {}),
+      ...(words ? { noted: true } : {}),
+    },
+    checkedRefs: [{ kind: "discord_post", ref: id }],
+    followsId: before[id]?.feedback_id ?? null,
+    via,
+    from,
+    notifyOwner: rating === "down" || words ? notifyOwner : null,
+  });
+  return {
+    ok: true,
+    feedback_id: filed.feedback_id,
+    rating,
+    follows_id: filed.follows_id,
+  };
+}
+
+/** A person's latest rating of each of these posts: `{post_id: {rating,
+ *  feedback_id}}`; a post they never rated is absent. */
+export async function discordRatings(db, accountId, postIds) {
+  const ids = [
+    ...new Set((postIds ?? []).filter((x) => UUID.test(String(x ?? "")))),
+  ].map((x) => x.toLowerCase());
+  if (!ids.length || !accountId) return {};
+  const { rows } = await db.query(
+    `select distinct on (r.ref) r.ref, f.feedback_id, f.context->>'rating' as rating
+       from feedback_ref r join feedback f using (feedback_id)
+      where r.kind = 'discord_post' and r.ref = any($1::text[])
+        and f.account_id = $2 and f.context ? 'rating'
+      order by r.ref, f.created_at desc, f.feedback_id desc`,
+    [ids, accountId],
+  );
+  const out = {};
+  for (const r of rows)
+    if (DISCORD_RATINGS.includes(r.rating))
+      out[r.ref] = { rating: r.rating, feedback_id: r.feedback_id };
+  return out;
 }

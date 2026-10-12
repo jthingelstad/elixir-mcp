@@ -1,5 +1,5 @@
-import { test, expect, afterEach } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { test, expect, vi, afterEach } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { DiscordDeliveries } from "../src/index.ts";
 
 afterEach(cleanup);
@@ -97,4 +97,81 @@ test("a story the clan's channel skipped says why, and is not counted as missed"
   expect(item?.textContent).toContain("Skipped");
   expect(item?.textContent).toContain("A badge level-up below its top level.");
   expect(item?.className).not.toContain("text-warn");
+});
+
+test("a post is rated thumbs up or down with an optional note; one never sent, or a page with nowhere to send it, offers nothing", async () => {
+  const onRate = vi.fn(async () => ({ ok: true }));
+  render(
+    <DiscordDeliveries
+      entries={[
+        {
+          at: "2026-10-11T12:00:00Z",
+          outcome: "posted",
+          excerpt: "Ada joined us.",
+          ledger_id: "aaaaaaaa-0000-4000-8000-000000000001",
+        },
+        {
+          at: "2026-10-11T11:00:00Z",
+          outcome: "posted",
+          ledger_id: "aaaaaaaa-0000-4000-8000-000000000002",
+        },
+        { at: "2026-10-11T10:00:00Z", outcome: "posted" },
+      ]}
+      ratings={{ "aaaaaaaa-0000-4000-8000-000000000002": { rating: "down" } }}
+      onRate={onRate}
+    />,
+  );
+  const items = screen.getAllByRole("listitem");
+  expect(items[1]?.textContent).toContain("Your rating");
+  expect(items[2]?.querySelector("button")).toBeNull();
+  fireEvent.click(screen.getAllByRole("button", { name: "A good post" })[0]!);
+  fireEvent.change(screen.getByLabelText("A note (optional)"), {
+    target: { value: "  Just right. " },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await screen.findByText("Thanks: Elixir reads every rating.");
+  expect(onRate).toHaveBeenCalledWith({
+    ledger_id: "aaaaaaaa-0000-4000-8000-000000000001",
+    rating: "up",
+    note: "Just right.",
+  });
+  cleanup();
+  render(
+    <DiscordDeliveries
+      entries={[
+        {
+          at: "2026-10-11T12:00:00Z",
+          outcome: "posted",
+          ledger_id: "aaaaaaaa-0000-4000-8000-000000000001",
+        },
+      ]}
+    />,
+  );
+  expect(screen.queryByRole("button")).toBeNull();
+});
+
+test("a refused rating says so in the server's words", async () => {
+  const onRate = vi.fn(async () => ({
+    ok: false,
+    data: { message: "That post is not in this history." },
+  }));
+  render(
+    <DiscordDeliveries
+      entries={[
+        {
+          at: "2026-10-11T12:00:00Z",
+          outcome: "posted",
+          ledger_id: "aaaaaaaa-0000-4000-8000-000000000001",
+        },
+      ]}
+      onRate={onRate}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "A poor post" }));
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  await screen.findByText("That post is not in this history.");
+  expect(onRate).toHaveBeenCalledWith({
+    ledger_id: "aaaaaaaa-0000-4000-8000-000000000001",
+    rating: "down",
+  });
 });

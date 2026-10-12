@@ -77,10 +77,26 @@ export const FEEDBACK_REF_KINDS = [
 ] as const;
 export type FeedbackRefKind = (typeof FEEDBACK_REF_KINDS)[number];
 
+/** Pointers only a Console or Clan page files, after checking them
+ *  itself; never an MCP or /api/v1 argument, so a door's `refs` drop them
+ *  as unknown. `discord_post` (2026-10-11): a row of the Discord quality
+ *  ledger (0222), named by a rating of a post on its delivery history. */
+export const FEEDBACK_PAGE_REF_KINDS = ["discord_post"] as const;
+export type FeedbackPageRefKind = (typeof FEEDBACK_PAGE_REF_KINDS)[number];
+
 export interface FeedbackRef {
-  kind: FeedbackRefKind;
+  kind: FeedbackRefKind | FeedbackPageRefKind;
   ref: string;
 }
+
+/** A rating of one Discord post from its delivery history (2026-10-11):
+ *  the owner of a timeline's cross-post or a clan's leader, thumbs up or
+ *  down with an optional note. It is a feedback item with a
+ *  `discord_post` ref; a second rating of the same post follows the
+ *  first. */
+export const DISCORD_RATINGS = ["up", "down"] as const;
+export type DiscordRating = (typeof DISCORD_RATINGS)[number];
+export const DISCORD_RATING_NOTE_MAX = 1000;
 
 /** Message and answer caps, one for every door. */
 export const FEEDBACK_MESSAGE_MAX = 8000;

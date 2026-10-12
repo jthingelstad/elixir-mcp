@@ -245,6 +245,8 @@ export function TimelineDiscord() {
         <DiscordDeliveries
           entries={s.deliveries}
           notDelivered={s.not_delivered ?? 0}
+          ratings={s.ratings}
+          onRate={(body) => api.rateTimelineDiscord(body, scope)}
         />
       </div>
     </section>

@@ -142,6 +142,7 @@ function fakeStore() {
 function harness({
   policy = { war_intent: "not_participating" },
   role = "leader",
+  ratings = null,
 } = {}) {
   const clock = { t: Date.parse("2026-10-10T12:00:00Z") };
   const now = () => clock.t;
@@ -166,7 +167,7 @@ function harness({
     mcp,
     ...createTestAccount(),
     model,
-    activity: createActivityService({ ledger, store, model }),
+    activity: createActivityService({ ledger, store, model, ratings }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
@@ -281,6 +282,59 @@ test("activity: only a leader or co-leader", async () => {
   const r = await api(h, c, "GET", PATH);
   assert.equal(r.status, 403);
   assert.equal(r.body.error, "leaders_only");
+});
+
+test("activity: a leader rates a post of the channel; the page shows their ratings; an elder may not", async () => {
+  const POST = "aaaaaaaa-0000-4000-8000-000000000001";
+  const rated = [];
+  const ratings = {
+    async rate(input) {
+      rated.push(input);
+      return { ok: true, feedback_id: "7", rating: input.rating };
+    },
+    async mine(ids) {
+      return ids.includes(POST) ? { [POST]: { rating: "down" } } : {};
+    },
+  };
+  const h = harness({ ratings });
+  const c = await signedIn(h);
+  await api(h, c, "PUT", PATH, { url: "https://discord.com/api/webhooks/1/x" });
+  const saved = await h.store.read(TAG);
+  saved.deliveries = [
+    { at: "2026-10-10T11:00:00Z", outcome: "posted", ledger_id: POST },
+  ];
+  const view = await api(h, c, "GET", PATH);
+  assert.deepEqual(view.body.ratings, { [POST]: { rating: "down" } });
+  const r = await api(h, c, "POST", `${PATH}/rate`, {
+    ledger_id: POST,
+    rating: "down",
+    note: "Too long.",
+  });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(rated, [
+    {
+      feature: "clan_activity",
+      clanTag: TAG,
+      postId: POST,
+      rating: "down",
+      note: "Too long.",
+    },
+  ]);
+
+  const elder = harness({ role: "elder", ratings });
+  const e = await api(elder, await signedIn(elder), "POST", `${PATH}/rate`, {
+    ledger_id: POST,
+    rating: "up",
+  });
+  assert.equal(e.status, 403);
+  assert.equal(rated.length, 1);
+
+  const none = harness();
+  const n = await api(none, await signedIn(none), "POST", `${PATH}/rate`, {
+    ledger_id: POST,
+    rating: "up",
+  });
+  assert.equal(n.status, 503);
 });
 
 const CONTEXT = "THE CLAN\nName: Example Clan";

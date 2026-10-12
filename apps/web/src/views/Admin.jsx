@@ -27,6 +27,8 @@ import {
   useAdminEmailSends,
   useAdminCards,
   useAdminConnections,
+  useAdminDiscord,
+  useAdminDiscordDetail,
   useAdminFeedback,
   useAdminFeedbackItem,
   useAdminGateways,
@@ -40,7 +42,7 @@ import { CONSOLE } from "../lib/console.js";
 import { PULSE_STEPS, pulseRows } from "../lib/pulse.js";
 
 /**
- * Admin, eight pages.
+ * Admin, nine pages.
  *
  * Six of them are the console's one log table with different columns
  * (components/LogTable.jsx) — the same component Activity's three views
@@ -110,6 +112,8 @@ export function Admin({ me, page = "requests", navigate, itemId }) {
     ) : (
       <AdminEmails navigate={navigate} />
     );
+  if (page === "discord")
+    return itemId ? <AdminDiscordDetail id={itemId} /> : <AdminDiscord />;
   if (page === "cards") return <AdminCards />;
   return <AdminRequests />;
 }
@@ -231,6 +235,347 @@ function AdminEmails() {
       empty="Nothing sent yet."
       footnote="email_send, last 200. TO is the recipient's primary player (or public id); never an address. REPORTS counts feedback filed about that send; EMAIL is the id in its footer."
     />
+  );
+}
+
+const DISCORD_FEATURES = {
+  timeline: "Timeline cross-post",
+  clan_actions: "Clan Actions",
+  clan_activity: "Clan activity",
+};
+const DISCORD_DAYS = [1, 7, 30, 90];
+const dash = (n) => (n ? String(n) : "—");
+const secs = (s) =>
+  s === null || s === undefined
+    ? "—"
+    : s < 120
+      ? `${s} s`
+      : s < 7200
+        ? `${Math.round(s / 60)} min`
+        : `${Math.round(s / 3600)} h`;
+/** A clan's key in a console path drops its #; a timeline's is its
+ *  account id. */
+const discordKey = (d) =>
+  d.clan_tag ? d.clan_tag.replace(/^#/, "") : (d.account_id ?? "");
+
+/**
+ * What Elixir posts to Discord and how it fares, across every clan and
+ * timeline (2026-10-11): the quality ledger (0222), read back from the
+ * relay's answers, the one read of each post a day later, and leaders'
+ * and owners' ratings. Never the channels: nobody here can see them.
+ */
+function AdminDiscord() {
+  const [days, setDays] = useState(7);
+  const query = useAdminDiscord(days);
+  const data = query.data ?? null;
+  const features = data?.features ?? [];
+  const runs = data?.runs ?? null;
+  const rows = features.map((f) => [
+    DISCORD_FEATURES[f.feature] ?? f.feature,
+    f.posts,
+    dash(f.edits),
+    dash(f.skips),
+    f.outcomes.posted + f.outcomes.edited,
+    f.outcomes.refused
+      ? { text: String(f.outcomes.refused), tone: "bad" }
+      : "—",
+    f.outcomes.unknown + f.outcomes.not_delivered
+      ? {
+          text: String(f.outcomes.unknown + f.outcomes.not_delivered),
+          tone: "warn",
+        }
+      : "—",
+    dash(f.outcomes.awaiting),
+    `${f.read_back.read}`,
+    f.read_back.deleted
+      ? { text: String(f.read_back.deleted), tone: "warn" }
+      : "—",
+    f.read_back.reactions
+      ? `${f.read_back.reactions} on ${f.read_back.with_reactions}`
+      : "—",
+    dash(f.read_back.threads),
+    dash(f.ratings.up),
+    f.ratings.down ? { text: String(f.ratings.down), tone: "warn" } : "—",
+    dash(f.ratings.with_note),
+    secs(f.latency_s.p50),
+    secs(f.latency_s.p90),
+  ]);
+  const destinations = (data?.destinations ?? []).map((d) => [
+    DISCORD_FEATURES[d.feature] ?? d.feature,
+    {
+      text: d.clan_tag ?? d.account_id ?? d.key,
+      title: d.key,
+      href: `${CONSOLE}/admin/discord/${encodeURIComponent(discordKey(d))}?feature=${d.feature}`,
+    },
+    d.rows,
+    d.delivered,
+    d.refused ? { text: String(d.refused), tone: "bad" } : "—",
+    d.lost ? { text: String(d.lost), tone: "warn" } : "—",
+    dash(d.skips),
+    d.deleted ? { text: String(d.deleted), tone: "warn" } : "—",
+    d.rated_down ? { text: String(d.rated_down), tone: "warn" } : "—",
+    d.last_at ? ago(d.last_at) : "—",
+  ]);
+  const notOk = Object.entries(runs?.not_ok ?? {});
+  return (
+    <>
+      <LogTable
+        crumb="Admin"
+        title="Discord"
+        note="What Elixir posted to Discord for every timeline and clan, and how it fared: Discord's answers, the one read of each post a day later, and the ratings of the people who can see the channel. Elixir never sees the channels themselves."
+        actions={
+          <select
+            className="select"
+            aria-label="Window"
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+          >
+            {DISCORD_DAYS.map((d) => (
+              <option key={d} value={d}>
+                the last {d} {noun(d, "day", "days")}
+              </option>
+            ))}
+          </select>
+        }
+        cols={[
+          ["FEATURE", "left"],
+          ["POSTS", "right"],
+          ["EDITS", "right"],
+          ["SKIPS", "right"],
+          ["DELIVERED", "right"],
+          ["REFUSED", "right"],
+          ["LOST", "right"],
+          ["WAITING", "right"],
+          ["READ BACK", "right"],
+          ["DELETED", "right"],
+          ["REACTIONS", "right"],
+          ["THREADS", "right"],
+          ["👍", "right"],
+          ["👎", "right"],
+          ["NOTES", "right"],
+          ["P50", "right"],
+          ["P90", "right"],
+        ]}
+        rows={rows}
+        minWidth={1180}
+        loading={query.isLoading}
+        error={query.isError ? "The Discord numbers did not load." : null}
+        empty="Nothing handed to Discord in the window."
+        footnote="discord_post, by when Elixir handed each to the relay (UTC). DELIVERED: posted or edited. REFUSED: Discord said no (its reason is on the destination's page). LOST: sent with no answer, or never sent (neither is ever sent again). WAITING: no answer yet. READ BACK: read once, about a day after posting; DELETED were gone from the channel by then. REACTIONS: the count on that many posts, only when Discord returned them, so none may mean none returned. P50 and P90: from when Elixir first saw the newest thing a post tells to Discord's answer."
+      />
+      <section className="panel mt-[18px]">
+        <div className="panel__head">
+          <span className="panel-title">The clans&rsquo; models</span>
+          <span className="caveat ml-auto">
+            runs as a clan activity channel&rsquo;s editor
+          </span>
+        </div>
+        {!runs || runs.runs === 0 ? (
+          <p className="footnote m-0">No model runs in the window.</p>
+        ) : (
+          <p className="m-0">
+            {runs.runs} {noun(runs.runs, "run", "runs")} for {runs.clans}{" "}
+            {noun(runs.clans, "clan", "clans")}: {runs.ok} answered
+            {notOk.length
+              ? ` (${notOk.map(([k, n]) => `${n} ${k.replaceAll("_", " ")}`).join(", ")})`
+              : ""}
+            ; {runs.posts} {noun(runs.posts, "post", "posts")} written,{" "}
+            {runs.model_skips} chosen not to post, {runs.fallbacks} told in
+            Elixir&rsquo;s own words instead, {runs.refusals} refused by the
+            checks
+            {runs.cost_usd !== null
+              ? `; about $${runs.cost_usd.toFixed(2)} on the clans' own keys`
+              : ""}
+            .
+          </p>
+        )}
+      </section>
+      <section className="mt-[18px]">
+        <LogTable
+          title="Where to look"
+          note="Each timeline and clan that posted in the window, the most refused, lost and deleted first. Open one for its posts whole."
+          cols={[
+            ["FEATURE", "left"],
+            ["WHO", "left"],
+            ["ROWS", "right"],
+            ["DELIVERED", "right"],
+            ["REFUSED", "right"],
+            ["LOST", "right"],
+            ["SKIPS", "right"],
+            ["DELETED", "right"],
+            ["👎", "right"],
+            ["LAST", "left"],
+          ]}
+          rows={destinations}
+          monoCols={[1]}
+          filters={[{ key: "feature", label: "Feature", col: 0 }]}
+          minWidth={900}
+          loading={query.isLoading}
+          empty="No timeline or clan posted in the window."
+          footnote="A clan by its tag (its Actions and its activity channel), a timeline by its account id. Never a webhook: the ledger holds its fingerprint alone."
+        />
+      </section>
+    </>
+  );
+}
+
+/** One clan's or one timeline's posts whole, newest first, with Discord's
+ *  answer, the read-back, every rating and its note, and for a clan its
+ *  model's runs with each refusal. */
+function AdminDiscordDetail({ id }) {
+  const { stamp: when } = useClock();
+  const feature =
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("feature");
+  const query = useAdminDiscordDetail(id, feature);
+  const data = query.data ?? null;
+  const who = data?.clan_tag ?? data?.account_id ?? id;
+  const outcome = (p) => {
+    if (p.action === "skip")
+      return { text: "skipped", title: p.skip_reason ?? "" };
+    if (!p.outcome) return { text: "waiting" };
+    const why = [p.http_status, p.reason].filter(Boolean).join(" ");
+    const tone =
+      p.outcome === "refused"
+        ? "bad"
+        : p.outcome === "unknown" || p.outcome === "not_delivered"
+          ? "warn"
+          : undefined;
+    return { text: why ? `${p.outcome}: ${why}` : p.outcome, tone };
+  };
+  const readBack = (p) => {
+    if (!p.checked_at) return "—";
+    if (p.present === false) return { text: "deleted", tone: "warn" };
+    const bits = ["there"];
+    if (p.reactions?.length)
+      bits.push(p.reactions.map((r) => `${r.emoji}×${r.count}`).join(" "));
+    else if (p.reactions === null) bits.push("reactions not returned");
+    if (p.thread) bits.push("a thread");
+    return bits.join(", ");
+  };
+  const rated = (p) => {
+    const list = p.ratings ?? [];
+    if (!list.length) return "—";
+    const last = list[list.length - 1];
+    const note = String(last.message ?? "").replace(
+      /^\S+ A post of the [^:.]+[:.]\s*/,
+      "",
+    );
+    return {
+      text: `${last.rating === "up" ? "👍" : "👎"}${note ? ` ${note}` : ""}${list.length > 1 ? ` (${list.length} ratings)` : ""}`,
+      title: list.map((r) => `${r.rating} ${r.message}`).join("\n"),
+      href: `${CONSOLE}/admin/feedback/${last.feedback_id}`,
+    };
+  };
+  const posts = (data?.posts ?? []).map((p) => [
+    when(p.handed_at),
+    DISCORD_FEATURES[p.feature] ?? p.feature,
+    `${p.action} · ${p.mode}`,
+    {
+      text: p.content ?? p.skip_reason ?? "—",
+      title: p.action === "skip" ? (p.skip_reason ?? "") : p.post_key,
+    },
+    outcome(p),
+    readBack(p),
+    rated(p),
+    p.outcome_at && p.observed_at
+      ? secs(
+          Math.round(
+            (Date.parse(p.outcome_at) - Date.parse(p.observed_at)) / 1000,
+          ),
+        )
+      : "—",
+    p.run_id
+      ? { text: p.run_id.slice(-8), title: p.run_id }
+      : { text: p.post_id.slice(0, 8), title: p.post_id },
+  ]);
+  const runs = (data?.runs ?? []).map((r) => [
+    when(r.at),
+    r.model ?? "—",
+    r.outcome === "ok" ? "ok" : { text: r.outcome, tone: "warn" },
+    `${r.rounds} / ${r.lookups}`,
+    `${r.posts} of ${r.stories}`,
+    dash(r.merged),
+    dash(r.model_skips),
+    dash(r.fallbacks),
+    r.refusals?.length
+      ? {
+          text: r.refusals.map((x) => `${x.why}: ${x.text}`).join(" · "),
+          tone: "warn",
+        }
+      : "—",
+    r.cost_usd === null
+      ? "—"
+      : `$${r.cost_usd.toFixed(3)}${r.cost_estimated ? "~" : ""}`,
+    { text: r.run_id.slice(-8), title: r.raw_key ?? r.run_id },
+  ]);
+  return (
+    <>
+      <LogTable
+        crumb={<Link to={`${CONSOLE}/admin/discord`}>‹ Discord</Link>}
+        title={<TagText text={who} />}
+        note={
+          feature
+            ? `${DISCORD_FEATURES[feature] ?? feature}: the latest posts, edits and skips, newest first.`
+            : "The latest posts, edits and skips, newest first."
+        }
+        cols={[
+          ["HANDED", "left"],
+          ["FEATURE", "left"],
+          ["WHAT", "left"],
+          ["TEXT", "left"],
+          ["DISCORD", "left"],
+          ["READ BACK", "left"],
+          ["RATING", "left"],
+          ["LATENCY", "right"],
+          ["ID", "left"],
+        ]}
+        rows={posts}
+        monoCols={[0, 8]}
+        wrapCols={[3, 4, 6]}
+        filters={[
+          { key: "feature", label: "Feature", col: 1 },
+          { key: "what", label: "What", col: 2 },
+        ]}
+        minWidth={1180}
+        loading={query.isLoading}
+        error={
+          query.isError
+            ? "Not a clan tag or an account id, or the read failed."
+            : null
+        }
+        empty="Nothing posted here in the last 90 days."
+        footnote="WHAT: post, edit or skip, and how it was written (line: the timeline's own line; code: Elixir's words; model: the clan's model). TEXT is as handed to the relay; a skip shows what it would have said. A rating links to its feedback item, where it is answered."
+      />
+      {data?.clan_tag && (
+        <section className="mt-[18px]">
+          <LogTable
+            title="Model runs"
+            note="The clan's model as its activity channel's editor, the last 20 runs. Every post the checks refused is here with its reason and its text."
+            cols={[
+              ["WHEN", "left"],
+              ["MODEL", "left"],
+              ["OUTCOME", "left"],
+              ["ROUNDS / LOOKUPS", "right"],
+              ["POSTS", "right"],
+              ["MERGED", "right"],
+              ["SKIPPED", "right"],
+              ["FALLBACKS", "right"],
+              ["REFUSED", "left"],
+              ["COST", "right"],
+              ["RUN", "left"],
+            ]}
+            rows={runs}
+            monoCols={[0, 10]}
+            wrapCols={[8]}
+            minWidth={1100}
+            empty="No model runs: this clan's channel is in Elixir's own words."
+            footnote="COST is about what the run cost at list prices from the tokens the model reported (~ where a round reported none), on the clan's own key. A run's raw inputs and answers are kept 30 days for a maintainer's replay; hover RUN for its key."
+          />
+        </section>
+      )}
+    </>
   );
 }
 

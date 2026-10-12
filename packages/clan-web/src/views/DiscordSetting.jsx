@@ -190,6 +190,8 @@ export function DiscordSetting({ clan }) {
             <DiscordDeliveries
               entries={d.deliveries}
               notDelivered={d.not_delivered ?? 0}
+              ratings={d.ratings}
+              onRate={(body) => manageApi.rateDiscord(clan.clan_tag, body)}
             />
           </div>
           {d.refused_at ? (
