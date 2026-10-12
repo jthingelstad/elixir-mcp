@@ -21,3 +21,14 @@ saved a tag in Drop, and some do not play Clash Royale.
   before. It marks the account only: the email relay joins Buttondown
   after a sign-in or welcome mail, and enrollment sends neither, so a list
   import is a separate step.
+
+Codex review of #560, answered the same day:
+
+- `onboarded_at` alone did not land them on Tracking: the sign-in answer's
+  `new_account` came only from the verification that created the account.
+  It now also comes from the first sign-in to an account made for the
+  person, which is the one sign-in where onboarding claims the requested
+  player or, with none, stamps the account.
+- `newsletter_opt_in` is written in the account's insert rather than an
+  update after it, so a failed second statement cannot leave the default
+  behind on an account a retry would then skip.

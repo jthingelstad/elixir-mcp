@@ -811,6 +811,29 @@ test("a link carries a new account's landing through the handoff answer", async 
   assert.equal(body.handoff.state, "confirm");
 });
 
+test("the first sign-in to an account made for them lands a person on Tracking, once", async () => {
+  // As {account_enroll} makes one with no tag: approved, not onboarded.
+  const email = "enrolled-tagless@example.com";
+  await db.query(
+    `insert into account (email_hash, email, status, role, kind, decided_at)
+     values ($1, $2, 'approved', 'member', 'person', now())`,
+    [emailHash(email), email],
+  );
+  const first = await ask(email);
+  const signedIn = await handler(
+    event("/api/auth/code", { email, code: first.mail.code }),
+  );
+  assert.equal(signedIn.statusCode, 200, signedIn.body);
+  assert.deepEqual(parse(signedIn).new_account, { player_tag: null });
+  assert.ok((await accountOf(email)).onboarded_at);
+
+  const again = await ask(email);
+  const second = await handler(
+    event("/api/auth/code", { email, code: again.mail.code }),
+  );
+  assert.equal(parse(second).new_account, undefined);
+});
+
 test("a malformed signup tag is refused before any mail; an empty one is no tag", async () => {
   const sent = mails.length;
   for (const [player_tag, error] of [
