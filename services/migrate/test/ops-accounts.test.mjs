@@ -166,6 +166,97 @@ test("refuses an empty list and reports a bad tag without stopping the rest", as
   assert.equal(out.plan[1].error, "email required");
 });
 
+test("an entry without a player_tag gets a bare account, and newsletter_opt_in is written when given", async () => {
+  assert.deepEqual(
+    await accountEnrollOp(SCRATCH_URL, {
+      newsletter_opt_in: "yes",
+      accounts: [{ email: "x@example.com" }],
+    }),
+    { error: "newsletter_opt_in must be true or false" },
+  );
+  const out = await accountEnrollOp(SCRATCH_URL, {
+    dry_run: false,
+    source: "elixir-drop",
+    newsletter_opt_in: false,
+    fill_empty: true,
+    accounts: [
+      { email: "drop-one@example.com" },
+      { email: "drop-two@example.com", player_tag: "" },
+      { email: "drop-three@example.com", clan_tag: "#J2RGCRVG" },
+      // Empty, but there is nothing to fill it with.
+      { email: "existing@example.com" },
+    ],
+  });
+  assert.equal(out.created, 2);
+  assert.equal(out.skipped, 1);
+  const [one, two, three, existing] = out.plan;
+  assert.equal(one.player_tag, null);
+  assert.equal(one.clan, "none");
+  assert.equal(one.recording_starts, false);
+  assert.equal(one.newsletter_opt_in, false);
+  assert.ok(!("claimed" in one));
+  assert.equal(two.action, "create");
+  assert.equal(three.error, "clan_tag needs a player_tag");
+  assert.equal(existing.action, "skip");
+
+  const { rows: accts } = await db.query(
+    `select a.email, a.status, a.requested_player_tag, a.newsletter_opt_in,
+            a.onboarded_at is not null as onboarded,
+            (select count(*)::int from claim c where c.account_id = a.account_id) as claims,
+            (select count(*)::int from account_clan ac where ac.account_id = a.account_id) as clans,
+            (select array_agg(e.kind order by e.event_id) from account_event e
+              where e.account_id = a.account_id) as events
+     from account a
+     where a.email in ('drop-one@example.com', 'drop-two@example.com', 'one@example.com')
+     order by a.email`,
+  );
+  assert.deepEqual(
+    accts.map((a) => [
+      a.email,
+      a.status,
+      a.requested_player_tag,
+      a.newsletter_opt_in,
+      a.onboarded,
+      a.claims,
+      a.clans,
+      a.events,
+    ]),
+    [
+      [
+        "drop-one@example.com",
+        "approved",
+        null,
+        false,
+        false,
+        0,
+        0,
+        ["enrolled"],
+      ],
+      [
+        "drop-two@example.com",
+        "approved",
+        null,
+        false,
+        false,
+        0,
+        0,
+        ["enrolled"],
+      ],
+      // Enrolled above without newsletter_opt_in: the column's default.
+      [
+        "one@example.com",
+        "approved",
+        "#2PP0V9PP",
+        true,
+        true,
+        1,
+        1,
+        ["enrolled", "claim_added", "recording_started"],
+      ],
+    ],
+  );
+});
+
 test("fill_empty fills an existing account that tracks nothing and leaves one that tracks anything", async () => {
   // The pre-existing account from before(): approved, no claim, no clan.
   const dry = await accountEnrollOp(SCRATCH_URL, {

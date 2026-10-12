@@ -298,7 +298,7 @@ export async function integrationOp(databaseUrl, spec) {
  * Enroll people who never asked: an approved account each, their player
  * claimed as primary, their clan tracked at activity scope.
  *
- * {account_enroll: {dry_run, source?, accounts: [{email, player_tag, clan_tag?}]}}
+ * {account_enroll: {dry_run, source?, newsletter_opt_in?, accounts: [{email, player_tag?, clan_tag?}]}}
  *
  * Built for moving elixir-bot's weekly email recipients onto Elixir
  * (2026-09-18): those people have a verified address and a known tag in the
@@ -320,10 +320,27 @@ export async function integrationOp(databaseUrl, spec) {
  * anything is still left alone, whatever it holds. The rule is
  * onboardAccount's own, for the account that was made before the request
  * form carried a tag.
+ *
+ * An entry without a player_tag (2026-10-12, moving Elixir Drop's players
+ * onto Elixir accounts: most never saved a tag, some do not play) gets the
+ * account a signup with an empty tag field gets: approved, no claim, no
+ * clan, and onboarding stamps it at first sign-in, which opens on Tracking.
+ * It never fills an existing account; there is nothing to fill it with.
+ *
+ * newsletter_opt_in, when given, is written on every account this run
+ * creates; absent, the column's default stands. It only marks the account:
+ * the mailing list is joined by the email relay after a sign-in or welcome
+ * mail, and an enrolled account is sent neither.
  */
 export async function accountEnrollOp(databaseUrl, spec) {
   const entries = Array.isArray(spec?.accounts) ? spec.accounts : [];
   if (entries.length === 0) return { error: "accounts required" };
+  if (
+    spec.newsletter_opt_in !== undefined &&
+    typeof spec.newsletter_opt_in !== "boolean"
+  )
+    return { error: "newsletter_opt_in must be true or false" };
+  const newsletter = spec.newsletter_opt_in ?? null;
   const dryRun = spec.dry_run !== false;
   const fillEmpty = spec.fill_empty === true;
   const source = String(spec.source ?? "ops");
@@ -344,9 +361,11 @@ export async function accountEnrollOp(databaseUrl, spec) {
       }
       const hash = emailHash(email);
       const ref = hash.slice(0, 10);
-      let tag;
+      let tag = null;
       try {
-        tag = normalizeTag(String(entry.player_tag ?? ""));
+        const given = entry.player_tag;
+        if (given !== undefined && given !== null && given !== "")
+          tag = normalizeTag(String(given));
       } catch {
         plan.push({ account_ref: ref, error: "bad player_tag" });
         continue;
@@ -365,6 +384,7 @@ export async function accountEnrollOp(databaseUrl, spec) {
         const empty = tracks[0].players === 0 && tracks[0].clans === 0;
         if (
           !fillEmpty ||
+          !tag ||
           !empty ||
           existing[0].status !== "approved" ||
           existing[0].kind !== "person"
@@ -383,28 +403,38 @@ export async function accountEnrollOp(databaseUrl, spec) {
       }
       // Explicit clan_tag wins; null defers; absent asks the record.
       const explicit = entry.clan_tag;
-      const resolved =
-        explicit === undefined
+      if (!tag && explicit !== undefined && explicit !== null) {
+        plan.push({ account_ref: ref, error: "clan_tag needs a player_tag" });
+        continue;
+      }
+      const resolved = !tag
+        ? null
+        : explicit === undefined
           ? (await clanOf(db, tag)).clanTag
           : explicit === null
             ? null
             : normalizeTag(String(explicit));
-      const { rows: rec } = await db.query(
-        `select 1 from recording where subject_type = 'player'
-           and subject_tag = $1 and status = 'active' limit 1`,
-        [tag],
-      );
+      const { rows: rec } = tag
+        ? await db.query(
+            `select 1 from recording where subject_type = 'player'
+               and subject_tag = $1 and status = 'active' limit 1`,
+            [tag],
+          )
+        : { rows: [] };
       const step = {
         account_ref: ref,
         player_tag: tag,
         action: fill ? "fill" : "create",
         clan_tag: resolved,
-        clan: resolved
-          ? explicit === undefined
-            ? "from_record"
-            : "explicit"
-          : "deferred",
-        recording_starts: rec.length === 0,
+        clan: !tag
+          ? "none"
+          : resolved
+            ? explicit === undefined
+              ? "from_record"
+              : "explicit"
+            : "deferred",
+        recording_starts: Boolean(tag) && rec.length === 0,
+        ...(fill ? {} : { newsletter_opt_in: newsletter ?? "default" }),
       };
       if (dryRun) {
         plan.push(step);
@@ -424,6 +454,11 @@ export async function accountEnrollOp(databaseUrl, spec) {
           [hash, email, tag],
         );
         accountId = created.account_id;
+        if (newsletter !== null)
+          await db.query(
+            `update account set newsletter_opt_in = $2 where account_id = $1`,
+            [accountId, newsletter],
+          );
       }
       await db.query(
         `insert into account_event (account_id, kind, detail) values ($1, $2, $3)`,
@@ -433,13 +468,15 @@ export async function accountEnrollOp(databaseUrl, spec) {
           JSON.stringify({ via: "ops", source }),
         ],
       );
-      const added = await addPlayer(
-        db,
-        { accountId },
-        { tag, makePrimary: true, via: "ops" },
-      );
-      step.claimed = added.ok === true;
-      step.recording_started = added.recordingStarted === true;
+      if (tag) {
+        const added = await addPlayer(
+          db,
+          { accountId },
+          { tag, makePrimary: true, via: "ops" },
+        );
+        step.claimed = added.ok === true;
+        step.recording_started = added.recordingStarted === true;
+      }
       if (resolved) {
         await db.query(
           `insert into clan (clan_tag) values ($1) on conflict do nothing`,
