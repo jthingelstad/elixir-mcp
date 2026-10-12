@@ -54,7 +54,9 @@ What that trust rests on, all of it code that runs on every call:
    `last_success_at` (never an admitted fetch). Checks 5 to 7 are per
    gateway, so without this an account could multiply them with
    throwaway collectors now that every raise mints a usable token (Codex
-   on #554). The owner's account is exempt.
+   on #554). The check and the insert run in one transaction under an
+   advisory lock on the account (`gateway-raise#<account>`), so
+   concurrent raises cannot all pass. The owner's account is exempt.
 
 Monotonic MAX-merge counters bound the rest: a lie cannot walk recorded
 numbers backwards.

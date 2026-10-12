@@ -249,24 +249,34 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       // counts until it delivers or the maintainer revokes it. A proven
       // collector never blocks the next raise, so "any account can raise
       // any number" (2026-09-11) still holds, one proof at a time.
-      if (!account.isOwner) {
-        const { rows: unproven } = await db.query(
-          `select coalesce(card_name, name) as label from gateway
-           where owner_account_id = $1
-             and (status = 'probation'
-                  or (status = 'draining' and last_success_at is null))
-           order by enrolled_at limit 1`,
-          [account.accountId],
-        );
-        if (unproven[0])
-          return json(409, {
-            error: "unproven_collector",
-            message: `Your collector ${unproven[0].label} has not delivered a fetch yet. Run it first: once one of its results is admitted you can raise another.`,
-          });
-      }
+      //
+      // Check and create are one step per account: a transaction-scoped
+      // advisory lock on the account serializes concurrent raises, so two
+      // at once cannot both pass the check before either inserts.
       const token = mintToken();
       let rows;
+      await db.query("begin");
       try {
+        await db.query(`select pg_advisory_xact_lock(hashtext($1)::bigint)`, [
+          `gateway-raise#${account.accountId}`,
+        ]);
+        if (!account.isOwner) {
+          const { rows: unproven } = await db.query(
+            `select coalesce(card_name, name) as label from gateway
+             where owner_account_id = $1
+               and (status = 'probation'
+                    or (status = 'draining' and last_success_at is null))
+             order by enrolled_at limit 1`,
+            [account.accountId],
+          );
+          if (unproven[0]) {
+            await db.query("rollback");
+            return json(409, {
+              error: "unproven_collector",
+              message: `Your collector ${unproven[0].label} has not delivered a fetch yet. Run it first: once one of its results is admitted you can raise another.`,
+            });
+          }
+        }
         ({ rows } = await db.query(
           `insert into gateway (owner_account_id, name, card_name, card_icon,
                                 status, token_hash, provision_env,
@@ -284,7 +294,9 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
             PROVISION_TTL,
           ],
         ));
+        await db.query("commit");
       } catch (err) {
+        await db.query("rollback").catch(() => {});
         if (isCardTakenError(err)) return json(...cardRefusal("card_taken"));
         throw err;
       }

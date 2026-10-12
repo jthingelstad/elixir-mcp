@@ -555,6 +555,23 @@ test("open enrollment (#540): a raised hand is approved at once, token staged; t
      where name = 'kitchen-mac' and status = 'draining'`,
   );
   await deliveredThenDrained("kitchen-mac");
+
+  // Concurrent raises cannot all pass the check (Codex on #554): each
+  // call here is its own connection, and exactly one may win.
+  const race = await Promise.all(
+    ["kitchen-pi", "kitchen-nas", "kitchen-nuc"].map((n) =>
+      handler(event({ path: "/api/gateways", cookie, body: { name: n } })),
+    ),
+  );
+  const won = race.filter((r) => r.statusCode === 200);
+  assert.equal(won.length, 1, "one raise wins the race");
+  for (const r of race.filter((x) => x.statusCode !== 200))
+    assert.equal(parse(r).error, "unproven_collector");
+  // Revoked, so it holds no card for the picker test below.
+  await db.query(
+    `update gateway set status = 'revoked' where gateway_id = $1`,
+    [parse(won[0]).gateway_id],
+  );
 });
 
 test("usage: member sees own daily counts and quota; admin sees the fleet", async () => {
