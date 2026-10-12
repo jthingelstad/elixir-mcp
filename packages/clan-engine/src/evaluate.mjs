@@ -41,7 +41,8 @@ export function reviewBoundaries(participation, now, limit, policy = null) {
   return finished.slice(-limit).map((t) => new Date(t));
 }
 
-function holdActive(hold, nowMs) {
+/** Whether a hold (a leader's, or a member's own away) protects now. */
+export function holdActive(hold, nowMs) {
   if (!hold) return false;
   if (!hold.until) return true;
   return Date.parse(hold.until) > nowMs;
