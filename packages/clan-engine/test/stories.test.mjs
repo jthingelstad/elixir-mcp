@@ -526,6 +526,19 @@ test("told today: a later result is its own story, and a second sitting in a day
     capped.skips.map((k) => k.reason),
     ["already_told_today"],
   );
+  // A morning told only as its move counts too (Codex on #541).
+  const moveOnly = foldToday(
+    [{ key: evening.id, items: [evening] }],
+    new Map([
+      ["#HHH", [postOf(arena, { editable: false, kinds: ["arena_changed"] })]],
+    ]),
+    { battles: new Map([["#HHH", [MORNING, MORNING + 8 * H]]]) },
+  );
+  assert.equal(moveOnly.stories.length, 0);
+  assert.deepEqual(
+    moveOnly.skips.map((k) => k.reason),
+    ["already_told_today"],
+  );
 });
 
 test("told today: one sitting's stories in one run are one post; others pass untouched", () => {

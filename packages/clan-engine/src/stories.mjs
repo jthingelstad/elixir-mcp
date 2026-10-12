@@ -340,17 +340,19 @@ export function sittingOf(times, ms) {
  * of a post that is recent (`STORY_EDIT_MS`) and one of the channel's
  * newest (`STORY_EDIT_LATEST`), it edits that post, told with what the
  * post told; part of an older one, it is skipped as `already_told_today`.
- * A member's second sitting in a day is skipped the same way. Stories
- * of one sitting in one run are one post.
+ * A member's second sitting in a day (a sitting story after any post
+ * today of their sitting kinds) is skipped the same way. Stories of one
+ * sitting in one run are one post.
  *
  * @param {object[]} stories the run's ready stories (buildStories)
  * @param {Map<string, {
  *   key: string, first_ms: number|null, revision: number,
  *   moments: number[], battles: string[], sitting: boolean,
+ *   kinds?: string[],
  *   editable: boolean, items: object[]|null }[]>} today the posts the
  *   channel made about each member today, newest first: when each was
  *   first posted, its revision, its items' moments and battles, whether
- *   it tells a sitting, whether it may be edited and its items as they
+ *   it tells a sitting, the kinds it told, whether it may be edited and its items as they
  *   are now (for its edit)
  * @param {{ battles?: Map<string, number[]> }} [opts] each member's
  *   battle times today, oldest first
@@ -439,10 +441,14 @@ export function foldToday(
       else skip();
       continue;
     }
-    // One sitting a member a day.
+    // One sitting a member a day: any post today from another of their
+    // sittings (its move, best or league counts) has told it.
     if (
       isSitting &&
-      (posts.some((p) => p.sitting) || mine.some((l) => l.sitting))
+      (mine.length ||
+        posts.some(
+          (p) => p.sitting || p.kinds?.some((k) => SITTING_KINDS.has(k)),
+        ))
     ) {
       skip();
       continue;
