@@ -99,3 +99,14 @@ editing it, a late league skipped with its reason).
   story; a morning told only as its move let an evening sitting through.
   A post today of any sitting kind (move, league, best, sitting) now
   counts, as does any story already kept for the member in the run.
+
+## Codex on #542 (fixed in the second follow-up)
+
+- P2: a post's kinds, moments and battles were the whole post's, and
+  the editor may tell several members in one post, so another member's
+  move could count as this member's sitting (or tie their battle to a
+  sitting they never told). `toldToday` now keeps them per member and
+  gives each member's list its own. `clan-sync.test` pins it with a
+  shared post.
+- P1: #542 changed what leaders see without a What's new entry; it has
+  one now (`2026-10-12-08`).

@@ -1152,6 +1152,55 @@ test("a move and a rung of one sitting, both new in one run, are one post (Codex
   assert.match(post.content, /^Solo moved up to Summit of Heroes.* They also /);
 });
 
+test("a post told for two members is each one's own: another's move is not this member's sitting (Codex on #542)", async () => {
+  const B = T + 700 * H;
+  const ANN = "#PYL0Q2C0";
+  const BEN = "#PYL0Q2C2";
+  for (const [tag, name] of [
+    [ANN, "Ann"],
+    [BEN, "Ben"],
+  ]) {
+    await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
+      tag,
+      name,
+    ]);
+    await db.query(
+      `insert into clan_membership (clan_tag, player_tag, role, joined_observed_at)
+       values ($1, $2, 'member', $3)`,
+      [CLAN, tag, at(B - 40 * 24 * H)],
+    );
+  }
+  // One post the editor told for both: Ann's award, Ben's move in the
+  // middle of what is Ann's sitting.
+  await db.query(
+    `insert into clan_activity_discord_told
+       (clan_tag, item_id, revision, kind, player_tag, item_at, told_at, story_key)
+     values ($1, 'tl_a0000000000000000a01', 1, 'award_granted', $2, $3, $4, 'tl_a0000000000000000a01'),
+            ($1, 'tl_b0000000000000000b01', 1, 'arena_changed', $5, $6, $4, 'tl_a0000000000000000a01')`,
+    [CLAN, ANN, at(B - 5 * H), at(B + 15 * MIN), BEN, at(B + 10 * MIN)],
+  );
+  await db.query(
+    `insert into battle (battle_id, battle_time, type, type_class, game_mode_name)
+     values ('ann-1', $1, 'PvP', 'pvp', 'Ladder')`,
+    [at(B + 5 * MIN)],
+  );
+  await db.query(
+    `insert into battle_participant
+       (battle_id, player_tag, side, outcome, battle_time, type, type_class, crowns)
+     values ('ann-1', $1, 0, 'win', $2, 'PvP', 'pvp', 3)`,
+    [ANN, at(B + 5 * MIN)],
+  );
+  await emitEvent(db, "best_trophies_band", {
+    tag: ANN,
+    windowStart: at(B + 19 * MIN),
+    windowEnd: at(B + 20 * MIN),
+    payload: { best: 9_010, band: 9_000, crossed_by: { battle_id: "ann-1" } },
+  });
+  const out = await sync(B + 30 * MIN);
+  assert.equal(out.posted, 1, "Ann's rung is her own news");
+  assert.match(out.sent[0].message.posts[0].content, /^Ann /);
+});
+
 test("refusals and removal", async () => {
   await removeClanActivity(db, CLAN);
   assert.deepEqual(
