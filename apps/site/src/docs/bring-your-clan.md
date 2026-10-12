@@ -16,9 +16,13 @@ reviewed: "2026-10-12; one clan at a time by design; a leader's change waits for
 roster as the record sees it, a weekly report, and, once the leaders
 have written how the clan runs, standing, actions and awards. It never
 acts in the game and never decides for anyone; the leaders do. Every
-page is behind sign-in, and only people sign in: an agent cannot use
-Elixir Clan, apart from one narrow read of the clan's war intent with an
-explicit grant ([Agent context](/docs/clan-policy#agent-context)).
+page is behind sign-in, and only people sign in. Today an agent gets
+one narrow read of the clan's war intent with an explicit grant
+([Agent context](/docs/clan-policy#agent-context)). A person's own agent
+reading what that person sees here (the Actions waiting for them, their
+own standing, the policy) is decided in principle and designed, not
+built
+([the design note](https://github.com/jthingelstad/elixir-mcp/blob/main/docs/notes/2026-10-12-w2-agent-clan-seam.md)).
 
 Clan is part of Elixir's shared application, account and storage. Your Elixir
 sign-in opens Clan directly; there is no second consent or Clan account.
