@@ -29,11 +29,19 @@ export const api = {
   // `timezone` is this browser's zone: a NEW account opens on it, an
   // existing one keeps its own (Jamie, 2026-10-08). Left out when the
   // browser will not say, and the account starts at UTC.
-  sendLoginEmail: (email, newsletterOptIn = true, timezone = null) =>
+  // `playerTag` is the signup form's optional tag, sent only when given;
+  // the server normalizes it and applies it after the email is proved.
+  sendLoginEmail: (
+    email,
+    newsletterOptIn = true,
+    timezone = null,
+    playerTag = "",
+  ) =>
     request("POST", "/api/auth", {
       email,
       newsletter_opt_in: newsletterOptIn,
       ...(timezone ? { timezone } : {}),
+      ...(playerTag?.trim() ? { player_tag: playerTag.trim() } : {}),
     }),
   redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
   redeemCode: (email, code) =>

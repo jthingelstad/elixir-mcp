@@ -77,6 +77,22 @@ export function authRoutes({
         return json(400, { error: "bad_request" });
       if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
         return json(400, { error: "bad_request" });
+      // The signup form's optional player tag, normalized here by the one
+      // normalizer (golden rule 4): a malformed one is refused before any
+      // mail, an empty one is no tag. It is only frozen with the request;
+      // nothing is claimed or read until the address is proved.
+      let playerTag = null;
+      if (body.player_tag !== undefined && body.player_tag !== null) {
+        if (typeof body.player_tag !== "string")
+          return json(400, { error: "bad_request" });
+        if (body.player_tag.trim()) {
+          try {
+            playerTag = normalizeTag(body.player_tag);
+          } catch {
+            return json(400, { error: "invalid_tag" });
+          }
+        }
+      }
       const okIp = await checkRateLimit(db, {
         bucket: `auth#${ip}`,
         max: SIGNIN_MAIL_PER_IP_HOUR,
@@ -130,6 +146,9 @@ export function authRoutes({
                 typeof body.timezone === "string"
                   ? (accountZone(body.timezone) ?? null)
                   : null,
+              // Applied by the insert only, like the two above: a new
+              // account starts tracking it after proof (onboardAccount).
+              signup_player_tag: playerTag,
             },
             pollId,
             startedFrom: {
@@ -167,6 +186,7 @@ export function authRoutes({
         verifiedEmail: row.context?.signup_email,
         verifiedNewsletter: row.context?.signup_news !== false,
         verifiedZone: row.context?.signup_zone ?? null,
+        verifiedPlayerTag: row.context?.signup_player_tag ?? null,
       });
       if (minted.statusCode !== 200) return minted;
       // The screen that asked may be a different one (0083). From the
@@ -196,9 +216,11 @@ export function authRoutes({
               },
             };
       }
+      // The minted answer's own fields (a new account's landing) ride
+      // along with the handoff.
       return {
         ...minted,
-        body: JSON.stringify({ authenticated: true, ...extra }),
+        body: JSON.stringify({ ...JSON.parse(minted.body), ...extra }),
       };
     },
 
@@ -308,6 +330,7 @@ export function authRoutes({
         verifiedEmail: result.row.context?.signup_email,
         verifiedNewsletter: result.row.context?.signup_news !== false,
         verifiedZone: result.row.context?.signup_zone ?? null,
+        verifiedPlayerTag: result.row.context?.signup_player_tag ?? null,
       });
     },
 

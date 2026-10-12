@@ -1435,6 +1435,21 @@ export function rememberAfterSignIn(path) {
     }
   }
 }
+/**
+ * Where a person lands when the proof that just signed them in also
+ * opened their account (the sign-in answer's `new_account`), with no
+ * remembered destination of their own: the player the signup form named
+ * opens on its Tracking record, as a Tracking add does (capture pending,
+ * or "Tag not found" with the fix); with no tag given, Tracking with the
+ * tag field focused. Anyone else lands where they always did.
+ */
+export function newAccountLanding(newAccount) {
+  if (!newAccount) return null;
+  if (newAccount.player_tag)
+    return `${CONSOLE}/account/tracking/${tagPath(newAccount.player_tag)}`;
+  return `${CONSOLE}/account/tracking#add-player-tag`;
+}
+
 export function takeAfterSignIn() {
   let path = null;
   try {
@@ -1560,9 +1575,12 @@ const signInRoute = createRoute({
     if (forward || (me === null && !token)) return null;
     return (
       <SignIn
-        onAuthed={async () => {
+        onAuthed={async (newAccount) => {
           setCompleting(true);
-          const next = takeAfterSignIn() ?? `${CONSOLE}/account/overview`;
+          const next =
+            takeAfterSignIn() ??
+            newAccountLanding(newAccount) ??
+            `${CONSOLE}/account/overview`;
           try {
             // A new login can be a different person. Remove the previous
             // account's private data before any next-account view mounts.

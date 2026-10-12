@@ -24,6 +24,7 @@ import {
   setAccountRole,
   currentAndPrevious,
   originAllowed,
+  openVerifiedAccount,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -87,6 +88,49 @@ test("access gate: request -> pending -> approve; duplicates are quiet", async (
   });
   assert.equal(decided.status, "approved");
   assert.ok(await approvedAccount(db, JAMIE));
+});
+
+test("a verified signup writes its frozen player tag on creation only", async () => {
+  const email = "signup-tag@example.com";
+  const opened = await openVerifiedAccount(db, {
+    emailHash: emailHash(email),
+    email,
+    playerTag: "#2PYQ8GJ0",
+  });
+  assert.equal(opened.created, true);
+  const tagOf = async (e) =>
+    (
+      await db.query(
+        "select requested_player_tag from account where email_hash = $1",
+        [emailHash(e)],
+      )
+    ).rows[0]?.requested_player_tag;
+  assert.equal(await tagOf(email), "#2PYQ8GJ0");
+  // A repeat proof of an existing account never rewrites what it asked for.
+  const again = await openVerifiedAccount(db, {
+    emailHash: emailHash(email),
+    email,
+    playerTag: "#QPPPP",
+  });
+  assert.equal(again, null, "an approved account is not opened twice");
+  assert.equal(await tagOf(email), "#2PYQ8GJ0");
+  // A pending member opened by proof keeps the tag of its own request.
+  const pending = "signup-tag-pending@example.com";
+  await requestAccess(db, {
+    emailHash: emailHash(pending),
+    playerTag: "#GGGG",
+  });
+  const promoted = await openVerifiedAccount(db, {
+    emailHash: emailHash(pending),
+    email: pending,
+    playerTag: "#QPPPP",
+  });
+  assert.equal(promoted.created, false);
+  assert.equal(await tagOf(pending), "#GGGG");
+  // No tag at signup is no tag on the account.
+  const bare = "signup-no-tag@example.com";
+  await openVerifiedAccount(db, { emailHash: emailHash(bare), email: bare });
+  assert.equal(await tagOf(bare), null);
 });
 
 test("access decisions obey the role hierarchy, not just isAdmin", async () => {

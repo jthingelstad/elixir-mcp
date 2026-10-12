@@ -68,7 +68,8 @@ export async function onboardAccount(db, accountId) {
       return { skipped: "no_requested_tag" };
     }
 
-    const done = { player: false, clan: null };
+    // The tag rides back so the caller can ask for its first read.
+    const done = { player: false, clan: null, tag };
 
     // The player, only if they have not started building their own list.
     const { rows: claims } = await db.query(

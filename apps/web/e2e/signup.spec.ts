@@ -6,7 +6,8 @@ test("public signup verifies email and returns to the requested Console step", a
   page,
 }) => {
   let authed = false,
-    sends = 0;
+    sends = 0,
+    sentTag: unknown;
   await mockApi(
     page,
     signedIn({
@@ -16,13 +17,17 @@ test("public signup verifies email and returns to the requested Console step", a
           ? { ...ME, role: "member", claims: [], recordings: [] }
           : SIGNED_OUT,
       ],
-      "POST /api/auth": () => {
+      "POST /api/auth": (route) => {
         sends++;
+        sentTag = route.request().postDataJSON().player_tag;
         return [200, { ok: true }];
       },
       "POST /api/auth/code": () => {
         authed = true;
-        return [200, { authenticated: true }];
+        return [
+          200,
+          { authenticated: true, new_account: { player_tag: "#2PYQ8GJ0" } },
+        ];
       },
     }),
   );
@@ -31,12 +36,16 @@ test("public signup verifies email and returns to the requested Console step", a
     page.getByRole("heading", { name: "Create your Elixir account" }),
   ).toBeVisible();
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
+  await page.getByLabel("Your player tag (optional)").fill("#2pyq8gj0");
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await expect(
     page.getByRole("heading", { name: "Check your email" }),
   ).toBeVisible();
+  // The server normalizes and freezes it; the browser only carries it.
+  expect(sentTag).toBe("#2pyq8gj0");
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  // A remembered return_to still wins over the new account's landing.
   await expect(page).toHaveURL(/\/console\/account\/tracking$/);
   await expect(
     page.getByRole("heading", { name: "Tracking", exact: true }),
@@ -50,6 +59,48 @@ test("public signup verifies email and returns to the requested Console step", a
       ["serious", "critical"].includes(v.impact ?? ""),
     ),
   ).toEqual([]);
+});
+
+test("a new account with no tag lands on Tracking with the tag field focused", async ({
+  page,
+}) => {
+  let authed = false,
+    sentTag: unknown = "unset";
+  await mockApi(
+    page,
+    signedIn({
+      "GET /api/me": () => [
+        200,
+        authed
+          ? { ...ME, role: "member", claims: [], recordings: [] }
+          : SIGNED_OUT,
+      ],
+      "POST /api/auth": (route) => {
+        sentTag = route.request().postDataJSON().player_tag;
+        return [200, { ok: true }];
+      },
+      "POST /api/auth/code": () => {
+        authed = true;
+        return [
+          200,
+          { authenticated: true, new_account: { player_tag: null } },
+        ];
+      },
+    }),
+  );
+  await page.goto("/console/signin");
+  await expect(page.getByLabel("Your player tag (optional)")).toHaveCount(0);
+  await page.getByRole("button", { name: "Create an account" }).click();
+  await page.getByLabel("Email", { exact: true }).fill("new@example.com");
+  await page.getByRole("button", { name: "Send sign-in email" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Check your email" }),
+  ).toBeVisible();
+  expect(sentTag).toBeUndefined();
+  await page.getByLabel("6-digit code").fill("123456");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/console\/account\/tracking#add-player-tag$/);
+  await expect(page.getByLabel("Player tag")).toBeFocused();
 });
 
 test("@narrow invitation entry and signup fit phone and desktop without changing the layout", async ({

@@ -34,7 +34,8 @@ roughly the last 30 battles. A player whose battle log is read and empty
 is shown as an empty season, not a wait. If Clash Royale has no player with
 that tag, Ladder says **Tag not found**, in the Console's words, and **Fix
 the tag** opens the player's Tracking page at the place to type the right
-one.
+one. A tag given at signup is just added in the same way: the new account
+opens on the player's page while the first capture comes in.
 
 ## One mode at a time
 

@@ -8,7 +8,7 @@ navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your tier, and it shows nobody your address."
 console: ["Your profile and tier", "/console/account/profile", "Account settings ▸ Profile"]
-reviewed: "2026-10-08 against contract 11.3.0"
+reviewed: "2026-10-12 against contract 11.11.2"
 ---
 
 # Your account
@@ -27,8 +27,18 @@ submit an address. Repeated submissions do not create extra accounts.
 Existing denied or disabled accounts do not reopen through signup, and no
 privileged role is granted.
 
-Then add your player in [Console ▸ Tracking](/console/account/tracking), read
-your recorded play in [Ladder](/ladder), or follow [Bring your clan](/docs/bring-your-clan).
+The signup form has an optional **Your player tag** field; plain sign-in
+does not. A malformed tag is refused on the form before any email is sent,
+and an empty field is fine. The tag is kept with the request and applied
+only after you verify: a new account tracks it as its primary player and
+opens on that player's page. An account opened without one opens on
+[Console ▸ Tracking](/console/account/tracking) with the tag field ready.
+A tag sent while signing in to an account that already exists is ignored.
+Signup and sign-in share the same email limits.
+
+Then add your player in [Console ▸ Tracking](/console/account/tracking) if
+you have not, read your recorded play in [Ladder](/ladder), or follow
+[Bring your clan](/docs/bring-your-clan).
 A collector is not required to join. Collector approval, recording allowances
 and the fleet's shared fetch budget are separate from signup.
 New signup has a checked “Send me Elixir product news” box; uncheck it before

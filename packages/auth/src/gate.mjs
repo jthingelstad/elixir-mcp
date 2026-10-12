@@ -28,25 +28,37 @@ export async function publicLoginAccount(db, emailHash) {
  * `timezone` is the zone the signup request's browser reported: like the
  * newsletter choice it is written only by the insert, so it applies to a
  * newly created account and never to one that already exists (Jamie,
- * 2026-10-08). One that fails the Profile check leaves the account on UTC. */
+ * 2026-10-08). One that fails the Profile check leaves the account on UTC.
+ * `playerTag`, normalized at the request, goes the same way: the insert
+ * writes it to requested_player_tag, and onboardAccount claims it after
+ * this proof. `created` says the insert, not the pending-member update,
+ * opened the row: only a new account lands on its first-use page. */
 export async function openVerifiedAccount(
   db,
-  { emailHash, email, newsletterOptIn = true, timezone = null },
+  {
+    emailHash,
+    email,
+    newsletterOptIn = true,
+    timezone = null,
+    playerTag = null,
+  },
 ) {
   if (typeof email !== "string" || hashEmail(email) !== emailHash) return;
   const { rows } = await db.query(
-    `insert into account (email_hash, email, status, role, kind, decided_at, newsletter_opt_in, timezone)
-     values ($1, $2, 'approved', 'member', 'person', now(), $3, $4)
+    `insert into account (email_hash, email, status, role, kind, decided_at,
+                          newsletter_opt_in, timezone, requested_player_tag)
+     values ($1, $2, 'approved', 'member', 'person', now(), $3, $4, $5)
      on conflict (email_hash) do update
        set status = 'approved', email = excluded.email, decided_at = now()
        where account.status = 'requested' and account.role = 'member'
          and account.kind = 'person' and account.is_owner is not true
-     returning account_id, newsletter_opt_in`,
+     returning account_id, newsletter_opt_in, (xmax = 0) as created`,
     [
       emailHash,
       email.trim().toLowerCase(),
       newsletterOptIn === true,
       accountZone(timezone) ?? null,
+      typeof playerTag === "string" && playerTag ? playerTag : null,
     ],
   );
   return rows[0] ?? null;
