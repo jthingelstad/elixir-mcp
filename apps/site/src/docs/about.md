@@ -8,7 +8,7 @@ navTitle: "Welcome"
 icon: info
 lede: "Your Clash Royale history, your friends and your clan, kept for you to explore."
 console: ["See the recorder", "/data", "Data"]
-reviewed: "2026-10-02 recorder scope, contract 11.0.0"
+reviewed: "2026-10-12 who writes the words; 2026-10-02 recorder scope, contract 11.0.0"
 ---
 
 # About Elixir
@@ -53,6 +53,13 @@ Elixir newsletter. New signup has a checked “Send me Elixir product news”
 box; uncheck it before requesting your sign-in email to skip enrollment.
 Every issue has an unsubscribe
 link, and unsubscribing sticks.
+
+**Who writes the words:** Elixir's own voice (the emails, the timeline's
+lines, Ladder and this site) is written from the record by code, and
+Elixir pays for no language model. A model writes only where someone
+brings their own: a clan's leaders can add the clan's own key in
+[Clan](/docs/clan-policy) to draft messages, and your own AI agent writes
+its own answers from the record it reads here.
 
 **Inside Elixir:** [Clan](/clan) helps you run your clan: standing, the
 Elder band and the actions leaders decide, using your clan's own policy.

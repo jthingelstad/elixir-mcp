@@ -7,7 +7,7 @@ order: 3
 navTitle: "Email"
 icon: mail
 lede: "Seven kinds, each a switch and a turn-off link: four weekly reports, milestones, clan actions waiting and answers to your feedback."
-reviewed: "2026-10-08 for legendary badges as milestones, contract 11.5.2"
+reviewed: "2026-10-12 no email is composed by a model; 2026-10-08 for legendary badges as milestones, contract 11.5.2"
 ---
 
 # Email
@@ -24,7 +24,9 @@ readers the tools answer with, no language model anywhere in them.
 Every number is the number a tool would give you, and every one of
 them carries the coverage note the tools carry, because a report that
 hides a gap in the record is a report that lies. Clan actions waiting carries
-Elixir Clan's own words about your clan.
+Elixir Clan's own words about your clan, the lines its Actions page shows,
+and an answer to your feedback is the maintainer's answer as it was
+written. Elixir composes no email with a language model.
 
 ## The week
 

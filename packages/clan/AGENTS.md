@@ -81,6 +81,15 @@ or workflow of its own.
   every round's answer and lookups, the checks) an archive object under
   `discord-runs/` for 30 days: anything added to the editor's request
   lands there too, never a key or a webhook.
+- **Clan posts to Discord; the family's Discord agent converses**
+  (`docs/product/clan.md` principle 10, `docs/product/timeline.md`).
+  Actions and activity stories reach a clan's Discord through webhooks
+  its leaders connect in Clan, for any clan, sealed per clan. Clan has
+  no ask lane and no inbound Discord handling: conversation (members'
+  questions) is elixir-mcp-discord's, run by a clan on its own tokens.
+  Acting from Discord (deciding an Action, marking away) is deliberately
+  undecided; until it is decided, every write happens in Elixir, and
+  nothing here should be built or documented as if it were coming.
 - **`ClanInternal`** (stack parameter, `CLAN_INTERNAL`) is the feature
   switch. Turning it off disables Clan's API and morning run; it never
   resumes another runtime.

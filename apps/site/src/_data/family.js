@@ -82,14 +82,14 @@ export default [
         icon: "message-square",
         kind: "bot",
         state: "beta",
-        lede: "A Discord agent for your own clan, powered entirely by Elixir. It answers clanmates from the record and posts what happened. You run it yourself, with your own keys; POAP KINGS runs its own the same way.",
+        lede: "A Discord agent for your own clan, powered entirely by Elixir. It talks with clanmates: it answers their questions from the record and tells what happened in its own words. You run it yourself, with your own keys; POAP KINGS runs its own the same way.",
         shot: "Drop a Discord screenshot of the bot answering",
         points: [
           "Answers clanmates in your clan's own Discord",
           "Every fact comes from Elixir, moments before it says it",
           "Open source: you host it, with your own keys",
         ],
-        uses: "Connects as one of your Elixir agents: its own key, revocable from your account, and its calls count against your limits.",
+        uses: "Connects as one of your Elixir agents: its own key, revocable from your account, and its calls count against your limits. Elixir Clan posts without it: any clan's leaders can send the clan's Actions and activity stories to its Discord through webhooks connected in Clan. Conversation is this bot's; Clan does not answer questions in Discord. Acting from Discord (deciding an Action, marking yourself away) is not built and deliberately undecided: every decision is made in Elixir.",
         links: [
           [
             "Set it up from GitHub",

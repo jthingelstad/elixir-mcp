@@ -382,12 +382,12 @@ no tool returns is left out, not estimated.
 
 Account › Emails from Elixir (`apps/web/src/views/account/EmailPage.jsx`):
 the four weekly kinds laid on a Monday-to-Sunday week by the day each
-arrives in the account's zone, the two event kinds below it, the last
+arrives in the account's zone, the three event kinds below it, the last
 four sends beside them, and an Every email switch at the top. The page
 computes no schedule of its own: `GET /api/me/email` returns, per active
 kind, `product` (`MAIL_SOURCE`), `sends` (`{weekday, time, zone}` from
 `mailSendTime`, the footer's function; null for the event kinds),
-`last_send_id` and `applies`. Every email is on only when all six are,
+`last_send_id` and `applies`. Every email is on only when all seven are,
 and writes `"all"`.
 
 ## Not built
