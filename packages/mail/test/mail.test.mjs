@@ -924,7 +924,7 @@ test("the collector mail says the tier, never points or credits (#539)", () => {
   const { html, preheader } = renderMail("collector_activity", facts, links);
   assert.match(html, /Your tier/);
   assert.match(html, /earns your account the Family tier/);
-  assert.match(html, /new facts this week/);
+  assert.match(html, /fetches with new facts/);
   assert.match(preheader, /Your active collector earns the Family tier\./);
   assert.doesNotMatch(html, /points|credits?\b/i);
 
@@ -934,7 +934,7 @@ test("the collector mail says the tier, never points or credits (#539)", () => {
   delete old.tier;
   old.credits = { week: 42, lifetime: 900 };
   for (const x of old.collectors) {
-    delete x.new_facts;
+    delete x.adding_fetches;
     x.lifetime_points = 4639;
   }
   const stored = renderMail("collector_activity", old, links);

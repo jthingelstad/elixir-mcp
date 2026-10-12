@@ -13,9 +13,11 @@
  * `timezone` is the person's, because the console prints times on the
  * clock of whoever is reading it.
  */
+import { tierSql } from "@elixir-mcp/contracts";
+
 export async function resolveOwnedAgent(db, person, publicId) {
   const { rows } = await db.query(
-    `select a.account_id, a.public_id, a.role, a.status,
+    `select a.account_id, a.public_id, ${tierSql("a")} as role, a.status,
             (select t.name from service_token t
               where t.account_id = a.account_id
               order by (t.revoked_at is null) desc, t.created_at desc

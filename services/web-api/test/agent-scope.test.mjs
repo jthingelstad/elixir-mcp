@@ -316,6 +316,13 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
       .statusCode,
     429,
   );
+  // The Agents page shows the agent's tier as read now: it follows the
+  // owner's earned tier, never the role stored when it was made.
+  const agentRole = async () =>
+    parse(
+      await handler(event({ path: "/api/me/principals", cookie: ownerCookie })),
+    ).agents.find((a) => a.public_id === agentPid).role;
+  assert.equal(await agentRole(), "member");
   // More slots for the owner (an active collector earns Family, #539):
   // now the rival fits, in the agent's own copy.
   await db.query(
@@ -323,6 +330,7 @@ test("configuring the agent: a rival in the owner's slots, a watched player, a n
      values ($1, 'agent-scope-gw', '203.0.113.77', 'active')`,
     [ownerId],
   );
+  assert.equal(await agentRole(), "leader", "a Family owner's agent, capped");
   const added = await post("/clans", {
     clan_tag: "#PGLQYRJ2",
     scope: "activity",

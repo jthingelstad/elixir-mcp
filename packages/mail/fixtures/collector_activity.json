@@ -22,7 +22,7 @@
    "quiet_hours": 0,
    "note": null,
    "signature_state": "signed",
-   "new_facts": 1909
+   "adding_fetches": 636
   },
   {
    "name": "Royal Hogs",
@@ -37,7 +37,7 @@
    "quiet_hours": 0,
    "note": null,
    "signature_state": "dev_build",
-   "new_facts": 1406
+   "adding_fetches": 468
   },
   {
    "name": "Witch",
@@ -52,7 +52,7 @@
    "quiet_hours": 0,
    "note": null,
    "signature_state": "unverified",
-   "new_facts": 1331
+   "adding_fetches": 443
   },
   {
    "name": "Skeleton Army",
@@ -67,7 +67,7 @@
    "quiet_hours": 0,
    "note": null,
    "signature_state": "mismatch",
-   "new_facts": 829
+   "adding_fetches": 276
   },
   {
    "name": "Cannon",
@@ -82,7 +82,7 @@
    "quiet_hours": 17,
    "note": "1 quiet stretch of 3 h or more",
    "signature_state": "signed",
-   "new_facts": 728
+   "adding_fetches": 242
   },
   {
    "name": "Hog Rider",
@@ -97,7 +97,7 @@
    "quiet_hours": 0,
    "note": null,
    "signature_state": "dev_build",
-   "new_facts": 698
+   "adding_fetches": 232
   }
  ],
  "totals": {

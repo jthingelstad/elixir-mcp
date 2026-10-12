@@ -264,7 +264,7 @@ export function adminRoutes({
       const { rows } = await db.query(
         `select f.family_id, f.account_id, f.scope, f.created_at,
                 f.absolute_expires_at, c.client_name,
-                a.email, a.kind, a.public_id, a.role,
+                a.email, a.kind, a.public_id, ${tierSql("a")} as role,
                 (select max(t.created_at) from oauth_token t
                  where t.family_id = f.family_id) as last_token_at,
                 (select count(*)::int from mcp_call_audit m
@@ -309,7 +309,7 @@ export function adminRoutes({
       if (!account?.isOwner) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
         `select t.token_id, t.name, t.created_at, t.last_used_at, t.revoked_at,
-                a.email as account_email, a.role as account_role,
+                a.email as account_email, ${tierSql("a")} as account_role,
                 (select count(*)::int from mcp_call_audit m
                  where m.surface = 'svc:' || t.name
                    and m.created_at > now() - interval '7 days') as calls_7d
