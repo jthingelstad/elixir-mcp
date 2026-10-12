@@ -20,6 +20,7 @@
     "@elixir-mcp/clan-state": "0.1.0",
     "@elixir-mcp/clan": "0.1.0",
     "@elixir-mcp/clan-engine": "0.1.0",
-    "@elixir-mcp/feedback": "0.1.0"
+    "@elixir-mcp/feedback": "0.1.0",
+    "@elixir-mcp/syndication": "0.1.0"
   }
 }

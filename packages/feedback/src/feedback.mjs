@@ -807,6 +807,11 @@ export async function feedbackPending(db, { area = null } = {}) {
 }
 
 /** The features a rating can be about, and the page each is rated on. */
+/** A post that reached the channel, or whose receipt is still on its way
+ *  (the history shows it posted before the ledger hears): a skip, a
+ *  refusal or a lost delivery put nothing in front of anyone to rate. */
+const REACHED = `action in ('post', 'edit')
+              and (outcome is null or outcome in ('posted', 'edited'))`;
 const RATED = {
   timeline: { area: "console", label: "timeline cross-post" },
   clan_actions: { area: "clan", label: "Actions in Discord" },
@@ -868,14 +873,15 @@ export async function rateDiscordPost(
     feature === "timeline"
       ? await db.query(
           `select post_id, action, outcome from discord_post
-            where post_id = $1 and feature = 'timeline'
+            where post_id = $1 and feature = 'timeline' and ${REACHED}
               and (account_id = $2 or account_id in
                    (select account_id from account where owned_by_account_id = $2))`,
           [id, account.accountId],
         )
       : await db.query(
           `select post_id, action, outcome from discord_post
-            where post_id = $1 and feature = $2 and clan_tag = $3`,
+            where post_id = $1 and feature = $2 and clan_tag = $3
+              and ${REACHED}`,
           [id, feature, tag],
         );
   const post = rows[0];

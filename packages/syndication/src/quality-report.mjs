@@ -27,6 +27,16 @@ const clampDays = (days) =>
   Math.min(SUMMARY_DAYS_MAX, Math.max(1, Math.trunc(Number(days) || 7)));
 const num = (v) => (v === null || v === undefined ? null : Number(v));
 
+/** Each person's latest rating of each post: a second rating follows
+ *  the first and replaces it, so a count reads only the latest. */
+const LATEST = `latest as (
+       select distinct on (r.ref, f.account_id) r.ref, f.account_id,
+              f.created_at, f.context->>'rating' as rating,
+              coalesce(f.context->>'noted' = 'true', false) as noted
+         from feedback_ref r join feedback f using (feedback_id)
+        where r.kind = 'discord_post' and f.context ? 'rating'
+        order by r.ref, f.account_id, f.created_at desc, f.feedback_id desc)`;
+
 /** A window's numbers, by feature, with the destinations most worth a
  *  look (refused, lost, deleted or rated down first). */
 export async function qualitySummary(
@@ -91,28 +101,29 @@ export async function qualitySummary(
     [since],
   );
   const ratings = await db.query(
-    `select p.feature,
-              count(*) filter (where f.context->>'rating' = 'up')::int as up,
-              count(*) filter (where f.context->>'rating' = 'down')::int as down,
-              count(*) filter (where f.context->>'noted' = 'true')::int as with_note
-         from feedback_ref r
-         join feedback f using (feedback_id)
-         join discord_post p on p.post_id::text = r.ref
-        where r.kind = 'discord_post' and f.created_at >= $1
+    `with ${LATEST}
+     select p.feature,
+              count(*) filter (where l.rating = 'up')::int as up,
+              count(*) filter (where l.rating = 'down')::int as down,
+              count(*) filter (where l.noted)::int as with_note
+         from latest l
+         join discord_post p on p.post_id::text = l.ref
+        where l.created_at >= $1
         group by p.feature`,
     [since],
   );
   const destinations = await db.query(
-    `select p.feature, p.destination, p.clan_tag, p.account_id,
+    `with ${LATEST}
+     select p.feature, p.destination, p.clan_tag, p.account_id,
               count(*)::int as rows,
               count(*) filter (where outcome in ('posted', 'edited'))::int as delivered,
               count(*) filter (where outcome = 'refused')::int as refused,
               count(*) filter (where outcome in ('unknown', 'not_delivered'))::int as lost,
               count(*) filter (where action = 'skip')::int as skips,
               count(*) filter (where present is false)::int as deleted,
-              (select count(*)::int from feedback_ref r join feedback f using (feedback_id)
-                where r.kind = 'discord_post' and f.context->>'rating' = 'down'
-                  and r.ref in (select q.post_id::text from discord_post q
+              (select count(*)::int from latest l
+                where l.rating = 'down'
+                  and l.ref in (select q.post_id::text from discord_post q
                                  where q.destination = p.destination
                                    and q.handed_at >= $1)) as rated_down,
               max(handed_at) as last_at
@@ -250,4 +261,42 @@ export async function qualityDetail(
       ).rows.map((r) => ({ ...r, cost_usd: num(r.cost_usd) }))
     : [];
   return { ...scope, posts: rows, runs };
+}
+
+/** The ratings over a window, the ones with something to say first (a
+ *  👎 or a note) and unanswered before answered: each with the post it
+ *  rates (its feature, destination, text and what Discord answered), so
+ *  a review reads what the leader or owner saw. */
+export async function ratingsQueue(
+  db,
+  { days = 7, nowMs = Date.now(), limit = 50 } = {},
+) {
+  const d = clampDays(days);
+  const since = new Date(nowMs - d * 86_400_000);
+  const n = Math.min(DETAIL_LIMIT_MAX, Math.max(1, Math.trunc(limit) || 50));
+  const { rows } = await db.query(
+    `select f.feedback_id, f.created_at, f.status, f.responded_at,
+            f.context->>'rating' as rating,
+            coalesce(f.context->>'noted' = 'true', false) as noted,
+            f.message, f.account_id,
+            exists (select 1 from feedback_ref r2 join feedback f2 using (feedback_id)
+                     where r2.kind = 'discord_post' and r2.ref = r.ref
+                       and f2.account_id = f.account_id and f2.context ? 'rating'
+                       and (f2.created_at, f2.feedback_id) > (f.created_at, f.feedback_id))
+              as superseded,
+            p.post_id, p.feature, p.clan_tag, p.account_id as post_account_id,
+            p.action, p.mode, p.content, p.outcome, p.reason, p.run_id,
+            p.present, p.reactions, p.thread
+       from feedback_ref r
+       join feedback f using (feedback_id)
+       join discord_post p on p.post_id::text = r.ref
+      where r.kind = 'discord_post' and f.created_at >= $1
+      order by coalesce(f.context->>'rating' = 'down'
+                        or f.context->>'noted' = 'true', false) desc,
+               (f.responded_at is null) desc,
+               f.created_at desc
+      limit $2`,
+    [since, n],
+  );
+  return { days: d, since: since.toISOString(), ratings: rows };
 }

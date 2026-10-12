@@ -325,11 +325,11 @@ told more than three hours late says when in words ("Yesterday").
   have said and why it was skipped, by Elixir's rule or by the clan's
   model. It also counts the posts not
   delivered; a skip is not one of them.
-- A leader or co-leader can rate each post with 👍 or 👎, and a note if
-  they like. Elixir cannot see the clan's channel, so this is how it
-  learns which posts read well there: the rating goes to Elixir as
-  feedback about that post from the leader's own account, and each
-  leader sees only their own.
+- A leader or co-leader can rate each post that reached the channel with
+  👍 or 👎, and a note if they like. Elixir cannot see the clan's channel,
+  so this is how it learns which posts read well there: the rating goes
+  to Elixir as feedback about that post from the leader's own account,
+  and each leader sees only their own.
 
 ## Agent context
 

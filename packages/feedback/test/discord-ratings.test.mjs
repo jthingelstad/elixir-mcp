@@ -30,6 +30,10 @@ const POST = {
   others: "aaaaaaaa-0000-4000-8000-000000000003",
   action: "aaaaaaaa-0000-4000-8000-000000000004",
   activity: "aaaaaaaa-0000-4000-8000-000000000005",
+  skipped: "aaaaaaaa-0000-4000-8000-000000000006",
+  refused: "aaaaaaaa-0000-4000-8000-000000000007",
+  lost: "aaaaaaaa-0000-4000-8000-000000000008",
+  waiting: "aaaaaaaa-0000-4000-8000-000000000009",
 };
 
 let db;
@@ -78,6 +82,20 @@ before(async () => {
   await row(POST.others, "timeline", other.accountId, null);
   await row(POST.action, "clan_actions", null, CLAN);
   await row(POST.activity, "clan_activity", null, CLAN);
+  for (const [id, action, outcome] of [
+    [POST.skipped, "skip", "skipped"],
+    [POST.refused, "post", "refused"],
+    [POST.lost, "post", "not_delivered"],
+    [POST.waiting, "post", null],
+  ])
+    await db.query(
+      `insert into discord_post (post_id, feature, clan_tag, destination,
+         webhook_fp, post_key, revision, action, mode, content, handed_at,
+         outcome, outcome_at)
+       values ($1, 'clan_activity', $2, $2, $3, 'k', 1, $4, 'model', 'Bo won.',
+               now(), $5, case when $5::text is null then null else now() end)`,
+      [id, CLAN, FP, action, outcome],
+    );
 });
 after(async () => {
   await db?.end();
@@ -212,4 +230,20 @@ test("a rating is up or down, a note is bounded, and the feature is one of the t
     rateDiscordPost(db, { ...base, feature: "email", rating: "up" }),
     "bad_feature",
   );
+});
+
+test("only a line that reached the channel is rated: a skip, a refusal or a lost one is not found", async () => {
+  const base = { account: person, feature: "clan_activity", clanTag: CLAN };
+  for (const postId of [POST.skipped, POST.refused, POST.lost])
+    await refused(
+      rateDiscordPost(db, { ...base, postId, rating: "down" }),
+      "not_found",
+    );
+  // Its receipt still on the way: the history already shows it posted.
+  const waiting = await rateDiscordPost(db, {
+    ...base,
+    postId: POST.waiting,
+    rating: "up",
+  });
+  assert.equal(waiting.ok, true);
 });

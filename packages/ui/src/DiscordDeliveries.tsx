@@ -47,6 +47,8 @@ const SAID: Record<DiscordDeliveryRow["outcome"], string> = {
   skipped: "Skipped",
 };
 const MISSED = new Set(["refused", "unknown", "not_delivered"]);
+// Only a line that reached the channel is rated (the door holds the same).
+const RATEABLE = new Set(["posted", "edited"]);
 
 /**
  * The last deliveries to a Discord channel (2026-10-11), the same on the
@@ -125,7 +127,7 @@ export function DiscordDeliveries({
                 {r.reason ?? ""}
               </span>
             ) : null}
-            {onRate && r.ledger_id ? (
+            {onRate && r.ledger_id && RATEABLE.has(r.outcome) ? (
               <RateRow
                 ledgerId={r.ledger_id}
                 rated={ratings?.[r.ledger_id]?.rating ?? null}

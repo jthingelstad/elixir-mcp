@@ -73,4 +73,7 @@ asked (`--acceptance` or `--acceptance=<family>`).
 
 `scripts/` also holds `cr-api.mjs` (`npm run cr`, a direct CR call to check
 a claim), `name-collector-release.mjs` (`docs/RELEASING-COLLECTOR.md`),
-`build-site.mjs`, `smoke.mjs` and `test-workflows.sh` (the workflow lint).
+`editor-replay.mjs` (`npm run editor-replay`, a clan model's raw run
+through today's editor on a maintainer's own key; the `discord-review`
+skill), `build-site.mjs`, `smoke.mjs` and `test-workflows.sh` (the
+workflow lint).

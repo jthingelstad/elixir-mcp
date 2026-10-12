@@ -13,6 +13,7 @@ import {
   detailScope,
   qualityDetail,
   qualitySummary,
+  ratingsQueue,
 } from "../src/quality-report.mjs";
 
 const FP = "0123456789abcdef";
@@ -165,6 +166,58 @@ test("a window's numbers by feature, the runs, and the destinations with the mos
     [line.post_id],
   );
   assert.deepEqual(mine.runs, []);
+
+  // The ratings for a review: a thumbs down or a note first, each with
+  // the post it rates.
+  const {
+    rows: [up],
+  } = await ctx.db.query(
+    `insert into feedback (account_id, surface, area, category, message, context)
+     values ($1, 'web', 'console', 'praise', 'Fine.', '{"rating":"up"}')
+     returning feedback_id`,
+    [account],
+  );
+  await ctx.db.query(
+    `insert into feedback_ref (feedback_id, kind, ref) values ($1, 'discord_post', $2)`,
+    [up.feedback_id, line.post_id],
+  );
+  const q = await ratingsQueue(ctx.db, { days: 7, nowMs: Date.now() });
+  assert.deepEqual(
+    q.ratings.map((r) => [r.rating, r.noted, r.feature]),
+    [
+      ["down", true, "clan_activity"],
+      ["up", false, "timeline"],
+    ],
+  );
+  assert.equal(q.ratings[0].content, "Ada joined us.");
+  assert.equal(q.ratings[1].outcome, "refused");
+  assert.equal(q.ratings[0].superseded, false);
+
+  // Rated again, 👎 to 👍: the latest stands in every count, and the
+  // first is still in the queue to answer, marked superseded.
+  const {
+    rows: [again],
+  } = await ctx.db.query(
+    `insert into feedback (account_id, surface, area, category, message, context, created_at)
+     values ($1, 'web', 'clan', 'praise', 'Better.', '{"rating":"up"}', now() + interval '1 second')
+     returning feedback_id`,
+    [account],
+  );
+  await ctx.db.query(
+    `insert into feedback_ref (feedback_id, kind, ref) values ($1, 'discord_post', $2)`,
+    [again.feedback_id, good.post_id],
+  );
+  const s2 = await qualitySummary(ctx.db, { days: 7, nowMs: NOW + 5_000 });
+  assert.deepEqual(
+    s2.features.find((f) => f.feature === "clan_activity").ratings,
+    { up: 1, down: 0, with_note: 0 },
+  );
+  assert.equal(s2.destinations.find((d) => d.clan_tag === CLAN).rated_down, 0);
+  const q2 = await ratingsQueue(ctx.db, { days: 7, nowMs: Date.now() + 5_000 });
+  assert.equal(
+    q2.ratings.find((r) => r.feedback_id === fb.feedback_id).superseded,
+    true,
+  );
 });
 
 test("a detail key is a clan tag or an account id, nothing else", () => {
