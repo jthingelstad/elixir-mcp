@@ -180,18 +180,29 @@ clan only where one of the person's verified claims (primary or alt)
 is a current member. When two of their verified players are in that
 clan, the read acts as the one Clan acts as: the highest acting role,
 then the higher in-game role (`clansOf`, `packages/clan/src/gate.mjs:66-73`),
-since the role decides which Actions `canAct` lets them see. An
-unverified claim is refused [engineering]: it proves no ownership of the player
-whose line it would show, and `/policy/context` already requires
-verification (`handler.mjs:637-641`).
+since the role decides which Actions `canAct` lets them see.
+
+**A second question for Jamie: an unverified claim.** Clan admits a
+person whose only claim in the clan is unverified, as a member: "an
+unverified player is taken at its word, and Elixir lets several
+accounts claim one tag that way, so it acts here as a member"
+(`packages/clan/src/gate.mjs:16-19`), and `clan.md:35-36` says "until
+then they read as a member". Parity would give that person's agent the
+member-level view too. But the standing line is that player's private
+Clan state, and an unverified claim proves no ownership of the player:
+several accounts can hold it, so parity would hand one player's line to
+the connections of everyone who claims the tag. Default in force: an
+unverified claim is refused, as the war-intent read
+(`auth/clan-context.mjs:87-92`) and `/policy/context`
+(`handler.mjs:637-641`) refuse it; narrower than Clan's page, never
+wider. Inferred from "never another member's clock": an unverified
+claimant may be another member.
 
 | Group | Fields | Source |
 | --- | --- | --- |
 | Who | `player_tag`, `role` (the person's own) | the verified claim and `clan_membership.role`, as `auth/clan-context.mjs:87-92` |
 | Policy summary | `set`, `active`, `version`, `members`, `min_members`, `ranks_elder`, `removal`, `away`, `members_see_standing` | `policySummary`, service.mjs:1245-1259 |
 | Standing line (when active) | `version`, `goals`, `counted`, `ranks_elder`, `status` (a group, never a score), `evidence`, `next`, `minimums` {`set`, `met`, `passes`, `unknown`, `rule`, `window_weeks`}, `tenure_min_days`, and `inactivity` {`state` (`recommended` folded into `at_risk`), `days_idle`, `at_risk_days`, `judgment`, `activity_evidence`} when removal is on | `memberView`'s `clan`, service.mjs:1006-1036 |
-| Their hold | `kind`, `until` | `memberView`, :1069-1071 |
-| Their awards | `season_id`, `award_id`, `name`, `rank`, `manual` | `memberView`, :1043-1057 |
 | Actions waiting for them | per open Action of a shown type: `number`, `type`, `label`, `subject_name`, `raised_at`, `url` (the Action in Clan); `count` is the length of that list, never Clan's rail count | `actionsView`'s `open`, :1164-1166, :1186-1188, filtered by `canAct` |
 | Freshness | `evaluated_at` of the snapshot read, `read_at` | `verdicts#<clan>`, :938-947 |
 
@@ -202,6 +213,13 @@ verification (`handler.mjs:637-641`).
   (`packages/clan-engine/src/evaluate.mjs:402-415`; Clan shows
   other rows only under `members_see_standing` or to a leader,
   service.mjs:2178-2179), holds, notes and away.
+- **Beyond the three things named**: `clan.md:27-33` says the Actions
+  waiting, their own standing line and the policy, "and nothing more".
+  So the person's own hold and away (`memberView`, :1069-1071) and
+  their awards (:1043-1057) are left out, though Clan's page shows
+  them. Awards already reach a member's agent as attested facts, by the
+  type's rule (`clan.md:91-96`, principle 9); adding the hold would be
+  Jamie's call.
 - **Any removal**: no Action of type `removal`, for anyone, including
   a leader who would decide it, no `removal_safety`, and no count that
   includes one: Clan's rail count (`openActionCount`, service.mjs:1131-1138)
@@ -245,7 +263,13 @@ in step.
 **Snapshot, not live** [engineering]. The read projects the saved
 verdict snapshot (the morning run's, or the last evaluation), never
 evaluates and never writes, as `policyContext` (service.mjs:1264) and
-the war-intent read do. Clan's own `/me` evaluates live, so the agent's
+the war-intent read do. It uses the snapshot only when its
+`policy_version` is the current policy's and the clan is not below the
+minimum, the test `actionsView` applies before reusing one
+(service.mjs:1149-1155). Otherwise (a policy saved or revised since the
+last evaluation, or none yet) `standing` is null with `reason:
+"not_evaluated"`, and the Actions list, which reads the ledger's open
+Actions and needs no snapshot, is still given. Clan's own `/me` evaluates live, so the agent's
 standing line can be up to a day older than the page; it carries
 `evaluated_at`. Both shape the line with the same pure engine
 functions; the build moves `memberView`'s `clan` block (:1006-1036)
@@ -297,8 +321,6 @@ with `additionalProperties: false`):
                       "at_risk_days": 7, "judgment": "ready",
                       "activity_evidence": {} }
     },
-    "hold": null,
-    "awards": [],
     "actions": {
       "count": 1,
       "waiting": [
@@ -315,7 +337,9 @@ with `additionalProperties: false`):
 }
 ```
 
-`standing` is null when the policy is not active. Refusals:
+`standing` is null with a `reason` when the policy is not active
+(`no_policy`, `too_few_members`) or no snapshot matches the current
+policy (`not_evaluated`). Refusals:
 `not_entitled` (no grant, unverified, not a member), as `clans_context`
 refuses today (`tools/clan-context.mjs:16-21`), and `no_subject` (no
 clan given and no primary clan), as the person's other tools do. The JSON API gains nothing: programs
@@ -345,11 +369,12 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
   connection, an unverified claim, a player who has left, and a clan
   the person is not in. For the granted person, the serialized answer
   contains none of the other member's tag, name, days idle, hold or
-  note, no `removal` Action (also when the person is its subject), an
+  note, nor the person's own hold or awards, no `removal` Action (also when the person is its subject), an
   Actions `count` equal to the items shown (a leader with an open
   removal gets the same count as without one), and no key outside the
   output schema. A person with two verified players in the clan reads
-  as the one `clansOf` picks. The read runs inside
+  as the one `clansOf` picks. A snapshot from an older policy version
+  gives `standing: null`, `reason: "not_evaluated"`. The read runs inside
   `set transaction read only`, so it can never write.
 
 ## 6. Effort, risk, and what it waits on
@@ -364,7 +389,8 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
   connection held by a third-party client. The guards are the explicit
   per-connection grant, the person-only surface, the read-only snapshot
   projection, and the closed output schema.
-- **Waits on:** Jamie's ruling on section 2, and nothing else. No tier
+- **Waits on:** Jamie's rulings on section 2 (the principal) and on the
+  unverified claim (section 3), and nothing else. No tier
   check belongs on the grant (`clans_context` has none), so #530 and
   #539 do not gate it. The migration keeps it out of any wave with a
   no-migration rule.
@@ -378,14 +404,16 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
   (section 2, default (a)).
 - [engineering] The grant is per connection, made by the person, off by
   default; a table row, not a scope.
-- [engineering] An unverified claim is refused; no clan given means the
+- [engineering] An unverified claim is refused (Jamie's second
+  question); no clan given means the
   primary's current clan; two verified players in one clan read as the
   one Clan acts as (`clansOf`).
 - [engineering] No `removal` Action is ever shown, including one whose
   subject is the person.
 - [engineering] Actions are summary lines with a link, not the whole
   Action.
-- [engineering] The read projects the saved snapshot; it never
-  evaluates or writes.
+- [engineering] Only the three named things: no hold, away or awards.
+- [engineering] The read projects the saved snapshot only when its
+  policy version is current; it never evaluates or writes.
 - [engineering] A new person-only tool, `clans_my_view`, not a wider
   `clans_context`.
