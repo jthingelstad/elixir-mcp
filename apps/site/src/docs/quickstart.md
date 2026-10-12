@@ -70,6 +70,13 @@ first capture usually lands within a few minutes; until both your profile and
 your battle log have been read, Ladder says it is on its way rather than
 showing an empty season.
 
+**Account → Overview** lists what is done and what is next: the tag
+saved, a profile, battles on record, then **Player verified (needed to act
+in Clan)**, which links to [Verify](/console/account/verify): one battle
+with a deck Elixir names proves the player is yours, and Elixir Clan needs
+it before you can act in your game role. Clan war history and AI clients
+follow as optional lines.
+
 **View recorded profile** opens the saved profile and its dated trophies and
 lifetime counters. **Browse recorded battles** opens captured battles newest
 first, including retained history older than 30 days; **Older battles** reads

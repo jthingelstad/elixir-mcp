@@ -263,8 +263,21 @@ test("selected capture state is claim-bound; roster-only data never promises a p
   let p = JSON.parse((await read(true, "#J2RGCRVG")).body).player;
   assert.equal(p.player_tag, "#J2RGCRVG");
   assert.equal(p.is_primary, false);
+  assert.equal(p.verified, false, "an unproved claim reads unverified");
+  assert.equal(p.verified_at, null);
   assert.equal(p.profile_available, false);
   assert.equal(p.capture_interval.ratio, null);
+  await db.query(
+    "update claim set status='verified', verified_at=now() where account_id=$1 and player_tag='#J2RGCRVG'",
+    [accountId],
+  );
+  const proved = JSON.parse((await read(true, "#J2RGCRVG")).body).player;
+  assert.equal(proved.verified, true);
+  assert.ok(proved.verified_at);
+  await db.query(
+    "update claim set status='unverified', verified_at=null where account_id=$1 and player_tag='#J2RGCRVG'",
+    [accountId],
+  );
   // Existing bounded error metadata, never a payload or an identity claim.
   const {
     rows: [g],

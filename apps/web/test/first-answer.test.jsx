@@ -271,6 +271,58 @@ test("a browser-only profile opens the saved profile while AI and clan setup sta
   expect(screen.queryByText(/\d of 6/)).toBeNull();
 });
 
+test("Verify is a step after battles and before the optional ones, linking to Verify", async () => {
+  respond({ ...player, is_primary: true, verified: false, verified_at: null });
+  render(<FirstAnswer claimsKey="a" />);
+  const label = await screen.findByText(
+    "Player verified (needed to act in Clan)",
+  );
+  const link = screen.getByRole("link", { name: "Verify your player ›" });
+  expect(link.getAttribute("href")).toBe("/console/account/verify");
+  // In the record's own steps: after Battles on record, before the clan
+  // war history and the folded AI client steps.
+  const order = [
+    "Battles on record",
+    "Player verified (needed to act in Clan)",
+    "Clan war history (optional)",
+  ].map((t) => screen.getByText(t));
+  for (let i = 1; i < order.length; i++)
+    expect(
+      order[i - 1].compareDocumentPosition(order[i]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  expect(label.closest("details")).toBeNull();
+  // One read: the checklist asked first-answer and nothing else.
+  expect(
+    global.fetch.mock.calls.every(([u]) =>
+      String(u).startsWith("/api/me/first-answer"),
+    ),
+  ).toBe(true);
+});
+
+test("a verified player's step is done; a friend has no Verify step", async () => {
+  respond({
+    ...player,
+    is_primary: true,
+    verified: true,
+    verified_at: "2026-09-08T22:00:00Z",
+  });
+  render(<FirstAnswer claimsKey="a" compact />);
+  expect(
+    await screen.findByText("Player verified (needed to act in Clan)"),
+  ).toBeTruthy();
+  expect(
+    screen.queryByRole("link", { name: "Verify your player ›" }),
+  ).toBeNull();
+  cleanup();
+  respond({ ...player, is_primary: false, relationship: "friend" });
+  render(<FirstAnswer claimsKey="b" compact />);
+  await screen.findByText("Battles on record");
+  expect(
+    screen.queryByText("Player verified (needed to act in Clan)"),
+  ).toBeNull();
+});
+
 test("older retained battles remain usable when recording stopped and the profile is missing", async () => {
   respond({
     ...player,

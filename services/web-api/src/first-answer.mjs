@@ -9,6 +9,9 @@ export async function firstAnswer(db, accountId, playerTag = null) {
   // deprecation (docs/ENGINEERING.md: one client, one query at a time).
   const player = await db.query(
     `select c.player_tag, c.is_primary, c.relationship, p.name,
+              -- Whether this account has proved the player is theirs: the
+              -- checklist's Verify step reads it here, not a second request.
+              (c.status = 'verified') as verified, c.verified_at,
               -- When this account added the tag: the Console polls fast
               -- for the first minutes after an add (useFirstAnswer.js),
               -- so "Tag not found" or the capture shows in seconds.

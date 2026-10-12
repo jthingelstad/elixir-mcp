@@ -11,8 +11,15 @@ import {
 const n = (v) => (Number.isFinite(v) ? v.toLocaleString() : "unknown");
 const hasBattles = hasBattleEvidence;
 
+/** Only a player who is you (your primary or an alt) can be proved
+ *  yours; a friend or a watched player has nothing to verify. */
+const provable = (p) =>
+  !p || p.is_primary !== false || p.relationship === "alt";
+
 /** Readiness is derived from the record, including a successful data read:
- * an OAuth connection alone does not show that the client's setup works. */
+ * an OAuth connection alone does not show that the client's setup works.
+ * `group` places a step: the record's own steps, the optional clan war
+ * history, and the optional AI client (folded on the full page). */
 function readiness(data, notFound = false) {
   const p = data.player;
   const c = data.connection;
@@ -67,7 +74,23 @@ function readiness(data, notFound = false) {
       action: p ? "Check recording" : null,
       to: `${CONSOLE}/account/tracking`,
     },
+    // Clan's role powers wait for Verify (VISION priority 1), so it sits
+    // with the record's own steps, before anything optional.
+    provable(p) && {
+      label: "Player verified (needed to act in Clan)",
+      done: Boolean(p?.verified),
+      detail: p?.verified
+        ? p.verified_at
+          ? `verified ${ago(p.verified_at)}`
+          : "verified"
+        : p
+          ? "not verified · one battle proves the player is yours"
+          : "add your player first",
+      action: p ? "Verify your player" : null,
+      to: `${CONSOLE}/account/verify`,
+    },
     {
+      group: "clan",
       label: "Clan war history (optional)",
       done: Boolean(clan),
       detail: clan
@@ -77,6 +100,7 @@ function readiness(data, notFound = false) {
       to: `${CONSOLE}/account/tracking`,
     },
     {
+      group: "ai",
       label: "AI client connection (optional)",
       done: (c.active_connections ?? 0) > 0,
       detail:
@@ -91,6 +115,7 @@ function readiness(data, notFound = false) {
       to: `${CONSOLE}/account/connections`,
     },
     {
+      group: "ai",
       label: "AI client data reads (optional)",
       done: Boolean(c.last_data_read_at),
       detail: c.last_data_read_at
@@ -101,7 +126,7 @@ function readiness(data, notFound = false) {
       action: c.active_connections > 0 ? "Connection help" : null,
       to: "/docs/quickstart",
     },
-  ];
+  ].filter(Boolean);
 }
 
 /**
@@ -123,6 +148,12 @@ export function FirstAnswer({
   const next = data ? recordJourney(data) : null;
   const notFound = Boolean(next?.notFound);
   const steps = data ? readiness(data, notFound) : [];
+  // The record's steps always; clan war history on the full page; the AI
+  // client steps folded below it.
+  const shown = steps.filter(
+    (s) => !s.group || (s.group === "clan" && !compact),
+  );
+  const ai = steps.filter((s) => s.group === "ai");
   const wait = data ? nextPoll(data) : null;
   const questions = data ? starterQuestions(data).slice(0, 1) : [];
   return (
@@ -231,7 +262,7 @@ export function FirstAnswer({
         </div>
       )}
       <div className="flex flex-col">
-        {steps.slice(0, compact ? 3 : 4).map((s) => (
+        {shown.map((s) => (
           <div
             key={s.label}
             className="flex items-start gap-3 border-b border-line-row py-3"
@@ -264,7 +295,7 @@ export function FirstAnswer({
             Read your recorded profile and battles in this browser. Connecting
             an AI client is optional.
           </p>
-          {steps.slice(4).map((s) => (
+          {ai.map((s) => (
             <p className="mt-3" key={s.label}>
               <span>{s.label}</span>:{" "}
               <span>
