@@ -1,7 +1,9 @@
 # 2026-10-12 — Elixir Clan: a leader's change needs a roster read within the hour
 
 MCP and JSON API unchanged (nothing in `packages/contracts` moves). No
-migration.
+migration. Deployed with no acceptance family: nothing a tool serves
+changed (Clan reads `clans_roster` as it is; the change is Clan's own
+requests, engine and views).
 
 ## Why
 
