@@ -1,7 +1,7 @@
 ---
 slug: operators
 title: "Running a collector"
-description: "A collector fetches Clash Royale data for Elixir MCP with your own API key and posts it back over HTTPS. No AWS access, no queues, two secrets. What you need, how to enroll, and what it earns you."
+description: "A collector fetches Clash Royale data for Elixir MCP with your own API key and posts it back over HTTPS. No AWS access, no queues, two secrets. Anyone signed in may run one. What you need, how to enroll, and what it earns you."
 section: build
 order: 4
 navTitle: "Run a collector"
@@ -17,6 +17,40 @@ Elixir MCP with YOUR API key and posts the results back to us over
 HTTPS. It has **no AWS credentials, no cloud access, no queues** — it
 is a pure API client holding exactly two secrets: your Clash Royale
 key and the bearer token Elixir MCP issues you.
+
+The fleet shares one rate budget; extra collectors add resilience, not
+quota.
+
+## Who may run one
+
+Anyone with an Elixir account. Raising your hand is the whole
+enrollment: your collector is approved the moment you do, with no
+waiting list and no trial run on someone else's machine first. What
+keeps the record honest is not who you are but what every collector's
+results must pass, on every submit:
+
+- **Shape.** Every result must have the shape of the Clash Royale API's
+  answer for that kind of read, or it is refused.
+- **Identity.** A player, clan or river race result must be about the
+  tag the job asked for, and a battle log must have that player in
+  every battle.
+- **Content-derived battle ids.** A battle is identified by its time,
+  its players and its kind, so every collector's copy of one battle
+  lands on the same record, and a made-up battle has to agree with
+  every other log of the same players.
+- **Provenance.** The server stamps which collector sent each result
+  from its token; a collector cannot speak as another.
+- **Your own leases only, and few of them.** A collector can hand back
+  only the work it was given, holds at most two unfinished jobs at a
+  time, and has an hourly request budget.
+- **Drain and revoke.** Ten jobs in a row left to expire drain a
+  collector automatically, and the maintainer can revoke any
+  collector's token at any time, with immediate effect. When this page
+  or the door says "quarantine", it means these two and nothing else:
+  results that pass the checks above count at once, with no holding
+  pen.
+
+The maintainer is told when a collector is enrolled and sees every one.
 
 ## What you need
 
@@ -47,11 +81,13 @@ key and the bearer token Elixir MCP issues you.
    sign-in, and the console's Collectors page): collectors are credited
    to the player who runs them, so running one attaches your CR identity
    to it. Your email address and IP are never published.
-2. When the maintainer approves, the same page offers your collector
-   **token as a one-time reveal** — copy it, because it disappears
-   from the server the moment you claim it. The offer is good for
-   **72 hours**: after that the staged token is discarded unclaimed
-   and the maintainer mints you a fresh one. Claiming is a deliberate
+2. Raising your hand approves it: you land on the collector's own page,
+   which offers your collector **token as a one-time reveal** — copy
+   it, because it disappears from the server the moment you claim it.
+   The offer is good for **72 hours**: after that the staged token is
+   discarded unclaimed. If it lapses, or you lose the token later,
+   **New token** on the same page stages a fresh one; it replaces the
+   token your machine holds, which stops working. Claiming is a deliberate
    click, so nothing you paste into a chat window or a link preview
    can spend it for you. Put it in a `.env` (mode 0600)
    next to the binary alongside your own CR key:
@@ -137,7 +173,7 @@ Three routes, all `Authorization: Bearer emcg_…`:
 
 | Route | Allowed while | Limit |
 |---|---|---|
-| `GET /api/collector/config` | pending, probation, active, draining | 120 per hour |
+| `GET /api/collector/config` | probation, active, draining (and pending) | 120 per hour |
 | `POST /api/collector/lease` | probation, active | 10,000 per hour shared with submit; at most 2 unsubmitted leases |
 | `POST /api/collector/submit` | probation, active, draining | same |
 
@@ -146,12 +182,13 @@ a row, 300 s cooldown), the payload ceiling (5,000,000 bytes compressed and
 base64-encoded), the next check-in interval, your channel, your status, the address your requests arrive from (`observed_ip`
 — the one to allowlist on your CR key), the one Clash Royale path
 `collector doctor` may read to prove your key works from there, and the
-one release version and SHA-256 you may run. A `pending` token can read
-config and nothing else, so `doctor` can tell you "installed, not yet
-promoted" instead of an error; a revoked token is told so (403 `revoked`)
-on config alone. A lease expires after 90 seconds
-unsubmitted; ten expired leases in a row quarantine the collector (it moves
-to `draining`, the maintainer is told, and lease answers 409 `quarantined`).
+one release version and SHA-256 you may run. A `pending` token, the state
+of a hand raised before enrollment opened, can read config and nothing
+else, so `doctor` can tell you "installed, not yet promoted" instead of
+an error; a revoked token is told so (403 `revoked`) on config alone. A
+lease expires after 90 seconds unsubmitted; ten expired leases in a row
+drain the collector (it moves to `draining`, the maintainer is told, and
+lease answers 409 `quarantined`).
 So a submit that fails for a passing reason is retried on the same lease,
 inside those 90 seconds, on the budget config's `submit_retry` names: up
 to three attempts of at most 20 seconds, backing off from 500 ms, on a
@@ -179,16 +216,18 @@ Live reads never carry one: the agent waiting on that fetch gets the whole
 log.
 Submit answers only after the payload is admitted and committed; a rejected
 payload is still a receipt, so never fake an `ok`. Lifecycle:
-`pending → probation → active → draining → revoked`. The maintainer
-moves a collector along it; a quarantine drains one automatically, and a
-drained collector can go back to `probation` to try again.
+`probation → active → draining → revoked`. A raised hand starts on
+`probation`, which already leases and submits; its first result that
+passes the checks makes it `active`. Ten expired leases drain one
+automatically; the maintainer can also drain one, put a drained one back
+on `probation` to try again, or revoke it.
 
 ## Fair-use expectations
 
 Your collector shares ONE global rate budget with the fleet (that is
 Supercell ToS posture, not a suggestion). The pacing the server hands
 out is load-bearing. A client that goes quiet holding leases is
-quarantined automatically and the maintainer told, and one that ignores
+drained automatically and the maintainer told, and one that ignores
 the pacing runs into the door's hourly limits.
 
 ## Collector email

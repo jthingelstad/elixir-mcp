@@ -95,8 +95,8 @@ you did not play.
 
 If you want clan war history, follow [Bring your clan](/docs/bring-your-clan).
 Private Clan actions still require verified membership and the appropriate game
-role. Running a collector is optional and requires separate operator approval;
-it does not multiply the shared fetch budget.
+role. Running a collector is optional and open to anyone signed in (raising
+your hand approves it); it does not multiply the shared fetch budget.
 
 ## 3. Connect
 

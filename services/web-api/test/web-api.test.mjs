@@ -347,7 +347,7 @@ test("seed: a recorded clan the newcomer belongs to", async () => {
   );
 });
 
-test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; guards", async () => {
+test("open enrollment (#540): a raised hand is approved at once, token staged; the operator re-stages; the owner still drains and revokes", async () => {
   const cookie = memberCookie;
   const notesBefore = ownerNotes.length;
 
@@ -371,9 +371,26 @@ test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; 
       }),
     ),
   );
-  assert.equal(raise.status, "pending");
-  assert.equal(ownerNotes.length, notesBefore + 1, "owner notified");
+  // Approved at once: probation is the state the door leases to, and the
+  // token is staged for the operator's one-time reveal. No owner step.
+  assert.equal(raise.status, "probation");
+  assert.equal(raise.provision_ready, true);
+  assert.equal(ownerNotes.length, notesBefore + 1, "owner still told");
   const gwId = raise.gateway_id;
+  const { rows: born } = await db.query(
+    `select status, token_hash, provision_env,
+            provision_expires_at > now() + interval '71 hours' as fresh
+     from gateway where gateway_id = $1`,
+    [gwId],
+  );
+  assert.equal(born[0].status, "probation");
+  assert.match(born[0].provision_env, /^emcg_/, "raw staged for the reveal");
+  assert.equal(
+    born[0].token_hash,
+    crypto.createHash("sha256").update(born[0].provision_env).digest("hex"),
+    "the staged raw is the token the door will accept",
+  );
+  assert.equal(born[0].fresh, true, "staged for 72 hours");
 
   const dupe = await handler(
     event({
@@ -394,54 +411,89 @@ test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; 
       }),
     ),
   );
-  assert.ok(
-    mine.gateways.some(
-      (g) => g.gateway_id === gwId && g.name === "kitchen-mac",
+  const own = mine.gateways.find((g) => g.gateway_id === gwId);
+  assert.equal(own.name, "kitchen-mac");
+  assert.equal(own.provision_ready, true, "the operator's page offers it");
+
+  // The Admin view still shows who enrolled, with the operator.
+  const ownerCookie = bossCookie;
+  const fleet = parse(
+    await handler(
+      event({
+        method: "GET",
+        path: "/api/admin/gateways",
+        cookie: ownerCookie,
+        body: undefined,
+      }),
     ),
   );
+  const listed = fleet.gateways.find((g) => g.gateway_id === gwId);
+  assert.equal(listed.status, "probation");
+  assert.equal(listed.owner_is_me, false);
 
-  // Lifecycle is owner-only and forward-only.
-  const ownerCookie = bossCookie;
+  // The operator reveals it once.
+  const reveal = parse(
+    await handler(
+      event({ path: "/api/me/gateway-env", cookie, body: { id: gwId } }),
+    ),
+  );
+  assert.equal(reveal.env, born[0].provision_env);
+
+  // Their own fresh token, no maintainer: it replaces the one revealed.
+  // Another account (even the owner) cannot stage one for it here.
+  const notTheirs = await handler(
+    event({
+      path: "/api/me/gateway-token",
+      cookie: ownerCookie,
+      body: { id: gwId },
+    }),
+  );
+  assert.equal(notTheirs.statusCode, 404);
+  const restaged = parse(
+    await handler(
+      event({ path: "/api/me/gateway-token", cookie, body: { id: gwId } }),
+    ),
+  );
+  assert.equal(restaged.staged, true);
+  const { rows: after } = await db.query(
+    `select token_hash, provision_env from gateway where gateway_id = $1`,
+    [gwId],
+  );
+  assert.notEqual(after[0].token_hash, born[0].token_hash, "old token dead");
+  assert.equal(
+    after[0].token_hash,
+    crypto.createHash("sha256").update(after[0].provision_env).digest("hex"),
+  );
+
+  // Lifecycle moves stay owner-only.
   const nonOwner = await handler(
     event({
       path: "/api/admin/gateways",
       cookie,
-      body: { gateway_id: gwId, action: "activate" },
+      body: { gateway_id: gwId, action: "revoke" },
     }),
   );
   assert.equal(nonOwner.statusCode, 403);
-  const skip = await handler(
-    event({
-      path: "/api/admin/gateways",
-      cookie: ownerCookie,
-      body: { gateway_id: gwId, action: "activate" },
-    }),
-  );
-  assert.equal(skip.statusCode, 409, "pending cannot jump straight to active");
-  const prob = parse(
+  const drained = parse(
     await handler(
       event({
         path: "/api/admin/gateways",
         cookie: ownerCookie,
-        body: {
-          gateway_id: gwId,
-          action: "probation",
-          cr_key_ref: "supercell:kitchen-mac",
-        },
+        body: { gateway_id: gwId, action: "drain" },
       }),
     ),
   );
-  assert.equal(prob.status, "probation");
-  const act = parse(
+  assert.equal(drained.status, "draining");
+  const back = parse(
     await handler(
       event({
         path: "/api/admin/gateways",
         cookie: ownerCookie,
-        body: { gateway_id: gwId, action: "activate" },
+        body: { gateway_id: gwId, action: "probation" },
       }),
     ),
   );
-  assert.equal(act.status, "active");
+  assert.equal(back.status, "probation");
   const rev = parse(
     await handler(
       event({
@@ -452,6 +504,10 @@ test("gateway raise-hand and lifecycle: pending -> probation -> active; revoke; 
     ),
   );
   assert.equal(rev.status, "revoked");
+  const deadToken = await handler(
+    event({ path: "/api/me/gateway-token", cookie, body: { id: gwId } }),
+  );
+  assert.equal(deadToken.statusCode, 404, "a revoked collector stays dead");
 
   // A revoked gateway's name is free again.
   const again = await handler(
@@ -1848,7 +1904,8 @@ test("public status: no auth, 60s cache, no confidential fields", async () => {
 test("provision_token: one click mints, one look claims (zero-trust copy flow)", async () => {
   // Owner provisions; the raw token exists in the DB only until reveal.
   const { rows: gw } = await db.query(
-    `select gateway_id from gateway where name = 'kitchen-mac'`,
+    `select gateway_id from gateway
+     where name = 'kitchen-mac' and status <> 'revoked'`,
   );
   const id = gw[0].gateway_id;
   const minted = parse(
@@ -1905,7 +1962,7 @@ test("admin provisioning says what it did: staged state and ownership on the adm
       }),
     ),
   );
-  assert.equal(raise.status, "pending");
+  assert.equal(raise.status, "probation");
   const id = raise.gateway_id;
   const staged = parse(
     await handler(
@@ -3091,7 +3148,7 @@ test("an operator picks their collector's card; a card is one live collector's",
       }),
     ),
   );
-  assert.equal(raise.status, "pending");
+  assert.equal(raise.status, "probation");
   assert.equal(raise.card, first);
   const mine = parse(
     await handler(

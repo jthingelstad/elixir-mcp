@@ -10,34 +10,70 @@ operators cannot be assumed safe). How to run a collector is public:
 The collector is one Go implementation (`elixir-mcp-collector`); its
 releases are signed and its updater verifies them and can roll back.
 
-## Trust posture: read this before enrolling anyone
+## Trust posture: open enrollment, admission is the trust
 
-The name of this document describes where the collector plane is going,
-not all of where it is:
+Enrollment is open (Jamie, 2026-10-12, #540): whoever raises a hand is
+approved, and the admission checks are the trust a hobby record needs.
+No shadow lane is built first, and there is no activation gate. A raise
+creates the gateway on `probation`, the state the door leases to, with
+its one-time token staged for the operator's reveal; its first admitted
+submit moves it to `active`. The operator brings their own CR key,
+allowlisted to their own IP with Supercell; Elixir never issues or
+stores one.
 
-- Probation is **a status, not a control**. A probation gateway fetches
-  config, leases real jobs, and its admitted submissions project
-  straight into canonical history like any other collector's.
-- Admission proves **shape and identity**: that a payload is well-formed
-  and is about the entity we asked for. It cannot prove that a plausible
-  payload is TRUE. Content-derived battle ids and MAX-merge counters raise
-  the cost of a consistent lie; they do not make one impossible.
-- Missed-streak quarantine detects a collector that fails to return work.
-  It does not detect one that returns fiction.
+What that trust rests on, all of it code that runs on every call:
 
-Therefore **collector enrollment is trusted-volunteer, not zero-trust.**
-An enrolled operator is a person trusted with write access to the
-permanent record, and enrollment carries exactly that weight. Enrollment
-is not self-serve: raising a hand does nothing until the maintainer
-approves it, and approval issues only a one-time bearer token. The
-operator brings their own CR key, allowlisted to their own IP with
-Supercell; Elixir never issues or stores one.
+1. **Shape validation and identity binding**: `admit()` in
+   `packages/ingest/src/admission.mjs`. Every payload must match its
+   endpoint's validator; a `player`, `clan` or `currentriverrace`
+   payload must be about the tag the job asked for (`IDENTITY`); a
+   battle log must carry the requested player on the team of every
+   battle (`observer-missing`).
+2. **Content-derived battle ids**: `canonicalBattleId` in
+   `packages/ingest/src/battles.mjs` hashes the battle time, the sorted
+   player tags and the battle class, so every observer's copy meets on
+   one row and a fabricated battle has to agree with every clanmate's
+   log of the same players.
+3. **Server-stamped provenance**: the door stamps `gateway_id` (and
+   `gateway_sha`) on the envelope from the token, never from the body;
+   a collector cannot submit as another.
+4. **Lease ownership**: a submit settles only a job whose `leased_by`
+   is the caller's gateway (`bad_lease` otherwise).
+5. **Per-token budget**: 10,000 work and 120 config requests per token
+   per hour (`TOKEN_BUDGET`).
+6. **Lease cap**: at most 2 unsubmitted leases per token
+   (`MAX_OUTSTANDING`, `leaseUnderCap`).
+7. **Missed-streak drain**: ten expired leases in a row and the door
+   stops leasing, drains the gateway and tells the owner
+   (`MISSED_STREAK_QUARANTINE`).
+8. **Revoke**: the maintainer's, a row update the door checks on every
+   call, with instant effect.
 
-**The activation gate.** Before a gateway run by someone other than the
-maintainer is moved to `active`, either the shadow lane below must ship,
-or the decision to trust that specific operator must be made
-deliberately and written down. "Begin probation" means "these results
-count".
+Monotonic MAX-merge counters bound the rest: a lie cannot walk recorded
+numbers backwards.
+
+"Quarantine", wherever the brief or a door message says it, means two
+things and no more: the missed-streak drain (7) and the maintainer's
+revoke (8). There is **no payload quarantine**: admission is binary,
+an admitted payload from a probation collector projects straight into
+canonical tables like any other, and nothing holds it back for a second
+opinion. [engineering, 2026-10-12: drain plus revoke is enough; "no
+shadow lane is built first".]
+
+What admission cannot do: prove that a well-formed payload about the
+right subject is TRUE. Content-derived ids and MAX-merge counters raise
+the cost of a consistent lie; they do not make one impossible. That is
+the risk open enrollment accepts.
+
+**The minimum version is a switch, not a constant.** In code,
+`versionRefusal` is off: it refuses `lease` and `submit` below
+`min_client_version` only when the `COLLECTOR_MIN_ENFORCE` environment
+variable is `1`, set from the `CollectorMinEnforce` stack parameter
+(template default `"0"`). Production has it at `"1"` (read from the stack
+on 2026-10-12), and deploys preserve it (`RELEASING-COLLECTOR.md`). So
+the gate holds today because of that one parameter; a stack that loses
+it serves a client of any version. Moving it, or the minimum, is Jamie's
+call.
 
 **Recovery is designed, not built.** Receipts carry their gateway forever
 and the archive is replayable (the `{replay}` op), but there is **no
@@ -85,24 +121,32 @@ The client loop is config → `lease → fetch cr_path (paced) → submit`.
 Pacing, breaker and overflow constants come from config, not compiled in.
 
 Below `min_client_version` the door refuses `lease` and `submit` with 426
-`client_too_old` when the `CollectorMinEnforce` stack parameter is on; it
-never refuses `config`, the channel a stale client updates through, and
-it fails open on a version it cannot parse (`dev`).
+`client_too_old` only when the `CollectorMinEnforce` stack parameter is
+on (`COLLECTOR_MIN_ENFORCE=1`; on in production, off by default); it never refuses
+`config`, the channel a stale client updates through, and it fails open
+on a version it cannot parse (`dev`).
 
 ### Tokens
 
-Server-generated at approval (`emcg_` prefix), stored as a sha256 hash
+Server-generated at the raise (`emcg_` prefix), stored as a sha256 hash
 in the gateway row, shown once through a one-time claim-and-null
-download. Lifecycle pending → probation → active → draining → revoked,
-enforced at the door on every call: revocation is a row update with
-instant effect. Ingest keeps its gateway checks as defense in depth.
+download staged for 72 hours. The operator can stage a fresh one for
+their own collector (`POST /api/me/gateway-token`), which replaces the
+old; the maintainer's `provision_token` does the same from Admin.
+Lifecycle probation → active → draining → revoked, enforced at the door
+on every call: a raise starts on probation, its first admitted submit
+makes it active, and revocation is a row update with instant effect.
+`pending` is only an older raise's state (config answers it; lease and
+submit do not). Ingest keeps its gateway checks as defense in depth.
 
 ### Enrollment
 
-Raise a hand with a **name only**; the card identity is server-assigned.
-No static IP: the CR key's IP binding is between the operator and
-Supercell. No IAM, no owner-side script: approval generates the token
-and the one-time download is the provisioning.
+Raise a hand with a **name only** (`POST /api/gateways`, signed in) and
+a card. No static IP: the CR key's IP binding is between the operator
+and Supercell. No IAM, no owner-side script, no approval step: the
+raise generates the token and the one-time download is the
+provisioning. The maintainer is emailed, sees every enrolled collector
+in Admin → Collectors, and keeps drain and revoke.
 
 ### Fleet health
 
@@ -114,8 +158,8 @@ Database heartbeats are the fleet-health truth (Admin → Collectors,
 
 ## What a hostile operator can still do, and can't
 
-Still can: submit wrong or garbage data (admission, identity binding and
-the lifecycle bound it), sit on leases (each expires and the job returns
+Still can: submit wrong or garbage data (admission, identity binding,
+content-derived ids and revoke bound it), sit on leases (each expires and the job returns
 to the ledger), hammer the door (budgeted per token, revocable
 instantly). **Cannot:** touch any AWS API, impersonate another collector,
 delete work unprocessed, write metrics, or learn anything beyond three
@@ -136,28 +180,30 @@ persistent black-holer:
   429 with `retry_after_s` and `Retry-After`. The work ceiling is more
   than double what the busiest honest collector reaches at the 1500 ms
   pacing floor.
-- **Missed-streak quarantine**: every lease that expires unsubmitted
+- **Missed-streak drain** (the door's 409 says `quarantined`): every
+  lease that expires unsubmitted
   charges the gateway's `missed_streak` when the ledger settles it; a
   submit resets it. At ten in a row the door stops issuing leases, flips
   the gateway to draining and notifies the owner.
 
 ### The lying collector (submits plausible garbage)
 
-1. **Built:** admission shape validation; identity binding (the payload
-   must be about the requested entity); monotonic MAX-merge counters (a
-   lie cannot walk recorded numbers backwards); content-derived battle
-   ids (a fabricated battle needs a story consistent across observers,
-   and shared subjects are cross-checked by every clanmate's log).
-2. **Not built: shadow verification.** A probation collector's jobs
-   sampled and double-fetched by a trusted collector, comparing stable
-   fields (name, trophies within tolerance, badge counts, roster
-   membership); activation earned by agreement, with a low sampling rate
-   after. This is the activation gate above.
-3. **Not built: provenance quarantine.** Revoke the token, purge that
+1. **Built:** the admission checks above: shape validation; identity
+   binding (the payload must be about the requested entity); monotonic
+   MAX-merge counters (a lie cannot walk recorded numbers backwards);
+   content-derived battle ids (a fabricated battle needs a story
+   consistent across observers, and shared subjects are cross-checked by
+   every clanmate's log); revoke.
+2. **Not built, by decision: shadow verification.** Double-fetching a
+   new collector's jobs on a trusted one before its results count was
+   the old activation gate. Open enrollment replaced it (#540, which
+   supersedes that half of #421).
+3. **Not built: provenance purge.** Revoke the token, purge that
    gateway's receipts and payloads, replay the archive without them,
    keeping a trusted collector's observations of the same subjects. It
    needs a disposable database and archived fixtures before anyone relies
-   on it.
+   on it; until then, revoke stops a liar and nothing removes what it
+   already admitted.
 
 ## Updates: the server names, the release key signs
 

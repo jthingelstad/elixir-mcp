@@ -72,7 +72,7 @@ export function ownerNotifyMessage(spec) {
     case "gateway_request":
       return {
         ...base,
-        note: `Gateway raise-hand: "${spec.playerTag}". Approve it and issue its collector token in Admin (${SITE}/docs/operators).`,
+        note: `Collector enrolled: "${spec.playerTag}". Enrollment is open, so it is approved and its token is staged for the operator; drain or revoke it in Admin if it should not run (${SITE}/docs/operators).`,
         link: `${SITE}/console/admin`,
       };
     case "gateway_quarantined":

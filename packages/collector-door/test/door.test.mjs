@@ -966,3 +966,67 @@ test("every door call stamps the build; the badge reads it against named release
   await call({ "x-collector-version": "v3.0.4" });
   assert.equal((await badge()).state, "unverified");
 });
+
+test("open enrollment (#540): a probation collector's first ADMITTED submit makes it active; a rejection does not", async () => {
+  const token = "emcg_probation_raise_token";
+  const {
+    rows: [acct],
+  } = await db.query(`select account_id from account limit 1`);
+  await db.query(
+    `insert into gateway (owner_account_id, name, token_hash, channel, status)
+     values ($1, 'probation-raise', $2, 'bulk', 'probation')`,
+    [acct.account_id, sha256(token)],
+  );
+  const rejecting = makeCollectorDoor({
+    ingest: async () => ({ outcome: "rejected", errors: ["body:unparseable"] }),
+    notifyOwner: async () => {},
+  });
+  await db.query(`delete from job`);
+  await enqueueJob(db, { ...JOB, entity_key: "#RETRY1" });
+  const first = await rejecting.lease(db, authed(token), { wait_s: 0 });
+  assert.equal(first.status, 200, "probation leases: approved at the raise");
+  const refused = await rejecting.submit(db, authed(token), {
+    lease: first.body.lease,
+    status: "ok",
+    body_gzip_b64: Buffer.from("z").toString("base64"),
+    fetched_at: new Date().toISOString(),
+  });
+  assert.equal(refused.body.outcome, "rejected");
+  assert.equal(
+    (await gatewayRow("probation-raise")).status,
+    "probation",
+    "a rejected payload promotes nothing",
+  );
+
+  await enqueueJob(db, { ...JOB, entity_key: "#RETRY2" });
+  const second = await door.lease(db, authed(token), { wait_s: 0 });
+  const admitted = await door.submit(db, authed(token), {
+    lease: second.body.lease,
+    status: "ok",
+    body_gzip_b64: Buffer.from("z").toString("base64"),
+    fetched_at: new Date().toISOString(),
+  });
+  assert.equal(admitted.body.outcome, "admitted");
+  assert.equal(
+    (await gatewayRow("probation-raise")).status,
+    "active",
+    "its first admitted fetch makes it active",
+  );
+  // A collector drained while it held a lease hands it back and stays
+  // drained: only probation is promoted.
+  await enqueueJob(db, { ...JOB, entity_key: "#RETRY3" });
+  const third = await door.lease(db, authed(token), { wait_s: 0 });
+  await db.query(
+    `update gateway set status = 'draining' where name = 'probation-raise'`,
+  );
+  await door.submit(db, authed(token), {
+    lease: third.body.lease,
+    status: "ok",
+    body_gzip_b64: Buffer.from("z").toString("base64"),
+    fetched_at: new Date().toISOString(),
+  });
+  assert.equal((await gatewayRow("probation-raise")).status, "draining");
+  await db.query(
+    `update gateway set status = 'revoked' where name = 'probation-raise'`,
+  );
+});

@@ -133,7 +133,7 @@ test("@narrow invitation entry and signup fit phone and desktop without changing
       page.getByRole("heading", { name: "Create your Elixir account" }),
     ).toBeVisible();
     await expect(
-      page.getByText(/Collectors need separate approval/),
+      page.getByText(/Running a collector is optional and open/),
     ).toBeVisible();
     expect(
       await page.evaluate(

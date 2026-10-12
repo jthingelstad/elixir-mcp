@@ -197,8 +197,10 @@ its limits: [COLLECTOR-ZERO-TRUST.md](COLLECTOR-ZERO-TRUST.md).
   answers `next_check_in_s`: 0 while work remains, 15 s idle; since
   2026-09-11), so an active collector's heartbeat is never more than
   about a minute old. A silent collector is lost redundancy even while
-  another carries the load. A `pending` collector whose operator has
-  finished setup is a follow-up.
+  another carries the load. Enrollment is open (#540): a raise starts on
+  `probation` with its token staged and turns `active` on its first
+  admitted fetch, so a `probation` collector that reads silent an hour
+  after its raise was never installed; revoke it if it stays that way.
 - **Efficiency**, the Admin fleet table: yield 24h, the share of fetches
   that changed the record (55-80% is normal; one far below the others is
   fetching the wrong things); edge filter, the share of battle-log

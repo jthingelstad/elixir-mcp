@@ -156,7 +156,9 @@ test("signup discloses existing mail policy and the independent collector gate",
     true,
   );
   expect(screen.getByText(/Reports have their own off switches/)).toBeTruthy();
-  expect(screen.getByText(/Collectors need separate approval/)).toBeTruthy();
+  expect(
+    screen.getByText(/Running a collector is optional and open/),
+  ).toBeTruthy();
   expect(
     screen.getByRole("link", { name: "Privacy" }).getAttribute("href"),
   ).toBe("/docs/privacy");
