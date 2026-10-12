@@ -389,6 +389,19 @@ async function toldToday(db, clanTag, row, tags, now) {
   const posts = new Map();
   const battles = new Map();
   if (!tags.length) return { posts, battles };
+  // Their battles, read even when nothing was posted about them today:
+  // one run's move and sitting are one post by them too.
+  const { rows: played } = await db.query(
+    `select player_tag, battle_time from battle_participant
+      where player_tag = any($1::text[]) and battle_time > $2
+      order by battle_time`,
+    [tags, new Date(now - TODAY_BATTLES_MS)],
+  );
+  for (const r of played)
+    battles.set(r.player_tag, [
+      ...(battles.get(r.player_tag) ?? []),
+      r.battle_time.getTime(),
+    ]);
   const since = new Date(now - STORY_TODAY_MS);
   const { rows } = await db.query(
     `select coalesce(story_key, item_id) as post_key, item_id, kind,
@@ -406,6 +419,7 @@ async function toldToday(db, clanTag, row, tags, now) {
       moments: [],
       battles: [],
       sitting: false,
+      kinds: [],
       revision: 0,
       told_ms: 0,
     };
@@ -414,6 +428,7 @@ async function toldToday(db, clanTag, row, tags, now) {
     if (r.item_at) p.moments.push(r.item_at.getTime());
     if (r.battle_id) p.battles.push(r.battle_id);
     if (r.kind === "session_standout") p.sitting = true;
+    if (!p.kinds.includes(r.kind)) p.kinds.push(r.kind);
     p.revision = Math.max(p.revision, r.revision);
     p.told_ms = Math.max(p.told_ms, r.told_at.getTime());
     byKey.set(r.post_key, p);
@@ -479,17 +494,6 @@ async function toldToday(db, clanTag, row, tags, now) {
   for (const p of mine.sort((a, b) => b.first_ms - a.first_ms))
     for (const t of p.players)
       if (tags.includes(t)) posts.set(t, [...(posts.get(t) ?? []), p]);
-  const { rows: played } = await db.query(
-    `select player_tag, battle_time from battle_participant
-      where player_tag = any($1::text[]) and battle_time > $2
-      order by battle_time`,
-    [tags, new Date(now - TODAY_BATTLES_MS)],
-  );
-  for (const r of played)
-    battles.set(r.player_tag, [
-      ...(battles.get(r.player_tag) ?? []),
-      r.battle_time.getTime(),
-    ]);
   return { posts, battles };
 }
 

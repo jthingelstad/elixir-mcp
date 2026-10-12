@@ -265,7 +265,8 @@ told more than three hours late says when in words ("Yesterday").
   from before that post went up, is part of it: the post is edited to
   tell it too when it is under two hours old and one of the channel's
   three newest, otherwise the story is skipped. A member's second
-  sitting in a day is skipped the same way. A promotion or a new best
+  sitting in a day is skipped the same way, once anything from an
+  earlier sitting (a move, a best, a league or the sitting) was posted. A promotion or a new best
   from a later battle is still its own post.
 - **Skipped, with the reason**: a badge or mastery level-up below its
   top level (the top level and a new badge are told); a story already

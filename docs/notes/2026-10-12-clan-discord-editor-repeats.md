@@ -87,3 +87,15 @@ a later result, the one-sitting cap, a run's own merge, a bare move),
 `syndication/test/clan-sync.test.mjs` (the morning end to end: the move
 posted with who is there while the model is unreachable, the rung
 editing it, a late league skipped with its reason).
+
+## Codex on #541 (both P2, both fixed in the follow-up)
+
+- `toldToday` returned before reading the members' battle times when
+  nothing had been posted about them today, so a battle-less move and a
+  rung or sitting of the same sitting, new in one run, were two posts.
+  The battle times are now read first. `clan-sync.test` pins it with a
+  move and a rung in one run.
+- The one-sitting cap counted only an earlier post that held a sitting
+  story; a morning told only as its move let an evening sitting through.
+  A post today of any sitting kind (move, league, best, sitting) now
+  counts, as does any story already kept for the member in the run.

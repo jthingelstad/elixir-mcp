@@ -1102,6 +1102,56 @@ test("one member's morning is one post: a move told before its battle names who 
   assert.deepEqual(skip, { skipped: true, skip_reason: "already_told_today" });
 });
 
+test("a move and a rung of one sitting, both new in one run, are one post (Codex on #541)", async () => {
+  const B = T + 600 * H;
+  const SOLO = "#PYL0Q2GY";
+  await db.query(`insert into player (player_tag, name) values ($1, 'Solo')`, [
+    SOLO,
+  ]);
+  await db.query(
+    `insert into clan_membership (clan_tag, player_tag, role, joined_observed_at)
+     values ($1, $2, 'member', $3)`,
+    [CLAN, SOLO, at(B - 40 * 24 * H)],
+  );
+  for (const [id, m] of [
+    ["solo-1", 0],
+    ["solo-2", 6],
+  ]) {
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, game_mode_name)
+       values ($1, $2, 'PvP', 'pvp', 'Ladder')`,
+      [id, at(B + m * MIN)],
+    );
+    await db.query(
+      `insert into battle_participant
+         (battle_id, player_tag, side, outcome, battle_time, type, type_class, crowns)
+       values ($1, $2, 0, 'win', $3, 'PvP', 'pvp', 3)`,
+      [id, SOLO, at(B + m * MIN)],
+    );
+  }
+  // Nothing posted about Solo today; the move has no battle yet.
+  await emitEvent(db, "arena_changed", {
+    tag: SOLO,
+    windowStart: at(B + 9 * MIN),
+    windowEnd: at(B + 10 * MIN),
+    payload: { from: 54000021, to: 54000022, to_name: "Summit of Heroes" },
+  });
+  await emitEvent(db, "best_trophies_band", {
+    tag: SOLO,
+    windowStart: at(B + 10 * MIN),
+    windowEnd: at(B + 11 * MIN),
+    payload: {
+      best: 11_510,
+      band: 11_500,
+      crossed_by: { battle_id: "solo-1" },
+    },
+  });
+  const out = await sync(B + 20 * MIN);
+  assert.equal(out.posted, 1, "one post, not two");
+  const [post] = out.sent[0].message.posts;
+  assert.match(post.content, /^Solo moved up to Summit of Heroes.* They also /);
+});
+
 test("refusals and removal", async () => {
   await removeClanActivity(db, CLAN);
   assert.deepEqual(
