@@ -1,0 +1,3 @@
+# One battle page is the only public page of the record
+
+Elixir checked every address it answers for what opens without signing in, and wrote the rule down. A battle's own page, with its link and share picture, is the one part of the record anyone can open. The status pages, [The corpus](/data) and [Recording now](/data/now) and their JSON, count what the recorder holds and name no player or clan; the one name they carry is each collector's operator, credited by their primary player. Everything else needs a free account. Nothing that was public closed: the check found nothing else open. [Privacy](/docs/privacy) says it. MCP 11.11.2 and JSON API 3.2.0 unchanged.
