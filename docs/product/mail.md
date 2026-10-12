@@ -34,6 +34,10 @@ never mailed; an agent's feedback is answered to the agent. [Jamie,
    waiting after its morning run, and answers to feedback. Reports cover
    Monday 10:00 UTC to Monday 10:00 UTC and send at 14:00 UTC; at most
    one of a kind about one subject a day. [Jamie, 2026-09-17, 2026-10-02]
+   The collector report is the exception: it keeps its Sunday send and
+   covers Saturday 00:00 UTC to Saturday 00:00 UTC ("since we send that
+   on Sunday and I like that, let's do 0:00 UTC Sat to Sat"). [Jamie,
+   2026-10-12]
 4. **Milestones are the big firsts, once ever.** A new arena, league,
    best band, Evolution or Hero form, legendary badge, career step. A
    card unlocked or a badge level is a count in Tuesday's mail, never a
