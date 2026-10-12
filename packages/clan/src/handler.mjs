@@ -412,7 +412,8 @@ export function createHandler({
     // clan's members and publishes nothing (Jamie, 2026-09-25).
     const ctx = await clanContext(event, m[1]);
     if (ctx.response) return ctx.response;
-    const { clan, who, token } = ctx;
+    const { clan, token } = ctx;
+    let { who } = ctx;
     const tag = clan.clan_tag;
     annotate({ clan: tag, role: who.role });
     // An unverified player is a member who reads (Jamie, 2026-09-26):
@@ -427,8 +428,18 @@ export function createHandler({
     try {
       // A leader's role is the record's; before acting on it, the record
       // must have read the roster within the hour (role-freshness.mjs).
-      if (isLeaderMutation(method, rest, who.role))
+      if (isLeaderMutation(method, rest, who.role)) {
         await confirmRole({ mcp, token, clanTag: tag, now: now() });
+        // A roster read admitted between the gate above and that check
+        // would be fresh while `who` is not (Codex on #519): read the
+        // role again, after the read that found the roster fresh.
+        const again = await clanContext(event, m[1]);
+        if (again.response) return again.response;
+        who = again.who;
+        annotate({ role: who.role });
+        if (!who.verified)
+          return json(403, { error: "unverified", player_tag: who.player_tag });
+      }
       const memberPath = /^\/members\/([0-9A-Za-z]{3,12})\/activity$/.exec(
         rest,
       );

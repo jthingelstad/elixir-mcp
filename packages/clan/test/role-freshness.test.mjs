@@ -187,3 +187,39 @@ test("a roster read that fails is elixir_unavailable", async () => {
   assert.equal(r.status, 502);
   assert.equal(r.body.error, "elixir_unavailable");
 });
+
+test("a role the roster changed between the gate and the freshness read is read again before acting (Codex on #519)", async () => {
+  const h = harness();
+  const ada = await as(h);
+  // The admission lands just as the freshness check reads the roster.
+  const inner = h.mcp.rawCallTool.bind(h.mcp);
+  h.mcp.rawCallTool = async (token, name, args) => {
+    if (name === "clans_roster")
+      h.mcp.state.players = [player({ clan_role: "member" })];
+    return inner(token, name, args);
+  };
+  const before = h.mcp.calls.filter(([n]) => n === "initialize").length;
+  const r = await ada("PUT", "/api/clans/2PQRJ8LV/social", { enabled: false });
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  assert.equal(r.body.error, "leaders_only");
+  assert.equal(
+    h.mcp.calls.filter(([n]) => n === "initialize").length - before,
+    2,
+    "the gate, then the gate again after the freshness read",
+  );
+
+  // Left the clan in that moment: the clan is no longer theirs.
+  const g = harness();
+  const ben = await as(g);
+  const inner2 = g.mcp.rawCallTool.bind(g.mcp);
+  g.mcp.rawCallTool = async (token, name, args) => {
+    if (name === "clans_roster")
+      g.mcp.state.players = [player({ clan_tag: null, clan_role: null })];
+    return inner2(token, name, args);
+  };
+  const gone = await ben("PUT", "/api/clans/2PQRJ8LV/social", {
+    enabled: false,
+  });
+  assert.equal(gone.status, 403, JSON.stringify(gone.body));
+  assert.notEqual(gone.body.error, "role_unconfirmed");
+});
