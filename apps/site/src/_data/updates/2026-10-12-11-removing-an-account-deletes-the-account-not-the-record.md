@@ -1,0 +1,3 @@
+# Removing an account deletes the account, not the record
+
+When you ask for your account to be removed, the account goes: your address, the players and clans you track, your nicknames, your agents, your connections, the mail sent to you, and your usage. A few pieces were left behind before and now go too: a timeline cross-post's Discord webhook and what it posted, an agent's permission to read a clan's policy, the counters behind your limits, and the clan Elixir Clan remembered you working in. The players' game history does not go: it is public game data and stays under the record's retention rule, as any untracked player's does. [Your account](/docs/your-account#removing-the-account) and [Privacy](/docs/privacy) say it. MCP 11.11.2 and JSON API 3.2.0 unchanged.

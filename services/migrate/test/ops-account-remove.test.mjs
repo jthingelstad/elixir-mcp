@@ -196,6 +196,61 @@ before(async () => {
     `insert into gateway (owner_account_id, name, status) values ($1, 'leaver-box', 'active')`,
     [ids.person],
   );
+
+  // Connections and delivery state that hang off the account row with no
+  // cascade the tombstone ever fires (0202, 0213, 0222), the rate
+  // counters (text-keyed), and Clan's remembered clan.
+  await db.query(
+    `insert into agent_policy_context_grant (agent_account_id, owner_account_id, clan_tag, token_id)
+     values ($1, $2, '#2PP0V9YY', $3)`,
+    [ids.agent, ids.person, tok.token_id],
+  );
+  const sealed = JSON.stringify({ v: 1, sealed: "x" });
+  await db.query(
+    `insert into timeline_discord (account_id, webhook_sealed, webhook_fp, webhook_display)
+     values ($1, $3, '0123456789abcdef', '1234…abcd'), ($2, $3, 'fedcba9876543210', '5678…dcba')`,
+    [ids.person, ids.other, sealed],
+  );
+  await db.query(
+    `insert into timeline_discord_told (account_id, item_id, revision)
+     values ($1, 'tl_00000000000000000001', 1), ($1, 'tl_00000000000000000002', 1),
+            ($2, 'tl_00000000000000000001', 1)`,
+    [ids.person, ids.other],
+  );
+  await db.query(
+    `insert into discord_post (post_id, feature, account_id, clan_tag, destination, webhook_fp,
+                               post_key, revision, action, mode, handed_at)
+     values (gen_random_uuid(), 'timeline', $1, null, $3, '0123456789abcdef',
+             'tl_00000000000000000001', 1, 'post', 'line', now()),
+            (gen_random_uuid(), 'timeline', $2, null, $4, 'fedcba9876543210',
+             'tl_00000000000000000001', 1, 'post', 'line', now()),
+            (gen_random_uuid(), 'clan_actions', null, '#2PP0V9UU', '#2PP0V9UU',
+             'aaaaaaaaaaaaaaaa', 'card-1', 1, 'post', 'code', now())`,
+    [ids.person, ids.other, ids.person, ids.other],
+  );
+  for (const pk of [
+    `account#${ids.person}`,
+    `account#${ids.other}`,
+    "note##2PP0V9UU##2PP0V9PP",
+  ])
+    await db.query(`insert into clan_state (pk, body) values ($1, $2)`, [
+      pk,
+      JSON.stringify({ pk, selected: { clan_tag: "#2PP0V9UU" } }),
+    ]);
+  for (const bucket of [
+    `mcpday#${ids.person}`,
+    `firstread#${ids.person}`,
+    `rest-hour:${ids.person}`,
+    `mcp#${ids.agent}`,
+    `mcp#token#${tok.token_id}`,
+    `auth#${emailHash(ADDRESS)}`,
+    `mcpday#${ids.other}`,
+    "verify-tag##2PP0V9PP",
+  ])
+    await db.query(
+      `insert into rate_limit (bucket, window_start, count) values ($1, current_date, 3)`,
+      [bucket],
+    );
 });
 
 after(async () => {
@@ -225,6 +280,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
   assert.deepEqual(dry.removed, {
     mcp_call_audit: 4,
     credential_refusal: 1,
+    agent_policy_context_grant: 1,
     service_token: 1,
     oauth_token: 2,
     oauth_family: 1,
@@ -237,6 +293,10 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     account_clan_declined: 1,
     player_nickname: 1,
     timeline_reader: 0,
+    timeline_discord_told: 2,
+    timeline_discord: 1,
+    discord_post: 1,
+    clan_state: 1,
     agent_identity: 0,
     feedback: 1,
     collector_version_event: 0,
@@ -245,6 +305,7 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     email_milestone_look: 0,
     account_email_pref: 0,
     account_event: 2, // signed_in, and the grant's agent_connected
+    rate_limit: 6,
   });
   assert.deepEqual(dry.kept, {
     recordings_requested: 3,
@@ -367,6 +428,9 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "player_nickname",
     "credential_refusal",
     "mcp_call_audit",
+    "timeline_discord",
+    "timeline_discord_told",
+    "discord_post",
   ]) {
     assert.equal(
       await count(
@@ -384,6 +448,53 @@ test("the run removes the person and their agent, keeps the game record, and lea
     ),
     0,
   );
+  assert.equal(
+    await count(
+      `select count(*)::int as n from agent_policy_context_grant
+        where agent_account_id = any($1::uuid[]) or owner_account_id = any($1::uuid[])`,
+      [[ids.person, ids.agent]],
+    ),
+    0,
+  );
+  assert.equal(
+    r.removed.agent_policy_context_grant,
+    1,
+    "counted, not cascaded",
+  );
+  assert.deepEqual(
+    (await db.query(`select pk from clan_state order by pk`)).rows.map(
+      (x) => x.pk,
+    ),
+    [`account#${ids.other}`, "note##2PP0V9UU##2PP0V9PP"],
+    "Clan's remembered clan goes; the clan's ledger and others' rows stay",
+  );
+  assert.deepEqual(
+    (await db.query(`select bucket from rate_limit order by bucket`)).rows.map(
+      (x) => x.bucket,
+    ),
+    [`mcpday#${ids.other}`, "verify-tag##2PP0V9PP"].sort(),
+    "the account's counters go; others' and a player's stay",
+  );
+  // Everyone else's cross-post, and the clan's posts, stay.
+  assert.equal(
+    await count(`select count(*)::int as n from timeline_discord`),
+    1,
+  );
+  assert.equal(
+    await count(`select count(*)::int as n from timeline_discord_told`),
+    1,
+  );
+  assert.deepEqual(
+    (
+      await db.query(`select feature from discord_post order by feature`)
+    ).rows.map((x) => x.feature),
+    ["clan_actions", "timeline"],
+  );
+  assert.ok(
+    r.manual.some((m) => m.includes("timeline-discord-state/")),
+    "the relay's records are named for the outbox's own expiry",
+  );
+
   // The only event left is the removal itself.
   assert.deepEqual(
     (

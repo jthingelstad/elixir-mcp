@@ -3223,6 +3223,30 @@ test("GET /api/admin/cards: the catalog with its archetype roles, the vocabulary
   }
 });
 
+test("a late one-click unsubscribe on a removed account writes nothing to the tombstone", async () => {
+  const {
+    rows: [gone],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ('removed:' || gen_random_uuid(), 'disabled', 'member')
+     returning account_id`,
+  );
+  const token = signUnsubscribe({
+    secret: SECRET,
+    accountId: gone.account_id,
+    kind: "all",
+  });
+  const request = event({ method: "POST", path: "/api/email/unsubscribe" });
+  request.queryStringParameters = { t: token };
+  const reply = await handler(request);
+  assert.equal(reply.statusCode, 200, reply.body);
+  const { rows } = await db.query(
+    `select (select count(*)::int from account_email_pref where account_id = $1) as prefs,
+            (select count(*)::int from account_event where account_id = $1) as events`,
+    [gone.account_id],
+  );
+  assert.deepEqual(rows[0], { prefs: 0, events: 0 });
+});
+
 test("retired email switches cannot be restored, while history and old unsubscribe links remain readable", async () => {
   const {
     rows: [account],

@@ -13,9 +13,13 @@
  * claims and watches (claim, account_clan, and the recordings only they
  * kept alive, stopped through the claims package's own reconcile), the
  * sessions, OAuth grants and codes and tokens,
- * service tokens, the call log and its refusal log, feedback, account
+ * service tokens and the policy-context grants bound to them, the call
+ * log and its refusal log and the rate counters, feedback, account
  * events, mail sent and its switches and milestones, nicknames, timeline
- * read pointers, agent identities, and pending sign-in links.
+ * read pointers, the timeline's Discord cross-post (its sealed webhook,
+ * what it told, and its posts in the quality ledger), Clan's remembered
+ * clan, agent identities, and pending sign-in links. Removing an account
+ * deletes the account, not the record (DECISIONS).
  *
  * What stays: canonical game data (lossless by policy; stopping a
  * recording deletes nothing it recorded); a recording's `requested_by`,
@@ -34,8 +38,10 @@
  *
  * Not reachable from here, so listed in `manual`: the newsletter address
  * at Buttondown, sent-mail bodies under mail/sent/ in the archive bucket
- * (the keys are returned; this function holds no DeleteObject), and call
- * captures under calls/, which expire on their own 90-day rule.
+ * (the keys are returned; this function holds no DeleteObject), call
+ * captures under calls/, which expire on their own 90-day rule, and the
+ * relay's timeline-discord-state/<account>/ records in the outbox bucket,
+ * which expire with the bucket's 14-day rule.
  *
  * Dry run by default: `dry_run` must be false to write. One transaction.
  * The address in the payload is never returned or logged.
@@ -127,6 +133,14 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     [ids],
   );
   const familyIds = families.map((r) => r.family_id);
+  // Rate counters are text-keyed (packages/tools quota and live, the MCP
+  // and REST doors, Verify, sign-in mail): most end in the account id; a
+  // key with its own ceiling counts under mcp#token#<id>; sign-in mail
+  // under the address hash.
+  const counterKeys = [
+    `auth#${person.email_hash}`,
+    ...tokenIds.map((t) => `mcp#token#${t}`),
+  ];
 
   // What the removal would stop being a reason to record, taken before
   // the rows go, in one sorted order (the claims package's subject lock).
@@ -169,6 +183,12 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
          or token_id = any($2::bigint[])`,
       [ids, tokenIds],
     ],
+    // Before the tokens it is bound to, which would cascade it uncounted.
+    [
+      "agent_policy_context_grant",
+      `agent_policy_context_grant where agent_account_id = any($1::uuid[])
+         or owner_account_id = any($1::uuid[])`,
+    ],
     ["service_token", `service_token where account_id = any($1::uuid[])`],
     [
       "oauth_token",
@@ -188,6 +208,19 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
     ],
     ["player_nickname", `player_nickname where account_id = any($1::uuid[])`],
     ["timeline_reader", `timeline_reader where account_id = any($1::uuid[])`],
+    [
+      "timeline_discord_told",
+      `timeline_discord_told where account_id = any($1::uuid[])`,
+    ],
+    ["timeline_discord", `timeline_discord where account_id = any($1::uuid[])`],
+    // Only the timeline cross-post names an account; Clan's posts name
+    // the clan and stay.
+    ["discord_post", `discord_post where account_id = any($1::uuid[])`],
+    [
+      "clan_state",
+      `clan_state where pk = any($1::text[])`,
+      [ids.map((id) => `account#${id}`)],
+    ],
     ["agent_identity", `agent_identity where account_id = any($1::uuid[])`],
     ["feedback", `feedback where account_id = any($1::uuid[])`],
     [
@@ -205,6 +238,12 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       `account_email_pref where account_id = any($1::uuid[])`,
     ],
     ["account_event", `account_event where account_id = any($1::uuid[])`],
+    [
+      "rate_limit",
+      `rate_limit where substring(bucket from '[#:]([^#:]+)$') = any($1::text[])
+         or bucket = any($2::text[])`,
+      [ids, counterKeys],
+    ],
   ];
 
   const removed = {};
@@ -268,6 +307,7 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
         ? `Delete ${mail.length} sent-mail bodies from the archive bucket (mail_archive_keys).`
         : "No sent-mail bodies are archived.",
       "Call captures under calls/ expire on their own 90-day rule.",
+      "Timeline cross-post records under timeline-discord-state/<account>/ in the outbox bucket expire on its 14-day rule.",
     ],
     mail_archived: mail.length,
     mail_archive_keys: dryRun
