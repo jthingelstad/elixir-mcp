@@ -25,6 +25,7 @@ import {
   diff as policyDiff,
   evaluate,
   inactivityEvidence,
+  holdActive,
   removalDay,
   nextSteps,
   participationPhrase,
@@ -270,6 +271,20 @@ export function createManageService({
       };
       result.set(c.card_id, safety);
       if (ready) plausible.push(c);
+    }
+    // A hold or away is read now: setting one does not refresh a saved
+    // evaluation.
+    if (plausible.length) {
+      const holdByTag = new Map(
+        (await ledger.holds(clanTag)).map((h) => [h.player_tag, h]),
+      );
+      for (const c of plausible.splice(0))
+        if (holdActive(holdByTag.get(c.player_tag), t))
+          result.set(c.card_id, {
+            ...result.get(c.card_id),
+            reason: "The member is on hold.",
+          });
+        else plausible.push(c);
     }
     const recent =
       verdicts &&
