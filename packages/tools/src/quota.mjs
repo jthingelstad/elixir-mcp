@@ -15,8 +15,9 @@ import { liveBudgetFor } from "./tools/shared.mjs";
 
 // Collector credits (Jamie, 2026-09-04): every 10 fetches your
 // collectors perform adds 1 to your daily quota, capped at 4x base.
-/** Calls per hour per paying account, every door (MCP and the web
- *  explorer share the bucket, since they spend the same budget). */
+/** Calls per hour per principal: MCP and the web explorer share the
+ *  bucket. The daily quota below is the MCP door's alone; the Console's
+ *  and Ladder's own reads spend none of it (#538). */
 export const HOURLY_RATE_LIMIT = 300;
 
 const CREDIT_DIVISOR = 10;

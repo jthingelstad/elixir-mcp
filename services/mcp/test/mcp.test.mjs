@@ -221,6 +221,23 @@ test("quota exhaustion returns -32029", async () => {
   assert.equal(res.payload.error.code, MCP_QUOTA_ERROR_CODE);
 });
 
+test("a tools/call at the MCP door still charges the daily counter", async () => {
+  // The Console's and Ladder's own reads left the daily quota (#538); the
+  // MCP door, where agents and a person's clients call, did not.
+  const today = new Date().toISOString().slice(0, 10);
+  const count = async () => {
+    const { rows } = await db.query(
+      `select count from rate_limit where bucket = $1 and window_start = $2::date`,
+      [`mcpday#${account.accountId}`, today],
+    );
+    return Number(rows[0]?.count ?? 0);
+  };
+  const before = await count();
+  const { isError } = await callTool("elixir_my_players");
+  assert.equal(isError, false);
+  assert.equal(await count(), before + 1, "one call, one charge");
+});
+
 test("elixir_my_players: primary claim, recording status, meta envelope", async () => {
   const { body, isError } = await callTool("elixir_my_players");
   assert.equal(isError, false);

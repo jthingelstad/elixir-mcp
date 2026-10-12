@@ -34,7 +34,7 @@ import { ZoneOffer } from "../../components/ZoneOffer.jsx";
  * game, then your players and clans as short lists into Tracking, and
  * today's calls. Every figure is one the console already holds: the
  * canvas's trophies, season record and war-day count have no source the
- * console can read without spending the reader's metered calls, so the
+ * console already holds (each would be tool reads of its own), so the
  * Ladder and Clan tiles say where to go rather than invent a number.
  * The battle-activity year stays, below (Jamie, 2026-09-13: "too cool
  * to not have prominent on the Overview page").
@@ -405,11 +405,10 @@ function Clans({ clansQuery }) {
 }
 
 /** Today's tool calls against the day's budget, and when the day turns
- *  over. Not "MCP calls": the Console's and Ladder's own reads go through
- *  the same tools and spend the same budget (docs/limits), so a person
- *  who never connected an agent still has calls, and the tile says whose
- *  they were. Nothing while the reading is on its way or failed: the
- *  Usage page says why. */
+ *  over. The Console's and Ladder's own reads go through the same tools
+ *  but spend none of the budget (docs/limits, #538), so the tile counts
+ *  them apart and says so. Nothing while the reading is on its way or
+ *  failed: the Usage page says why. */
 function Today({ role }) {
   const { data: usage } = useUsage();
   const { zone } = useClock();
@@ -419,9 +418,7 @@ function Today({ role }) {
   const whose =
     web === 0
       ? ""
-      : web === q.calls.used
-        ? "all of them the Console's and Ladder's own reads, which count like an agent's · "
-        : `${web.toLocaleString()} of them the Console's and Ladder's own reads, which count like an agent's · `;
+      : `plus ${web.toLocaleString()} Console and Ladder ${web === 1 ? "read" : "reads"}, which are not counted · `;
   return (
     <section
       aria-labelledby="ov-today"

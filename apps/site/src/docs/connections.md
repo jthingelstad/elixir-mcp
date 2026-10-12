@@ -149,7 +149,7 @@ is the same pages scoped to it (below).
 | Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
 | Your record → Verify | prove that you control a player by playing one battle with a deck Elixir names |
 | Access → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its console; and **New agent** |
-| Access → Usage | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, and **MCP requests**, every call with its `request_id` |
+| Access → Usage | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, the Console's and Ladder's own reads counted apart (they spend no daily quota), and **MCP requests**, every call with its `request_id` |
 | Service → Status | recording health, budget gauge, capture gaps; under it **Collectors** (the fleet, your own collectors, the one-time token reveal) and **Efficiency** (what the battle-log schedule costs and loses) |
 | Send feedback | what you filed and what the maintainer answered |
 

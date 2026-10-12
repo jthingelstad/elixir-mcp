@@ -66,6 +66,8 @@ function fourteenDays(days) {
       day: key,
       calls: byDay.get(key)?.calls ?? 0,
       errors: byDay.get(key)?.errors ?? 0,
+      // The Console's and Ladder's own reads: logged, never charged (#538).
+      web: byDay.get(key)?.web_calls ?? 0,
       today: i === 0,
     });
   }
@@ -111,7 +113,7 @@ export function Usage() {
               {usage.agent_calls_today > 0 &&
                 ` Your agents spent ${usage.agent_calls_today.toLocaleString()} of today's calls; they draw on the same budget you do.`}
               {usage.web_calls_today > 0 &&
-                ` The Console's and Ladder's own reads were ${usage.web_calls_today.toLocaleString()} of them: the pages read through the same tools, and count the same way.`}
+                ` The Console and Ladder also read ${usage.web_calls_today.toLocaleString()} ${noun(usage.web_calls_today, "time")} for you today; your own reads on Elixir's website are not counted against the budget.`}
             </>
           )}
         </p>
@@ -179,7 +181,7 @@ export function Usage() {
           {days.map((d) => (
             <span
               key={d.day}
-              title={`${d.day} · ${d.calls.toLocaleString()} ${noun(d.calls, "call")}${d.errors ? ` · ${d.errors} ${noun(d.errors, "error")}` : ""}`}
+              title={`${d.day} · ${d.calls.toLocaleString()} ${noun(d.calls, "call")}${d.errors ? ` · ${d.errors} ${noun(d.errors, "error")}` : ""}${d.web ? ` · ${d.web.toLocaleString()} Console and Ladder ${noun(d.web, "read")}, not counted` : ""}`}
               style={{
                 flex: "1 1 0",
                 minWidth: "6px",

@@ -1,7 +1,7 @@
 import { TOOL_GROUPS } from "@elixir-mcp/contracts";
 import { checkRateLimit } from "@elixir-mcp/auth";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
-import { makeQuota, HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
+import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
   renderToolResultText,
   MCP_RESULT_MAX_CHARS,
@@ -40,20 +40,18 @@ export function exploreRoutes({ resolveAccount, exploreRegistry }) {
           message: `Unknown or non-explorable tool: ${tool}`,
         });
       }
-      // The same door discipline as /mcp (handler.mjs), same buckets: the
-      // explorer used to be an unmetered, uncapped path to every tool.
+      // The hourly bucket /mcp uses (handler.mjs), the same one: a person's
+      // own web reads are not a tier, but they are not unbounded either.
+      // No daily tool-call quota here (Jamie, 2026-10-12, #538): the
+      // Console's and Ladder's own reads spend none of `mcpday#`. The call
+      // is still written to the log (surface "web"), and Usage counts it
+      // apart from the budget. Not `firstParty`: that would lift the live
+      // lane too (tools/shared.mjs liveBudgetFor), which stays metered.
       const withinRate = await checkRateLimit(db, {
         bucket: `mcp#${account.accountId}`,
         max: HOURLY_RATE_LIMIT,
       });
       if (!withinRate) return json(429, { error: "rate_limited" });
-      const quota = await makeQuota({ db, account })();
-      if (!quota.allowed) {
-        return json(429, {
-          error: "quota_exceeded",
-          message: `Daily tool-call quota reached (${quota.max} per day). It resets at midnight UTC.`,
-        });
-      }
       const invoke = makeInvoker({
         db,
         account,
