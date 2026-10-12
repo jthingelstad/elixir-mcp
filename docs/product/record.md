@@ -99,4 +99,6 @@ it. [Jamie, 2026-10-12]
 - **The recorder's status page.** `/data/now` opens with no sign-in. It
   shows the recorder working, not the record, so it is service status
   rather than a public page of the record. `[engineering]` it stays
-  public unless it names subjects.
+  public while it names no subject, with one exception: the status it
+  reads credits each collector to its operator's primary player. [Jamie,
+  2026-10-12]

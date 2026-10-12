@@ -354,7 +354,7 @@ export function makeHandler({
     }),
   };
 
-  return async function handler(event, context) {
+  async function handler(event, context) {
     // Through CloudFront, or not at all (see auth origin.mjs).
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
     const method =
@@ -535,5 +535,10 @@ export function makeHandler({
         }),
       );
     }
-  };
+  }
+  // Every route key the map registers, for the public-boundary test
+  // (#526): it walks them with no credential, so a new route that
+  // answers unsigned is listed there on purpose or fails.
+  handler.routeKeys = Object.freeze(Object.keys(routes));
+  return handler;
 }

@@ -18,7 +18,8 @@ and notes; when a note says "decided" or "policy day", this is what it means.
 ## The record
 
 **recorded** — a subject the service is capturing, or has captured: its
-history is in the record. Everything recorded is readable by every account.
+history is in the record. Everything recorded is readable by every account;
+with no account, only a battle's own page opens (see [Privacy](/docs/privacy)).
 
 **tracked** — a subject on *your* account: you asked for it to be recorded
 with `elixir_track_player` or `elixir_track_clan`, and it occupies one of

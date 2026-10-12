@@ -1,15 +1,17 @@
 ---
 layout: data-page.njk
 title: "The corpus"
-description: "Elixir's record as it stands: battles, players, clans, war weeks and daily snapshots. Aggregates are public by design."
+description: "Elixir's record as it stands, counted: battles, players, clans, war weeks and daily snapshots. The counts name no player or clan."
 permalink: /data/index.html
 canonical: /data
 dataNav: totals
 ---
 {#-
   The corpus proof, and the reason this is a real document rather than a
-  screen in the app: an aggregate is public by design, and a crawler, an
-  agent and a person who has not signed in should all be able to read it.
+  screen in the app: a count of what the recorder holds is service status,
+  public while it names no subject (DECISIONS "Recorder counts are service
+  status"), and a crawler, an agent and a person who has not signed in
+  should all be able to read it.
   Baked at deploy from /api/public/stats.
 -#}
 {%- set t = stats.totals %}
@@ -18,8 +20,8 @@ dataNav: totals
   <div>
     <h1 class="hero-title" style="margin-bottom: 6px">The corpus</h1>
     <p class="lede" style="margin: 0; max-width: 58ch">
-      The record as it stands. Aggregates are public by design; what
-      belongs to an account never is.
+      The record as it stands, counted. These counts name no player or
+      clan; the record itself needs a free account.
     </p>
   </div>
   <span class="mono" style="margin-left: auto; text-align: right; font-size: 12px; color: var(--ink-faint)">

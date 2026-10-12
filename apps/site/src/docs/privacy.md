@@ -19,12 +19,19 @@ move as the service grows.
 
 **Game data.** Elixir records public Clash Royale data from Supercell's
 API (battles, profiles, clans, wars) and keeps it over time. The game
-shows the present; Elixir keeps the history, and anyone with access can
-read it. Nothing is recorded that the game's API does not already
+shows the present; Elixir keeps the history, and anyone with an account
+can read it. Nothing is recorded that the game's API does not already
 publish. The Elixir family's own apps can add facts of their own (a
 clan's awards, a leader's note on why a member left, a best score in
 one of the apps). Each one says which app it came from, and only the
 people it is meant for can see it.
+
+**Without an account.** One page of the record opens to anyone: a
+battle's own page, with its link and share picture, so a battle can be
+shared. The status pages ([The corpus](/data), [Recording now](/data/now)
+and their JSON) count what the recorder holds and name no player or clan,
+except that each collector is credited to its operator's primary player.
+Everything else needs a free account.
 
 **Your account.** Signing in keeps your email address, so the service
 can send you sign-in codes and mail about your account. A new account
@@ -95,7 +102,7 @@ and fix what is wrong; they are never published and are not part of
 the game record.
 
 **Collectors.** If you run a collector for the service, its card name,
-status and fetch counts are public and credited to your claimed player.
+status and fetch counts are public and credited to your primary player.
 Your machine's own name and address are not published.
 
 **Keeping and removing.** Game history is kept; it is what the service
