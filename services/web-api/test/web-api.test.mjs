@@ -3247,6 +3247,44 @@ test("a late one-click unsubscribe on a removed account writes nothing to the to
   assert.deepEqual(rows[0], { prefs: 0, events: 0 });
 });
 
+test("a one-click unsubscribe racing a removal waits for it and writes nothing", async () => {
+  const {
+    rows: [leaving],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ($1, 'approved', 'member')
+     returning account_id`,
+    [emailHash("racing-removal@example.com")],
+  );
+  const token = signUnsubscribe({
+    secret: SECRET,
+    accountId: leaving.account_id,
+    kind: "all",
+  });
+  // The removal holds the row, as {account_remove} does, while the click lands.
+  await db.query("begin");
+  await db.query(`select 1 from account where account_id = $1 for update`, [
+    leaving.account_id,
+  ]);
+  const request = event({ method: "POST", path: "/api/email/unsubscribe" });
+  request.queryStringParameters = { t: token };
+  const pending = handler(request);
+  await new Promise((r) => setTimeout(r, 300));
+  await db.query(
+    `update account set email_hash = 'removed:' || account_id::text, status = 'disabled'
+      where account_id = $1`,
+    [leaving.account_id],
+  );
+  await db.query("commit");
+  const reply = await pending;
+  assert.equal(reply.statusCode, 200, reply.body);
+  const { rows } = await db.query(
+    `select (select count(*)::int from account_email_pref where account_id = $1) as prefs,
+            (select count(*)::int from account_event where account_id = $1) as events`,
+    [leaving.account_id],
+  );
+  assert.deepEqual(rows[0], { prefs: 0, events: 0 });
+});
+
 test("retired email switches cannot be restored, while history and old unsubscribe links remain readable", async () => {
   const {
     rows: [account],

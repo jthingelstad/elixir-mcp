@@ -69,7 +69,14 @@ function labelOf(kind) {
   return kind === "all" ? "every Elixir email" : (KIND_LABELS[kind] ?? kind);
 }
 
-async function setPref(db, accountId, kind, enabled, via) {
+async function setPref(
+  db,
+  accountId,
+  kind,
+  enabled,
+  via,
+  { inTx = false } = {},
+) {
   const kinds =
     kind === "all"
       ? [...(enabled ? ACTIVE_PRODUCT_EMAIL_KINDS : PRODUCT_EMAIL_KINDS)]
@@ -81,12 +88,17 @@ async function setPref(db, accountId, kind, enabled, via) {
        on conflict (account_id, kind) do update set enabled = excluded.enabled, via = excluded.via, changed_at = now()`,
       [accountId, k, enabled, via],
     );
+  // Best effort; inside a transaction a savepoint keeps a failed event
+  // from rolling the switch back with it.
+  if (inTx) await db.query("savepoint pref_event");
   await db
     .query(
       `insert into account_event (account_id, kind, detail) values ($1, 'email_pref', $2)`,
       [accountId, JSON.stringify({ kind, enabled, via })],
     )
-    .catch(() => {});
+    .catch(async () => {
+      if (inTx) await db.query("rollback to savepoint pref_event");
+    });
 }
 
 export function emailRoutes({ resolveAccount, secret, archive = null }) {
@@ -227,13 +239,27 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
         return json(400, { error: "bad_kind" });
       // A removed account keeps no switches ({account_remove}): a late
       // one-click on an old mail answers as done and writes nothing to the
-      // tombstone, which has no address to mail anyway.
-      const { rows: removed } = await db.query(
-        `select 1 from account where account_id = $1 and email_hash like 'removed:%'`,
-        [c.accountId],
-      );
-      if (!removed.length)
-        await setPref(db, c.accountId, c.kind, false, "one_click");
+      // tombstone, which has no address to mail anyway. The share lock
+      // waits out a removal in flight (it holds the row for update) and
+      // then reads the row as it committed.
+      await db.query("begin");
+      try {
+        const { rows } = await db.query(
+          `select email_hash from account where account_id = $1 for share`,
+          [c.accountId],
+        );
+        const live =
+          rows.length &&
+          !String(rows[0].email_hash ?? "").startsWith("removed:");
+        if (live)
+          await setPref(db, c.accountId, c.kind, false, "one_click", {
+            inTx: true,
+          });
+        await db.query("commit");
+      } catch (err) {
+        await db.query("rollback").catch(() => {});
+        throw err;
+      }
       // A mail client's one-click POST wants a 2xx and nothing else; a
       // person's button wants a page.
       const wantsHtml = /text\/html/.test(event.headers?.accept ?? "");
