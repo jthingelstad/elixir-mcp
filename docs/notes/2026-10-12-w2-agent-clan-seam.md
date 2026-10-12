@@ -367,14 +367,20 @@ read the JSON API, agents read MCP (`agents.md:22-23`).
 
 ## 5. The boundary proof
 
-- **`clan-boundary.test.mjs` stays green unchanged.** The tool is
-  declared in `packages/tools/src/tools/clan-context.mjs`, the one file
-  allowed to import `@elixir-mcp/auth/clan-context` (:48-55); the
+- **`clan-boundary.test.mjs` keeps its rules and gains one.** The tool
+  is declared in `packages/tools/src/tools/clan-context.mjs`, the one
+  file allowed to import `@elixir-mcp/auth/clan-context` (:48-55); the
   reader lives in `packages/auth/src/clan-context.mjs` beside
   `readAgentPolicyContext` and reads the ledger by SQL there, so no file
   under `packages/tools/src` or `services/mcp/src` names `clan_state`
-  (:46) or imports a Clan package (:57-61). `packages/auth` gains one
-  dependency, the pure `@elixir-mcp/clan-engine`, for the shared shaping.
+  (:46) or imports a Clan package (:57-61). Those checks pin the
+  importer, not the surface, so a second tool in that file would pass
+  them silently: the test gains an assertion that the module exports
+  exactly `clans_context` and `clans_my_view`, and the invariant that
+  names `clans_context` as the one exception (`AGENTS.md:130-132`,
+  `packages/clan/AGENTS.md:33-35`, `docs/ENGINEERING.md:459-462`) names
+  both. `packages/auth` gains one dependency, the pure
+  `@elixir-mcp/clan-engine`, for the shared shaping.
 - **The surface test gains the person-only rule.**
   `clans_my_view` joins `PERSON_ONLY_TOOLS`; `principal-surface.test.mjs`
   asserts an agent and an integration do not list it, and that calling
