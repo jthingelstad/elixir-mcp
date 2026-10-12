@@ -88,9 +88,9 @@ or stops the recording accordingly:
 | claimed | any account tracks the player |
 | added | any account tracks the clan |
 | added deep | any account tracks the clan at `comprehensive` scope |
-| ops | the maintainer records it directly; never stopped by user actions |
 
-The widest reason wins. Removing your own reason frees your slot; the
+Only people's tracking is a reason: the maintainer has no reason of their
+own and tracks from an account like anyone else. The widest reason wins. Removing your own reason frees your slot; the
 recording stops only when no reason remains anywhere. A clan's scope settles
 up or down to the widest remaining reason; a player's scope only ever widens.
 History is never deleted when a recording stops.

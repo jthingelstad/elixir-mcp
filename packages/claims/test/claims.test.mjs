@@ -221,21 +221,34 @@ test("three subscribers: only the final removal stops it", async () => {
   );
 });
 
-test("an ops recording survives losing every subscriber", async () => {
-  // Pros and clan fan-out are recorded deliberately, with no subscribers.
+test("an ops-origin recording stops when its last subscriber leaves", async () => {
+  // The maintainer's own `ops` reason is retired (2026-10-12, #527): only
+  // people's tracking records. A row the 0042 backfill labelled `ops`
+  // stops like any other; stopping deletes nothing.
   await addPlayer(db, alice, { tag: A, via: "test" });
   await db.query(`update recording set origin = 'ops' where subject_tag = $1`, [
     A,
   ]);
   const r = await removePlayer(db, alice, { tag: A, via: "test" });
   assert.equal(r.removed, true);
-  assert.equal(
-    r.recordingStopped,
-    false,
-    "ops recordings are not subscriber-owned",
-  );
-  assert.equal(await isRecording(A), true);
+  assert.equal(r.recordingStopped, true, "ops is no reason to record");
+  assert.equal(await isRecording(A), false);
   assert.equal((await latestRecording(A)).origin, "ops");
+});
+
+test("a tracked subject keeps its ops-origin recording", async () => {
+  await addPlayer(db, alice, { tag: A, via: "test" });
+  await db.query(`update recording set origin = 'ops' where subject_tag = $1`, [
+    A,
+  ]);
+  const r = await reconcileRecording(db, "player", A, null);
+  assert.deepEqual(r, { started: false, stopped: false });
+  assert.equal(await isRecording(A), true);
+  assert.equal(
+    (await reconcileRecording(db, "player", A, null, { dryRun: true }))
+      .retained,
+    true,
+  );
 });
 
 // --------------------------------------------------------------- #10
@@ -585,7 +598,7 @@ const clanRecording = async (tag) =>
     )
   ).rows[0];
 
-test("an ops clan recording survives losing every reason", async () => {
+test("an ops-origin clan recording stops when its last reason goes", async () => {
   await addedClan(bob, CLAN);
   await reconcileRecording(db, "clan", CLAN, bob.accountId);
   await db.query(
@@ -594,9 +607,14 @@ test("an ops clan recording survives losing every reason", async () => {
     [CLAN],
   );
   await db.query(`delete from account_clan where clan_tag = $1`, [CLAN]);
+  const dry = await reconcileRecording(db, "clan", CLAN, null, {
+    dryRun: true,
+  });
+  assert.equal(dry.stopped, true);
+  assert.equal(dry.retained, false);
   const r = await reconcileRecording(db, "clan", CLAN, null);
-  assert.equal(r.stopped, false);
-  assert.equal((await clanRecording(CLAN)).status, "active");
+  assert.equal(r.stopped, true);
+  assert.equal(await clanRecording(CLAN), undefined);
 });
 
 test("retired Collection-origin recordings stop unless directly followed", async () => {

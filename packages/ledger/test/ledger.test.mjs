@@ -50,7 +50,7 @@ before(async () => {
   gw = g.gateway_id;
   await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, origin)
-    select 'player', tag, $1, 'ops' from unnest($2::text[]) tag`,
+    select 'player', tag, $1, 'claim' from unnest($2::text[]) tag`,
     [
       acct.account_id,
       [
@@ -67,7 +67,7 @@ before(async () => {
   );
   await db.query(
     `insert into recording (subject_type, subject_tag, requested_by, origin)
-    values ('clan', '#J2RGCRVG', $1, 'ops')`,
+    values ('clan', '#J2RGCRVG', $1, 'claim')`,
     [acct.account_id],
   );
 });
