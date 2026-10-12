@@ -688,7 +688,7 @@ function LeaderMessage({
 /** What a draft refusal means, in a leader's words. */
 const DRAFT_ERROR = {
   removal_evidence_held:
-    "Current evidence does not establish inactivity. Removal words are withheld; reload the action.",
+    "This removal no longer qualifies. Removal words are withheld; reload the action.",
   draft_changed:
     "The action's context changed. Reload it before drafting or sending these words.",
   departure_unconfirmed:
@@ -1093,11 +1093,11 @@ function BoundActionCard({
         </div>
         {removalHeld ? (
           <div className="callout callout--warn flex-col gap-2" role="alert">
-            <strong>Removal is not enforceable.</strong>
+            <strong>This removal no longer qualifies.</strong>
             <p className="m-0">{action.removal_safety.reason}</p>
             {action.removal_safety.latest_activity_interval ? (
               <p className="m-0">
-                The profile counter increased by{" "}
+                The profile&rsquo;s battle count rose by{" "}
                 {
                   action.removal_safety.latest_activity_interval
                     .counter_increase
@@ -1128,11 +1128,6 @@ function BoundActionCard({
                   )}
                 </time>
                 .
-                {action.removal_safety.latest_activity_interval
-                  .no_battles_captured
-                  ? " No battles from that interval were captured."
-                  : ""}{" "}
-                The exact battle time and mode are unknown.
               </p>
             ) : null}
             <p className="m-0">

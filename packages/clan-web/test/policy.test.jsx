@@ -114,7 +114,7 @@ describe("policy: tabs along the top", () => {
     expect(save.mock.calls[0][1].war_intent).toBe("not_participating");
     expect(save.mock.calls[0][1].war_enabled).toBe(true);
   });
-  test("preview says a threshold-crossed removal is not enforceable (#426)", async () => {
+  test("preview names a removal the record cannot read as held, and a member past the removal day as remove", async () => {
     vi.spyOn(manageApi, "previewPolicy").mockResolvedValue({
       ok: true,
       status: 200,
@@ -126,13 +126,23 @@ describe("policy: tabs along the top", () => {
           members: [
             {
               player_tag: "#8QCV",
-              name: "Example",
+              name: "Unread",
               promotion: "none",
               demotion: "none",
               removal: "recommended",
               removal_judgment: "held",
               removal_triage: { status: "evidence_held" },
               actionable: { removal: false },
+            },
+            {
+              player_tag: "#9QCV",
+              name: "Idle",
+              promotion: "none",
+              demotion: "none",
+              removal: "recommended",
+              removal_judgment: "ready",
+              removal_triage: { status: "eligible" },
+              actionable: { removal: true },
             },
           ],
         },
@@ -142,16 +152,16 @@ describe("policy: tabs along the top", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Preview the last reviews" }),
     );
-    expect(await screen.findByText("removal not enforceable")).toBeTruthy();
-    expect(screen.queryByText("removal recommended")).toBeNull();
+    expect(await screen.findByText("removal evidence held")).toBeTruthy();
+    expect(screen.getByText("remove")).toBeTruthy();
   });
-  test("#426: the Inactivity tab is labelled not yet enforceable, its numbers stay editable, and the saved policy says what it can do today", async () => {
+  test("the Inactivity tab has no enforceability label, and the saved policy says removal is live", async () => {
     const values = {
       ...defaults(),
       elder_mode: "hand",
       removal_enabled: true,
-      at_risk_days: 9,
-      confirm_days: 5,
+      at_risk_days: 7,
+      confirm_days: 10,
     };
     await render({
       ...view,
@@ -162,20 +172,13 @@ describe("policy: tabs along the top", () => {
     const canDo = screen.getByRole("region", {
       name: "What this policy can do today",
     });
-    expect(canDo.textContent).toMatch(
-      /Remove inactive members: Not enforceable/,
-    );
+    expect(canDo.textContent).toMatch(/Remove inactive members: Live/);
     expect(canDo.textContent).toMatch(/Promote and demote Elders: Off/);
     open("Inactivity");
-    expect(screen.getByText("Not yet enforceable")).toBeTruthy();
-    expect(
-      screen.getByText(/cannot prove that a member played no battle/),
-    ).toBeTruthy();
+    expect(screen.queryByText("Not yet enforceable")).toBeNull();
     const atRisk = screen.getByLabelText(/^At risk/);
-    expect(atRisk.value).toBe("9");
-    expect(atRisk.disabled).toBe(false);
-    fireEvent.change(atRisk, { target: { value: "12" } });
-    expect(screen.getByLabelText(/^At risk/).value).toBe("12");
+    expect(atRisk.value).toBe("7");
+    expect(screen.getByLabelText(/^Removal action at/).value).toBe("10");
   });
 
   test("an unsaved policy shows no can-do box", async () => {

@@ -21,6 +21,7 @@ import {
 } from "./policy.mjs";
 import { declaredGoals, goalsInSentence } from "./goals.mjs";
 import { CHAT_MAX, WELCOME_MAX, chatSafe, clipChat } from "./chat.mjs";
+import { removalDay } from "./inactivity.mjs";
 
 const pct = (x) => `${Math.round(x * 100)}%`;
 const n = (x) =>
@@ -62,9 +63,7 @@ export function judgmentReasons(v, boundaries, policy = null) {
             : "battle log is not recorded, so standing cannot be judged"
           : dimension === "removal"
             ? (v.facts?.activity_evidence?.reason ??
-              (v.facts?.days_idle == null
-                ? "no recorded battle or observed join anchors the clock"
-                : "comparable profile observations do not cover the policy window"))
+              "no recorded battle or observed join anchors the clock")
             : boundaries.length === 0
               ? "no closed weekly review yet"
               : (weights.war ?? 0) > 0 && v.facts?.war?.fidelity === "unknown"
@@ -154,14 +153,14 @@ export function cardFacts(v, policy) {
   facts.push(
     {
       key: "last_battle",
-      label: "Last captured battle",
+      label: "Last battle",
       value: f.last_battle_time
-        ? `${f.activity_evidence?.captured_battle_age_days ?? "unknown"} days ago; capture does not prove inactivity`
+        ? `${f.activity_evidence?.captured_battle_age_days ?? "unknown"} days ago`
         : f.joined_observed_at
           ? `none recorded since joining ${f.observed_days} days ago`
           : "unknown",
       window: "record",
-      fidelity: "partial",
+      fidelity: f.last_battle_time ? "daily" : "unknown",
     },
     {
       key: "tenure",
@@ -190,7 +189,7 @@ export function cardRationale(type, v, policy, verdicts) {
     const r = v.removal;
     const slots = verdicts?.roster?.open_slots ?? verdicts?.band?.open_slots;
     return {
-      headline: `${Number(r.activity_evidence?.counter_quiet_days ?? 0).toFixed(2)} days with no recorded battle or profile counter increase through ${r.activity_evidence?.measured_through ?? "an unknown observation"}: at risk at ${r.at_risk_days}, an action at ${r.at_risk_days + r.confirm_days}${r.grace_days ? ` (${r.grace_days} grace days for meeting the minimums with ${slots} open slots)` : ""}.`,
+      headline: `${Math.floor(r.days_idle ?? 0)} days without a battle: at risk at ${r.at_risk_days}, an action at ${r.removal_day}${r.grace_days ? ` (${r.grace_days} grace days for meeting the minimums with ${slots} open slots)` : ""}.`,
       clauses: [
         "at_risk_days",
         "confirm_days",
@@ -389,7 +388,7 @@ export function describePolicy(policy) {
 
   if (policy.removal_enabled) {
     const lines = [
-      `Measured counter quiet for ${plural(policy.at_risk_days, "day")} reaches the at-risk clock; ${plural(policy.at_risk_days + policy.confirm_days, "day")} is the removal threshold. Crossing it cannot raise a removal Action without proof of no battle activity across every mode. That proof is currently unavailable, so removal stays held even with fresh flat counters. Recorded battles and positive counter intervals protect activity; missing observations remain uncertainty.`,
+      `A member with no battle for ${plural(policy.at_risk_days, "day")} is at risk; at ${plural(removalDay(policy), "day")} without one the leaders decide on removal.`,
     ];
     if (policy.contribution_grace_max_days > 0)
       lines.push(

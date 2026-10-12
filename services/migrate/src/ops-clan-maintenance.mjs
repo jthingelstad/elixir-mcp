@@ -6,7 +6,12 @@ import pg from "pg";
 import { createHash } from "node:crypto";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
-import { reconstructedLog, inactivityEvidence } from "@elixir-mcp/clan-engine";
+import {
+  defaults,
+  inactivityEvidence,
+  reconstructedLog,
+  removalDay,
+} from "@elixir-mcp/clan-engine";
 import { clanActivityEvidence } from "@elixir-mcp/record/clan-activity-evidence";
 import { createActionStore } from "@elixir-mcp/clan/manage/actions.mjs";
 const digest = (body) =>
@@ -80,11 +85,15 @@ export async function clanMaintenance(databaseUrl, spec) {
           "removal or recorded evidence changed; preview it again",
         );
       const proof = inactivityEvidence(evidence, Date.now());
-      if (proof.status !== "held")
+      const day = removalDay({ ...defaults(), ...policy?.values });
+      if (proof.status === "ready" && proof.days_since_possible_activity >= day)
         throw new Error(
-          "current activity evidence is not held; use the normal policy evaluation",
+          "the removal still qualifies on the record; use the normal policy evaluation",
         );
-      const reason = `Inactivity is not established. ${proof.reason}`;
+      const reason =
+        proof.status === "held"
+          ? `Inactivity is not established. ${proof.reason}`
+          : "The member played; the inactivity clock reset.";
       if (spec.apply !== true) {
         await db.query("rollback");
         return {
@@ -105,7 +114,7 @@ export async function clanMaintenance(databaseUrl, spec) {
         reason,
         {
           activity_evidence: proof,
-          source: "current recorded profile counters",
+          source: "current recorded activity",
           prior_policy_version: card.policy_version,
         },
       );

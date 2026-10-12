@@ -1,18 +1,16 @@
 /**
  * What a clan's policy can do today: each judgment it asks for, as live,
- * needing more evidence (and what), not enforceable, or off. The Policy
- * page shows it in one box, so a setting never reads as a promise the
- * record cannot keep (#426). Pure: the saved values, the clan's size and
- * the latest evaluation's review instants in; lines out.
+ * needing more evidence (and what), or off. The Policy page shows it in
+ * one box, so a setting never reads as a promise the record cannot keep.
+ * Pure: the saved values, the clan's size and the latest evaluation's
+ * review instants in; lines out.
  */
 
 import { MIN_MEMBERS, ranksElder } from "./policy.mjs";
-import { REMOVAL_ENFORCEABLE, REMOVAL_NOT_ENFORCEABLE } from "./inactivity.mjs";
 
 export const CAPABILITY_STATUS = {
   live: "Live",
   needs_evidence: "Needs more evidence",
-  not_enforceable: "Not enforceable",
   off: "Off",
 };
 
@@ -57,18 +55,13 @@ export function policyCapabilities(
         );
   const removal = !values.removal_enabled
     ? off("Removal suggestions are off.")
-    : REMOVAL_ENFORCEABLE
-      ? live("Removal Actions follow the inactivity clock.")
-      : {
-          status: "not_enforceable",
-          detail: `${REMOVAL_NOT_ENFORCEABLE} Leaders see the clock on the board as inactivity triage; no removal Action is raised.`,
-        };
+    : live(
+        "A member who reaches the removal day without a battle gets a removal Action for the leaders.",
+      );
   const away =
     !values.removal_enabled || !values.away_suggestions_enabled
       ? off("Quiet members are not asked.")
-      : live(
-          "A member whose measured profile-counter window reaches at risk is asked; a member without two comparable profile observations is not.",
-        );
+      : live("A member who reaches at risk without a battle is asked.");
   const departures = values.departures_enabled
     ? live(
         "When a member leaves and no Action explains it, leaders are asked: kicked, left or ignore.",

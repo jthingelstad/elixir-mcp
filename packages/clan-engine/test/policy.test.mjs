@@ -99,6 +99,11 @@ test("validation speaks to a leader, not a schema", () => {
   assert.match(u.errors.nonsense, /not a policy field/);
   const legacy = validate({ war_weight: 0.65, floor_war_days: 3 });
   assert.match(legacy.errors.war_weight, /not a policy field/);
+  // The removal day is a day count of its own, never before at risk.
+  const early = validate({ at_risk_days: 7, confirm_days: 6 });
+  assert.match(early.errors.confirm_days, /cannot come before at risk/);
+  assert.equal(validate({ at_risk_days: 7, confirm_days: 7 }).ok, true);
+  assert.equal(validate({ at_risk_days: 7, confirm_days: 10 }).ok, true);
   const ok = validate({
     ranked_enabled: true,
     elder_mode: "categories",

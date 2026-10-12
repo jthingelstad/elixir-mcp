@@ -11,7 +11,7 @@
  * asks again. Facts from Elixir; the policy answer is this app's.
  */
 
-import { ranksElder, setMinimums } from "@elixir-mcp/clan-engine";
+import { ranksElder, removalDay, setMinimums } from "@elixir-mcp/clan-engine";
 import { normalizeTag } from "../gate.mjs";
 
 const DAY_MS = 86400_000;
@@ -205,11 +205,9 @@ function policyAnswer({
       policy.removal_enabled && daysIdle !== null
         ? {
             days_idle: daysIdle,
-            reason:
-              "Recorded battle age does not establish absence of battle activity across every mode.",
             state:
-              daysIdle >= policy.at_risk_days + policy.confirm_days
-                ? "evidence_held"
+              daysIdle >= removalDay(policy)
+                ? "would_be_recommended"
                 : daysIdle >= policy.at_risk_days
                   ? "at_risk"
                   : daysIdle >= policy.watch_days

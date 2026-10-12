@@ -46,7 +46,7 @@ for (const size of ["wide", "@narrow"])
       policy_version: 1,
       removal_safety: {
         status: "held",
-        reason: "Profile observations are missing inside the measured window.",
+        reason: "Elixir could not read the member's activity just now.",
         checked_at: "2026-10-04T08:00:00Z",
         latest_activity_interval: {
           counter_increase: 1,
@@ -221,7 +221,7 @@ for (const size of ["wide", "@narrow"])
   });
 
 for (const size of ["wide", "@narrow"])
-  test(`held removal list and direct Action preserve audit while withholding unsafe words ${size}`, async ({
+  test(`a removal that no longer qualifies keeps its audit and withholds its words ${size}`, async ({
     page,
   }) => {
     const decisions: unknown[] = [];
@@ -245,7 +245,7 @@ for (const size of ["wide", "@narrow"])
       removal_safety: {
         status: "held",
         reason:
-          "Time after the latest profile counter observation is unmeasured.",
+          "The member is not past the policy's removal day without a battle.",
         checked_at: "2026-10-04T08:00:00Z",
         latest_activity_interval: {
           counter_increase: 1,
@@ -313,13 +313,10 @@ for (const size of ["wide", "@narrow"])
       }),
     );
     await page.goto("/clan/2PQRJ8LV/actions");
-    await expect(page.getByText(/Removal not enforceable/)).toBeVisible();
+    await expect(page.getByText(/No longer qualifies/)).toBeVisible();
     await page.getByRole("link", { name: /#45/ }).click();
     await expect(page.getByRole("alert")).toContainText(
-      "counter increased by 1",
-    );
-    await expect(page.getByRole("alert")).toContainText(
-      "No battles from that interval were captured",
+      "battle count rose by 1",
     );
     await expect(page.getByLabel("Chat message")).toHaveCount(0);
     await expect(
@@ -337,7 +334,7 @@ for (const size of ["wide", "@narrow"])
     await expect(page.getByText(/Saved rationale at the time/)).toBeVisible();
     await page.goto("/clan/2PQRJ8LV/actions/45");
     await expect(page.getByRole("alert")).toContainText(
-      "Removal is not enforceable",
+      "This removal no longer qualifies",
     );
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.getByRole("button", { name: "Decline", exact: true }).click();
@@ -358,7 +355,7 @@ for (const size of ["wide", "@narrow"])
   });
 
 for (const size of ["wide", "@narrow"])
-  test(`#426: the Policy page labels removal not yet enforceable and keeps its numbers editable ${size}`, async ({
+  test(`the Policy page says removal is live and shows the removal day as a day ${size}`, async ({
     page,
   }) => {
     if (size === "wide")
@@ -366,8 +363,8 @@ for (const size of ["wide", "@narrow"])
     const values = {
       ...policyFromGoals(["war"], "standard"),
       removal_enabled: true,
-      at_risk_days: 9,
-      confirm_days: 5,
+      at_risk_days: 7,
+      confirm_days: 10,
     };
     await mockApi(
       page,
@@ -401,9 +398,7 @@ for (const size of ["wide", "@narrow"])
     const canDo = page.getByRole("region", {
       name: "What this policy can do today",
     });
-    await expect(canDo).toContainText(
-      "Remove inactive members: Not enforceable",
-    );
+    await expect(canDo).toContainText("Remove inactive members: Live");
     await expect(canDo).toContainText("Promote and demote Elders: Live");
     await page
       .getByRole("tablist", { name: "Policy" })
@@ -411,14 +406,9 @@ for (const size of ["wide", "@narrow"])
       .click();
     await expect(
       page.getByText("Not yet enforceable", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        /cannot prove that a member played no battle in every mode/,
-      ),
-    ).toBeVisible();
-    await expect(page.getByLabel(/^At risk/)).toHaveValue("9");
+    ).toHaveCount(0);
+    await expect(page.getByLabel(/^At risk/)).toHaveValue("7");
     await expect(page.getByLabel(/^At risk/)).toBeEditable();
-    await expect(page.getByLabel(/^Removal action after/)).toHaveValue("5");
+    await expect(page.getByLabel(/^Removal action at/)).toHaveValue("10");
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   });

@@ -25,11 +25,11 @@ import {
   diff as policyDiff,
   evaluate,
   inactivityEvidence,
+  removalDay,
   nextSteps,
   participationPhrase,
   ranksElder,
   reconcileCards,
-  unenforceableRemovals,
   policyCapabilities,
   standingForMembers,
   validate,
@@ -223,7 +223,17 @@ export function createManageService({
     }));
   }
 
-  async function removalSafety(clanTag, cards, token = null) {
+  /** Whether each open removal still qualifies, read again from the
+   *  record: the member's battles always, and the policy's full judgment
+   *  (grace, role, hold, cooldown). A view passes the evaluation it just
+   *  used, when that is minutes old; drafting, completing and reopening
+   *  read participation again. */
+  async function removalSafety(
+    clanTag,
+    cards,
+    token = null,
+    { verdicts = null } = {},
+  ) {
     const removals = cards.filter((c) => c.type === "removal");
     const result = new Map();
     if (!removals.length) return result;
@@ -248,21 +258,38 @@ export function createManageService({
       const ready =
         policy.values.removal_enabled &&
         proof.status === "ready" &&
-        proof.counter_quiet_days >=
-          policy.values.at_risk_days + policy.values.confirm_days;
+        proof.days_since_possible_activity >= removalDay(policy.values);
       const safety = {
         ...proof,
         status: "held",
         checked_at: new Date(t).toISOString(),
         reason:
           proof.reason ??
-          "Comparable current evidence does not establish inactivity under the policy.",
+          "The member is not past the policy's removal day without a battle.",
         evidence_version: evidenceVersion(members[i]),
       };
       result.set(c.card_id, safety);
       if (ready) plausible.push(c);
     }
-    // Only a fully measured candidate needs the expensive participation read.
+    const recent =
+      verdicts &&
+      verdicts.policy_version === policy.version &&
+      t - Date.parse(verdicts.evaluated_at) < EVALUATION_TTL_MS;
+    if (recent && plausible.length) {
+      for (const c of plausible) {
+        const verdict = verdicts.members.find(
+          (m) => m.player_tag === c.player_tag,
+        );
+        if (verdict?.actionable.removal)
+          result.set(c.card_id, {
+            ...result.get(c.card_id),
+            status: "ready",
+            reason: null,
+          });
+      }
+      return result;
+    }
+    // Only a member past the removal day needs the participation read.
     // Apply the actual current minimums/grace, role, hold and cooldown rules.
     if (plausible.length) {
       try {
@@ -501,15 +528,6 @@ export function createManageService({
   }) {
     const t = now();
     const policy = await requirePolicy(clanTag, { size: false });
-    // Removal is not enforceable (#426): an open removal Action is
-    // withdrawn with its reason in the log, before any size check, so one
-    // in a clan below the minimum never stays open either.
-    for (const { card, reason } of unenforceableRemovals(
-      await ledger.cards(clanTag),
-    ))
-      await withdrawAction(clanTag, card, reason, {
-        rule: "removal_not_enforceable",
-      });
     const cached = await ledger.latestVerdicts(clanTag);
     // A clan last seen below the minimum is re-read, never served a cache.
     const known = await ledger.clanSize(clanTag);
@@ -519,7 +537,7 @@ export function createManageService({
       !participation &&
       !small &&
       cached &&
-      cached.removal_evidence_schema === 3 &&
+      cached.removal_evidence_schema === 4 &&
       cached.policy_version === policy.version &&
       t - Date.parse(cached.evaluated_at) < EVALUATION_TTL_MS
     )
@@ -905,7 +923,7 @@ export function createManageService({
     // The snapshot is what the pages read; keep it small.
     const snapshot = {
       ...verdicts,
-      removal_evidence_schema: 3,
+      removal_evidence_schema: 4,
       members: verdicts.members.map((m) => ({
         ...m,
         trail: m.trail.slice(-4),
@@ -1140,7 +1158,9 @@ export function createManageService({
         .sort((a, b) => (closedAt(a) < closedAt(b) ? 1 : -1))
         .slice(0, 30);
       const byCard = await logsByCard(clanTag, [...open, ...recent]);
-      const safety = await removalSafety(clanTag, [...open, ...recent], token);
+      const safety = await removalSafety(clanTag, [...open, ...recent], token, {
+        verdicts,
+      });
       return {
         clan_tag: clanTag,
         evaluated_at: verdicts.evaluated_at,
@@ -1413,7 +1433,7 @@ export function createManageService({
       const holds = await ledger.holds(clanTag);
       const holdByTag = new Map(holds.map((h) => [h.player_tag, h]));
       const byCard = await logsByCard(clanTag);
-      const safety = await removalSafety(clanTag, cards, token);
+      const safety = await removalSafety(clanTag, cards, token, { verdicts });
       const inbox = cards
         .filter((c) => c.status === "proposed" && canAct(c, who))
         .sort((a, b) => (a.raised_at < b.raised_at ? 1 : -1))

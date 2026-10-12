@@ -160,8 +160,8 @@ export function member(tag, opts = {}) {
         ? null
         : new Date(NOW.getTime() - lastBattleDaysAgo * DAY).toISOString(),
     days_since_battle: lastBattleDaysAgo,
-    // Private Clan proof beside the public tool fixture. These tests
-    // deliberately observe the counter at NOW, leaving no unknown tail.
+    // The private activity read beside the public tool fixture: the battle
+    // count rises at the last battle and is read again at NOW.
     activity_evidence: {
       current_member: true,
       observations: [
@@ -233,7 +233,7 @@ export const EXAMPLE_POLICY = validate({
   removal_enabled: true,
   watch_days: 3,
   at_risk_days: 5,
-  confirm_days: 3,
+  confirm_days: 8,
   contribution_grace_max_days: 4,
   roster_cap: 50,
   away_max_days: 30,

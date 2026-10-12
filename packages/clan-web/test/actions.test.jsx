@@ -148,7 +148,7 @@ describe("actions", () => {
     expect(screen.getByText("2026-09-12 15:00 CDT")).toBeTruthy();
     expect(decide).not.toHaveBeenCalled();
   });
-  test("held removal evidence is prominent; stale copy, drafts, completion and reopening are withheld while explicit decline stays available", async () => {
+  test("a removal that no longer qualifies is prominent; stale copy, drafts, completion and reopening are withheld while explicit decline stays available", async () => {
     const decide = vi
       .spyOn(manageApi, "decideAction")
       .mockResolvedValue({ ok: true, data: {} });
@@ -163,7 +163,7 @@ describe("actions", () => {
           removal_safety: {
             status: "held",
             reason:
-              "Time after the latest profile counter observation is unmeasured.",
+              "The member is not past the policy's removal day without a battle.",
             checked_at: "2026-10-04T08:00:00Z",
             latest_activity_interval: {
               counter_increase: 1,
@@ -180,13 +180,10 @@ describe("actions", () => {
       />,
     );
     expect(screen.getByRole("alert").textContent).toMatch(
-      /Removal is not enforceable/,
+      /This removal no longer qualifies/,
     );
     expect(screen.getByRole("alert").textContent).toMatch(
-      /counter increased by 1/,
-    );
-    expect(screen.getByRole("alert").textContent).toMatch(
-      /No battles from that interval were captured/,
+      /battle count rose by 1/,
     );
     expect(screen.queryByLabelText("Chat message")).toBeNull();
     expect(screen.queryByRole("button", { name: /Copy/ })).toBeNull();

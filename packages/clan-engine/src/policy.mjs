@@ -107,12 +107,6 @@ export const GROUPS = [
     key: "removal",
     title: "Inactivity and removal",
     why: "Measured from battles played, never from logins, and counted from the later of the last battle and the join.",
-    // The label and its one sentence, shown above the fields, which stay
-    // editable so a saved policy keeps its numbers (#426).
-    notice: {
-      label: "Not yet enforceable",
-      why: "Elixir cannot prove that a member played no battle in every mode from the evidence it records today, so the clock is shown on the board and no removal action is raised.",
-    },
   },
   {
     key: "departures",
@@ -538,12 +532,12 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "Track inactivity and show it to leaders on the board. A removal action waits until removal is enforceable.",
+    why: "Track inactivity and suggest removal to leaders as an action.",
   },
   watch_days: {
     group: "removal",
     label: "Getting quiet",
-    unit: "days of measured quiet",
+    unit: "battle-free days",
     type: "integer",
     min: 1,
     max: 60,
@@ -554,23 +548,25 @@ export const FIELDS = {
   at_risk_days: {
     group: "removal",
     label: "At risk",
-    unit: "days of measured quiet",
+    unit: "battle-free days",
     type: "integer",
     min: 1,
     max: 90,
     default: 7,
-    why: "Recorded battles and positive profile-counter intervals reset the clock. Missing counter coverage holds removal; a capture gap does not prove inactivity.",
+    why: "Counted from the last battle, or from the join for a member who has not battled since. A member at risk is asked if they are away.",
     when: [{ removal_enabled: true }],
   },
+  // The key keeps its saved name. Since 2026-10-12 it is the day itself,
+  // not days added to at risk (Jamie: "10 being the absolute number").
   confirm_days: {
     group: "removal",
-    label: "Removal action after",
-    unit: "more days",
+    label: "Removal action at",
+    unit: "battle-free days",
     type: "integer",
-    min: 0,
-    max: 90,
-    default: 7,
-    why: "At risk plus this many days is when a removal action would be suggested, once removal is enforceable.",
+    min: 1,
+    max: 180,
+    default: 14,
+    why: "A member with no battle for this many days gets a removal action for the leaders. Counted from the same day as at risk, so it is never before it; meeting the minimums can add grace days.",
     when: [{ removal_enabled: true }],
   },
   contribution_grace_max_days: {
@@ -828,6 +824,8 @@ export function validate(input = {}) {
     errors.band_ceiling_share = "The upper share cannot be below the lower.";
   if (values.at_risk_days < values.watch_days)
     errors.at_risk_days = "At risk cannot come before getting quiet.";
+  if (values.confirm_days < values.at_risk_days)
+    errors.confirm_days = "The removal action cannot come before at risk.";
   if (
     values.removal_enabled &&
     values.away_suggestions_enabled &&

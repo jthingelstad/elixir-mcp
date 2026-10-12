@@ -85,10 +85,11 @@ test("roster-only and absent daily rows remain gaps between genuine profile obse
       ),
     );
     const proof = inactivityEvidence(m, Date.now());
-    assert.equal(proof.status, "held");
-    assert.match(proof.reason, /observations are missing/);
-    assert.equal(proof.latest_activity_interval, null);
-    assert.equal(proof.counter_quiet_days, null);
+    // Missing profile days never hold the clock; the rise across the gap
+    // is play, and the clock runs from the read that saw it.
+    assert.equal(proof.status, "ready");
+    assert.equal(proof.latest_activity_interval.counter_increase, 1);
+    assert.ok(Math.abs(proof.days_since_possible_activity - 1) < 0.01);
   } finally {
     await scratch.drop();
   }

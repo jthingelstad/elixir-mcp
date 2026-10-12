@@ -26,7 +26,6 @@ import {
   EXAMPLE_POLICY,
   seasonRecordFixture,
 } from "@elixir-mcp/clan-engine/fixtures";
-import { REMOVAL_NOT_ENFORCEABLE } from "@elixir-mcp/clan-engine";
 
 const DAY = 86400_000;
 
@@ -198,22 +197,37 @@ async function historicalRemoval(h, status = "proposed") {
   return h.ledger.putCard("#2PQRJ8LV", card);
 }
 
-test("manage: exact-time flat counters hold removal on fresh and cached verdicts", async () => {
+test("manage: a leader opens Manage; one participation read, cards raised, cached for minutes", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
-  for (const cached of [false, true]) {
-    const r = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
-    assert.equal(r.status, 200);
-    assert.equal(r.body.cached, cached);
-    assert.equal(r.body.policy_version, 1);
-    assert.equal(r.body.band.roster_size, 12);
-    assert.equal(r.body.inbox.filter((c) => c.type === "removal").length, 0);
-    const row = r.body.board.find((m) => m.player_tag === idle.player_tag);
-    assert.equal(row.removal.triage.status, "evidence_held");
-    assert.equal(row.judgment.removal, "held");
-    assert.equal(row.removal.activity_evidence.counter_quiet_days, 20);
-    assert.match(row.removal.activity_evidence.reason, /across every mode/);
-  }
+  const r = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
+  assert.equal(r.status, 200);
+  assert.equal(r.body.cached, false);
+  assert.equal(r.body.policy_version, 1);
+  assert.equal(r.body.band.roster_size, 12);
+  const removal = r.body.inbox.filter((c) => c.type === "removal");
+  assert.equal(removal.length, 1);
+  assert.equal(removal[0].player_tag, "#8QCV");
+  assert.equal(removal[0].status, "proposed");
+  assert.match(
+    removal[0].evidence.rationale.headline,
+    /^20 days without a battle: at risk at 5, an action at 8\./,
+  );
+  assert.ok(removal[0].evidence.facts.find((f) => f.key === "last_battle"));
+  assert.equal(
+    h.mcp.calls.filter((c) => c[0] === "clans_participation").length,
+    1,
+  );
+  const again = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
+  assert.equal(again.body.cached, true);
+  assert.equal(
+    h.mcp.calls.filter((c) => c[0] === "clans_participation").length,
+    1,
+  );
+  assert.ok(
+    again.body.board.find((m) => m.player_tag === "#8QCV").bucket ===
+      "actionable",
+  );
 });
 
 test("manage: the board explains held judgments from an existing cached snapshot", async () => {
@@ -261,7 +275,8 @@ test("manage: a member is refused; a foreign clan is refused", async () => {
 test("cards: decide freezes; a second decision is refused; declined blocks re-nomination for the cooldown", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
-  const card = await historicalRemoval(h);
+  const first = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
+  const card = first.body.inbox.find((c) => c.type === "removal");
   const bad = await api(
     h,
     cookies,
@@ -303,73 +318,46 @@ test("cards: decide freezes; a second decision is refused; declined blocks re-no
   const later = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
   assert.equal(
     later.body.inbox.filter((c) => c.type === "removal").length,
-    0,
-    "cooldown expiry does not prove all-mode absence",
+    1,
+    "re-nominated after the cooldown",
   );
   const hist = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/history");
   assert.equal(hist.body.cards[0].status, "declined");
 });
 
-test("cards (#426): an open removal is withdrawn as not enforceable on the next evaluation, with its log line; none is raised again", async () => {
+test("cards: an open removal is withdrawn when the member plays", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
-  const card = await historicalRemoval(h);
-  // Still idle, still over every threshold: withdrawn all the same, by
-  // the system, and the cached evaluation that follows raises nothing.
+  const first = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
+  const card = first.body.inbox.find((c) => c.type === "removal");
+  // The member played: the card is withdrawn with the reason.
+  const played = participation(
+    [
+      king,
+      ...others,
+      member("#8QCV", {
+        name: "Sleepy",
+        lastBattleDaysAgo: 0.2,
+        war: [0, 0, 0, 0, 0, 0],
+      }),
+    ],
+    { clan_tag: "#2PQRJ8LV" },
+  );
+  h.activity.part = played;
+  h.mcp.callTool = ((orig) => (token, name, args) =>
+    name === "clans_participation"
+      ? Promise.resolve({ ok: true, body: played })
+      : orig(token, name, args))(h.mcp.callTool);
   h.clock.t += 6 * 60_000;
   const second = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
   assert.equal(
-    second.body.inbox.filter((c) => c.card_id === card.card_id).length,
-    0,
+    second.body.inbox.length,
+    second.body.inbox.filter((c) => c.card_id !== card.card_id).length,
   );
   const hist = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/history");
   const w = hist.body.cards.find((c) => c.card_id === card.card_id);
   assert.equal(w.status, "withdrawn");
-  assert.equal(w.withdraw_reason, REMOVAL_NOT_ENFORCEABLE);
-  const log = await h.ledger.actionLog("#2PQRJ8LV", card.card_id);
-  assert.deepEqual(
-    log.map((e) => [e.kind, e.text, e.detail?.rule, e.by?.system]),
-    [
-      [
-        "withdrawn",
-        REMOVAL_NOT_ENFORCEABLE,
-        "removal_not_enforceable",
-        "elixir-clan",
-      ],
-    ],
-  );
-  h.clock.t += 6 * 60_000;
-  await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/actions?refresh=1");
-  const removals = (await h.ledger.cards("#2PQRJ8LV")).filter(
-    (c) => c.type === "removal",
-  );
-  assert.deepEqual(
-    removals.map((c) => [c.card_id, c.status]),
-    [[card.card_id, "withdrawn"]],
-  );
-});
-
-test("cards (#426): a member over every removal threshold raises no removal Action, on fresh or cached evaluation", async () => {
-  const h = harness({ part: partClan() });
-  const cookies = await leader(h);
-  const policy = await h.manage.policyFor("#2PQRJ8LV");
-  assert.equal(policy.values.removal_enabled, true);
-  for (const path of [
-    "/api/clans/2PQRJ8LV/manage?refresh=1",
-    "/api/clans/2PQRJ8LV/manage",
-    "/api/clans/2PQRJ8LV/actions?refresh=1",
-  ]) {
-    const r = await api(h, cookies, "GET", path);
-    assert.equal(r.status, 200, JSON.stringify(r.body));
-  }
-  const verdicts = await h.ledger.latestVerdicts("#2PQRJ8LV");
-  const sleepy = verdicts.members.find((m) => m.player_tag === idle.player_tag);
-  assert.equal(sleepy.removal.state, "recommended", "the clock still runs");
-  assert.equal(sleepy.actionable.removal, false);
-  assert.deepEqual(
-    (await h.ledger.cards("#2PQRJ8LV")).filter((c) => c.type === "removal"),
-    [],
-  );
+  assert.match(w.withdraw_reason, /played/);
 });
 
 test("cards: a done removal is verified when the record no longer lists the member; otherwise flagged after the window", async () => {
@@ -552,12 +540,12 @@ test("policy: versions are immutable, validated in a leader's words, previewable
     { values: draft },
   );
   assert.equal(preview.status, 200);
-  const heldPreview = preview.body.current.members.find(
+  const idlePreview = preview.body.current.members.find(
     (m) => m.player_tag === "#8QCV",
   );
-  assert.equal(heldPreview.removal_judgment, "held");
-  assert.equal(heldPreview.removal_triage.status, "evidence_held");
-  assert.equal(heldPreview.actionable.removal, false);
+  assert.equal(idlePreview.removal_judgment, "ready");
+  assert.equal(idlePreview.removal_triage.status, "eligible");
+  assert.equal(idlePreview.actionable.removal, true);
   assert.equal(
     preview.body.current.members.find((m) => m.player_tag === "#8QCV").removal,
     "recommended",
@@ -800,9 +788,8 @@ test("scout: a pasted tag is read live, pending is passed through, and the polic
   );
   assert.equal(
     quietResult.body.policy_answer.inactivity.state,
-    "evidence_held",
+    "would_be_recommended",
   );
-  assert.match(quietResult.body.policy_answer.inactivity.reason, /every mode/);
   // Scout works before a clan has a policy: statistics, no clan verdict.
   const unset = harness({ part: partClan(), profile, log, policy: null });
   const uc = await leader(unset);
@@ -1033,18 +1020,17 @@ test("departures: a member_left that carries only a tag is named from Elixir's c
   assert.equal(row.role, "elder");
 });
 
-test("cards: unsupported removal has no inbox copy; other action words remain clan-chat safe", async () => {
+test("cards: the inbox carries paste-ready in-game copy, clan-chat safe", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
   const r = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/manage");
-  assert.equal(
-    r.body.inbox.some((c) => c.type === "removal"),
-    false,
+  const removal = r.body.inbox.find((c) => c.type === "removal");
+  assert.match(
+    removal.copy,
+    /^Sleepy was removed under the clan's activity policy\./,
   );
-  for (const c of r.body.inbox.filter((c) => typeof c.copy === "string")) {
-    assert.ok(c.copy.length <= 200);
-    assert.doesNotMatch(c.copy, /[&]|\+\d/);
-  }
+  assert.ok(removal.copy.length <= 200);
+  assert.doesNotMatch(removal.copy, /[&]|\+\d/);
 });
 
 test("away: a member marks themselves away within the policy's cap; the clock pauses; a leader can clear it; a leader's hold is not theirs to move", async () => {
@@ -1321,39 +1307,27 @@ test("actions: a leader's action carries a log of what raised it; completing and
   assert.equal(empty.status, 400);
 });
 
-test("actions: a historical removal decline remains recorded without re-nomination after cooldown", async () => {
+test("actions: a re-raised action names the earlier one it follows; a withdrawal is logged with why", async () => {
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
-  const first = await historicalRemoval(h);
-  assert.equal(
-    (
-      await api(
-        h,
-        cookies,
-        "POST",
-        `/api/clans/2PQRJ8LV/actions/${first.card_id}/decide`,
-        { status: "declined", reason: "knows_the_member" },
-      )
-    ).status,
-    200,
-  );
-  h.clock.t += 8 * DAY;
-  const view = await api(
+  const first = (
+    await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/actions")
+  ).body.open.find((a) => a.type === "removal");
+  await api(
     h,
     cookies,
-    "GET",
-    "/api/clans/2PQRJ8LV/actions?refresh=1",
+    "POST",
+    `/api/clans/2PQRJ8LV/actions/${first.card_id}/decide`,
+    { status: "declined", reason: "knows_the_member" },
   );
-  assert.equal(
-    view.body.open.some((a) => a.type === "removal"),
-    false,
-  );
-  const old = view.body.recent.find((a) => a.card_id === first.card_id);
-  assert.equal(old.status, "declined");
-  assert.ok(
-    old.log.some(
-      (e) => e.kind === "declined" && e.detail.reason === "knows_the_member",
-    ),
+  h.clock.t += 8 * DAY;
+  const again = (
+    await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/actions?refresh=1")
+  ).body.open.find((a) => a.type === "removal");
+  assert.notEqual(again.card_id, first.card_id);
+  assert.deepEqual(
+    again.log[0].detail.prior.map((p) => [p.card_id, p.status, p.reason]),
+    [[first.card_id, "declined", "knows_the_member"]],
   );
 });
 
@@ -1542,7 +1516,9 @@ test("delivery: new promotions default to frozen clan chat, within the game's li
   const h = harness({ part: partClan() });
   const cookies = await leader(h);
   const view = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/actions");
-  const withMessage = view.body.open.filter((a) => a.channel === "clan_chat");
+  const withMessage = view.body.open.filter(
+    (a) => a.channel === "clan_chat" && a.type !== "removal",
+  );
   assert.ok(
     withMessage.length >= 1,
     JSON.stringify(view.body.open.map((a) => a.type)),
@@ -1555,7 +1531,8 @@ test("delivery: new promotions default to frozen clan chat, within the game's li
     assert.deepEqual(Object.keys(a.delivery.parts[0].options), ["clan_chat"]);
   }
   const removal = view.body.open.find((a) => a.type === "removal");
-  assert.equal(removal, undefined);
+  assert.equal(removal.channel, "clan_chat");
+  assert.equal(removal.message, null);
 });
 
 test("leader messages: saving a policy tells the clan how it runs, and a newer version replaces the open one", async () => {
