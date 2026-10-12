@@ -6,6 +6,7 @@ import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
 import { createDiscordBridge } from "@elixir-mcp/clan/discord-bridge.mjs";
 import { createDiscordService } from "@elixir-mcp/clan/manage/discord.mjs";
 import { clanDiscordWake } from "@elixir-mcp/clan/discord-wake.mjs";
+import { discordQuality } from "@elixir-mcp/syndication/quality";
 import { createActivityService } from "@elixir-mcp/clan/manage/activity.mjs";
 import { createBox } from "@elixir-mcp/clan/sealed.mjs";
 import {
@@ -277,6 +278,7 @@ export function createClanRequest({
             }),
             // A minute on, the timeline sync collects the relay's answers.
             wake: clanDiscordWake(outbox),
+            quality: discordQuality(db),
             waitMs: () =>
               Math.max(
                 1,

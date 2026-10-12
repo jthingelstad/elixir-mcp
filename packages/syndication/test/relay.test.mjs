@@ -644,3 +644,70 @@ test("past its time budget a run starts no new line; the retry skips what was to
     ["a", "b", "c"],
   );
 });
+
+test("each line carrying its ledger id is answered in a receipt: posted, edited, unchanged with why, deleted, refused, and the rest after a gone webhook", async () => {
+  const receipts = [];
+  const receipt = async (body) => {
+    receipts.push(...body.receipts);
+  };
+  const L = (n) => `00000000-0000-4000-8000-00000000000${n}`;
+  const OTHER = "tl_aaaaaaaaaaaaaaaaaaaa";
+  const s = setup(
+    [
+      { status: 200 },
+      { status: 200 },
+      { status: 404, body: { code: 10008, message: "Unknown Message" } },
+      { status: 404, body: { code: 10015, message: "Unknown Webhook" } },
+    ],
+    { receipt },
+  );
+  await s.deliver([{ key: ITEM, revision: 2, content: "a", ledger_id: L(1) }]);
+  // A duplicate notification: told already, never sent again.
+  await s.deliver([{ key: ITEM, revision: 2, content: "a", ledger_id: L(2) }]);
+  await s.deliver([{ key: ITEM, revision: 4, content: "b", ledger_id: L(3) }]);
+  await s.deliver([{ key: ITEM, revision: 6, content: "c", ledger_id: L(4) }]);
+  await s.deliver([
+    { key: OTHER, revision: 1, content: "d", ledger_id: L(5) },
+    {
+      key: "tl_bbbbbbbbbbbbbbbbbbbb",
+      revision: 1,
+      content: "e",
+      ledger_id: L(6),
+    },
+  ]);
+  const by = new Map(receipts.map((r) => [r.ledger_id, r]));
+  assert.equal(by.get(L(1)).outcome, "posted");
+  assert.equal(by.get(L(2)).outcome, "unchanged");
+  assert.equal(by.get(L(2)).reason, "Already told at this revision.");
+  assert.equal(by.get(L(3)).outcome, "edited");
+  assert.equal(by.get(L(4)).outcome, "unchanged");
+  assert.equal(by.get(L(4)).deleted, true, "the edit found it deleted");
+  assert.equal(by.get(L(5)).outcome, "refused");
+  assert.equal(by.get(L(5)).http_status, 404);
+  assert.equal(by.get(L(6)).outcome, "not_delivered");
+  // The history names each delivery's ledger row, for a leader's rating.
+  assert.ok(history(s.store).entries.some((e) => e.ledger_id === L(1)));
+  // A receipt never carries the webhook or the words.
+  assert.ok(receipts.every((r) => !("content" in r) && !("webhook" in r)));
+});
+
+test("a receipt that cannot be written never holds up a delivery", async () => {
+  const s = setup([], {
+    receipt: async () => {
+      throw new Error("s3 down");
+    },
+  });
+  const out = await s.deliver([
+    {
+      key: ITEM,
+      revision: 1,
+      content: "a",
+      ledger_id: "00000000-0000-4000-8000-000000000001",
+    },
+  ]);
+  assert.equal(out.retry, null);
+  assert.equal(state(s.store).message_id, "987654321098761001");
+  assert.ok(
+    s.logged.some((l) => l.includes("timeline_discord_receipt_failed")),
+  );
+});

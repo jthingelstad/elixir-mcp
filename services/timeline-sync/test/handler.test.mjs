@@ -279,3 +279,50 @@ test("a clan whose model edits runs on the editor's queue, told so, and only wit
     ["#J2RGCRVG", true],
   ]);
 });
+
+test("the relay's receipts are read into the quality ledger and their object deleted; one that is not a receipt is refused", async () => {
+  const key = "discord-receipt/5f0c2d4e-8a1b-4c3d-9e2f-0a1b2c3d4e5f.json";
+  const body = { v: 1, receipts: [{ ledger_id: "x", outcome: "posted" }] };
+  const read = [];
+  const deleted = [];
+  const log = console.log;
+  const error = console.error;
+  console.log = () => {};
+  console.error = () => {};
+  try {
+    const make = (receipts, text = JSON.stringify(body)) =>
+      makeHandler({
+        connect: async () => ({ end: async () => {} }),
+        sync: async () => assert.fail("not an account's wake"),
+        syncClan: async () => assert.fail("not a clan's wake"),
+        shareClanDiscord: async () => assert.fail("not Actions"),
+        receipts,
+        readObject: async () => text,
+        deleteObject: async (obj) => deleted.push(obj.key),
+      });
+    const apply = async (_db, msg) => {
+      read.push(msg);
+      return { applied: 1 };
+    };
+    const out = await make(apply)({ Records: [record("a", key)] });
+    assert.deepEqual(out.batchItemFailures, []);
+    assert.deepEqual(read, [body]);
+    assert.deepEqual(deleted, [key]);
+    // No reader: refused, kept for the queue's retry and its dead letters.
+    const none = await make(null)({ Records: [record("b", key)] });
+    assert.deepEqual(none.batchItemFailures, [{ itemIdentifier: "b" }]);
+    // A receipt the reader cannot read is logged and let go: it never
+    // holds the queue, and the post's row keeps a null outcome.
+    const odd = await make(
+      async () => null,
+      JSON.stringify({ v: 9 }),
+    )({
+      Records: [record("c", key)],
+    });
+    assert.deepEqual(odd.batchItemFailures, []);
+    assert.equal(deleted.length, 2);
+  } finally {
+    console.log = log;
+    console.error = error;
+  }
+});

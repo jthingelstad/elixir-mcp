@@ -1,7 +1,9 @@
 /** The relay's records in the outbox bucket (timeline-discord-state/):
  *  each post's message id, written with S3's conditional writes, and the
- *  account's delivery status. Read by the relay, and the status by the
+ *  account's delivery status; and its receipts for the quality ledger
+ *  (discord-receipt/). Read by the relay, and the status by the
  *  sync and the console. No payloads, keys or responses logged. */
+import { randomUUID } from "node:crypto";
 import {
   S3Client,
   GetObjectCommand,
@@ -113,6 +115,11 @@ export function timelineDiscordStore(
         new DeleteObjectCommand({ Bucket: bucket, Key: key }),
         signal(),
       );
+    },
+    /** A receipt for the quality ledger, on the outbox's discord-receipt/
+     *  lane, which notifies the timeline sync's queue. */
+    async receipt(body) {
+      await putJson(`discord-receipt/${randomUUID()}.json`, body);
     },
   };
 }

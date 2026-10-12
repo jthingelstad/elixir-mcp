@@ -11,7 +11,8 @@
     "./relay": "./src/relay.mjs",
     "./seal": "./src/seal.mjs",
     "./store": "./src/store.mjs",
-    "./clan-settings": "./src/clan-settings.mjs"
+    "./clan-settings": "./src/clan-settings.mjs",
+    "./quality": "./src/quality.mjs"
   },
   "scripts": {
     "test": "node --test"

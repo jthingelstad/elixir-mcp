@@ -13,6 +13,7 @@ import { isRetiredEmailKind } from "@elixir-mcp/contracts";
  *  Retired editorial payloads refuse before I/O. */
 
 import pg from "pg";
+import { purgeQuality } from "@elixir-mcp/syndication/quality";
 import { sweepSilentCollectors } from "./fleet.mjs";
 import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
 import { makeOutbox } from "@elixir-mcp/outbox";
@@ -189,6 +190,9 @@ export async function sweepOperational(databaseUrl) {
           where viewer_ip is not null and created_at < now() - interval '30 days'`,
       )
     ).rowCount;
+    // The quality ledger of Elixir's Discord posts (0222): 90 days, as
+    // the privacy and limits pages say.
+    out.discord_quality = await purgeQuality(db);
     out.magic_login = (
       await db.query(
         `delete from magic_login where expires_at < now() - interval '30 days'`,

@@ -45,6 +45,12 @@
  * last 40, with the stories it skipped and why (2026-10-11): a message's
  * `skipped` list is recorded once the message is done, never sent. The webhook arrives sealed and is
  * opened only here; logs name the account and the webhook's fingerprint.
+ *
+ * Receipts (2026-10-11, the quality ledger, 0222): a post that carries
+ * its ledger row's id is answered in a receipt, written to the outbox's
+ * discord-receipt/ lane once the run is done (and before a retry, for
+ * the posts already answered), which the timeline sync reads into the
+ * ledger. Best effort: a receipt never holds up or fails a delivery.
  */
 import {
   parseDiscordWebhook,
@@ -73,6 +79,16 @@ const BUDGET_MS = 35_000;
  *  ~30 messages a minute for one channel. */
 export const SPACING_MS = 2_400;
 const DEAD = new Set(["webhook_gone", "webhook_refused"]);
+/** Receipts in one discord-receipt/ object: a message's 20 lines fit. */
+const RECEIPTS_PER_OBJECT = 50;
+/** A receipt's words for a line the relay did not send. */
+const NOT_SENT_AGAIN = {
+  told: "Already told at this revision.",
+  deleted: "Deleted in the channel.",
+  unknown_before: "An earlier delivery's outcome is unknown.",
+  refused_before: "Discord refused this revision before.",
+  editing: "Another delivery is editing it.",
+};
 /** Why a line still waiting at the queue's last attempt was not sent. */
 const NOT_SENT = {
   rate_limited: "Discord kept asking Elixir to slow down.",
@@ -114,6 +130,7 @@ const retry = (code, afterMs) => new RetryLater(code, afterMs);
  *   now?: () => number,
  *   pause?: (ms: number) => Promise<void>,
  *   log?: Pick<Console, "log" | "error">,
+ *   receipt?: ((body: { v: 1, receipts: object[] }) => Promise<unknown>) | null,
  * }} deps
  */
 export function createTimelineDiscordWorker({
@@ -125,6 +142,7 @@ export function createTimelineDiscordWorker({
   log = console,
   budgetMs = BUDGET_MS,
   spacingMs = SPACING_MS,
+  receipt = null,
 }) {
   const claim = (revision) => ({ pending: true, revision, at: now() });
 
@@ -146,23 +164,30 @@ export function createTimelineDiscordWorker({
     throw retry("state_contended", 1000);
   }
 
+  /** A line not sent, and why (the receipt's reason): told at this
+   *  revision already, deleted in the channel, an unknown outcome or a
+   *  refusal before, or another run editing it. */
+  const skippedFor = (why) => ({ outcome: "skipped", why });
+
   /** One line: { outcome: posted | edited | skipped | unknown | refused,
-   *  status?, reason? }. Throws Refused (the webhook) or RetryLater. */
+   *  status?, reason?, why?, deleted? }. Throws Refused (the webhook) or
+   *  RetryLater. */
   async function deliverPost(url, key, post, paceKey, until) {
     for (let i = 0; i < CONTENDED_TRIES; i += 1) {
       const cur = await store.read(key);
       const state = cur?.body ?? null;
       // Never again: a post whose outcome was unknown, or a line deleted
       // in the channel.
-      if (state?.unknown || state?.deleted) return { outcome: "skipped" };
+      if (state?.unknown) return skippedFor("unknown_before");
+      if (state?.deleted) return skippedFor("deleted");
       if (state?.message_id) {
-        if (state.revision >= post.revision) return { outcome: "skipped" };
+        if (state.revision >= post.revision) return skippedFor("told");
         const told = { message_id: state.message_id, revision: state.revision };
         const editing = state.editing;
         if (editing && now() - editing.at < CLAIM_SETTLE_MS) {
           // Another run is editing it: to this revision or a newer one,
           // this one has nothing to add; an older one, wait for it.
-          if (editing.revision >= post.revision) return { outcome: "skipped" };
+          if (editing.revision >= post.revision) return skippedFor("editing");
           throw retry("edit_in_flight", CLAIM_SETTLE_MS - (now() - editing.at));
         }
         await pace(paceKey, until);
@@ -185,7 +210,7 @@ export function createTimelineDiscordWorker({
         }
         if (r.code === "message_gone") {
           await store.replace(key, { ...told, deleted: true }, etag);
-          return { outcome: "skipped" };
+          return { ...skippedFor("deleted"), deleted: true };
         }
         if (r.code === "bad_request") {
           // Discord will not take this text: the message keeps the last
@@ -218,7 +243,7 @@ export function createTimelineDiscordWorker({
       }
       // Refused before at this revision or a newer one: not again.
       if (state?.refused && state.revision >= post.revision)
-        return { outcome: "skipped" };
+        return skippedFor("refused_before");
       await pace(paceKey, until);
       const etag = cur
         ? await store.replace(key, claim(post.revision), cur.etag)
@@ -275,8 +300,23 @@ export function createTimelineDiscordWorker({
           ref: post.key,
           excerpt: post.content,
           ...(post.rewritten === true ? { rewritten: true } : {}),
+          ...(post.ledger_id ? { ledger_id: post.ledger_id } : {}),
         }
       : {};
+
+  /** Send this run's receipts; best effort, never fails the run. */
+  async function sendReceipts(accountId, list) {
+    if (!receipt || list.length === 0) return;
+    try {
+      for (let i = 0; i < list.length; i += RECEIPTS_PER_OBJECT)
+        await receipt({
+          v: 1,
+          receipts: list.slice(i, i + RECEIPTS_PER_OBJECT),
+        });
+    } catch {
+      log.error("timeline_discord_receipt_failed", accountId);
+    }
+  }
 
   /** Record this run's deliveries; best effort, never fails the run. */
   async function remember(accountId, added, max = DISCORD_HISTORY_MAX) {
@@ -327,6 +367,16 @@ export function createTimelineDiscordWorker({
     const paceKey = timelineDiscordPaceKey(fingerprint);
     const counts = { posted: 0, edited: 0, skipped: 0, unknown: 0, refused: 0 };
     const added = [];
+    const receipts = [];
+    const answer = (post, outcome, extra = {}) => {
+      if (post?.ledger_id)
+        receipts.push({
+          ledger_id: post.ledger_id,
+          outcome,
+          at: at(),
+          ...extra,
+        });
+    };
     const at = () => new Date(now()).toISOString();
     let lastRefusal = null;
     const status = (state, extra = {}) =>
@@ -349,6 +399,7 @@ export function createTimelineDiscordWorker({
         reason: k.reason,
         ...(k.excerpt ? { excerpt: k.excerpt } : {}),
         ...(k.rewritten === true ? { rewritten: true } : {}),
+        ...(k.ledger_id ? { ledger_id: k.ledger_id } : {}),
       }));
     const started = now();
     const until = started + budgetMs;
@@ -364,6 +415,13 @@ export function createTimelineDiscordWorker({
         );
         const r = await deliverPost(hook.url, key, post, paceKey, until);
         counts[r.outcome] += 1;
+        answer(post, r.outcome === "skipped" ? "unchanged" : r.outcome, {
+          ...(r.status ? { http_status: r.status } : {}),
+          ...(r.reason || r.why
+            ? { reason: r.reason ?? NOT_SENT_AGAIN[r.why] ?? r.why }
+            : {}),
+          ...(r.deleted ? { deleted: true } : {}),
+        });
         if (r.outcome === "skipped") continue;
         added.push({
           at: at(),
@@ -401,7 +459,16 @@ export function createTimelineDiscordWorker({
               ? "This webhook posts to a forum channel."
               : "Discord says this webhook no longer exists."),
         });
+        answer(msg.posts[next], "refused", {
+          http_status: err.status,
+          reason: err.reason ?? err.state,
+        });
+        for (const post of msg.posts.slice(next + 1))
+          answer(post, "not_delivered", {
+            reason: "The webhook was refused; the rest were not sent.",
+          });
         await remember(msg.account_id, [...added, ...skips()], keep);
+        await sendReceipts(msg.account_id, receipts);
         log.error(
           "timeline_discord_refused",
           msg.account_id,
@@ -414,16 +481,20 @@ export function createTimelineDiscordWorker({
       }
       if (!(err instanceof RetryLater) || !final) {
         await remember(msg.account_id, added, keep);
+        await sendReceipts(msg.account_id, receipts);
         throw err;
       }
       // The queue's last attempt: what is still waiting is not delivered.
-      for (const post of msg.posts.slice(next))
+      for (const post of msg.posts.slice(next)) {
+        const reason = NOT_SENT[err.code] ?? "Elixir could not deliver it.";
         added.push({
           at: at(),
           outcome: "not_delivered",
           ...about(post),
-          reason: NOT_SENT[err.code] ?? "Elixir could not deliver it.",
+          reason,
         });
+        answer(post, "not_delivered", { reason });
+      }
       log.error(
         "timeline_discord_not_delivered",
         msg.account_id,
@@ -442,6 +513,7 @@ export function createTimelineDiscordWorker({
     else if (counts.posted || counts.edited)
       await status("ok", { posted: counts.posted, edited: counts.edited });
     await remember(msg.account_id, [...added, ...skips()], keep);
+    await sendReceipts(msg.account_id, receipts);
     log.log(
       "timeline_discord",
       msg.account_id,

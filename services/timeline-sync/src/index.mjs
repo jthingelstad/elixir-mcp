@@ -8,6 +8,7 @@ import {
   S3Client,
   GetObjectCommand,
   DeleteObjectCommand,
+  PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { makeOutbox } from "@elixir-mcp/outbox";
 import {
@@ -16,6 +17,11 @@ import {
   syncAccount,
   syncClan,
 } from "@elixir-mcp/syndication";
+import {
+  applyReceipts,
+  discordQuality,
+  receiptsOf,
+} from "@elixir-mcp/syndication/quality";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
 import { createModelService } from "@elixir-mcp/clan/manage/model.mjs";
 import { createModelBridge } from "@elixir-mcp/clan/model-bridge.mjs";
@@ -31,6 +37,21 @@ const outbox = makeOutbox(bucket, s3);
 const readStatus = makeStatusReader(bucket, s3);
 const readHistory = makeHistoryReader(bucket, s3);
 const secret = process.env.CLAN_MODEL_SECRET || null;
+const archive = process.env.ARCHIVE_BUCKET || null;
+
+/** A clan model's run, raw, for the quality ledger: the archive bucket's
+ *  discord-runs/, which its lifecycle keeps 30 days. */
+const captureRun = archive
+  ? (key, body) =>
+      s3.send(
+        new PutObjectCommand({
+          Bucket: archive,
+          Key: key,
+          Body: JSON.stringify(body),
+          ContentType: "application/json",
+        }),
+      )
+  : null;
 
 async function connect() {
   const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
@@ -105,6 +126,7 @@ async function shareClanDiscord(db, clanTag) {
         storage: modelStorage(bucket, s3),
       }),
       wake: clanDiscordWake(outbox),
+      quality: discordQuality(db),
     }).share(clanTag);
   } finally {
     await db
@@ -126,8 +148,15 @@ export const handler = makeHandler({
       policyFor: (d, tag) => createPostgresLedger(d).currentPolicy(tag),
       pitchFor: (d, tag) => createPostgresLedger(d).currentPitch(tag),
       rewrite: rewriter(remainingMs),
+      captureRun,
     }),
   shareClanDiscord,
+  // The relay's receipts, into the quality ledger (0222).
+  receipts: async (db, msg) => {
+    const list = receiptsOf(msg);
+    if (list === null) return null;
+    return { applied: await applyReceipts(db, list) };
+  },
   async readObject(obj) {
     if (obj.bucket !== bucket) throw new Error("unknown bucket");
     try {

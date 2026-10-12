@@ -13,6 +13,7 @@ import { createDiscordWebhook, parseWebhook } from "../src/discord-webhook.mjs";
 import { createDiscordService, PER_SWEEP } from "../src/manage/discord.mjs";
 import { createHandler } from "../src/handler.mjs";
 import { clanDiscordWake } from "../src/discord-wake.mjs";
+import { webhookFingerprint } from "@elixir-mcp/contracts";
 import {
   createTestAccount,
   cookieHeader,
@@ -75,6 +76,7 @@ function fakeDiscord() {
 function world({
   discord = fakeDiscord(),
   clock = { t: Date.UTC(2026, 9, 10) },
+  quality = null,
 } = {}) {
   const storage = memory();
   const now = () => clock.t;
@@ -115,6 +117,7 @@ function world({
     waitMs: () => 5000,
     wake: async (tag) => void wakes.push(tag),
     log: { error() {} },
+    quality,
   });
   return {
     storage,
@@ -780,4 +783,73 @@ test("the wake is one timeline-sync object a clan a minute, or none without an o
       { id: "clan-discord-2PQRJ8LV.29340000", once: true },
     ],
   ]);
+});
+
+test("the quality ledger: each hand-off recorded, each answer settled under it; one Discord never saw keeps its row", async () => {
+  const recorded = [];
+  const settled = [];
+  const quality = {
+    record: async (rows) => void recorded.push(...rows),
+    settle: async (list) => void settled.push(...list),
+  };
+  const discord = fakeDiscord();
+  const w = world({ discord, quality });
+  await w.service.setWebhook(CLAN, LEAD, { url: HOOK });
+  await w.ledger.putCard(CLAN, card(1));
+  await w.service.share(CLAN);
+  assert.equal(recorded.length, 1);
+  const [post] = recorded;
+  assert.equal(post.feature, "clan_actions");
+  assert.equal(post.clan_tag, CLAN);
+  assert.equal(post.destination, CLAN);
+  assert.equal(post.webhook_fp, webhookFingerprint(HOOK));
+  assert.equal(post.action, "post");
+  assert.equal(post.mode, "code");
+  assert.deepEqual(post.items, [{ id: "c1", kind: "promotion" }]);
+  assert.equal(post.event_at, card(1).raised_at);
+  assert.match(post.content, /^\*\*#1 Promote to Elder: Member 1\*\*/);
+  assert.ok(Object.values(post).every((v) => !String(v).includes(TOKEN)));
+  await w.relay();
+  await w.service.share(CLAN);
+  assert.deepEqual(
+    settled.map((r) => [r.ledger_id, r.outcome]),
+    [[post.post_id, "posted"]],
+  );
+  // The history names the row, for a leader's rating.
+  const history = (await w.service.status(CLAN, LEAD)).deliveries;
+  assert.equal(history[0].ledger_id, post.post_id);
+  // Closing it is an edit: a row of its own, settled under its own id.
+  await w.ledger.putCard(
+    CLAN,
+    card(1, { status: "done", decided_by: "#L", decided_by_name: "Lead" }),
+  );
+  await w.service.share(CLAN);
+  const edit = recorded.at(-1);
+  assert.equal(edit.action, "edit");
+  assert.equal(edit.post_key, "c1");
+  assert.notEqual(edit.post_id, post.post_id);
+  await w.relay();
+  await w.service.share(CLAN);
+  assert.deepEqual(settled.at(-1).ledger_id, edit.post_id);
+  assert.equal(settled.at(-1).outcome, "edited");
+
+  // Discord asks to slow down: the attempt keeps its row and is handed
+  // over again under it.
+  discord.post = async () => ({
+    ok: false,
+    status: 429,
+    code: "rate_limited",
+  });
+  await w.ledger.putCard(CLAN, card(2));
+  await w.service.share(CLAN);
+  await w.relay();
+  await w.service.share(CLAN);
+  const second = recorded.filter((r) => r.post_key === "c2");
+  assert.equal(second.length, 2);
+  assert.equal(second[0].post_id, second[1].post_id);
+  assert.equal(
+    settled.some((r) => r.ledger_id === second[0].post_id),
+    false,
+    "not settled while it is still to be tried",
+  );
 });

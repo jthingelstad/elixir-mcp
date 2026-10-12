@@ -28,6 +28,10 @@
  * sent from either queue to timeline-editor/, whose queue delivers one
  * clan an invocation: the model's rounds may take two minutes, and no
  * other wake waits behind them.
+ *
+ * The relay's receipts for the quality ledger (0222: what Discord
+ * answered for each post) arrive on discord-receipt/ and are read into
+ * the ledger here, the one place in the VPC its notifications reach.
  */
 import { isCanonicalTag, outboxObjects } from "@elixir-mcp/contracts";
 
@@ -36,7 +40,12 @@ const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const CLAN_RUN_MS = 40_000;
 /** Room an editor's run needs to start: its reads and one round. */
 const EDITOR_RUN_MS = 60_000;
-const LANES = ["timeline-sync/", "timeline-hold/", "timeline-editor/"];
+const LANES = [
+  "timeline-sync/",
+  "timeline-hold/",
+  "timeline-editor/",
+  "discord-receipt/",
+];
 
 /**
  * @param {{
@@ -44,6 +53,7 @@ const LANES = ["timeline-sync/", "timeline-hold/", "timeline-editor/"];
  *   sync: (db: any, accountId: string) => Promise<object>,
  *   syncClan?: (db: any, clanTag: string, opts: { remainingMs: () => number, editor: boolean }) => Promise<object>,
  *   shareClanDiscord?: (db: any, clanTag: string) => Promise<object>,
+ *   receipts?: ((db: any, msg: object) => Promise<object | null>) | null,
  *   readObject: (obj: {bucket: string, key: string}) => Promise<string | null>,
  *   deleteObject: (obj: {bucket: string, key: string}) => Promise<unknown>,
  * }} deps
@@ -53,6 +63,7 @@ export function makeHandler({
   sync,
   syncClan = null,
   shareClanDiscord = null,
+  receipts = null,
   readObject,
   deleteObject,
 }) {
@@ -65,7 +76,8 @@ export function makeHandler({
       // only a clan's wake is read on either.
       const lane = LANES.find((l) => obj.key.startsWith(l));
       if (!lane) return "bad_message";
-      const held = lane !== "timeline-sync/";
+      const receipt = lane === "discord-receipt/";
+      const held = lane !== "timeline-sync/" && !receipt;
       const editor = lane === "timeline-editor/";
       const text = await readObject(obj);
       if (text === null) continue;
@@ -77,7 +89,13 @@ export function makeHandler({
       }
       if (held && !(msg?.v === 1 && typeof msg.clan_tag === "string"))
         return "bad_message";
-      if (msg?.v === 1 && typeof msg.clan_discord === "string") {
+      if (receipt) {
+        if (!receipts) return "bad_message";
+        const out = await receipts(await db(), msg);
+        // A receipt the ledger cannot read is dropped, never retried.
+        if (out === null) console.error("discord_receipt_bad");
+        else console.log("discord_receipt", JSON.stringify(out));
+      } else if (msg?.v === 1 && typeof msg.clan_discord === "string") {
         if (!isCanonicalTag(msg.clan_discord) || !shareClanDiscord)
           return "bad_message";
         const out = await shareClanDiscord(await db(), msg.clan_discord);

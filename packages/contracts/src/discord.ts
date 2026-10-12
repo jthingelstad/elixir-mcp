@@ -100,6 +100,9 @@ export interface TimelineDiscordPost {
   /** A clan's activity line the clan's own model rewrote (2026-10-11):
    *  its delivery is marked so on the clan's page. */
   rewritten?: boolean;
+  /** Its row in the quality ledger (0222, discord_post): the relay
+   *  echoes it in the delivery history and in its receipt. */
+  ledger_id?: string;
 }
 
 /** The object the sync (or a save's test line) writes to the outbox's
@@ -129,6 +132,8 @@ export interface TimelineDiscordSkip {
   reason: string;
   excerpt?: string;
   rewritten?: boolean;
+  /** Its row in the quality ledger (0222), echoed in the history. */
+  ledger_id?: string;
 }
 
 export const TIMELINE_DISCORD_KINDS = [
@@ -197,6 +202,11 @@ export function validateTimelineDiscordMessage(
         errors.push(`skipped[${i}].excerpt:invalid`);
       if (k?.rewritten !== undefined && k.rewritten !== true)
         errors.push(`skipped[${i}].rewritten:invalid`);
+      if (
+        k?.ledger_id !== undefined &&
+        (typeof k.ledger_id !== "string" || !UUID.test(k.ledger_id))
+      )
+        errors.push(`skipped[${i}].ledger_id:invalid`);
     });
   if (
     !Array.isArray(m.posts) ||
@@ -218,6 +228,11 @@ export function validateTimelineDiscordMessage(
         errors.push(`posts[${i}].content:invalid`);
       if (p?.rewritten !== undefined && typeof p.rewritten !== "boolean")
         errors.push(`posts[${i}].rewritten:invalid`);
+      if (
+        p?.ledger_id !== undefined &&
+        (typeof p.ledger_id !== "string" || !UUID.test(p.ledger_id))
+      )
+        errors.push(`posts[${i}].ledger_id:invalid`);
     });
   return errors.length === 0 ? { ok: true, msg: m } : { ok: false, errors };
 }
@@ -291,6 +306,9 @@ export interface DiscordDelivery {
   excerpt?: string;
   /** The clan's own model rewrote the line (a clan's activity channel). */
   rewritten?: boolean;
+  /** Its row in the quality ledger (0222): what a leader's rating of
+   *  this delivery points at. */
+  ledger_id?: string;
 }
 
 /** The last deliveries (newest first) and, by UTC day, how many were not
@@ -356,6 +374,8 @@ export function addDiscordDeliveries(
     const excerpt = clip(e.excerpt, EXCERPT_MAX);
     if (excerpt) out.excerpt = excerpt;
     if (e.rewritten === true) out.rewritten = true;
+    if (typeof e.ledger_id === "string" && UUID.test(e.ledger_id))
+      out.ledger_id = e.ledger_id;
     if (MISSED.has(e.outcome)) missed[day(e.at)] = (missed[day(e.at)] ?? 0) + 1;
     return [out];
   });

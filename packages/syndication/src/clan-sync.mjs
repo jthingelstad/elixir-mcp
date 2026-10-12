@@ -83,6 +83,13 @@ import { postRevision, readCapped } from "./sync.mjs";
 import { clanStoryFacts } from "./story-facts.mjs";
 import { storyContext } from "./story-context.mjs";
 import { editorResearch } from "./editor-research.mjs";
+import {
+  aside,
+  newLedgerId,
+  recordPosts,
+  recordRun,
+  runRawKey,
+} from "./quality.mjs";
 
 const DAY_MS = 24 * 3600_000;
 const REACH_MS = 30 * DAY_MS;
@@ -158,8 +165,11 @@ const ROW_SQL = `select d.channel_id, d.webhook_sealed, d.webhook_fp, d.enabled,
  *   readHistory?: (channelId: string) => Promise<object|null>,
  *   remainingMs?: () => number,
  *   editor?: boolean,
+ *   captureRun?: ((key: string, body: object) => Promise<unknown>) | null,
  *   now?: number,
  * }} deps
+ *   `captureRun` keeps a model run's raw inputs and answers (the archive
+ *   bucket's discord-runs/, 30 days) for the quality ledger.
  */
 export async function syncClan(db, clanTag, given) {
   const deps = { ...given, now: given.now ?? Date.now() };
@@ -223,7 +233,7 @@ export async function syncClan(db, clanTag, given) {
         row.synced_to.getTime() !== plan.row.synced_to.getTime()
       )
         return { skipped: "changed", rewrite_code: r.ok ? null : r.code };
-      return writeRun(db, clanTag, deps, { ...plan, row }, r);
+      return writeRun(db, clanTag, deps, { ...plan, row }, { ...r, run });
     });
   } finally {
     await db
@@ -236,28 +246,55 @@ export async function syncClan(db, clanTag, given) {
  * The editor's rounds: each a request to the clan's model; between them
  * the lookups it asked for, run read-only. Its answer by the last round,
  * or why there is none. `read` is every lookup's answer, which the
- * checks count as what the model was given.
+ * checks count as what the model was given; `trail` is each round as
+ * the quality ledger keeps it (what was asked for and answered, its
+ * model and about what it cost), and `messages` the conversation as it
+ * stood at the last round.
  */
 async function edit(request, { turn, research, remainingMs = null }) {
   let req = request;
   const read = [];
+  const trail = [];
   let lookups = 0;
+  let rounds = 0;
+  const done = (out) => ({
+    ...out,
+    read,
+    rounds,
+    lookups,
+    trail,
+    messages: req.messages,
+  });
   for (let round = 1; round <= EDITOR_ROUNDS; round += 1) {
-    const stats = { read, rounds: round - 1, lookups };
     if (remainingMs && remainingMs() < EDITOR_ROUND_MS)
-      return { ok: false, code: "deadline", ...stats };
+      return done({ ok: false, code: "deadline" });
     const r = await turn(req, round);
-    stats.rounds = round;
-    if (!r?.ok) return { ok: false, code: r?.code ?? "error", ...stats };
-    if (r.answer !== undefined) return { ok: true, answer: r.answer, ...stats };
+    rounds = round;
+    const step = {
+      round,
+      ok: r?.ok === true,
+      ...(r?.model ? { model: r.model } : {}),
+      ...(r?.cost ? { cost: r.cost } : {}),
+    };
+    trail.push(step);
+    if (!r?.ok) {
+      step.code = r?.code ?? "error";
+      return done({ ok: false, code: step.code });
+    }
+    if (r.answer !== undefined) {
+      step.answer = r.answer;
+      return done({ ok: true, answer: r.answer });
+    }
+    step.calls = r.calls ?? [];
     if (round === EDITOR_ROUNDS || !r.calls?.length)
-      return { ok: false, code: "no_answer", ...stats };
+      return done({ ok: false, code: "no_answer" });
     const results = await research(r.calls);
+    step.results = results.map((x) => ({ id: x.id, text: `${x.text}` }));
     lookups += results.length;
     read.push(...results.map((x) => `${x.text}`));
     req = editorNext(req, r, results, round + 1);
   }
-  return { ok: false, code: "no_answer", read, rounds: EDITOR_ROUNDS, lookups };
+  return done({ ok: false, code: "no_answer" });
 }
 
 /** The categories in effect and the kinds they post. */
@@ -450,6 +487,8 @@ async function planRun(
     key: s.key,
     revision: Math.max(...s.items.map(postRevision)),
     story: s,
+    // Told before: the relay edits its post (the quality ledger's action).
+    retold: told.has(s.key),
   }));
   const toldNow = [];
   for (const s of ready)
@@ -522,6 +561,7 @@ async function planRun(
       revision,
       story: { key: left.item_id, items: [c] },
       edit: true,
+      retold: true,
     });
     toldNow.push({
       ...toldRow(c, {}),
@@ -603,6 +643,8 @@ async function planRun(
     key: k.item.id,
     reason: STORY_SKIPS[k.reason] ?? k.reason,
     excerpt: renderStory({ key: k.item.id, items: [k.item] }, ctxFor({})),
+    // For the quality ledger: what the skip was of.
+    items: [k.item],
   }));
 
   const plan = {
@@ -727,7 +769,7 @@ const advance = (db, clanTag, toMs) =>
 async function writeRun(
   db,
   clanTag,
-  { outbox, now = Date.now() },
+  { outbox, captureRun = null, now = Date.now() },
   {
     row,
     posts,
@@ -763,6 +805,9 @@ async function writeRun(
   const modelSkip = new Map(edited.skips.map((k) => [k.key, k]));
   for (const e of edited.posts)
     for (const k of e.keys.slice(1)) toldBy.set(k, e.key);
+  // The items each post tells, for the quality ledger: a merged post's
+  // are every story's it tells.
+  const told = new Map();
   for (const p of posts) {
     if (toldBy.has(p.key) || modelSkip.has(p.key)) continue;
     const e = modelPost.get(p.key);
@@ -773,7 +818,12 @@ async function writeRun(
         : p.revision,
       content: postContent(e ? e.text : p.render),
       ...(e ? { rewritten: true } : {}),
+      ledger_id: newLedgerId(),
     });
+    told.set(
+      p.key,
+      (e ? e.keys : [p.key]).flatMap((k) => byKey.get(k)?.story.items ?? []),
+    );
   }
   for (const t of toldNow) {
     if (toldBy.has(t.story_key)) t.story_key = toldBy.get(t.story_key);
@@ -787,14 +837,43 @@ async function writeRun(
       key: k.key,
       reason: k.reason,
       ...(k.excerpt ? { excerpt: postContent(k.excerpt) } : {}),
+      ledger_id: newLedgerId(),
     })),
     ...edited.skips.map((k) => ({
       key: k.key,
       reason: k.reason,
       excerpt: postContent(byKey.get(k.key).render),
       rewritten: true,
+      ledger_id: newLedgerId(),
     })),
   ];
+  const skippedItems = new Map([
+    ...skipped.map((k) => [k.key, k.items ?? []]),
+    ...edited.skips.map((k) => [k.key, byKey.get(k.key)?.story.items ?? []]),
+  ]);
+  await recordQuality(db, clanTag, {
+    row,
+    now,
+    run: request ? (r?.run ?? null) : null,
+    content,
+    skips,
+    told,
+    skippedItems,
+    retold: new Set(posts.filter((p) => p.retold).map((p) => p.key)),
+  });
+  if (request && r?.run)
+    await recordEditorRun(db, clanTag, {
+      captureRun,
+      now,
+      r,
+      request,
+      stories,
+      edited,
+      content,
+      skips,
+      merged: toldBy.size,
+      outcome: rewriteCode ?? "ok",
+    });
   const chunks = Math.max(
     Math.ceil(content.length / DISCORD_POSTS_MAX),
     Math.ceil(skips.length / DISCORD_POSTS_MAX),
@@ -896,6 +975,140 @@ async function writeRun(
     lookups: r?.lookups ?? 0,
     narrowed,
   };
+}
+
+const newestAt = (items, of) => {
+  const ms = items.map(of).filter(Number.isFinite);
+  return ms.length ? new Date(Math.max(...ms)) : null;
+};
+
+/**
+ * A run's posts and skips in the quality ledger (0222): each post as
+ * handed to the relay (which answers it in a receipt), each skip with
+ * its reason. Written beside the run, never in its way.
+ */
+async function recordQuality(
+  db,
+  clanTag,
+  { row, now, run, content, skips, told, skippedItems, retold },
+) {
+  const base = {
+    feature: "clan_activity",
+    clan_tag: clanTag,
+    destination: row.channel_id,
+    webhook_fp: row.webhook_fp,
+    handed_at: new Date(now),
+    run_id: run,
+  };
+  const facts = (items) => ({
+    items: items.map((it) => ({ id: it.id, kind: it.kind })),
+    event_at: newestAt(items, (it) => Date.parse(it.at)),
+    observed_at: newestAt(items, observedMs),
+  });
+  const rows = [
+    ...content.map((c) => ({
+      ...base,
+      ...facts(told.get(c.key) ?? []),
+      post_id: c.ledger_id,
+      post_key: c.key,
+      revision: c.revision,
+      action: retold.has(c.key) ? "edit" : "post",
+      mode: c.rewritten ? "model" : "code",
+      content: c.content,
+    })),
+    ...skips.map((k) => ({
+      ...base,
+      ...facts(skippedItems.get(k.key) ?? []),
+      post_id: k.ledger_id,
+      post_key: k.key,
+      revision: 0,
+      action: "skip",
+      mode: k.rewritten ? "model" : "code",
+      content: k.excerpt ?? null,
+      skip_reason: k.reason,
+    })),
+  ];
+  await aside(db, "clan_activity", () => recordPosts(db, rows));
+}
+
+/**
+ * A run of the clan's model in the quality ledger: its numbers and
+ * refusals as a row, its raw inputs and answers in the archive bucket
+ * (best effort; the row says where).
+ */
+async function recordEditorRun(
+  db,
+  clanTag,
+  {
+    captureRun,
+    now,
+    r,
+    request,
+    stories,
+    edited,
+    content,
+    skips,
+    merged,
+    outcome,
+  },
+) {
+  const trail = r.trail ?? [];
+  const costs = trail.map((t) => t.cost).filter(Boolean);
+  const model = trail.findLast((t) => t.model)?.model ?? null;
+  const handed = new Set(stories.map((s) => s.key));
+  const fallbacks = content.filter(
+    (c) => !c.rewritten && handed.has(c.key),
+  ).length;
+  let rawKey = runRawKey(r.run, now);
+  if (captureRun)
+    try {
+      await captureRun(rawKey, {
+        v: 1,
+        run_id: r.run,
+        clan_tag: clanTag,
+        at: new Date(now).toISOString(),
+        model,
+        outcome,
+        context: request.context,
+        stories,
+        rounds: trail,
+        messages: r.messages ?? request.messages,
+        answer: r.answer ?? null,
+        checked: {
+          posts: edited.posts,
+          skips: edited.skips,
+          rejected: edited.rejected ?? [],
+        },
+        sent: content,
+        skipped: skips,
+      });
+    } catch {
+      console.error("clan_activity_capture_failed", clanTag);
+      rawKey = null;
+    }
+  else rawKey = null;
+  await aside(db, "clan_activity_run", () =>
+    recordRun(db, {
+      run_id: r.run,
+      clan_tag: clanTag,
+      at: new Date(now),
+      model,
+      outcome,
+      rounds: r.rounds ?? 0,
+      lookups: r.lookups ?? 0,
+      stories: stories.length,
+      posts: content.filter((c) => c.rewritten).length,
+      merged,
+      model_skips: edited.skips.length,
+      fallbacks,
+      refusals: edited.rejected ?? [],
+      cost_usd: costs.length
+        ? Math.round(costs.reduce((n, c) => n + (c.usd ?? 0), 0) * 1e4) / 1e4
+        : null,
+      cost_estimated: costs.some((c) => c.estimated),
+      raw_key: rawKey,
+    }),
+  );
 }
 
 /**

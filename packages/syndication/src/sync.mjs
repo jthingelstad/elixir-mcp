@@ -18,6 +18,7 @@ import {
 } from "@elixir-mcp/tools/activity/entries";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { discordLine, itemBattleId } from "./lines.mjs";
+import { aside, newLedgerId, recordPosts } from "./quality.mjs";
 
 const HOUR_MS = 3600_000;
 const DAY_MS = 24 * HOUR_MS;
@@ -193,7 +194,31 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
       key: it.id,
       revision: postRevision(it),
       content: discordLine(it, { battles, clanTags, nowMs: now }),
+      ledger_id: newLedgerId(),
     }));
+    // The quality ledger (0222): each line as handed to the relay, which
+    // answers each in a receipt.
+    await aside(db, "timeline", () =>
+      recordPosts(
+        db,
+        fresh.map((it, i) => ({
+          post_id: posts[i].ledger_id,
+          feature: "timeline",
+          account_id: accountId,
+          destination: accountId,
+          webhook_fp: row.webhook_fp,
+          post_key: it.id,
+          revision: posts[i].revision,
+          action: told.has(it.id) ? "edit" : "post",
+          mode: "line",
+          items: [{ id: it.id, kind: it.kind }],
+          content: posts[i].content,
+          event_at: it.at,
+          observed_at: it.observed_at ?? it.at,
+          handed_at: new Date(now),
+        })),
+      ),
+    );
     for (let i = 0; i < posts.length; i += DISCORD_POSTS_MAX)
       await outbox(
         "timeline-discord",

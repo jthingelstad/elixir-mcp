@@ -816,6 +816,18 @@ Resources:
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-editor/*
+              # The relay's receipts for the quality ledger (0222): read
+              # into the database, then deleted.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:DeleteObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/discord-receipt/*
+              # A clan model's run, raw, for the quality ledger: written
+              # once, kept 30 days by the archive's lifecycle.
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub
+                  - ${Arn}/discord-runs/*
+                  - Arn: !GetAtt ArchiveBucket.Arn
               - Effect: Allow
                 Action: s3:PutObject
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord/*
@@ -931,6 +943,12 @@ Resources:
             Queue: !GetAtt TimelineEditorQueue.Arn
             Filter:
               S3Key: { Rules: [{ Name: prefix, Value: timeline-editor/ }] }
+          # The relay's receipts (0222), read into the quality ledger by
+          # the sync.
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt TimelineSyncQueue.Arn
+            Filter:
+              S3Key: { Rules: [{ Name: prefix, Value: discord-receipt/ }] }
           - !If
             - HasInternalClan
             - Event: s3:ObjectCreated:*
@@ -1081,6 +1099,14 @@ Resources:
                 - Effect: Allow
                   Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
                   Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/timeline-discord-state/*
+                - !Ref AWS::NoValue
+              # What Discord answered, for the quality ledger (0222):
+              # write only, read by the timeline sync.
+              - !If
+                - HasInternalClan
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/discord-receipt/*
                 - !Ref AWS::NoValue
               # Send as elixir@poapkings.com and nothing else: the identity
               # and the configuration set are the only resources, and the
@@ -1481,6 +1507,7 @@ Resources:
           PGAPPNAME: elixir-mcp-timeline-sync
           PGOPTIONS: "-c statement_timeout=50s -c idle_in_transaction_session_timeout=60s"
           OUTBOX_BUCKET: !Ref OutboxBucket
+          ARCHIVE_BUCKET: !Ref ArchiveBucket
           # Seals a clan's rewrite request and opens its reply; the
           # clan's key and the webhook stay sealed here.
           CLAN_MODEL_SECRET:
@@ -1980,6 +2007,19 @@ Resources:
           - Id: calls-purge-expired
             Status: Enabled
             Prefix: calls/
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 1
+            ExpiredObjectDeleteMarker: true
+          # A clan model's runs as its channel's editor, raw (0222, the
+          # quality ledger): 30 days, as the privacy and limits pages
+          # say, and the noncurrent copy and marker after, as calls/.
+          - Id: discord-runs-expire
+            Status: Enabled
+            Prefix: discord-runs/
+            ExpirationInDays: 30
+          - Id: discord-runs-purge-expired
+            Status: Enabled
+            Prefix: discord-runs/
             NoncurrentVersionExpiration:
               NoncurrentDays: 1
             ExpiredObjectDeleteMarker: true
