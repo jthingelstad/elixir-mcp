@@ -8,7 +8,7 @@ navTitle: "Roles and tiers"
 icon: shield-check
 lede: "What each tier records for you — never what you may read."
 console: ["Your tier", "/console/account/profile", "Account settings ▸ Profile"]
-reviewed: "2026-10-12 a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup, contract 11.2.3"
+reviewed: "2026-10-12 tiers are earned in the game, the collector points economy retired; a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup"
 ---
 
 # Roles and quotas
@@ -42,31 +42,36 @@ Tool calls are what your agents and connected apps spend at the MCP door.
 Your own reads on Elixir's website, the Console and Ladder, never count
 against them; they share only the hourly limit ([Limits](/docs/limits)).
 
-**member** — the default. You, a couple of alts, and your clan at
+Member, Leader and Family are **earned in the game**, and checked every
+time you use Elixir, the way Elixir Clan checks your role
+([Upgrades](#upgrades)). Partner is granted.
+
+**member** — signup. You, a couple of alts, and your clan at
 activity scope (roster + war, no member fan-out). Elixir fills that clan
 slot with your primary player's clan for you when it is free ([Your
 player's clan](/docs/recording#your-players-clan)).
 
-**leader** — you run a clan. One *comprehensive* watch: every member's
-battles and profile, following membership as it changes. This is the tier
-a clan's own agent needs.
+**leader** — you run a clan: one of your [verified](/docs/verify)
+players is its leader or co-leader, and you track the clan. One
+*comprehensive* watch: every member's battles and profile, following
+membership as it changes. This is the tier a clan's own agent needs.
 
-**family** — you run a clan family: a main plus feeders. Multiple
-comprehensive watches for the clans you follow. A family is how they are
+**family** — you run a collector for Elixir. Multiple comprehensive
+watches, for a clan family (a main plus feeders) or the clans you follow. A family is how they are
 recorded; in [Elixir Clan](/docs/bring-your-clan#your-role-here)
 each clan keeps its own policy, standing, Actions and awards, and you
 switch between the clans your own players (your primary and alts) are
 in. A clan you only record or watch does not appear there.
 
-**partner** — you run serious tooling (a clan bot, a community service)
-on top of Elixir. Community-scale slots and budgets — and an expectation:
-partners run a collector. At this scale you should be adding capacity to
-the fleet, not only consuming it.
+**partner** — full access to Elixir's API surface, granted by the
+maintainer for serious tooling (a clan bot, a community service).
+Community-scale slots and budgets — and an expectation: partners run a
+collector. At this scale you should be adding capacity to the fleet, not
+only consuming it.
 
-**admin** — runs the Admin console day-to-day: reviews tier-upgrade
-requests, answers feedback, provisions platform integrations,
-revokes connections, and sets roles up to partner. Unlimited quotas,
-exempt from every cap.
+**admin** — runs the Admin console day-to-day: answers feedback,
+provisions platform integrations, revokes connections, and grants or
+removes partner. Unlimited quotas, exempt from every cap.
 
 **owner** — the super admin; exactly one. Everything an admin can do,
 plus granting or revoking the admin role and running the collector
@@ -93,8 +98,8 @@ live-fetch budget** — every agent you run shares your one daily live
 allowance — **and your recording slots**: what your agents track is counted
 with what you track, once per player or clan, however many of you track it.
 Its own role is capped at yours, and at `leader`: an admin's agent is not an
-admin, and when your role changes, each agent's is clamped to your new one,
-so an agent never sits above its owner. Each agent has its own console,
+admin, and an agent's role follows your tier as it is read now (member while
+you are a member, leader otherwise), so an agent never sits above its owner. Each agent has its own console,
 chosen at the top of the console's menu.
 
 That separation is the point. An agent that borrowed your identity would answer
@@ -146,24 +151,34 @@ service makes, which is why those slots grow slowly up the ladder —
 clan capture spends the shared collector budget, and the ladder is the
 gate.
 
-## Earn more by running a collector
-
-Any member, leader or family account operating an active collector gets
-**+2 player slots and +1 activity clan watch** on top of its tier (partner
-already assumes one), and collector points earn
-daily tool-call credits (1 per 10 points, up to 4× your base; a point is a
-fetch that added something to the record, not every fetch) — the real,
-compounding benefit of running one. Capacity grows the record: the fleet is
-the lever that grows the whole service.
-
 ## Upgrades
 
-Request a tier from **Account settings ▸ Profile ▸ Ask for more slots** — say
-what you're building or leading. The maintainer reviews requests by hand; you'll see the outcome
-in your feedback (a connected app sees it too, via `elixir_my_feedback`, and
-your timeline carries an `account_role_changed` item when your role
-changes). Hand-tuned per-account
-overrides exist for cases the ladder doesn't fit — just ask.
+There is nothing to request. Each tier comes with something you do in
+the game, and Elixir checks it every time you use it:
+
+- **Leader**: [verify](/docs/verify) a player of yours (your primary or
+  an alt) who is the leader or a co-leader of a clan, and track that
+  clan. Verified, because several accounts may claim one tag on trust;
+  only Verify proves whose it is. The role is the one Elixir last
+  recorded for the clan.
+- **Family**: [run a collector](/docs/operators) for Elixir. It counts
+  while it is active: its last fetch was admitted since its last
+  probation. A collector on probation, draining or revoked does not.
+  Running one earns the Family tier, and nothing else: there are no
+  points, call credits or bonus slots.
+- **Partner**: granted by the maintainer, on request through
+  [feedback](/docs/feedback).
+
+When both apply, the higher tier wins: a leader who runs a collector is
+Family. A tier earned is lost when its ground goes: step down as
+co-leader, leave the clan, stop tracking it or stop the collector, and
+the next request reads the tier below. Nothing you already track is
+removed when that happens; your tier's slots refuse only the next add
+until you are back under them. A leader or family tier granted by hand
+before 2026-10-12 no longer counts on its own.
+
+Hand-tuned per-account overrides exist for cases the ladder doesn't fit;
+ask through feedback.
 
 ## The fine print
 

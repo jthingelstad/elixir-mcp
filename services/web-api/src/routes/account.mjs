@@ -9,8 +9,7 @@ import {
   normalizeTag,
   InvalidTagError,
   roleQuotas,
-  isRole,
-  ROLE_ORDER,
+  tierSql,
   OAUTH_SCOPES,
   OAUTH_SCOPE_DETAILS,
 } from "@elixir-mcp/contracts";
@@ -25,7 +24,6 @@ import {
 } from "@elixir-mcp/tools/activity/entries";
 
 import { json, UUID_RE, ID_RE } from "../http.mjs";
-import { senderRef } from "@elixir-mcp/outbox/notify";
 import { loadCallRecord } from "../call-record.mjs";
 
 /** An audit row the daily tool-call limiter charged (`mcpday#`,
@@ -45,7 +43,6 @@ const WEB_READS = `(surface = 'web' and client_name is null
 export function accountRoutes({
   resolveAccount,
   logEvent,
-  notifyOwner = async () => {},
   capture = null,
   clanInternal = false,
   live = null,
@@ -132,7 +129,7 @@ export function accountRoutes({
     if (!r.ok && r.error === "quota_exceeded") {
       return json(429, {
         error: "quota_exceeded",
-        message: `Added players are capped at ${r.limit} for the ${r.role} tier. Remove one, request an upgrade below, or run a collector for bonus slots.`,
+        message: `Added players are capped at ${r.limit} for the ${r.role} tier. Remove one, or raise your tier: lead a clan you track (Leader) or run a collector (Family).`,
       });
     }
     if (!r.ok && r.error === "not_entitled")
@@ -202,7 +199,7 @@ export function accountRoutes({
         [account.accountId],
       );
       const { rows: ent } = await db.query(
-        `select a.role, a.mcp_daily_quota, a.live_daily_quota,
+        `select ${tierSql("a")} as role, a.mcp_daily_quota, a.live_daily_quota,
                 a.newsletter_opt_in, a.email
          from account a where a.account_id = $1`,
         [account.accountId],
@@ -214,7 +211,7 @@ export function accountRoutes({
       const owner = await poolOwner(db, account.accountId);
       const limits = poolLimits(owner);
       const used = await pooledUsage(db, owner.account_id);
-      const q = roleQuotas(owner.role, { operator: owner.operator });
+      const q = roleQuotas(owner.role);
       // So are the daily budgets: an agent spends its owner's calls.
       const budget = account.owner
         ? {
@@ -263,8 +260,6 @@ export function accountRoutes({
         [account.accountId],
       );
       const entitlements = {
-        operator_bonus_applied:
-          owner.operator && !["partner", "admin"].includes(owner.role),
         player_slots: {
           used: used.players_used,
           limit: lim(limits.player_slots),
@@ -311,7 +306,7 @@ export function accountRoutes({
       // The agents this person can switch the console into, for the rail
       // header's selector: a few rows, so every page can offer it.
       const { rows: agents } = await db.query(
-        `select a.public_id, a.role, a.status, a.removed_at,
+        `select a.public_id, ${tierSql("a")} as role, a.status, a.removed_at,
                 (select t.name from service_token t
                   where t.account_id = a.account_id
                   order by (t.revoked_at is null) desc, t.created_at desc
@@ -726,61 +721,6 @@ export function accountRoutes({
         live_max: lim(holder.liveDailyQuota ?? q.live_fetches_per_day),
         quota_max: lim(holder.mcpDailyQuota ?? q.mcp_calls_per_day),
       });
-    },
-
-    "POST /api/me/role-request": async (db, event, body) => {
-      const account = await resolveAccount(db, event, {
-        requireContractHeader: true,
-      });
-      if (!account) return json(401, { error: "unauthenticated" });
-      const role = String(body.role ?? "");
-      if (!isRole(role) || role === "admin")
-        return json(400, { error: "bad_request", message: "unknown tier" });
-      if (
-        ROLE_ORDER.indexOf(role) <= ROLE_ORDER.indexOf(account.role ?? "member")
-      )
-        return json(400, {
-          error: "bad_request",
-          message: "That tier is not above your current one.",
-        });
-      const { rows: pending } = await db.query(
-        `select feedback_id from feedback
-         where account_id = $1 and status = 'new'
-           and context->>'kind' = 'role_upgrade_request'`,
-        [account.accountId],
-      );
-      if (pending[0])
-        return json(409, {
-          error: "conflict",
-          message: "You already have an upgrade request pending review.",
-        });
-      const note = body.note ? String(body.note).slice(0, 500) : null;
-      const { rows: fb } = await db.query(
-        `insert into feedback (account_id, surface, area, category, message, context)
-         values ($1, 'web', 'console', 'feature', $2, $3) returning feedback_id`,
-        [
-          account.accountId,
-          `Tier upgrade request: ${account.role ?? "member"} -> ${role}${note ? ` — ${note}` : ""}`,
-          JSON.stringify({
-            kind: "role_upgrade_request",
-            requested_role: role,
-          }),
-        ],
-      );
-      await logEvent(db, account.accountId, "role_upgrade_requested", { role });
-      // Upgrade requests used to be a flag on the Accounts page only.
-      try {
-        await notifyOwner({
-          kind: "role_upgrade_request",
-          requestedRole: role,
-          currentRole: account.role ?? "member",
-          reason: note,
-          from: senderRef(account),
-        });
-      } catch (err) {
-        console.error("owner_notify_enqueue_failed", err?.message);
-      }
-      return json(200, { ok: true, request_id: fb[0].feedback_id });
     },
 
     "GET /api/me/requests": async (db, event) => {

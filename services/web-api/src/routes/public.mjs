@@ -68,7 +68,7 @@ export function publicRoutes({ deadLetters }) {
          ) op on true
          where g.status in ('active', 'probation', 'pending')
            and g.name <> 'backfill-elixir-bot'
-         order by g.fetch_points desc`,
+         order by g.enrolled_at`,
       );
       // Stack order and colour follow the COLLECTOR, never its rank:
       // keyed on enrolled_at, which never changes, so a new collector

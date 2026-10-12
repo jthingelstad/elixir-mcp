@@ -119,10 +119,12 @@ browser's when you are not.
 
 Your tier sets how many players and clans you can record and how many
 tool calls you can make a day; **Account settings ▸ Profile** shows each limit
-beside what you use. Tiers are granted by hand. **Ask for more slots**
-on the same page sends a request that a person reviews, one at a time.
-Running a collector adds slots of its own. The tiers and their numbers
-are on [Roles and tiers](/docs/roles).
+beside what you use. Leader and Family are earned in the game and read every
+time you use Elixir: Leader while one of your verified players leads or
+co-leads a clan you track, Family while a collector you run is active. There
+is nothing to ask for, and a tier goes when its ground goes; what you already
+track stays. Partner is granted by hand. The tiers and their numbers are on
+[Roles and tiers](/docs/roles#upgrades).
 
 ## Feedback
 

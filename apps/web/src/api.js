@@ -168,8 +168,6 @@ export const api = {
   gatewayCards: () => request("GET", "/api/gateways/cards"),
   pickGatewayCard: (id, card) =>
     request("POST", "/api/me/gateway-card", { id, card }),
-  requestRole: (role, note) =>
-    request("POST", "/api/me/role-request", { role, note }),
   adminAccounts: () => request("GET", "/api/admin/accounts"),
   adminSetRole: (account_id, role) =>
     request("POST", "/api/admin/accounts", { account_id, role }),

@@ -195,8 +195,6 @@ function Operations({ g, staged, setStaged, reload }) {
         <dd className="mono">{g.name}</dd>
         <dt>state</dt>
         <dd>{g.status}</dd>
-        <dt>points</dt>
-        <dd className="mono">{Number(g.fetch_points ?? 0).toLocaleString()}</dd>
         <dt>version</dt>
         <dd className="mono">{g.last_seen_sha ?? "—"}</dd>
         {/* 0184: what the collector says it runs, against the named
@@ -442,7 +440,7 @@ export function CollectorPage({ id, navigate, me }) {
           <div className="empty__title">No collector by that name</div>
           <p className="empty__body" style={{ marginBottom: 0 }}>
             Collectors are named for a Clash Royale card. A drained one keeps
-            its name and its points, but stops appearing in the fleet.
+            its name, but stops appearing in the fleet.
           </p>
         </div>
       </>
@@ -452,9 +450,6 @@ export function CollectorPage({ id, navigate, me }) {
   const status_ = pub?.status ?? own?.status ?? "unknown";
   const behind = status_ === "active" && (beat == null || beat > 600);
   const tone = status_ !== "active" ? "warn" : behind ? "warn" : "ok";
-  const points = Number(
-    own?.fetch_points ?? detail?.gateway?.fetch_points ?? 0,
-  );
   const env = revealed
     ? `CR_API_TOKEN=your-clash-royale-key\nELIXIR_API_TOKEN=${revealed}`
     : "";
@@ -508,19 +503,14 @@ export function CollectorPage({ id, navigate, me }) {
       {own && (
         <div className="stats" style={{ marginBottom: "14px" }}>
           <div className="stats__cell">
-            <div className="label">points</div>
-            <div className="stats__value">{points.toLocaleString()}</div>
-            <div className="stats__note">
-              one per fetch that added to the record, lifetime
-            </div>
-          </div>
-          <div className="stats__cell">
-            <div className="label">credits</div>
+            <div className="label">tier</div>
             <div className="stats__value">
-              {Number(own.credits ?? Math.floor(points / 10)).toLocaleString()}
+              {status_ === "active" ? "Family" : "—"}
             </div>
             <div className="stats__note">
-              extra daily calls earned — 10 points buy one
+              {status_ === "active"
+                ? "earned while this collector is active"
+                : "earned again once it is active"}
             </div>
           </div>
           <div className="stats__cell">
@@ -541,8 +531,9 @@ export function CollectorPage({ id, navigate, me }) {
         <div className="callout callout--warn" style={{ marginBottom: "14px" }}>
           <Icon name="circle-dashed" size={17} />
           <span>
-            Draining — it keeps its points and its place. Bring it back with
-            probation once the machine is reachable.
+            Draining — it keeps its name and its place, and earns no tier until
+            it is active again. Bring it back with probation once the machine is
+            reachable.
           </span>
         </div>
       )}

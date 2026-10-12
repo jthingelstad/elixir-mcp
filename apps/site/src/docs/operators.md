@@ -164,13 +164,11 @@ it, so you can compare it with your own by eye.
 It leases fetch jobs, calls the CR API with your key, and posts the
 results. It never chooses targets, never sees user data, and holds
 nothing that touches our infrastructure — the token only works against
-three API routes, and revoking it is instant. Your collector earns
-points, and points earn credits: a point is a fetch that added something
-new to the record (a fetch that found nothing new earns none), and every
-10 points adds +1 to your daily tool-call quota (capped at 4x your tier
-base). While one of your collectors is active, a member, leader or family
-account also gets 2 more player slots and 1 more activity-scope clan slot
-([Roles](/docs/roles#earn-more-by-running-a-collector)).
+three API routes, and revoking it is instant. While one of your
+collectors is active, your account holds the Family tier
+([Roles](/docs/roles#upgrades)); that is the reward, and the only one.
+There are no points, call credits or bonus slots. A collector on
+probation, draining or revoked earns no tier.
 
 ## The door, precisely
 

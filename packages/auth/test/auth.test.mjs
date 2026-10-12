@@ -465,13 +465,22 @@ test("a role change cannot ride authorization that went stale mid-flight", async
     [TARGET],
   );
 
-  // The ordinary case still works: an admin may move a member.
+  // The ordinary case still works: an admin may grant a member Partner.
+  // Leader and Family are earned, never granted (#530).
+  assert.deepEqual(
+    await setAccountRole(db, {
+      accountId: target.account_id,
+      role: "leader",
+      actorRole: "admin",
+    }),
+    { refused: "not_entitled" },
+  );
   const moved = await setAccountRole(db, {
     accountId: target.account_id,
-    role: "leader",
+    role: "partner",
     actorRole: "admin",
   });
-  assert.equal(moved.role, "leader");
+  assert.equal(moved.role, "partner");
 
   // THE RACE. A second connection promotes the target to admin and
   // holds the row lock open. Our role change arrives while that is

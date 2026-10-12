@@ -730,7 +730,7 @@ test("only the primary: a watched player's clan is never followed", async () => 
 });
 
 test("already following the clan, at any scope, changes nothing", async () => {
-  await db.query(`update account set role = 'leader' where account_id = $1`, [
+  await db.query(`update account set role = 'partner' where account_id = $1`, [
     alice.accountId,
   ]);
   await addClan(db, alice, {
@@ -788,7 +788,7 @@ test("a clan the person stopped tracking is never followed again", async () => {
 });
 
 test("a clan change moves Elixir's follow and never the person's", async () => {
-  await db.query(`update account set role = 'family' where account_id = $1`, [
+  await db.query(`update account set role = 'partner' where account_id = $1`, [
     alice.accountId,
   ]);
   await addClan(db, alice, { tag: THIRD, scope: "activity", via: "console" });

@@ -93,8 +93,8 @@ export const elixir_track_clan = {
           ? `The ${r.role} tier has no ${r.scope}-scope clan slots.`
           : `Your ${r.scope}-scope clan slots are full (${r.limit} for the ${r.role} tier${ctx.account.kind === "agent" ? ", shared with its owner and their agents" : ""}).`,
         r.scope === "comprehensive"
-          ? "Comprehensive capture records every member's battles; the leader tier and above include it. Request an upgrade on the website, or track at scope 'activity'."
-          : "Request a tier upgrade on the website; elixir_docs({ page: 'roles' }) has the ladder.",
+          ? "Comprehensive capture records every member's battles; the leader tier and above include it. Leader is earned while a verified player of yours leads or co-leads a clan you track; or track at scope 'activity'."
+          : "Tiers are earned: leading a clan you track gives Leader, running an active collector gives Family; elixir_docs({ page: 'roles' }) has the ladder.",
       );
     if (!r.ok)
       throw new ToolFailure("not_entitled", "This account cannot track clans.");

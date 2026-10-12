@@ -15,7 +15,7 @@
  * their slots and stop being a reason to record (reconcileRecording), and
  * resuming it is refused when it would take the pool past a ceiling.
  */
-import { roleQuotas } from "@elixir-mcp/contracts";
+import { roleQuotas, tierSql } from "@elixir-mcp/contracts";
 
 /** The pool's accounts, for owner $1: the person and their active agents. */
 const POOL = `select account_id from account
@@ -24,14 +24,13 @@ const POOL = `select account_id from account
                       and status = 'approved')`;
 
 /** The person whose slots an account spends: itself, or its owner. With
- *  what the ceiling needs: role, the per-account player override, and
- *  whether they run a collector (the operator bonus is theirs). */
+ *  what the ceiling needs: the tier (earned in the game, read now, #530)
+ *  and the per-account player override. Running a collector earns the
+ *  Family tier and no bonus slots on top (#539). */
 export async function poolOwner(db, accountId) {
   const { rows } = await db.query(
-    `select o.account_id, o.role, o.is_owner, o.max_player_recordings as override,
-            exists (select 1 from gateway g
-                     where g.owner_account_id = o.account_id
-                       and g.status = 'active') as operator
+    `select o.account_id, ${tierSql("o")} as role, o.is_owner,
+            o.max_player_recordings as override
        from account a
        join account o on o.account_id = coalesce(a.owned_by_account_id, a.account_id)
       where a.account_id = $1`,
@@ -43,7 +42,7 @@ export async function poolOwner(db, accountId) {
 /** The pool's ceilings; Infinity where the owner is exempt. */
 export function poolLimits(owner) {
   const exempt = owner.is_owner || owner.role === "admin";
-  const q = roleQuotas(owner.role, { operator: owner.operator });
+  const q = roleQuotas(owner.role);
   return {
     exempt,
     player_slots: exempt ? Infinity : (owner.override ?? q.player_slots),

@@ -424,21 +424,15 @@ test("local time helpers: DST-aware day bounds", () => {
   );
 });
 
-test("collector credits raise the daily quota 10:1, capped at 4x base", async () => {
+test("collector points no longer raise the daily quota (#539)", async () => {
+  // fetch_points is a dead column: ingest still counts it, nothing reads it.
   await db.query(
     `insert into gateway (owner_account_id, name, static_ip, status, fetch_points)
-     values ($1, 'credit-gw', '127.0.0.1', 'active', 1230)`,
+     values ($1, 'credit-gw', '127.0.0.1', 'active', 999999)`,
     [account.accountId],
   );
-  const quota = makeQuota({ db, account });
-  const r = await quota();
-  assert.equal(r.max, 623, "500 base + floor(1230/10)");
-
-  await db.query(
-    `update gateway set fetch_points = 999999 where name = 'credit-gw'`,
-  );
-  const capped = await makeQuota({ db, account })();
-  assert.equal(capped.max, 2000, "capped at 4x base");
+  const r = await makeQuota({ db, account })();
+  assert.equal(r.max, 500, "the tier's base, nothing on top");
   await db.query(`delete from gateway where name = 'credit-gw'`);
 });
 

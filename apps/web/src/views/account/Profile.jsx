@@ -11,8 +11,8 @@ import { TimelineDiscordState } from "./TimelineDiscord.jsx";
  *
  * Who you are (address, read-only; tier; how you sign in; the timezone,
  * which is editable here), then what the tier gives you (the limits
- * table and the upgrade request), then today's quota with the reset
- * time and a way to earn more. Settings & tier was folded into this page (Jamie,
+ * table and how the next tier is earned), then today's quota with the
+ * reset time. Settings & tier was folded into this page (Jamie,
  * 2026-09-10): two pages for one account was one too many. Overview
  * reports the same slot numbers through the same component, and Usage
  * reads the same quota through lib/quota.js, so nothing here can
@@ -175,7 +175,7 @@ export function Profile({ me, refresh, navigate }) {
             <Icon name="server" size={17} />
           </span>
           <span style={{ fontSize: "13.5px", color: "var(--ink-body)" }}>
-            Need more quota? Run a collector.
+            Run a collector to earn the Family tier.
           </span>
           <span
             style={{
@@ -378,90 +378,50 @@ function TierLimits({ me, entitlements: e, usage }) {
 
 const fmt = (n) => (typeof n === "number" ? n.toLocaleString() : String(n));
 
+/** How the tier is held (#530): Member is signup, Leader and Family are
+ *  earned in the game and read on every request, Partner is granted. */
+const TIER_GROUND = {
+  member: "Member is signup.",
+  leader:
+    "Earned: one of your verified players leads or co-leads a clan you track.",
+  family: "Earned: you run an active collector.",
+  partner: "Granted by Jamie.",
+  admin: "Granted by Jamie.",
+  owner: "The owner.",
+};
+
+/** The next earned tier and what earns it; Partner is never asked for. */
+const NEXT_TIER = {
+  member: [
+    ["leader", "Verify a player who leads or co-leads a clan you track."],
+    ["family", "Run a collector for Elixir."],
+  ],
+  leader: [["family", "Run a collector for Elixir."]],
+};
+
 function TierPanel({ me, entitlements: e, usage }) {
-  const [asking, setAsking] = useState(false);
-  const [reqRole, setReqRole] = useState("");
-  const [note, setNote] = useState("");
-  const [sent, setSent] = useState("");
-  const ladder = ["member", "leader", "family", "partner"];
-  const higher = ladder.slice(ladder.indexOf(me?.role) + 1);
+  const next = NEXT_TIER[me?.role] ?? [];
   return (
     <section className="panel" style={{ marginBottom: "14px" }}>
       <div className="panel__head" style={{ flexWrap: "wrap" }}>
         <span className="panel-title">Your tier</span>
         {/* The one place gold is a badge: it names what is yours. */}
         <span className="chip chip--tier">{me?.role}</span>
-        <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-          Granted by hand.
-          {e?.operator_bonus_applied && " Collector bonus applied."}
+        <span className="text-[12.5px] text-ink-faint">
+          {TIER_GROUND[me?.role] ?? ""}
         </span>
-        {higher.length > 0 && (
-          <button
-            type="button"
-            className="btn"
-            style={{ marginLeft: "auto" }}
-            onClick={() => setAsking((v) => !v)}
-          >
-            Ask for more slots <Icon name="arrow-right" size={15} />
-          </button>
-        )}
       </div>
       <div className="panel__body">
         <TierLimits me={me} entitlements={e} usage={usage} />
-        {asking && (
-          <form
-            style={{
-              display: "flex",
-              gap: "6px",
-              marginTop: "16px",
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-            onSubmit={async (ev) => {
-              ev.preventDefault();
-              const r = await api.requestRole(reqRole, note || undefined);
-              setSent(
-                r.ok
-                  ? "Request sent — reviewed by hand."
-                  : (r.data?.message ?? "Could not send."),
-              );
-            }}
-          >
-            <select
-              aria-label="Tier to request"
-              value={reqRole}
-              onChange={(ev) => setReqRole(ev.target.value)}
-              style={{ flex: "1 1 120px", width: "auto" }}
-            >
-              <option value="">upgrade to…</option>
-              {higher.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-            <input
-              aria-label="Why"
-              placeholder="why?"
-              value={note}
-              onChange={(ev) => setNote(ev.target.value)}
-              style={{ flex: "2 1 160px" }}
-            />
-            <button className="btn btn--primary" disabled={!reqRole}>
-              Request
-            </button>
-            {sent && (
-              <span
-                style={{
-                  fontSize: "12px",
-                  color: "var(--ink-faint)",
-                  flexBasis: "100%",
-                }}
-              >
-                {sent}
-              </span>
-            )}
-          </form>
+        {next.length > 0 && (
+          <ul className="mt-4 mb-0 pl-5 text-[13px] text-ink-body">
+            {next.map(([tier, how]) => (
+              <li key={tier}>
+                <span className="mono">{tier}</span>: {how}{" "}
+                <a href="/docs/roles#upgrades">How it works</a>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
       <div className="panel__note">

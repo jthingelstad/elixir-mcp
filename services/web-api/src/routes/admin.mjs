@@ -3,7 +3,15 @@ import {
   pendingRequests,
   setAccountRole,
 } from "@elixir-mcp/auth";
-import { isRole, ROLE_ORDER, ADMIN_SETTABLE } from "@elixir-mcp/contracts";
+import {
+  isRole,
+  ROLE_ORDER,
+  ADMIN_SETTABLE,
+  EARNED_ROLES,
+  tierSql,
+  familyGroundSql,
+  leaderGroundSql,
+} from "@elixir-mcp/contracts";
 
 import { UUID_RE, ID_RE, json } from "../http.mjs";
 import { onboardAccount } from "@elixir-mcp/tools/onboard";
@@ -19,7 +27,11 @@ import {
   qualityDetail,
   qualitySummary,
 } from "@elixir-mcp/syndication/quality-report";
-const SETTABLE_BY_OWNER = ROLE_ORDER.filter((r) => r !== "owner");
+/** The owner grants anything stored except "owner" itself; Leader and
+ *  Family are earned, never granted (#530). */
+const SETTABLE_BY_OWNER = ROLE_ORDER.filter(
+  (r) => r !== "owner" && (r === "member" || !EARNED_ROLES.includes(r)),
+);
 
 export function adminRoutes({
   resolveAccount,
@@ -382,8 +394,16 @@ export function adminRoutes({
       const account = await resolveAccount(db, event);
       if (!account?.isAdmin) return json(403, { error: "not_entitled" });
       const { rows } = await db.query(
-        `select a.account_id, a.email_hash, a.email, a.status, a.role, a.is_owner,
+        `select a.account_id, a.email_hash, a.email, a.status, a.is_owner,
                 a.kind, a.public_id, a.owned_by_account_id,
+                -- The tier is earned in the game (#530) and read now;
+                -- granted_role is what is stored, the grant Admin sets
+                -- (Partner, or Member to take one away). A stored leader
+                -- or family is a pre-2026-10-12 hand grant that no longer
+                -- counts.
+                ${tierSql("a")} as role, a.role as granted_role,
+                coalesce(a.kind, 'person') = 'person'
+                  and ${leaderGroundSql("a")} as leads_tracked_clan,
                 -- Agents and integrations are accounts too (0053), owned by
                 -- the person who created them. The list shows people and
                 -- says how many principals each one runs; the record page
@@ -409,13 +429,7 @@ export function adminRoutes({
                  where c.account_id = a.account_id) as players_tracked,
                 (select count(*)::int from account_clan ac
                  where ac.account_id = a.account_id) as clans_tracked,
-                exists (select 1 from gateway g
-                        where g.owner_account_id = a.account_id
-                          and g.status = 'active') as operator,
-                (select f.feedback_id from feedback f
-                 where f.account_id = a.account_id and f.status = 'new'
-                   and f.context->>'kind' = 'role_upgrade_request'
-                 order by f.created_at desc limit 1) as pending_role_request
+                ${familyGroundSql("a")} as operator
          from account a order by a.created_at`,
       );
       return json(200, {
@@ -434,6 +448,15 @@ export function adminRoutes({
       const role = String(body.role ?? "");
       if (!isRole(role))
         return json(400, { error: "bad_request", message: "unknown role" });
+      // Leader and Family are earned in the game and read on every use
+      // (#530): there is no grant of them to make.
+      if (role !== "member" && EARNED_ROLES.includes(role))
+        return json(400, {
+          error: "bad_request",
+          code: "tier_is_earned",
+          message:
+            "Leader and Family are earned in the game, never granted: Leader by leading a tracked clan, Family by running an active collector.",
+        });
       const accountId = String(body.account_id ?? "");
       if (!UUID_RE.test(accountId)) return json(404, { error: "not_found" });
       // One entitlements system, ONE decision: admins set roles up to

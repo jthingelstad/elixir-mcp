@@ -917,6 +917,31 @@ test("a collector issue stored before its cards and states still renders from it
   assert.doesNotMatch(html, /undefined|NaN/);
 });
 
+test("the collector mail says the tier, never points or credits (#539)", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "collector_activity.json"), "utf8"),
+  );
+  const { html, preheader } = renderMail("collector_activity", facts, links);
+  assert.match(html, /Your tier/);
+  assert.match(html, /earns your account the Family tier/);
+  assert.match(html, /new facts this week/);
+  assert.match(preheader, /Your active collector earns the Family tier\./);
+  assert.doesNotMatch(html, /points|credits?\b/i);
+
+  // An issue stored before 2026-10-12 carried points and credits: it
+  // renders without them, and without a tier line it never knew.
+  const old = structuredClone(facts);
+  delete old.tier;
+  old.credits = { week: 42, lifetime: 900 };
+  for (const x of old.collectors) {
+    delete x.new_facts;
+    x.lifetime_points = 4639;
+  }
+  const stored = renderMail("collector_activity", old, links);
+  assert.doesNotMatch(stored.html, /points|credits?\b|Your tier/i);
+  assert.doesNotMatch(stored.html, /undefined|NaN/);
+});
+
 test("actions waiting: one box per action, the app's count of the rest, its link on each", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "clan_actions_waiting.json"), "utf8"),

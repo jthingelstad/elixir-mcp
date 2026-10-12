@@ -21,8 +21,8 @@
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 76382,
-   "signature_state": "signed"
+   "signature_state": "signed",
+   "new_facts": 1909
   },
   {
    "name": "Royal Hogs",
@@ -36,8 +36,8 @@
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 56260,
-   "signature_state": "dev_build"
+   "signature_state": "dev_build",
+   "new_facts": 1406
   },
   {
    "name": "Witch",
@@ -51,8 +51,8 @@
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 53248,
-   "signature_state": "unverified"
+   "signature_state": "unverified",
+   "new_facts": 1331
   },
   {
    "name": "Skeleton Army",
@@ -66,8 +66,8 @@
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 33160,
-   "signature_state": "mismatch"
+   "signature_state": "mismatch",
+   "new_facts": 829
   },
   {
    "name": "Cannon",
@@ -81,8 +81,8 @@
    "breaker_trips": 0,
    "quiet_hours": 17,
    "note": "1 quiet stretch of 3 h or more",
-   "lifetime_points": 29134,
-   "signature_state": "signed"
+   "signature_state": "signed",
+   "new_facts": 728
   },
   {
    "name": "Hog Rider",
@@ -96,8 +96,8 @@
    "breaker_trips": 0,
    "quiet_hours": 0,
    "note": null,
-   "lifetime_points": 27923,
-   "signature_state": "dev_build"
+   "signature_state": "dev_build",
+   "new_facts": 698
   }
  ],
  "totals": {
@@ -132,20 +132,10 @@
    370
   ]
  ],
- "credits": {
-  "earned": 2255,
-  "points_week": 22550,
-  "base": 500,
-  "applied": 2000,
-  "capped": true,
-  "slots": {
-   "players": 2,
-   "clans": 1
-  }
- },
- "lifetime": {
-  "points": 276107,
-  "credits": 27610
+ "tier": {
+  "role": "family",
+  "family_earned": true,
+  "granted": false
  },
  "fleet_note": "18,204 new facts entered the record through your collectors this week (battles, membership events, moved snapshots, changed cards).",
  "coverage": "Counted from the collector ledger: every fetch your collectors submitted between Sunday 14:00 UTC and Sunday 14:00 UTC. The edge filter share is what the collectors read and dropped as already recorded."

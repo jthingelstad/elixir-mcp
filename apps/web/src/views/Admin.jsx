@@ -67,6 +67,16 @@ import { PULSE_STEPS, pulseRows } from "../lib/pulse.js";
  * The guard alone would print a dash, which is worse than nothing in a table
  * whose job is telling you who did what. An agent has a name; use it.
  */
+/** A stored leader or family: a hand grant from before tiers were earned
+ *  in the game (#530). It no longer counts; null when there is none. */
+function legacyGrant(a) {
+  const g = a?.granted_role;
+  return (a?.kind ?? "person") === "person" &&
+    (g === "leader" || g === "family")
+    ? g
+    : null;
+}
+
 function principalLabel(a) {
   if (a.primary_tag)
     return a.primary_name
@@ -701,8 +711,8 @@ function AdminAccounts() {
       },
       a.status,
       {
-        text: a.role + (a.pending_role_request ? " · upgrade requested" : ""),
-        tone: a.pending_role_request ? "warn" : undefined,
+        text: a.role + (legacyGrant(a) ? ` · stored ${a.granted_role}` : ""),
+        tone: legacyGrant(a) ? "warn" : undefined,
       },
       `${a.players_tracked ?? 0} ${noun(a.players_tracked ?? 0, "player")} · ${a.clans_tracked ?? 0} ${noun(a.clans_tracked ?? 0, "clan")}`,
       a.children ? String(a.children) : "—",
@@ -728,7 +738,7 @@ function AdminAccounts() {
       ]}
       minWidth={620}
       empty="No accounts yet."
-      footnote="People only. An agent or an integration is an account too, owned by whoever created it — the last column counts them, and the record page names them. An account is named by the address it signs in with; open one to change its tier or read its overrides. Upgrade requests land in Feedback and are flagged in the tier column."
+      footnote="People only. An agent or an integration is an account too, owned by whoever created it — the last column counts them, and the record page names them. An account is named by the address it signs in with; open one to read its overrides or grant Partner. Member, Leader and Family are earned in the game and read live; a stored leader or family from before 2026-10-12 is flagged and no longer counts."
     />
   );
 }
@@ -903,8 +913,14 @@ function AdminAccountDetail({ id }) {
   const load = () => invalidate(keys.adminAccounts);
 
   const a = (accounts ?? []).find((x) => String(x.account_id) === String(id));
+  // The select edits the STORED grant (Partner, or Member to take one
+  // away); the tier shown above is earned and read live (#530).
+  const grant = a ? (a.granted_role ?? a.role) : "";
+  const canEdit = a
+    ? settable.includes(grant) || legacyGrant(a) !== null
+    : false;
   useEffect(() => {
-    if (a) setRole(a.role);
+    if (a) setRole(a.granted_role ?? a.role);
   }, [a]);
 
   if (accounts === null)
@@ -941,7 +957,16 @@ function AdminAccountDetail({ id }) {
       "Tracking",
       `${a.players_tracked ?? 0} ${noun(a.players_tracked ?? 0, "player")} · ${a.clans_tracked ?? 0} ${noun(a.clans_tracked ?? 0, "clan")}`,
     ],
-    ["Runs a collector", a.operator ? "yes" : "no"],
+    ["Tier", a.role],
+    [
+      "Stored grant",
+      grant + (legacyGrant(a) ? " (hand grant, no longer counts)" : ""),
+    ],
+    ["Runs an active collector (Family)", a.operator ? "yes" : "no"],
+    [
+      "Verified leader of a tracked clan (Leader)",
+      a.leads_tracked_clan ? "yes" : "no",
+    ],
     [
       "Overrides · ops only",
       [
@@ -971,9 +996,6 @@ function AdminAccountDetail({ id }) {
             <TagText>{a.email ?? principalLabel(a)}</TagText>
           </span>
           {a.is_owner && <span className="chip chip--info">owner</span>}
-          {a.pending_role_request && (
-            <span className="chip chip--warn">upgrade requested</span>
-          )}
         </div>
         {/* .fields is the console's one key/value list (Agents, Explore
             and the collector record all use it) — a flat dl, no wrapper
@@ -997,15 +1019,15 @@ function AdminAccountDetail({ id }) {
           }}
         >
           <label className="field-label" htmlFor="account-tier">
-            Tier
+            Grant
           </label>
           <select
             id="account-tier"
             value={role}
-            disabled={!settable.includes(a.role)}
+            disabled={!canEdit}
             onChange={(e) => setRole(e.target.value)}
           >
-            {[...new Set([a.role, ...settable])].map((r) => (
+            {[...new Set([grant, ...settable])].map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
@@ -1013,17 +1035,17 @@ function AdminAccountDetail({ id }) {
           </select>
           <button
             className="btn btn--sm"
-            disabled={!settable.includes(a.role) || role === a.role}
+            disabled={!canEdit || role === grant}
             onClick={async () => {
               const r = await api.adminSetRole(a.account_id, role);
-              setSaved(r.ok ? "Tier saved." : "That did not work.");
+              setSaved(r.ok ? "Grant saved." : "That did not work.");
               if (r.ok) load();
             }}
           >
-            Save tier
+            Save grant
           </button>
           {saved && <span className="caveat">{saved}</span>}
-          {!settable.includes(a.role) && (
+          {!canEdit && (
             <span className="caveat">
               This account&rsquo;s tier is not yours to set.
             </span>

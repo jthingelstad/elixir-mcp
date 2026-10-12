@@ -963,7 +963,8 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
   );
 });
 
-test("collector fleet: card-derived identity, quota credits; scoring rides admission", async () => {
+test("collector fleet: card-derived identity; points and credits retired (#539)", async () => {
+  // fetch_points is a dead column: ingest still counts it, nothing serves it.
   await db.query(
     `update gateway set fetch_points = 2600 where name = 'kitchen-mac' and status <> 'revoked'`,
   );
@@ -977,14 +978,13 @@ test("collector fleet: card-derived identity, quota credits; scoring rides admis
       }),
     ),
   );
-  // The machine label is PRIVATE (#28) - the ladder is found by points,
-  // not by the operator's name for their own box.
-  const top = ladder.ladder.find((g) => g.points === 2600);
+  // The machine label is PRIVATE (#28): an operator finds their own row
+  // by `mine`, never by the name they gave the box.
+  const top = ladder.ladder.find((g) => g.mine);
   assert.ok(top, "the collector is on the ladder");
-  assert.equal(top.credits, 260, "10 fetches = +1 daily call");
+  assert.ok(!("points" in top) && !("credits" in top), "no points economy");
   assert.ok(!("arena" in top), "arenas are gone");
   assert.ok(!("machine" in top), "machine labels never leave the owner");
-  assert.equal(top.mine, true, "an operator can still find their own row");
 
   const mine = parse(
     await handler(
@@ -1000,8 +1000,8 @@ test("collector fleet: card-derived identity, quota credits; scoring rides admis
   const gw = mine.gateways.find(
     (g) => g.name === "kitchen-mac" && g.status !== "revoked",
   );
-  assert.equal(gw.fetch_points, 2600);
-  assert.equal(gw.credits, 260);
+  assert.ok(gw);
+  assert.ok(!("fetch_points" in gw) && !("credits" in gw));
   assert.ok(!("arena" in gw));
 });
 
@@ -1543,7 +1543,7 @@ test("service tokens: Admin no longer mints one on a person; an existing one val
   assert.equal(nonOwner.statusCode, 403);
 });
 
-test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin sets roles", async () => {
+test("entitlement ladder: /api/me exposes tier; Leader and Family are earned; admin grants Partner", async () => {
   const ownerCookie = bossCookie;
   const cookie = memberCookie;
   // Clear the hand-tuned override from the cap test above: the role
@@ -1552,93 +1552,122 @@ test("entitlement ladder: /api/me exposes tier; upgrades are self-serve; admin s
     `update account set max_player_recordings = null where email_hash = $1`,
     [emailHash(NEWCOMER)],
   );
+  const {
+    rows: [{ account_id: newcomerId }],
+  } = await db.query(`select account_id from account where email_hash = $1`, [
+    emailHash(NEWCOMER),
+  ]);
+  const me = async () =>
+    parse(
+      await handler(
+        event({ method: "GET", path: "/api/me", cookie, body: undefined }),
+      ),
+    );
+  const adminRow = async () =>
+    parse(
+      await handler(
+        event({
+          method: "GET",
+          path: "/api/admin/accounts",
+          cookie: ownerCookie,
+          body: undefined,
+        }),
+      ),
+    ).accounts.find((a) => a.account_id === newcomerId);
+  const grant = (role, c = ownerCookie) =>
+    handler(
+      event({
+        path: "/api/admin/accounts",
+        cookie: c,
+        body: { account_id: newcomerId, role },
+      }),
+    );
 
-  // NEWCOMER defaults to member with the ratified limits on the wire.
-  let me = parse(
-    await handler(
-      event({ method: "GET", path: "/api/me", cookie, body: undefined }),
-    ),
-  );
-  assert.equal(me.role, "member");
+  // NEWCOMER is a member (their collector is draining) with the ratified
+  // limits on the wire.
+  let mine = await me();
+  assert.equal(mine.role, "member");
   // Player slots are no longer a rung on the ladder (50 everywhere below
   // unlimited); comprehensive clans and collections still are.
-  assert.equal(me.entitlements.player_slots.limit, 50);
-  assert.equal(me.entitlements.comprehensive_clans.limit, 0);
-  assert.ok(!("collections" in me.entitlements));
+  assert.equal(mine.entitlements.player_slots.limit, 50);
+  assert.equal(mine.entitlements.comprehensive_clans.limit, 0);
+  assert.ok(!("collections" in mine.entitlements));
+  assert.ok(!("operator_bonus_applied" in mine.entitlements));
 
-  // Self-serve upgrade request: files once, refuses duplicates and
-  // sideways moves.
-  const sideways = await handler(
-    event({ path: "/api/me/role-request", cookie, body: { role: "member" } }),
-  );
-  assert.equal(sideways.statusCode, 400);
+  // There is nothing to ask for (#530): the request route is gone.
   const req = await handler(
-    event({
-      path: "/api/me/role-request",
-      cookie,
-      body: { role: "family", note: "clan family of three" },
-    }),
+    event({ path: "/api/me/role-request", cookie, body: { role: "family" } }),
   );
-  assert.equal(req.statusCode, 200, req.body);
-  const dup = await handler(
-    event({ path: "/api/me/role-request", cookie, body: { role: "leader" } }),
-  );
-  assert.equal(dup.statusCode, 409);
+  assert.equal(req.statusCode, 404);
 
-  // The admin sees the pending request on the accounts surface and
-  // grants the tier; a feed event records the change.
-  const accounts = parse(
-    await handler(
-      event({
-        method: "GET",
-        path: "/api/admin/accounts",
-        cookie: ownerCookie,
-        body: undefined,
-      }),
-    ),
+  let row = await adminRow();
+  assert.equal(row.role, "member");
+  assert.equal(row.granted_role, "member");
+  assert.equal(row.operator, false, "a draining collector is no ground");
+  assert.equal(row.leads_tracked_clan, false);
+  assert.ok(!("pending_role_request" in row));
+
+  // Family is earned by an active collector, read on the next request.
+  const {
+    rows: [gw],
+  } = await db.query(
+    `insert into gateway (owner_account_id, name, static_ip, status)
+     values ($1, 'tier-test-gw', '203.0.113.99', 'active') returning gateway_id`,
+    [newcomerId],
   );
-  const row = accounts.accounts.find(
-    (a) => a.role === "member" && a.pending_role_request,
+  mine = await me();
+  assert.equal(mine.role, "family");
+  const { roleQuotas } = await import("@elixir-mcp/contracts");
+  assert.equal(
+    mine.entitlements.comprehensive_clans.limit,
+    roleQuotas("family").comprehensive_clans,
+    "the Family ceiling, with no bonus on top",
   );
-  assert.ok(row, "pending upgrade request visible to admin");
-  const set = await handler(
-    event({
-      path: "/api/admin/accounts",
-      cookie: ownerCookie,
-      body: { account_id: row.account_id, role: "family" },
-    }),
+  assert.equal(
+    mine.entitlements.player_slots.limit,
+    roleQuotas("family").player_slots,
   );
+  row = await adminRow();
+  assert.equal(row.role, "family");
+  assert.equal(row.granted_role, "member", "nothing was stored");
+  assert.equal(row.operator, true);
+  // ...and lost when the ground goes.
+  await db.query(`delete from gateway where gateway_id = $1`, [gw.gateway_id]);
+  assert.equal((await me()).role, "member");
+
+  // Leader and Family are never granted, by the owner either.
+  for (const role of ["leader", "family"]) {
+    const refused = await grant(role);
+    assert.equal(refused.statusCode, 400, role);
+    assert.equal(parse(refused).code, "tier_is_earned");
+  }
+
+  // A stored hand grant from before 2026-10-12 no longer counts, and the
+  // admin can see and clear it.
+  await db.query(`update account set role = 'family' where account_id = $1`, [
+    newcomerId,
+  ]);
+  assert.equal((await me()).role, "member");
+  row = await adminRow();
+  assert.equal(row.granted_role, "family");
+  assert.equal((await grant("member")).statusCode, 200);
+
+  // Partner stays Jamie-granted in Admin, and is on the account's timeline.
+  const set = await grant("partner");
   assert.equal(set.statusCode, 200, set.body);
   const { rows: logged } = await db.query(
     `select kind from account_event where account_id = $1 and kind = 'role_changed'`,
-    [row.account_id],
+    [newcomerId],
   );
   assert.ok(logged.length > 0, "the tier change is on the account's timeline");
-
-  me = parse(
-    await handler(
-      event({ method: "GET", path: "/api/me", cookie, body: undefined }),
-    ),
-  );
-  assert.equal(me.role, "family");
-  assert.ok(!("collections" in me.entitlements));
+  mine = await me();
+  assert.equal(mine.role, "partner");
+  assert.ok(!("collections" in mine.entitlements));
 
   // Non-role strings and non-owner setters are refused.
-  const bogus = await handler(
-    event({
-      path: "/api/admin/accounts",
-      cookie: ownerCookie,
-      body: { account_id: row.account_id, role: "emperor" },
-    }),
-  );
+  const bogus = await grant("emperor");
   assert.equal(bogus.statusCode, 400);
-  const sneaky = await handler(
-    event({
-      path: "/api/admin/accounts",
-      cookie,
-      body: { account_id: row.account_id, role: "admin" },
-    }),
-  );
+  const sneaky = await grant("admin", cookie);
   assert.equal(sneaky.statusCode, 403);
 });
 
@@ -1680,7 +1709,7 @@ test("clans: added = recorded within slots; notify is the toggle; remove settles
   );
   assert.equal(refused.statusCode, 429);
   assert.match(parse(refused).message, /no comprehensive-scope clan slots/);
-  await db.query(`update account set role = 'family' where account_id = $1`, [
+  await db.query(`update account set role = 'partner' where account_id = $1`, [
     acct[0].account_id,
   ]);
 
@@ -2675,19 +2704,21 @@ test("usage reports the tier's real ceilings, not member's hardcoded ones", asyn
         }),
       ),
     );
-  await db.query(`update account set role = 'leader' where email_hash = $1`, [
+  // Partner is the grant; Leader and Family are earned (#530) and their
+  // ceilings are read the same way.
+  await db.query(`update account set role = 'partner' where email_hash = $1`, [
     emailHash(NEWCOMER),
   ]);
-  const leader = await usageFor();
-  assert.equal(leader.live_max, roleQuotas("leader").live_fetches_per_day);
-  assert.equal(leader.quota_max, roleQuotas("leader").mcp_calls_per_day);
+  const partner = await usageFor();
+  assert.equal(partner.live_max, roleQuotas("partner").live_fetches_per_day);
+  assert.equal(partner.quota_max, roleQuotas("partner").mcp_calls_per_day);
   await db.query(
-    `update account set role = 'family', live_daily_quota = 7 where email_hash = $1`,
+    `update account set live_daily_quota = 7 where email_hash = $1`,
     [emailHash(NEWCOMER)],
   );
-  const family = await usageFor();
-  assert.equal(family.live_max, 7, "a per-account override beats the tier");
-  assert.equal(family.quota_max, roleQuotas("family").mcp_calls_per_day);
+  const overridden = await usageFor();
+  assert.equal(overridden.live_max, 7, "a per-account override beats the tier");
+  assert.equal(overridden.quota_max, roleQuotas("partner").mcp_calls_per_day);
   await db.query(
     `update account set role = 'member', live_daily_quota = null where email_hash = $1`,
     [emailHash(NEWCOMER)],
@@ -2883,9 +2914,9 @@ test("with an origin secret set, the site API refuses requests that did not come
 });
 
 // Jamie is emailed when beta users say something (2026-09-09): feedback
-// and tier-upgrade requests enqueue an owner notification, shaped so the
+// enqueues an owner notification, shaped so the
 // mail names the kind, an excerpt, and who - never an address.
-test("feedback and upgrade requests notify the owner; the owner's own feedback does not", async () => {
+test("feedback notifies the owner; the owner's own feedback does not", async () => {
   const cookie = memberCookie;
   ownerNotes.length = 0;
   const long = "x".repeat(400);
@@ -2924,10 +2955,8 @@ test("feedback and upgrade requests notify the owner; the owner's own feedback d
     !msg.note.includes("@") && !JSON.stringify(msg.detail).includes("@"),
   );
 
+  // Tier requests are gone (#530): nothing to file, nothing to notify.
   ownerNotes.length = 0;
-  await db.query(
-    `update feedback set status = 'done' where context->>'kind' = 'role_upgrade_request'`,
-  );
   const up = await handler(
     event({
       path: "/api/me/role-request",
@@ -2935,11 +2964,8 @@ test("feedback and upgrade requests notify the owner; the owner's own feedback d
       body: { role: "leader", note: "I run a clan" },
     }),
   );
-  assert.equal(up.statusCode, 200, up.body);
-  const role = ownerNotes.find((n) => n.kind === "role_upgrade_request");
-  assert.ok(role, "upgrade request notified");
-  assert.equal(role.requestedRole, "leader");
-  assert.match(ownerNotifyMessage(role).note, /asked for leader/);
+  assert.equal(up.statusCode, 404);
+  assert.equal(ownerNotes.length, 0);
 
   ownerNotes.length = 0;
   const own = await handler(

@@ -10,6 +10,7 @@
  *  the registry, so a builder that drifts from the contract fails here,
  *  not in a reader. */
 import { makeRegistry } from "@elixir-mcp/tools";
+import { tierSql } from "@elixir-mcp/contracts";
 
 let registry = null;
 function reg() {
@@ -20,7 +21,8 @@ function reg() {
 /** Person accounts eligible for product mail, projected for a ctx. */
 export async function loadRecipients(db, kind, { accountId = null } = {}) {
   const { rows } = await db.query(
-    `select a.account_id, a.email, a.email_hash, a.timezone, a.role, a.kind,
+    `select a.account_id, a.email, a.email_hash, a.timezone,
+            ${tierSql("a")} as role, a.kind,
             a.mcp_daily_quota, a.live_daily_quota, a.public_id
        from account a
       where a.kind = 'person' and a.status = 'approved' and a.email is not null
