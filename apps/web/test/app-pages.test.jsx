@@ -90,3 +90,30 @@ test("a failed server session read keeps the retry page and the 503 status", asy
   expect(response.body).not.toContain("Sign in first");
   expect(response.headers["cache-control"]).toBe("private, no-store");
 });
+
+test.each(["primary", "clan response", "clan transport"])(
+  "a failed %s session read renders the Clan retry page with HTTP 503",
+  async (failure) => {
+    const calls = [];
+    const page = makeAppPages({
+      dispatch: async (r) => {
+        calls.push(r.path);
+        if (r.path === "/api/me" && failure !== "primary")
+          return { statusCode: 200, body: '{"authenticated":true}' };
+        if (failure === "clan transport")
+          throw new Error("fictional Clan connection failure");
+        return { statusCode: 503, body: '{"error":"unavailable"}' };
+      },
+      shell: async () => '<div id="root"></div>',
+    });
+    const response = await page(
+      { ...request, path: "/clan", rawQueryString: "" },
+      {},
+    );
+    expect(response.statusCode).toBe(503);
+    expect(response.headers["cache-control"]).toBe("private, no-store");
+    expect(response.body).toContain("Elixir did not answer");
+    expect(response.body).toContain('"clanMe":{"ok":false,"status":503');
+    if (failure === "primary") expect(calls).toEqual(["/api/me"]);
+  },
+);
