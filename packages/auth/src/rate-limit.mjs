@@ -20,8 +20,8 @@ export async function checkRateLimit(db, { bucket, max, now = Date.now() }) {
 }
 
 /** Sign-in codes mailed to one address in an hour, website and OAuth
- *  consent together: one bucket, so neither door is a way to flood an
- *  approved inbox the other one guards. */
+ *  sign-in together: one bucket, so neither door is a way to flood an
+ *  inbox the other one guards. */
 export const SIGNIN_MAIL_PER_ADDRESS_HOUR = 5;
 
 export function signinMailAllowed(db, emailHash) {
@@ -29,4 +29,26 @@ export function signinMailAllowed(db, emailHash) {
     bucket: `auth#${emailHash}`,
     max: SIGNIN_MAIL_PER_ADDRESS_HOUR,
   });
+}
+
+/** Sign-in mail one viewer may ask for in an hour, website and OAuth
+ *  together. Both doors open an account once its address is proved
+ *  (2026-10-12), so a second door must not double what one caller may
+ *  send: one bucket, as the per-address one is. */
+export const SIGNIN_MAIL_PER_IP_HOUR = 10;
+
+export function signinMailFromAllowed(db, ip) {
+  return checkRateLimit(db, {
+    bucket: `auth#${ip ?? "unknown"}`,
+    max: SIGNIN_MAIL_PER_IP_HOUR,
+  });
+}
+
+/** The address a sign-in form posted, trimmed, or null when it is not
+ *  one: the same check at every door that mails a code. */
+export function signinAddress(raw) {
+  const email = String(raw ?? "").trim();
+  return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ? email
+    : null;
 }

@@ -18,16 +18,14 @@ import {
   listSessions,
   revokeAccountSessions,
   signinMailAllowed,
+  signinMailFromAllowed,
+  signinAddress,
   viewerIp,
   accountZone,
 } from "@elixir-mcp/auth";
 import { normalizeTag } from "@elixir-mcp/contracts";
 
 import { json, sessionCookie } from "../http.mjs";
-
-/** The per-caller ceiling on sign-in mail; the per-address one is
- *  shared with OAuth consent (auth signinMailAllowed). */
-const SIGNIN_MAIL_PER_IP_HOUR = 10;
 
 export function authRoutes({
   resolveAccount,
@@ -69,14 +67,13 @@ export function authRoutes({
 
     "POST /api/auth": async (db, event, body) => {
       const ip = viewerIp(event) ?? "unknown";
-      const email = String(body.email ?? "").trim();
       if (
         body.newsletter_opt_in !== undefined &&
         typeof body.newsletter_opt_in !== "boolean"
       )
         return json(400, { error: "bad_request" });
-      if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-        return json(400, { error: "bad_request" });
+      const email = signinAddress(body.email);
+      if (!email) return json(400, { error: "bad_request" });
       // The signup form's optional player tag, normalized here by the one
       // normalizer (golden rule 4): a malformed one is refused before any
       // mail, an empty one is no tag. It is only frozen with the request;
@@ -93,10 +90,9 @@ export function authRoutes({
           }
         }
       }
-      const okIp = await checkRateLimit(db, {
-        bucket: `auth#${ip}`,
-        max: SIGNIN_MAIL_PER_IP_HOUR,
-      });
+      // Both ceilings are shared with the OAuth door's sign-in, which
+      // opens accounts too (auth rate-limit.mjs).
+      const okIp = await signinMailFromAllowed(db, ip);
       const okEmail = await signinMailAllowed(db, emailHash(email));
       // The handoff secret (0083): minted for EVERY request, stored only
       // when a row is, so the answer's shape cannot say whether one was.
