@@ -2,6 +2,20 @@
 import { test, expect } from "vitest";
 import { renderApp } from "../src/entry-server.jsx";
 
+test("signed-out deep links and redirect roots render complete documents without window", async () => {
+  const me = { ok: true, status: 200, data: { authenticated: false } };
+  for (const [url, expected] of [
+    ["/ladder", "Your season, read back"],
+    ["/console/account/overview", "Sign in first"],
+    ["/console", "Sign in first"],
+  ]) {
+    const html = await renderApp({ url, me });
+    expect(html, url).toContain(expected);
+    expect(html, url).toContain("not endorsed by Supercell");
+    expect(html, url).not.toContain("<!--$!-->");
+  }
+});
+
 test("sign-in and signup render useful forms on the server", async () => {
   const me = { ok: true, status: 200, data: { authenticated: false } };
   const login = await renderApp({ url: "/console/signin", me });

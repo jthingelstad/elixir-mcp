@@ -1472,14 +1472,15 @@ export function takeAfterSignIn() {
 
 export function SignInWall({ navigate }) {
   // The path this wall stands in front of, remembered for after.
-  const here = window.location.pathname + window.location.search;
-  rememberAfterSignIn(here);
+  const { pathname, searchStr } = useLocation();
+  const here = pathname + searchStr;
+  useEffect(() => rememberAfterSignIn(here), [here]);
   // The protected URL is already saved above. Replace its wall so
   // completing proof does not leave a second automatic return in
   // history (notably an email's ?report=1 feedback redirect).
   const signIn = () => navigate(`${CONSOLE}/signin`, { replace: true });
   // Ladder says what it is first: a visitor may not know yet.
-  if (isLadder(window.location.pathname))
+  if (isLadder(pathname))
     return <LadderInvite returnTo={here} onSignIn={signIn} />;
   return (
     <div className="panel mx-auto mt-12 max-w-[420px]">

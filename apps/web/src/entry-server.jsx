@@ -5,7 +5,9 @@ import { App, createAppRuntime } from "./App.jsx";
 export async function renderApp({ url, me, clanMe, renderedAt }) {
   const runtime = createAppRuntime({ url, me, clanMe, renderedAt });
   try {
-    await runtime.router.load();
+    // Complete cold route chunks and redirects before rendering a document.
+    // An interactive load may publish pending UI before its chunks settle.
+    await runtime.router.load({ sync: true });
     return renderToString(<App runtime={runtime} />);
   } finally {
     runtime.queryClient.clear();

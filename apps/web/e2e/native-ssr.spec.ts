@@ -65,7 +65,10 @@ test.beforeAll(async () => {
         return;
       }
       const signedOut =
-        url.pathname.includes("signin") || url.pathname.startsWith("/clan");
+        url.pathname.includes("signin") ||
+        url.pathname.startsWith("/clan") ||
+        url.pathname.startsWith("/ladder") ||
+        url.pathname === "/console";
       const response = await pages(
         {
           method: "GET",
@@ -127,6 +130,8 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     if (new URL(r.url()).pathname === "/api/me") meRequests.push(r.url());
   });
   for (const route of [
+    "/ladder",
+    "/console",
     "/console/account/overview",
     "/console/account/tracking",
     "/console/account/connections",
@@ -138,7 +143,10 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     const document = await request.get(origin + route);
     expect(document.status(), route).toBe(200);
     expect(document.headers()["cache-control"]).toBe("private, no-store");
-    expect(await document.text()).toContain('id="elixir-bootstrap"');
+    const html = await document.text();
+    expect(html, route).toContain('id="elixir-bootstrap"');
+    expect(html, route).toContain("not endorsed by Supercell");
+    expect(html, route).not.toContain("<!--$!-->");
     await page.goto(origin + route);
     await expect(page.locator("#elixir-bootstrap")).toHaveCount(0);
     await expect(page.locator("main")).not.toContainText("failed to render");
@@ -149,6 +157,10 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
     if (route === "/clan")
       await expect(
         page.getByRole("link", { name: "Sign in with Elixir", exact: true }),
+      ).toBeVisible();
+    if (route === "/ladder")
+      await expect(
+        page.getByRole("heading", { name: "Your season, read back" }),
       ).toBeVisible();
     expect(errors, route).toEqual([]);
   }
