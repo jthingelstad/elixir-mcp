@@ -822,14 +822,13 @@ export function createHandler({
     }
   }
 
-  return function handler(event, { lockMs = null } = {}) {
-    const method =
-      event.method ?? event.requestContext?.http?.method ?? event.httpMethod;
-    const path = mountedPath(event.rawPath ?? event.path ?? "/");
+  return function handler(event, { lockMs = null, requestId = null } = {}) {
+    const method = event.method;
+    const path = mountedPath(event.path ?? "/");
     return withTrace(
       {
         http: routeKey(method, path),
-        request_id: event.requestContext?.requestId ?? null,
+        request_id: requestId,
         ...(Number.isFinite(lockMs) && lockMs >= 0 ? { lock_ms: lockMs } : {}),
       },
       async () => {
@@ -896,7 +895,7 @@ export function createHandler({
  * This API as Elixir serves it, under /api/clan (2026-09-28), read in the
  * form the routes name: /api/clan/auth/* is /auth/*, and any other
  * /api/clan/* is /api/*. A path already in that form is itself, as the
- * tests and the HTTP API's own execute-api address call it.
+ * tests and internal route helpers use it.
  */
 export function mountedPath(path) {
   if (path.startsWith("/api/clan/auth/")) return path.slice("/api/clan".length);

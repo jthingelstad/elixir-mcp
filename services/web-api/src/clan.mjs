@@ -168,7 +168,14 @@ export function createClanRequest({
   const activitySeal = modelSecret
     ? clanActivitySeal(createBox(modelSecret, CLAN_ACTIVITY_PURPOSE)).seal
     : null;
-  return async ({ db, account, event, signout, modelFactory = null }) => {
+  return async ({
+    db,
+    account,
+    event,
+    requestId = null,
+    signout,
+    modelFactory = null,
+  }) => {
     const credential = Object.freeze({});
     const invoke = makeInvoker({
       db,
@@ -431,12 +438,8 @@ export function createClanRequest({
     // Serialize multi-item changes in one clan/request with a session lock.
     // The fact writer owns its transaction; an outer transaction would
     // accidentally commit the rest of the request inside that writer.
-    const method =
-      event.method ??
-      event.requestContext?.http?.method ??
-      event.httpMethod ??
-      "GET";
-    const path = event.rawPath ?? event.path ?? "";
+    const method = event.method ?? "GET";
+    const path = event.path ?? "";
     const clan = /^\/api\/clan\/clans\/([0-9A-Za-z]{3,12})(?:\/|$)/.exec(
       path,
     )?.[1];
@@ -459,7 +462,7 @@ export function createClanRequest({
     if (lock) await db.query("select pg_advisory_lock(hashtext($1))", [lock]);
     const lockMs = lock ? Date.now() - lockStarted : null;
     try {
-      const response = await handler(event, { lockMs });
+      const response = await handler(event, { lockMs, requestId });
       // Anything that can raise or decide an Action holds the clan's
       // lock; still inside it, the clan's Discord is brought up to date.
       // Best effort: the morning run sweeps again.

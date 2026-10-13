@@ -483,3 +483,27 @@ retention, Multi-AZ, off-account copy or archive-replay proof. The
 automated RDS snapshots of `elixir-mcp-enc` are the backup. This
 heading stays so a reader looking for the procedure finds the decision;
 reopening it is Jamie's call.
+
+## Deployment history
+
+`AWS_PROFILE=cloud-engineer node infra/scripts/prune-deployment-history.mjs
+--plan=/tmp/elixir-history-plan.json` writes a dry-run inventory outside the
+public repository. Inspect its exact revision and object-version candidates.
+After the cleanup code has shipped, use a clean green main and
+`--apply --plan=/tmp/elixir-history-plan.json
+--receipt=/tmp/elixir-history-receipt.json` to apply that frozen manifest.
+
+Apply takes the production lock. It protects every endpoint reference and
+current stack revision, refuses changing or ambiguous inventories, and
+rechecks references before each deletion. It removes unserved non-stack
+revisions first, then exact unused source versions under the ten known
+`code/<service>/<hash>.zip` prefixes (eight current services plus retired
+editor and ingest). Current native source pins and every
+version of current Event Function keys remain. No age-only S3 lifecycle rule
+is used: an old source can still be live. Archives, site assets, deploy receipts
+and logs are outside scope. The receipt is written before mutation and replaced
+atomically after each action; on partial failure it records completed work.
+Generate a fresh plan after any failure or reference change; never force past
+one. Read live endpoint pins, public health and alarms afterward and attach
+counts and the receipt to the PR. This is an explicit maintenance command,
+not an automatic scheduled writer.

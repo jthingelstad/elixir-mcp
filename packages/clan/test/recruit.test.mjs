@@ -96,10 +96,10 @@ function harness({
   return { clock, state, ledger, handler };
 }
 const api = async (h, cookies, method, path, body) => {
-  const [rawPath, qs] = path.split("?");
+  const [pathname, qs] = path.split("?");
   const query = qs ? Object.fromEntries(new URLSearchParams(qs)) : undefined;
   const r = await h.handler(
-    req(method, rawPath, {
+    req(method, pathname, {
       cookies,
       query,
       body: body === undefined ? undefined : JSON.stringify(body),

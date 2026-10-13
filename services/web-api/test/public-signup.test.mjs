@@ -30,8 +30,8 @@ const welcomes = [];
 let request = 0;
 function event(p, body, cookie, ip = `198.51.100.${++request}`) {
   return {
-    rawPath: p,
-    requestContext: { http: { method: "POST", sourceIp: ip } },
+    path: p,
+    method: "POST",
     headers: {
       "x-elixir-client": "web",
       "cloudfront-viewer-address": `${ip}:443`,
@@ -689,7 +689,7 @@ test("handoff collection and existing sessions refuse an account that becomes a 
   assert.equal(poll.statusCode, 403);
   assert.equal(poll.headers["set-cookie"], undefined);
   const me = event("/api/me", undefined, cookie);
-  me.requestContext.http.method = "GET";
+  me.method = "GET";
   assert.equal(parse(await handler(me)).authenticated, false);
 });
 

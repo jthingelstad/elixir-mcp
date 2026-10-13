@@ -37,8 +37,8 @@ const OTHER_TAG = "#8QU2PJ8C";
 
 const request = (method, path, body, session = cookie) =>
   handler({
-    rawPath: path,
-    requestContext: { http: { method } },
+    path,
+    method,
     headers: { cookie: session, "x-elixir-client": "web" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -593,8 +593,8 @@ test("rate limits: starts are capped per hour, and the live lane is asked at mos
 
 test("over HTTP: the routes need a session and the client header, and a bad tag is refused", async () => {
   const anon = await handler({
-    rawPath: "/api/me/verify",
-    requestContext: { http: { method: "GET" } },
+    path: "/api/me/verify",
+    method: "GET",
     headers: {},
   });
   assert.equal(anon.statusCode, 401);

@@ -203,9 +203,13 @@ test("trusted lock timing is included in total and separated from handler work",
     elixirUrl: "https://elixir.test",
     log: cap.log,
   });
-  const result = await handler(req("GET", "/api/roster", {}), { lockMs: 750 });
+  const result = await handler(
+    { ...req("GET", "/api/roster", {}), requestId: "viewer-supplied" },
+    { lockMs: 750, requestId: "trusted-native-request" },
+  );
   const line = JSON.parse(cap.lines[0][1]);
   assert.equal(line.lock_ms, 750);
+  assert.equal(line.request_id, "trusted-native-request");
   assert.ok(line.ms >= 750);
   assert.match(result.headers["server-timing"], /lock;dur=750/);
   const headerOwn = Number(

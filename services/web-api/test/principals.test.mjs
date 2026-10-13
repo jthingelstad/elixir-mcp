@@ -41,8 +41,8 @@ let partnerCookie;
 
 function event({ method = "POST", path: p, body, cookie, ip = "8.8.4.4" }) {
   return {
-    rawPath: p,
-    requestContext: { http: { method, sourceIp: ip } },
+    path: p,
+    method,
     headers: {
       ...(cookie ? { cookie } : {}),
       "cloudfront-viewer-address": `${ip}:443`,
@@ -352,8 +352,8 @@ test("revoking your own token works", async () => {
 
 /** The shared event() helper predates query-string routes. */
 const q = (p, params, cookie) => ({
-  rawPath: p,
-  requestContext: { http: { method: "GET", sourceIp: "8.8.4.4" } },
+  path: p,
+  method: "GET",
   headers: { ...(cookie ? { cookie } : {}), "x-elixir-client": "web" },
   queryStringParameters: params,
 });

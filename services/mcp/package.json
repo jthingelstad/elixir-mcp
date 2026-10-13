@@ -14,10 +14,10 @@
     "@elixir-mcp/ledger": "0.1.0",
     "@elixir-mcp/outbox": "0.1.0",
     "@elixir-mcp/tools": "0.1.0",
-    "pg": "^8.23.1",
     "@elixir-mcp/http": "0.1.0"
   },
   "devDependencies": {
-    "@elixir-mcp/claims": "0.1.0"
+    "@elixir-mcp/claims": "0.1.0",
+    "pg": "^8.23.1"
   }
 }

@@ -49,11 +49,9 @@ beforeAll(async () => {
   vi.stubGlobal("fetch", (path, init = {}) => {
     const url = new URL(path, "http://localhost");
     const promise = handler({
-      rawPath: url.pathname,
+      path: url.pathname,
       queryStringParameters: Object.fromEntries(url.searchParams),
-      requestContext: {
-        http: { method: init.method ?? "GET", sourceIp: "127.0.0.1" },
-      },
+      method: init.method ?? "GET",
       headers: {
         ...init.headers,
         ...(init.credentials === "same-origin" ? { cookie } : {}),

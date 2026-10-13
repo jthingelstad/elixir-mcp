@@ -7,18 +7,18 @@
  * (235k of 237k over the three days before 2026-09-29): a fleet burst
  * took the console's concurrency, and its lines were most of the
  * console's log. On its own function it has its own ceiling, role and
- * alarms; the site API sends /api/collector/* here by a route of its own
- * (infra/template.yaml CollectorRoute). The shape is the web-api's: through CloudFront or not at
- * all, one PostgreSQL client per request, a soft deadline under the
- * Lambda timeout, and one timing line per request with the same fields,
+ * alarms; CloudFront sends /api/collector/* to its native Web Function
+ * endpoint. The shape is the web-api's: through CloudFront or not at
+ * all, one exclusive PostgreSQL pool lease per request, a soft deadline
+ * under the HTTP timeout, and one handler timing line with the same fields,
  * so a Logs Insights query reads either log.
  */
 
 import { makeDatabase } from "@elixir-mcp/http/database";
 import { originAllowed, forbiddenOrigin } from "@elixir-mcp/auth";
 
-/** What the handler keeps back from the Lambda timeout to write its log
- *  line and end the client; past it the door answers 504 itself. */
+/** What the handler keeps back from the HTTP timeout to write its log
+ *  line and release its pool lease; past it the door answers 504 itself. */
 const DEADLINE_MARGIN_MS = 1500;
 
 const ROUTES = {
@@ -40,16 +40,8 @@ const json = (statusCode, body, headers = {}) => ({
 });
 
 function deadlineMs(context) {
-  if (
-    typeof context?.remainingMs !== "function" &&
-    typeof context?.getRemainingTimeInMillis !== "function"
-  )
-    return null;
-  return Math.max(
-    (context.remainingMs?.() ?? context.getRemainingTimeInMillis()) -
-      DEADLINE_MARGIN_MS,
-    1,
-  );
+  if (typeof context?.remainingMs !== "function") return null;
+  return Math.max(context.remainingMs() - DEADLINE_MARGIN_MS, 1);
 }
 
 async function withDeadline(ms, run, onTimeout) {
@@ -77,29 +69,20 @@ export function makeHandler({
   });
   async function handler(event, context) {
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
-    const method =
-      event.method ??
-      event.requestContext?.http?.method ??
-      event.httpMethod ??
-      "GET";
-    const key = `${method} ${event.path ?? event.rawPath ?? "/"}`;
+    const method = event.method ?? "GET";
+    const key = `${method} ${event.path ?? "/"}`;
     const route = ROUTES[key];
     if (!route) return json(404, { error: "not_found" });
     let body = {};
     if (event.body) {
       try {
-        // API Gateway v2 may deliver bodies base64-encoded.
-        body = JSON.parse(
-          event.isBase64Encoded
-            ? Buffer.from(event.body, "base64").toString("utf8")
-            : event.body,
-        );
+        body = JSON.parse(event.body);
       } catch {
         return json(400, { error: "invalid_json" });
       }
     }
     const started = Date.now();
-    const requestId = context?.requestId ?? context?.awsRequestId ?? null;
+    const requestId = context?.requestId ?? null;
     let status = 500;
     let connectMs = 0;
     let timedOut = false;

@@ -89,8 +89,9 @@ run(
 
 // 2. Merge ------------------------------------------------------------------
 // The static site is the base: it owns the root document. The app's
-// build is layered in, and its shell is renamed to app.html - the path
-// the edge router rewrites app-owned routes to.
+// build is layered in, and its shell is renamed to app.html for battle
+// previews and the client-only journey fixture. Native app pages render
+// the copy packaged with their Web Function revision.
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 cpSync(siteDist, outDir, { recursive: true });
@@ -128,7 +129,7 @@ cpSync(path.join(webDist, "index.html"), path.join(outDir, "app.html"));
 const files = new Set(walk(outDir));
 const problems = [];
 
-/** Resolve a site path the way the edge router does. */
+/** Resolve build-owned documents and the app's client fixture shell. */
 function resolves(urlPath) {
   const clean = urlPath.split("#")[0].split("?")[0];
   if (!clean.startsWith("/")) return true; // external

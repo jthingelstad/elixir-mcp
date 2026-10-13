@@ -20,8 +20,8 @@ behaviour is in `apps/site/src/docs/`, not here.
 - **One build serves three surfaces.** CloudFront routes `/console`,
   `/ladder`, `/clan` and their descendants to the web/API Web Function for
   session-aware server rendering; every other path is a site document
-  (`apps/site`). A site test evaluates the function and
-  pins the split. `node infra/scripts/build-site.mjs` builds both halves
+  (`apps/site`). Site tests evaluate the static router and pin the
+  explicit native app behaviors. `node infra/scripts/build-site.mjs` builds both halves
   and validates the merged tree.
 - **The kit is shared, never copied.** `packages/design` (tokens and
   component CSS, compiled once by Tailwind v4 into `dist/styles.css`),

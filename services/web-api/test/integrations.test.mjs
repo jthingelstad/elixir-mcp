@@ -35,8 +35,8 @@ let db, handler, cookie, person;
 const collection = "00000000-0000-0000-0000-000000000001";
 const request = (method, path, body, token, session = cookie) =>
   handler({
-    rawPath: path,
-    requestContext: { http: { method } },
+    path,
+    method,
     headers: token
       ? { authorization: `Bearer ${token}` }
       : { cookie: session, "x-elixir-client": "web" },
@@ -184,8 +184,8 @@ test("refresh retries share the job, stay principal-bound, and require an admitt
   const { token, integration } = data(provision);
   const post = (playerTag = "#UL2V9QRG0", key = "first") =>
     handler({
-      rawPath: "/api/v1/profile-refreshes",
-      requestContext: { http: { method: "POST" } },
+      path: "/api/v1/profile-refreshes",
+      method: "POST",
       headers: { authorization: `Bearer ${token}`, "idempotency-key": key },
       body: JSON.stringify({ player_tag: playerTag }),
     });
@@ -280,8 +280,8 @@ test("a refresh with no token left in the one budget is refused whole: no job, n
   );
   const post = (key) =>
     handler({
-      rawPath: "/api/v1/profile-refreshes",
-      requestContext: { http: { method: "POST" } },
+      path: "/api/v1/profile-refreshes",
+      method: "POST",
       headers: { authorization: `Bearer ${token}`, "idempotency-key": key },
       body: JSON.stringify({ player_tag: "#2PYQ0" }),
     });
@@ -540,8 +540,8 @@ test("the person operations answer with the tools' structured results, uncapped,
   });
   const call = (method, path, body, query) =>
     handler({
-      rawPath: path,
-      requestContext: { http: { method } },
+      path,
+      method,
       headers: { authorization: `Bearer ${grant.accessToken}` },
       queryStringParameters: query,
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -578,8 +578,8 @@ test("an integration with clans:read reads a clan as a person's grant does, audi
   const other = data(await provision(["players:read"], "no-clans"));
   const read = (path, token) =>
     handler({
-      rawPath: path,
-      requestContext: { http: { method: "GET" } },
+      path,
+      method: "GET",
       headers: { authorization: `Bearer ${token}` },
     });
   // A clan the record does not hold: the tool's own refusal, as for a person.
@@ -655,8 +655,8 @@ test("a clan's war history reads the same for an integration with clans:read and
   });
   const read = (token, query) =>
     handler({
-      rawPath: `/api/v1/clans/${encodeURIComponent(CLAN)}/war-history`,
-      requestContext: { http: { method: "GET" } },
+      path: `/api/v1/clans/${encodeURIComponent(CLAN)}/war-history`,
+      method: "GET",
       headers: { authorization: `Bearer ${token}` },
       queryStringParameters: query,
     });
@@ -706,7 +706,7 @@ test("a tool behind a lock answers query_timeout on Explore and /api/v1 before t
     resource: "https://elixir.poapkings.com/api/v1",
   });
   // Soft deadline 2.5 s; the tool's is 1.5 s inside it.
-  const lambda = { getRemainingTimeInMillis: () => 4000 };
+  const context = { remainingMs: () => 4000 };
   const holder = new pg.Client({ connectionString: databaseUrl });
   await holder.connect();
   try {
@@ -714,25 +714,25 @@ test("a tool behind a lock answers query_timeout on Explore and /api/v1 before t
     await holder.query("lock table player in access exclusive mode");
     const rest = await handler(
       {
-        rawPath: "/api/v1/players/names",
-        requestContext: { http: { method: "POST" } },
+        path: "/api/v1/players/names",
+        method: "POST",
         headers: { authorization: `Bearer ${grant.accessToken}` },
         body: JSON.stringify({ player_tags: ["#2PP"] }),
       },
-      lambda,
+      context,
     );
     assert.equal(data(rest).code, "query_timeout", rest.body);
     const explore = await handler(
       {
-        rawPath: "/api/explore",
-        requestContext: { http: { method: "POST" } },
+        path: "/api/explore",
+        method: "POST",
         headers: { cookie, "x-elixir-client": "web" },
         body: JSON.stringify({
           tool: "players_names",
           args: { player_tags: ["#2PP"] },
         }),
       },
-      lambda,
+      context,
     );
     assert.equal(explore.statusCode, 200, explore.body);
     assert.equal(data(explore).body.error.code, "query_timeout");

@@ -30,8 +30,8 @@ let db, handler, invoke, cookie, person, personToken, integrationToken;
 
 const request = (method, path, token) =>
   handler({
-    rawPath: path,
-    requestContext: { http: { method } },
+    path,
+    method,
     headers: token
       ? { authorization: `Bearer ${token}` }
       : { cookie, "x-elixir-client": "web" },
@@ -130,8 +130,8 @@ before(async () => {
     })
   ).accessToken;
   const created = await handler({
-    rawPath: "/api/admin/integrations",
-    requestContext: { http: { method: "POST" } },
+    path: "/api/admin/integrations",
+    method: "POST",
     headers: { cookie, "x-elixir-client": "web" },
     body: JSON.stringify({
       name: "parity",

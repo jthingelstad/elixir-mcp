@@ -1,6 +1,6 @@
 /**
- * The /mcp Lambda shape (API Gateway behind the no-cookie CloudFront on
- * elixir.poapkings.com). Bearer only — cookies structurally never arrive.
+ * The native /mcp HTTP door behind CloudFront on elixir.poapkings.com.
+ * Bearer only: the MCP behavior forwards no cookies.
  * 401s carry WWW-Authenticate with resource_metadata (RFC 9728) so
  * clients can discover the authorization server.
  */
@@ -100,11 +100,9 @@ export function makeHandler({
     ),
   });
 
-  // One client per invocation against a db.t4g.micro makes the DATABASE the
-  // thing that fails first under concurrency (infra/template.yaml). connect()
-  // used to sit ABOVE the try/finally, so a refusal escaped the handler
-  // entirely and Lambda rendered a bare 500. Null means never connected -
-  // end() would then throw over the top of the real failure.
+  // Each request leases one exclusive client from the small process pool.
+  // Pool exhaustion and connection refusals answer through the MCP envelope,
+  // rather than escaping as a bare HTTP error before route cleanup.
   const connectDb = async () => {
     const db = database.lease();
     try {
@@ -139,12 +137,8 @@ export function makeHandler({
     // Through CloudFront, or not at all: the viewer headers this door
     // records are only trustworthy when the distribution set them.
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
-    const method =
-      event.method ??
-      event.requestContext?.http?.method ??
-      event.httpMethod ??
-      "GET";
-    const path = event.path ?? event.rawPath ?? "/";
+    const method = event.method ?? "GET";
+    const path = event.path ?? "/";
 
     // Metadata documents need no auth and no DB.
     if (
@@ -209,7 +203,7 @@ export function makeHandler({
       target.kind === "person"
         ? resourceMetadata
         : `${issuer}/.well-known/oauth-protected-resource${path}`;
-    // WHERE the caller is. requestContext.http.sourceIp is a CloudFront edge
+    // WHERE the caller is. A socket peer is a CloudFront edge
     // node, not the client — the viewer's own address arrives in a header, and
     // only because the origin request policy forwards it. Both are optional:
     // a direct hit in local development has neither, and null beats a lie.
@@ -485,7 +479,7 @@ export function makeHandler({
       const result = await handleMcpMessage(message, {
         registry,
         identity,
-        // Lower-cased by API Gateway and the MCP door's origin policy,
+        // Lower-cased by the native HTTP request headers,
         // which forwards it.
         protocolVersionHeader:
           event.headers?.["mcp-protocol-version"] ??
@@ -518,22 +512,12 @@ export function makeHandler({
           capture,
           queryBudgetMs: Math.min(
             18_000,
-            Math.max(
-              1,
-              (context?.remainingMs?.() ??
-                context?.getRemainingTimeInMillis?.() ??
-                25_000) - 6_500,
-            ),
+            Math.max(1, (context?.remainingMs?.() ?? 25_000) - 6_500),
           ),
           // Every read-only tool answers before Lambda kills the sandbox:
           // the remaining time less what a structured reply, capture and
           // audit need.
-          deadlineMs: Math.max(
-            1,
-            (context?.remainingMs?.() ??
-              context?.getRemainingTimeInMillis?.() ??
-              25_000) - 1_500,
-          ),
+          deadlineMs: Math.max(1, (context?.remainingMs?.() ?? 25_000) - 1_500),
         }),
       });
       return {
@@ -548,12 +532,8 @@ export function makeHandler({
 
   async function handler(event, context) {
     const started = Date.now();
-    const method =
-      event.method ??
-      event.requestContext?.http?.method ??
-      event.httpMethod ??
-      "GET";
-    const path = event.path ?? event.rawPath ?? "/";
+    const method = event.method ?? "GET";
+    const path = event.path ?? "/";
     const rpc = rpcSummary(event);
     let status = 500;
     try {
@@ -561,7 +541,7 @@ export function makeHandler({
       status = res?.statusCode ?? 200;
       return res;
     } finally {
-      const requestId = context?.requestId ?? context?.awsRequestId ?? null;
+      const requestId = context?.requestId ?? null;
       console.info({
         at: new Date().toISOString(),
         http: `${method} ${doorKey(path)}`,
@@ -586,9 +566,7 @@ function doorKey(path) {
 function rpcSummary(event) {
   if (!event.body) return {};
   try {
-    const raw = event.isBase64Encoded
-      ? Buffer.from(event.body, "base64").toString("utf8")
-      : event.body;
+    const raw = event.body;
     const message = JSON.parse(raw);
     if (!message || typeof message.method !== "string") return {};
     const out = { rpc: message.method };

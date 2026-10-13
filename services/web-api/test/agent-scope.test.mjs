@@ -45,8 +45,8 @@ let agentPid;
 
 function event({ method = "GET", path: p, body, cookie, ip = "8.8.4.4" }) {
   return {
-    rawPath: p,
-    requestContext: { http: { method, sourceIp: ip } },
+    path: p,
+    method,
     headers: {
       ...(cookie ? { cookie } : {}),
       "cloudfront-viewer-address": `${ip}:443`,

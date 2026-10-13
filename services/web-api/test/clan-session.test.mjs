@@ -4,6 +4,7 @@ import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { createSession, revokeSession } from "@elixir-mcp/auth";
 import { writeClanFactInClan } from "@elixir-mcp/record/attested-facts";
 import { makeHandler } from "../src/handler.mjs";
+import { makeHttpApp } from "@elixir-mcp/http/server";
 import { createClanRequest, recordedIdentity } from "../src/clan.mjs";
 import { seasonCalendar } from "@elixir-mcp/record/season";
 import { seasonFromDate, monthForSeasonId } from "@elixir-mcp/record/war-clock";
@@ -17,23 +18,15 @@ const data = (r) => JSON.parse(r.body);
 const request = (
   method,
   path,
-  {
-    cookie = `__Host-elixir_session=${token}`,
-    headers = {},
-    body,
-    base64 = false,
-  } = {},
+  { cookie = `__Host-elixir_session=${token}`, headers = {}, body } = {},
 ) =>
   handler({
-    rawPath: path,
-    requestContext: { http: { method } },
+    path,
+    method,
     headers: { ...(cookie ? { cookie } : {}), ...headers },
     ...(body
       ? {
-          body: base64
-            ? Buffer.from(JSON.stringify(body)).toString("base64")
-            : JSON.stringify(body),
-          isBase64Encoded: base64,
+          body: JSON.stringify(body),
         }
       : {}),
   });
@@ -80,6 +73,31 @@ before(async () => {
 });
 after(async () => scratch.drop());
 
+test("native HTTP and the trusted Clan adapter share one request correlation ID", async (t) => {
+  const lines = [];
+  t.mock.method(console, "info", (line) => lines.push(line));
+  t.mock.method(console, "warn", (line) => lines.push(line));
+  const app = makeHttpApp({ dispatch: handler });
+  const res = await app.request("https://elixir.test/api/clan/me", {
+    headers: {
+      cookie: `__Host-elixir_session=${token}`,
+      "x-request-id": "viewer-supplied",
+    },
+  });
+  assert.equal(res.status, 200, await res.text());
+  const records = lines.map((line) =>
+    typeof line === "string" ? JSON.parse(line) : line,
+  );
+  const native = records.find((line) => line.event === "http_request");
+  const clan = records.find(
+    (line) => line.http === "GET /api/me" && line.elixir_calls !== undefined,
+  );
+  assert.ok(native.request_id);
+  assert.ok(clan, "the Clan trace was recorded");
+  assert.equal(clan.request_id, native.request_id);
+  assert.notEqual(clan.request_id, "viewer-supplied");
+});
+
 test("the browser session advertises the actual cutover switch for signed-in and signed-out people", async () => {
   for (const enabled of [false, true]) {
     const door = enabled
@@ -87,8 +105,8 @@ test("the browser session advertises the actual cutover switch for signed-in and
       : makeHandler({ databaseUrl: scratch.url, secret: "test" });
     for (const signedIn of [false, true]) {
       const result = await door({
-        rawPath: "/api/me",
-        requestContext: { http: { method: "GET" } },
+        path: "/api/me",
+        method: "GET",
         headers: signedIn ? { cookie: `__Host-elixir_session=${token}` } : {},
       });
       assert.equal(result.statusCode, 200, result.body);
@@ -100,7 +118,7 @@ test("the browser session advertises the actual cutover switch for signed-in and
 
 test("prepared Clan is disabled by default; its enabled door accepts only Elixir sessions", async () => {
   const disabled = makeHandler({ databaseUrl: scratch.url, secret: "test" });
-  assert.equal((await disabled({ rawPath: "/api/clan/me" })).statusCode, 404);
+  assert.equal((await disabled({ path: "/api/clan/me" })).statusCode, 404);
   for (const headers of [
     {},
     { authorization: "Bearer eat_api-grant" },
@@ -136,7 +154,6 @@ test("account preferences need the CSRF marker and never use a second session", 
   const r = await request("POST", "/api/clan/select", {
     body: { clan_tag: CLAN },
     headers: { "x-elixir-client": "web" },
-    base64: true,
   });
   assert.equal(r.statusCode, 200, r.body);
   const rows = (await scratch.db.query("select pk,body from clan_state")).rows;

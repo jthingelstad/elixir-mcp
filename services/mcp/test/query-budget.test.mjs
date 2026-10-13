@@ -364,8 +364,8 @@ test("the real MCP handler shortens the budget to leave Lambda reply time", asyn
   });
   const res = await handler(
     {
-      rawPath: "/mcp",
-      requestContext: { http: { method: "POST" } },
+      path: "/mcp",
+      method: "POST",
       headers: { authorization: `Bearer ${key}` },
       body: JSON.stringify({
         jsonrpc: "2.0",
@@ -377,7 +377,7 @@ test("the real MCP handler shortens the budget to leave Lambda reply time", asyn
         },
       }),
     },
-    { getRemainingTimeInMillis: () => 6500 },
+    { remainingMs: () => 6500 },
   );
   assert.equal(res.statusCode, 200);
   const result = JSON.parse(res.body).result;

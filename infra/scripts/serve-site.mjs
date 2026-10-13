@@ -1,9 +1,9 @@
 /**
- * Serve the merged tree (dist/site) the way the edge does - the same rule
- * as the CloudFront function in infra/template.yaml: a file is itself,
- * /console and /ladder and everything under them is the app shell
- * (app.html), and any
- * other path is the site's document or an honest 404. No API: the
+ * Serve the merged tree (dist/site) for client-only browser journeys.
+ * Static paths follow the edge's document rule; app paths use app.html
+ * as a fixture instead of production's session-aware native rendering.
+ * Native rendering and hydration have their own browser fixture in
+ * apps/web/e2e/native-ssr.spec.ts. No API: the
  * Playwright journeys answer /api/* themselves, with fixtures, so the
  * built app is tested end to end without a database.
  *
@@ -37,7 +37,7 @@ const TYPES = {
   ".txt": "text/plain; charset=utf-8",
 };
 
-/** The edge's rule (SpaRouter in infra/template.yaml): path to object. */
+/** Static document routing plus the app-shell fixture for client journeys. */
 function route(pathname) {
   // A last segment with an extension asks for a real file.
   if (pathname.slice(pathname.lastIndexOf("/") + 1).includes("."))

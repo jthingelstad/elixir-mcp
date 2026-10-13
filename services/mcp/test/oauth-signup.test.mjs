@@ -56,8 +56,8 @@ const nextIp = () => {
 };
 
 const event = ({ method = "POST", query, form, ip }) => ({
-  rawPath: "/oauth/authorize",
-  requestContext: { http: { method, sourceIp: "130.176.0.9" } },
+  path: "/oauth/authorize",
+  method,
   queryStringParameters: query,
   headers: { "cloudfront-viewer-address": `${ip}:4444` },
   body: form ? new URLSearchParams(form).toString() : undefined,

@@ -403,6 +403,9 @@ The collector has an origin of its own and precedes `/api/*`.
 
 Each endpoint pins one immutable revision at 100%, with automatic deployment
 disabled. Revisions pin both an S3 object version and a connector version.
+Each door's description and `APP_BUILD` identify its own bundle, so changing
+one door's code does not replace the others' revisions. Shared configuration
+such as secret epochs and connector versions still updates every affected door.
 The code bucket is versioned and referenced source versions must remain.
 `deploy.mjs` owns the exact CloudFront endpoint grants under its production
 lock because the registry's ResourcePolicy type does not support these ARNs.

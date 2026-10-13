@@ -17,7 +17,11 @@ Parameters:
     Type: String
   CollectorCodeVersion:
     Type: String
-  WebBuild:
+  WebApiBuild:
+    Type: String
+  McpBuild:
+    Type: String
+  CollectorBuild:
     Type: String
   WebApiCodeKey:
     Type: String
@@ -1298,7 +1302,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       FunctionName: elixir-mcp-web-api-web
-      Description: !Ref WebBuild
+      Description: !Ref WebApiBuild
       BuildConfig:
         CodeConfig:
           S3Object:
@@ -1334,7 +1338,7 @@ Resources:
           # transaction whose Lambda is gone. The migrate ops name
           # themselves `elixir-mcp-migrate:<op>`.
           PGAPPNAME: elixir-mcp-web-api
-          # statement_timeout: just under the 20 s Lambda kill.
+          # Preserve the 18 s query ceiling within the 30 s HTTP deadline.
           PGOPTIONS: "-c statement_timeout=18s -c idle_in_transaction_session_timeout=60s"
           SESSION_SECRET: !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret}}"
           SESSION_SECRET_PREVIOUS: !If
@@ -1365,7 +1369,7 @@ Resources:
 
           AWS_LAMBDA_NODEJS_ENTRYPOINT: index.mjs
           DB_POOL_MAX: "4"
-          APP_BUILD: !Ref WebBuild
+          APP_BUILD: !Ref WebApiBuild
 
   WebApiWebEndpoint:
     Type: AWS::Lambda::WebFunctionEndpoint
@@ -1411,7 +1415,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       FunctionName: elixir-mcp-collector-web
-      Description: !Ref WebBuild
+      Description: !Ref CollectorBuild
       BuildConfig:
         CodeConfig:
           S3Object:
@@ -1448,7 +1452,7 @@ Resources:
 
           AWS_LAMBDA_NODEJS_ENTRYPOINT: index.mjs
           DB_POOL_MAX: "2"
-          APP_BUILD: !Ref WebBuild
+          APP_BUILD: !Ref CollectorBuild
 
   CollectorWebEndpoint:
     Type: AWS::Lambda::WebFunctionEndpoint
@@ -1490,7 +1494,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       FunctionName: elixir-mcp-mcp-web
-      Description: !Ref WebBuild
+      Description: !Ref McpBuild
       BuildConfig:
         CodeConfig:
           S3Object:
@@ -1539,7 +1543,7 @@ Resources:
 
           AWS_LAMBDA_NODEJS_ENTRYPOINT: index.mjs
           DB_POOL_MAX: "4"
-          APP_BUILD: !Ref WebBuild
+          APP_BUILD: !Ref McpBuild
 
   McpWebEndpoint:
     Type: AWS::Lambda::WebFunctionEndpoint
@@ -2732,9 +2736,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
-          # Elixir Clan's app (2026-09-28): its own bucket, routed by the
-          # same function as the site. Two patterns, because /clan* would
-          # also take /clans.
+          # The app routes use session-aware native HTML. Exact roots and
+          # slash prefixes keep neighboring content paths (such as /clans)
+          # on the static site's behavior.
           - PathPattern: /console
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
@@ -2792,23 +2796,9 @@ Resources:
         # site-or-miss origin group above answers it with the site's
         # 404 page, on the default behaviour alone.
 
-  # Routes each path to the half of the site that owns it, without
-  # touching status codes anywhere else on the distribution.
-  #
-  # The site is two builds in one bucket (2026-09-07). apps/site emits
-  # real documents for the content pages; apps/web is the application,
-  # served from /app.html. Before the split every extension-less path
-  # was rewritten to the one shared shell, so all ten sitemap URLs
-  # returned byte-identical HTML and no crawler or agent could read the
-  # docs at all.
-  #
-  # One origin, paths not hostnames (2026-09-28): the Console lives
-  # under /console, Ladder under /ladder (a section of the same app),
-  # Elixir Clan under /clan, and everything else is the site's, so the
-  # rule is a prefix, not a list of pages to keep in step.
-  # The MCP, OAuth and API paths never reach this function: they are
-  # their own behaviours. Clan's two behaviours share it; each origin
-  # sees only its own paths, because the behaviours split them first.
+  # Resolve content paths to static documents on the default behavior.
+  # App, API, battle, MCP and OAuth paths have their own behaviors and
+  # never reach this function. Status codes remain the origin's.
   SpaRouter:
     Type: AWS::CloudFront::Function
     Properties:
@@ -2819,7 +2809,7 @@ Resources:
       Name: elixir-mcp-spa-router
       AutoPublish: true
       FunctionConfig:
-        Comment: Route content paths to the static site and app paths to their app shell
+        Comment: Route content paths to static site documents
         Runtime: cloudfront-js-2.0
       FunctionCode: |
         function handler(event) {
@@ -2845,27 +2835,7 @@ Resources:
             ? uri.substring(0, uri.length - 1)
             : uri;
 
-          // The Console owns /console and everything under it; the app
-          // resolves its own paths (and sends a stale one home).
-          if (key === '/console' || key.indexOf('/console/') === 0) {
-            request.uri = '/app.html';
-            return request;
-          }
-
-          // Ladder is a section of the same app beside the Console: the
-          // same shell, its own rail (2026-09-28).
-          if (key === '/ladder' || key.indexOf('/ladder/') === 0) {
-            request.uri = '/app.html';
-            return request;
-          }
-
-          // Clan uses the common application shell.
-          if (key === '/clan' || key.indexOf('/clan/') === 0) {
-            request.uri = '/app.html';
-            return request;
-          }
-
-          // Every other path is a site document. One the site does not
+          // Every path here is a site document. One the site does not
           // build is an honest miss, the same as a missing asset: the
           // Console's old addresses at the root are not aliased.
           request.uri = key + '/index.html';

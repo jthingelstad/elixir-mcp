@@ -36,10 +36,9 @@ export function sessionCookie(token, maxAgeSeconds) {
   return `${SESSION_COOKIE_NAME}=${token}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
 }
 
-/** The session token out of an API Gateway v2 event, or "". */
+/** The session token from the native Cookie header, or "". */
 export function readSessionCookie(event) {
-  const cookies =
-    event.cookies ?? String(event.headers?.cookie ?? "").split("; ");
+  const cookies = String(event.headers?.cookie ?? "").split(/;\s*/);
   for (const c of cookies) {
     if (c.startsWith(`${SESSION_COOKIE_NAME}=`))
       return c.slice(SESSION_COOKIE_NAME.length + 1);

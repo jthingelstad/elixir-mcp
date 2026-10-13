@@ -118,8 +118,8 @@ before(async () => {
   handler = makeHandler({ databaseUrl, secret: "test" });
   // An integration holding no permission at all.
   const provisioned = await handler({
-    rawPath: "/api/admin/integrations",
-    requestContext: { http: { method: "POST" } },
+    path: "/api/admin/integrations",
+    method: "POST",
     headers: {
       cookie: `__Host-elixir_session=${session.token}`,
       "x-elixir-client": "web",
@@ -178,8 +178,8 @@ for (const route of operations) {
         `select coalesce(max(audit_id), 0) as last from mcp_call_audit`,
       );
       const response = await handler({
-        rawPath: concrete(route),
-        requestContext: { http: { method: route.method } },
+        path: concrete(route),
+        method: route.method,
         headers: {
           authorization: `Bearer ${kind === "integration" ? integrationToken : personToken}`,
         },
@@ -222,8 +222,8 @@ function failing(failure) {
   };
 }
 const clockEvent = () => ({
-  rawPath: "/api/v1/game/clock",
-  requestContext: { http: { method: "GET" } },
+  path: "/api/v1/game/clock",
+  method: "GET",
   headers: { authorization: `Bearer ${integrationToken}` },
 });
 
@@ -261,9 +261,9 @@ test("a database connection or timeout failure stays a 503 with Retry-After", as
 test("GET /feedback forwards feedback_id and verbosity to the tool (3.2.0, Codex on #479)", async () => {
   const read = async (query) => {
     const response = await handler({
-      rawPath: "/api/v1/feedback",
+      path: "/api/v1/feedback",
       queryStringParameters: query,
-      requestContext: { http: { method: "GET" } },
+      method: "GET",
       headers: { authorization: `Bearer ${personToken}` },
     });
     return { status: response.statusCode, body: JSON.parse(response.body) };

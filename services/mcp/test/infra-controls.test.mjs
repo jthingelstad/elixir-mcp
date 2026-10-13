@@ -31,6 +31,8 @@ import {
   buildParameters,
   originRotation,
   PRESERVED_PARAMETERS,
+  REQUIRED_PARAMETERS,
+  webBuildParameters,
 } from "../../../infra/scripts/parameters.mjs";
 
 const templateUrl = new URL("../../../infra/template.yaml", import.meta.url);
@@ -737,7 +739,9 @@ test("a preserved parameter's first deploy takes its default; a rotation carries
       "WebApiCodeVersion",
       "McpCodeVersion",
       "CollectorCodeVersion",
-      "WebBuild",
+      "WebApiBuild",
+      "McpBuild",
+      "CollectorBuild",
       "WebApiCodeKey",
       "McpCodeKey",
       "SchedulerCodeKey",
@@ -780,6 +784,68 @@ test("a preserved parameter's first deploy takes its default; a rotation carries
   });
 });
 
+test("every stack parameter has exactly one deploy classification", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const parameters = template
+    .split("\nParameters:\n")[1]
+    .split("\nConditions:\n")[0];
+  const names = [...parameters.matchAll(/^  ([A-Za-z0-9]+):$/gm)].map(
+    (m) => m[1],
+  );
+  const classified = [...REQUIRED_PARAMETERS, ...PRESERVED_PARAMETERS];
+  assert.equal(new Set(classified).size, classified.length);
+  assert.deepEqual(names.sort(), classified.sort());
+});
+
+test("native bundle identity changes only its own revision; shared configuration remains a dependency", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const codeKeys = {
+    "web-api": "code/web-api/one.zip",
+    mcp: "code/mcp/one.zip",
+    collector: "code/collector/one.zip",
+  };
+  const first = webBuildParameters(codeKeys);
+  const doors = [
+    ["WebApi", "web-api", "CollectorLogGroup"],
+    ["Mcp", "mcp", "SchedulerLogGroup"],
+    ["Collector", "collector", "McpLogGroup"],
+  ];
+  for (const [door, name] of doors) {
+    assert.match(first[`${door}Build`], /^[0-9a-f]{16}$/);
+    const next = webBuildParameters({
+      ...codeKeys,
+      [name]: `code/${name}/two.zip`,
+    });
+    const changed = Object.keys(first).filter(
+      (key) => first[key] !== next[key],
+    );
+    assert.deepEqual(changed, [`${door}Build`]);
+    for (const [otherDoor, , end] of doors) {
+      const revision = resource(template, `${otherDoor}WebRevision`, end);
+      assert.match(revision, new RegExp(`Description: !Ref ${otherDoor}Build`));
+      assert.match(revision, new RegExp(`APP_BUILD: !Ref ${otherDoor}Build`));
+      assert.equal(
+        changed.some((key) => revision.includes(`!Ref ${key}`)),
+        otherDoor === door,
+        `${door} bundle must only affect ${door}`,
+      );
+      assert.match(revision, /SECRET_EPOCH: !Ref SecretEpoch/);
+      assert.match(revision, /ORIGIN_SECRET: !Ref OriginSecret/);
+      assert.match(
+        revision,
+        /EgressNetworkConnectorArn: !GetAtt WebNetworkConnector.LatestVersionArn/,
+      );
+    }
+  }
+  assert.doesNotMatch(template, /!Ref WebBuild/);
+  assert.throws(() => webBuildParameters({}), /missing native code key/);
+  const deploy = await readFile(
+    new URL("../../../infra/scripts/deploy.mjs", import.meta.url),
+    "utf8",
+  );
+  assert.match(deploy, /\.\.\.webBuildParameters\(codeKeys\)/);
+});
+
 /** The distribution's ordered cache behaviours, as [path, block] pairs. */
 function cacheBehaviours(template) {
   const start = template.indexOf("        CacheBehaviors:");
@@ -792,6 +858,36 @@ function cacheBehaviours(template) {
 }
 
 const CACHING_OPTIMIZED = "658327ea-f89d-4fab-a63d-7e88639e58f6";
+
+test("the static router only resolves documents; native app behaviors bypass it", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const template = await readFile(templateUrl, "utf8");
+  const router = resource(template, "SpaRouter", "OauthQueryNormalizer");
+  assert.match(router, /Name: elixir-mcp-spa-router/);
+  assert.doesNotMatch(router, /app\.html|key === '\/(?:console|clan|ladder)'/);
+  const source = router.split("FunctionCode: |\n")[1].split("\n  #")[0];
+  const handler = runInNewContext(`${source}\nhandler`);
+  for (const [uri, document] of [
+    ["/", "/index.html"],
+    ["/docs", "/docs/index.html"],
+    ["/docs/", "/docs/index.html"],
+    ["/clans", "/clans/index.html"],
+    ["/assets/site.css", "/assets/site.css"],
+  ]) {
+    const request = { uri };
+    assert.equal(handler({ request }), request);
+    assert.equal(request.uri, document);
+  }
+  const behaviors = cacheBehaviours(template);
+  for (const root of ["console", "ladder", "clan"])
+    for (const pattern of [`/${root}`, `/${root}/*`]) {
+      const behavior = behaviors.find(([path]) => path === pattern)?.[1];
+      assert.ok(behavior, pattern);
+      assert.match(behavior, /TargetOriginId: api/);
+      assert.match(behavior, /CachePolicyId: !Ref WebPrivateCachePolicy/);
+      assert.doesNotMatch(behavior, /FunctionAssociations/);
+    }
+});
 
 test("every public read is cached at the edge by one /api/public/* behaviour (#73)", async () => {
   const template = await readFile(templateUrl, "utf8");

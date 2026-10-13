@@ -10,8 +10,8 @@ import { FALLBACK_PAGE, makeSiteMiss } from "../src/routes/site-miss.mjs";
 
 const PAGE = "<!doctype html><title>Page not found - Elixir</title>";
 const event = (method, path) => ({
-  rawPath: path,
-  requestContext: { http: { method } },
+  path,
+  method,
   headers: {},
 });
 // An unreachable database: the test fails loudly if a miss opens one.

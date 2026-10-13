@@ -44,8 +44,8 @@ const event = ({
   form,
   ip = "9.9.9.9",
 }) => ({
-  rawPath: p,
-  requestContext: { http: { method, sourceIp: ip } },
+  path: p,
+  method,
   queryStringParameters: query,
   headers: { "cloudfront-viewer-address": `${ip}:50412` },
   body: form ? new URLSearchParams(form).toString() : body,

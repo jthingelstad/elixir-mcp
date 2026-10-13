@@ -40,8 +40,8 @@ const OUTSIDER_TAG = "#UUYY22VV";
 let db, handler, clan, other, accounts;
 const request = (method, path, body, token) =>
   handler({
-    rawPath: path,
-    requestContext: { http: { method } },
+    path,
+    method,
     headers: { authorization: `Bearer ${token}` },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -408,8 +408,8 @@ test("an integration records its game's fact for a player with facts:write", asy
   const cookie = `__Host-elixir_session=${session.token}`;
   const provision = (scopes, nameOf) =>
     handler({
-      rawPath: "/api/admin/integrations",
-      requestContext: { http: { method: "POST" } },
+      path: "/api/admin/integrations",
+      method: "POST",
       headers: { cookie, "x-elixir-client": "web" },
       body: JSON.stringify({ name: nameOf, scopes }),
     });
@@ -546,8 +546,8 @@ test("an app records its computed award standing on its integration key; a perso
   const cookie = `__Host-elixir_session=${session.token}`;
   const provision = (scopes, nameOf) =>
     handler({
-      rawPath: "/api/admin/integrations",
-      requestContext: { http: { method: "POST" } },
+      path: "/api/admin/integrations",
+      method: "POST",
       headers: { cookie, "x-elixir-client": "web" },
       body: JSON.stringify({ name: nameOf, scopes }),
     });
