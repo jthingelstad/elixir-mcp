@@ -188,17 +188,21 @@ there means a machine is running a local build rather than a release.
 
 ## Rolling back
 
-Name the previous tag. That rewrites the authority and moves Latest
-back, and collectors install it on their next config call exactly the
+Name a previous tag at or above the hub's minimum version. That rewrites
+the authority and moves Latest back, and collectors install it on their next config call exactly the
 way they upgraded, through the same checks and the same trial:
 
 ```sh
 AWS_PROFILE=cloud-engineer node infra/scripts/name-collector-release.mjs v3.0.PREVIOUS
 ```
 
+The hub minimum is 3.0.6. A rollback below it requires Jamie's approval
+to lower that minimum and a successful hub deploy before naming the older
+release; otherwise the older binary installs but cannot lease or submit.
+
 **A release from before signing needs signing first.** v2.0.30 is the
-floor (the collector's `installFloor`): nothing below it installs, and
-a release from before signing has no `SHA256SUMS.sig`, so naming refuses
+collector's separate installer floor (`installFloor`): nothing below it
+installs, and a release from before signing has no `SHA256SUMS.sig`, so naming refuses
 it and a verifying collector would too. Run the collector repo's
 **sign-release** workflow for that tag (Actions → sign-release → Run
 workflow, `tag: v2.0.NN`) first, then name it. Do it ahead of time for
@@ -222,8 +226,10 @@ self-rolling-back updater and signed releases; the `config`/`lease`/
 local build reports `dev`.
 
 The minimum is `CONFIG.min_client_version` in
-`packages/collector-door/src/door.mjs` (2.0.30). Raising it retires
-the pre-signing rollback lever, so it moves only on Jamie's call.
+`packages/collector-door/src/door.mjs` (3.0.6, Jamie, 2026-10-13; #418).
+Changing it is Jamie's call. With enforcement on, rollback to any older
+release requires lowering this minimum first; the collector's installer
+floor does not override the hub's work gate.
 Enforcement is server-side and switched by the stack parameter
 `CollectorMinEnforce` (`"0"` or `"1"`, template default `"0"`), which
 reaches the collector Lambda as `COLLECTOR_MIN_ENFORCE`. It is a PRESERVED

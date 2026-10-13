@@ -75,7 +75,7 @@ the cost of a consistent lie; they do not make one impossible. That is
 the risk open enrollment accepts.
 
 **The minimum version is a switch, not a constant.** In code,
-`versionRefusal` is off: it refuses `lease` and `submit` below
+`versionRefusal` is off by default: it refuses `lease` and `submit` below
 `min_client_version` only when the `COLLECTOR_MIN_ENFORCE` environment
 variable is `1`, set from the `CollectorMinEnforce` stack parameter
 (template default `"0"`). Production has it at `"1"` (read from the stack
@@ -83,6 +83,11 @@ on 2026-10-12), and deploys preserve it (`RELEASING-COLLECTOR.md`). So
 the gate holds today because of that one parameter; a stack that loses
 it serves a client of any version. Moving it, or the minimum, is Jamie's
 call.
+
+The minimum is 3.0.6 (Jamie, 2026-10-13; #418). Older versions cannot
+lease or submit while enforcement is on, but can still read config to
+update. Rollback below that version requires lowering the hub minimum
+first; see DECISIONS, "The collector minimum is 3.0.6".
 
 **Recovery is designed, not built.** Receipts carry their gateway forever
 and the archive is replayable (the `{replay}` op), but there is **no

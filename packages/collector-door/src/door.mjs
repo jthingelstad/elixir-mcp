@@ -86,11 +86,11 @@ function budgetRefusal(kind) {
 }
 const CONFIG = {
   contract_version: 2,
-  // 2.0.30 (2026-09-12): the first client that checks in instead of
-  // long-polling. Below it the door refuses lease and submit (426) when
-  // COLLECTOR_MIN_ENFORCE=1; config is never refused. Unparseable
-  // versions (a dev build) are allowed, by design.
-  min_client_version: "2.0.30",
+  // Jamie, 2026-10-13 (#418): 3.0.6 is the minimum. Below it the door
+  // refuses lease and submit (426) when COLLECTOR_MIN_ENFORCE=1;
+  // config is never refused. Unparseable versions (a dev build) are
+  // allowed, by design.
+  min_client_version: "3.0.6",
   pacing_ms: 1500,
   breaker: { threshold_403: 5, cooldown_s: 300 },
   // Judged by collectors on the gzip+base64 ENCODED size. 250,000 was

@@ -25,8 +25,10 @@
  * would ship nothing and look like it shipped. So: no SHA256SUMS.sig,
  * a signature `ssh-keygen -Y verify` rejects, a VERSION line for
  * another tag, or a url of any other shape, and nothing is named.
- * A release from before signing (v2.0.30 is the floor) is signed first
- * with the collector repo's sign-release workflow.
+ * A release from before signing (v2.0.30 is the separate installer floor)
+ * is signed first with the collector repo's sign-release workflow.
+ * A rollback also has to meet the hub's min_client_version to get work;
+ * naming an older release does not lower that minimum.
  *
  * SOAK FIRST. Every green push to the collector repo's main publishes a
  * release, so a tag existing means nothing about whether it is good.
