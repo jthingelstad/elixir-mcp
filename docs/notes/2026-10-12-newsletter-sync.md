@@ -21,3 +21,8 @@ list (Drop's retires; Drop's own subscribers are a later step).
   sent. A Buttondown failure is a log line, never a retry; an address that
   is not one dead-letters as a bad message.
 - No address appears in the op's answer or any log line.
+
+Later the same night: the dry run also names the approved people it
+leaves off, by the 10-character email-hash prefix `{account_role}` lists
+(`skipped.opted_out`, `skipped.no_address`), so Drop's retired list could
+be checked against Elixir's without reading an address (Drop step 4).

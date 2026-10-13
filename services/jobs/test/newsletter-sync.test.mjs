@@ -19,7 +19,7 @@ before(async () => {
   ])
     await ctx.db.query(
       `insert into account (email_hash, email, status, kind, newsletter_opt_in)
-       values (md5(random()::text), $1, $2, $3, $4)`,
+       values (encode(sha256(random()::text::bytea), 'hex'), $1, $2, $3, $4)`,
       [email, status, kind, optIn],
     );
 });
@@ -30,7 +30,10 @@ test("a dry run counts and hands over nothing", async () => {
   const out = await newsletterSync(ctx.url, {
     enqueue: async (m) => sent.push(m),
   });
-  assert.deepEqual(out, { dry_run: true, would_enqueue: 2 });
+  assert.equal(out.would_enqueue, 2);
+  assert.equal(out.skipped.opted_out.length, 1);
+  assert.equal(out.skipped.no_address.length, 1);
+  assert.match(out.skipped.opted_out[0], /^[0-9a-f]{10}$/);
   assert.deepEqual(sent, []);
 });
 
