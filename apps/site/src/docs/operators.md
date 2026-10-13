@@ -120,6 +120,9 @@ itself: the server names the exact version and SHA-256 it may install.
 There is no pin and no opt-out; the fleet shares one rate budget and one
 contract, so a stale client is everyone's problem.
 
+The minimum collector version is **3.0.6**. Older releases are refused
+work, but can still read the update instructions and update themselves.
+
 ### How updates reach you
 
 Your collector updates itself. Every candidate build waits until this server

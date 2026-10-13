@@ -213,8 +213,10 @@ its limits: [COLLECTOR-ZERO-TRUST.md](COLLECTOR-ZERO-TRUST.md).
   build. A collector that never moves after a naming, or rolls back, is a
   finding. A merge to `elixir-mcp-collector` publishes a signed candidate
   that nobody runs; naming it is what ships it, and rollback is naming
-  the previous release. A stale client is fixed in the client, never with
-  a hub workaround.
+  a previous release that meets the hub minimum (DECISIONS, "The collector
+  minimum is 3.0.6"). A rollback below it needs Jamie's approval and a
+  hub deploy lowering the minimum first. A stale client is fixed in the
+  client, never with a hub workaround.
 - **Budget.** The whole fleet stays within roughly one API key's budget.
   That is the Terms of Service posture, never a number to raise; more
   collectors add redundancy, not quota.

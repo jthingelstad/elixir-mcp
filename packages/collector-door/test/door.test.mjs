@@ -759,14 +759,14 @@ test("a too-old client is refused work but NEVER refused config", async (t) => {
     ...authed(TOKEN_BULK),
     headers: {
       ...authed(TOKEN_BULK).headers,
-      "x-collector-version": "v0.1.16",
+      "x-collector-version": "v3.0.5",
     },
   };
   const current = {
     ...authed(TOKEN_BULK),
     headers: {
       ...authed(TOKEN_BULK).headers,
-      "x-collector-version": "v2.0.30",
+      "x-collector-version": "v3.0.6",
     },
   };
 
@@ -780,7 +780,7 @@ test("a too-old client is refused work but NEVER refused config", async (t) => {
   const leased = await door.lease(db, stale, {});
   assert.equal(leased.status, 426);
   assert.equal(leased.body.error, "client_too_old");
-  assert.equal(leased.body.min_client_version, "2.0.30");
+  assert.equal(leased.body.min_client_version, "3.0.6");
 
   const submitted = await door.submit(db, stale, { lease: 1 });
   assert.equal(submitted.status, 426);
@@ -790,10 +790,32 @@ test("a too-old client is refused work but NEVER refused config", async (t) => {
   // the collector permanently.
   const cfg = await door.config(db, stale);
   assert.equal(cfg.status, 200);
+  assert.equal(cfg.body.min_client_version, "3.0.6");
   assert.equal(cfg.body.update["go-darwin-arm64"].version, "2.0.0");
 
-  // A current client is unaffected.
+  // Every retired generation is refused, including the former minimum.
+  for (const version of ["v2.0.30", "py-v2.0.35", "v3.0.0"]) {
+    const old = {
+      ...stale,
+      headers: { ...stale.headers, "x-collector-version": version },
+    };
+    assert.equal((await door.lease(db, old, {})).status, 426, version);
+    assert.equal(
+      (await door.submit(db, old, { lease: 1 })).status,
+      426,
+      version,
+    );
+    assert.equal((await door.config(db, old)).status, 200, version);
+  }
+
+  // Exactly the minimum and later versions still reach the work routes.
   assert.notEqual((await door.lease(db, current, {})).status, 426);
+  assert.notEqual((await door.submit(db, current, { lease: 1 })).status, 426);
+  const newer = {
+    ...current,
+    headers: { ...current.headers, "x-collector-version": "v3.0.7" },
+  };
+  assert.notEqual((await door.lease(db, newer, {})).status, 426);
 });
 
 // --------------------------------------------------------------- #11
