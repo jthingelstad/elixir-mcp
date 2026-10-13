@@ -14,12 +14,14 @@ the cloud-engineer identity and makes each AWS call without retries.
 Partial platform failures keep their existing reporting and suppress
 promotion; Lambda FunctionError also counts as failure.
 
-Ten focused tests cover the script repository's lock regardless of the
+Eleven focused tests cover the script repository's lock regardless of the
 caller's directory, no effects before a successful guard, numeric
 minimum acceptance, dry runs, disabled enforcement's existing behavior,
 wrong identity, held locks, failure cleanup, an unstable stack, a changed
 serving revision or an endpoint update in progress, missing or mismatched immutable source versions, and
-missing, malformed or ambiguous minimum literals. Read-only dry runs
+missing, malformed or ambiguous minimum literals. A completed CloudFormation
+update rollback remains eligible after the same revision and source checks;
+failed and in-progress rollbacks are refused. Read-only dry runs
 against production refuse v3.0.5 and accept v3.0.6; they name no release.
 
 No new product default: the guard enforces DECISIONS, "The collector

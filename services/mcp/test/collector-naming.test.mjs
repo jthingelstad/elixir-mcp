@@ -239,9 +239,23 @@ test("deployed guard reads the exact immutable source version for the serving re
   assert.equal(d.calls[0].Key, "code/collector/0123456789abcdef.zip");
 });
 
+test("a completed stack rollback still verifies its serving revision and immutable source", async () => {
+  assert.deepEqual(
+    await deployed({ status: "UPDATE_ROLLBACK_COMPLETE" }).run(),
+    { minimum: "3.0.6", enforced: true },
+  );
+  await assert.rejects(
+    deployed({ status: "UPDATE_ROLLBACK_COMPLETE", endpointRevision: "other" })
+      .run,
+    /not pinned/,
+  );
+});
+
 test("unstable stacks, missing immutable sources and mismatched endpoints fail before downloading code", async () => {
   for (const overrides of [
     { status: "UPDATE_IN_PROGRESS" },
+    { status: "UPDATE_ROLLBACK_IN_PROGRESS" },
+    { status: "UPDATE_ROLLBACK_FAILED" },
     { version: "null" },
     { endpointRevision: "other" },
     { updateStatus: "InProgress" },
