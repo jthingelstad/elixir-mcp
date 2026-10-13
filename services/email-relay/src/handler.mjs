@@ -77,7 +77,7 @@ export function makeHandler({
         return "sent";
       }
       try {
-        await enroll(to);
+        await enroll(to, parsed.ip_address);
         console.log("newsletter_enrolled");
       } catch {
         console.error("newsletter_enroll_drop", "transport_error");
@@ -168,7 +168,7 @@ export function makeHandler({
       enroll
     ) {
       try {
-        await enroll(validated.msg.to);
+        await enroll(validated.msg.to, validated.msg.ip_address);
       } catch {
         console.error("buttondown_drop", "transport_error");
       }

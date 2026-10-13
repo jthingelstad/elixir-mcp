@@ -16,6 +16,21 @@ and send requests refuse before I/O.
 
 ## The shared foundation
 
+### Newsletter enrollment
+
+Website and OAuth sign-in mail for an opted-in account, and a verified
+signup's welcome, carry `ip_address` through the outbox to Buttondown's
+`POST /v1/subscribers`. The address comes from `viewerIp(event)`, after
+the door's origin check: CloudFront's viewer header without its port,
+never the socket peer, forwarded-for header or request body. The relay
+includes only a valid IPv4 or IPv6 address. It is enrollment metadata,
+never rendered in mail or logged.
+
+Imports (`newsletter_sync`), operator welcomes and older queued messages
+have no live viewer address; they omit the field. Enrollment remains
+best-effort and an existing address, including an unsubscribe, is left
+alone. See [Buttondown's subscriber API](https://docs.buttondown.com/api-subscribers-create).
+
 ### One-click unsubscribe
 
 The validator refuses a bulk message without `unsubscribe.url`.

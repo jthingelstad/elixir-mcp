@@ -153,6 +153,9 @@ export interface EmailMessage {
    *  mail and enroll nothing (issue #27) - authenticating is not consent
    *  to marketing, and the relay has no database to ask. */
   newsletter?: boolean;
+  /** Newsletter enrollment only: the trusted CloudFront viewer IP,
+   *  without its port. Absent for imports and mail with no viewer. */
+  ip_address?: string;
   /** bulk kinds only: where one click unsubscribes this recipient. The
    *  relay turns it into List-Unsubscribe + List-Unsubscribe-Post (RFC
    *  8058). Refused on a transactional kind, required on a bulk one. */
