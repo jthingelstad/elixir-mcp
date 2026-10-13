@@ -172,7 +172,16 @@ test("an ended primary: GET /api/me says so until another is added, and the time
   assert.match(text, new RegExp(`another account verified ${TAG}`));
   assert.match(text, /no longer your primary player/);
 
-  // Choosing a primary again clears it.
+  // A friend or a watched player added since does not answer it.
+  await addPlayer(
+    db,
+    { accountId: holder },
+    { tag: "#P0LYJC8C", relationship: "watching", via: "test" },
+  );
+  me = data(await call(cookie, "GET", "/api/me"));
+  assert.equal(me.claim_notice?.kind, "primary_ended");
+
+  // Choosing a primary does.
   await addPlayer(
     db,
     { accountId: holder },

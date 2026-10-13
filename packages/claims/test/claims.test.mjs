@@ -1039,6 +1039,50 @@ test("verifying ends every other account's primary or alt on the tag, keeps frie
   assert.equal((await relOf(bob, A)).is_primary, true);
 });
 
+test("an ended primary takes the clan follow Elixir made for it; the person's own follows and other accounts' stay", async () => {
+  const carol = await account(`carol-${Math.random()}`, { slots: 10 });
+  const [AUTO, MINE_CLAN, CAROLS] = ["#GGJG2CCR", "#9PJYVVL2", "#2LQYC8RU"];
+  for (const c of [AUTO, MINE_CLAN, CAROLS])
+    await db.query(
+      `insert into clan (clan_tag) values ($1) on conflict do nothing`,
+      [c],
+    );
+  await addPlayer(db, alice, { tag: A, via: "test" });
+  await addPlayer(db, alice, { tag: C, via: "test" });
+  await addPlayer(db, carol, { tag: D, via: "test" });
+  await addPlayer(db, carol, { tag: A, relationship: "alt", via: "test" });
+  await db.query(
+    `insert into account_clan (account_id, clan_tag, scope, auto_followed_at)
+     values ($1, $2, 'activity', now()), ($1, $3, 'activity', null),
+            ($4, $5, 'activity', now())`,
+    [alice.accountId, AUTO, MINE_CLAN, carol.accountId, CAROLS],
+  );
+  await addPlayer(db, bob, { tag: A, via: "test" });
+  assert.equal((await verify(bob, A)).verified, true);
+
+  const follows = async (acct) =>
+    (
+      await db.query(
+        `select clan_tag from account_clan where account_id = $1 order by clan_tag`,
+        [acct.accountId],
+      )
+    ).rows.map((r) => r.clan_tag);
+  // Alice's primary ended: the automatic follow went, her own stayed.
+  assert.deepEqual(await follows(alice), [MINE_CLAN]);
+  assert.deepEqual(await events(alice, "clan_removed"), [
+    { clan_tag: AUTO, via: "test", auto: true, reason: "primary_claim_ended" },
+  ]);
+  // Not declined: a later primary in that clan is followed into it again.
+  const { rows: declined } = await db.query(
+    `select 1 from account_clan_declined where account_id = $1`,
+    [alice.accountId],
+  );
+  assert.equal(declined.length, 0);
+  // Carol lost an alt, not her primary: her automatic follow stays.
+  assert.deepEqual(await follows(carol), [CAROLS]);
+  assert.deepEqual(await events(carol, "clan_removed"), []);
+});
+
 test("markVerified on a claim that is gone verifies nothing and ends nothing", async () => {
   await addPlayer(db, alice, { tag: A, via: "test" });
   const r = await verify(bob, A);

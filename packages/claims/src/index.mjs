@@ -471,6 +471,44 @@ export async function markVerified(db, { accountId, tag, method, via }) {
       via,
     });
   if (ended.length) await reconcileRecording(db, "player", tag, accountId);
+  // The clan follows the primary (followPrimaryClan): a primary that ended
+  // takes the follow Elixir made for it, as a move would, and the clan is
+  // not marked declined. A follow the person made or changed stays. The
+  // clan locks come after the player's; no path takes them the other way.
+  const losers = ended.filter((r) => r.is_primary).map((r) => r.account_id);
+  if (losers.length) {
+    const { rows: autos } = await db.query(
+      `select account_id, clan_tag from account_clan
+        where account_id = any($1::uuid[]) and auto_followed_at is not null
+        order by clan_tag`,
+      [losers],
+    );
+    for (const subject of [...new Set(autos.map((a) => a.clan_tag))])
+      await lockSubject(db, subject);
+    for (const a of autos) {
+      await db.query(
+        `delete from account_clan where account_id = $1 and clan_tag = $2`,
+        [a.account_id, a.clan_tag],
+      );
+      await logEvent(db, a.account_id, "clan_removed", {
+        clan_tag: a.clan_tag,
+        via,
+        auto: true,
+        reason: "primary_claim_ended",
+      });
+      const { stopped } = await reconcileRecording(
+        db,
+        "clan",
+        a.clan_tag,
+        null,
+      );
+      if (stopped)
+        await logEvent(db, a.account_id, "recording_stopped", {
+          clan_tag: a.clan_tag,
+          via,
+        });
+    }
+  }
   return {
     verified: true,
     ended: ended.map((r) => ({

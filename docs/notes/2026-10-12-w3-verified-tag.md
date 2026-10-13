@@ -54,8 +54,12 @@ shown to Jamie in the issue, and they said go.
    `watching` claims stay. The recording reconciles as for any removed
    claim (the verifier still claims the tag, so it continues). Removing
    the claim removes that account's open Verify challenge for the tag
-   (0080 cascade). From now on only: claims already colliding are counted
-   by the census and left alone.
+   (0080 cascade). An ended primary takes the clan follow Elixir made
+   for it (`auto_followed_at` set), as a primary that moves does
+   (`followPrimaryClan`), logged `clan_removed` with `auto: true` and not
+   marked declined; a follow the person made stays (Codex on #565). From
+   now on only: claims already colliding are counted by the census and
+   left alone.
 6. **How is the account told?** [engineering, 2026-10-12] An
    `account_event` `claim_ended` (`player_tag`, `reason:
    verified_elsewhere`, `was_primary`, `relationship`) becomes the
@@ -66,14 +70,16 @@ shown to Jamie in the issue, and they said go.
 7. **A primary that ends.** [engineering, 2026-10-12; DECISIONS, apart
    from 2026-09-25's refusal to remove a primary through the tool] The
    account is left with no primary: nothing is promoted (Elixir does not
-   choose who "you" are). `GET /api/me` carries `claim_notice` while the
-   account has no primary and nothing was added since, and the console
+   choose who "you" are). `GET /api/me` carries `claim_notice` for as
+   long as the account has no primary (a friend or watched player added
+   since does not answer it; Codex on #565), and the console
    says so on Tracking and the Overview: the tag, why, and what to do.
    The MCP identity brief says the account has players but no primary.
 8. **A signup tag that is verified elsewhere.** [engineering, 2026-10-12]
    Not claimed; the account is onboarded with nothing, lands on Tracking,
    and gets a `claim_refused` event (its own timeline sentence) and the
-   same console notice.
+   same console notice. `{account_enroll}` does the same for a tag it is
+   given, and then follows no clan for it (Codex on #565).
 9. **Clan's gate and #535.** Unchanged code: the gate reads a person's own
    claims, and the #535 read requires a verified claim, which now has no
    unverified self-claimant beside it. The gate's comment is corrected.
