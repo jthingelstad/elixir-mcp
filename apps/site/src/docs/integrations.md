@@ -14,7 +14,9 @@ lede: "First-party services reading the hub with a service key."
 An integration connects a platform to Elixir. It has no personal player, clan
 identity, or human admin powers. [Elixir Drop](https://drop.poapkings.com) is
 one: it reads the game clock and recorded profiles, and can refresh a supplied
-player's profile. Drop keeps its accounts, scores, XP and badges in Drop.
+player's profile. Drop keeps its scores, XP and badges in Drop; a person
+signs in to it with their Elixir account, and a person new to Elixir
+creates one on the way.
 
 Agents use MCP. Programs use the **JSON API at
 `https://elixir.poapkings.com/api/v1`**, which admits two kinds of caller:
@@ -23,7 +25,8 @@ Agents use MCP. Programs use the **JSON API at
 - **A person**, by an OAuth grant whose resource is
   `https://elixir.poapkings.com/api/v1` (scope `cr:read`). This is how a
   family app reads Elixir as the signed-in person; Elixir Drop signs people
-  in this way ([Sign in with Elixir](/docs/sign-in-with-elixir)).
+  in this way, with no consent page, and the same page creates an Elixir
+  account for someone new ([Sign in with Elixir](/docs/sign-in-with-elixir)).
   `GET /api/v1/me` returns who you are to Elixir and the players you track,
   and, for a family app whose grant holds `account:email`, your `email` (the
   capability is offered to the family's own apps only; see

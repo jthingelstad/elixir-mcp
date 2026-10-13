@@ -498,7 +498,12 @@ test("consent enumerates every requested mutation capability", async () => {
   }
 });
 
-test("unapproved emails get the identical page and no email — never an oracle", async () => {
+test("a denied address gets the identical page and no email — never an oracle", async () => {
+  const denied = "denied-oauth@example.com";
+  await db.query(
+    `insert into account (email_hash, status, email) values ($1, 'denied', $2)`,
+    [emailHash(denied), denied],
+  );
   const reg = await handler(
     event({
       path: "/oauth/register",
@@ -523,12 +528,24 @@ test("unapproved emails get the identical page and no email — never an oracle"
   const res = await handler(
     event({
       path: "/oauth/authorize",
-      form: { step: "email", email: "stranger@example.com", ...q },
+      form: { step: "email", email: denied, ...q },
     }),
   );
   assert.equal(res.statusCode, 200);
-  assert.match(res.body, /If your account is approved/);
+  assert.match(res.body, /A 6-digit code is on its way to denied-oauth/);
   assert.equal(sentEmails.length, before, "nothing sent");
+  // The page a new address gets is the same page, and it IS sent a code.
+  const fresh = await handler(
+    event({
+      path: "/oauth/authorize",
+      form: { step: "email", email: "stranger@example.com", ...q },
+    }),
+  );
+  assert.equal(
+    fresh.body.replace(/stranger@example\.com/g, "X"),
+    res.body.replace(/denied-oauth@example\.com/g, "X"),
+  );
+  assert.equal(sentEmails.length, before + 1, "a new address gets its code");
 });
 
 test("authorize rejects unregistered redirect_uri and bad challenge", async () => {
@@ -622,7 +639,7 @@ test("base64-encoded form bodies (API Gateway v2 reality) parse correctly", asyn
   assert.equal(res.statusCode, 200, res.body);
   assert.match(
     res.body,
-    /If your account is approved/,
+    /A 6-digit code is on its way to nobody@example.com/,
     "client_id resolved from decoded body",
   );
 });

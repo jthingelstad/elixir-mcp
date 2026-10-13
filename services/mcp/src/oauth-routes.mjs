@@ -4,9 +4,18 @@
  * credential-issuance core, two shells): pending state rides
  * magic_login purpose='oauth'. Two steps, not librarian's three — the
  * code page carries the consent language, so entering the code IS the
- * consent act. The access gate answers identically for unknown, pending,
- * and denied emails: "if your account is approved, a code is on its way"
- * (never an email oracle).
+ * consent act.
+ *
+ * Since 2026-10-12 this door opens accounts as the website's signup does
+ * (Jamie: Drop "gets new users into Elixir"): the email step admits a new
+ * address with publicLoginAccount, and only the proved code opens it with
+ * openVerifiedAccount. A blocked address is sent nothing and is told so
+ * only once it holds a code it could not have; the email step's page is
+ * the same for every address (never an email oracle).
+ *
+ * The family's own provisioned clients (Elixir Drop, Elixir Clan) sign a
+ * person in with no consent page (Jamie, 2026-10-12: "Consent to what? I
+ * think no."): they get exactly what they asked for, never a box.
  *
  * Since 2026-09-12 the site session counts here too. /oauth/authorize is
  * the ONE door route CloudFront forwards the session cookie to (its own
@@ -24,6 +33,8 @@
 import {
   emailHash,
   approvedAccount,
+  publicLoginAccount,
+  openVerifiedAccount,
   startMagicLogin,
   verifyMagicCode,
   findRecentlyUsedCode,
@@ -52,6 +63,8 @@ import {
   authenticateClient,
   revokeToken,
   signinMailAllowed,
+  signinMailFromAllowed,
+  signinAddress,
   viewerIp,
   OAUTH_SCOPES,
   resolveSession,
@@ -211,7 +224,7 @@ function codeFailure(reason) {
   const messages = {
     wrong_flow: [
       "That code is for signing in to the website",
-      "It is not the code Claude asked for. Use the code from the most recent Elixir MCP email sent for this connection, or press back and send a new one.",
+      "It is not the code this sign-in asked for. Use the code from the most recent Elixir email sent for this connection, or press back and send a new one.",
     ],
     superseded: [
       "A newer code was sent",
@@ -219,19 +232,19 @@ function codeFailure(reason) {
     ],
     already_used: [
       "That code has been used",
-      "Each code works once. Start over from your MCP client to get a new one.",
+      "Each code works once. Start over from the app that sent you here to get a new one.",
     ],
     expired: [
       "That code has expired",
-      "Codes are good for 15 minutes. Start over from your MCP client to get a new one.",
+      "Codes are good for 15 minutes. Start over from the app that sent you here to get a new one.",
     ],
     attempts_exhausted: [
       "Too many attempts on that code",
-      "Start over from your MCP client; the next code starts fresh.",
+      "Start over from the app that sent you here; the next code starts fresh.",
     ],
     no_live_code: [
       "There is no code waiting",
-      "It may have expired, or already been used. Start over from your MCP client.",
+      "It may have expired, or already been used. Start over from the app that sent you here.",
     ],
     malformed: [
       "That is not a six-digit code",
@@ -241,16 +254,19 @@ function codeFailure(reason) {
       "That code did not match",
       "Check the most recent email for this connection. Codes are good for 15 minutes and work once.",
     ],
+    // Only an address the gate refuses reaches this: a new one is opened
+    // by the code it just proved. Holding the code proves the address, so
+    // saying so is not an oracle.
     account_not_approved: [
-      "That account cannot sign in",
-      "It is not approved yet. Request access from the site and try again once it is.",
+      "This account cannot sign in",
+      "Contact Elixir at admin@poapkings.com if you think this is a mistake. A new code does not remove an account restriction.",
     ],
   };
   const [title, body] = messages[reason] ?? [
     "That didn't work",
     // The request-side mismatches land here: the code was fine, the request
     // around it was not the one that asked for it.
-    "This is not the request that asked for that code — the client, the redirect, the connection or the challenge changed. Start over from your MCP client, in one pass, without reloading this page.",
+    "This is not the request that asked for that code — the client, the redirect, the connection or the challenge changed. Start over from the app that sent you here, in one pass, without reloading this page.",
   ];
   return `<h1>${esc(title)}</h1><p>${esc(body)}</p>`;
 }
@@ -283,6 +299,17 @@ function optionalScopes(scope) {
   return STANDARD_OAUTH_SCOPES.filter((s) => !granted.has(s));
 }
 
+/** The capabilities a request names, as a list with no boxes. */
+function askedCapabilities(scope) {
+  const asked = new Set(scope.split(" "));
+  return `<ul>${OAUTH_SCOPE_DETAILS.filter((d) => asked.has(d.scope))
+    .map(
+      (d) =>
+        `<li><strong>${esc(d.title)}</strong> — ${esc(d.description)}</li>`,
+    )
+    .join("")}</ul>`;
+}
+
 /**
  * What this connection will be able to do, and what else it MAY be allowed
  * to do.
@@ -303,14 +330,13 @@ function consentCapabilities(scope, { kind, ticked = null } = {}) {
   const on = new Set(ticked ?? defaultTicked(kind));
   const line = ({ title, description }) =>
     `<strong>${esc(title)}</strong> — ${esc(description)}`;
-  const asked = OAUTH_SCOPE_DETAILS.filter((d) => granted.has(d.scope));
   // A non-standard capability (account:email) is never offered unasked:
   // it appears only in the list above, when the client named it.
   const rest = OAUTH_SCOPE_DETAILS.filter(
     (d) => d.standard && !granted.has(d.scope),
   );
   return (
-    `<ul>${asked.map((d) => `<li>${line(d)}</li>`).join("")}</ul>` +
+    askedCapabilities(scope) +
     (rest.length === 0
       ? ""
       : `<p><strong>You choose whether it may also:</strong></p>
@@ -414,6 +440,9 @@ async function validatedAuthRequest(db, q, targetFor) {
 export function makeOauthRoutes({
   issuer,
   sendLoginEmail,
+  /** The welcome mail, after a code opened a new account. A courtesy:
+   *  its failure never undoes the sign-in. */
+  sendWelcomeEmail = async () => {},
   /** The site session secret. Unset = consent knows nothing of sessions. */
   sessionSecret = null,
 }) {
@@ -456,49 +485,40 @@ export function makeOauthRoutes({
   }
 
   /**
-   * Has this person already said yes to exactly this (Jamie 2026-09-29)?
-   * Only a family app that sends the code back to Elixir's own origin
-   * (Elixir Clan, at /clan), for the person's own door or the JSON API,
-   * and only while a grant the person made to it stands, unrevoked and
-   * inside its 90 days, holding every capability asked for now. Signing
-   * out of Clan revokes its grant, as does a revoke on the Connections
-   * page; a grant narrowed there no longer covers the request. Each
-   * brings the consent page back.
+   * A sign-in with no consent page (Jamie, 2026-10-12, of Drop: "Consent
+   * to what? I think no."): one of the family's own provisioned clients,
+   * signing the person in as themselves, for their own door or the JSON
+   * API. It is granted exactly the scope it asked for, which
+   * validatedAuthRequest has already held to what a family client may
+   * ask; there are no boxes, so nothing widens it. Acting as an agent or
+   * an integration is a different act and keeps its page, whoever asks.
+   * Every other client keeps its consent page.
    */
-  async function consentRemembered(db, v, me) {
-    if (v.target.kind !== "person" && v.target.kind !== "api") return false;
-    if (new URL(v.redirectUri).origin !== new URL(issuer).origin) return false;
-    if (
-      !isFirstPartyClient({
-        redirectUris: v.client.redirectUris,
-        provisioned: Boolean(v.client.family),
-      })
-    )
-      return false;
-    const { rows } = await db.query(
-      `select scope from oauth_family
-        where client_id = $1 and account_id = $2 and resource = $3
-          and revoked_at is null and absolute_expires_at > now()`,
-      [v.client.clientId, me.account_id, v.resource],
-    );
-    const wanted = v.scope.split(" ");
-    return rows.some((r) => {
-      const granted = r.scope.split(" ");
-      return wanted.every((s) => granted.includes(s));
+  const signsInOnly = (v) =>
+    (v.target.kind === "person" || v.target.kind === "api") &&
+    isFirstPartyClient({
+      redirectUris: v.client.redirectUris,
+      provisioned: Boolean(v.client.family),
     });
-  }
+
+  /** "Send me Elixir product news", as the website's signup form has it:
+   *  checked, and applied only to an account this sign-in opens
+   *  (DECISIONS, "Newsletter consent is explicit"). */
+  const productNewsBox = `<label><input type="checkbox" name="product_news" value="1" checked> Send me Elixir product news</label>
+       <p><small>For a new account only. Existing newsletter choices stay the same.</small></p>`;
 
   /** The email step's page, shared by the GET and by a session that lapsed. */
   const emailStepPage = (q, v, lead = "") =>
     page(
-      "Connect to Elixir MCP",
-      `<h1>Connect ${esc(v.client.clientName)}</h1>
+      signsInOnly(v) ? "Sign in with Elixir" : "Connect to Elixir",
+      `<h1>${signsInOnly(v) ? "Sign in to" : "Connect"} ${esc(v.client.clientName)}</h1>
        ${lead}
        ${clientBlock(v)}
-       <p>Enter the email on your approved Elixir MCP account and we&rsquo;ll send a sign-in code.</p>
+       <p>Enter your email to sign in to Elixir, or to create your free Elixir account if you don&rsquo;t have one. We&rsquo;ll send a 6-digit code.</p>
        <form method="post" action="/oauth/authorize">
          <input type="hidden" name="step" value="email">${hiddenAuthFields(q)}
          <input type="email" name="email" placeholder="you@example.com" required autofocus>
+         ${productNewsBox}
          <button>Send code</button>
        </form>`,
     );
@@ -509,12 +529,18 @@ export function makeOauthRoutes({
    * app is one Elixir provisioned. Shown above every consent.
    */
   const clientBlock = (v) =>
-    v.client.family
-      ? `<p>${esc(v.client.clientName)} is one of Elixir&rsquo;s own apps. Approving sends you back to <strong>${esc(redirectHost(v.redirectUri))}</strong>.</p>`
-      : `<p>${esc(v.client.clientName)} named itself; Elixir has not checked it. Approving sends a code to <strong>${esc(redirectHost(v.redirectUri))}</strong>. Continue only if you started this connection and you trust that address.</p>`;
+    signsInOnly(v)
+      ? `<p>${esc(v.client.clientName)} is one of Elixir&rsquo;s own apps and uses your Elixir account. Signing in sends you back to <strong>${esc(redirectHost(v.redirectUri))}</strong>.</p>`
+      : v.client.family
+        ? `<p>${esc(v.client.clientName)} is one of Elixir&rsquo;s own apps. Approving sends you back to <strong>${esc(redirectHost(v.redirectUri))}</strong>.</p>`
+        : `<p>${esc(v.client.clientName)} named itself; Elixir has not checked it. Approving sends a code to <strong>${esc(redirectHost(v.redirectUri))}</strong>. Continue only if you started this connection and you trust that address.</p>`;
 
-  /** What the client will be able to do, worded for the target's kind. */
+  /** What the client will be able to do, worded for the target's kind.
+   *  A family sign-in lists what the app gets, with no boxes: it asked
+   *  for it and there is nothing to choose. */
   const capabilitiesBlock = (v, verb, ticked = null) => {
+    if (signsInOnly(v))
+      return `${clientBlock(v)}<p><strong>${esc(v.client.clientName)} will be able to:</strong></p>${askedCapabilities(v.scope)}`;
     const caps = consentCapabilities(v.scope, {
       kind: v.target.kind,
       ticked,
@@ -534,7 +560,7 @@ export function makeOauthRoutes({
     void grant;
     const switchUrl = `/oauth/authorize?${new URLSearchParams({ ...rest, switch: "1" })}`;
     return page(
-      "Connect to Elixir MCP",
+      "Connect to Elixir",
       `<h1>Connect ${esc(v.client.clientName)}</h1>
        <p>You are signed in to Elixir${me.email ? ` as <strong>${esc(me.email)}</strong>` : ""}.</p>
        <form method="post" action="/oauth/authorize">
@@ -547,18 +573,19 @@ export function makeOauthRoutes({
   };
 
   /** The code-entry page (after the email step, or back from the
-   *  confirmation with the code still in hand). */
+   *  confirmation with the code still in hand). The same page for every
+   *  address, whether or not a code was sent (never an oracle). */
   const codeEntryPage = (v, form, ticked = null, lead = "") =>
     page(
       "Enter your code",
       `<h1>Check your email</h1>
-       ${lead || `<p>If your account is approved, a 6-digit code is on its way to ${esc(form.email)}.</p>`}
+       ${lead || `<p>A 6-digit code is on its way to ${esc(form.email)}. Entering it signs you in to Elixir, and creates your Elixir account if you are new.</p>`}
        <form method="post" action="/oauth/authorize">
          ${capabilitiesBlock(v, "Entering it", ticked)}
          <input type="hidden" name="step" value="code">${hiddenAuthFields(form)}
          <input type="hidden" name="email" value="${esc(form.email)}">
          <input inputmode="numeric" autocomplete="one-time-code" name="code" placeholder="123456" value="${esc(form.code ?? "")}" required autofocus>
-         <button>Authorize</button>
+         <button>${signsInOnly(v) ? "Sign in" : "Authorize"}</button>
        </form>`,
     );
 
@@ -587,6 +614,8 @@ export function makeOauthRoutes({
 
   /** The confirmation gate for a consent POST: null to proceed. */
   const confirmGate = (event, v, form, backPage) => {
+    // A family sign-in has no boxes, so nothing to confirm.
+    if (signsInOnly(v)) return null;
     const ticked = formValues(event, "grant").filter((s) =>
       STANDARD_OAUTH_SCOPES.includes(s),
     );
@@ -604,13 +633,13 @@ export function makeOauthRoutes({
    * The consent act itself, once the person is known: the principal
    * check, the widening checkboxes, the auth code, the redirect. The
    * same whether the person proved themselves with a code just now or
-   * was already signed in; only the log line names which. A remembered
-   * consent had no page, so it has no boxes: `widen: false`.
+   * was already signed in; only the log line names which. A family
+   * sign-in had no boxes, so whatever the form posts widens nothing.
    */
   async function completeConsent(
     db,
     event,
-    { v, account, hash, boundScope, how, widen = true },
+    { v, account, hash, boundScope, how },
   ) {
     // The person proved who they are. If the audience names a principal,
     // the grant belongs to THAT account -- so every token minted from this
@@ -630,7 +659,7 @@ export function makeOauthRoutes({
       return html(
         403,
         page(
-          "Elixir MCP",
+          "Elixir",
           `<h1>Not yours to connect</h1><p>That agent or integration is not one you own.</p>`,
         ),
       );
@@ -642,7 +671,7 @@ export function makeOauthRoutes({
     // ?scope=, so nothing can move the grant behind the checkboxes.
     // ...and only to a STANDARD capability: account:email is never
     // widened into, whatever the form posts.
-    const added = (widen ? formValues(event, "grant") : []).filter(
+    const added = (signsInOnly(v) ? [] : formValues(event, "grant")).filter(
       (value) =>
         STANDARD_OAUTH_SCOPES.includes(value) && !boundScope.includes(value),
     );
@@ -745,7 +774,7 @@ export function makeOauthRoutes({
         return html(
           400,
           page(
-            "Elixir MCP",
+            "Elixir",
             `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`,
           ),
         );
@@ -756,8 +785,9 @@ export function makeOauthRoutes({
       // the address gets recorded.
       const me = q.switch ? null : await signedIn(db, event);
       if (me && !(v.scope.includes(OAUTH_SCOPE.ACCOUNT_EMAIL) && !me.email)) {
-        if (await consentRemembered(db, v, me)) {
-          authLog("oauth_consent_remembered", {
+        // A family app signs a signed-in person straight back in: no page.
+        if (signsInOnly(v)) {
+          authLog("oauth_family_signin", {
             email: emailRef(me.email_hash),
             request: requestRef(v.codeChallenge),
             client: v.client.clientName,
@@ -769,8 +799,7 @@ export function makeOauthRoutes({
             account: me,
             hash: me.email_hash,
             boundScope: v.scope,
-            how: "remembered",
-            widen: false,
+            how: "family",
           });
         }
         authLog("oauth_consent_from_session", {
@@ -792,7 +821,7 @@ export function makeOauthRoutes({
         return html(
           400,
           page(
-            "Elixir MCP",
+            "Elixir",
             `<h1>Can&rsquo;t authorize</h1><p>${esc(v.error)}</p>`,
           ),
         );
@@ -831,17 +860,45 @@ export function makeOauthRoutes({
         });
       }
 
-      const hash = emailHash(form.email);
-
       if (form.step === "email") {
-        // Per caller, and per address with the website's sign-in: codes to
-        // one inbox are capped whichever door asked.
-        const allowed =
-          (await checkRateLimit(db, {
-            bucket: `oauthmail#${ip}`,
-            max: 10,
-          })) && (await signinMailAllowed(db, hash));
-        const account = allowed ? await approvedAccount(db, hash) : null;
+        const email = signinAddress(form.email);
+        if (!email)
+          return html(
+            400,
+            emailStepPage(
+              form,
+              v,
+              "<p>That is not an email address. Check it and try again.</p>",
+            ),
+          );
+        const hash = emailHash(email);
+        // The website's signup guards, shared with it: one ceiling per
+        // caller and one per address, whichever door asked, because both
+        // doors now open accounts.
+        const okIp = await signinMailFromAllowed(db, ip);
+        const okEmail = await signinMailAllowed(db, hash);
+        if (!okIp || !okEmail) {
+          // Said plainly, as the website says it: the counters run for any
+          // address, so this is not an oracle.
+          authLog("signin_mail_limited", {
+            email: emailRef(hash),
+            by: okIp ? "address" : "ip",
+            door: "oauth",
+          });
+          return html(
+            200,
+            codeEntryPage(
+              v,
+              { ...form, email, code: "" },
+              null,
+              "<p>That is the limit on sign-in emails for now. The most recent code still works for fifteen minutes; after an hour you can ask for another.</p>",
+            ),
+          );
+        }
+        // A new address is admitted as the website's signup admits it; a
+        // blocked one gets nothing. Nothing is created here: the account
+        // opens only when the code is proved (the code step).
+        const account = await publicLoginAccount(db, hash);
         if (account) {
           authLog("oauth_code_issued", {
             email: emailRef(hash),
@@ -860,19 +917,30 @@ export function makeOauthRoutes({
               resource: v.resource,
               state: v.state,
               code_challenge: v.codeChallenge,
+              // Frozen with the request, applied only if the code opens a
+              // new account (openVerifiedAccount): the address as typed,
+              // and the product-news box, unticked unless it was posted.
+              signup_email: email.toLowerCase(),
+              signup_news: form.product_news === "1",
             },
           });
           await sendLoginEmail({
-            email: form.email,
+            email,
             code,
             purpose: "oauth",
             clientName: v.client.clientName,
-            newsletter: account.newsletter_opt_in === true,
+            // Existing accounts keep their saved choice; a new account's
+            // box is applied after proof, on the welcome send.
+            newsletter:
+              account.status === "approved" &&
+              account.newsletter_opt_in === true,
           });
         }
         // Identical page whether or not anything was sent — never an oracle.
-        return html(200, codeEntryPage(v, { ...form, code: "" }));
+        return html(200, codeEntryPage(v, { ...form, email, code: "" }));
       }
+
+      const hash = emailHash(form.email);
 
       if (form.step === "code") {
         const gated = confirmGate(event, v, form, (ticked) =>
@@ -923,23 +991,37 @@ export function makeOauthRoutes({
             replayed = true;
           }
         }
-        const account = ctx ? await approvedAccount(db, hash) : null;
-
         // WHICH of these failed decides what the person should do next, and
         // saying "one of seven things" left them retrying a code that could
         // never work. Each branch below is a different next step.
-        const mismatch =
-          ctx && account
-            ? ctx.client_id !== v.client.clientId
-              ? "client"
-              : ctx.redirect_uri !== v.redirectUri
-                ? "redirect_uri"
-                : ctx.resource !== v.resource
-                  ? "resource"
-                  : ctx.code_challenge !== v.codeChallenge
-                    ? "code_challenge"
-                    : null
+        const mismatch = ctx
+          ? ctx.client_id !== v.client.clientId
+            ? "client"
+            : ctx.redirect_uri !== v.redirectUri
+              ? "redirect_uri"
+              : ctx.resource !== v.resource
+                ? "resource"
+                : ctx.code_challenge !== v.codeChallenge
+                  ? "code_challenge"
+                  : null
+          : null;
+
+        // The code is proved (now, or by the first of a duplicate submit)
+        // and bound to this request: a new address opens its account here,
+        // exactly as the website's signup does, from the address and the
+        // news choice frozen with the request. Idempotent, and it never
+        // reopens a denied or blocked account; `opened` is null for an
+        // account that was already open, so the welcome goes once.
+        const opened =
+          ctx && !mismatch && (verified.ok || replayed)
+            ? await openVerifiedAccount(db, {
+                emailHash: hash,
+                email: ctx.signup_email,
+                newsletterOptIn: ctx.signup_news === true,
+              })
             : null;
+        const found = ctx && !mismatch ? await approvedAccount(db, hash) : null;
+        const account = found && found.kind === "person" ? found : null;
 
         // Same code again, or a different one? "no_live_code" alone cannot say,
         // and the answer decides whether a duplicate submit or a second
@@ -959,10 +1041,10 @@ export function makeOauthRoutes({
         if ((!verified.ok && !replayed) || !ctx || !account || mismatch) {
           const reason = !ctx
             ? verified.reason
-            : !account
-              ? "account_not_approved"
-              : mismatch
-                ? `request_${mismatch}`
+            : mismatch
+              ? `request_${mismatch}`
+              : !account
+                ? "account_not_approved"
                 : verified.reason;
           authLog("oauth_code_rejected", {
             email: emailRef(hash),
@@ -976,7 +1058,7 @@ export function makeOauthRoutes({
             client: v.client.clientName,
             resource: v.resource,
           });
-          return html(400, page("Elixir MCP", codeFailure(reason)));
+          return html(400, page("Elixir", codeFailure(reason)));
         }
         authLog(replayed ? "oauth_code_replayed" : "oauth_code_accepted", {
           email: emailRef(hash),
@@ -984,7 +1066,18 @@ export function makeOauthRoutes({
           client: v.client.clientName,
           resource: v.resource,
           kind: v.target.kind,
+          ...(opened?.created ? { opened: true } : {}),
         });
+        if (opened) {
+          // After proof only, as the website sends it; a courtesy-mail
+          // outage must not undo the sign-in. No onboarding here: this
+          // door asks for no player tag, and the first Console sign-in
+          // (onboardAccount) lands a tagless account on Tracking.
+          await sendWelcomeEmail({
+            email: ctx.signup_email,
+            newsletter: opened.newsletter_opt_in === true,
+          }).catch(() => console.error("signup_welcome_queue_failed"));
+        }
         // Consent is a sign-in: record the address on the way past, as the
         // site's sign-in does, so /oauth/userinfo can answer for an account
         // that predates Elixir keeping it. The hash still decided which
@@ -1002,7 +1095,7 @@ export function makeOauthRoutes({
           how: "code",
         });
       }
-      return html(400, page("Elixir MCP", "<h1>Bad request</h1>"));
+      return html(400, page("Elixir", "<h1>Bad request</h1>"));
     },
 
     async token(db, event) {

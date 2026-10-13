@@ -38,9 +38,15 @@ Elixir. [Jamie, 2026-09-23, 2026-09-25]
    apart from the game record and labelled. [Jamie, 2026-09-25]
 5. **No OIDC layer.** Family apps sign in with Elixir's OAuth; no
    separate issuer or SSO. [Jamie, 2026-09-28]
-6. **Drop is a different thing.** Its accounts, scores and rules are its
-   own; it consumes the clock, recorded profiles and Sign in with Elixir.
-   [Jamie, 2026-09-28, 2026-10-02]
+6. **Drop is a different app on the same account.** Its scores and rules
+   are its own; it consumes the clock, recorded profiles and Sign in with
+   Elixir. You can play Drop without an account, but an account in Drop
+   is an Elixir account, and Drop's email-only route goes. [Jamie,
+   2026-09-28, 2026-10-02, 2026-10-12]
+7. **Sign in with Elixir signs in or creates an account.** The page a
+   family app sends a person to admits someone new, because "Elixir Drop
+   gets new users into Elixir"; a family app gets no consent page
+   ("Consent to what? I think no."). [Jamie, 2026-10-12]
 
 ## What it never does
 
