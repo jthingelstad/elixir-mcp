@@ -923,6 +923,7 @@ export function makeOauthRoutes({
           await sendLoginEmail({
             email,
             code,
+            ipAddress: viewerIp(event),
             purpose: "oauth",
             clientName: v.client.clientName,
             // Existing accounts keep their saved choice; a new account's
@@ -1072,6 +1073,9 @@ export function makeOauthRoutes({
           await sendWelcomeEmail({
             email: ctx.signup_email,
             newsletter: opened.newsletter_opt_in === true,
+            ...(opened.newsletter_opt_in === true
+              ? { ipAddress: viewerIp(event) }
+              : {}),
           }).catch(() => console.error("signup_welcome_queue_failed"));
         }
         // Consent is a sign-in: record the address on the way past, as the

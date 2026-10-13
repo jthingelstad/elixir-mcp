@@ -323,6 +323,79 @@ test("Buttondown 400 is read, not assumed to mean 'already subscribed' (#27)", a
   assert.equal(makeButtondownEnroller({ token: "" }), null);
 });
 
+test("Buttondown enrollment carries the viewer IP through the outbox, without exposing it in mail", async () => {
+  const requests = [];
+  const sent = [];
+  const objects = new Map();
+  const deleted = [];
+  for (const [id, kind, ip] of [
+    ["ipv4", "login", "203.0.113.17"],
+    ["ipv6", "welcome", "2001:db8::17"],
+    ["opt-out", "welcome", "203.0.113.18"],
+    ["import", "newsletter_enroll", undefined],
+    ["old", "login", undefined],
+    ["invalid", "welcome", "unknown"],
+  ]) {
+    objects.set(
+      `email/${id}.json`,
+      JSON.stringify({
+        v: 1,
+        kind,
+        to: `${id}@example.com`,
+        code: "123456",
+        newsletter: id !== "opt-out",
+        ...(ip ? { ip_address: ip } : {}),
+      }),
+    );
+  }
+  const handler = makeHandler({
+    send: async (m) => sent.push(m),
+    enroll: makeButtondownEnroller({
+      token: "test-token",
+      fetchImpl: async (url, options) => {
+        requests.push({ url, ...options, body: JSON.parse(options.body) });
+        return { ok: true };
+      },
+    }),
+    readObject: async ({ key }) => objects.get(key),
+    deleteObject: async ({ key }) => deleted.push(key),
+  });
+  const result = await handler({
+    Records: [...objects.keys()].map((key) => ({
+      messageId: key,
+      body: JSON.stringify({
+        Records: [
+          {
+            eventSource: "aws:s3",
+            s3: { bucket: { name: "outbox" }, object: { key } },
+          },
+        ],
+      }),
+    })),
+  });
+  assert.deepEqual(result.batchItemFailures, []);
+  assert.equal(deleted.length, 6);
+  assert.equal(sent.length, 5, "the import sends no mail");
+  assert.deepEqual(
+    requests.map(({ body }) => [body.email_address, body.ip_address]),
+    [
+      ["ipv4@example.com", "203.0.113.17"],
+      ["ipv6@example.com", "2001:db8::17"],
+      ["import@example.com", undefined],
+      ["old@example.com", undefined],
+      ["invalid@example.com", undefined],
+    ],
+  );
+  for (const request of requests) {
+    assert.equal(request.url, "https://api.buttondown.com/v1/subscribers");
+    assert.equal(request.method, "POST");
+    assert.equal(request.body.type, "regular");
+    assert.equal(request.headers["X-Buttondown-Bypass-Firewall"], undefined);
+  }
+  for (const mail of sent)
+    assert.doesNotMatch(JSON.stringify(mail), /203\.0\.113\.|2001:db8/);
+});
+
 // Every owner notification used to be "new access request" whatever it
 // announced (2026-09-09). Subjects are pinned per kind.
 test("owner_notify subjects and bodies are per kind", () => {

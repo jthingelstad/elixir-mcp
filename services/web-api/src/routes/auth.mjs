@@ -156,6 +156,7 @@ export function authRoutes({
             email,
             code,
             token,
+            ipAddress: viewerIp(event),
             purpose: "web",
             // Existing accounts keep their saved choice. A new account's
             // checkbox is applied only after proof, on the welcome send.

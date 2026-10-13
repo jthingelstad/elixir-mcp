@@ -19,6 +19,7 @@ import { timelineDiscordStore } from "@elixir-mcp/syndication/store";
  *  posts the VPC cannot. */
 
 import { createHash } from "node:crypto";
+import { isIP } from "node:net";
 import {
   S3Client,
   GetObjectCommand,
@@ -69,7 +70,7 @@ export function makeButtondownEnroller({
   fetchImpl = fetch,
 }) {
   if (!token) return null;
-  return async (email) => {
+  return async (email, ipAddress = null) => {
     const idem = createHash("sha256").update(email.toLowerCase()).digest("hex");
     const res = await fetchImpl("https://api.buttondown.com/v1/subscribers", {
       method: "POST",
@@ -82,6 +83,9 @@ export function makeButtondownEnroller({
       },
       body: JSON.stringify({
         email_address: email,
+        ...(typeof ipAddress === "string" && isIP(ipAddress)
+          ? { ip_address: ipAddress }
+          : {}),
         type: "regular",
         metadata: { source: "elixir-mcp-login" },
       }),

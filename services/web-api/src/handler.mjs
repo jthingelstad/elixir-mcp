@@ -21,6 +21,7 @@ import {
   createSession,
   resolveSession,
   sessionSeenFrom,
+  viewerIp,
   originAllowed,
   forbiddenOrigin,
 } from "@elixir-mcp/auth";
@@ -303,6 +304,9 @@ export function makeHandler({
       await sendWelcomeEmail({
         email: verifiedEmail,
         newsletter: opened.newsletter_opt_in === true,
+        ...(opened.newsletter_opt_in === true
+          ? { ipAddress: viewerIp(event) }
+          : {}),
       }).catch(() => console.error("signup_welcome_queue_failed"));
     }
     // The second chance at approval-time tracking: at the decision we may

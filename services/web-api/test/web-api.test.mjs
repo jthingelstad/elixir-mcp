@@ -2228,6 +2228,7 @@ test("beta accounts are enrolled by default, and an opt-out is never overridden"
     true,
     "a beta sign-in enrolls the address",
   );
+  assert.equal(sentEmails.at(-1).ipAddress, "203.0.113.27");
   const me = parse(
     await handler(
       event({ method: "GET", path: "/api/me", cookie, body: undefined }),

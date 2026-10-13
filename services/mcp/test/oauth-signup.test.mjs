@@ -210,6 +210,7 @@ test("a new address gets an account only once its code is proved, then is author
   assert.deepEqual(welcomes.at(-1), {
     email: "new.person@example.com",
     newsletter: true,
+    ipAddress: ip,
   });
 
   // A duplicate submit (iOS fills and taps) repeats the answer and does
@@ -316,6 +317,7 @@ test("an existing account signs in as before: its saved news choice, no welcome"
   // The box unticked changes nothing for an account that exists.
   const { mail } = await emailStep(email, q, ip, {});
   assert.equal(mail.newsletter, true, "the saved choice rides the mail");
+  assert.equal(mail.ipAddress, ip, "the viewer address rides the login");
   const welcomed = welcomes.length;
   const done = await codeStep(email, mail.code, q, ip);
   assert.equal(done.statusCode, 303, done.body);

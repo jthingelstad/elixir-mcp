@@ -131,7 +131,7 @@ test("public signup creates only a member after email proof; a failed code and a
   assert.equal(account.email, email);
   assert.deepEqual(
     welcomes.filter((m) => m.email === email),
-    [{ email, newsletter: true }],
+    [{ email, newsletter: true, ipAddress: `198.51.100.${request}` }],
   );
   assert.equal(account.max_player_recordings, null);
   for (const table of ["claim", "account_clan", "gateway"]) {
@@ -171,14 +171,17 @@ test("new signup freezes checked and unchecked news choices in code/link proof, 
         ).rowCount,
         0,
       );
-      const result = await handler(
-        event(`/api/auth/${method}`, {
-          email,
-          code: mail.code,
-          token: mail.token,
-          newsletter_opt_in: !choice,
-        }),
-      );
+      const proof = event(`/api/auth/${method}`, {
+        email,
+        code: mail.code,
+        token: mail.token,
+        newsletter_opt_in: !choice,
+        ip_address: "192.0.2.99",
+      });
+      proof.headers["cloudfront-viewer-address"] = "[2001:db8::cafe]:443";
+      proof.headers["x-forwarded-for"] = "192.0.2.99";
+      proof.requestContext = { http: { sourceIp: "192.0.2.88" } };
+      const result = await handler(proof);
       assert.equal(result.statusCode, 200, result.body);
       const {
         rows: [account],
@@ -189,7 +192,13 @@ test("new signup freezes checked and unchecked news choices in code/link proof, 
       assert.equal(account.newsletter_opt_in, choice);
       assert.deepEqual(
         welcomes.filter((m) => m.email === email),
-        [{ email, newsletter: choice }],
+        [
+          {
+            email,
+            newsletter: choice,
+            ...(choice ? { ipAddress: "2001:db8::cafe" } : {}),
+          },
+        ],
       );
     }
   }
@@ -520,7 +529,7 @@ test("ordinary pending members may verify; existing account tier and opt-out sur
   );
   assert.deepEqual(
     welcomes.filter((m) => m.email === email),
-    [{ email, newsletter: true }],
+    [{ email, newsletter: true, ipAddress: `198.51.100.${request}` }],
   );
   await db.query(
     "update account set role='leader',newsletter_opt_in=false where email_hash=$1",

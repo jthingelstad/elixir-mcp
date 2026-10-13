@@ -51,6 +51,8 @@ it.
 uncheck it before requesting the email to create your account without
 newsletter enrollment. Email proof keeps that choice. Signing in to an
 existing account leaves its newsletter choice and any unsubscribe intact.
+When a sign-in or signup enrolls you in product news, Elixir sends
+Buttondown your email address and your browser's IP address for spam checks.
 Sign-in and welcome mail are service mail, independent of this checkbox.
 Elixir also sends reports and notes about your own play, each
 with its own off switch. Every mail has a way to stop it, and a stop is
