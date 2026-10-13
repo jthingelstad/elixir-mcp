@@ -19,8 +19,8 @@ const OTHER_TAG = "#PPRJ8V0L"; // somebody else's
 
 const get = (path, session = cookie) =>
   handler({
-    rawPath: path,
-    requestContext: { http: { method: "GET" } },
+    path,
+    method: "GET",
     headers: { cookie: session, "x-elixir-client": "web" },
   });
 const data = (r) => JSON.parse(r.body);

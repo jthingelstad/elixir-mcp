@@ -16,8 +16,8 @@ let scratch, handler, accountId, token;
 const data = (r) => JSON.parse(r.body);
 const request = (method, path, body) =>
   handler({
-    rawPath: path,
-    requestContext: { http: { method } },
+    path,
+    method,
     headers: {
       cookie: `__Host-elixir_session=${token}`,
       "x-elixir-client": "web",

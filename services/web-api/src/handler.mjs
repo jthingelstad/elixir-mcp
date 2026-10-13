@@ -385,12 +385,8 @@ export function makeHandler({
   async function handler(event, context) {
     // Through CloudFront, or not at all (see auth origin.mjs).
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
-    const method =
-      event.method ??
-      event.requestContext?.http?.method ??
-      event.httpMethod ??
-      "GET";
-    const path = event.path ?? event.rawPath ?? "/";
+    const method = event.method ?? "GET";
+    const path = event.path ?? "/";
     const isIntegration = path.startsWith("/api/v1/");
     const isClan = clan && path.startsWith("/api/clan/");
     const agentPath = isIntegration ? null : AGENT_PATH.exec(path);
@@ -432,10 +428,10 @@ export function makeHandler({
               return clan({
                 db,
                 account: person,
+                requestId: context?.requestId ?? null,
                 event: {
                   ...event,
                   body: event.body ? JSON.stringify(body) : undefined,
-                  isBase64Encoded: false,
                 },
                 signout: async () => {
                   const res = await routes["POST /api/session/signout"](
@@ -482,12 +478,7 @@ export function makeHandler({
     const formOnly = path === "/api/email/unsubscribe";
     if (event.body && !formOnly) {
       try {
-        // API Gateway v2 may deliver bodies base64-encoded.
-        body = JSON.parse(
-          event.isBase64Encoded
-            ? Buffer.from(event.body, "base64").toString("utf8")
-            : event.body,
-        );
+        body = JSON.parse(event.body);
       } catch {
         return isIntegration
           ? integrationProblem(400, "invalid_json", randomUUID())
@@ -512,7 +503,7 @@ export function makeHandler({
     const routeKey = agentPath
       ? found.key.replace(" /api/me", " /api/agent/*")
       : found.key;
-    const requestId = context?.requestId ?? context?.awsRequestId ?? null;
+    const requestId = context?.requestId ?? null;
     let status = 500;
     let connectMs = 0;
     let timedOut = false;
@@ -547,8 +538,8 @@ export function makeHandler({
       status = res?.statusCode ?? 200;
       return res;
     } finally {
-      // A timed-out route may still hold a query. Ending the client
-      // closes the socket, but PostgreSQL notices a closed socket only
+      // A timed-out route may still hold a query. The pool destroys a
+      // busy or failed lease; PostgreSQL notices a closed socket only
       // when it next talks to the client, or at the database's
       // client_connection_check_interval (0186). What bounds the query is
       // its statement_timeout: the invoker's for a tool, and the

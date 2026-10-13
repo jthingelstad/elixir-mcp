@@ -40,8 +40,8 @@ let db, handler;
 
 const get = (p) =>
   handler({
-    rawPath: p,
-    requestContext: { http: { method: "GET" } },
+    path: p,
+    method: "GET",
     headers: {},
   });
 
@@ -320,8 +320,8 @@ test("the picture: a 1200 by 630 PNG, cached a day, and a 404 for no battle", as
 
   const bare = makeHandler({ databaseUrl, secret: "test" });
   const off = await bare({
-    rawPath: `/battle/${id.slice(0, 12)}.png`,
-    requestContext: { http: { method: "GET" } },
+    path: `/battle/${id.slice(0, 12)}.png`,
+    method: "GET",
     headers: {},
   });
   assert.equal(off.statusCode, 503);
@@ -338,8 +338,8 @@ test("the picture's read skips the meetings and the sitting", async () => {
 test("the page without a shell says so rather than guessing", async () => {
   const bare = makeHandler({ databaseUrl, secret: "test" });
   const res = await bare({
-    rawPath: "/battle/ffffffffffff",
-    requestContext: { http: { method: "GET" } },
+    path: "/battle/ffffffffffff",
+    method: "GET",
     headers: {},
   });
   assert.equal(res.statusCode, 503);

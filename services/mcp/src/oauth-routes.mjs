@@ -180,13 +180,9 @@ const html = (statusCode, body) => ({
   body,
 });
 
-/** API Gateway v2 delivers form posts base64-encoded (isBase64Encoded);
- *  JSON usually arrives as text. Decode before parsing, always. */
+/** Native HTTP preserves the raw form text, including repeated fields. */
 export function rawBody(event) {
-  const body = event.body ?? "";
-  return event.isBase64Encoded
-    ? Buffer.from(body, "base64").toString("utf8")
-    : body;
+  return event.body ?? "";
 }
 
 function parseForm(event) {

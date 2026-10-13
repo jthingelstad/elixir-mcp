@@ -62,7 +62,11 @@ import {
 } from "@aws-sdk/client-lambda";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
 import { buildAll } from "./build.mjs";
-import { buildParameters, originRotation } from "./parameters.mjs";
+import {
+  buildParameters,
+  originRotation,
+  webBuildParameters,
+} from "./parameters.mjs";
 import { DEPLOY_USAGE, parseDeployArgs } from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
 import {
@@ -301,10 +305,7 @@ const required = {
   WebApiCodeVersion: codeVersions["web-api"],
   McpCodeVersion: codeVersions.mcp,
   CollectorCodeVersion: codeVersions.collector,
-  WebBuild: createHash("sha256")
-    .update([codeKeys["web-api"], codeKeys.mcp, codeKeys.collector].join("\n"))
-    .digest("hex")
-    .slice(0, 16),
+  ...webBuildParameters(codeKeys),
   WebApiCodeKey: codeKeys["web-api"],
   McpCodeKey: codeKeys.mcp,
   SchedulerCodeKey: codeKeys.scheduler,

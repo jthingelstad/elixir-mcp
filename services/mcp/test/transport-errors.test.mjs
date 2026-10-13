@@ -26,8 +26,8 @@ const handler = makeHandler({
 });
 
 const event = ({ method = "POST", path, headers = {}, body }) => ({
-  rawPath: path,
-  requestContext: { http: { method, sourceIp: "9.9.9.9" } },
+  path,
+  method,
   headers,
   body,
 });
@@ -109,7 +109,7 @@ test("every request leaves one timing line: door, rpc method, tool, status, requ
           params: { name: "game_clock", arguments: {} },
         }),
       }),
-      { awsRequestId: "req-mcp-1" },
+      { requestId: "req-mcp-1" },
     );
     // Not JSON at all: the line still says which door and what status.
     await handler(
@@ -118,7 +118,7 @@ test("every request leaves one timing line: door, rpc method, tool, status, requ
         headers: { "content-type": "application/x-www-form-urlencoded" },
         body: "grant_type=authorization_code&code=x",
       }),
-      { awsRequestId: "req-mcp-2" },
+      { requestId: "req-mcp-2" },
     );
   } finally {
     console.info = realLog;

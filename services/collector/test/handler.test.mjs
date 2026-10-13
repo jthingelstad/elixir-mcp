@@ -9,17 +9,16 @@ import { makeHandler } from "../src/handler.mjs";
 const ADMIN_URL =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
 
-function request(method, path, { body, headers = {}, base64 = false } = {}) {
+function request(method, path, { body, headers = {} } = {}) {
   const raw = body === undefined ? undefined : JSON.stringify(body);
   return {
-    rawPath: path,
-    requestContext: { http: { method } },
+    path,
+    method,
     headers,
     ...(raw === undefined
       ? {}
       : {
-          body: base64 ? Buffer.from(raw).toString("base64") : raw,
-          isBase64Encoded: base64,
+          body: raw,
         }),
   };
 }
@@ -91,11 +90,10 @@ test("routes reach the door with the parsed body, connected, and answer its stat
   const res = await handler(
     request("POST", "/api/collector/submit", {
       body: { job_id: 1 },
-      base64: true,
       // The previous secret still passes, for the minutes of a rotation.
       headers: { "x-elixir-origin": "previous-secret" },
     }),
-    { awsRequestId: "req-1", getRemainingTimeInMillis: () => 20_000 },
+    { requestId: "req-1", remainingMs: () => 20_000 },
   );
   assert.equal(res.statusCode, 429);
   assert.equal(res.headers["retry-after"], "7");
@@ -128,7 +126,7 @@ test("a door that runs past the soft deadline is answered 504 and logged as time
   const handler = makeHandler({ databaseUrl: ADMIN_URL, door });
   const res = await handler(request("GET", "/api/collector/config"), {
     // 1.5 s margin: the door gets about a quarter of a second.
-    getRemainingTimeInMillis: () => 1750,
+    remainingMs: () => 1750,
   });
   assert.equal(res.statusCode, 504);
   assert.deepEqual(JSON.parse(res.body), { error: "timeout" });

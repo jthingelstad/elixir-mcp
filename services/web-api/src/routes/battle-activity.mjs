@@ -95,7 +95,7 @@ export function battleActivityRoutes({ resolveAccount }) {
       let tag;
       try {
         tag = normalizeTag(
-          `#${decodeURIComponent((event.path ?? event.rawPath).split("/").pop() ?? "").replace(/^#/, "")}`,
+          `#${decodeURIComponent(event.path.split("/").pop() ?? "").replace(/^#/, "")}`,
         );
       } catch (err) {
         if (err instanceof InvalidTagError || err instanceof URIError)

@@ -1,9 +1,9 @@
 /**
  * Proof that a request came THROUGH CloudFront rather than straight at the
- * API Gateway origin. The distribution attaches a shared secret as a custom
- * origin header; a caller who found the execute-api hostname cannot. Without
- * it, a direct hit could forge cloudfront-viewer-address and poison the
- * viewer_ip columns in mcp_call_audit and credential_refusal.
+ * native Web Function origin. CloudFront's OAC signs the origin request;
+ * each endpoint permits only this distribution. The shared custom header
+ * is a second check in the application before it trusts viewer metadata
+ * for mcp_call_audit and credential_refusal.
  *
  * Unset secret = the check is off (local development and tests). Set it and
  * every request must carry it; the comparison is constant-time.
@@ -42,9 +42,8 @@ export const forbiddenOrigin = () => ({
 });
 
 /**
- * The caller's own address. The Lambda's
- * requestContext.http.sourceIp is the CloudFront edge node that forwarded
- * the request, shared by everyone behind that edge. The viewer's address arrives in cloudfront-viewer-address
+ * The caller's own address. A socket's peer is a CloudFront edge, shared by
+ * everyone behind that edge. The viewer's address arrives in cloudfront-viewer-address
  * ("1.2.3.4:53422", IPv6 as "2001:db8::1:53422" or bracketed), forwarded
  * by every door behavior's origin request policy and trustworthy because
  * originAllowed proves the request came through CloudFront. The port is

@@ -276,8 +276,33 @@ function edgeRouter() {
   return (uri) => handler({ request: { uri } }).uri;
 }
 
+/** The native app bypasses the static router through an explicit behavior. */
+function assertNativeApp(uri) {
+  const template = readFileSync(
+    path.join(repoRoot, "infra/template.yaml"),
+    "utf8",
+  );
+  const start = template.indexOf("        CacheBehaviors:");
+  const end = template.indexOf("\n  SpaRouter:", start);
+  const behavior = template
+    .slice(start, end)
+    .split("\n          - PathPattern: ")
+    .slice(1)
+    .find((block) => {
+      const pattern = block.slice(0, block.indexOf("\n")).trim();
+      return (
+        pattern === uri ||
+        (pattern.endsWith("/*") && uri.startsWith(pattern.slice(0, -1)))
+      );
+    });
+  assert.ok(behavior, `${uri} has a behavior`);
+  assert.match(behavior, /TargetOriginId: api\n/, `${uri} uses native HTML`);
+  assert.match(behavior, /CachePolicyId: !Ref WebPrivateCachePolicy/);
+  assert.doesNotMatch(behavior, /FunctionAssociations/);
+}
+
 test(
-  "the edge router sends /console, /ladder and /clan to their apps and every other page to its document",
+  "native behaviors own /console, /ladder and /clan; the static router resolves content documents",
   { skip },
   async () => {
     const route = edgeRouter();
@@ -306,18 +331,17 @@ test(
       "/console/explore/player/%2320JJJ2CCRU",
       "/console/data/dashboard",
     ])
-      assert.equal(route(uri), "/app.html", `${uri} is not the app`);
+      assertNativeApp(uri);
     assert.ok(!existsSync(path.join(out, "console")));
     assert.equal(route("/consoles"), "/consoles/index.html");
 
-    // Ladder is a section of the same app beside the Console
-    // (2026-09-28): its prefix is the app shell too, and only its prefix.
+    // Ladder uses native rendering for its prefix alone.
     for (const uri of ["/ladder", "/ladder/", "/ladder/days", "/ladder/decks"])
-      assert.equal(route(uri), "/app.html", `${uri} is not the app`);
+      assertNativeApp(uri);
     assert.ok(!existsSync(path.join(out, "ladder")));
     assert.equal(route("/ladders"), "/ladders/index.html");
 
-    // Clan always uses the common app shell, including when features are disabled.
+    // Clan's prefix uses the shared native app, including when features are disabled.
     for (const uri of [
       "/clan",
       "/clan/",
@@ -325,12 +349,9 @@ test(
       "/clan/J2RGCRVG/actions",
       "/clan/verify",
     ]) {
-      assert.equal(route(uri), "/app.html", `${uri} is not shared Clan`);
+      assertNativeApp(uri);
     }
-    assert.equal(
-      route("/clan/assets/index-a1b2c3d4.js"),
-      "/clan/assets/index-a1b2c3d4.js",
-    );
+    assertNativeApp("/clan/assets/index-a1b2c3d4.js");
     assert.ok(!existsSync(path.join(out, "clan")));
     assert.equal(route("/clans"), "/clans/index.html");
 
@@ -384,7 +405,7 @@ test(
     // The Console's own button is the app, on this origin.
     const product = FAMILY_PRODUCTS.find((p) => p.key === "console");
     assert.equal(product.href, `${FAMILY_ORIGIN}/console`);
-    assert.equal(edgeRouter()("/console"), "/app.html");
+    assertNativeApp("/console");
   },
 );
 

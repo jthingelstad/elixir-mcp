@@ -190,14 +190,13 @@ test("auth: bad, missing, and revoked tokens never pass", async () => {
 });
 
 test("config: contract constants, channel, the update authority, and what doctor needs", async () => {
-  // sourceIp is the CloudFront edge that forwarded the call; the
-  // operator's own address is cloudfront-viewer-address.
+  // The operator's address is CloudFront's viewer metadata, not the
+  // native socket peer (an edge shared by many operators).
   const r = await door.config(db, {
     headers: {
       ...authed(TOKEN_BULK).headers,
       "cloudfront-viewer-address": "203.0.113.7:50412",
     },
-    requestContext: { http: { sourceIp: "130.176.0.9" } },
   });
   assert.equal(r.status, 200);
   assert.equal(r.body.pacing_ms, 1500);

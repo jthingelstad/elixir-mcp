@@ -39,14 +39,13 @@ function event({
   body,
   cookie,
   contractHeader = true,
-  ip = "8.8.4.4",
   viewer = "198.51.100.10:5000",
   country = "US",
   ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
 }) {
   return {
-    rawPath: p,
-    requestContext: { http: { method, sourceIp: ip } },
+    path: p,
+    method,
     headers: {
       ...(cookie ? { cookie } : {}),
       ...(contractHeader ? { "x-elixir-client": "web" } : {}),
@@ -101,14 +100,14 @@ after(async () => {
 
 test("same address: the link opened elsewhere hands the session to the screen that asked", async () => {
   const ask = await handler(
-    event({ path: "/api/auth", body: { email: MEMBER }, ip: "10.0.0.1" }),
+    event({ path: "/api/auth", body: { email: MEMBER } }),
   );
   const { poll_id } = parse(ask);
   assert.match(poll_id, /^[A-Za-z0-9_-]{32,}$/);
 
   // Nothing to collect yet.
   const early = await handler(
-    event({ path: "/api/auth/poll", body: { poll_id }, ip: "10.0.0.1" }),
+    event({ path: "/api/auth/poll", body: { poll_id } }),
   );
   assert.deepEqual(parse(early), { ready: false });
   assert.equal(early.headers["set-cookie"], undefined);
@@ -119,7 +118,6 @@ test("same address: the link opened elsewhere hands the session to the screen th
     event({
       path: "/api/auth/redeem",
       body: { token },
-      ip: "10.0.0.2",
       ua: IPHONE,
     }),
   );
@@ -132,38 +130,31 @@ test("same address: the link opened elsewhere hands the session to the screen th
 
   // The screen that asked collects: a session of its own, once.
   const got = await handler(
-    event({ path: "/api/auth/poll", body: { poll_id }, ip: "10.0.0.1" }),
+    event({ path: "/api/auth/poll", body: { poll_id } }),
   );
   assert.equal(got.statusCode, 200);
   assert.deepEqual(parse(got), { authenticated: true, ready: true });
   const cookie = cookieOf(got);
   assert.notEqual(cookie, cookieOf(redeem), "two screens, two sessions");
-  const me = await handler(
-    event({ method: "GET", path: "/api/me", cookie, ip: "10.0.0.1" }),
-  );
+  const me = await handler(event({ method: "GET", path: "/api/me", cookie }));
   assert.equal(parse(me).authenticated, true);
 
   const again = await handler(
-    event({ path: "/api/auth/poll", body: { poll_id }, ip: "10.0.0.1" }),
+    event({ path: "/api/auth/poll", body: { poll_id } }),
   );
   assert.deepEqual(parse(again), { ready: false }, "collected exactly once");
 });
 
 test("different address: the redeeming screen is asked, and nothing moves until it says yes", async () => {
-  await handler(
-    event({ path: "/api/auth", body: { email: MEMBER }, ip: "10.0.1.1" }),
-  );
+  await handler(event({ path: "/api/auth", body: { email: MEMBER } }));
   const { poll_id } = parse(
-    await handler(
-      event({ path: "/api/auth", body: { email: MEMBER }, ip: "10.0.1.1" }),
-    ),
+    await handler(event({ path: "/api/auth", body: { email: MEMBER } })),
   );
   const { token } = sentEmails.at(-1);
   const redeem = await handler(
     event({
       path: "/api/auth/redeem",
       body: { token },
-      ip: "10.0.1.2",
       viewer: "203.0.113.99:1",
       country: "DE",
     }),
@@ -176,19 +167,16 @@ test("different address: the redeeming screen is asked, and nothing moves until 
   assert.ok(body.handoff.started.at);
 
   const waiting = await handler(
-    event({ path: "/api/auth/poll", body: { poll_id }, ip: "10.0.1.1" }),
+    event({ path: "/api/auth/poll", body: { poll_id } }),
   );
   assert.deepEqual(parse(waiting), { ready: false });
 
   // A confirm from somebody else's session is a no-op.
-  await handler(
-    event({ path: "/api/auth", body: { email: OTHER }, ip: "10.0.1.3" }),
-  );
+  await handler(event({ path: "/api/auth", body: { email: OTHER } }));
   const otherRedeem = await handler(
     event({
       path: "/api/auth/redeem",
       body: { token: sentEmails.at(-1).token },
-      ip: "10.0.1.3",
     }),
   );
   const foreign = await handler(
@@ -196,12 +184,11 @@ test("different address: the redeeming screen is asked, and nothing moves until 
       path: "/api/auth/handoff",
       body: { confirm: body.handoff.confirm },
       cookie: cookieOf(otherRedeem),
-      ip: "10.0.1.3",
     }),
   );
   assert.equal(foreign.statusCode, 400);
   const still = await handler(
-    event({ path: "/api/auth/poll", body: { poll_id }, ip: "10.0.1.1" }),
+    event({ path: "/api/auth/poll", body: { poll_id } }),
   );
   assert.deepEqual(parse(still), { ready: false });
 
@@ -211,12 +198,11 @@ test("different address: the redeeming screen is asked, and nothing moves until 
       path: "/api/auth/handoff",
       body: { confirm: body.handoff.confirm },
       cookie: cookieOf(redeem),
-      ip: "10.0.1.2",
     }),
   );
   assert.equal(yes.statusCode, 200, yes.body);
   const got = await handler(
-    event({ path: "/api/auth/poll", body: { poll_id }, ip: "10.0.1.1" }),
+    event({ path: "/api/auth/poll", body: { poll_id } }),
   );
   assert.deepEqual(parse(got), { authenticated: true, ready: true });
   assert.match(got.headers["set-cookie"], /^__Host-elixir_session=/);
@@ -224,7 +210,7 @@ test("different address: the redeeming screen is asked, and nothing moves until 
 
 test("the answer's shape is the same for an unknown address, and a foreign poll id collects nothing", async () => {
   const ask = await handler(
-    event({ path: "/api/auth", body: { email: NOBODY }, ip: "10.0.2.1" }),
+    event({ path: "/api/auth", body: { email: NOBODY } }),
   );
   const body = parse(ask);
   assert.equal(body.ok, true);
@@ -234,7 +220,6 @@ test("the answer's shape is the same for an unknown address, and a foreign poll 
     event({
       path: "/api/auth/poll",
       body: { poll_id: body.poll_id },
-      ip: "10.0.2.1",
     }),
   );
   assert.deepEqual(parse(poll), { ready: false });
@@ -244,16 +229,12 @@ test("the sixth sign-in mail in an hour is answered plainly, approved or not", a
   const email = "limited-handoff@example.com";
   for (let i = 0; i < 5; i += 1) {
     const res = parse(
-      await handler(
-        event({ path: "/api/auth", body: { email }, ip: "10.0.3.1" }),
-      ),
+      await handler(event({ path: "/api/auth", body: { email } })),
     );
     assert.equal(res.limited, undefined);
   }
   const sixth = parse(
-    await handler(
-      event({ path: "/api/auth", body: { email }, ip: "10.0.3.1" }),
-    ),
+    await handler(event({ path: "/api/auth", body: { email } })),
   );
   assert.equal(sixth.ok, true);
   assert.equal(sixth.limited, true);
@@ -267,7 +248,6 @@ test("the device list shows every live session, this one marked, and revokes the
     event({
       path: "/api/auth",
       body: { email: OTHER },
-      ip: "10.0.4.1",
       viewer: "10.0.4.1:5000",
     }),
   );
@@ -278,7 +258,6 @@ test("the device list shows every live session, this one marked, and revokes the
     event({
       path: "/api/auth/code",
       body: { email: OTHER, code },
-      ip: "10.0.4.1",
     }),
   );
   assert.equal(mac.statusCode, 200, mac.body);
@@ -292,7 +271,6 @@ test("the device list shows every live session, this one marked, and revokes the
     event({
       path: "/api/auth",
       body: { email: OTHER },
-      ip: "10.0.4.2",
       viewer: "10.0.4.2:5000",
     }),
   );
@@ -300,7 +278,6 @@ test("the device list shows every live session, this one marked, and revokes the
     event({
       path: "/api/auth/redeem",
       body: { token: sentEmails.at(-1).token },
-      ip: "10.0.4.2",
       viewer: "198.51.100.77:2",
       country: "CA",
       ua: IPHONE,
@@ -314,7 +291,6 @@ test("the device list shows every live session, this one marked, and revokes the
         method: "GET",
         path: "/api/me/sessions",
         cookie: cookieOf(mac),
-        ip: "10.0.4.1",
       }),
     ),
   );

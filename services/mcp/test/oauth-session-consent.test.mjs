@@ -68,8 +68,8 @@ const event = ({
   cookie,
   headers = {},
 }) => ({
-  rawPath: p,
-  requestContext: { http: { method, sourceIp: "9.9.9.9" } },
+  path: p,
+  method,
   queryStringParameters: query,
   headers: {
     ...(cookie ? { cookie: `${SESSION_COOKIE_NAME}=${cookie}` } : {}),

@@ -138,8 +138,8 @@ test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth
     log: {},
   });
   const event = {
-    rawPath: "/api/clan/me",
-    requestContext: { http: { method: "GET" } },
+    path: "/api/clan/me",
+    method: "GET",
   };
   const first = await handler(event),
     second = await handler(event);
@@ -147,8 +147,7 @@ test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth
   assert.equal(JSON.parse(second.body).selected.role, "member");
   assert.equal(first.cookies, undefined);
   assert.equal(
-    (await handler({ ...event, rawPath: "/api/clan/auth/callback" }))
-      .statusCode,
+    (await handler({ ...event, path: "/api/clan/auth/callback" })).statusCode,
     410,
   );
   const signedOut = createHandler({
@@ -161,7 +160,7 @@ test("shared identity uses fresh gate reads and neither legacy cookies nor OAuth
   });
   const refused = await signedOut({
     ...event,
-    cookies: ["elixir-clan-session=anything"],
+    headers: { cookie: "elixir-clan-session=anything" },
   });
   assert.equal(refused.statusCode, 401);
   assert.equal(refused.cookies, undefined);

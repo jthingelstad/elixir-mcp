@@ -186,9 +186,9 @@ export function createTestAccount() {
   let context;
   const identity = {
     async load(event) {
-      const signedIn = event.cookies?.includes(
-        "__Host-elixir_session=test-person",
-      );
+      const signedIn = String(event.headers?.cookie ?? "")
+        .split(/;\s*/)
+        .includes("__Host-elixir_session=test-person");
       if (!signedIn) return null;
       context = createAccountContext({
         account: { kind: "person", accountId: "test-person" },
@@ -243,13 +243,17 @@ export function harness(opts = {}) {
 
 export function req(method, path, { query, cookies, body } = {}) {
   return {
-    rawPath: path,
-    requestContext: { http: { method } },
+    path,
+    method,
     queryStringParameters: query,
     body,
-    cookies: cookies
-      ? Object.entries(cookies).map(([k, v]) => `${k}=${v}`)
-      : [],
+    headers: {
+      cookie: cookies
+        ? Object.entries(cookies)
+            .map(([k, v]) => `${k}=${v}`)
+            .join("; ")
+        : "",
+    },
   };
 }
 

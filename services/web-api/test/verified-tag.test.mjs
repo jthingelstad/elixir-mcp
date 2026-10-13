@@ -47,8 +47,8 @@ const cookieFor = async (accountId, hash) =>
 
 const call = (cookie, method, path, body) =>
   handler({
-    rawPath: path,
-    requestContext: { http: { method } },
+    path,
+    method,
     headers: { cookie, "x-elixir-client": "web" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });

@@ -13,8 +13,8 @@ const databaseUrl = adminUrl.replace(/\/postgres$/, `/${name}`);
 let db, handler, cookie, accountId, otherId;
 const read = (authenticated = true, tag = null) =>
   handler({
-    rawPath: "/api/me/first-answer",
-    requestContext: { http: { method: "GET" } },
+    path: "/api/me/first-answer",
+    method: "GET",
     headers: authenticated ? { cookie } : {},
     queryStringParameters: tag == null ? {} : { player_tag: tag },
   });

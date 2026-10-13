@@ -43,8 +43,8 @@ function event({
   // As CloudFront delivers it: the caller in cloudfront-viewer-address,
   // one shared edge node in sourceIp.
   return {
-    rawPath: p,
-    requestContext: { http: { method, sourceIp: "130.176.0.9" } },
+    path: p,
+    method,
     queryStringParameters: query,
     headers: { "cloudfront-viewer-address": `${ip}:50412`, ...headers },
     body: form ? new URLSearchParams(form).toString() : body,
@@ -606,11 +606,14 @@ test("DCR validates redirect uris and rate-limits per IP", async () => {
   assert.equal(other.statusCode, 201);
 });
 
-test("base64-encoded form bodies (API Gateway v2 reality) parse correctly", async () => {
+test("native form bodies preserve encoded email and consent fields", async () => {
   const reg = await handler(
     event({
       path: "/oauth/register",
-      body: JSON.stringify({ client_name: "B64", redirect_uris: [REDIRECT] }),
+      body: JSON.stringify({
+        client_name: "Native form",
+        redirect_uris: [REDIRECT],
+      }),
     }),
   );
   const { client_id } = JSON.parse(reg.body);
@@ -630,17 +633,16 @@ test("base64-encoded form bodies (API Gateway v2 reality) parse correctly", asyn
     resource: RESOURCE,
   }).toString();
   const res = await handler({
-    rawPath: "/oauth/authorize",
-    requestContext: { http: { method: "POST", sourceIp: "7.7.7.7" } },
+    path: "/oauth/authorize",
+    method: "POST",
     headers: {},
-    body: Buffer.from(form).toString("base64"),
-    isBase64Encoded: true,
+    body: form,
   });
   assert.equal(res.statusCode, 200, res.body);
   assert.match(
     res.body,
     /A 6-digit code is on its way to nobody@example.com/,
-    "client_id resolved from decoded body",
+    "client_id resolved from the raw form body",
   );
 });
 
@@ -669,8 +671,8 @@ test("a revoked key being presented is recorded, named, and counted", async () =
 
   const call = () =>
     handler({
-      rawPath: "/mcp",
-      requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+      path: "/mcp",
+      method: "POST",
       headers: {
         authorization: `Bearer ${raw}`,
         "cloudfront-viewer-address": "203.0.113.7:51899",
@@ -705,8 +707,8 @@ test("a revoked key being presented is recorded, named, and counted", async () =
 test("a key that names nobody is refused and not written down", async () => {
   const raw = "svt_never_issued_by_anyone";
   const response = await handler({
-    rawPath: "/mcp",
-    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    path: "/mcp",
+    method: "POST",
     headers: { authorization: `Bearer ${raw}` },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
   });
@@ -724,8 +726,8 @@ test("a key that names nobody is refused and not written down", async () => {
 test("an unknown OAuth access token is refused with 401 and a challenge, never 500", async () => {
   const raw = "eat_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
   const response = await handler({
-    rawPath: "/mcp",
-    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    path: "/mcp",
+    method: "POST",
     headers: { authorization: `Bearer ${raw}` },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
   });
@@ -770,8 +772,8 @@ test("an expired OAuth access token is refused with 401 and attributed to its fa
     [hash],
   );
   const response = await handler({
-    rawPath: "/mcp",
-    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    path: "/mcp",
+    method: "POST",
     headers: { authorization: `Bearer ${minted.accessToken}` },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
   });
@@ -790,7 +792,7 @@ test("an expired OAuth access token is refused with 401 and attributed to its fa
   assert.equal(rows[0].account_id, accountId, "attributed through the family");
 });
 
-// A direct execute-api hit could forge cloudfront-viewer-address and poison
+// The application origin check also refuses a forged cloudfront-viewer-address to protect
 // viewer_ip in mcp_call_audit / credential_refusal. With a secret set, the
 // door answers only requests CloudFront stamped.
 test("with an origin secret set, the MCP door refuses requests that did not come through CloudFront", async () => {
@@ -801,8 +803,8 @@ test("with an origin secret set, the MCP door refuses requests that did not come
     originSecret: "s3cret-origin",
   });
   const req = (headers) => ({
-    rawPath: "/mcp",
-    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    path: "/mcp",
+    method: "POST",
     headers: { authorization: "Bearer svt_nope", ...headers },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
   });
@@ -819,8 +821,8 @@ test("with an origin secret set, the MCP door refuses requests that did not come
   );
   // The metadata documents are gated too: nothing at this origin is public.
   const meta = await gated({
-    rawPath: "/.well-known/oauth-authorization-server",
-    requestContext: { http: { method: "GET" } },
+    path: "/.well-known/oauth-authorization-server",
+    method: "GET",
     headers: {},
   });
   assert.equal(meta.statusCode, 403);

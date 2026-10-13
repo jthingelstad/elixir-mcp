@@ -26,6 +26,7 @@ test("OPERATIONS.md keeps its sections, in order", () => {
       "Incident authority",
       "Clan maintenance",
       "Restore rehearsal",
+      "Deployment history",
     ],
   );
 });

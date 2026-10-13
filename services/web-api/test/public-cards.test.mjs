@@ -17,8 +17,8 @@ let db, handler;
 
 const get = async (p) => {
   const res = await handler({
-    rawPath: p,
-    requestContext: { http: { method: "GET" } },
+    path: p,
+    method: "GET",
     headers: {},
   });
   return { status: res.statusCode, body: JSON.parse(res.body) };

@@ -50,7 +50,9 @@ asked (`--acceptance` or `--acceptance=<family>`).
 - **Lanes:** bundles are named by content, so a change that touches no
   Lambda and not the template takes the site lane and skips migrations and
   the stack (`scripts/lib/deploy-lane.mjs`; `--platform` overrides). Nothing
-  a Lambda carries may read the clock at build time.
+  a Lambda carries may read the clock at build time. Each native door has
+  its own build fingerprint; a one-door code change keeps the other
+  revisions unchanged, while shared configuration still updates its users.
 - **Vocabulary:** the import reads `../cr-agent-api-docs` and refuses an
   uncommitted `data/card-roles.json` or `data/deck-aliases.json`; it also
   refreshes `fixtures/card-roles.snapshot.json`, which is committed with the

@@ -56,8 +56,8 @@ const ALT = "#8GRUV2Q0";
 
 const call = async (method, p, { body } = {}) => {
   const res = await handler({
-    rawPath: p,
-    requestContext: { http: { method } },
+    path: p,
+    method,
     headers: {},
     body: body === undefined ? undefined : JSON.stringify(body),
   });

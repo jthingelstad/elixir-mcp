@@ -40,8 +40,8 @@ let handler;
 
 const call = () =>
   handler({
-    rawPath: "/mcp",
-    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    path: "/mcp",
+    method: "POST",
     headers: { authorization: `Bearer ${KEY}` },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
   });
@@ -119,8 +119,8 @@ test("a key with its own ceiling spends from its own bucket, not its owner's (20
     [crypto.createHash("sha256").update(plain).digest("hex")],
   );
   const res = await handler({
-    rawPath: "/mcp",
-    requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+    path: "/mcp",
+    method: "POST",
     headers: { authorization: `Bearer ${plain}` },
     body: JSON.stringify({ jsonrpc: "2.0", id: 3, method: "initialize" }),
   });
@@ -171,8 +171,8 @@ test("each agent has its own hour; the owner's and its siblings' are untouched (
   }
   const agentCall = (a) =>
     handler({
-      rawPath: `/a/${a.pub}/mcp`,
-      requestContext: { http: { method: "POST", sourceIp: "1.1.1.1" } },
+      path: `/a/${a.pub}/mcp`,
+      method: "POST",
       headers: { authorization: `Bearer ${a.key}` },
       body: JSON.stringify({ jsonrpc: "2.0", id: 4, method: "initialize" }),
     });

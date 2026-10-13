@@ -25,15 +25,15 @@ let db, handler, cookie, key, readOnlyKey;
 
 const admin = (body) =>
   handler({
-    rawPath: "/api/admin/integrations",
-    requestContext: { http: { method: "POST" } },
+    path: "/api/admin/integrations",
+    method: "POST",
     headers: { cookie, "x-elixir-client": "web" },
     body: JSON.stringify(body),
   });
 const mail = (body, token = key) =>
   handler({
-    rawPath: `/api/v1/clans/${encodeURIComponent(CLAN)}/mail`,
-    requestContext: { http: { method: "POST" } },
+    path: `/api/v1/clans/${encodeURIComponent(CLAN)}/mail`,
+    method: "POST",
     headers: { authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   });

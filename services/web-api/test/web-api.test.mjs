@@ -34,8 +34,8 @@ function event({
   ip = "8.8.4.4",
 }) {
   return {
-    rawPath: p,
-    requestContext: { http: { method, sourceIp: ip } },
+    path: p,
+    method,
     headers: {
       ...(cookie ? { cookie } : {}),
       // The caller, as CloudFront delivers it: limits key on this.
@@ -2424,7 +2424,7 @@ test("a staged collector credential expires, and is claimed by POST only", async
   const live = await stage("stage-live", "now() + interval '72 hours'");
   const viaGet = await handler({
     ...event({ path: "/api/me/gateway-env", cookie, body: undefined }),
-    requestContext: { http: { method: "GET", sourceIp: "8.8.4.4" } },
+    method: "GET",
     queryStringParameters: { id: live },
   });
   assert.notEqual(viaGet.statusCode, 200, "a GET never claims");
@@ -2892,8 +2892,8 @@ test("with an origin secret set, the site API refuses requests that did not come
     originSecret: "s3cret-origin",
   });
   const status = (headers = {}) => ({
-    rawPath: "/api/public/status",
-    requestContext: { http: { method: "GET", sourceIp: "1.1.1.1" } },
+    path: "/api/public/status",
+    method: "GET",
     headers,
   });
   assert.equal((await gated(status())).statusCode, 403);
@@ -3335,7 +3335,7 @@ test("an operator picks their collector's card; a card is one live collector's",
 });
 
 test("a route that outlives the soft deadline answers 504 and still logs its route", async () => {
-  // The Lambda context says 1 ms is left after the margin, so the route
+  // The native request context says 1 ms is left after the margin, so the route
   // cannot finish. Without the deadline the runtime would kill the
   // function and the timing line — the only thing that names the
   // route — would never be written.
@@ -3346,7 +3346,7 @@ test("a route that outlives the soft deadline answers 504 and still logs its rou
   try {
     res = await handler(
       event({ method: "GET", path: "/api/public/status", body: undefined }),
-      { awsRequestId: "req-deadline", getRemainingTimeInMillis: () => 1501 },
+      { requestId: "req-deadline", remainingMs: () => 1501 },
     );
   } finally {
     console.info = realLog;
@@ -3367,7 +3367,7 @@ test("a request that finishes carries its request id on the timing line", async 
   try {
     await handler(
       event({ method: "GET", path: "/api/public/status", body: undefined }),
-      { awsRequestId: "req-fine", getRemainingTimeInMillis: () => 20_000 },
+      { requestId: "req-fine", remainingMs: () => 20_000 },
     );
   } finally {
     console.info = realLog;

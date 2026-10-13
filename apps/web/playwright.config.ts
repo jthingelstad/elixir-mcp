@@ -1,8 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Journeys against the BUILT tree, behind the same document-or-shell
- * rule the edge applies (infra/scripts/serve-site.mjs). /api/* is
+ * Client journeys against the BUILT tree and app-shell fixture
+ * (infra/scripts/serve-site.mjs). Native SSR/hydration has its own server
+ * in e2e/native-ssr.spec.ts. /api/* is
  * answered by each journey's fixtures (e2e/fixtures.ts), so this runs
  * without a database and exercises the real bundle, the real router,
  * the real chunks. `npm run e2e` from the repo root.
