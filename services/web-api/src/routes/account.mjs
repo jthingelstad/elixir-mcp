@@ -1,5 +1,6 @@
 import {
   addPlayer,
+  setRelationship,
   poolLimits,
   poolOwner,
   pooledUsage,
@@ -94,14 +95,16 @@ export function accountRoutes({
       const REL = ["alt", "friend", "watching"];
       if (!REL.includes(body.relationship))
         return json(400, { error: "bad_relationship", allowed: REL });
-      const { rowCount } = await db.query(
-        `update claim set relationship = $3
-          where account_id = $1 and player_tag = $2 and not is_primary`,
-        [account.accountId, tag, body.relationship],
-      );
+      const r = await setRelationship(db, account, {
+        tag,
+        relationship: body.relationship,
+      });
+      // An alt on a tag another account has verified (#556).
+      if (r.error === "verified_elsewhere")
+        return json(409, { error: r.error, message: r.message });
       // No row means either you never added this tag, or it is your primary
       // -- and demoting a primary by renaming it would leave you with none.
-      if (rowCount === 0) return json(404, { error: "not_found_or_primary" });
+      if (!r.ok) return json(404, { error: "not_found_or_primary" });
       return json(200, { ok: true, relationship: body.relationship });
     }
     if (action === "remove") {
@@ -134,6 +137,9 @@ export function accountRoutes({
     }
     if (!r.ok && r.error === "not_entitled")
       return json(403, { error: "not_entitled" });
+    // A tag another account has verified (#556): the one answer.
+    if (!r.ok && r.error === "verified_elsewhere")
+      return json(409, { error: r.error, message: r.message });
     if (!r.ok) return json(404, { error: "not_found" });
     // claims logs recording_started; logging it here too wrote it twice.
     const first = r.added
@@ -320,10 +326,40 @@ export function accountRoutes({
           order by a.created_at`,
         [account.accountId],
       );
+      // A self claim that ended because another account verified its tag,
+      // or a signup tag refused for it (#556): said where the primary is
+      // shown while the account still has no primary and has added
+      // nothing since. Never names the other account.
+      const noPrimary = !claims.rows.some((c) => c.is_primary);
+      const { rows: notice } = noPrimary
+        ? await db.query(
+            `select e.kind, e.detail->>'player_tag' as player_tag, e.created_at as at
+               from account_event e
+              where e.account_id = $1
+                and ((e.kind = 'claim_ended' and (e.detail->>'was_primary')::boolean)
+                     or e.kind = 'claim_refused')
+                and not exists (select 1 from account_event later
+                                 where later.account_id = e.account_id
+                                   and later.kind = 'claim_added'
+                                   and later.event_id > e.event_id)
+              order by e.event_id desc limit 1`,
+            [account.accountId],
+          )
+        : { rows: [] };
       return json(200, {
         authenticated: true,
         features: { clan_internal: clanInternal },
         kind: "person",
+        claim_notice: notice[0]
+          ? {
+              kind:
+                notice[0].kind === "claim_ended"
+                  ? "primary_ended"
+                  : "signup_tag_refused",
+              player_tag: notice[0].player_tag,
+              at: notice[0].at,
+            }
+          : null,
         signals: sig[0],
         is_owner: account.isOwner,
         is_admin: account.isAdmin,

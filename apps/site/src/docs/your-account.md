@@ -8,7 +8,7 @@ navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your tier, and it shows nobody your address."
 console: ["Your profile and tier", "/console/account/profile", "Account settings ▸ Profile"]
-reviewed: "2026-10-12 against contract 11.11.2"
+reviewed: "2026-10-12 against contract 11.11.4"
 ---
 
 # Your account
@@ -32,7 +32,10 @@ does not. A malformed tag is refused on the form before any email is sent,
 and an empty field is fine. The tag is kept with the request and applied
 only after you verify: a new account tracks it as its primary player and
 opens on that player's page. An account opened without one opens on
-[Console ▸ Tracking](/console/account/tracking) with the tag field ready.
+[Console ▸ Tracking](/console/account/tracking) with the tag field ready,
+and so does one whose tag another account has
+[verified](/docs/verify#a-verified-player-is-yours-alone): that player is
+not added, and Tracking says why.
 A tag sent while signing in to an account that already exists is ignored.
 Signup and sign-in share the same email limits.
 
@@ -102,7 +105,12 @@ page moves it there, and the old primary becomes watching. Your primary
 cannot be removed while you track other players: make another one
 primary first. Your primary and your alts are the players you can
 [prove are yours](/docs/verify), and the ones your milestone emails and
-Elixir Clan go by. Friends and watched players are covered in
+Elixir Clan go by. A player another account has verified cannot be your
+primary or an alt; you can still follow it as a friend or watch it. If
+another account verifies a player that was your primary or an alt, it
+leaves your account, your timeline says so, and an ended primary leaves
+you with none: Tracking and the Overview say so until you make another
+player primary or add yours. Friends and watched players are covered in
 [Follow a friend](/docs/follow-a-friend) and
 [Watch any player](/docs/watch-a-player).
 

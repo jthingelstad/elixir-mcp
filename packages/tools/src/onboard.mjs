@@ -83,6 +83,28 @@ export async function onboardAccount(db, accountId) {
         { tag, makePrimary: true, via: "approval" },
       );
       done.player = added.ok === true;
+      // Another account has verified this tag (#556): it is theirs, so it
+      // is not claimed, and its clan is not followed for a player who is
+      // not this person. The account is onboarded with nothing, lands on
+      // Tracking, and its timeline and Tracking say why.
+      if (added.error === "verified_elsewhere") {
+        await db.query(
+          `insert into account_event (account_id, kind, detail) values ($1, 'claim_refused', $2)`,
+          [
+            accountId,
+            JSON.stringify({
+              player_tag: tag,
+              reason: added.error,
+              via: "approval",
+            }),
+          ],
+        );
+        await db.query(
+          `update account set onboarded_at = now() where account_id = $1`,
+          [accountId],
+        );
+        return { ...done, refused: added.error };
+      }
     }
 
     // The clan, only if they track none. Unknown clan leaves the stamp

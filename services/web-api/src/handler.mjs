@@ -318,7 +318,10 @@ export function makeHandler({
     const firstUse =
       opened?.created ||
       onboarded?.player === true ||
-      onboarded?.skipped === "no_requested_tag";
+      onboarded?.skipped === "no_requested_tag" ||
+      // A signup tag another account has verified (#556): Tracking, which
+      // says why.
+      Boolean(onboarded?.refused);
     const landing = firstUse
       ? {
           new_account: {

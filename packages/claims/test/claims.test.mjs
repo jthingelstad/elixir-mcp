@@ -18,6 +18,9 @@ import {
   followClanForPlayer,
   pooledUsage,
   setAgentStatus,
+  setRelationship,
+  markVerified,
+  VERIFIED_ELSEWHERE,
 } from "../src/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -842,4 +845,203 @@ test("every account whose primary it is follows; nobody else", async () => {
   await addPlayer(db, bob, { tag: A, via: "console" });
   assert.equal((await follows(alice)).length, 1);
   assert.deepEqual(await follows(bob), [], "A is bob's watched player");
+});
+
+// ---------------------------------------------------------------- #556
+// A verified tag is its owner's (Jamie, 2026-10-12): no other account may
+// claim it as itself, and verifying ends the claims that did.
+
+/** Verify `tag` for `acct` the way Verify's poll does: inside its own
+ *  transaction, after the claim exists. */
+async function verify(acct, tag) {
+  await db.query("begin");
+  try {
+    const r = await markVerified(db, {
+      accountId: acct.accountId,
+      tag,
+      method: "deck_battle",
+      via: "test",
+    });
+    await db.query("commit");
+    return r;
+  } catch (err) {
+    await db.query("rollback");
+    throw err;
+  }
+}
+
+const relOf = async (acct, tag) =>
+  (
+    await db.query(
+      `select relationship, is_primary from claim where account_id = $1 and player_tag = $2`,
+      [acct.accountId, tag],
+    )
+  ).rows[0] ?? null;
+
+const events = async (acct, kind) =>
+  (
+    await db.query(
+      `select detail from account_event where account_id = $1 and kind = $2 order by event_id`,
+      [acct.accountId, kind],
+    )
+  ).rows.map((r) => r.detail);
+
+test("a self claim on a tag another account verified is refused on every shape of add", async () => {
+  await addPlayer(db, bob, { tag: A, via: "test" });
+  assert.equal((await verify(bob, A)).verified, true);
+
+  // A first player with no relationship is a claim to be them.
+  const first = await addPlayer(db, alice, { tag: A, via: "test" });
+  assert.deepEqual(first, { ok: false, ...VERIFIED_ELSEWHERE });
+  assert.match(first.message, /sign in to the account that verified it/);
+  for (const ask of [
+    { makePrimary: true },
+    { relationship: "alt" },
+    { relationship: "primary" },
+  ]) {
+    const r = await addPlayer(db, alice, { tag: A, via: "test", ...ask });
+    assert.equal(r.error, "verified_elsewhere", JSON.stringify(ask));
+  }
+  assert.deepEqual(await claims(alice), [], "nothing was written");
+
+  // With a primary of her own, a plain add is a watched player: allowed.
+  await addPlayer(db, alice, { tag: B, via: "test" });
+  const plain = await addPlayer(db, alice, { tag: A, via: "test" });
+  assert.equal(plain.ok, true);
+  assert.deepEqual(await relOf(alice, A), {
+    relationship: "watching",
+    is_primary: false,
+  });
+  // Making it primary, or an alt, is still refused, and B stays primary.
+  const promote = await addPlayer(db, alice, {
+    tag: A,
+    makePrimary: true,
+    via: "test",
+  });
+  assert.equal(promote.error, "verified_elsewhere");
+  assert.equal((await relOf(alice, B)).is_primary, true);
+  const alt = await setRelationship(db, alice, {
+    tag: A,
+    relationship: "alt",
+  });
+  assert.deepEqual(alt, { ok: false, ...VERIFIED_ELSEWHERE });
+  assert.equal((await relOf(alice, A)).relationship, "watching");
+  const friend = await setRelationship(db, alice, {
+    tag: A,
+    relationship: "friend",
+  });
+  assert.deepEqual(friend, { ok: true, relationship: "friend" });
+});
+
+test("a first player named friend or watching on a verified tag is added as that, never the primary", async () => {
+  await addPlayer(db, bob, { tag: A, via: "test" });
+  await verify(bob, A);
+  const r = await addPlayer(db, alice, {
+    tag: A,
+    relationship: "friend",
+    via: "test",
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.isPrimary, false);
+  assert.deepEqual(await relOf(alice, A), {
+    relationship: "friend",
+    is_primary: false,
+  });
+  // Her next player, with no relationship, is not "first" any more.
+  const next = await addPlayer(db, alice, { tag: C, via: "test" });
+  assert.equal(next.isPrimary, false);
+});
+
+test("the verified owner's own re-add, make primary, alt and re-verify are unaffected", async () => {
+  await addPlayer(db, bob, { tag: A, via: "test" });
+  await addPlayer(db, bob, { tag: C, relationship: "alt", via: "test" });
+  await verify(bob, A);
+  await verify(bob, C);
+  const again = await addPlayer(db, bob, { tag: A, via: "test" });
+  assert.equal(again.ok, true);
+  assert.equal(again.added, false);
+  const swap = await addPlayer(db, bob, {
+    tag: C,
+    makePrimary: true,
+    via: "test",
+  });
+  assert.equal(swap.ok, true);
+  assert.equal((await relOf(bob, C)).is_primary, true);
+  assert.deepEqual(
+    await setRelationship(db, bob, { tag: A, relationship: "alt" }),
+    { ok: true, relationship: "alt" },
+  );
+  const re = await verify(bob, A);
+  assert.deepEqual(re, { verified: true, ended: [] });
+  assert.deepEqual(await events(bob, "claim_ended"), []);
+});
+
+test("verifying ends every other account's primary or alt on the tag, keeps friends and watchers, and promotes nothing", async () => {
+  const carol = await account(`carol-${Math.random()}`, { slots: 10 });
+  const dave = await account(`dave-${Math.random()}`, { slots: 10 });
+  // Alice holds A as her primary and also tracks C; Carol holds A as an
+  // alt; Dave follows A as a friend; Bob is about to prove A.
+  await addPlayer(db, alice, { tag: A, via: "test" });
+  await addPlayer(db, alice, { tag: C, via: "test" });
+  await addPlayer(db, carol, { tag: D, via: "test" });
+  await addPlayer(db, carol, { tag: A, relationship: "alt", via: "test" });
+  await addPlayer(db, dave, { tag: D, via: "test" });
+  await addPlayer(db, dave, { tag: A, relationship: "friend", via: "test" });
+  await addPlayer(db, bob, { tag: A, via: "test" });
+  const { rows: challenge } = await db.query(
+    `insert into claim_challenge (account_id, player_tag, target_card_ids, expires_at)
+     values ($1, $2, '{1,2,3,4,5,6,7,8}', now() + interval '1 hour') returning challenge_id`,
+    [alice.accountId, A],
+  );
+
+  const r = await verify(bob, A);
+  assert.equal(r.verified, true);
+  assert.deepEqual(
+    r.ended
+      .map((e) => [e.account_id === alice.accountId, e.was_primary])
+      .sort(),
+    [
+      [false, false],
+      [true, true],
+    ],
+  );
+
+  // Alice: A is gone, C stays and is NOT promoted; she has no primary.
+  assert.deepEqual(await claims(alice), [{ player_tag: C, is_primary: false }]);
+  assert.deepEqual(await events(alice, "claim_ended"), [
+    {
+      player_tag: A,
+      reason: "verified_elsewhere",
+      was_primary: true,
+      relationship: "primary",
+      via: "test",
+    },
+  ]);
+  // Her open challenge for A went with the claim (0080 cascade).
+  const { rows: left } = await db.query(
+    `select 1 from claim_challenge where challenge_id = $1`,
+    [challenge[0].challenge_id],
+  );
+  assert.equal(left.length, 0);
+  // Carol's alt ended; her primary D is untouched.
+  assert.equal(await relOf(carol, A), null);
+  assert.equal((await relOf(carol, D)).is_primary, true);
+  assert.equal((await events(carol, "claim_ended"))[0].was_primary, false);
+  // Dave's friend stays, with no event.
+  assert.equal((await relOf(dave, A)).relationship, "friend");
+  assert.deepEqual(await events(dave, "claim_ended"), []);
+  // The detail never names the account that verified it.
+  assert.ok(
+    !JSON.stringify(await events(alice, "claim_ended")).includes(bob.accountId),
+  );
+  // Bob still claims A, so it is still recorded.
+  assert.equal(await isRecording(A), true);
+  assert.equal((await relOf(bob, A)).is_primary, true);
+});
+
+test("markVerified on a claim that is gone verifies nothing and ends nothing", async () => {
+  await addPlayer(db, alice, { tag: A, via: "test" });
+  const r = await verify(bob, A);
+  assert.deepEqual(r, { verified: false, ended: [] });
+  assert.equal((await relOf(alice, A)).is_primary, true);
 });

@@ -2183,3 +2183,43 @@ test("player trends preserve distinct battles at the same player timestamp and r
     await db.query("rollback");
   }
 });
+
+test("#556: elixir_track_player refuses a primary or alt on a tag another account verified, with the one answer, and still follows it", async () => {
+  const { VERIFIED_ELSEWHERE } = await import("@elixir-mcp/claims");
+  const TAG = "#9R2VJ0LQ";
+  const {
+    rows: [owner],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ('tools2-556-owner', 'approved', 'member') returning account_id`,
+  );
+  await db.query(
+    `insert into player (player_tag) values ($1) on conflict do nothing`,
+    [TAG],
+  );
+  await db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship)
+     values ($1, $2, 'verified', true, 'primary')`,
+    [owner.account_id, TAG],
+  );
+  for (const relationship of ["alt", "primary"]) {
+    const r = await call("elixir_track_player", {
+      player_tag: TAG,
+      relationship,
+    });
+    assert.equal(r.isError, true, relationship);
+    assert.equal(r.body.error.code, "not_entitled");
+    assert.equal(r.body.error.message, VERIFIED_ELSEWHERE.message);
+    assert.match(r.body.error.hint, /friend or watching/);
+  }
+  const follow = await call("elixir_track_player", {
+    player_tag: TAG,
+    relationship: "watching",
+  });
+  assert.equal(follow.isError, false, JSON.stringify(follow.body));
+  const { rows } = await db.query(
+    `select is_primary, relationship from claim where account_id = $1 and player_tag = $2`,
+    [account.accountId, TAG],
+  );
+  assert.deepEqual(rows, [{ is_primary: false, relationship: "watching" }]);
+  await call("elixir_track_player", { player_tag: TAG, action: "remove" });
+});

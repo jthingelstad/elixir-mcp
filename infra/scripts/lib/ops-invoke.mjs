@@ -109,6 +109,7 @@ const MIGRATE_READS = {
   agent_recordings: (v) => exactly(v, { dry_run: true }),
   ops_recordings: (v) => exactly(v, { dry_run: true }),
   tier_census: (v) => exactly(v, { dry_run: true }),
+  verified_tag_census: (v) => exactly(v, { dry_run: true }),
   // Previews; apply and revoke are the writes.
   clan_context: (v) => isObject(v) && noKeys("apply", "revoke")(v),
   clan_maintenance: (v) =>

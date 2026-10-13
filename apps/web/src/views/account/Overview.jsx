@@ -21,6 +21,7 @@ import { CONSOLE } from "../../lib/console.js";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
 import { BringClanmates } from "../../components/BringClanmates.jsx";
 import { ZoneOffer } from "../../components/ZoneOffer.jsx";
+import { ClaimNotice } from "../../components/ClaimNotice.jsx";
 
 /**
  * Overview REPORTS; Tracking manages.
@@ -298,6 +299,7 @@ function Players({ me, navigate }) {
   return (
     <section aria-labelledby="ov-players" className="panel">
       <ListHead id="ov-players" title="Players" count={players.length} />
+      <ClaimNotice me={me} className="m-4" />
       {players.length === 0 ? (
         <div className="empty m-4">
           <p className="empty__body">

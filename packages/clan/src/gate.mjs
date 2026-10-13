@@ -14,9 +14,11 @@
  * clan are one clan, acting as the higher role.
  *
  * A claim need not be VERIFIED to make someone a member (Jamie,
- * 2026-09-26): an unverified player is taken at its word, and Elixir lets
- * several accounts claim one tag that way, so it acts here as a member
- * whatever its in-game role. What an Elder, Co-leader or Leader does here
+ * 2026-09-26): an unverified player is taken at its word, and until one
+ * account verifies a tag several may claim it that way, so it acts here
+ * as a member whatever its in-game role. Once a tag is verified no other
+ * account holds it as a primary or alt (Jamie, 2026-10-12, #556), so a
+ * verified player has one claimant here. What an Elder, Co-leader or Leader does here
  * waits for Elixir → Verify; `unlock` names the unverified player that
  * would bring more, so the app can say so. Nothing stored here decides a
  * role. Reads only: `initialize` (`GET /api/v1/me`, which carries the

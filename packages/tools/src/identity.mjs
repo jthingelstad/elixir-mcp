@@ -142,7 +142,16 @@ export function identitySentences(identity, { compact = false } = {}) {
 
   if (identity.kind === "person") {
     const primary = identity.grouped?.primary?.[0];
-    if (!primary) {
+    // Players but no primary: the primary ended when another account
+    // verified its tag (#556), and nothing is promoted in its place.
+    const tracked = RELATIONSHIP_ORDER.slice(1).some(
+      (rel) => (identity.grouped?.[rel] ?? []).length > 0,
+    );
+    if (!primary && tracked) {
+      out.push(
+        "You track players but have no primary, so nothing here defaults to you: elixir_track_player with relationship primary names yours, and elixir_my_players lists what you track.",
+      );
+    } else if (!primary) {
       out.push(
         "You have no player yet. elixir_track_player tracks one and your first becomes your primary; until then nothing here defaults to you.",
       );
