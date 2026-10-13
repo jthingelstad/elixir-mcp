@@ -289,6 +289,12 @@ export const OUTBOX_LANES = [
 ] as const;
 export type OutboxLane = (typeof OUTBOX_LANES)[number];
 
+/** An email-lane message that sends no mail (2026-10-12): `{kind:
+ *  "newsletter_enroll", to}` asks the relay to enroll one address with
+ *  the mailing list, as a sign-in by an opted-in account does. Written
+ *  by the jobs Lambda's {newsletter_sync}. */
+export const NEWSLETTER_ENROLL = "newsletter_enroll";
+
 export function outboxKey(lane: OutboxLane, id: string): string {
   return `${lane}/${id}.json`;
 }
