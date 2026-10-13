@@ -45,16 +45,24 @@ export function makeAppPages({
       data: JSON.parse(session.body),
     };
     let clanMe;
-    if (session.statusCode < 500 && /^\/clan(?:\/|$)/.test(request.path)) {
-      const clanSession = await dispatch(
-        {
-          ...request,
-          path: "/api/clan/me",
-          method: "GET",
-          queryStringParameters: {},
-        },
-        context,
-      );
+    if (/^\/clan(?:\/|$)/.test(request.path)) {
+      let clanSession = session;
+      if (session.statusCode < 500) {
+        try {
+          clanSession = await dispatch(
+            {
+              ...request,
+              path: "/api/clan/me",
+              method: "GET",
+              queryStringParameters: {},
+            },
+            context,
+          );
+        } catch (error) {
+          console.error({ event: "page_clan_session_error", name: error.name });
+          clanSession = { statusCode: 503, body: '{"error":"unavailable"}' };
+        }
+      }
       clanMe = {
         ok: clanSession.statusCode < 400,
         status: clanSession.statusCode,
@@ -74,7 +82,12 @@ export function makeAppPages({
       renderedAt,
     });
     return {
-      statusCode: session.statusCode >= 500 ? session.statusCode : 200,
+      statusCode:
+        session.statusCode >= 500
+          ? session.statusCode
+          : clanMe?.status >= 500
+            ? clanMe.status
+            : 200,
       headers: {
         "content-type": "text/html; charset=utf-8",
         "cache-control": "private, no-store",
