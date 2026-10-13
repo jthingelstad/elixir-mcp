@@ -72,14 +72,19 @@ shown to Jamie in the issue, and they said go.
    account is left with no primary: nothing is promoted (Elixir does not
    choose who "you" are). `GET /api/me` carries `claim_notice` for as
    long as the account has no primary (a friend or watched player added
-   since does not answer it; Codex on #565), and the console
+   since does not answer it; Codex on #565). An account that tracks
+   nothing and added a player after the event chose a primary and later
+   removed it, so the notice is over then; making an already-tracked
+   player primary and removing it as the last one logs no event and is
+   not told apart. The console
    says so on Tracking and the Overview: the tag, why, and what to do.
    The MCP identity brief says the account has players but no primary.
 8. **A signup tag that is verified elsewhere.** [engineering, 2026-10-12]
    Not claimed; the account is onboarded with nothing, lands on Tracking,
    and gets a `claim_refused` event (its own timeline sentence) and the
    same console notice. `{account_enroll}` does the same for a tag it is
-   given, and then follows no clan for it (Codex on #565).
+   given, and then follows no clan for it (Codex on #565); any other
+   refusal (a full pool) is reported as its own error, as before.
 9. **Clan's gate and #535.** Unchanged code: the gate reads a person's own
    claims, and the #535 read requires a verified claim, which now has no
    unverified self-claimant beside it. The gate's comment is corrected.

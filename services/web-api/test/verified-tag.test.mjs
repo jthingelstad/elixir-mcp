@@ -12,6 +12,7 @@ import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
 import {
   addPlayer,
+  removePlayer,
   markVerified,
   VERIFIED_ELSEWHERE,
 } from "@elixir-mcp/claims";
@@ -188,6 +189,14 @@ test("an ended primary: GET /api/me says so until another is added, and the time
     { tag: SPARE, makePrimary: true, via: "test" },
   );
   me = data(await call(cookie, "GET", "/api/me"));
+  assert.equal(me.claim_notice, null);
+
+  // Removing every player afterwards is a new empty state, not the
+  // collision again (Codex on #565).
+  for (const t of ["#P0LYJC8C", SPARE])
+    await removePlayer(db, { accountId: holder }, { tag: t, via: "test" });
+  me = data(await call(cookie, "GET", "/api/me"));
+  assert.deepEqual(me.claims, []);
   assert.equal(me.claim_notice, null);
 });
 

@@ -486,10 +486,14 @@ export async function markVerified(db, { accountId, tag, method, via }) {
     for (const subject of [...new Set(autos.map((a) => a.clan_tag))])
       await lockSubject(db, subject);
     for (const a of autos) {
-      await db.query(
-        `delete from account_clan where account_id = $1 and clan_tag = $2`,
+      // Read again under the clan lock: a person who changed the follow
+      // meanwhile (addClan clears auto_followed_at) made it theirs.
+      const { rowCount } = await db.query(
+        `delete from account_clan
+          where account_id = $1 and clan_tag = $2 and auto_followed_at is not null`,
         [a.account_id, a.clan_tag],
       );
+      if (rowCount === 0) continue;
       await logEvent(db, a.account_id, "clan_removed", {
         clan_tag: a.clan_tag,
         via,

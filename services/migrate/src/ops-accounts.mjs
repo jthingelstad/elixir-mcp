@@ -484,8 +484,8 @@ export async function accountEnrollOp(databaseUrl, spec) {
         // verified_elsewhere (#556): another account has verified the tag.
         // As at signup: the account is told, is onboarded with nothing,
         // and does not follow that player's clan.
-        if (!added.ok) {
-          step.claim_error = added.error;
+        if (!added.ok) step.claim_error = added.error;
+        if (added.error === "verified_elsewhere") {
           await db.query(
             `insert into account_event (account_id, kind, detail) values ($1, 'claim_refused', $2)`,
             [
@@ -503,7 +503,7 @@ export async function accountEnrollOp(databaseUrl, spec) {
           );
         }
       }
-      if (resolved && step.claim_error === undefined) {
+      if (resolved && step.claim_error !== "verified_elsewhere") {
         await db.query(
           `insert into clan (clan_tag) values ($1) on conflict do nothing`,
           [resolved],

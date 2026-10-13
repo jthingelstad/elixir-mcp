@@ -430,3 +430,26 @@ test("#556: an enrolled tag another account verified is not claimed, and the acc
     refused: { player_tag: TAG, reason: "verified_elsewhere", via: "ops" },
   });
 });
+
+test("#556: an enrolment refused for another reason is not reported as a verified tag", async () => {
+  const {
+    rows: [full],
+  } = await db.query(
+    `insert into account (email_hash, email, status, role, kind, max_player_recordings)
+     values ($1, 'full-556@example.com', 'approved', 'member', 'person', 0) returning account_id`,
+    [emailHash("full-556@example.com")],
+  );
+  const out = await accountEnrollOp(SCRATCH_URL, {
+    dry_run: false,
+    fill_empty: true,
+    accounts: [{ email: "full-556@example.com", player_tag: "#UQ0GVRL8" }],
+  });
+  const step = out.plan[0];
+  assert.equal(step.claimed, false);
+  assert.equal(step.claim_error, "quota_exceeded");
+  const { rows } = await db.query(
+    `select count(*)::int as n from account_event where account_id = $1 and kind = 'claim_refused'`,
+    [full.account_id],
+  );
+  assert.equal(rows[0].n, 0);
+});
