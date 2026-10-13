@@ -36,6 +36,14 @@ opens on that player's page. An account opened without one opens on
 A tag sent while signing in to an account that already exists is ignored.
 Signup and sign-in share the same email limits.
 
+You can also create your account where an app sends you to sign in with
+Elixir, as Elixir Drop does: enter your email, then the code, and the
+account opens the same way, after verification and as an ordinary member,
+with the same product-news box. That page asks for no player tag; add
+yours in [Console ▸ Tracking](/console/account/tracking). An account
+opened there reads in UTC until you set a zone in Profile. See
+[Sign in with Elixir](/docs/sign-in-with-elixir).
+
 Then add your player in [Console ▸ Tracking](/console/account/tracking) if
 you have not, read your recorded play in [Ladder](/ladder), or follow
 [Bring your clan](/docs/bring-your-clan).

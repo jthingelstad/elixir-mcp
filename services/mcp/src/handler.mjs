@@ -54,6 +54,8 @@ export function makeHandler({
   databaseUrl,
   issuer = "https://elixir.poapkings.com",
   sendLoginEmail,
+  /** The welcome mail for an account the OAuth sign-in opened. */
+  sendWelcomeEmail = async () => {},
   enqueueLiveJob = null,
   originSecret = null,
   notifyOwner = null,
@@ -111,7 +113,12 @@ export function makeHandler({
 
   const registry = makeRegistry();
   const live = enqueueLiveJob ? makeLive({ enqueue: enqueueLiveJob }) : null;
-  const oauth = makeOauthRoutes({ issuer, sendLoginEmail, sessionSecret });
+  const oauth = makeOauthRoutes({
+    issuer,
+    sendLoginEmail,
+    sendWelcomeEmail,
+    sessionSecret,
+  });
   // The personal resource's metadata document. Agent and integration doors
   // point at their own path-suffixed one, built per request below, so a client
   // 401'd at an agent URL discovers THAT resource rather than this one.

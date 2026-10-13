@@ -46,4 +46,8 @@ export const handler = makeHandler({
       client_name: clientName,
       newsletter,
     }),
+  // The same welcome the site API queues when a code opens an account
+  // (2026-10-12: this door opens accounts too).
+  sendWelcomeEmail: ({ email, newsletter = false }) =>
+    outbox("email", { v: 1, kind: "welcome", to: email, newsletter }),
 });

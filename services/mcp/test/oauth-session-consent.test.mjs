@@ -10,10 +10,12 @@
  * no address on file is still sent the code way; ?switch=1 is a way out;
  * and the code path now sets the session cookie on its redirect.
  *
- * And (2026-09-29) a family app on Elixir's own origin that the person
- * has already granted everything it asks for is not asked again: the
- * code goes straight back. Anything less than a standing grant that
- * covers the request shows the page.
+ * And (2026-10-12, Jamie: "Consent to what? I think no.") a family app
+ * signing the person in as themselves is never shown a consent page: a
+ * signed-in browser goes straight back with exactly the scope asked for,
+ * and the code way has no boxes. Every other client, and a family app
+ * acting as an agent, keeps its page. This replaced the 2026-09-29 rule
+ * that spared only Clan, and only under a standing grant.
  */
 
 import { test, before, after } from "node:test";
@@ -31,7 +33,6 @@ import {
   mintTokens,
   normalizeScope,
   registerClient,
-  revokeToken,
 } from "../../../packages/auth/src/index.mjs";
 import { familyClientsOn } from "../../migrate/src/ops-family-clients.mjs";
 import { makeHandler } from "../src/handler.mjs";
@@ -46,12 +47,14 @@ const ISSUER = "https://elixir.poapkings.com";
 const SECRET = "site-session-secret";
 const EMAIL = "signed-in@example.com";
 const NO_ADDRESS = "no-address@example.com";
-const REDIRECT = "https://elixir.poapkings.com/api/clan/auth/callback";
+const REDIRECT = "https://client.example/cb";
+const CLAN_REDIRECT = "https://elixir.poapkings.com/api/clan/auth/callback";
 const RESOURCE = `${ISSUER}/mcp`;
 
 let db;
 let handler;
 let clientId;
+let clanId;
 let accountId;
 let noAddressId;
 const sentEmails = [];
@@ -135,14 +138,19 @@ before(async () => {
     sessionSecret: SECRET,
     sendLoginEmail: async (mail) => sentEmails.push(mail),
   });
+  // A client somebody registered: the consent page is theirs to see.
+  ({ clientId } = await registerClient(db, {
+    clientName: "Some MCP client",
+    redirectUris: [REDIRECT],
+  }));
   // A family app's client is provisioned, never registered (0185).
   ({
-    provisioned: { client_id: clientId },
+    provisioned: { client_id: clanId },
   } = await familyClientsOn(db, {
     provision: {
       app: "clan",
       client_name: "Elixir Clan",
-      redirect_uris: [REDIRECT],
+      redirect_uris: [CLAN_REDIRECT],
     },
   }));
 });
@@ -243,14 +251,20 @@ test("a session POST without a live session falls back to the email step, never 
 
 test("a client wanting account:email from an account with no address goes the code way", async () => {
   const cookie = await siteSession(NO_ADDRESS, noAddressId);
-  const q = authQuery("cr:read account:email");
+  // account:email is a family app's to ask for.
+  const q = {
+    ...authQuery("cr:read account:email"),
+    client_id: clanId,
+    redirect_uri: CLAN_REDIRECT,
+  };
   const page = await handler(
     event({ method: "GET", path: "/oauth/authorize", query: q, cookie }),
   );
   assert.match(page.body, /type="email"/, "the code path records the address");
   assert.doesNotMatch(page.body, /You are signed in/);
 
-  // ...and the same client, for the account WITH an address, is served.
+  // ...and the same client, for the account WITH an address, is served:
+  // a family sign-in, so straight back with the address in the grant.
   const known = await siteSession(EMAIL, accountId);
   const served = await handler(
     event({
@@ -260,8 +274,13 @@ test("a client wanting account:email from an account with no address goes the co
       cookie: known,
     }),
   );
-  assert.match(served.body, /You are signed in/);
-  assert.match(served.body, /Know your email address/);
+  assert.equal(served.statusCode, 303, served.body);
+  const { rows } = await db.query(
+    `select scope from oauth_code where account_id = $1
+      order by created_at desc limit 1`,
+    [accountId],
+  );
+  assert.equal(rows[0].scope, "cr:read account:email");
 });
 
 test("consent by code signs the browser in to the site", async () => {
@@ -319,26 +338,50 @@ test("consent by session cannot reach an agent the person does not own", async (
   assert.match(res.body, /Not yours to connect/);
 });
 
-// ---- remembered consent (2026-09-29) ---------------------------------------
+// ---- family sign-in (2026-10-12) ------------------------------------------
 
 const API = `${ISSUER}/api/v1`;
 const CLAN_SCOPE = "cr:read clans:attest";
 const DROP_REDIRECT = "https://drop.poapkings.com/api/auth/callback";
+const DROP_SCOPE = "cr:read recordings:write account:email";
 
+let dropId;
 let people = 0;
 async function newPerson() {
   people += 1;
-  const email = `remembered-${people}@example.com`;
+  const email = `family-${people}@example.com`;
   const { rows } = await db.query(
     `insert into account (email_hash, status, email) values ($1, 'approved', $2) returning account_id`,
     [emailHash(email), email],
   );
   const id = rows[0].account_id;
-  return { id, cookie: await siteSession(email, id) };
+  return { id, email, cookie: await siteSession(email, id) };
+}
+
+async function drop() {
+  dropId ??= (
+    await familyClientsOn(db, {
+      provision: {
+        app: "drop",
+        client_name: "Elixir Drop",
+        redirect_uris: [DROP_REDIRECT],
+      },
+    })
+  ).provisioned.client_id;
+  return dropId;
 }
 
 const clanAsk = (scope = CLAN_SCOPE) => ({
   ...authQuery(scope),
+  client_id: clanId,
+  redirect_uri: CLAN_REDIRECT,
+  resource: API,
+});
+
+const dropAsk = async (scope = DROP_SCOPE) => ({
+  ...authQuery(scope),
+  client_id: await drop(),
+  redirect_uri: DROP_REDIRECT,
   resource: API,
 });
 
@@ -355,132 +398,141 @@ const codesFor = async (id) =>
     )
   ).rows;
 
-test("a standing grant to Clan that covers the request skips the page", async () => {
-  const p = await newPerson();
-  await mintTokens(db, {
-    clientId,
-    accountId: p.id,
-    scope: CLAN_SCOPE,
-    resource: API,
-  });
-  const res = await authorize(clanAsk(), p.cookie);
-  assert.equal(res.statusCode, 303, res.body);
-  const url = new URL(res.headers.location);
-  assert.equal(url.origin + url.pathname, REDIRECT);
-  assert.match(url.searchParams.get("code"), /^eac_/);
-  assert.equal(url.searchParams.get("state"), "s");
-  assert.equal(url.searchParams.get("iss"), ISSUER);
-  assert.equal(res.headers["cache-control"], "no-store");
-  assert.equal(res.headers["set-cookie"], undefined, "no session minted");
-  assert.deepEqual(await codesFor(p.id), [
-    { client_id: clientId, scope: normalizeScope(CLAN_SCOPE), resource: API },
-  ]);
+test("a family app signs a signed-in person straight back in, with no page", async () => {
+  for (const [label, ask, redirect] of [
+    ["Elixir Drop", await dropAsk(), DROP_REDIRECT],
+    ["Elixir Clan", clanAsk(), CLAN_REDIRECT],
+  ]) {
+    // No grant to the app yet: the first sign-in is spared the page too.
+    const p = await newPerson();
+    const mailBefore = sentEmails.length;
+    const res = await authorize(ask, p.cookie);
+    assert.equal(res.statusCode, 303, `${label}: ${res.body}`);
+    const url = new URL(res.headers.location);
+    assert.equal(url.origin + url.pathname, redirect, label);
+    assert.match(url.searchParams.get("code"), /^eac_/, label);
+    assert.equal(url.searchParams.get("state"), "s", label);
+    assert.equal(url.searchParams.get("iss"), ISSUER, label);
+    assert.equal(res.headers["cache-control"], "no-store", label);
+    assert.equal(res.headers["set-cookie"], undefined, `${label}: no session`);
+    assert.equal(sentEmails.length, mailBefore, `${label}: nothing mailed`);
+    assert.deepEqual(
+      await codesFor(p.id),
+      [
+        {
+          client_id: ask.client_id,
+          scope: normalizeScope(ask.scope),
+          resource: API,
+        },
+      ],
+      `${label}: exactly the scope asked for`,
+    );
 
-  // ?switch=1 is still the way out for a shared browser.
-  const switched = await authorize({ ...clanAsk(), switch: "1" }, p.cookie);
-  assert.equal(switched.statusCode, 200);
-  assert.match(switched.body, /type="email"/);
+    // ?switch=1 is still the way out for a shared browser.
+    const switched = await authorize({ ...ask, switch: "1" }, p.cookie);
+    assert.equal(switched.statusCode, 200, label);
+    assert.match(switched.body, /type="email"/, label);
+  }
 });
 
-test("a remembered consent grants what is asked, never more", async () => {
+test("a family sign-in grants what is asked, never more", async () => {
   const p = await newPerson();
-  await mintTokens(db, {
-    clientId,
-    accountId: p.id,
-    scope: `${CLAN_SCOPE} feedback:write`,
-    resource: API,
-  });
-  // No page, so no boxes: a grant= riding the request widens nothing.
-  const res = await authorize(clanAsk(), p.cookie, {
+  // No page, so no boxes: a grant= riding the request widens nothing...
+  const res = await authorize(await dropAsk("cr:read"), p.cookie, {
     form: { grant: "recordings:write" },
   });
   assert.equal(res.statusCode, 303, res.body);
-  const [code] = await codesFor(p.id);
-  assert.equal(code.scope, normalizeScope(CLAN_SCOPE));
-});
-
-test("the page comes back when no standing grant covers the request", async () => {
-  const grant = (p, over = {}) =>
-    mintTokens(db, {
-      clientId,
-      accountId: p.id,
-      scope: CLAN_SCOPE,
-      resource: API,
-      ...over,
-    });
-  const cases = {
-    "no grant yet": async () => {},
-    "revoked, as Clan's sign-out does": async (p) => {
-      const t = await grant(p);
-      assert.equal(
-        await revokeToken(db, { token: t.refreshToken, clientId }),
-        true,
-      );
-    },
-    "narrowed on the Connections page": async (p) => {
-      const t = await grant(p);
-      await db.query(
-        `update oauth_family set scope = 'cr:read' where family_id = $1`,
-        [t.familyId],
-      );
-    },
-    "past its 90 days": async (p) => {
-      const t = await grant(p);
-      await db.query(
-        `update oauth_family set absolute_expires_at = now() - interval '1 minute'
-          where family_id = $1`,
-        [t.familyId],
-      );
-    },
-    "for another door": async (p) => grant(p, { resource: RESOURCE }),
-    "another person's": async () => grant(await newPerson()),
-  };
-  for (const [label, setup] of Object.entries(cases)) {
-    const p = await newPerson();
-    await setup(p);
-    const res = await authorize(clanAsk(), p.cookie);
-    assert.equal(res.statusCode, 200, label);
-    assert.match(res.body, /name="step" value="session"/, label);
-    assert.deepEqual(await codesFor(p.id), [], `${label}: no code`);
-  }
-});
-
-test("only a family app on Elixir's own origin is spared the page", async () => {
-  const {
-    provisioned: { client_id: dropId },
-  } = await familyClientsOn(db, {
-    provision: {
-      app: "drop",
-      client_name: "Elixir Drop",
-      redirect_uris: [DROP_REDIRECT],
-    },
-  });
-  const registered = await registerClient(db, {
-    clientName: "Some MCP client",
-    redirectUris: ["https://client.example/cb"],
-  });
-  const cases = [
-    ["Drop, on its own origin", dropId, DROP_REDIRECT],
-    ["a registered client", registered.clientId, "https://client.example/cb"],
-  ];
-  for (const [label, id, redirect] of cases) {
-    const p = await newPerson();
-    await mintTokens(db, {
-      clientId: id,
-      accountId: p.id,
-      scope: "cr:read",
-      resource: API,
-    });
-    const res = await authorize(
-      {
-        ...authQuery("cr:read"),
-        client_id: id,
-        redirect_uri: redirect,
-        resource: API,
+  // ...nor does one posted to the session step by hand.
+  const posted = await handler(
+    event({
+      path: "/oauth/authorize",
+      cookie: p.cookie,
+      form: {
+        step: "session",
+        ...(await dropAsk("cr:read")),
+        grant: "feedback:write",
       },
-      p.cookie,
-    );
-    assert.equal(res.statusCode, 200, label);
-    assert.match(res.body, /name="step" value="session"/, label);
-  }
+    }),
+  );
+  assert.equal(posted.statusCode, 303, posted.body);
+  const scopes = (await codesFor(p.id)).map((c) => c.scope);
+  assert.deepEqual(scopes, ["cr:read", "cr:read"]);
+});
+
+test("the code way to a family app has no consent boxes and grants what is asked", async () => {
+  const p = await newPerson();
+  const ask = await dropAsk();
+  const emailPage = await authorize(ask);
+  assert.equal(emailPage.statusCode, 200);
+  assert.match(emailPage.body, /Sign in to Elixir Drop/);
+  assert.match(emailPage.body, /create your free Elixir account/);
+  assert.doesNotMatch(emailPage.body, /request access|approved/i);
+
+  const codePage = await handler(
+    event({
+      path: "/oauth/authorize",
+      form: { step: "email", email: p.email, ...ask },
+    }),
+  );
+  assert.equal(codePage.statusCode, 200);
+  assert.doesNotMatch(codePage.body, /name="grant"/, "no boxes");
+  assert.match(codePage.body, /Elixir Drop will be able to:/);
+  assert.match(codePage.body, /Know your email address/);
+  assert.match(codePage.body, /<button>Sign in<\/button>/);
+
+  const { code } = sentEmails.at(-1);
+  const done = await handler(
+    event({
+      path: "/oauth/authorize",
+      form: {
+        step: "code",
+        email: p.email,
+        code,
+        ...ask,
+        grant: "feedback:write",
+      },
+    }),
+  );
+  assert.equal(done.statusCode, 303, done.body);
+  assert.deepEqual(await codesFor(p.id), [
+    {
+      client_id: ask.client_id,
+      scope: normalizeScope(DROP_SCOPE),
+      resource: API,
+    },
+  ]);
+});
+
+test("a family app acting as an agent keeps its page", async () => {
+  const p = await newPerson();
+  await db.query(
+    `insert into account (kind, status, public_id, owned_by_account_id)
+     values ('agent', 'approved', 'familybot', $1)`,
+    [p.id],
+  );
+  const res = await authorize(
+    { ...clanAsk("cr:read"), resource: `${ISSUER}/a/familybot/mcp` },
+    p.cookie,
+  );
+  assert.equal(res.statusCode, 200, res.body);
+  assert.match(res.body, /name="step" value="session"/);
+  assert.deepEqual(await codesFor(p.id), []);
+});
+
+test("any other client keeps its consent page, even under a standing grant", async () => {
+  const p = await newPerson();
+  await mintTokens(db, {
+    clientId,
+    accountId: p.id,
+    scope: "cr:read",
+    resource: API,
+  });
+  const res = await authorize(
+    { ...authQuery("cr:read"), resource: API },
+    p.cookie,
+  );
+  assert.equal(res.statusCode, 200);
+  assert.match(res.body, /name="step" value="session"/);
+  assert.match(res.body, /named itself; Elixir has not checked it/);
+  assert.deepEqual(await codesFor(p.id), []);
 });

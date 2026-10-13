@@ -39,8 +39,8 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Clan slots, comprehensive | same | same | 0 / 1 / 3 / 5 | same wording with `comprehensive` |
 | Agents | `POST /api/me/agents` | live count of active agents | 3 / 5 / 10 / 25 | HTTP 400 `{"error":"not_entitled","reason":"agent_limit","limit":N,"role":"…"}` |
 | OAuth client registration | `POST /oauth/register` | `dcr#<ip>`, `dcr#global` | 20 per hour per address; 5,000 per day in total | HTTP 429 `{"error":"temporarily_unavailable"}` |
-| OAuth consent emails | `/oauth/authorize` step one | `oauthmail#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with the console's sign-in | silent: the page says "check your email" and no mail is sent |
-| Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email, shared with OAuth consent | HTTP 200 with `limited: true` and a message saying the limit was reached; no mail is sent |
+| Sign-in emails (OAuth) | `/oauth/authorize` step one | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email; both shared with the console's sign-in | the page says the limit was reached; no mail is sent |
+| Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email; both shared with the OAuth sign-in | HTTP 200 with `limited: true` and a message saying the limit was reached; no mail is sent |
 | Sign-in code attempts | code verification | per pending code | 5, then the code is dead | HTTP 400 `{"error":"invalid_or_expired","reason":"attempts_exhausted"}` (console); the OAuth page says "Too many attempts on that code" |
 | Legacy access requests | `POST /api/request-access` | `reqaccess#<ip>` | 5 per hour | HTTP 429 `{"error":"rate_limited"}` |
 | Verification starts | `POST /api/me/verify` | `verify#<account>`, `verify-tag#<tag>` | 5 per hour per account; 5 per hour per tag | HTTP 429 `{"error":"rate_limited","message":"At most 5 verification starts an hour."}` |

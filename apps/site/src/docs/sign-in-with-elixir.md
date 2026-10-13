@@ -1,21 +1,21 @@
 ---
 slug: sign-in-with-elixir
 title: "Sign in with Elixir"
-description: "How Elixir Drop signs you in with your Elixir account: what it asks for, the consent page, how to end a grant, and what an app outside the family can and cannot get, with the endpoints, doors and scopes."
+description: "How Elixir Drop signs you in with your Elixir account, or creates one: what it asks for, why a family app shows no consent page, how to end a grant, and what an app outside the family can and cannot get, with the endpoints, doors and scopes."
 section: build
 order: 2
 navTitle: "Sign in with Elixir"
 icon: log-in
-lede: "Elixir's family apps sign you in with your Elixir account: one consent page, and one grant you can see and end in the console. Other apps can ask too, for less."
+lede: "Elixir's family apps sign you in with your Elixir account, and create one if you are new: no consent page, and one grant you can see and end in the console. Other apps can ask too, for less, and you approve each one."
 console: ["Your connected apps", "/console/account/connections", "Console ▸ Connections"]
-reviewed: "2026-10-08 against contract 11.2.4"
+reviewed: "2026-10-12 against contract 11.11.3"
 ---
 
 # Sign in with Elixir
 
 Elixir is the account for the whole family. A family app has no sign-up of
-its own: it sends you to Elixir, you say yes, and it knows who you are and
-which players are yours. Under the hood it is OAuth 2.1, the same sign-in
+its own: it sends you to Elixir, you sign in or create your account there,
+and it knows who you are and which players are yours. Under the hood it is OAuth 2.1, the same sign-in
 an MCP client uses to connect. Elixir Clan needs none of this: it is part
 of Elixir and uses your Elixir session directly.
 
@@ -36,22 +36,38 @@ it asks. Drop learns who you are, and the players you track, from
 
 ## What you see
 
-Signed in at elixir.poapkings.com already, the page reads **Connect**
-and the app's name, says which address you are signed in as, and has
-one **Authorize** button, with a link to sign in with a code instead
-when the browser is not yours. Not signed in, you enter your email and
-then the six-digit code it sends (15 minutes, five tries); approving
-that way signs the browser in to Elixir too.
+**A family app (Elixir Drop).** Signed in at elixir.poapkings.com
+already, you see no page at all: Elixir sends you straight back to the
+app, signed in. There is no consent page, because a family app is
+Elixir's own and gets only what it asked for, never more. Not signed
+in, the page reads **Sign in to** and the app's name: enter your email,
+then the six-digit code it sends (15 minutes, five tries), and press
+**Sign in**. The page says the app is one of Elixir's own, names the
+address it sends you back to, and lists what the app will be able to
+do, with no boxes to tick. Signing in that way signs the browser in to
+Elixir too.
 
-Above the button, the page says who is asking in words the app did not
-choose. A family app "is one of Elixir's own apps", and the page names
-the address approving sends you back to. Any other app "named itself;
-Elixir has not checked it", and the page asks you to continue only if
-you started the connection and trust that address. Then come the
-capabilities the app asked for. Other ordinary capabilities are offered
-as boxes, unticked; `account:email` and `clans:attest` are never offered
-unasked. Drop is on its own address, so the page appears each time it
-signs you in.
+**New to Elixir?** The same page creates your account. Enter your email
+and the code, and your free Elixir account opens once the code is
+proved, never before, exactly as signing up on the website does: an
+ordinary member account, with the **Send me Elixir product news** box
+checked unless you untick it, and the welcome email. The page asks for
+no player tag; add yours in Console ▸ Tracking. An address whose account
+was denied or disabled does not reopen here either.
+
+**Any other app.** Signed in already, the page reads **Connect** and the
+app's name, says which address you are signed in as, and has one
+**Authorize** button, with a link to sign in with a code instead when
+the browser is not yours. Not signed in, it is the same email and code,
+and the code page carries the consent. The page says the app "named
+itself; Elixir has not checked it", and asks you to continue only if you
+started the connection and trust the address the code goes to. Then
+come the capabilities the app asked for; other ordinary capabilities are
+offered as boxes, unticked. `account:email` and `clans:attest` are never
+offered unasked, and only a family app may ask for them.
+
+`switch=1` on the authorize address always shows the email step, for a
+shared browser signed in as somebody else.
 
 ## Ending a grant
 
@@ -81,7 +97,7 @@ It never gets the person's email address or `clans:attest`, and there
 is no OpenID Connect: no ID token. Who the person is comes from
 `GET /api/v1/me`, their principal and the players they track.
 
-| Scope | On the consent page | Who can ask |
+| Scope | What the page says | Who can ask |
 |---|---|---|
 | `cr:read` | Read recorded game data | any app; always included |
 | `recordings:write` | Change what you track | any app |

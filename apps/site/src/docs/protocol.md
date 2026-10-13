@@ -173,16 +173,27 @@ Failures render an HTML page at the authorize URL. Nothing is ever sent back to
 `redirect_uri` as `error`; a client waiting only on its callback should also
 time out.
 
-Consent is a two-step page: the person enters their account email and receives
+Consent is a two-step page: the person enters their email and receives
 a six-digit code (15-minute life, five attempts, single use, valid only for
 this flow), then enters the code beside a list of the capabilities the client
 asked for. Success redirects with HTTP 303 to `redirect_uri` carrying `code`,
 `state` (if given) and `iss`. Authorization codes are `eac_…`, single use, 300
 seconds.
 
+The email step signs in or creates an account, as the website's signup
+does: a new address is sent a code, and its ordinary member account opens
+only when the code is proved, with the page's **Send me Elixir product
+news** box applied to it and the welcome email sent. A denied or disabled
+address is sent nothing, and the page is the same for every address. The
+email step shares the website's sign-in mail ceilings ([Limits](/docs/limits)).
+
 A browser already signed in to elixir.poapkings.com skips the email and the
 code: the page says who it is signed in as, lists the same capabilities, and
-one **Authorize** completes the consent. `switch=1` on the authorize URL
+one **Authorize** completes the consent. A family app (a provisioned client,
+below) signing the person in as themselves has no consent page at all: a
+signed-in browser is sent straight back, and the code page lists what the
+app gets with no boxes. Either way it is granted exactly the scope it asked
+for. `switch=1` on the authorize URL
 forces the email step (a shared browser). A client that asks for
 `account:email` from an account with no address on file is sent the code way
 regardless, because that is where the address is recorded. Consent by code
@@ -273,8 +284,9 @@ from a checkbox or from Account → Connections, and is not advertised in a 401
 challenge. It is offered only to the family's own apps: a client Elixir provisioned,
 whose every redirect URI is on a family origin. Any other client that names
 it in `scope` is refused `invalid_scope`, so the address is never released
-outside the family. A family app that names it sees it listed with the rest
-on the consent page, and the person can decline the whole connection.
+outside the family. A family app signs the person in with no consent page;
+one that names it has it listed among what the app gets on the code page,
+and the person can end the grant on Account → Connections.
 
 `GET /oauth/userinfo` with a bearer access token whose grant carries it,
 for either personal audience (`/mcp` or `/api/v1`; an agent's is refused):

@@ -8,7 +8,7 @@ navTitle: "Connect an agent"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
 console: ["Manage your clients", "/console/account/connections", "Console ▸ Connections"]
-reviewed: "2026-10-06 against contract 11.2.3 and JSON API 3.0.0"
+reviewed: "2026-10-12 against contract 11.11.3 and JSON API 3.2.0"
 ---
 
 # Users, agents and integrations
@@ -30,7 +30,8 @@ The short version:
 
 When you connect Claude — or any MCP client — to
 `https://elixir.poapkings.com/mcp`, you are connecting **as yourself**. You sign
-in with the email on your account, and from then on the tools know who you are.
+in with your email (new to Elixir, the same page creates your account), and
+from then on the tools know who you are.
 
 That last part matters more than it sounds. Ask *"how am I playing?"* and your
 agent does not need to look you up first: your connection already knows your
@@ -44,12 +45,15 @@ connection almost everybody wants.
 
 Elixir Clan, at `/clan`, is part of Elixir: it uses the same account and
 the same sign-in, so there is nothing to connect. Elixir Drop signs you in
-**with Elixir**: the same consent page, listing what it asks for, including
-*Know your email address*. Only the Elixir family's own apps (a client the
+**with Elixir**, and creates your Elixir account if you are new. As one of
+Elixir's own apps it shows no consent page: signed in here already, you go
+straight back to Drop; otherwise you enter your email and code, and the
+page lists what Drop gets, including *Know your email address*, with
+nothing to tick. Only the Elixir family's own apps (a client the
 maintainer has provisioned for the family, with every redirect on a family
-origin) can ask for that; any other client that asks is refused. Drop learns
-who you are from your Elixir account, so you are the same person there as
-here. It is listed on Connections like any other client, and disconnecting
+origin) can ask for that; any other client that asks is refused, and
+every other client shows its consent page. Drop learns who you are from
+your Elixir account, so you are the same person there as here. It is listed on Connections like any other client, and disconnecting
 it there ends its access. Your address is never released to any client
 outside the family, which includes every MCP client and agent. See
 [Sign in with Elixir](/docs/sign-in-with-elixir).
