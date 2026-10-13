@@ -206,7 +206,8 @@ crowns: a duel won 0-3, 1-0, 1-0 is a win at 2 crowns to 3. `crowns` is summed a
 the rounds, `elixir.leaked` is summed across them, `tower_hp` describes the
 final round only, `deck_hash` is `null` because there is no single deck, the
 decks sit under `deck.rounds[]` one per round, and `rounds_played` says how
-many rounds the row holds.
+many rounds the row holds. A `battles_query` answer carries a note saying
+so only when its page holds a duel.
 
 **`rounds[]` answers for each game.** The API reports every round of a duel
 separately. A duel row carries `rounds[]` beside `deck.rounds[]`, on the same
