@@ -49,6 +49,15 @@
 
 import { execFileSync } from "node:child_process";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+import { CloudFormationClient } from "@aws-sdk/client-cloudformation";
+import { LambdaWebClient } from "@aws-sdk/client-lambda-web";
+import { S3Client } from "@aws-sdk/client-s3";
+import {
+  guardCollectorNaming,
+  readDeployedCollectorMinimum,
+  collectorNamingLock,
+} from "./lib/collector-naming.mjs";
 import {
   COLLECTOR_RELEASE_KEYS,
   COLLECTOR_RELEASE_SIGNER,
@@ -308,60 +317,85 @@ for (const r of rows) {
   );
 }
 
-if (dryRun) {
-  console.error("\n--dry-run: nothing written.");
-  process.exit(0);
-}
-
-const lambda = new LambdaClient({ region: REGION });
-let failures = 0;
-for (const row of rows) {
-  const invoked = await lambda.send(
-    new InvokeCommand({
-      FunctionName: "elixir-mcp-migrate",
-      Payload: Buffer.from(JSON.stringify({ collector_release: row })),
-    }),
-  );
-  const result = JSON.parse(Buffer.from(invoked.Payload).toString() || "null");
-  if (result?.ok) {
-    console.error(`  named ${row.platform} -> ${row.version}`);
-  } else {
-    failures += 1;
-    console.error(`  FAILED ${row.platform}: ${JSON.stringify(result)}`);
-  }
-}
-
-if (failures) {
-  console.error(`\n${failures} platform(s) failed; the rest are named.`);
-  process.exit(1);
-}
-// Mark it in the collector repo too, so "what is named" is visible from
-// the release page and not only from a database row.
-const stamp = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+const config = { region: REGION, profile: "cloud-engineer", maxAttempts: 1 };
+const lambda = new LambdaClient(config);
+const sts = new STSClient(config);
+const cf = new CloudFormationClient(config);
+const web = new LambdaWebClient(config);
+const s3 = new S3Client(config);
 try {
-  gh(
-    "release",
-    "edit",
-    release.tagName,
-    "--repo",
-    REPO,
-    "--prerelease=false",
-    "--latest",
-    "--notes",
-    `Named as the update authority ${stamp} for ${rows.length} platform(s).\n\n` +
-      `Collectors install this build and no other, once its signature verifies. ` +
-      `Released binaries pick it up on their next hourly config call.\n\n` +
-      (release.body ?? ""),
-  );
-  console.error(`  promoted ${release.tagName} to Latest in ${REPO}`);
-} catch (err) {
-  // The rows are already written, so the fleet WILL update. Marking is
-  // bookkeeping: say it failed, do not pretend the naming did.
-  console.error(
-    `  WARNING: named, but could not promote the release page: ${err.message}`,
-  );
-}
+  await guardCollectorNaming({
+    tag: release.tagName,
+    dryRun,
+    whoami: () => sts.send(new GetCallerIdentityCommand({})),
+    lock: collectorNamingLock(import.meta.url, release.tagName),
+    readMinimum: () => readDeployedCollectorMinimum({ cf, web, s3 }),
+    name: async () => {
+      let failures = 0;
+      for (const row of rows) {
+        const invoked = await lambda.send(
+          new InvokeCommand({
+            FunctionName: "elixir-mcp-migrate",
+            Payload: Buffer.from(JSON.stringify({ collector_release: row })),
+          }),
+        );
+        const result = JSON.parse(
+          Buffer.from(invoked.Payload).toString() || "null",
+        );
+        if (!invoked.FunctionError && result?.ok) {
+          console.error(`  named ${row.platform} -> ${row.version}`);
+        } else {
+          failures += 1;
+          console.error(`  FAILED ${row.platform}: ${JSON.stringify(result)}`);
+        }
+      }
 
-console.error(
-  `\nNamed ${release.tagName}. Collectors pick it up on their next hourly config call.`,
-);
+      if (failures) {
+        console.error(`\n${failures} platform(s) failed; the rest are named.`);
+        throw new Error(
+          "Collector release naming failed; release page not promoted",
+        );
+      }
+      // Mark it in the collector repo too, so "what is named" is visible from
+      // the release page and not only from a database row.
+      const stamp = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+      try {
+        gh(
+          "release",
+          "edit",
+          release.tagName,
+          "--repo",
+          REPO,
+          "--prerelease=false",
+          "--latest",
+          "--notes",
+          `Named as the update authority ${stamp} for ${rows.length} platform(s).\n\n` +
+            `Collectors install this build and no other, once its signature verifies. ` +
+            `Released binaries pick it up on their next hourly config call.\n\n` +
+            (release.body ?? ""),
+        );
+        console.error(`  promoted ${release.tagName} to Latest in ${REPO}`);
+      } catch (err) {
+        // The rows are already written, so the fleet WILL update. Marking is
+        // bookkeeping: say it failed, do not pretend the naming did.
+        console.error(
+          `  WARNING: named, but could not promote the release page: ${err.message}`,
+        );
+      }
+
+      console.error(
+        `\nNamed ${release.tagName}. Collectors pick it up on their next hourly config call.`,
+      );
+    },
+  });
+  if (dryRun) console.error("\n--dry-run: nothing written.");
+} catch (error) {
+  console.error(error.message);
+  process.exitCode = error.exitCode ?? 1;
+} finally {
+  lambda.destroy();
+  sts.destroy();
+  cf.destroy();
+  web.destroy();
+  s3.destroy();
+}

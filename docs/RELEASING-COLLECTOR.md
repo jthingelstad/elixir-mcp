@@ -196,9 +196,17 @@ way they upgraded, through the same checks and the same trial:
 AWS_PROFILE=cloud-engineer node infra/scripts/name-collector-release.mjs v3.0.PREVIOUS
 ```
 
-The hub minimum is 3.0.6. A rollback below it requires Jamie's approval
+The hub minimum is 3.0.6. While enforcement is on, a rollback below it requires Jamie's approval
 to lower that minimum and a successful hub deploy before naming the older
 release; otherwise the older binary installs but cannot lease or submit.
+
+The naming script checks the stable deployed collector revision's minimum,
+using its immutable S3 source version, before writing any release row.
+It refuses a release below that minimum while enforcement is on, including
+in `--dry-run`. A real naming holds the production lock through this
+check, every platform write and release promotion; a held lock exits 3.
+The check needs `unzip` alongside the existing `gh` and `ssh-keygen`
+prerequisites. A dry run reads the authority and writes nothing.
 
 **A release from before signing needs signing first.** v2.0.30 is the
 collector's separate installer floor (`installFloor`): nothing below it
