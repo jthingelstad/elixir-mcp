@@ -29,14 +29,20 @@ never mailed; an agent's feedback is answered to the agent. [Jamie,
    small things, draws a clan as a headline and three facts, and names
    the quiet in one line; the timeline keeps everything. [Jamie,
    2026-10-08]
-3. **Seven kinds, on the game week.** Four weekly reports (clan, Arena,
-   friends, collector), milestones as they happen, Clan's actions
-   waiting after its morning run, and answers to feedback. Reports cover
-   Monday 10:00 UTC to Monday 10:00 UTC and send at 14:00 UTC; at most
-   one of a kind about one subject a day. [Jamie, 2026-09-17, 2026-10-02]
-   The collector report is the exception: it keeps its Sunday send and
-   covers Saturday 00:00 UTC to Saturday 00:00 UTC ("since we send that
-   on Sunday and I like that, let's do 0:00 UTC Sat to Sat"). [Jamie,
+3. **Seven kinds; scheduled mail is one a day.** Four weekly reports
+   (clan, Arena, friends, collector), milestones as they happen, Clan's
+   actions waiting after its morning run, and answers to feedback.
+   Reports cover Monday 10:00 UTC to Monday 10:00 UTC and send at
+   14:00 UTC. [Jamie, 2026-09-17, 2026-10-02] The collector report is
+   the exception: it keeps its Sunday send and covers Saturday 00:00 UTC
+   to Saturday 00:00 UTC ("since we send that on Sunday and I like that,
+   let's do 0:00 UTC Sat to Sat"). [Jamie, 2026-10-12] The scheduled
+   kinds (clan report, friends, Arena week, collector, actions waiting)
+   send at most one of a kind about one subject a day; mail about an
+   event (a milestone, an answer to feedback) flows when it happens:
+   "there is no hard 1 a day… however, SCHEDULED emails we are
+   intentionally only doing one a day. On demand/event based emails are
+   a completely different thing and flow whenever they flow." [Jamie,
    2026-10-12]
 4. **Milestones are the big firsts, once ever.** A new arena, league,
    best band, Evolution or Hero form, legendary badge, career step. A

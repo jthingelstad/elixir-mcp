@@ -888,7 +888,7 @@ test("each collector is its card, with what it is doing now", () => {
   );
   assert.equal(
     subject,
-    "Your collectors, Sep 20 – 27: 4 running, 1 silent, 1 stopped",
+    "Your collectors, Sep 19 – 25: 4 running, 1 silent, 1 stopped",
   );
   for (const x of facts.collectors)
     assert.ok(
@@ -911,7 +911,7 @@ test("a collector issue stored before its cards and states still renders from it
     delete x.since;
   }
   const { subject, html } = renderMail("collector_activity", facts, links);
-  assert.equal(subject, "Your collectors, Sep 20 – 27: 5 running, 1 stopped");
+  assert.equal(subject, "Your collectors, Sep 19 – 25: 5 running, 1 stopped");
   assert.ok(!html.includes("/assets/cards/"), "no art without a card");
   assert.match(html, /stopped on purpose</);
   assert.doesNotMatch(html, /undefined|NaN/);

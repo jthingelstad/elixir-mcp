@@ -16,21 +16,32 @@ export function lastGameWeek(now = new Date()) {
   return { from, to, key: isoWeekKey(from), label: rangeLabel(from, to) };
 }
 
-/** The collector week: Sunday 14:00Z to Sunday 14:00Z, the operator's
- *  week; the mail goes out as it closes. */
+/** The collector week: Saturday 00:00Z to Saturday 00:00Z (Jamie,
+ *  2026-10-12, docs/DECISIONS.md "The collector week is Saturday to
+ *  Saturday"). The mail keeps its Sunday 14:00Z send, so it covers the
+ *  week that closed at the start of the day before. The period key is
+ *  the ISO week of the Saturday it started on, plus `c`: a Saturday and
+ *  the Sunday after it share an ISO week, so the switch from the old
+ *  Sunday 14:00Z week kept one key per week. The label names the days
+ *  the week holds, Saturday to Friday: it closes at Friday's midnight,
+ *  and no hour of it falls on the closing Saturday. */
 export function lastCollectorWeek(now = new Date()) {
   const t = now.getTime();
   const d = new Date(t);
-  let sunday = Date.UTC(
+  // The most recent Saturday 00:00Z at or before now.
+  const saturday = Date.UTC(
     d.getUTCFullYear(),
     d.getUTCMonth(),
-    d.getUTCDate() - d.getUTCDay(),
-    14,
+    d.getUTCDate() - ((d.getUTCDay() + 1) % 7),
   );
-  if (sunday > t) sunday -= 7 * DAY;
-  const to = new Date(sunday);
-  const from = new Date(sunday - 7 * DAY);
-  return { from, to, key: `${isoWeekKey(from)}c`, label: rangeLabel(from, to) };
+  const to = new Date(saturday);
+  const from = new Date(saturday - 7 * DAY);
+  return {
+    from,
+    to,
+    key: `${isoWeekKey(from)}c`,
+    label: rangeLabel(from, new Date(saturday - DAY)),
+  };
 }
 
 export function isoWeekKey(date) {
