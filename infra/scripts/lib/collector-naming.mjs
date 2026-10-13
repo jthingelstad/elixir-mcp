@@ -73,7 +73,11 @@ export async function readDeployedCollectorMinimum({
   const stack = response.Stacks?.[0];
   if (
     !stack ||
-    !["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(stack.StackStatus)
+    ![
+      "CREATE_COMPLETE",
+      "UPDATE_COMPLETE",
+      "UPDATE_ROLLBACK_COMPLETE",
+    ].includes(stack.StackStatus)
   )
     throw new Error("Collector stack is not stable; nothing named");
   const params = Object.fromEntries(
