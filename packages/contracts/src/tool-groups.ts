@@ -291,6 +291,11 @@ export const TOOL_GROUPS: Record<string, ToolClass> = {
     title: "Private policy context",
     readOnly: true,
   },
+  clans_my_view: {
+    group: "Clans",
+    title: "My view in Elixir Clan",
+    readOnly: true,
+  },
   clans_roster: {
     group: "Clans",
     title: "Clan roster",

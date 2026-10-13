@@ -37,7 +37,6 @@ import {
   FIELDS,
   GROUPS,
   TABS,
-  RETIRED_FIELDS,
   MIN_MEMBERS,
   audienceOf,
   awayCandidates,
@@ -59,6 +58,9 @@ import {
   actionDelivery,
   deliveryWords,
   CHAT_MAX,
+  effectivePolicyValues,
+  ownStandingLine,
+  policySummaryOf,
 } from "@elixir-mcp/clan-engine";
 import { newId } from "@elixir-mcp/clan-state";
 import { createActionStore } from "./actions.mjs";
@@ -390,11 +392,7 @@ export function createManageService({
         set: true,
         // A field added since the version was saved takes its starting
         // value; a field retired since is dropped.
-        values: Object.fromEntries(
-          Object.entries({ ...defaults(), ...current.values }).filter(
-            ([k]) => !RETIRED_FIELDS.includes(k),
-          ),
-        ),
+        values: effectivePolicyValues(current.values),
         version: current.version,
         saved_at: current.saved_at,
         saved_by: current.saved_by,
@@ -997,43 +995,13 @@ export function createManageService({
             ? trophiesFrom(roster)
             : null,
         });
-        const mine = verdicts.members.find(
-          (m) => m.player_tag === who.player_tag,
-        );
-        const ranked = ranksElder(policy.values);
-        const rows = ranked ? standingForMembers(verdicts, policy.values) : [];
-        const minimums = mine.facts.minimums;
-        clan = {
+        // One shaping with the person's own connection (clans_my_view).
+        clan = ownStandingLine({
+          verdicts,
+          playerTag: who.player_tag,
+          values: policy.values,
           version: policy.version,
-          goals: declaredGoals(policy.values),
-          counted: countedCategories(policy.values),
-          ranks_elder: ranked,
-          status:
-            rows.find((r) => r.player_tag === who.player_tag)?.status ?? null,
-          evidence: participationPhrase(mine, policy.values),
-          next: nextSteps(mine, policy.values),
-          minimums: {
-            set: minimums.set,
-            met: minimums.met,
-            passes: minimums.passes,
-            unknown: minimums.unknown,
-            rule: policy.values.minimums_rule,
-            window_weeks: policy.values.minimums_window_weeks,
-          },
-          tenure_min_days: ranked ? policy.values.tenure_min_days : null,
-          inactivity: policy.values.removal_enabled
-            ? {
-                state:
-                  mine.removal.state === "recommended"
-                    ? "at_risk"
-                    : mine.removal.state,
-                days_idle: mine.facts.days_idle,
-                at_risk_days: policy.values.at_risk_days,
-                judgment: mine.judgment.removal,
-                activity_evidence: mine.facts.activity_evidence,
-              }
-            : null,
-        };
+        });
       }
       const open_actions = active
         ? (await ledger.cards(clanTag)).filter(
@@ -1240,23 +1208,12 @@ export function createManageService({
     async policySummary(clanTag) {
       const policy = await policyFor(clanTag);
       const members = (await ledger.clanSize(clanTag))?.members ?? null;
-      // Active: saved, and the clan not known to be below the minimum.
-      const active = policy.set && !(members !== null && members < MIN_MEMBERS);
-      return {
+      return policySummaryOf({
         set: policy.set,
-        active,
         version: policy.version,
+        values: policy.values,
         members,
-        min_members: MIN_MEMBERS,
-        ranks_elder: active && ranksElder(policy.values),
-        removal: active && policy.values.removal_enabled,
-        away:
-          active &&
-          policy.values.removal_enabled &&
-          policy.values.away_max_days > 0,
-        members_see_standing:
-          active && policy.values.members_see_standing === true,
-      };
+      });
     },
 
     /** The policy editor's data: fields with help, groups, current values,

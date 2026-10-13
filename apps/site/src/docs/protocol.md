@@ -313,8 +313,8 @@ list.
 | Kind | Door | Hidden tools | Tools listed |
 |---|---|---|---|
 | `person` | `/mcp` | `clans_context`, `elixir_identify`, `elixir_my_identities` | {{ tools.personCount }} |
-| `agent` | `/a/<public_id>/mcp` | `elixir_my_players` | {{ tools.agentCount }} |
-| `integration` | `/i/<public_id>/mcp` | `elixir_my_players`, `clans_context`, `elixir_nickname`, `elixir_timeline`, `elixir_track_player`, `elixir_track_clan`, `elixir_identify`, `elixir_my_identities` | {{ tools.integrationCount }} |
+| `agent` | `/a/<public_id>/mcp` | `elixir_my_players`, `clans_my_view` | {{ tools.agentCount }} |
+| `integration` | `/i/<public_id>/mcp` | `elixir_my_players`, `clans_my_view`, `clans_context`, `elixir_nickname`, `elixir_timeline`, `elixir_track_player`, `elixir_track_clan`, `elixir_identify`, `elixir_my_identities` | {{ tools.integrationCount }} |
 
 The counts are generated from the registry at build time. Hiding is
 enforced: calling a hidden tool answers JSON-RPC `-32601` with `data.kind`

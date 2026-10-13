@@ -524,7 +524,112 @@ const PARTICIPATION_TABLE_ROW = {
 const ROSTER_REST_ONLY =
   "On /api/v1 and the console only (9.17.0): a full clan's agent read would pass the result cap with it.";
 
+/** clans_my_view (11.12.0, #535): a person's own view of one clan in Elixir
+ *  Clan. Every object is closed: nothing beyond the three things can ride
+ *  along (docs/notes/2026-10-13-w3-my-clan-view.md). */
+const closed = (properties, required = Object.keys(properties)) => ({
+  type: "object",
+  additionalProperties: false,
+  properties,
+  required,
+});
+const nullable = (schema) => ({
+  ...schema,
+  type: [schema.type, "null"],
+});
+const STR_OR_NULL = { type: ["string", "null"] };
+const OWN_VIEW = closed({
+  schema_version: { type: "integer", enum: [1] },
+  reason: {
+    type: ["string", "null"],
+    enum: ["no_policy", "too_few_members", "not_evaluated", null],
+    description:
+      "null when standing and actions are given; otherwise why both are null.",
+  },
+  clan_tag: TAG,
+  you: closed({
+    player_tag: TAG,
+    role: { type: "string", enum: ["member", "elder", "coLeader", "leader"] },
+  }),
+  policy: closed({
+    set: { type: "boolean" },
+    active: { type: "boolean" },
+    version: NULLABLE_INT,
+    members: NULLABLE_INT,
+    min_members: COUNT,
+    ranks_elder: { type: "boolean" },
+    removal: { type: "boolean" },
+    away: { type: "boolean" },
+    members_see_standing: { type: "boolean" },
+  }),
+  standing: nullable(
+    closed({
+      policy_version: COUNT,
+      evaluated_at: STR_OR_NULL,
+      goals: { type: "array" },
+      counted: { type: "array", items: { type: "string" } },
+      ranks_elder: { type: "boolean" },
+      status: {
+        type: ["string", "null"],
+        enum: ["holding", "slipping", "rising", "participating", "quiet", null],
+      },
+      evidence: STR_OR_NULL,
+      next: { type: "array", items: { type: "string" } },
+      minimums: closed({
+        set: { type: "object", description: "The minimums set, by category." },
+        met: {
+          type: "object",
+          description: "Per category: met (true), not (false), unknown (null).",
+        },
+        passes: { type: "boolean" },
+        unknown: { type: "boolean" },
+        rule: STR_OR_NULL,
+        window_weeks: NULLABLE_INT,
+      }),
+      tenure_min_days: NULLABLE_INT,
+      inactivity: nullable(
+        closed({
+          state: { type: "string" },
+          days_idle: { type: ["number", "null"] },
+          at_risk_days: NULLABLE_INT,
+          judgment: STR_OR_NULL,
+          activity_evidence: { type: ["object", "null"] },
+        }),
+      ),
+    }),
+  ),
+  actions: nullable(
+    closed({
+      count: COUNT,
+      waiting: {
+        type: "array",
+        items: closed({
+          number: NULLABLE_INT,
+          type: { type: "string" },
+          label: { type: "string" },
+          subject_name: STR_OR_NULL,
+          raised_at: STR_OR_NULL,
+          url: { type: "string" },
+        }),
+      },
+    }),
+  ),
+  read_at: ISO,
+});
+
 export const OUTPUT_SCHEMAS = {
+  clans_my_view: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      view: OWN_VIEW,
+      applied: closed({ clan_tag: TAG }),
+      notes: { type: "array", items: { type: "string" } },
+      docs: { type: "string" },
+      meta: { type: "object" },
+    },
+    required: ["view", "applied", "notes", "docs", "meta"],
+  },
   clans_context: {
     type: "object",
     additionalProperties: false,

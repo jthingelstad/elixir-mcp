@@ -39,6 +39,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export const CATALOGUE_FILE = path.join(here, "catalogue.json");
 
 const PRIVATE_TO_THE_CALLER = new Set([
+  "clans_my_view",
   "elixir_my_feedback",
   "elixir_my_identities",
   "elixir_my_players",

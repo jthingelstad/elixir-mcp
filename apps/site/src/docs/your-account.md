@@ -8,7 +8,7 @@ navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your tier, and it shows nobody your address."
 console: ["Your profile and tier", "/console/account/profile", "Account settings ▸ Profile"]
-reviewed: "2026-10-12 against contract 11.11.4"
+reviewed: "2026-10-13 against contract 11.12.0"
 ---
 
 # Your account
@@ -168,7 +168,10 @@ agent's: it is answered on the agent's page and timeline, never mailed.
 Your email address is never shown anywhere public. The players on your
 account, what each one is to you and the nicknames you give them are
 yours: what you connect to Elixir as yourself reads them, and nobody
-else does. The game record
+else does. So is your own view in Elixir Clan (your standing line and
+the Actions waiting for you): your own connection reads it, for a
+player you have verified, and no agent or integration does
+([Your own view](/docs/clan-policy#your-own-view)). The game record
 itself (battles, profiles, clans) is public game data, and every
 active account can read it. The one public line tied to an account is
 a collector's: the public list of collectors names the operator's

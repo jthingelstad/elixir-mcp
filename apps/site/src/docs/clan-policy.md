@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
+reviewed: "2026-10-13; Your own view, read by your own connection (contract 11.12.0); 2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -375,6 +375,45 @@ told more than three hours late says when in words ("Yesterday").
   so this is how it learns which posts read well there: the rating goes
   to Elixir as feedback about that post from the leader's own account,
   and each leader sees only their own.
+
+## Your own view
+
+What you connect to Elixir as yourself (your own `/mcp` connection,
+Claude or another assistant signed in as you) can read your own view of
+your clan with `clans_my_view`. It is on for every person and has no
+switch. It reads exactly three things:
+
+- **The policy summary:** whether the leaders have saved a policy, its
+  revision, whether it is active (ten members or more), and which parts
+  are switched on.
+- **Your own standing line:** the line Clan shows you under **You
+  here**: your status, what counted, the next step, your minimums and,
+  when removal is on, your own inactivity state (at risk, never more).
+- **The Actions waiting for you,** as the lines Clan's Actions list
+  shows: number, type, label, the member it is about and when it was
+  raised, each with a link to open it in Clan. An Action Clan has not
+  numbered yet has no number and links to the Actions list.
+
+It never shows another member's line, clock, hold or note; never a
+removal Action, to anyone, a leader who would decide it included; never
+an Action's evidence, log or comments; and it never decides anything.
+Deciding happens in Clan. A leader's or co-leader's answer always says
+that some Actions are shown only in Clan, whether or not any are
+waiting.
+
+The read needs a player you have verified on your account who is a
+current member of the clan; a claim that is not verified gets nothing.
+With two verified players in one clan, it reads as the one with the
+higher role in the game. With no clan named it reads your primary
+player's clan. An agent or an integration never reads it: it is yours,
+not something you grant.
+
+Standing and Actions come from Clan's last evaluation of the clan
+(`standing.evaluated_at`); Clan's own page reads live, so it can be
+newer. When there is nothing to show, `reason` says why: `no_policy`
+(no policy saved), `too_few_members` (under ten), or `not_evaluated`
+(Clan has not evaluated the clan under its current policy for your
+player yet); the policy summary is always there.
 
 ## Agent context
 
