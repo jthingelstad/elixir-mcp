@@ -330,7 +330,11 @@ export function accountRoutes({
       // or a signup tag refused for it (#556): said where the primary is
       // shown for as long as the account has no primary (a friend or a
       // watched player added since does not answer it). The latest such
-      // event; never names the other account.
+      // event; never names the other account. A primary is only ever left
+      // unset by that event or by removing the last player (removePlayer
+      // refuses it otherwise), so an account that still tracks players has
+      // not chosen one since; one that tracks none and added a player
+      // after the event chose one and removed it, and the notice is over.
       const noPrimary = !claims.rows.some((c) => c.is_primary);
       const { rows: notice } = noPrimary
         ? await db.query(
@@ -339,8 +343,12 @@ export function accountRoutes({
               where e.account_id = $1
                 and ((e.kind = 'claim_ended' and (e.detail->>'was_primary')::boolean)
                      or e.kind = 'claim_refused')
+                and ($2 or not exists (select 1 from account_event later
+                                        where later.account_id = e.account_id
+                                          and later.kind = 'claim_added'
+                                          and later.event_id > e.event_id))
               order by e.event_id desc limit 1`,
-            [account.accountId],
+            [account.accountId, claims.rows.length > 0],
           )
         : { rows: [] };
       return json(200, {
