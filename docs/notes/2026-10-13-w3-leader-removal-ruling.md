@@ -8,9 +8,10 @@ the removal Actions waiting for them to decide. Jamie answered on #535 on
 That is what MCP 11.12.0 already does: `clans_my_view` shows no removal
 Action to anyone, a leader or co-leader who would decide it included, and
 a leader's answer always carries the note that some Actions are shown only
-in Clan. The `docs/DECISIONS.md` line for the person's own view now holds
-the no-removal part as Jamie's ruling instead of an engineering default
-waiting on the question.
+in Clan. `docs/DECISIONS.md` gives the ruling a line of its own ("Your own
+Clan view shows no removal Action, a leader's included"), and the line for
+the person's own view no longer carries the no-removal part as an
+engineering default waiting on the question.
 
 No behaviour, contract or public docs change: the public page
 (`/docs/clan-policy#your-own-view`) and the tool description already state
