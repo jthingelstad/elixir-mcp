@@ -9,8 +9,7 @@ import { CONSOLE } from "../lib/console.js";
  * account verifies a tag, this account's primary on it ends and nothing is
  * promoted in its place; a signup tag another account had verified is not
  * added. `GET /api/me` carries `claim_notice` while the account has no
- * primary and has added nothing since. It names the tag, never the account
- * that verified it.
+ * primary. It names the tag, never the account that verified it.
  */
 export function ClaimNotice({ me, onTracking = false, className = "" }) {
   const notice = me?.claim_notice;

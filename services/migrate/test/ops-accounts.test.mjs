@@ -390,3 +390,43 @@ test("account_track adds an alt to the account that holds the primary, once, and
     "relationship must be alt, friend or watching",
   );
 });
+
+test("#556: an enrolled tag another account verified is not claimed, and the account follows no clan for it", async () => {
+  const TAG = "#QJ0GVRU8";
+  const CLAN = "#8VQ2LGRP";
+  const {
+    rows: [owner],
+  } = await db.query(
+    `insert into account (email_hash, status, role) values ('enroll-556-owner', 'approved', 'member') returning account_id`,
+  );
+  await db.query(`insert into player (player_tag) values ($1)`, [TAG]);
+  await db.query(
+    `insert into claim (account_id, player_tag, status, is_primary, relationship)
+     values ($1, $2, 'verified', true, 'primary')`,
+    [owner.account_id, TAG],
+  );
+  const out = await accountEnrollOp(SCRATCH_URL, {
+    dry_run: false,
+    accounts: [
+      { email: "refused-556@example.com", player_tag: TAG, clan_tag: CLAN },
+    ],
+  });
+  const step = out.plan[0];
+  assert.equal(step.claimed, false);
+  assert.equal(step.claim_error, "verified_elsewhere");
+  const { rows } = await db.query(
+    `select (select count(*)::int from claim c where c.account_id = a.account_id) as claims,
+            (select count(*)::int from account_clan ac where ac.account_id = a.account_id) as clans,
+            a.onboarded_at is not null as onboarded,
+            (select e.detail from account_event e
+              where e.account_id = a.account_id and e.kind = 'claim_refused') as refused
+       from account a where a.account_id = $1`,
+    [step.account_id],
+  );
+  assert.deepEqual(rows[0], {
+    claims: 0,
+    clans: 0,
+    onboarded: true,
+    refused: { player_tag: TAG, reason: "verified_elsewhere", via: "ops" },
+  });
+});

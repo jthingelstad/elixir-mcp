@@ -94,7 +94,8 @@ If another account had already added the player as its primary or an alt
 before you verified it, that claim ends the moment your verification
 succeeds. That account's timeline says so, naming the player and never
 your account; if it was their primary, they are left with no primary
-until they choose one, and Tracking says so. Their friend or watching
+until they choose one, and Tracking says so, and the clan Elixir followed
+for that player is unfollowed, as when a primary moves. Their friend or watching
 claim on the player stays.
 
 If another account has already verified a player you try to verify, the

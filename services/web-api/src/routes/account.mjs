@@ -328,8 +328,9 @@ export function accountRoutes({
       );
       // A self claim that ended because another account verified its tag,
       // or a signup tag refused for it (#556): said where the primary is
-      // shown while the account still has no primary and has added
-      // nothing since. Never names the other account.
+      // shown for as long as the account has no primary (a friend or a
+      // watched player added since does not answer it). The latest such
+      // event; never names the other account.
       const noPrimary = !claims.rows.some((c) => c.is_primary);
       const { rows: notice } = noPrimary
         ? await db.query(
@@ -338,10 +339,6 @@ export function accountRoutes({
               where e.account_id = $1
                 and ((e.kind = 'claim_ended' and (e.detail->>'was_primary')::boolean)
                      or e.kind = 'claim_refused')
-                and not exists (select 1 from account_event later
-                                 where later.account_id = e.account_id
-                                   and later.kind = 'claim_added'
-                                   and later.event_id > e.event_id)
               order by e.event_id desc limit 1`,
             [account.accountId],
           )
