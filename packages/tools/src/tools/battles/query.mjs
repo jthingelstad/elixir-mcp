@@ -423,7 +423,9 @@ export const battles_query = {
     let towerUnknownRows = 0;
     let warVsRows = 0;
     let floorLosses = 0;
+    let duelRows = 0;
     const battles = rows.map((r) => {
+      if (isDuel(r.type)) duelRows++;
       const rest = others.get(r.battle_id) ?? [];
       // The other side's leak (feedback #58): the log row carries both
       // sides' counters and the record kept both; a caller was paying
@@ -719,7 +721,11 @@ export const battles_query = {
           : null,
         "inferred.duration is what the battle's signature PROVES about its length, never a measurement: the log carries no duration. A King Tower is the only way to end before regulation, so a three-crown finish is at_most_s 300 with no floor; any other finish ran at least 180 s; and level crowns means overtime expired and the tiebreaker resolved it, which is exactly 300 s. Head-to-head 1v1 only - a duel sums crowns over up to three games and a boat battle has no overtime - basis is which rule fired: king_tower_fell (a King Tower ended it, so nothing bounds it below), regulation_ran (no King Tower, so it reached at least 3:00; whether it ended there or in overtime is not recorded) or overtime_expired.",
         "global_rank is the player's global leaderboard position as the API reported it ON that battle - null unless they were ranked at the time, and not a rank in this record: it says you met a ranked opponent, never how they rank now.",
-        "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
+        // Only when the page holds a duel (11.12.1): the note names
+        // rounds_played and rounds[], which only a duel row carries.
+        duelRows === 0
+          ? null
+          : "Duel rows (riverRaceDuel*) collapse up to three games: crowns sum across rounds, elixir.leaked sums across rounds for both sides (elixir.rounds says how many and elixir.differential is null), tower_hp describes the final round only, deck_hash is null, decks sit under deck.rounds[] and rounds_played says how many. rounds[] carries each GAME's own result - crowns, tower_hp and elixir with its own differential - on the same round numbers deck.rounds[] uses, so read it rather than the summed values when the question is about one game (6.16.0; empty on a duel recorded before the round results were kept).",
         compact
           ? null
           : "Deck card levels are the in-game 1-16 scale; form is the FORM played (base, evolution or hero), never a level; tower_hp is hitpoints REMAINING at the end (null = not reported by the game).",
