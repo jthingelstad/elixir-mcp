@@ -41,7 +41,7 @@ if (bootstrap && !loginToken) {
   const { me, clanMe, renderedAt } = JSON.parse(bootstrap.textContent);
   bootstrap.remove();
   const runtime = createAppRuntime({ me, clanMe, renderedAt });
-  await runtime.router.load();
+  await runtime.router.load({ sync: true });
   hydrateRoot(node, <App runtime={runtime} />);
 } else {
   // A magic token lives only in the fragment. It must finish even when the
