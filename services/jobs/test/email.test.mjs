@@ -26,11 +26,36 @@ test("the game week is Monday 10:00Z to Monday 10:00Z, the last completed one", 
   assert.equal(send.to.toISOString(), "2026-09-14T10:00:00.000Z");
 });
 
-test("the collector week is Sunday 14:00Z to Sunday 14:00Z", () => {
-  const w = lastCollectorWeek(new Date("2026-09-20T14:00:00Z"));
-  assert.equal(w.from.toISOString(), "2026-09-13T14:00:00.000Z");
-  assert.equal(w.to.toISOString(), "2026-09-20T14:00:00.000Z");
-  assert.ok(w.key.endsWith("c"));
+test("the collector week is Saturday 00:00Z to Saturday 00:00Z, sent Sunday", () => {
+  // Sunday 2026-10-18 14:00Z, the first send on the Saturday week.
+  const w = lastCollectorWeek(new Date("2026-10-18T14:00:00Z"));
+  assert.equal(w.from.toISOString(), "2026-10-10T00:00:00.000Z");
+  assert.equal(w.to.toISOString(), "2026-10-17T00:00:00.000Z");
+  assert.equal(w.key, "2026-W41c");
+  // The days it holds: Saturday to Friday, never the closing Saturday.
+  assert.equal(w.label, "Oct 10 – 16");
+  // The Sunday 14:00Z week sent on 2026-10-11 was keyed by the ISO week
+  // of its Sunday start: the switch keeps one key per week, so the
+  // first Saturday week is a new issue, never "already sent".
+  assert.equal(`${isoWeekKey(new Date("2026-10-04T14:00:00Z"))}c`, "2026-W40c");
+  assert.notEqual(w.key, "2026-W40c");
+  // Saturday 00:00Z closes the week; a minute before, it is still open.
+  const close = lastCollectorWeek(new Date("2026-10-17T00:00:00Z"));
+  assert.equal(close.to.toISOString(), "2026-10-17T00:00:00.000Z");
+  const before = lastCollectorWeek(new Date("2026-10-16T23:59:00Z"));
+  assert.equal(before.to.toISOString(), "2026-10-10T00:00:00.000Z");
+  // Every day between a close and the next names the same week.
+  for (const at of [
+    "2026-10-17T09:00:00Z",
+    "2026-10-21T12:00:00Z",
+    "2026-10-23T23:00:00Z",
+  ])
+    assert.equal(lastCollectorWeek(new Date(at)).key, "2026-W41c", at);
+  // A week across a month names both months.
+  assert.equal(
+    lastCollectorWeek(new Date("2026-10-04T14:00:00Z")).label,
+    "Sep 26 – Oct 2",
+  );
 });
 
 test("labels cross a month boundary and iso weeks are numbered", () => {

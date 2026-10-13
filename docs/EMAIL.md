@@ -214,12 +214,14 @@ count of your own small firsts. Neither shows the other's numbers.
 
 ### `collector_activity`: Sunday, plus upgrade notices
 
-Only accounts with a collector. The weekly report reads the collector
-ledger: fetches, bytes, check-ins and quiet stretches, breaker trips,
-points and credits. Credits are points ÷ 10, where a point is a fetch
-that added to the record (`new_facts > 0`), the rule the quota applies;
-raw fetches never earn credit. Never empty: a silent collector is the
-report. It reads `RELEASE_SIGNED_SQL` and `signatureState` from the
+Only accounts with a collector. The week is `lastCollectorWeek`
+(`services/jobs/src/email/week.mjs`): Saturday 00:00Z to Saturday 00:00Z,
+sent Sunday 14:00Z (`MAIL_SCHEDULE`); key `<ISO week of the Saturday>c`;
+label Saturday to Friday (`docs/notes/2026-10-12-w3-collector-week.md`).
+`buildCollector` reads the collector ledger for it: fetches, bytes,
+check-ins and quiet stretches, the fetches that added to the record
+(`adding_fetches`, `new_facts > 0`) and the tier (#539; points and
+credits are retired). Never empty: a silent collector is the report. It reads `RELEASE_SIGNED_SQL` and `signatureState` from the
 collector-door package for each collector's release and signature state.
 
 **Upgrade notices** (`services/jobs/src/email/collector-upgrades.mjs`,

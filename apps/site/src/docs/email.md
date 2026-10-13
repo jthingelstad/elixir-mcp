@@ -7,7 +7,7 @@ order: 3
 navTitle: "Email"
 icon: mail
 lede: "Seven kinds, each a switch and a turn-off link: four weekly reports, milestones, clan actions waiting and answers to your feedback."
-reviewed: "2026-10-12 no email is composed by a model; 2026-10-08 for legendary badges as milestones, contract 11.5.2"
+reviewed: "2026-10-12 the collector week is Saturday to Saturday, and one a day is for scheduled email only; 2026-10-12 no email is composed by a model; 2026-10-08 for legendary badges as milestones, contract 11.5.2"
 ---
 
 # Email
@@ -37,17 +37,26 @@ so Tuesday's and Wednesday's mail agree with each other. The season label
 belongs to that covered week, even after a new season starts. A clan report
 with a closed race names that race's own season and river race week together;
 a report without a closed race uses the season just before the covered week's
-Monday boundary. Everything sends at 14:00 UTC. The rule is at most one email of a kind about one
-subject a day: one clan report for each clan you track (two clans, two
-reports on Monday), and one of every other kind per account. Milestone
-notes are exempt: they come as the moments do.
+Monday boundary. Everything sends at 14:00 UTC.
+
+The collector report is the one exception. It still comes on Sunday, and
+it covers **Saturday 00:00 UTC to the next Saturday 00:00 UTC** (Friday
+evening in US time zones), so Sunday's email is the week that closed the
+night before, and its dates name the days it holds, Saturday to Friday.
+
+Scheduled email comes at most once a day for each kind and subject: one
+clan report for each clan you track (two clans, two reports on Monday),
+one Clan actions waiting a day for each clan, and one of every other
+weekly kind per account. Email about something that happened is not
+scheduled, and comes when it happens: milestones as the moments do, and
+each answer to your feedback on its own.
 
 | Day | Kind | What it is |
 |---|---|---|
 | Monday | **Clan report** | Your clan's week: the war result if a war week closed (the clan's place, fame and war trophies, the race as it finished, the top five who raced and your own players, and the clan's war decks used out of those possible beside the races before), who joined and left and when, who has gone quiet, and the week in battles, promotions, new bests and donations, with the battles and members who battled set against the weeks before, with a link to the roster and one to the race's own week in Explore, by its Season and Week. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone and your own players marked *you*. Elixir tracks your primary player's clan for you as soon as it sees it, when you have a clan slot free ([Your player's clan](/docs/recording#your-players-clan)). |
 | Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the most-used deck in your busiest non-war mode drawn card by card, with its record and level gap from that mode alone, one line setting that mode's win rate this week beside the four game weeks before it, each with its battle count (left out when either side has fewer than 10 decided battles; the same numbers as Ladder's [This week vs your last 4](/docs/ladder#this-week-vs-your-last-4)), who you faced and who came round more than once, and a line for each alt. It links the week's season on [Ladder](/docs/ladder), and every deck of it on Ladder's Decks. **Cards and badges** counts, for each of your players, the week's cards unlocked and badge levels, which no longer come as milestone emails, with a link to your [timeline](/docs/timeline) where each one is listed. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
 | Wednesday | **Your friends this week** | How everyone you follow played: a card each for your friends and the busiest players you watch (their battles in each mode, a moment or two, then their cards unlocked and badge levels as a count, the deck they played most), with you in a line and each of your clans as a headline and at most three of the week's facts, the rest counted with a link to the clan. Anyone quiet for 30 days or more is named once, in one line. It is the [timeline](/docs/timeline) for the week, rendered: the email chooses what to say, and the timeline keeps everything. |
-| Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the dashboard’s security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much the edge filter saved, and your tier: an active collector holds the [Family tier](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Sunday 14:00 UTC to Sunday 14:00 UTC, the operator's week. |
+| Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the dashboard’s security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much the edge filter saved, and your tier: an active collector holds the [Family tier](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Saturday 00:00 UTC to the next Saturday 00:00 UTC, the week that closed the night before ([above](#the-week)). |
 | Mornings | **Clan actions waiting** | From [Elixir Clan](/clan), after its morning run, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Elixir Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
 | When answered | **Answers to your feedback** | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed, from anywhere in Elixir (the Console, Ladder, Elixir Clan, an email's footer, the docs), and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. One mail per answer; an answer is mailed after ten quiet minutes, so a correction made straight away is one mail. An agent's feedback is answered to the agent, never mailed. |
 | As it happens | **Milestones** | Congratulations when you or an alt reach a big first: a new arena, a new league in Path of Legends, a new personal-best trophy band, an Evolution or Hero form unlocked, a legendary badge, or a career milestone (every 1,000 career wins, and each Collection Level step). A new arena or league comes with the battle that did it and a link to [that battle's page](/docs/battles#a-battles-page); a form comes as its art. Its button opens Ladder on the season the moment happened in. Cards unlocked and badge levels never send one on their own: Tuesday's Arena email counts them. Checked hourly; everything new since the last note rides together. |
