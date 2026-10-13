@@ -147,6 +147,17 @@ Resources:
       AvailabilityZone: !Select [1, !GetAZs ""]
       Tags: [{ Key: Name, Value: elixir-mcp-private-b }]
 
+  # The existing B subnet is use1-az3, which Web Function connectors
+  # reject. Keep the database/Event Function subnets and add native egress
+  # in a physical AZ ID, independent of account-specific zone names.
+  WebPrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.42.0.128/26
+      AvailabilityZoneId: use1-az4
+      Tags: [{ Key: Name, Value: elixir-mcp-web-private-b }]
+
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -183,6 +194,12 @@ Resources:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  WebPrivateSubnetBRouteAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref WebPrivateSubnetB
       RouteTableId: !Ref PrivateRouteTable
 
   S3Endpoint:
@@ -1189,12 +1206,14 @@ Resources:
 
   WebNetworkConnector:
     Type: AWS::Lambda::NetworkConnector
+    DependsOn:
+      [PrivateSubnetARouteAssoc, WebPrivateSubnetBRouteAssoc, S3Endpoint]
     Properties:
       Name: elixir-mcp-web-egress
       OperatorRole: !GetAtt WebConnectorRole.Arn
       Configuration:
         VpcEgressConfiguration:
-          SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+          SubnetIds: [!Ref PrivateSubnetA, !Ref WebPrivateSubnetB]
           SecurityGroupIds: [!Ref LambdaSecurityGroup]
           NetworkProtocol: IPv4
           AssociatedComputeResourceTypes: [WebFunction]
