@@ -25,6 +25,7 @@ import {
   isRetiredEmailKind,
   unsubscribeHeaders,
   outboxObjects,
+  NEWSLETTER_ENROLL,
 } from "@elixir-mcp/contracts";
 import { renderEmail } from "./templates.mjs";
 
@@ -61,6 +62,26 @@ export function makeHandler({
   async function deliver(parsed) {
     if (isRetiredEmailKind(String(parsed?.kind ?? ""))) {
       console.log("mail_retired", parsed.kind);
+      return "sent";
+    }
+    // An enrollment with no mail (2026-10-12): the jobs Lambda's
+    // {newsletter_sync} hands over the address of an account that opted
+    // in but has had no sign-in or welcome mail to enroll it. Enrolled as
+    // a sign-in enrolls (an existing address, unsubscribed included, is
+    // left alone); best-effort, with a log line either way.
+    if (parsed?.kind === NEWSLETTER_ENROLL) {
+      const to = typeof parsed.to === "string" ? parsed.to.trim() : "";
+      if (!to.includes("@")) return "bad_message";
+      if (!enroll) {
+        console.error("newsletter_enroll_drop", "not_configured");
+        return "sent";
+      }
+      try {
+        await enroll(to);
+        console.log("newsletter_enrolled");
+      } catch {
+        console.error("newsletter_enroll_drop", "transport_error");
+      }
       return "sent";
     }
     const validated = validateEmailMessage(parsed);

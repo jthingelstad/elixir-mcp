@@ -15,6 +15,7 @@ import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 import pg from "pg";
 import { purgeQuality } from "@elixir-mcp/syndication/quality";
 import { sweepSilentCollectors } from "./fleet.mjs";
+import { newsletterSync } from "./newsletter-sync.mjs";
 import { loadVocabulary, stampDecks } from "@elixir-mcp/ingest/card-roles";
 import { makeOutbox } from "@elixir-mcp/outbox";
 import { wakeClosingSittings } from "@elixir-mcp/syndication";
@@ -483,6 +484,16 @@ export async function handler(event, context) {
       enqueue: enqueueEmail,
     });
     console.log(JSON.stringify(result));
+    return result;
+  }
+  // By hand only: the mailing list caught up with the accounts that
+  // opted in ({"newsletter_sync": {"dry_run": false}}; a dry run counts).
+  if (event?.newsletter_sync) {
+    const result = await newsletterSync(process.env.DATABASE_URL, {
+      dryRun: event.newsletter_sync?.dry_run !== false,
+      enqueue: outbox ? (msg) => outbox("email", msg) : null,
+    });
+    console.log(JSON.stringify({ newsletter_sync: result }));
     return result;
   }
   if (event?.sweep_fleet) {

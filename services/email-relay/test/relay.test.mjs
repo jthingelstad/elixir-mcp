@@ -256,6 +256,37 @@ test("the login send carries the enrollment decision (#27/0051)", async () => {
   assert.equal(sent.at(-1).to, "member2@x.com", "the login email still sent");
 });
 
+test("an enroll-only message enrolls and sends no mail; a failure never retries", async () => {
+  const sent = [];
+  const enrolled = [];
+  const handler = makeHandler({
+    send: async (m) => sent.push(m),
+    enroll: async (email) => enrolled.push(email),
+  });
+  const rec = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
+  const out = await handler({
+    Records: [
+      rec("a", { kind: "newsletter_enroll", to: " list@x.com " }),
+      rec("b", { kind: "newsletter_enroll", to: "nobody" }),
+    ],
+  });
+  assert.deepEqual(enrolled, ["list@x.com"]);
+  assert.deepEqual(sent, [], "no mail");
+  assert.deepEqual(out.batchItemFailures, [{ itemIdentifier: "b" }]);
+
+  const boom = makeHandler({
+    send: async (m) => sent.push(m),
+    enroll: async () => {
+      throw new Error("503");
+    },
+  });
+  const out2 = await boom({
+    Records: [rec("c", { kind: "newsletter_enroll", to: "list@x.com" })],
+  });
+  assert.deepEqual(out2.batchItemFailures, []);
+  assert.deepEqual(sent, []);
+});
+
 test("Buttondown 400 is read, not assumed to mean 'already subscribed' (#27)", async () => {
   const enroller = (status, body) =>
     makeButtondownEnroller({
