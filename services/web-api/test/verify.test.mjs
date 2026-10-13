@@ -13,7 +13,11 @@ import assert from "node:assert/strict";
 import pg from "pg";
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession } from "@elixir-mcp/auth";
-import { removePlayer } from "@elixir-mcp/claims";
+import {
+  addPlayer,
+  removePlayer,
+  VERIFIED_ELSEWHERE,
+} from "@elixir-mcp/claims";
 import { makeHandler } from "../src/handler.mjs";
 import {
   verifyRoutes,
@@ -450,7 +454,8 @@ test("a tag verified by one account cannot be started by another", async () => {
   });
   const r = await routes["POST /api/me/verify"](db, {}, { player_tag: TAG });
   assert.equal(r.statusCode, 409);
-  assert.equal(JSON.parse(r.body).error, "verified_elsewhere");
+  // The one answer every claim door gives (#556).
+  assert.deepEqual(JSON.parse(r.body), { ...VERIFIED_ELSEWHERE });
 });
 
 test("an alt with no recorded collection yet: the start asks for a read and says collecting", async () => {
@@ -814,4 +819,129 @@ test("removing and re-adding the player does not give a tag its verification rea
   const again = await poll(two.challenge_id);
   assert.equal(again.live_capped, true);
   assert.equal(asks, LIVE_READS_PER_TAG_PER_DAY, "and neither does its poll");
+});
+
+test("a verification ends other accounts' primary and alt on the tag, keeps a friend, and later claims are refused (#556)", async () => {
+  const VTAG = "#QQ2RPJ8Y";
+  const SPARE = "#GG8RLQ2C";
+  await seedCollection(VTAG);
+  const make = async (hash) =>
+    (
+      await db.query(
+        "insert into account(email_hash,status,role) values ($1,'approved','member') returning account_id",
+        [hash],
+      )
+    ).rows[0].account_id;
+  const prover = await make("verify-556-prover");
+  const holder = await make("verify-556-holder");
+  const altHolder = await make("verify-556-alt");
+  const fan = await make("verify-556-fan");
+  // The holder's primary is VTAG and they also watch SPARE; the alt holder
+  // keeps VTAG as an alt; the fan follows it; the prover claims it too.
+  await addPlayer(db, { accountId: holder }, { tag: VTAG, via: "test" });
+  await addPlayer(db, { accountId: holder }, { tag: SPARE, via: "test" });
+  await addPlayer(db, { accountId: altHolder }, { tag: SPARE, via: "test" });
+  await addPlayer(
+    db,
+    { accountId: altHolder },
+    { tag: VTAG, relationship: "alt", via: "test" },
+  );
+  await addPlayer(db, { accountId: fan }, { tag: SPARE, via: "test" });
+  await addPlayer(
+    db,
+    { accountId: fan },
+    { tag: VTAG, relationship: "friend", via: "test" },
+  );
+  await addPlayer(db, { accountId: prover }, { tag: VTAG, via: "test" });
+
+  const routesFor = (accountId) =>
+    verifyRoutes({
+      resolveAccount: async () => ({
+        accountId,
+        role: "member",
+        kind: "person",
+      }),
+      logEvent: async () => {},
+      live: async () => ({ ok: false, reason: "pending", job_id: 900 }),
+    });
+  // The holder has a challenge open for the same tag.
+  const held = data(
+    await routesFor(holder)["POST /api/me/verify"](
+      db,
+      {},
+      { player_tag: VTAG },
+    ),
+  );
+  assert.equal(held.state, "open");
+  const started = data(
+    await routesFor(prover)["POST /api/me/verify"](
+      db,
+      {},
+      { player_tag: VTAG },
+    ),
+  );
+  assert.equal(started.state, "open");
+  const { rows: open } = await db.query(
+    `select target_card_ids from claim_challenge where challenge_id = $1`,
+    [started.challenge_id],
+  );
+  await playBattle(VTAG, open[0].target_card_ids);
+  const done = data(
+    await routesFor(prover)["GET /api/me/verify/*"](db, {
+      pathParam: started.challenge_id,
+    }),
+  );
+  assert.equal(done.state, "verified");
+
+  const claimOf = async (accountId, tag) =>
+    (
+      await db.query(
+        `select status, relationship, is_primary from claim where account_id = $1 and player_tag = $2`,
+        [accountId, tag],
+      )
+    ).rows[0] ?? null;
+  assert.equal((await claimOf(prover, VTAG)).status, "verified");
+  // The holder's primary ended, SPARE stays and is not promoted.
+  assert.equal(await claimOf(holder, VTAG), null);
+  assert.deepEqual(await claimOf(holder, SPARE), {
+    status: "unverified",
+    relationship: "watching",
+    is_primary: false,
+  });
+  // The holder's challenge went with the claim: polling it finds nothing.
+  const gone = await routesFor(holder)["GET /api/me/verify/*"](db, {
+    pathParam: held.challenge_id,
+  });
+  assert.equal(gone.statusCode, 404);
+  assert.equal(await claimOf(altHolder, VTAG), null);
+  assert.equal((await claimOf(altHolder, SPARE)).is_primary, true);
+  assert.equal((await claimOf(fan, VTAG)).relationship, "friend");
+  const { rows: ended } = await db.query(
+    `select account_id, detail from account_event
+      where kind = 'claim_ended' and detail->>'player_tag' = $1
+      order by event_id`,
+    [VTAG],
+  );
+  assert.deepEqual(
+    ended.map((e) => [e.account_id, e.detail.was_primary]).sort(),
+    [
+      [altHolder, false],
+      [holder, true],
+    ].sort(),
+  );
+
+  // From now on the tag is the prover's: the holder cannot take it back.
+  const back = await addPlayer(
+    db,
+    { accountId: holder },
+    { tag: VTAG, makePrimary: true, via: "test" },
+  );
+  assert.equal(back.error, "verified_elsewhere");
+  const retry = await routesFor(altHolder)["POST /api/me/verify"](
+    db,
+    {},
+    { player_tag: VTAG },
+  );
+  assert.equal(retry.statusCode, 409);
+  assert.equal(data(retry).message, VERIFIED_ELSEWHERE.message);
 });

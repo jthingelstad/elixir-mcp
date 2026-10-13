@@ -158,7 +158,14 @@ player primary first (`elixir_track_player` with `relationship:
 Removing your last player is allowed, and leaves the account with no
 primary until you track one. Claims are taken at your word
 (`claim_status: unverified`) until [Verify](/docs/verify) proves one;
-several accounts may track the same player and share the recording.
+several accounts may track the same player and share the recording. A
+player another account has verified is theirs: making it your primary or
+an alt is refused (`not_entitled`, with what to do), while `friend` and
+`watching` are not, and a first player named `friend` or `watching` is
+added as that and is not made your primary. If you held a player as your
+primary or an alt when another account verified it, your claim ends and
+your timeline says so; an ended primary leaves you with none until you
+make another player primary.
 
 ## Your player's clan
 

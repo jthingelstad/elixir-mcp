@@ -8,7 +8,7 @@ navTitle: "Prove a player is yours"
 icon: shield-check
 lede: "Play one battle with a deck we name, and the claim on your player becomes a fact rather than a promise."
 console: ["Verify a player you have added", "/console/account/verify", "Console ▸ Verify"]
-reviewed: "2026-10-08 against contract 11.2.4"
+reviewed: "2026-10-12 against contract 11.11.4"
 ---
 
 # Verify: proving a player is yours
@@ -75,13 +75,30 @@ So the proof is a battle.
 
 A verified claim proves that whoever holds this account could choose the
 deck that player took into a battle at that time. It does not prove
-anything about other players on the account, it does not stop a second
-account from adding the same player unverified, and it is not a
-Supercell feature: nothing here uses their account system.
+anything about other players on the account, and it is not a Supercell
+feature: nothing here uses their account system.
 
-A tag has one verified owner. If another account has already verified a
-player you try to verify, the page says so; if that player is yours, sign
+## A verified player is yours alone
+
+A tag has one verified owner, and verifying protects it: no other account
+can claim that player as itself. Once you verify a player, another
+account that tries to add it as its primary or an alt (or as its first
+player, which is its primary) is refused, on the console, through an
+agent and through the JSON API alike, with the answer this page gives:
+another account has verified this player; if that player is yours, sign
 in to the account that verified it, or tell us through the feedback form.
+Following a verified player as a friend, or watching it, stays open to
+anyone; that is not a claim to be them.
+
+If another account had already added the player as its primary or an alt
+before you verified it, that claim ends the moment your verification
+succeeds. That account's timeline says so, naming the player and never
+your account; if it was their primary, they are left with no primary
+until they choose one, and Tracking says so. Their friend or watching
+claim on the player stays.
+
+If another account has already verified a player you try to verify, the
+page says so, with the same answer.
 
 ## Privacy and cost
 

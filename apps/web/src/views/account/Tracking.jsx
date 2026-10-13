@@ -7,6 +7,7 @@ import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { CONSOLE } from "../../lib/console.js";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
 import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
+import { ClaimNotice } from "../../components/ClaimNotice.jsx";
 
 /**
  * Tracking — ONE table over both kinds, and a record per tracked thing.
@@ -163,6 +164,8 @@ export function Tracking({ me, refresh, navigate }) {
           ))}
         </div>
       </div>
+
+      <ClaimNotice me={me} onTracking className="mb-4" />
 
       <div
         style={{

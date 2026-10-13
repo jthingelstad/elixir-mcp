@@ -236,6 +236,27 @@ test("a person's block names them, their alt, and their clan", async () => {
   assert.match(text, /POAP KINGS #J2RGCRVG/);
 });
 
+test("#556: a person with players but no primary is told so, not that they have none", () => {
+  const text = identitySentences({
+    kind: "person",
+    grouped: {
+      primary: [],
+      alt: [],
+      friend: [],
+      watching: [{ player_tag: OTHER, name: "King Thing" }],
+    },
+  });
+  assert.match(
+    text,
+    /You track players but have no primary, so nothing here defaults to you/,
+  );
+  assert.doesNotMatch(text, /You have no player yet/);
+  assert.match(
+    identitySentences({ kind: "person", grouped: {} }),
+    /You have no player yet/,
+  );
+});
+
 test("an agent's block names its clan and its leadership, not its roster", async () => {
   const text = identitySentences(await describeIdentity(db, agent));
   assert.match(text, /YOU ACT FOR POAP KINGS #J2RGCRVG \(3 members\)/);

@@ -481,6 +481,8 @@ export async function accountEnrollOp(databaseUrl, spec) {
         );
         step.claimed = added.ok === true;
         step.recording_started = added.recordingStarted === true;
+        // verified_elsewhere (#556): another account has verified the tag.
+        if (!added.ok) step.claim_error = added.error;
       }
       if (resolved) {
         await db.query(

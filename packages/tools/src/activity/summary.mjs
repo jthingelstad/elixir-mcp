@@ -514,6 +514,16 @@ export function itemText(it, timeZone = "UTC") {
         ] ?? f.unit;
       return `${member} stands ${f.place === 1 ? "first" : `in place ${f.place}`} in ${subj}'s ${f.award} for season ${f.season_id} with ${num(f.value)} ${unit}${f.previous_player_tag ? `, taking it from ${f.previous_name ?? f.previous_player_tag}` : ""}${via(f)}.`;
     }
+    // A verified tag is its owner's (#556): the tag and why, never the
+    // account that verified it.
+    case "account_claim_ended":
+      if (f.count > 1)
+        return `your account: ${f.count} of your players were verified by other accounts, so they are no longer yours on Elixir.`;
+      return f.was_primary
+        ? `your account: another account verified ${f.player_tag}, so it is no longer your primary player, and you have none until you make one of your players primary. If that player is yours, tell us through the feedback form.`
+        : `your account: another account verified ${f.player_tag}, so it is no longer your alt. If that player is yours, tell us through the feedback form.`;
+    case "account_claim_refused":
+      return `your account: ${f.player_tag}, the player tag you signed up with, is verified by another account, so it was not added. If that player is yours, tell us through the feedback form.`;
     default:
       if (it.kind.startsWith("account_")) {
         const kind = it.kind.slice("account_".length);

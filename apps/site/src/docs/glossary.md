@@ -26,8 +26,11 @@ with `elixir_track_player` or `elixir_track_clan`, and it occupies one of
 your slots. Tracked means recorded; there is no separate watch step. See [Recording](/docs/recording#added-means-recorded).
 
 **claim** — the link between your account and a player tag you track. Claims
-are taken at your word (`claim_status: unverified`); several accounts may
-claim the same player and share one recording.
+are taken at your word (`claim_status: unverified`) until
+[Verify](/docs/verify) proves one, and several accounts may track the same
+player and share one recording. A verified player is its owner's alone: no
+other account may hold it as its primary or an alt (a friend or watching is
+fine), and such a claim ends when the player is verified.
 
 **relationship** — who a tracked player is to you: `primary` (you; exactly
 one), `alt` (also you, another tag), `friend`, or `watching` (the default).

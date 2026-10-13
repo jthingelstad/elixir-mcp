@@ -384,6 +384,16 @@ async function dispatch(event) {
     console.log(JSON.stringify(result));
     return result;
   }
+  if (event?.verified_tag_census) {
+    const { verifiedTagCensusOp } =
+      await import("./ops-verified-tag-census.mjs");
+    const result = await verifiedTagCensusOp(
+      process.env.DATABASE_URL,
+      event.verified_tag_census,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
   if (event?.account_role) {
     const result = await accountRoleOp(
       process.env.DATABASE_URL,

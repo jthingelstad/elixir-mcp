@@ -58,3 +58,45 @@ test("a player event still names the player", () => {
     /recording started \(#GGJG2CCR\)\.$/,
   );
 });
+
+test("#556: an ended claim names the tag and what it was, never the account that verified it", () => {
+  const primary = itemText(
+    item("claim_ended", {
+      player_tag: "#2PP0V90Y",
+      reason: "verified_elsewhere",
+      was_primary: true,
+      relationship: "primary",
+      count: 1,
+    }),
+  );
+  assert.match(
+    primary,
+    /another account verified #2PP0V90Y, so it is no longer your primary player, and you have none/,
+  );
+  const alt = itemText(
+    item("claim_ended", {
+      player_tag: "#2PP0V90Y",
+      reason: "verified_elsewhere",
+      was_primary: false,
+      relationship: "alt",
+      count: 1,
+    }),
+  );
+  assert.match(
+    alt,
+    /another account verified #2PP0V90Y, so it is no longer your alt\./,
+  );
+  assert.match(
+    itemText(item("claim_ended", { count: 2, was_primary: false })),
+    /2 of your players were verified by other accounts/,
+  );
+  assert.match(
+    itemText(
+      item("claim_refused", {
+        player_tag: "#9VUP08YL",
+        reason: "verified_elsewhere",
+      }),
+    ),
+    /#9VUP08YL, the player tag you signed up with, is verified by another account, so it was not added\./,
+  );
+});

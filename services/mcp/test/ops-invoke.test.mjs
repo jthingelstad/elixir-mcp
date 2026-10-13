@@ -72,6 +72,7 @@ test("op: reads are reads", () => {
     { account_track: { primary_tag: "#A", player_tag: "#B", dry_run: true } },
     { agent_recordings: { dry_run: true } },
     { ops_recordings: { dry_run: true } },
+    { verified_tag_census: { dry_run: true } },
     { clan_context: { agents: ["abc"] } },
     { clan_maintenance: { lane: "actions", clan_tag: "#A" } },
   ])
@@ -111,6 +112,8 @@ test("op: everything else is a write, and takes the lock", () => {
     { agent_recordings: {} }, // defaults to a dry run; not counted
     { ops_recordings: { dry_run: false } },
     { ops_recordings: {} }, // defaults to a dry run; not counted
+    { verified_tag_census: { dry_run: false } },
+    { verified_tag_census: {} },
     { clan_context: { agents: ["a"], apply: true } },
     { clan_context: { agents: ["a"], revoke: true } },
     { clan_maintenance: { lane: "reconcile_removal", card_id: "c" } },

@@ -4,6 +4,7 @@ import { normalizeTag } from "@elixir-mcp/contracts";
 import { makeLive } from "@elixir-mcp/tools/live";
 import { participantModeClause } from "@elixir-mcp/record/mode-filter";
 import { enqueueJob } from "@elixir-mcp/ledger";
+import { markVerified, VERIFIED_ELSEWHERE } from "@elixir-mcp/claims";
 import { drawTarget, deckIds, deckKey } from "./verify-draw.mjs";
 
 /**
@@ -371,12 +372,13 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
           message: `At most ${STARTS_PER_HOUR} verification starts an hour.`,
         });
 
-      // Somebody else already proved this tag: a tag has one owner.
+      // Somebody else already proved this tag: a tag has one owner, and
+      // the answer is the one every claim door gives (#556).
       const { rows: elsewhere } = await db.query(
         `select 1 from claim where player_tag = $1 and status = 'verified' and account_id <> $2`,
         [tag, account.accountId],
       );
-      if (elsewhere[0]) return json(409, { error: "verified_elsewhere" });
+      if (elsewhere[0]) return json(409, { ...VERIFIED_ELSEWHERE });
 
       // Adding a player is Tracking's job (Jamie, 2026-09-12): this page
       // proves claims that exist, as the primary or an alt.
@@ -523,11 +525,19 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
       if (proof) {
         await db.query("begin");
         try {
-          await db.query(
-            `update claim set status = 'verified', verified_method = 'deck_battle', verified_at = now()
-              where account_id = $1 and player_tag = $2`,
-            [account.accountId, row.player_tag],
-          );
+          // The claim, and every other account's self claim on the tag
+          // ended with it (#556), in one transaction with the challenge.
+          const marked = await markVerified(db, {
+            accountId: account.accountId,
+            tag: row.player_tag,
+            method: "deck_battle",
+            via: "verify",
+          });
+          if (!marked.verified) {
+            // The player left the account while its challenge was open.
+            await db.query("rollback");
+            return json(404, { error: "not_found" });
+          }
           await db.query(
             `update claim_challenge set outcome = 'verified', completed_at = now(), proof_battle_id = $2
               where challenge_id = $1`,
@@ -538,7 +548,7 @@ export function verifyRoutes({ resolveAccount, logEvent, live = null }) {
           await db.query("rollback");
           // claim_one_verified_per_tag: somebody else proved it first.
           if (err?.code === "23505")
-            return json(409, { error: "verified_elsewhere" });
+            return json(409, { ...VERIFIED_ELSEWHERE });
           throw err;
         }
         await logEvent(db, account.accountId, "claim_verified", {

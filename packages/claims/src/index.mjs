@@ -71,6 +71,33 @@ async function logEvent(db, accountId, kind, detail) {
   );
 }
 
+/**
+ * A verified tag is its owner's (Jamie, 2026-10-12, #556): "IF a player
+ * has VERIFIED their player tag, we should NOT allow any other account to
+ * claim it as a self or alt tag". A self claim is `primary` or `alt`;
+ * `friend` and `watching` say "not me" and stay open to anyone. One
+ * refusal, said the same way on every door (the console, the tool and
+ * the JSON API, Verify itself).
+ */
+export const SELF_RELATIONSHIPS = Object.freeze(["primary", "alt"]);
+export const VERIFIED_ELSEWHERE = Object.freeze({
+  error: "verified_elsewhere",
+  message:
+    "Another account has verified this player. If that player is yours, sign in to the account that verified it, or tell us through the feedback form.",
+});
+
+/** Has an account other than `accountId` verified `tag`? Callers that
+ *  then write a self claim hold the subject lock. */
+export async function verifiedElsewhere(db, accountId, tag) {
+  const { rows } = await db.query(
+    `select 1 from claim
+      where player_tag = $1 and status = 'verified' and account_id <> $2
+      limit 1`,
+    [tag, accountId],
+  );
+  return rows.length > 0;
+}
+
 /** An account `a` whose tracking is a reason to record: anyone but a
  *  suspended agent. */
 const COUNTS = `(a.kind <> 'agent' or a.status = 'approved')`;
@@ -185,7 +212,9 @@ export async function reconcileRecording(
 /**
  * Add (subscribe to) a player.
  *
- * Returns {ok:false, error:"quota_exceeded", limit, role} or
+ * Returns {ok:false, error:"quota_exceeded", limit, role},
+ * {ok:false, error:"verified_elsewhere", message} (a self claim on a tag
+ * another account has verified, #556) or
  * {ok:true, added, isPrimary, recordingStarted}. `added` is false on a
  * re-add, which stays idempotent.
  */
@@ -227,6 +256,30 @@ export async function addPlayer(
     if (owner.account_id !== account.accountId)
       await lockAccount(db, owner.account_id);
     await lockSubject(db, tag);
+
+    const { rows: counted } = await db.query(
+      `select count(*)::int as n from claim where account_id = $1`,
+      [account.accountId],
+    );
+    // A person's first player is them; an agent never has a primary.
+    const first = counted[0].n === 0 && !agent;
+    // A tag another account has verified is theirs (#556): claiming it as
+    // you is refused, which is the primary, an alt, or a first player with
+    // no relationship named (a person's first player is them). A friend or
+    // a watched player is not a claim to be them: it is added as asked and
+    // never made the primary.
+    const self =
+      !agent &&
+      (makePrimary === true ||
+        SELF_RELATIONSHIPS.includes(relationship) ||
+        (first && !relationship));
+    const owned =
+      !agent && (await verifiedElsewhere(db, account.accountId, tag));
+    if (owned && self) {
+      await db.query("rollback");
+      return { ok: false, ...VERIFIED_ELSEWHERE };
+    }
+
     const limits = poolLimits(owner);
     if (!limits.exempt) {
       const used = await pooledUsage(db, owner.account_id, {
@@ -248,13 +301,7 @@ export async function addPlayer(
       [tag],
     );
 
-    const { rows: counted } = await db.query(
-      `select count(*)::int as n from claim where account_id = $1`,
-      [account.accountId],
-    );
-    // A person's first player is them; an agent never has a primary.
-    const first = counted[0].n === 0 && !agent;
-    const wantPrimary = !agent && (makePrimary === true || first);
+    const wantPrimary = !agent && !owned && (makePrimary === true || first);
 
     // Clear the old primary BEFORE inserting the new one. Inserting a
     // second is_primary row first is what tripped the partial unique
@@ -335,6 +382,102 @@ export async function addPlayer(
     await db.query("rollback").catch(() => {});
     throw err;
   }
+}
+
+/**
+ * Say who a tracked player is to you: `alt`, `friend` or `watching`. The
+ * primary is never set or demoted here: exactly one claim is primary, and
+ * moving it is addPlayer's make_primary, which demotes the old one in the
+ * same transaction. An `alt` on a tag another account has verified is
+ * refused (#556); friend and watching never are.
+ *
+ * Returns {ok:true, relationship}, {ok:false, error:"not_found_or_primary"}
+ * (no claim, or it is the primary) or {ok:false, ...VERIFIED_ELSEWHERE}.
+ */
+export async function setRelationship(db, account, { tag, relationship }) {
+  await db.query("begin");
+  try {
+    await lockAccount(db, account.accountId);
+    await lockSubject(db, tag);
+    if (
+      SELF_RELATIONSHIPS.includes(relationship) &&
+      (await verifiedElsewhere(db, account.accountId, tag))
+    ) {
+      await db.query("rollback");
+      return { ok: false, ...VERIFIED_ELSEWHERE };
+    }
+    const { rowCount } = await db.query(
+      `update claim set relationship = $3
+        where account_id = $1 and player_tag = $2 and not is_primary`,
+      [account.accountId, tag, relationship],
+    );
+    await db.query("commit");
+    return rowCount === 0
+      ? { ok: false, error: "not_found_or_primary" }
+      : { ok: true, relationship };
+  } catch (err) {
+    await db.query("rollback").catch(() => {});
+    throw err;
+  }
+}
+
+/**
+ * Mark a claim verified, inside the caller's transaction (Verify's poll,
+ * which also closes the challenge), and end every OTHER account's self
+ * claim on the tag (Jamie, 2026-10-12, #556: "by VERIFYING you are
+ * protecting your tag from any other user being able to claim it as
+ * themselves").
+ *
+ * The subject lock comes first, before the claim row is touched, so an
+ * add or a relationship change for the same tag either finishes before
+ * this (and its claim is ended here) or starts after (and is refused).
+ * The verifier's own account is never locked here; every other mutation
+ * takes account then subject, so there is no cycle.
+ *
+ * Ending is removing: each other account's `primary` or `alt` claim goes,
+ * with an `account_event` `claim_ended` (the tag, never the account that
+ * verified it) that the timeline reads; `friend` and `watching` stay. An
+ * ended primary leaves that account with no primary: nothing is promoted
+ * (Elixir does not choose who "you" are). Removing a claim removes its
+ * open challenges (0080 cascade). The recording reconciles as for any
+ * removed claim; the verifier still claims the tag, so it continues.
+ *
+ * A unique violation (claim_one_verified_per_tag: another account proved
+ * it first) is the caller's to catch. Returns {verified:false} when the
+ * claim is gone (removed while the challenge was open), else
+ * {verified:true, ended: [{account_id, was_primary}]}.
+ */
+export async function markVerified(db, { accountId, tag, method, via }) {
+  await lockSubject(db, tag);
+  const { rowCount } = await db.query(
+    `update claim set status = 'verified', verified_method = $3, verified_at = now()
+      where account_id = $1 and player_tag = $2`,
+    [accountId, tag, method],
+  );
+  if (rowCount === 0) return { verified: false, ended: [] };
+  const { rows: ended } = await db.query(
+    `delete from claim
+      where player_tag = $1 and account_id <> $2
+        and (is_primary or relationship = any($3::text[]))
+      returning account_id, is_primary, relationship`,
+    [tag, accountId, SELF_RELATIONSHIPS],
+  );
+  for (const r of ended)
+    await logEvent(db, r.account_id, "claim_ended", {
+      player_tag: tag,
+      reason: VERIFIED_ELSEWHERE.error,
+      was_primary: r.is_primary === true,
+      relationship: r.is_primary ? "primary" : r.relationship,
+      via,
+    });
+  if (ended.length) await reconcileRecording(db, "player", tag, accountId);
+  return {
+    verified: true,
+    ended: ended.map((r) => ({
+      account_id: r.account_id,
+      was_primary: r.is_primary === true,
+    })),
+  };
 }
 
 /**
