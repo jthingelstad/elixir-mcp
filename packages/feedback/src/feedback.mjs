@@ -525,8 +525,8 @@ export function normalizeRelatedTools(value) {
 /**
  * Answer one item: a status, and usually words the filer reads. A new or
  * changed answer is news again (response_seen_at cleared, responded_at
- * moved, a timeline event, an email to a person); a status-only change
- * is not. `expected` makes it a compare-and-set against the item as last
+ * moved, a timeline event carrying the answer's words, an email to a
+ * person); a status-only change is not. `expected` makes it a compare-and-set against the item as last
  * read ({status, response, responded_at}); a mismatch answers updated 0.
  */
 export async function answerFeedback(
@@ -585,12 +585,15 @@ export async function answerFeedback(
          and ($6::boolean = false or (
            status = $7 and response is not distinct from $8::text
            and responded_at is not distinct from $9::timestamptz))
-       returning feedback_id, account_id, status, responded_at,
-                 (responded_at = now()) as answered),
+       returning feedback_id, account_id, status, response, shipped_in,
+                 responded_at, (responded_at = now()) as answered),
+     -- The answer's own words ride on its event (11.13.0), so the
+     -- timeline item for an answer later revised still tells its own.
      e as (
        insert into account_event (account_id, kind, detail)
        select account_id, 'feedback_responded',
-              jsonb_build_object('feedback_id', feedback_id, 'status', status)
+              jsonb_build_object('feedback_id', feedback_id, 'status', status,
+                                 'response', response, 'shipped_in', shipped_in)
          from u where answered
        returning 1)
      select feedback_id, account_id, status, answered, (select count(*) from e)::int as events from u`,

@@ -297,7 +297,10 @@ test("every item carries its kind's facts and schema, and the docs list every ki
       [],
       `${it.kind}: ${JSON.stringify(it.facts)}`,
     );
-    const kind = it.kind.startsWith("account_") ? "account" : it.kind;
+    const kind =
+      it.kind in TIMELINE_KIND_SCHEMAS || !it.kind.startsWith("account_")
+        ? it.kind
+        : "account";
     assert.equal(
       it.schema,
       `${it.kind}/${TIMELINE_KIND_SCHEMAS[kind].version}`,

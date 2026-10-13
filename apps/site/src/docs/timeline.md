@@ -167,7 +167,7 @@ section, text, visibility, publishable, facts, follow }`:
 | `race_finished` | clan | the boat crossed the finish line, with fame |
 | `week_resolved` | clan | the week finished: fame, rank among the five, war trophy change, and each member's week by points |
 | `quiet_crossed`, `returned` | player, or a clan's member | a member crossed 5, 10 or 20 recorded-quiet days (never while the silence is ours: `days_since_poll` rides along), or played again after seven or more |
-| `account_*` | your account | feedback answered (`account_feedback_responded`), recordings started or stopped, clans added or removed (the text names the clan; one Elixir made on its own says "automatically" and whose clan it followed), role changes (`account_role_changed`), connections, by the app's name. A burst of one kind within a minute (six connections revoked at once) is one item with `count`. Never publishable |
+| `account_*` | your account | answers to your feedback (`account_feedback_responded`, one item each; revised, the same `id` at a higher `revision`), recordings started or stopped, clans added or removed (the text names the clan; one Elixir made on its own says "automatically" and whose clan it followed), role changes (`account_role_changed`), connections, by the app's name. A burst of one kind within a minute (six connections revoked at once) is one item with `count`. Never publishable |
 | `departure_classified`, `role_change_made`, `award_granted`, `award_standing`, `member_away`, `clan_message` | clan | [attested facts](/docs/integrations#attested-facts): what a person did in the clan through a family app (a leader says a departure was a kick or a leave; a promotion made; the clan's own award; a member away; a Clan Leader Message or clan chat line), and what the app itself computed (`award_standing`: where a member stands in one of the clan's awards). Section `attested`; `facts` is the fact's detail plus `player_tag` and `name` for the member it is about (and `previous_name` beside a standing's `previous_player_tag`), `attested_by` (`app`, `player_tag`, `name`, `role`; the last three null on the app's own fact) and `visibility`. Shown only to a reader whose verified player (an agent's owner's) is in the clan; an away only to a **person** whose verified player leads it, never to an agent. A departure's kind reaches the clan and its agent. `at` is when it happened; it is selected by when Elixir recorded it |
 | `personal_record` | player | an attested fact from a family app's own game (Elixir Drop): `game`, `score`, `previous_best`, `attested_by`. Section `attested` |
 
@@ -257,7 +257,7 @@ story or how to name the moment to it:
 | `race_finished`, `week_resolved` | `war_history` for that season and week |
 | `quiet_crossed`, `returned` | `players_summary`, then the member's last ten battles (`battles_query`) |
 | attested facts | `players_summary` for the member |
-| `account_*` | nothing: `[]` |
+| `account_*` | `elixir_my_feedback` by `feedback_id` for an answer (marks it read); else `[]` |
 
 Call them as they are, in order of how close they stay to the moment. They
 are addresses, not advice: what to make of the answer is yours. A tool
@@ -281,8 +281,7 @@ are the games of the sitting the item counts, from its first battle through
 its last, which can reach before the read window: a standout's evidence is
 its whole sitting, so `evidence.count` and `facts.battles` agree, and the
 battle that crossed each rung is in `facts.crossings`. Page controls appear
-only when more canonical games remain. Closing the panel returns to its original
-row; narrative cells wrap to keep evidence controls visible on desktop.
+only when more canonical games remain; closing the panel returns to its row.
 
 Every supported item carries `evidence.kind`, `version`, `observed_at`,
 `count` and `completeness`. `observed_at_basis` distinguishes recorded
@@ -301,9 +300,9 @@ the win field is +30 without a starting rating; it does not establish a Trophy
 Road increase or a measured rating change. Keep a player's current Trophy Road
 standing and wider mixed-mode statistics separate from the crossing's evidence.
 Otherwise it says `unknown`; it never substitutes the nearest game. A
-roster-observed arena move can later gain proof: its original logical
-origin is frozen before enrichment, its ID stays the same, and its evidence
-revision, `revision` and observation time advance when the proof arrives.
+roster-observed arena move can later gain proof: its origin is frozen
+before enrichment, its ID stays, and its evidence revision, `revision` and
+observation time advance.
 
 An agent passes `evidence_item_id` to `elixir_timeline`, with the original
 `from` and `to`, `evidence_offset` (default 0), `evidence_limit` (1–25), and
@@ -325,11 +324,8 @@ Paging constituent games does not change the newsfeed's cap or ordering.
 The membership fingerprint and page share one database snapshot; concurrent
 capture asks for a refresh instead of silently shifting game offsets.
 
-Each result belongs to that game's mode. A ranked win and its +30 progress
-are ranked evidence, not Trophy Road progress. Current profile trophies,
-another mode's results and broader season statistics are separate context;
-they do not prove that milestone. Evidence serves the same canonical facts
-to authorized MCP agents as to people.
+Each result belongs to that game's mode (above). Evidence serves the same
+canonical facts to authorized MCP agents as to people.
 
 Evidence is limited to the reader's visible timeline subjects. Private
 attested facts keep their membership and role checks and carry no game
@@ -370,7 +366,8 @@ about a player, a member's moment on a clan's timeline included, carries
 | `week_resolved` | 2 | the read that saw the week close | `season_id`, `section_index`, `is_colosseum`, `fame`, `rank`, `trophy_change`, `members` (`player_tag`, `name`, `decks_used`, `points`, most points first; `text` names the top three) |
 | `quiet_crossed` | 2 | the last battle plus the rung's days | `player_tag`, `name`, `rung` (5, 10 or 20), `days_quiet`, `days_since_poll`, [`role` on a clan's timeline] |
 | `returned` | 2 | the battle that ended the absence | `player_tag`, `name`, `after_days` |
-| `account` | 2 | the first event of the burst | every `account_*` kind: the event's own detail (a feedback id and status, a subject tag, a tier), `count` (events in the burst) and `apps` (the apps named) |
+| `account` | 2 | the first event of the burst | other `account_*` kinds: the event's detail (a subject tag, a tier), `count` (events in the burst), `apps` (apps named) |
+| `account_feedback_responded` | 3 | the answer | `feedback_id`, `status`, `response` (`null` on a pre-11.13.0 answer since replaced), `shipped_in`, `area`, `category`, `message` (600 characters), `filed_at`, `answered_at`, `count` (1), `apps` |
 | `departure_classified` | 1 | when it happened, as attested; selected by when Elixir recorded it | `kind`, [`left_at`], `player_tag`, `name`, `attested_by`, `visibility` |
 | `role_change_made` | 1 | as above | `from`, `to`, `player_tag`, `name`, `attested_by`, `visibility` |
 | `award_granted` | 1 | as above | `award`, `season_id`, [`place`], `player_tag`, `name`, `attested_by`, `visibility` |

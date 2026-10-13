@@ -9,9 +9,14 @@
  *  A kind supplies its kinds, identity, journal, order and fold; the
  *  words stay the kind's own.
  *
- *  Milestone composes here. Which kinds follow, and what each still
- *  lacks from the timeline, is docs/notes/2026-10-12-w3-spine.md. */
-import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
+ *  Milestone composes here, and the answer to feedback (stage 2) from
+ *  the account's own items (`accountWindowItems`). Which kinds follow,
+ *  and what each still lacks from the timeline, is
+ *  docs/notes/2026-10-12-w3-spine.md. */
+import {
+  buildPlayerEntry,
+  buildTimeline,
+} from "@elixir-mcp/tools/activity/entries";
 
 export async function windowItems(
   db,
@@ -34,6 +39,38 @@ export async function windowItems(
       if (!key) continue;
       found.push({ subject, kind: it.kind, key, at: it.at, facts });
     }
+  }
+  return found;
+}
+
+/** The account's own items in a window (#536 stage 2), as the timeline
+ *  serves them to the account: the same derivation, story id and
+ *  revision. They have no player subject; `subject` names the account. */
+export async function accountWindowItems(
+  db,
+  { accountId, fromMs, toMs, kinds, keyOf },
+) {
+  const { timeline } = await buildTimeline(db, [], {
+    fromMs,
+    toMs,
+    accountId,
+    filter: (it) => kinds.has(it.kind),
+  });
+  const subject = { tag: null, kind: "account", accountId };
+  const found = [];
+  for (const it of timeline) {
+    const facts = it.facts ?? {};
+    const key = keyOf(it.kind, facts);
+    if (!key) continue;
+    found.push({
+      subject,
+      kind: it.kind,
+      key,
+      at: it.at,
+      id: it.id,
+      revision: it.revision,
+      facts,
+    });
   }
   return found;
 }
