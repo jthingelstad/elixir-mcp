@@ -13,6 +13,9 @@
     "tools_added": "on an entry only when a version added tools"
   },
   "elixir_timeline": {
+    "filed_at": "Only an owner-visible account_feedback_responded item carries this field; the acceptance clan agent has no account-feedback answers. packages/tools/test/timeline-feedback-answer.test.mjs pins it on scratch account events.",
+    "answered_at": "Only an owner-visible account_feedback_responded item carries this field; the acceptance clan agent has no account-feedback answers. packages/tools/test/timeline-feedback-answer.test.mjs pins it on scratch account events.",
+    "award_id": "Only an attested award_standing item carries this field; a natural window may contain no leader-attested standings. packages/clan/test/standings.test.mjs pins the emitted fact. Never manufacture a live award for acceptance.",
     "short_id": "Only a nonempty canonical evidence page carries game short IDs. The dynamic contract reads naturally visible evidence within seven days; a quiet window has none. Invented scratch fixtures pin this conditional field; no production event is manufactured.",
     "evidence_changed": "A refusal reason of an evidence page read (docs/timeline, Recorded evidence). A healthy run produces none: evidence_changed appears only when a capture lands mid-read, so requiring it made the audit pass or fail by timing (2026-10-10). Pinned by packages/tools/test/timeline-evidence-refusals.test.mjs and timeline-evidence.test.mjs.",
     "version_required": "A refusal reason of an evidence page read (docs/timeline, Recorded evidence). A healthy run produces none: evidence_changed appears only when a capture lands mid-read, so requiring it made the audit pass or fail by timing (2026-10-10). Pinned by packages/tools/test/timeline-evidence-refusals.test.mjs and timeline-evidence.test.mjs.",

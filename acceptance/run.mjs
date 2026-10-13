@@ -84,9 +84,10 @@ export async function runSuite(
     tools: new Map(tools.map((t) => [t.name, t])),
     cache: new Map(),
     /** A read, cached by tool + args for the run. */
-    read: async (tool, args = {}) => {
+    read: async (tool, args = {}, { fresh = false } = {}) => {
       const key = `${tool}:${JSON.stringify(args)}`;
-      if (!ctx.cache.has(key)) ctx.cache.set(key, await door.call(tool, args));
+      if (fresh || !ctx.cache.has(key))
+        ctx.cache.set(key, await door.call(tool, args));
       return ctx.cache.get(key);
     },
   };
