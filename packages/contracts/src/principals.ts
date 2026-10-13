@@ -27,8 +27,15 @@ export type PrincipalKind = "person" | "agent" | "integration";
  * agent "may be asked to track a competitive clan"). An agent tracks with
  * an agent's meaning: its players are watched, never "me", its clans spend
  * its owner's pooled slots, and it keeps the clan it acts for.
+ *
+ * `clans_my_view` (11.12.0, #535) is a person's own view of their clan in
+ * Elixir Clan, for the person's own connection only, never an owned agent
+ * (Jamie's ruling on #535, 2026-10-12).
  */
-export const PERSON_ONLY_TOOLS: readonly string[] = ["elixir_my_players"];
+export const PERSON_ONLY_TOOLS: readonly string[] = [
+  "elixir_my_players",
+  "clans_my_view",
+];
 
 /**
  * Additionally withheld from integrations, which have no "me" at all.

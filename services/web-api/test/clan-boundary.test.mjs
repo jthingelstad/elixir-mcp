@@ -64,3 +64,20 @@ test("MCP and public tool code cannot import private Clan state", async () => {
   }
   assert.deepEqual(bad, []);
 });
+
+// The import rules above pin the importer, not the surface: a third tool in
+// the approved file would pass them silently. Two tools read through the
+// seam, each to its own principal (#535): an agent's war intent, and a
+// person's own view of their clan.
+test("the approved reader serves exactly two tools, each to its own principal", async () => {
+  const { clanContextTools } =
+    await import("../../../packages/tools/src/tools/clan-context.mjs");
+  const { PERSON_ONLY_TOOLS, NOT_FOR_PERSONS } =
+    await import("@elixir-mcp/contracts");
+  assert.deepEqual(Object.keys(clanContextTools).sort(), [
+    "clans_context",
+    "clans_my_view",
+  ]);
+  assert.ok(PERSON_ONLY_TOOLS.includes("clans_my_view"));
+  assert.ok(NOT_FOR_PERSONS.includes("clans_context"));
+});

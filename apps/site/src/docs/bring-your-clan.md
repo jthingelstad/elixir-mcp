@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Elixir Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -18,11 +18,10 @@ have written how the clan runs, standing, actions and awards. It never
 acts in the game and never decides for anyone; the leaders do. Every
 page is behind sign-in, and only people sign in. Today an agent gets
 one narrow read of the clan's war intent with an explicit grant
-([Agent context](/docs/clan-policy#agent-context)). A person's own agent
-reading what that person sees here (the Actions waiting for them, their
-own standing, the policy) is decided in principle and designed, not
-built
-([the design note](https://github.com/jthingelstad/elixir-mcp/blob/main/docs/notes/2026-10-12-w2-agent-clan-seam.md)).
+([Agent context](/docs/clan-policy#agent-context)). What you connect to
+Elixir as yourself can read your own view here (the policy, your own
+standing line and the Actions waiting for you), never anyone else's
+([Your own view](/docs/clan-policy#your-own-view)).
 
 Clan is part of Elixir's shared application, account and storage. Your Elixir
 sign-in opens Clan directly; there is no second consent or Clan account.

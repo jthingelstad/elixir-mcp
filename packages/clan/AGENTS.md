@@ -30,12 +30,14 @@ or workflow of its own.
   token, OAuth grant or integration key. Membership, verification and role
   are current checks on every request, and a leader's change also needs
   the roster read within the hour (`src/role-freshness.mjs`).
-- **Private Clan state never reaches MCP or public tools.** The one
-  exception is `clans_context`, through `@elixir-mcp/auth/clan-context`;
-  `services/web-api/test/clan-boundary.test.mjs` pins the boundary. A
-  person's own agent reading that person's own Clan view (#535) is
-  decided in principle and designed, not built:
-  `docs/notes/2026-10-12-w2-agent-clan-seam.md`.
+- **Private Clan state never reaches MCP or public tools.** The two
+  exceptions read through `@elixir-mcp/auth/clan-context`: `clans_context`,
+  an agent's eight policy fields, and `clans_my_view`, a person's own view
+  (the policy summary, their own standing line, the Actions waiting for
+  them; never a removal), shaped by `clan-engine`'s `own-view.mjs`, the
+  code Clan's own "You here" uses
+  (`docs/notes/2026-10-13-w3-my-clan-view.md`).
+  `services/web-api/test/clan-boundary.test.mjs` pins the boundary.
 - **Facts versus judgments.** Game facts come from the record; Clan's own
   results that other apps read (`award_standing`, clan facts) are attested
   facts written through `@elixir-mcp/record/attested-facts`, labelled and

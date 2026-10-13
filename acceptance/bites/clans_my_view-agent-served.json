@@ -1,0 +1,49 @@
+{
+  "contract_version": "11.12.0",
+  "captured_at": "2026-10-13T00:00:00.000Z",
+  "constructed": true,
+  "request": {
+    "tool": "clans_my_view",
+    "arguments": {}
+  },
+  "response": {
+    "view": {
+      "schema_version": 1,
+      "reason": "no_policy",
+      "clan_tag": "#STUB",
+      "you": {
+        "player_tag": "#STUB",
+        "role": "member"
+      },
+      "policy": {
+        "set": false,
+        "active": false,
+        "version": null,
+        "members": null,
+        "min_members": 10,
+        "ranks_elder": false,
+        "removal": false,
+        "away": false,
+        "members_see_standing": false
+      },
+      "standing": null,
+      "actions": null,
+      "read_at": "2026-10-13T00:00:00.000Z"
+    },
+    "applied": {
+      "clan_tag": "#STUB"
+    },
+    "notes": [],
+    "docs": "clan-policy#your-own-view",
+    "meta": {
+      "contract_version": "11.12.0"
+    }
+  },
+  "timings": {
+    "db_ms": 0,
+    "db_queries": 1,
+    "live_wait_ms": null,
+    "serialize_ms": 0,
+    "cold_start": false
+  }
+}

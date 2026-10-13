@@ -30,6 +30,7 @@ conventions that hold everywhere.
 | Every current member's W/L/D over a short window | `clans_standings({ days: 1, min_battles: 1 })`, or explicit `from`/`to`; each row carries the ladder `net_trophies` and the `current_streak` too, and one member's battle-by-battle detail is `battles_performance` |
 | Which clanmates played this exact deck? | `battles_decks` for a `deck_hash`, then `battles_query({ deck_hash })` without `player_tag`, and compare the returned tags with `clans_roster`; this is exact deck evidence, not a playstyle similarity score |
 | Who has gone quiet? | `clans_roster`, reading `last_seen_in_game` beside `last_recorded_battle` |
+| What is waiting for me in Elixir Clan, and how do I stand there? | `clans_my_view` (your own connection only: the policy summary, your own standing line and the Actions waiting for you, each with a link to decide it in Clan; never another member's line or a removal) |
 | Who should be promoted, demoted or removed? | Elixir serves the facts and the clan decides: `clans_participation` (war decks, battles and donations per member per week), `clans_standings` (win rate and activity over a window, with who joined mid-window and whose battles were not captured), and `clans_roster` (role, tenure, `last_seen_in_game`). Read a member's week with the capture note in view: a low count can be a capture gap. |
 | What did every member do this week, and the weeks before? | `clans_participation` (battles, ranked battles and donations per member per week, and war decks used per race week, in one call) |
 | How has the clan moved over the season: score, war trophies, members, the members' trophies? | `clans_timeline` (one point per game day, with the aggregates over the members' rows) |
@@ -144,6 +145,10 @@ trophies and the ranked standing, so the two sides of it are not one series.
   answer. Retry after a few seconds, or narrow `from`/`to`; lowering `limit`
   only reduces output, not scan cost. Keep the request id if it persists.
 
+Two tools read Elixir Clan, each for one kind of connection. A person's own
+connection uses `clans_my_view` for that person's own view (the policy
+summary, their standing line, the Actions waiting for them), for a player
+they have verified; see [Your own view](/docs/clan-policy#your-own-view).
 An assigned agent with an explicit private-context grant uses `clans_context`
 for its clan’s declared war intent and policy revision. It accepts no clan tag;
 game reads and clan assignment alone do not grant this private access. See

@@ -53,6 +53,20 @@ export const contracts = [
     },
   },
   {
+    // clans_my_view is a person's own view (Jamie, 2026-10-12, #535): the
+    // acceptance principal is an agent, which neither lists nor calls it.
+    id: "clans-my-view-agent-refused",
+    tools: ["clans_my_view"],
+    run: async (ctx) => {
+      const r = await ctx.read("clans_my_view", {});
+      ok(
+        r.isError === true && !r.body?.view,
+        "An agent is refused a person's own Clan view and is given no view.",
+      );
+      return { ms: r.ms };
+    },
+  },
+  {
     id: "timeline-canonical-evidence",
     tools: ["elixir_timeline"],
     run: async (ctx) => {

@@ -380,7 +380,7 @@ every command, probe and diff listed so anyone can re-verify it.
 - **Elixir Clan.** Person identity and current roster role checked on
   every request; clan and member isolation; maintainer access; session
   revocation; no private Clan state through MCP or the public API (the
-  one exception, `clans_context`, is pinned by
+  two exceptions, `clans_context` and `clans_my_view`, are pinned by
   `services/web-api/test/clan-boundary.test.mjs`); sealed model keys stay
   sealed and model egress stays bounded (`packages/clan/src/model-bridge.mjs`).
 - **Terms of Service posture.** Fetch volume against one key's budget,

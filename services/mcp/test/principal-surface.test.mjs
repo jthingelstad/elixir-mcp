@@ -42,6 +42,7 @@ test("a person sees everything but agent identity and private context tools", ()
   assert.ok(!names("person").includes("elixir_my_identities"));
   assert.ok(!names("person").includes("clans_context"));
   assert.ok(names("person").includes("elixir_my_players"));
+  assert.ok(names("person").includes("clans_my_view"));
   assert.ok(
     names(null).includes("elixir_my_players"),
     "unknown kind is a person",
@@ -51,6 +52,9 @@ test("a person sees everything but agent identity and private context tools", ()
 test("an agent has no personal identity tools, and tracks for its clan", () => {
   const agent = names("agent");
   assert.ok(!agent.includes("elixir_my_players"));
+  // A person's own Clan view is never an agent's, its owner's agent
+  // included (Jamie's ruling on #535, 2026-10-12).
+  assert.ok(!agent.includes("clans_my_view"));
   // 7.1.0 (Jamie, 2026-09-23): a clan agent may be asked to track a rival;
   // it tracks with an agent's meaning (watched players, its owner's slots).
   assert.ok(agent.includes("elixir_track_player"));
@@ -74,6 +78,7 @@ test("an integration has no 'me' at all", () => {
   assert.ok(!integration.includes("elixir_track_player"), "adds none");
   assert.ok(!integration.includes("elixir_track_clan"));
   assert.ok(!integration.includes("clans_context"));
+  assert.ok(!integration.includes("clans_my_view"));
   // It is a corpus consumer, and the corpus is all still there.
   assert.ok(integration.includes("players_profile"));
   assert.ok(!integration.includes("battles_meta_decks"));
@@ -91,6 +96,36 @@ test("hiding is not enforcement: a remembered tool is refused, not served", asyn
 
   const allowed = await call("agent", "war_current");
   assert.ok(allowed.payload.result, "and its own tools still work");
+});
+
+test("a remembered clans_my_view call by an agent or an integration never invokes or spends quota", async () => {
+  for (const kind of ["agent", "integration"]) {
+    let invoked = 0;
+    let spent = 0;
+    const result = await handleMcpMessage(
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/call",
+        params: { name: "clans_my_view", arguments: {} },
+      },
+      {
+        ...context(kind),
+        invokeTool: async () => {
+          invoked++;
+          return { body: {}, isError: false };
+        },
+        spendQuota: async () => {
+          spent++;
+          return { allowed: true };
+        },
+      },
+    );
+    assert.equal(result.payload.error.code, -32601);
+    assert.equal(result.payload.error.data.kind, kind);
+    assert.equal(invoked, 0);
+    assert.equal(spent, 0);
+  }
 });
 
 test("a person calling the same tool is served", async () => {

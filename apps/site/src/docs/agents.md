@@ -87,8 +87,8 @@ not be `null`. The instructions are for the model and change without notice.
 The roster is deliberately absent because the instructions are held until
 reconnect; call `clans_roster` once per run.
 
-An agent's `tools/list` has {{ tools.agentCount }} tools: everything except `elixir_my_players`,
-which needs a self. Omit `clan_tag` anywhere and it means the agent's clan.
+An agent's `tools/list` has {{ tools.agentCount }} tools: everything except `elixir_my_players`
+and `clans_my_view`, which need a self. Omit `clan_tag` anywhere and it means the agent's clan.
 
 ## What an agent tracks
 
@@ -112,6 +112,12 @@ make another of its clans the one it acts for from its console
 (**Tracking**), and then remove the old one. What it tracks, and every
 change to it, is on its console: **Tracking** and **Activity → Account
 events**.
+
+An agent never reads a person's view in Elixir Clan: `clans_my_view`
+answers only a person's own connection
+([Your own view](/docs/clan-policy#your-own-view)). An agent's one read
+of Clan is its assigned clan's war intent, with an approved grant
+([Agent context](/docs/clan-policy#agent-context)).
 
 ## Knowing which human is asking
 
