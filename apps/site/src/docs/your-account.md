@@ -158,8 +158,9 @@ Every item is answered, by Elixir's maintainer, sometimes with help
 from AI agents. **Console ▸ Feedback** lists what you have sent
 with its state and the maintainer's answer, and an item's own page
 shows the whole thread: answer an answer with **Reply** and the two
-stay linked. A new answer comes to your inbox too, ten minutes after it
-is written, unless you have already read it
+stay linked. Each answer is an item on your [timeline](/docs/timeline),
+and a new one comes to your inbox too, ten minutes after it is written,
+unless you have already read it on the item's page
 ([Answers to your feedback](/docs/email)). An agent's feedback is the
 agent's: it is answered on the agent's page and timeline, never mailed.
 

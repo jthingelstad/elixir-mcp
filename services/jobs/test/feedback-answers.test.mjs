@@ -29,22 +29,49 @@ test("feedback answers: one mail per settled, unread answer to a person; a revis
       `insert into account_email_pref (account_id, kind, enabled, via) values ($1, 'feedback_answer', false, 'profile')`,
       [switchedOff],
     );
+    // As answerFeedback writes an answer: the row and its timeline event
+    // in one instant, the event carrying the answer's words (#536).
     const item = async (
       accountId,
       { ago = 20, seen = false, area = "ladder" } = {},
     ) =>
       (
         await db.query(
-          `insert into feedback (account_id, surface, area, category, message, status,
-                                 response, responded_at, response_seen_at)
-           values ($1, 'web', $2, 'bug', 'The rank looked off', 'done',
-                   'Fixed: it reads the live board now.',
-                   now() - make_interval(mins => $3),
-                   case when $4 then now() end)
-           returning feedback_id`,
+          `with f as (
+             insert into feedback (account_id, surface, area, category, message, status,
+                                   response, responded_at, response_seen_at)
+             values ($1, 'web', $2, 'bug', 'The rank looked off', 'done',
+                     'Fixed: it reads the live board now.',
+                     now() - make_interval(mins => $3),
+                     case when $4 then now() end)
+             returning feedback_id, account_id, status, response, responded_at),
+           e as (
+             insert into account_event (account_id, kind, detail, created_at)
+             select account_id, 'feedback_responded',
+                    jsonb_build_object('feedback_id', feedback_id, 'status', status,
+                                       'response', response, 'shipped_in', null),
+                    responded_at
+               from f)
+           select feedback_id from f`,
           [accountId, area, ago, seen],
         )
       ).rows[0].feedback_id;
+    /** A revised answer, as answerFeedback writes one. */
+    const revise = (feedbackId, response, ago) =>
+      db.query(
+        `with f as (
+           update feedback set response = $2,
+                  responded_at = now() - make_interval(mins => $3), response_seen_at = null
+            where feedback_id = $1
+           returning feedback_id, account_id, status, response, responded_at)
+         insert into account_event (account_id, kind, detail, created_at)
+         select account_id, 'feedback_responded',
+                jsonb_build_object('feedback_id', feedback_id, 'status', status,
+                                   'response', response, 'shipped_in', null),
+                responded_at
+           from f`,
+        [feedbackId, response, ago],
+      );
     const due = await item(person);
     const read = await item(person, { seen: true });
     const fresh = await item(person, { ago: 1 });
@@ -88,19 +115,18 @@ test("feedback answers: one mail per settled, unread answer to a person; a revis
     // Nothing twice.
     assert.equal((await runFeedbackAnswers(opts)).sent, 0);
     // A revised answer is news again: a new mail with its own send id.
-    await db.query(
-      `update feedback set response = 'Fixed, and backfilled.',
-              responded_at = now() - interval '15 minutes', response_seen_at = null
-        where feedback_id = $1`,
-      [due],
-    );
+    await revise(due, "Fixed, and backfilled.", 15);
     const again = await runFeedbackAnswers(opts);
     assert.equal(again.sent, 1);
     assert.notEqual(sent[1].send_id, sent[0].send_id);
     assert.match(sent[1].text, /Fixed, and backfilled\./);
     // Settled later, the fresh one goes too.
+    // One statement, one now(): the row and its event keep one instant.
     await db.query(
-      `update feedback set responded_at = now() - interval '11 minutes' where feedback_id = $1`,
+      `with e as (
+         update account_event set created_at = now() - interval '11 minutes'
+          where kind = 'feedback_responded' and detail->>'feedback_id' = $1::text)
+       update feedback set responded_at = now() - interval '11 minutes' where feedback_id = $1::bigint`,
       [fresh],
     );
     assert.equal((await runFeedbackAnswers(opts)).sent, 1);

@@ -49,6 +49,8 @@ const VALUES = {
   season_id: 136,
   section_index: 1,
   rivals: [{ tag: RIVAL, name: "Example Rival" }],
+  // The answer's item names its feedback item as the ledger holds it.
+  feedback_id: 9001,
 };
 const CLAN_KINDS = new Set([
   "member_joined",
@@ -102,6 +104,29 @@ test("every game story leads somewhere; the account's administration leads nowhe
     else if (!schema.at.includes("attested"))
       assert.ok(follow.length > 0, `${kind} names at least one read`);
   }
+});
+
+test("an answer to feedback leads to the item whole, by its id as the tool takes it (#536)", () => {
+  const item = itemOf(
+    "account_feedback_responded",
+    TIMELINE_KIND_SCHEMAS.account_feedback_responded,
+  );
+  assert.deepEqual(followFor({ ...item, section: "account" }, WINDOW), [
+    { tool: "elixir_my_feedback", args: { feedback_id: "9001" } },
+  ]);
+  // An event that names no item leads nowhere, like the rest of the
+  // account's own administration.
+  assert.deepEqual(
+    followFor(
+      {
+        ...item,
+        section: "account",
+        facts: { ...item.facts, feedback_id: null },
+      },
+      WINDOW,
+    ),
+    [],
+  );
 });
 
 test("a sitting leads to its own evidence, from the window that served it, to its span and to its best win", () => {

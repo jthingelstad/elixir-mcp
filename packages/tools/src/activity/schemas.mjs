@@ -161,6 +161,25 @@ export const TIMELINE_KIND_SCHEMAS = {
     at: "the first event of the burst",
     facts: ["count", "apps"],
   },
+  // One answer per item, never a burst, with its words (#536 stage 2,
+  // 11.13.0); `count` and `apps` stay, always 1 and empty.
+  account_feedback_responded: {
+    version: 3,
+    at: "the answer",
+    facts: [
+      "feedback_id",
+      "status",
+      "response",
+      "shipped_in",
+      "area",
+      "category",
+      "message",
+      "filed_at",
+      "answered_at",
+      "count",
+      "apps",
+    ],
+  },
   ...Object.fromEntries(
     Object.entries(ATTESTED_FACT_TYPES).map(([kind, t]) => [
       kind,
@@ -185,7 +204,8 @@ export const TIMELINE_KIND_SCHEMAS = {
 };
 
 const schemaOf = (kind) =>
-  TIMELINE_KIND_SCHEMAS[kind.startsWith("account_") ? "account" : kind];
+  TIMELINE_KIND_SCHEMAS[kind] ??
+  (kind.startsWith("account_") ? TIMELINE_KIND_SCHEMAS.account : undefined);
 
 /** The schema an item's facts follow: `<kind>/<version>`. */
 export function itemSchema(kind) {

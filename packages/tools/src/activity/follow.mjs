@@ -167,9 +167,20 @@ export function followFor(it, window) {
             { tool: "battles_query", args: { player_tag: tag, limit: 10 } },
           ]
         : [];
+    // An answer to feedback leads to the item whole (#536 stage 2);
+    // reading it there marks the answer seen.
+    case "account_feedback_responded":
+      return f.feedback_id === null || f.feedback_id === undefined
+        ? []
+        : [
+            {
+              tool: "elixir_my_feedback",
+              args: { feedback_id: String(f.feedback_id) },
+            },
+          ];
     default:
-      // Attested facts about a member lead to the member; the account's
-      // own administration leads nowhere.
+      // Attested facts about a member lead to the member; the rest of the
+      // account's own administration leads nowhere.
       return it.section === "attested" ? summary(tag) : [];
   }
 }

@@ -2638,27 +2638,66 @@ export async function buildClanEntry(
 /* ------------------------------------------------------------------ */
 
 /** Account events of one kind this close together are one item (#376:
- *  six connections revoked in one second were six items). */
+ *  six connections revoked in one second were six items). An answer to
+ *  feedback is never folded (#536): each carries its own words. */
 const ACCOUNT_BURST_MS = 60_000;
+/** The feedback answer's kind in the account ledger. */
+const FEEDBACK_RESPONDED = "feedback_responded";
+/** How much of the filer's message an answer item carries: the lead the
+ *  answer mail prints. */
+const FEEDBACK_MESSAGE_LEAD = 600;
 async function accountItems(db, accountId, fromMs, toMs) {
   if (!accountId) return [];
   // The app a connection event is about, by the name its client gave
-  // (the account's own administration: never published).
+  // (the account's own administration: never published). An answer to
+  // feedback reads its item as filed, which answer of the item's it is
+  // (its revision), and whether a later answer has replaced it.
   const { rows } = await db.query(
-    `select e.event_id, e.kind, e.detail, e.created_at, oc.client_name as app
+    `select e.event_id, e.kind, e.detail, e.created_at, oc.client_name as app,
+            fb.feedback_id as fb_id, fb.area as fb_area, fb.category as fb_category,
+            fb.message as fb_message, fb.created_at as fb_filed_at,
+            fb.response as fb_response, fb.shipped_in as fb_shipped_in,
+            fa.answer_no, fa.answers
        from account_event e
        left join oauth_family f on f.family_id::text = e.detail->>'family_id'
        left join oauth_client oc
          on oc.client_id = coalesce(f.client_id, e.detail->>'client_id')
+       left join feedback fb
+         on e.kind = '${FEEDBACK_RESPONDED}'
+        and fb.account_id = e.account_id
+        and fb.feedback_id = case when e.detail->>'feedback_id' ~ '^[0-9]{1,18}$'
+                                  then (e.detail->>'feedback_id')::bigint end
+       left join lateral (
+         select count(*) filter (where a.event_id <= e.event_id)::int as answer_no,
+                count(*)::int as answers
+           from account_event a
+          where fb.feedback_id is not null
+            and a.account_id = e.account_id and a.kind = '${FEEDBACK_RESPONDED}'
+            and a.detail->>'feedback_id' = e.detail->>'feedback_id') fa on true
       where e.account_id = $1 and e.created_at >= ${ts(fromMs + 1)} and e.created_at < ${ts(toMs + 1)}
       order by e.event_id`,
     [accountId],
   );
   const bursts = [];
+  // An item answered twice in the window is told once, at its later
+  // answer: one story, the higher revision (timeline principle 2).
+  const answers = new Map();
   for (const r of rows) {
+    if (r.kind === FEEDBACK_RESPONDED) {
+      const id = r.detail?.feedback_id;
+      const told = id === undefined ? undefined : answers.get(String(id));
+      if (told) told.rows = [r];
+      else {
+        const one = { kind: r.kind, rows: [r], single: true };
+        bursts.push(one);
+        if (id !== undefined) answers.set(String(id), one);
+      }
+      continue;
+    }
     const last = bursts.at(-1);
     if (
       last &&
+      !last.single &&
       last.kind === r.kind &&
       r.created_at.getTime() - last.rows.at(-1).created_at.getTime() <=
         ACCOUNT_BURST_MS
@@ -2668,6 +2707,7 @@ async function accountItems(db, accountId, fromMs, toMs) {
   }
   return bursts.map(({ kind, rows: group }) => {
     const first = group[0];
+    if (kind === FEEDBACK_RESPONDED) return answerItem(first);
     const apps = [...new Set(group.map((r) => r.app).filter(Boolean))];
     return {
       subject_tag: null,
@@ -2681,6 +2721,54 @@ async function accountItems(db, accountId, fromMs, toMs) {
       [STORY]: moment("account_event", String(first.event_id)),
     };
   });
+}
+
+/**
+ * One answer to feedback as its item (#536 stage 2): the item as filed
+ * and the answer as given. Its story is the feedback item, so a revised
+ * answer is the same id at a higher revision. The words are the event's
+ * (from 11.13.0); an event from before carries none, and its words are
+ * the item's own only while it is still the latest answer, else null.
+ */
+function answerItem(r) {
+  const d = r.detail ?? {};
+  const found = r.fb_id !== null && r.fb_id !== undefined;
+  const latest = found && r.answer_no === r.answers;
+  const said = (key, current) =>
+    key in d ? (d[key] ?? null) : latest ? (current ?? null) : null;
+  const message =
+    r.fb_message === null || r.fb_message === undefined
+      ? null
+      : String(r.fb_message).slice(0, FEEDBACK_MESSAGE_LEAD);
+  return {
+    subject_tag: null,
+    subject_name: "your account",
+    subjects: [],
+    at: iso(r.created_at),
+    observed_at: iso(r.created_at),
+    kind: `account_${FEEDBACK_RESPONDED}`,
+    section: "account",
+    facts: {
+      feedback_id: d.feedback_id ?? null,
+      status: d.status ?? null,
+      response: said("response", r.fb_response),
+      shipped_in: said("shipped_in", r.fb_shipped_in),
+      area: r.fb_area ?? null,
+      category: r.fb_category ?? null,
+      message,
+      filed_at: iso(r.fb_filed_at),
+      answered_at: iso(r.created_at),
+      count: 1,
+      apps: [],
+    },
+    // An event that names no item of the account's keeps its own story.
+    [STORY]: !found
+      ? moment("account_event", String(r.event_id))
+      : {
+          key: ["feedback", String(r.fb_id)],
+          revision: Math.max(1, r.answer_no),
+        },
+  };
 }
 
 const ROLE_RANK_SQL = `max(case cm.role when 'leader' then 3 when 'coLeader' then 2

@@ -240,13 +240,15 @@ composing. An available release is never announced as installed.
 `/docs/email`): `runFeedbackAnswers` in
 `services/jobs/src/email/feedback-answers.mjs`, on the minute rule
 (`{collector_upgrades:true, feedback_answers:true}`) after the upgrade
-drain. Journal: `feedback.response_mailed_at` (0204), the
-`responded_at` handled, compared as text (a JS Date drops the
-microseconds). Settle: `SETTLE_MINUTES`. Gates: `response_seen_at`,
-the `account_email_pref` row, the account's kind, status and owner flag.
-Issue key `feedback-answer/<id>/<responded_at>`. It reads its own SQL,
-not the `account_feedback_responded` item: the stage-1 gap in
-`docs/notes/2026-10-12-w3-spine.md`.
+drain. Facts: the `account_feedback_responded` item (`answerItem`,
+`mailFacts`) through `accountWindowItems` and `digest`
+(`services/jobs/src/email/digest.mjs`; #536 stage 2,
+`docs/notes/2026-10-13-w3-feedback-item.md`). Journal:
+`feedback.response_mailed_at` (0204), `markHandled`. Settle:
+`SETTLE_MINUTES`. Gates: `response_seen_at`, the response's words, the
+`account_email_pref` row, the account's kind, status and owner flag.
+Issue key `feedback-answer/<id>/<responded_at>`. Fixture:
+`feedbackFixture` (`services/jobs/test/digest-fixture.mjs`).
 
 `collector_release_note` stores the GitHub notes and URL from the
 verifying naming script, plus an optional maintainer `--reason=`. It

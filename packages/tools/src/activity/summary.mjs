@@ -408,6 +408,14 @@ function bestText(who, f) {
   return `${who} passed ${num(f.band)} trophies for the first time${onBattle(b)}${f.best > after ? `, and went on to a best of ${num(f.best)}` : ""}.`;
 }
 
+/** An answer's status as the answer mail names it. */
+const FEEDBACK_STATUS_WORDS = {
+  seen: "read",
+  planned: "planned",
+  done: "done",
+  declined: "declined",
+};
+
 /** One timeline item as a sentence. */
 export function itemText(it, timeZone = "UTC") {
   const f = it.facts ?? {};
@@ -524,6 +532,20 @@ export function itemText(it, timeZone = "UTC") {
         : `your account: another account verified ${f.player_tag}, so it is no longer your alt. If that player is yours, tell us through the feedback form.`;
     case "account_claim_refused":
       return `your account: ${f.player_tag}, the player tag you signed up with, is verified by another account, so it was not added. If that player is yours, tell us through the feedback form.`;
+    // An answer to feedback (#536 stage 2): the item by its message,
+    // the answer by its status. needs_info is a question, not an answer.
+    case "account_feedback_responded": {
+      const lead = String(f.message ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+      const what = lead
+        ? `your feedback “${lead.length > 60 ? `${lead.slice(0, 59).trimEnd()}…` : lead}”`
+        : "your feedback";
+      if (f.status === "needs_info")
+        return `your account: Elixir asked a question about ${what}${it.revision > 1 ? " again" : ""}.`;
+      const status = FEEDBACK_STATUS_WORDS[f.status] ?? f.status;
+      return `your account: ${what} was answered${it.revision > 1 ? " again" : ""}${status ? ` (${status}${f.shipped_in ? `, shipped in ${f.shipped_in}` : ""})` : ""}.`;
+    }
     default:
       if (it.kind.startsWith("account_")) {
         const kind = it.kind.slice("account_".length);
