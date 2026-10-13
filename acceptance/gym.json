@@ -12652,6 +12652,8 @@
   },
   {
     "id": "304.1",
+    "fresh": true,
+    "amended": "2026-10-13: refresh both live reads for this comparison. A full run otherwise reuses a roster from several minutes earlier, while the donation timeline reads a later poll. The original sum invariant and negative control are unchanged.",
     "feedback": 304,
     "control": true,
     "stability": "live",

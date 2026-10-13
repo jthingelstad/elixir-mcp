@@ -476,12 +476,16 @@ export function gymCases(blocks) {
         if (b.calls) {
           root = {};
           for (const [alias, c] of Object.entries(b.calls)) {
-            const r = await ctx.read(c.tool, c.args ?? {});
+            const r = await ctx.read(c.tool, c.args ?? {}, {
+              fresh: b.fresh === true,
+            });
             root[alias] = r.body; // a refusal is a body too (nc.errors.*)
             ms = (ms ?? 0) + (r.ms ?? 0);
           }
         } else {
-          const r = await ctx.read(b.tool, b.args ?? {});
+          const r = await ctx.read(b.tool, b.args ?? {}, {
+            fresh: b.fresh === true,
+          });
           root = r.body;
           ms = r.ms;
           // A block that reads the refusal reads it on purpose: a path

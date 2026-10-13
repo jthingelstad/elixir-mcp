@@ -69,6 +69,7 @@ written - nothing is hand-translated. The vocabulary:
 - **rejected at load** (a test under `verify`): a duplicate id; a
   finding (`<feedback>.<n>`) with no `control: true` case; an unknown
   verb fails the case at run time.
+- **fresh**: `fresh: true` on a live cross-tool case replaces its cached reads before comparison. Use it for counters that can change during a long run; the assertions and captured negative controls remain unchanged.
 - **rules**: `args` as the call was MADE, defaults not filled in (the
   acceptance principal acts for #J2RGCRVG too, so a defaulted clan
   matches the capture) - but a player is always named, since the

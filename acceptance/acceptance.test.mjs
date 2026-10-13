@@ -391,6 +391,63 @@ test("the runner reports red and green and reuses a read", async () => {
   }
 });
 
+test("live donation control refreshes old answers and still rejects an unequal current total", async () => {
+  const saved = { ...SUITES };
+  const donationControl = SUITES.gym.find((c) => c.id === "304.1");
+  for (const k of Object.keys(SUITES)) delete SUITES[k];
+  SUITES.fake = [
+    {
+      id: "earlier-poll",
+      run: async (ctx) => {
+        await ctx.read("clans_roster", {});
+        await ctx.read("elixir_timeline", {
+          days: 1,
+          mark_read: false,
+          sections: ["donations"],
+        });
+      },
+    },
+    donationControl,
+  ];
+  try {
+    for (const currentTimelineTotal of [12, 13]) {
+      let rosters = 0;
+      let timelines = 0;
+      const door = fakeDoor({
+        clans_roster: () => ({
+          result: {
+            structuredContent: {
+              members: [{ donations_this_week: ++rosters === 1 ? 10 : 12 }],
+            },
+          },
+        }),
+        elixir_timeline: () => ({
+          result: {
+            structuredContent: {
+              entries: [
+                {
+                  donations: {
+                    week_total: ++timelines === 1 ? 10 : currentTimelineTotal,
+                  },
+                },
+              ],
+            },
+          },
+        }),
+      });
+      const report = await runSuite(door, { quiet: true });
+      assert.equal(rosters, 2, "refresh the earlier roster");
+      assert.equal(timelines, 2, "refresh the earlier timeline");
+      assert.equal(report.failures, currentTimelineTotal === 12 ? 0 : 1);
+      if (currentTimelineTotal === 13)
+        assert.match(report.cases[1].error, /sum_eq/);
+    }
+  } finally {
+    for (const k of Object.keys(SUITES)) delete SUITES[k];
+    Object.assign(SUITES, saved);
+  }
+});
+
 test("gym.json loads: unique ids, every finding has a control, the verbs are known", async () => {
   const { gymCases, assertOne } = await import("./gym-interp.mjs");
   const blocks = JSON.parse(
