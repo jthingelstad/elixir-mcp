@@ -503,6 +503,15 @@ test("battles_query: elixir is one object with the caveat on it, the differentia
   assert.equal(compact.battles[0].me.elixir, undefined);
   assert.equal(compact.battles[0].opponents[0].elixir, undefined);
   assert.ok(!compact.notes.some((l) => /elixir is each/.test(l)));
+  // The duel note names rounds_played and rounds[], which only a duel row
+  // carries: a page without a duel does not carry it (11.12.1; acceptance
+  // catalogue battles_query#notes on a training day, 2026-10-13).
+  assert.ok(duelRes.notes.some((l) => /^Duel rows/.test(l)));
+  for (const page of [res, compact])
+    assert.ok(
+      !page.notes.some((l) => /^Duel rows/.test(l)),
+      page.notes.join("\n"),
+    );
 });
 
 test("battles_performance group_by week: trophy_mode_battles rides beside trophy_battles and the note names the floor weeks (#61)", async () => {
