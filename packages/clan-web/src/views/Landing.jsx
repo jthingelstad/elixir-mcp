@@ -7,16 +7,15 @@ const ERRORS = {
 
 /** Where a new account comes back to: the Clan address asked for. The
  *  Console's sign-in honours `return_to` for /clan paths (signedInPath). */
-function signupHref() {
-  const here = window.location.pathname + window.location.search;
+function signupHref(here) {
   const to = here.startsWith("/clan") ? here : "/clan";
   return `/console/signin?signup&return_to=${encodeURIComponent(to)}`;
 }
 
 /** Signed out. The two prerequisites are stated here, before the button,
  *  so nobody discovers them one refusal page at a time. */
-export function Landing({ error }) {
-  const signup = signupHref();
+export function Landing({ error, here = "/clan" }) {
+  const signup = signupHref(here);
   return (
     <div style={{ maxWidth: "560px", margin: "40px auto 0" }}>
       <p className="eyebrow">ELIXIR CLAN</p>

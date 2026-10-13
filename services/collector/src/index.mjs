@@ -1,3 +1,4 @@
+import { makeHttpApp, listen } from "@elixir-mcp/http/server";
 /** Lambda entrypoint: env wiring for the collector door. Submissions are
  *  archived at admission (payloads/, write-once), and the one owner
  *  notice the door sends, a quarantine, leaves through the outbox like
@@ -21,7 +22,7 @@ async function notifyOwner(spec) {
   await outbox("email", ownerNotifyMessage(spec));
 }
 
-export const handler = makeHandler({
+const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
   // Current and previous, as every door: during a rotation some edges
   // still send the old origin header (docs/SECRETS.md).
@@ -39,4 +40,8 @@ export const handler = makeHandler({
       }),
     notifyOwner,
   }),
+});
+
+listen(makeHttpApp({ dispatch: handler, timeoutSeconds: 20 }), {
+  close: handler.close,
 });

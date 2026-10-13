@@ -86,12 +86,12 @@ ledger should drain, and both doors should serve.
   `{statements}`; what holds it now is `{backends}`; where its weight is,
   `{tables}`.
 - **Cost.** There is no billing alarm (removed 2026-09-24). Read the
-  web-api and collector Lambdas' billed seconds per day by `http` route
-  in Logs Insights. Productive collector throughput raises both
+  native Web Functions' CPU and environment-memory usage in AWS/Lambda/Web.
+  Route `message.ms` in Logs Insights measures response work, not billed time. Productive collector throughput raises both
   `POST /api/collector/lease` and `POST /api/collector/submit`, and idle
   check-ins add leases, so a fixed daily Lambda-seconds target is not a
   polling detector. Investigate an unexplained lease-to-submit surplus,
-  long lease latency, or rising billed time with stable admissions.
+  long lease latency, or rising compute usage with stable admissions.
 
 Transient upstream failures with held cursors heal themselves: watch
 them, do not churn. A dead job or a dead letter is an incident.
@@ -207,8 +207,8 @@ its limits: [COLLECTOR-ZERO-TRUST.md](COLLECTOR-ZERO-TRUST.md).
   entries dropped before the wire (about 85-90%); calls per fetch, door
   calls per admitted lease-and-submit pair this hour (1.0 is perfect;
   idle check-ins raise it). Attribute door pressure with the collector
-  Lambda's route logs (`/aws/lambda/elixir-mcp-collector` since
-  2026-09-29), not a fixed calls-per-fetch target.
+  Lambda's route logs (`/aws/lambda/web/elixir-mcp-collector-web` since
+  2026-10-13), not a fixed calls-per-fetch target.
 - **Versions.** Every collector on the named release; `dev` is a local
   build. A collector that never moves after a naming, or rolls back, is a
   finding. A merge to `elixir-mcp-collector` publishes a signed candidate

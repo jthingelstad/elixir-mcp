@@ -68,15 +68,21 @@ function Eyebrow({ icon, tone, children }) {
   );
 }
 
-export function SignIn({ onAuthed }) {
+export function SignIn({
+  search = typeof window === "undefined" ? "" : window.location.search,
+  onAuthed,
+}) {
   const [email, setEmail] = useState("");
-  const [productNews, setProductNews] = useState(() => {
+  const [productNews, setProductNews] = useState(true);
+  useEffect(() => {
     try {
-      return window.sessionStorage.getItem(PRODUCT_NEWS_DRAFT) !== "off";
+      setProductNews(
+        window.sessionStorage.getItem(PRODUCT_NEWS_DRAFT) !== "off",
+      );
     } catch {
-      return true;
+      // Storage is optional.
     }
-  });
+  }, []);
   // email | code | redeeming | expired | pending | handoff
   const [step, setStep] = useState("email");
   const submitting = useRef(false);
@@ -84,8 +90,8 @@ export function SignIn({ onAuthed }) {
   // here?" from plain sign-in. Only it asks for a player tag.
   const [creating, setCreating] = useState(
     () =>
-      new URLSearchParams(window.location.search).has("signup") ||
-      new URLSearchParams(window.location.search).has("request"),
+      new URLSearchParams(search).has("signup") ||
+      new URLSearchParams(search).has("request"),
   );
   const [playerTag, setPlayerTag] = useState("");
   // What the proof said about a new account, held while a cross-device

@@ -19,12 +19,20 @@ const DEADLINE_MARGIN_MS = 1500;
 const TOOL_REPLY_MARGIN_MS = 1500;
 
 export function deadlineMs(context, event = null) {
-  if (typeof context?.getRemainingTimeInMillis !== "function") return null;
+  if (
+    typeof context?.remainingMs !== "function" &&
+    typeof context?.getRemainingTimeInMillis !== "function"
+  )
+    return null;
   const model =
     /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:model|.*\/draft)$/.test(
       event?.rawPath ?? event?.path ?? "",
-    ) && (event?.requestContext?.http?.method ?? event?.httpMethod) !== "GET";
-  const remaining = context.getRemainingTimeInMillis();
+    ) &&
+    (event?.method ??
+      event?.requestContext?.http?.method ??
+      event?.httpMethod) !== "GET";
+  const remaining =
+    context.remainingMs?.() ?? context.getRemainingTimeInMillis();
   return Math.max(
     (model ? remaining : Math.min(remaining, 20_000)) - DEADLINE_MARGIN_MS,
     1,

@@ -20,7 +20,9 @@ import { CONSOLE } from "../../lib/console.js";
 /** The mail's footer links here with ?report=1 ("Something not right?
  *  Send feedback about this email"): one click from the inbox to the
  *  feedback form with this email attached. Read once, at open. */
-function wantsReport(search = window.location.search) {
+function wantsReport(
+  search = typeof window === "undefined" ? "" : window.location.search,
+) {
   return new URLSearchParams(search).get("report") === "1";
 }
 

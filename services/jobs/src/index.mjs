@@ -1,3 +1,4 @@
+import { publishPublicStats } from "./public-stats.mjs";
 import { runClanEvaluation } from "./clan.mjs";
 import { isRetiredEmailKind } from "@elixir-mcp/contracts";
 /** The jobs Lambda — scheduled product work, split out of the migrate
@@ -459,6 +460,7 @@ export async function handler(event, context) {
     console.log(JSON.stringify({ capture_efficiency: result }));
     return result;
   }
+  if (event?.public_stats) return publishPublicStats(process.env.DATABASE_URL);
   if (event?.activity_histogram) {
     const result = await activityHistogram(process.env.DATABASE_URL);
     result.archetype_stamp = await archetypeStampNightly(

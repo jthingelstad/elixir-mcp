@@ -141,14 +141,16 @@ letters, 24 h capture-audit gaps, and each collector by card name with
 heartbeat, version, channel, `yield_24h` and `edge_filtered_24h`. Start a
 pipeline question here, then `{stats}`.
 
-**CloudWatch Logs Insights.** `/aws/lambda/elixir-mcp-<name>` for `mcp`,
-`web-api`, `collector`, `scheduler`, `jobs`, `migrate` and `email-relay`
-(30 days); `/aws/rds/instance/elixir-mcp-enc/postgresql` (14 days).
+**CloudWatch Logs Insights.** Native HTTP logs are
+`/aws/lambda/web/elixir-mcp-<name>-web` for `mcp`, `web-api` and `collector`.
+Event Function logs remain `/aws/lambda/elixir-mcp-<name>` for `scheduler`,
+`jobs`, `migrate`, `email-relay` and `timeline-sync` (30 days); `/aws/rds/instance/elixir-mcp-enc/postgresql` (14 days).
 Stamps are UTC; Jamie reads US Central.
 
-- The doors log one JSON line per request: `http` (method and route),
-  `status`, `ms`, `request_id`; MCP adds `rpc` and `tool`, web-api
-  `connect_ms` and `timed_out`. Per-tool numbers are `{audit_census}`'s.
+- The native doors log structured objects under `message`: `message.http`
+  (method and route), `message.status`, `message.ms`, `message.request_id`;
+  MCP adds `message.rpc` and `message.tool`, web-api `message.connect_ms`
+  and `message.timed_out`. Per-tool numbers are `{audit_census}`'s.
 - The scheduler's EMF line, one a tick (`ElixirMCP/Ledger`), carries two
   metrics behind the ledger alarms, `OldestQueuedAgeSeconds` and
   `DeadJobs`, and plain properties: `QueuedJobs`, `PlannedJobs`,

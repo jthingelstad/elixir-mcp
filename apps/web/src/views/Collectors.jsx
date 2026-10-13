@@ -1,5 +1,5 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import { agoExact, Icon, Link, secsSince } from "@elixir-mcp/ui";
-import { useState } from "react";
 import { useMyGateways, usePublicStatus } from "../lib/queries.js";
 import {
   ReleaseKeyCard,
@@ -47,7 +47,7 @@ function StateChip({ collector, now }) {
 export function Fleet({ navigate }) {
   // Stamped once per load rather than read during render:
   // a clock read while rendering makes every re-render a new answer.
-  const [now] = useState(() => Date.now());
+  const [now] = useInitialTime();
   const statusQuery = usePublicStatus();
   const status = statusQuery.data ?? null;
   const mine = useMyGateways().data?.gateways ?? null;

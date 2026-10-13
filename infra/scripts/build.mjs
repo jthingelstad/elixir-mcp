@@ -2,7 +2,7 @@
 /**
  * Bundle every Lambda with esbuild into infra/dist/<name>/ and zip it.
  * ESM output (nodejs24.x native) with the createRequire banner so CJS deps
- * like pg resolve; @aws-sdk/* stays external (provided by the runtime);
+ * like pg resolve; web functions bundle the SDK (no runtime SDK assumption);
  * pg-native is an optional dep that must stay external. The migrate bundle
  * carries db/migrations alongside the code.
  */
@@ -20,6 +20,15 @@ import {
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(here, "../..");
 const distRoot = path.join(repoRoot, "infra/dist");
+
+export const WEB_ROUTER_ALIAS = {
+  "@tanstack/router-core/isServer": path.join(
+    path.dirname(
+      fileURLToPath(import.meta.resolve("@tanstack/router-core/isServer")),
+    ),
+    "development.js",
+  ),
+};
 
 // `db`: the function connects to PostgreSQL, so its bundle carries the
 // RDS root certificates and its DATABASE_URL says sslmode=verify-full
@@ -89,6 +98,10 @@ export async function buildAll() {
     stdio: "inherit",
     env: epoch ? { ...process.env, SOURCE_DATE_EPOCH: epoch } : process.env,
   });
+  execFileSync("npm", ["run", "build", "-w", "@elixir-mcp/web"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+  });
   await rm(distRoot, { recursive: true, force: true });
   const artifacts = [];
   for (const { name, entry, db } of LAMBDAS) {
@@ -104,15 +117,31 @@ export async function buildAll() {
       target: "node24",
       format: "esm",
       outfile: path.join(outDir, "index.mjs"),
-      external: ["@aws-sdk/*", "pg-native"],
+      external: ["web-api", "mcp", "collector"].includes(name)
+        ? ["pg-native"]
+        : ["@aws-sdk/*", "pg-native"],
       banner: {
         js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
       },
+      define:
+        name === "web-api"
+          ? { "process.env.NODE_ENV": JSON.stringify("production") }
+          : {},
+      loader: { ".css": "empty", ".png": "dataurl" },
+      // Our universal tree uses explicit memory history on the server and
+      // serializes query envelopes, not TanStack's streaming SSR protocol.
+      // Use the environment-neutral export so explicit isServer governs
+      // render boundaries while DOM-only work still checks for a document.
+      alias: name === "web-api" ? WEB_ROUTER_ALIAS : {},
       sourcemap: false,
       minify: false,
       logLevel: "error",
     });
     if (name === "web-api") {
+      await cp(
+        path.join(repoRoot, "apps/web/dist/index.html"),
+        path.join(outDir, "app.html"),
+      );
       // A battle's share picture is drawn in the function: resvg's wasm
       // and the fonts sit beside the code, read on the first picture.
       await mkdir(path.join(outDir, "share"), { recursive: true });

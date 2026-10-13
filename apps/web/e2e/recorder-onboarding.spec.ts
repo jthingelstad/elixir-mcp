@@ -599,7 +599,7 @@ for (const width of [390, 1280]) {
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
     await expect(page.getByText(/Not signed out\./)).toBeVisible();
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
-    await expect(page).toHaveURL(/127\.0\.0\.1:4321\/$/);
+    await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
     await page.goBack();
     await expect(
       page.getByRole("heading", { name: "Sign in first" }),

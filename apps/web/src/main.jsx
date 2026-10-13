@@ -1,5 +1,5 @@
-import { createRoot } from "react-dom/client";
-import { App } from "./App.jsx";
+import { createRoot, hydrateRoot } from "react-dom/client";
+import { App, createAppRuntime } from "./App.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
 import { loadTinylytics, trackEvent, analyticsLocation } from "./analytics.js";
 import "@elixir-mcp/design/styles.css";
@@ -8,7 +8,7 @@ import "@elixir-mcp/design/styles.css";
 // cannot reach history, a bookmark or a Referer. It is held in memory for the
 // sign-in view, which is the part that used to be missing — the scrub ran
 // first and the view then found nothing to redeem.
-takeLoginToken();
+const loginToken = takeLoginToken();
 // Only after that: the embed must never see ?login_token in the address bar.
 loadTinylytics();
 // A script error or an unhandled rejection in the view is a failure the
@@ -35,4 +35,17 @@ window.addEventListener("vite:preloadError", (ev) => {
 });
 window.addEventListener("error", reportError("error"));
 window.addEventListener("unhandledrejection", reportError("rejection"));
-createRoot(document.getElementById("root")).render(<App />);
+const node = document.getElementById("root");
+const bootstrap = document.getElementById("elixir-bootstrap");
+if (bootstrap && !loginToken) {
+  const { me, clanMe, renderedAt } = JSON.parse(bootstrap.textContent);
+  bootstrap.remove();
+  const runtime = createAppRuntime({ me, clanMe, renderedAt });
+  await runtime.router.load();
+  hydrateRoot(node, <App runtime={runtime} />);
+} else {
+  // A magic token lives only in the fragment. It must finish even when the
+  // server, which cannot see the fragment, rendered an existing session.
+  bootstrap?.remove();
+  createRoot(node).render(<App />);
+}

@@ -823,7 +823,8 @@ export function createHandler({
   }
 
   return function handler(event, { lockMs = null } = {}) {
-    const method = event.requestContext?.http?.method ?? event.httpMethod;
+    const method =
+      event.method ?? event.requestContext?.http?.method ?? event.httpMethod;
     const path = mountedPath(event.rawPath ?? event.path ?? "/");
     return withTrace(
       {

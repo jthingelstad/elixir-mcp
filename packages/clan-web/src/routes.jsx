@@ -1,15 +1,15 @@
 /** Routes join the parent application; views and their shell load on entry. */
-import { lazy, createElement } from "react";
+import { createElement } from "react";
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { CLAN } from "./lib/base.js";
-const Shell = lazy(() =>
-  import("./App.jsx").then((m) => ({ default: m.ClanShell })),
-);
+const Shell = lazyRouteComponent(() => import("./App.jsx"), "ClanShell");
 export function createClanRoutes(parent, options = {}) {
+  const component = () => createElement(Shell, options);
+  component.preload = Shell.preload;
   const route = createRoute({
     getParentRoute: () => parent,
     id: "clan",
-    component: () => createElement(Shell, options),
+    component,
   });
   return route.addChildren([
     createRoute({

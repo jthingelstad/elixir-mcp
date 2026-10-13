@@ -32,8 +32,8 @@ op `/ops`; they end here. Steps, in order: `preflight`, `bookkeeping`,
 2. **The caller is cloud-engineer:** `AWS_PROFILE=cloud-engineer aws sts
    get-caller-identity` answers account 999153317627, ARN containing
    `assumed-role/ProjectsCloudEngineer/projects-cloud-engineer`, as
-   `infra/scripts/configure-api-throttles.mjs` checks (`deploy.mjs` checks
-   no role). Never the `jamie` profile.
+   `infra/scripts/deploy.mjs` checks. Native endpoint throttles live in
+   `infra/template.yaml`, not API Gateway stage settings. Never the `jamie` profile.
 3. **origin/main is current:** after `git fetch`, HEAD is not behind
    `origin/main`. Behind means another actor shipped: find out who first.
    Work on the session's branch (`session/<slug>`), made before the

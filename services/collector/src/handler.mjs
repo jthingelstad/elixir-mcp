@@ -14,7 +14,7 @@
  * so a Logs Insights query reads either log.
  */
 
-import pg from "pg";
+import { makeDatabase } from "@elixir-mcp/http/database";
 import { originAllowed, forbiddenOrigin } from "@elixir-mcp/auth";
 
 /** What the handler keeps back from the Lambda timeout to write its log
@@ -40,8 +40,16 @@ const json = (statusCode, body, headers = {}) => ({
 });
 
 function deadlineMs(context) {
-  if (typeof context?.getRemainingTimeInMillis !== "function") return null;
-  return Math.max(context.getRemainingTimeInMillis() - DEADLINE_MARGIN_MS, 1);
+  if (
+    typeof context?.remainingMs !== "function" &&
+    typeof context?.getRemainingTimeInMillis !== "function"
+  )
+    return null;
+  return Math.max(
+    (context.remainingMs?.() ?? context.getRemainingTimeInMillis()) -
+      DEADLINE_MARGIN_MS,
+    1,
+  );
 }
 
 async function withDeadline(ms, run, onTimeout) {
@@ -57,12 +65,24 @@ async function withDeadline(ms, run, onTimeout) {
   }
 }
 
-export function makeHandler({ databaseUrl, originSecret = null, door }) {
-  return async function handler(event, context) {
+export function makeHandler({
+  databaseUrl,
+  database = null,
+  originSecret = null,
+  door,
+}) {
+  database ??= makeDatabase({
+    connectionString: databaseUrl,
+    max: Number(process.env.DB_POOL_MAX ?? 4),
+  });
+  async function handler(event, context) {
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
     const method =
-      event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
-    const key = `${method} ${event.rawPath ?? event.path ?? "/"}`;
+      event.method ??
+      event.requestContext?.http?.method ??
+      event.httpMethod ??
+      "GET";
+    const key = `${method} ${event.path ?? event.rawPath ?? "/"}`;
     const route = ROUTES[key];
     if (!route) return json(404, { error: "not_found" });
     let body = {};
@@ -79,11 +99,11 @@ export function makeHandler({ databaseUrl, originSecret = null, door }) {
       }
     }
     const started = Date.now();
-    const requestId = context?.awsRequestId ?? null;
+    const requestId = context?.requestId ?? context?.awsRequestId ?? null;
     let status = 500;
     let connectMs = 0;
     let timedOut = false;
-    const db = new pg.Client({ connectionString: databaseUrl });
+    const db = database.lease();
     try {
       const res = await withDeadline(
         deadlineMs(context),
@@ -104,17 +124,17 @@ export function makeHandler({ databaseUrl, originSecret = null, door }) {
       // What bounds a query the deadline abandoned is the connection's
       // statement_timeout (PGOPTIONS, infra/template.yaml).
       await db.end().catch(() => {});
-      console.log(
-        JSON.stringify({
-          at: new Date().toISOString(),
-          http: key,
-          status,
-          ms: Date.now() - started,
-          connect_ms: connectMs,
-          ...(requestId ? { request_id: requestId } : {}),
-          ...(timedOut ? { timed_out: true } : {}),
-        }),
-      );
+      console.info({
+        at: new Date().toISOString(),
+        http: key,
+        status,
+        ms: Date.now() - started,
+        connect_ms: connectMs,
+        ...(requestId ? { request_id: requestId } : {}),
+        ...(timedOut ? { timed_out: true } : {}),
+      });
     }
-  };
+  }
+  handler.close = database.close;
+  return handler;
 }

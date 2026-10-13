@@ -1,3 +1,4 @@
+import { makeHttpApp, listen } from "@elixir-mcp/http/server";
 /** Lambda entrypoint for the MCP door (elixir.poapkings.com). */
 
 import { currentAndPrevious } from "@elixir-mcp/auth";
@@ -11,7 +12,7 @@ import { makeOutbox } from "@elixir-mcp/outbox";
 // from the site API.
 const outbox = makeOutbox(process.env.OUTBOX_BUCKET);
 
-export const handler = makeHandler({
+const handler = makeHandler({
   databaseUrl: process.env.DATABASE_URL,
   issuer: process.env.OAUTH_ISSUER ?? "https://elixir.poapkings.com",
   // 0040: live jobs go straight into the Postgres job ledger; the
@@ -50,4 +51,8 @@ export const handler = makeHandler({
   // (2026-10-12: this door opens accounts too).
   sendWelcomeEmail: ({ email, newsletter = false }) =>
     outbox("email", { v: 1, kind: "welcome", to: email, newsletter }),
+});
+
+listen(makeHttpApp({ dispatch: handler, timeoutSeconds: 25 }), {
+  close: handler.close,
 });

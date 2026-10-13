@@ -1,11 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-/** The app is one half of elixir.poapkings.com. Its shell is emitted as
- *  app.html, not index.html, because the static site (apps/site) owns
- *  the root document; the edge router rewrites /console and every path
- *  under it to /app.html. Assets stay at /assets/ and are merged with
- *  the static build by infra/scripts/build-site.mjs. */
+/** CloudFront sends app paths to the native web server, which injects
+ * request-local React HTML into this shell. Assets stay under /assets/
+ * and publish before the matching immutable server revision. */
 export default defineConfig({
   plugins: [react()],
   server: {

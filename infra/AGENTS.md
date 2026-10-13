@@ -1,8 +1,8 @@
 # infra: the stack and the deploy
 
 One CloudFormation stack (`template.yaml`) in `us-east-1`, profile
-`cloud-engineer`. Eight Lambdas (collector, email-relay, jobs, mcp,
-migrate, scheduler, timeline-sync, web-api), RDS PostgreSQL `db.t4g.micro` in a NAT-free
+`cloud-engineer`. Three HTTP Web Functions (collector, mcp, web-api), five Event Functions
+(email-relay, jobs, migrate, scheduler, timeline-sync), RDS PostgreSQL `db.t4g.micro` in a NAT-free
 VPC, S3 (payload archive, outbox, web), CloudFront in front of one origin.
 `docs/ENGINEERING.md` has the invariants; the `ship` skill has the loop.
 

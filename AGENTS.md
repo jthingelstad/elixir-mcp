@@ -14,8 +14,8 @@ official API is current-state only) and serves it on one origin,
 | `/mcp`, `/a/<id>/mcp`, `/oauth/*`, `/.well-known/*` | the MCP and OAuth doors | `services/mcp`, `packages/tools` |
 | `/api/v1` | the JSON API | `services/web-api`, `packages/tools` |
 
-Node 24 Lambdas, RDS PostgreSQL, S3 and CloudFront in one CloudFormation
-stack. `CLAUDE.md` is a symlink to this file; do not fork them.
+Node 24 native HTTP Web Functions and asynchronous Event Functions, RDS
+PostgreSQL, S3 and CloudFront in one CloudFormation stack. `CLAUDE.md` is a symlink to this file; do not fork them.
 `../AGENTS.md` covers the sibling repos; `~/Projects/AGENTS.md` covers AWS
 and secret safety everywhere.
 

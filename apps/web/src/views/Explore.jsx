@@ -287,6 +287,8 @@ function restartTrail() {
 }
 
 function Lookup({ me, navigate, browse }) {
+  const [recents, setRecents] = useState([]);
+  useEffect(() => setRecents(recent()), []);
   const [q, setQ] = useState("");
   const [miss, setMiss] = useState(null);
   const [failure, setFailure] = useState(null);
@@ -610,12 +612,12 @@ function Lookup({ me, navigate, browse }) {
               this browser only
             </span>
           </div>
-          {recent().length === 0 && (
+          {recents.length === 0 && (
             <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
               Nothing yet.
             </div>
           )}
-          {recent().map((r) => (
+          {recents.map((r) => (
             <Link
               key={r.href}
               to={r.href}
@@ -768,7 +770,8 @@ function RecordPage({ me, kind, rawId, search }) {
   // The trail and the recent list are written when a record ARRIVES,
   // which is the only moment a visit is a fact: truncate on revisit,
   // else append.
-  const [trail, setTrail] = useState(loadTrail);
+  const [trail, setTrail] = useState([]);
+  useEffect(() => setTrail(loadTrail()), []);
   useEffect(() => {
     if (!view) return;
     let next = loadTrail();

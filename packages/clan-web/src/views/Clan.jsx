@@ -1,3 +1,4 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import {
   Fresh,
   Icon,
@@ -59,7 +60,7 @@ export function RosterTable({
   search = "",
 }) {
   // Captured once per mount; a clock read during render is unstable.
-  const [mounted] = useState(() => Date.now());
+  const [mounted] = useInitialTime();
   const at = now ?? mounted;
   const shown = limit === null ? members : members.slice(0, limit);
   const hidden = members.slice(shown.length);

@@ -432,7 +432,10 @@ export function createClanRequest({
     // The fact writer owns its transaction; an outer transaction would
     // accidentally commit the rest of the request inside that writer.
     const method =
-      event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
+      event.method ??
+      event.requestContext?.http?.method ??
+      event.httpMethod ??
+      "GET";
     const path = event.rawPath ?? event.path ?? "";
     const clan = /^\/api\/clan\/clans\/([0-9A-Za-z]{3,12})(?:\/|$)/.exec(
       path,

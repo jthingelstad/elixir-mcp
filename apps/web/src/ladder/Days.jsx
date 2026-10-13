@@ -1,3 +1,4 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import { Icon, Link, useClock, noun } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import {
@@ -43,7 +44,7 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  */
 export function Days({ player, season: picked, seasonPicker, summary }) {
   const { zone } = useClock();
-  const [now] = useState(() => Date.now());
+  const [now] = useInitialTime();
   const coverage = useToolRead("elixir_coverage", {
     player_tag: player.player_tag,
   });

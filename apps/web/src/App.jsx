@@ -1,4 +1,5 @@
 import {
+  InitialTimeProvider,
   Chrome as ChromeBar,
   Disclaimer,
   ErrorBoundary,
@@ -30,6 +31,7 @@ import {
   Outlet,
   RouterProvider,
   createBrowserHistory,
+  createMemoryHistory,
   createRootRoute,
   createRoute,
   createRouter,
@@ -1093,12 +1095,11 @@ export function useNav() {
 
 /** True below the one breakpoint the whole product uses. */
 function useNarrow() {
-  const [narrow, setNarrow] = useState(
-    () => window.matchMedia?.("(max-width: 900px)").matches ?? false,
-  );
+  const [narrow, setNarrow] = useState(() => false);
   useEffect(() => {
     const mq = window.matchMedia?.("(max-width: 900px)");
     if (!mq?.addEventListener) return;
+    setNarrow(mq.matches);
     const on = (e) => setNarrow(e.matches);
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
@@ -1538,7 +1539,8 @@ const rootRoute = createRootRoute({
     const path = location.pathname;
     const owned = legalRoute(REDIRECTS[path] ?? path);
     if (owned === null) {
-      window.location.replace(STATIC_LINKS.home);
+      if (typeof window !== "undefined")
+        window.location.replace(STATIC_LINKS.home);
       throw notFound();
     }
     if (owned !== path)
@@ -1560,11 +1562,13 @@ const signInRoute = createRoute({
     // session), so a reader who is signed in arrives here too: send them
     // on to their console. Not when a login link brought a token: that is
     // a sign-in (or a device hand-off) to finish, signed in or not.
-    const destination = new URLSearchParams(window.location.search).get(
+    const location = useLocation();
+    const destination = new URLSearchParams(location.searchStr).get(
       "return_to",
     );
-    if (destination) rememberAfterSignIn(destination);
-    const token = takeLoginToken();
+    if (destination && typeof window !== "undefined")
+      rememberAfterSignIn(destination);
+    const token = typeof window === "undefined" ? null : takeLoginToken();
     const forward = me?.authenticated === true && !token && !completing;
     useEffect(() => {
       if (forward)
@@ -1575,6 +1579,7 @@ const signInRoute = createRoute({
     if (forward || (me === null && !token)) return null;
     return (
       <SignIn
+        search={location.searchStr}
         onAuthed={async (newAccount) => {
           setCompleting(true);
           const next =
@@ -1739,25 +1744,47 @@ export function useHere() {
 /** The app is its own providers: one query cache and one router per
  *  mount, so a test that renders <App /> gets a fresh one and the
  *  session and address it sets up are the ones it sees. */
-export function App() {
+export function createAppRuntime({
+  url = null,
+  me = null,
+  clanMe = null,
+  renderedAt = Date.now(),
+} = {}) {
+  const queryClient = createQueryClient();
+  if (me) queryClient.setQueryData(["me"], me);
+  if (clanMe) queryClient.setQueryData(["me", "clan"], clanMe);
+  const router = createRouter({
+    routeTree,
+    origin:
+      typeof window === "undefined"
+        ? "https://elixir.poapkings.com"
+        : window.location.origin,
+    history: url
+      ? createMemoryHistory({ initialEntries: [url] })
+      : createBrowserHistory(),
+    // The same universal route tree is rendered on each side. We serialize
+    // only our query data, avoiding the router's experimental streaming API.
+    isServer: false,
+    defaultPreload: false,
+    scrollRestoration: !url,
+  });
+  return { queryClient, router, renderedAt };
+}
+
+export function App({ runtime = null }) {
   const signInProgress = useState(false);
-  const [queryClient] = useState(createQueryClient);
-  const [router] = useState(() =>
-    createRouter({
-      routeTree,
-      history: createBrowserHistory(),
-      defaultPreload: false,
-      scrollRestoration: true,
-    }),
-  );
+  const [state] = useState(() => runtime ?? createAppRuntime());
+  const { queryClient, router } = state;
   return (
-    <SignInProgress.Provider value={signInProgress}>
-      <QueryClientProvider client={queryClient}>
-        <CardArtSource>
-          <RouterProvider router={router} />
-        </CardArtSource>
-      </QueryClientProvider>
-    </SignInProgress.Provider>
+    <InitialTimeProvider at={state.renderedAt}>
+      <SignInProgress.Provider value={signInProgress}>
+        <QueryClientProvider client={queryClient}>
+          <CardArtSource>
+            <RouterProvider router={router} />
+          </CardArtSource>
+        </QueryClientProvider>
+      </SignInProgress.Provider>
+    </InitialTimeProvider>
   );
 }
 
@@ -1794,7 +1821,7 @@ export function useMe() {
     query.data?.data ?? (query.isError ? { authenticated: false } : null);
   return {
     me,
-    unreachable: query.isError,
+    unreachable: query.isError || (query.data?.status ?? 0) >= 500,
     retrying: query.isFetching,
     refresh,
     invalidate,

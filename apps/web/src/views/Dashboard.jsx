@@ -34,7 +34,7 @@ export function Dashboard({
     ) : itemId === "e" ? (
       <EmailRecord id={recordId} navigate={navigate} search={search} />
     ) : (
-      <Activity sub={sub} navigate={navigate} />
+      <Activity sub={sub} navigate={navigate} search={search} />
     );
   if (page === "tracking")
     return itemId ? (

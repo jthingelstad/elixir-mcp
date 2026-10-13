@@ -14,7 +14,7 @@ import { randomUUID } from "node:crypto";
  * emails everywhere — never an oracle.
  */
 
-import pg from "pg";
+import { makeDatabase } from "@elixir-mcp/http/database";
 import {
   approvedAccount,
   openVerifiedAccount,
@@ -146,6 +146,7 @@ async function withDeadline(ms, run, onTimeout) {
 
 export function makeHandler({
   databaseUrl,
+  database = null,
   secret,
   sendLoginEmail,
   notifyOwner = async () => {},
@@ -180,6 +181,10 @@ export function makeHandler({
    *  ledger's, charged to nobody, as Tracking's add uses. */
   live = null,
 }) {
+  database ??= makeDatabase({
+    connectionString: databaseUrl,
+    max: Number(process.env.DB_POOL_MAX ?? 4),
+  });
   const liveRead = live ?? makeLive({ enqueue: enqueueJob });
   // What unsubscribe links are signed and checked with: their own key
   // when there is one, and the session secrets for links sent before it.
@@ -381,8 +386,11 @@ export function makeHandler({
     // Through CloudFront, or not at all (see auth origin.mjs).
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
     const method =
-      event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
-    const path = event.rawPath ?? event.path ?? "/";
+      event.method ??
+      event.requestContext?.http?.method ??
+      event.httpMethod ??
+      "GET";
+    const path = event.path ?? event.rawPath ?? "/";
     const isIntegration = path.startsWith("/api/v1/");
     const isClan = clan && path.startsWith("/api/clan/");
     const agentPath = isIntegration ? null : AGENT_PATH.exec(path);
@@ -504,11 +512,11 @@ export function makeHandler({
     const routeKey = agentPath
       ? found.key.replace(" /api/me", " /api/agent/*")
       : found.key;
-    const requestId = context?.awsRequestId ?? null;
+    const requestId = context?.requestId ?? context?.awsRequestId ?? null;
     let status = 500;
     let connectMs = 0;
     let timedOut = false;
-    const db = new pg.Client({ connectionString: databaseUrl });
+    const db = database.lease();
     const soft = deadlineMs(context, event);
     // A route that runs a tool races the invoker's deadline inside this
     // one (deadline.mjs), so the tool answers query_timeout with its
@@ -546,22 +554,21 @@ export function makeHandler({
       // its statement_timeout: the invoker's for a tool, and the
       // connection's PGOPTIONS ceiling (infra/template.yaml) for the rest.
       await db.end().catch(() => {});
-      console.log(
-        JSON.stringify({
-          at: new Date().toISOString(),
-          http: routeKey,
-          status,
-          ms: Date.now() - started,
-          connect_ms: connectMs,
-          ...(requestId ? { request_id: requestId } : {}),
-          ...(timedOut ? { timed_out: true } : {}),
-        }),
-      );
+      console.info({
+        at: new Date().toISOString(),
+        http: routeKey,
+        status,
+        ms: Date.now() - started,
+        connect_ms: connectMs,
+        ...(requestId ? { request_id: requestId } : {}),
+        ...(timedOut ? { timed_out: true } : {}),
+      });
     }
   }
   // Every route key the map registers, for the public-boundary test
   // (#526): it walks them with no credential, so a new route that
   // answers unsigned is listed there on purpose or fails.
   handler.routeKeys = Object.freeze(Object.keys(routes));
+  handler.close = database.close;
   return handler;
 }
