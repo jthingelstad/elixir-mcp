@@ -229,7 +229,7 @@ for (const width of [390, 1280]) {
     await page.getByRole("button", { name: "Send sign-in email" }).click();
     await expect(page.getByLabel("6-digit code")).toBeVisible();
     const other = await browser.newContext({
-      baseURL: "http://127.0.0.1:4321",
+      baseURL: new URL(page.url()).origin,
     });
     try {
       const link = await other.newPage();

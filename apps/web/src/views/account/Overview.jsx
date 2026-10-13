@@ -1,3 +1,4 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import {
   FAMILY_PRODUCTS,
   gameLabel,
@@ -57,7 +58,7 @@ const NARROW_ROWS = 2;
  *  Green within the hour, amber within the day, quiet after. */
 function LivePill({ me }) {
   const { zone } = useClock();
-  const [now] = useState(() => Date.now());
+  const [now] = useInitialTime();
   const primary = (me.claims ?? []).find((c) => c.is_primary);
   const rec = primary
     ? me.recordings?.find((r) => r.subject_tag === primary.player_tag)

@@ -32,12 +32,15 @@ const BY_SUB = {
  *  says a tool ran 400 times, and the only next question is WHICH calls.
  *  The query string is read once, at open — the filter is state after
  *  that, so clearing it works like any other. */
-function initialToolFilter() {
-  const tool = new URLSearchParams(window.location.search).get("tool");
+function initialToolFilter(search) {
+  const tool = new URLSearchParams(search).get("tool");
   return tool ? { tool } : null;
 }
 
-export function Activity({ sub }) {
+export function Activity({
+  sub,
+  search = typeof window === "undefined" ? "" : window.location.search,
+}) {
   const { stamp } = useClock();
   const path = useConsolePath();
   // An agent's console has no Emails: an agent has no address, and the
@@ -99,7 +102,7 @@ export function Activity({ sub }) {
         ]}
         rows={rows}
         monoCols={[0, 2, 5]}
-        initialFilters={initialToolFilter()}
+        initialFilters={initialToolFilter(search)}
         filters={[
           { key: "connection", label: "Connection", col: 1 },
           { key: "tool", label: "Tool", col: 2 },

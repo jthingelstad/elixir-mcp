@@ -15,18 +15,20 @@
     "@aws-sdk/client-cloudformation": "^3.1146.0",
     "@aws-sdk/client-cloudfront": "^3.1146.0",
     "@aws-sdk/client-lambda": "^3.1146.0",
+    "@aws-sdk/client-lambda-web": "3.1150.0",
     "@aws-sdk/client-s3": "^3.1146.0",
     "@aws-sdk/client-secrets-manager": "^3.1146.0",
     "@aws-sdk/client-sts": "^3.1146.0",
     "@axe-core/playwright": "^4.13.0",
+    "@elixir-mcp/clan-engine": "0.1.0",
     "@playwright/test": "^1.63.0",
+    "@tanstack/router-core": "1.171.34",
     "esbuild": "^0.28.2",
     "knip": "^6.39.0",
     "oxlint": "^1.86.0",
     "playwright": "^1.63.0",
     "prettier": "^3.9.9",
-    "typescript": "^7.0.2",
-    "@elixir-mcp/clan-engine": "0.1.0"
+    "typescript": "^7.0.2"
   },
   "scripts": {
     "build": "npm run build -w @elixir-mcp/design && npm run build -w @elixir-mcp/contracts && npm run build -w @elixir-mcp/docs",

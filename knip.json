@@ -127,6 +127,10 @@
     "packages/feedback": {
       "entry": ["test/**/*.test.mjs"],
       "project": ["src/**/*.mjs", "test/**/*.mjs"]
+    },
+    "packages/http": {
+      "entry": ["test/**/*.test.mjs"],
+      "project": ["src/**/*.mjs", "test/**/*.mjs"]
     }
   }
 }

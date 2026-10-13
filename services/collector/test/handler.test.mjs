@@ -27,7 +27,12 @@ function request(method, path, { body, headers = {}, base64 = false } = {}) {
 function recordingDoor(answer = { status: 200, body: { ok: true } }) {
   const calls = [];
   const call = (name) => async (db, event, body) => {
-    calls.push({ name, body, connected: Boolean(db._connected) });
+    calls.push({
+      name,
+      body,
+      connected:
+        (await db.query("select 1 as connected")).rows[0].connected === 1,
+    });
     return typeof answer === "function" ? answer() : answer;
   };
   return {
@@ -40,7 +45,7 @@ function recordingDoor(answer = { status: 200, body: { ok: true } }) {
 
 function captureLog(t) {
   const lines = [];
-  t.mock.method(console, "log", (line) => lines.push(JSON.parse(line)));
+  t.mock.method(console, "info", (line) => lines.push(line));
   return lines;
 }
 

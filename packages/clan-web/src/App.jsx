@@ -106,12 +106,11 @@ function useNav() {
 
 /** Elixir's breakpoint: below it the rail is a disclosure above the page. */
 function useNarrow() {
-  const [narrow, setNarrow] = useState(
-    () => window.matchMedia?.("(max-width: 900px)").matches ?? false,
-  );
+  const [narrow, setNarrow] = useState(() => false);
   useEffect(() => {
     const mq = window.matchMedia?.("(max-width: 900px)");
     if (!mq?.addEventListener) return undefined;
+    setNarrow(mq.matches);
     const on = (e) => setNarrow(e.matches);
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
@@ -170,9 +169,10 @@ const useSession = () => useContext(SessionContext);
 
 export function LandingPage() {
   const { me } = useSession();
-  const error = new URLSearchParams(window.location.search).get("error");
+  const { searchStr, pathname } = useLocation();
+  const error = new URLSearchParams(searchStr).get("error");
   if (me === null || me.signed_in) return null;
-  return <Landing error={error} />;
+  return <Landing error={error} here={pathname + searchStr} />;
 }
 
 export function ClansPage() {

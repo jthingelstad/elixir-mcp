@@ -1,3 +1,4 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import { useWrite } from "@elixir-mcp/client";
 import {
   ago,
@@ -50,7 +51,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   const clansQuery = useMyClans();
   const clans = clansQuery.data ?? null;
   const [nick, setNick] = useState(null);
-  const [now] = useState(() => Date.now());
+  const [now] = useInitialTime();
   const invalidate = useInvalidate();
   const loadClans = () => invalidate();
 

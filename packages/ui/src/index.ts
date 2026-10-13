@@ -91,3 +91,5 @@ export { useClock, ZoneProvider } from "./Zone.tsx";
 
 export { MODE_LABEL } from "./battle-mode.ts";
 export { noun } from "./noun.ts";
+
+export { InitialTimeProvider, useInitialTime } from "./InitialTime.tsx";

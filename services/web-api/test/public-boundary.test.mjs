@@ -180,7 +180,12 @@ test("public stats carry only counts of what the recorder holds", async () => {
   const res = await call("GET", "/api/public/stats");
   assert.equal(res.statusCode, 200);
   const body = parse(res);
-  assert.deepEqual(Object.keys(body).sort(), ["note", "series", "totals"]);
+  assert.deepEqual(Object.keys(body).sort(), [
+    "as_of",
+    "note",
+    "series",
+    "totals",
+  ]);
   assert.deepEqual(Object.keys(body.totals).sort(), [
     "battles",
     "clans",

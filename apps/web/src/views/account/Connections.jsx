@@ -86,7 +86,7 @@ export function Connections({ me, navigate }) {
 
   // The door this console's account connects at.
   const door = scope ? `/a/${scope}/mcp` : "/mcp";
-  const url = `${window.location.origin}${door}`;
+  const url = `https://elixir.poapkings.com${door}`;
   const clients = connections ?? [];
   // Each agent you own is one row: a client connected as it is listed on
   // its console, not here.

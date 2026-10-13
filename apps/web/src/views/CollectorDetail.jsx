@@ -1,3 +1,4 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import { useWrite } from "@elixir-mcp/client";
 import {
   ago,
@@ -406,7 +407,7 @@ function NewToken({ own }) {
 export function CollectorPage({ id, navigate, me }) {
   // Stamped once per load rather than read during render:
   // a clock read while rendering makes every re-render a new answer.
-  const [now] = useState(() => Date.now());
+  const [now] = useInitialTime();
   const status = usePublicStatus().data ?? null;
   const mine = useMyGateways().data?.gateways ?? null;
   const [revealed, setRevealed] = useState("");

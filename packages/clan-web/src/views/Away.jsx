@@ -1,3 +1,4 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import { noun, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
@@ -19,7 +20,7 @@ export function Away({ me }) {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [today] = useState(() => Date.now());
+  const [today] = useInitialTime();
   const { data: state = null } = useMyAway(clan?.clan_tag);
   const invalidate = useInvalidate();
   const load = () => invalidate(keys.away(clan.clan_tag));

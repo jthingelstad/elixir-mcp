@@ -224,8 +224,10 @@ check(
 const appRoute = await fetch(`${mcpBase}/console/account/overview`);
 const appHtml = appRoute.ok ? await appRoute.text() : "";
 check(
-  "an app route gets the app shell",
-  appRoute.ok && appHtml.includes('<div id="root"></div>'),
+  "an app route gets rendered HTML and a session bootstrap",
+  appRoute.ok &&
+    appHtml.includes('<div id="root">') &&
+    appHtml.includes('id="elixir-bootstrap"'),
   String(appRoute.status),
 );
 
@@ -271,13 +273,15 @@ check(
 const missing = await fetch(`${mcpBase}/api/definitely-not-a-route`);
 check("api 404 stays a 404", missing.status === 404, String(missing.status));
 
-// SPA deep links still land on the shell, which is what the removed
+// App deep links reach native rendering, which replaces the removed
 // error mapping was actually there for.
 const deep = await fetch(`${mcpBase}/console/account/overview`);
 const deepHtml = deep.ok ? await deep.text() : "";
 check(
-  "spa deep link serves the shell",
-  deep.status === 200 && deepHtml.includes('<div id="root"></div>'),
+  "app deep link renders the signed-out page",
+  deep.status === 200 &&
+    deepHtml.includes('id="elixir-bootstrap"') &&
+    deepHtml.includes("Sign in first"),
   String(deep.status),
 );
 // A missing static asset is honestly missing, not a 200 of HTML.

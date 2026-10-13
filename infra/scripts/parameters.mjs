@@ -15,6 +15,10 @@ import { randomBytes } from "node:crypto";
 
 export const REQUIRED_PARAMETERS = [
   "CodeBucket",
+  "WebApiCodeVersion",
+  "McpCodeVersion",
+  "CollectorCodeVersion",
+  "WebBuild",
   "WebApiCodeKey",
   "McpCodeKey",
   "SchedulerCodeKey",

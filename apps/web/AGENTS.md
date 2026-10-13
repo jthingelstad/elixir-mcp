@@ -18,8 +18,9 @@ behaviour is in `apps/site/src/docs/`, not here.
   `CONSOLE` (`src/lib/console.js`) and every Ladder path with `LADDER`, not
   a router basepath, because the kit's `Link` renders `to` verbatim.
 - **One build serves three surfaces.** CloudFront routes `/console`,
-  `/ladder`, `/clan` and their descendants to `/app.html`; every other path
-  is a site document (`apps/site`). A site test evaluates the function and
+  `/ladder`, `/clan` and their descendants to the web/API Web Function for
+  session-aware server rendering; every other path is a site document
+  (`apps/site`). A site test evaluates the function and
   pins the split. `node infra/scripts/build-site.mjs` builds both halves
   and validates the merged tree.
 - **The kit is shared, never copied.** `packages/design` (tokens and

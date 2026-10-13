@@ -134,7 +134,9 @@ Consecutive 403s open a per-collector breaker and drain it.
 
 ## One client is one connection, so one query at a time
 
-Every handler opens a `pg.Client`, a single connection, and pg serializes
+Every HTTP request exclusively leases a `pg.Client` from its process-local
+pool (`packages/http`); Event Functions open a client. Each is a single
+connection, and pg serializes
 whatever you send it. `Promise.all([db.query(a), db.query(b)])` buys no
 parallelism, only a `DeprecationWarning` per overlap (an error in pg 9).
 **Await database queries one at a time.**
@@ -374,8 +376,9 @@ read state; sponsorship (`/support`) ties to nothing on an account.
 
 ## Network posture
 
-VPC Lambdas (web-api, collector, mcp, scheduler, migrate, jobs,
-timeline-sync) run in a NAT-free VPC and never call another Lambda. Work
+The HTTP Web Functions (web-api, collector, mcp) reach the NAT-free VPC
+through a versioned network connector, on HomeRegion endpoints in us-east-1.
+The Event Functions (scheduler, migrate, jobs, timeline-sync) run in that VPC and never call another Lambda. Work
 that needs the internet (mail through SES, a clan's model call, a Discord
 post) is handed to the non-VPC email relay by writing one object to the
 outbox bucket (`email/`, `clan-model/`, `clan-discord/`,
@@ -389,6 +392,43 @@ back the same way: its receipts for the Discord quality ledger
 database. Metrics ride the EMF log line; a custom metric exists
 only to back an alarm.
 
+## Native HTTP runtime
+
+CloudFront signs origin requests to three IAM-protected Lambda Web Function
+endpoints with `always-amz-auth`. Private cache behaviors carry Authorization
+in the cache policy, forward their existing cookie/header allowlists, and use
+zero default/minimum TTL; every private response says `no-store`. Public
+reads retain their credential-free cache behaviors. API Gateway is absent.
+The collector has an origin of its own and precedes `/api/*`.
+
+Each endpoint pins one immutable revision at 100%, with automatic deployment
+disabled. Revisions pin both an S3 object version and a connector version.
+The code bucket is versioned and referenced source versions must remain.
+`deploy.mjs` owns the exact CloudFront endpoint grants under its production
+lock because the registry's ResourcePolicy type does not support these ARNs.
+It verifies policy/routing read-back and publishes immutable browser assets
+before switching revisions. HTML and server rendering ride the web bundle.
+
+Web-api/MCP pools allow four connections per process; the collector allows
+two. Two environments per endpoint cap the combined pool capacity at twenty
+connections. Cleanup rolls back and discards all session state; a failed,
+unfinished or prepared query destroys its client instead of returning it.
+A lease expiring while waiting cannot acquire a usable client afterward.
+SIGTERM has one second; durable work still goes through the outbox/ledger.
+
+Console, Ladder and Clan use request-local React/router/query state. The
+server resolves the session once, renders the initial screen and embeds a
+safely escaped, non-executable JSON bootstrap. The browser hydrates that
+session without a second initial `/api/me` fetch. Fragment login tokens
+remain browser-only and complete through the shared auth routes. No session
+keys, cookie names, OAuth audiences, redirect addresses or grants change.
+
+Request timing is structured under `message` in native logs. Alarms use
+`AWS/Lambda/Web` HTTP 5XX metrics and alarm-backed duration filters. Both
+central and local log groups have retention. Public corpus statistics use an
+hourly jobs snapshot (`public_stats_cache`, migration 0226), with `as_of`;
+a missing or stale snapshot computes the answer directly.
+
 ## Services share through packages, never each other
 
 A service is a Lambda's door: its entry, its handler, its routes, and
@@ -397,6 +437,7 @@ imported by name.
 
 | Package | Owns |
 | --- | --- |
+| `http` | native Hono HTTP server, request deadlines and exclusive PostgreSQL pool leases |
 | `contracts` | versions, changelog, errors, groups, principals, modes, archetypes, the collector contract, the OpenAPI document |
 | `tools` | the tool registry and everything around a call (invoker, quota, identity, live fetch, capture); MCP and web-api are its doors |
 | `record` | the record's data functions and clocks, the SQL a tool and a job both read, attested facts |

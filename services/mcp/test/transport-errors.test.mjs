@@ -95,8 +95,8 @@ test("a refusal never leaks the connection string or an internal stack", async (
 
 test("every request leaves one timing line: door, rpc method, tool, status, request id", async () => {
   const lines = [];
-  const realLog = console.log;
-  console.log = (line) => lines.push(line);
+  const realLog = console.info;
+  console.info = (line) => lines.push(line);
   try {
     await handler(
       event({
@@ -121,9 +121,9 @@ test("every request leaves one timing line: door, rpc method, tool, status, requ
       { awsRequestId: "req-mcp-2" },
     );
   } finally {
-    console.log = realLog;
+    console.info = realLog;
   }
-  const timing = lines.map((l) => JSON.parse(l)).filter((l) => l.http);
+  const timing = lines.filter((l) => l.http);
   assert.equal(timing.length, 2);
   assert.equal(timing[0].http, "POST /a/*/mcp", "never the per-principal id");
   assert.equal(timing[0].rpc, "tools/call");

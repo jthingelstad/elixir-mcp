@@ -1,5 +1,5 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import { Link, noun } from "@elixir-mcp/ui";
-import { useState } from "react";
 import { CONSOLE } from "../lib/console.js";
 import { useMyClans } from "../lib/queries.js";
 import { youngRecord } from "./ladder.js";
@@ -30,7 +30,7 @@ const STEPS = {
  * record's start is the summary's meta, so it adds no request.
  */
 export function YoungRecord({ player, summary, className = "" }) {
-  const [now] = useState(() => Date.now());
+  const [now] = useInitialTime();
   const clans = useMyClans();
   const clanTag = player.last_known_clan_tag ?? null;
   const clanRecorded = clans.data

@@ -1,3 +1,4 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import { ago, Icon, Link, secsSince, Tag, TagText } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
@@ -52,7 +53,7 @@ export function Tracking({ me, refresh, navigate }) {
   // below once did.
   const [clanScope, setClanScope] = useState("activity");
   const [clanErr, setClanErr] = useState("");
-  const [now] = useState(() => Date.now());
+  const [now] = useInitialTime();
   // A new account that gave no tag at signup lands here
   // (#add-player-tag): the field it came to fill is ready to type in.
   const tagInput = useRef(null);

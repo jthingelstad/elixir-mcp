@@ -1,5 +1,5 @@
 import { Icon, Link, browserZone, useClock } from "@elixir-mcp/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { CONSOLE } from "../lib/console.js";
 import { useInvalidate } from "../lib/queries.js";
@@ -42,7 +42,8 @@ export function ZoneOffer({ className = "" }) {
   const invalidate = useInvalidate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const local = browserZone();
+  const [local, setLocal] = useState(null);
+  useEffect(() => setLocal(browserZone()), []);
   if (agent || zone || isUtc(local)) return null;
   const words = zoneWords(local);
   return (

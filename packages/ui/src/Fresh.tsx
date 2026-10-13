@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useInitialTime } from "./InitialTime.tsx";
 import { agoSeconds, freshCls, secsSince } from "./time.ts";
 import { useClock } from "./Zone.tsx";
 
@@ -17,7 +17,7 @@ export function Fresh({
   seconds?: number | null;
   label?: string;
 }) {
-  const [now] = useState(() => Date.now());
+  const [now] = useInitialTime();
   const { stamp } = useClock();
   const age = seconds ?? secsSince(ts, now);
   if (age == null)

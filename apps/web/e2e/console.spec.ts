@@ -68,7 +68,7 @@ test.describe("signed out", () => {
   }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
     await page.goto("/console/not-a-place");
-    await expect(page).toHaveURL(/127\.0\.0\.1:4321\/$/);
+    await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
     await expect(page).toHaveTitle(/Elixir/);
     // The static home is a real document: the app shell is not in it.
     await expect(page.locator("#root")).toHaveCount(0);

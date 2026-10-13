@@ -260,6 +260,8 @@ restating it in wider words.
 - **New indexes or tools must collapse a measured walk** — check an audit claim against the calling client first. [engineering, 2026-09-23]
 - **The agent team lives outside this repository** — its roles, cadences and authority are in the private Clash Royale domain repository (2026-10-10); how Elixir is operated is `docs/OPERATIONS.md`, changed with the code; Clan has no separate owner. [Jamie, 2026-10-10]
 
+- **Native HTTP Web Functions** [Jamie, 2026-10-13]: migrate the web/API, MCP/OAuth and collector doors to Lambda Web Functions with a direct cutover; CloudFront and the one hostname stay, VPC egress pins a HomeRegion connector, and asynchronous jobs remain Event Functions. Adopt session-aware server rendering and pooled exclusive database leases; preserve the existing credential core. No prolonged dual-stack or dedicated rollback lane.
+
 ## Declined
 
 - **Outcome ratings** (Elo, Glicko, TrueSkill, Bradley-Terry) — the matchmaker has already spent the information. [Jamie, 2026-09-19]

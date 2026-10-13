@@ -7,7 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import pg from "pg";
+import { makeDatabase } from "@elixir-mcp/http/database";
 import {
   validateAccessToken,
   validateServiceToken,
@@ -52,6 +52,7 @@ export function hourlyBucketFor(account) {
 
 export function makeHandler({
   databaseUrl,
+  database = null,
   issuer = "https://elixir.poapkings.com",
   sendLoginEmail,
   /** The welcome mail for an account the OAuth sign-in opened. */
@@ -64,6 +65,10 @@ export function makeHandler({
   /** The site session secret, for consent by session (oauth-routes.mjs). */
   sessionSecret = null,
 }) {
+  database ??= makeDatabase({
+    connectionString: databaseUrl,
+    max: Number(process.env.DB_POOL_MAX ?? 4),
+  });
   // Transport-level refusals - a rate limit, a database that will not
   // connect - are answered with the SAME envelope a tool refusal uses.
   // These used to render bare ({"message":"Internal Server Error"},
@@ -101,7 +106,7 @@ export function makeHandler({
   // entirely and Lambda rendered a bare 500. Null means never connected -
   // end() would then throw over the top of the real failure.
   const connectDb = async () => {
-    const db = new pg.Client({ connectionString: databaseUrl });
+    const db = database.lease();
     try {
       await db.connect();
       return db;
@@ -135,8 +140,11 @@ export function makeHandler({
     // records are only trustworthy when the distribution set them.
     if (!originAllowed(event, originSecret)) return forbiddenOrigin();
     const method =
-      event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
-    const path = event.rawPath ?? event.path ?? "/";
+      event.method ??
+      event.requestContext?.http?.method ??
+      event.httpMethod ??
+      "GET";
+    const path = event.path ?? event.rawPath ?? "/";
 
     // Metadata documents need no auth and no DB.
     if (
@@ -512,7 +520,9 @@ export function makeHandler({
             18_000,
             Math.max(
               1,
-              (context?.getRemainingTimeInMillis?.() ?? 25_000) - 6_500,
+              (context?.remainingMs?.() ??
+                context?.getRemainingTimeInMillis?.() ??
+                25_000) - 6_500,
             ),
           ),
           // Every read-only tool answers before Lambda kills the sandbox:
@@ -520,7 +530,9 @@ export function makeHandler({
           // audit need.
           deadlineMs: Math.max(
             1,
-            (context?.getRemainingTimeInMillis?.() ?? 25_000) - 1_500,
+            (context?.remainingMs?.() ??
+              context?.getRemainingTimeInMillis?.() ??
+              25_000) - 1_500,
           ),
         }),
       });
@@ -534,11 +546,14 @@ export function makeHandler({
     }
   }
 
-  return async function handler(event, context) {
+  async function handler(event, context) {
     const started = Date.now();
     const method =
-      event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
-    const path = event.rawPath ?? event.path ?? "/";
+      event.method ??
+      event.requestContext?.http?.method ??
+      event.httpMethod ??
+      "GET";
+    const path = event.path ?? event.rawPath ?? "/";
     const rpc = rpcSummary(event);
     let status = 500;
     try {
@@ -546,19 +561,19 @@ export function makeHandler({
       status = res?.statusCode ?? 200;
       return res;
     } finally {
-      const requestId = context?.awsRequestId ?? null;
-      console.log(
-        JSON.stringify({
-          at: new Date().toISOString(),
-          http: `${method} ${doorKey(path)}`,
-          ...rpc,
-          status,
-          ms: Date.now() - started,
-          ...(requestId ? { request_id: requestId } : {}),
-        }),
-      );
+      const requestId = context?.requestId ?? context?.awsRequestId ?? null;
+      console.info({
+        at: new Date().toISOString(),
+        http: `${method} ${doorKey(path)}`,
+        ...rpc,
+        status,
+        ms: Date.now() - started,
+        ...(requestId ? { request_id: requestId } : {}),
+      });
     }
-  };
+  }
+  handler.close = database.close;
+  return handler;
 }
 
 function doorKey(path) {

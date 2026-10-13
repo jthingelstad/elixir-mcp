@@ -6,9 +6,9 @@
  * docs, updates, the contract changelog - plus the machine-readable
  * surfaces (llms.txt, llms-full.txt, tools.json, sitemap.xml, feed.xml).
  * apps/web is the React application for everything behind a session or
- * drawn live at read time. Both are served from one bucket behind one
- * distribution, and the CloudFront function in infra/template.yaml
- * decides which one answers a path.
+ * drawn live at read time. Its immutable assets and the static documents
+ * share the bucket; app paths use the native web server and its bundled
+ * HTML shell. Explicit CloudFront behaviors select the app server.
  *
  * This script produces the merged tree and REFUSES to produce a broken
  * one: an unresolvable sitemap entry, a dangling link in llms.txt, a

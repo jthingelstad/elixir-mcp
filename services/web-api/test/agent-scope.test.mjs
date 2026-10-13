@@ -270,16 +270,16 @@ test("the agent's calls are its own; the budget they spend is its owner's", asyn
 
 test("the log line names the scoped route, never the agent", async () => {
   const lines = [];
-  const log = console.log;
-  console.log = (line) => lines.push(line);
+  const log = console.info;
+  console.info = (line) => lines.push(line);
   try {
     await handler(
       event({ path: `/api/agent/${agentPid}/timeline`, cookie: ownerCookie }),
     );
   } finally {
-    console.log = log;
+    console.info = log;
   }
-  const http = lines.map((l) => JSON.parse(l).http).filter(Boolean);
+  const http = lines.map((l) => l.http).filter(Boolean);
   assert.deepEqual(http, ["GET /api/agent/*/timeline"]);
   assert.ok(!lines.join("").includes(agentPid));
 });

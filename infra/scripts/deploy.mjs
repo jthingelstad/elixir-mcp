@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+import {
+  GetWebFunctionRevisionCommand,
+  LambdaWebClient,
+} from "@aws-sdk/client-lambda-web";
+import { grantWebEndpoints } from "./lib/web-release.mjs";
 /**
  * Deploy (run with AWS_PROFILE=cloud-engineer). Order: build -> upload ->
  * lane -> MIGRATE (the migrate bundle is pushed ahead of the flip, so a
@@ -41,6 +46,9 @@ import {
 } from "@aws-sdk/client-cloudformation";
 import {
   S3Client,
+  GetBucketVersioningCommand,
+  PutBucketVersioningCommand,
+  HeadObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   ListObjectsV2Command,
@@ -48,7 +56,6 @@ import {
 } from "@aws-sdk/client-s3";
 import {
   LambdaClient,
-  GetFunctionConfigurationCommand,
   InvokeCommand,
   UpdateFunctionCodeCommand,
   waitUntilFunctionUpdatedV2,
@@ -227,11 +234,34 @@ const releaseLock = holdUntilExit({ file: lockFile, lock: locked.lock });
 console.error(`deploy: production lock taken (${lockFile}).`);
 
 const sts = new STSClient({ region: REGION });
-const { Account: accountId } = await sts.send(new GetCallerIdentityCommand({}));
+const caller = await sts.send(new GetCallerIdentityCommand({}));
+if (
+  caller.Account !== "999153317627" ||
+  !caller.Arn?.includes(
+    "assumed-role/ProjectsCloudEngineer/projects-cloud-engineer",
+  )
+)
+  throw new Error("deploy requires the cloud-engineer account and role");
+const accountId = caller.Account;
 const codeBucket = `elixir-mcp-code-${accountId}`;
 const cfn = new CloudFormationClient({ region: REGION });
 const s3 = new S3Client({ region: REGION });
 
+// Web revisions require an immutable source version. The bootstrap code
+// bucket predates Web Functions; enabling versioning is one deployment write,
+// inside the production lock. Never suspend it or expire referenced versions.
+const versioning = await s3.send(
+  new GetBucketVersioningCommand({ Bucket: codeBucket }),
+);
+if (versioning.Status !== "Enabled") {
+  await s3.send(
+    new PutBucketVersioningCommand({
+      Bucket: codeBucket,
+      VersioningConfiguration: { Status: "Enabled" },
+    }),
+  );
+}
+const codeVersions = {};
 // 1. Build + upload ---------------------------------------------------------
 console.error("building lambda bundles...");
 const artifacts = await buildAll();
@@ -240,18 +270,41 @@ for (const { name, zipPath, dir } of artifacts) {
   // Named by content, not by the zip's bytes (zip stamps mtimes): the
   // same code keeps its key and the stack sees no change for it.
   const key = codeKey(name, bundleFingerprint(dir));
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: codeBucket,
-      Key: key,
-      Body: await readFile(zipPath),
-    }),
-  );
+  // Reuse the existing immutable object when content is unchanged. Uploading
+  // it on every run creates a new VersionId and needlessly replaces revisions.
+  let version;
+  try {
+    version = (
+      await s3.send(new HeadObjectCommand({ Bucket: codeBucket, Key: key }))
+    ).VersionId;
+  } catch (error) {
+    if (!["NotFound", "NoSuchKey"].includes(error.name)) throw error;
+  }
+  if (!version || version === "null") {
+    const uploaded = await s3.send(
+      new PutObjectCommand({
+        Bucket: codeBucket,
+        Key: key,
+        Body: await readFile(zipPath),
+      }),
+    );
+    version = uploaded.VersionId;
+  }
+  if (!version || version === "null")
+    throw new Error(`No immutable source version for ${name}`);
+  codeVersions[name] = version;
   codeKeys[name] = key;
   console.error(`uploaded ${key}`);
 }
 const required = {
   CodeBucket: codeBucket,
+  WebApiCodeVersion: codeVersions["web-api"],
+  McpCodeVersion: codeVersions.mcp,
+  CollectorCodeVersion: codeVersions.collector,
+  WebBuild: createHash("sha256")
+    .update([codeKeys["web-api"], codeKeys.mcp, codeKeys.collector].join("\n"))
+    .digest("hex")
+    .slice(0, 16),
   WebApiCodeKey: codeKeys["web-api"],
   McpCodeKey: codeKeys.mcp,
   SchedulerCodeKey: codeKeys.scheduler,
@@ -265,6 +318,28 @@ const templateBody = await readFile(
   path.join(repoRoot, "infra/template.yaml"),
   "utf8",
 );
+
+// The native HTML bundle names these assets. Publish before CloudFormation
+// routes its revision; an old browser's immutable chunks stay in the bucket.
+for (const rel of walkFiles(path.join(repoRoot, "apps/web/dist/assets"))) {
+  const ext = path.extname(rel);
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: `elixir-mcp-site-${accountId}`,
+      Key: `assets/${rel}`,
+      Body: await readFile(path.join(repoRoot, "apps/web/dist/assets", rel)),
+      ContentType:
+        ext === ".js"
+          ? "application/javascript"
+          : ext === ".css"
+            ? "text/css"
+            : ext === ".png"
+              ? "image/png"
+              : "application/octet-stream",
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+  );
+}
 
 // 2. Lane (lib/deploy-lane.mjs) -----------------------------------------------
 // The live stack's code keys and template against this build's. A deploy
@@ -373,12 +448,21 @@ if (lane === "platform") {
   // and held in this process only. The template makes CloudFront wait for
   // every door, so they accept the new value before any edge sends it.
   if (args.rotateOriginSecret) {
-    const { Environment } = await lambda.send(
-      new GetFunctionConfigurationCommand({
-        FunctionName: "elixir-mcp-web-api",
+    const { Stacks: rotationStack } = await cfn.send(
+      new DescribeStacksCommand({ StackName: STACK }),
+    );
+    const revisionId = rotationStack[0].Outputs.find(
+      (o) => o.OutputKey === "WebApiWebRevisionId",
+    )?.OutputValue;
+    if (!revisionId)
+      throw new Error("Rotate only after the native migration has deployed");
+    const revision = await new LambdaWebClient({ region: REGION }).send(
+      new GetWebFunctionRevisionCommand({
+        functionName: "elixir-mcp-web-api-web",
+        revisionId,
       }),
     );
-    const vars = Environment?.Variables ?? {};
+    const vars = revision.serviceConfig?.environmentVariables ?? {};
     if (vars.ORIGIN_SECRET_PREVIOUS) {
       console.error(
         "deploy: the last origin rotation has not been cleared; deploy with --param=OriginSecretPrevious= first. The code is uploaded and migrated; the stack is unchanged.",
@@ -452,9 +536,28 @@ const outputs = Object.fromEntries(
   Stacks[0].Outputs.map((o) => [o.OutputKey, o.OutputValue]),
 );
 
+const webRelease = await grantWebEndpoints({
+  web: new LambdaWebClient({ region: REGION, maxAttempts: 1 }),
+  outputs,
+  distributionArn: `arn:aws:cloudfront::${accountId}:distribution/${outputs.SiteDistributionId}`,
+});
+console.error(`web revisions verified: ${JSON.stringify(webRelease)}`);
+
 // 5. First-create migrations (the update path migrated pre-flip) -----------
 if (isCreate) {
   await runMigrations(outputs.MigrateFunctionName);
+}
+
+if (lane === "platform") {
+  const snapshot = await lambda.send(
+    new InvokeCommand({
+      FunctionName: "elixir-mcp-jobs",
+      Payload: JSON.stringify({ public_stats: true }),
+    }),
+  );
+  if (snapshot.FunctionError)
+    throw new Error("Public statistics snapshot failed; inspect the jobs log");
+  console.error("public statistics snapshot published");
 }
 
 // 6. Web --------------------------------------------------------------------

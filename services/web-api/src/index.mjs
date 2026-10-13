@@ -1,3 +1,5 @@
+import { makeAppPages } from "./app-pages.mjs";
+import { makeHttpApp, listen } from "@elixir-mcp/http/server";
 import { modelStorage } from "@elixir-mcp/clan/model-storage.mjs";
 /** Lambda entrypoint: env wiring + outbox mail. The VPC has no route to
  *  SQS or the internet, so mail leaves as an object in the outbox bucket
@@ -44,7 +46,7 @@ function notifyOwner(spec) {
   return enqueueEmail(ownerNotifyMessage(spec));
 }
 
-export const handler = makeHandler({
+const handler = makeHandler({
   clan:
     process.env.CLAN_INTERNAL === "true"
       ? createClanRequest({
@@ -115,3 +117,13 @@ export const handler = makeHandler({
     cardArt: makeCardArt(process.env.SITE_BUCKET),
   }),
 });
+
+listen(
+  makeHttpApp({
+    dispatch: makeAppPages({ dispatch: handler }),
+    timeoutSeconds: 30,
+  }),
+  {
+    close: handler.close,
+  },
+);

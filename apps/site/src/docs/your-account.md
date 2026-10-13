@@ -18,6 +18,10 @@ Clan, the emails and the AI apps you connect all act as the same person. The
 account is an email address, the players you track and a few settings.
 There is no password.
 
+The first Console page includes your current sign-in state. Your browser keeps
+that state fresh as you use the Console. If a page cannot check your session,
+it says Elixir did not answer so you can retry.
+
 ## Create your account
 
 Anyone can create a free ordinary member account at

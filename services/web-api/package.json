@@ -24,6 +24,8 @@
     "pg": "^8.23.1",
     "@elixir-mcp/clan": "0.1.0",
     "@elixir-mcp/clan-state": "0.1.0",
-    "@elixir-mcp/feedback": "0.1.0"
+    "@elixir-mcp/feedback": "0.1.0",
+    "@elixir-mcp/http": "0.1.0",
+    "@elixir-mcp/web": "0.1.0"
   }
 }

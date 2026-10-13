@@ -553,7 +553,10 @@ export async function integrationApi(db, event, body, deps = {}) {
     // A person operation that ran a tool is audited by the invoker.
     toolAudited = false;
   const method =
-    event.requestContext?.http?.method ?? event.httpMethod ?? "GET";
+    event.method ??
+    event.requestContext?.http?.method ??
+    event.httpMethod ??
+    "GET";
   try {
     if (!body || typeof body !== "object" || Array.isArray(body))
       throw new ApiError(400, "invalid_json");

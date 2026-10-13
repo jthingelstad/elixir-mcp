@@ -1,3 +1,4 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import { Icon, stampTime, Tag, TagText, useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
@@ -76,7 +77,7 @@ export function Verify({ refresh, navigate }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [tick, setTick] = useState(0);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useInitialTime();
 
   const load = () => invalidate(keys.verifyList);
   const listErr = listQuery.error ? messageFor(listQuery.error) : "";
@@ -112,7 +113,7 @@ export function Verify({ refresh, navigate }) {
       }
     }, pollEvery);
     return () => clearInterval(id);
-  }, [challengeId, challengeState, pollEvery, refresh, invalidate]);
+  }, [challengeId, challengeState, pollEvery, refresh, invalidate, setNow]);
 
   // A player recorded a moment ago has no collection yet: retry the start
   // until the first profile lands. The start function is reached through

@@ -9,7 +9,8 @@ import { json } from "../http.mjs";
 export function integrationsRoutes({ resolveAccount, logEvent, mintToken }) {
   const authorized = async (db, event) => {
     const a = await resolveAccount(db, event, {
-      requireContractHeader: event.requestContext?.http?.method !== "GET",
+      requireContractHeader:
+        (event.method ?? event.requestContext?.http?.method) !== "GET",
     });
     return a?.isAdmin && a.kind === "person" ? a : null;
   };

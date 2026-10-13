@@ -1,3 +1,4 @@
+import { useInitialTime } from "@elixir-mcp/ui";
 import { FEEDBACK_CATEGORIES } from "@elixir-mcp/contracts";
 import { ago, Icon, Link, LogTable, Markdown, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
@@ -315,7 +316,9 @@ export function FeedbackItem({ id, navigate }) {
  *  line in the message — it used to arrive as ?context=request_id:<id>
  *  and be pasted into the textarea, where nothing could read it back.
  *  ?context= is still honoured: links to it exist. Read once. */
-function prefillFromUrl(search = window.location.search) {
+function prefillFromUrl(
+  search = typeof window === "undefined" ? "" : window.location.search,
+) {
   const q = new URLSearchParams(search);
   const context = q.get("context");
   return {
@@ -473,7 +476,7 @@ export function Feedback({ search } = {}) {
       Boolean(prefill.requestId) ||
       Boolean(prefill.sendId),
   );
-  const [now] = useState(() => Date.now());
+  const [now] = useInitialTime();
   const invalidate = useInvalidate();
   // Sent feedback moves the rail's count too.
   const load = () => {

@@ -4,7 +4,6 @@ import { cp, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { API_THROTTLES } from "../../../infra/scripts/api-throttle-config.mjs";
 import { parseDeployArgs } from "../../../infra/scripts/lib/deploy-args.mjs";
 import { ciGate } from "../../../infra/scripts/lib/ci-gate.mjs";
 import {
@@ -112,7 +111,7 @@ test("SQS visibility outlasts each Lambda timeout by six times", async () => {
     "TimelineSyncFunction",
     "TimelineSyncEventSource",
   );
-  const timeout = Number(/^      Timeout: (\d+)$/m.exec(fn)[1]);
+  const timeout = Number(/^ +(?:Timeout|TimeoutSeconds): (\d+)$/m.exec(fn)[1]);
   assert.ok(timeout >= 3 * 50 + 25 && timeout < 360, `timeout ${timeout}`);
   assert.match(
     template,
@@ -140,7 +139,9 @@ test("the clan's model requests have a queue of their own, one request a relay r
     /Queue: !GetAtt EmailQueue\.Arn\n\s+Filter:\n\s+S3Key: \{ Rules: \[\{ Name: prefix, Value: clan-model\//,
   );
   const relay = resource(template, "EmailRelayFunction", "EmailEventSource");
-  const timeout = Number(/^      Timeout: (\d+)$/m.exec(relay)[1]);
+  const timeout = Number(
+    /^ +(?:Timeout|TimeoutSeconds): (\d+)$/m.exec(relay)[1],
+  );
   const bridge = await readFile(
     new URL("../../../packages/clan/src/model-bridge.mjs", import.meta.url),
     "utf8",
@@ -159,9 +160,6 @@ test("the clan's model requests have a queue of their own, one request a relay r
 test("database-facing Lambda concurrency remains bounded", async () => {
   const template = await readFile(templateUrl, "utf8");
   const expected = [
-    ["WebApiFunction", "CollectorLogGroup", 20],
-    ["CollectorFunction", "McpLogGroup", 10],
-    ["McpFunction", "SchedulerLogGroup", 20],
     ["SchedulerFunction", "SchedulerRule", 1],
     ["MigrateFunction", "JobsLogGroup", 1],
     ["JobsFunction", "EmailClanReportRule", 1],
@@ -194,9 +192,9 @@ test("every database-facing Lambda names its connections and bounds its statemen
   // backends of 42 and 57 minutes, 2026-09-18).
   const template = await readFile(templateUrl, "utf8");
   const functions = [
-    ["WebApiFunction", "CollectorLogGroup", "elixir-mcp-web-api"],
-    ["CollectorFunction", "McpLogGroup", "elixir-mcp-collector"],
-    ["McpFunction", "SchedulerLogGroup", "elixir-mcp-mcp"],
+    ["WebApiWebRevision", "CollectorLogGroup", "elixir-mcp-web-api"],
+    ["CollectorWebRevision", "McpLogGroup", "elixir-mcp-collector"],
+    ["McpWebRevision", "SchedulerLogGroup", "elixir-mcp-mcp"],
     ["SchedulerFunction", "SchedulerRule", "elixir-mcp-scheduler"],
     ["MigrateFunction", "JobsLogGroup", "elixir-mcp-migrate"],
     ["JobsFunction", "EmailClanReportRule", "elixir-mcp-jobs"],
@@ -214,10 +212,10 @@ test("every database-facing Lambda names its connections and bounds its statemen
       new RegExp(`^          PGAPPNAME: ${name}$`, "m"),
       logicalId,
     );
-    const timeoutMatch = /^      Timeout: (\d+)$/m.exec(block);
+    const timeoutMatch = /^ +(?:Timeout|TimeoutSeconds): (\d+)$/m.exec(block);
     const timeouts = timeoutMatch ? [Number(timeoutMatch[1])] : [20, 30];
     if (!timeoutMatch) {
-      assert.equal(logicalId, "WebApiFunction");
+      assert.equal(logicalId, "WebApiWebRevision");
       assert.match(block, /^      Timeout: !If \[HasInternalClan, 30, 20\]$/m);
     }
     const options = /^          PGOPTIONS: "(.+)"$/m.exec(block)?.[1] ?? "";
@@ -263,23 +261,26 @@ test("the collector door is its own function, role and route on the site API (20
   );
   assert.match(role, /elixir-mcp-outbox-\$\{AWS::AccountId\}\/email\/\*\n/);
   assert.match(
-    resource(template, "CollectorFunction", "McpLogGroup"),
-    /Role: !GetAtt CollectorRole\.Arn/,
+    resource(template, "CollectorWebRevision", "McpLogGroup"),
+    /ExecutionRoleArn: !GetAtt CollectorRole\.Arn/,
   );
-  // One API, one CloudFront behaviour: a route with a path beats
-  // $default, and the route waits for the permission it invokes with.
-  const route = resource(template, "CollectorRoute", "CollectorApiPermission");
-  assert.match(route, /DependsOn: CollectorApiPermission/);
-  assert.match(route, /ApiId: !Ref SiteApi/);
-  assert.match(route, /RouteKey: ANY \/api\/collector\/\{proxy\+\}/);
-  assert.match(route, /Target: !Sub integrations\/\$\{CollectorIntegration\}/);
-  const integration = resource(
+  const behaviours = cacheBehaviours(template);
+  const collector = behaviours.find(
+    ([path]) => path === "/api/collector/*",
+  )?.[1];
+  assert.match(collector, /TargetOriginId: collector/);
+  assert.ok(
+    behaviours.findIndex(([p]) => p === "/api/collector/*") <
+      behaviours.findIndex(([p]) => p === "/api/*"),
+  );
+  const endpoint = resource(
     template,
-    "CollectorIntegration",
-    "CollectorRoute",
+    "CollectorWebEndpoint",
+    "CollectorLocalLogGroup",
   );
-  assert.match(integration, /IntegrationUri: !GetAtt CollectorFunction\.Arn/);
-  assert.match(integration, /PayloadFormatVersion: "2\.0"/);
+  assert.match(endpoint, /AuthType: IamAuth/);
+  assert.match(endpoint, /EndpointType: HomeRegion/);
+  assert.match(endpoint, /RevisionId: !GetAtt CollectorWebRevision.RevisionId/);
   // Its ingest failures and its crashes page as the web-api's did.
   const filter = resource(
     template,
@@ -289,12 +290,12 @@ test("the collector door is its own function, role and route on the site API (20
   assert.match(filter, /LogGroupName: !Ref CollectorLogGroup/);
   assert.match(filter, /MetricName: SubmitIngestError\n/);
   const errors = resource(template, "CollectorErrorsAlarm", "McpLatencyAlarm");
-  assert.match(errors, /Value: !Ref CollectorFunction/);
+  assert.match(errors, /Value: elixir-mcp-collector-web/);
   assert.match(errors, /AlarmActions: \[!Ref AlarmTopic\]/);
   // The writer sends If-None-Match before the policy demands it.
   assert.match(
     resource(template, "ArchiveBucketPolicy", "GlueArchiveDatabase"),
-    /DependsOn: CollectorFunction\n/,
+    /DependsOn: CollectorWebFunction\n/,
   );
   // The web-api no longer serves the door (2026-09-29): no payloads/
   // grant on its role, and no ingest filter on its log.
@@ -307,21 +308,6 @@ test("the collector door is its own function, role and route on the site API (20
     template,
     /LogGroupName: !Ref WebApiLogGroup\n\s+FilterPattern: '"submit_ingest_error"'/,
   );
-});
-
-test("API throttles preserve measured production bursts", () => {
-  assert.deepEqual(API_THROTTLES, [
-    {
-      apiName: "elixir-mcp-site-api",
-      rateLimit: 20,
-      burstLimit: 40,
-    },
-    {
-      apiName: "elixir-mcp-mcp-api",
-      rateLimit: 50,
-      burstLimit: 100,
-    },
-  ]);
 });
 
 test("deploy flags: every known flag parses, anything else is refused", () => {
@@ -624,8 +610,13 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (#7
   const expected = [
     // [logical id, next logical id, metric, threshold]
     ["HandledFailureAlarm", "WebApiLatencyAlarm", "HandledFailure", "3"],
-    ["WebApiLatencyAlarm", "CollectorLatencyAlarm", "Duration", "15000"],
-    ["CollectorLatencyAlarm", "DbEbsByteBalanceAlarm", "Duration", "5000"],
+    ["WebApiLatencyAlarm", "CollectorLatencyAlarm", "WebApiDuration", "15000"],
+    [
+      "CollectorLatencyAlarm",
+      "DbEbsByteBalanceAlarm",
+      "CollectorDuration",
+      "5000",
+    ],
     ["DbEbsByteBalanceAlarm", "DbFreeableMemoryAlarm", "EBSByteBalance%", "25"],
     [
       "DbFreeableMemoryAlarm",
@@ -684,9 +675,9 @@ test("the database connections verify the server against the bundled RDS roots (
 test("secrets rotate without a sign-out: previous values and the epoch are wired (#71)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const block = (id, next) => resource(template, id, next);
-  const webApi = block("WebApiFunction", "CollectorLogGroup");
-  const collector = block("CollectorFunction", "McpLogGroup");
-  const mcp = block("McpFunction", "SchedulerLogGroup");
+  const webApi = block("WebApiWebRevision", "CollectorLogGroup");
+  const collector = block("CollectorWebRevision", "McpLogGroup");
+  const mcp = block("McpWebRevision", "SchedulerLogGroup");
   const jobs = block("JobsFunction", "EmailClanReportRule");
   for (const door of [webApi, mcp]) {
     assert.match(
@@ -726,7 +717,7 @@ test("secrets rotate without a sign-out: previous values and the epoch are wired
         template.indexOf("  SiteDistribution:"),
       ),
     ),
-    /DependsOn: \[WebApiFunction, McpFunction, CollectorFunction\]/,
+    /DependsOn: \[WebApiWebEndpoint, McpWebEndpoint, CollectorWebEndpoint\]/,
   );
   for (const key of [
     "OriginSecretPrevious",
@@ -743,6 +734,10 @@ test("a preserved parameter's first deploy takes its default; a rotation carries
   const required = Object.fromEntries(
     [
       "CodeBucket",
+      "WebApiCodeVersion",
+      "McpCodeVersion",
+      "CollectorCodeVersion",
+      "WebBuild",
       "WebApiCodeKey",
       "McpCodeKey",
       "SchedulerCodeKey",
@@ -868,7 +863,9 @@ test("Clan always uses the shared account door and never falls back to the retir
 // it seals. It holds the database password already, and logs no key.
 test("the private sealing secret is limited to the web API, the morning run, the timeline sync and the egress relay", async () => {
   const template = await readFile(templateUrl, "utf8");
-  const functions = [...template.matchAll(/^  (\w+Function):\n/gm)];
+  const functions = [
+    ...template.matchAll(/^  (\w+(?:Function|Revision)):\n/gm),
+  ];
   const consumers = functions
     .filter((entry, index) => {
       const block = template.slice(entry.index, functions[index + 1]?.index);
@@ -876,7 +873,7 @@ test("the private sealing secret is limited to the web API, the morning run, the
     })
     .map((entry) => entry[1]);
   assert.deepEqual(consumers, [
-    "WebApiFunction",
+    "WebApiWebRevision",
     "EmailRelayFunction",
     "TimelineSyncFunction",
     "JobsFunction",
@@ -1100,4 +1097,62 @@ test("Discord posts refused or lost across every webhook page the ops queue, fro
   assert.match(alarm, /Period: 3600/);
   assert.match(alarm, /Threshold: 5/);
   assert.match(alarm, /AlarmActions: \[!Ref AlarmTopic\]/);
+});
+
+test("OAuth form spaces normalize before origin signing without changing literal pluses or repeats", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const template = await readFile(templateUrl, "utf8");
+  const source = resource(template, "OauthQueryNormalizer", "AlarmTopic")
+    .split("FunctionCode: |\n")[1]
+    .split("\n  #")[0];
+  const handler = runInNewContext(`${source}\nhandler`);
+  const request = {
+    querystring: {
+      scope: {
+        value: "openid+players%3Aread",
+        multiValue: [
+          { value: "openid+players%3Aread" },
+          { value: "literal%2Bplus" },
+        ],
+      },
+      state: { value: "a%2Bb+c" },
+    },
+  };
+  assert.equal(handler({ request }), request);
+  assert.equal(request.querystring.scope.value, "openid%20players%3Aread");
+  assert.deepEqual(
+    request.querystring.scope.multiValue.map((p) => p.value),
+    ["openid%20players%3Aread", "literal%2Bplus"],
+  );
+  assert.equal(request.querystring.state.value, "a%2Bb%20c");
+  assert.match(
+    template,
+    /OriginRequestPolicyId: !Ref OauthAuthorizeOriginRequestPolicy\n\s+FunctionAssociations:/,
+  );
+});
+
+test("native doors cap the private database pools and pin IAM HomeRegion revisions", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  for (const [door, next, pool] of [
+    ["WebApi", "CollectorLogGroup", 4],
+    ["Collector", "McpLogGroup", 2],
+    ["Mcp", "SchedulerLogGroup", 4],
+  ]) {
+    const native = resource(template, `${door}WebFunction`, next);
+    assert.match(
+      native,
+      /EgressNetworkConnectorArn: !GetAtt WebNetworkConnector.LatestVersionArn/,
+    );
+    assert.match(native, new RegExp(`DB_POOL_MAX: "${pool}"`));
+    assert.match(native, /EndpointType: HomeRegion/);
+    assert.match(native, /AuthType: IamAuth/);
+    assert.match(
+      native,
+      new RegExp(`RevisionId: !GetAtt ${door}WebRevision.RevisionId`),
+    );
+    assert.match(native, /MaxEnvironments: 2/);
+    assert.match(native, /RateLimit: 100/);
+  }
+  assert.match(template, /SigningBehavior: always-amz-auth/);
+  assert.match(template, /Headers: \[Authorization\]/);
 });
