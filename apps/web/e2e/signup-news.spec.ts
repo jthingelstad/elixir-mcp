@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
+import {
+  ME,
+  SIGNED_OUT,
+  TURNSTILE_TOKEN,
+  mockApi,
+  signedIn,
+} from "./fixtures.ts";
 
 // The browser's zone rides every signup request: a new account opens on
 // it (Jamie, 2026-10-08), so the journey runs on a named clock.
@@ -66,7 +72,9 @@ for (const width of [390, 1280]) {
         "Mail request interrupted.",
       );
       await page.reload();
-      expect(await choice.isChecked()).toBe(news);
+      // Retried: a one-shot read could run before the reloaded form reads
+      // its draft back.
+      await expect(choice).toBeChecked({ checked: news });
       fail = false;
       await page
         .getByLabel("Email", { exact: true })
@@ -80,6 +88,7 @@ for (const width of [390, 1280]) {
           email: "fixture@example.com",
           newsletter_opt_in: news,
           timezone: "America/Chicago",
+          turnstile_token: TURNSTILE_TOKEN,
         }),
       );
       await page.getByLabel("6-digit code").fill("123456");
