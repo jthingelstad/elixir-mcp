@@ -118,8 +118,16 @@ async function siteverify(fetchImpl, secret, token) {
     const codes = Array.isArray(data?.["error-codes"])
       ? data["error-codes"].map(String).slice(0, 5)
       : [];
-    // A rejected secret is ours to fix, never the visitor's failure.
-    if (!data?.success && codes.some((c) => c.includes("secret")))
+    // A rejected secret or a malformed request is ours to fix, and
+    // Cloudflare's own internal error is retryable: none is the
+    // visitor's failure, so none refuses mail or is kept.
+    if (
+      !data?.success &&
+      codes.some(
+        (c) =>
+          c.includes("secret") || c === "bad-request" || c === "internal-error",
+      )
+    )
       return { result: "error", codes };
     return {
       result: data?.success ? "pass" : "fail",
