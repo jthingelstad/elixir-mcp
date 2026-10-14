@@ -412,6 +412,68 @@ every command, probe and diff listed so anyone can re-verify it.
   gate that should have held. Findings about the shared AWS account or
   the host (IAM, backups, DNS) belong to projects-sysadmin.
 
+### Sign-in Turnstile
+
+Both sign-in doors take a Cloudflare Turnstile token and the email relay
+verifies it (docs/EMAIL.md, "Turnstile on sign-in mail"). The mode is
+the `TurnstileMode` stack parameter: `observe` (the default) records and
+refuses nothing; `enforce` refuses a missing token at the door and a
+failed one at the relay; `off` skips it. Until `turnstile_secret_key`
+is in the app secret (docs/SECRETS.md) every check is `unconfigured`.
+
+The evidence for enforce is the relay's `turnstile_checked` line, one
+per sign-in mail, in `/aws/lambda/elixir-mcp-email-relay` (Logs
+Insights, a week at a time):
+
+    filter @message like /"auth":"turnstile_checked"/
+    | parse @message '"surface":"*"' as surface
+    | parse @message '"result":"*"' as result
+    | stats count(*) as mails by surface, result
+
+`surface` is the door (`web` the website, `oauth` the MCP connector's
+page); `result` is `pass`, `fail` (Cloudflare said no, or a token was
+presented for another address or a fourth send), `missing` (the page
+sent none: a script, or Cloudflare's script could not load), `error`
+(Cloudflare could not be asked, or refused the secret), `unconfigured`
+or `off`. `reused: true` is a resend that rode a kept verdict. Why a
+check failed is in `codes`:
+
+    filter @message like /"auth":"turnstile_checked"/ and @message like /"result":"fail"/
+    | parse @message '"codes":[*]' as codes
+    | stats count(*) by codes
+
+Who was mailed by what (`email` is the address's 8-character
+fingerprint, never the address): a bombing shows as one fingerprint
+with many `missing` or `fail` mails.
+
+    filter @message like /"auth":"turnstile_checked"/
+    | parse @message '"email":"*"' as email
+    | parse @message '"result":"*"' as result
+    | stats count(*) as mails by email, result
+    | sort mails desc
+    | limit 20
+
+The doors log the same requests as `signin_code_issued` (web, in
+`/aws/lambda/web/elixir-mcp-web-api-web`) and `oauth_code_issued` (in
+`/aws/lambda/web/elixir-mcp-mcp-web`), each with `turnstile` `token`,
+`missing` or `off`; their lines are wrapped, so parse `message`:
+
+    filter message like /_code_issued/
+    | parse message '"auth":"*"' as door
+    | parse message '"turnstile":"*"' as turnstile
+    | stats count(*) by door, turnstile
+
+Enforce is ready when real people's mail is `pass` (a `missing` share
+near zero outside an attack, `fail` only on fingerprints that were being
+bombed) for a week or two. Before flipping it, weigh what enforce costs:
+a person whose browser cannot load Cloudflare's script, or a Cloudflare
+script outage, is refused at the door with a "reload and try again"
+message. A `fail` is dropped at the relay without a word to the page,
+which still says to check your email. Flip it with
+`--param=TurnstileMode=enforce` on a deploy, and back with
+`--param=TurnstileMode=observe`; `turnstile_refused` lines at the doors
+count the refusals.
+
 ## Incident authority
 
 Three write ops exist for a failing door or pipeline. They are bounded

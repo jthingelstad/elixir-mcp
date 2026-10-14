@@ -156,6 +156,11 @@ export interface EmailMessage {
   /** Newsletter enrollment only: the trusted CloudFront viewer IP,
    *  without its port. Absent for imports and mail with no viewer. */
   ip_address?: string;
+  /** login only: the page's Cloudflare Turnstile token and which door
+   *  asked (2026-10-14). The relay verifies it before it sends; the
+   *  token may be empty (the page sent none). Absent on mail queued
+   *  before it, and when the mode is off. */
+  turnstile?: { surface: "web" | "oauth"; token: string };
   /** bulk kinds only: where one click unsubscribes this recipient. The
    *  relay turns it into List-Unsubscribe + List-Unsubscribe-Post (RFC
    *  8058). Refused on a transactional kind, required on a bulk one. */
@@ -248,6 +253,18 @@ export function validateEmailMessage(
   }
   if (m.kind === "login" && typeof m.code !== "string")
     errors.push("code:missing");
+  if (m.turnstile !== undefined) {
+    const t = m.turnstile;
+    if (m.kind !== "login") errors.push("turnstile:not-login");
+    else if (
+      typeof t !== "object" ||
+      t === null ||
+      !["web", "oauth"].includes(t.surface) ||
+      typeof t.token !== "string" ||
+      t.token.length > 2048
+    )
+      errors.push("turnstile:invalid");
+  }
   // A product kind arrives rendered: no subject or text means the
   // composer failed upstream, and a relay that filled one in would be
   // composing after all.

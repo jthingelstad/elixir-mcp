@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { consumeLoginToken } from "../url-hygiene.js";
 import { CONSOLE } from "../lib/console.js";
+import { useTurnstile } from "../turnstile.js";
 
 /** One email door for sign-in and public member signup. Email verification
  * opens a new account; collector admission and recording quotas are separate.
@@ -38,6 +39,10 @@ const primary = {
 // A form draft, never an account preference. Keep an unchecked choice through
 // an interrupted request/reload; the server freezes it in each emailed proof.
 const PRODUCT_NEWS_DRAFT = "elixir.signup_product_news";
+// The server's words for a send refused for want of a Turnstile token
+// (TURNSTILE_REFUSED_MESSAGE in packages/auth).
+const TURNSTILE_REFUSED =
+  "Elixir could not confirm a person asked for this email. Reload the page and try again.";
 /** `newAccount` is the server's word that this proof opened the account
  *  ({ player_tag } or null otherwise): App lands a new person on it. */
 function finishSignIn(onAuthed, newAccount = null) {
@@ -85,6 +90,12 @@ export function SignIn({
   }, []);
   // email | code | redeeming | expired | pending | handoff
   const [step, setStep] = useState("email");
+  // Asks Cloudflare whether a person is sending the email (turnstile.js).
+  const {
+    slot: turnstileSlot,
+    warm: warmTurnstile,
+    tokenFor: turnstileToken,
+  } = useTurnstile();
   const submitting = useRef(false);
   // The signup form: `?signup` (and the retired `?request`), or "New
   // here?" from plain sign-in. Only it asks for a player tag.
@@ -186,6 +197,7 @@ export function SignIn({
       productNews,
       browserZone(),
       creating ? playerTag : "",
+      await turnstileToken(email),
     );
     submitting.current = false;
     setBusy(false);
@@ -193,13 +205,15 @@ export function SignIn({
       setError(
         res.data?.error === "invalid_tag"
           ? "That doesn't look like a player tag. Check it, or leave it empty and add your player after signing in."
-          : res.data?.error === "bad_request"
-            ? "Enter a valid email address."
-            : writeErrorText({
-                status: res.status,
-                transport: res.error,
-                data: res.data,
-              }),
+          : res.data?.error === "turnstile_failed"
+            ? TURNSTILE_REFUSED
+            : res.data?.error === "bad_request"
+              ? "Enter a valid email address."
+              : writeErrorText({
+                  status: res.status,
+                  transport: res.error,
+                  data: res.data,
+                }),
       );
       return;
     }
@@ -470,6 +484,7 @@ export function SignIn({
             Send another email
           </button>
         </div>
+        <div ref={turnstileSlot} />
         <p className="footnote mt-3.5 mb-0">
           The code allows five attempts. After that, request another email.
         </p>
@@ -506,6 +521,8 @@ export function SignIn({
           autoFocus
           placeholder="you@example.com"
           value={email}
+          onFocus={warmTurnstile}
+          onInput={warmTurnstile}
           onChange={(e) => setEmail(e.target.value)}
           style={field}
         />
@@ -563,6 +580,7 @@ export function SignIn({
             {error}
           </p>
         )}
+        <div ref={turnstileSlot} />
         <button
           className="btn btn--primary"
           type="submit"

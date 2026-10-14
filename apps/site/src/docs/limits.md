@@ -41,6 +41,7 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | OAuth client registration | `POST /oauth/register` | `dcr#<ip>`, `dcr#global` | 20 per hour per address; 5,000 per day in total | HTTP 429 `{"error":"temporarily_unavailable"}` |
 | Sign-in emails (OAuth) | `/oauth/authorize` step one | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email; both shared with the console's sign-in | the page says the limit was reached; no mail is sent |
 | Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email; both shared with the OAuth sign-in | HTTP 200 with `limited: true` and a message saying the limit was reached; no mail is sent |
+| Sign-in email check | both sign-in emails above, by their page's Cloudflare Turnstile token | per token | one token serves one email address for five minutes and three emails | none yet: the check is recorded and every email is sent |
 | Sign-in code attempts | code verification | per pending code | 5, then the code is dead | HTTP 400 `{"error":"invalid_or_expired","reason":"attempts_exhausted"}` (console); the OAuth page says "Too many attempts on that code" |
 | Legacy access requests | `POST /api/request-access` | `reqaccess#<ip>` | 5 per hour | HTTP 429 `{"error":"rate_limited"}` |
 | Verification starts | `POST /api/me/verify` | `verify#<account>`, `verify-tag#<tag>` | 5 per hour per account; 5 per hour per tag | HTTP 429 `{"error":"rate_limited","message":"At most 5 verification starts an hour."}` |

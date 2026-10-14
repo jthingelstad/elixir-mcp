@@ -138,6 +138,9 @@ test("a double submission while delivery is pending sends one email request", as
   const form = screen.getByLabelText("Email").closest("form");
   fireEvent.submit(form);
   fireEvent.submit(form);
+  // The send first waits for the page's Turnstile token.
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+  fireEvent.submit(form);
   expect(global.fetch).toHaveBeenCalledTimes(1);
   finish({
     ok: true,
@@ -219,6 +222,8 @@ test("an unchecked new-account choice survives interruption, remount and resend;
       email: "fixture@example.com",
       newsletter_opt_in: false,
       ...(zone ? { timezone: zone } : {}),
+      // One page token serves the resend (test/setup-turnstile.js).
+      turnstile_token: "test-turnstile-token",
     }),
   );
   fireEvent.change(screen.getByLabelText("6-digit code"), {

@@ -74,7 +74,7 @@ const handler = makeHandler({
   // Unsubscribe links' own key, once the app secret carries it; until
   // then they are signed with the session secret (packages/mail).
   unsubscribeSecret: process.env.UNSUBSCRIBE_SECRET || null,
-  sendLoginEmail: ({ email, code, token, newsletter, ipAddress }) =>
+  sendLoginEmail: ({ email, code, token, newsletter, ipAddress, turnstile }) =>
     enqueueEmail({
       v: 1,
       kind: "login",
@@ -83,6 +83,8 @@ const handler = makeHandler({
       token,
       newsletter,
       ...(newsletter && ipAddress ? { ip_address: ipAddress } : {}),
+      // The page's token, for the relay to verify (auth turnstile.mjs).
+      ...(turnstile ? { turnstile } : {}),
     }),
   // The template has existed since the gate shipped and nothing ever
   // queued it; approval mailed the owner instead.

@@ -42,7 +42,7 @@ Parameters:
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
-    Description: Secrets Manager secret with db_password, session_secret, buttondown_api_token, clan_sealing_secret when ClanInternal is true, and optionally unsubscribe_secret and session_secret_previous (URL-safe values; docs/SECRETS.md)
+    Description: Secrets Manager secret with db_password, session_secret, buttondown_api_token, clan_sealing_secret when ClanInternal is true, and optionally unsubscribe_secret, session_secret_previous and turnstile_secret_key (URL-safe values; docs/SECRETS.md)
   SiteCertificateArn:
     Type: String
     Default: ""
@@ -101,6 +101,23 @@ Parameters:
       Set to true once the app secret carries unsubscribe_secret; mail
       then signs unsubscribe links with it instead of the session secret
       (docs/SECRETS.md).
+  TurnstileKeyInSecret:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      Set to true once the app secret carries turnstile_secret_key (the
+      Elixir sign-in widget's secret); until then the relay records every
+      sign-in mail's Turnstile check as unconfigured and sends it
+      (docs/SECRETS.md).
+  TurnstileMode:
+    Type: String
+    Default: observe
+    AllowedValues: ["off", observe, enforce]
+    Description: >-
+      Cloudflare Turnstile on sign-in mail (packages/auth turnstile.mjs).
+      observe checks and records and refuses nobody; enforce refuses a
+      missing token at the door and a failed one at the relay.
   SecretEpoch:
     Type: String
     Default: "0"
@@ -123,6 +140,7 @@ Conditions:
   HasOriginSecretPrevious: !Not [!Equals [!Ref OriginSecretPrevious, ""]]
   HasSessionSecretPrevious: !Equals [!Ref SessionSecretPreviousInSecret, "true"]
   HasUnsubscribeKey: !Equals [!Ref UnsubscribeKeyInSecret, "true"]
+  HasTurnstileKey: !Equals [!Ref TurnstileKeyInSecret, "true"]
   TickIsOneMinute: !Equals [!Ref SchedulerTickMinutes, 1]
 
 Resources:
@@ -1085,6 +1103,21 @@ Resources:
               - Effect: Allow
                 Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
                 Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/mail-delivery/collector-upgrade/*
+              # Turnstile verdicts kept per token for five minutes and three
+              # sends (2026-10-14); the bucket's lifecycle expires them. A
+              # missing verdict's GET is a 403, so an exact-key, one-result
+              # list proves the absence.
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/mail-delivery/turnstile/*
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
+                Condition:
+                  StringLike:
+                    s3:prefix: mail-delivery/turnstile/*
+                  NumericLessThanEquals:
+                    s3:max-keys: "1"
               - !If
                 - HasInternalClan
                 - Effect: Allow
@@ -1359,6 +1392,8 @@ Resources:
             - !Ref OriginSecretPrevious
             - !Ref AWS::NoValue
           OWNER_NOTIFY_EMAIL: jamie@thingelstad.com
+          # Under enforce the door refuses a sign-in with no Turnstile token.
+          TURNSTILE_MODE: !Ref TurnstileMode
           CLAN_INTERNAL: !Ref ClanInternal
           CLAN_MODEL_SECRET:
             !If [
@@ -1540,6 +1575,9 @@ Resources:
             - HasSessionSecretPrevious
             - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:session_secret_previous}}"
             - !Ref AWS::NoValue
+          # Under enforce the email step refuses a request with no
+          # Turnstile token.
+          TURNSTILE_MODE: !Ref TurnstileMode
 
           AWS_LAMBDA_NODEJS_ENTRYPOINT: index.mjs
           DB_POOL_MAX: "4"
@@ -1644,6 +1682,13 @@ Resources:
           SECRET_EPOCH: !Ref SecretEpoch
           OUTBOX_BUCKET: !Ref OutboxBucket
           DISCORD_MAX_RECEIVES: "20"
+          # Sign-in mail's Turnstile check (2026-10-14). Only the relay
+          # holds the secret: it alone can reach Cloudflare.
+          TURNSTILE_MODE: !Ref TurnstileMode
+          TURNSTILE_SECRET_KEY: !If
+            - HasTurnstileKey
+            - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:turnstile_secret_key}}"
+            - !Ref AWS::NoValue
           CLAN_MODEL_SECRET:
             !If [
               HasInternalClan,
@@ -2481,7 +2526,8 @@ Resources:
               object-src 'none';
               frame-ancestors 'none';
               form-action 'self';
-              script-src 'self' https://tinylytics.app;
+              script-src 'self' https://tinylytics.app https://challenges.cloudflare.com;
+              frame-src https://challenges.cloudflare.com;
               connect-src 'self' https://tinylytics.app;
               img-src 'self' data: https://tinylytics.app https://tile.openstreetmap.org;
               font-src 'self';

@@ -56,10 +56,14 @@ export function makeHandler({
   /** The Discord lanes' maxReceiveCount: the receive that reaches it is
    *  the last, and its worker records what it could not deliver. */
   discordMaxReceives = 5,
+  /** Turnstile's check for a login that carries a page's token
+   *  (turnstile.mjs). Without it a login is sent unchecked. */
+  turnstile = null,
 }) {
   /** One message: "sent" (or dropped by design) or "bad_message"; a
-   *  transport failure throws so the record retries. */
-  async function deliver(parsed) {
+   *  transport failure throws so the record retries. `use` names the
+   *  outbox object, so a retry of it is one Turnstile use, not two. */
+  async function deliver(parsed, { use = null } = {}) {
     if (isRetiredEmailKind(String(parsed?.kind ?? ""))) {
       console.log("mail_retired", parsed.kind);
       return "sent";
@@ -100,6 +104,21 @@ export function makeHandler({
       return "sent";
     }
     if (!validated.ok) return "bad_message";
+    // Turnstile (2026-10-14): a login carrying its page's token is checked
+    // before it leaves. Only enforce drops one, and only a failed or
+    // missing token; the check logs its result either way.
+    if (
+      validated.msg.kind === "login" &&
+      validated.msg.turnstile &&
+      turnstile
+    ) {
+      const verdict = await turnstile({
+        ...validated.msg.turnstile,
+        to: validated.msg.to,
+        use,
+      });
+      if (!verdict.allowed) return "sent";
+    }
     const { subject, text, html } = renderEmail(validated.msg);
     // The mail policy's other half: a bulk kind (none exist yet) gets its
     // one-click headers here; a transactional kind gets none. The
@@ -203,7 +222,7 @@ export function makeHandler({
       }
       const text = await readObject(obj);
       if (text === null) continue;
-      const outcome = await deliver(JSON.parse(text));
+      const outcome = await deliver(JSON.parse(text), { use: obj.key });
       if (outcome !== "sent") return outcome;
       try {
         await deleteObject(obj);

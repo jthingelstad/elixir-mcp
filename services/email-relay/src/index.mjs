@@ -29,6 +29,7 @@ import { SQSClient, ChangeMessageVisibilityCommand } from "@aws-sdk/client-sqs";
 import { upgradeDeliveryStore } from "./upgrade-delivery.mjs";
 import { makeSesSender } from "./ses.mjs";
 import { makeHandler, queueUrlOf } from "./handler.mjs";
+import { makeTurnstileCheck, turnstileVerdictStore } from "./turnstile.mjs";
 
 /** Buttondown answers 400 for both "you already have this address" and
  *  "this request is wrong". Treating the whole status as success (as we
@@ -193,6 +194,14 @@ export const handler = makeHandler({
   },
   deleteObject: ({ bucket, key }) =>
     s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })),
+  // Sign-in mail's Turnstile check. Without the secret (TurnstileKeyInSecret
+  // false) every check is "unconfigured" and the mail goes.
+  turnstile: makeTurnstileCheck({
+    secret: process.env.TURNSTILE_SECRET_KEY || null,
+    store: process.env.OUTBOX_BUCKET
+      ? turnstileVerdictStore(process.env.OUTBOX_BUCKET, s3)
+      : null,
+  }),
   enroll: makeButtondownEnroller({
     token: process.env.BUTTONDOWN_API_TOKEN,
     newsletterId: process.env.BUTTONDOWN_NEWSLETTER_ID || null,

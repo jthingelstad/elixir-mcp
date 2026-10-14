@@ -30,6 +30,7 @@
  * blocks the consent redirect in Chromium (librarian's shipped trap).
  */
 
+import { createHash } from "node:crypto";
 import {
   emailHash,
   approvedAccount,
@@ -73,6 +74,10 @@ import {
   sessionCookie,
   sessionSeenFrom,
   ABSOLUTE_CAP_DAYS,
+  turnstileAtDoor,
+  TURNSTILE_ORIGIN,
+  TURNSTILE_REFUSED_MESSAGE,
+  TURNSTILE_SITE_KEY,
 } from "@elixir-mcp/auth";
 import {
   OAUTH_SCOPE,
@@ -177,6 +182,71 @@ const json = (statusCode, body, headers = {}) => ({
 const html = (statusCode, body) => ({
   statusCode,
   headers: HTML_HEADERS,
+  body,
+});
+
+/**
+ * Turnstile on the email step (2026-10-14, auth turnstile.mjs). The page
+ * works without script; this one inline script, allowed by its hash and
+ * nothing else, loads Cloudflare's only once the address field is
+ * focused or typed in (it has autofocus, so in practice on arrival here,
+ * and never on any other door page). The widget shows itself only when
+ * Cloudflare wants a click, and puts its token in the form as
+ * `cf-turnstile-response`. Sending waits for the token a few seconds (as
+ * long as a shown challenge needs); a script that cannot load, or an
+ * error, sends without one and the relay records it as missing.
+ */
+const TURNSTILE_SCRIPT = `(function(){
+var f=document.getElementById("signin-email-form");
+var e=f&&f.elements.email;
+var slot=document.getElementById("turnstile-slot");
+if(!f||!e||!slot)return;
+var state="idle",token="",shown=false,held=false;
+function load(){
+if(state!=="idle")return;
+state="loading";
+window.elixirTurnstileLoaded=function(){
+if(!window.turnstile){state="failed";return;}
+try{window.turnstile.render(slot,{sitekey:"${TURNSTILE_SITE_KEY}",action:"oauth-signin",appearance:"interaction-only","refresh-expired":"auto",
+callback:function(t){token=t;shown=false;state="ready";},
+"expired-callback":function(){token="";},
+"before-interactive-callback":function(){shown=true;},
+"error-callback":function(){token="";state="failed";}});}catch(x){state="failed";}
+};
+var s=document.createElement("script");
+s.src="${TURNSTILE_ORIGIN}/turnstile/v0/api.js?render=explicit&onload=elixirTurnstileLoaded";
+s.async=true;
+s.onerror=function(){state="failed";};
+document.head.appendChild(s);
+}
+e.addEventListener("focus",load);
+e.addEventListener("input",load);
+if(document.activeElement===e)load();
+f.addEventListener("submit",function(ev){
+if(held){ev.preventDefault();return;}
+if(token||state==="idle"||state==="failed")return;
+ev.preventDefault();
+held=true;
+var started=Date.now();
+(function wait(){
+if(token||state==="failed"||Date.now()-started>=(shown?120000:5000))return f.submit();
+setTimeout(wait,250);
+})();
+});
+})();`;
+const TURNSTILE_SCRIPT_HASH = createHash("sha256")
+  .update(TURNSTILE_SCRIPT)
+  .digest("base64");
+
+/** The email step's headers: the door's CSP, plus that one script and
+ *  Cloudflare's script and challenge frame. */
+const EMAIL_STEP_HEADERS = {
+  ...HTML_HEADERS,
+  "content-security-policy": `${HTML_HEADERS["content-security-policy"]}; script-src 'sha256-${TURNSTILE_SCRIPT_HASH}' ${TURNSTILE_ORIGIN}; frame-src ${TURNSTILE_ORIGIN}`,
+};
+const emailStepHtml = (statusCode, body) => ({
+  statusCode,
+  headers: EMAIL_STEP_HEADERS,
   body,
 });
 
@@ -511,12 +581,14 @@ export function makeOauthRoutes({
        ${lead}
        ${clientBlock(v)}
        <p>Enter your email to sign in to Elixir, or to create your free Elixir account if you don&rsquo;t have one. We&rsquo;ll send a 6-digit code.</p>
-       <form method="post" action="/oauth/authorize">
+       <form method="post" action="/oauth/authorize" id="signin-email-form">
          <input type="hidden" name="step" value="email">${hiddenAuthFields(q)}
          <input type="email" name="email" placeholder="you@example.com" required autofocus>
          ${productNewsBox}
+         <div id="turnstile-slot"></div>
          <button>Send code</button>
-       </form>`,
+       </form>
+       <script>${TURNSTILE_SCRIPT}</script>`,
     );
 
   /**
@@ -807,7 +879,7 @@ export function makeOauthRoutes({
         });
         return html(200, sessionConsentPage(v, q, me));
       }
-      return html(200, emailStepPage(q, v));
+      return emailStepHtml(200, emailStepPage(q, v));
     },
 
     async authorizePost(db, event) {
@@ -828,7 +900,7 @@ export function makeOauthRoutes({
         // so a session here is a same-site consent from our own page.
         const me = await signedIn(db, event);
         if (!me)
-          return html(
+          return emailStepHtml(
             200,
             emailStepPage(
               form,
@@ -859,7 +931,7 @@ export function makeOauthRoutes({
       if (form.step === "email") {
         const email = signinAddress(form.email);
         if (!email)
-          return html(
+          return emailStepHtml(
             400,
             emailStepPage(
               form,
@@ -868,6 +940,21 @@ export function makeOauthRoutes({
             ),
           );
         const hash = emailHash(email);
+        // Turnstile (2026-10-14): the token rides the login message to the
+        // relay, which asks Cloudflare. Only a missing token under enforce
+        // is refused here, before either ceiling counts it.
+        const turnstile = turnstileAtDoor(form, "oauth");
+        if (turnstile.refuse) {
+          authLog("turnstile_refused", {
+            email: emailRef(hash),
+            door: "oauth",
+            turnstile: turnstile.seen,
+          });
+          return emailStepHtml(
+            403,
+            emailStepPage(form, v, `<p>${esc(TURNSTILE_REFUSED_MESSAGE)}</p>`),
+          );
+        }
         // The website's signup guards, shared with it: one ceiling per
         // caller and one per address, whichever door asked, because both
         // doors now open accounts.
@@ -880,6 +967,7 @@ export function makeOauthRoutes({
             email: emailRef(hash),
             by: okIp ? "address" : "ip",
             door: "oauth",
+            turnstile: turnstile.seen,
           });
           return html(
             200,
@@ -898,6 +986,7 @@ export function makeOauthRoutes({
         if (account) {
           authLog("oauth_code_issued", {
             email: emailRef(hash),
+            turnstile: turnstile.seen,
             request: requestRef(v.codeChallenge),
             client: v.client.clientName,
             resource: v.resource,
@@ -926,6 +1015,7 @@ export function makeOauthRoutes({
             ipAddress: viewerIp(event),
             purpose: "oauth",
             clientName: v.client.clientName,
+            turnstile: turnstile.carry,
             // Existing accounts keep their saved choice; a new account's
             // box is applied after proof, on the welcome send.
             newsletter:
