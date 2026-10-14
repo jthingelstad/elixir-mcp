@@ -14,11 +14,11 @@
     "@elixir-mcp/design": "*",
     "@elixir-mcp/tools": "*",
     "@elixir-mcp/ui": "*",
-    "marked": "^18.0.14"
+    "marked": "^18.1.0"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
-    "jsdom": "^30.1.1",
-    "lucide-static": "^1.51.0"
+    "jsdom": "^30.1.2",
+    "lucide-static": "^1.55.0"
   }
 }
