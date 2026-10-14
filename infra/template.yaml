@@ -2449,8 +2449,7 @@ Resources:
   # inline script, and tightening it means refactoring markup rather
   # than changing a header. Recorded as a deliberate trade.
   #
-  # img-src needs Supercell's asset CDN: collector avatars are the
-  # cards' own iconUrls, served straight from api-assets.clashroyale.com.
+  # Card art, including collector avatars, uses Elixir's own mirror.
   # Elixir Clan, served here under /clan, draws its map from OpenStreetMap
   # tiles.
   # Fonts are self-hosted under /assets/fonts/ (no font CDN, so no
@@ -2484,7 +2483,7 @@ Resources:
               form-action 'self';
               script-src 'self' https://tinylytics.app;
               connect-src 'self' https://tinylytics.app;
-              img-src 'self' data: https://api-assets.clashroyale.com https://tinylytics.app https://tile.openstreetmap.org;
+              img-src 'self' data: https://tinylytics.app https://tile.openstreetmap.org;
               font-src 'self';
               style-src 'self' 'unsafe-inline'
           ContentTypeOptions:

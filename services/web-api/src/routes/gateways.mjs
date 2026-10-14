@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 import {
   ensureGatewayCards,
   gatewayCardCatalog,
+  gatewayCardIcon,
+  gatewayCardView,
   isCardTakenError,
   resolveGatewayCard,
 } from "@elixir-mcp/record/gateway-cards";
@@ -34,10 +36,12 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       if (!account) return json(401, { error: "unauthenticated" });
       await ensureGatewayCards(db);
       const { rows } = await db.query(
-        `select gateway_id, status, card_name, card_icon,
-                (owner_account_id = $1) as mine
-         from gateway where status <> 'revoked'
-         order by enrolled_at`,
+        `select g.gateway_id, g.status, g.card_name, avatar.card_id, avatar.icon_medium,
+                (g.owner_account_id = $1) as mine
+         from gateway g
+         left join card avatar on avatar.name = g.card_name and avatar.kind = 'card'
+         where g.status <> 'revoked'
+         order by g.enrolled_at`,
         [account.accountId],
       );
       // Card-derived identity (Jamie, 2026-09-06): the CARD is the
@@ -54,7 +58,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
           name: g.card_name ?? "Collector",
           status: g.status,
           card: g.card_name,
-          card_icon: g.card_icon,
+          card_icon: gatewayCardIcon(g),
           mine: g.mine === true,
         })),
       });
@@ -139,7 +143,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       // UI links straight there (Jamie 2026-09-06: the silent refresh
       // read as "it does nothing").
       const { rows } = await db.query(
-        `select g.gateway_id, g.name, g.card_name, g.card_icon, g.status, g.channel,
+        `select g.gateway_id, g.name, g.card_name, avatar.card_id, avatar.icon_medium, g.status, g.channel,
                 g.owner_account_id, g.static_ip, g.key_source,
                 g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
                 g.last_seen_sha,
@@ -176,6 +180,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
                      and rl.window_start = to_timestamp(floor(extract(epoch from now()) / 3600) * 3600)
                  ) as door_calls_hour
          from gateway g
+         left join card avatar on avatar.name = g.card_name and avatar.kind = 'card'
          left join account a on a.account_id = g.owner_account_id
          left join lateral (
            select p.name, p.player_tag
@@ -189,7 +194,7 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       );
       return json(200, {
         gateways: rows.map(({ release_signed, ...g }) => ({
-          ...g,
+          ...gatewayCardView(g),
           signature: signatureState({ ...g, release_signed }),
         })),
       });
@@ -393,18 +398,20 @@ export function gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }) {
       await ensureGatewayCards(db);
       const { rows } = await db.query(
         `select g.gateway_id, g.name, g.status, g.channel, g.enrolled_at, g.last_heartbeat_at, g.last_success_at,
-                g.card_name, g.card_icon,
+                g.card_name, avatar.card_id, avatar.icon_medium,
                 (g.provision_env is not null
                  and g.provision_expires_at > now()) as provision_ready,
                 (select count(*)::int from api_receipt ar
                  where ar.gateway_id = g.gateway_id
                    and ar.fetched_at > now() - interval '24 hours') as fetches_24h
-         from gateway g where g.owner_account_id = $1 order by g.enrolled_at`,
+         from gateway g
+         left join card avatar on avatar.name = g.card_name and avatar.kind = 'card'
+         where g.owner_account_id = $1 order by g.enrolled_at`,
         [account.accountId],
       );
       // Points and credits retired with the points economy (#539): a
       // collector earns its operator the Family tier while it is active.
-      return json(200, { gateways: rows });
+      return json(200, { gateways: rows.map(gatewayCardView) });
     },
 
     "POST /api/admin/gateways": async (db, event, body) => {

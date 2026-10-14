@@ -1252,3 +1252,9 @@ test("native doors cap the private database pools and pin IAM HomeRegion revisio
   assert.match(template, /SigningBehavior: always-amz-auth/);
   assert.match(template, /Headers: \[Authorization\]/);
 });
+
+// The card mirror is the browser boundary, including Verify and collector art.
+test("the image policy cannot hotlink Supercell card art", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  assert.ok(!template.includes("https://api-assets.clashroyale.com"));
+});

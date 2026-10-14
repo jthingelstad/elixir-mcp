@@ -3194,6 +3194,10 @@ test("an operator picks their collector's card; a card is one live collector's",
   );
   const byName = Object.fromEntries(catalog.cards.map((c) => [c.name, c]));
   assert.equal(byName["Mega Knight"].taken, true);
+  assert.equal(
+    byName["Mega Knight"].icon,
+    "https://elixir.poapkings.com/assets/cards/26000063.png",
+  );
   assert.ok(!byName["Tower Princess"], "support cards are not pickable");
   const free = catalog.cards.filter((c) => !c.taken).map((c) => c.name);
   assert.ok(free.length >= 3, `enough free cards to pick from: ${free}`);
@@ -3245,6 +3249,46 @@ test("an operator picks their collector's card; a card is one live collector's",
   const g = mine.gateways.find((x) => x.name === "picker-one");
   assert.equal(g.card_name, first);
   assert.equal(g.card_icon, byName[first].icon);
+
+  // A historical stored CDN avatar must be replaced on every read without
+  // mutating the stored row or leaking catalog join columns.
+  const legacyIcon = "https://api-assets.clashroyale.com/legacy.png";
+  await db.query(`update gateway set card_icon = $2 where gateway_id = $1`, [
+    raise.gateway_id,
+    legacyIcon,
+  ]);
+  const ownerCookie = await signIn(JAMIE, "203.0.113.42");
+  for (const [path, reader, field] of [
+    ["/api/me/gateways", cookie, "gateways"],
+    ["/api/admin/gateways", ownerCookie, "gateways"],
+    ["/api/gateways/ladder", cookie, "ladder"],
+    ["/api/public/status", undefined, "collectors"],
+  ]) {
+    const response = await handler(
+      event({ method: "GET", path, cookie: reader, body: undefined }),
+    );
+    assert.equal(response.statusCode, 200, response.body);
+    const row = parse(response)[field].find(
+      (x) =>
+        x.gateway_id === raise.gateway_id ||
+        x.card === first ||
+        x.name === first,
+    );
+    assert.ok(row, path);
+    assert.equal(row.card_icon, byName[first].icon, path);
+    assert.ok(
+      !("card_id" in row) && !("icon_medium" in row),
+      "join columns stay private",
+    );
+  }
+  assert.equal(
+    (
+      await db.query(`select card_icon from gateway where gateway_id = $1`, [
+        raise.gateway_id,
+      ])
+    ).rows[0].card_icon,
+    legacyIcon,
+  );
 
   // A second collector from the same account is fine once the first has
   // delivered (one unproven at a time, #540) - but not on the same card.

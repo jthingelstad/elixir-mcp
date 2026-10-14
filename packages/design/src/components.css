@@ -2726,7 +2726,7 @@ input[aria-invalid="true"] {
 }
 
 /* ── Placeholders ─────────────────────────────────────────────
-   Card art comes from the CR API icon URLs at runtime. Until an icon
+   Card art comes from Elixir’s byte-identical mirror. Until an icon
    loads, this striped fill holds the slot — do not draw card art. */
 .card-slot {
   aspect-ratio: 5 / 6;
