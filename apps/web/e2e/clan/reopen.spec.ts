@@ -148,6 +148,10 @@ for (const size of ["wide", "@narrow"])
       await expect(
         page.getByRole("button", { name: "Complete update", exact: true }),
       ).toBeDisabled();
+      await page
+        .locator("summary")
+        .filter({ hasText: /^History · 2 entries/ })
+        .click();
       await expect(
         page.getByText("Waited for context.", { exact: true }),
       ).toBeVisible();

@@ -84,9 +84,9 @@ export function AgentTracking({ agent }) {
           <table className="table">
             <thead>
               <tr>
-                <th>CLAN</th>
-                <th>SCOPE</th>
-                <th>ON ITS TIMELINE</th>
+                <th>Clan</th>
+                <th>Scope</th>
+                <th>On its timeline</th>
                 <th />
               </tr>
             </thead>
@@ -207,8 +207,8 @@ export function AgentTracking({ agent }) {
             <table className="table">
               <thead>
                 <tr>
-                  <th>PLAYER</th>
-                  <th>ON ITS TIMELINE</th>
+                  <th>Player</th>
+                  <th>On its timeline</th>
                   <th />
                 </tr>
               </thead>

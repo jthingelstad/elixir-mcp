@@ -260,7 +260,9 @@ test("an unverified Leader: the notice first, then the clan as a member with the
   await expect(page).toHaveURL(/\/clan\/2PQRJ8LV$/);
   await expect(page.getByText("Ben")).toBeVisible();
   const rail = page.locator(".rail");
-  await expect(rail.getByRole("link", { name: /^Board/ })).toHaveCount(0);
+  await expect(rail.getByRole("link", { name: /^Member review/ })).toHaveCount(
+    0,
+  );
   await expect(rail.getByRole("link", { name: /^Map/ })).toHaveCount(0);
   await expect(
     page.getByRole("link", { name: /Verify in Elixir/ }).first(),
@@ -400,11 +402,14 @@ test.describe("signed in", () => {
     // The canvas: the clan's own figures, its comings and goings in the
     // account's zone, and a roster that finds a member.
     await expect(
-      page.getByText("Invite only, 5,000 trophies to join.", { exact: false }),
+      page.getByText("Invite only · 5,000 trophies to join", { exact: false }),
     ).toBeVisible();
     const tiles = page.getByRole("group", { name: "The clan in numbers" });
     await expect(tiles).toContainText("1,220");
     await expect(tiles).toContainText("1st in race 135/4, +100");
+    await page
+      .getByText("Recent changes and recruiting", { exact: true })
+      .click();
     const comings = page.getByRole("region", { name: "Comings and goings" });
     await expect(comings).toContainText("Lu departed");
     await expect(comings).toContainText(
@@ -419,7 +424,9 @@ test.describe("signed in", () => {
     await page.getByRole("searchbox", { name: "Find a member" }).fill("");
     // The rail now carries the clan: Manage for a leader, the tag aside.
     await expect(rail.getByRole("link", { name: /^Actions/ })).toBeVisible();
-    await expect(rail.getByRole("link", { name: /^Board/ })).toBeVisible();
+    await expect(
+      rail.getByRole("link", { name: /^Member review/ }),
+    ).toBeVisible();
     await expect(rail).toContainText("#2PQRJ8LV");
     await rendered(page);
     await accessible(page, "clan page");
@@ -428,6 +435,10 @@ test.describe("signed in", () => {
     await rail.getByRole("link", { name: /^Standing/ }).click();
     await expect(page).toHaveURL(/\/standing$/);
     await expect(page.getByRole("heading", { name: "Standing" })).toBeVisible();
+    await page
+      .locator("summary")
+      .filter({ hasText: /^How standing works/ })
+      .click();
     await expect(page.getByText("How it works here")).toBeVisible();
     // Each group its own panel; war decks per race in words for a reader;
     // a leader is not banded, so their own line carries their role.
@@ -490,7 +501,9 @@ test.describe("signed in", () => {
     const rail = page.locator(".rail");
     await expect(rail).toContainText("Second Clan");
     // A member: no Manage group.
-    await expect(rail.getByRole("link", { name: /^Board/ })).toHaveCount(0);
+    await expect(
+      rail.getByRole("link", { name: /^Member review/ }),
+    ).toHaveCount(0);
   });
 
   test("a clan with no policy yet: only the roster, Recruit, Scout, the policy editor and clan settings", async ({
@@ -505,7 +518,7 @@ test.describe("signed in", () => {
     await expect(rail.getByRole("link", { name: /^Settings/ })).toBeVisible();
     for (const name of [
       /^Actions/,
-      /^Board/,
+      /^Member review/,
       /^Standing/,
       /^Award history/,
       /^Away/,
@@ -545,7 +558,12 @@ test.describe("signed in", () => {
     );
     await page.goto("/clan/2PQRJ8LV");
     const rail = page.locator(".rail");
-    for (const name of [/^Actions/, /^Board/, /^Standing/, /^Award history/])
+    for (const name of [
+      /^Actions/,
+      /^Member review/,
+      /^Standing/,
+      /^Award history/,
+    ])
       await expect(rail.getByRole("link", { name })).toHaveCount(0);
     await rail.getByRole("link", { name: /^Policy/ }).click();
     await expect(page).toHaveURL(/\/manage\/policy$/);
@@ -641,12 +659,20 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("heading", { name: "Clan settings" }),
     ).toBeVisible();
-    await expect(page.getByText("The clan’s own model")).toBeVisible();
     await expect(
-      page.getByText("What Elixir Clan records in Elixir"),
+      page.getByRole("heading", { name: "Clan model", exact: true }),
     ).toBeVisible();
+    await page
+      .getByText(
+        "Recording and visibility: what is recorded and who can read it",
+        { exact: true },
+      )
+      .click();
     await expect(page.getByText("Kicks and leaves")).toBeVisible();
     await expect(page.getByRole("checkbox")).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Manage Clan model", exact: true })
+      .click();
     await expect(page.getByLabel("Add the clan's key")).toHaveAttribute(
       "type",
       "password",
@@ -729,6 +755,9 @@ test.describe("signed in", () => {
       }),
     );
     await page.goto("/clan/2PQRJ8LV/manage/settings");
+    await page
+      .getByRole("button", { name: "Change Monthly model limit", exact: true })
+      .click();
     await expect(
       page.getByText(
         /6 uses · 5,088 tokens in, 404 out · about \$0\.01 of the \$5\.00 cap/,
@@ -820,13 +849,17 @@ test.describe("signed in", () => {
     await row.click();
     await expect(page).toHaveURL(/\/actions\/37$/);
     await expect(
-      page.getByRole("heading", { name: "Action #37" }),
+      page.getByRole("heading", { name: "Remove from the clan · Sleepy" }),
     ).toBeVisible();
+    await page
+      .locator("summary")
+      .filter({ hasText: /^History · 2 entries/ })
+      .click();
     await expect(page.getByText("I messaged them yesterday.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Complete" })).toBeVisible();
     // The action names itself, under the breadcrumb back to the list.
     await expect(
-      page.getByRole("heading", { name: "Remove from the clan" }),
+      page.getByRole("heading", { name: "Evidence and message" }),
     ).toBeVisible();
     await expect(
       page.getByRole("navigation", { name: "Breadcrumb" }),
@@ -840,7 +873,7 @@ test.describe("signed in", () => {
     // The address works on its own, sent to someone.
     await page.goto("/clan/2PQRJ8LV/actions/37");
     await expect(
-      page.getByRole("heading", { name: "Action #37" }),
+      page.getByRole("heading", { name: "Remove from the clan · Sleepy" }),
     ).toBeVisible();
     await page.getByRole("link", { name: "‹ All actions" }).click();
     await expect(page).toHaveURL(/\/actions$/);
@@ -932,9 +965,11 @@ test.describe("signed in", () => {
     );
     await page.goto("/clan/2PQRJ8LV");
     const rail = page.locator(".rail");
-    await rail.getByRole("link", { name: /^You here/ }).click();
+    await rail.getByRole("link", { name: /^Your clan record/ }).click();
     await expect(page).toHaveURL(/\/me$/);
-    await expect(page.getByRole("heading", { name: "You here" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Your clan record" }),
+    ).toBeVisible();
     await expect(page.getByText("since Aug 20")).toBeVisible();
     await expect(
       page.getByRole("link", { name: /2 actions wait for you/ }),
@@ -954,7 +989,7 @@ test.describe("signed in", () => {
     await expect(page.getByText(/War Champ · 1st/)).toBeVisible();
     await expect(
       page.getByRole("navigation", { name: "Breadcrumb" }),
-    ).toContainText("You here");
+    ).toContainText("Your clan record");
     await rendered(page);
     await accessible(page, "you here");
     await page.getByRole("link", { name: "How Elder works here ›" }).click();
@@ -993,10 +1028,12 @@ test.describe("signed in", () => {
     await page.locator(".rail__toggle").click();
     await page
       .getByRole("navigation", { name: "Sections" })
-      .getByRole("link", { name: /^You here/ })
+      .getByRole("link", { name: /^Your clan record/ })
       .click();
     await expect(page).toHaveURL(/\/me$/);
-    await expect(page.getByRole("heading", { name: "You here" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Your clan record" }),
+    ).toBeVisible();
     await expect(
       page.getByRole("img", { name: /^Your war decks: 135\/1/ }),
     ).toBeVisible();

@@ -12,8 +12,8 @@ import { TooFew } from "../components/TooFew.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
 
 const TITLES = {
-  board: "Board",
-  history: "History",
+  board: "Member review",
+  history: "Decisions",
   policy: "Policy",
   awards: "Awards",
   scout: "Scout",

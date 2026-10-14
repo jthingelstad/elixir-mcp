@@ -55,8 +55,8 @@ describe("policy: tabs along the top", () => {
     const save = vi.spyOn(manageApi, "savePolicy");
     const { container } = await render();
     const summary = screen
-      .getByRole("heading", { name: "Draft agreement" })
-      .closest("section");
+      .getByText("Draft agreement", { exact: true })
+      .closest("details");
     expect(
       within(summary).getByText(/Clan War participation: Not specified/),
     ).toBeTruthy();

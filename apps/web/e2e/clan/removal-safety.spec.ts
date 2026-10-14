@@ -149,7 +149,10 @@ for (const size of ["wide", "@narrow"])
         0,
       );
     await expect(page.getByLabel("Chat message")).toHaveCount(0);
-    await expect(page.getByText(/Log · 2 entries/)).toBeVisible();
+    await page
+      .locator("summary")
+      .filter({ hasText: /^History · 2 entries/ })
+      .click();
     await expect(
       page.getByText("2026-10-04 04:20 CDT", { exact: true }),
     ).toBeVisible();
@@ -395,6 +398,10 @@ for (const size of ["wide", "@narrow"])
       }),
     );
     await page.goto("/clan/2PQRJ8LV/manage/policy");
+    await page
+      .locator("summary")
+      .filter({ hasText: "What this policy can do today" })
+      .click();
     const canDo = page.getByRole("region", {
       name: "What this policy can do today",
     });

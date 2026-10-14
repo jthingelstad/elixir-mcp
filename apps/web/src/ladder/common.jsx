@@ -1,4 +1,4 @@
-import { Fresh, Icon, Link } from "@elixir-mcp/ui";
+import { Disclosure, Fresh, Icon, Link } from "@elixir-mcp/ui";
 import { useId } from "react";
 import { MODES, fmt, playerName } from "./ladder.js";
 import { ZoneOffer } from "../components/ZoneOffer.jsx";
@@ -31,6 +31,13 @@ export function LadderHead({
       />
       <SeasonFallback season={season} seasonPicker={seasonPicker} />
       <ZoneOffer className="mb-4" />
+      <Disclosure title="About this record">
+        <p>
+          Each mode is its own game and keeps its own record. Ladder reads the
+          recorded battles, without pooling modes or rating players. Counts and
+          capture gaps are shown with the figures they affect.
+        </p>
+      </Disclosure>
     </>
   );
 }

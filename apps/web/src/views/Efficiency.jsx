@@ -139,11 +139,11 @@ export function Efficiency() {
           <thead>
             <tr>
               <th>DAY (UTC)</th>
-              <th className="td--num">READS</th>
-              <th className="td--num">NOTHING NEW</th>
-              <th className="td--num">CAPTURED</th>
-              <th className="td--num">GAPS</th>
-              <th className="td--num">LOST</th>
+              <th className="td--num">Reads</th>
+              <th className="td--num">Nothing new</th>
+              <th className="td--num">Captured</th>
+              <th className="td--num">Gaps</th>
+              <th className="td--num">Lost</th>
               <th className="td--num">LOST %</th>
             </tr>
           </thead>

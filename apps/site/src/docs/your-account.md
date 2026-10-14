@@ -93,6 +93,12 @@ On the smallest screens, the top bar shows the Elixir logo as the home link
 so the product and account controls keep their room. Your full account name
 wraps inside its menu. The same controls remain available by keyboard.
 
+On the Console overview, **Recording active** folds completed setup into
+**Setup details**. Incomplete setup and recording problems stay visible.
+Recent activity comes before the tracking lists; **Your record** links to
+your season, your clan and tracking. **Invite clanmates** expands the
+messages and copy controls.
+
 ## Your players
 
 The players on your account each say who they are to you:

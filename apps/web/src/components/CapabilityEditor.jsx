@@ -24,7 +24,10 @@ export function CapabilityEditor({ scope, onSave, disabled = false }) {
 
   if (!editing)
     return (
-      <>
+      <details className="permission-details">
+        <summary>
+          {current.length} permission{current.length === 1 ? "" : "s"}
+        </summary>
         <span className="mono">{scope}</span>{" "}
         {!disabled && (
           <button
@@ -38,7 +41,7 @@ export function CapabilityEditor({ scope, onSave, disabled = false }) {
             Edit
           </button>
         )}
-      </>
+      </details>
     );
 
   const toggle = (value) =>

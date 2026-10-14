@@ -1,7 +1,7 @@
 ---
 slug: clan-policy
 title: "Write how your clan runs"
-description: "Elixir Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Board, History, Scout and Clan settings, and the clan's activity in Discord."
+description: "Elixir Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Member review, Decisions, Scout and Clan settings, and the clan's activity in Discord."
 section: clan
 order: 6
 navTitle: "The policy"
@@ -152,7 +152,7 @@ saying how the clan runs the first time, and what changed after.
 
 Under **Manage**, beside the policy:
 
-- **Board**: every member as the policy reads them today, grouped as
+- **Member review**: every member as the policy reads them today, grouped as
   actionable, building, held or clear. Group links jump to the members;
   held promotion and demotion counts are separate from removal evidence.
   The inactivity clock shows here as triage for every member
@@ -160,7 +160,7 @@ Under **Manage**, beside the policy:
   Open a member for their evidence,
   a note, and a **hold**, which shields removal eligibility for a member
   who said they will be away, until a date or until cleared.
-- **History**: the joins, leaves and role changes the record saw, with
+- **Decisions**: the joins, leaves and role changes the record saw, with
   how each leave was answered; every action the clan has had, with its
   outcome and who decided it; and the holds.
 - **Scout**: paste an applicant's tag and see their numbers; with a
@@ -174,7 +174,10 @@ Award races ([Awards and trophies](/docs/clan-awards)).
 ## Clan settings
 
 **Manage ▸ Settings** holds what belongs to the whole clan, with or
-without a policy:
+without a policy. Each row shows its current state; **Manage** opens its
+editor in a drawer. **Monthly model limit** has its own **Change** control.
+Recording and visibility details expand below the rows. Closing a drawer
+does not save it:
 
 - **What Elixir Clan records in Elixir**: the kinds of facts shared
   with Elixir, when each is shared and who sees it there. Kicks and
@@ -182,7 +185,7 @@ without a policy:
   where the award races stand go to everyone verified in the clan; kicks,
   leaves and the award races also to the clan's agent; a member's away
   only to the leaders.
-- **Social**: the clan map, where members add a city or region and see
+- **Member map**: the clan map, where members add a city or region and see
   each other's local time. Only the clan's verified members see it, and
   nothing of it goes to Elixir. Only the leader and co-leaders can change
   whether the clan's social features are on; other members opening Settings
@@ -196,7 +199,7 @@ without a policy:
   it posts a short message to check it; the address is kept encrypted
   and never shown again. Only the leader and co-leaders can connect,
   replace or remove it.
-- **The clan's own model**: an Anthropic key of the clan's own, which
+- **Clan model**: an Anthropic key of the clan's own, which
   lets a model draft the recruiting pitch in Recruit and, on an open
   action, the reviewed message (clan chat or a Clan Leader Message) for a promotion, demotion, awards
   announcement or policy-change announcement, plus welcome and post-decision
@@ -219,7 +222,7 @@ without a policy:
   two, then Claude Haiku 5.5; it never falls back to an older model, and
   a key that reaches none of the three is not accepted. Which models the
   key reaches is checked with Anthropic when the key is added and again
-  about once a day when a leader opens Settings. The key and its monthly
+  about once a day when a leader opens the model editor. The key and its monthly
   cap are the leaders' choice; the model is not.
   Settings shows each use's tokens and about what it cost, and the
   month's total: the tokens at Anthropic's list prices (the date is on

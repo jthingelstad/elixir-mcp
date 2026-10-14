@@ -186,6 +186,14 @@ for (const [name, mount, body] of PAGES) {
   test(`${name} renders through the one log table`, async () => {
     stub(body);
     renderWithProviders(mount());
+    if (name === "Timeline") {
+      await screen.findByText(
+        "Tue 06:02 Test Clan finished week 1 in place 2 with 9,000 fame.",
+      );
+      expect(document.querySelector("ol.timeline-list")).toBeTruthy();
+      expect(screen.getByLabelText("Who")).toBeTruthy();
+      return;
+    }
     const table = await waitFor(() => {
       const t = document.querySelector("table.table");
       expect(t, "not the shared table").toBeTruthy();

@@ -784,8 +784,8 @@ test(
     });
     render(<App />);
     await screen.findByText("The newer session.");
-    const texts = [...document.querySelectorAll("tbody tr")].map(
-      (tr) => tr.children[2].textContent,
+    const texts = [...document.querySelectorAll(".timeline-list__text")].map(
+      (tr) => tr.textContent,
     );
     expect(texts).toEqual(["The newer session.", "The older session."]);
     expect(

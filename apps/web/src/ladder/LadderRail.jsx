@@ -57,11 +57,6 @@ export function LadderRail({ me, search, here, navigate, narrow }) {
             />
           ) : undefined
         }
-        identity={
-          <p className="ladder-rail__note">
-            A mirror, not a coach: your record, read back.
-          </p>
-        }
         // Ladder had no way to say anything back (2026-10-08): the sheet
         // files about Ladder, the page and the player it was reading.
         foot={{

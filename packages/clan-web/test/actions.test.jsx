@@ -227,7 +227,7 @@ describe("actions", () => {
     expect(
       screen.getAllByText("20 battle-free days: at risk at 5, an action at 8."),
     ).toHaveLength(1);
-    expect(screen.getByText(/Log · 1 entry/)).toBeTruthy();
+    expect(screen.getByText(/History · 1 entry/)).toBeTruthy();
     expect(screen.getByText("2026-09-12 15:00 CDT")).toBeTruthy();
     expect(decide).not.toHaveBeenCalled();
   });
@@ -358,8 +358,14 @@ describe("actions", () => {
         who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
       />,
     );
-    expect(await screen.findByText(/Log · 1 entry/)).toBeTruthy();
-    expect(screen.getByText("Action #37")).toBeTruthy();
+    expect(await screen.findByText(/History · 1 entry/)).toBeTruthy();
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "Remove from the clan · Sleepy",
+      }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByText(/History · 1 entry/));
     expect(screen.getByText("‹ All actions")).toBeTruthy();
     expect(
       screen.getByText(/Earlier: declined 2026-09-02 \(knows the member\)/),
@@ -499,7 +505,7 @@ describe("actions", () => {
     expect(
       screen.queryByRole("region", { name: "Waiting for you" }),
     ).toBeNull();
-    expect(screen.getByRole("link", { name: "History ›" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Decisions ›" })).toBeTruthy();
     const links = screen
       .getAllByRole("link")
       .filter((l) =>
@@ -558,7 +564,7 @@ describe("actions", () => {
       expect(screen.getByText("Nothing waiting for you")).toBeTruthy(),
     );
     // History is the leaders'; a member is not pointed at it.
-    expect(screen.queryByRole("link", { name: "History ›" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Decisions ›" })).toBeNull();
   });
 });
 

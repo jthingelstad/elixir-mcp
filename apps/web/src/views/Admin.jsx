@@ -853,7 +853,7 @@ function AdminPulse() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>KIND</th>
+                  <th>Kind</th>
                   {recent.map((w) => (
                     <th key={w} className="text-right">
                       {w}
@@ -1510,12 +1510,12 @@ function AdminServiceTokens() {
           <table className="table" style={{ minWidth: "620px" }}>
             <thead>
               <tr>
-                <th>NAME</th>
-                <th>ACTS AS</th>
-                <th>CREATED</th>
-                <th>LAST USED</th>
-                <th className="num">CALLS 7D</th>
-                <th>STATE</th>
+                <th>Name</th>
+                <th>Acts as</th>
+                <th>Created</th>
+                <th>Last used</th>
+                <th className="num">Calls 7d</th>
+                <th>State</th>
                 <th></th>
               </tr>
             </thead>

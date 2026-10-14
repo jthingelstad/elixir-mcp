@@ -20,6 +20,7 @@ export function PageHead({
   fresh,
   navigate,
   children,
+  breadcrumb = true,
 }) {
   const go = (path) => (e) => {
     if (!navigate) return;
@@ -31,46 +32,48 @@ export function PageHead({
   return (
     <div className="flex flex-wrap items-end gap-x-6 gap-y-3 mb-[22px]">
       <div className="grow basis-[420px] min-w-0 grid gap-2">
-        <nav
-          aria-label="Breadcrumb"
-          className="page__crumb m-0 flex flex-wrap items-center gap-2 text-ink-faint"
-        >
-          <a
-            className="text-ink-faint"
-            href={`${CLAN}/clans`}
-            onClick={go(`${CLAN}/clans`)}
+        {breadcrumb ? (
+          <nav
+            aria-label="Breadcrumb"
+            className="page__crumb m-0 flex flex-wrap items-center gap-2 text-ink-faint"
           >
-            Clan
-          </a>
-          <span aria-hidden="true">›</span>
-          {crumb ? (
-            <>
-              <a className="text-ink-faint" href={home} onClick={go(home)}>
-                {clanName}
-              </a>
-              <span aria-hidden="true">›</span>
-              {via ? (
-                <>
-                  <a
-                    className="text-ink-faint"
-                    href={via.to}
-                    onClick={go(via.to)}
-                  >
-                    {via.label}
-                  </a>
-                  <span aria-hidden="true">›</span>
-                </>
-              ) : null}
+            <a
+              className="text-ink-faint"
+              href={`${CLAN}/clans`}
+              onClick={go(`${CLAN}/clans`)}
+            >
+              Clan
+            </a>
+            <span aria-hidden="true">›</span>
+            {crumb ? (
+              <>
+                <a className="text-ink-faint" href={home} onClick={go(home)}>
+                  {clanName}
+                </a>
+                <span aria-hidden="true">›</span>
+                {via ? (
+                  <>
+                    <a
+                      className="text-ink-faint"
+                      href={via.to}
+                      onClick={go(via.to)}
+                    >
+                      {via.label}
+                    </a>
+                    <span aria-hidden="true">›</span>
+                  </>
+                ) : null}
+                <span aria-current="page" className="text-ink-dim">
+                  {crumb}
+                </span>
+              </>
+            ) : (
               <span aria-current="page" className="text-ink-dim">
-                {crumb}
+                {clanName}
               </span>
-            </>
-          ) : (
-            <span aria-current="page" className="text-ink-dim">
-              {clanName}
-            </span>
-          )}
-        </nav>
+            )}
+          </nav>
+        ) : null}
         <h1 className="page__title">
           <TagText>{title}</TagText>
         </h1>
@@ -88,7 +91,7 @@ const TONE = { ok: "text-ok", warn: "text-warn", bad: "text-bad" };
  *  returned, never a derived score. `of` is the whole it is out of. */
 export function Tile({ label, value, of, hint, tone }) {
   return (
-    <div className="panel grid content-start gap-1.5 px-[18px] py-4">
+    <div className="grid content-start gap-1.5">
       <span className="label">{label}</span>
       <span
         className={`font-mono text-[26px] font-semibold leading-[1.15] ${TONE[tone] ?? "text-ink"}`}
@@ -108,11 +111,7 @@ export function Tile({ label, value, of, hint, tone }) {
 /** The row of tiles under a page's head. */
 export function Tiles({ children, label }) {
   return (
-    <div
-      className="grid gap-4 mb-[22px] grid-cols-[repeat(auto-fit,minmax(170px,1fr))]"
-      role="group"
-      aria-label={label}
-    >
+    <div className="fact-strip" role="group" aria-label={label}>
       {children}
     </div>
   );

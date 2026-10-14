@@ -18,12 +18,6 @@ import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
 import { CLAN, clanPath, memberPath } from "../lib/base.js";
 
 const ROLE_ORDER = ["leader", "coLeader", "elder", "member"];
-const GROUP = {
-  leader: "Leader",
-  coLeader: "Co-leaders",
-  elder: "Elders",
-  member: "Members",
-};
 const ROLE_COUNT = {
   leader: ["leader", "leaders"],
   coLeader: ["co-leader", "co-leaders"],
@@ -88,13 +82,8 @@ export function RosterTable({
             <th>Last recorded battle</th>
           </tr>
         </thead>
-        {groups.map(([role, rows, total]) => (
+        {groups.map(([role, rows]) => (
           <tbody key={role}>
-            <tr>
-              <td colSpan={6} className="label pt-4">
-                {GROUP[role] ?? role} · {total}
-              </td>
-            </tr>
             {rows.map((m) => (
               <tr
                 key={m.player_tag}
@@ -103,11 +92,6 @@ export function RosterTable({
               >
                 <td title={m.player_tag}>
                   <span className="inline-flex items-center gap-2">
-                    {m.you ? (
-                      <span className="yours" title="You">
-                        ★
-                      </span>
-                    ) : null}
                     <span
                       className={
                         m.you
@@ -139,7 +123,7 @@ export function RosterTable({
                   </span>
                 </td>
                 <td>
-                  <RoleChip role={m.role} label={m.role_label} />
+                  <span className="text-ink-dim">{m.role_label ?? m.role}</span>
                 </td>
                 <td className="text-right font-mono">{num(m.trophies)}</td>
                 <td className="text-right font-mono">
@@ -188,36 +172,28 @@ export function RosterTable({
   );
 }
 
-/** What a joiner is asked, as the game says it, then what the page is. */
-function ledeFor(roster) {
-  const ask = [
-    roster?.type ? (TYPE[roster.type] ?? roster.type) : null,
-    roster?.required_trophies != null
-      ? `${num(roster.required_trophies)} trophies to join`
-      : null,
-  ].filter(Boolean);
-  return `${ask.length ? `${ask.join(", ")}. ` : ""}The roster as the game reports it, with when each member was last seen and last recorded in a battle.`;
-}
-
 export function ClanHeader({ clan, roster, others = [], navigate }) {
   const clanName = roster?.name ?? clan.name ?? <Tag tag={clan.clan_tag} />;
   const [open, setOpen] = useState(false);
-  const chip = (
-    <>
-      <span className="yours">★</span>{" "}
-      {clan.acting_as_name ?? <Tag tag={clan.acting_as} />}
-      <span className="text-ink-faint">·</span>
-      <RoleChip role={clan.role} label={clan.role_label} />
-      <span className="text-ink-faint">·</span>
-      {clanName}
-    </>
-  );
+  const chip = clanName;
   return (
     <PageHead
       clan={clan}
       name={clanName}
-      title={clanName}
-      lede={roster ? ledeFor(roster) : null}
+      title="Roster"
+      breadcrumb={false}
+      lede={
+        roster
+          ? [
+              TYPE[roster.type],
+              roster.required_trophies != null
+                ? `${num(roster.required_trophies)} trophies to join`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : null
+      }
       navigate={navigate}
       fresh={
         roster?.meta ? (
@@ -317,17 +293,13 @@ function ClanTiles({ roster }) {
           hint={
             race
               ? `${ordinal(race.rank)} in race ${race.season_id}/${race.section_index}${change}`
-              : "the game's own figure"
+              : undefined
           }
         />
       ) : null}
       {roster.donations_per_week !== null &&
       roster.donations_per_week !== undefined ? (
-        <Tile
-          label="Donations a week"
-          value={num(roster.donations_per_week)}
-          hint="the game's own figure"
-        />
+        <Tile label="Donations a week" value={num(roster.donations_per_week)} />
       ) : null}
     </Tiles>
   );
@@ -503,16 +475,10 @@ export function Clan({ me, clan, navigate, search }) {
               />
             </div>
           ) : null}
-          <div className="grid gap-4 items-start wide:grid-cols-3">
-            <section
-              className="panel min-w-0 wide:col-span-2"
-              aria-labelledby="clan-roster"
-            >
+          <div className="grid gap-6 items-start">
+            <section className="panel min-w-0" aria-labelledby="clan-roster">
               <div className="panel__head">
-                <h2
-                  id="clan-roster"
-                  className="m-0 grow text-[14px] font-semibold"
-                >
+                <h2 id="clan-roster" className="sr-only">
                   Roster
                 </h2>
                 {members.length ? (
@@ -535,7 +501,7 @@ export function Clan({ me, clan, navigate, search }) {
                       }}
                       placeholder="Find a member"
                       aria-label="Find a member"
-                      className="w-[150px] border-0 bg-transparent text-ink outline-none [font:inherit]"
+                      className="w-[min(350px,60vw)] border-0 bg-transparent text-ink outline-none [font:inherit]"
                     />
                   </label>
                 ) : null}
@@ -582,22 +548,25 @@ export function Clan({ me, clan, navigate, search }) {
                 </button>
               </div>
             </section>
-            <div className="grid gap-4 min-w-0">
-              <Comings
-                roster={roster}
-                clan={clan}
-                history={history}
-                navigate={navigate}
-              />
-              {spread === "active" ? (
-                <SpreadWord
-                  me={me}
-                  clan={clan}
+            <details className="disclosure">
+              <summary>Recent changes and recruiting</summary>
+              <div className="disclosure__body grid gap-4 min-w-0">
+                <Comings
                   roster={roster}
+                  clan={clan}
+                  history={history}
                   navigate={navigate}
                 />
-              ) : null}
-            </div>
+                {spread === "active" ? (
+                  <SpreadWord
+                    me={me}
+                    clan={clan}
+                    roster={roster}
+                    navigate={navigate}
+                  />
+                ) : null}
+              </div>
+            </details>
           </div>
         </>
       ) : null}

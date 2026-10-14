@@ -560,8 +560,8 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>THEIR ID</th>
-                    <th>PLAYER</th>
+                    <th>Their id</th>
+                    <th>Player</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -687,17 +687,17 @@ export function Agents({ navigate }) {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>AGENT</th>
-                      <th>CLAN</th>
-                      <th>TIER</th>
-                      <th>LAST ACTIVE</th>
+                      <th>Agent</th>
+                      <th>Clan</th>
+                      <th>Tier</th>
+                      <th>Last active</th>
                       {/* An agent spends the OWNER's daily calls, and the
                         owner's own usage view cannot see them -- it filters
                         to the owner's account_id and an agent has its own.
                         Without this column a budget can be exhausted by
                         something you have no way to look at. */}
-                      <th>CALLS 7D</th>
-                      <th>STATUS</th>
+                      <th>Calls 7d</th>
+                      <th>Status</th>
                       <th></th>
                     </tr>
                   </thead>

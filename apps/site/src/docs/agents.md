@@ -264,6 +264,10 @@ Facts in, judgment in your code.
 
 ## Key lifecycle
 
+Connections starts with active agents. **Show inactive agents** brings
+suspended and revoked entries back into the table. Each connection's
+permission count expands to show its grants and the edit control.
+
 | Action | Where | Effect |
 |---|---|---|
 | Rotate | its console → Settings → Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
