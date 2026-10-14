@@ -25,6 +25,11 @@ function fakeCloudflare(answers = {}) {
         success: false,
         "error-codes": ["invalid-input-secret"],
       });
+    if (answer === "internal")
+      return Response.json({
+        success: false,
+        "error-codes": ["internal-error"],
+      });
     if (spent.has(token))
       return Response.json({
         success: false,
@@ -122,7 +127,12 @@ test("observe: every result is recorded and every mail may go", async (t) => {
 
 test("enforce refuses only a failed or missing token; an outage, a bad secret or no secret sends", async (t) => {
   captureLog(t);
-  const cf = fakeCloudflare({ bad: "fail", gone: "down", key: "badsecret" });
+  const cf = fakeCloudflare({
+    bad: "fail",
+    gone: "down",
+    key: "badsecret",
+    hiccup: "internal",
+  });
   const check = makeTurnstileCheck({
     secret: "s",
     fetchImpl: cf.fetchImpl,
@@ -145,6 +155,8 @@ test("enforce refuses only a failed or missing token; an outage, a bad secret or
   assert.equal(await allowed(""), false);
   assert.equal(await allowed("gone"), true, "Cloudflare down");
   assert.equal(await allowed("key"), true, "our secret rejected");
+  // Cloudflare's internal-error is retryable, never the visitor's.
+  assert.equal(await allowed("hiccup"), true, "Cloudflare internal error");
   assert.equal(await allowed("any", null), true, "unconfigured");
 });
 

@@ -434,7 +434,8 @@ Insights, a week at a time):
 page); `result` is `pass`, `fail` (Cloudflare said no, or a token was
 presented for another address or a fourth send), `missing` (the page
 sent none: a script, or Cloudflare's script could not load), `error`
-(Cloudflare could not be asked, or refused the secret), `unconfigured`
+(Cloudflare could not be asked, answered `internal-error`, or refused
+the secret or the request), `unconfigured`
 or `off`. `reused: true` is a resend that rode a kept verdict. Why a
 check failed is in `codes`:
 
