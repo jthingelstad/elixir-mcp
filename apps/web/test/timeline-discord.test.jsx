@@ -6,6 +6,7 @@
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import {
+  act,
   render,
   screen,
   waitFor,
@@ -230,3 +231,64 @@ test(
     );
   },
 );
+
+for (const close of ["Close", "Escape"])
+  test(`closing sharing with ${close} discards an unsaved webhook`, async () => {
+    setting = ON;
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Change webhook" }));
+    fireEvent.change(screen.getByLabelText("Discord webhook URL"), {
+      target: {
+        value: "https://discord.com/api/webhooks/1234/fixture-unsaved",
+      },
+    });
+    if (close === "Close")
+      fireEvent.click(
+        screen.getByRole("button", { name: "Close", exact: true }),
+      );
+    else
+      fireEvent(
+        screen.getByRole("dialog"),
+        new Event("cancel", { cancelable: true }),
+      );
+    fireEvent.click(screen.getByRole("button", { name: "Manage sharing" }));
+    expect(screen.getByRole("button", { name: "Change webhook" })).toBeTruthy();
+    expect(screen.queryByLabelText("Discord webhook URL")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Change webhook" }));
+    expect(screen.getByLabelText("Discord webhook URL").value).toBe("");
+    expect(puts).toEqual([]);
+  });
+
+test("a refused response arriving after close cannot restore the old editor or its error", async () => {
+  setting = ON;
+  const { api } = await import("../src/api.js");
+  let finish;
+  vi.spyOn(api, "saveTimelineDiscord").mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  await open();
+  fireEvent.click(screen.getByRole("button", { name: "Change webhook" }));
+  fireEvent.change(screen.getByLabelText("Discord webhook URL"), {
+    target: { value: "https://discord.com/api/webhooks/1234/fixture-unsaved" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save webhook" }));
+  await waitFor(() => expect(finish).toBeTypeOf("function"));
+  fireEvent.click(screen.getByRole("button", { name: "Close", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Manage sharing" }));
+  expect(screen.getByRole("button", { name: "Change webhook" }).disabled).toBe(
+    true,
+  );
+  await act(async () => {
+    finish({ ok: false, status: 400, data: { message: "Fixture refusal" } });
+  });
+  await waitFor(() => expect(api.saveTimelineDiscord).toHaveBeenCalledTimes(1));
+  expect(screen.queryByText("Fixture refusal")).toBeNull();
+  expect(screen.getByRole("button", { name: "Change webhook" }).disabled).toBe(
+    false,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Change webhook" }));
+  expect(screen.getByLabelText("Discord webhook URL").value).toBe("");
+});

@@ -72,3 +72,102 @@ for (const width of [390, 820, 1280]) {
     expect(errors).toEqual([]);
   });
 }
+
+for (const width of [390, 1280]) {
+  test(`Timeline sharing discards an unsaved webhook on Escape at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const writes: string[] = [];
+    page.on("request", (req) => {
+      if (req.method() !== "GET") writes.push(req.url());
+    });
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/me/timeline/discord": [
+          200,
+          {
+            enabled: true,
+            webhook: "discord.com/api/webhooks/1234…/fixture…",
+            delivery: null,
+          },
+        ],
+      }),
+    );
+    await page.goto("/console/account/timeline");
+    await page
+      .getByRole("button", { name: "Manage sharing", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Change webhook", exact: true })
+      .click();
+    await page
+      .getByLabel("Discord webhook URL")
+      .fill("https://discord.com/api/webhooks/1234/fixture-unsaved");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Manage sharing", exact: true })
+      .click();
+    await expect(page.getByLabel("Discord webhook URL")).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Change webhook", exact: true })
+      .click();
+    await expect(page.getByLabel("Discord webhook URL")).toHaveValue("");
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+    expect(writes).toEqual([]);
+  });
+}
+
+test("@narrow a timeline event keeps its reading width when evidence and unread controls are present", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(
+    page,
+    signedIn({
+      "GET /api/me/timeline/discord": [
+        200,
+        { enabled: false, webhook: null, delivery: null },
+      ],
+      "GET /api/me/timeline": [
+        200,
+        {
+          read_to: null,
+          timeline: [
+            {
+              id: "tl_fixture_session",
+              at: "2026-10-13T12:00:00Z",
+              subject_name: "Example Player",
+              text: "Example Player played a session of twelve recorded games across Trophy Road and ranked play.",
+              evidence: {
+                kind: "session",
+                count: 12,
+                status: "proved",
+                version: "fixture",
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  await page.goto("/console/account/timeline");
+  const sentence = page.locator(".timeline-list__text");
+  const controls = page.locator(".timeline-list__actions");
+  await expect(
+    controls.getByRole("button", { name: "View games" }),
+  ).toBeVisible();
+  const textBox = await sentence.boundingBox();
+  const controlsBox = await controls.boundingBox();
+  expect(textBox!.width).toBeGreaterThan(320);
+  expect(controlsBox!.y).toBeGreaterThanOrEqual(textBox!.y + textBox!.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
+    390,
+  );
+  await page.screenshot({
+    path: "/tmp/elixir-timeline-reading-390.png",
+    fullPage: false,
+  });
+});

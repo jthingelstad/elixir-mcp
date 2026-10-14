@@ -440,11 +440,11 @@ entry: a clan's silence is the clan's activity.
 
 ## Cross-posting to Discord
 
-In Console ▸ Timeline, **Manage sharing** opens **Cross-post to Discord**
-for your timeline or an agent's. Only the account owner can change it,
-through the Console, never MCP or the JSON API. Delivery history expands
-in the drawer; events and evidence stay on the page. Profile and agent
-pages show whether sharing is on.
+Console ▸ Timeline's **Manage sharing** opens Discord settings for your
+timeline or an agent's. Closing discards unsaved edits. Only the account
+owner can save changes, through the Console, never MCP or the JSON API.
+Delivery history expands in the drawer; events and evidence stay on the
+page. Profile and agent pages show whether sharing is on.
 
 - **What posts.** Every `publishable` item the timeline holds for that
   account, not otherwise filtered: the same subjects, sections and kinds
