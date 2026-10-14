@@ -1,3 +1,4 @@
+import { gatewayCardIcon } from "@elixir-mcp/record/gateway-cards";
 import { ledgerStats } from "@elixir-mcp/ledger";
 import {
   eligibleNow,
@@ -38,7 +39,7 @@ export function publicRoutes({ deadLetters }) {
       // business on an unauthenticated page. A collector with no owner,
       // or an owner who has claimed no player, simply shows no credit.
       const collectors = await q(
-        `select coalesce(g.card_name, 'unnamed') as name, g.card_icon, g.status,
+        `select coalesce(g.card_name, 'unnamed') as name, avatar.card_id, avatar.icon_medium, g.status,
                 g.channel, g.last_success_at, g.last_heartbeat_at,
                 g.last_seen_sha, g.binary_sha256,
                 ${RELEASE_SIGNED_SQL},
@@ -58,6 +59,7 @@ export function publicRoutes({ deadLetters }) {
                    and ar.fetched_at > now() - interval '24 hours'
                    and ar.observed is not null) as edge_filtered_24h
          from gateway g
+         left join card avatar on avatar.name = g.card_name and avatar.kind = 'card'
          left join lateral (
            select p.name, p.player_tag
            from claim c join player p on p.player_tag = c.player_tag
@@ -300,7 +302,7 @@ export function publicRoutes({ deadLetters }) {
           jobs,
           collectors: collectors.map((c) => ({
             name: c.name,
-            card_icon: c.card_icon,
+            card_icon: gatewayCardIcon(c),
             status: c.status,
             last_success_at: c.last_success_at?.toISOString() ?? null,
             last_heartbeat_at: c.last_heartbeat_at?.toISOString() ?? null,

@@ -1,6 +1,6 @@
 import { json } from "../http.mjs";
 import { checkRateLimit } from "@elixir-mcp/auth";
-import { normalizeTag } from "@elixir-mcp/contracts";
+import { normalizeTag, cardArt } from "@elixir-mcp/contracts";
 import { makeLive } from "@elixir-mcp/tools/live";
 import { participantModeClause } from "@elixir-mcp/record/mode-filter";
 import { enqueueJob } from "@elixir-mcp/ledger";
@@ -53,7 +53,7 @@ export const STARTS_PER_HOUR = 5;
  *  player's regular recording. */
 export const LIVE_READS_PER_TAG_PER_DAY = 120;
 
-const TARGET_SQL = `select c.card_id, c.name, c.icon_medium as icon
+const TARGET_SQL = `select c.card_id, c.name, c.icon_medium
                     from card c where c.card_id = any($1::int[])`;
 
 async function cardsById(db, ids) {
@@ -62,7 +62,11 @@ async function cardsById(db, ids) {
   return new Map(
     rows.map((r) => [
       r.card_id,
-      { id: r.card_id, name: r.name, icon: r.icon ?? null },
+      {
+        id: r.card_id,
+        name: r.name,
+        icon: cardArt(r.card_id, { medium: r.icon_medium })?.base ?? null,
+      },
     ]),
   );
 }

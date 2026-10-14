@@ -1,3 +1,5 @@
+import { cardArt } from "@elixir-mcp/contracts";
+
 /**
  * Card avatars (0019): every collector is a Clash Royale card, and the
  * card is its public name. Since 0078 the OPERATOR picks it (Jamie,
@@ -13,11 +15,24 @@
  * read if it fails.
  */
 
+/** Derive current mirror art on read, including collectors whose stored
+ * avatar predates the mirror. Never fall back to a stored CDN address. */
+export function gatewayCardIcon({ card_id, icon_medium }) {
+  return card_id == null
+    ? null
+    : (cardArt(Number(card_id), { medium: icon_medium })?.base ?? null);
+}
+
+/** Keep catalog-only join columns out of collector responses. */
+export function gatewayCardView({ card_id, icon_medium, ...gateway }) {
+  return { ...gateway, card_icon: gatewayCardIcon({ card_id, icon_medium }) };
+}
+
 /** The pickable catalog with who holds what: kind = 'card' only (tower
  *  troops are not a face), in catalog order. */
 export async function gatewayCardCatalog(db) {
   const { rows } = await db.query(
-    `select c.name, c.icon_medium as icon, c.rarity, c.elixir_cost,
+    `select c.name, c.card_id, c.icon_medium, c.rarity, c.elixir_cost,
             (g.gateway_id is not null) as taken
      from card c
      left join gateway g on g.card_name = c.name and g.status <> 'revoked'
@@ -26,7 +41,7 @@ export async function gatewayCardCatalog(db) {
   );
   return rows.map((r) => ({
     name: r.name,
-    icon: r.icon ?? null,
+    icon: gatewayCardIcon(r),
     rarity: r.rarity ?? null,
     elixir_cost: r.elixir_cost ?? null,
     taken: r.taken === true,
@@ -39,7 +54,7 @@ export async function gatewayCardCatalog(db) {
  *  operators can pass this check together and only one can win. */
 export async function resolveGatewayCard(db, name) {
   const { rows } = await db.query(
-    `select c.name, c.icon_medium as icon,
+    `select c.name, c.card_id, c.icon_medium,
             (select g.gateway_id from gateway g
              where g.card_name = c.name and g.status <> 'revoked' limit 1) as holder
      from card c where c.kind = 'card' and lower(c.name) = lower($1)`,
@@ -47,7 +62,7 @@ export async function resolveGatewayCard(db, name) {
   );
   if (!rows[0]) return { error: "unknown_card" };
   if (rows[0].holder) return { error: "card_taken", holder: rows[0].holder };
-  return { card: { name: rows[0].name, icon: rows[0].icon ?? null } };
+  return { card: { name: rows[0].name, icon: gatewayCardIcon(rows[0]) } };
 }
 
 /** Postgres unique_violation on the live-card index. */
@@ -64,7 +79,7 @@ export async function ensureGatewayCards(db) {
   for (const g of bare) {
     // Re-read the free set per collector: each assignment shrinks it.
     const { rows: free } = await db.query(
-      `select c.name, c.icon_medium as icon from card c
+      `select c.name, c.card_id, c.icon_medium from card c
        where c.kind = 'card'
          and not exists (select 1 from gateway g
                          where g.card_name = c.name and g.status <> 'revoked')
@@ -77,7 +92,7 @@ export async function ensureGatewayCards(db) {
       await db.query(
         `update gateway set card_name = $2, card_icon = $3
          where gateway_id = $1 and card_name is null`,
-        [g.gateway_id, card.name, card.icon ?? null],
+        [g.gateway_id, card.name, gatewayCardIcon(card)],
       );
     } catch (err) {
       // A concurrent read or a pick took it first; the next read tries

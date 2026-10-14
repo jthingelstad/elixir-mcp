@@ -237,7 +237,11 @@ test("start: draws eight owned plain cards, is idempotent while open, asks the l
   assert.equal(c.state, "open");
   assert.equal(c.target.length, DECK_SIZE);
   assert.ok(
-    c.target.every((x) => x.icon && x.name),
+    c.target.every(
+      (x) =>
+        x.icon === `https://elixir.poapkings.com/assets/cards/${x.id}.png` &&
+        x.name,
+    ),
     "art rides with the target",
   );
   assert.ok(
@@ -340,6 +344,11 @@ test("poll: a near-miss battle lights up what matched, a battle after the brief 
   assert.equal(r.target.filter((x) => x.matched).length, 4);
   assert.equal(r.battles_since, 1);
   assert.equal(r.last_battle.cards.length, 8);
+  assert.ok(
+    r.last_battle.cards.every(
+      (x) => x.icon === `https://elixir.poapkings.com/assets/cards/${x.id}.png`,
+    ),
+  );
   assert.equal(r.last_battle.outcome, "loss");
   assert.equal(r.last_battle.opponent.name, "Rival");
   assert.equal(r.last_battle.proof, false);
