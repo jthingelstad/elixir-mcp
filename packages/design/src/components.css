@@ -7145,7 +7145,7 @@ button.ladder-player__head:hover {
     padding: 20px 16px;
   }
   .timeline-list__row {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
     gap: 8px;
   }
   .timeline-list__time {
