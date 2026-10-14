@@ -2,8 +2,7 @@
  *  the milestone and actions mail, and the transactional sign-in code,
  *  welcome and operator notices the relay renders (2026-10-01, the
  *  redesign boards). A login and a clan report are recognisably the same
- *  sender: the logo and the wordmark "Elixir", a pill naming the product
- *  and the day, a panel with a gold top bar, and one footer that says why
+ *  sender: the logo and the wordmark "Elixir", a quiet product label, one content panel, and one footer that says why
  *  the mail came, how to stop it (bulk kinds only), the send's own id,
  *  the sponsor line and the Fan Content disclaimer.
  *
@@ -65,7 +64,7 @@ export const MODE_COLOR = {
 };
 
 /** Jamie's logo, rendered at 48 and 96 px (apps/site/src/assets/mail),
- *  drawn at 44: the 96 file keeps it sharp on a 2x screen. */
+ *  drawn at 36: the 96 file keeps it sharp on a 2x screen. */
 const LOGO_URL = `${SITE}/assets/mail/elixir-96.png`;
 
 export const esc = (v) =>
@@ -75,7 +74,7 @@ export const esc = (v) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
-/** The pill at the top right: the product a mail belongs to, and when it
+/** The source at the top right: the product a mail belongs to, and when it
  *  comes. The sources are the console's (Clan, Ladder, Friends, Cards,
  *  Collectors, Account), and the console's email page wears the same
  *  chip on each kind. */
@@ -125,8 +124,7 @@ function zoneName(timezone, at) {
  *  time, zone}, e.g. {weekday: "Monday", time: "9:00 am", zone:
  *  "Central"}. The weekday is the reader's (14:00 UTC on a Monday is
  *  already Tuesday in Sydney), and the hour follows daylight time. The
- *  footer says it, and the console's email page lays the week out by
- *  it. */
+ *  footer says it, and the console's email rows use it. */
 export function sendTime(kind, timezone = "UTC", now = new Date()) {
   const slot = MAIL_SCHEDULE[kind];
   if (!slot) return null;
@@ -188,7 +186,7 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
     case "login":
       return "You get this because someone asked to sign in to Elixir with this address.";
     case "welcome":
-      return "You get this once, when your access is approved.";
+      return "Sent once when your Elixir account is ready.";
     case "owner_notify":
       return "You get this because you run this Elixir.";
     default:
@@ -204,7 +202,7 @@ const footLink = (href, text, extra = "") =>
 /**
  * The page around a mail's body.
  *
- *  - kind: names the pill (MAIL_SOURCE) and the footer's why-line.
+ *  - kind: names the source (MAIL_SOURCE) and the footer's why-line.
  *  - title/subtitle: html (the caller escapes); a mail with no title
  *    (the sign-in code) leads with its body.
  *  - preheader: the hidden inbox preview, the same string the renderer
@@ -234,9 +232,9 @@ export function mailShell({
   pixel = "",
 }) {
   const src = source ?? MAIL_SOURCE[kind] ?? { product: "Elixir", when: "" };
-  const pill = src.when ? `${src.product} · ${src.when}` : src.product;
+  const sourceLabel = src.product;
   const head = title
-    ? `<h1 style="margin:0;font-family:${FONT};font-size:26px;line-height:1.2;font-weight:800;color:${M.ink};">${title}</h1>
+    ? `<h1 style="margin:0;font-family:${FONT};font-size:26px;line-height:1.2;font-weight:700;color:${M.ink};">${title}</h1>
         ${subtitle ? `<p style="margin:6px 0 22px;font-family:${FONT};font-size:14px;line-height:1.5;color:${M.faint};">${subtitle}</p>` : `<div style="height:18px;line-height:18px;font-size:0;">&nbsp;</div>`}`
     : "";
   return `<!doctype html>
@@ -245,25 +243,25 @@ export function mailShell({
 <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;max-height:0;max-width:0;overflow:hidden;mso-hide:all;">${esc(preheader)}</span>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${M.bg}" style="background-color:${M.bg};"><tr><td align="center" style="padding:24px 12px 28px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
-  <tr><td style="padding:0 4px 18px;">
+  <tr><td style="padding:0 4px 16px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td width="44" valign="middle" style="width:44px;"><img src="${LOGO_URL}" alt="" width="44" height="44" style="display:block;width:44px;height:44px;border:0;outline:none;text-decoration:none;" /></td>
-      <td valign="middle" style="padding-left:10px;font-family:${FONT};font-size:24px;line-height:1;font-weight:800;color:${M.gold};">Elixir</td>
-      <td align="right" valign="middle"><span style="display:inline-block;padding:5px 11px;border-radius:999px;background-color:${M.pill};border:1px solid ${M.edge};font-family:${FONT};font-size:12.5px;font-weight:600;color:${M.muted};white-space:nowrap;">${esc(pill)}</span></td>
+      <td width="36" valign="middle" style="width:36px;"><img src="${LOGO_URL}" alt="" width="36" height="36" style="display:block;width:36px;height:36px;border:0;outline:none;text-decoration:none;" /></td>
+      <td valign="middle" style="padding-left:10px;font-family:${FONT};font-size:22px;line-height:1;font-weight:700;color:${M.gold};">Elixir</td>
+      <td align="right" valign="middle"><span style="font-family:${FONT};font-size:13px;color:${M.faint};">${esc(sourceLabel)}</span></td>
     </tr></table>
   </td></tr>
-  <tr><td bgcolor="${M.panel}" style="background-color:${M.panel};border:1px solid ${M.edge};border-radius:16px;">
+  <tr><td bgcolor="${M.panel}" style="background-color:${M.panel};border:1px solid ${M.edge};border-radius:8px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr><td bgcolor="${M.gold}" style="height:4px;background-color:${M.gold};border-radius:16px 16px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-      <tr><td style="padding:28px 24px 26px;">
+      <tr><td style="padding:24px 20px;overflow-wrap:anywhere;">
         ${head}
         ${body}
       </td></tr>
     </table>
   </td></tr>
-  <tr><td style="padding:20px 6px 0;font-family:${FONT};font-size:12px;line-height:1.6;color:${M.faint};">
-    <p style="margin:0 0 8px;">${esc(why ?? whyLine(kind, timezone))}${manage ? ` ${footLink(manage.url, "Manage your emails")} · ${footLink(manage.unsubscribe, `Turn off ${esc(manage.turnOff)}`)}` : ""}</p>
-    ${send ? `<p style="margin:0 0 8px;">This email is ${footLink(send.record, esc(send.id), `font-family:${MONO};font-size:11.5px;`)} · Something not right? ${footLink(send.report, "Send feedback about this email")} · ${footLink(send.list, "Every email sent to you")}</p>` : ""}
+  <tr><td style="padding:20px 20px 0;font-family:${FONT};font-size:12px;line-height:1.6;color:${M.faint};overflow-wrap:anywhere;">
+    <p style="margin:0 0 8px;">${esc(why ?? whyLine(kind, timezone))}</p>
+    ${manage ? `<p style="margin:0 0 8px;">${footLink(manage.url, "Manage your emails")} · ${footLink(manage.unsubscribe, `Turn off ${esc(manage.turnOff)}`)}</p>` : ""}
+    ${send ? `<p style="margin:0 0 8px;">${footLink(send.record, "Email record")} · ${footLink(send.report, "Send feedback about this email")} · ${footLink(send.list, "Every email sent to you")}</p><p style="margin:0 0 12px;font-size:11px;word-break:break-all;">This email is ${footLink(send.record, esc(send.id), `font-family:${MONO};font-size:11px;`)}</p>` : ""}
     <p style="margin:0 0 8px;">Elixir is free and sponsor-supported; sponsorship changes nothing about your account. ${footLink(support, "Support Elixir")}</p>
     <p style="margin:0;font-size:11.5px;">${esc(DISCLAIMER)}</p>
   </td></tr>
@@ -282,25 +280,24 @@ export function mailParts(T = (u) => u) {
   const small = (html, extra = "") =>
     `<p style="margin:8px 0 0;font-family:${FONT};font-size:12.5px;line-height:1.55;color:${M.faint};${extra}">${html}</p>`;
   const h2 = (text, right = "") =>
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 10px;"><tr>
-      <td style="font-family:${FONT};font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:${M.muted};">${esc(text)}</td>
-      ${right ? `<td align="right" style="font-family:${FONT};font-size:12.5px;color:${M.faint};white-space:nowrap;">${right}</td>` : ""}</tr></table>`;
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 10px;"><tr>
+      <td><h2 style="margin:0;font-family:${FONT};font-size:17px;line-height:1.35;font-weight:700;color:${M.ink};">${esc(text)}</h2>
+      ${right ? `<div style="margin-top:3px;font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};">${right}</div>` : ""}</td></tr></table>`;
   const link = (url, text, extra = "") =>
     `<a href="${esc(T(url))}" style="color:${M.link};text-decoration:none;${extra}">${text}</a>`;
-  /** The gold button, with its address printed beneath it: buttons get
-   *  stripped, and a link nobody can copy is a dead end. */
-  const button = (label, url, { shown = null, tag = true } = {}) => {
+  /** One primary link. The text alternative prints its destination;
+   *  HTML readers can copy the button's link without a duplicate URL. */
+  const button = (label, url, { tag = true } = {}) => {
     const href = tag ? T(url) : url;
-    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 8px;"><tr><td bgcolor="${M.gold}" style="background-color:${M.gold};border-radius:10px;">
-      <a href="${esc(href)}" target="_blank" style="display:inline-block;padding:13px 28px;font-family:${FONT};font-size:15px;font-weight:700;color:${M.goldOn};text-decoration:none;border-radius:10px;">${esc(label)}</a></td></tr></table>
-      <p style="margin:0;font-family:${FONT};font-size:12px;line-height:1.5;color:${M.faint};word-break:break-all;">or open <a href="${esc(href)}" style="font-family:${MONO};color:${M.muted};text-decoration:none;">${esc(shown ?? url.replace(/^https:\/\//, ""))}</a></p>`;
+    return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 8px;max-width:100%;"><tr><td bgcolor="${M.gold}" style="background-color:${M.gold};border-radius:6px;">
+      <a href="${esc(href)}" target="_blank" style="display:inline-block;padding:13px 20px;font-family:${FONT};font-size:15px;line-height:1.4;font-weight:700;color:${M.goldOn};text-decoration:none;border-radius:6px;">${esc(label)}</a></td></tr></table>`;
   };
   /** A rounded box on the panel (a deck, a battle, an action). */
   const box = (inner, { pad = "12px 14px", mt = 0 } = {}) =>
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${mt}px;"><tr><td bgcolor="${M.box}" style="background-color:${M.box};border:1px solid ${M.edge};border-radius:12px;padding:${pad};">${inner}</td></tr></table>`;
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:${mt}px;"><tr><td bgcolor="${M.box}" style="background-color:${M.box};border-radius:6px;padding:${pad};">${inner}</td></tr></table>`;
   /** The coverage note: what the mail could and could not see. */
   const cov = (html) =>
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;"><tr><td bgcolor="${M.well}" style="background-color:${M.well};border:1px solid ${M.edge};border-radius:10px;padding:11px 13px;font-family:${FONT};font-size:12.5px;line-height:1.55;color:${M.faint};">${html}</td></tr></table>`;
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;"><tr><td style="border-left:2px solid ${M.edge};padding:0 0 0 12px;font-family:${FONT};font-size:12.5px;line-height:1.55;color:${M.faint};">${html}</td></tr></table>`;
   /** Rows: a title, a line under it, an optional right-hand cell; a
    *  hairline between them. `mark` is a small coloured square, the
    *  mail's stand-in for the board's icons (no SVG in mail). */
@@ -308,7 +305,7 @@ export function mailParts(T = (u) => u) {
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${items
       .map(
         (it, i) =>
-          `<tr>${it.mark ? `<td width="18" valign="top" style="width:18px;padding:${i ? 14 : 4}px 0 0;"><div style="width:10px;height:10px;border-radius:3px;background-color:${it.mark};font-size:0;line-height:0;">&nbsp;</div></td>` : ""}<td valign="top" style="padding:${i ? 10 : 0}px 0 10px;${i < items.length - 1 ? `border-bottom:1px solid ${M.row};` : ""}">
+          `<tr>${it.mark ? `<td width="18" valign="top" style="width:18px;padding:${i ? 14 : 4}px 0 0;"><div style="width:10px;height:10px;border-radius:3px;background-color:${it.mark};font-size:0;line-height:0;">&nbsp;</div></td>` : ""}<td valign="top" style="overflow-wrap:anywhere;padding:${i ? 10 : 0}px 0 10px;${i < items.length - 1 ? `border-bottom:1px solid ${M.row};` : ""}">
         <div style="font-family:${FONT};font-size:14.5px;font-weight:600;line-height:1.4;color:${M.ink};">${it.title}</div>
         ${it.text ? `<div style="font-family:${FONT};font-size:13px;line-height:1.5;color:${M.muted};margin-top:2px;">${it.text}</div>` : ""}</td>${it.right != null ? `<td align="right" valign="top" style="padding:${i ? 10 : 0}px 0 10px 10px;white-space:nowrap;font-family:${FONT};font-size:13px;color:${M.muted};${i < items.length - 1 ? `border-bottom:1px solid ${M.row};` : ""}">${it.right}</td>` : ""}</tr>`,
       )

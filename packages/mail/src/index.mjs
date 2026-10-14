@@ -1,7 +1,7 @@
 /** @elixir-mcp/mail: Elixir's email, rendered from facts.
  *
  *  One shell for every kind (shell.mjs): the logo and the wordmark, the
- *  product pill, packages/design's dark palette inline, table layout,
+ *  product label, packages/design's dark palette inline, table layout,
  *  600 px, and one footer. The relay's sign-in code, welcome and
  *  operator notices wear it too. A renderer per product kind takes the
  *  facts object its builder produced and returns {subject, preheader,

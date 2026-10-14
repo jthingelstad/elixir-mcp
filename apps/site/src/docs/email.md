@@ -26,7 +26,9 @@ them carries the coverage note the tools carry, because a report that
 hides a gap in the record is a report that lies. Clan actions waiting carries
 Elixir Clan's own words about your clan, the lines its Actions page shows,
 and an answer to your feedback is the maintainer's answer as it was
-written. Elixir composes no email with a language model.
+written. An answer email leads with the response, followed by what you
+wrote for context; a question asks you to reply on the same item. Elixir
+composes no email with a language model.
 
 ## The week
 
@@ -53,7 +55,7 @@ each answer to your feedback on its own.
 
 | Day | Kind | What it is |
 |---|---|---|
-| Monday | **Clan report** | Your clan's week: the war result if a war week closed (the clan's place, fame and war trophies, the race as it finished, the top five who raced and your own players, and the clan's war decks used out of those possible beside the races before), who joined and left and when, who has gone quiet, and the week in battles, promotions, new bests and donations, with the battles and members who battled set against the weeks before, with a link to the roster and one to the race's own week in Explore, by its Season and Week. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone and your own players marked *you*. Elixir tracks your primary player's clan for you as soon as it sees it, when you have a clan slot free ([Your player's clan](/docs/recording#your-players-clan)). |
+| Monday | **Clan report** | Your clan's week: the war result if a war week closed (the clan's place, fame and war trophies, the race as it finished, the top five who raced and your own players, and the clan's war decks used out of those possible beside the races before), who joined and departed and when, who has gone quiet, and the week in battles, promotions, new bests and donations, with the battles and members who battled set against the weeks before, with a link to the roster and one to the race's own week in Explore, by its Season and Week. One report per clan you track, the same one to every member who tracks it, with its days named in your own timezone and your own players marked *you*. Elixir tracks your primary player's clan for you as soon as it sees it, when you have a clan slot free ([Your player's clan](/docs/recording#your-players-clan)). |
 | Tuesday | **Your week in the Arena** | Your own battles, primary and alts: the headline record split by mode group (a pooled win rate across modes would mix different games), the most-used deck in your busiest non-war mode drawn card by card, with its record and level gap from that mode alone, one line setting that mode's win rate this week beside the four game weeks before it, each with its battle count (left out when either side has fewer than 10 decided battles; the same numbers as Ladder's [This week vs your last 4](/docs/ladder#this-week-vs-your-last-4)), who you faced and who came round more than once, and a line for each alt. It links the week's season on [Ladder](/docs/ladder), and every deck of it on Ladder's Decks. **Cards and badges** counts, for each of your players, the week's cards unlocked and badge levels, which no longer come as milestone emails, with a link to your [timeline](/docs/timeline) where each one is listed. A day later than the clan report so late battle-log reads have landed. Skipped when none of your tags battled. |
 | Wednesday | **Your friends this week** | How everyone you follow played: a card each for your friends and the busiest players you watch (their battles in each mode, a moment or two, then their cards unlocked and badge levels as a count, the deck they played most), with you in a line and each of your clans as a headline and at most three of the week's facts, the rest counted with a link to the clan. Anyone quiet for 30 days or more is named once, in one line. It is the [timeline](/docs/timeline) for the week, rendered: the email chooses what to say, and the timeline keeps everything. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the dashboard’s security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much the edge filter saved, and your tier: an active collector holds the [Family tier](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Saturday 00:00 UTC to the next Saturday 00:00 UTC, the week that closed the night before ([above](#the-week)). |
@@ -101,9 +103,12 @@ check that went through, up to a week, so a first is late rather than lost.
 
 Every email Elixir sends wears the same frame, so a sign-in code and a
 clan report are plainly from the same sender: Elixir's logo and name at
-the top with a label saying which part of Elixir it comes from and when
-(Clan · Monday, Account · Sign in), the mail itself, and a footer that
-says why you got it and when the next one comes, in your own timezone.
+the top with a plain label naming the part of Elixir it comes from,
+the mail itself, and a footer that
+says why you got it and when the next scheduled one comes, in your own timezone.
+The report leads with its figures and uses readable headings and rows;
+its coverage note remains visible below the main link. An activity-scope
+clan report records rosters and wars and leaves battle activity unknown.
 A weekly email's footer also carries the turn-off link, its id, and the
 sponsor line; a sign-in code or a welcome has no turn-off, because you
 asked for it. The logo and card art are PNGs served from
@@ -130,7 +135,7 @@ yours to reverse.
 
 Every email Elixir sends you has its own id, printed in its footer
 ("This email is …"); the id opens that email's record in your account,
-and **Something not right? Send feedback about this email** beside it
+and **Send feedback about this email** in the same footer
 opens the feedback form with that email attached, one click from your
 inbox. Back leaves that automatically opened form; Forward returns with the
 email attached. Closing the form sends nothing.

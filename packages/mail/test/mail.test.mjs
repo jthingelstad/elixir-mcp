@@ -230,13 +230,13 @@ test("a clan report subject says the war place and the churn", () => {
   const { subject, preheader } = renderMail("clan_report", facts, links);
   assert.equal(
     subject,
-    "POAP KINGS, Sep 21 – 28: 1st in war, 4 left, 2 joined",
+    "POAP KINGS, Sep 21 – 28: 1st in war, 4 departed, 2 joined",
   );
   assert.match(preheader, /^10,305 fame, over the line on war day 3\./);
-  // An issue stored before the redesign keeps its subject.
+  // Older stored facts use neutral departure words too.
   assert.equal(
     renderMail("clan_report", stored("clan_report-2026-09"), links).subject,
-    "POAP KINGS, Sep 7 – 14: 1st in war, 3 left, 3 joined",
+    "POAP KINGS, Sep 7 – 14: 1st in war, 3 departed, 3 joined",
   );
 });
 
@@ -369,7 +369,7 @@ test("a 50-member clan's report stays under Gmail's clip", () => {
   assert.ok(bytes < 95_000, `${bytes} bytes`);
 });
 
-test("one shell: the wordmark, the product pill, the why-line in the reader's zone, the turn-off on a bulk kind", () => {
+test("one shell: the wordmark, the product source, the why-line in the reader's zone, the turn-off on a bulk kind", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
   );
@@ -379,7 +379,7 @@ test("one shell: the wordmark, the product pill, the why-line in the reader's zo
   }).html;
   assert.match(html, />Elixir</, "the wordmark is Elixir");
   assert.ok(!/Elixir MCP|ELIXIR/.test(html), "never the old wordmark");
-  assert.ok(html.includes("Clan · Monday"), "the pill");
+  assert.ok(html.includes(">Clan</span>"), "the product source");
   // 14:00 UTC is 9:00 am in daylight time and 8:00 am in standard.
   assert.match(
     html,
@@ -942,7 +942,7 @@ test("the collector mail says the tier, never points or credits (#539)", () => {
   assert.doesNotMatch(stored.html, /undefined|NaN/);
 });
 
-test("actions waiting: one box per action, the app's count of the rest, its link on each", () => {
+test("actions waiting: action rows, the app's count of the rest, and one primary action", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "clan_actions_waiting.json"), "utf8"),
   );
@@ -953,7 +953,8 @@ test("actions waiting: one box per action, the app's count of the rest, its link
   const { html, preheader } = renderMail("clan_actions_waiting", facts, links);
   assert.match(html, /15 actions waiting/);
   assert.match(html, /And 5 more on the Actions page\./);
-  assert.equal(html.match(/Decide ›/g).length, 10);
+  assert.doesNotMatch(html, /Decide ›/);
+  assert.equal(html.match(/>Open Actions in Clan</g).length, 1);
   assert.equal(
     preheader,
     "#60 Welcome: Player 0 · #59 Welcome: Player 1 · #58 Welcome: Player 2",
@@ -964,7 +965,7 @@ test("actions waiting: one box per action, the app's count of the rest, its link
     links,
   ).html;
   assert.match(one, /One action waiting/);
-  assert.match(one, />new<\/span>/);
+  assert.match(one, />· New<\/span>/);
   assert.doesNotMatch(one, /\(new\)/);
 });
 
@@ -1027,12 +1028,15 @@ test("feedback answer: their words clipped and escaped, the answer whole, status
   );
   assert.equal(
     subject,
-    "Answered: “The global board shows me at rank 1,204 but the game says 1…”",
+    "Answered: “The Arena week is missing the deck I played on Saturday.”",
   );
   assert.match(html, /Your feedback, answered/);
   assert.match(html, /About Ladder · filed/);
   assert.match(html, />Done · shipped in <span[^>]*>11\.3\.0</);
-  assert.match(html, /Fixed: ranks now come from the same read/);
+  assert.match(
+    html,
+    /Fixed: the deck and battle sections now use the same game week/,
+  );
   assert.match(preheader, /^Good catch\./);
   const hostile = renderMail(
     "feedback_answer",
@@ -1052,6 +1056,57 @@ test("feedback answer: their words clipped and escaped, the answer whole, status
     { ...facts, status: "needs_info", shipped_in: null },
     links,
   );
-  assert.match(asked.subject, /^A question about: “The global board/);
-  assert.match(asked.html, />A question for you</);
+  assert.match(asked.subject, /^A question about: “The Arena week/);
+  assert.match(asked.html, /A question about your feedback/);
+  const shippedQuestion = renderMail(
+    "feedback_answer",
+    { ...facts, status: "needs_info", shipped_in: "11.13.0" },
+    links,
+  );
+  assert.match(shippedQuestion.html, /Shipped in <span[^>]*>11\.13\.0</);
+});
+
+test("activity-only clan reports preserve unknown battle counts, including older zero-filled facts", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
+  );
+  facts.clan.scope = "activity";
+  facts.war = { present: false };
+  for (const battles of [null, 0]) {
+    facts.headline.battles = battles;
+    facts.headline.active = battles;
+    const out = renderMail("clan_report", facts, links);
+    assert.match(out.preheader, /Battle activity is not recorded/);
+    assert.match(out.html, /Battle activity is not recorded/);
+    assert.doesNotMatch(htmlToText(out.html), /0 battles|by 0 of/);
+    assert.match(out.subject, /departed/);
+    assert.doesNotMatch(out.html, />[^<]* left(?:,|<)/);
+  }
+});
+
+test("Arena preserves every recorded mode when war follows the first three", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "arena_week.json"), "utf8"),
+  );
+  facts.primary.totals.by_family = [
+    { mode: "ladder", battles: 10, wins: 4, losses: 6 },
+    { mode: "casual", battles: 8, wins: 3, losses: 5 },
+    { mode: "ranked", battles: 6, wins: 4, losses: 2 },
+    { mode: "war", battles: 6, wins: 3, losses: 3 },
+  ];
+  const text = htmlToText(renderMail("arena_week", facts, links).html);
+  assert.match(text, /War\s+3–3\s+6 battles/);
+  assert.match(text, /Casual\s+3–5\s+8 battles/);
+  assert.match(text, /Path of Legends\s+4–2\s+6 battles/);
+});
+
+test("unavailable comprehensive activity does not invent a scope restriction, and legacy bounce notes are neutral", () => {
+  const facts = stored("clan_report-2026-09");
+  facts.clan.scope = "comprehensive";
+  facts.headline.battles = null;
+  const out = renderMail("clan_report", facts, links);
+  assert.match(out.preheader, /Battle activity is unavailable for this report/);
+  assert.doesNotMatch(out.preheader, /at this clan’s scope/);
+  assert.match(htmlToText(out.html), /departed again the same day/);
+  assert.doesNotMatch(htmlToText(out.html), /left again/);
 });
