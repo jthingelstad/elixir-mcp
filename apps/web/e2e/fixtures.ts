@@ -53,9 +53,35 @@ export const SIGNED_OUT = {
 type Answer =
   [status: number, body: unknown] | ((route: Route) => [number, unknown]);
 
+/** The token the stand-in Turnstile gives every sign-in form. */
+export const TURNSTILE_TOKEN = "e2e-turnstile-token";
+
+/** Cloudflare's Turnstile script, never fetched: a stand-in that renders
+ *  nothing and answers every widget with TURNSTILE_TOKEN, then calls the
+ *  page's onload as the real one does (src/turnstile.js). */
+async function stubTurnstile(page: Page) {
+  await page.route(
+    "https://challenges.cloudflare.com/turnstile/v0/api.js*",
+    async (route) => {
+      const onload = new URL(route.request().url()).searchParams.get("onload");
+      await route.fulfill({
+        status: 200,
+        contentType: "text/javascript",
+        body: `window.turnstile = {
+  render(el, o) { setTimeout(() => o.callback(${JSON.stringify(TURNSTILE_TOKEN)}), 0); return "e2e"; },
+  reset() {}, remove() {},
+};
+${onload ? `window[${JSON.stringify(onload)}]();` : ""}`,
+      });
+    },
+  );
+}
+
 /** Route every /api/* call to a fixture. An unlisted call answers 404
- *  JSON so a page can still say "could not load" rather than hang. */
+ *  JSON so a page can still say "could not load" rather than hang.
+ *  Turnstile's script is stubbed with it. */
 export async function mockApi(page: Page, routes: Record<string, Answer>) {
+  await stubTurnstile(page);
   await page.route("**/api/**", async (route) => {
     const req = route.request();
     const url = new URL(req.url());

@@ -351,3 +351,70 @@ test("one caller's ceiling on sign-in mail is shared with the website's", async 
     "and the website's sign-in reads the same ceiling",
   );
 });
+
+test("Turnstile on the email step: the page loads Cloudflare only by its hashed script; observe carries the token, enforce refuses a missing one", async (t) => {
+  const was = process.env.TURNSTILE_MODE;
+  t.after(() => {
+    if (was === undefined) delete process.env.TURNSTILE_MODE;
+    else process.env.TURNSTILE_MODE = was;
+  });
+  delete process.env.TURNSTILE_MODE;
+
+  const page = await handler(
+    event({ method: "GET", query: ask(), ip: nextIp() }),
+  );
+  const csp = page.headers["content-security-policy"];
+  // The door's own CSP still stands, with exactly one inline script (by
+  // its hash) and Cloudflare's script and frame added.
+  assert.match(
+    csp,
+    /^default-src 'none'; style-src 'unsafe-inline'; form-action https:/,
+  );
+  const script = /<script>([\s\S]*?)<\/script>/.exec(page.body)[1];
+  const hash = crypto.createHash("sha256").update(script).digest("base64");
+  assert.match(
+    csp,
+    new RegExp(
+      `; script-src 'sha256-${hash.replace(/[+/=]/g, "\\$&")}' https://challenges\\.cloudflare\\.com; frame-src https://challenges\\.cloudflare\\.com$`,
+    ),
+  );
+  assert.equal((page.body.match(/<script/g) ?? []).length, 1);
+  assert.match(
+    page.body,
+    /<form method="post" action="\/oauth\/authorize" id="signin-email-form">/,
+  );
+  assert.match(page.body, /<div id="turnstile-slot"><\/div>/);
+  // Cloudflare's script is loaded by that script on first focus or input,
+  // explicitly rendered, shown only when Cloudflare wants a click.
+  assert.doesNotMatch(page.body, /<script src=/);
+  assert.match(script, /render=explicit&onload=elixirTurnstileLoaded/);
+  assert.match(script, /appearance:"interaction-only"/);
+  assert.match(script, /sitekey:"0x4AAAAAAFW0ZICrZblLsqht"/);
+  assert.match(script, /addEventListener\("focus",load\)/);
+
+  // Observe: the widget's form field rides to the relay; none still sends.
+  const ip = nextIp();
+  let { mail } = await emailStep("ts-oauth@example.com", ask(), ip, {
+    "cf-turnstile-response": "widget-token",
+  });
+  assert.deepEqual(mail.turnstile, { surface: "oauth", token: "widget-token" });
+  ({ mail } = await emailStep("ts-oauth-quiet@example.com", ask(), ip));
+  assert.deepEqual(mail.turnstile, { surface: "oauth", token: "" });
+
+  // Enforce: no token, no mail and no ceiling spent; the page says why
+  // and keeps its Turnstile.
+  process.env.TURNSTILE_MODE = "enforce";
+  const victimIp = nextIp();
+  for (let i = 0; i < SIGNIN_MAIL_PER_IP_HOUR + 1; i += 1) {
+    const refused = await emailStep("ts-victim@example.com", ask(), victimIp);
+    assert.equal(refused.res.statusCode, 403);
+    assert.equal(refused.mail, null);
+    assert.match(refused.res.body, /could not confirm a person asked/);
+    assert.match(refused.res.headers["content-security-policy"], /frame-src/);
+  }
+  ({ mail } = await emailStep("ts-victim@example.com", ask(), victimIp, {
+    "cf-turnstile-response": "a-person",
+  }));
+  assert.deepEqual(mail?.turnstile, { surface: "oauth", token: "a-person" });
+  assert.ok(await signinMailFromAllowed(db, victimIp), "the hour is intact");
+});

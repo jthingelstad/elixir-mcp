@@ -1,13 +1,20 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
+import {
+  ME,
+  SIGNED_OUT,
+  TURNSTILE_TOKEN,
+  mockApi,
+  signedIn,
+} from "./fixtures.ts";
 
 test("public signup verifies email and returns to the requested Console step", async ({
   page,
 }) => {
   let authed = false,
     sends = 0,
-    sentTag: unknown;
+    sentTag: unknown,
+    sentToken: unknown;
   await mockApi(
     page,
     signedIn({
@@ -20,6 +27,7 @@ test("public signup verifies email and returns to the requested Console step", a
       "POST /api/auth": (route) => {
         sends++;
         sentTag = route.request().postDataJSON().player_tag;
+        sentToken = route.request().postDataJSON().turnstile_token;
         return [200, { ok: true }];
       },
       "POST /api/auth/code": () => {
@@ -43,6 +51,8 @@ test("public signup verifies email and returns to the requested Console step", a
   ).toBeVisible();
   // The server normalizes and freezes it; the browser only carries it.
   expect(sentTag).toBe("#2pyq8gj0");
+  // The page's Turnstile token rides the send (the stand-in's, here).
+  expect(sentToken).toBe(TURNSTILE_TOKEN);
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   // A remembered return_to still wins over the new account's landing.

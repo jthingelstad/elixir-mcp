@@ -44,7 +44,12 @@ test("the model relay can distinguish unwritten replies without reading other ou
     role,
     /Action: s3:ListBucket\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\n\s+Condition:\n\s+StringLike:\n\s+s3:prefix:\n\s+- clan-model\/reply\/\*\n\s+- clan-model\/claim\/\*\n\s+- clan-discord\/reply\/\*\n\s+- clan-discord\/claim\/\*\n\s+- timeline-discord-state\/\*\n\s+NumericLessThanEquals:\n\s+s3:max-keys: "1"/,
   );
-  assert.equal((role.match(/Action: s3:ListBucket/g) ?? []).length, 1);
+  // The other list: Turnstile's kept verdicts, one exact key at a time.
+  assert.match(
+    role,
+    /Action: s3:ListBucket\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\n\s+Condition:\n\s+StringLike:\n\s+s3:prefix: mail-delivery\/turnstile\/\*\n\s+NumericLessThanEquals:\n\s+s3:max-keys: "1"/,
+  );
+  assert.equal((role.match(/Action: s3:ListBucket/g) ?? []).length, 2);
   assert.match(
     role,
     /Action: s3:GetObject\n\s+Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-\$\{AWS::AccountId\}\/clan-model\/\*/,
@@ -981,6 +986,53 @@ test("the private sealing secret is limited to the web API, the morning run, the
       []
     ).length,
     4,
+  );
+});
+
+test("Turnstile: only the relay holds the secret, only once the app secret carries it; the doors and relay share one mode", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const functions = [
+    ...template.matchAll(/^  (\w+(?:Function|Revision)):\n/gm),
+  ];
+  const holding = (re) =>
+    functions
+      .filter((entry, index) =>
+        re.test(template.slice(entry.index, functions[index + 1]?.index)),
+      )
+      .map((entry) => entry[1]);
+  // The doors reach only the NAT-free VPC; the relay is the one function
+  // that can ask Cloudflare, so it alone holds the secret.
+  assert.deepEqual(holding(/TURNSTILE_SECRET_KEY:/), ["EmailRelayFunction"]);
+  assert.match(
+    template,
+    /TURNSTILE_SECRET_KEY: !If\n\s+- HasTurnstileKey\n.+turnstile_secret_key\}\}"\n\s+- !Ref AWS::NoValue/,
+  );
+  assert.match(
+    template,
+    /^  HasTurnstileKey: !Equals \[!Ref TurnstileKeyInSecret, "true"\]$/m,
+  );
+  assert.deepEqual(holding(/TURNSTILE_MODE: !Ref TurnstileMode/), [
+    "WebApiWebRevision",
+    "McpWebRevision",
+    "EmailRelayFunction",
+  ]);
+  assert.match(
+    template,
+    /^  TurnstileMode:\n {4}Type: String\n {4}Default: observe$/m,
+  );
+  for (const key of ["TurnstileKeyInSecret", "TurnstileMode"])
+    assert.ok(PRESERVED_PARAMETERS.includes(key), key);
+  // The relay keeps verdicts under its own prefix, and nothing else.
+  const relayRole = resource(
+    template,
+    "EmailRelayRole",
+    "SenderConfigurationSet",
+  );
+  assert.match(relayRole, /mail-delivery\/turnstile\/\*/);
+  // The site's CSP lets the console load Cloudflare's script and frame.
+  assert.match(
+    template,
+    /script-src 'self' https:\/\/tinylytics\.app https:\/\/challenges\.cloudflare\.com;\n\s+frame-src https:\/\/challenges\.cloudflare\.com;/,
   );
 });
 

@@ -31,17 +31,21 @@ export const api = {
   // browser will not say, and the account starts at UTC.
   // `playerTag` is the signup form's optional tag, sent only when given;
   // the server normalizes it and applies it after the email is proved.
+  // `turnstileToken` is the page's Turnstile token (turnstile.js), left
+  // out when Cloudflare gave none; the server records which.
   sendLoginEmail: (
     email,
     newsletterOptIn = true,
     timezone = null,
     playerTag = "",
+    turnstileToken = "",
   ) =>
     request("POST", "/api/auth", {
       email,
       newsletter_opt_in: newsletterOptIn,
       ...(timezone ? { timezone } : {}),
       ...(playerTag?.trim() ? { player_tag: playerTag.trim() } : {}),
+      ...(turnstileToken ? { turnstile_token: turnstileToken } : {}),
     }),
   redeemToken: (token) => request("POST", "/api/auth/redeem", { token }),
   redeemCode: (email, code) =>

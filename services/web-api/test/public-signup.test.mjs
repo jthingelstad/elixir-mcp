@@ -917,3 +917,63 @@ test("a signup tag Elixir has never seen is claimed; its clan waits for the firs
     0,
   );
 });
+
+test("Turnstile: observe carries the page's token to the relay and refuses nobody; enforce refuses a missing token before any ceiling counts it", async (t) => {
+  const was = process.env.TURNSTILE_MODE;
+  t.after(() => {
+    if (was === undefined) delete process.env.TURNSTILE_MODE;
+    else process.env.TURNSTILE_MODE = was;
+  });
+  const lines = [];
+  t.mock.method(console, "log", (line) => {
+    try {
+      lines.push(JSON.parse(line));
+    } catch {
+      // Not an auth line.
+    }
+  });
+  const send = async (email, extra = {}) => {
+    const before = mails.length;
+    const response = await handler(
+      event("/api/auth", { email, ...extra }, null, "203.0.113.77"),
+    );
+    return { response, mail: mails.length > before ? mails.at(-1) : null };
+  };
+
+  delete process.env.TURNSTILE_MODE; // observe is the default
+  let { mail } = await send("ts-human@example.com", {
+    turnstile_token: "page-token",
+  });
+  assert.deepEqual(mail.turnstile, { surface: "web", token: "page-token" });
+  ({ mail } = await send("ts-quiet@example.com"));
+  assert.deepEqual(
+    mail.turnstile,
+    { surface: "web", token: "" },
+    "no token still sends; the relay records it as missing",
+  );
+  assert.deepEqual(
+    lines
+      .filter((l) => l.auth === "signin_code_issued")
+      .map((l) => l.turnstile),
+    ["token", "missing"],
+  );
+
+  process.env.TURNSTILE_MODE = "enforce";
+  // A bot without a token, many times over: refused, and the person's
+  // own hour of sign-in mail is untouched.
+  for (let i = 0; i < 6; i += 1) {
+    const refused = await send("ts-victim@example.com");
+    assert.equal(refused.response.statusCode, 403);
+    assert.equal(parse(refused.response).error, "turnstile_failed");
+    assert.equal(refused.mail, null);
+  }
+  ({ mail } = await send("ts-victim@example.com", {
+    turnstile_token: "real-person",
+  }));
+  assert.deepEqual(mail?.turnstile, { surface: "web", token: "real-person" });
+  assert.equal(lines.filter((l) => l.auth === "turnstile_refused").length, 6);
+
+  process.env.TURNSTILE_MODE = "off";
+  ({ mail } = await send("ts-off@example.com", { turnstile_token: "x" }));
+  assert.equal(mail.turnstile, null, "off carries nothing to check");
+});

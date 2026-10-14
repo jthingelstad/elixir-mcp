@@ -22,6 +22,8 @@ import {
   signinAddress,
   viewerIp,
   accountZone,
+  turnstileAtDoor,
+  TURNSTILE_REFUSED_MESSAGE,
 } from "@elixir-mcp/auth";
 import { normalizeTag } from "@elixir-mcp/contracts";
 
@@ -90,6 +92,22 @@ export function authRoutes({
           }
         }
       }
+      // Turnstile (2026-10-14): the token rides the login message to the
+      // relay, which asks Cloudflare (this door has no internet). Only a
+      // missing token under enforce is refused here, before either
+      // ceiling counts it, so a bot cannot spend a person's hour.
+      const turnstile = turnstileAtDoor(body, "web");
+      if (turnstile.refuse) {
+        authLog("turnstile_refused", {
+          email: emailRef(emailHash(email)),
+          door: "web",
+          turnstile: turnstile.seen,
+        });
+        return json(403, {
+          error: "turnstile_failed",
+          message: TURNSTILE_REFUSED_MESSAGE,
+        });
+      }
       // Both ceilings are shared with the OAuth door's sign-in, which
       // opens accounts too (auth rate-limit.mjs).
       const okIp = await signinMailFromAllowed(db, ip);
@@ -105,6 +123,7 @@ export function authRoutes({
         authLog("signin_mail_limited", {
           email: emailRef(emailHash(email)),
           by: okIp ? "address" : "ip",
+          turnstile: turnstile.seen,
         });
         return json(200, {
           ok: true,
@@ -127,7 +146,10 @@ export function authRoutes({
              where account_id = $1 and email is distinct from $2`,
               [account.account_id, email.toLowerCase()],
             );
-          authLog("signin_code_issued", { email: emailRef(emailHash(email)) });
+          authLog("signin_code_issued", {
+            email: emailRef(emailHash(email)),
+            turnstile: turnstile.seen,
+          });
           const { token, code } = await startMagicLogin(db, {
             emailHash: emailHash(email),
             purpose: "web",
@@ -158,6 +180,7 @@ export function authRoutes({
             token,
             ipAddress: viewerIp(event),
             purpose: "web",
+            turnstile: turnstile.carry,
             // Existing accounts keep their saved choice. A new account's
             // checkbox is applied only after proof, on the welcome send.
             newsletter:

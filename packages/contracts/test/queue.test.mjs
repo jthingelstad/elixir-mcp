@@ -151,3 +151,36 @@ test("outbox: an S3 notification names its objects; a test event names none; a p
     null,
   );
 });
+
+test("a login may carry its page's Turnstile token; nothing else may", () => {
+  const login = { v: 1, kind: "login", to: "a@x.com", code: "123456" };
+  assert.equal(validateEmailMessage(login).ok, true, "before 2026-10-14");
+  for (const surface of ["web", "oauth"])
+    for (const token of ["tok", ""])
+      assert.equal(
+        validateEmailMessage({ ...login, turnstile: { surface, token } }).ok,
+        true,
+        `${surface} ${token ? "token" : "missing"}`,
+      );
+  for (const turnstile of [
+    null,
+    "tok",
+    { surface: "elsewhere", token: "tok" },
+    { surface: "web" },
+    { surface: "web", token: "x".repeat(2049) },
+  ])
+    assert.deepEqual(
+      validateEmailMessage({ ...login, turnstile }).errors,
+      ["turnstile:invalid"],
+      JSON.stringify(turnstile)?.slice(0, 40),
+    );
+  assert.deepEqual(
+    validateEmailMessage({
+      v: 1,
+      kind: "welcome",
+      to: "a@x.com",
+      turnstile: { surface: "web", token: "tok" },
+    }).errors,
+    ["turnstile:not-login"],
+  );
+});

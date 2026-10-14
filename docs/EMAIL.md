@@ -31,6 +31,44 @@ have no live viewer address; they omit the field. Enrollment remains
 best-effort and an existing address, including an unsubscribe, is left
 alone. See [Buttondown's subscriber API](https://docs.buttondown.com/api-subscribers-create).
 
+### Turnstile on sign-in mail
+
+The two doors that mail an address someone typed (`POST /api/auth` and
+the OAuth door's email step) take a Cloudflare Turnstile token, against
+subscription bombing (Jamie, 2026-10-14). The other mail is safe without
+it: welcome goes only after a proved code, `request-access` mails only
+the owner and only for a new row, and every report goes to an account's
+own verified address. The doors cannot reach Cloudflare from the
+NAT-free VPC, so a login message carries `turnstile: { surface, token }`
+(`packages/contracts/src/queue.ts`) and the relay, the one function with
+internet, calls siteverify before it sends.
+
+- **Modes** (`packages/auth/src/turnstile.mjs`, `TURNSTILE_MODE` from
+  the `TurnstileMode` parameter on all three functions): `observe`
+  records and refuses nothing; `enforce` refuses a missing token at the
+  door (403 `turnstile_failed`, before the mail ceilings count it) and
+  drops a `fail` at the relay (acknowledged as sent, so never retried);
+  `off`. `error` and `unconfigured` always send.
+- **One token, one address, five minutes, three sends.** Tokens are
+  single-use at Cloudflare and "Send another email" resends with the
+  token the page holds, so the first verdict is kept at
+  `mail-delivery/turnstile/<sha256 of token>.json` in the outbox bucket
+  with the address's hash and its sends (conditional writes; a lost
+  race takes the first verdict). A queue retry of one outbox object is
+  the same send. A store failure is logged and never blocks.
+- **Pages.** The website's form loads Cloudflare's script on the email
+  field's first focus or input (`apps/web/src/turnstile.js`); the OAuth
+  page does the same from one inline script allowed by its hash in that
+  page's own CSP. Both render explicitly, `interaction-only`, wait five
+  seconds for a token (two minutes while a challenge shows) and send
+  without one when Cloudflare cannot be had. The edge CSP allows
+  `challenges.cloudflare.com` in `script-src` and `frame-src`.
+- **The record** is `turnstile_checked` in the relay's log, one line per
+  sign-in mail; reading it is in docs/OPERATIONS.md, "Sign-in
+  Turnstile". The secret is `turnstile_secret_key` (docs/SECRETS.md).
+- **Tests** never load Cloudflare: vitest's `test/setup-turnstile.js`
+  and Playwright's `stubTurnstile` (in `mockApi`) answer for it.
+
 ### One-click unsubscribe
 
 The validator refuses a bulk message without `unsubscribe.url`.

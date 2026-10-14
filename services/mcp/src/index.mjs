@@ -38,7 +38,14 @@ const handler = makeHandler({
   notifyOwner: outbox
     ? (spec) => outbox("email", ownerNotifyMessage(spec))
     : null,
-  sendLoginEmail: ({ email, code, clientName, newsletter, ipAddress }) =>
+  sendLoginEmail: ({
+    email,
+    code,
+    clientName,
+    newsletter,
+    ipAddress,
+    turnstile,
+  }) =>
     outbox("email", {
       v: 1,
       kind: "login",
@@ -47,6 +54,8 @@ const handler = makeHandler({
       client_name: clientName,
       newsletter,
       ...(newsletter && ipAddress ? { ip_address: ipAddress } : {}),
+      // The page's token, for the relay to verify (auth turnstile.mjs).
+      ...(turnstile ? { turnstile } : {}),
     }),
   // The same welcome the site API queues when a code opens an account
   // (2026-10-12: this door opens accounts too).

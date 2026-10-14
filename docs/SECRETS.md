@@ -12,6 +12,7 @@ the steps that need a value are Jamie's, in the Secrets Manager console.
 | `db_password` | app secret; the RDS master password | the seven database functions and the `Database` resource | Database password |
 | `buttondown_api_token` | app secret | email-relay | Any other app-secret key |
 | `clan_sealing_secret` | app secret | web-api, email-relay, jobs (`CLAN_MODEL_SECRET`, when `ClanInternal=true`): seals Clan's stored model keys and Discord webhooks, the timeline's Discord webhooks, and the outbox requests that carry them | Clan sealing secret |
+| `turnstile_secret_key` | app secret; the secret of Cloudflare Turnstile widget "Elixir sign-in" | email-relay, when `TurnstileKeyInSecret=true` | Turnstile secret key |
 | `OriginSecret` | a NoEcho stack parameter | CloudFront sends it; web-api, mcp and collector require it | Origin secret |
 
 **CloudFormation reads a secret only when the resource holding the
@@ -42,6 +43,27 @@ secrets.
 
 Do this before the first session rotation. The links sent before it stay
 tied to the session secret until that secret's previous value is dropped.
+
+## Turnstile secret key (once)
+
+The email relay verifies each sign-in email's Turnstile token with
+Cloudflare (docs/EMAIL.md). Until it holds the widget's secret, every
+check is recorded as `unconfigured` and the mail is sent.
+
+1. Jamie, in the Cloudflare dashboard: Turnstile, widget "Elixir
+   sign-in" (sitekey `0x4AAAAAAFW0ZICrZblLsqht`), Settings: copy the
+   secret key.
+2. Jamie, in the AWS console (us-east-1): Secrets Manager,
+   `elixir-mcp/app`, Retrieve secret value, Edit. Add the key
+   `turnstile_secret_key` with that value, Save.
+3. Deploy with `--param=TurnstileKeyInSecret=true`.
+4. Check: the relay's next `turnstile_checked` line has a `result` other
+   than `unconfigured` (docs/OPERATIONS.md).
+
+To rotate it, rotate the secret in Cloudflare, put the new value in the
+same key, and deploy with `--param=SecretEpoch=<YYYY-MM-DD>`. Checks made
+between the two fail as `error` (Cloudflare refuses the old secret), and
+`error` never refuses a mail.
 
 ## Session secret
 

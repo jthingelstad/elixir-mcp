@@ -199,9 +199,17 @@ check(
   ),
 );
 check(
-  "app shell CSP allows only tinylytics as third-party script",
+  "app shell CSP allows only tinylytics and Turnstile as third-party script",
   (appShell.headers.get("content-security-policy") ?? "").includes(
-    "script-src 'self' https://tinylytics.app",
+    "script-src 'self' https://tinylytics.app https://challenges.cloudflare.com;",
+  ),
+);
+// The sign-in form's Turnstile is an iframe from Cloudflare (2026-10-14);
+// read from a header only, never by loading Cloudflare's script.
+check(
+  "app shell CSP frames only Turnstile",
+  (appShell.headers.get("content-security-policy") ?? "").includes(
+    "frame-src https://challenges.cloudflare.com;",
   ),
 );
 

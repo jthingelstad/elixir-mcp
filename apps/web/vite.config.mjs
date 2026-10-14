@@ -14,5 +14,7 @@ export default defineConfig({
     globals: false,
     // Playwright's journeys live in e2e/ and run under its own runner.
     exclude: ["e2e/**", "node_modules/**"],
+    // A stand-in for Cloudflare's Turnstile script (src/turnstile.js).
+    setupFiles: ["test/setup-turnstile.js"],
   },
 });

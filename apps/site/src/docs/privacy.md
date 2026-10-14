@@ -59,13 +59,26 @@ with its own off switch. Every mail has a way to stop it, and a stop is
 never undone by the service. Mail is counted by issue (how many were
 opened, which links were clicked), never by who opened it.
 
+**Sign-in check.** The sign-in forms, on this site and on the page an
+app sends you to when it connects to Elixir, use Cloudflare
+[Turnstile](https://www.cloudflare.com/application-services/products/turnstile/)
+to tell a person from a script that types someone else's address. Its
+script loads when you start typing your email, and it is usually
+invisible; Cloudflare may ask for a click. Cloudflare sees your browser
+and its IP address, under its own
+[privacy policy](https://www.cloudflare.com/privacypolicy/). Elixir
+sends Cloudflare only the check's token, never your email address, and
+keeps whether the check passed in its sign-in logs, beside a shortened
+fingerprint of the address rather than the address itself.
+
 **Counting visits.** Pages use [Tinylytics](https://tinylytics.app), a
 small, cookie-free analytics service, to count visits and errors in
 aggregate. No account is attached to a visit.
 
 **Services Elixir uses.** Elixir runs on Amazon Web Services in the
 United States, which also delivers its account mail. Buttondown holds
-and sends the newsletter, and Tinylytics does the counting.
+and sends the newsletter, Tinylytics does the counting, and Cloudflare
+Turnstile checks the sign-in forms.
 Fonts are served from this site, so reading a page tells no one else
 what you read.
 
