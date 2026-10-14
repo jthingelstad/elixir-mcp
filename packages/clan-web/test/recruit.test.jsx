@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Recruit } from "../src/views/Recruit.jsx";
 import { manageApi } from "../src/api.js";
@@ -63,15 +70,25 @@ describe("recruit", () => {
     const write = vi.fn().mockResolvedValue();
     Object.assign(navigator, { clipboard: { writeText: write } });
     renderWithProviders(<Recruit clan={poap} />);
-    expect(await screen.findByText(/47 members · 3 open/)).toBeTruthy();
-    expect(screen.getByText(/5,000 trophies · invite only/)).toBeTruthy();
+    const facts = await screen.findByRole("group", {
+      name: "Recruiting facts",
+    });
+    expect(within(facts).getByText(/47 members · 3 open/)).toBeTruthy();
+    expect(
+      within(facts).getByText(/5,000 trophies · invite only/),
+    ).toBeTruthy();
     expect(screen.getByText("Steady wars, friendly chat")).toBeTruthy();
+    const personal = screen.getByLabelText("Personal note");
+    expect(personal.value).toMatch(/^Subject: Join Example Clan/);
+    fireEvent.change(personal, { target: { value: "My personal note" } });
+    fireEvent.change(screen.getByLabelText("Format"), {
+      target: { value: "post" },
+    });
+    expect(screen.queryByLabelText("Personal note")).toBeNull();
     const post = screen.getByLabelText("Public post");
     expect(post.value).toMatch(/^Title: Example Clan #2PQRJ8LV - .* \[5000\]/);
     expect(post.value).toMatch(/Required Trophies: \[5000\]/);
-    expect(screen.getByLabelText("Personal note").value).toMatch(
-      /^Subject: Join Example Clan/,
-    );
+
     expect(screen.queryByLabelText("Discord post")).toBeNull();
     expect(screen.queryByLabelText("Reddit post")).toBeNull();
     fireEvent.change(post, { target: { value: "my own words" } });
@@ -82,6 +99,12 @@ describe("recruit", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reset" }));
     expect(screen.getByLabelText("Public post").value).toMatch(
       /Required Trophies/,
+    );
+    fireEvent.change(screen.getByLabelText("Format"), {
+      target: { value: "personal" },
+    });
+    expect(screen.getByLabelText("Personal note").value).toBe(
+      "My personal note",
     );
     expect(screen.queryByText("edit the pitch")).toBeNull();
   });
@@ -106,7 +129,11 @@ describe("recruit", () => {
     });
     renderWithProviders(<Recruit clan={poap} />);
     expect(await screen.findByText(/fresh read queued/)).toBeTruthy();
-    expect(screen.getByText(/not in the record yet/)).toBeTruthy();
+    expect(
+      within(screen.getByRole("group", { name: "Recruiting facts" })).getByText(
+        /not in the record yet/,
+      ),
+    ).toBeTruthy();
     expect(
       screen.getByText(/Check before posting: the post title carries/),
     ).toBeTruthy();
@@ -145,4 +172,43 @@ describe("recruit", () => {
     expect(railItems(me).map((r) => r.key)).toContain("recruit");
     expect(railKey("/clan/2PQRJ8LV/recruit")).toBe("recruit");
   });
+});
+
+test("a public-copy refresh leaves an unchanged personal source's draft intact", async () => {
+  const d = view();
+  const read = vi
+    .spyOn(manageApi, "recruit")
+    .mockResolvedValue({ ok: true, status: 200, data: d });
+  const { queryClient } = renderWithProviders(<Recruit clan={poap} />);
+  fireEvent.change(await screen.findByLabelText("Personal note"), {
+    target: { value: "Keep this personal draft" },
+  });
+  read.mockResolvedValue({
+    ok: true,
+    status: 200,
+    data: {
+      ...d,
+      copy: {
+        ...d.copy,
+        post: { title: "Updated title", body: "Updated public source" },
+      },
+    },
+  });
+  await act(async () => {
+    await queryClient.invalidateQueries();
+  });
+  fireEvent.change(screen.getByLabelText("Format"), {
+    target: { value: "post" },
+  });
+  await waitFor(() =>
+    expect(screen.getByLabelText("Public post").value).toContain(
+      "Updated public source",
+    ),
+  );
+  fireEvent.change(screen.getByLabelText("Format"), {
+    target: { value: "personal" },
+  });
+  expect(screen.getByLabelText("Personal note").value).toBe(
+    "Keep this personal draft",
+  );
 });

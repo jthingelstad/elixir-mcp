@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { mockApi, signedIn } from "./fixtures.ts";
 
 /** Account › Emails from Elixir, the ConsoleEmails board (2026-10-02):
- *  the week by the day each email arrives, the two that come when
+ *  each kind with its local schedule, the kinds that come when
  *  something happens, the last few sent, and Every email. */
 
 /** Nothing serious or critical. */
@@ -84,13 +84,14 @@ async function open(page: Page) {
   return puts;
 }
 
-test("the week, the two that come when something happens, and a switch that writes", async ({
+test("scheduled and event-driven mail, with a switch that writes", async ({
   page,
 }) => {
   const puts = await open(page);
-  const week = page.getByRole("region", { name: "Your week in email" });
+  const week = page.getByRole("region", { name: "Scheduled" });
   await expect(week.getByText("Your week in the Arena")).toBeVisible();
-  await expect(week.getByText("nothing")).toHaveCount(3);
+  await expect(week.getByRole("listitem")).toHaveCount(4);
+  await expect(week.getByText("nothing")).toHaveCount(0);
   await expect(page.getByRole("switch", { name: "Top 100 email" })).toHaveCount(
     0,
   );
@@ -118,7 +119,7 @@ test("the week, the two that come when something happens, and a switch that writ
   );
 });
 
-test("@narrow the week stacks to one column and nothing scrolls sideways", async ({
+test("@narrow mail rows stack without horizontal scrolling", async ({
   page,
 }) => {
   await open(page);

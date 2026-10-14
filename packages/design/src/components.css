@@ -2197,11 +2197,7 @@ input[aria-invalid="true"] {
   opacity: 0.5;
 }
 
-/* ── Emails from Elixir (Account › Email) ─────────────────────
-   The ConsoleEmails board: the week laid out by the day each email
-   arrives in the reader's zone, the two that come when something
-   happens, and the last few sent. Each email wears the product chip its
-   mail's pill wears (Clan, Ladder, Friends, Cards, Collectors). */
+/* Email preferences and sent records. */
 .mailprefs__head {
   display: flex;
   align-items: flex-end;
@@ -2236,159 +2232,8 @@ input[aria-invalid="true"] {
   font-size: 12px;
   color: var(--ink-faint);
 }
-.mail-src {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 20px;
-  padding: 0 8px;
-  border-radius: var(--r-pill);
-  background: var(--panel-raised);
-  border: 1px solid var(--line);
-  color: var(--accent-bright);
-  font-size: 11.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.mailweek {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 12px;
-  padding: 16px 18px;
-}
-.mailweek__day {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-.mailweek__dow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.mailweek__dow--today {
-  color: var(--ink);
-}
-.mailweek__today {
-  padding: 1px 8px;
-  font-size: 10.5px;
-  letter-spacing: 0;
-  text-transform: none;
-}
-.mailweek__none {
-  flex-grow: 1;
-  min-height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-block);
-  border: 1px dashed var(--line-soft);
-  font-size: 12.5px;
-  color: var(--ink-faint);
-}
-.mailcard {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-grow: 1;
-  padding: 12px;
-  border-radius: var(--r-block);
-  background: var(--panel-raised);
-  border: 1px solid var(--line);
-}
-/* The switch keeps its size; in a narrow day column it goes above the
-   product chip rather than squeezing it (wrap-reverse puts the second
-   line on top). */
-.mailcard__top {
-  display: flex;
-  flex-wrap: wrap-reverse;
-  align-items: center;
-  gap: 8px;
-}
 .mailprefs .switch {
   flex-shrink: 0;
-}
-.mailcard__top .switch {
-  margin-left: auto;
-}
-.mailcard__name {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--ink);
-}
-.mailcard__what {
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--ink-body);
-}
-.mailcard__note {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--ink-faint);
-}
-.mailcard__link {
-  margin-top: auto;
-  font-size: 12.5px;
-}
-/* An email this account cannot get (a collector's, with none running):
-   shown, switch and all, but quiet. Quiet is the card's edge and its
-   name, never opacity: faded text fails contrast. */
-.mailcard--na {
-  background: transparent;
-  border-style: dashed;
-}
-.mailcard--na .mailcard__name,
-.mailhappen--na .mailhappen__name {
-  color: var(--ink-dim);
-}
-.mailprefs__split {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-.mailhappen {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line-soft);
-}
-.mailhappen:last-child {
-  border-bottom: 0;
-}
-.mailhappen__icon {
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-control);
-  background: var(--panel-raised);
-  color: var(--accent-bright);
-}
-.mailhappen__body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex-grow: 1;
-  min-width: 0;
-}
-.mailhappen__name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--ink);
 }
 .mailsent {
   display: flex;
@@ -2419,29 +2264,6 @@ input[aria-invalid="true"] {
 .mailsent:hover .mailsent__subject {
   color: var(--ink);
 }
-@media (max-width: 1180px) {
-  .mailweek {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .mailweek__day--empty {
-    display: none;
-  }
-}
-@media (max-width: 860px) {
-  .mailprefs__split {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-@media (max-width: 600px) {
-  .mailweek {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 14px;
-  }
-  .mailweek__none {
-    min-height: 0;
-  }
-}
-
 /* Quota / slot meters */
 
 /* ── Notices and empty states ─────────────────────────────── */
@@ -7239,4 +7061,124 @@ button.ladder-player__head:hover {
   max-width: 100%;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* Email choices use the same reading rows on every screen. */
+.mail-pref {
+  margin-block: 28px;
+}
+.mail-pref__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.mail-pref__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 230px) auto;
+  gap: 18px;
+  align-items: center;
+  padding-block: 15px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.mail-pref__body {
+  min-width: 0;
+}
+.mail-pref__name {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.mail-pref__what,
+.mail-pref__note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+.mail-pref__note,
+.mail-pref__when,
+.mail-pref__last {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.mail-pref__last {
+  display: inline-block;
+  margin-top: 5px;
+  color: var(--ink-link);
+}
+.mail-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink-faint);
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .mail-pref__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 14px;
+    row-gap: 5px;
+  }
+  .mail-pref__row > .switch {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .mail-pref__when {
+    grid-column: 1;
+  }
+}
+.mail-pref .section-title {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.recruit-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 13.5px;
+  color: var(--ink-dim);
+}
+.recruit-copy__tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+.recruit-copy__tools select {
+  min-width: 210px;
+}
+.recruit-copy__text {
+  width: 100%;
+  font-family: inherit;
+  line-height: 1.65;
+}
+.recruit-context {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+}
+.recruit-context .disclosure {
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .recruit-copy__tools select {
+    min-width: 180px;
+  }
+}
+@media (max-width: 600px) {
+  .mailprefs__head .mailall {
+    width: 100%;
+    justify-content: space-between;
+  }
 }

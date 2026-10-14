@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { ActivityDiscordSetting } from "../src/views/ActivityDiscordSetting.jsx";
 import { ActivityDiscord } from "../src/views/ActivityDiscord.jsx";
@@ -50,6 +57,13 @@ const view = (extra = {}) => ({
 });
 
 const ok = (data) => ({ ok: true, status: 200, data });
+
+async function openEditor(title) {
+  fireEvent.click(
+    await screen.findByRole("button", { name: `Manage ${title}` }),
+  );
+  return screen.getByRole("dialog", { name: title });
+}
 
 describe("the clan's activity in Discord", () => {
   test("the channel's last deliveries show each line as posted, marked when the clan's model wrote it", async () => {
@@ -113,6 +127,7 @@ describe("the clan's activity in Discord", () => {
       .spyOn(manageApi, "saveActivityDiscord")
       .mockResolvedValue(ok(view()));
     renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+    await openEditor("What is posted");
     const war = await screen.findByLabelText("Clan Wars");
     expect(war.disabled).toBe(true);
     expect(screen.getByText(/does not take part in Clan Wars/)).toBeTruthy();
@@ -138,6 +153,7 @@ describe("the clan's activity in Discord", () => {
     vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(ok(view()));
     const navigate = vi.fn();
     renderWithProviders(<ActivityDiscord clan={clan} navigate={navigate} />);
+    await openEditor("Channel voice");
     expect(
       await screen.findByText(/add the clan’s Anthropic API key/),
     ).toBeTruthy();
@@ -165,6 +181,7 @@ describe("the clan's activity in Discord", () => {
       .spyOn(manageApi, "saveActivityDiscord")
       .mockResolvedValue(ok(view()));
     renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+    await openEditor("Channel voice");
     fireEvent.click(
       await screen.findByLabelText("Have the clan’s model edit the channel"),
     );
@@ -260,6 +277,7 @@ describe("the clan's activity in Discord", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+      await openEditor("Channel voice");
       fireEvent.change(
         await screen.findByLabelText("How the posts should sound"),
         {
@@ -326,7 +344,7 @@ describe("the clan's activity in Discord", () => {
     expect(
       await screen.findByText(/Discord stopped accepting this webhook/),
     ).toBeTruthy();
-    expect(screen.getByText("not posting")).toBeTruthy();
+    expect(screen.getByText("Not posting · Connected")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Resume posting" })).toBeNull();
   });
 });
@@ -376,6 +394,151 @@ describe("Social ▸ Discord in the rail", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Discord" }),
     ).toBeTruthy();
+    await openEditor("What is posted");
     expect(await screen.findByText("Clan Wars")).toBeTruthy();
   });
 });
+
+test.each(["Close", "Escape"])(
+  "closed activity webhook drafts are discarded through %s, and pending writes remain guarded",
+  async (dismiss) => {
+    vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(ok(view()));
+    let finish;
+    const save = vi.spyOn(manageApi, "saveActivityDiscord").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+    const dialog = await openEditor("Activity channel");
+    fireEvent.change(screen.getByLabelText("Replace it with another webhook"), {
+      target: { value: HOOK },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Connect", exact: true }),
+    );
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    if (dismiss === "Close")
+      fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+    else
+      fireEvent(
+        dialog,
+        new Event("cancel", { bubbles: true, cancelable: true }),
+      );
+    await openEditor("Activity channel");
+    expect(screen.getByLabelText("Replace it with another webhook").value).toBe(
+      "",
+    );
+    expect(screen.getByRole("button", { name: "Pause posting" }).disabled).toBe(
+      true,
+    );
+    await act(async () => {
+      finish({
+        ok: false,
+        status: 400,
+        data: { message: "Old request failed" },
+      });
+    });
+    expect(screen.queryByText("Old request failed")).toBeNull();
+    expect(screen.getByRole("button", { name: "Pause posting" }).disabled).toBe(
+      false,
+    );
+  },
+);
+
+test("closing the voice editor discards its unsaved text", async () => {
+  const d = view({
+    model: {
+      available: true,
+      set: true,
+      refused: false,
+      name: "Claude Sonnet 5.5",
+    },
+  });
+  d.connection.voice = "Saved voice";
+  vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(ok(d));
+  const save = vi.spyOn(manageApi, "saveActivityDiscord");
+  renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+  await openEditor("Channel voice");
+  fireEvent.change(screen.getByLabelText("How the posts should sound"), {
+    target: { value: "Unsaved voice" },
+  });
+  fireEvent(
+    screen.getByRole("dialog"),
+    new Event("cancel", { bubbles: true, cancelable: true }),
+  );
+  await openEditor("Channel voice");
+  expect(screen.getByLabelText("How the posts should sound").value).toBe(
+    "Saved voice",
+  );
+  expect(save).not.toHaveBeenCalled();
+});
+
+test("a pending preview cannot be submitted again after reopening the voice editor", async () => {
+  vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
+    ok(
+      view({
+        model: {
+          available: true,
+          set: true,
+          refused: false,
+          name: "Claude Sonnet 5.5",
+        },
+      }),
+    ),
+  );
+  let finish;
+  const preview = vi
+    .spyOn(manageApi, "previewActivityDiscord")
+    .mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+  renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+  await openEditor("Channel voice");
+  fireEvent.click(
+    screen.getByRole("button", { name: "Preview the last 5 in this voice" }),
+  );
+  await waitFor(() => expect(preview).toHaveBeenCalledOnce());
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  await openEditor("Channel voice");
+  expect(
+    screen.getByRole("button", { name: "Preview the last 5 in this voice" })
+      .disabled,
+  ).toBe(true);
+  await act(async () => {
+    finish(ok({ empty: true }));
+  });
+  expect(
+    screen.getByRole("button", { name: "Preview the last 5 in this voice" })
+      .disabled,
+  ).toBe(false);
+  expect(
+    screen.queryByText(
+      "Nothing from the last week would be posted to preview.",
+    ),
+  ).toBeNull();
+});
+
+test.each(["policy", "categories"])(
+  "channel status does not claim posting when blocked by %s",
+  async (blocked) => {
+    const d = view();
+    if (blocked === "policy") d.policy.ready = false;
+    else d.in_effect = { members: false, milestones: false, war: false };
+    vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(ok(d));
+    renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+    await screen.findByRole("button", { name: "Manage Activity channel" });
+    expect(screen.queryByText("Posting · Connected")).toBeNull();
+    expect(
+      screen.getByText(
+        blocked === "policy"
+          ? "Not posting · Policy needed"
+          : "Not posting · No categories on",
+      ),
+    ).toBeTruthy();
+  },
+);
