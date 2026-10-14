@@ -117,10 +117,9 @@ even for a full clan: it links the roster rather than printing it.
 ## Turning one off
 
 Each kind has its own switch on [Emails from Elixir](/console/account/profile/email)
-(Account settings ▸ Emails from Elixir), which lays the weekly kinds out on
-your week by the day each arrives, in your time zone, with the two that come
-when something happens below it and the last few sent beside them. **Every
-email** at the top turns them all off, or all back on. Every issue's
+(Account settings ▸ Emails from Elixir). Each scheduled kind shows its local
+day and time beside its switch. Event-driven kinds follow below, then the
+latest sent records. **Every email** turns them all off, or all back on. Every issue's
 footer has a
 *turn off* link for that kind, which opens a page with one button to
 confirm; mail clients that support one-click unsubscribe show their own

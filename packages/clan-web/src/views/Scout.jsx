@@ -89,8 +89,8 @@ export function Scout({ clan }) {
         </button>
       </form>
       <p className="page-head__note" style={{ margin: 0 }}>
-        Two live reads from the game on your own live lane. If Elixir has
-        nothing in hand it queues the read and this page asks again by itself.
+        Reads the player’s profile and battle log from the game using your live
+        allowance.
       </p>
       {state.error ? (
         <div className="callout callout--warn" role="alert">

@@ -1,4 +1,4 @@
-import { Fresh, ago, Tag, TagText } from "@elixir-mcp/ui";
+import { Disclosure, Fresh, ago, Tag, TagText } from "@elixir-mcp/ui";
 import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useAwards } from "../lib/queries.js";
@@ -202,8 +202,7 @@ export function Awards({ clan, navigate }) {
           awardById={awardById}
         />
       )}
-      <section className="panel">
-        <div className="panel__head">How awards work here</div>
+      <Disclosure title="How awards work here">
         <div className="panel__body grid gap-2">
           {d.config.awards.map((a) => (
             <div key={a.id}>
@@ -222,7 +221,7 @@ export function Awards({ clan, navigate }) {
             signed-in app.
           </p>
         </div>
-      </section>
+      </Disclosure>
     </div>
   );
 }

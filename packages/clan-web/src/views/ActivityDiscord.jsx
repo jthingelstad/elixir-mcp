@@ -10,12 +10,12 @@ import { ActivityDiscordSetting } from "./ActivityDiscordSetting.jsx";
  */
 export function ActivityDiscord({ clan, navigate }) {
   return (
-    <div className="grid max-w-[720px] gap-6">
+    <div className="grid gap-5">
       <PageHead
         clan={clan}
         crumb="Discord"
         title="Discord"
-        lede="Post the clan's activity to a Discord channel as it happens: who joins and departs, members' milestones and the Clan Wars week."
+        lede="The clan’s activity, posted as short stories."
         navigate={navigate}
       />
       <ActivityDiscordSetting clan={clan} navigate={navigate} />

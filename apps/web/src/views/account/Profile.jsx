@@ -1,4 +1,4 @@
-import { Icon, Link, useClock } from "@elixir-mcp/ui";
+import { Disclosure, Icon, Link, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useUsage } from "../../lib/queries.js";
@@ -34,9 +34,7 @@ export function Profile({ me, refresh, navigate }) {
       <div style={{ marginBottom: "18px" }}>
         <h1 className="page__title">Profile</h1>
         <p className="page__lede">
-          Who you are signed in as, what your tier records for you, and
-          today&rsquo;s budget. Reading is universal; the tier changes what we
-          record and how much you can call.
+          Your account, preferences and recording limits.
         </p>
       </div>
 
@@ -54,13 +52,9 @@ export function Profile({ me, refresh, navigate }) {
                 </span>
               )
             }
-            note="the address we send mail to; never shown anywhere public"
+            note="Used for sign-in and email."
           />
-          <Field
-            label="Sign-in"
-            value="Email link, or a six-digit code"
-            note="no password to keep"
-          />
+          <Field label="Sign-in" value="Email link, or a six-digit code" />
           <Field
             label="Timezone"
             value={
@@ -93,12 +87,16 @@ export function Profile({ me, refresh, navigate }) {
                 ))}
               </select>
             }
-            note={
-              tzError ??
-              "sets the times this console shows, how a date in a question resolves, local times in tool responses and the days your mail names; storage stays UTC"
-            }
+            note={tzError ?? "Used throughout Elixir."}
           />
         </div>
+        <Disclosure title="Time zone details">
+          <p className="page-head__note m-0">
+            Your zone sets console times, how a date in a question resolves,
+            local times in tool responses and the days your mail names. Storage
+            stays UTC.
+          </p>
+        </Disclosure>
       </section>
 
       {/* Email and Devices are their own pages (Jamie, 2026-09-19):
@@ -110,7 +108,7 @@ export function Profile({ me, refresh, navigate }) {
           to={`${CONSOLE}/account/profile/email`}
           icon="mail"
           title="Emails from Elixir"
-          note="your week in email, each one a switch, and what was sent"
+          note="Preferences and sent records"
         />
         <SubpageLink
           navigate={navigate}
@@ -124,7 +122,7 @@ export function Profile({ me, refresh, navigate }) {
           to={`${CONSOLE}/account/profile/devices`}
           icon="monitor-smartphone"
           title="Devices"
-          note="every session that can act as you, with a sign-out for each"
+          note="Signed-in browsers and devices"
         />
       </section>
 
@@ -345,7 +343,10 @@ function TierLimits({ me, entitlements: e, usage }) {
             <th>What</th>
             <th style={{ textAlign: "right" }}>Using</th>
             <th style={{ textAlign: "right" }}>
-              {String(me?.role ?? "your tier").toUpperCase()} ALLOWS
+              {String(me?.role ?? "Your tier").replace(/^./, (c) =>
+                c.toUpperCase(),
+              )}{" "}
+              allows
             </th>
           </tr>
         </thead>
@@ -412,7 +413,9 @@ function TierPanel({ me, entitlements: e, usage }) {
         </span>
       </div>
       <div className="panel__body">
-        <TierLimits me={me} entitlements={e} usage={usage} />
+        <Disclosure title="Recording and call limits">
+          <TierLimits me={me} entitlements={e} usage={usage} />
+        </Disclosure>
         {next.length > 0 && (
           <ul className="mt-4 mb-0 pl-5 text-[13px] text-ink-body">
             {next.map(([tier, how]) => (

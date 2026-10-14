@@ -1,4 +1,4 @@
-import { Fresh, Icon, noun } from "@elixir-mcp/ui";
+import { Disclosure, Fresh, Icon, noun } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { manageApi } from "../api.js";
 import { useRecruit } from "../lib/queries.js";
@@ -63,148 +63,160 @@ export function Recruit({ clan, navigate }) {
     );
 
   return (
-    <div style={{ display: "grid", gap: "20px" }}>
-      <div className="page-head" style={{ alignItems: "center" }}>
-        <h1 className="page__title">Recruit</h1>
-        <span className="page-head__note">
-          Copy that says what {f?.name ?? clan.name ?? "the clan"} is, with
-          today&rsquo;s numbers. Paste it, or edit it first.
+    <div className="grid gap-5">
+      <h1 className="page__title">Recruit</h1>
+      <div className="recruit-facts" role="group" aria-label="Recruiting facts">
+        <span>
+          {f?.members ?? "?"} {noun(f?.members, "member")}
+          {f ? ` · ${f.open_slots} open` : ""}
         </span>
+        <span>
+          {f?.required_trophies != null
+            ? `${f.required_trophies.toLocaleString()} trophies`
+            : "Entry requirement not in the record yet"}
+          {f?.type
+            ? ` · ${f.type === "inviteOnly" ? "invite only" : f.type}`
+            : ""}
+        </span>
+        {d.facts_read_at ? (
+          <Fresh
+            label="read"
+            seconds={Math.max(0, (now - Date.parse(d.facts_read_at)) / 1000)}
+            ts={d.facts_read_at}
+          />
+        ) : null}
+        {f?.source === "recorded" ? (
+          <span className="page-head__note">From the record</span>
+        ) : null}
       </div>
-
-      <section className="panel">
-        <div className="panel__head" style={{ gap: "8px", flexWrap: "wrap" }}>
-          <span>Today, from the game</span>
-          {d.facts_read_at ? (
-            <Fresh
-              label="read"
-              seconds={Math.max(0, (now - Date.parse(d.facts_read_at)) / 1000)}
-              ts={d.facts_read_at}
-            />
-          ) : null}
-          {d.pending ? (
-            <span className="chip chip--info">
-              fresh read queued · asking again in{" "}
-              {Math.min(60, d.pending.retry_after_s)} s
-            </span>
-          ) : f?.source === "recorded" ? (
-            <span className="chip">from the record</span>
-          ) : null}
-          {d.can_edit ? (
-            <button
-              type="button"
-              className="btn--text"
-              style={{ marginLeft: "auto" }}
-              onClick={() => load(true)}
-            >
-              read again
-            </button>
-          ) : null}
-        </div>
-        <div className="panel__body fields" style={{ rowGap: "6px" }}>
-          <span className="label">Members</span>
-          <span>
-            {f?.members ?? "?"} {noun(f?.members, "member")}
-            {f ? ` · ${f.open_slots} open` : ""}
-          </span>
-          <span className="label">To join</span>
-          <span>
-            {f?.required_trophies !== null && f?.required_trophies !== undefined
-              ? `${f.required_trophies.toLocaleString()} trophies`
-              : "not in the record yet"}
-            {f?.type
-              ? ` · ${f.type === "inviteOnly" ? "invite only" : f.type}`
-              : ""}
-          </span>
-          <span className="label">Clan numbers</span>
-          <span>
-            {f?.war_trophies
-              ? `${f.war_trophies.toLocaleString()} war trophies`
-              : "—"}
-            {f?.clan_score
-              ? ` · clan score ${f.clan_score.toLocaleString()}`
-              : ""}
-            {f?.donations_per_week
-              ? ` · ${f.donations_per_week.toLocaleString()} cards a week`
-              : ""}
-          </span>
-          {f?.top_trophies?.length ? (
-            <>
-              <span className="label">Top trophies</span>
-              <span>
-                {f.top_trophies
-                  .map((m) => `${m.name} ${m.value.toLocaleString()}`)
-                  .join(" · ")}
-              </span>
-            </>
-          ) : null}
-          {f?.top_donors?.length ? (
-            <>
-              <span className="label">Top donors</span>
-              <span>
-                {f.top_donors
-                  .map((m) => `${m.name} ${m.value.toLocaleString()}`)
-                  .join(" · ")}
-              </span>
-            </>
-          ) : null}
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel__head" style={{ gap: "8px", flexWrap: "wrap" }}>
-          <span>The pitch</span>
-          <span className="page-head__note">
-            {d.pitch_version === 0 ? "not written yet" : `v${d.pitch_version}`}
-          </span>
-          {d.can_edit ? (
-            <button
-              type="button"
-              className="btn--text"
-              style={{ marginLeft: "auto" }}
-              onClick={() => setEditing(true)}
-            >
-              {d.pitch_version === 0 ? "write the pitch" : "edit the pitch"}
-            </button>
-          ) : null}
-        </div>
-        {d.pitch_version === 0 ? (
-          <div className="panel__body page-head__note">
-            {d.can_edit
-              ? "Write what your clan is, in your words: a tagline, a few sentences, what makes it different and who you want. The copy below follows from it and today's numbers."
-              : "A leader has not written the clan's pitch yet, so there is no copy to share."}
-          </div>
-        ) : (
-          <div className="panel__body" style={{ display: "grid", gap: "6px" }}>
-            <div style={{ fontWeight: 600 }}>{d.pitch.tagline}</div>
-            <div>{d.pitch.about}</div>
-            <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
-              {d.pitch.points.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
-            <div className="page-head__note">{d.pitch.looking_for}</div>
-          </div>
-        )}
-      </section>
-
+      {d.pending ? (
+        <p className="notice" role="status">
+          fresh read queued · asking again in{" "}
+          {Math.min(60, d.pending.retry_after_s)} s
+        </p>
+      ) : null}
       {d.copy && d.problems?.length ? (
         <div className="callout callout--warn" role="alert">
           <span>Check before posting: {d.problems.join("; ")}.</span>
         </div>
       ) : null}
-
-      {d.copy
-        ? FORMATS.map(([key, title, note]) => (
-            <CopyCard
-              key={key}
-              channel={key}
-              title={title}
-              note={note}
-              value={d.copy[key]}
-            />
-          ))
-        : null}
+      {d.copy ? <CopyFormats copy={d.copy} /> : null}
+      <div className="recruit-context">
+        <Disclosure
+          title={`The pitch · ${d.pitch_version ? `v${d.pitch_version}` : "not written yet"}`}
+          open={d.pitch_version === 0}
+        >
+          <section className="panel">
+            <div
+              className="panel__head"
+              style={{ gap: "8px", flexWrap: "wrap" }}
+            >
+              <span>The pitch</span>
+              <span className="page-head__note">
+                {d.pitch_version === 0
+                  ? "not written yet"
+                  : `v${d.pitch_version}`}
+              </span>
+            </div>
+            {d.pitch_version === 0 ? (
+              <div className="panel__body page-head__note">
+                {d.can_edit
+                  ? "Write what your clan is, in your words: a tagline, a few sentences, what makes it different and who you want. The copy below follows from it and today's numbers."
+                  : "A leader has not written the clan's pitch yet, so there is no copy to share."}
+              </div>
+            ) : (
+              <div
+                className="panel__body"
+                style={{ display: "grid", gap: "6px" }}
+              >
+                <div style={{ fontWeight: 600 }}>{d.pitch.tagline}</div>
+                <div>{d.pitch.about}</div>
+                <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
+                  {d.pitch.points.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+                <div className="page-head__note">{d.pitch.looking_for}</div>
+              </div>
+            )}
+          </section>
+        </Disclosure>
+        {d.can_edit ? (
+          <button
+            type="button"
+            className="btn self-start"
+            onClick={() => setEditing(true)}
+          >
+            {d.pitch_version === 0 ? "write the pitch" : "edit the pitch"}
+          </button>
+        ) : null}
+      </div>
+      <Disclosure title="Clan facts">
+        <section className="panel">
+          <div className="panel__head" style={{ gap: "8px", flexWrap: "wrap" }}>
+            <span>Today, from the game</span>
+            {d.can_edit ? (
+              <button
+                type="button"
+                className="btn--text"
+                style={{ marginLeft: "auto" }}
+                onClick={() => load(true)}
+              >
+                read again
+              </button>
+            ) : null}
+          </div>
+          <div className="panel__body fields" style={{ rowGap: "6px" }}>
+            <span className="label">Members</span>
+            <span>
+              {f?.members ?? "?"} {noun(f?.members, "member")}
+              {f ? ` · ${f.open_slots} open` : ""}
+            </span>
+            <span className="label">To join</span>
+            <span>
+              {f?.required_trophies !== null &&
+              f?.required_trophies !== undefined
+                ? `${f.required_trophies.toLocaleString()} trophies`
+                : "not in the record yet"}
+              {f?.type
+                ? ` · ${f.type === "inviteOnly" ? "invite only" : f.type}`
+                : ""}
+            </span>
+            <span className="label">Clan numbers</span>
+            <span>
+              {f?.war_trophies
+                ? `${f.war_trophies.toLocaleString()} war trophies`
+                : "—"}
+              {f?.clan_score
+                ? ` · clan score ${f.clan_score.toLocaleString()}`
+                : ""}
+              {f?.donations_per_week
+                ? ` · ${f.donations_per_week.toLocaleString()} cards a week`
+                : ""}
+            </span>
+            {f?.top_trophies?.length ? (
+              <>
+                <span className="label">Top trophies</span>
+                <span>
+                  {f.top_trophies
+                    .map((m) => `${m.name} ${m.value.toLocaleString()}`)
+                    .join(" · ")}
+                </span>
+              </>
+            ) : null}
+            {f?.top_donors?.length ? (
+              <>
+                <span className="label">Top donors</span>
+                <span>
+                  {f.top_donors
+                    .map((m) => `${m.name} ${m.value.toLocaleString()}`)
+                    .join(" · ")}
+                </span>
+              </>
+            ) : null}
+          </div>
+        </section>
+      </Disclosure>
     </div>
   );
 }
@@ -218,56 +230,92 @@ const asText = (value) =>
         ? `Title: ${value.title}\n\n${value.body}`
         : "";
 
-function CopyCard({ channel, title, note, value }) {
-  const original = asText(value);
-  const [text, setText] = useState(original);
-  const [done, setDone] = useState(false);
-  useEffect(() => setText(original), [original]);
+/** Both local drafts survive a format switch; only the chosen one is shown. */
+function CopyFormats({ copy }) {
+  const personal = asText(copy.personal);
+  const post = asText(copy.post);
+  const [format, setFormat] = useState("personal");
+  const [texts, setTexts] = useState({ personal, post });
+  const [done, setDone] = useState(null);
+  useEffect(() => {
+    setTexts((previous) => ({ ...previous, personal }));
+    setDone((previous) => (previous === "personal" ? null : previous));
+  }, [personal]);
+  useEffect(() => {
+    setTexts((previous) => ({ ...previous, post }));
+    setDone((previous) => (previous === "post" ? null : previous));
+  }, [post]);
+  const [, title, note] = FORMATS.find(([key]) => key === format);
+  const original = format === "personal" ? personal : post;
+  const text = texts[format];
   return (
-    <section className="panel">
-      <div className="panel__head" style={{ gap: "8px", flexWrap: "wrap" }}>
-        <span>{title}</span>
-        <span className="page-head__note">{note}</span>
-        <span style={{ marginLeft: "auto", display: "flex", gap: "6px" }}>
+    <section className="grid gap-3" aria-label="Recruiting copy">
+      <div className="recruit-copy__tools">
+        <div className="grid gap-1">
+          <label className="field-label" htmlFor="recruit-format">
+            Format
+          </label>
+          <select
+            id="recruit-format"
+            className="input"
+            value={format}
+            onChange={(e) => {
+              setFormat(e.target.value);
+              setDone(null);
+            }}
+          >
+            {FORMATS.map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2 self-end">
           {text !== original ? (
             <button
               type="button"
-              className="btn btn--sm"
-              onClick={() => setText(original)}
+              className="btn"
+              onClick={() => {
+                setTexts((prev) => ({ ...prev, [format]: original }));
+                setDone(null);
+              }}
             >
               Reset
             </button>
           ) : null}
           <button
             type="button"
-            className="btn btn--sm btn--primary"
+            className="btn btn--primary"
             aria-label={`Copy the ${title.toLowerCase()}`}
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(text);
-                trackEvent("clan.recruit_copied", channel);
-                setDone(true);
-                setTimeout(() => setDone(false), 1500);
+                trackEvent("clan.recruit_copied", format);
+                setDone(format);
               } catch {
-                // The text is on screen to select by hand.
+                setDone(null);
               }
             }}
           >
-            <Icon name={done ? "check" : "copy"} size={14} />{" "}
-            {done ? "Copied" : "Copy"}
+            <Icon name={done === format ? "check" : "copy"} size={14} />
+            {done === format ? "Copied" : "Copy"}
           </button>
-        </span>
+        </div>
       </div>
-      <div className="panel__body">
-        <textarea
-          className="input"
-          aria-label={title}
-          rows={Math.min(16, Math.max(3, text.split("\n").length + 1))}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          style={{ width: "100%", fontFamily: "inherit" }}
-        />
-      </div>
+      <textarea
+        className="input recruit-copy__text"
+        aria-label={title}
+        rows={Math.min(16, Math.max(8, text.split("\n").length + 1))}
+        value={text}
+        onChange={(e) => {
+          setTexts((prev) => ({ ...prev, [format]: e.target.value }));
+          setDone(null);
+        }}
+      />
+      <Disclosure title="Format details">
+        <p className="page-head__note m-0">{note}</p>
+      </Disclosure>
     </section>
   );
 }

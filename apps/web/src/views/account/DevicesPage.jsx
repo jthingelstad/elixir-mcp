@@ -38,10 +38,7 @@ export function DevicesPage() {
       </div>
       <div className="mb-[18px]">
         <h1 className="page__title">Devices</h1>
-        <p className="page__lede">
-          Every session that can still act as you, this one marked. Agents and
-          connected clients are separate and live under Connections.
-        </p>
+        <p className="page__lede">Browsers and devices currently signed in.</p>
       </div>
       <section className="panel" style={{ marginBottom: "14px" }}>
         <div className="panel__head" style={{ flexWrap: "wrap" }}>

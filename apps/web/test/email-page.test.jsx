@@ -1,7 +1,6 @@
 /**
  * Account › Emails from Elixir (the ConsoleEmails board, 2026-10-02):
- * the week laid out by the day each email arrives in the account's
- * zone, the two that come when something happens, the last few sent,
+ * a row per kind with its local schedule, the kinds that come when something happens, the last few sent,
  * and Every email, which sets every kind at once.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
@@ -43,6 +42,7 @@ const KINDS = [
   ["collector_activity", "Collector activity", "Collectors", at("Sunday")],
   ["milestone", "Milestones", "Ladder", null],
   ["clan_actions_waiting", "Clan actions waiting", "Clan", null],
+  ["feedback_answer", "Answers to your feedback", "Account", null],
 ].map(([kind, label, product, sends]) => ({
   kind,
   label,
@@ -102,13 +102,13 @@ async function open() {
 }
 
 test(
-  "the week: each email on the day it comes, with its product and its switch",
+  "each scheduled kind retains its local day, product, switch and sent record",
   { timeout: 20000 },
   async () => {
     await open();
-    const week = screen.getByRole("region", { name: "Your week in email" });
+    const week = screen.getByRole("region", { name: "Scheduled" });
     // The send time is the account's, from the API.
-    expect(within(week).getByText("9:00 am Central · 14:00 UTC")).toBeTruthy();
+    expect(within(week).getByText("Monday · 9:00 am Central")).toBeTruthy();
     const clan = screen.getByRole("switch", { name: "Clan report email" });
     expect(clan.getAttribute("aria-checked")).toBe("true");
     expect(
@@ -120,8 +120,8 @@ test(
     expect(
       screen.getByRole("switch", { name: "Collector activity email" }).disabled,
     ).toBe(true);
-    // Thursday, Friday and Saturday have no scheduled email.
-    expect(within(week).getAllByText("nothing")).toHaveLength(3);
+    expect(within(week).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(week).queryByText("nothing")).toBeNull();
     expect(screen.queryByRole("switch", { name: "Top 100 email" })).toBeNull();
     expect(
       screen.queryByRole("switch", { name: "Card of the Week email" }),
@@ -135,7 +135,7 @@ test(
 );
 
 test(
-  "the two that come when something happens are apart from the week",
+  "the kinds that come when something happens are apart from the week",
   { timeout: 20000 },
   async () => {
     await open();
@@ -144,7 +144,11 @@ test(
     });
     expect(within(happens).getByText("Milestones")).toBeTruthy();
     expect(within(happens).getByText("Clan actions waiting")).toBeTruthy();
-    const week = screen.getByRole("region", { name: "Your week in email" });
+    expect(within(happens).getByText("Answers to your feedback")).toBeTruthy();
+    expect(
+      screen.queryByText(/The two below|a card or a card form unlocked/),
+    ).toBeNull();
+    const week = screen.getByRole("region", { name: "Scheduled" });
     expect(within(week).queryByText("Milestones")).toBeNull();
   },
 );
@@ -161,7 +165,7 @@ test(
     // many are on.
     const all = screen.getByRole("switch", { name: "Every email" });
     expect(all.getAttribute("aria-checked")).toBe("false");
-    expect(screen.getByText("5 of 6 on")).toBeTruthy();
+    expect(screen.getByText("6 of 7 on")).toBeTruthy();
     fireEvent.click(all);
     await waitFor(() => expect(puts.length).toBe(2));
     expect(puts[1]).toEqual({ kind: "all", enabled: true });

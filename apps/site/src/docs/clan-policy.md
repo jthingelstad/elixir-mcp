@@ -241,8 +241,9 @@ does not save it:
 ## The clan's activity in Discord
 
 **Social ▸ Discord**, a page in the rail for the leader and co-leaders,
-with or without a policy, is where they
-connect a Discord webhook of its own: not the one Actions go to, and not
+with or without a policy, shows the activity channel, what is posted and its
+voice as current-state rows. **Manage** opens each editor; closing discards
+unsaved text. Leaders connect a webhook of its own: not the one Actions go to, and not
 a person's [timeline cross-post](/docs/timeline). From then on the
 channel tells what happens in the clan, as its members read it. It is an
 editor, not a copy of the timeline: Elixir gathers what one moment

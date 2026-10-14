@@ -108,7 +108,7 @@ The rail down the side lists Clan's pages:
   ([Awards and trophies](/docs/clan-awards)).
 - **Social**: **Map**, where verified members add a city or region and see
   each other's local time (the leader or a co-leader can turn it off);
-  **Recruit**, the clan's pitch with copy for a personal note or a
+  **Recruit**, editable copy in one selected format, a personal note or a
   recruiting post; and, for the leader and co-leaders, **Discord**, which
   posts the clan's activity to a channel of its own ([the clan's activity
   in Discord](/docs/clan-policy#the-clans-activity-in-discord)).

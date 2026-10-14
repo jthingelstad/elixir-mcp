@@ -50,9 +50,8 @@ export function Away({ me }) {
         </span>
       </div>
       <p className="page__lede" style={{ margin: "0 0 16px" }}>
-        Going to be gone for a bit? Say so here to shield removal eligibility
-        until the day you name. Leaders see it beside your name. Held time is
-        not subtracted from elapsed time.
+        Tell your leaders when you will be back. An active notice shields
+        removal eligibility; elapsed time keeps counting.
         {state.allowed
           ? ` Up to ${state.max_days} ${noun(state.max_days, "day")} at a time.`
           : " This clan's policy does not offer it; tell a leader instead."}

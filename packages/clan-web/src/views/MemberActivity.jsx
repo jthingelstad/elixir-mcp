@@ -1,4 +1,4 @@
-import { Link, useClock, MODE_LABEL, Tag } from "@elixir-mcp/ui";
+import { Disclosure, Link, useClock, MODE_LABEL, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMemberActivity } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
@@ -96,8 +96,7 @@ export function MemberActivity({
       <div className="callout mb-4" role="note">
         <span>
           No recorded activity is not proof of inactivity. Missing capture and
-          time after the latest profile observation remain unknown. This view
-          does not decide a recommendation.
+          time after the latest profile observation remain unknown.
         </span>
       </div>
       <dl className="grid gap-2 mb-4">
@@ -120,13 +119,15 @@ export function MemberActivity({
       <section className="panel mb-4">
         <h2 className="panel__head m-0">Weekly contributions</h2>
         <div className="panel__body">
-          <p className="page-head__note">
-            Four ISO weeks, including the current partial week, clipped to the
-            current observed stint. Battles must name this clan. Donations are
-            the highest counter observed for this clan in each week. A join
-            inside a week makes its cumulative donation counter unknown here.
-            Unknown stays unknown.
-          </p>
+          <Disclosure title="How weekly contributions are counted">
+            <p className="page-head__note">
+              Four ISO weeks, including the current partial week, clipped to the
+              current observed stint. Battles must name this clan. Donations are
+              the highest counter observed for this clan in each week. A join
+              inside a week makes its cumulative donation counter unknown here.
+              Unknown stays unknown.
+            </p>
+          </Disclosure>
           <div className="table__scroll" tabIndex={0}>
             <table className="table">
               <thead>
@@ -160,12 +161,14 @@ export function MemberActivity({
       <section className="panel mb-4">
         <h2 className="panel__head m-0">War usage</h2>
         <div className="panel__body">
-          <p className="page-head__note">
-            Recorded weekly totals; decks cannot reliably be assigned to
-            individual war days. A duel can use several decks. War weeks and ISO
-            weeks are different windows. A week crossing the current stint or
-            read boundary has unknown attribution; its totals are withheld.
-          </p>
+          <Disclosure title="About war usage">
+            <p className="page-head__note">
+              Recorded weekly totals; decks cannot reliably be assigned to
+              individual war days. A duel can use several decks. War weeks and
+              ISO weeks are different windows. A week crossing the current stint
+              or read boundary has unknown attribution; its totals are withheld.
+            </p>
+          </Disclosure>
           {d.war_weeks.length ? (
             <div className="table__scroll" tabIndex={0}>
               <table className="table">
@@ -203,11 +206,14 @@ export function MemberActivity({
       <section className="panel mb-4">
         <h2 className="panel__head m-0">Capture evidence</h2>
         <div className="panel__body">
-          <p className="page-head__note">
-            Profile-counter intervals ending in the last seven days, restricted
-            to the displayed window. These intervals do not prove coverage of
-            the whole window or of the time after the latest interval.
-          </p>
+          <Disclosure title="About capture evidence">
+            <p className="page-head__note">
+              Profile-counter intervals ending in the last seven days,
+              restricted to the displayed window. These intervals do not prove
+              coverage of the whole window or of the time after the latest
+              interval.
+            </p>
+          </Disclosure>
           {d.coverage.intervals.length ? (
             <div className="table__scroll" tabIndex={0}>
               <table className="table">
@@ -253,12 +259,14 @@ export function MemberActivity({
           Recorded sessions · page {pages.length}
         </h2>
         <div className="panel__body">
-          <p className="page-head__note">
-            Adjacent recorded battles less than 30 minutes apart are grouped
-            here. Groups cover this page only and may continue on another page;
-            gaps can hide play. Each mode stays named separately. Open a battle
-            for its existing full detail and session.
-          </p>
+          <Disclosure title="About recorded groups">
+            <p className="page-head__note">
+              Adjacent recorded battles less than 30 minutes apart are grouped
+              here. Groups cover this page only and may continue on another
+              page; gaps can hide play. Each mode stays named separately. Open a
+              battle for its existing full detail and session.
+            </p>
+          </Disclosure>
           {!sessions.length ? (
             <p>
               No clan battles recorded on this page.{" "}
