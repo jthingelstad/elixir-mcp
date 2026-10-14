@@ -13,8 +13,8 @@
  *     without the message being opened.
  *   * Tables and inline styles. Email clients are not browsers; a stylesheet
  *     is not reliably read and a flex container is not reliably laid out.
- *   * The button carries a bgcolor fallback, and the raw URL appears beneath
- *     it — buttons get stripped, and a link nobody can copy is a dead end.
+ *   * The button carries a bgcolor fallback; the text alternative carries
+ *     its destination, and HTML readers can copy the link.
  *   * Every interpolated value is escaped. A code is ours, but the habit is
  *     what stops the first templated user string from being an injection.
  */
@@ -79,11 +79,11 @@ export function renderEmail(msg) {
     // CDN's access logs and stays there (#129). The console reads it.
     const link = msg.token ? `${SIGNIN_BASE}#login_token=${msg.token}` : null;
     const consent = msg.client_name
-      ? `Entering this code authorizes ${msg.client_name} to act for you as you approve on the next page.\n\n`
+      ? `You’re signing in to ${msg.client_name} with Elixir.\n\n`
       : "";
     const consentHtml = msg.client_name
       ? p(
-          `Entering this code authorizes <strong style="color:${C.ink};">${esc(msg.client_name)}</strong> to act for you as you approve on the next page.`,
+          `You’re signing in to <strong style="color:${C.ink};">${esc(msg.client_name)}</strong> with Elixir.`,
         )
       : "";
     return {
@@ -92,7 +92,7 @@ export function renderEmail(msg) {
         `Your Elixir sign-in code is ${msg.code}\n\n` +
         consent +
         (link ? `Or sign in with one click:\n${link}\n\n` : "") +
-        `The code and link expire in 15 minutes. If you didn't request this, ignore it.\n\n` +
+        `${link ? "The code and link expire" : "The code expires"} in 15 minutes. ${link ? "Either" : "It"} can be used once. If you didn't request this, ignore it.\n\n` +
         `${DISCLAIMER}\n`,
       html: shell({
         kind: "login",
@@ -102,18 +102,12 @@ export function renderEmail(msg) {
         // Apple Mail's code detector expects.
         preheader: `Your Elixir sign-in code is ${msg.code}. It expires in 15 minutes.`,
         body: [
-          `<p style="margin:0 0 8px;font-family:${FONT};font-size:12px;line-height:1.4;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${C.faint};">Your sign-in code</p>`,
-          `<p style="margin:0 0 18px;font-family:${MONO};font-size:36px;line-height:1.1;font-weight:700;letter-spacing:.22em;color:${C.ink};">${esc(msg.code)}</p>`,
+          `<p style="margin:0 0 8px;font-family:${FONT};font-size:16px;line-height:1.4;font-weight:600;color:${C.faint};">Your sign-in code</p>`,
+          `<p style="margin:0 0 18px;font-family:${MONO};font-size:36px;line-height:1.1;font-weight:700;letter-spacing:.12em;color:${C.ink};">${esc(msg.code)}</p>`,
           consentHtml,
-          link
-            ? p("Or sign in with one tap:", C.muted, 14.5).replace(
-                "margin:0 0 14px",
-                "margin:0",
-              )
-            : "",
           link ? button(link, "Sign in to Elixir") : "",
           p(
-            "The code and the link expire in 15 minutes, and either one can be used once. If you didn&rsquo;t ask to sign in, ignore this; nothing happens.",
+            `${link ? "The code and link expire" : "This code expires"} in 15 minutes. ${link ? "Either" : "It"} can be used once. If you didn’t ask to sign in, ignore this email.`,
             C.faint,
             13,
           ).replace("margin:0 0 14px", "margin:18px 0 0"),
@@ -126,13 +120,12 @@ export function renderEmail(msg) {
       subject: "Your Elixir account is ready",
       text:
         `You're in.\n\n` +
-        `Elixir keeps the Clash Royale history the game doesn't, and reads it back:\n` +
-        `in the console, inside your clan, in a short email each week, or to your own AI agent.\n\n` +
+        `Keep your Clash Royale history in one place: Console, Ladder and Clan.\n\n` +
         `Add your player in Console ▸ Tracking to start your record. If a player is already on your account, its recording stays in place.\n` +
         `The first capture usually lands within a few minutes, with roughly your last 30 battles.\n` +
         `Open ${SITE}/console/account/tracking to get started.\n\n` +
         `What comes next\n\n` +
-        `Monday: your clan's week. The river race, who joined and who left. Elixir follows your player's clan for you as soon as it sees it.\n` +
+        `Monday: your clan's week. The river race, who joined and departed. Elixir follows your player's clan for you as soon as it sees it.\n` +
         `Tuesday: your week in the Arena. Your record by mode, your decks, and who you battled.\n` +
         `Wednesday: your friends. Follow anyone with a player tag, and hear how they played.\n` +
         `Your own agent: connect it to ${SITE}/mcp and ask what the game can't answer.\n\n` +
@@ -147,16 +140,17 @@ export function renderEmail(msg) {
           "You’re in. Start your record in Console, read it in Ladder and open Clan with the same account.",
         body: [
           p(
-            "Elixir keeps the Clash Royale history the game doesn&rsquo;t, and reads it back: in the console, inside your clan, in a short email each week, or to your own AI agent.",
+            "Keep your Clash Royale history in one place: Console, Ladder and Clan.",
           ),
           p(
             "Add your player in Console ▸ Tracking to start your record. If a player is already on your account, its recording stays in place. The first capture usually lands within a few minutes, with roughly your last 30 battles.",
           ),
+          button(`${SITE}/console/account/tracking`, "Start your record"),
           h2("What comes next"),
           rows([
             {
               title: "Monday: your clan&rsquo;s week",
-              text: "The river race, who joined and who left. Elixir follows your player&rsquo;s clan for you as soon as it sees it.",
+              text: "The river race, who joined and departed. Elixir follows your player&rsquo;s clan for you as soon as it sees it.",
             },
             {
               title: "Tuesday: your week in the Arena",
@@ -171,7 +165,6 @@ export function renderEmail(msg) {
               text: `Connect it to <span style="font-family:${MONO};font-size:12.5px;">elixir.poapkings.com/mcp</span> and ask what the game can&rsquo;t answer.`,
             },
           ]),
-          button(SIGNIN_BASE, "Sign in"),
           small(
             `The five-minute version: <a href="${SITE}/docs/quickstart" style="color:${C.link};text-decoration:none;">Start here</a>.`,
           ),
@@ -183,35 +176,34 @@ export function renderEmail(msg) {
     // One subject per event, so the inbox reads as a log. A message with
     // no notify_kind predates 2026-09-09 and gets the generic line.
     const subjects = {
-      access_request: "Elixir MCP: new access request",
-      feedback: "Elixir MCP: new feedback",
-      role_upgrade_request: "Elixir MCP: tier upgrade request",
-      gateway_request: "Elixir MCP: collector raise-hand",
-      gateway_quarantined: "Elixir MCP: collector QUARANTINED",
-      gateway_silent: "Elixir MCP: collector silent",
-      approved_welcome: "Elixir MCP: account approved",
+      access_request: "Elixir: new access request",
+      feedback: "Elixir: new feedback",
+      role_upgrade_request: "Elixir: tier upgrade request",
+      gateway_request: "Elixir: collector enrolled",
+      gateway_quarantined: "Elixir: collector quarantined",
+      gateway_silent: "Elixir: collector silent",
+      approved_welcome: "Elixir: account approved",
     };
     const leads = {
-      access_request: "Someone asked for access.",
-      feedback: "A beta user said something.",
-      role_upgrade_request: "Someone asked for a higher tier.",
-      gateway_request: "Someone raised a hand to run a collector.",
-      gateway_quarantined:
-        "A collector stopped submitting and was quarantined.",
-      gateway_silent: "A collector has not checked in for an hour.",
-      approved_welcome: "An account was approved.",
+      access_request: "Access requested.",
+      feedback: "New feedback.",
+      role_upgrade_request: "Tier upgrade requested.",
+      gateway_request: "Collector enrolled.",
+      gateway_quarantined: "Collector quarantined.",
+      gateway_silent: "Collector silent.",
+      approved_welcome: "Account approved.",
     };
     const kind = msg.notify_kind;
     const category = msg.detail?.category;
     const subject =
       kind === "feedback" && category
         ? `${subjects.feedback} - ${category}`
-        : (subjects[kind] ?? "Elixir MCP: notification");
+        : (subjects[kind] ?? "Elixir: notification");
     const facts = Object.entries(msg.detail ?? {})
       .map(([k, v]) => `${k}: ${v}`)
       .join("\n");
     const link = msg.link ?? `${SITE}/console/admin`;
-    const lead = leads[kind] ?? "Something happened on Elixir MCP.";
+    const lead = leads[kind] ?? "Service notice.";
     return {
       subject,
       text: [
@@ -221,6 +213,8 @@ export function renderEmail(msg) {
         facts ? `\n${facts}` : "",
         "",
         `Act on it: ${link}`,
+        "",
+        DISCLAIMER,
         "",
       ].join("\n"),
       // The operator's own mail is mail too. These were text-only while
@@ -242,8 +236,8 @@ export function renderEmail(msg) {
                    .map(
                      ([k, v]) =>
                        `<tr>
-                          <td style="padding:8px 10px 8px 0;border-bottom:1px solid ${C.edge};font-family:${MONO};font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:${C.faint};white-space:nowrap;vertical-align:top;">${esc(k)}</td>
-                          <td style="padding:8px 0;border-bottom:1px solid ${C.edge};font-family:${FONT};font-size:13.5px;line-height:1.5;color:${C.muted};">${esc(v)}</td>
+                          <td style="padding:8px 10px 8px 0;border-bottom:1px solid ${C.edge};font-family:${FONT};font-size:12px;color:${C.faint};width:32%;vertical-align:top;">${esc(k.replaceAll("_", " "))}</td>
+                          <td style="padding:8px 0;border-bottom:1px solid ${C.edge};font-family:${FONT};font-size:13.5px;line-height:1.5;color:${C.muted};word-break:break-word;overflow-wrap:anywhere;">${esc(v)}</td>
                         </tr>`,
                    )
                    .join("")}

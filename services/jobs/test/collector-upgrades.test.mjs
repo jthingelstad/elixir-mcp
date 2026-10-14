@@ -119,7 +119,8 @@ test("door to mail: baseline, concurrent duplicate heartbeats, retries, preferen
       assert.match(m.subject, /v3.0.3 → v3.0.4/);
       assert.match(m.text, /Signed: reported binary/);
       assert.match(m.text, /No upgrade reason/);
-      assert.match(m.html, /Collectors · Upgrade/);
+      assert.match(m.html, />Collectors<\/span>/);
+      assert.match(m.html, /<h1[^>]*>Collector \d+ upgraded<\/h1>/);
       assert.doesNotMatch(m.text, /on Sundays/);
     }
     // Old ingest observation cannot rewrite the door's baseline.

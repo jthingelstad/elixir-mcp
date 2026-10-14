@@ -12,17 +12,20 @@
  *  is left out, and images point at this checkout's apps/site/src/assets
  *  (the logo, and card art once infra/scripts/mirror-card-art.mjs has
  *  run) unless --live keeps them on elixir.poapkings.com. */
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderMail, htmlToText } from "../src/index.mjs";
 import { renderEmail } from "../../../services/email-relay/src/templates.mjs";
+import { mailPreviewCases } from "./preview-cases.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../..");
-const out = path.join(here, "../.preview");
-const fixtures = path.join(here, "../fixtures");
 const args = process.argv.slice(2);
+const out = args.includes("--out")
+  ? path.resolve(args[args.indexOf("--out") + 1])
+  : path.join(here, "../.preview");
+
 const tz = args.includes("--tz")
   ? args[args.indexOf("--tz") + 1]
   : "America/Chicago";
@@ -40,62 +43,40 @@ const local = (html) =>
 
 mkdirSync(out, { recursive: true });
 const written = [];
-const write = (name, subject, preheader, html) => {
+const write = (name, subject, preheader, html, text = htmlToText(html)) => {
   writeFileSync(path.join(out, `${name}.html`), local(html));
   writeFileSync(
     path.join(out, `${name}.txt`),
-    `Subject: ${subject}\nPreheader: ${preheader}\n\n${htmlToText(html)}`,
+    `Subject: ${subject}\nPreheader: ${preheader}\n\n${text}`,
   );
   written.push({ name, subject, preheader, bytes: Buffer.byteLength(html) });
 };
 
-// The test fixtures too: a variant of a kind is named <kind>-<what>.json
-// (milestone-cards, an older stored clan report).
-const sources = [fixtures, path.join(here, "../test/fixtures")].flatMap((dir) =>
-  readdirSync(dir)
-    .filter((f) => f.endsWith(".json"))
-    .map((f) => ({ dir, file: f })),
+for (const specimen of mailPreviewCases()) {
+  const { name, kind, facts, message } = specimen;
+  const mail = message
+    ? renderEmail({ v: 1, to: "preview@example.org", ...message })
+    : renderMail(kind, facts, {
+        unsubscribe: `${SITE}/api/email/unsubscribe?t=preview`,
+        manage: `${SITE}/console/account/profile/email`,
+        period: "preview",
+        send_id: "00000000-0000-4000-8000-000000000000",
+        timezone: tz,
+        pixel: false,
+        mine: ["#20JJJ2CCRU", "#VJQV8G8RL", "#VJG0J29QP"],
+      });
+  const pre =
+    mail.preheader ??
+    /<span style="display:none[^"]*"[^>]*>([\s\S]*?)<\/span>/.exec(
+      mail.html,
+    )?.[1] ??
+    "";
+  write(name, mail.subject, pre, mail.html, mail.text);
+}
+writeFileSync(
+  path.join(out, "manifest.json"),
+  JSON.stringify(written, null, 2),
 );
-for (const { dir, file } of sources) {
-  const name = file.replace(/\.json$/, "");
-  const kind = name.split("-")[0];
-  const facts = JSON.parse(readFileSync(path.join(dir, file), "utf8"));
-  const mail = renderMail(kind, facts, {
-    unsubscribe: `${SITE}/api/email/unsubscribe?t=preview`,
-    manage: `${SITE}/console/account/profile/email`,
-    period: "preview",
-    send_id: "00000000-0000-4000-8000-000000000000",
-    timezone: tz,
-    pixel: false,
-    // The reader's own players, so the clan report marks "you".
-    mine: ["#20JJJ2CCRU", "#VJQV8G8RL", "#VJG0J29QP"],
-  });
-  write(name, mail.subject, mail.preheader, mail.html);
-}
-
-const relay = {
-  login: { kind: "login", code: "482913", token: "preview" },
-  login_consent: {
-    kind: "login",
-    code: "482913",
-    token: "preview",
-    client_name: "Claude",
-  },
-  welcome: { kind: "welcome" },
-  owner_notify: {
-    kind: "owner_notify",
-    notify_kind: "feedback",
-    note: "A preview of the operator's notice.",
-    detail: { category: "bug", from: "an agent" },
-  },
-};
-for (const [name, msg] of Object.entries(relay)) {
-  const mail = renderEmail({ v: 1, to: "preview@example.org", ...msg });
-  const pre = /<span style="display:none[^"]*"[^>]*>([\s\S]*?)<\/span>/.exec(
-    mail.html,
-  )?.[1];
-  write(name, mail.subject, pre ?? "", mail.html);
-}
 
 writeFileSync(
   path.join(out, "index.html"),

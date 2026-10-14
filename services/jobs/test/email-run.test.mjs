@@ -904,3 +904,30 @@ test("the clan report's trend: decks used of those possible beside the races bef
     "off",
   );
 });
+
+test("an activity-scope clan composer leaves battle counts unknown", async () => {
+  await db.query("begin");
+  try {
+    await db.query(
+      "update recording set scope = 'activity' where subject_type = 'clan' and subject_tag = $1",
+      [CLAN],
+    );
+    const facts = await buildClan({
+      db,
+      account: {
+        accountId: acct.old,
+        timezone: "UTC",
+        kind: "person",
+        role: "member",
+      },
+      clanTag: CLAN,
+      week: lastGameWeek(new Date("2026-09-15T14:00:00Z")),
+      season: null,
+    });
+    assert.equal(facts.clan.scope, "activity");
+    assert.equal(facts.headline.battles, null);
+    assert.equal(facts.headline.active, null);
+  } finally {
+    await db.query("rollback");
+  }
+});

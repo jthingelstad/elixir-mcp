@@ -1,7 +1,7 @@
 /** The renderer: facts in, {subject, preheader, html} out, for the six
  *  product kinds. Every kind sits in the one mail shell (shell.mjs), the
  *  same one the relay's sign-in code and welcome use: the logo and the
- *  wordmark, the product pill, a panel with a gold top bar, and the
+ *  wordmark, a product label, one quiet panel, and the
  *  footer that carries the turn-off link, the send id, the sponsor line
  *  and the disclaimer. Tables and inline styles only; names are links
  *  into Explore; the coverage note comes last. Dark only, by decision
@@ -227,10 +227,10 @@ function make(
   const { h2, small, box, rows, link } = parts;
   const h3 = (html) =>
     `<div style="font-family:${FONT};font-size:15.5px;font-weight:700;color:${M.ink};margin:18px 0 6px;">${html}</div>`;
-  // Tiles: a row of up to three (the boards' row), four as two by two.
+  // Headline figures: at most two open columns across.
   // Table cells, not inline blocks: a phone client is not a browser.
   const tiles = (items) => {
-    const per = items.length === 4 ? 2 : Math.min(3, items.length || 1);
+    const per = Math.min(2, items.length || 1);
     const out = [];
     for (let i = 0; i < items.length; i += per) {
       const row = items.slice(i, i + per);
@@ -238,8 +238,8 @@ function make(
         `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;margin:${i ? 10 : 0}px 0 0;"><tr>${row
           .map(
             ([label, value, hint, mode], k) =>
-              `<td valign="top" width="${Math.floor(100 / per)}%" style="padding:0 ${k < per - 1 ? 5 : 0}px 0 ${k ? 5 : 0}px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${M.box}" style="background-color:${M.box};border:1px solid ${M.edge};border-radius:12px;padding:13px 14px;">
-          <div style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:${M.faint};">${mode ? `${dot(mode)}&nbsp;` : ""}${esc(label)}</div>
+              `<td valign="top" width="${Math.floor(100 / per)}%" style="padding:0 ${k < per - 1 ? 5 : 0}px 0 ${k ? 5 : 0}px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:12px 0;${k ? `border-left:1px solid ${M.edge};padding-left:16px;` : ""}">
+          <div style="font-family:${FONT};font-size:13px;font-weight:600;color:${M.faint};">${mode ? `${dot(mode)}&nbsp;` : ""}${esc(label)}</div>
           <div style="font-family:${FONT};font-size:22px;font-weight:700;color:${M.ink};line-height:1.2;margin-top:5px;">${value}</div>
           ${hint ? `<div style="font-family:${FONT};font-size:12.5px;line-height:1.45;color:${M.faint};margin-top:4px;">${hint}</div>` : ""}
         </td></tr></table></td>`,
@@ -252,8 +252,8 @@ function make(
     return `<div style="margin:4px 0 0;">${out.join("")}</div>`;
   };
   const table = (cols, rows, { align = [], mono = [] } = {}) =>
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:6px;">
-      <tr>${cols.map((c, i) => `<th align="${align[i] ?? "left"}" style="font-family:${FONT};font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:${M.faint};padding:6px 6px 6px 0;border-bottom:1px solid ${M.edge};white-space:nowrap;">${esc(c)}</th>`).join("")}</tr>
+    `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:6px;">
+      <tr>${cols.map((c, i) => `<th scope="col" align="${align[i] ?? "left"}" style="font-family:${FONT};font-size:12px;font-weight:600;color:${M.faint};padding:6px 6px 6px 0;border-bottom:1px solid ${M.edge};">${esc(c)}</th>`).join("")}</tr>
       ${rows.map((r) => `<tr>${r.map((cell, i) => `<td align="${align[i] ?? "left"}" style="font-family:${mono[i] ? MONO : FONT};font-size:${mono[i] ? 13 : 14}px;line-height:1.35;color:${M.muted};padding:7px 6px 7px 0;border-bottom:1px solid ${M.row};${align[i] === "right" ? "white-space:nowrap;" : ""}">${cell}</td>`).join("")}</tr>`).join("")}
     </table>`;
   const list = (items) =>
@@ -440,14 +440,12 @@ function arena(f, c) {
   // One record per mode played, then the trophy line: never a combined
   // win rate (DECISIONS: mode discipline).
   const tiles = [
-    ...fams
-      .slice(0, 3)
-      .map((m) => [
-        FAMILY_LABEL[m.mode] ?? m.mode,
-        recHtml(m.wins, m.losses),
-        `${n(m.battles)} battle${m.battles === 1 ? "" : "s"}`,
-        m.mode,
-      ]),
+    ...fams.map((m) => [
+      FAMILY_LABEL[m.mode] ?? m.mode,
+      recHtml(m.wins, m.losses),
+      `${n(m.battles)} battle${m.battles === 1 ? "" : "s"}`,
+      m.mode,
+    ]),
     ...(fams.length === 0 && t.battles
       ? [["Record", recHtml(t.wins, t.losses), `${n(t.battles)} battles`]]
       : []),
@@ -467,15 +465,8 @@ function arena(f, c) {
       )
     : "";
   const notes = (pr.modes ?? []).filter((m) => m.note);
-  const war = fams.find((m) => m.mode === "war");
   const deck = pr.deck
-    ? `${c.h2(`Your ${FAMILY_LABEL[pr.deck.family] ?? "main"} deck`)}${deckBox(pr.deck, c)}${c.small(`Every deck of the season, each in the mode it was played in, is in ${c.link(ladderUrl(pr.tag, "decks", f.week?.season), "Ladder › Decks")}.`)}`
-    : "";
-  const warLine = war
-    ? c.p(
-        `War: ${n(war.battles)} battle${war.battles === 1 ? "" : "s"}, ${recHtml(war.wins, war.losses)}.`,
-        { size: 13.5, extra: "margin-top:10px;" },
-      )
+    ? `${c.h2(`Your ${FAMILY_LABEL[pr.deck.family] ?? "main"} deck`)}${deckBox(pr.deck, c)}${c.small(`More decks in ${c.link(ladderUrl(pr.tag, "decks", f.week?.season), "Ladder › Decks")}.`)}`
     : "";
   const o = pr.opponents;
   const again = o.again ?? [];
@@ -485,7 +476,7 @@ function arena(f, c) {
   const once = (o.distinct ?? 0) - repeats;
   const named = again.map(
     (x) =>
-      `${c.P(x.tag, x.name)} <span style="font-family:${MONO};font-size:12px;color:${M.faint};">${esc(x.tag)}</span> ${x.battles === 2 ? "twice" : `${n(x.battles)} times`}${x.mode ? ` on ${esc(x.mode)}` : ""}, ${recHtml(x.wins, x.losses)} between you`,
+      `${c.P(x.tag, x.name)} ${x.battles === 2 ? "twice" : `${n(x.battles)} times`}${x.mode ? ` on ${esc(x.mode)}` : ""}, ${recHtml(x.wins, x.losses)} between you`,
   );
   const met = o.distinct
     ? `${c.h2("Who you battled", `${n(o.distinct)} opponent${o.distinct === 1 ? "" : "s"}`)}${c.p(
@@ -500,10 +491,10 @@ function arena(f, c) {
   const alts = f.alts.length
     ? `${c.h2("Your other players")}${c.rows(
         f.alts.map((a) => {
-          const top = a.by_family?.[0];
+          const families = a.by_family ?? [];
           return {
-            title: `${c.P(a.tag, a.name)} <span style="font-family:${MONO};font-size:11.5px;font-weight:400;color:${M.faint};">${esc(a.tag)}</span>`,
-            text: `${top ? `${dot(top.mode)}&nbsp; ` : ""}${n(a.battles)} battle${a.battles === 1 ? "" : "s"} · ${recHtml(a.wins, a.losses)}${(a.by_family?.length ?? 0) > 1 ? ` <span style="color:${M.faint};">(${a.by_family.map((m) => `${esc(FAMILY_LABEL[m.mode] ?? m.mode)} ${m.wins}–${m.losses}`).join(", ")})</span>` : ""}`,
+            title: c.P(a.tag, a.name),
+            text: `${n(a.battles)} battle${a.battles === 1 ? "" : "s"}${families.length ? ` · ${families.map((m) => `${esc(FAMILY_LABEL[m.mode] ?? m.mode)} ${recHtml(m.wins, m.losses)}`).join(" · ")}` : ` · ${recHtml(a.wins, a.losses)}`}`,
             right: a.trophies
               ? `<div style="font-family:${MONO};font-size:13px;color:${M.muted};">${n(a.trophies.from)} → ${n(a.trophies.to)}</div><div style="font-family:${FONT};font-size:11.5px;color:${M.faint};">trophies</div>`
               : null,
@@ -517,7 +508,7 @@ function arena(f, c) {
   const progress = counted.length
     ? `${c.h2("Cards and badges")}${c.list(
         counted.map((x) => `${c.P(x.tag, x.name)}: ${esc(progressText(x))}`),
-      )}${c.small(`Each one, newest first, is on your ${c.link(timelineUrl(), "timeline")}.`)}`
+      )}${c.small(`See each on your ${c.link(timelineUrl(), "timeline")}.`)}`
     : "";
   // An issue stored before 2026-10-08, or a week under the minimum,
   // has no form and no line.
@@ -525,9 +516,9 @@ function arena(f, c) {
   const body = `
     ${tiles.length ? c.tiles(tiles) : ""}
     ${form ? c.p(esc(form), { size: 14, extra: "margin-top:12px;" }) : ""}
-    ${fams.length > 1 ? c.small("Each mode is its own game, so each gets its own record. There is no combined win rate.") : ""}
+
     ${floor}${notes.length ? c.small(notes.map((m) => sentence(`${esc(m.label)}: ${esc(m.note)}`)).join(" ")) : ""}
-    ${deck}${warLine}
+    ${deck}
     ${met}
     ${alts}
     ${progress}
@@ -597,13 +588,13 @@ function personCard(x, c) {
   const d = x.deck;
   const deck = d
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;border-top:1px solid ${M.row};"><tr>
-        <td style="padding-top:10px;font-family:${FONT};font-size:13.5px;color:${M.ink};"><span style="font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:${M.faint};">Most played</span>&nbsp; <strong>${esc(d.label ?? "Their deck")}</strong></td>
+        <td style="padding-top:10px;font-family:${FONT};font-size:13.5px;color:${M.ink};"><span style="font-size:13px;font-weight:600;color:${M.faint};">Most played</span>&nbsp; <strong>${esc(d.label ?? "Their deck")}</strong></td>
         <td align="right" style="padding-top:10px;font-family:${FONT};font-size:12px;color:${M.faint};white-space:nowrap;">${n(d.battles)} of ${n(x.deck_battles ?? x.battles)} battles${x.decks_used > 1 ? ` · ${n(x.decks_used)} decks` : ""}</td></tr>
         <tr><td colspan="2" style="padding-top:8px;">${deckStrip(d.cards, { w: 44, gap: 5 })}</td></tr></table>`
     : "";
   return c.box(
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td style="font-family:${FONT};"><div style="font-size:15.5px;font-weight:700;">${c.P(x.tag, x.name)}${x.nickname ? ` <span style="font-weight:400;color:${M.faint};">(${esc(x.nickname)})</span>` : ""}</div><div style="font-family:${MONO};font-size:11.5px;color:${M.faint};">${esc(x.tag)}</div></td>
+      <td style="font-family:${FONT};"><div style="font-size:15.5px;font-weight:700;">${c.P(x.tag, x.name)}${x.nickname ? ` <span style="font-weight:400;color:${M.faint};">(${esc(x.nickname)})</span>` : ""}</div></td>
       <td align="right" valign="top" style="font-family:${FONT};font-size:12px;color:${M.faint};white-space:nowrap;">${n(x.battles)} battle${x.battles === 1 ? "" : "s"}${x.trophies ? `<br>${n(x.trophies.to)} trophies` : ""}</td></tr></table>
     ${modeBar(fams)}${lines}${notes.length ? `<div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};margin-top:6px;">${notes.join(" · ")}</div>` : ""}${deck}`,
     { mt: 10 },
@@ -684,6 +675,7 @@ function tracking(f, c) {
         : c.P(q.tag, q.name),
     );
   const deckNote = "A deck’s count is battles with exactly those eight cards.";
+  const hasDeck = [...friendsPlayed, ...watchCards].some((x) => x.deck);
   const quiet = [
     recentQuiet.length
       ? `No battle recorded this week: ${recentQuiet.join(", ")}.`
@@ -694,7 +686,8 @@ function tracking(f, c) {
   ].filter(Boolean);
   const quietHtml =
     quiet.length || f.friends.length || f.watching.length
-      ? quiet.map((q) => c.small(q)).join("") + c.small(deckNote)
+      ? quiet.map((q) => c.small(q)).join("") +
+        (hasDeck ? c.small(deckNote) : "")
       : "";
   const youFams = pr?.by_family ?? [];
   const youNotes = [
@@ -764,25 +757,20 @@ const roleWords = (role) =>
 /** The green "you" chip: the reader's own player in a shared list. */
 const youChip = ` <span style="display:inline-block;padding:0 7px;border-radius:999px;background-color:${M.youChip};border:1px solid ${M.youEdge};color:${M.youInk};font-family:${FONT};font-size:11px;font-weight:600;line-height:17px;">you</span>`;
 
-/** The race: every clan in the bracket with its fame as a bar, ours
- *  marked green (the clan this mail is about). */
+/** The race: rank, clan and fame, with our clan marked green.
+ *  Three fluid columns fit a phone; finish status stays beside the fame. */
 function raceRows(war, clanTag, c) {
-  const top = Math.max(1, ...war.standings.map((x) => x.fame ?? 0));
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">${war.standings
-    .map((x) => {
-      const ours = x.tag === clanTag;
-      const w = Math.round(((x.fame ?? 0) / top) * 100);
-      const hl = ours ? `background-color:${M.youRow};` : "";
-      const bg = ours
-        ? `${hl}border-left:3px solid ${M.ok};`
-        : `border-left:3px solid ${M.panel};`;
-      return `<tr><td width="24" style="width:24px;padding:7px 0 7px 8px;font-family:${MONO};font-size:13px;color:${M.faint};${bg}">${x.rank ?? "–"}</td>
-        <td width="150" style="width:150px;padding:7px 8px;font-family:${FONT};font-size:14px;font-weight:${ours ? 700 : 500};color:${M.ink};${hl}white-space:nowrap;overflow:hidden;">${c.K(x.tag, x.name)}</td>
-        <td style="padding:7px 0;${hl}"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;"><tr>${w > 0 ? `<td width="${w}%" bgcolor="${M.accent}" style="height:8px;line-height:8px;font-size:0;background-color:${M.accent};border-radius:999px;">&nbsp;</td>` : ""}${w < 100 ? `<td bgcolor="${M.pill}" style="height:8px;line-height:8px;font-size:0;background-color:${M.pill};">&nbsp;</td>` : ""}</tr></table></td>
-        <td width="64" align="right" style="width:64px;padding:7px 0;font-family:${MONO};font-size:13px;color:${M.ink};${hl}">${n(x.fame)}</td>
-        <td width="70" align="right" style="width:70px;padding:7px 8px 7px 0;font-family:${FONT};font-size:12px;color:${M.faint};${hl}">${x.finished ? "finished" : ""}</td></tr>`;
-    })
-    .join("")}</table>`;
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;border-collapse:collapse;">
+    <tr><th scope="col" width="28" style="width:28px;text-align:left;font-family:${FONT};font-size:12px;color:${M.faint};padding-bottom:6px;">#</th><th scope="col" style="text-align:left;font-family:${FONT};font-size:12px;color:${M.faint};padding-bottom:6px;">Clan</th><th scope="col" width="80" style="width:80px;text-align:right;font-family:${FONT};font-size:12px;color:${M.faint};padding-bottom:6px;">Fame</th></tr>
+    ${war.standings
+      .map((x) => {
+        const ours = x.tag === clanTag;
+        const hl = ours ? `background-color:${M.youRow};` : "";
+        return `<tr><td style="padding:8px 4px;font-family:${MONO};font-size:13px;color:${M.faint};${hl}">${x.rank ?? "–"}</td>
+        <td style="padding:8px;font-family:${FONT};font-size:14px;line-height:1.4;font-weight:${ours ? 700 : 500};color:${M.ink};${hl}overflow-wrap:anywhere;">${c.K(x.tag, x.name)}</td>
+        <td align="right" style="padding:8px 4px;font-family:${MONO};font-size:13px;color:${M.ink};${hl}">${n(x.fame)}${x.finished ? `<div style="font-family:${FONT};font-size:12px;color:${M.faint};">finished</div>` : ""}</td></tr>`;
+      })
+      .join("")}</table>`;
 }
 
 /** The week beside the ones before it (2026-10-08): the race's war
@@ -855,8 +843,15 @@ function activityBefore(f) {
 
 function clan(f, c) {
   const war = f.war?.present ? f.war : null;
-  const h = f.headline;
+  const h =
+    f.clan.scope === "activity"
+      ? { ...f.headline, battles: null, active: null, sessions: null }
+      : f.headline;
   const tag = f.clan.tag;
+  const unknownActivity =
+    f.clan.scope === "activity"
+      ? "Battle activity is not recorded at this clan’s scope."
+      : "Battle activity is unavailable for this report.";
   const finishedAt = war?.finished_at ? c.dayTime({ at: war.finished_at }) : "";
   const tiles = war
     ? [
@@ -885,11 +880,17 @@ function clan(f, c) {
         ],
       ]
     : [
-        [
-          "Battles",
-          n(h.battles),
-          h.of ? `by ${h.active} of ${h.of} members` : "",
-        ],
+        ...(h.battles != null
+          ? [
+              [
+                "Battles",
+                n(h.battles),
+                h.active != null && h.of
+                  ? `by ${h.active} of ${h.of} members`
+                  : "",
+              ],
+            ]
+          : []),
         [
           "Members",
           n(f.clan.members),
@@ -928,12 +929,12 @@ function clan(f, c) {
       at: m.at ?? "",
       mark: M.ok,
       title: `${c.P(m.tag, m.name)} joined`,
-      text: `${esc(c.dayTime(m))}${m.note ? `, and ${esc(m.note)}` : ""}.`,
+      text: `${esc(c.dayTime(m))}${m.note ? `, and ${esc(m.note.replace(/^left again\b/, "departed again"))}` : ""}.`,
     })),
     ...f.membership.left.map((m) => ({
       at: m.at ?? "",
       mark: M.loss,
-      title: `${c.P(m.tag, m.name)} left${roleWords(m.role) ? `, ${roleWords(m.role)}` : ""}`,
+      title: `${c.P(m.tag, m.name)} departed${roleWords(m.role) ? `, ${roleWords(m.role)}` : ""}`,
       text: `${esc(c.dayTime(m))}.${m.tenure_days != null ? ` Here ${n(m.tenure_days)} day${m.tenure_days === 1 ? "" : "s"}.` : ""}`,
     })),
     ...f.membership.roles.map((m) => ({
@@ -1037,17 +1038,22 @@ function clan(f, c) {
   );
   const body = `
     ${c.tiles(tiles)}
+    ${h.battles == null ? c.small(unknownActivity) : ""}
     ${race}${whoRaced}${trendBlock(f, c)}${comings}${quiet}${theWeek}
     ${f.roster_note ? c.small(esc(f.roster_note)) : ""}
     ${roster}
     ${c.button(`Open ${f.clan.name} in the console`, clanUrl(tag))}
     ${c.cov(esc(f.coverage))}`;
   const warBit = war?.rank ? `${ordinal(war.rank)} in war, ` : "";
+  const activityLine =
+    h.battles == null
+      ? unknownActivity
+      : `${n(h.battles)} battles${h.active != null && h.of != null ? ` by ${n(h.active)} of ${n(h.of)} members` : ""}.`;
   const preheader = war
-    ? `${n(war.fame)} fame${war.finish_war_day ? `, over the line on war day ${war.finish_war_day}` : ""}. ${n(h.battles)} battles by ${n(h.active)} of ${n(h.of)} members.`
-    : `${n(h.battles)} battles by ${n(h.active)} of ${n(h.of)} members; ${n(h.donations)} cards donated.`;
+    ? `${n(war.fame)} fame${war.finish_war_day ? `, over the line on war day ${war.finish_war_day}` : ""}. ${activityLine}`
+    : `${activityLine} ${n(h.donations)} cards donated.`;
   return {
-    subject: `${f.clan.name}, ${f.week.label}: ${warBit}${f.membership.left.length} left, ${f.membership.joined.length} joined`,
+    subject: `${f.clan.name}, ${f.week.label}: ${warBit}${f.membership.left.length} departed, ${f.membership.joined.length} joined`,
     preheader,
     html: (links) =>
       c.shell({
@@ -1143,6 +1149,9 @@ function collector(f, c) {
       `${n(x.fetches)} fetch${x.fetches === 1 ? "" : "es"} this week`,
       x.errors ? `${n(x.errors)} refused` : null,
       x.note ?? null,
+      x.adding_fetches != null
+        ? `${n(x.adding_fetches)} fetches with new facts`
+        : null,
     ]
       .filter(Boolean)
       .map(esc)
@@ -1167,7 +1176,6 @@ function collector(f, c) {
       <td valign="middle" style="padding:9px 10px 9px 14px;${line}"><div style="font-family:${FONT};font-size:15px;font-weight:600;color:${M.ink};">${esc(x.name)}${x.version ? ` <span style="font-family:${MONO};font-size:11.5px;font-weight:400;color:${M.dim};">${esc(x.version)}</span>` : ""}</div>
         <div style="font-family:${FONT};font-size:12.5px;line-height:1.5;color:${M.faint};margin-top:3px;">${statusLine(x)}</div>
         ${x.signature_state ? `<div style="font-family:${FONT};font-size:12px;line-height:1.5;color:${x.signature_state === "mismatch" ? M.warn : M.faint};margin-top:4px;">${esc(collectorSecurity(x.signature_state))}</div>` : ""}</td>
-      <td align="right" valign="middle" style="padding:9px 0;white-space:nowrap;${line}">${x.adding_fetches != null ? `<div style="font-family:${MONO};font-size:15px;font-weight:700;color:${M.ink};">${n(x.adding_fetches)}</div><div style="font-family:${FONT};font-size:11.5px;color:${M.faint};">fetches with new facts</div>` : ""}</td>
     </tr>`;
     })
     .join("")}</table>`;
@@ -1185,7 +1193,8 @@ function collector(f, c) {
   const firstStopped = list.find((x) => stateOf(x) === "draining");
   const firstSilent = list.find((x) => stateOf(x) === "silent");
   const body = `
-    ${c.p(`Your ${k === 1 ? "collector" : `${k} collectors`} made <strong style="color:${M.ink};">${n(t.fetches)} fetches</strong> this week${t.of_fleet != null ? `, ${pct(t.of_fleet)} of everything the fleet recorded` : ""}${t.saved_share != null ? `, and filtered ${pct(t.saved_share)} of what they read at the edge as already recorded` : ""}. Thank you: every battle, roster and board in the record came through a machine somebody chose to run.`)}
+    ${c.p(`<strong style="color:${M.ink};">${n(t.fetches)} fetches</strong> this week${t.of_fleet != null ? ` · ${pct(t.of_fleet)} of the fleet’s fetches` : ""}.`)}
+    ${t.saved_share != null ? c.small(`${pct(t.saved_share)} of what your collectors read was filtered at the edge as already recorded.`) : ""}
     ${rowsHtml}
     ${c.small("More collectors add resilience, not more Clash Royale budget: the whole fleet shares one rate limit.")}
     ${c.small("Security status uses the dashboard’s self-reported version and binary hash; it is not remote attestation. A signed build can still be behind the current release.")}
@@ -1239,7 +1248,7 @@ function milestone(f, c) {
     return `${wd} ${c.date(m.instant)}, ${time.join(" ")}`;
   };
   const whose = (s) =>
-    `${c.P(s.tag, s.name)} <span style="font-family:${MONO};font-size:12px;color:${M.dim};">${esc(s.tag)}</span>${s.relationship === "alt" ? ", one of your players" : ""}`;
+    `${c.P(s.tag, s.name)}${s.relationship === "alt" ? ", one of your players" : ""}`;
   const oneSubject = ms.every((m) => m.subject.tag === first.subject.tag);
   const allCards = cards.length === ms.length;
   const words = ["", "one", "two", "three", "four"];
@@ -1249,14 +1258,22 @@ function milestone(f, c) {
         ? `${first.subject.relationship === "alt" ? esc(first.subject.name) : "You"} unlocked ${words[cards.length] ?? cards.length} cards`
         : `${cards.length} cards unlocked`
       : esc(first.headline);
-  const big = (m) =>
-    c.box(
-      `${ms.length > 1 ? `<div style="font-family:${FONT};font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${M.faint};margin-bottom:6px;">${esc(m.headline)}</div>` : ""}
-      ${m.big ? `<div style="font-family:${FONT};font-size:28px;font-weight:800;line-height:1.15;color:${M.ink};">${esc(m.big)}</div>` : ""}
+  const big = (m) => {
+    const distinctBig =
+      m.big &&
+      !String(m.headline ?? "")
+        .toLowerCase()
+        .includes(String(m.big).toLowerCase());
+    const heading = ms.length > 1 ? c.h3(esc(m.headline)) : "";
+    if (!distinctBig)
+      return `${heading}${m.big_label ? c.p(esc(m.big_label)) : ""}${m.lines?.length ? c.list(m.lines.map(esc)) : ""}`;
+    return c.box(
+      `${heading}<div style="font-family:${FONT};font-size:28px;font-weight:700;line-height:1.15;color:${M.ink};">${esc(m.big)}</div>
       ${m.big_label ? `<div style="font-family:${FONT};font-size:13.5px;line-height:1.5;color:${M.muted};margin-top:4px;">${esc(m.big_label)}</div>` : ""}
       ${m.lines?.length ? c.list(m.lines.map(esc)) : ""}`,
       { pad: "16px", mt: 12 },
     );
+  };
   const battle = (b) => {
     if (!b) return "";
     const score =
@@ -1348,22 +1365,15 @@ function clanActions(f, c) {
   const actions = f.lines.filter((l) => !more.test(l));
   const rest = Number(f.lines.find((l) => more.test(l))?.match(more)[1] ?? 0);
   const total = actions.length + rest;
-  const box = (line) => {
-    const fresh = / \(new\)$/.test(line);
-    const text = line.replace(/ \(new\)$/, "");
-    return c.box(
-      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-        <td style="font-family:${FONT};font-size:15px;font-weight:700;line-height:1.4;color:${M.ink};">${esc(text)}${fresh ? ` <span style="display:inline-block;padding:0 7px;border-radius:999px;background-color:${M.raised};border:1px solid ${M.ring};color:${M.link};font-size:11px;font-weight:600;line-height:17px;">new</span>` : ""}</td>
-        <td align="right" style="padding-left:12px;white-space:nowrap;"><a href="${esc(c.T(f.link))}" style="font-family:${FONT};font-size:13.5px;font-weight:600;color:${M.link};text-decoration:none;">Decide ›</a></td>
-      </tr></table>`,
-      { mt: 8 },
-    );
-  };
-  const body = `${actions.map(box).join("")}
+  const body = `${c.rows(
+    actions.map((line) => ({
+      title: `${esc(line.replace(/ \(new\)$/, ""))}${/ \(new\)$/.test(line) ? ` <span style="font-size:12px;font-weight:600;color:${M.link};">· New</span>` : ""}`,
+    })),
+  )}
     ${rest ? c.small(`And ${n(rest)} more on the Actions page.`) : ""}
-    ${c.small("Each is one decision, made on its page in Elixir Clan. Only people who can act on an action are told about it.")}
+    ${c.small("Review each action in Clan before making a decision.")}
     ${c.button("Open Actions in Clan", f.link)}
-    ${c.cov(`${esc(f.app ?? "Elixir Clan")} sends this through Elixir after its morning run, when something new is yours to do. Everything in it is what the app shows you signed in.`)}`;
+    ${c.cov(`${esc(f.app ?? "Elixir Clan")} sends this after its morning run when something new is yours to decide. Only people who can act on these actions receive it.`)}`;
   const preheader = actions
     .slice(0, 3)
     .map((l) => l.replace(/ \(new\)$/, ""))
@@ -1375,7 +1385,7 @@ function clanActions(f, c) {
       c.shell({
         kind: "clan_actions_waiting",
         title: `${total === 1 ? "One action" : `${n(total)} actions`} waiting`,
-        subtitle: `${c.K(f.clan.tag, clan)} <span style="font-family:${MONO};font-size:12.5px;color:${M.dim};">${esc(f.clan.tag)}</span> · ${esc(f.app ?? "Elixir Clan")}`,
+        subtitle: `${c.K(f.clan.tag, clan)}`,
         preheader: preheader || f.subject,
         body,
         turnOff: "Actions waiting",
@@ -1421,15 +1431,17 @@ function feedbackAnswer(f, c) {
       .join("");
   const status = FEEDBACK_STATUS_LABEL[f.status] ?? f.status;
   const where = FEEDBACK_AREA_LABEL[f.area] ?? "Elixir";
-  const shipped = f.shipped_in
-    ? ` · shipped in <span style="font-family:${MONO};">${esc(f.shipped_in)}</span>`
+  const version = f.shipped_in
+    ? `<span style="font-family:${MONO};">${esc(f.shipped_in)}</span>`
     : "";
-  const body = `${c.h2("You wrote")}
-    ${c.box(c.p(esc(clip(f.message, 600)).replace(/\n/g, "<br>"), { mb: 0, color: M.ink }))}
-    ${c.h2("The answer", `${esc(status)}${shipped}`)}
+  const shipped = version ? ` · shipped in ${version}` : "";
+  const question = f.status === "needs_info";
+  const body = `${question ? (version ? c.small(`Shipped in ${version}`, "margin:0 0 12px;") : "") : c.small(`${esc(status)}${shipped}`, "margin:0 0 12px;")}
     ${paragraphs(f.response)}
-    ${c.button("Open it in Elixir", f.link)}
-    ${c.cov("Reply from that page and your reply joins the same thread. Every item you file is answered, wherever you filed it.")}`;
+    ${c.button(question ? "Reply in Elixir" : "Open it in Elixir", f.link)}
+    ${c.h2("You wrote")}
+    ${c.box(c.p(esc(clip(f.message, 600)).replace(/\n/g, "<br>"), { mb: 0, color: M.muted }))}
+    ${c.small("Reply from that page to continue the same thread.")}`;
   const preheader = clip(String(f.response ?? "").replace(/\s+/g, " "), 140);
   return {
     // needs_info (11.10.0) is a question, not an answer: say so first.
@@ -1438,7 +1450,9 @@ function feedbackAnswer(f, c) {
     html: (links) =>
       c.shell({
         kind: "feedback_answer",
-        title: "Your feedback, answered",
+        title: question
+          ? "A question about your feedback"
+          : "Your feedback, answered",
         subtitle: `About ${esc(where)} · filed ${esc(c.date(f.filed_at))}`,
         preheader,
         body,

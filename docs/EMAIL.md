@@ -127,7 +127,10 @@ relay sends over SES. No editorial queue, model or brief-build rule exists.
 active tracker requested). **Activity** gives roster, trophies,
 donations, joins and leaves, war; **comprehensive** adds per-member
 battle performance. The war section appears only when a war week
-completed. Composed once per clan, sent to every person account tracking
+completed. Battle counts stay unknown at activity scope, including older stored facts
+that filled those counts with zero; neither the body nor the inbox preview
+claims a zero-battle week. Roster departures say "departed" until a leader
+classifies them. Composed once per clan, sent to every person account tracking
 that clan. Since 2026-10-08 an account made after 0205 tracks its primary
 player's clan automatically at activity scope when a slot is free
 (`followPrimaryClan` in packages/claims), which is what makes the welcome
@@ -348,8 +351,8 @@ lead to a family app.
 sign-in code, welcome and operator notices included:
 
 - **Masthead:** the logo PNG (`apps/site/src/assets/mail/elixir-48.png`
-  and `-96.png`) and the wordmark "Elixir", with a pill naming the
-  product and the day (`MAIL_SOURCE`: Clan · Monday, Ladder · Tuesday,
+  and `-96.png`) and the wordmark "Elixir", with a plain label naming the
+  product (`MAIL_SOURCE`: Clan · Monday, Ladder · Tuesday,
   Friends · Wednesday, Collectors · Sunday, Ladder · Milestone,
   Clan · Actions, Account · Sign in and Welcome, Console · Notice). The
   logo has `alt=""`.
@@ -375,9 +378,23 @@ sign-in code, welcome and operator notices included:
 - **Size:** the clan report links the roster rather than tabling it; a
   test renders a 50-member week under 95,000 bytes (Gmail clips at
   ~102 KB).
+- **Layout:** one content panel, normal-case section headings, at most
+  two open headline figures across, and fluid rows. The war bracket
+  uses rank, clan and fame; finish status sits below fame. Coverage is
+  an unboxed note with a left rule. The footer separates its reason,
+  preferences, record links and wrap-safe send id. HTML has one primary
+  button without a duplicate printed URL; the text alternative carries
+  its destination.
 - **Preview:** `node packages/mail/scripts/preview.mjs` renders every
-  fixture and the relay's kinds into `packages/mail/.preview/`
-  (gitignored), pixel stripped.
+  specimen in `scripts/preview-cases.mjs` into `packages/mail/.preview/`
+  (gitignored), pixel stripped. `--out <dir>` chooses another output
+  directory. Product text is derived from the HTML; service text is the
+  relay's actual returned text, never a substitute derived for preview.
+  Specimens include all active kinds, collector upgrades and historical
+  tests, current milestone forms, sparse/partial reports, questions and
+  every operator-notice category. `apps/web/e2e/mail-layout.spec.ts`
+  checks them at phone, tablet, desktop and landscape widths with images
+  blocked, without sending or loading a tracking pixel.
 
 Every figure a mail shows is one a tool returned; what a board drew that
 no tool returns is left out, not estimated.
@@ -385,8 +402,8 @@ no tool returns is left out, not estimated.
 ## The console page
 
 Account › Emails from Elixir (`apps/web/src/views/account/EmailPage.jsx`):
-the four weekly kinds laid on a Monday-to-Sunday week by the day each
-arrives in the account's zone, the three event kinds below it, the last
+the four weekly kinds as rows showing the day each arrives in the
+account's zone, the three event kinds below them, the last
 four sends beside them, and an Every email switch at the top. The page
 computes no schedule of its own: `GET /api/me/email` returns, per active
 kind, `product` (`MAIL_SOURCE`), `sends` (`{weekday, time, zone}` from

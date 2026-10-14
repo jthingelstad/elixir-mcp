@@ -25,7 +25,7 @@ test("login template leads with the code and carries link, consent, disclaimer",
   // query string would reach the CDN's access logs (#129).
   assert.match(text, /\/console\/signin#login_token=tok_abc/);
   assert.doesNotMatch(text, /\?login_token=/);
-  assert.match(text, /authorizes Claude/);
+  assert.match(text, /signing in to Claude with Elixir/);
   assert.match(text, /not endorsed by Supercell/);
 });
 
@@ -79,8 +79,8 @@ test("the sign-in code and the welcome wear the one mail shell: the Elixir wordm
     assert.match(m.html, /not endorsed by Supercell/, `${name} disclaimer`);
     assert.ok(!/display:\s*(flex|grid)/.test(m.html), `${name} tables only`);
   }
-  assert.match(login.html, /Account · Sign in/);
-  assert.match(welcome.html, /Account · Welcome/);
+  assert.match(login.html, />Account<\/span>/);
+  assert.match(welcome.html, />Account<\/span>/);
   assert.match(login.html, /tinylytics[^"]*%2Fmail%2Flogin/);
   assert.match(welcome.html, /tinylytics[^"]*%2Fmail%2Fwelcome/);
   assert.ok(
@@ -407,33 +407,24 @@ test("owner_notify subjects and bodies are per kind", () => {
       notify_kind,
       ...extra,
     });
-  assert.equal(
-    render("access_request").subject,
-    "Elixir MCP: new access request",
-  );
+  assert.equal(render("access_request").subject, "Elixir: new access request");
   assert.equal(
     render("feedback", { detail: { category: "bug" } }).subject,
-    "Elixir MCP: new feedback - bug",
+    "Elixir: new feedback - bug",
   );
-  assert.equal(render("feedback").subject, "Elixir MCP: new feedback");
+  assert.equal(render("feedback").subject, "Elixir: new feedback");
   assert.equal(
     render("role_upgrade_request").subject,
-    "Elixir MCP: tier upgrade request",
+    "Elixir: tier upgrade request",
   );
-  assert.equal(
-    render("gateway_request").subject,
-    "Elixir MCP: collector raise-hand",
-  );
+  assert.equal(render("gateway_request").subject, "Elixir: collector enrolled");
   assert.equal(
     render("gateway_quarantined").subject,
-    "Elixir MCP: collector QUARANTINED",
+    "Elixir: collector quarantined",
   );
-  assert.equal(
-    render("approved_welcome").subject,
-    "Elixir MCP: account approved",
-  );
+  assert.equal(render("approved_welcome").subject, "Elixir: account approved");
   // A message from before the kind existed still renders, generically.
-  assert.equal(render(undefined).subject, "Elixir MCP: notification");
+  assert.equal(render(undefined).subject, "Elixir: notification");
   const fb = render("feedback", {
     note: "battles_query pagination took five calls",
     detail: {
@@ -444,7 +435,7 @@ test("owner_notify subjects and bodies are per kind", () => {
     },
     link: "https://elixir.poapkings.com/console/admin",
   });
-  assert.match(fb.text, /A beta user said something\./);
+  assert.match(fb.text, /New feedback\./);
   assert.match(fb.text, /battles_query pagination took five calls/);
   assert.match(fb.text, /category: feature/);
   assert.match(fb.text, /from: agent 272bd891a21d/);
@@ -498,7 +489,7 @@ test("owner_notify is best-effort: a transport failure or a bad message never de
     "a malformed notification is dropped, not DLQ'd",
   );
   assert.equal(sent.length, 1);
-  assert.equal(sent[0].subject, "Elixir MCP: new feedback");
+  assert.equal(sent[0].subject, "Elixir: new feedback");
 });
 
 test("relay failure logs are bounded and never include transport error detail", async (t) => {
@@ -797,4 +788,35 @@ test("a record's queue is found from its ARN", () => {
   );
   assert.equal(queueUrlOf("arn:aws:sns:us-east-1:123456789012:x"), null);
   assert.equal(queueUrlOf(undefined), null);
+});
+
+test("code-only OAuth mail describes the client without promising a link or another consent page", () => {
+  const { text, html } = renderEmail({
+    kind: "login",
+    code: "482913",
+    client_name: "Elixir <Drop>",
+  });
+  assert.match(text, /^Your Elixir sign-in code is 482913/);
+  assert.match(text, /signing in to Elixir <Drop> with Elixir/);
+  assert.match(html, /Elixir &lt;Drop&gt;/);
+  assert.doesNotMatch(
+    text + html,
+    /code and (?:the )?link|next page|authorizes|login_token=/,
+  );
+  assert.match(text, /code expires in 15 minutes/);
+  assert.match(html, /This code expires in 15 minutes/);
+});
+
+test("welcome starts the record and every service mail includes the disclaimer in both alternatives", () => {
+  const welcome = renderEmail({ kind: "welcome" });
+  assert.match(
+    welcome.html,
+    /href="https:\/\/elixir.poapkings.com\/console\/account\/tracking"[^>]*>Start your record/,
+  );
+  assert.doesNotMatch(welcome.html, /when your access is approved/);
+  for (const kind of ["login", "welcome", "owner_notify"]) {
+    const out = renderEmail({ kind, code: "482913", note: "Example <notice>" });
+    for (const body of [out.html, out.text])
+      assert.match(body, /not endorsed by Supercell/);
+  }
 });

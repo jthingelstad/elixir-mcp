@@ -197,9 +197,12 @@ export async function buildClan({ db, account, clanTag, week, season }) {
     headline: {
       // By when the battles were played (the trend's own count) when the
       // clan's battles are recorded, so the week reads one number.
-      battles: trend.activity?.this_week.battles ?? entry.activity.battles ?? 0,
+      battles:
+        trend.activity?.this_week.battles ?? entry.activity.battles ?? null,
       active:
-        trend.activity?.this_week.active ?? entry.activity.members_active ?? 0,
+        trend.activity?.this_week.active ??
+        entry.activity.members_active ??
+        null,
       of: entry.activity.members_total ?? roster?.member_count ?? null,
       sessions: entry.activity.sessions ?? 0,
       donations: entry.donations?.week_total ?? 0,
@@ -219,7 +222,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
         at: m.at ?? null,
         role: m.role ?? null,
         note: r.bounced?.includes?.(m.tag)
-          ? "left again inside the week"
+          ? "departed again inside the week"
           : null,
       })),
       left: (r.left?.items ?? r.left ?? []).map((m) => ({
