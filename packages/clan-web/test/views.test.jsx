@@ -69,7 +69,7 @@ const me = {
 };
 
 describe("the clan page", () => {
-  test("header reads name · role · clan and says how current the roster is", () => {
+  test("header names the clan and says how current the roster is", () => {
     render(
       <ClanHeader
         clan={poap}
@@ -79,14 +79,14 @@ describe("the clan page", () => {
         }}
       />,
     );
-    const chip = screen.getByText("Ada", { exact: false }).closest(".chip");
-    expect(chip.textContent).toContain("Ada");
-    expect(within(chip).getByText("Leader")).toBeTruthy();
-    expect(chip.textContent).toContain("Example Clan");
+    expect(
+      screen.getByRole("heading", { name: "Roster", level: 1 }),
+    ).toBeTruthy();
+    expect(screen.getByText("Example Clan")).toBeTruthy();
     expect(screen.getByText(/as of 2m ago/)).toBeTruthy();
   });
 
-  test("a full clan is grouped by role with your row marked and the API's coLeader spelled Co-leader", () => {
+  test("a full clan keeps role order without duplicate headings, with your row marked and the API's coLeader spelled Co-leader", () => {
     const now = Date.parse("2026-09-12T18:00:00Z");
     const members = [
       {
@@ -131,17 +131,13 @@ describe("the clan page", () => {
     const { container } = renderWithProviders(
       <RosterTable members={members} now={now} />,
     );
-    const labels = [...container.querySelectorAll("td.label")].map(
-      (td) => td.textContent,
-    );
-    expect(labels).toEqual([
-      "Leader · 1",
-      "Co-leaders · 1",
-      "Elders · 1",
-      "Members · 1",
-    ]);
+    const roles = [
+      ...container.querySelectorAll("tbody tr td:nth-child(2)"),
+    ].map((td) => td.textContent);
+    expect(roles).toEqual(["Leader", "Co-leader", "Elder", "Member"]);
+    expect(container.querySelector("td.label")).toBeNull();
     const you = container.querySelector("tr[data-you='true']");
-    expect(you.textContent).toContain("★");
+    expect(you.textContent).toContain("you");
     expect(you.textContent).toContain("Ada");
     expect(container.querySelectorAll("tr[data-you='true']").length).toBe(1);
     expect(screen.getByText("Co-leader")).toBeTruthy();
@@ -295,7 +291,7 @@ describe("choosing a clan", () => {
       />,
     );
     const button = screen.getByRole("button", { expanded: false });
-    expect(button.textContent).toContain("Ada");
+    expect(button.textContent).toContain("Example Clan");
     fireEvent.click(button);
     expect(screen.getByRole("menuitem", { name: /Elsewhere/ })).toBeTruthy();
     expect(

@@ -93,3 +93,5 @@ export { MODE_LABEL } from "./battle-mode.ts";
 export { noun } from "./noun.ts";
 
 export { InitialTimeProvider, useInitialTime } from "./InitialTime.tsx";
+
+export { DetailSheet, Setting, Disclosure } from "./DetailSheet.tsx";

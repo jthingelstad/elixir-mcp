@@ -141,6 +141,7 @@ export function FirstAnswer({
   compact = false,
   answer = null,
   fix = null,
+  summarize = false,
 }) {
   const { zone } = useClock();
   const own = useFirstAnswer(claimsKey, { playerTag, enabled: !answer });
@@ -156,6 +157,33 @@ export function FirstAnswer({
   const ai = steps.filter((s) => s.group === "ai");
   const wait = data ? nextPoll(data) : null;
   const questions = data ? starterQuestions(data).slice(0, 1) : [];
+  const healthy =
+    summarize &&
+    data?.player?.recording_status === "active" &&
+    data.player.profile_available &&
+    hasBattles(data.player) &&
+    !next?.failedAt &&
+    !next?.partial &&
+    !error;
+  if (healthy)
+    return (
+      <details className="disclosure recording-summary">
+        <summary>
+          <span>Recording active</span>
+          <span className="text-ink-dim">
+            {data.player.name ?? data.player.player_tag}
+          </span>
+          <span className="recording-summary__detail">Setup details</span>
+        </summary>
+        <div className="disclosure__body">
+          <FirstAnswer
+            claimsKey={claimsKey}
+            playerTag={playerTag}
+            answer={answer ?? own}
+          />
+        </div>
+      </details>
+    );
   return (
     <section className="mb-6" aria-labelledby="first-answer-title">
       <div className="flex flex-wrap items-baseline gap-2 pb-3">

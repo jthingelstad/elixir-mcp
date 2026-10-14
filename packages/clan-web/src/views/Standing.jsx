@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Fresh, Spark } from "@elixir-mcp/ui";
+import { Disclosure, Fresh, Spark } from "@elixir-mcp/ui";
 import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
 import { TooFew } from "../components/TooFew.jsx";
@@ -327,7 +327,7 @@ export function Standing({ clan, who, navigate }) {
       clan={clan}
       crumb="Standing"
       title="Standing"
-      lede="How each member's part reads against the clan's own policy. Facts come from Elixir's record; the judgment is the policy's, and every change is a leader's call."
+
       navigate={navigate}
       fresh={
         state.data?.as_of ? (
@@ -403,32 +403,25 @@ export function Standing({ clan, who, navigate }) {
   return (
     <>
       {head}
-      {groups.length ? (
-        <div className="grid gap-4 items-start wide:grid-cols-3">
-          <div className="grid gap-4 content-start">
-            {how}
-            {you}
-          </div>
-          <div className="grid gap-3.5 content-start wide:col-span-2">
-            {groups.map(([status, rows]) => (
-              <Group
-                key={status}
-                status={status}
-                clan={clan}
-                navigate={navigate}
-                rows={rows}
-                you={who?.player_tag}
-                war={war}
-              />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-4 items-start wide:grid-cols-2">
-          {how}
-          {you}
-        </div>
-      )}
+      {you}
+      <Disclosure
+        title={`How standing works${d.policy_version ? ` · Policy v${d.policy_version}` : ""}`}
+      >
+        {how}
+      </Disclosure>
+      <div className="grid gap-5 mt-5">
+        {groups.map(([status, rows]) => (
+          <Group
+            key={status}
+            status={status}
+            clan={clan}
+            navigate={navigate}
+            rows={rows}
+            you={who?.player_tag}
+            war={war}
+          />
+        ))}
+      </div>
       {groups.length ? (
         <p className="page-head__note mt-4 mb-0">
           Standing is participation in what this clan counts, compared across

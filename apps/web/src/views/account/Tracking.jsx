@@ -130,8 +130,7 @@ export function Tracking({ me, refresh, navigate }) {
         <div>
           <h1 className="page__title">Tracking</h1>
           <p className="page__lede">
-            Adding a tag requests recording. Saved profiles and battles appear
-            as observations arrive; gaps and unobserved time remain unknown.
+            Manage the players and clans Elixir records for you.
           </p>
         </div>
         <div
@@ -235,9 +234,9 @@ export function Tracking({ me, refresh, navigate }) {
           <table className="table" style={{ minWidth: "640px" }}>
             <thead>
               <tr>
-                <th>TRACKED</th>
-                <th>RELATIONSHIP</th>
-                <th>FRESHNESS</th>
+                <th>Tracked</th>
+                <th>Relationship</th>
+                <th>Freshness</th>
                 <th style={{ textAlign: "right" }}>24H</th>
                 <th />
               </tr>

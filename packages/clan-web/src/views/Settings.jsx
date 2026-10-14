@@ -1,55 +1,92 @@
+import { Disclosure, Setting } from "@elixir-mcp/ui";
+import { useDiscord, useModel, useSocial } from "../lib/queries.js";
 import { Model } from "./Model.jsx";
 import { Sharing } from "./Sharing.jsx";
 import { SocialSetting } from "./SocialSetting.jsx";
 import { DiscordSetting } from "./DiscordSetting.jsx";
 
-/**
- * Clan settings (Jamie, 2026-09-25): one page for the leader and
- * co-leaders with what belongs to the whole clan rather than to how it
- * runs. How the clan runs is its Policy; its awards and its recruiting
- * words keep their own pages. Here: what the clan records in Elixir
- * (door 3, read-only: always on), its Social switch (2026-09-26), the
- * Discord its Actions are posted to (2026-10-10) and the clan's own
- * model. The clan's activity channel is Social's own page, not here. The mail it
- * sends through Elixir (door 2) is each person's to switch, on Elixir's
- * email page.
- */
+const reading = (state, describe) =>
+  state.error || state.forbidden
+    ? "Unavailable for this read. Open the setting for details."
+    : state.data
+      ? describe(state.data)
+      : "Reading…";
+
+/** Current state first; existing editors and their consequences remain contextual. */
 export function Settings({ clan }) {
+  const social = useSocial(clan.clan_tag).state;
+  const discord = useDiscord(clan.clan_tag).state;
+  const model = useModel(clan.clan_tag).state;
   return (
-    <div className="grid max-w-[720px] gap-6">
-      <p className="page__lede m-0">
-        What belongs to the whole clan, for its leader and co-leaders. How the
-        clan runs is its Policy; its awards and recruiting words have their own
-        pages.
-      </p>
-      <section className="grid gap-3" aria-labelledby="settings-sharing">
-        <h2 id="settings-sharing" className="label m-0">
-          What Elixir Clan records in Elixir
-        </h2>
+    <div className="grid gap-6">
+      <div>
+        <Setting
+          title="Member map"
+          description={reading(
+            social,
+            (d) =>
+              `${d.enabled ? "On" : "Off"} · Visible to verified clan members`,
+          )}
+        >
+          <SocialSetting clan={clan} />
+        </Setting>
+        <div>
+          <Setting
+            title="Actions in Discord"
+            anchor="discord"
+            description={reading(discord, (d) =>
+              !d.set
+                ? "Not connected"
+                : d.refused_at || !d.readable
+                  ? "Needs attention · Not posting"
+                  : "Connected · Posting Actions",
+            )}
+          >
+            <DiscordSetting clan={clan} />
+          </Setting>
+        </div>
+        <Setting
+          title="Clan model"
+          anchor="settings-model"
+          description={reading(model, (d) =>
+            !d.set
+              ? "Not connected"
+              : d.refused_at
+                ? "Needs attention · Key refused"
+                : !d.readable
+                  ? "Needs attention · Key unavailable"
+                  : d.owner_leads === false
+                    ? "Not in use · Key owner no longer leads"
+                    : d.cap_reached
+                      ? "Paused · Monthly model limit reached"
+                      : !d.usable
+                        ? "Not in use · Open for details"
+                        : Object.keys(d.purposes ?? {}).some(
+                              (purpose) => !d.model_for?.[purpose],
+                            )
+                          ? "Needs attention · Some model uses unavailable"
+                          : d.models_refresh_error
+                            ? "Needs attention · Model check failed"
+                            : "Connected · Message drafts and optional Discord activity editing",
+          )}
+        >
+          <Model clan={clan} />
+        </Setting>
+        <Setting
+          title="Monthly model limit"
+          action="Change"
+          description={reading(
+            model,
+            (d) =>
+              `${d.spend_cap_usd == null ? "No monthly limit" : `$${d.spend_cap_usd.toFixed(2)} per month`} · Your Anthropic account pays for use`,
+          )}
+        >
+          <Model clan={clan} />
+        </Setting>
+      </div>
+      <Disclosure title="Recording and visibility: what is recorded and who can read it">
         <Sharing clan={clan} />
-      </section>
-      <section className="grid gap-3" aria-labelledby="settings-social">
-        <h2 id="settings-social" className="label m-0">
-          Social
-        </h2>
-        <SocialSetting clan={clan} />
-      </section>
-      <section
-        id="discord"
-        className="grid gap-3"
-        aria-labelledby="settings-discord"
-      >
-        <h2 id="settings-discord" className="label m-0">
-          Actions in Discord
-        </h2>
-        <DiscordSetting clan={clan} />
-      </section>
-      <section className="grid gap-3" aria-labelledby="settings-model">
-        <h2 id="settings-model" className="label m-0">
-          The clan&rsquo;s own model
-        </h2>
-        <Model clan={clan} />
-      </section>
+      </Disclosure>
     </div>
   );
 }

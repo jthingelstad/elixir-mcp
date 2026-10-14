@@ -83,7 +83,7 @@ export function Season({
               ? head.name
               : season.name
         }
-        lede={`Each mode is its own game, so each has its own tab and nothing pools across them.${ends}`}
+        lede={ends.trim()}
         observedAt={body?.meta?.source_polls?.player_battlelog?.observed_at}
         season={season}
         seasonPicker={seasonPicker}

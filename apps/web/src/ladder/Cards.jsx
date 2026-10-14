@@ -97,8 +97,8 @@ export function Cards({
       <LadderHead
         player={player}
         page="Cards"
-        title="Cards you played, cards you faced"
-        lede={`${label}, ${when}. An evolution or a hero is a different card from its base form, so each keeps its own row. Every card name opens that card's public page: the same card across everyone Elixir records.`}
+        title="Cards"
+        lede={`${label} · ${when}`}
         observedAt={
           mine.data?.meta?.source_polls?.player_battlelog?.observed_at
         }

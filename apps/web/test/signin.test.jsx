@@ -104,9 +104,7 @@ test("both public signup and legacy request links use the same email verificatio
     ).toBeTruthy();
     expect(screen.getByLabelText("Email")).toBeTruthy();
     expect(screen.getByLabelText("Your player tag (optional)")).toBeTruthy();
-    expect(
-      screen.getByText(/No password, invitation or collector needed/),
-    ).toBeTruthy();
+    expect(screen.getByText(/We’ll email you a sign-in link/)).toBeTruthy();
   }
 });
 
@@ -150,15 +148,12 @@ test("a double submission while delivery is pending sends one email request", as
   expect(await screen.findByLabelText("6-digit code")).toBeTruthy();
 });
 
-test("signup discloses existing mail policy and the independent collector gate", () => {
+test("signup discloses mail choices and links the privacy policy", () => {
   render(<SignIn onAuthed={vi.fn()} />);
   expect(screen.getByLabelText("Send me Elixir product news").checked).toBe(
     true,
   );
   expect(screen.getByText(/Reports have their own off switches/)).toBeTruthy();
-  expect(
-    screen.getByText(/Running a collector is optional and open/),
-  ).toBeTruthy();
   expect(
     screen.getByRole("link", { name: "Privacy" }).getAttribute("href"),
   ).toBe("/docs/privacy");

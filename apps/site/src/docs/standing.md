@@ -88,6 +88,10 @@ the game.
 
 ## What everyone sees
 
+Your own standing comes first, followed by the clan's groups. **How
+standing works** expands the explanation of the current policy. It does
+not change which members or evidence your role may read.
+
 Once the clan has a policy, every member's **Standing** page shows:
 
 - **How it works here**: what the clan counts and the weights, the
@@ -123,7 +127,7 @@ inactivity clock.** A member sees only their own observed activity clock and its
 ## When it is read
 
 Clan reads every clan with a policy each morning from 11:00 UTC. Opening
-Standing or the leaders' Board reads it again when the last reading is
+Standing or the leaders' Member review reads it again when the last reading is
 more than five minutes old. Actions opens the last reading, and reads
 again when someone chooses **Refresh suggestions** or the policy has a
 new version. A reading can raise or withdraw

@@ -100,7 +100,7 @@ for (const size of ["wide", "@narrow"]) {
     ).toBeVisible();
     await page.goForward();
     await expect(
-      page.getByRole("heading", { name: "Action #44", exact: true }),
+      page.getByRole("heading", { name: "Earlier welcome", exact: true }),
     ).toBeVisible();
     await page.reload();
     await page.getByRole("link", { name: "‹ Closed actions" }).click();

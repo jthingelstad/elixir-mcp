@@ -52,12 +52,12 @@ export function Decks({ player, season, seasonPicker }) {
       <LadderHead
         player={player}
         page="Decks"
-        title={
+        title="Decks"
+        lede={
           all.data && count
             ? `${decksTitle(count, modes.length)}${season.current ? "" : ` in ${season.name}`}`
-            : "Decks"
+            : null
         }
-        lede="A deck is judged in the mode it was played in. War draws opponents from the racing clans, not from your trophies, so a war record and a Trophy Road record never sit in one column."
         observedAt={all.data?.meta?.source_polls?.player_battlelog?.observed_at}
         season={season}
         seasonPicker={seasonPicker}

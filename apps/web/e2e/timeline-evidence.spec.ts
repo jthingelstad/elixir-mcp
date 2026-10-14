@@ -281,16 +281,19 @@ for (const [summaryCount, evidenceCount] of [
       }),
     );
     await page.goto("/console/account/timeline");
-    const scroll = page.locator(".table__scroll");
+    const scroll = page.locator(".timeline-list");
     await expect(
-      page.getByRole("cell", { name: "Example Player 12", exact: true }),
+      page
+        .locator(".timeline-list__subject")
+        .getByText("Example Player 12", { exact: true }),
     ).toBeVisible();
     expect(
       await scroll.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
     ).toBe(true);
     const row = page
-      .getByRole("cell", { name: "Example Player 12", exact: true })
-      .locator("..");
+      .locator(".timeline-list__subject")
+      .getByText("Example Player 12", { exact: true })
+      .locator("../..");
     const trigger = row.getByRole("button", {
       name: "View games",
       exact: true,

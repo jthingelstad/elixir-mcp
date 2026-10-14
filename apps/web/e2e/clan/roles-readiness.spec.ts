@@ -307,9 +307,11 @@ for (const size of ["wide", "@narrow"])
       await mockApi(page, roleRoutes(role));
       await page.goto(base);
       if (size === "@narrow")
-        await page.getByRole("button", { name: /Clan.*Example Clan/ }).click();
+        await page
+          .getByRole("button", { name: /Roster.*Example Clan/ })
+          .click();
       const rail = page.locator(".rail");
-      for (const name of ["Board", "History", "Policy", "Settings"])
+      for (const name of ["Member review", "Decisions", "Policy", "Settings"])
         await expect(rail.getByRole("link", { name, exact: true })).toHaveCount(
           0,
         );
@@ -329,6 +331,10 @@ for (const size of ["wide", "@narrow"])
         page.getByRole("combobox", { name: /Clan War participation/ }),
       ).toBeDisabled();
       await page.goto(`${base}/standing`);
+      await page
+        .locator("summary")
+        .filter({ hasText: /^How standing works/ })
+        .click();
       await expect(
         page.getByRole("heading", { name: "How it works here" }),
       ).toBeVisible();
@@ -371,7 +377,7 @@ for (const size of ["wide", "@narrow"])
       ).toBeVisible();
       await page.goto(`${base}/me`);
       await expect(
-        page.getByRole("heading", { name: "You here", exact: true }),
+        page.getByRole("heading", { name: "Your clan record", exact: true }),
       ).toBeVisible();
       await expect(
         page.getByText("Before roster recording", { exact: true }),
@@ -401,13 +407,12 @@ for (const size of ["wide", "@narrow"])
         page.getByRole("heading", { name: "Timeline", exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByRole("cell", {
-          name: "Ada played recorded games.",
-          exact: true,
-        }),
+        page
+          .locator(".timeline-list__text")
+          .getByText("Ada played recorded games.", { exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByText(/Reading this page never moves a connection/),
+        page.getByText(/Viewing this page leaves their place unchanged/),
       ).toBeVisible();
       expect(writes).toEqual([]);
       expect(errors).toEqual([]);
@@ -430,7 +435,7 @@ for (const size of ["wide", "@narrow"])
         "Standing",
         "Award history",
         "Award races",
-        "Board",
+        "Member review",
         "Policy",
       ])
         await expect(
@@ -438,7 +443,13 @@ for (const size of ["wide", "@narrow"])
             .locator(".rail")
             .getByRole("link", { name: new RegExp(`^${name}`) }),
         ).toHaveCount(0);
-      for (const name of ["Clan", "You here", "The week", "Map", "Recruit"])
+      for (const name of [
+        "Roster",
+        "Your clan record",
+        "The week",
+        "Map",
+        "Recruit",
+      ])
         await expect(
           page.locator(".rail").getByRole("link", { name, exact: true }),
         ).toBeVisible();
@@ -590,6 +601,9 @@ for (const size of ["wide", "@narrow"])
       };
       await mockApi(page, routes);
       await page.goto(`${base}/manage/settings`);
+      await page
+        .getByRole("button", { name: "Manage Member map", exact: true })
+        .click();
       await expect(page.getByText("It is on.", { exact: false })).toBeVisible();
       await expect(
         page.getByText(
@@ -600,11 +614,21 @@ for (const size of ["wide", "@narrow"])
       await expect(
         page.getByRole("button", { name: /Turn social features/ }),
       ).toHaveCount(0);
+      await page.getByRole("button", { name: "Close", exact: true }).click();
+      await page
+        .getByText(
+          "Recording and visibility: what is recorded and who can read it",
+          { exact: true },
+        )
+        .click();
       await expect(
         page.getByRole("alert").filter({
           hasText: "The recording summary is for the leader and co-leaders.",
         }),
       ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Manage Clan model", exact: true })
+        .click();
       await expect(
         page.getByRole("alert").filter({
           hasText: "The clan’s model is for the leader and co-leaders.",
@@ -642,6 +666,9 @@ for (const size of ["wide", "@narrow"])
         }),
       );
       await page.goto(`${base}/manage/settings`);
+      await page
+        .getByRole("button", { name: "Manage Member map", exact: true })
+        .click();
       await expect(
         page.getByRole("button", {
           name: "Turn social features off",

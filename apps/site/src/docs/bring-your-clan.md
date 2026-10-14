@@ -101,7 +101,7 @@ own players are in.
 
 The rail down the side lists Clan's pages:
 
-- The clan itself: **Clan** (the roster), **You here** (your own numbers in
+- The clan itself: **Roster**, **Your clan record** (your own numbers in
   the clan), [The week](/docs/clan-week) and [Season](/docs/clan-season);
   once the clan has a policy and 10 members, also [Actions](/docs/clan-actions),
   [Standing](/docs/standing), **Award history** and **Award races**
@@ -112,7 +112,7 @@ The rail down the side lists Clan's pages:
   recruiting post; and, for the leader and co-leaders, **Discord**, which
   posts the clan's activity to a channel of its own ([the clan's activity
   in Discord](/docs/clan-policy#the-clans-activity-in-discord)).
-- **Manage**: Board, History, Policy and Settings for the leader and
+- **Manage**: Member review, Decisions, Policy and Settings for the leader and
   co-leaders, and Scout for elders too ([the policy](/docs/clan-policy)).
 - **You**: **Players**, the players on your Elixir account that Clan goes
   by; and **Away**, when the clan lets members mark themselves away.
@@ -158,11 +158,11 @@ and picks up again at 10.
 Nothing is judged until the clan's leader or a co-leader writes the
 clan's [policy](/docs/clan-policy): no actions, no standing, no
 inactivity clock, no awards. Every member can still read the roster,
-**You here** (their own numbers) and [The week](/docs/clan-week).
+**Your clan record** (their own numbers) and [The week](/docs/clan-week).
 Members are shown a line to send the leaders, for clan chat or a
 message, and the leaders are shown where to start.
 
-**You here** labels weekly battle counts as recorded captures. Zero recorded
+**Your clan record** labels weekly battle counts as recorded captures. Zero recorded
 battles does not prove inactivity. Weeks before roster recording began are
 marked; their counts do not establish membership or complete observation.
 

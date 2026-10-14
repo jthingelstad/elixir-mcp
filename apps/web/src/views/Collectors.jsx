@@ -122,13 +122,13 @@ export function Fleet({ navigate }) {
         <table className="table" style={{ minWidth: "640px" }}>
           <thead>
             <tr>
-              <th>NAME</th>
-              <th>RUN BY</th>
-              <th style={{ textAlign: "right" }}>YIELD</th>
-              <th>LAST FETCH</th>
-              <th style={{ textAlign: "right" }}>SHARE</th>
-              <th>VERSION</th>
-              <th>STATE</th>
+              <th>Name</th>
+              <th>Run by</th>
+              <th style={{ textAlign: "right" }}>Yield</th>
+              <th>Last fetch</th>
+              <th style={{ textAlign: "right" }}>Share</th>
+              <th>Version</th>
+              <th>State</th>
             </tr>
           </thead>
           <tbody>

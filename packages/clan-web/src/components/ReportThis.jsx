@@ -27,7 +27,7 @@ export function ReportThis({
     <>
       <button
         type="button"
-        className="btn btn--sm"
+        className="btn btn--sm btn--quiet"
         onClick={() => setOpen(true)}
         title="Tell the maintainer this looks wrong"
       >

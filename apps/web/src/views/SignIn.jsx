@@ -471,7 +471,7 @@ export function SignIn({
           </button>
         </div>
         <p className="footnote mt-3.5 mb-0">
-          Five tries, then the code is spent. The link expires either way.
+          The code allows five attempts. After that, request another email.
         </p>
       </div>
     );
@@ -492,8 +492,8 @@ export function SignIn({
           textWrap: "pretty",
         }}
       >
-        We email you a link and a six-digit code. Verify either to open your
-        account. No password, invitation or collector needed.
+        We’ll email you a sign-in link and a six-digit code. Use either to
+        continue.
       </p>
       <form onSubmit={sendEmail}>
         <label className="field-label" htmlFor="signin-email">
@@ -588,11 +588,9 @@ export function SignIn({
             and add your player tag as you do.{" "}
           </>
         )}
-        Product news is your choice above. Reports have their own off switches.
-        A new account starts on this device's time zone; Profile changes it. See{" "}
+        Reports have their own off switches. See{" "}
         <a href="/docs/privacy">Privacy</a> and <a href="/docs/email">Emails</a>
-        . Running a collector is optional and open to anyone signed in;
-        recording stays within your account's limits.
+        .
       </p>
     </div>
   );

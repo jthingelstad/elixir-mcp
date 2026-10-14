@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Fresh } from "./Fresh.tsx";
+import { Markdown } from "./Markdown.tsx";
+import { Disclosure } from "./DetailSheet.tsx";
 
 /** One delivery as the relay or Clan recorded it (contracts
  *  `DiscordDelivery`). */
@@ -83,7 +85,9 @@ export function DiscordDeliveries({
   const rows = (entries ?? []).slice(0, show);
   if (!rows.length && !notDelivered) return null;
   return (
-    <div className="grid gap-1">
+    <Disclosure
+      title={`Delivery history${notDelivered ? ` · ${notDelivered} not delivered` : ""}`}
+    >
       <p className="m-0 font-semibold">
         Last deliveries
         {notDelivered ? (
@@ -97,7 +101,7 @@ export function DiscordDeliveries({
         {rows.map((r, i) => (
           <li
             key={`${r.at}-${i}`}
-            className={`flex flex-wrap gap-x-2 ${MISSED.has(r.outcome) ? "text-warn" : ""}`}
+            className={`delivery-row flex flex-wrap gap-x-2 ${MISSED.has(r.outcome) ? "text-warn" : ""}`}
           >
             <span className="font-semibold">
               {SAID[r.outcome] ?? r.outcome}
@@ -111,11 +115,10 @@ export function DiscordDeliveries({
               <span className="hint">by the clan&rsquo;s model</span>
             ) : null}
             {r.excerpt ? (
-              <span
-                className={`min-w-0 flex-[1_1_12rem] text-ink-faint ${whole ? "w-full break-words" : "truncate"}`}
-              >
-                {r.excerpt}
-              </span>
+              <Markdown
+                className={`delivery-preview ${whole ? "" : "line-clamp-3"}`}
+                text={r.excerpt}
+              />
             ) : null}
             {r.outcome === "skipped" && r.reason ? (
               <span className="w-full text-ink-faint">{r.reason}</span>
@@ -137,7 +140,7 @@ export function DiscordDeliveries({
           </li>
         ))}
       </ul>
-    </div>
+    </Disclosure>
   );
 }
 

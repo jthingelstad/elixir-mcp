@@ -3,12 +3,12 @@ import { Link } from "./Link.tsx";
 import { TagText } from "./Tag.tsx";
 
 /**
- * The console's ONE log table.
+ * Shared logs: the data, filters and pager, with a table or event-list view.
  *
  * Activity's three views and Admin's eight pages are the same table with
  * different columns, so they are the same component: sticky header,
  * filter selects built from the rows themselves, a pager, and an
- * optional footnote. Adding a column must never mean adding a table —
+ * optional footnote. Timeline supplies a narrative row renderer. Adding a column must never mean adding a table —
  * that is how a console ends up with four table idioms and a reader who
  * has to learn each one.
  *
@@ -82,6 +82,7 @@ export function LogTable({
   actions = null,
   /** Rendered between the title and the table: a form the action opens. */
   above = null,
+  renderRow = null,
   /** Filters already applied when the table opens, keyed like `filters`.
    *  A link can therefore ARRIVE filtered — Usage's busiest tools open
    *  the requests for that one tool, which is the question the number
@@ -109,6 +110,7 @@ export function LogTable({
   minWidth?: number;
   actions?: ReactNode;
   above?: ReactNode;
+  renderRow?: ((row: LogRow, index: number) => ReactNode) | null;
   initialFilters?: Record<string, string> | null;
   loading?: boolean;
   error?: ReactNode;
@@ -188,84 +190,102 @@ export function LogTable({
         </div>
       ) : (
         <>
-          <div className="table__scroll" tabIndex={0}>
-            <table className="table" style={{ minWidth: `${minWidth}px` }}>
-              <thead>
-                <tr>
-                  {cols.map(([label, align]) => (
-                    <th
-                      key={label}
-                      className={align === "right" ? "text-right" : undefined}
-                    >
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {window.map((row, i) => (
-                  <tr key={at * PAGE + i}>
-                    {cols.map(([label, align], c) => {
-                      const cell = cellOf(row[c]);
-                      const tone = cell.tone ?? tones[cell.text];
-                      const mono = monoCols.includes(c);
-                      return (
-                        <td
-                          key={label}
-                          title={cell.title}
-                          className={[
-                            align === "right"
-                              ? "table__td--num text-right"
-                              : "",
-                            mono ? "mono" : "",
-                            wrapCols.includes(c) ? "table__td--wrap" : "",
-                            mono || align === "right" ? "font-mono" : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
-                          style={cell.ink ? { color: cell.ink } : undefined}
-                        >
-                          {cell.action ? (
-                            <button
-                              className="btn btn--sm"
-                              onClick={cell.action}
-                            >
-                              {cell.text}
-                            </button>
-                          ) : cell.href ? (
-                            <Link
-                              to={cell.href}
-                              {...(/^https?:/.test(cell.href)
-                                ? {
-                                    target: "_blank",
-                                    rel: "noopener noreferrer",
-                                  }
-                                : {})}
-                            >
-                              <TagText>{cell.text}</TagText>
-                            </Link>
-                          ) : tone ? (
-                            <span
-                              className="inline-flex items-center gap-[7px]"
-                              style={{ color: `var(--${tone})` }}
-                            >
-                              <span
-                                className="chip__dot"
-                                style={{ background: `var(--${tone})` }}
-                              />
-                              <TagText>{cell.text}</TagText>
-                            </span>
-                          ) : (
-                            <TagText>{cell.text}</TagText>
-                          )}
-                        </td>
-                      );
-                    })}
+          {renderRow ? (
+            <ol className="timeline-list">
+              {window.map((row, i) => (
+                <li key={at * PAGE + i} className="timeline-list__row">
+                  {renderRow(row, at * PAGE + i)}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="table__scroll" tabIndex={0}>
+              <table className="table" style={{ minWidth: `${minWidth}px` }}>
+                <thead>
+                  <tr>
+                    {cols.map(([label, align]) => (
+                      <th
+                        key={label}
+                        className={align === "right" ? "text-right" : undefined}
+                      >
+                        {label === label.toUpperCase()
+                          ? label.charAt(0) +
+                            label
+                              .slice(1)
+                              .toLowerCase()
+                              .replace(/\b(mcp|api|ip|id|cpu|url)\b/g, (word) =>
+                                word.toUpperCase(),
+                              )
+                          : label}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {window.map((row, i) => (
+                    <tr key={at * PAGE + i}>
+                      {cols.map(([label, align], c) => {
+                        const cell = cellOf(row[c]);
+                        const tone = cell.tone ?? tones[cell.text];
+                        const mono = monoCols.includes(c);
+                        return (
+                          <td
+                            key={label}
+                            title={cell.title}
+                            className={[
+                              align === "right"
+                                ? "table__td--num text-right"
+                                : "",
+                              mono ? "mono" : "",
+                              wrapCols.includes(c) ? "table__td--wrap" : "",
+                              mono || align === "right" ? "font-mono" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            style={cell.ink ? { color: cell.ink } : undefined}
+                          >
+                            {cell.action ? (
+                              <button
+                                className="btn btn--sm"
+                                onClick={cell.action}
+                              >
+                                {cell.text}
+                              </button>
+                            ) : cell.href ? (
+                              <Link
+                                to={cell.href}
+                                {...(/^https?:/.test(cell.href)
+                                  ? {
+                                      target: "_blank",
+                                      rel: "noopener noreferrer",
+                                    }
+                                  : {})}
+                              >
+                                <TagText>{cell.text}</TagText>
+                              </Link>
+                            ) : tone ? (
+                              <span
+                                className="inline-flex items-center gap-[7px]"
+                                style={{ color: `var(--${tone})` }}
+                              >
+                                <span
+                                  className="chip__dot"
+                                  style={{ background: `var(--${tone})` }}
+                                />
+                                <TagText>{cell.text}</TagText>
+                              </span>
+                            ) : (
+                              <TagText>{cell.text}</TagText>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {footnote && (
             <p className="footnote mx-[2px] mt-[14px] mb-0 max-w-[78ch] text-pretty">

@@ -342,8 +342,8 @@ function TierLimits({ me, entitlements: e, usage }) {
       <table className="table" style={{ minWidth: "380px" }}>
         <thead>
           <tr>
-            <th>WHAT</th>
-            <th style={{ textAlign: "right" }}>USING</th>
+            <th>What</th>
+            <th style={{ textAlign: "right" }}>Using</th>
             <th style={{ textAlign: "right" }}>
               {String(me?.role ?? "your tier").toUpperCase()} ALLOWS
             </th>

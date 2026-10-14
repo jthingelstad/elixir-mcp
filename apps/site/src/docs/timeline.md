@@ -440,11 +440,11 @@ entry: a clan's silence is the clan's activity.
 
 ## Cross-posting to Discord
 
-A timeline can be posted to a Discord channel as it happens: a person's
-own timeline, or an agent's (its clan and the players it tracks), turned
-on by the account's owner on Console ▸ Timeline under **Cross-post to
-Discord**. Profile, and each agent's page, say whether it is on. It is
-set in the console only, never through MCP or the JSON API.
+In Console ▸ Timeline, **Manage sharing** opens **Cross-post to Discord**
+for your timeline or an agent's. Only the account owner can change it,
+through the Console, never MCP or the JSON API. Delivery history expands
+in the drawer; events and evidence stay on the page. Profile and agent
+pages show whether sharing is on.
 
 - **What posts.** Every `publishable` item the timeline holds for that
   account, not otherwise filtered: the same subjects, sections and kinds

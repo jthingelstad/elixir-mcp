@@ -88,9 +88,13 @@ afterEach(() => vi.restoreAllMocks());
 async function open() {
   window.history.pushState({}, "", "/console/account/timeline");
   render(<App />);
-  await waitFor(() =>
-    screen.getByRole("region", { name: "Cross-post to Discord" }),
-  );
+  const manage = await screen.findByRole("button", { name: "Manage sharing" });
+  expect(
+    screen.queryByRole("textbox", { name: "Discord webhook URL" }),
+  ).toBeNull();
+  expect(puts).toEqual([]);
+  fireEvent.click(manage);
+  await screen.findByRole("region", { name: "Cross-post to Discord" });
 }
 
 test(
@@ -215,6 +219,7 @@ test(
       clan_channels: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
     };
     await open();
+    fireEvent.click(screen.getByText(/^Delivery history/));
     const list = screen.getByRole("list", { name: "Last deliveries" });
     expect(list.textContent).toContain("Discord: HTTP 400, Invalid Form Body");
     expect(list.textContent).toContain("five battles");

@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { LogTable, useClock, noun } from "@elixir-mcp/ui";
+import { LogTable, useClock, noun, TagText } from "@elixir-mcp/ui";
 import { useMyTimeline, useTimelineEvidence } from "../../lib/queries.js";
-import { useScope } from "../../lib/scope.js";
 import { TimelineDiscord } from "./TimelineDiscord.jsx";
 
 /**
@@ -17,7 +16,6 @@ import { TimelineDiscord } from "./TimelineDiscord.jsx";
  */
 export function Timeline() {
   const { stamp } = useClock();
-  const scoped = Boolean(useScope());
   const timelineQuery = useMyTimeline();
   const timeline = timelineQuery.data ?? null;
   const more = timeline?.timeline_more ?? 0;
@@ -98,14 +96,43 @@ export function Timeline() {
           : null
       }
       title="Timeline"
-      note={
-        scoped
-          ? "What happened to the clans and players this agent tracks, last seven days, newest first. The same items it reads with elixir_timeline."
-          : "What happened to the players and clans you track, last seven days, newest first. The same items a connection reads with elixir_timeline."
-      }
+      note="The last seven days, newest first."
+      actions={<TimelineDiscord />}
+      renderRow={(row) => {
+        const proof = row[4];
+        const state = row[3];
+        return (
+          <>
+            <time className="timeline-list__time">{row[0]}</time>
+            <div>
+              <span className="timeline-list__subject">
+                <TagText>{row[1]}</TagText>
+              </span>
+              <p className="timeline-list__text">
+                <TagText>{row[2]}</TagText>
+              </p>
+            </div>
+            <div className="timeline-list__actions">
+              {typeof state === "object" && state?.text === "unread" ? (
+                <span className="text-[12px] text-ink-faint">
+                  Unread by connections
+                </span>
+              ) : null}
+              {typeof proof === "object" && proof?.action ? (
+                <button
+                  type="button"
+                  className="btn btn--sm"
+                  onClick={proof.action}
+                >
+                  {proof.text}
+                </button>
+              ) : null}
+            </div>
+          </>
+        );
+      }}
       above={
         <>
-          <TimelineDiscord />
           {selected ? (
             <section
               aria-label="Timeline evidence"
@@ -245,7 +272,7 @@ export function Timeline() {
         { key: "state", label: "State", col: 3 },
       ]}
       empty="Nothing in the last seven days — everything you track appears here while its notify switch is on."
-      footnote={`Reading this page never moves a connection's read pointer: unread here means unread by your connections, not by you.${more > 0 ? ` A busy week: the ${rows.length} newest are shown, and ${more.toLocaleString()} more this week are not.` : ""}`}
+      footnote={`Unread means unread by your connections. Viewing this page leaves their place unchanged.${more > 0 ? ` A busy week: the ${rows.length} newest are shown, and ${more.toLocaleString()} more this week are not.` : ""}`}
     />
   );
 }

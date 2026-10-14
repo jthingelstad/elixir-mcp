@@ -1,4 +1,4 @@
-import { noun, Tag } from "@elixir-mcp/ui";
+import { Disclosure, noun, Tag } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, usePolicy } from "../lib/queries.js";
@@ -172,10 +172,8 @@ export function Policy({ clan }) {
   return (
     <div className="grid gap-4">
       <p className="page__lede m-0">
-        Policy is Elixir’s agreement for{" "}
-        {clan.name ?? <Tag tag={clan.clan_tag} />}. It is not a setting in Clash
-        Royale. You choose the expectations; the recorded evidence suggests
-        Actions, and a leader decides what to do in the game.
+        Set the expectations for {clan.name ?? <Tag tag={clan.clan_tag} />}.
+        Changes are saved as a new policy version.
       </p>
       {view.big_enough === false ? (
         <div className="callout" role="note">
@@ -207,50 +205,6 @@ export function Policy({ clan }) {
           </span>
         </div>
       ) : null}
-      <section className="panel">
-        <h2 className="panel__head m-0">Draft agreement</h2>
-        <div className="panel__body grid gap-2">
-          <p className="m-0">
-            Clan War participation:{" "}
-            {view.fields.war_intent.options.find(
-              (option) => option.value === draft.war_intent,
-            )?.label ?? "Not specified"}
-            . This intent is separate from scoring.
-          </p>
-          <p className="m-0">
-            Counted categories:{" "}
-            {countedCategories(draft)
-              .map((c) => CATEGORY_LABELS[c])
-              .join(", ") || "none"}
-            . Elders are{" "}
-            {draft.elder_mode === "categories"
-              ? "ranked by counted participation"
-              : "chosen by leaders by hand"}
-            .
-          </p>
-          <p className="m-0">
-            Minimums use {draft.minimums_window_weeks}{" "}
-            {noun(draft.minimums_window_weeks, "week")} and require{" "}
-            {draft.minimums_rule === "any" ? "any one" : "all"} of the enabled
-            thresholds above zero. They affect Elder eligibility and inactivity
-            grace; with no thresholds set, everyone meets them. Each category’s
-            score window is separate.
-          </p>
-          <p className="m-0">
-            Removal suggestions are{" "}
-            {draft.removal_enabled
-              ? `on: a member is at risk after ${draft.at_risk_days} battle-free ${noun(draft.at_risk_days, "day")}, and the leaders get a removal Action at ${Math.max(draft.confirm_days, draft.at_risk_days)} before contribution grace or holds`
-              : "off"}
-            .
-          </p>
-          <p className="page-head__note m-0">
-            Example: an expectation about participation is checked against
-            recorded weeks. If the policy warrants it, Elixir raises a
-            recommendation. A leader reviews the evidence and makes the
-            decision; Elixir never kicks or promotes a member.
-          </p>
-        </div>
-      </section>
       {view.set ? (
         <p className="page-head__note m-0">
           {`Version ${view.current.version}, saved ${view.current.saved_at?.slice(0, 10)} by ${view.current.saved_by_name ?? view.current.saved_by}.`}{" "}
@@ -268,7 +222,11 @@ export function Policy({ clan }) {
         </div>
       )}
 
-      {view.set && view.can_do?.length ? <CanDo lines={view.can_do} /> : null}
+      {view.set && view.can_do?.length ? (
+        <Disclosure title="What this policy can do today">
+          <CanDo lines={view.can_do} />
+        </Disclosure>
+      ) : null}
 
       <div className="segmented flex-wrap" role="tablist" aria-label="Policy">
         {tabs.map((t) => {
@@ -456,6 +414,49 @@ export function Policy({ clan }) {
         </div>
       </section>
 
+      <Disclosure title="Draft agreement">
+        <div className="panel__body grid gap-2">
+          <p className="m-0">
+            Clan War participation:{" "}
+            {view.fields.war_intent.options.find(
+              (option) => option.value === draft.war_intent,
+            )?.label ?? "Not specified"}
+            . This intent is separate from scoring.
+          </p>
+          <p className="m-0">
+            Counted categories:{" "}
+            {countedCategories(draft)
+              .map((c) => CATEGORY_LABELS[c])
+              .join(", ") || "none"}
+            . Elders are{" "}
+            {draft.elder_mode === "categories"
+              ? "ranked by counted participation"
+              : "chosen by leaders by hand"}
+            .
+          </p>
+          <p className="m-0">
+            Minimums use {draft.minimums_window_weeks}{" "}
+            {noun(draft.minimums_window_weeks, "week")} and require{" "}
+            {draft.minimums_rule === "any" ? "any one" : "all"} of the enabled
+            thresholds above zero. They affect Elder eligibility and inactivity
+            grace; with no thresholds set, everyone meets them. Each category’s
+            score window is separate.
+          </p>
+          <p className="m-0">
+            Removal suggestions are{" "}
+            {draft.removal_enabled
+              ? `on: a member is at risk after ${draft.at_risk_days} battle-free ${noun(draft.at_risk_days, "day")}, and the leaders get a removal Action at ${Math.max(draft.confirm_days, draft.at_risk_days)} before contribution grace or holds`
+              : "off"}
+            .
+          </p>
+          <p className="page-head__note m-0">
+            Example: an expectation about participation is checked against
+            recorded weeks. If the policy warrants it, Elixir raises a
+            recommendation. A leader reviews the evidence and makes the
+            decision; Elixir never kicks or promotes a member.
+          </p>
+        </div>
+      </Disclosure>
       {view.can_edit ? (
         <div className="panel">
           <div className="panel__body grid gap-2.5">

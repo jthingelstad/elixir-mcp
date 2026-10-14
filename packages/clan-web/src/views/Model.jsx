@@ -1,4 +1,4 @@
-import { ago } from "@elixir-mcp/ui";
+import { Disclosure, ago } from "@elixir-mcp/ui";
 import { modelName } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
@@ -157,38 +157,43 @@ export function Model({ clan }) {
 
   return (
     <div className="grid max-w-[720px] gap-4">
-      <p className="page__lede m-0">
-        Elixir Clan pays for no model. With your clan&rsquo;s own Anthropic key,
-        a model drafts the recruiting pitch in Recruit and messages on Actions:
-        welcomes, promotions, demotions, awards, policy announcements and a chat
-        line after a removal decision. It never decides what should happen to a
-        member. It is told what Elixir records: the clan (its name, its own
-        words, what it is for, its members and last war weeks), the
-        Action&rsquo;s own evidence and the member it is about, by name, with
-        their trophies, time in the clan, war weeks and recent moments. A
-        removal or departure is told only the member&rsquo;s time in the clan
-        and the weeks they played. Tags, notes saved on an Action, holds, a
-        removal&rsquo;s reasons and a member&rsquo;s share of fame are never
-        sent. Chat drafts use fixed tone choices. Everything it writes is a
-        draft you review and edit, then save or copy into the game, with
-        anything it says that it was not told marked for you to check. Nothing
-        is posted automatically. Drafts use the clan&rsquo;s saved recruiting
-        words as its voice; add those in Recruit and choose the tone on the
-        action.
+      <p className="text-ink-dim">
+        Your Anthropic account pays for model use. Review message drafts before
+        sending; optional Discord activity editing can post without review.
       </p>
-      <p className="page-head__note m-0">
-        The one exception is the clan&rsquo;s activity in Discord (Social ▸
-        Discord), when a leader has the clan&rsquo;s model edit the channel: it
-        is told the same record, may look up a member&rsquo;s record and battles
-        and the channel&rsquo;s recent posts, may tell a few stories together or
-        skip one with a reason, and posts without a review. A post that drops or
-        changes a name, carries a number or a name it was not given, says a time
-        of day, changes a departure&rsquo;s sentence, carries a link or a
-        mention, or runs long keeps Elixir&rsquo;s own story. Its runs are
-        counted apart from the drafts; a leader&rsquo;s preview of it is a
-        draft.
-      </p>
-
+      <Disclosure title="What the model receives and how its output is used">
+        <p className="page__lede m-0">
+          Elixir Clan pays for no model. With your clan&rsquo;s own Anthropic
+          key, a model drafts the recruiting pitch in Recruit and messages on
+          Actions: welcomes, promotions, demotions, awards, policy announcements
+          and a chat line after a removal decision. It never decides what should
+          happen to a member. It is told what Elixir records: the clan (its
+          name, its own words, what it is for, its members and last war weeks),
+          the Action&rsquo;s own evidence and the member it is about, by name,
+          with their trophies, time in the clan, war weeks and recent moments. A
+          removal or departure is told only the member&rsquo;s time in the clan
+          and the weeks they played. Tags, notes saved on an Action, holds, a
+          removal&rsquo;s reasons and a member&rsquo;s share of fame are never
+          sent. Chat drafts use fixed tone choices. Everything it writes is a
+          draft you review and edit, then save or copy into the game, with
+          anything it says that it was not told marked for you to check. Nothing
+          is posted automatically. Drafts use the clan&rsquo;s saved recruiting
+          words as its voice; add those in Recruit and choose the tone on the
+          action.
+        </p>
+        <p className="page-head__note m-0">
+          The one exception is the clan&rsquo;s activity in Discord (Social ▸
+          Discord), when a leader has the clan&rsquo;s model edit the channel:
+          it is told the same record, may look up a member&rsquo;s record and
+          battles and the channel&rsquo;s recent posts, may tell a few stories
+          together or skip one with a reason, and posts without a review. A post
+          that drops or changes a name, carries a number or a name it was not
+          given, says a time of day, changes a departure&rsquo;s sentence,
+          carries a link or a mention, or runs long keeps Elixir&rsquo;s own
+          story. Its runs are counted apart from the drafts; a leader&rsquo;s
+          preview of it is a draft.
+        </p>
+      </Disclosure>
       {!d.set ? (
         <section className="grid gap-1" aria-label="Models">
           <span className="label">Models</span>
@@ -315,7 +320,7 @@ export function Model({ clan }) {
                   .filter((u) => !u.model)
                   .map((u) => u.label)
                   .join(", ")}
-                , so those are not drafted. Settings checks the key with
+                , so those are not drafted. This editor checks the key with
                 Anthropic again about once a day.
               </span>
             </div>

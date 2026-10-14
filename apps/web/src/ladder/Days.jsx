@@ -86,7 +86,7 @@ export function Days({ player, season: picked, seasonPicker, summary }) {
             ? `${fmt(so.played)} ${noun(so.played, "day")} with recorded battles`
             : "Days played"
         }
-        lede={`Every day of ${name}, ${zoneName(zone)}. Each mode keeps its own mark and its own record, so a war day and a Trophy Road night never add up to one number.`}
+        lede={`${name} · ${zoneName(zone)}`}
         observedAt={first?.meta?.source_polls?.player_battlelog?.observed_at}
         season={picked}
         seasonPicker={seasonPicker}

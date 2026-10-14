@@ -1,5 +1,11 @@
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Overview } from "../src/views/account/Overview.jsx";
 
@@ -92,38 +98,23 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test("across Elixir: the Ladder, your clan's week and the game, with no number the record does not hold", async () => {
+test("your record links to the primary's season, home clan and tracking", async () => {
   stub(ROUTES);
   renderWithProviders(<Overview me={ME} navigate={vi.fn()} />);
-  const across = (
-    await screen.findByRole("heading", { name: "Across Elixir" })
-  ).closest("section");
-  // Until the clans arrive the clan tile goes to Elixir Clan's own home.
+  const across = await screen.findByRole("navigation", { name: "Your record" });
   await waitFor(() =>
     expect(
       within(across)
         .getAllByRole("link")
         .map((a) => a.getAttribute("href")),
-    ).toEqual([
-      "/ladder",
-      "/clan/J2RGCRVG/week",
-      "https://drop.poapkings.com/",
-    ]),
+    ).toEqual(["/ladder", "/clan/J2RGCRVG/week", "/console/account/tracking"]),
   );
-  const links = within(across).getAllByRole("link");
-  expect(links[0].textContent).toContain("King Thing");
-  expect(links[0].textContent).toContain("This season ›");
-  // The clan's tile counts members the record holds, never war decks.
-  await waitFor(() =>
-    expect(links[1].textContent).toContain("46members on record"),
+  expect(within(across).getAllByRole("link")[0].textContent).toContain(
+    "King Thing’s season",
   );
-  expect(links[1].textContent).toContain("Clan · POAP KINGS");
-  // Drop is the game: its own host, a new window, and the label says so.
-  expect(links[2].getAttribute("target")).toBe("_blank");
-  expect(links[2].getAttribute("aria-label")).toBe(
-    "Play Drop, the elixir-cost game (opens drop.poapkings.com in a new window)",
+  expect(within(across).getAllByRole("link")[1].textContent).toContain(
+    "POAP KINGS",
   );
-  expect(links[2].className).toContain("max-wide:hidden");
 });
 
 test("players: you first, then your accounts, friends and the watched, four rows and who is next", async () => {
@@ -234,8 +225,9 @@ test("bring your clanmates: named for the primary's clan, a chat line within 200
   stub(ROUTES);
   renderWithProviders(<Overview me={ME} navigate={vi.fn()} />);
   const panel = (
-    await screen.findByRole("heading", { name: "Bring your clanmates" })
-  ).closest("section");
+    await screen.findByText("Invite clanmates", { exact: true })
+  ).closest("details");
+  fireEvent.click(panel.querySelector("summary"));
   expect(panel.textContent).toContain("Anyone in POAP KINGS who signs up");
   const chat = within(panel)
     .getByRole("button", { name: "Copy the line for clan chat" })
@@ -258,7 +250,5 @@ test("bring your clanmates: named for the primary's clan, a chat line within 200
       "Clans 2",
     ),
   );
-  expect(screen.queryByRole("heading", { name: "Bring your clanmates" })).toBe(
-    null,
-  );
+  expect(screen.queryByText("Invite clanmates", { exact: true })).toBe(null);
 });

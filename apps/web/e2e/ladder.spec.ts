@@ -139,9 +139,9 @@ test.describe("Ladder signed in", () => {
     );
     await expect(page.locator(".ladder-player")).toContainText("King Thing");
     await expect(page.locator(".ladder-player")).toContainText("#20JJJ2CCRU");
-    await expect(page.locator(".ladder-rail__note")).toHaveText(
-      "A mirror, not a coach: your record, read back.",
-    );
+    await expect(
+      page.getByText("About this record", { exact: true }),
+    ).toBeVisible();
 
     // Trophy Road and War tie in this summary; the tab order breaks ties.
     const modes = page.getByRole("navigation", { name: "Mode" });
@@ -637,7 +637,7 @@ test.describe("Ladder days played", () => {
     ).toBeVisible();
     await expect(page).toHaveTitle("Days played - Ladder - Elixir");
     await expect(page.locator(".page__lede")).toContainText(
-      "Every day of Season 136, Central time.",
+      "Season 136 · Central time",
     );
     await expect(
       page
@@ -812,7 +812,7 @@ test.describe("Ladder decks", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Seven decks, three modes",
+        name: "Decks",
       }),
     ).toBeVisible();
     await expect(page).toHaveTitle("Decks - Ladder - Elixir");
@@ -931,7 +931,7 @@ test.describe("Ladder decks", () => {
     await page.getByRole("link", { name: "Every deck you played ›" }).click();
     await expect(page).toHaveURL(/\/ladder\/decks(\?mode=ladder)?$/);
     await expect(
-      page.getByRole("heading", { level: 1, name: /decks,/ }),
+      page.getByRole("heading", { level: 1, name: "Decks" }),
     ).toBeVisible();
   });
 
@@ -965,12 +965,12 @@ test.describe("Ladder cards", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Cards you played, cards you faced",
+        name: "Cards",
       }),
     ).toBeVisible();
     await expect(page).toHaveTitle("Cards - Ladder - Elixir");
     await expect(page.locator(".page__lede")).toContainText(
-      "Trophy Road, this season.",
+      "Trophy Road · this season",
     );
     await expect(
       page
@@ -1208,7 +1208,7 @@ test.describe("Ladder seasons", () => {
     await expect(page).toHaveURL(/\/ladder\/decks\?mode=ladder&season=135$/);
     await expect(page.getByLabel("Season", { exact: true })).toHaveValue("135");
     await expect(
-      page.getByRole("heading", { level: 1, name: /in Season 135$/ }),
+      page.getByRole("heading", { level: 1, name: "Decks" }),
     ).toBeVisible();
     await expect
       .poll(() =>

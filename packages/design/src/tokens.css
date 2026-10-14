@@ -11,22 +11,10 @@
    bytes). The verticals import THIS file into their own Tailwind entry,
    so they share the tokens and compile their own utilities.
 
-   Foundation pass 2026-09-13: the :root block below is unchanged and
-   stays the source of truth for VALUES (the handoff's Design System
-   file, Tokens page - keep them in step). The @theme block after it
-   maps those values onto Tailwind's namespaces so utilities exist for
-   them (bg-ground, text-ink-dim, border-line, rounded-panel,
-   font-display, text-body...). Tailwind's own palette, type scale,
-   radii and shadows are reset to nothing: the utility vocabulary is
-   this design's and only this design's. Spacing keeps Tailwind's
-   default 4px unit, which is the same 4pt scale as --s-*.
-
-   Four things the handoff sheet does not carry are kept below, because
-   they are not palette values it renamed — they are jobs it does not
-   cover: the @font-face, the collector series colours (validated for
-   the dark plot surface, adjacent-pair colourblind separation and 3:1
-   contrast — do not reorder or substitute by eye), the focus ring, and
-   the 4pt spacing scale.
+   The :root block is the source of truth for values. The @theme block
+   maps them onto Tailwind's namespaces. The 2026-10-13 interface cleanup
+   uses quieter violet surfaces, Inter page titles and compact controls.
+   Collector series colours retain their tested separation and contrast.
 
    Fonts: "Clash Royale" is Supercell's official display font from the
    Supercell Fan Kit, used under the Fan Content Policy. Copy
@@ -125,29 +113,29 @@
 
 :root {
   /* ---- Ground: page up to a raised panel -------------------------- */
-  --ground: #0c0920; /* page background, under the radial wash */
-  --ground-chrome: #100c26; /* header, footer, rail */
-  --ground-sunken: #120d2e; /* code blocks, meter troughs, inputs */
-  --panel: #1a1440; /* cards, panels, chip backgrounds */
-  --panel-raised: #221a52; /* secondary buttons, tag pills */
-  --panel-head: #181135; /* header strip inside a code panel */
-  --panel-float: #150f36; /* a card that floats: auth, the transcript */
+  --ground: #100d20; /* page background, under the radial wash */
+  --ground-chrome: #141025; /* header, footer, rail */
+  --ground-sunken: #151125; /* code blocks, meter troughs, inputs */
+  --panel: #1b1630; /* cards, panels, chip backgrounds */
+  --panel-raised: #241d3b; /* secondary buttons, tag pills */
+  --panel-head: #171229; /* header strip inside a code panel */
+  --panel-float: #1b1630; /* a card that floats: auth, the transcript */
 
   /* The page wash. One gradient, same on every surface. */
-  --page-wash: radial-gradient(70rem 34rem at 60% -14rem, #191140, #0c0920);
+  --page-wash: none;
 
   /* ---- Line: three weights, each with a job ----------------------- */
-  --line: #3a3175; /* panel borders, table header rule */
-  --line-soft: #2d2560; /* chrome dividers, panel internals */
-  --line-row: #241d4e; /* the rule under a table row */
-  --line-strong: #4c4193; /* emphasised panel, input border */
+  --line: #393047; /* panel borders, table header rule */
+  --line-soft: #30283f; /* chrome dividers, panel internals */
+  --line-row: #292238; /* the rule under a table row */
+  --line-strong: #625079; /* emphasised panel, input border */
 
   /* ---- Ink -------------------------------------------------------- */
-  --ink: #faf8ff; /* primary text, numbers, active nav */
-  --ink-body: #ddd7f5; /* body copy in panels and tables */
-  --ink-dim: #bdb4e2; /* ledes, inactive nav, secondary copy */
-  --ink-faint: #a29ad0; /* labels, footnotes, provenance */
-  --ink-link: #b49dfb; /* links and Clash Royale tags */
+  --ink: #f2eff8; /* primary text, numbers, active nav */
+  --ink-body: #ded8e9; /* body copy in panels and tables */
+  --ink-dim: #bcb4cb; /* ledes, inactive nav, secondary copy */
+  --ink-faint: #aaa1ba; /* labels, footnotes, provenance */
+  --ink-link: #bca5f5; /* links and Clash Royale tags */
   --ink-link-hover: #d3c4ff;
   --ink-code: #e6dfff; /* inside a code block */
   --ink-quiet-icon: #8b7fc7; /* an icon that is deliberately inert */
@@ -160,7 +148,7 @@
   --gold-on: #2a1500; /* text on a gold surface */
 
   --accent: #8b5cf6; /* meter fills, charts, marks */
-  --accent-bright: #a78bfa; /* icons, accent ink, unread dot */
+  --accent-bright: #b49af0; /* icons, accent ink, unread dot */
   --accent-deep: #6d28d9; /* selected control, primary non-brand */
 
   --ok: #4ade80; /* recording, healthy, granted, win */
@@ -213,7 +201,7 @@
   --hover-rail: rgba(139, 92, 246, 0.14);
   --hover-row: rgba(139, 92, 246, 0.07);
   --hover-child: rgba(139, 92, 246, 0.1);
-  --mark-current: inset 2px 0 0 var(--gold); /* current rail item */
+  --mark-current: inset 3px 0 0 var(--accent-bright); /* current rail item */
   --mark-tab: inset 0 -2px 0 var(--gold); /* current header tab */
 
   --focus-glow: rgba(139, 92, 246, 0.28);
@@ -225,7 +213,7 @@
   --font-mono: ui-monospace, Menlo, Consolas, monospace;
 
   --t-h1-site: 36px; /* site + design-system h1 */
-  --t-h1-page: 30px; /* console page title */
+  --t-h1-page: 28px; /* console page title */
   --t-h2: 18px;
   --t-panel-head: 14px;
   --t-body: 15px;
@@ -237,18 +225,18 @@
   --lh-prose: 1.65;
 
   /* ---- Geometry --------------------------------------------------- */
-  --rail-w: 256px;
+  --rail-w: 232px;
   --page-max: 1280px;
-  --content-max: 1020px; /* console page content */
+  --content-max: 1280px; /* console page content */
   --prose-max: 72ch;
   --pad-page: 32px;
   --pad-page-narrow: 16px;
 
   --r-chip: 8px;
-  --r-control: 10px;
+  --r-control: 6px;
   --r-block: 12px;
-  --r-panel: 14px;
-  --r-rail: 0 10px 10px 0; /* squared into the current-item rule */
+  --r-panel: 8px;
+  --r-rail: 0; /* squared into the current-item rule */
   --r-pill: 999px;
 
   --hit: 40px; /* desktop row / control */

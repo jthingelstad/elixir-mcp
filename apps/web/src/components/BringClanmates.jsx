@@ -63,15 +63,8 @@ export function BringClanmates({ className = "" }) {
   const canShare =
     typeof navigator !== "undefined" && typeof navigator.share === "function";
   return (
-    <section
-      className={`panel ${className}`.trim()}
-      aria-labelledby="bring-clanmates"
-    >
-      <div className="panel__head">
-        <h2 id="bring-clanmates" className="m-0 text-[14px] font-semibold">
-          Bring your clanmates
-        </h2>
-      </div>
+    <details className={`disclosure ${className}`.trim()}>
+      <summary>Invite clanmates</summary>
       <div className="panel__body grid gap-2.5">
         <p className="m-0 text-[13.5px] text-ink-body">
           Anyone in {shown} who signs up gets their own battle history kept and
@@ -120,6 +113,6 @@ export function BringClanmates({ className = "" }) {
           </div>
         )}
       </div>
-    </section>
+    </details>
   );
 }

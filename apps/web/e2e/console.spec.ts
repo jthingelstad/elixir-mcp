@@ -179,11 +179,11 @@ test.describe("signed in", () => {
       );
       await rendered(page);
       if (label === "Timeline") {
-        const session = page.getByRole("row").filter({
+        const session = page.locator(".timeline-list > li").filter({
           hasText: "Played a battle session.",
         });
         await expect(session).toContainText("King Thing");
-        await expect(session).toContainText("unread");
+        await expect(session).toContainText("Unread by connections");
       }
     }
     // Subs render only under the current item: Status's two, and the
@@ -298,10 +298,13 @@ test.describe("signed in", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Timeline",
     );
-    const session = page.getByRole("row").filter({
+    const session = page.locator(".timeline-list > li").filter({
       hasText: "Played a battle session.",
     });
-    await expect(session).toContainText("read");
+    await page
+      .getByRole("combobox", { name: "State", exact: true })
+      .selectOption("read");
+    await expect(session).toBeVisible();
     await expect(session).not.toContainText("unread");
     await expect(
       rail.getByRole("img", { name: "Unread notifications" }),
@@ -316,7 +319,7 @@ test.describe("signed in", () => {
       page.getByText(/^Nothing in the last seven days/),
     ).toBeVisible();
     await expect(
-      page.getByRole("row").filter({ hasText: "unread" }),
+      page.locator(".timeline-list > li").filter({ hasText: "unread" }),
     ).toHaveCount(0);
     await expect(
       rail.getByRole("img", { name: "Unread notifications" }),
@@ -356,16 +359,11 @@ test.describe("signed in", () => {
       ],
     });
     await page.goto("/console/account/timeline");
-    const row = page.getByRole("row").filter({
+    const row = page.locator(".timeline-list > li").filter({
       hasText: "King Thing unlocked Hero Valkyrie.",
     });
     await expect(row).toHaveCount(1);
-    await expect(
-      row.getByRole("cell", {
-        name: "King Thing unlocked Hero Valkyrie.",
-        exact: true,
-      }),
-    ).toBeVisible();
+    await expect(row.locator(".timeline-list__text")).toBeVisible();
     await rendered(page);
     await accessible(page, "timeline, form unlock");
   });
@@ -530,9 +528,11 @@ test.describe("signed in", () => {
   }) => {
     await page.goto("/console/account/overview");
     await expect(page.locator(".rail__toggle")).toContainText("Overview");
-    const across = page.getByRole("region", { name: "Across Elixir" });
-    await expect(across.getByRole("link", { name: /Ladder/ })).toBeVisible();
-    await expect(across.getByRole("link", { name: /Clan/ })).toBeVisible();
+    const across = page.getByRole("navigation", { name: "Your record" });
+    await expect(
+      across.getByRole("link", { name: /King Thing’s season/ }),
+    ).toBeVisible();
+    await expect(across.getByRole("link", { name: /Your clan/ })).toBeVisible();
     await expect(across.locator(".drop-card")).toBeHidden();
     await rendered(page);
     await accessible(page, "narrow overview");

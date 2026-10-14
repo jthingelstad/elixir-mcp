@@ -142,8 +142,8 @@ export function YouHere({ clan, navigate }) {
     <PageHead
       clan={clan}
       name={d?.clan_name}
-      crumb="You here"
-      title="You here"
+      crumb="Your clan record"
+      title="Your clan record"
       lede="Your own numbers in this clan, week by week, and what its policy makes of them. Only you see this page."
       navigate={navigate}
       fresh={

@@ -611,3 +611,57 @@ test("the status is read every few seconds just after an add, then once a minute
     ),
   ).toBe(null);
 });
+
+test("overview folds healthy recording but keeps capture failure and partial coverage visible", () => {
+  const captured = {
+    ...player,
+    profile_available: true,
+    battles_30d: 12,
+    battles_7d: 5,
+  };
+  const answer = (p) => ({
+    data: { as_of: "2026-10-13T12:00:00Z", player: p, connection },
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  });
+  const { container, rerender } = render(
+    <FirstAnswer summarize answer={answer(captured)} />,
+  );
+  expect(container.querySelector("details.recording-summary")).toBeTruthy();
+  expect(container.querySelector("details.recording-summary").open).toBe(false);
+  fireEvent.click(screen.getByText("Setup details"));
+  expect(screen.getByRole("heading", { name: "Your recording" })).toBeTruthy();
+  rerender(
+    <FirstAnswer
+      summarize
+      answer={answer({
+        ...captured,
+        capture_attempts: [
+          {
+            endpoint: "player_battlelog",
+            last_failed_at: "2026-10-13T11:00:00Z",
+            last_failed_status: 503,
+          },
+        ],
+      })}
+    />,
+  );
+  expect(container.querySelector("details.recording-summary")).toBeNull();
+  expect(screen.getByText("Capture attempt failed")).toBeTruthy();
+  rerender(
+    <FirstAnswer
+      summarize
+      answer={answer({
+        ...captured,
+        capture_interval: {
+          ratio: 0.5,
+          from: "2026-10-12T12:00:00Z",
+          to: "2026-10-13T12:00:00Z",
+        },
+      })}
+    />,
+  );
+  expect(container.querySelector("details.recording-summary")).toBeNull();
+  expect(screen.getByRole("heading", { name: "Your recording" })).toBeTruthy();
+});

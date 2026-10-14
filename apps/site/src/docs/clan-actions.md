@@ -101,11 +101,15 @@ a week past the join.
 
 ## Deciding one
 
+Open an Action to read its evidence and message beside **Decision**.
+**History** expands its saved log and comment form. These labels do not
+change which decisions your role may make.
+
 Actions shows one **Open** list by default. Choose **Closed** to see the most
-recent decisions from the last 30 days; older decisions remain in History.
+recent decisions from the last 30 days; older decisions remain in Decisions.
 The chosen list is kept in the address: browser Back, Forward and refresh
 restore it, and a Closed Action opened from that list links back to Closed.
-History’s membership section shows recent recorded roster changes, capped
+Decisions’ membership section shows recent recorded roster changes, capped
 at the newest twenty events, rather than the entire history since roster
 recording began. Earlier changes are not listed in that section.
 
@@ -149,7 +153,7 @@ the game message. Mixed chat and Inbox deliveries keep their separate receipts.
 declining an Action. It does not schedule a send or change a clan decision.
 
 Verified leaders and co-leaders can open a declined Action from **Closed** or
-**History** and choose **Reopen action**. It returns the same numbered Action
+**Decisions** and choose **Reopen action**. It returns the same numbered Action
 to Open, keeping the original decline in its log and retaining any parts
 already marked sent. Completed, withdrawn and fully delivered Actions cannot
 be reopened. Reopening keeps the original evidence and does not send a message.
@@ -263,7 +267,7 @@ grace for meeting the minimums) the leader and co-leaders get a
 **Remove from the clan** Action; a member at risk is asked **Going to be
 away?** first, when the policy asks quiet members.
 The leader, co-leaders, members on a hold and, unless the clan allows
-it, Elders are shown as **Protected** on Board and are never put up for
+it, Elders are shown as **Protected** on Member review and are never put up for
 removal.
 
 The clock waits only when it cannot be read: Elixir could not read the
@@ -288,13 +292,13 @@ removal that no longer qualifies says so, and withholds its copy, model
 drafting, completion and reopening; leadership can still explicitly
 Decline it.
 
-Board distinguishes **Protected**, **Not currently a removal candidate**,
+Member review distinguishes **Protected**, **Not currently a removal candidate**,
 **Evidence held** and **Eligible**. Protected roles and recent recorded play
 do not become removal cases just because some coverage is incomplete. These
 labels keep evidence quality separate from relevance; they do not relax the
 current-evidence checks on an Action.
-Board counts held promotion and demotion evidence separately from removal
-evidence; one member can appear in more than one count. Choose a Board group
+Member review counts held promotion and demotion evidence separately from removal
+evidence; one member can appear in more than one count. Choose a Member review group
 to jump to its members. On a narrow screen, scroll the table sideways to read
 every column.
 
@@ -315,7 +319,7 @@ After it clears or expires, the current evidence and policy are assessed again.
 30 days. You see the actions that are yours, by your name or by your
 role, and no others: another's action number answers that there is no
 such action. **Nobody below co-leader ever sees a removal action or who
-is on the clock.** The leader and co-leaders also have **History**,
+is on the clock.** The leader and co-leaders also have **Decisions**,
 every action the clan has had with its outcome, and the holds.
 
 You need a verified player to decide or comment; until then you can

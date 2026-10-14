@@ -1,7 +1,5 @@
 import { useInitialTime } from "@elixir-mcp/ui";
 import {
-  FAMILY_PRODUCTS,
-  gameLabel,
   Icon,
   Link,
   ago,
@@ -81,121 +79,23 @@ function LivePill({ me }) {
   );
 }
 
-/** One of the three tiles across Elixir. The whole tile is the link. */
-function Tile({ to, icon, title, aside, children, more, className = "" }) {
-  return (
-    <Link
-      to={to}
-      className={`panel flex flex-col gap-3.5 px-5 py-[18px] text-ink hover:text-ink ${className}`}
-    >
-      <span className="flex items-center gap-2.5">
-        <Icon name={icon} size={18} />
-        <span className="flex-auto text-[14px] font-semibold">{title}</span>
-        {aside}
-      </span>
-      {children}
-      <span className="mt-auto text-[13px] text-ink-link">{more}</span>
-    </Link>
-  );
-}
-
+/** Compact ways into the person's own record; the game remains in the bar. */
 function Across({ me, clans }) {
   const primary = (me.claims ?? []).find((c) => c.is_primary);
-  const home = clans?.home_clan ?? null;
-  const tracked = home
-    ? (clans?.clans ?? []).find((c) => c.clan_tag === home.clan_tag)
-    : null;
-  const drop = FAMILY_PRODUCTS.find((p) => p.game);
+  const home = clans?.home_clan;
   return (
-    <section aria-labelledby="across" className="mb-6">
-      <div className="mb-3 flex items-baseline gap-3">
-        <h2
-          id="across"
-          className="m-0 text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-faint"
-        >
-          Across Elixir
-        </h2>
-        <span className="text-[12.5px] text-ink-faint">
-          your Ladder and your clan, plus a game
-        </span>
-      </div>
-      <div className="grid gap-4 wide:grid-cols-3">
-        <Tile
-          to="/ladder"
-          icon="chart-line"
-          title="Ladder"
-          more="This season ›"
-        >
-          <span className="text-[13.5px] leading-normal text-ink-body">
-            {primary ? (
-              <>
-                <span className="font-semibold text-ink">
-                  {nameOf(primary)}
-                </span>
-                &rsquo;s current season: recorded battles, one mode at a time.
-              </>
-            ) : (
-              "Your current season: recorded battles, one mode at a time."
-            )}
-          </span>
-        </Tile>
-        <Tile
-          to={home ? `/clan/${tagPath(home.clan_tag)}/week` : "/clan"}
-          icon="users"
-          title={
-            home ? (
-              <>Clan · {home.name ?? <Tag tag={home.clan_tag} />}</>
-            ) : (
-              "Clan"
-            )
-          }
-          more={home ? "The week in the clan ›" : "Elixir Clan ›"}
-        >
-          {tracked?.member_count ? (
-            <span className="flex items-baseline gap-2">
-              <span className="mono text-[26px] font-semibold text-ink max-wide:text-[24px]">
-                {tracked.member_count}
-              </span>
-              <span className="text-[13.5px] text-ink-body">
-                members on record
-              </span>
-            </span>
-          ) : (
-            <span className="text-[13.5px] leading-normal text-ink-body">
-              {home
-                ? "Your player's clan: its week, its standing and the actions waiting on its leaders."
-                : "Your clan's week, its standing and the actions waiting on its leaders."}
-            </span>
-          )}
-        </Tile>
-        {drop && (
-          // On a phone the game is in the bar's menu; the canvas leaves
-          // the tile out there.
-          <a
-            className="drop-card max-wide:hidden"
-            href={drop.href}
-            target="_blank"
-            rel="noopener"
-            aria-label={gameLabel(drop)}
-          >
-            <span className="flex items-center gap-2.5">
-              <Icon name="gamepad-2" size={18} />
-              <span className="drop-card__name">{drop.label}</span>
-              <span className="drop-card__kind">a game</span>
-            </span>
-            <span className="drop-card__about">
-              Guess the elixir cost before the drop. Ranked games, Practice,
-              badges and seasons.
-            </span>
-            <span className="drop-card__play">
-              <Icon name={drop.icon} size={17} />
-              {drop.action ?? drop.label}
-              <Icon name="arrow-up-right" size={14} />
-            </span>
-          </a>
-        )}
-      </div>
-    </section>
+    <nav className="workspace-status" aria-label="Your record">
+      <Link to="/ladder">
+        {primary
+          ? `${primary.nickname ?? primary.name ?? "Your player"}’s season`
+          : "Ladder"}{" "}
+        ›
+      </Link>
+      <Link to={home ? `/clan/${tagPath(home.clan_tag)}/week` : "/clan"}>
+        {home?.name ?? "Your clan"} ›
+      </Link>
+      <Link to={`${CONSOLE}/account/tracking`}>Manage tracking ›</Link>
+    </nav>
   );
 }
 
@@ -534,7 +434,7 @@ export function Overview({ me, navigate }) {
           <p className="page__lede">
             {fresh
               ? "Add the player you play as in Tracking to start building your record."
-              : `${players.length} player${players.length === 1 ? "" : "s"}${clans ? ` and ${clanRows.length} clan${clanRows.length === 1 ? "" : "s"}` : ""} tracked. Read your record below or manage capture in Tracking.`}
+              : `${players.length} player${players.length === 1 ? "" : "s"}${clans ? ` and ${clanRows.length} clan${clanRows.length === 1 ? "" : "s"}` : ""} tracked.`}
           </p>
         </div>
         <LivePill me={me} />
@@ -543,10 +443,13 @@ export function Overview({ me, navigate }) {
       <ZoneOffer className="mb-6" />
 
       <FirstAnswer
+        summarize
         claimsKey={players
           .map((c) => `${c.player_tag}:${c.is_primary}`)
           .join(",")}
       />
+
+      {players.length > 0 && <OverviewActivity players={players} />}
 
       {!fresh && <Across me={me} clans={clans} />}
 
@@ -558,8 +461,6 @@ export function Overview({ me, navigate }) {
           <BringClanmates />
         </div>
       </div>
-
-      {players.length > 0 && <OverviewActivity players={players} />}
     </>
   );
 }

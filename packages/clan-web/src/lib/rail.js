@@ -31,11 +31,11 @@ export function railItems(me) {
   // without the flag reads as its `set`).
   const set = policy?.active ?? policy?.set === true;
   if (clan) {
-    items.push({ key: "clan", label: "Clan", icon: "users", to: base });
+    items.push({ key: "clan", label: "Roster", icon: "users", to: base });
     // "You here": your own numbers in this clan, with or without a policy.
     items.push({
       key: "me",
-      label: "You here",
+      label: "Your clan record",
       icon: "activity",
       to: `${base}/me`,
     });
@@ -119,13 +119,13 @@ export function railItems(me) {
         items.push({
           group: "Manage",
           key: "board",
-          label: "Board",
+          label: "Member review",
           icon: "layout-dashboard",
           to: `${base}/manage/board`,
         });
         items.push({
           key: "history",
-          label: "History",
+          label: "Decisions",
           icon: "history",
           to: `${base}/manage/history`,
         });

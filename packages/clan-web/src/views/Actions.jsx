@@ -229,7 +229,7 @@ export function Actions({ clan, who, navigate, scope: routeScope }) {
       clan={clan}
       crumb="Actions"
       title="Actions"
-      lede="What the policy suggests and the roster asks for. You decide each one in the game, then here. Nobody below co-leader sees removals or who is on a clock."
+      lede="Review the evidence, act in the game, then record your decision."
       navigate={navigate}
       fresh={
         <div className="flex flex-wrap items-center gap-3">
@@ -283,15 +283,6 @@ export function Actions({ clan, who, navigate, scope: routeScope }) {
   return (
     <>
       {head}
-      {/* Door 2: the morning email, and where it is switched off (Elixir's). */}
-      <p className="page-head__note mt-0 mb-4">
-        On a morning when something new here is yours to do, Elixir emails you
-        what is waiting.{" "}
-        <a href="https://elixir.poapkings.com/console/account/profile/email">
-          Change that in Elixir
-        </a>
-        .
-      </p>
       {leads ? (
         <DiscordNudge
           discord={d.discord}
@@ -373,7 +364,7 @@ export function Actions({ clan, who, navigate, scope: routeScope }) {
                         navigate(history);
                       }}
                     >
-                      History ›
+                      Decisions ›
                     </a>
                   </>
                 ) : null
@@ -438,7 +429,11 @@ export function ActionDetail({ clan, who, number, navigate, scope }) {
       clan={clan}
       via={{ label: "Actions", to: list }}
       crumb={`#${number}`}
-      title={`Action #${number}`}
+      title={
+        state.data?.action
+          ? `${state.data.action.label}${state.data.action.player_name ? ` · ${state.data.action.player_name}` : ""}`
+          : `Action #${number}`
+      }
       navigate={navigate}
     >
       <div className="flex flex-wrap items-center gap-3">

@@ -91,7 +91,11 @@ export function Connections({ me, navigate }) {
   // Each agent you own is one row: a client connected as it is listed on
   // its console, not here.
   const keyed = agents ?? [];
-  const total = clients.length + keyed.length;
+  const [showInactive, setShowInactive] = useState(false);
+  const inactive = keyed.filter((a) => a.status !== "approved");
+  const active = keyed.filter((a) => a.status === "approved");
+  const total = clients.length + active.length;
+  const visibleAgents = showInactive ? keyed : active;
 
   return (
     <>
@@ -100,7 +104,7 @@ export function Connections({ me, navigate }) {
         <p className="page__lede">
           {scope
             ? "Every client connected as this agent. All of it spends your daily budget."
-            : "Everything that can call Elixir with your authority. It spends your daily budget, except the Elixir family’s own apps, which are not metered."}
+            : "Manage the clients and agents that can act with your authority."}
         </p>
       </div>
 
@@ -169,8 +173,18 @@ export function Connections({ me, navigate }) {
         }}
       >
         <span style={{ fontSize: "14px", fontWeight: 600 }}>
-          {total} with access
+          {total} active connection{total === 1 ? "" : "s"}
         </span>
+        {inactive.length ? (
+          <button
+            type="button"
+            className="btn btn--quiet"
+            aria-pressed={showInactive}
+            onClick={() => setShowInactive(!showInactive)}
+          >
+            {showInactive ? "Hide" : "Show"} inactive agents ({inactive.length})
+          </button>
+        ) : null}
         {!scope && (
           <button
             className="btn"
@@ -193,7 +207,7 @@ export function Connections({ me, navigate }) {
         </button>
       </div>
 
-      {connections !== null && total === 0 ? (
+      {connections !== null && total === 0 && keyed.length === 0 ? (
         <div className="empty">
           <div className="empty__title">Nothing connected yet</div>
           <p className="empty__body">
@@ -211,10 +225,10 @@ export function Connections({ me, navigate }) {
           <table className="table" style={{ minWidth: "760px" }}>
             <thead>
               <tr>
-                <th>CALLER</th>
-                <th>ACTS</th>
-                <th>MAY DO</th>
-                <th>LAST CALL</th>
+                <th>Caller</th>
+                <th>Acts</th>
+                <th>May do</th>
+                <th>Last call</th>
                 <th style={{ textAlign: "right" }}>7D</th>
                 <th />
               </tr>
@@ -332,7 +346,7 @@ export function Connections({ me, navigate }) {
                   </tr>
                 );
               })}
-              {keyed.map((a) => (
+              {visibleAgents.map((a) => (
                 <tr key={a.account_id ?? a.public_id}>
                   <td>
                     <span
