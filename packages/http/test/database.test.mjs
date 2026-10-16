@@ -89,3 +89,55 @@ test("a lease that expires in the pool queue never acquires another request's cl
   await next.end();
   await database.close();
 });
+
+test("a connection that never opened is tried once more; a full pool or a second failure is not retried", async () => {
+  const fakePool = (failures) => {
+    let calls = 0;
+    return {
+      get calls() {
+        return calls;
+      },
+      on() {},
+      end: async () => {},
+      async connect() {
+        calls += 1;
+        const f = failures.shift();
+        if (f) throw f;
+        return { release() {}, query: async () => ({ rows: [] }) };
+      },
+    };
+  };
+  const opened = () =>
+    new Error("Connection terminated due to connection timeout");
+  const errors = [];
+  const error = console.error;
+  console.error = (e) => errors.push(e);
+  try {
+    // Cold start: the first connection outlives the timeout, the second opens.
+    let pool = fakePool([opened()]);
+    let lease = makeDatabase({ connectionString, pool }).lease();
+    await lease.connect();
+    assert.equal(pool.calls, 2);
+    await lease.end();
+    assert.deepEqual(errors, [{ event: "db_connect_retry", name: "Error" }]);
+    // Twice failed: the second error is the answer; never a third try.
+    pool = fakePool([opened(), opened()]);
+    lease = makeDatabase({ connectionString, pool }).lease();
+    await assert.rejects(lease.connect(), /connection timeout/);
+    assert.equal(pool.calls, 2);
+    // A full pool waits no longer than its timeout.
+    pool = fakePool([new Error("timeout exceeded when trying to connect")]);
+    lease = makeDatabase({ connectionString, pool }).lease();
+    await assert.rejects(lease.connect(), /timeout exceeded/);
+    assert.equal(pool.calls, 1);
+    // A refused socket is a connection that never opened.
+    pool = fakePool([
+      Object.assign(new Error("refused"), { code: "ECONNREFUSED" }),
+    ]);
+    lease = makeDatabase({ connectionString, pool }).lease();
+    await lease.connect();
+    assert.equal(pool.calls, 2);
+  } finally {
+    console.error = error;
+  }
+});
