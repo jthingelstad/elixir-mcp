@@ -1941,13 +1941,17 @@ export async function buildClanEntry(
         war.place_of_five = null;
       }
     }
+    // One reading of the clock for the gate and the tally's as_of (11.8.0
+    // dropped this declaration and left as_of naming it: every war-day
+    // timeline threw from 2026-10-15).
+    const nowMs = Date.now();
     if (
       warDeckTallyOpen({
         period: p,
         sameWeek,
         finishedAt,
         toMs,
-        nowMs: Date.now(),
+        nowMs,
       })
     ) {
       if (p.warDay) {

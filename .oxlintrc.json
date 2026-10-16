@@ -16,6 +16,7 @@
     "no-array-constructor": "error",
     "no-else-return": "error",
     "no-implicit-coercion": ["error", { "allow": ["!!"] }],
+    "no-undef": "error",
     "no-unused-expressions": "error",
     "no-unused-vars": [
       "error",
