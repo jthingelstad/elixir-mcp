@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { renderEmail } from "../src/templates.mjs";
 import { makeHandler, queueUrlOf } from "../src/handler.mjs";
 import { makeButtondownEnroller } from "../src/index.mjs";
-import { makeSesSender } from "../src/ses.mjs";
+import { makeSesSender, makeSuppressionCheck } from "../src/ses.mjs";
 
 test("login template leads with the code and carries link, consent, disclaimer", () => {
   const { subject, text, html } = renderEmail({
@@ -819,4 +819,111 @@ test("welcome starts the record and every service mail includes the disclaimer i
     for (const body of [out.html, out.text])
       assert.match(body, /not endorsed by Supercell/);
   }
+});
+
+test("an address SES suppresses is skipped and logged by send id and reason, never by address; a failed lookup still sends", async () => {
+  const report = {
+    v: 1,
+    kind: "tracking_report",
+    to: "gone@example.com",
+    subject: "Your friends this week",
+    text: "the text part",
+    html: "<p>the html part</p>",
+    issue_key: "tracking_report/2026-W41",
+    send_id: "11111111-2222-3333-4444-555555555555",
+    unsubscribe: {
+      url: "https://elixir.poapkings.com/api/email/unsubscribe?t=abc",
+    },
+  };
+  const record = (id, body) => ({ messageId: id, body: JSON.stringify(body) });
+  const sent = [];
+  const logged = [];
+  const log = console.log;
+  console.log = (...args) => logged.push(args.join(" "));
+  try {
+    const handler = makeHandler({
+      send: async (m) => {
+        sent.push(m.to);
+        return { sent: true, message_id: "m" };
+      },
+      suppressed: async (to) => (to === "gone@example.com" ? "BOUNCE" : null),
+    });
+    const out = await handler({
+      Records: [
+        record("a", report),
+        record("b", { ...report, to: "here@example.com" }),
+        record("c", {
+          v: 1,
+          kind: "owner_notify",
+          to: "gone@example.com",
+          subject: "s",
+          text: "t",
+        }),
+      ],
+    });
+    assert.deepEqual(out.batchItemFailures, [], "a skip is done, not a retry");
+    assert.deepEqual(sent, ["here@example.com"]);
+    const skip = logged.find((l) =>
+      l.startsWith("mail_suppressed tracking_report"),
+    );
+    assert.equal(
+      skip,
+      "mail_suppressed tracking_report 11111111-2222-3333-4444-555555555555 tracking_report/2026-W41 BOUNCE",
+    );
+    assert.ok(logged.some((l) => l.startsWith("mail_suppressed owner_notify")));
+    assert.ok(logged.every((l) => !l.includes("gone@example.com")));
+  } finally {
+    console.log = log;
+  }
+
+  // The lookup failing (throttled, or the permission not yet deployed)
+  // never stops mail: it sends as before, with a bounded log line.
+  const errors = [];
+  const error = console.error;
+  console.error = (...args) => errors.push(args.join(" "));
+  try {
+    const both = [];
+    const handler = makeHandler({
+      send: async (m) => both.push(m.to),
+      suppressed: async () => {
+        const e = new Error("rate exceeded for gone@example.com");
+        e.name = "TooManyRequestsException";
+        throw e;
+      },
+    });
+    await handler({ Records: [record("a", report)] });
+    assert.deepEqual(both, ["gone@example.com"]);
+    assert.deepEqual(errors, [
+      "suppression_check_failed TooManyRequestsException",
+    ]);
+  } finally {
+    console.error = error;
+  }
+});
+
+test("the suppression check: the listed reason, null when SES does not list the address, a throw otherwise", async () => {
+  const asked = [];
+  const check = makeSuppressionCheck({
+    client: {
+      send: async (cmd) => {
+        asked.push(cmd.input.EmailAddress);
+        if (cmd.input.EmailAddress === "listed@example.com")
+          return { SuppressedDestination: { Reason: "COMPLAINT" } };
+        const e = new Error("not found");
+        e.name =
+          cmd.input.EmailAddress === "boom@example.com"
+            ? "AccessDeniedException"
+            : "NotFoundException";
+        throw e;
+      },
+    },
+  });
+  assert.equal(await check("listed@example.com"), "COMPLAINT");
+  assert.equal(await check("fine@example.com"), null);
+  await assert.rejects(check("boom@example.com"), /not found/);
+  assert.deepEqual(asked, [
+    "listed@example.com",
+    "fine@example.com",
+    "boom@example.com",
+  ]);
 });
