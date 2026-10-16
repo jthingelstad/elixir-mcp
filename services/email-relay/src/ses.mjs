@@ -81,6 +81,8 @@ export function makeSesSender({
  *  failed read waits before the next. */
 const SUPPRESSION_TTL_MS = 5 * 60_000;
 const SUPPRESSION_RETRY_MS = 30_000;
+/** The gap between pages of the list, inside the one-a-second rate. */
+const SUPPRESSION_PAGE_GAP_MS = 1100;
 
 /**
  * The account-level suppression list, asked before a send (2026-10-16):
@@ -94,7 +96,11 @@ const SUPPRESSION_RETRY_MS = 30_000;
  * lookup per recipient would be throttled in a burst of mail and the
  * burst would send anyway. The check reads the whole list instead, once
  * per environment every five minutes, with concurrent callers sharing
- * the read. Returns the reason (BOUNCE or COMPLAINT) or null when the
+ * the read. Environments are separate, so a burst that starts several
+ * cold at once can still meet the rate; the read's client retries a
+ * throttle up to four times with the SDK's jittered backoff, which
+ * spreads them over a few seconds inside the relay's 60 s timeout, and
+ * pages wait out the rate between them. Returns the reason (BOUNCE or COMPLAINT) or null when the
  * address is not listed. A failed read keeps the last list it had; with
  * none it throws, and the caller sends as before.
  */
@@ -103,6 +109,8 @@ export function makeSuppressionCheck({
   now = Date.now,
   ttlMs = SUPPRESSION_TTL_MS,
   retryMs = SUPPRESSION_RETRY_MS,
+  pageGapMs = SUPPRESSION_PAGE_GAP_MS,
+  pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 } = {}) {
   let sdk;
   async function api() {
@@ -110,7 +118,7 @@ export function makeSuppressionCheck({
     const { SESv2Client, ListSuppressedDestinationsCommand } =
       await import("@aws-sdk/client-sesv2");
     sdk = {
-      client: client ?? new SESv2Client({ maxAttempts: 3 }),
+      client: client ?? new SESv2Client({ maxAttempts: 5 }),
       ListSuppressedDestinationsCommand,
     };
     return sdk;
@@ -124,6 +132,7 @@ export function makeSuppressionCheck({
     const listed = new Map();
     let NextToken;
     do {
+      if (NextToken) await pause(pageGapMs);
       const out = await ses.send(
         new ListSuppressedDestinationsCommand({ PageSize: 1000, NextToken }),
       );

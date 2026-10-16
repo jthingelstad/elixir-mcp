@@ -918,10 +918,15 @@ test("the suppression check reads the list once per window, shares the read, pag
       ],
     },
   };
+  const paused = [];
   const check = makeSuppressionCheck({
     now: () => t,
     ttlMs: 1000,
     retryMs: 100,
+    pageGapMs: 1100,
+    pause: async (ms) => {
+      paused.push(ms);
+    },
     client: {
       send: async (cmd) => {
         reads += 1;
@@ -942,6 +947,8 @@ test("the suppression check reads the list once per window, shares the read, pag
   ]);
   assert.deepEqual(burst, ["COMPLAINT", "BOUNCE", null]);
   assert.equal(reads, 2);
+  // The second page waits out SES's one-a-second rate; the first does not.
+  assert.deepEqual(paused, [1100]);
   t = 999;
   assert.equal(await check("gone@example.com"), "BOUNCE");
   assert.equal(reads, 2);
