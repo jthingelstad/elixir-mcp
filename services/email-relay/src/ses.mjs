@@ -82,7 +82,7 @@ export function makeSesSender({
  * SES adds an address on a hard bounce or a complaint (the
  * configuration set's SuppressionOptions) and then refuses to deliver to
  * it, but it still accepts the send and answers each one with an
- * OnAccountSuppressionList bounce to the ops queue: five in a week from
+ * OnAccountSuppressionList bounce to the ops queue: five so far from
  * one address on the 09:00 CT mail. Returns the reason (BOUNCE or
  * COMPLAINT) or null when the address is not listed; any other answer
  * throws, and the caller sends as before.
