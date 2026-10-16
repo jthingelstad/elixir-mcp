@@ -59,7 +59,28 @@ export function makeHandler({
   /** Turnstile's check for a login that carries a page's token
    *  (turnstile.mjs). Without it a login is sent unchecked. */
   turnstile = null,
+  /** `(to)` -> the SES suppression reason, or null (ses.mjs). An address
+   *  SES has suppressed after a hard bounce or a complaint is never sent
+   *  to; SES would drop it and answer with a bounce. Without it, every
+   *  message is sent. */
+  suppressed = null,
 }) {
+  /** Whether SES suppresses this address: the reason, or null. A failed
+   *  lookup sends as before (SES still refuses a listed address); only a
+   *  bounded class reaches the log, never the address. */
+  async function suppressionOf(to) {
+    if (!suppressed) return null;
+    try {
+      return await suppressed(to);
+    } catch (err) {
+      console.error(
+        "suppression_check_failed",
+        String(err?.name ?? "error").slice(0, 60),
+      );
+      return null;
+    }
+  }
+
   /** One message: "sent" (or dropped by design) or "bad_message"; a
    *  transport failure throws so the record retries. `use` names the
    *  outbox object, so a retry of it is one Turnstile use, not two. */
@@ -96,6 +117,11 @@ export function makeHandler({
         return "sent";
       }
       try {
+        const reason = await suppressionOf(validated.msg.to);
+        if (reason) {
+          console.log("mail_suppressed", "owner_notify", "", "", reason);
+          return "sent";
+        }
         const { subject, text, html } = renderEmail(validated.msg);
         await send({ to: validated.msg.to, subject, text, html });
       } catch {
@@ -118,6 +144,21 @@ export function makeHandler({
         use,
       });
       if (!verdict.allowed) return "sent";
+    }
+    // Suppressed by SES (a hard bounce or a complaint): done, not sent.
+    // The line ties it to the send the ledger holds: the kind, the send
+    // id, the issue and why. Never the recipient. The account's switches
+    // are untouched; the address is skipped only while SES lists it.
+    const reason = await suppressionOf(validated.msg.to);
+    if (reason) {
+      console.log(
+        "mail_suppressed",
+        validated.msg.kind,
+        validated.msg.send_id ?? "",
+        validated.msg.issue_key ?? "",
+        reason,
+      );
+      return "sent";
     }
     const { subject, text, html } = renderEmail(validated.msg);
     // The mail policy's other half: a bulk kind (none exist yet) gets its

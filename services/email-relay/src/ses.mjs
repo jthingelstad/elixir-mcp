@@ -76,3 +76,39 @@ export function makeSesSender({
     return { sent: true, message_id: out?.MessageId ?? null };
   };
 }
+
+/**
+ * The account-level suppression list, asked before a send (2026-10-16):
+ * SES adds an address on a hard bounce or a complaint (the
+ * configuration set's SuppressionOptions) and then refuses to deliver to
+ * it, but it still accepts the send and answers each one with an
+ * OnAccountSuppressionList bounce to the ops queue: five in a week from
+ * one address on the 09:00 CT mail. Returns the reason (BOUNCE or
+ * COMPLAINT) or null when the address is not listed; any other answer
+ * throws, and the caller sends as before.
+ */
+export function makeSuppressionCheck({ client = null } = {}) {
+  let sdk;
+  async function api() {
+    if (sdk) return sdk;
+    const { SESv2Client, GetSuppressedDestinationCommand } =
+      await import("@aws-sdk/client-sesv2");
+    sdk = {
+      client: client ?? new SESv2Client({ maxAttempts: 2 }),
+      GetSuppressedDestinationCommand,
+    };
+    return sdk;
+  }
+  return async function suppressed(to) {
+    const { client: ses, GetSuppressedDestinationCommand } = await api();
+    try {
+      const out = await ses.send(
+        new GetSuppressedDestinationCommand({ EmailAddress: to }),
+      );
+      return out?.SuppressedDestination?.Reason ?? "SUPPRESSED";
+    } catch (err) {
+      if (err?.name === "NotFoundException") return null;
+      throw err;
+    }
+  };
+}

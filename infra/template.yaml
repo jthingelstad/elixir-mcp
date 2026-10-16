@@ -1185,6 +1185,13 @@ Resources:
                 Condition:
                   StringEquals:
                     ses:FromAddress: elixir@poapkings.com
+              # Ask the account's suppression list before a send
+              # (2026-10-16): an address SES suppressed after a hard bounce
+              # or a complaint is skipped, not mailed into another bounce.
+              # A read of one address; the action has no resource type.
+              - Effect: Allow
+                Action: ses:GetSuppressedDestination
+                Resource: "*"
 
   # ----------------------------------------------------------------- email
   # Sending as elixir@poapkings.com through SES (2026-09-16; Fastmail is a

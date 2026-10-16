@@ -27,7 +27,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { SQSClient, ChangeMessageVisibilityCommand } from "@aws-sdk/client-sqs";
 import { upgradeDeliveryStore } from "./upgrade-delivery.mjs";
-import { makeSesSender } from "./ses.mjs";
+import { makeSesSender, makeSuppressionCheck } from "./ses.mjs";
 import { makeHandler, queueUrlOf } from "./handler.mjs";
 import { makeTurnstileCheck, turnstileVerdictStore } from "./turnstile.mjs";
 
@@ -181,6 +181,7 @@ export const handler = makeHandler({
     fromEmail: process.env.FROM_EMAIL ?? "elixir@poapkings.com",
     configurationSet: process.env.SES_CONFIGURATION_SET ?? "elixir-mcp",
   }),
+  suppressed: makeSuppressionCheck(),
   readObject: async ({ bucket, key }) => {
     try {
       const out = await s3.send(
