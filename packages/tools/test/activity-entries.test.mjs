@@ -22,6 +22,7 @@ import {
   capTimeline,
   subjectsFor,
 } from "../src/activity/entries.mjs";
+import { periodAt } from "../src/war-period.mjs";
 
 const CLAN = "#J2RGCRVG";
 const OBSERVER = "#UVQ8RJYG9"; // the battlelog fixture's own player
@@ -340,6 +341,73 @@ test("the clan entry's war day is the calendar's at the window's end, whatever t
     toMs: at("2026-09-11T12:00:00Z"),
   });
   assert.equal(again.entry.war.war_day, 2);
+});
+
+test("the clan entry tallies decks on the war day in progress (10-15: nowMs was not defined)", async (t) => {
+  // 11.8.0 moved the clock into warDeckTallyOpen and left the tally's
+  // as_of reading a nowMs no longer declared, so every timeline that
+  // reached this branch threw a ReferenceError from war day 1 of the
+  // next week on (2026-10-15 10:18Z). The clock is pinned inside war
+  // day 2 of S136 (2026-09-11 12:00Z, the war-day test above), with the
+  // race unfinished, so the branch runs whatever day the suite runs on.
+  const T = Date.parse("2026-09-11T12:00:00Z");
+  t.mock.timers.enable({ apis: ["Date"], now: new Date(T) });
+  const db = ctx.db;
+  await db.query("begin");
+  try {
+    const p = await periodAt(db, T);
+    assert.equal(p.warDay, 2);
+    await db.query(
+      `insert into war_week (clan_tag, season_id, section_index)
+       values ($1, $2, $3) on conflict do nothing`,
+      [CLAN, p.warSeasonId, p.sectionIndex],
+    );
+    const { rows: members } = await db.query(
+      `select player_tag from clan_membership
+        where clan_tag = $1 and left_observed_at is null
+        order by player_tag limit 3`,
+      [CLAN],
+    );
+    assert.equal(members.length, 3);
+    for (const [i, { player_tag }] of members.entries()) {
+      await db.query(
+        `insert into war_participation (clan_tag, season_id, section_index, player_tag)
+         values ($1, $2, $3, $4)`,
+        [CLAN, p.warSeasonId, p.sectionIndex, player_tag],
+      );
+      // One untouched (no row), one partial, one finished.
+      if (i > 0)
+        await db.query(
+          `insert into war_attendance_day
+             (clan_tag, season_id, section_index, day_in_section, player_tag, decks_used_today)
+           values ($1, $2, $3, $4, $5, $6)`,
+          [
+            CLAN,
+            p.warSeasonId,
+            p.sectionIndex,
+            p.dayInSection,
+            player_tag,
+            i * 2,
+          ],
+        );
+    }
+    const { entry } = await buildClanEntry(db, {
+      tag: CLAN,
+      scope: "comprehensive",
+      fromMs: T - 3_600_000,
+      toMs: T,
+    });
+    assert.equal(entry.war.war_day, 2);
+    assert.deepEqual(entry.war.decks, {
+      as_of: new Date(T).toISOString(),
+      untouched: 1,
+      partial: 1,
+      finished: 1,
+      participants: 3,
+    });
+  } finally {
+    await db.query("rollback");
+  }
 });
 
 test("the cap keeps the newest: the timeline is a newsfeed", () => {
