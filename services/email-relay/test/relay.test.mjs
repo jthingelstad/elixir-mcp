@@ -901,29 +901,70 @@ test("an address SES suppresses is skipped and logged by send id and reason, nev
   }
 });
 
-test("the suppression check: the listed reason, null when SES does not list the address, a throw otherwise", async () => {
-  const asked = [];
+test("the suppression check reads the list once per window, shares the read, pages, and keeps the last list when a read fails", async () => {
+  let t = 0;
+  let reads = 0;
+  let fail = false;
+  const pages = {
+    first: {
+      SuppressedDestinationSummaries: [
+        { EmailAddress: "Listed@Example.com", Reason: "COMPLAINT" },
+      ],
+      NextToken: "p2",
+    },
+    p2: {
+      SuppressedDestinationSummaries: [
+        { EmailAddress: "gone@example.com", Reason: "BOUNCE" },
+      ],
+    },
+  };
   const check = makeSuppressionCheck({
+    now: () => t,
+    ttlMs: 1000,
+    retryMs: 100,
     client: {
       send: async (cmd) => {
-        asked.push(cmd.input.EmailAddress);
-        if (cmd.input.EmailAddress === "listed@example.com")
-          return { SuppressedDestination: { Reason: "COMPLAINT" } };
-        const e = new Error("not found");
-        e.name =
-          cmd.input.EmailAddress === "boom@example.com"
-            ? "AccessDeniedException"
-            : "NotFoundException";
+        reads += 1;
+        if (fail) {
+          const e = new Error("rate exceeded");
+          e.name = "TooManyRequestsException";
+          throw e;
+        }
+        return pages[cmd.input.NextToken ?? "first"];
+      },
+    },
+  });
+  // A burst shares one read of the list (two pages), not a call per address.
+  const burst = await Promise.all([
+    check(" listed@example.com"),
+    check("gone@example.com"),
+    check("fine@example.com"),
+  ]);
+  assert.deepEqual(burst, ["COMPLAINT", "BOUNCE", null]);
+  assert.equal(reads, 2);
+  t = 999;
+  assert.equal(await check("gone@example.com"), "BOUNCE");
+  assert.equal(reads, 2);
+  // Past the window a failed read keeps the last list and waits to retry.
+  t = 1000;
+  fail = true;
+  assert.equal(await check("gone@example.com"), "BOUNCE");
+  assert.equal(reads, 3);
+  t = 1050;
+  assert.equal(await check("gone@example.com"), "BOUNCE");
+  assert.equal(reads, 3);
+
+  // With no list yet, a failed read throws (the relay then sends as before).
+  const cold = makeSuppressionCheck({
+    now: () => 0,
+    client: {
+      send: async () => {
+        const e = new Error("denied");
+        e.name = "AccessDeniedException";
         throw e;
       },
     },
   });
-  assert.equal(await check("listed@example.com"), "COMPLAINT");
-  assert.equal(await check("fine@example.com"), null);
-  await assert.rejects(check("boom@example.com"), /not found/);
-  assert.deepEqual(asked, [
-    "listed@example.com",
-    "fine@example.com",
-    "boom@example.com",
-  ]);
+  await assert.rejects(cold("fine@example.com"), /denied/);
+  await assert.rejects(cold("fine@example.com"), /denied/);
 });

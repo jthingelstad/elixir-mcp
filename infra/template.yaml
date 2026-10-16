@@ -1185,12 +1185,14 @@ Resources:
                 Condition:
                   StringEquals:
                     ses:FromAddress: elixir@poapkings.com
-              # Ask the account's suppression list before a send
+              # Read the account's suppression list before a send
               # (2026-10-16): an address SES suppressed after a hard bounce
               # or a complaint is skipped, not mailed into another bounce.
-              # A read of one address; the action has no resource type.
+              # The relay reads the whole list every five minutes, inside
+              # the one-a-second rate of SES's other actions; the action
+              # has no resource type.
               - Effect: Allow
-                Action: ses:GetSuppressedDestination
+                Action: ses:ListSuppressedDestinations
                 Resource: "*"
 
   # ----------------------------------------------------------------- email
