@@ -86,12 +86,13 @@ The validator refuses a bulk message without `unsubscribe.url`.
 - `all` is a valid kind in the token: one click off everything.
 - Complaints and bounces reach the ops queue through the configuration
   set, and SES's account-level suppression list takes a complainer or a
-  hard bounce regardless of our flag. The relay asks that list before
-  every send (`ses:GetSuppressedDestination`) and skips a listed
-  address with `mail_suppressed <kind> <send_id> <issue_key> <reason>`
-  in its log, never the address; a failed lookup sends as before. No
-  cross-system write-back: the account's switches are untouched, and the
-  address is mailed again once it leaves the list.
+  hard bounce regardless of our flag. The relay reads that list
+  (`ses:ListSuppressedDestinations`, once per environment every five
+  minutes) and skips a listed address with `mail_suppressed <kind>
+  <send_id> <issue_key> <reason>` in its log, never the address. A
+  failed read keeps the last list; with none, the mail sends as before.
+  No cross-system write-back: the account's switches are untouched, and
+  the address is mailed again once it leaves the list.
 
 ### Preferences
 
