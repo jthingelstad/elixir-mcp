@@ -37,10 +37,16 @@ export function daysBetween(from, to) {
   return out;
 }
 
+/** The players the row describes. Only a tag the record still holds:
+ *  player_activity references player, and a stopped recording outlives
+ *  its player row once the untracked trim (tracked_purge, 2026-10-07)
+ *  has removed it. One such tag failed the whole rebuild every night
+ *  from 2026-10-08 (#592). */
 async function recordedPlayers(db) {
   const { rows } = await db.query(
     `select r.subject_tag as player_tag, min(r.created_at) as recorded_from
-       from recording r where r.subject_type = 'player' and (
+       from recording r where r.subject_type = 'player'
+       and exists (select 1 from player p where p.player_tag = r.subject_tag) and (
          (r.origin='claim' and exists(select 1 from account a where a.account_id=r.requested_by and a.kind in ('person','agent')))
          or exists(select 1 from claim c join account a using(account_id) where c.player_tag=r.subject_tag and a.kind in ('person','agent'))
          or exists(select 1 from account_event e join account a using(account_id) where a.kind in ('person','agent') and e.kind in ('claim_added','tracked_by_ops','recording_started') and e.detail->>'player_tag'=r.subject_tag)
