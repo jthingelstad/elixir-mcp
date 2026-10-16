@@ -298,7 +298,9 @@ function assertNativeApp(uri) {
   assert.ok(behavior, `${uri} has a behavior`);
   assert.match(behavior, /TargetOriginId: api\n/, `${uri} uses native HTML`);
   assert.match(behavior, /CachePolicyId: !Ref WebPrivateCachePolicy/);
-  assert.doesNotMatch(behavior, /FunctionAssociations/);
+  // The query normalizer runs here (every door behaviour has it); the
+  // static router never does.
+  assert.doesNotMatch(behavior, /GetAtt SpaRouter/);
 }
 
 test(

@@ -890,7 +890,7 @@ test("the static router only resolves documents; native app behaviors bypass it"
       assert.ok(behavior, pattern);
       assert.match(behavior, /TargetOriginId: api/);
       assert.match(behavior, /CachePolicyId: !Ref WebPrivateCachePolicy/);
-      assert.doesNotMatch(behavior, /FunctionAssociations/);
+      assert.doesNotMatch(behavior, /GetAtt SpaRouter/);
     }
 });
 
@@ -1273,10 +1273,49 @@ test("OAuth form spaces normalize before origin signing without changing literal
     ["openid%20players%3Aread", "literal%2Bplus"],
   );
   assert.equal(request.querystring.state.value, "a%2Bb%20c");
-  assert.match(
-    template,
-    /OriginRequestPolicyId: !Ref OauthAuthorizeOriginRequestPolicy\n\s+FunctionAssociations:/,
+  // What URLSearchParams writes for a search with a space (Clan's roster
+  // find, 2026-10-16: the edge's own 403 HTML until this ran there).
+  const find = { querystring: { find: { value: "King+Thing" } } };
+  handler({ request: find });
+  assert.equal(find.querystring.find.value, "King%20Thing");
+  assert.equal(
+    new URLSearchParams(`find=${find.querystring.find.value}`).get("find"),
+    new URLSearchParams("find=King+Thing").get("find"),
+    "the doors read both spellings as the same space",
   );
+});
+
+test("every behaviour that reaches a Web Function normalizes the query before signing", async () => {
+  // The origin access control signs every origin request, and a raw '+'
+  // in a forwarded query breaks the signature (2026-10-16: /clan/*,
+  // /console, /api/*, /api/v1/*, /api/public/*, /mcp, /oauth/* all
+  // answered CloudFront's 403). A behaviour takes one function per event
+  // type, so each carries exactly one viewer-request association.
+  const template = await readFile(templateUrl, "utf8");
+  const behaviours = cacheBehaviours(template);
+  const doors = behaviours.filter(([, block]) =>
+    /TargetOriginId: (?:api|mcpapi|collector)\n/.test(block),
+  );
+  assert.ok(doors.length >= 17, `${doors.length} door behaviours`);
+  assert.equal(doors.length, behaviours.length, "every behaviour is a door's");
+  for (const [path, block] of doors) {
+    assert.equal(
+      block.match(/EventType: viewer-request/g)?.length,
+      1,
+      `${path}: one viewer-request function`,
+    );
+    assert.match(
+      block,
+      /FunctionAssociations:\n\s+- EventType: viewer-request\n\s+FunctionARN: !GetAtt OauthQueryNormalizer\.FunctionMetadata\.FunctionARN/,
+      path,
+    );
+  }
+  const fallback = template.slice(
+    template.indexOf("        DefaultCacheBehavior:"),
+    template.indexOf("        CacheBehaviors:"),
+  );
+  assert.match(fallback, /FunctionARN: !GetAtt SpaRouter/);
+  assert.doesNotMatch(fallback, /OauthQueryNormalizer/);
 });
 
 test("native doors cap the private database pools and pin IAM HomeRegion revisions", async () => {

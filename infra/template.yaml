@@ -2681,6 +2681,9 @@ Resources:
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           # A battle's public page (Jamie, 2026-10-01: "Public yes."):
           # the web-api serves the app shell with the battle's preview
           # tags, so a pasted link unfurls as the battle. Cached like the
@@ -2693,6 +2696,9 @@ Resources:
             CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /api/v1/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
@@ -2700,6 +2706,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           # Elixir Clan's API, listed before /api/*, which would take it.
           - PathPattern: /api/clan/*
             TargetOriginId: api
@@ -2708,6 +2717,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /api/collector/*
             TargetOriginId: collector
             ViewerProtocolPolicy: https-only
@@ -2715,6 +2727,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /api/*
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
@@ -2723,6 +2738,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           # The MCP/OAuth door, path-split on the one hostname. The
           # no-cookie origin request policy is the structural guarantee:
           # session cookies can never reach these routes (docs/ENGINEERING.md).
@@ -2733,6 +2751,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           # Agent and integration doors (0054). Same origin, same no-cookie
           # policy as /mcp -- these are the same protected resource served
           # under a per-principal identity, and a session cookie must never
@@ -2746,6 +2767,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /i/*
             TargetOriginId: mcpapi
             ViewerProtocolPolicy: https-only
@@ -2753,6 +2777,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           # Listed before /oauth/*: CloudFront takes the first pattern
           # that matches. GET and POST both carry the cookie (the consent
           # form posts back here); SameSite=Lax keeps a cross-site POST
@@ -2774,6 +2801,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /.well-known/*
             TargetOriginId: mcpapi
             ViewerProtocolPolicy: https-only
@@ -2781,6 +2811,9 @@ Resources:
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           # The app routes use session-aware native HTML. Exact roots and
           # slash prefixes keep neighboring content paths (such as /clans)
           # on the static site's behavior.
@@ -2792,6 +2825,9 @@ Resources:
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
             Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /console/*
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
@@ -2800,6 +2836,9 @@ Resources:
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
             Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /ladder
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
@@ -2808,6 +2847,9 @@ Resources:
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
             Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /ladder/*
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
@@ -2816,6 +2858,9 @@ Resources:
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
             Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /clan
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
@@ -2824,6 +2869,9 @@ Resources:
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
             Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
           - PathPattern: /clan/*
             TargetOriginId: api
             ViewerProtocolPolicy: redirect-to-https
@@ -2832,6 +2880,9 @@ Resources:
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
             Compress: true
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
         # No CustomErrorResponses: those are DISTRIBUTION-wide, so
         # rewriting 403/404 to a 200 app shell also rewrote the API's
         # own refusals. An unauthenticated /api/admin/requests came back
@@ -2887,15 +2938,26 @@ Resources:
           return request;
         }
 
-  # Normalize form-encoded spaces before SigV4 canonicalization. An encoded
-  # %2B stays a literal plus; duplicate query values retain their order.
+  # Normalize form-encoded spaces before SigV4 canonicalization, on every
+  # behaviour that reaches a Web Function. The origin access control signs
+  # each origin request, and a raw '+' in the query breaks the signature,
+  # so the edge answered its own 403 HTML (2026-10-16: /clan?find=King+Thing,
+  # which URLSearchParams writes for a search with a space, /console,
+  # /api/*, /api/v1/*). The doors read the query with URLSearchParams
+  # (packages/http/src/server.mjs), where '+' and '%20' are both a space,
+  # so the rewrite keeps the meaning. An encoded %2B stays a literal plus;
+  # duplicate query values retain their order. The default (site)
+  # behaviour needs none of this: its failover to the API carried
+  # /no-such-page?a=b+c to the web API's own 404 (read 2026-10-16).
+  # Logical id and Name are historical (it began on /oauth/authorize):
+  # renaming replaces a function attached to the live distribution.
   OauthQueryNormalizer:
     Type: AWS::CloudFront::Function
     Properties:
       Name: elixir-mcp-oauth-query-normalizer
       AutoPublish: true
       FunctionConfig:
-        Comment: Normalize OAuth query spaces before origin signing
+        Comment: Normalize query spaces before origin signing
         Runtime: cloudfront-js-2.0
       FunctionCode: |
         function handler(event) {
