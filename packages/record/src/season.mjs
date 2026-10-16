@@ -188,16 +188,25 @@ export async function seasonCrossings(db, fromMs, toMs) {
   }));
 }
 
+/** How far before its close a race is certainly still racing: the last
+ *  battle day. A clan's race closes on its own drifting reset, and a
+ *  season's final race can close after the 10:00Z season roll
+ *  (2026-09-07 10:06Z, 2026-10-05 10:10Z, read 2026-10-16), when its
+ *  close instant already sits in the next season's row (#593). */
+const RACED_BEFORE_CLOSE_MS = DAY_MS;
+
 /**
  * The riverracelog check. `closedAt` is the entry's createdDate (the
- * race close, ~09:30-10:00Z on the season's last Monday, so inside the
- * season that raced). Returns "verified" (stamped now or before),
+ * race close, near 10:00Z on a Monday, a few minutes either side by the
+ * clan's reset). The season that raced is the one holding the day before
+ * the close: the close of a season's final race can fall just after the
+ * roll, never a day after it. Returns "verified" (stamped now or before),
  * "mismatch" (the alarm; nothing written), or "unknown" (no row covers
  * the instant, which the seed and the scheduler make impossible for any
  * week the API still serves).
  */
 export async function verifyWarSeason(db, { warSeasonId, closedAt }) {
-  const row = await seasonAt(db, Date.parse(closedAt));
+  const row = await seasonAt(db, Date.parse(closedAt) - RACED_BEFORE_CLOSE_MS);
   if (!row) return { status: "unknown", season: null };
   if (row.war_season_id !== warSeasonId)
     return {
