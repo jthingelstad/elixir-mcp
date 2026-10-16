@@ -289,6 +289,31 @@ test("a war id the calendar does not derive is a mismatch, never a relabel", asy
   assert.equal(none.status, "unknown");
 });
 
+test("a season's final race that closes after the 10:00Z roll verifies against the season that raced (#593)", async () => {
+  // Read from production's payload archive on 2026-10-16: two clans'
+  // colosseum races closed at 10:06Z and 10:10Z on the roll's Monday,
+  // inside the next season's row. Each read alarmed, expected one ahead.
+  for (const [warSeasonId, closedAt, season] of [
+    [135, "2026-09-07T10:06:02.000Z", "2026-08"],
+    [136, "2026-10-05T10:10:39.000Z", "2026-09"],
+    // A race that closes before the hour is the same season, as before.
+    [136, "2026-10-05T09:32:46.000Z", "2026-09"],
+    // The first race of a season closes a week into it.
+    [137, "2026-10-12T09:30:05.000Z", "2026-10"],
+  ]) {
+    const check = await verifyWarSeason(ctx.db, { warSeasonId, closedAt });
+    assert.deepEqual(check, { status: "verified", season }, closedAt);
+  }
+  // A wrong number is still a mismatch, now against the raced season.
+  assert.deepEqual(
+    await verifyWarSeason(ctx.db, {
+      warSeasonId: 136,
+      closedAt: "2026-09-07T10:06:02.000Z",
+    }),
+    { status: "mismatch", season: "2026-08", expected: 135, got: 136 },
+  );
+});
+
 test("through the pipeline, a mismatched log entry emits one EMF count and still projects", async () => {
   const {
     rows: [account],

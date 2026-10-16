@@ -681,8 +681,8 @@ export async function projectRiverRaceLog(db, { clanTag, payload }) {
       item.seasonId !== newestSeason &&
       item.sectionIndex === maxSection.get(item.seasonId);
     // The season row's derived war number against the entry's own
-    // (0104): the close instant sits inside the season that raced, so
-    // the row it falls in must carry this seasonId. Once per season per
+    // (0104): the season that raced (the day before the close, which a
+    // final race's close can pass by minutes) must carry this seasonId. Once per season per
     // log; a mismatch is reported to the pipeline, never relabelled.
     if (
       Number.isInteger(item.seasonId) &&
