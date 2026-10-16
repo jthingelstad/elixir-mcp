@@ -254,3 +254,44 @@ test("retired automatic groups never regenerate activity; a later personal follo
     1,
   );
 });
+
+test("a stopped recording whose player row the untracked trim removed is skipped, and the rebuild finishes (#592)", async () => {
+  // The production shape from 2026-10-08: a claim recording, stopped,
+  // an account event that once added the claim, and no player row (the
+  // trim took it). The FK on player_activity refused the insert and the
+  // whole night's rebuild threw.
+  const gone = "#P0GQNE";
+  await db.query(
+    "insert into recording(subject_type,subject_tag,requested_by,origin,status,created_at) values('player',$1,$2,'claim','stopped','2026-09-05')",
+    [gone, accountId],
+  );
+  await db.query(
+    "insert into account_event(account_id,kind,detail) values($1,'claim_added',$2)",
+    [accountId, { player_tag: gone }],
+  );
+  const before = (
+    await db.query(
+      "select computed_at from player_activity where player_tag=$1",
+      [PLAYER],
+    )
+  ).rows[0].computed_at;
+  const later = new Date(NOW.getTime() + 86_400_000);
+  const out = await activityHistogram(DB_URL, { now: later });
+  assert.equal(
+    (
+      await db.query(
+        "select count(*)::int as n from player_activity where player_tag=$1",
+        [gone],
+      )
+    ).rows[0].n,
+    0,
+  );
+  assert.ok(out.players >= 2, "the players the record holds still count");
+  const after = (
+    await db.query(
+      "select computed_at from player_activity where player_tag=$1",
+      [PLAYER],
+    )
+  ).rows[0].computed_at;
+  assert.ok(after > before, "every other row is rebuilt that night");
+});
