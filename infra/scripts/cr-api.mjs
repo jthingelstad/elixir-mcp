@@ -32,14 +32,13 @@ const repo = path.resolve(here, "../..");
 
 // Name -> file, in the order we try them. Drop's key leads by Jamie's
 // call: Drop ran the fixed-IP CR bridge, so its key is the one allowlisted
-// for interactive use. The rest are fallbacks -- elixir-mcp's own service
-// tokens, then elixir-bot's local key. A name is repeated per file on
-// purpose; CR_API_KEY means a different credential in each repo.
+// for interactive use. The fallbacks are elixir-mcp's own service tokens.
+// elixir-bot's local key was the last one until its checkout was removed
+// (2026-10-20).
 const SOURCES = [
   ["CR_API_KEY", path.resolve(repo, "../drop.poapkings.com/.env")],
   ["CR_API_TOKEN", path.join(repo, ".env")],
   ["CR_API_TOKEN-TWO", path.join(repo, ".env")],
-  ["CR_API_KEY", path.resolve(repo, "../elixir-bot/.env")],
 ];
 
 function readEnvFile(file) {
