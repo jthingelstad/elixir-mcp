@@ -415,8 +415,9 @@ every command, probe and diff listed so anyone can re-verify it.
 ### Sign-in Turnstile
 
 Both sign-in doors take a Cloudflare Turnstile token and the email relay
-verifies it (docs/EMAIL.md, "Turnstile on sign-in mail"). The mode is
-the `TurnstileMode` stack parameter: `observe` (the default) records and
+verifies it (docs/EMAIL.md, "Turnstile on sign-in mail"). It runs in
+`enforce` since 2026-10-20 (Jamie's go, after every observed mail was
+`pass`). The mode is the `TurnstileMode` stack parameter: `observe` (the default) records and
 refuses nothing; `enforce` refuses a missing token at the door and a
 failed one at the relay; `off` skips it. Until `turnstile_secret_key`
 is in the app secret (docs/SECRETS.md) every check is `unconfigured`.
