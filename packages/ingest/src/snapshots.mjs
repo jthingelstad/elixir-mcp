@@ -31,6 +31,7 @@ import { ensureSeason } from "@elixir-mcp/record/season";
 import { snapshotColumns } from "@elixir-mcp/record/snapshot-columns";
 import { payloadHash } from "./hash.mjs";
 import { emitEvent } from "./events.mjs";
+import { upsertArenaNames } from "./catalog-upserts.mjs";
 
 /**
  * Badges are CURRENT STATE, not a daily blob (§7.2). ~139 per player
@@ -440,15 +441,12 @@ export async function projectPlayerSnapshot(
     prev.best_trophies !== (payload.bestTrophies ?? null);
   // The arena catalog: ids are opaque (54000144 is Spirit Square), and the
   // profile payload is the only place the name travels.
-  if (payload.arena?.id && typeof payload.arena.name === "string") {
-    await db.query(
-      `insert into arena (arena_id, name, observed_at) values ($1, $2, $3)
-       on conflict (arena_id) do update
-         set name = excluded.name, observed_at = excluded.observed_at
-       where arena.name is distinct from excluded.name`,
-      [payload.arena.id, payload.arena.name, fetchedAt],
+  if (payload.arena?.id && typeof payload.arena.name === "string")
+    await upsertArenaNames(
+      db,
+      new Map([[payload.arena.id, payload.arena.name]]),
+      fetchedAt,
     );
-  }
   if (kind === "daily" && moments)
     await ledgerMilestones(db, {
       playerTag,
