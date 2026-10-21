@@ -86,6 +86,9 @@ function wildcardRoute(routes, method, path, event) {
 export const AGENT_SCOPED_ROUTES = new Set([
   "GET /api/me",
   "GET /api/me/timeline",
+  // The Console's own place in the agent's timeline (0228), moved when
+  // its owner views it there; never the agent's read pointer.
+  "POST /api/me/timeline/seen",
   // The agent's timeline cross-posted to Discord (0213), set by its owner.
   "GET /api/me/timeline/discord",
   "PUT /api/me/timeline/discord",

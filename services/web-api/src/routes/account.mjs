@@ -228,10 +228,16 @@ export function accountRoutes({
       const lim = (v) => (v === Infinity ? null : v); // null = unlimited on the wire
       // The rail's signals (design 2026-09-09): a count of the reader's
       // own things on Connections and Feedback, an unread dot on
-      // Activity, and an alert dot on Connections when a credential of
+      // Timeline, and an alert dot on Connections when a credential of
       // theirs that no longer works is still being presented. Counted
       // here rather than by the pages, so the rail can show them on
       // every screen without every screen fetching four lists.
+      // timeline_pending counts against the Console's own place
+      // (console_timeline_seen_at, 0228), never an agent's read pointer:
+      // "timeline should be independent of what agents have seen via
+      // MCP" (Jamie, 2026-10-20). An agent's mark_read leaves this dot
+      // lit; meta.timeline_pending (packages/tools shared.mjs) is the
+      // agents' count and never reads the Console's place.
       const { rows: sig } = await db.query(
         `select
            (select count(*)::int from oauth_family f
@@ -251,7 +257,8 @@ export function accountRoutes({
                select 1 from poll_state ps
                 where ps.subject_tag = s.tag
                   and ps.last_admitted_at > coalesce(
-                    (select activity_seen_at from account where account_id = $1),
+                    (select console_timeline_seen_at from account
+                      where account_id = $1),
                     'epoch'::timestamptz))) as timeline_pending,
            -- Undismissed only, as the list counts them (console audit M4:
            -- the dot stayed lit for a week after "Dismiss all").
@@ -802,12 +809,18 @@ export function accountRoutes({
 
     "GET /api/me/timeline": async (db, event) => {
       // The Timeline page: the last seven days for this account's subjects,
-      // synthesized exactly as elixir_timeline would. Reading here NEVER
-      // moves the read pointer; that belongs to the account's own agents.
+      // synthesized exactly as elixir_timeline would. Reading here moves
+      // nothing. seen_to is the Console's own place (0228) as it stood
+      // before this read, for the page's "New since your last visit"
+      // divider; the page moves it with POST /api/me/timeline/seen. The
+      // agents' read pointers (activity_seen_at, timeline_reader) are
+      // theirs: this route neither reads nor moves them (Jamie,
+      // 2026-10-20).
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
       const { rows } = await db.query(
-        `select activity_seen_at, timezone from account where account_id = $1`,
+        `select console_timeline_seen_at, timezone from account
+          where account_id = $1`,
         [account.accountId],
       );
       const q = event.queryStringParameters ?? {};
@@ -857,7 +870,35 @@ export function accountRoutes({
       }
       return json(200, {
         ...built,
-        read_to: rows[0]?.activity_seen_at?.toISOString() ?? null,
+        seen_to: rows[0]?.console_timeline_seen_at?.toISOString() ?? null,
+      });
+    },
+
+    "POST /api/me/timeline/seen": async (db, event, body) => {
+      // The Console showed this account's Timeline through `to` (the
+      // window end GET /api/me/timeline served): its own place moves
+      // there, forward only, and the rail's dot counts from it. On an
+      // agent's console it is the agent's row, moved by its owner. Never
+      // an agent's read pointer or meta.timeline_pending (Jamie,
+      // 2026-10-20: "timeline should be independent of what agents have
+      // seen via MCP").
+      const account = await resolveAccount(db, event, {
+        requireContractHeader: true,
+      });
+      if (!account) return json(401, { error: "unauthenticated" });
+      const toMs = typeof body?.to === "string" ? Date.parse(body.to) : NaN;
+      if (!Number.isFinite(toMs) || toMs > Date.now() + 1000)
+        return json(400, { error: "invalid_to" });
+      const { rows } = await db.query(
+        `update account
+            set console_timeline_seen_at = greatest(
+                  console_timeline_seen_at, least($2::timestamptz, now()))
+          where account_id = $1
+          returning console_timeline_seen_at`,
+        [account.accountId, new Date(toMs).toISOString()],
+      );
+      return json(200, {
+        seen_to: rows[0]?.console_timeline_seen_at?.toISOString() ?? null,
       });
     },
   };
