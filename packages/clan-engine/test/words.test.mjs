@@ -78,6 +78,11 @@ test("chat drafts carry the clan as a cached prefix, the moment as the packet, t
     assert.match(r.system, /clan's chat in the game/);
     assert.match(r.system, /The floor: say at least what they say/i);
     assert.match(r.system, /two to four facts that belong to this person/);
+    // The member's dossier and Elixir's angles are named, the angles as
+    // where to start, and every number is one the packet states.
+    assert.match(r.system, /MEMBER DOSSIER/);
+    assert.match(r.system, /starting from the STORY ANGLES/);
+    assert.match(r.system, /Every number you write is one the packet states/);
     assert.match(r.system, /Say what a number means/);
     assert.match(r.system, /"by clan rules"/);
     assert.match(r.system, /"better with you in it"/);
