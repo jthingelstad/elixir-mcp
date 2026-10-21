@@ -4,7 +4,16 @@ import { cp, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { parseDeployArgs } from "../../../infra/scripts/lib/deploy-args.mjs";
+import {
+  argumentRefusal,
+  parseDeployArgs,
+} from "../../../infra/scripts/lib/deploy-args.mjs";
+import {
+  DEPLOY_PHASES,
+  DeployExit,
+  deploy,
+  runPhases,
+} from "../../../infra/scripts/deploy.mjs";
 import { ciGate } from "../../../infra/scripts/lib/ci-gate.mjs";
 import {
   bundleFingerprint,
@@ -347,22 +356,127 @@ test("deploy flags: every known flag parses, anything else is refused", () => {
     assert.deepEqual(parseDeployArgs([typo]).unknown, [typo], typo);
 });
 
-test("deploy.mjs refuses its arguments before the first AWS call", async () => {
+/**
+ * The phases deploy.mjs would run for these arguments, in order: the
+ * real DEPLOY_PHASES and their `when`s, each `run` replaced by a
+ * recorder (the lane phase reports `lane`). Nothing is built or sent.
+ */
+async function deployPhases(argv, { lane = "platform", throwIn } = {}) {
+  const ran = [];
+  const phases = DEPLOY_PHASES.map((phase) => ({
+    ...phase,
+    run: async (d) => {
+      ran.push(phase.name);
+      if (phase.name === "lane") d.lane = lane;
+      if (phase.name === throwIn) throw new DeployExit(2, `stop at ${throwIn}`);
+    },
+  }));
+  const code = await deploy(argv, { phases });
+  return { code, ran };
+}
+
+const quiet = (t) => {
+  t.mock.method(console, "log", () => {});
+  t.mock.method(console, "error", () => {});
+  t.mock.method(console, "warn", () => {});
+};
+
+test("deploy.mjs refuses its arguments before the first phase, so before the first AWS call", async (t) => {
+  quiet(t);
+  for (const argv of [
+    ["--dry-run"],
+    ["--create", "--verify-reference-seed"],
+    ["--rotate-origin-secret", "--create"],
+    ["--rotate-origin-secret", "--param=OriginSecret=x"],
+    ["--rotate-origin-secret", "--param=OriginSecretPrevious="],
+  ])
+    assert.deepEqual(
+      await deployPhases(argv),
+      { code: 2, ran: [] },
+      argv.join(" "),
+    );
+  assert.deepEqual(await deployPhases(["--help"]), { code: 0, ran: [] });
+  assert.equal(
+    argumentRefusal(parseDeployArgs(["--skip-web", "--acceptance=clans"])),
+    null,
+  );
+  assert.match(
+    argumentRefusal(parseDeployArgs(["--dry-run"])),
+    /unknown argument --dry-run; nothing was deployed/,
+  );
+  // The checks that only read come first: the worktree, then the CI
+  // gate, which decides before anything is built or sent.
+  const names = DEPLOY_PHASES.map((p) => p.name);
+  assert.deepEqual(names.slice(0, 5), [
+    "worktree",
+    "ci-gate",
+    "lock",
+    "account",
+    "build",
+  ]);
+  for (const phase of DEPLOY_PHASES.slice(0, names.indexOf("account")))
+    assert.doesNotMatch(
+      phase.run.toString(),
+      /\.send\(|buildAll\(|spawnSync\(/,
+      phase.name,
+    );
   const source = await readFile(
     new URL("../../../infra/scripts/deploy.mjs", import.meta.url),
     "utf8",
   );
-  const parse = source.indexOf("parseDeployArgs(process.argv");
-  const refuse = source.indexOf("args.unknown.length > 0");
-  assert.ok(parse > 0 && refuse > parse);
-  for (const first of ["new STSClient(", "buildAll(", ".send("])
-    assert.ok(refuse < source.indexOf(first), first);
-  // The CI gate, too, decides before anything is built or sent.
-  const gate = source.indexOf("await ciGate(");
-  assert.ok(gate > refuse);
-  for (const first of ["new STSClient(", "buildAll(", ".send("])
-    assert.ok(gate < source.indexOf(first), first);
   assert.doesNotMatch(source, /process\.argv\.(includes|find)\(/);
+});
+
+test("deploy.mjs: a phase that ends the deploy stops every phase after it", async (t) => {
+  quiet(t);
+  assert.deepEqual(await deployPhases([], { throwIn: "ci-gate" }), {
+    code: 2,
+    ran: ["worktree", "ci-gate"],
+  });
+  // The endpoint grant check refuses before anything is migrated or switched.
+  const refused = await deployPhases([], { throwIn: "grants-check" });
+  assert.equal(refused.code, 2);
+  assert.equal(refused.ran.at(-1), "grants-check");
+  for (const never of [
+    "migrate-push",
+    "migrate",
+    "vocabulary",
+    "stack",
+    "grants",
+  ])
+    assert.ok(!refused.ran.includes(never), never);
+  // Anything else thrown is a crash, not a refusal.
+  const crash = DEPLOY_PHASES.map((phase) => ({
+    ...phase,
+    run: async () => {
+      if (phase.name === "build") throw new Error("esbuild broke");
+    },
+  }));
+  await assert.rejects(deploy([], { phases: crash }), /esbuild broke/);
+});
+
+test("deploy.mjs times each phase that runs, and only those", async () => {
+  const clock = [0, 1000, 1000, 61_250, 61_250, 61_300];
+  const d = { args: { skipWeb: true }, phases: [] };
+  await runPhases(
+    [
+      { name: "one", run: async () => {} },
+      {
+        name: "skipped",
+        when: (x) => !x.args.skipWeb,
+        run: async () => assert.fail("ran"),
+      },
+      { name: "two", run: async () => {} },
+      { name: "three", run: async () => {} },
+    ],
+    d,
+    { now: () => clock.shift() },
+  );
+  assert.deepEqual(d.phases, [
+    { name: "one", seconds: 1 },
+    { name: "two", seconds: 60.3 },
+    { name: "three", seconds: 0.1 },
+  ]);
 });
 
 // Deploy lanes (structural assessment, Phase 4, 2026-09-29).
@@ -434,26 +548,77 @@ test("deploy lanes: the site lane only when nothing CloudFormation holds would c
   );
 });
 
-test("deploy lanes: migrations and the stack update run only in the platform lane", async () => {
+test("deploy lanes: migrations and the stack update run only in the platform lane", async (t) => {
+  quiet(t);
+  const head = [
+    "worktree",
+    "ci-gate",
+    "lock",
+    "account",
+    "build",
+    "upload",
+    "assets",
+  ];
+  const web = ["card-art", "site", "invalidate", "prune"];
+  const tail = ["smoke", "acceptance", "record"];
+  // The site lane: no migrate push, no migrations, no stack update; the
+  // vocabulary rides it anyway, and the grants are checked and read back.
+  assert.deepEqual((await deployPhases([], { lane: "site" })).ran, [
+    ...head,
+    "lane",
+    "grants-check",
+    "vocabulary",
+    "grants",
+    ...web,
+    ...tail,
+  ]);
+  // The platform lane: the endpoint grants are checked before the
+  // migrate push, migrations run before the stack flips.
+  assert.deepEqual((await deployPhases([], { lane: "platform" })).ran, [
+    ...head,
+    "lane",
+    "grants-check",
+    "migrate-push",
+    "migrate",
+    "vocabulary",
+    "stack",
+    "grants",
+    "public-stats",
+    ...web,
+    ...tail,
+  ]);
+  // --create: no live stack to read a lane or a grant from; the stack
+  // first, then its migrations.
+  assert.deepEqual((await deployPhases(["--create"])).ran, [
+    ...head,
+    "stack",
+    "grants",
+    "first-migrations",
+    "public-stats",
+    ...web,
+    ...tail,
+  ]);
+  // --skip-web: no card art, no site, no invalidation, no prune.
+  assert.deepEqual(
+    (await deployPhases(["--skip-web"], { lane: "platform" })).ran,
+    [
+      ...head,
+      "lane",
+      "grants-check",
+      "migrate-push",
+      "migrate",
+      "vocabulary",
+      "stack",
+      "grants",
+      "public-stats",
+      ...tail,
+    ],
+  );
+  // Both lanes name a bundle by its content.
   const source = await readFile(
     new URL("../../../infra/scripts/deploy.mjs", import.meta.url),
     "utf8",
   );
-  const lane = source.indexOf("chooseLane({");
-  const migrate = source.indexOf('if (!isCreate && lane === "platform")');
-  const stack = source.indexOf('if (lane === "platform") {');
-  assert.ok(lane > 0 && migrate > lane && stack > migrate);
-  assert.ok(
-    migrate < source.indexOf('await runMigrations("elixir-mcp-migrate")'),
-  );
-  assert.ok(stack < source.indexOf("new UpdateStackCommand("));
-  assert.ok(stack < source.indexOf("new ValidateTemplateCommand("));
-  // The vocabulary rides every deploy, site lane included.
-  const vocabulary = source.indexOf(
-    "const vocabulary = verifiedReferenceSeed?.vocabulary",
-  );
-  assert.ok(vocabulary > migrate && vocabulary < stack);
-  // Both lanes name a bundle by its content.
   assert.match(source, /codeKey\(name, bundleFingerprint\(dir\)\)/);
 });
 

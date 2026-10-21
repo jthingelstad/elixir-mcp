@@ -29,6 +29,29 @@ export const DEPLOY_USAGE = `usage: AWS_PROFILE=cloud-engineer node infra/script
                          a docs/notes/ note says why
   --help, -h             print this and exit; nothing is deployed`;
 
+/**
+ * Why these arguments deploy nothing, before the first AWS call or
+ * anything else: an unknown flag, or two that contradict each other.
+ * null when they may run.
+ *
+ * @param {ReturnType<typeof parseDeployArgs>} args
+ * @returns {string | null}
+ */
+export function argumentRefusal(args) {
+  if (args.unknown.length > 0)
+    return `deploy: unknown argument ${args.unknown.join(" ")}; nothing was deployed.\n\n${DEPLOY_USAGE}`;
+  if (args.verifyReferenceSeed && args.create)
+    return "deploy: --verify-reference-seed requires an existing stack; nothing was deployed.";
+  if (
+    args.rotateOriginSecret &&
+    (args.create ||
+      args.params.OriginSecret !== undefined ||
+      args.params.OriginSecretPrevious !== undefined)
+  )
+    return "deploy: --rotate-origin-secret sets OriginSecret and OriginSecretPrevious itself, on an update only; nothing was deployed.";
+  return null;
+}
+
 /** @param {string[]} argv process.argv.slice(2) */
 export function parseDeployArgs(argv) {
   const out = {
