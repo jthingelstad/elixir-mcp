@@ -53,6 +53,61 @@ export function requestProtocolVersion(header) {
     ? { ok: true, version }
     : { ok: false, version };
 }
+
+/**
+ * The protocol version a request presented that this server does not
+ * speak, for the door's request line, or null. After `initialize` it is
+ * the header, which the door refuses with HTTP 400; on `initialize` it is
+ * the body's `protocolVersion`, which is answered with this server's own
+ * version instead. A client revision being turned away (245 refused
+ * `server/discover` a week in October 2026) is visible only if the line
+ * names what it sent. Bounded and printable: it is a caller's string.
+ */
+export function unsupportedProtocolVersion(message, header) {
+  const bound = (value) =>
+    String(value)
+      .trim()
+      .replace(/[^\x20-\x7e]/g, "?")
+      .slice(0, 40);
+  if (!message || typeof message !== "object" || Array.isArray(message))
+    return null;
+  if (message.method === "initialize") {
+    const asked = message.params?.protocolVersion;
+    if (asked === undefined || asked === null || asked === "") return null;
+    return SUPPORTED_PROTOCOL_VERSIONS.includes(String(asked).trim())
+      ? null
+      : bound(asked);
+  }
+  const version = requestProtocolVersion(header);
+  return version.ok ? null : bound(version.version);
+}
+
+/** The handshake and discovery messages: they read no record, so they
+ *  never count against the MCP hourly bucket (DECISIONS, "Only calls count
+ *  against the MCP hour"). */
+const UNCOUNTED_METHODS = new Set([
+  "initialize",
+  "ping",
+  "tools/list",
+  "resources/list",
+  "resources/templates/list",
+  "prompts/list",
+]);
+
+/**
+ * Whether one message spends from the MCP hourly bucket. A notification
+ * (no `id`) and the handshake methods do not; `tools/call`,
+ * `resources/read`, `prompts/get` and anything else do. The door still
+ * authenticates every message first: not counted is never unauthenticated.
+ */
+export function countsAgainstHour(message) {
+  if (!message || typeof message !== "object" || Array.isArray(message))
+    return true;
+  if (message.jsonrpc !== "2.0" || typeof message.method !== "string")
+    return true;
+  if (!("id" in message)) return false;
+  return !UNCOUNTED_METHODS.has(message.method);
+}
 export const MCP_QUOTA_ERROR_CODE = -32029;
 
 export function serverVersion(declarations) {

@@ -29,7 +29,11 @@ import {
   responseMeta,
   ERROR_CLASS,
 } from "@elixir-mcp/contracts";
-import { handleMcpMessage } from "./protocol.mjs";
+import {
+  handleMcpMessage,
+  countsAgainstHour,
+  unsupportedProtocolVersion,
+} from "./protocol.mjs";
 import { makeRegistry } from "@elixir-mcp/tools";
 import { makeInvoker, auditRow, onBehalfOfOf } from "@elixir-mcp/tools/invoker";
 import { makeQuota } from "@elixir-mcp/tools/quota";
@@ -440,11 +444,20 @@ export function makeHandler({
       // A person's and an integration's principal IS their budget account,
       // so for them nothing moves. The tier rate is the same for every tier
       // today, so "capped at the owner's tier" is the same 300.
+      //
+      // Only calls spend from it (DECISIONS, "Only calls count against the
+      // MCP hour"): a notification, initialize, ping and the */list methods
+      // read no record, and about 900 of them a week each paid an upsert
+      // and a slot of the hour like a tools/call (review 2026-10-21 §2).
+      // They are still authenticated above; nothing here is skipped for a
+      // caller the door has not identified.
       const ownCeiling = account.hourlyRateLimit ?? null;
-      const withinRate = await checkRateLimit(db, {
-        bucket: hourlyBucketFor(account),
-        max: ownCeiling ?? HOURLY_RATE_LIMIT,
-      });
+      const withinRate =
+        !countsAgainstHour(message) ||
+        (await checkRateLimit(db, {
+          bucket: hourlyBucketFor(account),
+          max: ownCeiling ?? HOURLY_RATE_LIMIT,
+        }));
       if (!withinRate) {
         // Windows are fixed and hour-aligned, so the wait is the remainder
         // of this one - a real number, never a guessed backoff.
@@ -562,7 +575,9 @@ function doorKey(path) {
 
 // The JSON-RPC method and, for tools/call, the tool name - read
 // leniently, because this runs for every request including the ones
-// dispatch will refuse as invalid JSON.
+// dispatch will refuse as invalid JSON. protocol_version is the version
+// the request presented when this server does not speak it (the header,
+// refused with 400; initialize's own, answered with ours instead).
 function rpcSummary(event) {
   if (!event.body) return {};
   try {
@@ -572,6 +587,12 @@ function rpcSummary(event) {
     const out = { rpc: message.method };
     if (message.method === "tools/call" && message.params?.name)
       out.tool = String(message.params.name);
+    const unsupported = unsupportedProtocolVersion(
+      message,
+      event.headers?.["mcp-protocol-version"] ??
+        event.headers?.["MCP-Protocol-Version"],
+    );
+    if (unsupported !== null) out.protocol_version = unsupported;
     return out;
   } catch {
     return {};
