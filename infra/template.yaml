@@ -310,6 +310,15 @@ Resources:
         # Autovacuum runs over one second are the other thing that eats
         # a micro's memory and I/O without any request naming it.
         log_autovacuum_min_duration: 1000
+        # Fifteen-minute checkpoints, not the engine's five (2026-10-21):
+        # 2,015 checkpoints in 7 days, each a few hundred buffers, and
+        # every page first touched after one goes to the WAL whole. It is
+        # dynamic, so it applies without a reboot; the group's
+        # Description is not edited with it (that replaces the group).
+        # The WAL volume itself (64 MB every five minutes, about 19 GB a
+        # day) is RDS's archive_timeout of 300 s switching segments, a
+        # system value this cannot change.
+        checkpoint_timeout: 900
         # shared_buffers is the engine default (a quarter of memory). The
         # 88 MB pin (11264 pages, 2026-09-12) was the old micro's squeeze
         # under a record five times today's size; it was not restored

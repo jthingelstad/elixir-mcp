@@ -739,6 +739,20 @@ test("an incident pages once: the alarms hold ALARM through it, and every one pa
   assert.ok(metrics.length <= 50, `${metrics.length} dashboard metrics`);
 });
 
+test("checkpoints every fifteen minutes, on the parameter group the database already has (2026-10-21)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const group = resource(template, "DbParameterGroup", "DbPostgresLogGroup");
+  assert.match(group, /^        checkpoint_timeout: 900$/m);
+  // Description and Family replace the group, and a new group reaches
+  // the instance only at a reboot: neither moves with a parameter.
+  assert.match(
+    group,
+    /^      Description: elixir-mcp postgres17 - slow statements and lock waits to the log$/m,
+  );
+  assert.match(group, /^      Family: postgres17$/m);
+  assert.doesNotMatch(group, /DBParameterGroupName:/);
+});
+
 test("the database connections verify the server against the bundled RDS roots (#71)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const urls = template.match(/^          DATABASE_URL: .+$/gm) ?? [];
