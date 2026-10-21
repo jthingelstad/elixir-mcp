@@ -80,6 +80,7 @@ const MIGRATE_READS = {
   call_sequence_census: anyArgs,
   acceptance_catalogue: anyArgs,
   profile_tool: anyArgs,
+  profile_read: anyArgs,
   explain_participation: anyArgs,
   explain_standings: anyArgs,
   explain_timeline: anyArgs,
