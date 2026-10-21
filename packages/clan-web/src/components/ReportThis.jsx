@@ -3,9 +3,10 @@ import { FeedbackSheet, Icon } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { feedbackApi } from "../api.js";
 
-/** Where a filed item is read: the person's own feedback in the Console,
- *  where its answer lands too. */
-export const feedbackItemHref = (id) => `/console/account/feedback/${id}`;
+/** Where what you have filed is read: the person's own feedback in the
+ *  Console, where each answer lands too. */
+export const FEEDBACK_HISTORY = "/console/account/feedback";
+export const feedbackItemHref = (id) => `${FEEDBACK_HISTORY}/${id}`;
 
 /**
  * "Report this", beside a judgment Elixir Clan made: an action, a

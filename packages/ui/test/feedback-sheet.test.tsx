@@ -83,3 +83,43 @@ test("Close and Escape both close it", () => {
   );
   expect(onClose).toHaveBeenCalledTimes(2);
 });
+
+test("links your feedback and its answers before and after sending", async () => {
+  const send = vi.fn(async () => ({ ok: true, data: { feedback_id: "7" } }));
+  render(
+    <FeedbackSheet
+      area="console"
+      categories={CATEGORIES}
+      send={send}
+      onClose={() => {}}
+      itemHref={(id) => `/console/account/feedback/${id}`}
+      historyHref="/console/account/feedback"
+    />,
+  );
+  const history = () =>
+    screen.getByRole("link", {
+      name: "Your feedback and its answers ›",
+      hidden: true,
+    });
+  expect(history().getAttribute("href")).toBe("/console/account/feedback");
+  fireEvent.change(screen.getByLabelText("Message"), {
+    target: { value: "The rail hides on my phone." },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send", hidden: true }));
+  await screen.findByText("Read it as fb_7");
+  expect(history().getAttribute("href")).toBe("/console/account/feedback");
+});
+
+test("without a history address, no history link", () => {
+  render(
+    <FeedbackSheet
+      area="ladder"
+      categories={CATEGORIES}
+      send={vi.fn()}
+      onClose={() => {}}
+    />,
+  );
+  expect(
+    screen.queryByRole("link", { name: /Your feedback/, hidden: true }),
+  ).toBeNull();
+});

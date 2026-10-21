@@ -75,7 +75,10 @@ afterEach(() => {
  *  settings (2026-09-29), which all obey the same rules. */
 const AGENT_RAIL = agentRail("abcd1234");
 const RAILS = [RAIL, AGENT_RAIL, ADMIN_RAIL, ACCOUNT_RAIL];
-const destinations = [...RAILS.flat(), RAIL_FOOT].flatMap((row) => [
+const destinations = [
+  ...RAILS.flat(),
+  { key: RAIL_FOOT.key, to: RAIL_FOOT.history },
+].flatMap((row) => [
   [row.key, undefined, row.to],
   ...(row.subs ?? []).map(([slug, , to]) => [row.key, slug, to]),
 ]);
@@ -177,10 +180,13 @@ test("your console: eight items in three groups, feedback at the foot", () => {
     "Access",
     "Service",
   ]);
+  // The foot opens the feedback sheet in place; what you have filed is
+  // read at its history address, which the sheet links.
   expect(RAIL_FOOT).toMatchObject({
     label: "Send feedback",
-    to: "/console/account/feedback",
+    history: "/console/account/feedback",
   });
+  expect(RAIL_FOOT.to).toBeUndefined();
 });
 
 test("where the rest went: every old address resolves, marked where it lives now", () => {
@@ -300,16 +306,56 @@ test(
     // Scoped to the rail: the top bar has its own expandable button now
     // (the narrow menu), which is a different control on a different
     // element and is present at every width.
-    // The only button in it is the console switcher, never a disclosure
-    // over the list.
+    // The only buttons in it are the console switcher and the foot that
+    // opens the feedback sheet, never a disclosure over the list.
     const rail = document.querySelector(".rail");
     expect(rail.querySelector(".rail__toggle")).toBeNull();
     expect(
       within(rail)
         .getAllByRole("button")
-        .every((b) => b.classList.contains("rail__switch-head")),
+        .every(
+          (b) =>
+            b.classList.contains("rail__switch-head") ||
+            b.classList.contains("rail__item--foot"),
+        ),
     ).toBe(true);
     expect(within(rail).getByRole("link", { name: /Tracking/ })).toBeTruthy();
+  },
+);
+
+test(
+  "Send feedback opens the sheet in place, about the page you are on",
+  { timeout: 20000 },
+  async () => {
+    window.history.pushState({}, "", "/console/account/usage");
+    render(<App />);
+    const nav = await waitFor(() =>
+      screen.getByRole("navigation", { name: "Console sections" }),
+    );
+    const rail = nav.closest(".rail");
+    // A button, not a link away: the page stays under the sheet.
+    expect(within(rail).queryByRole("link", { name: "Send feedback" })).toBe(
+      null,
+    );
+    within(rail).getByRole("button", { name: "Send feedback" }).click();
+    // jsdom has <dialog> and not its modal, so it is read as an element.
+    const sheet = await waitFor(() => {
+      const d = document.querySelector("dialog.feedback-sheet");
+      expect(d).toBeTruthy();
+      return d;
+    });
+    expect(sheet.getAttribute("aria-label")).toBe("Send feedback");
+    expect(sheet.textContent).toContain("About the Console.");
+    expect(window.location.pathname).toBe("/console/account/usage");
+    // What you have filed is still a click away.
+    expect(
+      within(sheet)
+        .getByRole("link", {
+          name: "Your feedback and its answers ›",
+          hidden: true,
+        })
+        .getAttribute("href"),
+    ).toBe("/console/account/feedback");
   },
 );
 

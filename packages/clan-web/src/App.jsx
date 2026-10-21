@@ -29,7 +29,10 @@ import { railItems, railKey } from "./lib/rail.js";
 import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
 import { RoleChip } from "./components/RoleChip.jsx";
 import { RoleConfirming } from "./components/RoleConfirming.jsx";
-import { feedbackItemHref } from "./components/ReportThis.jsx";
+import {
+  FEEDBACK_HISTORY,
+  feedbackItemHref,
+} from "./components/ReportThis.jsx";
 import { Clan } from "./views/Clan.jsx";
 import { Clans } from "./views/Clans.jsx";
 import { Manage } from "./views/Manage.jsx";
@@ -433,6 +436,7 @@ export function Rail({ me, path, navigate, narrow }) {
           send={feedbackApi.send}
           onClose={() => setFeedback(false)}
           itemHref={feedbackItemHref}
+          historyHref={FEEDBACK_HISTORY}
         />
       )}
     </>
