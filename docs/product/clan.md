@@ -96,7 +96,12 @@ as elders and members always do. [Jamie, 2026-10-20]
    lifetime donations, years played, masteries and Path of Legends
    league; a demotion thanks them for older, positive history, never
    uses the recent window's numbers and never says why. In clan chat a
-   draft is a few lines, each its own send. Elixir Clan chooses the
+   draft is a few lines, each its own send. The clan has one voice, its
+   leaders' words in Settings, for its drafts and its activity editor
+   alike: given to the model as written, it sets the tone, never the
+   facts, and lifts no rule. An Action's log keeps what the model wrote
+   for its leaders and co-leaders; anyone else who reads the log sees
+   only that a draft was made. Elixir Clan chooses the
    model for each use; the key and its monthly cap are the clan's. The
    one use nobody reviews is the activity channel's editor, so the
    engine's checks decide what it may post. [Jamie, 2026-10-03,
