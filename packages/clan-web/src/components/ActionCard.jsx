@@ -14,7 +14,6 @@ import {
 import {
   CHAT_MAX,
   CHAT_TONES,
-  WELCOME_MAX,
   LEADER_MESSAGE,
   chatWarnings,
   actionDelivery,
@@ -288,16 +287,21 @@ function MessageField({
   );
 }
 
-/** A draft always requires a person's click, with one-click restoration. */
+/** A draft always requires a person's click, with one-click restoration.
+ *  A chat draft takes a tone; a welcome's or a farewell's takes the
+ *  leader's note too (`note`), and the words after a removal only the
+ *  tone. */
 function DraftControls({
   value,
   onChange,
   onDraft,
   onBusy,
   chat = false,
+  note = !chat,
   disabled = false,
 }) {
   const [ask, setAsk] = useState("");
+  const [tone, setTone] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [said, setSaid] = useState("");
   const [previous, setPrevious] = useState(null);
@@ -306,7 +310,7 @@ function DraftControls({
     onBusy(true);
     setSaid("");
     try {
-      const r = await onDraft(ask.trim() || null);
+      const r = await onDraft(ask.trim() || null, tone || null);
       if (r.error) return setSaid(r.error);
       setPrevious(value);
       onChange(
@@ -335,9 +339,9 @@ function DraftControls({
           <select
             className="input flex-[1_1_200px]"
             aria-label="Draft tone"
-            value={ask}
+            value={tone}
             disabled={drafting || disabled}
-            onChange={(e) => setAsk(e.target.value)}
+            onChange={(e) => setTone(e.target.value)}
           >
             <option value="">The clan's own voice</option>
             {Object.entries(CHAT_TONES).map(([key, label]) => (
@@ -346,7 +350,8 @@ function DraftControls({
               </option>
             ))}
           </select>
-        ) : (
+        ) : null}
+        {note ? (
           <input
             className="input flex-[1_1_200px]"
             aria-label="What should it say?"
@@ -356,7 +361,7 @@ function DraftControls({
             disabled={drafting || disabled}
             onChange={(e) => setAsk(e.target.value)}
           />
-        )}
+        ) : null}
         <button
           type="button"
           className="btn btn--sm"
@@ -389,7 +394,9 @@ function DraftControls({
   );
 }
 
-/** Editable chat copy; completion remains a separate human decision. */
+/** Editable chat copy, one field per line (a draft may run to more than
+ *  one, each its own send); completion remains a separate human
+ *  decision. */
 function ChatMessage({
   kind,
   value,
@@ -399,6 +406,7 @@ function ChatMessage({
   disabled = false,
 }) {
   const [drafting, setDrafting] = useState(false);
+  const lines = value.length ? value : [""];
   return (
     <div className="grid gap-2.5 rounded-block border border-line-soft bg-ground-sunken p-4">
       <span className="text-[13.5px] font-semibold">Clan chat</span>
@@ -408,20 +416,36 @@ function ChatMessage({
           : kind === "departure"
             ? "The leader's confirmed classification guides this draft. Review it, then copy and send it in the game."
             : "Make the welcome your own, then copy and send it in the game."}
+        {lines.length > 1 ? " Each message is its own send, in order." : ""}
       </div>
-      <MessageField
-        label="Chat message"
-        value={value}
-        onChange={onChange}
-        max={kind === "welcome" ? WELCOME_MAX : CHAT_MAX}
-        rows={3}
-        disabled={drafting || disabled}
-        copyKind="clan_chat"
-      />
+      {lines.map((line, i) => (
+        <MessageField
+          key={i}
+          label={lines.length > 1 ? `Chat message ${i + 1}` : "Chat message"}
+          value={line}
+          onChange={(text) =>
+            onChange(lines.map((old, n) => (n === i ? text : old)))
+          }
+          max={CHAT_MAX}
+          rows={3}
+          disabled={drafting || disabled}
+          copyKind="clan_chat"
+        />
+      ))}
       {onDraft ? (
         <DraftControls
-          value={value}
-          onChange={onChange}
+          value={lines}
+          onChange={(words) =>
+            onChange(
+              Array.isArray(words)
+                ? words
+                : words?.lines
+                  ? words.lines
+                  : typeof words === "string"
+                    ? [words]
+                    : chatLines(words),
+            )
+          }
           onDraft={onDraft}
           onBusy={(pending) => {
             setDrafting(pending);
@@ -429,6 +453,7 @@ function ChatMessage({
           }}
           disabled={disabled}
           chat
+          note={kind !== "removal"}
         />
       ) : null}
     </div>
@@ -936,7 +961,7 @@ function BoundActionCard({
   const delivery = useDeliveryDraft(action, clan, who);
   // The words as the person edits them, sent with a completion so what
   // the clan shares with Elixir is what was said in the game.
-  const [line, setLine] = useState(action.copy ?? "");
+  const [lines, setLines] = useState(() => [action.copy ?? ""]);
   const grouped = ev.messages?.length > 0;
   const allSent =
     grouped &&
@@ -951,7 +976,7 @@ function BoundActionCard({
     !model.refused &&
     (action.can_act !== false || (departureCopy && action.can_draft)) &&
     ["leader", "coLeader"].includes(who?.role)
-      ? async (note) => {
+      ? async (note, tone = null) => {
           // Opus at medium effort can outlast one request: the API
           // answers `pending` and the page asks again until it lands.
           const r = await untilWritten((pending) =>
@@ -962,6 +987,7 @@ function BoundActionCard({
               action.draft_context_version ?? null,
               delivery.words?.channel ?? null,
               pending,
+              tone,
             ),
           );
           if (!r.ok) {
@@ -999,8 +1025,11 @@ function BoundActionCard({
         note: note || null,
         ...(status === "done" && delivery.words && !grouped
           ? { sent: delivery.words }
-          : status === "done" && action.copy && action.type === "welcome"
-            ? { sent: { line } }
+          : status === "done" &&
+              action.copy &&
+              action.type === "welcome" &&
+              lines.some((l) => l.trim())
+            ? { sent: { lines: lines.filter((l) => l.trim()) } }
             : {}),
         ...extra,
       });
@@ -1338,8 +1367,8 @@ function BoundActionCard({
             (departureCopy && action.can_draft) ? (
               <ChatMessage
                 kind={action.type}
-                value={line}
-                onChange={setLine}
+                value={lines}
+                onChange={setLines}
                 onDraft={onDraft}
                 onBusy={setDrafting}
                 disabled={deciding}

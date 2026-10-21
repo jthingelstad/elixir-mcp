@@ -1091,6 +1091,7 @@ describe("the clan's model on a Leader Message", () => {
         null,
         "leader_message",
         null,
+        null,
       ),
     );
     expect(await screen.findByDisplayValue("Our way, in brief")).toBeTruthy();
@@ -1252,9 +1253,14 @@ describe("editable clan chat", () => {
         ],
       }),
     );
+    // A drafted welcome may run to two lines, each its own send.
     const draft = vi.spyOn(manageApi, "draftLeaderMessage").mockResolvedValue({
       ok: true,
-      data: { line: "Glad you joined, Sleepy!", model: "stub", warnings: [] },
+      data: {
+        lines: ["Glad you joined, Sleepy!", "3,000 career wins already."],
+        model: "stub",
+        warnings: [],
+      },
     });
     const decide = vi
       .spyOn(manageApi, "decideAction")
@@ -1265,28 +1271,60 @@ describe("editable clan chat", () => {
     fireEvent.change(await screen.findByLabelText("Chat message"), {
       target: { value: "Welcome aboard, Sleepy!" },
     });
+    // A welcome takes a tone and the leader's note.
+    fireEvent.change(screen.getByLabelText("Draft tone"), {
+      target: { value: "warm" },
+    });
+    fireEvent.change(screen.getByLabelText("What should it say?"), {
+      target: { value: "Say the war crew is glad" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
     await screen.findByDisplayValue("Glad you joined, Sleepy!");
+    expect(screen.getByLabelText("Chat message 2").value).toBe(
+      "3,000 career wins already.",
+    );
+    expect(screen.getByText(/Each message is its own send/)).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Copy the chat message 2" }),
+    ).toBeTruthy();
     expect(draft).toHaveBeenCalledWith(
       "#2PQRJ8LV",
       "a1",
+      "Say the war crew is glad",
       null,
       null,
       null,
-      null,
+      "warm",
     );
     expect(decide).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("Put back what I had"));
     await screen.findByDisplayValue("Welcome aboard, Sleepy!");
+    expect(screen.queryByLabelText("Chat message 2")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Draft in our voice" }));
+    fireEvent.change(await screen.findByLabelText("Chat message 2"), {
+      target: { value: "Glad you found us." },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Welcomed" }));
     await waitFor(() =>
       expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "a1", {
         status: "done",
         reason: null,
         note: null,
-        sent: { line: "Welcome aboard, Sleepy!" },
+        sent: { lines: ["Glad you joined, Sleepy!", "Glad you found us."] },
       }),
     );
+  });
+
+  test("the words after a removal take a tone, never a note", async () => {
+    vi.spyOn(manageApi, "action").mockResolvedValue(
+      one({ model: { set: true, refused: false } }),
+    );
+    renderWithProviders(
+      <ActionDetail number={37} clan={clan} who={{ role: "leader" }} />,
+    );
+    await screen.findByLabelText("Chat message");
+    expect(screen.getByLabelText("Draft tone")).toBeTruthy();
+    expect(screen.queryByLabelText("What should it say?")).toBeNull();
   });
 
   test("a failed removal draft preserves edits and does not complete or automatically retry the action", async () => {
@@ -1380,7 +1418,10 @@ describe("editable clan chat", () => {
       "left-version",
       null,
       null,
+      null,
     );
+    // A farewell takes the leader's note beside the tone.
+    expect(screen.getByLabelText("What should it say?")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Copy the chat message" }).disabled,
     ).toBe(true);
@@ -1400,7 +1441,7 @@ describe("editable clan chat", () => {
       finish({
         ok: true,
         data: {
-          line: "Stale left draft",
+          lines: ["Stale left draft"],
           model: "fake",
           draft_context_version: "left-version",
         },

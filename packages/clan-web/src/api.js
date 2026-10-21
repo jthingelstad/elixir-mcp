@@ -71,6 +71,7 @@ export const manageApi = {
     expectedDraftVersion = null,
     channel = null,
     pending = null,
+    tone = null,
   ) =>
     post(`${clanBase(tag)}/actions/${id}/draft`, {
       note,
@@ -78,6 +79,8 @@ export const manageApi = {
         ? { expected_draft_version: expectedDraftVersion }
         : {}),
       ...(channel ? { channel } : {}),
+      // A chat draft's tone (`CHAT_TONES`), beside the note.
+      ...(tone ? { tone } : {}),
       // A draft that outlasted its request, asked for again (`untilWritten`).
       ...(pending ? { pending } : {}),
     }),
