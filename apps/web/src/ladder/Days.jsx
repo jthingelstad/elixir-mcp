@@ -44,7 +44,10 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  * names (lib/battle-sweep.js). Each mode keeps its own mark and its own
  * record; the page counts battles and never rates a day. The mode the
  * address names leads the calendar: first in each day and in the key,
- * the others still there and quieter.
+ * the others still there and quieter. A war battle sits on its day like
+ * any other: Ladder shows a person's battles individually, and war by
+ * the week is the clan war's rule, not this page's (docs/DECISIONS.md,
+ * Jamie 2026-10-20).
  */
 export function Days({
   player,

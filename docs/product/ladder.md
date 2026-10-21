@@ -38,6 +38,10 @@ understands it is a recorder and sees their next step. [Jamie,
 5. **What you faced is ordered by the reader.** Most battles first; most
    losses first is a choice in the address; a row needs its floor; no
    row is labelled or advised on. [Jamie, 2026-10-08]
+6. **A person's battles, one by one.** Ladder treats battles
+   individually, war battles included: Days played shows each on the day
+   it was played. War by the week is about the clan war's week, not a
+   person's battles. [Jamie, 2026-10-20]
 
 ## What it never does
 

@@ -80,6 +80,7 @@ restating it in wider words.
 - **A boat defense is not the member's battle** — it leaves every count of a member's own battles; a boat attack stays. [Jamie, 2026-09-24, 2026-09-25]
 - **A duel counts as its rounds** — each round is one game with its own tower-less deck and result; `battles_decks` lists round decks apart. [Jamie, 2026-09-26]
 - **War facts are weekly aggregates** — no surface splits a member's week by war day; judgments read the race's weekly `decksUsed` against four a war day up to the finish; the day in progress is the game's own `decksUsedToday`; training days are never attendance. [Jamie, 2026-09-24, 2026-09-25]
+- **Ladder shows a person's battles individually, war battles included** — Ladder ▸ Days played lists each battle on the day it was played, a war battle like any other; the weekly line above is not about that listing (Jamie, 2026-10-20, asked whether Ladder's own battle calendar is exempt from war being shown only by the week: "yes, ladder is treating battles individually. War activity for the week is ONLY because we are using the clan wars week. It is about the clan wars, not the battles."). [Jamie, 2026-10-20]
 - **A week's donations are the highest counter seen in its game days** — never pin the reset minute. [Jamie, 2026-09-23]
 - **A clan's profile aggregates carry each member's latest profile forward** — `members_profile_carried` says how many. [Jamie, 2026-09-23]
 - **Historical clan presence reads historical membership** — at the window's end for summaries, at the moment's own time for moments. [Jamie, 2026-10-02]
