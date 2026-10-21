@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Elixir Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-10-20; a leader or co-leader with Actions waiting lands on Actions, and the roster has its own address; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -124,6 +124,13 @@ The rail down the side lists Clan's pages:
 
 On a phone the rail folds into one row above the page; while it is
 closed, a mark on that row says Actions are waiting for you.
+
+Coming to a clan (its address, [/clan](/clan), picking one under
+**Clans**, or coming back from sign-in) opens its **Roster**. The leader
+and co-leaders open **Actions** instead while Actions are waiting for
+them, and the roster when none are. An address that names a page always
+opens that page: the roster's own is `/clan/<tag>/roster`, and the rail's
+**Roster** and a member page's way back go there.
 
 ## When the clan is not on Elixir
 

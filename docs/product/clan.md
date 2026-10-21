@@ -37,6 +37,12 @@ is verified; until then they read as a member. The record learns a role
 change on its next roster read, so a leader's change waits for a roster
 read within the hour. [Jamie, 2026-10-12]
 
+Where a person lands follows the same roles. Asked whether leaders
+should land on Actions instead of Roster, Jamie answered: "If there are
+actions to take, yes. Otherwise no." A leader or co-leader with Actions
+waiting for them lands on Actions; with none, they land on the roster,
+as elders and members always do. [Jamie, 2026-10-20]
+
 ## Principles that decide the details
 
 1. **The policy is the clan's agreement, and it is versioned.** Leaders
