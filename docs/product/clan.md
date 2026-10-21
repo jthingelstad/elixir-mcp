@@ -90,14 +90,17 @@ as elders and members always do. [Jamie, 2026-10-20]
 8. **Clan drafts words; people decide.** The clan's own sealed key drafts
    messages from the record, told the clan, what happened and the member
    by name, never a tag, a note, a hold or a removal's rationale. A draft
-   about one member may tell them their decks and win/loss counts,
+   says at least what Elixir's own words would, then more of the member:
+   "meaningfully more in-depth and personalized" (Jamie, 2026-10-20). A
+   draft about one member may tell them their decks and win/loss counts,
    lifetime donations, years played, masteries and Path of Legends
-   league; a demotion thanks them for older, positive history and never
-   uses the recent window's numbers. Elixir
-   Clan chooses the model for each use; the key and its monthly cap are
-   the clan's. The one use nobody reviews is the activity channel's
-   editor, so the engine's checks decide what it may post. [Jamie,
-   2026-10-03, 2026-10-08, 2026-10-11, 2026-10-20]
+   league; a demotion thanks them for older, positive history, never
+   uses the recent window's numbers and never says why. In clan chat a
+   draft is a few lines, each its own send. Elixir Clan chooses the
+   model for each use; the key and its monthly cap are the clan's. The
+   one use nobody reviews is the activity channel's editor, so the
+   engine's checks decide what it may post. [Jamie, 2026-10-03,
+   2026-10-08, 2026-10-11, 2026-10-20]
 9. **Facts go back to Elixir, labelled.** What Clan attests (a kick or a
    leave as a leader classified it, awards, where the races stand) is
    written apart from the game record, visible to the clan's verified
