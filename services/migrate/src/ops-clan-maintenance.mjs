@@ -1,7 +1,12 @@
 /** IAM-only private Clan maintenance, bounded by kind and clan. This is
  * not a public API or a way to read a sealed key. Clan's own feedback
  * lanes (feedback, respond) retired on 2026-10-08: Clan files into
- * Elixir's one feedback record, read with feedback_pending. */
+ * Elixir's one feedback record, read with feedback_pending.
+ *
+ * `draft_packet` builds the exact request "Draft in our voice" would send
+ * for one Action (2026-10-20), in a read-only transaction: no model call,
+ * no key, no draft log entry. It is how a weak draft is checked against
+ * what the model was told. */
 import pg from "pg";
 import { createHash } from "node:crypto";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
@@ -14,6 +19,10 @@ import {
 } from "@elixir-mcp/clan-engine";
 import { clanActivityEvidence } from "@elixir-mcp/record/clan-activity-evidence";
 import { createActionStore } from "@elixir-mcp/clan/manage/actions.mjs";
+import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
+import { messageBody } from "@elixir-mcp/clan/anthropic.mjs";
+import { modelFor, NOTE_MAX } from "@elixir-mcp/clan-engine";
+import { clanStoryFacts } from "@elixir-mcp/syndication";
 const digest = (body) =>
   createHash("sha256").update(JSON.stringify(body)).digest("hex");
 const id = (value) => {
@@ -32,6 +41,7 @@ export async function clanMaintenance(databaseUrl, spec) {
       "action_log",
       "policies",
       "reconcile_removal",
+      "draft_packet",
     ].includes(lane)
   )
     throw new Error("unknown Clan maintenance lane");
@@ -45,6 +55,7 @@ export async function clanMaintenance(databaseUrl, spec) {
     "action_log",
     "policies",
     "reconcile_removal",
+    "draft_packet",
   ].includes(lane);
   const clanTag = clanLane ? normalizeTag(spec.clan_tag) : null;
   if (clanLane && !clanTag)
@@ -54,6 +65,22 @@ export async function clanMaintenance(databaseUrl, spec) {
     throw new Error("action log needs a card id");
   if (lane === "reconcile_removal" && !cardId)
     throw new Error("removal reconciliation needs a card id");
+  if (lane === "draft_packet") {
+    if (!cardId) throw new Error("a draft packet needs a card id");
+    if (
+      ![undefined, null, "clan_chat", "leader_message"].includes(spec.channel)
+    )
+      throw new Error(
+        "a draft packet's channel is clan_chat or leader_message",
+      );
+    if (
+      spec.note != null &&
+      (typeof spec.note !== "string" || spec.note.length > NOTE_MAX)
+    )
+      throw new Error(`a draft packet's note is text of ${NOTE_MAX} or fewer`);
+    if (spec.tone != null && !/^[a-z_]{1,20}$/.test(spec.tone))
+      throw new Error("invalid draft tone");
+  }
   const cursor = spec.cursor ?? "";
   if (
     typeof cursor !== "string" ||
@@ -65,6 +92,7 @@ export async function clanMaintenance(databaseUrl, spec) {
   await db.connect();
   try {
     const ledger = createPostgresLedger(db);
+    if (lane === "draft_packet") return await draftPacket(db, ledger);
     if (lane === "reconcile_removal") {
       await db.query("begin");
       await db.query("select body from clan_state where pk=$1 for update", [
@@ -256,5 +284,43 @@ export async function clanMaintenance(databaseUrl, spec) {
     throw error;
   } finally {
     await db.end();
+  }
+
+  /** The request the draft would send, built in a transaction that
+   *  cannot write: the same builder and record reader as the draft
+   *  route, with no model behind it. `body` is the provider's message as
+   *  the relay would send it to the use's first-choice model; the key's
+   *  model list may choose a later one. */
+  async function draftPacket(db, ledger) {
+    await db.query("begin transaction read only");
+    try {
+      const drafts = createDrafts({
+        ledger,
+        model: null,
+        storyFor: (tag, playerTags) =>
+          clanStoryFacts(db, tag, { playerTags, moments: true }),
+      });
+      const built = await drafts
+        .request(clanTag, cardId, {
+          note: spec.note ?? null,
+          tone: spec.tone ?? null,
+          channel: spec.channel ?? null,
+        })
+        .catch((error) => {
+          // A refusal the draft route would give, by its code.
+          if (error?.code) throw new Error(`draft refused: ${error.code}`);
+          throw error;
+        });
+      const model = modelFor(built.request.purpose);
+      return {
+        lane,
+        clan_tag: clanTag,
+        card_id: cardId,
+        ...built,
+        body: messageBody({ model, ...built.request }),
+      };
+    } finally {
+      await db.query("rollback");
+    }
   }
 }

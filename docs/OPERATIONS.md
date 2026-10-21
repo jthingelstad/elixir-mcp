@@ -535,6 +535,13 @@ private state is read through the IAM-only `{clan_maintenance}` op
   attempt from a retryable job. Never repeat a paid call to verify.
 - **Disputes.** Compare a disputed action with its saved policy version,
   frozen evidence, decision and outcome log, and membership history.
+- **Weak drafts.** `{"clan_maintenance": {"lane": "draft_packet",
+  "clan_tag": "#TAG", "card_id": "<id>"}}` is the exact request "Draft in
+  our voice" builds for that Action, with `channel`, `note` and `tone` as
+  a leader would pick them: the plain words it must at least say, the
+  clan's context, the member packet and the provider body. It runs in a
+  read-only transaction and calls no model, so judge a complaint about a
+  draft against what the model was told before changing the prompt.
 - **Writes.** `lane: "respond"` (a feedback reply, "Feedback" above) and
   `lane: "reconcile_removal"` (withdraws one unsupported pending removal
   by its preview digest) need an explicit `apply: true` and take the
