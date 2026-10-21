@@ -520,9 +520,13 @@ export function makeHandler({
       try {
         body = JSON.parse(event.body);
       } catch {
-        return isIntegration
-          ? integrationProblem(400, "invalid_json", randomUUID())
-          : json(400, { error: "invalid_json" });
+        // A path no /api/v1 operation answers is the route's 404 to the
+        // docs whatever its body, so it is not refused here as JSON
+        // (Codex on #621); the route reads no body for it.
+        if (!(isIntegration && !found.operation))
+          return isIntegration
+            ? integrationProblem(400, "invalid_json", randomUUID())
+            : json(400, { error: "invalid_json" });
       }
     }
     // One timing line per request, so a slow page can be attributed to
