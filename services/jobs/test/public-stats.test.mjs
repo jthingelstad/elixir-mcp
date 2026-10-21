@@ -163,6 +163,33 @@ test("the fetch series refreshed in part equals a full count", async () => {
     assert.equal(result.fetches_recounted, "all");
     assert.deepEqual((await stored()).series, await full());
 
+    // A migration that deletes a receipt forces a full count even while
+    // the delete counter has not caught up: statistics reach other
+    // sessions a second or more after the commit. The stored counter is
+    // set to the current one, as a refresh in that second would see it.
+    await ageMarks();
+    await db.query("begin");
+    await db.query(
+      `delete from api_receipt where receipt_id =
+         (select min(receipt_id) from api_receipt where gateway_id = $1)`,
+      [gw.alpha],
+    );
+    await db.query(
+      `insert into schema_migrations (id, name, sha256)
+       select max(id) + 1, 'fictional_receipt_removal', 'test' from schema_migrations`,
+    );
+    await db.query("commit");
+    await db.query("select pg_stat_force_next_flush()");
+    await db.query("select 1");
+    await db.query(
+      `update public_stats_cache set state = jsonb_set(state, '{fetches_daily,deleted}',
+         to_jsonb((select n_tup_del from pg_stat_user_tables
+                    where relid = 'api_receipt'::regclass)::text))`,
+    );
+    result = await publishPublicStats(scratch.url);
+    assert.equal(result.fetches_recounted, "all");
+    assert.deepEqual((await stored()).series, await full());
+
     // Nothing new: the series is reused as it stands.
     await ageMarks();
     result = await publishPublicStats(scratch.url);

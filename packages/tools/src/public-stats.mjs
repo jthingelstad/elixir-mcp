@@ -75,11 +75,15 @@ export async function calculatePublicStats(db, { fetchesDaily } = {}) {
 // MARK_MARGIN_MS older than the last refresh: no receipt transaction
 // stays open that long (every writer is a Lambda, 15 minutes at most).
 // The series is counted in full, as before, without such a mark; when
-// the table's delete counter moved (a migration or an approved removal
-// deleted receipts; a statistics reset moves it too); when the set of
-// collectors the series leaves out changed (a gateway renamed to or from
-// the backfill name); and once a day whatever the guards say, so a case
-// none of them sees is never stale for longer than that.
+// a migration has been applied since (only a migration deletes receipts,
+// and its ledger row commits with the deletion, so a refresh that can
+// see the one sees the other); when the table's delete counter moved (a
+// deletion by any other hand; a statistics reset moves it too, and
+// statistics arrive a second or more after the commit, which is why it
+// is not the only guard); when the set of collectors the series leaves
+// out changed (a gateway renamed to or from the backfill name); and once
+// a day whatever the guards say, so a case none of them sees is never
+// stale for longer than that.
 const MARK_MARGIN_MS = 60 * 60_000;
 const FULL_EVERY_MS = 24 * 60 * 60_000;
 const MARKS_KEPT = 6;
@@ -90,6 +94,7 @@ async function refreshFetchesDaily(db, previous) {
     rows: [now],
   } = await db.query(
     `select coalesce((select max(receipt_id) from api_receipt), 0)::text as through,
+            (select coalesce(max(id), 0) from schema_migrations)::text as migrated,
             (select n_tup_del from pg_stat_user_tables
               where relid = 'api_receipt'::regclass)::text as deleted,
             (select coalesce(string_agg(gateway_id::text, ',' order by gateway_id), '')
@@ -102,6 +107,7 @@ async function refreshFetchesDaily(db, previous) {
   let base = null;
   if (
     prevState?.version === SERIES_STATE_VERSION &&
+    prevState.migrated === now.migrated &&
     prevState.deleted === now.deleted &&
     prevState.excluded === now.excluded &&
     Date.parse(prevState.full_at) > now.at.getTime() - FULL_EVERY_MS &&
@@ -139,6 +145,7 @@ async function refreshFetchesDaily(db, previous) {
     full: !base,
     state: {
       version: SERIES_STATE_VERSION,
+      migrated: now.migrated,
       deleted: now.deleted,
       excluded: now.excluded,
       full_at: base ? prevState.full_at : now.at.toISOString(),
