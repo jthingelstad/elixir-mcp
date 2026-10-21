@@ -16,7 +16,13 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
+  // One retry in CI, so a failure keeps its trace (trace:
+  // "retain-on-failure" records the retry), but a test that fails and
+  // then passes is a flake and fails the run: "a flake is fixed the day
+  // it blocks" (DECISIONS, "main takes only pull requests"). Before
+  // 2026-10-21 the retry turned eight flakes green in a week.
   retries: process.env.CI ? 1 : 0,
+  failOnFlakyTests: !!process.env.CI,
   // GitHub's public-repo runners have four cores; the default is half.
   ...(process.env.CI ? { workers: 4 } : {}),
   reporter: process.env.CI ? "github" : "list",
