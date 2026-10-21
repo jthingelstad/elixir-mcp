@@ -121,6 +121,40 @@ test("a member for a departure or a removal: time here and what they gave, nothi
   );
 });
 
+test("a demotion is told none of what the review counted: no shortfall, no idle days, no number of its window", () => {
+  const demotion = actionLines("demotion", {
+    card: {
+      evidence: {
+        phrase: "0 of 52 war decks, 0 ranked battles",
+        facts: [
+          { key: "war", label: "War", value: "0 of 52 war decks (0%)" },
+          { key: "ranked", label: "Ranked", value: "0 ranked battles" },
+          { key: "donations", label: "Donations", value: "~23 a week" },
+          { key: "trophies", label: "Trophies", value: "9,000 trophies" },
+          { key: "last_battle", label: "Last battle", value: "36.91 days ago" },
+          { key: "tenure", label: "In the clan", value: "214 days" },
+        ],
+        days_idle: 36.86,
+        standing: { rank: 37, score: 0.02 },
+      },
+    },
+  }).join("\n");
+  assert.match(demotion, /moves back to Member for now; Elder can come back/);
+  assert.doesNotMatch(
+    demotion,
+    /\d|In short|counted|ranked|donations|days ago|rules/i,
+  );
+  // Its member: their time here and the awards they hold; never a war
+  // week (the recorded weeks are the review's own), trophies or moments.
+  const member = memberLines(MEMBER, { scope: "history" });
+  assert.deepEqual(member, [
+    "MEMBER: Ada",
+    "Time in the clan: 102 days (joined 2026-07-01)",
+    "Earlier time in this clan: 1 earlier stint, the last ending 2026-05-01",
+    "Awards they hold in this clan: Cup (season 134, 3,100 points)",
+  ]);
+});
+
 test("what happened, per Action kind: the rule's evidence, the winners' numbers, the policy, the departure as confirmed", () => {
   const promo = actionLines("promotion", {
     card: {
@@ -139,10 +173,24 @@ test("what happened, per Action kind: the rule's evidence, the winners' numbers,
   assert.match(promo, /In short: played every war deck/);
   assert.match(promo, /- War decks: 48 of 48 \(last 3 weeks\)/);
   assert.doesNotMatch(promo, /INTERNAL|Private/);
-  assert.match(
-    actionLines("demotion", { card: { evidence: {} } }).join("\n"),
-    /it can come back/,
-  );
+  // Elixir's bookkeeping on the last battle is never the moment.
+  const counted = actionLines("promotion", {
+    card: {
+      evidence: {
+        facts: [
+          { key: "war", label: "War", value: "48 of 48 war decks" },
+          {
+            key: "last_battle",
+            label: "Last captured battle",
+            value: "0.02 days ago; capture does not prove inactivity",
+          },
+          { key: "rests_on", label: "Rests on", value: "no battle recorded" },
+        ],
+      },
+    },
+  }).join("\n");
+  assert.match(counted, /- War: 48 of 48 war decks/);
+  assert.doesNotMatch(counted, /captured|capture|inactivity|Rests on/);
   const awards = actionLines("awards", {
     card: { evidence: { season_id: 135, parts: 2, part: 1 } },
     grants: [

@@ -4,28 +4,39 @@
  * even more contextual and pull in the variety of data elixir has"): the
  * clan (`clanContext`), the Action's own evidence in a person's terms
  * (`actionLines`), the member it is about by name with their record
- * (`memberLines`, from `storyFor`), and the leader's note (the draft's
- * "What should it say?") as written. A departure or a removal gives only
- * the member's time in the clan and what they gave; nothing gives a note
- * saved on an Action (anyone's), a hold, a
- * removal's rationale, inactivity numbers or fame per member.
+ * (`memberLines`, from `storyFor`), the words the Action would send with
+ * no draft as the floor (Jamie, 2026-10-20: a draft should be
+ * "meaningfully more in-depth and personalized"), and the leader's note
+ * (the draft's "What should it say?") as written. A departure or a
+ * removal gives only the member's time in the clan and what they gave; a
+ * demotion only their time in the clan and the awards they hold, never
+ * what its review counted. Nothing gives a note saved on an Action
+ * (anyone's), a hold, a removal's rationale, inactivity numbers or fame
+ * per member.
+ *
+ * The destination decides the draft's shape: clan chat is lines, each
+ * its own send (`clanChatRequest`); the Inbox, and an announcement's
+ * heading and message, a title and a message (`leaderMessageRequest`).
  *
  * A person reviews, edits and sends; drafting only adds a log entry,
  * never a decision. A draft that outlasts the request (`pending`) is
- * collected by asking again with its id.
+ * collected by asking again with its id. `request` builds the exact
+ * request for one Action without a model, a key or a write, for the
+ * read-only `draft_packet` maintenance lane.
  */
 
 import {
   actionDelivery,
   actionLines,
   CHAT_TONES,
-  chatMessageFromDraft,
-  chatMessageRequest,
   chatLines,
+  clanChatFromDraft,
+  clanChatRequest,
   clanContext,
   declaredGoals,
   describePolicy,
   dossierBlock,
+  inGameCopy,
   leaderMessageFromDraft,
   leaderMessageRequest,
   memberLines,
@@ -48,12 +59,46 @@ const KIND = {
   removal: "removal",
   departure: "departure",
 };
-/** Kinds whose member block is their time in the clan and what they
- *  gave, never their trophies, moments or a week they missed. */
-const CONTRIBUTION = new Set(["removal", "departure"]);
+/** Kinds whose only words are clan chat. */
+const CHAT_ONLY = new Set(["welcome", "removal", "departure"]);
+/** The member block each kind gets: a departure's or a removal's is
+ *  their time in the clan and what they gave, never their trophies,
+ *  moments or a week they missed; a demotion's is their history (their
+ *  time in the clan and the awards they hold), never a number of the
+ *  review's window. */
+const SCOPE = {
+  removal: "contribution",
+  departure: "contribution",
+  demotion: "history",
+};
 
 /** A grant's reference on an awards Action: `season:award:tag`. */
 const grantRef = (g) => `${g.season_id}:${g.award_id}:${g.player_tag}`;
+
+/**
+ * The words the Action would send with no draft, which the draft must say
+ * at least: the frozen delivery's words in the chosen channel, or the
+ * game copy a welcome, a removal or a farewell shows. An awards draft is
+ * its heading around `{winners}`, which Elixir fills.
+ */
+function plainWords(card, kind, { shape, delivery }) {
+  const ev = card.evidence ?? {};
+  const name = card.player_name ?? null;
+  if (kind === "awards")
+    return { title: `Season ${ev.season_id} awards`, body: "{winners}" };
+  if (kind === "welcome")
+    return { lines: [inGameCopy("welcome", { name, welcome: ev.welcome })] };
+  if (kind === "removal" || kind === "departure")
+    return {
+      lines: [inGameCopy(kind === "departure" ? "farewell" : kind, { name })],
+    };
+  const options = delivery?.parts[0]?.options ?? {};
+  if (shape === "chat")
+    return {
+      lines: options.clan_chat?.lines ?? chatLines(options.leader_message),
+    };
+  return options.leader_message ?? null;
+}
 
 /**
  * @param {{
@@ -100,9 +145,10 @@ export function createDrafts({
           : [],
     });
     if (subject) {
+      const scope = SCOPE[kind] ?? "full";
       const recorded = story?.members?.[subject] ?? {};
       const held = (
-        subject && !CONTRIBUTION.has(kind) ? await ledger.grants(clanTag) : []
+        scope === "contribution" ? [] : await ledger.grants(clanTag)
       )
         .filter((g) => g.player_tag === subject)
         .map((g) => ({
@@ -118,7 +164,7 @@ export function createDrafts({
         ...(kind === "departure" && Number.isSafeInteger(ev.tenure_days)
           ? { tenure_days: ev.tenure_days, joined_at: recorded.joined_at }
           : {}),
-        ...(CONTRIBUTION.has(kind)
+        ...(scope === "contribution"
           ? {
               // What they gave: weeks they played, never one they missed.
               war: (recorded.war ?? []).filter((w) => w.decks_used > 0),
@@ -128,9 +174,7 @@ export function createDrafts({
       };
       lines.push(
         "",
-        ...memberLines(member, {
-          scope: CONTRIBUTION.has(kind) ? "contribution" : "full",
-        }),
+        ...memberLines(member, { scope }),
         // Their dossier and Elixir's story angles, what `kind` may tell.
         ...dossierBlock(story?.dossier, kind, {
           recentWeeks: recentWeeksFor(policy?.values),
@@ -141,7 +185,136 @@ export function createDrafts({
     return { context, packet: lines.join("\n"), grants };
   }
 
+  /**
+   * Everything a draft for this Action is before any model: its kind and
+   * shape, the plain words, and the exact request. Refuses what a draft
+   * would refuse for the Action itself (its channel, tone and note).
+   */
+  async function prepare(clanTag, card, { note, tone, channel, clanName }) {
+    const kind = KIND[card.type];
+    const delivery = actionDelivery(card);
+    if (
+      channel &&
+      !Object.hasOwn(
+        delivery?.parts[0]?.options ?? { clan_chat: true },
+        channel,
+      )
+    )
+      throw new ManageError(400, "bad_message");
+    if (!kind || (!CHAT_ONLY.has(kind) && !delivery))
+      throw new ManageError(400, "no_leader_message");
+    const chosen = channel ?? delivery?.channel ?? "clan_chat";
+    // Clan chat is lines; an announcement keeps its heading and message
+    // (Elixir splits them into lines), and the Inbox is a title and a
+    // message.
+    const shape =
+      CHAT_ONLY.has(kind) ||
+      ((kind === "promotion" || kind === "demotion") && chosen === "clan_chat")
+        ? "chat"
+        : "message";
+    // The tone is its own field; an older page sent it as the note.
+    let said = note;
+    let mood = tone;
+    if (
+      shape === "chat" &&
+      mood == null &&
+      typeof said === "string" &&
+      Object.hasOwn(CHAT_TONES, said)
+    ) {
+      mood = said;
+      said = null;
+    }
+    if (mood != null && (shape !== "chat" || !Object.hasOwn(CHAT_TONES, mood)))
+      throw new ManageError(400, "bad_draft_tone");
+    if (said != null && typeof said !== "string")
+      throw new ManageError(400, "bad_message");
+    // The words after a removal take a tone, never a note.
+    if (kind === "removal" && said?.trim())
+      throw new ManageError(400, "bad_draft_tone");
+    const ev = card.evidence ?? {};
+    if (kind === "awards") {
+      try {
+        leaderMessageFromDraft({}, { kind, awards: ev.awards ?? [] });
+      } catch (error) {
+        if (error instanceof RangeError)
+          throw new ManageError(409, "awards_need_segments");
+        throw error;
+      }
+    }
+    const departure =
+      kind === "departure" && card.outcome
+        ? {
+            classification: card.outcome.classification,
+            confirmed_at: card.decided_at,
+            observed_left_at: ev.left_at,
+            tenure_days: ev.tenure_days,
+          }
+        : null;
+    if (kind === "departure" && !confirmedDeparture(card))
+      throw new ManageError(409, "departure_unconfirmed");
+    const [policy, pitch] = await Promise.all([
+      ledger.currentPolicy(clanTag),
+      ledger.currentPitch(clanTag),
+    ]);
+    const { context, packet } = await told(clanTag, card, kind, {
+      policy,
+      pitch,
+      clanName,
+    });
+    const plain = plainWords(card, kind, { shape, delivery });
+    const request =
+      shape === "chat"
+        ? clanChatRequest({
+            kind,
+            context,
+            packet,
+            plain,
+            note: said,
+            tone: mood,
+            welcome: kind === "welcome" ? ev.welcome : null,
+            departure,
+          })
+        : leaderMessageRequest({
+            kind,
+            context,
+            packet,
+            plain,
+            note: said,
+            destination: chosen,
+          });
+    return { kind, shape, chosen, plain, departure, request };
+  }
+
   return {
+    /**
+     * The exact request a draft for this Action would send, with nothing
+     * sent, read from a key or written: for the read-only `draft_packet`
+     * maintenance lane. A closed Action is built as it would have been
+     * drafted; a removal's safety proof needs a person's sign-in, so it
+     * is not checked here.
+     */
+    async request(
+      clanTag,
+      cardId,
+      { note = null, tone = null, channel = null, clanName = null } = {},
+    ) {
+      const card = await ledger.card(clanTag, cardId);
+      if (!card) throw new ManageError(404, "no_action");
+      const { kind, shape, chosen, plain, request } = await prepare(
+        clanTag,
+        card,
+        { note, tone, channel, clanName },
+      );
+      return {
+        kind,
+        shape,
+        channel: chosen,
+        status: card.status,
+        plain,
+        request,
+      };
+    },
+
     async leaderMessage(
       clanTag,
       who,
@@ -149,6 +322,7 @@ export function createDrafts({
       cardId,
       {
         note = null,
+        tone = null,
         clanName = null,
         expectedDraftVersion = null,
         channel = null,
@@ -178,70 +352,13 @@ export function createDrafts({
         removalVersion = proof.evidence_version;
       };
       await removalProof();
-      const kind = KIND[card.type];
-      const chat = ["welcome", "removal", "departure"].includes(kind);
-      const delivery = actionDelivery(card);
-      if (
-        channel &&
-        !Object.hasOwn(
-          delivery?.parts[0]?.options ?? { clan_chat: true },
-          channel,
-        )
-      )
-        throw new ManageError(400, "bad_message");
-      if (chat && note != null && !Object.hasOwn(CHAT_TONES, note))
-        throw new ManageError(400, "bad_draft_tone");
-      if (!kind || (!chat && !actionDelivery(card)))
-        throw new ManageError(400, "no_leader_message");
       if (pending != null && typeof pending !== "string")
         throw new ManageError(400, "bad_message");
-      const [policy, pitch] = await Promise.all([
-        ledger.currentPolicy(clanTag),
-        ledger.currentPitch(clanTag),
-      ]);
-      const ev = card.evidence ?? {};
-      if (kind === "awards") {
-        try {
-          leaderMessageFromDraft({}, { kind, awards: ev.awards ?? [] });
-        } catch (error) {
-          if (error instanceof RangeError)
-            throw new ManageError(409, "awards_need_segments");
-          throw error;
-        }
-      }
-      const departure =
-        kind === "departure"
-          ? {
-              classification: card.outcome.classification,
-              confirmed_at: card.decided_at,
-              observed_left_at: ev.left_at,
-              tenure_days: ev.tenure_days,
-            }
-          : null;
-      const { context, packet } = await told(clanTag, card, kind, {
-        policy,
-        pitch,
-        clanName,
-      });
-      const request = chat
-        ? chatMessageRequest({
-            kind,
-            context,
-            packet,
-            tone: note,
-            welcome: kind === "welcome" ? ev.welcome : null,
-            departure,
-          })
-        : leaderMessageRequest({
-            kind,
-            context,
-            packet,
-            note,
-            current:
-              kind === "awards"
-                ? { title: `Season ${ev.season_id} awards`, body: "{winners}" }
-                : (ev.message ?? null),
-          });
+      const { kind, shape, chosen, plain, departure, request } = await prepare(
+        clanTag,
+        card,
+        { note, tone, channel, clanName },
+      );
       const unchanged = async () => {
         const current = await ledger.card(clanTag, cardId);
         if (!current || draftContextVersion(current) !== version)
@@ -255,24 +372,32 @@ export function createDrafts({
       if (answer.pending)
         return { pending: answer.pending, draft_context_version: version };
       await unchanged();
-      const draft = (chat ? chatMessageFromDraft : leaderMessageFromDraft)(
-        answer.input,
-        {
-          kind,
-          name: card.player_name ?? null,
-          awards: ev.awards ?? [],
-          welcome: kind === "welcome" ? ev.welcome : null,
-          departure,
-          told: `${request.context}\n${request.prompt}`,
-        },
-      );
+      const ev = card.evidence ?? {};
+      const checks = {
+        kind,
+        name: card.player_name ?? null,
+        plain,
+        told: `${request.context}\n${request.prompt}`,
+      };
+      const draft =
+        shape === "chat"
+          ? clanChatFromDraft(answer.input, {
+              ...checks,
+              welcome: kind === "welcome" ? ev.welcome : null,
+              departure,
+            })
+          : leaderMessageFromDraft(answer.input, {
+              ...checks,
+              awards: ev.awards ?? [],
+            });
+      const chat = shape === "chat" || chosen === "clan_chat";
       await logAction(clanTag, card.card_id, "drafted", {
         by: person(who),
-        text: `Drafted ${chat || channel === "clan_chat" ? "clan-chat words" : "a Leader Message"} in the clan's voice (${answer.model}).`,
+        text: `Drafted ${chat ? "clan-chat words" : "a Leader Message"} in the clan's voice (${answer.model}).`,
       });
       return {
         ...draft,
-        ...(!chat && channel === "clan_chat"
+        ...(shape === "message" && chosen === "clan_chat"
           ? { lines: chatLines(draft) }
           : {}),
         model: answer.model,
