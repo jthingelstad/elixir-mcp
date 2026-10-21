@@ -27,6 +27,7 @@ import {
 import { api, feedbackApi } from "./api.js";
 import { keys, useMeQuery } from "./lib/queries.js";
 import { railItems, railKey } from "./lib/rail.js";
+import { landingPath, useLanding } from "./lib/landing.js";
 import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
 import { RoleChip } from "./components/RoleChip.jsx";
 import { RoleConfirming } from "./components/RoleConfirming.jsx";
@@ -60,8 +61,9 @@ const ClanMap = lazy(() =>
 
 /**
  * Routes, all under Elixir's /clan (CLAN, lib/base.js): `/clan` (landing,
- * signed out), `/clan/clans` (the chooser), `/clan/<TAG>` (a clan page;
- * the tag without its #) with its sections and Manage tabs, `/clan/you`
+ * signed out), `/clan/clans` (the chooser), `/clan/<TAG>` (a clan's
+ * landing, the tag without its #: Actions or the roster, lib/landing.js)
+ * with its sections and Manage tabs, `/clan/<TAG>/roster`, `/clan/you`
  * and `/clan/you/away`, `/clan/verify` (the notice after sign-in),
  * `/clan/refused/<reason>`, `/clan/feedback[/<id>]`,
  * `/clan/maintain/feedback[/<id>]`. The app's own pages win over a tag.
@@ -73,10 +75,12 @@ const ClanMap = lazy(() =>
 
 /** `/clan/<TAG>[/<section>[/<tab>]]` parsed: the tag with its #, the
  *  section (roster by default) and the Manage tab or, under actions, the
- *  action's number (`/clan/<TAG>/actions/37`). */
+ *  action's number (`/clan/<TAG>/actions/37`). With no section the
+ *  address is the clan's landing (lib/landing.js), the roster unless it
+ *  sends a leader to Actions. */
 export function parseClanPath(path) {
   const m =
-    /^\/([^/]+)(?:\/(manage|me|week|season|actions|standing|trophies|awards|recruit|map|discord|members)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
+    /^\/([^/]+)(?:\/(roster|manage|me|week|season|actions|standing|trophies|awards|recruit|map|discord|members)(?:\/([a-z0-9-]+))?)?\/?$/i.exec(
       appPath(path) ?? "",
     );
   const tag = m ? tagOf(m[1]) : null;
@@ -193,9 +197,21 @@ export function ClanPage() {
   const rosterSearch =
     typeof search.find === "string" ? search.find.slice(0, 100) : "";
   const parsed = parseClanPath(pathname);
+  // The clan's own address is its landing: Actions for a leader with
+  // Actions waiting (replacing the address, so Back never returns here),
+  // else the roster. Nothing shows while it decides.
+  const landing = useLanding(me, pathname, {
+    search: typeof search.find === "string",
+  });
+  const landingTag = parsed?.tag ?? null;
+  useEffect(() => {
+    if (landing === "actions" && landingTag)
+      navigate(`${clanPath(landingTag)}/actions`, { replace: true });
+  }, [landing, landingTag, navigate]);
   if (!me?.ok || !parsed) return null;
   const clan = clanFromPath(pathname, me.clans);
   if (!clan) return null;
+  if (landing === "actions" || landing === "wait") return null;
   const who = {
     player_tag: clan.acting_as,
     name: clan.acting_as_name,
@@ -296,6 +312,7 @@ export function ClanPage() {
       key={clan.clan_tag}
       me={me}
       clan={clan}
+      path={pathname}
       search={rosterSearch}
       navigate={navigate}
     />
@@ -322,9 +339,9 @@ export function RefusedPage() {
       onRecheck={async () => {
         const next = await refresh(true);
         if (next?.ok)
-          navigate(
-            next.selected ? clanPath(next.selected.clan_tag) : `${CLAN}/clans`,
-          );
+          navigate(next.selected ? landingPath(next) : `${CLAN}/clans`, {
+            replace: true,
+          });
         else if (next?.reason) navigate(`${CLAN}/refused/${next.reason}`);
       }}
     />
@@ -344,11 +361,9 @@ export function VerifyPage() {
         const r = await api.acknowledgeVerify();
         if (r.ok) {
           setMe(r.data);
-          navigate(
-            r.data.selected
-              ? clanPath(r.data.selected.clan_tag)
-              : `${CLAN}/clans`,
-          );
+          navigate(r.data.selected ? landingPath(r.data) : `${CLAN}/clans`, {
+            replace: true,
+          });
         } else if (r.status === 401) {
           setMe({ signed_in: false, expired: true });
         }
@@ -463,7 +478,9 @@ export function ClanShell({
       setSelecting(false);
       if (r.ok) {
         setMe(r.data);
-        if (!keepPath) navigate(clanPath(tag));
+        // Straight to the clan's landing: the answer carries what waits
+        // for the person there, so the roster never shows first.
+        if (!keepPath) navigate(landingPath(r.data, tag));
       } else if (r.status === 401) {
         setMe({ signed_in: false, expired: true });
       }
@@ -501,10 +518,13 @@ export function ClanShell({
       return;
     }
     const atClan = clanFromPath(path, me.clans);
-    // The landing is no page for a signed-in person: their clan, or the
-    // chooser when none is selected.
+    // The landing is no page for a signed-in person: their clan's
+    // landing, or the chooser when none is selected. A redirect, so it
+    // replaces the address and Back never comes back to bounce.
     if (app === "/" || app === "/verify" || app.startsWith("/refused")) {
-      navigate(me.selected ? clanPath(me.selected.clan_tag) : `${CLAN}/clans`);
+      navigate(me.selected ? landingPath(me) : `${CLAN}/clans`, {
+        replace: true,
+      });
     } else if (isClanSegment(app.split("/")[1]) && !atClan) {
       navigate(`${CLAN}/clans`);
     } else if (

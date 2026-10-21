@@ -50,7 +50,7 @@ export function MemberActivity({
     <>
       <Link
         to={
-          clanPath(clan.clan_tag) +
+          `${clanPath(clan.clan_tag)}/roster` +
           (rosterSearch
             ? `?${new URLSearchParams({ find: rosterSearch })}`
             : "")

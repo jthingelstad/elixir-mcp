@@ -15,6 +15,15 @@ import { CLAN, appPath, clanPath, tagOf } from "./base.js";
 const LEADERS = new Set(["leader", "coLeader"]);
 const ELDER_PLUS = new Set(["leader", "coLeader", "elder"]);
 
+/** Whether the selected clan's policy is active: saved, on a clan of at
+ *  least 10 (an older /api/me without the flag reads as its `set`). */
+const policyActive = (me) => me?.policy?.active ?? me?.policy?.set === true;
+
+/** The Actions waiting for this person in the selected clan, as who they
+ *  are there; none while the policy is not active. */
+export const waitingFor = (me) =>
+  policyActive(me) ? Number(me.open_actions ?? 0) : 0;
+
 export function railItems(me) {
   const clan = me?.selected ?? null;
   const base = clan ? clanPath(clan.clan_tag) : null;
@@ -27,11 +36,16 @@ export function railItems(me) {
       to: `${CLAN}/clans`,
     });
   const policy = me?.policy ?? null;
-  // Active: a saved policy on a clan of at least 10 (an older /api/me
-  // without the flag reads as its `set`).
-  const set = policy?.active ?? policy?.set === true;
+  const set = policyActive(me);
   if (clan) {
-    items.push({ key: "clan", label: "Roster", icon: "users", to: base });
+    // The roster's own address: the clan's bare one is the landing,
+    // which is Actions for a leader with Actions waiting (2026-10-20).
+    items.push({
+      key: "clan",
+      label: "Roster",
+      icon: "users",
+      to: `${base}/roster`,
+    });
     // "You here": your own numbers in this clan, with or without a policy.
     items.push({
       key: "me",
@@ -55,7 +69,7 @@ export function railItems(me) {
     // Actions: what waits for you, as who you are in this clan. The
     // count is attention, not a total: folded on a phone, the rail's
     // row marks it (the kit's Rail, `attention`).
-    const waiting = set ? Number(me.open_actions ?? 0) : 0;
+    const waiting = waitingFor(me);
     if (set)
       items.push({
         key: "actions",
@@ -190,6 +204,8 @@ export function railItems(me) {
 export function railKey(path) {
   const app = appPath(path) ?? "";
   if (/^\/[^/]+\/members\/[a-z0-9]+$/i.test(app)) return "clan";
+  if (/^\/[^/]+\/roster\/?$/i.test(app) && tagOf(app.split("/")[1]))
+    return "clan";
   if (app === "/clans") return "clans";
   if (app === "/you") return "you";
   if (app.startsWith("/you/away")) return "away";

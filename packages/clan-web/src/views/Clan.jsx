@@ -395,8 +395,10 @@ function Comings({ roster, clan, history, navigate }) {
 }
 
 /** The one page. Reads /api/roster once per mount; the API caches it per
- *  session for a few minutes, and "Check again" is rate-limited there. */
-export function Clan({ me, clan, navigate, search }) {
+ *  session for a few minutes, and "Check again" is rate-limited there.
+ *  `path` is the address it is on (the clan's own or its `/roster`),
+ *  which a search keeps. */
+export function Clan({ me, clan, navigate, search, path = null }) {
   const others = (me.clans ?? []).filter((c) => c.clan_tag !== clan.clan_tag);
 
   const tag = clan.clan_tag;
@@ -491,7 +493,7 @@ export function Clan({ me, clan, navigate, search }) {
                         const next = e.target.value.slice(0, 100);
                         if (navigate && search != null)
                           navigate(
-                            clanPath(tag) +
+                            (path ?? clanPath(tag)) +
                               (next
                                 ? `?${new URLSearchParams({ find: next })}`
                                 : ""),
