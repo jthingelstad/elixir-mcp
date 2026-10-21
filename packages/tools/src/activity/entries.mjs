@@ -31,6 +31,7 @@ import {
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { createHash } from "node:crypto";
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
+import { rankedLeagueName } from "@elixir-mcp/record/ranked-leagues";
 import {
   ATTESTED_FACT_KINDS,
   ATTESTED_FACT_TYPES,
@@ -87,18 +88,9 @@ const STANDOUT_CAP = 5;
 const TIMELINE_CAP = 150;
 const MEMBER_MOMENTS_CAP = 100;
 
-/** The current-scale ranked league names (elixir-bot normalize.py). */
-const RANKED_LEAGUES = {
-  1: "Master 1",
-  2: "Master 2",
-  3: "Master 3",
-  4: "Champion",
-  5: "Grand Champion",
-  6: "Royal Champion",
-  7: "Ultimate Champion",
-};
+/** A league by its name in the game (`@elixir-mcp/record/ranked-leagues`). */
 const leagueName = (n) =>
-  n === null || n === undefined ? null : (RANKED_LEAGUES[n] ?? `League ${n}`);
+  n === null || n === undefined ? null : (rankedLeagueName(n) ?? `League ${n}`);
 
 /** Player-ledger kinds that are timeline items; the rest are counted. */
 const PLAYER_MOMENT_KINDS = [

@@ -85,7 +85,7 @@ const DOSSIER = {
       "Goblin Barrel",
     ],
     legendary_badges: ["Classic Challenge 12 Wins", "Grand Challenge 12 Wins"],
-    pol_best_league: 8,
+    pol_best_season: { season: "2026-09", league: 6, name: "Royal Champion" },
     clan_war_wins: 150,
   },
   decks: [
@@ -182,7 +182,7 @@ test("a promotion is told the whole dossier, labelled, and no judgment", () => {
   assert.match(text, /Donations in their career, every clan: 45,210/);
   assert.match(
     text,
-    /In the game \(their profile\): 6 years playing Clash Royale; favourite card Hog Rider; 11 cards at Mastery level 10 \(Hog Rider, Musketeer, Knight, Valkyrie, Fireball, Zap, Archers, Goblin Barrel and more\); best Path of Legends league reached: league 8; Clan War Wins badge at 150/,
+    /In the game \(their profile\): 6 years playing Clash Royale; favourite card Hog Rider; 11 cards at Mastery level 10 \(Hog Rider, Musketeer, Knight, Valkyrie, Fireball, Zap, Archers, Goblin Barrel and more\); best Path of Legends league in a season on record: Royal Champion \(the 2026-09 season\); Clan War Wins badge at 150/,
   );
   assert.match(
     text,
