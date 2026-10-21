@@ -332,15 +332,12 @@ export async function publish({
       },
     );
   }
-  for (let i = 0; i < plan.remove.length; i += 1000)
-    await s3.send(
-      new DeleteObjectsCommand({
-        Bucket: bucket,
-        Delete: {
-          Objects: plan.remove.slice(i, i + 1000).map((Key) => ({ Key })),
-          Quiet: true,
-        },
-      }),
+  // A document the build no longer has may have been taken down on
+  // purpose; one S3 kept is a failed publish, like a failed PUT.
+  const kept = await deleteKeys(s3, bucket, plan.remove);
+  if (kept.length > 0)
+    throw new Error(
+      `S3 kept ${kept.length} document(s) the build no longer has: ${describeKept(kept)}`,
     );
   return {
     entries,
@@ -349,6 +346,38 @@ export async function publish({
     unchanged: plan.unchanged.length,
     removed: plan.remove.length,
   };
+}
+
+/**
+ * Delete keys, a thousand to a request. DeleteObjects answers 200 even
+ * when S3 keeps some of them, naming those in `Errors` (Codex on #639),
+ * so the failures are returned rather than read as deleted.
+ *
+ * @returns {Promise<{ Key: string, Code: string }[]>} the keys S3 kept
+ */
+export async function deleteKeys(s3, bucket, keys) {
+  const kept = [];
+  for (let i = 0; i < keys.length; i += 1000) {
+    const answer = await s3.send(
+      new DeleteObjectsCommand({
+        Bucket: bucket,
+        Delete: {
+          Objects: keys.slice(i, i + 1000).map((Key) => ({ Key })),
+          Quiet: true,
+        },
+      }),
+    );
+    for (const error of answer?.Errors ?? [])
+      kept.push({ Key: error.Key, Code: error.Code ?? "unknown" });
+  }
+  return kept;
+}
+
+/** The kept keys as one line: the first ten, then a count. */
+export function describeKept(kept) {
+  const named = kept.slice(0, 10).map((k) => `${k.Key} (${k.Code})`);
+  if (kept.length > 10) named.push(`and ${kept.length - 10} more`);
+  return named.join(", ");
 }
 
 /** Write this deploy's manifest of the assets/ keys it ships. */

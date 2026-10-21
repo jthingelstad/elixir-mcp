@@ -12,6 +12,8 @@ import {
   REVALIDATE,
   SITE_ASSETS_PREFIX,
   contentType,
+  deleteKeys,
+  describeKept,
   eachLimit,
   etagMd5,
   hashedAssets,
@@ -370,6 +372,59 @@ test("publish: a missing or unreadable record means HEAD, never a crash; any oth
     ),
     /denied/,
   );
+});
+
+// DeleteObjects answers 200 when S3 keeps some keys and names them in
+// Errors (Codex on #639). A document S3 kept fails the publish, like a
+// failed PUT: it may have been taken down on purpose.
+test("publish: a key S3 kept on delete is never counted as removed", async () => {
+  const s3 = fakeS3(
+    new Map([
+      ["gone.html", entry("gone.html", "gone")],
+      ["stays.html", entry("stays.html", "stays")],
+    ]),
+  );
+  const send = s3.send.bind(s3);
+  s3.send = async (command) => {
+    const answer = await send(command);
+    if (command.constructor.name !== "DeleteObjectsCommand") return answer;
+    s3.objects.set("stays.html", entry("stays.html", "stays"));
+    return {
+      Errors: [{ Key: "stays.html", Code: "AccessDenied" }],
+    };
+  };
+  assert.deepEqual(await deleteKeys(s3, "b", ["gone.html", "stays.html"]), [
+    { Key: "stays.html", Code: "AccessDenied" },
+  ]);
+  assert.deepEqual(await deleteKeys(s3, "b", []), []);
+  s3.objects.set("gone.html", entry("gone.html", "gone"));
+  const plan = publishPlan({
+    files: [{ rel: "index.html", md5: sum("home") }],
+    listing: new Map([
+      ["gone.html", { etag: sum("gone") }],
+      ["stays.html", { etag: sum("stays") }],
+    ]),
+    published: {},
+    hashed: new Set(),
+    removeMissing: true,
+  });
+  assert.deepEqual(plan.remove, ["gone.html", "stays.html"]);
+  await assert.rejects(
+    publish({
+      s3,
+      bucket: "b",
+      plan,
+      read: async () => Buffer.from("home"),
+    }),
+    /S3 kept 1 document\(s\) the build no longer has: stays\.html \(AccessDenied\)/,
+  );
+  assert.ok(s3.objects.has("stays.html"));
+  // A long list names ten and counts the rest.
+  const many = Array.from({ length: 12 }, (_, i) => ({
+    Key: `k${i}`,
+    Code: "InternalError",
+  }));
+  assert.match(describeKept(many), /k9 \(InternalError\), and 2 more$/);
 });
 
 const DAY = 86_400_000;

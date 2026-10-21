@@ -54,7 +54,6 @@ import {
   HeadObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
-  DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 import {
   LambdaClient,
@@ -101,6 +100,8 @@ import { importReferenceSeed } from "./lib/reference-seed-import.mjs";
 import { bundleFingerprint, chooseLane, codeKey } from "./lib/deploy-lane.mjs";
 import {
   PRUNE_AFTER_DAYS,
+  deleteKeys,
+  describeKept,
   hashedAssets,
   listObjects,
   md5,
@@ -856,19 +857,14 @@ export const DEPLOY_PHASES = [
         now,
         days: PRUNE_AFTER_DAYS,
       });
-      for (let i = 0; i < prune.length; i += 1000) {
-        await d.s3.send(
-          new DeleteObjectsCommand({
-            Bucket: d.outputs.SiteBucketName,
-            Delete: {
-              Objects: prune.slice(i, i + 1000).map((Key) => ({ Key })),
-              Quiet: true,
-            },
-          }),
+      // An asset S3 keeps is only housekeeping left for the next prune.
+      const kept = await deleteKeys(d.s3, d.outputs.SiteBucketName, prune);
+      if (kept.length > 0)
+        console.warn(
+          `WARNING: S3 kept ${kept.length} asset(s) the prune deleted: ${describeKept(kept)}`,
         );
-      }
       console.error(
-        `pruned ${prune.length} asset(s) no deploy has shipped for ${PRUNE_AFTER_DAYS}+ days`,
+        `pruned ${prune.length - kept.length} asset(s) no deploy has shipped for ${PRUNE_AFTER_DAYS}+ days`,
       );
     },
   },
