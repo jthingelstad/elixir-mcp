@@ -592,6 +592,8 @@ export function createHandler({
           200,
           await drafts.leaderMessage(tag, who, token, draft[1], {
             note: body.note ?? null,
+            // A chat draft's tone, from `CHAT_TONES`.
+            tone: body.tone ?? null,
             clanName: clan.name ?? null,
             expectedDraftVersion: body.expected_draft_version ?? null,
             channel: body.channel ?? null,

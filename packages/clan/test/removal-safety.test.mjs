@@ -101,7 +101,7 @@ test("a member past the removal day without a battle: the removal shows its word
           modelCalls++;
           return {
             model: "fake",
-            input: { line: "Thanks for your time here." },
+            input: { lines: ["Thanks for your time here."] },
           };
         },
       },
@@ -303,7 +303,7 @@ test("drafting checks again after the model call, and refuses when the member pl
       async write() {
         calls++;
         played(h);
-        return { model: "fake", input: { line: "Old removal words" } };
+        return { model: "fake", input: { lines: ["Old removal words"] } };
       },
     },
   });
@@ -367,7 +367,7 @@ test("draft orchestration binds the version returned by its injected guard", asy
     model: {
       async write() {
         calls++;
-        return { model: "fake", input: { line: "Old context" } };
+        return { model: "fake", input: { lines: ["Old context"] } };
       },
     },
   });

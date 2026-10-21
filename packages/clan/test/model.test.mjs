@@ -14,6 +14,7 @@ import { createRecruitService } from "@elixir-mcp/clan/manage/recruit.mjs";
 import { fetchRoster } from "@elixir-mcp/clan/manage/service.mjs";
 import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
 import { draftContextVersion } from "@elixir-mcp/clan/manage/actions.mjs";
+import { actionDelivery } from "@elixir-mcp/clan-engine";
 import {
   MODELS_REFRESH_MS,
   PENDING_MS,
@@ -488,10 +489,18 @@ test("model: a leader drafts an open action's Leader Message with what Elixir kn
   assert.match(sent.prompt, /season 135 week 4: 16 decks, 2,900 points/);
   assert.match(sent.prompt, /Cup \(season 134, 3,100 points\)/);
   assert.match(sent.prompt, /THE LEADER'S NOTE.*mention Secretname's war week/);
+  // The plain words are the floor, and the Inbox is named as where it goes.
+  assert.match(
+    sent.prompt,
+    /ELIXIR'S PLAIN WORDS[^\n]*\nTitle: Congrats, new Elder!\nMessage: Secretname is now an Elder\. Thank you for showing up\./,
+  );
+  assert.match(sent.system, /in-game Inbox/);
   assert.doesNotMatch(
     JSON.stringify(sent),
-    /INTERNAL HEADLINE|PRIVATE GRANT NOTE|fame|8QCV/,
+    /INTERNAL HEADLINE|PRIVATE GRANT NOTE|8QCV/,
   );
+  // Fame is named only in the rule that it is never told.
+  assert.doesNotMatch(`${sent.context}\n${sent.prompt}`, /fame/i);
   const log = await h.ledger.actionLog("#2PQRJ8LV", "promo1");
   assert.ok(log.some((e) => e.kind === "drafted"));
   const s = await api(h, c, "GET", MODEL);
@@ -509,19 +518,34 @@ test("model: a leader drafts an open action's Leader Message with what Elixir kn
   assert.equal(flagged.status, 200, JSON.stringify(flagged.body));
   assert.match(flagged.body.warnings.join(" "), /4,100 is not in anything/);
   assert.match(flagged.body.warnings.join(" "), /Jotaro is not a name/);
+  // In clan chat a promotion is lines, up to three, each its own send.
   h.anthropic.state.write = (key, request) => ({
     ok: true,
     model: request.model,
     input: {
-      title: "A new Elder & a toast",
-      body: "Three cheers for {name}, our newest Elder. See you in war!",
+      lines: [
+        "Three cheers for {name}, our newest Elder & a war regular!",
+        "48 of 48 war decks across three weeks.",
+        "2,900 points in season 135 week 4.",
+        "A fourth line is never sent.",
+      ],
     },
   });
   const chat = await api(h, c, "POST", path, { channel: "clan_chat" });
   assert.equal(chat.status, 200, JSON.stringify(chat.body));
   assert.deepEqual(chat.body.lines, [
-    "A new Elder and a toast: Three cheers for Secretname, our newest Elder. See you in war!",
+    "Three cheers for Secretname, our newest Elder and a war regular!",
+    "48 of 48 war decks across three weeks.",
+    "2,900 points in season 135 week 4.",
   ]);
+  assert.deepEqual(chat.body.warnings, []);
+  const [, , chatSent] = h.anthropic.state.calls.at(-1);
+  assert.equal(chatSent.tool.name, "write_clan_chat");
+  assert.match(chatSent.system, /up to 3 lines for a Clash Royale clan's chat/);
+  assert.match(
+    chatSent.prompt,
+    /ELIXIR'S PLAIN WORDS[^\n]*\nCongrats, new Elder! Secretname is now an Elder\. Thank you for showing up\./,
+  );
   // A closed action, or one without a Leader Message, is not drafted.
   const closed = await api(
     h,
@@ -531,6 +555,155 @@ test("model: a leader drafts an open action's Leader Message with what Elixir kn
     {},
   );
   assert.equal(closed.status, 409);
+});
+
+test("model: a production-shaped Action gives the model its plain words as the floor; a demotion is told its history, never what the review counted", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  // As `raiseAction` stores them: the words frozen in `delivery` (clan
+  // chat only for a fresh promotion or demotion), no `evidence.message`.
+  const facts = (war, ranked, last) => [
+    { key: "war", label: "War", value: war, window: "last 4 war weeks" },
+    { key: "ranked", label: "Ranked", value: ranked, window: "last 4 weeks" },
+    { key: "trophies", label: "Trophies", value: "8,000 trophies" },
+    { key: "last_battle", label: "Last captured battle", value: last },
+    { key: "tenure", label: "In the clan", value: "40 days" },
+  ];
+  const raised = (type, evidence) => {
+    const card = {
+      card_id: type,
+      clan_tag: "#2PQRJ8LV",
+      type,
+      status: "proposed",
+      player_tag: BEA,
+      player_name: "Secretname",
+      raised_at: "2026-09-25T11:00:00.000Z",
+      evidence,
+    };
+    return { ...card, delivery: actionDelivery(card, { fresh: true }) };
+  };
+  const promotion = raised("promotion", {
+    phrase: "48 of 48 war decks, 31 ranked battles",
+    facts: facts(
+      "48 of 48 war decks (100%)",
+      "31 ranked battles",
+      "0.02 days ago; capture does not prove inactivity",
+    ),
+    standing: { rank: 2, score: 0.91 },
+    days_idle: 0.02,
+  });
+  assert.equal(promotion.evidence.message, undefined);
+  assert.deepEqual(Object.keys(promotion.delivery.parts[0].options), [
+    "clan_chat",
+  ]);
+  await h.ledger.putCard("#2PQRJ8LV", promotion);
+  h.anthropic.state.write = (key, request) => ({
+    ok: true,
+    model: request.model,
+    input: {
+      lines: [
+        "Congrats Secretname, our newest Elder!",
+        "48 of 48 war decks in four weeks: every one of them.",
+      ],
+    },
+  });
+  const promoted = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/promotion/draft",
+    { channel: "clan_chat" },
+  );
+  assert.equal(promoted.status, 200, JSON.stringify(promoted.body));
+  const [, , sent] = h.anthropic.state.calls.at(-1);
+  assert.equal(sent.tool.name, "write_clan_chat");
+  // The template the card would send is in the request, said once, with
+  // a space after the heading's "!", never a second colon.
+  assert.match(
+    sent.prompt,
+    /ELIXIR'S PLAIN WORDS[^\n]*\nCongrats, new Elder! Secretname is now an Elder: 48 of 48 war decks, 31 ranked battles\. Thank you for showing up for the clan\./,
+  );
+  assert.doesNotMatch(sent.prompt, /!:/);
+  assert.doesNotMatch(
+    JSON.stringify(sent),
+    /capture|0\.02|0\.91|Last captured battle/,
+  );
+  // A draft that drops a number of the plain words is flagged, not refused.
+  assert.deepEqual(promoted.body.lines, [
+    "Congrats Secretname, our newest Elder!",
+    "48 of 48 war decks in four weeks: every one of them.",
+  ]);
+  assert.ok(
+    promoted.body.warnings.includes(
+      "This draft says less of the record than Elixir's plain words: it leaves out 31",
+    ),
+    promoted.body.warnings.join(" | "),
+  );
+
+  await h.ledger.putGrant("#2PQRJ8LV", {
+    season_id: 134,
+    award_id: "cup",
+    name: "Cup",
+    player_tag: BEA,
+    player_name: "Secretname",
+    metric_value: 3100,
+    metric_unit: "points",
+    granted_at: "2026-09-01T10:00:00Z",
+  });
+  await h.ledger.putCard(
+    "#2PQRJ8LV",
+    raised("demotion", {
+      phrase: "0 of 52 war decks, 0 ranked battles",
+      facts: facts(
+        "0 of 52 war decks (0%)",
+        "0 ranked battles",
+        "36.91 days ago",
+      ),
+      standing: { rank: 37, score: 0.02 },
+      days_idle: 36.91,
+    }),
+  );
+  h.anthropic.state.write = (key, request) => ({
+    ok: true,
+    model: request.model,
+    input: {
+      lines: [
+        "Secretname moves back to Member for now; Elder can come back.",
+        "Quiet lately, but thank you for 40 days and the Cup in season 134.",
+        "A third line is never sent.",
+      ],
+    },
+  });
+  const demoted = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/demotion/draft",
+    {},
+  );
+  assert.equal(demoted.status, 200, JSON.stringify(demoted.body));
+  assert.equal(demoted.body.lines.length, 2);
+  assert.ok(
+    demoted.body.warnings.some((w) => /hints at why \("Quiet"\)/.test(w)),
+    demoted.body.warnings.join(" | "),
+  );
+  const [, , told] = h.anthropic.state.calls.at(-1);
+  assert.equal(told.tool.name, "write_clan_chat");
+  assert.match(told.system, /up to 2 lines/);
+  assert.match(
+    told.prompt,
+    /moves back to Member for now; Elder can come back/,
+  );
+  assert.match(told.prompt, /Time in the clan: 40 days/);
+  assert.match(told.prompt, /Cup \(season 134, 3,100 points\)/);
+  assert.match(told.prompt, /never say or hint why/);
+  // No shortfall, no idle days, no number of the review's window, and none
+  // of the recorded war weeks, which are that window.
+  assert.doesNotMatch(
+    `${told.context}\n${told.prompt}`,
+    /0 of 52|ranked|36\.91|days ago|capture|War weeks|16 decks|0 decks|Trophies|moments|In short|counted/,
+  );
 });
 
 test("model: only leaders draft Leader Messages", async () => {
@@ -643,19 +816,28 @@ test("model: a welcome tells the member's record; a removal only their time and 
     h.anthropic.state.write = (key, request) => ({
       ok: true,
       model: request.model,
-      input: { line: "Welcome back, {name}!" },
+      input: { lines: ["Welcome back, {name}!", "Good to see you."] },
     });
     const r = await api(
       h,
       c,
       "POST",
       `/api/clans/2PQRJ8LV/actions/${type}/draft`,
-      { note: "gentle" },
+      // A welcome takes a tone and the leader's note; a removal only a
+      // tone, here as an older page sends it.
+      type === "welcome"
+        ? { tone: "gentle", note: "Say the war crew is glad" }
+        : { note: "gentle" },
     );
     assert.equal(r.status, 200, JSON.stringify(r.body));
-    assert.equal(r.body.line, "Welcome back, Secretname!");
+    assert.deepEqual(
+      r.body.lines,
+      type === "welcome"
+        ? ["Welcome back, Secretname!", "Good to see you."]
+        : ["Welcome back, Secretname!"],
+    );
     const [, , request] = h.anthropic.state.calls.at(-1);
-    assert.equal(request.tool.name, "write_chat_message");
+    assert.equal(request.tool.name, "write_clan_chat");
     assert.equal(request.tool.strict, true);
     assert.equal(request.effort, "medium");
     assert.match(request.prompt, /MEMBER: Secretname/);
@@ -668,7 +850,20 @@ test("model: a welcome tells the member's record; a removal only their time and 
     if (type === "welcome") {
       assert.match(request.prompt, /Trophies: 8,000; best ever 8,400/);
       assert.match(request.prompt, /Their recent moments/);
+      assert.match(
+        request.prompt,
+        /THE LEADER'S NOTE \(follow it; it may add facts of its own\): Say the war crew is glad/,
+      );
+      assert.match(
+        request.prompt,
+        /ELIXIR'S PLAIN WORDS[^\n]*\nWelcome to the clan, Secretname!/,
+      );
     } else {
+      assert.doesNotMatch(request.prompt, /NOTE/);
+      assert.match(
+        request.prompt,
+        /ELIXIR'S PLAIN WORDS[^\n]*\nSecretname was removed under the clan's activity policy/,
+      );
       // Contribution only: no trophies, no moments, no week they missed.
       assert.doesNotMatch(request.prompt, /Trophies|moments|0 decks|week 3/);
       assert.match(request.prompt, /season 135 week 4: 16 decks, 2,900 points/);
@@ -680,15 +875,22 @@ test("model: a welcome tells the member's record; a removal only their time and 
     }
     assert.equal((await h.ledger.card("#2PQRJ8LV", type)).status, "proposed");
   }
-  const invalidNote = await api(
-    h,
-    c,
-    "POST",
-    "/api/clans/2PQRJ8LV/actions/welcome/draft",
-    { note: "be kind to Ab Cdef, 8QCV; idle 999 days" },
-  );
-  assert.equal(invalidNote.status, 400);
-  assert.equal(invalidNote.body.error, "bad_draft_tone");
+  // The words after a removal take a tone, never a note; a tone is one
+  // of the list.
+  for (const [type, body] of [
+    ["removal", { note: "be kind to Ab Cdef, 8QCV; idle 999 days" }],
+    ["welcome", { tone: "be kind to Ab Cdef" }],
+  ]) {
+    const refused = await api(
+      h,
+      c,
+      "POST",
+      `/api/clans/2PQRJ8LV/actions/${type}/draft`,
+      body,
+    );
+    assert.equal(refused.status, 400, type);
+    assert.equal(refused.body.error, "bad_draft_tone");
+  }
   assert.equal(
     h.anthropic.state.calls.filter(([type]) => type === "write").length,
     2,
@@ -772,7 +974,7 @@ test("model: a returning member's welcome says so, from the Action and the recor
   h.anthropic.state.write = (key, request) => ({
     ok: true,
     model: request.model,
-    input: { line: "Welcome back, Secretname! Good to see you again." },
+    input: { lines: ["Welcome back, Secretname! Good to see you again."] },
   });
   const response = await api(
     h,
@@ -782,15 +984,14 @@ test("model: a returning member's welcome says so, from the Action and the recor
     { expected_draft_version: draftContextVersion(card) },
   );
   assert.equal(response.status, 200, JSON.stringify(response.body));
-  assert.equal(
-    response.body.line,
+  assert.deepEqual(response.body.lines, [
     "Welcome back, Secretname! Good to see you again.",
-  );
+  ]);
   assert.equal(response.body.draft_context_version, draftContextVersion(card));
   const request = h.anthropic.state.calls.at(-1)[2];
   assert.match(request.prompt, /A member came back/);
   assert.match(request.prompt, /1 earlier stint, the last ending 2026-05-01/);
-  assert.match(request.prompt, /welcoming this member back/);
+  assert.match(request.prompt, /Welcome this member back/);
   assert.doesNotMatch(JSON.stringify(request), /8QCV|Private evidence|0\.1234/);
   assert.deepEqual(await h.ledger.card("#2PQRJ8LV", card.card_id), card);
 });
@@ -822,7 +1023,9 @@ test("model: confirmed kick and leave guide departure drafts with tenure and con
     h.anthropic.state.write = (key, request) => ({
       ok: true,
       model: request.model,
-      input: { line: "Wishing you well, {name}." },
+      input: {
+        lines: ["Wishing you well, {name}.", "Thanks for the war decks."],
+      },
     });
     const response = await api(
       h,
@@ -832,7 +1035,10 @@ test("model: confirmed kick and leave guide departure drafts with tenure and con
       { expected_draft_version: draftContextVersion(card) },
     );
     assert.equal(response.status, 200, JSON.stringify(response.body));
-    assert.equal(response.body.line, "Wishing you well, Secretname.");
+    assert.deepEqual(response.body.lines, [
+      "Wishing you well, Secretname.",
+      "Thanks for the war decks.",
+    ]);
     const request = h.anthropic.state.calls.at(-1)[2];
     assert.match(
       request.prompt,
@@ -916,7 +1122,7 @@ test("model: a stale context refuses before spending and a confirmation change d
     return {
       ok: true,
       model: request.model,
-      input: { line: "A stale farewell" },
+      input: { lines: ["A stale farewell"] },
     };
   };
   const changed = await api(

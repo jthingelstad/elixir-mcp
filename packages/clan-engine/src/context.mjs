@@ -19,8 +19,9 @@
  *    timeline item's facts (`itemLines`).
  *
  * What never enters a packet: another leader's note, a hold, a removal's
- * rationale or inactivity numbers, any private Clan state beyond the
- * Action's own evidence, fame per member, corpus statistics. Absence over
+ * rationale or inactivity numbers, what a demotion's review counted, the
+ * last battle's bookkeeping, any private Clan state beyond the Action's
+ * own evidence, fame per member, corpus statistics. Absence over
  * a guess: a fact the record does not hold is left out, never filled in.
  *
  * And the checks the answers get: a number or a proper name that is not
@@ -87,8 +88,11 @@ export function clanContext({
 
 /**
  * One member as the record knows them. `scope` is "full" (a welcome, a
- * promotion, a moment) or "contribution" (a departure or a removal:
- * time in the clan and what they gave, never their trophies or idle days).
+ * promotion, a moment), "contribution" (a departure or a removal: time
+ * in the clan and what they gave, never their trophies or idle days) or
+ * "history" (a demotion: their time in the clan and the awards they
+ * hold; never a war week, since the recorded weeks are the review's own
+ * window, and never their trophies or moments).
  */
 export function memberLines(m, { scope = "full", label = "MEMBER" } = {}) {
   if (!m) return [];
@@ -114,7 +118,7 @@ export function memberLines(m, { scope = "full", label = "MEMBER" } = {}) {
     lines.push(
       `Earlier time in this clan: ${plural(m.stints_before, "earlier stint")}${m.last_left_at ? `, the last ending ${day(m.last_left_at)}` : ""}`,
     );
-  const war = (m.war ?? []).filter(
+  const war = (scope === "history" ? [] : (m.war ?? [])).filter(
     (w) => isNum(w.decks_used) || isNum(w.points),
   );
   if (war.length)
@@ -133,7 +137,7 @@ export function memberLines(m, { scope = "full", label = "MEMBER" } = {}) {
         .map((x) => `${day(x.at) ?? ""} ${one(x.text, 220)}`.trim())
         .join(" | ")}`,
     );
-  if (scope === "full" && m.awards?.length)
+  if (scope !== "contribution" && m.awards?.length)
     lines.push(
       `Awards they hold in this clan: ${m.awards
         .slice(0, 6)
@@ -158,6 +162,11 @@ const UNIT = {
   war_decks: "war decks",
 };
 
+/** An Action's facts that are Elixir's bookkeeping, never the moment: the
+ *  last battle (whose older wording added "capture does not prove
+ *  inactivity") and what a removal rests on. */
+const UNTOLD_FACTS = new Set(["last_battle", "rests_on"]);
+
 /**
  * What happened, for an Action a leader drafts words for: the Action's
  * own evidence in a person's terms. `card` is the Action, `grants` the
@@ -170,13 +179,19 @@ export function actionLines(
 ) {
   const ev = card?.evidence ?? {};
   const lines = ["WHAT HAPPENED"];
-  if (kind === "promotion" || kind === "demotion") {
+  if (kind === "demotion") {
+    // A demotion is told none of what the review counted (Jamie,
+    // 2026-10-20): its words thank the member for what came before, so
+    // no shortfall, no idle days and no number of the review's window
+    // reach the model.
     lines.push(
-      kind === "promotion"
-        ? "The clan's own rules just made this member an Elder."
-        : "By the clan's own rules this Elder moves back to Member for now; it can come back.",
+      "This Elder moves back to Member for now; Elder can come back. Why is not yours to say, and you are not told it.",
     );
-    const facts = (ev.facts ?? []).filter((f) => f?.label && f?.value);
+  } else if (kind === "promotion") {
+    lines.push("The clan's own rules just made this member an Elder.");
+    const facts = (ev.facts ?? []).filter(
+      (f) => f?.label && f?.value && !UNTOLD_FACTS.has(f.key),
+    );
     if (ev.phrase) lines.push(`In short: ${one(ev.phrase, 200)}`);
     if (facts.length)
       lines.push(
