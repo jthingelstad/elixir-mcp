@@ -20,7 +20,10 @@ import { RoleChip } from "./RoleChip.jsx";
  * first, the way the chooser does, and then goes straight to where the
  * answer says it lands (Actions waiting for a leader, else the roster),
  * so no redirect follows the pick. A modified click opens the clan's
- * own address, where the gate does the same.
+ * own address, where the gate does the same. While a clan is being
+ * selected the picker is busy: the face says "Opening …", the list
+ * will not open, and a choice is ignored, so a second pick never races
+ * the first (Codex on #610).
  */
 export function ClanPicker({ me, navigate, select, selecting }) {
   const here = me.selected;
@@ -32,6 +35,7 @@ export function ClanPicker({ me, navigate, select, selecting }) {
   return (
     <RailSwitcher
       head
+      busy={selecting}
       id="rail-clans"
       title={`${name}: switch clan`}
       face={<Face clan={here} opening={opening} />}
@@ -45,6 +49,7 @@ export function ClanPicker({ me, navigate, select, selecting }) {
       manage={{ label: "All your clans…", to: `${CLAN}/clans` }}
       navigate={navigate}
       choose={async (choice) => {
+        if (selecting) return;
         if (choice.key === here.clan_tag) return navigate(choice.to);
         setPicking(choice.key);
         try {

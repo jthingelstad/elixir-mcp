@@ -451,7 +451,10 @@ export interface RailChoice {
  * section that does something first (Clan remembers the clan, then goes
  * to its landing); a modified or middle click is still the browser's,
  * to the choice's own address. `head` marks it as the rail's `head`,
- * which the narrow layout draws beside the row's toggle.
+ * which the narrow layout draws beside the row's toggle. `busy` while a
+ * choice is still being made: the list closes and the head will not
+ * open it again until the choice lands, so a second choice never races
+ * the first.
  */
 export function RailSwitcher({
   id,
@@ -464,6 +467,7 @@ export function RailSwitcher({
   choose,
   scoped = false,
   head = false,
+  busy = false,
 }: {
   /** The open list's id, which the head's button controls. */
   id: string;
@@ -479,14 +483,21 @@ export function RailSwitcher({
   choose?: (choice: RailChoice) => void;
   scoped?: boolean;
   head?: boolean;
+  /** A choice is being made: the face says which; nothing opens. */
+  busy?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  // Closed while busy, and still closed once the choice lands.
+  const shown = open && !busy;
+  useEffect(() => {
+    if (busy) setOpen(false);
+  }, [busy]);
   const box = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const single = choices.length <= 1;
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!shown) return undefined;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setOpen(false);
@@ -502,7 +513,7 @@ export function RailSwitcher({
       window.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onDown);
     };
-  }, [open]);
+  }, [shown]);
 
   // A modified or middle click is the browser's (a new tab, a copied
   // link); only a plain one routes in-app.
@@ -520,6 +531,7 @@ export function RailSwitcher({
       className={"rail__switch" + (head ? " rail__switch--head" : "")}
       ref={box}
       data-scoped={scoped}
+      aria-busy={busy || undefined}
     >
       {single ? (
         <div className="rail__switch-head">{face}</div>
@@ -528,10 +540,11 @@ export function RailSwitcher({
           ref={button}
           type="button"
           className="rail__switch-head"
-          aria-expanded={open}
+          aria-expanded={shown}
           aria-controls={id}
+          aria-disabled={busy || undefined}
           title={title}
-          onClick={() => setOpen(!open)}
+          onClick={() => setOpen(busy ? false : !open)}
         >
           {face}
           <span className="ml-auto flex shrink-0 text-ink-faint">
@@ -539,7 +552,7 @@ export function RailSwitcher({
           </span>
         </button>
       )}
-      {open && (
+      {shown && (
         <div id={id} className="rail__switch-list">
           {choices.map((c, i) => {
             const on = c.key === current;

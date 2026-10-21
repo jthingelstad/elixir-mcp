@@ -865,6 +865,13 @@ button.rail__switch-head {
 button.rail__switch-head:hover {
   border-color: var(--line-strong);
 }
+/* A choice is being made: the face says which, and nothing opens. */
+button.rail__switch-head[aria-disabled="true"] {
+  cursor: progress;
+}
+button.rail__switch-head[aria-disabled="true"]:hover {
+  border-color: transparent;
+}
 .rail__switch[data-scoped="true"] .rail__switch-head {
   border-color: var(--accent);
   box-shadow: inset 3px 0 0 var(--accent-bright);

@@ -533,6 +533,28 @@ test("a switcher closes on Escape, handing focus back to its head, and on a clic
   expect(document.getElementById("rail-clans")).toBeNull();
 });
 
+test("a busy switcher closes its list and will not open it until the choice lands", () => {
+  const { rerender } = render(clanRail());
+  const head = () => screen.getByRole("button", { name: /Example Clan/ });
+  fireEvent.click(head());
+  expect(document.getElementById("rail-clans")).toBeTruthy();
+  rerender(clanRail({ busy: true }));
+  expect(document.getElementById("rail-clans")).toBeNull();
+  expect(head().closest(".rail__switch")?.getAttribute("aria-busy")).toBe(
+    "true",
+  );
+  expect(head().getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(head());
+  expect(document.getElementById("rail-clans")).toBeNull();
+  expect(head().getAttribute("aria-expanded")).toBe("false");
+  // Landed: closed still, and it opens again.
+  rerender(clanRail({ busy: false }));
+  expect(document.getElementById("rail-clans")).toBeNull();
+  expect(head().getAttribute("aria-disabled")).toBeNull();
+  fireEvent.click(head());
+  expect(document.getElementById("rail-clans")).toBeTruthy();
+});
+
 test("a switcher with one choice is the same tile with nothing to open", () => {
   render(clanRail({ choices: [CLANS[0]!] }));
   expect(

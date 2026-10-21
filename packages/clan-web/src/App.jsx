@@ -27,6 +27,7 @@ import { api, feedbackApi } from "./api.js";
 import { keys, useMeQuery } from "./lib/queries.js";
 import { railItems, railKey } from "./lib/rail.js";
 import { landingPath, useLanding } from "./lib/landing.js";
+import { useSelectClan } from "./lib/select.js";
 import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
 import { ClanPicker } from "./components/ClanPicker.jsx";
 import { RoleConfirming } from "./components/RoleConfirming.jsx";
@@ -455,30 +456,8 @@ export function ClanShell({
   const navigate = useNav();
   const narrow = useNarrow();
   const { me, checking, refresh, setMe } = useMe();
-  const [selecting, setSelecting] = useState(false);
-
-  const select = useCallback(
-    async (tag, { keepPath = false } = {}) => {
-      setSelecting(true);
-      try {
-        const r = await api.select(tag);
-        if (r.ok) {
-          setMe(r.data);
-          // Straight to the clan's landing: the answer carries what
-          // waits for the person there, so the roster never shows first
-          // and no redirect follows. Still selecting until the address
-          // is the new clan's: the Clan picker picks from another clan's
-          // page, which the gate below would otherwise select back.
-          if (!keepPath) await navigate(landingPath(r.data, tag));
-        } else if (r.status === 401) {
-          setMe({ signed_in: false, expired: true });
-        }
-      } finally {
-        setSelecting(false);
-      }
-    },
-    [navigate, setMe],
-  );
+  // One selection at a time, held until the address is the new clan's.
+  const { select, selecting } = useSelectClan({ navigate, setMe });
 
   // Where a signed-in person belongs, whatever address they arrived at.
   useEffect(() => {
