@@ -414,8 +414,11 @@ such as secret epochs and connector versions still updates every affected door.
 The code bucket is versioned and referenced source versions must remain.
 `deploy.mjs` owns the exact CloudFront endpoint grants under its production
 lock because the registry's ResourcePolicy type does not support these ARNs.
-It verifies policy/routing read-back and publishes immutable browser assets
-before switching revisions. HTML and server rendering ride the web bundle
+Before it migrates or switches anything it checks, read-only, that each live
+door carries exactly its own grant, and refuses the deploy when one is
+missing or foreign; after the switch it writes a missing grant and verifies
+policy/routing read-back. It publishes immutable browser assets before
+switching revisions. HTML and server rendering ride the web bundle
 as a chunk of their own, read on the first page, so a cold start that serves
 only JSON never parses them.
 
@@ -610,6 +613,11 @@ invariants:
   release that must not change reference content uses
   `--verify-reference-seed`, which compares the live tables with the seed
   read-only before migrations and stops on a mismatch.
+- The deploy is `DEPLOY_PHASES`, an exported ordered list of named phases
+  with the condition each runs on; tests assert the list and each lane's
+  sequence, never offsets in the script's source. A new step is a phase
+  (or part of one) in its place. The deploy record carries each phase's
+  seconds and the CI gate's wait, so a slow deploy names its slow phase.
 
 ## Verification follows the boundaries
 

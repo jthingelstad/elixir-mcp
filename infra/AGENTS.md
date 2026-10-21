@@ -43,9 +43,14 @@ VPC, S3 (payload archive, outbox, web), CloudFront in front of one origin.
 
 `AWS_PROFILE=cloud-engineer node infra/scripts/deploy.mjs`, from the repo root on a clean, green
 `origin/main` (the CI gate refuses anything else; `--break-glass` only when
-GitHub is down). `--help` lists every flag. Order: build, upload, lane,
-migrate, vocabulary import, stack, web sync, smoke, then acceptance when
-asked (`--acceptance` or `--acceptance=<family>`).
+GitHub is down). `--help` lists every flag. The deploy is `DEPLOY_PHASES`
+in `deploy.mjs`, an ordered list of named phases, each with the condition
+it runs on; `services/mcp/test/infra-controls.test.mjs` asserts the list
+and each lane's sequence directly. Order: worktree, CI gate, lock,
+account, build, upload, the app's assets, lane, the endpoint grant check,
+migrate, vocabulary import, stack, the endpoint grant, web (card art,
+site, invalidation, prune), smoke, then acceptance when asked
+(`--acceptance` or `--acceptance=<family>`), and the record.
 
 - **Lanes:** bundles are named by content, so a change that touches no
   Lambda and not the template takes the site lane and skips migrations and
@@ -67,9 +72,19 @@ asked (`--acceptance` or `--acceptance=<family>`).
   and a read waits while it is held. A held lock prints who, since when
   and doing what, and exits 3 from `npm run op`: wait, never clear it. A
   lock whose process has exited on this host is released automatically.
+- **Endpoint grants:** the CloudFront grant on each Web Function endpoint
+  is written by the deploy, outside CloudFormation. Before anything is
+  migrated or switched, a read-only check (`grants-check`,
+  `scripts/lib/web-release.mjs`) refuses the deploy when a live door's
+  policy is missing or not the deploy's own; restoring one is an access
+  change outside a deploy, Jamie's to approve. After the stack update the
+  deploy writes any missing grant and reads every one back.
 - **The deploy record:** every deploy writes `deploys/production.json` to
   the code bucket and comments on each pull request it shipped, with the
-  time, the versions and the acceptance result.
+  time, the versions, the acceptance result and the timing: when it
+  started (before the CI gate), how long the gate waited
+  (`gate_wait_seconds`, null on `--break-glass`) and each phase's seconds
+  (`phases`).
 
 ## Scripts
 
@@ -77,7 +92,9 @@ asked (`--acceptance` or `--acceptance=<family>`).
 a claim), `name-collector-release.mjs` (`docs/RELEASING-COLLECTOR.md`),
 `editor-replay.mjs` (`npm run editor-replay`, a clan model's raw run
 through today's editor on a maintainer's own key; the `discord-review`
-skill), `build-site.mjs`, `smoke.mjs`, `test-workflows.sh` (the
+skill), `build-site.mjs`, `smoke.mjs` (the smoke phase; its checks are
+`runSmoke`, tested offline in `services/mcp/test/smoke.test.mjs`),
+`test-workflows.sh` (the
 workflow lint), `test.mjs` (`npm test`: every workspace test, one build
 then a bounded pool locally, `--shard i/n` in CI), `e2e-shard.mjs` (the
 spec files one CI journey shard runs) and `e2e-needed.sh` (whether a
