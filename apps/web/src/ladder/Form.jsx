@@ -292,23 +292,28 @@ export function SeasonForm({ player, mode, season, seasons, body, summary }) {
   const point = same
     ? `${prev.name} to the same point is its first ${stretch(Date.parse(same.to) - Date.parse(same.from))}, to ${at(same.to)}: as far into it, to the hour, as this season is now.`
     : null;
-  // A running season with no same point has run at least as long as
-  // last season did (samePointWindow), or its start is not known.
+  // A running season with no same point is under an hour old, has run
+  // at least as long as last season did (samePointWindow), or has a
+  // start that is not known.
   const lastStart = Date.parse(prev.startsAt ?? "");
   const thisStart = Date.parse(shown?.starts_at ?? "");
+  const age = nowMs - thisStart;
+  const firstHour = Number.isFinite(age) && age >= 0 && age < HOUR_MS;
   const longer =
     Number.isFinite(lastStart) &&
     Number.isFinite(thisStart) &&
-    nowMs - thisStart >= thisStart - lastStart;
+    age >= thisStart - lastStart;
   const when = !running
     ? `${name}${ran(applied.season_age_days ?? null)} and ${prev.name}${lastRan}; each is read whole.`
     : sameSeen
       ? `${point} All of ${prev.name}${lastRan}.`
       : same
         ? `${point} It has fewer than ${FORM_MIN_BATTLES} decided ${label} battles, so it is not shown. All of ${prev.name}${lastRan}.`
-        : longer
-          ? `This season has run as long as ${prev.name} did, so all of ${prev.name} is set beside it.`
-          : `All of ${prev.name}${lastRan}.`;
+        : firstHour
+          ? `This season is not yet an hour old, so ${prev.name} to the same point is not shown: it is set beside this season from its first whole hour. All of ${prev.name}${lastRan}.`
+          : longer
+            ? `This season has run as long as ${prev.name} did, so all of ${prev.name} is set beside it.`
+            : `All of ${prev.name}${lastRan}.`;
   const floored = [
     body.trophy_floor?.floored ? name : null,
     last.data.trophy_floor?.floored ? prev.name : null,
