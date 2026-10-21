@@ -122,19 +122,25 @@ describe("analyticsLocation", () => {
  * Loading, which is a separate question from what a view SAYS.
  *
  * The embed and the route bridge do different jobs — one records the document
- * load, the other records pushState navigation — and /signin only has a reason
+ * load, the other records navigation — and /signin only has a reason
  * to skip the first. When it skipped both, a magic-link session reported
- * nothing at all: the app lands on /signin and pushStates into the console
+ * nothing at all: the app lands on /signin and moves into the console
  * without ever loading another document.
+ *
+ * A view's beacon waits until the view settles (the reader's first pointer
+ * or key press, the next navigation, the page going away, or time), so a
+ * redirect can move it; `settle()` is the page going away.
  */
 describe("loadTinylytics", () => {
   const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
   let pushState;
+  let replaceState;
   let beacons;
 
   beforeEach(async () => {
     vi.resetModules();
     pushState = window.history.pushState;
+    replaceState = window.history.replaceState;
     beacons = [];
     Object.defineProperty(window.navigator, "sendBeacon", {
       value: (url) => (beacons.push(url), true),
@@ -145,8 +151,15 @@ describe("loadTinylytics", () => {
   });
 
   afterEach(() => {
+    // Every bridge loaded so far sends what it holds now, never into the
+    // next test.
+    settle();
     window.history.pushState = pushState;
+    window.history.replaceState = replaceState;
   });
+
+  const settle = () => window.dispatchEvent(new Event("pagehide"));
+  const paths = () => beacons.map((b) => new URL(b).searchParams.get("path"));
 
   const embeds = () =>
     [...document.body.querySelectorAll("script")].map((s) => s.src);
@@ -163,6 +176,7 @@ describe("loadTinylytics", () => {
     expect(embeds()).toEqual([]);
 
     window.history.pushState({}, "", "/console/account/overview");
+    settle();
 
     expect(beacons).toHaveLength(1);
     const sent = new URL(beacons[0]);
@@ -178,12 +192,15 @@ describe("loadTinylytics", () => {
       "",
       "/console/account/overview?login_token=secret",
     );
+    settle();
+    expect(beacons).toHaveLength(1);
     expect(beacons[0]).not.toContain("secret");
   });
 
   test("a direct roster search reports the sanitized route without its free text", async () => {
     await load("/clan/2PQRJ8LV?find=Private%20search");
     expect(embeds()).toEqual([]);
+    settle();
     expect(beacons).toHaveLength(1);
     expect(beacons[0]).not.toMatch(/Private|search|find=/);
     expect(new URL(beacons[0]).searchParams.get("path")).toBe("/clan");
@@ -192,6 +209,7 @@ describe("loadTinylytics", () => {
       "",
       "/clan/2PQRJ8LV/members/uq8lp2r9c?find=Private%20search",
     );
+    settle();
     expect(beacons).toHaveLength(2);
     expect(beacons[1]).not.toMatch(/Private|search|find=|uq8lp2r9c/);
   });
@@ -207,6 +225,7 @@ describe("loadTinylytics", () => {
     try {
       await load(path);
       expect(embeds()).toEqual([]);
+      settle();
       expect(beacons).toHaveLength(1);
       expect(beacons[0]).not.toMatch(/Private|Current|search|find=|uq8lp2r9c/);
       expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(
@@ -229,6 +248,7 @@ describe("loadTinylytics", () => {
       });
       try {
         await load("/clan/2PQRJ8LV?find=Ben");
+        settle();
         expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(expected);
         expect(beacons[0]).not.toContain("secret");
       } finally {
@@ -245,6 +265,7 @@ describe("loadTinylytics", () => {
 
     // The embed already recorded this document; only the NEXT page beacons.
     window.history.pushState({}, "", "/console/account/usage");
+    settle();
     expect(beacons).toHaveLength(1);
     expect(new URL(beacons[0]).searchParams.get("path")).toBe(
       "/console/account/usage",
@@ -256,7 +277,103 @@ describe("loadTinylytics", () => {
     window.history.pushState({}, "", "/console/signin");
     expect(beacons).toHaveLength(0);
     window.history.pushState({}, "", "/console/account/overview");
+    settle();
     expect(beacons).toHaveLength(1);
+  });
+
+  // Codex on #604, 2026-10-20: a leader reaching a clan's own address by
+  // navigation is redirected to its Actions with a replace, which the
+  // bridge did not see, so the visit counted the bare address.
+  test("a redirect counts the page it lands on, once", async () => {
+    await load("/console/account/overview");
+    settle();
+    window.history.pushState({}, "", "/clan/2PQRJ8LV");
+    expect(beacons).toHaveLength(0);
+    window.history.replaceState({}, "", "/clan/2PQRJ8LV/actions");
+    settle();
+    expect(paths()).toEqual(["/clan/actions"]);
+    const sent = new URL(beacons[0]).searchParams;
+    expect(sent.get("url")).toBe(at("/clan/2PQRJ8LV/actions").url);
+    expect(sent.get("url")).not.toContain("/clan/2PQRJ8LV");
+    expect(sent.get("referrer")).toBe(at("/console/account/overview").url);
+  });
+
+  test("a document's redirect is no second count, and the next page names where it landed", async () => {
+    await load("/clan/2PQRJ8LV");
+    // The embed counts this document.
+    expect(embeds()).toHaveLength(1);
+    window.history.replaceState({}, "", "/clan/2PQRJ8LV/actions");
+    settle();
+    expect(beacons).toHaveLength(0);
+    window.history.pushState({}, "", "/clan/2PQRJ8LV/actions/37");
+    settle();
+    expect(paths()).toEqual(["/clan/actions/detail"]);
+    expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(
+      at("/clan/2PQRJ8LV/actions").url,
+    );
+  });
+
+  test("a record's landing beacon follows its redirect: one view, where it landed", async () => {
+    await load("/console/account/activity/e/abc123?report=1");
+    expect(embeds()).toEqual([]);
+    window.history.replaceState(
+      {},
+      "",
+      "/console/account/feedback?send_id=abc123",
+    );
+    settle();
+    expect(paths()).toEqual(["/console/account/feedback"]);
+    expect(beacons[0]).not.toContain("abc123");
+  });
+
+  test("a replace after the reader acts is a new view", async () => {
+    await load("/console/account/overview");
+    window.dispatchEvent(new Event("pointerdown"));
+    window.history.replaceState({}, "", "/clan/2PQRJ8LV");
+    expect(beacons).toHaveLength(0);
+    settle();
+    expect(paths()).toEqual(["/clan"]);
+    expect(new URL(beacons[0]).searchParams.get("referrer")).toBe(
+      at("/console/account/overview").url,
+    );
+  });
+
+  test("the page sign-in lands on counts, though it replaces /signin", async () => {
+    await load("/console/signin");
+    window.history.replaceState({}, "", "/console/account/overview");
+    settle();
+    expect(paths()).toEqual(["/console/account/overview"]);
+  });
+
+  test("a replace that stays on the page is nothing", async () => {
+    await load("/clan/2PQRJ8LV");
+    window.dispatchEvent(new Event("keydown"));
+    window.history.replaceState({}, "", "/clan/2PQRJ8LV?find=Ben");
+    window.history.replaceState({}, "", "/clan/2PQRJ8LV?find=Bea");
+    settle();
+    expect(beacons).toHaveLength(0);
+  });
+
+  test("an open view is sent when its time is up", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await load("/console/account/overview");
+      window.history.pushState({}, "", "/console/account/usage");
+      vi.advanceTimersByTime(2999);
+      expect(beacons).toHaveLength(0);
+      vi.advanceTimersByTime(1);
+      expect(paths()).toEqual(["/console/account/usage"]);
+      // Settled: a replace now is the reader going on, a new view.
+      window.history.replaceState({}, "", "/console/account/tracking");
+      vi.advanceTimersByTime(3000);
+      expect(paths()).toEqual([
+        "/console/account/usage",
+        "/console/account/tracking",
+      ]);
+    } finally {
+      settle();
+      vi.useRealTimers();
+    }
   });
 });
 

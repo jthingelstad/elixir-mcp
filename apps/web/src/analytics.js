@@ -52,7 +52,7 @@ export function loadTinylytics() {
   if (["localhost", "127.0.0.1", "::1"].includes(window.location.hostname))
     return;
 
-  // Always, and before the early returns below: patching pushState is what
+  // Always, and before the early returns below: patching history is what
   // makes the rest of the session countable.
   const { landing } = bridgeRouteChanges();
 
@@ -146,8 +146,29 @@ function documentReferrer() {
   }
 }
 
+/**
+ * A view is counted once, at the address it settled on. Navigation opens a
+ * view and its beacon waits until the view settles: the reader's first
+ * pointer or key press, the next navigation, the page going away, or
+ * SETTLE_MS. A history REPLACE while the view is still open is the app
+ * redirecting it (a clan's own address to its Actions, an old Console path to
+ * its new one, an email's report link to feedback), so it moves the open
+ * view's address and is never a second count: a document's view was already
+ * counted by the embed or by its landing beacon, which waits like any other.
+ * A replace after the view settled is the reader going somewhere, a new view,
+ * and so is any replace while no view stands (after /signin: the page sign-in
+ * lands on). Codex on #604, 2026-10-20: the redirect to Actions was a
+ * replace, so a leader's visit counted the bare address and never Actions.
+ */
+const SETTLE_MS = 3000;
+
 function bridgeRouteChanges() {
+  // The view on screen, and whether it is still open to a redirect.
   let last = analyticsLocation();
+  let open = true;
+  // The open view's beacon, not yet sent: { next, referrer }.
+  let held = null;
+  let timer = null;
   const beacon = (next, referrer) => {
     try {
       if (typeof navigator.sendBeacon !== "function") return;
@@ -160,32 +181,63 @@ function bridgeRouteChanges() {
       // Analytics is best-effort and must never interrupt navigation.
     }
   };
-  const send = () => {
+  const settle = () => {
+    clearTimeout(timer);
+    timer = null;
+    open = false;
+    if (held) beacon(held.next, held.referrer);
+    held = null;
+  };
+  const view = (next, referrer) => {
+    settle();
+    last = next;
+    open = true;
+    held = { next, referrer };
+    timer = setTimeout(settle, SETTLE_MS);
+  };
+  const send = (replace) => {
     const next = analyticsLocation();
     // /signin reports nothing, and it also ENDS the view before it: sign out,
     // sign back in, and landing on the page you left is a new view, not the
     // same one continuing.
     if (next === null) {
+      settle();
       last = null;
       return;
     }
     if (next.url === last?.url) return;
-    const referrer = last ? last.url : documentReferrer();
-    last = next;
-    beacon(next, referrer);
+    if (replace && open && last) {
+      last = next;
+      if (held) held.next = next;
+      return;
+    }
+    view(next, last ? last.url : documentReferrer());
   };
-  const original = history.pushState.bind(history);
+  const push = history.pushState.bind(history);
   history.pushState = (...args) => {
-    original(...args);
-    send();
+    push(...args);
+    send(false);
   };
-  window.addEventListener("popstate", send);
+  const replace = history.replaceState.bind(history);
+  history.replaceState = (...args) => {
+    replace(...args);
+    send(true);
+  };
+  window.addEventListener("popstate", () => send(false));
+  for (const input of ["pointerdown", "keydown"])
+    window.addEventListener(input, settle, { capture: true, passive: true });
+  window.addEventListener("pagehide", settle);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") settle();
+  });
+  // The document's own view settles like any other.
+  timer = setTimeout(settle, SETTLE_MS);
   // The document hit the embed is not allowed to record on a private
   // record: the same normalized page, by beacon, with same-origin referrers
-  // normalized too.
+  // normalized too, and held like any view so a redirect moves it.
   return {
     landing: () => {
-      if (last) beacon(last, documentReferrer());
+      if (last && open) held = { next: last, referrer: documentReferrer() };
     },
   };
 }
