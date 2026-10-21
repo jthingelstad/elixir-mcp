@@ -227,9 +227,11 @@ test("draft_packet builds the exact request a draft would send, in a transaction
     [clan, tag],
   );
   await ledger.savePolicy(clan, { values: defaults(), by: "#LEAD" });
-  // One finished war week they played, which only their dossier tells.
+  // One finished war week they played, closed last week (the dossier
+  // tells only weeks that closed in the last year), which only their
+  // dossier tells.
   await db.query(
-    "insert into war_week (clan_tag, season_id, section_index, is_colosseum) values ($1, 140, 2, false)",
+    "insert into war_week (clan_tag, season_id, section_index, is_colosseum, closed_at) values ($1, 140, 2, false, now() - interval '6 days')",
     [clan],
   );
   await db.query(
