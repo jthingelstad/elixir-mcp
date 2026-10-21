@@ -6,7 +6,7 @@ import {
   createPostgresStore,
 } from "@elixir-mcp/clan-state/postgres";
 import { clanMaintenance } from "../src/ops-clan-maintenance.mjs";
-import { defaults } from "@elixir-mcp/clan-engine";
+import { actionDelivery, defaults } from "@elixir-mcp/clan-engine";
 let scratch;
 before(async () => {
   scratch = await scratchDb("clan_maintenance");
@@ -210,4 +210,109 @@ test("action summaries stay small with a large legal comment inventory; full log
   assert.equal(log.total, 200);
   assert.equal(log.items.length, 100);
   assert.ok(log.next_cursor);
+});
+
+test("draft_packet builds the exact request a draft would send, in a transaction that cannot write", async () => {
+  const db = scratch.db,
+    clan = "#P8QY",
+    tag = "#2YQ8";
+  const ledger = createPostgresLedger(db);
+  await db.query(
+    "insert into clan(clan_tag,name) values($1,'Synthetic Crew')",
+    [clan],
+  );
+  await db.query("insert into player(player_tag) values($1)", [tag]);
+  await db.query(
+    "insert into clan_membership(clan_tag,player_tag,role,joined_observed_at) values($1,$2,'member',now()-interval '40 days')",
+    [clan, tag],
+  );
+  await ledger.savePolicy(clan, { values: defaults(), by: "#LEAD" });
+  // As `raiseAction` stores a fresh promotion: its words frozen in
+  // `delivery`, clan chat only.
+  const card = {
+    card_id: "synthetic-promotion",
+    number: 9,
+    type: "promotion",
+    status: "proposed",
+    player_tag: tag,
+    player_name: "Sunny Kettle",
+    raised_at: "2026-10-01T00:00:00Z",
+    evidence: {
+      phrase: "40 of 48 war decks, 22 ranked battles",
+      facts: [
+        { key: "war", label: "War", value: "40 of 48 war decks" },
+        { key: "ranked", label: "Ranked", value: "22 ranked battles" },
+      ],
+    },
+  };
+  await ledger.putCard(clan, {
+    ...card,
+    delivery: actionDelivery(card, { fresh: true }),
+  });
+  await ledger.putCard(clan, {
+    card_id: "synthetic-removal",
+    type: "removal",
+    status: "proposed",
+    player_tag: tag,
+    player_name: "Sunny Kettle",
+    raised_at: "2026-10-01T00:00:00Z",
+    evidence: {},
+  });
+  const rows = async () =>
+    Number(
+      (await db.query("select count(*)::int as n from clan_state")).rows[0].n,
+    );
+  const before = await rows();
+  const packet = await clanMaintenance(scratch.url, {
+    lane: "draft_packet",
+    clan_tag: clan,
+    card_id: card.card_id,
+  });
+  assert.equal(packet.kind, "promotion");
+  assert.equal(packet.shape, "chat");
+  assert.equal(packet.channel, "clan_chat");
+  assert.equal(packet.request.tool.name, "write_clan_chat");
+  // The plain words are the floor, in the request as they would be sent.
+  assert.match(packet.plain.lines[0], /Sunny Kettle is now an Elder/);
+  assert.match(packet.request.prompt, /ELIXIR'S PLAIN WORDS/);
+  assert.match(packet.request.prompt, /40 of 48 war decks/);
+  assert.match(packet.request.context, /Synthetic Crew/);
+  // The provider's body, as the relay would send it.
+  assert.equal(packet.body.tools[0].name, "write_clan_chat");
+  assert.equal(packet.body.messages[0].content, packet.request.prompt);
+  assert.equal(typeof packet.body.model, "string");
+  // Nothing was written: no draft log entry, no row.
+  assert.equal(await rows(), before);
+  assert.deepEqual(await ledger.actionLog(clan, card.card_id), []);
+  // The draft route's refusals, by their code.
+  await assert.rejects(
+    clanMaintenance(scratch.url, {
+      lane: "draft_packet",
+      clan_tag: clan,
+      card_id: "synthetic-removal",
+      note: "say something",
+    }),
+    /draft refused: bad_draft_tone/,
+  );
+  await assert.rejects(
+    clanMaintenance(scratch.url, {
+      lane: "draft_packet",
+      clan_tag: clan,
+      card_id: "missing",
+    }),
+    /draft refused: no_action/,
+  );
+  for (const spec of [
+    { lane: "draft_packet", clan_tag: clan },
+    { lane: "draft_packet", clan_tag: clan, card_id: "c", channel: "mail" },
+    { lane: "draft_packet", clan_tag: clan, card_id: "c", note: 7 },
+    {
+      lane: "draft_packet",
+      clan_tag: clan,
+      card_id: "c",
+      note: "x".repeat(301),
+    },
+    { lane: "draft_packet", clan_tag: clan, card_id: "c", tone: "Warm!" },
+  ])
+    await assert.rejects(clanMaintenance("invalid://never-connect", spec));
 });

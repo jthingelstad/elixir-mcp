@@ -51,6 +51,7 @@ const CLAN_MAINTENANCE_READ_LANES = new Set([
   "morning",
   "action_log",
   "policies",
+  "draft_packet",
 ]);
 
 /** Migrate ops that only read, with the value shape that keeps them a

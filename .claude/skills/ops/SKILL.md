@@ -209,6 +209,7 @@ read-only session (no issue, no send).
 | How do agents use the tools, and where do they fail? | `{audit_census}`, `{args_census}`, `{call_sequence_census}` |
 | Which values were refused? | `{refusal_census}` |
 | What feedback is unanswered? | `{feedback_pending}` |
+| What was a Clan draft's model told? | `{clan_maintenance}` with `"lane": "draft_packet"` |
 | What is the database doing right now? | `{backends}` |
 | Where is the database's weight? | `{tables}` |
 | Did the series backfill land? | `{series_status}`, `{series_census_self}` |

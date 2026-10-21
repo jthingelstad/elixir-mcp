@@ -75,6 +75,9 @@ test("op: reads are reads", () => {
     { verified_tag_census: { dry_run: true } },
     { clan_context: { agents: ["abc"] } },
     { clan_maintenance: { lane: "actions", clan_tag: "#A" } },
+    {
+      clan_maintenance: { lane: "draft_packet", clan_tag: "#A", card_id: "c" },
+    },
   ])
     assert.equal(kind(payload), "read", JSON.stringify(payload));
   assert.equal(
@@ -118,6 +121,7 @@ test("op: everything else is a write, and takes the lock", () => {
     { clan_context: { agents: ["a"], revoke: true } },
     { clan_maintenance: { lane: "reconcile_removal", card_id: "c" } },
     { clan_maintenance: { lane: "actions", apply: false } },
+    { clan_maintenance: { lane: "draft_packet", apply: true } },
     // The catalogue's read that may refresh a stamp.
     { reference_seed_preview: { roles: [] } },
     // Unknown, misspelt, falsy, or mixed with a write.
