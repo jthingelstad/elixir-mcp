@@ -122,14 +122,13 @@ for (const width of [390, 820, 1280]) {
     await page
       .getByRole("button", { name: "Manage Channel voice", exact: true })
       .click();
-    await page.getByLabel("How the posts should sound").fill("Unsaved voice");
-    await page.keyboard.press("Escape");
-    await page
-      .getByRole("button", { name: "Manage Channel voice", exact: true })
-      .click();
-    await expect(page.getByLabel("How the posts should sound")).toHaveValue(
-      "Warm and concise.",
-    );
+    // The clan's one voice is shown as written, with no second box: it is
+    // set in Settings.
+    await expect(page.getByText("“Warm and concise.”")).toBeVisible();
+    await expect(page.getByRole("dialog").getByRole("textbox")).toHaveCount(0);
+    await expect(
+      page.getByRole("link", { name: "Settings › How our messages sound" }),
+    ).toHaveAttribute("href", /\/manage\/settings#settings-voice$/);
     expect(
       (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
         .violations,

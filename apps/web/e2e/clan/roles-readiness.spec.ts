@@ -604,7 +604,12 @@ for (const size of ["wide", "@narrow"])
       routes[`GET ${apiBase}/social`] = [200, { enabled: true }];
       routes[`GET ${apiBase}/sharing`] = [403, { error: "leaders_only" }];
       routes[`GET ${apiBase}/model`] = [403, { error: "leaders_only" }];
+      routes[`GET ${apiBase}/voice`] = [403, { error: "leaders_only" }];
       routes[`PUT ${apiBase}/social`] = () => {
+        writes++;
+        return [403, { error: "leaders_only" }];
+      };
+      routes[`PUT ${apiBase}/voice`] = () => {
         writes++;
         return [403, { error: "leaders_only" }];
       };
@@ -643,6 +648,23 @@ for (const size of ["wide", "@narrow"])
           hasText: "The clan’s model is for the leader and co-leaders.",
         }),
       ).toBeVisible();
+      await page.getByRole("button", { name: "Close", exact: true }).click();
+      // The clan's voice (2026-10-20) is the leaders' alone, to read too.
+      await page
+        .getByRole("button", {
+          name: "Manage How our messages sound",
+          exact: true,
+        })
+        .click();
+      await expect(
+        page.getByText(
+          "Only the leader and co-leaders can set how the clan’s messages sound.",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(page.getByRole("dialog").getByRole("textbox")).toHaveCount(
+        0,
+      );
       await page.screenshot({
         path: `/tmp/elixir-${role}-settings-${size.replace("@", "")}.png`,
         fullPage: true,
