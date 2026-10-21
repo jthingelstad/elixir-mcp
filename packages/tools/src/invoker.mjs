@@ -218,6 +218,61 @@ export function analyticalWorkMem(name) {
   return BUDGETED_TOOLS.has(name) ? BUDGET_WORK_MEM : null;
 }
 
+/** Put a budget on the connection: lock_timeout, and work_mem for an
+ *  analytical tool. The settings it replaces are recorded BEFORE anything
+ *  is set, and nothing is set once the call has been answered
+ *  (`budget.closed`), so the invoker's restore, which waits for this,
+ *  always finds what it must put back. Found under the concurrent test
+ *  runner (2026-10-21): a deadline that fired while the first settings
+ *  read was in flight found nothing to restore, and the abandoned tool
+ *  then left its timeouts on the connection for the next caller. */
+async function applyBudget(db, budget) {
+  const { rows } = await db.query(
+    "select current_setting('statement_timeout') as timeout, current_setting('work_mem') as work_mem, current_setting('lock_timeout') as lock_timeout",
+  );
+  budget.previous = {
+    statement_timeout: rows[0].timeout,
+    lock_timeout: rows[0].lock_timeout,
+    work_mem: budget.workMem ? rows[0].work_mem : null,
+  };
+  if (budget.closed) return;
+  // A budgeted analytical call may sort a whole window's (deck, player)
+  // pairs; at the server's 4 MB that spilled to temp files (explain_meta,
+  // 2026-09-15). One such call at a time per connection; restored with
+  // the timeout. A tool under the Lambda deadline alone keeps the
+  // server's work_mem.
+  await db.query("select set_config('lock_timeout', $1, false)", [
+    String(budget.lockTimeoutMs),
+  ]);
+  if (budget.workMem)
+    await db.query("select set_config('work_mem', $1, false)", [
+      BUDGET_WORK_MEM,
+    ]);
+}
+
+/** Put back what applyBudget recorded, once, after the call is answered.
+ *  Waits for a setup still in flight; a setup that never read the
+ *  settings set nothing. */
+async function restoreBudget(db, budget) {
+  if (!budget) return;
+  budget.closed = true;
+  if (!budget.setup) return;
+  await budget.setup.catch(() => {});
+  const previous = budget.previous;
+  if (!previous) return;
+  budget.previous = null;
+  await db.query("select set_config('statement_timeout', $1, false)", [
+    previous.statement_timeout,
+  ]);
+  await db.query("select set_config('lock_timeout', $1, false)", [
+    previous.lock_timeout,
+  ]);
+  if (previous.work_mem)
+    await db.query("select set_config('work_mem', $1, false)", [
+      previous.work_mem,
+    ]);
+}
+
 export function timedDb(db, t, budget = null) {
   return new Proxy(db, {
     get(target, prop) {
@@ -229,31 +284,14 @@ export function timedDb(db, t, budget = null) {
         const t0 = performance.now();
         try {
           if (budget) {
+            if (budget.closed || performance.now() >= budget.deadline)
+              throw budget.failure();
+            budget.setup ??= applyBudget(target, budget);
+            await budget.setup;
+            // Checked and sent with no await between, so a restore (which
+            // closes the budget first) always lands after this.
             const remaining = Math.floor(budget.deadline - performance.now());
-            if (remaining < 1) throw budget.failure();
-            if (budget.previousTimeout === null) {
-              const { rows } = await target.query(
-                "select current_setting('statement_timeout') as timeout, current_setting('work_mem') as work_mem, current_setting('lock_timeout') as lock_timeout",
-              );
-              budget.previousTimeout = rows[0].timeout;
-              budget.previousLockTimeout = rows[0].lock_timeout;
-              await target.query(
-                "select set_config('lock_timeout', $1, false)",
-                [String(budget.lockTimeoutMs)],
-              );
-              // A budgeted analytical call may sort a whole window's
-              // (deck, player) pairs; at the server's 4 MB that spilled to
-              // temp files (explain_meta, 2026-09-15). One such call at a
-              // time per connection; restored with the timeout. A tool
-              // under the Lambda deadline alone keeps the server's
-              // work_mem.
-              if (budget.workMem) {
-                budget.previousWorkMem = rows[0].work_mem;
-                await target.query("select set_config('work_mem', $1, false)", [
-                  BUDGET_WORK_MEM,
-                ]);
-              }
-            }
+            if (budget.closed || remaining < 1) throw budget.failure();
             // Cancel in PostgreSQL, not just the client's promise: abandoned
             // work would keep competing with the next caller after Lambda dies.
             await target.query(
@@ -380,9 +418,11 @@ export function makeInvoker({
                 : "timeout",
             workMem: analytical,
             lockTimeoutMs,
-            previousTimeout: null,
-            previousWorkMem: null,
-            previousLockTimeout: null,
+            // applyBudget's: the setup in flight, what it replaced, and
+            // whether the call has been answered (restoreBudget).
+            setup: null,
+            previous: null,
+            closed: false,
             failure: () =>
               new ToolFailure(
                 "query_timeout",
@@ -391,29 +431,7 @@ export function makeInvoker({
               ),
           }
         : null;
-    const restoreTimeout = async () => {
-      if (
-        budget?.previousTimeout !== null &&
-        budget?.previousTimeout !== undefined
-      ) {
-        await db.query("select set_config('statement_timeout', $1, false)", [
-          budget.previousTimeout,
-        ]);
-        if (budget.previousLockTimeout !== null) {
-          await db.query("select set_config('lock_timeout', $1, false)", [
-            budget.previousLockTimeout,
-          ]);
-          budget.previousLockTimeout = null;
-        }
-        if (budget.previousWorkMem) {
-          await db.query("select set_config('work_mem', $1, false)", [
-            budget.previousWorkMem,
-          ]);
-          budget.previousWorkMem = null;
-        }
-        budget.previousTimeout = null;
-      }
-    };
+    const restoreTimeout = () => restoreBudget(db, budget);
     // The race: the tool against its deadline. A tool that is past it
     // (a live-lane wait, a slow query the statement_timeout has not yet
     // cancelled) is abandoned here and answered; its next database call
