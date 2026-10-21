@@ -196,3 +196,69 @@ export async function profileTool(databaseUrl, spec = {}) {
     await db.end();
   }
 }
+
+/**
+ * {profile_read: {read, explain?}} - one run of a route's or a job's read
+ * that is not a tool, through the same recording db as {profile_tool}:
+ * the package function the door or the job calls, so the SQL is the SQL
+ * that ships.
+ *
+ * - "public_status": GET /api/public/status (`readPublicStatus`). The
+ *   outbox dead-letter count is an S3 read, not a query, and is left out
+ *   (null), so `health.ok` is not this op's answer.
+ * - "public_stats": the hourly snapshot the jobs Lambda publishes for
+ *   GET /api/public/stats (`calculatePublicStats`).
+ *
+ * Read-only by construction: the session is
+ * `default_transaction_read_only`, and nothing is published or returned
+ * but timings, plan summaries and row counts.
+ */
+const READS = {
+  public_status: async (db) => {
+    const { readPublicStatus } =
+      await import("@elixir-mcp/tools/public-status");
+    return readPublicStatus(db, { deadLetters: async () => null });
+  },
+  public_stats: async (db) => {
+    const { calculatePublicStats } =
+      await import("@elixir-mcp/tools/public-stats");
+    return calculatePublicStats(db);
+  },
+};
+
+export async function profileRead(databaseUrl, spec = {}) {
+  const read = String(spec.read ?? "");
+  const explain = spec.explain === true;
+  if (!Object.hasOwn(READS, read))
+    return { error: "unknown_read", read, reads: Object.keys(READS) };
+  const db = new pg.Client({ connectionString: databaseUrl });
+  await db.connect();
+  try {
+    await db.query(`set statement_timeout = ${STATEMENT_TIMEOUT_MS}`);
+    await db.query("set default_transaction_read_only = on");
+    const log = [];
+    const t0 = performance.now();
+    let error = null;
+    let resultBytes = null;
+    try {
+      const body = await READS[read](recordingDb(db, { explain, log }));
+      resultBytes = JSON.stringify(body).length;
+    } catch (err) {
+      error = { code: err?.code ?? null, message: err?.message ?? String(err) };
+    }
+    const totalMs = Math.round(performance.now() - t0);
+    return {
+      read,
+      explain,
+      total_ms: totalMs,
+      db_ms: log.reduce((a, q) => a + (q.ms ?? 0), 0),
+      queries: log.length,
+      result_bytes: resultBytes,
+      error,
+      // Slowest first; the order they ran in is `i` and `at_ms`.
+      slowest: [...log].sort((a, b) => (b.ms ?? 0) - (a.ms ?? 0)).slice(0, 16),
+    };
+  } finally {
+    await db.end();
+  }
+}

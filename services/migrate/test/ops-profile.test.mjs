@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { migrate } from "../src/migrate.mjs";
-import { profileTool } from "../src/ops-profile.mjs";
+import { profileRead, profileTool } from "../src/ops-profile.mjs";
 import { explainParticipation } from "../src/ops-diagnostics.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -123,6 +123,23 @@ test("profile_tool's session is read-only, so a handler cannot write through it"
   } finally {
     await db.end();
   }
+});
+
+test("profile_read runs the status door's and the stats job's own reads, explained", async () => {
+  for (const read of ["public_status", "public_stats"]) {
+    const r = await profileRead(SCRATCH_URL, { read, explain: true });
+    assert.equal(r.error, null, `${read}: ${JSON.stringify(r.error)}`);
+    assert.ok(r.queries >= 3, `${read} sent its queries`);
+    assert.ok(r.result_bytes > 0, `${read} built its answer`);
+    const explained = r.slowest.filter((q) => q.plan);
+    assert.ok(explained.length >= 3, `${read}: its reads were explained`);
+    for (const q of explained)
+      assert.equal(typeof q.plan.exec_ms, "number", q.sql);
+  }
+  assert.equal(
+    (await profileRead(SCRATCH_URL, { read: "no_such_read" })).error,
+    "unknown_read",
+  );
 });
 
 test("selected participation plans use real PostgreSQL EXPLAIN without runtime fields or bound identifiers", async () => {

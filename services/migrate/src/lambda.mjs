@@ -15,7 +15,7 @@ import {
 import { migrate } from "./migrate.mjs";
 import { activityPreview, explainTimeline } from "./ops-activity.mjs";
 import { refusalCensus, controlsCensus } from "./ops-captures.mjs";
-import { profileTool } from "./ops-profile.mjs";
+import { profileRead, profileTool } from "./ops-profile.mjs";
 
 import {
   seed,
@@ -248,6 +248,14 @@ async function dispatch(event) {
     const result = await profileTool(
       process.env.DATABASE_URL,
       event.profile_tool,
+    );
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.profile_read) {
+    const result = await profileRead(
+      process.env.DATABASE_URL,
+      event.profile_read === true ? {} : event.profile_read,
     );
     console.log(JSON.stringify(result));
     return result;
