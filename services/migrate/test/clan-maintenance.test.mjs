@@ -292,6 +292,9 @@ test("draft_packet builds the exact request a draft would send, in a transaction
   assert.match(packet.request.prompt, /ELIXIR'S PLAIN WORDS/);
   assert.match(packet.request.prompt, /40 of 48 war decks/);
   assert.match(packet.request.context, /Synthetic Crew/);
+  // No voice yet: none is shown, and THE CLAN says none.
+  assert.equal(packet.voice, "");
+  assert.doesNotMatch(packet.request.context, /want it to sound/);
   // The same reader as the draft route: the member's dossier.
   assert.match(packet.request.prompt, /MEMBER DOSSIER/);
   assert.match(packet.request.prompt, /1,850/);
@@ -302,6 +305,25 @@ test("draft_packet builds the exact request a draft would send, in a transaction
   // Nothing was written: no draft log entry, no row.
   assert.equal(await rows(), before);
   assert.deepEqual(await ledger.actionLog(clan, card.card_id), []);
+  // The clan's voice (call 5) reaches a draft: the packet shows it as
+  // saved, and THE CLAN carries it as written.
+  await ledger.saveClanVoice(clan, {
+    voice: "Dry and short; cheer the grinders.",
+    set_by: "#LEAD",
+    set_by_name: "Lead Synthetic",
+    set_at: "2026-10-20T12:00:00.000Z",
+  });
+  const voiced = await clanMaintenance(scratch.url, {
+    lane: "draft_packet",
+    clan_tag: clan,
+    card_id: card.card_id,
+  });
+  assert.equal(voiced.voice, "Dry and short; cheer the grinders.");
+  assert.match(
+    voiced.request.context,
+    /How its leaders want it to sound: Dry and short; cheer the grinders\./,
+  );
+  assert.equal(voiced.body.messages[0].content, voiced.request.prompt);
   // The draft route's refusals, by their code.
   await assert.rejects(
     clanMaintenance(scratch.url, {

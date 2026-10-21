@@ -43,6 +43,9 @@ export function createHandler({
   /** the clan's activity in a Discord channel of its own, Social's
    *  Discord item (`manage/activity.mjs`) */
   activity = null,
+  /** how the clan's messages sound, one setting for the drafts and the
+   *  Discord editor (`manage/voice.mjs`) */
+  voice = null,
   memberActivity = null,
   now = () => Date.now(),
   log = console,
@@ -525,8 +528,16 @@ export function createHandler({
         }
         return json(400, { error: "bad_request" });
       }
+      // How the clan's messages sound (2026-10-20): one setting, read by
+      // the drafts and the Discord editor; leaders read and set it.
+      if (voice && rest === "/voice") {
+        if (method === "GET") return json(200, await voice.view(tag, who));
+        if (method === "PUT")
+          return json(200, await voice.set(tag, who, body.voice ?? null));
+        return json(400, { error: "bad_request" });
+      }
       // The clan's activity in its own Discord channel (Social): leaders
-      // connect it, choose what is posted and how it sounds.
+      // connect it and choose what is posted; its voice is the clan's.
       if (activity && rest === "/activity-discord") {
         if (method === "GET") return json(200, await activity.status(tag, who));
         if (method === "PUT")
@@ -862,6 +873,7 @@ export function createHandler({
           social ||
           discord ||
           activity ||
+          voice ||
           memberActivity) &&
         path.startsWith("/api/clans/")
       ) {

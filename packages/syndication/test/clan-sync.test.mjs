@@ -53,6 +53,9 @@ let ctx;
 let db;
 let policy = PARTICIPATING;
 const policyFor = async () => policy;
+// The clan's one voice (2026-10-20), as the Clan ledger would give it.
+let voice = null;
+const voiceFor = async () => voice;
 
 function recorder() {
   const sent = [];
@@ -67,6 +70,7 @@ const sync = (now, extra = {}) => {
   return syncClan(db, CLAN, {
     outbox: r.outbox,
     policyFor,
+    voiceFor,
     now,
     ...extra,
   }).then((out) => ({ ...out, sent: r.sent }));
@@ -251,9 +255,11 @@ test("the editor's run: sent to its own queue, then each story's packet carries 
   await saveClanActivity(
     db,
     CLAN,
-    { rewrite: true, voice: "Hype and short." },
+    { rewrite: true },
     { seal, who: WHO, now: T + 11 * H },
   );
+  // The clan's voice is its own setting, read through `voiceFor`.
+  voice = "Hype and short.";
   await clanEvent("role_changed", JOINER, T + 11 * H + 10 * MIN, {
     before: "member",
     after: "elder",
@@ -397,6 +403,7 @@ test("the editor's run: sent to its own queue, then each story's packet carries 
   // Its delivery says the clan's model wrote it; Elixir's own does not.
   assert.equal(promo.rewritten, true);
   assert.equal("rewritten" in gone, false);
+  voice = null;
 });
 
 test("a model the clan cannot use, or one that never answers in time, posts Elixir's own stories; a run under way sends the next after the hold", async () => {
@@ -828,6 +835,21 @@ test("a leader's preview: the newest stories as the editor's packets, in one req
   assert.match(p.request.context, /Pirate talk\./);
   assert.equal(p.request.effort, "low");
   assert.equal(await count(), told, "nothing told");
+  // With no voice tried, the clan's saved one; without either, none.
+  const saved = await clanEditorPreview(db, CLAN, {
+    policyFor,
+    voiceFor: async () => "Dry and short.",
+    now: T + 95 * H,
+  });
+  assert.match(
+    saved.request.context,
+    /How its leaders want it to sound: Dry and short\./,
+  );
+  const plain = await clanEditorPreview(db, CLAN, {
+    policyFor,
+    now: T + 95 * H,
+  });
+  assert.doesNotMatch(plain.request.context, /want it to sound/);
   const quiet = await clanEditorPreview(db, CLAN, {
     policyFor,
     now: T + 400 * H,
