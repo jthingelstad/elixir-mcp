@@ -294,11 +294,17 @@ export function SeasonForm({ player, mode, season, seasons, body, summary }) {
     : null;
   // A running season with no same point is under an hour old, has run
   // at least as long as last season did (samePointWindow), or has a
-  // start that is not known.
+  // start (its own or last season's) that is not known. The first-hour
+  // sentence promises a same point after the hour, so it needs both
+  // starts: without last season's, there will be none.
   const lastStart = Date.parse(prev.startsAt ?? "");
   const thisStart = Date.parse(shown?.starts_at ?? "");
   const age = nowMs - thisStart;
-  const firstHour = Number.isFinite(age) && age >= 0 && age < HOUR_MS;
+  const firstHour =
+    Number.isFinite(lastStart) &&
+    Number.isFinite(age) &&
+    age >= 0 &&
+    age < HOUR_MS;
   const longer =
     Number.isFinite(lastStart) &&
     Number.isFinite(thisStart) &&

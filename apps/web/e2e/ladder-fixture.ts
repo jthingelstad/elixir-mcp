@@ -984,9 +984,13 @@ export function explore(
     form = FORM,
     past = {},
     samePoint = {},
+    pastStart = true,
   }: {
     /** The record began in Season 134, so 135 has a season before it. */
     earlier?: boolean;
+    /** The season list names when its oldest season began; false lists
+     *  it with no start, as recordedSeasons permits. */
+    pastStart?: boolean;
     /** Season 135's windows by mode, over the defaults. */
     past?: Record<string, Totals>;
     /** Season 135 to the same point, by mode, over the defaults. */
@@ -999,7 +1003,11 @@ export function explore(
     form?: typeof FORM;
   } = {},
 ) {
-  const listed = earlier ? LISTED_EARLIER : LISTED;
+  const known = earlier ? LISTED_EARLIER : LISTED;
+  const { month, war } = known.window.season;
+  const listed = pastStart
+    ? known
+    : { ...known, window: { ...known.window, season: { month, war } } };
   const windowsFor = (season: unknown) =>
     ({
       current: WINDOWS,

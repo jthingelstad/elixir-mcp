@@ -1646,6 +1646,33 @@ test.describe("Ladder this season vs last", () => {
     );
   });
 
+  test("in a season's first hour with last season's start unknown, no same point is promised", async ({
+    page,
+  }) => {
+    // 40 minutes into Season 136, whose start the tools name; the season
+    // list names Season 135 with no start.
+    await page.clock.setFixedTime(new Date("2026-09-07T10:40:00Z"));
+    const calls: ToolCall[] = [];
+    await mockApi(
+      page,
+      signedIn({
+        "POST /api/explore": explore(calls, { pastStart: false }),
+      }),
+    );
+    await page.goto("/ladder?mode=ladder");
+    const panel = page.getByRole("region", { name: "This season vs last" });
+    await expect(panel.locator("thead th")).toHaveText([
+      "Number",
+      "Season 136 so far",
+      "All of Season 135",
+    ]);
+    const foot = panel.locator(".panel__foot");
+    await expect(foot).toContainText("All of Season 135 ran 35 days.");
+    await expect(foot).not.toContainText("not yet an hour old");
+    await expect(foot).not.toContainText("first whole hour");
+    expect(calls.some((c) => c.args.compare_from && c.args.season)).toBe(false);
+  });
+
   test("a past season sits beside the one before it, both whole, on the Season page's own reads", async ({
     page,
   }) => {
