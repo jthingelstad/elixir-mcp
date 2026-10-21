@@ -42,6 +42,25 @@ const PAST_APPLIED = {
     season_age_days: 35,
   },
 };
+/** The season before that (2026-10-20, "This season vs last" for a
+ *  past season): on record only when a journey asks for `earlier`. */
+const EARLIER_SEASON = {
+  month: "2026-07",
+  war: 134,
+  starts_at: "2026-07-06T10:00:00.000Z",
+  ends_at: PAST_SEASON.starts_at,
+};
+const EARLIER_APPLIED = {
+  window: {
+    from: EARLIER_SEASON.starts_at,
+    to: EARLIER_SEASON.ends_at,
+    source: "season",
+    timezone: "America/Chicago",
+    season: EARLIER_SEASON,
+    crosses: [],
+    season_age_days: 28,
+  },
+};
 /** The read that lists a player's seasons: from the first recorded
  *  battle, the season it starts in and every roll since. */
 const LISTED = {
@@ -61,7 +80,23 @@ const LISTED = {
     season_age_days: 24,
   },
 };
-/** The applied window a read gets for the season it asked for. */
+/** The same list for a record that began in Season 134. */
+const LISTED_EARLIER = {
+  window: {
+    ...LISTED.window,
+    from: "2026-07-10T01:00:00.000Z",
+    season: EARLIER_SEASON,
+    crosses: [
+      {
+        kind: "season",
+        at: PAST_SEASON.starts_at,
+        from_season: { month: EARLIER_SEASON.month, war: EARLIER_SEASON.war },
+        to_season: { month: PAST_SEASON.month, war: PAST_SEASON.war },
+      },
+      ...LISTED.window.crosses,
+    ],
+  },
+};
 /* Form: battles_performance's compare and before_after answers on
    Trophy Road, shaped as the tool returns them (decided and
    head-to-head counts beside each rate). Invented numbers that agree
@@ -90,8 +125,20 @@ export const FORM = {
   after: side(23, 9, 21, 3, 30),
 };
 
+/** Which season a read names: the current one (136) unless it asks
+ *  for 135 or 134 by number. */
+type Which = "current" | "past" | "earlier";
+const whichSeason = (season: unknown): Which =>
+  String(season) === String(PAST_SEASON.war)
+    ? "past"
+    : String(season) === String(EARLIER_SEASON.war)
+      ? "earlier"
+      : "current";
+/** The applied window a read gets for the season it asked for. */
 const appliedFor = (season: unknown) =>
-  String(season) === String(PAST_SEASON.war) ? PAST_APPLIED : APPLIED;
+  ({ current: APPLIED, past: PAST_APPLIED, earlier: EARLIER_APPLIED })[
+    whichSeason(season)
+  ];
 
 const META = {
   as_of: "2026-10-01T21:31:13.353Z",
@@ -116,12 +163,34 @@ const FLOOR = {
   trophy_range: { lowest: 12500, highest: 12562 },
 };
 
-const WINDOWS: Record<string, Record<string, number>> = {
+type Totals = Record<string, number>;
+/** A window's numbers as battles_performance returns them, decided
+ *  battles (no draw) beside the win rate. */
+export const tally = (
+  battles: number,
+  wins: number,
+  net: number,
+  crowns: [number, number] = [0, 0],
+): Totals => ({
+  battles,
+  wins,
+  losses: battles - wins,
+  draws: 0,
+  decided_battles: battles,
+  crowns_for: crowns[0],
+  crowns_against: crowns[1],
+  net_trophies: net,
+  win_rate: battles ? Math.round((wins / battles) * 1000) / 1000 : 0,
+});
+const NONE = tally(0, 0, 0);
+
+const WINDOWS: Record<string, Totals> = {
   ladder: {
     battles: 35,
     wins: 12,
     losses: 23,
     draws: 0,
+    decided_battles: 35,
     crowns_for: 25,
     crowns_against: 37,
     net_trophies: -10,
@@ -132,6 +201,7 @@ const WINDOWS: Record<string, Record<string, number>> = {
     wins: 0,
     losses: 0,
     draws: 0,
+    decided_battles: 0,
     crowns_for: 0,
     crowns_against: 0,
     net_trophies: 0,
@@ -142,6 +212,7 @@ const WINDOWS: Record<string, Record<string, number>> = {
     wins: 23,
     losses: 16,
     draws: 0,
+    decided_battles: 39,
     crowns_for: 61,
     crowns_against: 44,
     net_trophies: 0,
@@ -152,11 +223,45 @@ const WINDOWS: Record<string, Record<string, number>> = {
     wins: 0,
     losses: 3,
     draws: 0,
+    decided_battles: 3,
     crowns_for: 1,
     crowns_against: 6,
     net_trophies: 0,
     win_rate: 0,
   },
+};
+
+/* "This season vs last" (2026-10-20): Season 135 whole, and its first
+   stretch to the same point as Season 136 on 2026-10-01 at 21:00Z (24
+   days and 11 hours in). Invented numbers; no War battle that season,
+   so its comparison says there is nothing to set beside. Season 134 is
+   one deck's 18 battles. */
+const PAST_WINDOWS: Record<string, Totals> = {
+  ladder: tally(52, 28, 96, [70, 52]),
+  ranked: NONE,
+  war: NONE,
+  event: tally(4, 1, 0, [3, 9]),
+};
+const SAME_POINT: Record<string, Totals> = {
+  ladder: tally(21, 12, 54, [30, 20]),
+  ranked: NONE,
+  war: NONE,
+  event: tally(1, 0, 0, [0, 3]),
+};
+const EARLIER_WINDOWS: Record<string, Totals> = {
+  ladder: tally(18, 10, 60, [27, 19]),
+  ranked: NONE,
+  war: NONE,
+  event: NONE,
+};
+/** Season 135 never reached the arena floor. */
+const PAST_FLOOR = {
+  ...FLOOR,
+  floored: false,
+  on_floor_losses: 0,
+  losses_landing_on_floor: 0,
+  ladder_battles: 52,
+  trophy_range: { lowest: 12512, highest: 12608 },
 };
 
 const WEEKLY = [
@@ -234,6 +339,12 @@ const TOP_DECK = {
 };
 
 type Tally = { battles: number; wins: number; losses: number };
+
+/** players_summary for a record whose list of seasons is `listed`. */
+function summaryFrom(listed: typeof LISTED) {
+  const s = summary();
+  return { ...s, meta: { ...s.meta, recorded_since: listed.window.from } };
+}
 
 export function summary(
   modes: Record<string, Tally> = {
@@ -578,6 +689,58 @@ const DECKS: Deck[] = [
   },
 ];
 const GOBLIN = DECKS[4] as Deck;
+/** A deck of DECKS played in another stretch, with that stretch's own
+ *  numbers per mode. */
+const playedAs = (d: Deck, per: Record<string, Stat>): Deck => ({ ...d, per });
+const stat = (
+  battles: number,
+  wins: number,
+  first: string,
+  last: string,
+): Stat => ({ battles, wins, losses: battles - wins, gap: 0.5, first, last });
+const HOGS = DECKS[0] as Deck;
+const GRAVEYARD = DECKS[5] as Deck;
+/** Season 135's decks (52 Trophy Road battles on three decks, four
+ *  event battles), its decks to the same point (21 on two), and
+ *  Season 134's one. */
+const PAST_DECKS: Deck[] = [
+  playedAs(HOGS, {
+    ladder: stat(
+      30,
+      17,
+      "2026-08-20T02:00:00.000Z",
+      "2026-09-06T03:00:00.000Z",
+    ),
+  }),
+  playedAs(GOBLIN, {
+    ladder: stat(14, 7, "2026-08-21T02:00:00.000Z", "2026-09-04T03:00:00.000Z"),
+  }),
+  playedAs(GRAVEYARD, {
+    ladder: stat(8, 4, "2026-08-28T02:00:00.000Z", "2026-09-02T03:00:00.000Z"),
+    event: stat(4, 1, "2026-08-29T15:00:00.000Z", "2026-08-29T15:30:00.000Z"),
+  }),
+];
+const SAME_POINT_DECKS: Deck[] = [
+  playedAs(HOGS, {
+    ladder: stat(14, 8, "2026-08-20T02:00:00.000Z", "2026-08-27T03:00:00.000Z"),
+  }),
+  playedAs(GOBLIN, {
+    ladder: stat(7, 4, "2026-08-21T02:00:00.000Z", "2026-08-26T03:00:00.000Z"),
+  }),
+  playedAs(GRAVEYARD, {
+    event: stat(1, 0, "2026-08-22T15:00:00.000Z", "2026-08-22T15:00:00.000Z"),
+  }),
+];
+const EARLIER_DECKS: Deck[] = [
+  playedAs(HOGS, {
+    ladder: stat(
+      18,
+      10,
+      "2026-07-10T02:00:00.000Z",
+      "2026-08-01T03:00:00.000Z",
+    ),
+  }),
+];
 const DUELS = [
   {
     deck_hash:
@@ -649,11 +812,23 @@ function battlesDecks(args: Record<string, unknown>, empty = false) {
   const mode = args.mode ? String(args.mode) : null;
   const modes = mode ? [mode] : ["ladder", "ranked", "war", "event"];
   const hash = args.deck_hash ? String(args.deck_hash) : null;
-  const rows = DECKS.filter((d) => !empty && modes.some((m) => d.per[m]))
+  // A stretch from Season 135's start is "This season vs last"'s same
+  // point; any other from/to is the current season's.
+  const which = whichSeason(args.season);
+  const played =
+    args.from === PAST_SEASON.starts_at
+      ? SAME_POINT_DECKS
+      : { current: DECKS, past: PAST_DECKS, earlier: EARLIER_DECKS }[which];
+  const all = played
+    .filter((d) => !empty && modes.some((m) => d.per[m]))
     .filter((d) => !hash || d.hash === hash)
     .map((d) => deckRow(d, modes, Boolean(hash)))
     .sort((a, b) => b.battles - a.battles);
-  const duels = !empty && (!mode || mode === "war") ? DUELS : [];
+  // total_decks and total_battles_in_window count every deck, whatever
+  // the page size (limit).
+  const rows = all.slice(0, Number(args.limit ?? 40));
+  const duels =
+    !empty && which === "current" && (!mode || mode === "war") ? DUELS : [];
   return {
     player_tag: args.player_tag,
     applied: {
@@ -662,9 +837,9 @@ function battlesDecks(args: Record<string, unknown>, empty = false) {
       sort: "battles",
       limit: args.limit ?? 40,
     },
-    total_battles_in_window: rows.reduce((a, r) => a + r.battles, 0),
-    total_decks: rows.length,
-    next_offset: null,
+    total_battles_in_window: all.reduce((a, r) => a + r.battles, 0),
+    total_decks: all.length,
+    next_offset: all.length > rows.length ? rows.length : null,
     excluded: { duels: duels.length ? 10 : 0, no_deck: 0 },
     comparable: Boolean(mode),
     decks: rows,
@@ -802,11 +977,20 @@ export interface ToolCall {
 export function explore(
   calls: ToolCall[] = [],
   {
-    players_summary = summary(),
+    earlier = false,
+    players_summary = earlier ? summaryFrom(LISTED_EARLIER) : summary(),
     fits = Infinity,
     emptyCurrent = false,
     form = FORM,
+    past = {},
+    samePoint = {},
   }: {
+    /** The record began in Season 134, so 135 has a season before it. */
+    earlier?: boolean;
+    /** Season 135's windows by mode, over the defaults. */
+    past?: Record<string, Totals>;
+    /** Season 135 to the same point, by mode, over the defaults. */
+    samePoint?: Record<string, Totals>;
     players_summary?: unknown;
     fits?: number;
     /** The current season has no recorded battle yet (its first days). */
@@ -815,6 +999,14 @@ export function explore(
     form?: typeof FORM;
   } = {},
 ) {
+  const listed = earlier ? LISTED_EARLIER : LISTED;
+  const windowsFor = (season: unknown) =>
+    ({
+      current: WINDOWS,
+      past: { ...PAST_WINDOWS, ...past },
+      earlier: EARLIER_WINDOWS,
+    })[whichSeason(season)];
+  const toSamePoint = { ...SAME_POINT, ...samePoint };
   return (route: Route): [number, unknown] => {
     const { tool, args = {} } = route.request().postDataJSON() as ToolCall;
     calls.push({ tool, args });
@@ -871,17 +1063,19 @@ export function explore(
       if (args.from && !args.season && !args.mode && !args.group_by)
         return ok({
           player_tag: args.player_tag,
-          applied: LISTED,
+          applied: listed,
           window: WINDOWS.ladder,
           notes: [],
           meta: META,
         });
       const mode = String(args.mode ?? "ladder");
       const empty = emptyCurrent && current;
+      const which = whichSeason(args.season);
       const base = {
         player_tag: args.player_tag,
         applied: { ...appliedFor(args.season), mode },
-        trophy_floor: mode === "ladder" ? FLOOR : null,
+        trophy_floor:
+          mode !== "ladder" ? null : which === "current" ? FLOOR : PAST_FLOOR,
         notes: [],
         meta: META,
       };
@@ -891,6 +1085,18 @@ export function explore(
           weekly: mode === "ladder" && !empty ? WEEKLY : [],
         });
       const ladder = mode === "ladder" && !empty;
+      // "This season vs last": a season with its first stretch to the
+      // same point as the window to compare.
+      if (args.compare_from && args.season)
+        return ok({
+          ...base,
+          applied: {
+            ...base.applied,
+            compare_window: { from: args.compare_from, to: args.compare_to },
+          },
+          window: windowsFor(args.season)[mode] ?? NONE,
+          compare_window: which === "past" ? (toSamePoint[mode] ?? NONE) : NONE,
+        });
       if (args.compare_from)
         return ok({
           ...base,
@@ -906,7 +1112,7 @@ export function explore(
         });
       return ok({
         ...base,
-        window: empty ? WINDOWS.ranked : (WINDOWS[mode] ?? WINDOWS.ranked),
+        window: empty ? NONE : (windowsFor(args.season)[mode] ?? NONE),
       });
     }
     return [

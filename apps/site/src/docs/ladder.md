@@ -171,7 +171,45 @@ deck-against-deck comparison. The same 10-battle minimum holds on each
 side. It reads back what happened after the change; it does not say the
 change caused it.
 
-Neither panel says which side is better: no arrow, colour, score or word
+### This season vs last
+
+The season home sets the season you are reading beside the one before it
+on your record, in the chosen mode only. Each side shows the tool's own
+numbers, each with the battles it is over:
+
+- **Won–lost**, over the side's battles.
+- **Win rate**, over decided battles.
+- **Net trophies**, in Trophy Road and Path of Legends only.
+- **Decks played**: how many different decks (a deck is its exact cards,
+  as on Decks) you played. In war a duel has no single deck and is not
+  counted.
+
+A season still running is **so far**. It sits beside last season to the
+same point, as far into it to the hour as this season is when you open
+the page, and beside all of last season. Once this season has run as
+long as last season did, all of last season is the same point and stands
+alone. A past season, such as `?season=136`, sits beside the season
+before it, both whole. Seasons differ in length, so the page says how
+long each ran.
+
+The season before is the next one down in your record's list (see
+[Which season](#which-season)). If your record began partway through it,
+the page says so, because not all of that season is on record. The same
+10-battle minimum holds: a side with fewer than 10 decided battles is not
+set beside another, and the page says which. Last season to the same
+point drops out on its own, leaving all of last season. When your record
+holds no season before the one you are reading, or last season has no
+battles in the mode, the page says that in a sentence.
+
+It reads last season with one battles_performance read (the season, with
+the same point as `compare_from`/`compare_to`) and, for each of its sides
+it shows, one [battles_decks](/docs/tools/battles#battles_decks) read for
+`total_decks`; the read of last season's decks is the Decks page's own.
+This season's side is the season home's own reads. Under the minimum,
+none of these is made. The panel says nothing about why the two seasons
+differ.
+
+No panel says which side is better: no arrow, colour, score or word
 leans either way. The numbers are the tool's, and so is the conclusion
 yours.
 

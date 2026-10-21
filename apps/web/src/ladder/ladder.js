@@ -125,14 +125,23 @@ const seasonKey = (s) =>
  * battles_performance read that starts at the player's first recorded
  * battle (meta.recorded_since): applied.window.season is the season it
  * starts in and crosses every roll since, the last of which is the
- * season now running. Each comes as the tool named it; nothing here
- * counts or rates them.
+ * season now running. Each comes as the tool named it, with the instant
+ * it began (the season's own `starts_at`, or the roll's `at`); nothing
+ * here counts or rates them.
  */
 export function recordedSeasons(applied) {
   const w = applied?.window;
   const list = [
-    w?.season ? { month: w.season.month, war: w.season.war } : null,
-    ...(w?.crosses ?? []).map((c) => c?.to_season ?? null),
+    w?.season
+      ? {
+          month: w.season.month,
+          war: w.season.war,
+          startsAt: w.season.starts_at ?? null,
+        }
+      : null,
+    ...(w?.crosses ?? []).map((c) =>
+      c?.to_season ? { ...c.to_season, startsAt: c.at ?? null } : null,
+    ),
   ].filter((s) => s && (s.war != null || s.month));
   const seen = new Set();
   const out = [];
@@ -140,9 +149,31 @@ export function recordedSeasons(applied) {
     const key = seasonKey(s);
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ key, war: s.war ?? null, month: s.month ?? null });
+    out.push({
+      key,
+      war: s.war ?? null,
+      month: s.month ?? null,
+      startsAt: s.startsAt ?? null,
+    });
   }
   return out.map((s, i) => ({ ...s, name: seasonName(s), current: i === 0 }));
+}
+
+/**
+ * The season on record before the one a page reads (2026-10-20: this
+ * season beside the last), the next entry of `seasons` (recordedSeasons,
+ * newest first), with `arg`, the tools' `season` argument for it: its
+ * number, as an address names it, so the read is the one the season
+ * home makes for that season. Undefined while the list is read; null
+ * when the record holds no season before it (it is the first on record,
+ * or older than the record).
+ */
+export function previousSeason(seasons, season) {
+  if (seasons === undefined) return undefined;
+  const list = seasons ?? [];
+  const i = list.findIndex((s) => s.key === season?.key);
+  const prev = i >= 0 ? (list[i + 1] ?? null) : null;
+  return prev ? { ...prev, arg: prev.war ?? prev.month } : null;
 }
 
 /**
@@ -567,6 +598,55 @@ export function formRows(a, b) {
         count: battlesWord(s.battles),
       })),
     });
+  return rows;
+}
+
+/** The rows of the season table (2026-10-20), one cell per side as
+ *  @elixir-mcp/record/form's seasonSide shaped it (each at the minimum
+ *  or over): won–lost over the battles, the win rate over the decided
+ *  battles, net trophies where every side has them, and the decks
+ *  played over the battles that had one. Each cell is the tool's number
+ *  beside its count; no cell says which side is ahead. */
+export function seasonRows(sides) {
+  const list = (sides ?? []).filter(Boolean);
+  if (list.length < 2) return [];
+  const rows = [
+    {
+      key: "record",
+      label: "Won–lost",
+      cells: list.map((s) => ({
+        value: `${fmt(s.wins)}–${fmt(s.losses)}${s.draws ? `–${fmt(s.draws)}` : ""}`,
+        said: `${fmt(s.wins)} won, ${fmt(s.losses)} lost${s.draws ? `, ${fmt(s.draws)} drawn` : ""}`,
+        count: battlesWord(s.battles),
+      })),
+    },
+    {
+      key: "win_rate",
+      label: "Win rate",
+      cells: list.map((s) => ({
+        value: pct(s.win_rate),
+        count: battlesWord(s.decided_battles),
+      })),
+    },
+  ];
+  if (list.every((s) => s.net_trophies != null))
+    rows.push({
+      key: "net_trophies",
+      label: "Net trophies",
+      cells: list.map((s) => ({
+        value: signed(s.net_trophies),
+        count: battlesWord(s.battles),
+      })),
+    });
+  rows.push({
+    key: "decks",
+    label: "Decks played",
+    cells: list.map((s) =>
+      s.decks == null
+        ? { value: "—", count: "not read" }
+        : { value: fmt(s.decks), count: battlesWord(s.deck_battles) },
+    ),
+  });
   return rows;
 }
 
