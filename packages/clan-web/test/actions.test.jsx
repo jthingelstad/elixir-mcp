@@ -10,7 +10,7 @@ import { renderWithProviders } from "./helpers.jsx";
 import { ActionDetail, Actions } from "../src/views/Actions.jsx";
 import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
-import { ActionCard } from "../src/components/ActionCard.jsx";
+import { ActionCard, ActionLog } from "../src/components/ActionCard.jsx";
 import { MODE_LABEL, ZoneProvider } from "@elixir-mcp/ui";
 import {
   MODE_GROUP_LABEL,
@@ -1133,6 +1133,69 @@ describe("the clan's model on a Leader Message", () => {
     expect(
       screen.queryByRole("button", { name: "Draft in our voice" }),
     ).toBeNull();
+  });
+});
+
+describe("the drafted entry in an action's log (2026-10-20, call 6)", () => {
+  let n = 0;
+  const drafted = (detail) => ({
+    entry_id: `d${(n += 1)}`,
+    kind: "drafted",
+    at: "2026-10-20T12:00:00Z",
+    by: { tag: "#20QQL8CCRU", name: "Ada", role: "leader" },
+    text: "Drafted clan-chat words in the clan's voice (claude-x).",
+    detail,
+  });
+
+  test("a leader reads what the model wrote, as it wrote it: chat lines, or a title and message", () => {
+    renderWithProviders(
+      <ActionLog
+        clan={clan}
+        action={{
+          card_id: "a1",
+          log: [
+            drafted({
+              draft: {
+                lines: [
+                  "Welcome aboard, Bo!  Two spaces kept.",
+                  "Second line, as written.",
+                ],
+              },
+            }),
+            drafted({
+              draft: {
+                title: "Hello, Elder Cy",
+                body: "A long message.\nOn two lines.",
+              },
+            }),
+          ],
+        }}
+      />,
+    );
+    expect(screen.getAllByText("What the model wrote")).toHaveLength(2);
+    expect(
+      screen.getByText("Welcome aboard, Bo!  Two spaces kept.", {
+        normalizer: (t) => t,
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText("Second line, as written.")).toBeTruthy();
+    expect(screen.getByText("Hello, Elder Cy")).toBeTruthy();
+    expect(
+      screen.getByText("A long message.\nOn two lines.", {
+        normalizer: (t) => t,
+      }),
+    ).toBeTruthy();
+  });
+
+  test("an entry the server sent without the text says only that a draft was made", () => {
+    renderWithProviders(
+      <ActionLog
+        clan={{ ...clan, role: "elder" }}
+        action={{ card_id: "a1", log: [drafted(null)] }}
+      />,
+    );
+    expect(screen.getByText("Drafted by the clan's model")).toBeTruthy();
+    expect(screen.queryByText("What the model wrote")).toBeNull();
   });
 });
 
