@@ -48,6 +48,27 @@ export const draftContextVersion = (c) =>
     )
     .digest("hex");
 
+/**
+ * An action's log as `who` may read it. A "drafted" entry keeps what the
+ * clan's model wrote (2026-10-20, call 6): leaders and co-leaders read
+ * it; anyone else who sees the Action's log sees that a draft was made,
+ * never its text. Nobody signed in reads it either.
+ */
+function logFor(entries, who) {
+  const leader =
+    !!who &&
+    who.verified !== false &&
+    ["leader", "coLeader"].includes(who.role);
+  if (leader) return entries;
+  return entries.map((e) => {
+    if (e.kind !== "drafted" || !e.detail || !Object.hasOwn(e.detail, "draft"))
+      return e;
+    const rest = { ...e.detail };
+    delete rest.draft;
+    return { ...e, detail: Object.keys(rest).length ? rest : null };
+  });
+}
+
 export function createActionStore({ ledger, now = () => Date.now() }) {
   const person = (who) => ({
     tag: who.player_tag,
@@ -309,7 +330,7 @@ export function createActionStore({ ledger, now = () => Date.now() }) {
           c.messages_sent?.some((receipt) => receipt.part === message.part),
         )
       ),
-    log: logOf(c, stored),
+    log: logFor(logOf(c, stored), who),
     ...(c.type === "removal" && c.removal_safety?.status !== "ready"
       ? {
           copy: null,
