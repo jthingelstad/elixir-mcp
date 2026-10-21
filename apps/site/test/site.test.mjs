@@ -899,6 +899,36 @@ test("inline HTML in a doc survives the markdown renderer", { skip }, () => {
   assert.ok(html.slice(open, close).includes("<style>"));
 });
 
+test("no doc opens an HTML block with a tag that spans lines", () => {
+  // marked 18.1 follows CommonMark here (2026-10-21): an open tag that
+  // does not close on its own line does not start an HTML block, so the
+  // renderer wraps it in a <p> and splits whatever it opens, as the
+  // architecture diagram was split. One line per open tag, then.
+  const docs = path.join(repoRoot, "apps/site/src");
+  const files = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith(".md")) files.push(p);
+    }
+  };
+  walk(docs);
+  const split = [];
+  for (const file of files) {
+    let fenced = false;
+    readFileSync(file, "utf8")
+      .split("\n")
+      .forEach((line, i) => {
+        if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+        else if (!fenced && /^<[a-zA-Z][\w-]*(\s[^>]*)?$/.test(line))
+          split.push(`${path.relative(repoRoot, file)}:${i + 1}`);
+      });
+  }
+  assert.ok(files.length > 100, `${files.length} Markdown files`);
+  assert.deepEqual(split, []);
+});
+
 test("signup is one email door, and it is in the app", { skip }, () => {
   // The static half used to carry its own copy of the request form —
   // its own fetch, its own error strings — and it broke silently: the
