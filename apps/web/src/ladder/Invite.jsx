@@ -9,7 +9,7 @@ const ABOUT = {
     "The season so far in one mode: your record, trophy range and week by week.",
   days: "The season on your calendar, in your own timezone, night by night.",
   decks:
-    "Every deck you played this season, judged in the mode you played it in.",
+    "Every deck you played this season, each with its record in the mode you played it in.",
   cards:
     "Your cards, the cards played against you, and the opponents you met twice.",
 };

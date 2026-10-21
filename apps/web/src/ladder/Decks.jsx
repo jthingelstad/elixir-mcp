@@ -25,8 +25,8 @@ const DECKS_SHOWN = 6;
 const LIMIT = 100;
 
 /**
- * Decks (LadderDecks.dc.html): every deck of the season, judged in the
- * mode it was played in. battles_decks reads once over every mode (which
+ * Decks (LadderDecks.dc.html): every deck of the season, each with its
+ * record in the mode it was played in. battles_decks reads once over every mode (which
  * modes, and the duel rounds), then once per mode; the trophy modes show
  * each deck's cards (one read per deck, by its deck_hash), and every
  * other mode is a row of one table. No record here pools two modes.

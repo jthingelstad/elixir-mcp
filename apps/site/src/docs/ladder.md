@@ -215,7 +215,7 @@ out, as the season home does.
 ## Decks
 
 **Decks**, at `/ladder/decks`, is every deck you played in the season, each
-judged in the mode it was played in, from
+with its record in the mode it was played in, from
 [battles_decks](/docs/tools/battles#battles_decks) with `season: current`
 (or the season picked):
 one read over every mode to learn which modes you played, then one read per
