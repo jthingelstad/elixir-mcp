@@ -23,7 +23,10 @@
  * the leaders wrote it (`voice#<clan>`, `voice.mjs`).
  *
  * A person reviews, edits and sends; drafting only adds a log entry,
- * never a decision. A draft that outlasts the request (`pending`) is
+ * never a decision. The "drafted" entry keeps what the model wrote, as
+ * it wrote it (call 6): its lines, or its title and message, before any
+ * tidying or clipping; only leaders and co-leaders read it
+ * (`shapeAction`). A draft that outlasts the request (`pending`) is
  * collected by asking again with its id. `request` builds the exact
  * request for one Action without a model, a key or a write, for the
  * read-only `draft_packet` maintenance lane.
@@ -104,6 +107,20 @@ function plainWords(card, kind, { shape, delivery }) {
       ).map(oneColon),
     };
   return options.leader_message ?? null;
+}
+
+/** What the model wrote for a draft, as it wrote it (2026-10-20, call
+ *  6): its lines, or its title and message, before Elixir tidies, clips
+ *  or fills anything. Only the answer's own fields are kept. */
+function asWritten(input, shape) {
+  const text = (v) => (typeof v === "string" ? v : null);
+  if (shape === "chat")
+    return {
+      lines: (Array.isArray(input?.lines) ? input.lines : [])
+        .map(text)
+        .filter((line) => line !== null),
+    };
+  return { title: text(input?.title), body: text(input?.body) };
 }
 
 /** An Action raised before 2026-10-20 froze its chat line with a second
@@ -420,6 +437,8 @@ export function createDrafts({
       await logAction(clanTag, card.card_id, "drafted", {
         by: person(who),
         text: `Drafted ${chat ? "clan-chat words" : "a Leader Message"} in the clan's voice (${answer.model}).`,
+        // What the model wrote, as it wrote it (call 6); leaders only.
+        detail: { draft: asWritten(answer.input, shape) },
       });
       return {
         ...draft,

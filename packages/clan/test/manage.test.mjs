@@ -2369,3 +2369,79 @@ test("core policy context is narrow, current and explicitly unknown until intent
     (e) => e.status === 403,
   );
 });
+
+test("actions: a drafted entry keeps the model's words for leaders and co-leaders; an elder sees that a draft was made, never its text (2026-10-20)", async () => {
+  const ledger = ledgerWithPolicy(createMemoryLedger(), "#2PQRJ8LV", {
+    ...EXAMPLE_POLICY,
+    welcome_enabled: true,
+  });
+  const joined = {
+    ...rosterBody(
+      partClan().members.map((m) => ({ player_tag: m.player_tag })),
+    ),
+    recent_events: [
+      {
+        type: "member_joined",
+        at: new Date(NOW.getTime() - DAY).toISOString(),
+        detail: { player_tag: "#O3", name: "Newbie", role: "member" },
+      },
+    ],
+  };
+  const as = async (who) => {
+    const h = harness({
+      players: [who],
+      part: partClan(),
+      ledger,
+      roster: joined,
+    });
+    const cookies = await leader(h);
+    return (path) => api(h, cookies, "GET", `/api/clans/2PQRJ8LV${path}`);
+  };
+  const elder = await as(player({ player_tag: "#O1", clan_role: "elder" }));
+  const welcome = (await elder("/actions")).body.open.find(
+    (a) => a.type === "welcome",
+  );
+  assert.ok(welcome);
+  // As drafts.mjs writes it: the model's lines as it wrote them.
+  const draft = {
+    lines: ["Welcome aboard, {name} & friends!", "A third line, unclipped."],
+  };
+  await ledger.appendActionLog("#2PQRJ8LV", {
+    card_id: welcome.card_id,
+    kind: "drafted",
+    at: new Date(NOW.getTime()).toISOString(),
+    by: { tag: "#20QQL8CCRU", name: "Ada", role: "leader" },
+    text: "Drafted clan-chat words in the clan's voice (claude-opus-5-5).",
+    detail: { draft },
+  });
+  const drafted = (action) => action.log.find((e) => e.kind === "drafted");
+  // An elder, in the list and at the Action's own address: the entry,
+  // who made it and when, and nothing of what it said.
+  const listed = (await elder("/actions")).body.open.find(
+    (a) => a.card_id === welcome.card_id,
+  );
+  const own = (await elder(`/actions/${welcome.number}`)).body.action;
+  for (const action of [listed, own]) {
+    const entry = drafted(action);
+    assert.ok(entry, "a draft was made");
+    assert.equal(entry.by.tag, "#20QQL8CCRU");
+    assert.match(entry.text, /^Drafted clan-chat words/);
+    assert.equal(entry.detail, null);
+    assert.ok(!JSON.stringify(action).includes("Welcome aboard"));
+  }
+  // A leader and a co-leader read the words, exactly as stored.
+  for (const who of [
+    player(),
+    player({ player_tag: "#O2", clan_role: "coLeader" }),
+  ]) {
+    const read = await as(who);
+    const action = (await read("/actions")).body.open.find(
+      (a) => a.card_id === welcome.card_id,
+    );
+    assert.deepEqual(drafted(action).detail, { draft }, who.clan_role);
+    assert.deepEqual(
+      drafted((await read(`/actions/${welcome.number}`)).body.action).detail,
+      { draft },
+    );
+  }
+});

@@ -13,8 +13,9 @@ import { createMemoryLedger } from "@elixir-mcp/clan-state";
 import { createRecruitService } from "@elixir-mcp/clan/manage/recruit.mjs";
 import { fetchRoster } from "@elixir-mcp/clan/manage/service.mjs";
 import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
+import { createVoiceService } from "@elixir-mcp/clan/manage/voice.mjs";
 import { draftContextVersion } from "@elixir-mcp/clan/manage/actions.mjs";
-import { actionDelivery } from "@elixir-mcp/clan-engine";
+import { actionDelivery, VOICE_RULE } from "@elixir-mcp/clan-engine";
 import {
   MODELS_REFRESH_MS,
   PENDING_MS,
@@ -192,6 +193,7 @@ function harness({ players = [player()] } = {}) {
     ...createTestAccount(),
     recruit: createRecruitService({ ledger, mcp, model, now }),
     model,
+    voice: createVoiceService({ ledger, now }),
     drafts: createDrafts({
       ledger,
       model,
@@ -502,7 +504,14 @@ test("model: a leader drafts an open action's Leader Message with what Elixir kn
   // Fame is named only in the rule that it is never told.
   assert.doesNotMatch(`${sent.context}\n${sent.prompt}`, /fame/i);
   const log = await h.ledger.actionLog("#2PQRJ8LV", "promo1");
-  assert.ok(log.some((e) => e.kind === "drafted"));
+  // The entry keeps what the model wrote, as it wrote it (2026-10-20,
+  // call 6): the "&" the draft tidied away is still there.
+  assert.deepEqual(log.find((e) => e.kind === "drafted").detail, {
+    draft: {
+      title: "A new Elder & a toast",
+      body: "Three cheers for Secretname, our newest Elder: 2,900 points in week 4. See you in war!",
+    },
+  });
   const s = await api(h, c, "GET", MODEL);
   assert.equal(s.body.uses.recent[0].purpose, "leader_message");
   // A number or a name the model was not given is flagged, never dropped.
@@ -539,6 +548,21 @@ test("model: a leader drafts an open action's Leader Message with what Elixir kn
     "2,900 points in season 135 week 4.",
   ]);
   assert.deepEqual(chat.body.warnings, []);
+  // Stored unclipped and unfilled: four lines, the placeholder and the
+  // "&" as the model wrote them, and no member's tag.
+  const chatEntry = (await h.ledger.actionLog("#2PQRJ8LV", "promo1"))
+    .filter((e) => e.kind === "drafted")
+    .at(-1);
+  assert.match(chatEntry.text, /^Drafted clan-chat words/);
+  assert.deepEqual(chatEntry.detail.draft, {
+    lines: [
+      "Three cheers for {name}, our newest Elder & a war regular!",
+      "48 of 48 war decks across three weeks.",
+      "2,900 points in season 135 week 4.",
+      "A fourth line is never sent.",
+    ],
+  });
+  assert.doesNotMatch(JSON.stringify(chatEntry.detail), /8QCV/);
   const [, , chatSent] = h.anthropic.state.calls.at(-1);
   assert.equal(chatSent.tool.name, "write_clan_chat");
   assert.match(chatSent.system, /up to 3 lines for a Clash Royale clan's chat/);
@@ -1815,4 +1839,52 @@ test("model: a started draft settles on the key that sent it; a key replaced or 
   const call = uses.find((u) => u.request_id === second);
   assert.equal(call.ok, true);
   assert.equal(call.input_tokens, 900);
+});
+
+test("model: a draft is told the clan's voice as its leaders saved it, the one the Discord editor reads, under the same rules", async () => {
+  const h = harness();
+  const c = await signedIn(h);
+  await api(h, c, "PUT", MODEL, { key: GOOD });
+  const card = {
+    card_id: "promo-voice",
+    clan_tag: "#2PQRJ8LV",
+    type: "promotion",
+    status: "proposed",
+    player_tag: "#8QCV",
+    player_name: "Secretname",
+    raised_at: "2026-09-25T11:00:00.000Z",
+    evidence: {
+      phrase: "played every war deck for three weeks",
+      message: {
+        title: "Congrats, new Elder!",
+        body: "Secretname is now an Elder.",
+      },
+    },
+  };
+  await h.ledger.putCard("#2PQRJ8LV", card);
+  h.anthropic.state.write = (key, request) => ({
+    ok: true,
+    model: request.model,
+    input: { title: "New Elder", body: "Secretname is now an Elder." },
+  });
+  const path = `/api/clans/2PQRJ8LV/actions/${card.card_id}/draft`;
+  const before = await api(h, c, "POST", path, {});
+  assert.equal(before.status, 200, JSON.stringify(before.body));
+  const [, , plain] = h.anthropic.state.calls.at(-1);
+  assert.doesNotMatch(plain.context, /want it to sound/);
+  const saved = await api(h, c, "PUT", "/api/clans/2PQRJ8LV/voice", {
+    voice: "Dry and short. Cheer the grinders.",
+  });
+  assert.equal(saved.status, 200, JSON.stringify(saved.body));
+  const r = await api(h, c, "POST", path, {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const [, , sent] = h.anthropic.state.calls.at(-1);
+  assert.match(
+    sent.context,
+    /How its leaders want it to sound: Dry and short\. Cheer the grinders\./,
+  );
+  // Its place is THE CLAN; the instructions are the same with or without it.
+  assert.equal(sent.system, plain.system);
+  assert.ok(sent.system.includes(VOICE_RULE));
+  assert.doesNotMatch(sent.prompt, /grinders/);
 });
