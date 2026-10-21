@@ -319,10 +319,11 @@ Resources:
         # day) is RDS's archive_timeout of 300 s switching segments, a
         # system value this cannot change.
         checkpoint_timeout: 900
-        # shared_buffers is the engine default (a quarter of memory). The
-        # 88 MB pin (11264 pages, 2026-09-12) was the old micro's squeeze
-        # under a record five times today's size; it was not restored
-        # with the micro on 2026-10-08.
+        # shared_buffers is not set here: it follows RDS's memory-pressure
+        # setting (DECISIONS, "shared_buffers follows RDS's memory-pressure
+        # setting"; #630). The 88 MB pin (11264 pages, 2026-09-12) was the
+        # old micro's squeeze under a record five times today's size; it
+        # was not restored with the micro on 2026-10-08.
 
   # Declared so retention is set before RDS starts writing; left to RDS
   # the group is created with never-expire.
