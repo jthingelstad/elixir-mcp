@@ -1,303 +1,336 @@
 #!/usr/bin/env node
 /**
  * Read-only smoke checks (house rule: reads and refusal paths only).
- * Run with AWS_PROFILE=cloud-engineer after any deploy.
+ * Run with AWS_PROFILE=cloud-engineer after any deploy; deploy.mjs runs
+ * it as its smoke phase and fails when it does.
+ *
+ * The checks are `runSmoke`, with the stack and every outside call
+ * injected, so `services/mcp/test/smoke.test.mjs` drives them offline
+ * against a fake origin: a check that cannot fail is no gate.
  */
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   CloudFormationClient,
   DescribeStacksCommand,
 } from "@aws-sdk/client-cloudformation";
 
-const REGION = process.env.AWS_REGION ?? "us-east-1";
-const cfn = new CloudFormationClient({ region: REGION });
-const { Stacks } = await cfn.send(
-  new DescribeStacksCommand({ StackName: "elixir-mcp" }),
-);
-const outputs = Object.fromEntries(
-  Stacks[0].Outputs.map((o) => [o.OutputKey, o.OutputValue]),
-);
-let failures = 0;
-
 /**
- * Fetch a page as the deploy that just uploaded it, not as the edge
- * still remembers it.
+ * Every smoke check against the live doors, in order.
  *
- * The previous deploy's "home carries the live corpus" check PASSED
- * against a CloudFront-cached copy of the old home — the page it had
- * just uploaded did not contain the string at all. A smoke gate that
- * can validate stale content is close to useless for its one job, which
- * is catching a bad upload, so site pages are fetched with the cache
- * asked to revalidate.
+ * @param {{
+ *   stack: { StackStatus?: string, Outputs?: { OutputKey?: string, OutputValue?: string }[] },
+ *   fetch?: typeof globalThis.fetch,
+ *   sleep?: (ms: number) => Promise<void>,
+ *   log?: (line: string) => void,
+ * }} input
+ * @returns {Promise<{ failures: number, results: { name: string, ok: boolean, detail: string }[] }>}
  */
-const fresh = (url) =>
-  fetch(url, { cache: "no-store", headers: { "cache-control": "no-cache" } });
-
-const check = (name, ok, detail = "") => {
-  console.log(`${ok ? "ok  " : "FAIL"} ${name}${detail ? ` - ${detail}` : ""}`);
-  if (!ok) failures += 1;
-};
-
-check(
-  "stack status",
-  ["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(Stacks[0].StackStatus),
-  Stacks[0].StackStatus,
-);
-
-// MCP door (path-split on the one distribution): discovery must be
-// served; /mcp must REFUSE without a bearer.
-const mcpBase = `https://${outputs.SiteDistributionDomain}`;
-const discovery = await fetch(
-  `${mcpBase}/.well-known/oauth-authorization-server`,
-);
-check("oauth discovery", discovery.ok, String(discovery.status));
-const meta = discovery.ok ? await discovery.json() : {};
-check("issuer", meta.issuer === "https://elixir.poapkings.com", meta.issuer);
-const bare = await fetch(`${mcpBase}/mcp`, { method: "POST", body: "{}" });
-check("mcp refuses without bearer", bare.status === 401, String(bare.status));
-check(
-  "www-authenticate present",
-  (bare.headers.get("www-authenticate") ?? "").includes("resource_metadata"),
-);
-
-// Site: two builds behind one router (2026-09-07 split). The check
-// that matters is that the halves are TELLING APART - before the split
-// every URL served the same shell, and a check for "Elixir MCP appears
-// somewhere" passed the whole time.
-const site = await fresh(`${mcpBase}/`);
-check("site root serves", site.ok, String(site.status));
-const home = site.ok ? await site.text() : "";
-check(
-  "home is a real document",
-  home.includes("<main") && !home.includes('<div id="root"></div>'),
-);
-// The corpus figures moved to /data with the 2026-09-09 redesign: the
-// home page leads with the transcript, and /data is the proof. Smoke
-// the page that actually carries them.
-const dataPage = await fresh(`${mcpBase}/data`);
-check("the corpus page serves", dataPage.ok, String(dataPage.status));
-const corpus = dataPage.ok ? await dataPage.text() : "";
-check(
-  "the corpus page carries live totals",
-  /battles/.test(corpus) && /[0-9],[0-9]{3}/.test(corpus),
-);
-// Home leads with the exchange rather than a counter, and the tabs
-// collapse behind one button on a phone — with the product buttons never in it.
-check("home leads with the transcript", /data-transcript/.test(home));
-check(
-  "the narrow menu is on the bar, and the product buttons are not in it",
-  /chrome__menu/.test(home) &&
-    !/chrome__product/.test(
-      home.slice(home.indexOf('id="chrome-sheet"')) || "x",
-    ),
-);
-
-// Browser security headers (#25). Checked on a real response because
-// a ResponseHeadersPolicy that is defined but not ATTACHED to the
-// behaviour looks identical in the template and does nothing here.
-const csp = site.headers.get("content-security-policy") ?? "";
-check("CSP present", csp.includes("default-src 'self'"));
-check(
-  "CSP forbids inline script",
-  csp.includes("script-src") && !/script-src[^;]*unsafe-inline/.test(csp),
-);
-
-// THE COMPOSITION CHECK. The consent page sets its own CSP so a form POST may
-// redirect to the client's callback; a unit test pins that header on the
-// Lambda, and the edge used to overwrite it anyway. Nothing sat between the
-// two until an iPhone could not connect and the tap did nothing.
-const authorizeCsp = (
-  await fetch(
-    `${mcpBase}/oauth/authorize?client_id=probe&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&code_challenge=probe&code_challenge_method=S256&scope=cr%3Aread&resource=${encodeURIComponent(`${mcpBase}/mcp`)}`,
-  )
-).headers.get("content-security-policy");
-check(
-  "consent page may redirect a form to the client",
-  Boolean(authorizeCsp) && /form-action[^;]*https:/.test(authorizeCsp),
-  authorizeCsp ?? "no CSP",
-);
-// Local clients (Claude Desktop and friends) redirect to a loopback port, and
-// form-action applies to that redirect exactly as it does to a remote one.
-check(
-  "consent page may redirect a form to a local client",
-  Boolean(authorizeCsp) &&
-    /http:\/\/localhost:\*/.test(authorizeCsp) &&
-    /http:\/\/127\.0\.0\.1:\*/.test(authorizeCsp) &&
-    /http:\/\/\[::1\]:\*/.test(authorizeCsp),
-  authorizeCsp ?? "no CSP",
-);
-check(
-  "clickjacking blocked",
-  csp.includes("frame-ancestors 'none'") &&
-    site.headers.get("x-frame-options") === "DENY",
-);
-check(
-  "nosniff",
-  site.headers.get("x-content-type-options") === "nosniff",
-  site.headers.get("x-content-type-options") ?? "absent",
-);
-check(
-  "referrer policy",
-  (site.headers.get("referrer-policy") ?? "").length > 0,
-  site.headers.get("referrer-policy") ?? "absent",
-);
-check(
-  "permissions policy",
-  (site.headers.get("permissions-policy") ?? "").includes("camera=()"),
-);
-check(
-  "hsts",
-  (site.headers.get("strict-transport-security") ?? "").includes("max-age="),
-  site.headers.get("strict-transport-security") ?? "absent",
-);
-
-// The public reads must actually CACHE now (#23, #73): they run real
-// aggregation, and under CachingDisabled every hit recomputed them.
-// Repeat requests, and one has to be a hit - a cache behaviour that is
-// present but ineffective looks exactly like one that works.
-//
-// Asserting a hit on exactly the SECOND request assumes both land on the same
-// edge server. CloudFront has many points of presence, and the deploy
-// invalidates the distribution immediately before smoke runs, so the first few
-// requests after a deploy are all populating different empty caches. That made
-// a correct deploy fail its own gate (2026-09-08), and a gate that cries wolf
-// is one people learn to push past.
-//
-// The intent is "caching is EFFECTIVE, not merely configured", and a few
-// requests settling into hits proves exactly that -- a disabled cache never
-// hits, however many times you ask.
-async function edgeCaches(label, url) {
-  const once = await fetch(url);
-  check(`${label} serves`, once.ok, String(once.status));
-  let hit = "absent";
-  let again = once;
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    again = await fetch(url);
-    hit = (again.headers.get("x-cache") ?? "").toLowerCase();
-    if (hit.includes("hit")) break;
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  check(`${label} caches at the edge`, hit.includes("hit"), hit || "absent");
-  check(
-    `${label} still declares its own freshness`,
-    (again.headers.get("cache-control") ?? "").includes("max-age="),
-    again.headers.get("cache-control") ?? "absent",
+export async function runSmoke({
+  stack,
+  fetch = globalThis.fetch,
+  sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+  log = (line) => console.log(line),
+}) {
+  const outputs = Object.fromEntries(
+    (stack.Outputs ?? []).map((o) => [o.OutputKey, o.OutputValue]),
   );
-}
-await edgeCaches("public status", `${mcpBase}/api/public/status`);
-// The card catalogue came under the one /api/public/* behaviour in #73;
-// before it, every repeat read was a Miss.
-await edgeCaches("public cards", `${mcpBase}/api/public/cards`);
+  const results = [];
+  let failures = 0;
 
-// The app shell is the privileged surface: it must carry the headers
-// too, and load no third-party script.
-const appShell = await fetch(`${mcpBase}/console/account/overview`);
-check(
-  "app shell carries CSP",
-  (appShell.headers.get("content-security-policy") ?? "").includes(
-    "default-src",
-  ),
-);
-check(
-  "app shell CSP allows only tinylytics and Turnstile as third-party script",
-  (appShell.headers.get("content-security-policy") ?? "").includes(
-    "script-src 'self' https://tinylytics.app https://challenges.cloudflare.com;",
-  ),
-);
-// The sign-in form's Turnstile is an iframe from Cloudflare (2026-10-14);
-// read from a header only, never by loading Cloudflare's script.
-check(
-  "app shell CSP frames only Turnstile",
-  (appShell.headers.get("content-security-policy") ?? "").includes(
-    "frame-src https://challenges.cloudflare.com;",
-  ),
-);
+  /**
+   * Fetch a page as the deploy that just uploaded it, not as the edge
+   * still remembers it.
+   *
+   * The previous deploy's "home carries the live corpus" check PASSED
+   * against a CloudFront-cached copy of the old home — the page it had
+   * just uploaded did not contain the string at all. A smoke gate that
+   * can validate stale content is close to useless for its one job, which
+   * is catching a bad upload, so site pages are fetched with the cache
+   * asked to revalidate.
+   */
+  const fresh = (url) =>
+    fetch(url, { cache: "no-store", headers: { "cache-control": "no-cache" } });
 
-const docs = await fetch(`${mcpBase}/docs/tools`);
-const docsHtml = docs.ok ? await docs.text() : "";
-check(
-  "docs page serves a document",
-  docs.ok && docsHtml.includes("<main"),
-  String(docs.status),
-);
-check(
-  "the tool reference is the real registry",
-  docsHtml.includes("players_profile") && docsHtml.includes("live_fetch"),
-);
-check(
-  "docs pages have their own titles",
-  /<title>Tools - Elixir<\/title>/.test(docsHtml),
-);
+  const check = (name, ok, detail = "") => {
+    log(`${ok ? "ok  " : "FAIL"} ${name}${detail ? ` - ${detail}` : ""}`);
+    results.push({ name, ok: Boolean(ok), detail: String(detail ?? "") });
+    if (!ok) failures += 1;
+  };
 
-const appRoute = await fetch(`${mcpBase}/console/account/overview`);
-const appHtml = appRoute.ok ? await appRoute.text() : "";
-check(
-  "an app route gets rendered HTML and a session bootstrap",
-  appRoute.ok &&
-    appHtml.includes('<div id="root">') &&
-    appHtml.includes('id="elixir-bootstrap"'),
-  String(appRoute.status),
-);
+  check(
+    "stack status",
+    ["CREATE_COMPLETE", "UPDATE_COMPLETE"].includes(stack.StackStatus),
+    stack.StackStatus,
+  );
 
-for (const [name, path, test] of [
-  ["llms.txt", "/llms.txt", (t) => t.includes("## MCP connection")],
-  ["tools.json", "/tools.json", (t) => JSON.parse(t).tool_count > 0],
-  ["sitemap.xml", "/sitemap.xml", (t) => t.includes("/docs/tools")],
-  ["robots.txt", "/robots.txt", (t) => t.includes("Sitemap:")],
-]) {
-  const res = await fetch(`${mcpBase}${path}`);
-  let ok = res.ok;
-  try {
-    ok = ok && test(await res.text());
-  } catch {
-    ok = false;
-  }
-  check(`${name} serves`, ok, String(res.status));
-  // A text/plain with no charset reads as Latin-1: "adding â€¦" in
-  // llms.txt on 2026-09-10. The deploy stamps the .txt surfaces.
-  if (path.endsWith(".txt"))
+  // MCP door (path-split on the one distribution): discovery must be
+  // served; /mcp must REFUSE without a bearer.
+  const mcpBase = `https://${outputs.SiteDistributionDomain}`;
+  const discovery = await fetch(
+    `${mcpBase}/.well-known/oauth-authorization-server`,
+  );
+  check("oauth discovery", discovery.ok, String(discovery.status));
+  const meta = discovery.ok ? await discovery.json() : {};
+  check("issuer", meta.issuer === "https://elixir.poapkings.com", meta.issuer);
+  const bare = await fetch(`${mcpBase}/mcp`, { method: "POST", body: "{}" });
+  check("mcp refuses without bearer", bare.status === 401, String(bare.status));
+  check(
+    "www-authenticate present",
+    (bare.headers.get("www-authenticate") ?? "").includes("resource_metadata"),
+  );
+
+  // Site: two builds behind one router (2026-09-07 split). The check
+  // that matters is that the halves are TELLING APART - before the split
+  // every URL served the same shell, and a check for "Elixir MCP appears
+  // somewhere" passed the whole time.
+  const site = await fresh(`${mcpBase}/`);
+  check("site root serves", site.ok, String(site.status));
+  const home = site.ok ? await site.text() : "";
+  check(
+    "home is a real document",
+    home.includes("<main") && !home.includes('<div id="root"></div>'),
+  );
+  // The corpus figures moved to /data with the 2026-09-09 redesign: the
+  // home page leads with the transcript, and /data is the proof. Smoke
+  // the page that actually carries them.
+  const dataPage = await fresh(`${mcpBase}/data`);
+  check("the corpus page serves", dataPage.ok, String(dataPage.status));
+  const corpus = dataPage.ok ? await dataPage.text() : "";
+  check(
+    "the corpus page carries live totals",
+    /battles/.test(corpus) && /[0-9],[0-9]{3}/.test(corpus),
+  );
+  // Home leads with the exchange rather than a counter, and the tabs
+  // collapse behind one button on a phone — with the product buttons never in it.
+  check("home leads with the transcript", /data-transcript/.test(home));
+  check(
+    "the narrow menu is on the bar, and the product buttons are not in it",
+    /chrome__menu/.test(home) &&
+      !/chrome__product/.test(
+        home.slice(home.indexOf('id="chrome-sheet"')) || "x",
+      ),
+  );
+
+  // Browser security headers (#25). Checked on a real response because
+  // a ResponseHeadersPolicy that is defined but not ATTACHED to the
+  // behaviour looks identical in the template and does nothing here.
+  const csp = site.headers.get("content-security-policy") ?? "";
+  check("CSP present", csp.includes("default-src 'self'"));
+  check(
+    "CSP forbids inline script",
+    csp.includes("script-src") && !/script-src[^;]*unsafe-inline/.test(csp),
+  );
+
+  // THE COMPOSITION CHECK. The consent page sets its own CSP so a form POST may
+  // redirect to the client's callback; a unit test pins that header on the
+  // Lambda, and the edge used to overwrite it anyway. Nothing sat between the
+  // two until an iPhone could not connect and the tap did nothing.
+  const authorizeCsp = (
+    await fetch(
+      `${mcpBase}/oauth/authorize?client_id=probe&redirect_uri=https%3A%2F%2Fexample.com%2Fcb&code_challenge=probe&code_challenge_method=S256&scope=cr%3Aread&resource=${encodeURIComponent(`${mcpBase}/mcp`)}`,
+    )
+  ).headers.get("content-security-policy");
+  check(
+    "consent page may redirect a form to the client",
+    Boolean(authorizeCsp) && /form-action[^;]*https:/.test(authorizeCsp),
+    authorizeCsp ?? "no CSP",
+  );
+  // Local clients (Claude Desktop and friends) redirect to a loopback port, and
+  // form-action applies to that redirect exactly as it does to a remote one.
+  check(
+    "consent page may redirect a form to a local client",
+    Boolean(authorizeCsp) &&
+      /http:\/\/localhost:\*/.test(authorizeCsp) &&
+      /http:\/\/127\.0\.0\.1:\*/.test(authorizeCsp) &&
+      /http:\/\/\[::1\]:\*/.test(authorizeCsp),
+    authorizeCsp ?? "no CSP",
+  );
+  check(
+    "clickjacking blocked",
+    csp.includes("frame-ancestors 'none'") &&
+      site.headers.get("x-frame-options") === "DENY",
+  );
+  check(
+    "nosniff",
+    site.headers.get("x-content-type-options") === "nosniff",
+    site.headers.get("x-content-type-options") ?? "absent",
+  );
+  check(
+    "referrer policy",
+    (site.headers.get("referrer-policy") ?? "").length > 0,
+    site.headers.get("referrer-policy") ?? "absent",
+  );
+  check(
+    "permissions policy",
+    (site.headers.get("permissions-policy") ?? "").includes("camera=()"),
+  );
+  check(
+    "hsts",
+    (site.headers.get("strict-transport-security") ?? "").includes("max-age="),
+    site.headers.get("strict-transport-security") ?? "absent",
+  );
+
+  // The public reads must actually CACHE now (#23, #73): they run real
+  // aggregation, and under CachingDisabled every hit recomputed them.
+  // Repeat requests, and one has to be a hit - a cache behaviour that is
+  // present but ineffective looks exactly like one that works.
+  //
+  // Asserting a hit on exactly the SECOND request assumes both land on the same
+  // edge server. CloudFront has many points of presence, and the deploy
+  // invalidates the distribution immediately before smoke runs, so the first few
+  // requests after a deploy are all populating different empty caches. That made
+  // a correct deploy fail its own gate (2026-09-08), and a gate that cries wolf
+  // is one people learn to push past.
+  //
+  // The intent is "caching is EFFECTIVE, not merely configured", and a few
+  // requests settling into hits proves exactly that -- a disabled cache never
+  // hits, however many times you ask.
+  async function edgeCaches(label, url) {
+    const once = await fetch(url);
+    check(`${label} serves`, once.ok, String(once.status));
+    let hit = "absent";
+    let again = once;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      again = await fetch(url);
+      hit = (again.headers.get("x-cache") ?? "").toLowerCase();
+      if (hit.includes("hit")) break;
+      await sleep(500);
+    }
+    check(`${label} caches at the edge`, hit.includes("hit"), hit || "absent");
     check(
-      `${name} names its charset`,
-      (res.headers.get("content-type") ?? "").includes("charset=utf-8"),
-      res.headers.get("content-type") ?? "absent",
+      `${label} still declares its own freshness`,
+      (again.headers.get("cache-control") ?? "").includes("max-age="),
+      again.headers.get("cache-control") ?? "absent",
     );
+  }
+  await edgeCaches("public status", `${mcpBase}/api/public/status`);
+  // The card catalogue came under the one /api/public/* behaviour in #73;
+  // before it, every repeat read was a Miss.
+  await edgeCaches("public cards", `${mcpBase}/api/public/cards`);
+
+  // The app shell is the privileged surface: it must carry the headers
+  // too, and load no third-party script.
+  const appShell = await fetch(`${mcpBase}/console/account/overview`);
+  check(
+    "app shell carries CSP",
+    (appShell.headers.get("content-security-policy") ?? "").includes(
+      "default-src",
+    ),
+  );
+  check(
+    "app shell CSP allows only tinylytics and Turnstile as third-party script",
+    (appShell.headers.get("content-security-policy") ?? "").includes(
+      "script-src 'self' https://tinylytics.app https://challenges.cloudflare.com;",
+    ),
+  );
+  // The sign-in form's Turnstile is an iframe from Cloudflare (2026-10-14);
+  // read from a header only, never by loading Cloudflare's script.
+  check(
+    "app shell CSP frames only Turnstile",
+    (appShell.headers.get("content-security-policy") ?? "").includes(
+      "frame-src https://challenges.cloudflare.com;",
+    ),
+  );
+
+  const docs = await fetch(`${mcpBase}/docs/tools`);
+  const docsHtml = docs.ok ? await docs.text() : "";
+  check(
+    "docs page serves a document",
+    docs.ok && docsHtml.includes("<main"),
+    String(docs.status),
+  );
+  check(
+    "the tool reference is the real registry",
+    docsHtml.includes("players_profile") && docsHtml.includes("live_fetch"),
+  );
+  check(
+    "docs pages have their own titles",
+    /<title>Tools - Elixir<\/title>/.test(docsHtml),
+  );
+
+  const appRoute = await fetch(`${mcpBase}/console/account/overview`);
+  const appHtml = appRoute.ok ? await appRoute.text() : "";
+  check(
+    "an app route gets rendered HTML and a session bootstrap",
+    appRoute.ok &&
+      appHtml.includes('<div id="root">') &&
+      appHtml.includes('id="elixir-bootstrap"'),
+    String(appRoute.status),
+  );
+
+  for (const [name, route, test] of [
+    ["llms.txt", "/llms.txt", (t) => t.includes("## MCP connection")],
+    ["tools.json", "/tools.json", (t) => JSON.parse(t).tool_count > 0],
+    ["sitemap.xml", "/sitemap.xml", (t) => t.includes("/docs/tools")],
+    ["robots.txt", "/robots.txt", (t) => t.includes("Sitemap:")],
+  ]) {
+    const res = await fetch(`${mcpBase}${route}`);
+    let ok = res.ok;
+    try {
+      ok = ok && test(await res.text());
+    } catch {
+      ok = false;
+    }
+    check(`${name} serves`, ok, String(res.status));
+    // A text/plain with no charset reads as Latin-1: "adding â€¦" in
+    // llms.txt on 2026-09-10. The deploy stamps the .txt surfaces.
+    if (route.endsWith(".txt"))
+      check(
+        `${name} names its charset`,
+        (res.headers.get("content-type") ?? "").includes("charset=utf-8"),
+        res.headers.get("content-type") ?? "absent",
+      );
+  }
+
+  // The edge must not rewrite the API's own answers. Distribution-wide
+  // CustomErrorResponses used to turn every 403/404 into a 200 app shell,
+  // including the API's refusals: an unauthenticated /api/admin/requests
+  // came back 200 text/html and the web client read it as success.
+  const refused = await fetch(`${mcpBase}/api/admin/requests`);
+  check(
+    "api refusal keeps its status",
+    refused.status === 403,
+    String(refused.status),
+  );
+  check(
+    "api refusal keeps its json",
+    (refused.headers.get("content-type") ?? "").includes("application/json"),
+    refused.headers.get("content-type") ?? "none",
+  );
+  const missing = await fetch(`${mcpBase}/api/definitely-not-a-route`);
+  check("api 404 stays a 404", missing.status === 404, String(missing.status));
+
+  // App deep links reach native rendering, which replaces the removed
+  // error mapping was actually there for.
+  const deep = await fetch(`${mcpBase}/console/account/overview`);
+  const deepHtml = deep.ok ? await deep.text() : "";
+  check(
+    "app deep link renders the signed-out page",
+    deep.status === 200 &&
+      deepHtml.includes('id="elixir-bootstrap"') &&
+      deepHtml.includes("Sign in first"),
+    String(deep.status),
+  );
+  // A missing static asset is honestly missing, not a 200 of HTML.
+  const asset = await fetch(`${mcpBase}/assets/not-a-real-file.js`);
+  check(
+    "missing asset is not the shell",
+    asset.status === 403 || asset.status === 404,
+    String(asset.status),
+  );
+  return { failures, results };
 }
 
-// The edge must not rewrite the API's own answers. Distribution-wide
-// CustomErrorResponses used to turn every 403/404 into a 200 app shell,
-// including the API's refusals: an unauthenticated /api/admin/requests
-// came back 200 text/html and the web client read it as success.
-const refused = await fetch(`${mcpBase}/api/admin/requests`);
-check(
-  "api refusal keeps its status",
-  refused.status === 403,
-  String(refused.status),
-);
-check(
-  "api refusal keeps its json",
-  (refused.headers.get("content-type") ?? "").includes("application/json"),
-  refused.headers.get("content-type") ?? "none",
-);
-const missing = await fetch(`${mcpBase}/api/definitely-not-a-route`);
-check("api 404 stays a 404", missing.status === 404, String(missing.status));
-
-// App deep links reach native rendering, which replaces the removed
-// error mapping was actually there for.
-const deep = await fetch(`${mcpBase}/console/account/overview`);
-const deepHtml = deep.ok ? await deep.text() : "";
-check(
-  "app deep link renders the signed-out page",
-  deep.status === 200 &&
-    deepHtml.includes('id="elixir-bootstrap"') &&
-    deepHtml.includes("Sign in first"),
-  String(deep.status),
-);
-// A missing static asset is honestly missing, not a 200 of HTML.
-const asset = await fetch(`${mcpBase}/assets/not-a-real-file.js`);
-check(
-  "missing asset is not the shell",
-  asset.status === 403 || asset.status === 404,
-  String(asset.status),
-);
-
-process.exit(failures === 0 ? 0 : 1);
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  const REGION = process.env.AWS_REGION ?? "us-east-1";
+  const { Stacks } = await new CloudFormationClient({ region: REGION }).send(
+    new DescribeStacksCommand({ StackName: "elixir-mcp" }),
+  );
+  const { failures } = await runSmoke({ stack: Stacks[0] });
+  process.exit(failures === 0 ? 0 : 1);
+}
