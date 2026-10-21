@@ -148,9 +148,14 @@ Skills and tests cite these by number; keep the numbering.
 - **`main` takes only pull requests:** `gh pr ready`, then
   `gh pr merge --auto --rebase --delete-branch`; merged on a green
   `validate` check, no bypass, Jamie's account included.
-- **`npm run verify`** before every push (prettier, oxlint, knip,
-  typecheck, every workspace test); `npm run format` fixes style;
-  `npm run e2e` runs the Playwright journeys CI runs. After touching
+- **`npm run verify`** before every push: prettier, oxlint, knip and
+  typecheck (`verify:static`), every workspace test (`npm test`, which is
+  `infra/scripts/test.mjs`: one build, then the workspaces side by side),
+  and the Lambda bundles (`build.mjs`). `npm run format` fixes style.
+  When `git diff --name-only origin/main...HEAD | sh
+  infra/scripts/e2e-needed.sh` prints `true`, run `npm run e2e` (the
+  Playwright journeys) as well; CI will. Node is 24 (`.node-version`),
+  and the test runner says so loudly on any other. After touching
   `.github/workflows/`, `sh infra/scripts/test-workflows.sh`.
 - **Docs ship with the change, as files of their own:** user-visible
   behaviour updates `apps/site/src/docs/` and adds a What's new entry in

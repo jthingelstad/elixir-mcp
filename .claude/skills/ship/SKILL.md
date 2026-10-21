@@ -115,11 +115,21 @@ archive; never append to it. Anything left open is a GitHub issue
 
 ## Verify
 
-`npm run verify`: prettier check, oxlint, knip, the TypeScript check, then
-every workspace test on scratch Postgres. It must reach the tests: the
-chain is `&&`, and "A run that ends on knip is not a green test run - it
-is no test run" (`docs/NOTES.md`, 2026-09-23, when one briefly read as a pass). Read
-the test summaries, not the last line.
+`npm run verify`: prettier check, oxlint, knip, the TypeScript check
+(`verify:static`), then every workspace test on scratch Postgres
+(`infra/scripts/test.mjs`: one build, then the workspaces side by side;
+`node infra/scripts/test.mjs <unit>...` runs a few), then the Lambda
+bundles (`build.mjs`). It must reach the tests: the chain is `&&`, and "A
+run that ends on knip is not a green test run - it is no test run"
+(`docs/NOTES.md`, 2026-09-23, when one briefly read as a pass). Read the
+runner's summary (every unit `ok`), not the last line. A unit that fails
+only beside the others is a race to fix, never one to rerun past.
+
+The journeys: when `git diff --name-only origin/main...HEAD | sh
+infra/scripts/e2e-needed.sh` prints `true`, also `npm run e2e` (set
+`ELIXIR_E2E_PORT` if 4321 is taken). CI runs them on the same answer, and
+on every push to main. Node 24 (`.node-version`): a run on another major
+warns that it is not a pass on 24.
 
 ## Commit
 
