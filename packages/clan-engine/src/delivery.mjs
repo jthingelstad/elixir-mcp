@@ -17,11 +17,15 @@ const ANNOUNCEMENTS = new Set([
 ]);
 
 /** Keep every word: an oversized heading/body pair becomes two chat sends,
- * never a clipped winner list or a guessed larger merged-bubble limit. */
+ * never a clipped winner list or a guessed larger merged-bubble limit. A
+ * heading that ends its own sentence ("Congrats, new Elder!") is joined
+ * with a space, never a second colon. */
 export function chatLines(message) {
   const title = String(message?.title ?? "");
   const body = String(message?.body ?? "");
-  const joined = title ? `${title}: ${body}` : body;
+  const joined = title
+    ? `${title}${/[.!?:]$/.test(title) ? " " : ": "}${body}`
+    : body;
   return joined.length <= CHAT_MAX ? [joined] : [title, body].filter(Boolean);
 }
 

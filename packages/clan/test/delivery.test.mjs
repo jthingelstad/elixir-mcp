@@ -78,6 +78,17 @@ test("fresh delivery freezes chat defaults and bounded alternatives without chan
   }
   const message = { title: "T".repeat(24), body: "B".repeat(180) };
   assert.deepEqual(chatLines(message), [message.title, message.body]);
+  // A heading that ends its own sentence takes a space, never a second colon.
+  assert.deepEqual(
+    chatLines({
+      title: "Congrats, new Elder!",
+      body: "Ada is now an Elder: every war deck.",
+    }),
+    ["Congrats, new Elder! Ada is now an Elder: every war deck."],
+  );
+  assert.deepEqual(chatLines({ title: "Elder update", body: "Ada moves." }), [
+    "Elder update: Ada moves.",
+  ]);
   assert.throws(() =>
     deliveryWords(legacy(), { channel: "clan_chat", lines: ["x".repeat(201)] }),
   );
