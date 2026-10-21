@@ -23,11 +23,15 @@ concurrency:
 permissions: {}
 
 jobs:
-  # verify and the journeys run side by side; `validate` passes only when
-  # both did. A pull request runs the journeys only when it touches what
-  # they serve (infra/scripts/e2e-needed.sh); a push to main always runs
-  # them. A skipped job would count as passing for a required check, so
-  # `validate` always runs and checks each result itself.
+  # `npm run verify` split across runners so they run side by side
+  # (2026-10-21): `static` is everything verify checks that is not a test,
+  # and the `test` shards run the same runner verify runs
+  # (infra/scripts/test.mjs), each its share of the workspaces by measured
+  # time. The journeys run beside them. A pull request runs the journeys
+  # only when it touches what they serve (infra/scripts/e2e-needed.sh); a
+  # push to main always runs them. A skipped job would count as passing
+  # for a required check, so `validate` always runs and checks each
+  # result itself.
   changes:
     name: changes
     runs-on: ubuntu-latest
@@ -53,11 +57,46 @@ jobs:
           echo "e2e: $e2e"
           echo "e2e=$e2e" >> "$GITHUB_OUTPUT"
 
-  verify:
-    name: verify
+  static:
+    name: static
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: sh infra/scripts/test-workflows.sh
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      # Production dependencies must be clean, always. The dev
+      # toolchain is reported but not gated: a fresh advisory against a
+      # test runner should tell us, not stop a deploy of unrelated work
+      # (#32).
+      - run: npm audit --omit=dev --audit-level=low
+      - run: npm audit || true
+      - run: npm run verify:static
+      # The Lambda bundles, as a deploy builds them (verify's last step).
+      - run: npm run build && node infra/scripts/build.mjs
+
+  # The workspace tests, three ways. The runner builds what the tests
+  # read once, then runs its units concurrently; the shard holding the
+  # site workspace builds the merged site tree (build-site.mjs
+  # --skip-stats, which keeps CI off the live stats endpoint), so the
+  # merged tree validates itself there (dead sitemap entries, dangling
+  # llms.txt links, a missing app shell).
+  test:
+    name: test (${{ matrix.shard }}/3)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:17
@@ -75,30 +114,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: sh infra/scripts/test-workflows.sh
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version-file: .node-version
+          cache: npm
       - run: npm ci
-      # Production dependencies must be clean, always. The dev
-      # toolchain is reported but not gated: a fresh advisory against a
-      # test runner should tell us, not stop a deploy of unrelated work
-      # (#32).
-      - run: npm audit --omit=dev --audit-level=low
-      - run: npm audit || true
-      # verify builds the site in the site workspace's test
-      # (build-site.mjs --skip-stats, which keeps CI off the live stats
-      # endpoint): the merged tree validates itself there (dead sitemap
-      # entries, dangling llms.txt links, a missing app shell).
-      - run: npm run verify
-      - run: node infra/scripts/build.mjs
+      - run: node infra/scripts/test.mjs --shard ${{ matrix.shard }}/3
 
   # Journeys against the built tree behind the edge's document-or-shell
   # rule, /api/* answered by route fixtures: the real bundle, the real
   # router, the real chunks, axe on every page a journey lands on. Split
-  # across shards, each building the same tree verify builds.
+  # across shards, each building the tree once (build-site.mjs runs the
+  # package build first). The browser is cached on Playwright's version;
+  # its system libraries are installed every time.
   e2e:
-    name: e2e (${{ matrix.shard }}/2)
+    name: e2e (${{ matrix.shard }}/3)
     needs: changes
     if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
@@ -107,34 +137,45 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version-file: .node-version
+          cache: npm
       - run: npm ci
-      - run: npm run build
+      - id: playwright
+        run: echo "version=$(node -p 'require("playwright/package.json").version')" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - run: node infra/scripts/build-site.mjs --skip-stats
-      - run: npx playwright install --with-deps chromium
-      - run: npm run e2e -- --shard=${{ matrix.shard }}/2
+      - run: npm run e2e -- --shard=${{ matrix.shard }}/3
       # No AWS credentials in validate; production uses the canonical deploy lane.
 
   validate:
     name: validate
     if: always()
-    needs: [changes, verify, e2e]
+    needs: [changes, static, test, e2e]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
       - env:
           CHANGES: ${{ needs.changes.result }}
           WANT_E2E: ${{ needs.changes.outputs.e2e }}
-          VERIFY: ${{ needs.verify.result }}
+          STATIC: ${{ needs.static.result }}
+          TEST: ${{ needs.test.result }}
           E2E: ${{ needs.e2e.result }}
         run: |
-          echo "changes: $CHANGES, verify: $VERIFY, e2e: $E2E (wanted: $WANT_E2E)"
-          test "$CHANGES" = success && test "$VERIFY" = success || exit 1
+          echo "changes: $CHANGES, static: $STATIC, test: $TEST, e2e: $E2E (wanted: $WANT_E2E)"
+          test "$CHANGES" = success && test "$STATIC" = success && test "$TEST" = success || exit 1
           if [ "$WANT_E2E" = true ]; then test "$E2E" = success; else test "$E2E" = skipped; fi
