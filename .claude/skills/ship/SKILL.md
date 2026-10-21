@@ -228,7 +228,7 @@ stack (and no `--param` or rotation), the deploy takes the **site
 lane**: no migrate push, no migrations, no stack update; everything else
 below still runs. The log names the lane and, for the platform lane,
 what changed. A docs page is always platform: the corpus rides the
-web-api and MCP bundles.
+web-api, MCP and migrate bundles.
 
 **Order:** build, upload, lane, migrations (a failure stops the deploy before
 code flips), vocabulary import, stack, site publish (assets first,

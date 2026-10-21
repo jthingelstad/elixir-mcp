@@ -54,8 +54,9 @@ export const MODULE_ALIAS = {
 };
 
 /** The docs corpus (packages/docs, about 1.4 MB) is read by the docs
- *  tools and the MCP door's resources. Only the doors that can answer
- *  them carry it; in the others the registry still names those tools,
+ *  tools and the MCP door's resources. Only the bundles that can call
+ *  them carry it (migrate's tool profiler, `profile_tool`, takes any
+ *  read-only tool); in the others the registry still names those tools,
  *  and calling one fails with this error instead of a wrong answer. */
 const WITHOUT_CORPUS = {
   name: "without-docs-corpus",
@@ -76,7 +77,7 @@ const WITHOUT_CORPUS = {
 // `db`: the function connects to PostgreSQL, so its bundle carries the
 // RDS root certificates and its DATABASE_URL says sslmode=verify-full
 // (#71; infra/template.yaml sets NODE_EXTRA_CA_CERTS to this file).
-// `docs`: it can answer the docs tools, so it carries the docs corpus.
+// `docs`: it can call the docs tools, so it carries the docs corpus.
 // `split`: its lazy imports (server rendering, the corpus) are chunks of
 // their own beside index.mjs, read when first used rather than parsed at
 // every cold start.
@@ -97,7 +98,12 @@ export const LAMBDAS = [
   },
   { name: "scheduler", entry: "services/scheduler/src/index.mjs", db: true },
   { name: "email-relay", entry: "services/email-relay/src/index.mjs" },
-  { name: "migrate", entry: "services/migrate/src/lambda.mjs", db: true },
+  {
+    name: "migrate",
+    entry: "services/migrate/src/lambda.mjs",
+    db: true,
+    docs: true,
+  },
   { name: "jobs", entry: "services/jobs/src/index.mjs", db: true },
   { name: "collector", entry: "services/collector/src/index.mjs", db: true },
   {
