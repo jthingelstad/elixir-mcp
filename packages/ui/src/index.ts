@@ -63,8 +63,9 @@ export { Spark, type SparkPoint } from "./Spark.tsx";
 export { splitTags, Tag, TagText } from "./Tag.tsx";
 export {
   Rail,
-  RailIdentity,
+  RailSwitcher,
   type RailAccount,
+  type RailChoice,
   type RailDot,
   type RailItem,
   type RailFoot,

@@ -2,8 +2,9 @@ import { test, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import {
   Rail,
-  RailIdentity,
+  RailSwitcher,
   type RailAccount,
+  type RailChoice,
   type RailItem,
 } from "../src/index.ts";
 
@@ -94,41 +95,6 @@ test("narrow: a disclosure above the content naming where you are, opening to th
   // Following a link closes it.
   fireEvent.click(screen.getByRole("link", { name: /Overview/ }));
   expect(screen.queryByRole("navigation")).toBeNull();
-});
-
-test("the identity block: who you are, the way to the profile, and the way out as an action", () => {
-  const onClick = vi.fn((e) => e.preventDefault());
-  const out = vi.fn();
-  render(
-    <Rail
-      items={ITEMS}
-      current="overview"
-      navigate={vi.fn()}
-      narrow={false}
-      title="Console"
-      identity={
-        <RailIdentity
-          href="/profile"
-          onClick={onClick}
-          name="jamie@example.com"
-          title="jamie@example.com"
-          detail="leader · America/Chicago"
-          action={
-            <button type="button" aria-label="Sign out" onClick={out}>
-              out
-            </button>
-          }
-        />
-      }
-    />,
-  );
-  const link = screen.getByRole("link", { name: /jamie@example.com/ });
-  expect(link.getAttribute("href")).toBe("/profile");
-  expect(screen.getByText("leader · America/Chicago")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
-  expect(out).toHaveBeenCalled();
-  fireEvent.click(link);
-  expect(onClick).toHaveBeenCalled();
 });
 
 const ACCOUNTS: [RailAccount, RailAccount, RailAccount] = [
@@ -456,4 +422,153 @@ test("narrow: no pin, the disclosure flows above the page", () => {
   fireEvent.click(screen.getByRole("button", { expanded: false }));
   expect(document.querySelector(".rail__pin")).toBeNull();
   expect(document.querySelector(".rail > nav")).toBeTruthy();
+});
+
+const CLANS: RailChoice[] = [
+  {
+    key: "#2PQRJ8LV",
+    to: "/clan/2PQRJ8LV/actions",
+    body: <span>Example Clan</span>,
+    end: <span className="chip">Leader</span>,
+  },
+  {
+    key: "#GQ08RJPL",
+    to: "/clan/GQ08RJPL",
+    body: <span>Second Clan</span>,
+    end: <span className="chip">Member</span>,
+  },
+];
+
+const clanRail = (props: Partial<Parameters<typeof RailSwitcher>[0]> = {}) => (
+  <Rail
+    items={ITEMS}
+    current="overview"
+    navigate={props.navigate ?? vi.fn()}
+    narrow={false}
+    title="Clan"
+    head={
+      <RailSwitcher
+        head
+        id="rail-clans"
+        title="Example Clan: switch clan"
+        face={<span>Example Clan · Leader</span>}
+        choices={CLANS}
+        current="#2PQRJ8LV"
+        manage={{ label: "All your clans…", to: "/clan/clans" }}
+        navigate={vi.fn()}
+        {...props}
+      />
+    }
+  />
+);
+
+test("a switcher as the head: the face, and a list of links with the current one checked", () => {
+  const navigate = vi.fn();
+  render(clanRail({ navigate }));
+  const head = screen.getByRole("button", { name: /Example Clan · Leader/ });
+  expect(head.getAttribute("aria-controls")).toBe("rail-clans");
+  expect(head.getAttribute("title")).toBe("Example Clan: switch clan");
+  expect(head.closest(".rail__switch")?.className).toContain(
+    "rail__switch--head",
+  );
+  fireEvent.click(head);
+  expect(head.getAttribute("aria-expanded")).toBe("true");
+  const list = document.getElementById("rail-clans")!;
+  // Links, not a menu: every entry has its own address.
+  expect(list.querySelector('[role="menu"], [role="menuitem"]')).toBeNull();
+  const second = screen.getByRole("link", { name: /Second Clan/ });
+  expect(second.getAttribute("href")).toBe("/clan/GQ08RJPL");
+  expect(second.textContent).toContain("Member");
+  const current = list.querySelector('[aria-current="true"]')!;
+  expect(current.textContent).toContain("Example Clan");
+  expect(current.querySelector(".text-ok")).toBeTruthy();
+  expect(
+    screen.getByRole("link", { name: "All your clans…" }).getAttribute("href"),
+  ).toBe("/clan/clans");
+  fireEvent.click(second);
+  expect(navigate).toHaveBeenCalledWith("/clan/GQ08RJPL");
+  expect(document.getElementById("rail-clans")).toBeNull();
+});
+
+test("a switcher's choose takes a plain click; a modified one stays the browser's", () => {
+  const choose = vi.fn();
+  const navigate = vi.fn();
+  render(clanRail({ choose, navigate }));
+  const head = screen.getByRole("button", { name: /Example Clan/ });
+  fireEvent.click(head);
+  // Cmd-click: a new tab at the clan's own address, nothing in-app.
+  const modified = fireEvent.click(
+    screen.getByRole("link", { name: /Second Clan/ }),
+    { metaKey: true },
+  );
+  expect(modified).toBe(true);
+  expect(choose).not.toHaveBeenCalled();
+  const plain = fireEvent.click(
+    screen.getByRole("link", { name: /Second Clan/ }),
+  );
+  expect(plain).toBe(false);
+  expect(choose).toHaveBeenCalledWith(
+    expect.objectContaining({ key: "#GQ08RJPL", to: "/clan/GQ08RJPL" }),
+  );
+  expect(navigate).not.toHaveBeenCalled();
+  // The list's last line is a place, never a choice.
+  fireEvent.click(head);
+  fireEvent.click(screen.getByRole("link", { name: "All your clans…" }));
+  expect(navigate).toHaveBeenCalledWith("/clan/clans");
+});
+
+test("a switcher closes on Escape, handing focus back to its head, and on a click outside", () => {
+  render(clanRail());
+  const head = screen.getByRole("button", { name: /Example Clan/ });
+  fireEvent.click(head);
+  screen.getByRole("link", { name: /Second Clan/ }).focus();
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(document.getElementById("rail-clans")).toBeNull();
+  expect(document.activeElement).toBe(head);
+  fireEvent.click(head);
+  // Inside the list, nothing closes it.
+  fireEvent.mouseDown(screen.getByRole("link", { name: /Second Clan/ }));
+  expect(document.getElementById("rail-clans")).toBeTruthy();
+  fireEvent.mouseDown(document.body);
+  expect(document.getElementById("rail-clans")).toBeNull();
+});
+
+test("a switcher with one choice is the same tile with nothing to open", () => {
+  render(clanRail({ choices: [CLANS[0]!] }));
+  expect(
+    document.querySelector("div.rail__switch-head")?.textContent,
+  ).toContain("Example Clan · Leader");
+  expect(screen.queryByRole("button", { name: /Example Clan/ })).toBeNull();
+  expect(screen.queryByRole("link", { name: "All your clans…" })).toBeNull();
+});
+
+test("narrow: a switcher head stays beside the closed row, ahead of its toggle", () => {
+  render(
+    <Rail
+      items={ITEMS}
+      current="overview"
+      navigate={vi.fn()}
+      narrow
+      title="Clan"
+      head={
+        <RailSwitcher
+          head
+          id="rail-clans"
+          title="Example Clan: switch clan"
+          face={<span>Example Clan</span>}
+          choices={CLANS}
+          current="#2PQRJ8LV"
+          navigate={vi.fn()}
+        />
+      }
+    />,
+  );
+  // The list of sections is folded; the clan is not.
+  expect(screen.queryByRole("navigation")).toBeNull();
+  const head = screen.getByRole("button", { name: /Example Clan/ });
+  const toggle = document.querySelector(".rail__toggle")!;
+  expect(head.closest(".rail__switch")?.nextElementSibling).toBe(toggle);
+  fireEvent.click(head);
+  expect(screen.getByRole("link", { name: /Second Clan/ })).toBeTruthy();
+  expect(screen.queryByRole("navigation")).toBeNull();
 });

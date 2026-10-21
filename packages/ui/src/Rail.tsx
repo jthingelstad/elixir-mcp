@@ -83,8 +83,10 @@ export interface RailAccount {
 }
 
 /** The line at the rail's foot: a place ("Send feedback") or an action
- *  ("Sign out of Elixir"). An action is a button, never a link: signing
- *  out is not a destination (see RailIdentity). */
+ *  ("Sign out of Elixir"). An action is a button, never a link, because
+ *  signing out is not a destination: a `/signout` href once landed on
+ *  the app shell, bounced to the home page STILL SIGNED IN, and looked
+ *  exactly like a sign-out. */
 export interface RailFoot {
   label: string;
   icon: string;
@@ -99,7 +101,10 @@ export interface RailFoot {
  * The rail. THE RAIL CARRIES STRUCTURE, NEVER USER CONTENT: sections
  * and sub-pages, never the name of a player or a clan, so it cannot
  * grow when the data does. A count of the reader's own things is the
- * one exception, because it is a number and not a list.
+ * one exception in the list, because it is a number and not a list. The
+ * head is the other: it names what the rail belongs to (the account
+ * whose console it is, Ladder's player, Clan's clan), and a switcher
+ * there lists the reader's own, a click away and never in the list.
  *
  * The current item is a gold left rule, weight, brighter ink and a quiet
  * fill (canvas 2026-09-29). Two items the reader can see at once never
@@ -124,8 +129,7 @@ export interface RailFoot {
  * mono aside such as the role or the clan tag); `subtitle` is what the
  * narrow row shows beside the current section, defaulting to the
  * current sub-page's label. `back` is a link above the head (a settings
- * rail's way back to its console); `foot` is the line at the bottom;
- * `identity` is the older identity block (RailIdentity).
+ * rail's way back to its console); `foot` is the line at the bottom.
  *
  * `accounts` turns the head into the CONSOLE SWITCHER (2026-09-23,
  * redrawn 2026-09-29): the console belongs to one of them (`account`
@@ -137,8 +141,9 @@ export interface RailFoot {
  *
  * `head` replaces the head outright, for a section whose rail belongs to
  * something other than an account: Ladder's is the player whose season
- * it reads. It stays in the narrow layout's closed row, so which player a
- * phone is reading is never hidden.
+ * it reads, Clan's the clan you are in (a RailSwitcher, Jamie
+ * 2026-10-20). It stays in the narrow layout's closed row, so which
+ * player or clan a phone is reading is never hidden.
  */
 export function Rail({
   items,
@@ -149,7 +154,6 @@ export function Rail({
   title,
   aside,
   subtitle,
-  identity,
   label = "Sections",
   accounts,
   account,
@@ -166,7 +170,6 @@ export function Rail({
   title: string;
   aside?: ReactNode;
   subtitle?: ReactNode;
-  identity?: ReactNode;
   label?: string;
   accounts?: RailAccount[];
   /** The key of the account this console belongs to. */
@@ -321,7 +324,6 @@ export function Rail({
           )}
         </div>
       )}
-      {shown && identity && <div className="mt-auto pt-4">{identity}</div>}
     </>
   );
 
@@ -388,14 +390,8 @@ function ConsoleName({ a }: { a: RailAccount }) {
   );
 }
 
-/**
- * The rail head as the console switcher: the current console, and a
- * disclosure listing the others under their headings. A list of links,
- * not an ARIA menu: choosing one is navigation to another console's
- * address. Escape and a click outside close it, the way the top bar's
- * menus close. With one console there is nothing to open, and the head
- * is the same tile without the chevrons.
- */
+/** The console switcher: the accounts as a RailSwitcher. The first is
+ *  the person; any other tints the head while it is current. */
 function AccountSwitcher({
   accounts,
   current,
@@ -407,16 +403,95 @@ function AccountSwitcher({
   manage?: { label: string; to: string } | undefined;
   navigate: (to: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
   const person = accounts[0] as RailAccount;
   const here = accounts.find((a) => a.key === current) ?? person;
-  const scoped = here.key !== person.key;
-  const single = accounts.length === 1;
+  return (
+    <RailSwitcher
+      id="rail-accounts"
+      title={`${here.label}: switch console`}
+      face={<ConsoleName a={here} />}
+      choices={accounts.map((a) => ({
+        key: a.key,
+        to: a.to,
+        group: a.group,
+        body: <ConsoleName a={a} />,
+      }))}
+      current={here.key}
+      manage={manage}
+      navigate={navigate}
+      scoped={here.key !== person.key}
+    />
+  );
+}
+
+/** One place a rail switcher goes: a console, a clan. `to` is its
+ *  address, and choosing it goes there. */
+export interface RailChoice {
+  key: string;
+  to: string;
+  /** What the entry shows: its name and second line. */
+  body: ReactNode;
+  /** At the entry's end, before the current one's check (a role). */
+  end?: ReactNode;
+  /** A heading in the open list above this entry ("You", "Your
+   *  agents"); repeated headings are drawn once. */
+  group?: string | undefined;
+}
+
+/**
+ * The rail head as a switcher: what the rail belongs to now (`face`),
+ * and a disclosure listing the choices under their headings, the
+ * current one checked, with `manage` as the last line. A list of links,
+ * not an ARIA menu: choosing one is navigation to its address. Escape
+ * and a click outside close it, the way the top bar's menus close, and
+ * Escape hands focus back to the head. With one choice there is nothing
+ * to open: the head is the same tile without the chevrons.
+ *
+ * `choose` takes a plain click on a choice in place of `navigate`, for a
+ * section that does something first (Clan remembers the clan, then goes
+ * to its landing); a modified or middle click is still the browser's,
+ * to the choice's own address. `head` marks it as the rail's `head`,
+ * which the narrow layout draws beside the row's toggle.
+ */
+export function RailSwitcher({
+  id,
+  title,
+  face,
+  choices,
+  current,
+  manage,
+  navigate,
+  choose,
+  scoped = false,
+  head = false,
+}: {
+  /** The open list's id, which the head's button controls. */
+  id: string;
+  /** The head button's title ("Example Clan: switch clan"). */
+  title: string;
+  face: ReactNode;
+  choices: RailChoice[];
+  /** The key of the current choice. */
+  current?: string | undefined;
+  /** The list's last line: where the choices are managed or listed. */
+  manage?: { label: string; to: string } | undefined;
+  navigate: (to: string) => void;
+  choose?: (choice: RailChoice) => void;
+  scoped?: boolean;
+  head?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const single = choices.length <= 1;
 
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      button.current?.focus();
+    };
     const onDown = (e: Event) => {
       if (box.current && !box.current.contains(e.target as Node))
         setOpen(false);
@@ -431,56 +506,69 @@ function AccountSwitcher({
 
   // A modified or middle click is the browser's (a new tab, a copied
   // link); only a plain one routes in-app.
-  const go = (to: string) => (e: MouseEvent<HTMLElement>) => {
-    if (!isPlainClick(e)) return;
-    e.preventDefault();
-    setOpen(false);
-    navigate(to);
-  };
+  const go =
+    (to: string, then?: () => void) => (e: MouseEvent<HTMLElement>) => {
+      if (!isPlainClick(e)) return;
+      e.preventDefault();
+      setOpen(false);
+      if (then) then();
+      else navigate(to);
+    };
 
   return (
-    <div className="rail__switch" ref={box} data-scoped={scoped}>
+    <div
+      className={"rail__switch" + (head ? " rail__switch--head" : "")}
+      ref={box}
+      data-scoped={scoped}
+    >
       {single ? (
-        <div className="rail__switch-head">
-          <ConsoleName a={here} />
-        </div>
+        <div className="rail__switch-head">{face}</div>
       ) : (
         <button
+          ref={button}
           type="button"
           className="rail__switch-head"
           aria-expanded={open}
-          aria-controls="rail-accounts"
-          title={`${here.label}: switch console`}
+          aria-controls={id}
+          title={title}
           onClick={() => setOpen(!open)}
         >
-          <ConsoleName a={here} />
+          {face}
           <span className="ml-auto flex shrink-0 text-ink-faint">
             <Icon name="chevrons-up-down" size={16} />
           </span>
         </button>
       )}
       {open && (
-        <div id="rail-accounts" className="rail__switch-list">
-          {accounts.map((a, i) => (
-            <div key={a.key}>
-              {a.group && a.group !== accounts[i - 1]?.group && (
-                <div className="rail__switch-group">{a.group}</div>
-              )}
-              <a
-                href={a.to}
-                className="rail__switch-item"
-                aria-current={a.key === here.key ? "true" : undefined}
-                onClick={go(a.to)}
-              >
-                <ConsoleName a={a} />
-                {a.key === here.key && (
-                  <span className="ml-auto flex shrink-0 text-ok">
-                    <Icon name="check" size={16} />
-                  </span>
+        <div id={id} className="rail__switch-list">
+          {choices.map((c, i) => {
+            const on = c.key === current;
+            return (
+              <div key={c.key}>
+                {c.group && c.group !== choices[i - 1]?.group && (
+                  <div className="rail__switch-group">{c.group}</div>
                 )}
-              </a>
-            </div>
-          ))}
+                <a
+                  href={c.to}
+                  className="rail__switch-item"
+                  aria-current={on ? "true" : undefined}
+                  onClick={go(c.to, choose && (() => choose(c)))}
+                >
+                  {c.body}
+                  {(c.end || on) && (
+                    <span className="ml-auto flex shrink-0 items-center gap-2">
+                      {c.end}
+                      {on && (
+                        <span className="flex text-ok">
+                          <Icon name="check" size={16} />
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </a>
+              </div>
+            );
+          })}
           {manage && (
             <a
               href={manage.to}
@@ -493,45 +581,5 @@ function AccountSwitcher({
         </div>
       )}
     </div>
-  );
-}
-
-/**
- * The identity block at the foot of the rail: the way to the profile —
- * who you are signed in as, and where — with the way out beside it.
- * `action` is a button or a form, never a link: signing out is an
- * action, and giving it a destination invents a way to believe you
- * have done it when you have not (a `/signout` href once landed on the
- * app shell, bounced to the home page STILL SIGNED IN, and looked
- * exactly like a sign-out).
- */
-export function RailIdentity({
-  href,
-  onClick,
-  name,
-  title,
-  detail,
-  action,
-}: {
-  href: string;
-  onClick: (e: MouseEvent) => void;
-  name: ReactNode;
-  title?: string;
-  detail?: ReactNode;
-  action?: ReactNode;
-}) {
-  return (
-    <a className="rail__identity text-inherit" href={href} onClick={onClick}>
-      <span className="flex size-[34px] shrink-0 items-center justify-center rounded-[10px] border border-solid border-line-strong bg-line-soft text-ink-body">
-        <Icon name="user-round" size={17} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] text-ink" title={title}>
-          {name}
-        </span>
-        <span className="block text-[12px] text-ink-faint">{detail}</span>
-      </span>
-      {action && <span className="shrink-0">{action}</span>}
-    </a>
   );
 }

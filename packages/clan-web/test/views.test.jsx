@@ -281,31 +281,12 @@ test("the disclaimer is Supercell's fan-content note", () => {
 });
 
 describe("choosing a clan", () => {
-  test("the header chip becomes a menu of the other clans when there is more than one", () => {
-    render(
-      <ClanHeader
-        clan={poap}
-        roster={null}
-        others={[other]}
-        navigate={() => {}}
-      />,
-    );
-    const button = screen.getByRole("button", { expanded: false });
-    expect(button.textContent).toContain("Example Clan");
-    fireEvent.click(button);
-    expect(screen.getByRole("menuitem", { name: /Elsewhere/ })).toBeTruthy();
-    expect(
-      screen
-        .getByRole("menuitem", { name: /All your clans/ })
-        .getAttribute("href"),
-    ).toBe("/clan/clans");
-  });
-
-  test("one clan: a plain chip, no menu", () => {
-    render(
-      <ClanHeader clan={poap} roster={null} others={[]} navigate={() => {}} />,
-    );
+  test("the roster names its clan in a plain chip: switching is the rail's head", () => {
+    render(<ClanHeader clan={poap} roster={null} navigate={() => {}} />);
+    expect(screen.getByText("Example Clan").className).toBe("chip");
+    // No menu of other clans here any more (Jamie, 2026-10-20).
     expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("menu")).toBeNull();
   });
 
   test("the chooser lists verified clans as cards and unverified alts greyed with a Verify link", () => {

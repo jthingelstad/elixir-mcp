@@ -27,14 +27,9 @@ export const waitingFor = (me) =>
 export function railItems(me) {
   const clan = me?.selected ?? null;
   const base = clan ? clanPath(clan.clan_tag) : null;
+  // Your clans are the rail's head, the Clan picker (Jamie, 2026-10-20),
+  // never an item: the list is the clan's sections.
   const items = [];
-  if (me?.ok && me.clans?.length > 1)
-    items.push({
-      key: "clans",
-      label: "Clans",
-      icon: "layers",
-      to: `${CLAN}/clans`,
-    });
   const policy = me?.policy ?? null;
   const set = policyActive(me);
   if (clan) {
@@ -206,6 +201,7 @@ export function railKey(path) {
   if (/^\/[^/]+\/members\/[a-z0-9]+$/i.test(app)) return "clan";
   if (/^\/[^/]+\/roster\/?$/i.test(app) && tagOf(app.split("/")[1]))
     return "clan";
+  // The chooser has no item; feedback from it names it.
   if (app === "/clans") return "clans";
   if (app === "/you") return "you";
   if (app.startsWith("/you/away")) return "away";
