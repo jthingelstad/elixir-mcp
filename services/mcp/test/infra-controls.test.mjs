@@ -618,12 +618,7 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (#7
     // [logical id, next logical id, metric, threshold]
     ["HandledFailureAlarm", "WebApiLatencyAlarm", "HandledFailure", "3"],
     ["WebApiLatencyAlarm", "CollectorLatencyAlarm", "WebApiDuration", "15000"],
-    [
-      "CollectorLatencyAlarm",
-      "DbEbsByteBalanceAlarm",
-      "CollectorDuration",
-      "5000",
-    ],
+    ["CollectorLatencyAlarm", "DoorThrottleAlarm", "CollectorDuration", "5000"],
     ["DbEbsByteBalanceAlarm", "DbFreeableMemoryAlarm", "EBSByteBalance%", "25"],
     [
       "DbFreeableMemoryAlarm",
@@ -646,6 +641,102 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (#7
     assert.match(block, new RegExp(`^      Threshold: ${threshold}$`, "m"));
     assert.match(block, /AlarmActions: \[!Ref AlarmTopic\]/, logicalId);
   }
+});
+
+/** Every alarm resource in the template, by logical id. */
+function alarms(template) {
+  const found = new Map();
+  const heads = [
+    ...template.matchAll(/^  (\w+):\n    Type: AWS::CloudWatch::Alarm\n/gm),
+  ];
+  for (const head of heads) {
+    const rest = template.slice(head.index + head[0].length);
+    const end = rest.search(/^(  \w+:$|\S)/m);
+    found.set(head[1], head[0] + (end === -1 ? rest : rest.slice(0, end)));
+  }
+  return found;
+}
+
+test("an incident pages once: the alarms hold ALARM through it, and every one pages the ops queue (2026-10-21)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const all = alarms(template);
+  assert.equal(all.size, 28);
+  for (const [id, block] of all) {
+    // Alarms reach the sysadmin queue through the topic, never email,
+    // and say what missing data means.
+    assert.match(block, /^      AlarmActions: \[!Ref AlarmTopic\]$/m, id);
+    assert.doesNotMatch(block, /OKActions|InsufficientDataActions/, id);
+    assert.match(
+      block,
+      /^      TreatMissingData: (notBreaching|breaching)$/m,
+      id,
+    );
+    // CloudWatch's limits: M of N with M <= N, and N periods at most a
+    // day under an hour's period, a week at an hour or more.
+    const n = Number(block.match(/^      EvaluationPeriods: (\d+)$/m)?.[1]);
+    const m = Number(
+      block.match(/^      DatapointsToAlarm: (\d+)$/m)?.[1] ?? String(n),
+    );
+    const period = Number(block.match(/^ +Period: (\d+)$/m)?.[1] ?? Number.NaN);
+    assert.ok(n >= 1 && m >= 1 && m <= n, id);
+    assert.ok(n * period <= (period < 3600 ? 86_400 : 604_800), id);
+  }
+  // A broken tool failing every five minutes swung a ten-minute sum
+  // around 3 and paged 42 times: an hour's sum, 1 of 2.
+  const door = all.get("HandledFailureAlarm");
+  assert.match(door, /^      Period: 3600$/m);
+  assert.match(door, /^      EvaluationPeriods: 2$/m);
+  assert.match(door, /^      DatapointsToAlarm: 1$/m);
+  assert.match(door, /^      Threshold: 3$/m);
+  assert.match(door, /^      TreatMissingData: notBreaching$/m);
+  // A daily log read is the season check's evidence: 1 of 30 hours.
+  const season = all.get("SeasonMismatchAlarm");
+  assert.match(season, /^      Period: 3600$/m);
+  assert.match(season, /^      EvaluationPeriods: 30$/m);
+  assert.match(season, /^      DatapointsToAlarm: 1$/m);
+  assert.match(season, /^      Threshold: 1$/m);
+  assert.match(season, /^      TreatMissingData: notBreaching$/m);
+  // Throttles: the standard endpoint counts of the three doors, summed,
+  // 3 of 6 five-minute periods; no metric of Elixir's own.
+  const throttles = all.get("DoorThrottleAlarm");
+  assert.match(throttles, /AlarmName: elixir-mcp-door-throttles\n/);
+  assert.match(throttles, /Expression: SUM\(METRICS\(\)\)\n/);
+  assert.equal(throttles.match(/ReturnData: true/g)?.length, 1);
+  for (const fn of [
+    "elixir-mcp-mcp-web",
+    "elixir-mcp-web-api-web",
+    "elixir-mcp-collector-web",
+  ]) {
+    for (const metric of [
+      "EndpointActiveEnvironmentThrottles",
+      "EndpointRequestThrottles",
+    ]) {
+      assert.ok(
+        new RegExp(
+          `MetricName: ${metric}\\n +Dimensions:\\n +- \\{ Name: FunctionName, Value: ${fn} \\}\\n +- \\{ Name: EndpointName, Value: live \\}\\n +- \\{ Name: ExecutionRegion, Value: !Ref AWS::Region \\}\\n +Period: 300\\n +Stat: Sum\\n`,
+        ).test(throttles),
+        `${fn} ${metric}`,
+      );
+    }
+  }
+  assert.equal(
+    throttles.match(/Namespace: AWS\/Lambda\/Web\/Usage/g)?.length,
+    6,
+  );
+  assert.doesNotMatch(throttles, /Account\w*Throttles/);
+  assert.match(throttles, /^      EvaluationPeriods: 6$/m);
+  assert.match(throttles, /^      DatapointsToAlarm: 3$/m);
+  assert.match(throttles, /^      Threshold: 1$/m);
+  assert.match(throttles, /^      TreatMissingData: notBreaching$/m);
+  // The dashboard shows the new alarm and stays inside the free tier's
+  // 50 metrics.
+  const dashboard = template.slice(
+    template.indexOf("  OpsDashboard:"),
+    template.indexOf("\nOutputs:"),
+  );
+  assert.match(dashboard, /"\$\{DoorThrottleAlarm\.Arn\}"/);
+  const metrics = dashboard.match(/\["(AWS|ElixirMCP)\//g) ?? [];
+  assert.ok(metrics.length <= 50, `${metrics.length} dashboard metrics`);
 });
 
 test("the database connections verify the server against the bundled RDS roots (#71)", async () => {

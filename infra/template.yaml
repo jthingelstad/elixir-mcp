@@ -3193,6 +3193,13 @@ Resources:
   # entry (0104; packages/record/src/season.mjs): the calendar the record
   # files everything under is wrong for that month. Nothing relabels
   # itself; a human reads the season table and the log entry.
+  #
+  # The shape (2026-10-21): the evidence arrives with a clan's river race
+  # log read, about once a day, so one hour, 1 of 1 sat in ALARM three
+  # hours per read and paged again on the next: 14 pages from 10-08 to
+  # 10-16 for one standing defect (issue #593). 1 of 30 hourly
+  # datapoints pages on the first read, as before, and holds ALARM until
+  # a day's read plus six hours of drift has passed with no mismatch.
   SeasonMismatchAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -3202,7 +3209,8 @@ Resources:
       MetricName: SeasonWarIdMismatch
       Statistic: Sum
       Period: 3600
-      EvaluationPeriods: 1
+      EvaluationPeriods: 30
+      DatapointsToAlarm: 1
       Threshold: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
@@ -3507,7 +3515,18 @@ Resources:
   # in the MCP door). Neither is a Lambda error, so McpErrorsAlarm fired
   # only when the door itself crashed: a deploy that broke a shared tool
   # path paged nobody until acceptance, the Gym or feedback noticed. Three
-  # in ten minutes is a broken path, not one unlucky call.
+  # in an hour is a broken path, not one unlucky call (one failure in the
+  # 14 days to 2026-10-21 outside the incident below).
+  #
+  # The shape (2026-10-21): one hour, 1 of 2 datapoints. A broken tool
+  # (elixir_timeline, nowMs) failed from 10-15 05:20 to 10-16 05:25 CDT,
+  # every 40 minutes at first and about every five from 09:00; a
+  # ten-minute sum at 3 swung 2 to 3 and back, so the alarm entered ALARM
+  # 42 times, the first at 09:41. An hour's sum pages within a minute of
+  # any third failure in 60 minutes (never later than the ten-minute
+  # shape), and the second period holds ALARM across a quiet half hour.
+  # Replayed over that day: one page, at 09:06, clearing about two hours
+  # after the last failure.
   McpHandledFailureFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
@@ -3536,8 +3555,9 @@ Resources:
       Namespace: ElixirMCP/Door
       MetricName: HandledFailure
       Statistic: Sum
-      Period: 600
-      EvaluationPeriods: 1
+      Period: 3600
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
       Threshold: 3
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
@@ -3600,6 +3620,107 @@ Resources:
       EvaluationPeriods: 3
       Threshold: 5000
       ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlarmTopic]
+
+  # Requests a door turned away with a 429 (review 2026-10-21: nothing
+  # alarmed on them). Lambda publishes the standard throttle counts in
+  # AWS/Lambda/Web/Usage only for a period that had one:
+  # EndpointActiveEnvironmentThrottles when serving would pass the
+  # endpoint's MaxEnvironments, EndpointRequestThrottles at its RateLimit.
+  # The account-quota kinds are left out; the account's quotas sit far
+  # above every door's ceiling. In the 14 days to 2026-10-21 only the
+  # web-api throttled, each time in one five-minute burst of 1 to 29
+  # requests (scanner waves meeting its two environments); bursts like
+  # that stay on the dashboard. 3 of 6 five-minute periods is a door
+  # refusing callers for a quarter hour of half an hour: replayed, it
+  # pages once 15 to 25 minutes in, and never on those bursts.
+  DoorThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: elixir-mcp-door-throttles
+      AlarmDescription: A door answered 429 for capacity (Web Function throttles at its MaxEnvironments or RateLimit) in 3 of the last 6 five-minute periods; callers are being turned away
+      Metrics:
+        - Id: throttled
+          Label: Requests throttled at the mcp, web-api and collector doors
+          Expression: SUM(METRICS())
+          ReturnData: true
+        - Id: mcpenv
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda/Web/Usage
+              MetricName: EndpointActiveEnvironmentThrottles
+              Dimensions:
+                - { Name: FunctionName, Value: elixir-mcp-mcp-web }
+                - { Name: EndpointName, Value: live }
+                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: mcprate
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda/Web/Usage
+              MetricName: EndpointRequestThrottles
+              Dimensions:
+                - { Name: FunctionName, Value: elixir-mcp-mcp-web }
+                - { Name: EndpointName, Value: live }
+                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: webenv
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda/Web/Usage
+              MetricName: EndpointActiveEnvironmentThrottles
+              Dimensions:
+                - { Name: FunctionName, Value: elixir-mcp-web-api-web }
+                - { Name: EndpointName, Value: live }
+                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: webrate
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda/Web/Usage
+              MetricName: EndpointRequestThrottles
+              Dimensions:
+                - { Name: FunctionName, Value: elixir-mcp-web-api-web }
+                - { Name: EndpointName, Value: live }
+                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: colenv
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda/Web/Usage
+              MetricName: EndpointActiveEnvironmentThrottles
+              Dimensions:
+                - { Name: FunctionName, Value: elixir-mcp-collector-web }
+                - { Name: EndpointName, Value: live }
+                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+        - Id: colrate
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda/Web/Usage
+              MetricName: EndpointRequestThrottles
+              Dimensions:
+                - { Name: FunctionName, Value: elixir-mcp-collector-web }
+                - { Name: EndpointName, Value: live }
+                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
+            Period: 300
+            Stat: Sum
+          ReturnData: false
+      EvaluationPeriods: 6
+      DatapointsToAlarm: 3
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
@@ -3682,7 +3803,7 @@ Resources:
 
             { "type": "alarm", "x": 0, "y": 2, "width": 24, "height": 4,
               "properties": { "title": "Alarms", "sortBy": "stateUpdatedTimestamp", "alarms": [
-                "${McpErrorsAlarm.Arn}", "${McpLatencyAlarm.Arn}", "${HandledFailureAlarm.Arn}",
+                "${McpErrorsAlarm.Arn}", "${McpLatencyAlarm.Arn}", "${HandledFailureAlarm.Arn}", "${DoorThrottleAlarm.Arn}",
                 "${WebApiErrorsAlarm.Arn}", "${WebApiLatencyAlarm.Arn}",
                 "${CollectorErrorsAlarm.Arn}", "${CollectorLatencyAlarm.Arn}", "${SubmitIngestErrorAlarm.Arn}",
                 "${SchedulerErrorsAlarm.Arn}", "${SchedulerMissingAlarm.Arn}", "${JobsErrorsAlarm.Arn}",
@@ -3721,14 +3842,24 @@ Resources:
                   { "label": "web-api alarm", "value": 15000 }
                 ] } } },
 
-            { "type": "metric", "x": 0, "y": 12, "width": 8, "height": 6,
+            { "type": "metric", "x": 0, "y": 12, "width": 6, "height": 6,
               "properties": { "title": "CloudFront: requests and error rates", "region": "us-east-1", "view": "timeSeries", "stacked": false, "period": 300,
                 "metrics": [
                   ["AWS/CloudFront", "Requests", "DistributionId", "${SiteDistribution}", "Region", "Global", { "stat": "Sum", "label": "requests" }],
                   ["AWS/CloudFront", "5xxErrorRate", "DistributionId", "${SiteDistribution}", "Region", "Global", { "stat": "Average", "label": "5xx %", "yAxis": "right" }],
                   ["AWS/CloudFront", "4xxErrorRate", "DistributionId", "${SiteDistribution}", "Region", "Global", { "stat": "Average", "label": "4xx %", "yAxis": "right" }]
                 ] } },
-            { "type": "log", "x": 8, "y": 12, "width": 16, "height": 6,
+            { "type": "metric", "x": 6, "y": 12, "width": 6, "height": 6,
+              "properties": { "title": "Doors: requests throttled (429)", "region": "${AWS::Region}", "view": "timeSeries", "stacked": true, "period": 300, "stat": "Sum",
+                "metrics": [
+                  ["AWS/Lambda/Web/Usage", "EndpointActiveEnvironmentThrottles", "FunctionName", "elixir-mcp-mcp-web", "EndpointName", "live", "ExecutionRegion", "${AWS::Region}", { "label": "mcp at max environments" }],
+                  ["AWS/Lambda/Web/Usage", "EndpointRequestThrottles", "FunctionName", "elixir-mcp-mcp-web", "EndpointName", "live", "ExecutionRegion", "${AWS::Region}", { "label": "mcp at rate limit" }],
+                  ["AWS/Lambda/Web/Usage", "EndpointActiveEnvironmentThrottles", "FunctionName", "elixir-mcp-web-api-web", "EndpointName", "live", "ExecutionRegion", "${AWS::Region}", { "label": "web-api at max environments" }],
+                  ["AWS/Lambda/Web/Usage", "EndpointRequestThrottles", "FunctionName", "elixir-mcp-web-api-web", "EndpointName", "live", "ExecutionRegion", "${AWS::Region}", { "label": "web-api at rate limit" }],
+                  ["AWS/Lambda/Web/Usage", "EndpointActiveEnvironmentThrottles", "FunctionName", "elixir-mcp-collector-web", "EndpointName", "live", "ExecutionRegion", "${AWS::Region}", { "label": "collector at max environments" }],
+                  ["AWS/Lambda/Web/Usage", "EndpointRequestThrottles", "FunctionName", "elixir-mcp-collector-web", "EndpointName", "live", "ExecutionRegion", "${AWS::Region}", { "label": "collector at rate limit" }]
+                ] } },
+            { "type": "log", "x": 12, "y": 12, "width": 12, "height": 6,
               "properties": { "title": "Tools: calls, p95 and max ms (MCP log)", "region": "${AWS::Region}", "view": "table",
                 "query": "SOURCE '${McpLogGroup}' | filter message.rpc = 'tools/call' | stats count(*) as calls, pct(message.ms, 95) as p95_ms, max(message.ms) as max_ms by message.tool | sort calls desc | limit 25" } },
 
