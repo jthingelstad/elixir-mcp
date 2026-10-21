@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
-import { publishPublicStats } from "../src/public-stats.mjs";
+import pg from "pg";
+import {
+  publishPublicStats,
+  refreshInOneSnapshot,
+} from "../src/public-stats.mjs";
 import {
   calculatePublicStats,
   readPublicStats,
@@ -230,6 +234,118 @@ test("the fetch series refreshed in part equals a full count", async () => {
     const served = await readPublicStats(db);
     assert.equal(JSON.stringify(served).includes("marks"), false);
     assert.equal(served.state, undefined);
+  } finally {
+    await scratch.drop();
+  }
+});
+
+/**
+ * Codex on #636: a migration that commits while a refresh runs. The
+ * refresh reads one snapshot, so it publishes the record exactly as it
+ * stood at its as_of, before the migration, and the next refresh sees
+ * the ledger move and counts in full.
+ */
+test("a migration committing mid-refresh is seen whole by the next one", async () => {
+  const scratch = await scratchDb("public_stats_snapshot");
+  const { db } = scratch;
+  const other = new pg.Client({ connectionString: scratch.url });
+  await other.connect();
+  try {
+    const {
+      rows: [account],
+    } = await db.query(
+      `insert into account (email_hash, status, is_owner, role)
+       values ('stats-owner', 'approved', true, 'owner') returning account_id`,
+    );
+    const {
+      rows: [gw],
+    } = await db.query(
+      `insert into gateway (owner_account_id, name, status)
+       values ($1, 'alpha', 'active') returning gateway_id`,
+      [account.account_id],
+    );
+    for (const d of [5, 5, 3, 0, 0])
+      await db.query(
+        `insert into api_receipt (endpoint, entity_key, fetched_at, payload_hash, gateway_id, admission)
+         values ('clan', '#K' || $1::int || '-' || random(), now() - make_interval(days => $1::int), 'h', $2, 'admitted')`,
+        [d, gw.gateway_id],
+      );
+    const full = async () =>
+      (await calculatePublicStats(db)).series.fetches_daily;
+    const stored = async () =>
+      (
+        await db.query(
+          "select payload->'series'->'fetches_daily' as series, updated_at from public_stats_cache",
+        )
+      ).rows[0];
+    await publishPublicStats(scratch.url);
+    const before = await full();
+
+    // The migration lands once the refresh has read the ledger: it
+    // deletes a receipt five days back and records itself.
+    let committedAt = null;
+    const client = new pg.Client({ connectionString: scratch.url });
+    await client.connect();
+    const query = client.query.bind(client);
+    client.query = async (...args) => {
+      const res = await query(...args);
+      const sql = typeof args[0] === "string" ? args[0] : args[0].text;
+      if (!committedAt && sql.includes("from schema_migrations")) {
+        await other.query("begin");
+        await other.query(
+          `delete from api_receipt where receipt_id =
+             (select min(receipt_id) from api_receipt)`,
+        );
+        await other.query(
+          `insert into schema_migrations (id, name, sha256)
+           select max(id) + 1, 'fictional_receipt_removal', 'test' from schema_migrations`,
+        );
+        ({
+          rows: [{ committedAt }],
+        } = await other
+          .query(`commit; select clock_timestamp() as "committedAt"`)
+          .then((r) => r.at(-1)));
+      }
+      return res;
+    };
+    let snapshot;
+    try {
+      snapshot = await refreshInOneSnapshot(client);
+    } finally {
+      await client.end();
+    }
+    assert.ok(committedAt, "the migration ran during the refresh");
+    // Exact as of its as_of, which is before the migration.
+    assert.deepEqual(snapshot.payload.series.fetches_daily, before);
+    assert.ok(snapshot.at < committedAt);
+    assert.notDeepEqual(await full(), before, "the deletion is real");
+
+    // The next refresh sees the ledger moved: a full count of the record now.
+    const result = await publishPublicStats(scratch.url);
+    assert.equal(result.fetches_recounted, "all");
+    assert.equal(result.published, true);
+    assert.deepEqual((await stored()).series, await full());
+  } finally {
+    await other.end();
+    await scratch.drop();
+  }
+});
+
+test("an older snapshot never replaces a newer one", async () => {
+  const scratch = await scratchDb("public_stats_order");
+  try {
+    await publishPublicStats(scratch.url);
+    await scratch.db.query(
+      "update public_stats_cache set updated_at = now() + interval '1 hour'",
+    );
+    const result = await publishPublicStats(scratch.url);
+    assert.equal(result.published, false);
+    const {
+      rows: [row],
+    } = await scratch.db.query(
+      "select updated_at > now() as kept from public_stats_cache",
+    );
+    assert.equal(row.kept, true);
   } finally {
     await scratch.drop();
   }
