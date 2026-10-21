@@ -21,8 +21,16 @@ export function makeDatabase({ connectionString, max = 4, pool = null }) {
     max,
     allowExitOnIdle: true,
     connectionTimeoutMillis: 2500,
-    idleTimeoutMillis: 30_000,
+    // An idle connection is kept for most of its life (2026-10-21): at 30 s,
+    // 62% of web-api's routed requests in the week to 10-21 waited for a
+    // fresh one (TLS and auth, about 50 ms). Nothing on the path closes an
+    // idle connection sooner: the instance sets no idle_session_timeout,
+    // and keepalive probes after a minute keep any flow-tracking hop on
+    // the network connector from forgetting it (350 s is AWS's usual).
+    idleTimeoutMillis: 240_000,
     maxLifetimeSeconds: 300,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 60_000,
   });
   pool.on("error", (error) =>
     console.error({ event: "db_pool_error", name: error.name }),
@@ -80,9 +88,17 @@ export function makeDatabase({ connectionString, max = 4, pool = null }) {
             return;
           }
           try {
-            // DISCARD ALL requires no transaction. It also releases session
-            // advisory locks and resets SET settings/temporary objects.
-            await owned.query("ROLLBACK");
+            // DISCARD ALL requires no transaction, so one left open is
+            // rolled back first; the server's last ReadyForQuery says
+            // whether there is one ("I" idle, "T" in a transaction), so
+            // the common path sends no ROLLBACK and Postgres logs no
+            // "there is no transaction in progress" warning. DISCARD ALL
+            // releases session advisory locks and resets SET settings,
+            // temporary tables and prepared statements; it refuses to run
+            // in a transaction, so a status read wrongly still destroys
+            // the client below rather than returning it dirty.
+            if (owned.getTransactionStatus?.() !== "I")
+              await owned.query("ROLLBACK");
             await owned.query("DISCARD ALL");
             owned.release();
           } catch {

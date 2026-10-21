@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import pg from "pg";
 import { makeDatabase } from "../src/database.mjs";
 const connectionString =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -139,5 +140,125 @@ test("a connection that never opened is tried once more; a full pool or a second
     assert.equal(pool.calls, 2);
   } finally {
     console.error = error;
+  }
+});
+
+const pidOf = async (lease) =>
+  (await lease.query("select pg_backend_pid() as pid")).rows[0].pid;
+
+test("session state set outside a transaction is discarded; the connection is reused clean", async () => {
+  const database = makeDatabase({ connectionString, max: 1 });
+  const a = database.lease();
+  await a.connect();
+  const pid = await pidOf(a);
+  await a.query("set work_mem = '32MB'");
+  await a.query("select pg_advisory_lock(987654322)");
+  await a.query("create temporary table lease_scratch (n int)");
+  await a.end();
+  const next = database.lease();
+  await next.connect();
+  try {
+    assert.equal(await pidOf(next), pid);
+    assert.notEqual(
+      (await next.query("show work_mem")).rows[0].work_mem,
+      "32MB",
+    );
+    assert.equal(
+      (await next.query("select to_regclass('pg_temp.lease_scratch') as t"))
+        .rows[0].t,
+      null,
+    );
+    assert.equal(
+      (
+        await next.query(
+          "select count(*)::int as n from pg_locks where locktype = 'advisory' and pid = pg_backend_pid()",
+        )
+      ).rows[0].n,
+      0,
+    );
+  } finally {
+    await next.end();
+    await database.close();
+  }
+});
+
+test("a transaction a handler left open is rolled back before the connection is reused", async () => {
+  const database = makeDatabase({ connectionString, max: 2 });
+  const observer = database.lease();
+  await observer.connect();
+  const a = database.lease();
+  await a.connect();
+  try {
+    const pid = await pidOf(a);
+    await a.query("begin");
+    await a.query("set local work_mem = '48MB'");
+    await a.query("select pg_advisory_xact_lock(987654323)");
+    await a.end();
+    const state = (
+      await observer.query(
+        "select state from pg_stat_activity where pid = $1",
+        [pid],
+      )
+    ).rows[0]?.state;
+    assert.equal(state, "idle");
+    assert.equal(
+      (await observer.query("select pg_try_advisory_lock(987654323) as got"))
+        .rows[0].got,
+      true,
+    );
+    await observer.query("select pg_advisory_unlock(987654323)");
+  } finally {
+    await observer.end();
+    await database.close();
+  }
+});
+
+test("a failed transaction destroys its client", async () => {
+  const database = makeDatabase({ connectionString, max: 1 });
+  const a = database.lease();
+  await a.connect();
+  const pid = await pidOf(a);
+  await a.query("begin");
+  await assert.rejects(a.query("select 1/0"), /division by zero/);
+  await a.end();
+  const next = database.lease();
+  await next.connect();
+  try {
+    assert.notEqual(await pidOf(next), pid);
+  } finally {
+    await next.end();
+    await database.close();
+  }
+});
+
+test("the common path sends Postgres nothing that warns", async () => {
+  const pool = new pg.Pool({ connectionString, max: 1 });
+  const notices = [];
+  pool.on("connect", (client) =>
+    client.on("notice", (notice) => notices.push(notice.message)),
+  );
+  const database = makeDatabase({ connectionString, pool });
+  try {
+    for (let i = 0; i < 3; i++) {
+      const lease = database.lease();
+      await lease.connect();
+      await lease.query("select 1");
+      await lease.end();
+    }
+    // A transaction that committed leaves nothing to roll back either.
+    const lease = database.lease();
+    await lease.connect();
+    await lease.query("begin");
+    await lease.query("select 1");
+    await lease.query("commit");
+    await lease.end();
+    assert.deepEqual(notices, []);
+    // The capture works: a ROLLBACK with no transaction is what warned.
+    const probe = await pool.connect();
+    await probe.query("rollback");
+    probe.release();
+    assert.deepEqual(notices, ["there is no transaction in progress"]);
+  } finally {
+    await database.close();
   }
 });
