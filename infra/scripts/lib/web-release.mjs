@@ -35,6 +35,66 @@ export function endpointPolicy(endpointArn, distributionArn) {
   };
 }
 
+/**
+ * Read-only, before the revision switch: each door the live stack already
+ * serves must carry exactly the deploy's own grant. The grant is written
+ * outside CloudFormation (below), so nothing else notices it drift; a
+ * policy that is missing or foreign (anything but `endpointPolicy` for
+ * this endpoint and this distribution) means somebody changed access
+ * outside a deploy, and the deploy stops before it migrates or switches
+ * anything rather than carry on over a door CloudFront may not reach. A
+ * door the live stack does not have yet has nothing to check; the grant
+ * after the update writes its policy.
+ *
+ * @returns {Promise<{ ok: true, receipt: Record<string, unknown> } | { ok: false, problems: string[] }>}
+ */
+export async function checkWebEndpointGrants({
+  web,
+  outputs,
+  distributionArn,
+}) {
+  const receipt = {};
+  const problems = [];
+  for (const door of WEB_DOORS) {
+    const endpointArn = outputs[`${door}WebEndpointArn`];
+    if (!endpointArn) {
+      receipt[door] = "not live yet";
+      continue;
+    }
+    if (!endpointArn.endsWith("/endpoint/live")) {
+      problems.push(`${door}: ${endpointArn} is not the live endpoint`);
+      continue;
+    }
+    const resourceArn = endpointArn.split("/endpoint/")[0];
+    let existing;
+    try {
+      existing = await web.send(new GetResourcePolicyCommand({ resourceArn }));
+    } catch (error) {
+      if (error.name !== "ResourceNotFoundException") throw error;
+    }
+    if (!existing?.policy) {
+      problems.push(
+        `${door}: ${resourceArn} has no resource policy; the CloudFront grant was removed outside a deploy`,
+      );
+      continue;
+    }
+    let actual;
+    try {
+      actual = JSON.parse(existing.policy);
+    } catch {
+      actual = null;
+    }
+    if (!equalPolicy(actual, endpointPolicy(endpointArn, distributionArn))) {
+      problems.push(
+        `${door}: ${resourceArn} has a resource policy that is not the deploy's own grant`,
+      );
+      continue;
+    }
+    receipt[door] = { policyRevision: existing.revisionId };
+  }
+  return problems.length ? { ok: false, problems } : { ok: true, receipt };
+}
+
 /** The CF registry ResourcePolicy type excludes Web Function ARNs. Deploy
  * owns this narrow grant while holding the same production lock as the stack. */
 export async function grantWebEndpoints({ web, outputs, distributionArn }) {
