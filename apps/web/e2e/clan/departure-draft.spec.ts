@@ -94,6 +94,8 @@ for (const width of [390, 1280]) {
       const editor = page.getByLabel("Chat message", { exact: true });
       await expect(editor).toHaveValue(action.copy!);
       await expect(page.getByText(/confirmed by a leader/)).toBeVisible();
+      // A farewell takes the leader's note beside the tone.
+      await expect(page.getByLabel("What should it say?")).toBeVisible();
       await page.getByRole("button", { name: "Draft in our voice" }).click();
       await expect(editor).toHaveValue(line);
       expect(drafts).toEqual([
