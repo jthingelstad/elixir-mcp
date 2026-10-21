@@ -1,9 +1,9 @@
 /**
  * Decks (LadderDecks.dc.html): every deck of the season, each with its
- * record in the mode it was played in. battles_decks answers once over every mode
- * (which modes, which duel rounds) and then once per mode, so a war
- * record and a Trophy Road record never sit in one row; the rows here
- * are those answers, shaped. Nothing here sums records across decks or
+ * record in the mode it was played in. battles_decks answers once over
+ * every mode (which modes, which duel rounds) and then once per mode, so
+ * a war record and a Trophy Road record never sit in one row; the rows
+ * here are those answers, shaped. Nothing here sums records across decks or
  * modes, rates a deck or reads a cause into a change.
  */
 import { cardLabel } from "@elixir-mcp/ui";

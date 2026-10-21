@@ -34,10 +34,10 @@ const LIMIT = 100;
 
 /**
  * Decks (LadderDecks.dc.html): every deck of the season, each with its
- * record in the mode it was played in. battles_decks reads once over every mode (which
- * modes, and the duel rounds), then once per mode; the trophy modes show
- * each deck's cards (one read per deck, by its deck_hash), and every
- * other mode is a row of one table. No record here pools two modes.
+ * record in the mode it was played in. battles_decks reads once over
+ * every mode (which modes, and the duel rounds), then once per mode; the
+ * trophy modes show each deck's cards (one read per deck, by its
+ * deck_hash), and every other mode is a row of one table. No record here pools two modes.
  * The mode the address names comes first (its panel, or the table with
  * its rows first); the others keep their order, and a row of links
  * jumps to each mode's decks.
