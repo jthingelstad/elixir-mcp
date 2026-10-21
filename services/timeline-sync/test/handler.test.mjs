@@ -92,6 +92,29 @@ test("a failed sync keeps its object and retries; a malformed wake is refused", 
   assert.deepEqual(s.deleted, []);
 });
 
+test("a failed run's retry line says what broke, not only its kind", async () => {
+  const key = `timeline-sync/${ACCOUNT}.2.json`;
+  const s = setup({
+    objects: new Map([[key, JSON.stringify({ v: 1, account_id: ACCOUNT })]]),
+    sync: async () => {
+      throw new ReferenceError("nowMs is not defined");
+    },
+  });
+  const lines = [];
+  const error = console.error;
+  console.error = (...args) => lines.push(args);
+  try {
+    const out = await s.handler({ Records: [record("a", key)] });
+    assert.deepEqual(out, { batchItemFailures: [{ itemIdentifier: "a" }] });
+  } finally {
+    console.error = error;
+  }
+  assert.deepEqual(lines, [
+    ["timeline_sync_retry", "ReferenceError", "nowMs is not defined"],
+  ]);
+  assert.deepEqual(s.deleted, []);
+});
+
 test("a clan's wake runs its activity sync; one without the time for the model waits for a later delivery", async () => {
   const key = "timeline-sync/clan-J2RGCRVG.29340000.json";
   const synced = [];
