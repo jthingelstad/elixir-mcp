@@ -52,7 +52,8 @@ async function seed(db) {
   );
   // Ten finished weeks and one under way. Dot played the five before
   // the last four (ago 4-8), none of the last four, and the oldest week
-  // has no row for them.
+  // has no row for them. Each finished week closed on a Monday; the
+  // oldest three only by when Elixir saw them finish (no closed_at).
   const weeks = [
     [135, 2, null, null, 4, 800],
     [135, 1, 1, 0, 0, 0],
@@ -66,11 +67,22 @@ async function seed(db) {
     [133, 1, 2, 16, 8, 1200],
     [133, 0, 3, 16, null, null],
   ];
+  const lastClose = Date.parse("2026-10-19T09:40:00Z");
+  let finished = 0;
   for (const [s, w, rank, , decks, points] of weeks) {
+    const ago = rank == null ? null : finished++;
+    const closed = ago == null ? null : lastClose - ago * 7 * DAY;
     await db.query(
-      `insert into war_week (clan_tag, season_id, section_index, is_colosseum)
-       values ($1, $2, $3, $4)`,
-      [CLAN, s, w, s === 134 && w === 3],
+      `insert into war_week (clan_tag, season_id, section_index, is_colosseum, closed_at, finished_observed_at)
+       values ($1, $2, $3, $4, $5, $6)`,
+      [
+        CLAN,
+        s,
+        w,
+        s === 134 && w === 3,
+        ago != null && ago < 7 ? at(closed) : null,
+        closed != null ? at(closed + 3600_000) : null,
+      ],
     );
     await db.query(
       `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, participant_name, fame, rank, trophy_change)
@@ -391,6 +403,69 @@ test("a draft's story asks for the dossier only when it is about one member", as
     // A member the record does not hold has no dossier.
     const nobody = await draftStory(db, CLAN, ["#PYL0Q2GY"], { nowMs: NOW });
     assert.equal(nobody.dossier, null);
+  } finally {
+    await scratch.drop();
+  }
+});
+
+test("a war week that closed more than a year ago is never told, even inside the 52-week cap", async () => {
+  // Codex on #607: a clan that skipped wars, or a gap in the record,
+  // let the row cap alone reach past the year the docs promise.
+  const scratch = await scratchDb("story_dossier_year");
+  try {
+    const db = scratch.db;
+    await db.query(
+      `insert into clan (clan_tag, name) values ($1, 'Example Clan')`,
+      [CLAN],
+    );
+    await db.query(`insert into player (player_tag, name) values ($1, 'Dot')`, [
+      DOT,
+    ]);
+    await db.query(
+      `insert into clan_membership (clan_tag, player_tag, role, joined_observed_at, left_observed_at, baseline)
+       values ($1, $2, 'elder', '2025-06-01T12:00:00Z', null, false)`,
+      [CLAN, DOT],
+    );
+    // Six finished weeks, far fewer than 52: two this month, one known
+    // only by when Elixir saw it finish, one with no close time at all,
+    // then a year-long gap and two weeks from 2025. Dot played them all.
+    for (const [s, w, closedAt, finishedAt, points] of [
+      [136, 1, "2026-10-19T09:40:00Z", "2026-10-19T10:05:00Z", 2600],
+      [136, 0, "2026-10-12T09:40:00Z", "2026-10-12T10:05:00Z", 2400],
+      [135, 3, null, "2026-09-29T10:05:00Z", 2200],
+      [135, 2, null, null, 2000],
+      [123, 1, "2025-09-15T09:40:00Z", "2025-09-15T10:05:00Z", 3000],
+      [123, 0, "2025-09-08T09:40:00Z", "2025-09-08T10:05:00Z", 3200],
+    ]) {
+      await db.query(
+        `insert into war_week (clan_tag, season_id, section_index, is_colosseum, closed_at, finished_observed_at)
+         values ($1, $2, $3, false, $4, $5)`,
+        [CLAN, s, w, closedAt, finishedAt],
+      );
+      await db.query(
+        `insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, participant_name, fame, rank, trophy_change)
+         values ($1, $2, $3, $1, 'Example Clan', 30000, 1, 0)`,
+        [CLAN, s, w],
+      );
+      await db.query(
+        `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used)
+         values ($1, $2, $3, $4, $5, 16)`,
+        [CLAN, s, w, DOT, points],
+      );
+    }
+    const { dossier } = await draftStory(db, CLAN, [DOT], { nowMs: NOW });
+    // The week with no close time cannot be shown to be in the year and
+    // is left out; it still counts toward how many weeks back each is.
+    assert.deepEqual(
+      dossier.war.map((x) => [x.season_id, x.section_index, x.ago, x.points]),
+      [
+        [136, 1, 0, 2600],
+        [136, 0, 1, 2400],
+        [135, 3, 2, 2200],
+      ],
+    );
+    const told = dossierLines(dossier, "promotion").join("\n");
+    assert.doesNotMatch(told, /season 123|3,000|3,200/);
   } finally {
     await scratch.drop();
   }

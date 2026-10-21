@@ -45,12 +45,13 @@ const MOMENT_DAYS = 14;
 const MOMENTS_MAX = 5;
 /** Announced awards told per member, newest season first. */
 const AWARDS_MAX = 6;
-/** A dossier's bounds: the clan's finished war weeks read (a year), the
- *  whole weeks of donations, the days of decks and milestones, the
- *  milestones kept, the decks kept per mode, the fewest games a deck
- *  needs to be told, the legendary badges and Mastery cards named, and
- *  the role changes. */
+/** A dossier's bounds: the clan's finished war weeks read (at most 52,
+ *  and only those that closed in the last 365 days), the whole weeks of
+ *  donations, the days of decks and milestones, the milestones kept,
+ *  the decks kept per mode, the fewest games a deck needs to be told,
+ *  the legendary badges and Mastery cards named, and the role changes. */
 const DOSSIER_WAR_WEEKS = 52;
+const DOSSIER_WAR_DAYS = 365;
 const DOSSIER_DONATION_WEEKS = 12;
 const DOSSIER_DAYS = 28;
 const DOSSIER_MOMENTS = 8;
@@ -323,9 +324,11 @@ export const draftStory = (db, clanTag, playerTags, { nowMs } = {}) =>
  * for one mode at a time.
  *
  *  - `war`: their war weeks in this clan, newest first, for the clan's
- *    last finished weeks (`DOSSIER_WAR_WEEKS`): decks used and points
- *    (never fame), `ago` counting finished weeks back from the newest
- *    (0). Weekly aggregates only.
+ *    last finished weeks (`DOSSIER_WAR_WEEKS`) that closed in the last
+ *    year (`DOSSIER_WAR_DAYS`, on `closed_at`, else
+ *    `finished_observed_at`; a week with neither is left out): decks
+ *    used and points (never fame), `ago` counting finished weeks back
+ *    from the newest (0). Weekly aggregates only.
  *  - `donations`: their donations in this clan for each of the last
  *    whole weeks they were here for all of (`memberActivityWeeks`; a
  *    week they joined in has none), `ago` counting back from last week
@@ -355,7 +358,7 @@ async function memberDossier(
   } = {},
 ) {
   const fromMs = nowMs - DOSSIER_DAYS * DAY_MS;
-  const war = await dossierWar(db, clanTag, playerTag);
+  const war = await dossierWar(db, clanTag, playerTag, { nowMs });
   const donations = await dossierDonations(db, clanTag, playerTag, {
     nowMs,
     joinedAt,
@@ -383,25 +386,34 @@ async function memberDossier(
   };
 }
 
-async function dossierWar(db, clanTag, playerTag) {
+async function dossierWar(db, clanTag, playerTag, { nowMs }) {
+  // `ago` counts every finished week of the clan, one with no close time
+  // included; the cap and the year then both bound what is told, the
+  // year on the week's close, so a clan that skipped wars or a gap in
+  // the record never reaches past a year (Codex on #607).
   const { rows } = await db.query(
     `with weeks as (
        select w.season_id, w.section_index, w.is_colosseum,
+              coalesce(w.closed_at, w.finished_observed_at) as closed,
               (row_number() over (order by w.season_id desc, w.section_index desc) - 1)::int as ago
          from war_week w
          join war_week_clan own on own.clan_tag = w.clan_tag
           and own.season_id = w.season_id and own.section_index = w.section_index
           and own.participant_clan_tag = w.clan_tag
-        where w.clan_tag = $1 and own.rank is not null
-        order by w.season_id desc, w.section_index desc
-        limit $3)
+        where w.clan_tag = $1 and own.rank is not null)
      select k.season_id, k.section_index, k.is_colosseum, k.ago,
             wp.decks_used, wp.points
        from weeks k
        join war_participation wp on wp.clan_tag = $1 and wp.player_tag = $2
         and wp.season_id = k.season_id and wp.section_index = k.section_index
+      where k.ago < $3 and k.closed >= $4::timestamptz
       order by k.ago`,
-    [clanTag, playerTag, DOSSIER_WAR_WEEKS],
+    [
+      clanTag,
+      playerTag,
+      DOSSIER_WAR_WEEKS,
+      new Date(nowMs - DOSSIER_WAR_DAYS * DAY_MS).toISOString(),
+    ],
   );
   return rows.map((r) => ({
     season_id: r.season_id,
