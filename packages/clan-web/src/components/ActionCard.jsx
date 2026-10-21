@@ -10,6 +10,7 @@ import {
   noun,
   Tag,
   TagText,
+  useFlash,
 } from "@elixir-mcp/ui";
 import {
   CHAT_MAX,
@@ -185,7 +186,7 @@ export function CopyLine({
   value,
   label = "Copy for clan chat",
 }) {
-  const [done, setDone] = useState(false);
+  const [done, flash] = useFlash();
   return (
     <div className="flex items-start gap-2 rounded-control border border-line-soft bg-ground-sunken px-2.5 py-2 text-[13px]">
       <span className="flex-auto">
@@ -200,8 +201,7 @@ export function CopyLine({
           try {
             await navigator.clipboard.writeText(text);
             trackEvent(event, value);
-            setDone(true);
-            setTimeout(() => setDone(false), 1500);
+            flash();
           } catch {
             // The line is on screen to select by hand.
           }
@@ -224,7 +224,7 @@ function MessageField({
   disabled = false,
   copyKind = "leader_message",
 }) {
-  const [done, setDone] = useState(false);
+  const [done, flash] = useFlash();
   const over = value.length > max;
   const warnings = chatWarnings(value, max).filter(
     (w) => !w.startsWith("longer"),
@@ -245,8 +245,7 @@ function MessageField({
             try {
               await navigator.clipboard.writeText(value);
               trackEvent("clan.copy_in_game", copyKind);
-              setDone(true);
-              setTimeout(() => setDone(false), 1500);
+              flash();
             } catch {
               // The text is on screen to select by hand.
             }

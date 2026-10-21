@@ -14,6 +14,7 @@ import {
   isTowerTroop,
   TagText,
   useClock,
+  useFlash,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { useMe, useNav } from "../App.jsx";
@@ -160,15 +161,14 @@ function useMedia(query) {
 }
 
 function CopyButton({ text, label = "Copy", className = "btn btn--sm" }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, flash] = useFlash();
   return (
     <button
       type="button"
       className={className}
       onClick={() => {
         navigator.clipboard?.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        flash();
       }}
     >
       <Icon name={copied ? "check" : "copy"} size={14} />

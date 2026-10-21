@@ -1,4 +1,4 @@
-import { Icon, Tag } from "@elixir-mcp/ui";
+import { Icon, Tag, useFlash } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { trackEvent } from "../analytics.js";
 import { useMyClans } from "../lib/queries.js";
@@ -14,7 +14,7 @@ import {
  *  button. A copy is counted as one aggregate event by channel; nothing
  *  records who copied what (lib/invite.js). */
 function Copyable({ text, label, channel, multiline = false }) {
-  const [done, setDone] = useState(false);
+  const [done, flash] = useFlash();
   return (
     <div className="flex items-start gap-2 rounded-control border border-line-soft bg-ground-sunken px-2.5 py-2 text-[13px]">
       <span
@@ -31,8 +31,7 @@ function Copyable({ text, label, channel, multiline = false }) {
           try {
             await navigator.clipboard.writeText(text);
             trackEvent(INVITE_EVENT, channel);
-            setDone(true);
-            setTimeout(() => setDone(false), 1500);
+            flash();
           } catch {
             // The words are on screen to select by hand.
           }

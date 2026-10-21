@@ -1,5 +1,5 @@
 import { useWrite } from "@elixir-mcp/client";
-import { Fresh, Link, WriteError, noun } from "@elixir-mcp/ui";
+import { Fresh, Link, WriteError, noun, useFlash } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
@@ -41,7 +41,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [renameError, setRenameError] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, flash] = useFlash();
 
   const invalidate = useInvalidate();
   const load = () => invalidate(keys.principals);
@@ -382,8 +382,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
                 className="btn--text"
                 onClick={() => {
                   navigator.clipboard?.writeText(connectUrl);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 1500);
+                  flash();
                 }}
               >
                 {copied ? "copied" : "copy"}
