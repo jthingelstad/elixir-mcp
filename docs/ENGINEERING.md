@@ -618,6 +618,12 @@ invariants:
   sequence, never offsets in the script's source. A new step is a phase
   (or part of one) in its place. The deploy record carries each phase's
   seconds and the CI gate's wait, so a slow deploy names its slow phase.
+- The site publishes only what changed (`infra/scripts/lib/site-publish.mjs`):
+  a file is uploaded when its MD5 differs from the object's ETag or its
+  headers from the last publish's record, with Content-Type from one
+  table the site build also checks. An old asset is pruned only when no
+  deploy in the last 14 days shipped it, read from the per-deploy
+  manifests, never from upload times.
 
 ## Verification follows the boundaries
 
