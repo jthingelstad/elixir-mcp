@@ -894,6 +894,120 @@ test("the static router only resolves documents; native app behaviors bypass it"
     }
 });
 
+test("the static router answers scanner paths 404 itself; documents and files pass (#451)", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const template = await readFile(templateUrl, "utf8");
+  const router = resource(template, "SpaRouter", "OauthQueryNormalizer");
+  const source = router.split("FunctionCode: |\n")[1].split("\n  #")[0];
+  const handler = runInNewContext(`${source}\nhandler`);
+  // Read off the web API's 404s for the week to 10-21.
+  for (const uri of [
+    "/.env",
+    "/.env.production",
+    "/public/.env",
+    "/.git/config",
+    "/.git/logs/HEAD",
+    "/.aws/credentials",
+    "/.npmrc",
+    "/.claude/settings.json",
+    "/.github/workflows/deploy.yml",
+    "/wp-login.php",
+    "/wp-content/debug.log",
+    "/wp-json/gravitysmtp/v1/tests/mock-data",
+    "/wordpress",
+    "/wp",
+    "/phpinfo",
+    "/phpinfo.php",
+    "/api/phpinfo.php",
+    "/_profiler/phpinfo",
+    "/wp-config.php.bak",
+    "/config.php",
+    "/config.env",
+    "/config.yaml",
+    "/config/aws.yml",
+    "/docker-compose.yml",
+    "/Dockerfile",
+    "/database.sql",
+    "/credentials.ini",
+    "/credentials",
+    "/server/settings.py",
+    "/temporal.toml",
+    "/vendor/composer/installed.json",
+    "/env.js",
+    "/__env.js",
+    "/env.json",
+    "/config.js",
+    "/config.json",
+    "/app.config.js",
+    "/runtime-config.js",
+    "/globalConfig.js",
+    "/server-config.json",
+    "/assets/config.js",
+    "/appsettings.json",
+    "/appsettings.Development.json",
+    "/credentials.json",
+    "/secrets.json",
+    "/settings.json",
+    "/aws-exports.js",
+    "/composer.json",
+    "/auth.json",
+  ]) {
+    const answer = handler({ request: { uri } });
+    assert.equal(answer.statusCode, 404, uri);
+    assert.equal(answer.uri, undefined, uri);
+  }
+  // Documents, files and honest misses keep going to the bucket. A built
+  // chunk is name-hash.js, so a word in its name never matches; the site
+  // tests walk the whole built tree.
+  for (const [uri, document] of [
+    ["/docs/connections", "/docs/connections/index.html"],
+    ["/cards/Inferno%20Dragon", "/cards/Inferno%20Dragon/index.html"],
+    ["/assets/config-B3k9xQ2a.js", "/assets/config-B3k9xQ2a.js"],
+    ["/assets/Settings-Cq1ZpK0e.js", "/assets/Settings-Cq1ZpK0e.js"],
+    ["/assets/env-a1b2c3d4.js", "/assets/env-a1b2c3d4.js"],
+    ["/assets/not-a-real-file.js", "/assets/not-a-real-file.js"],
+    ["/docs/integration-api.json", "/docs/integration-api.json"],
+    ["/llms.txt", "/llms.txt"],
+    ["/feed.xml", "/feed.xml"],
+    ["/favicon.ico", "/favicon.ico"],
+    ["/environment", "/environment/index.html"],
+    ["/wpa", "/wpa/index.html"],
+  ]) {
+    const request = { uri };
+    assert.equal(handler({ request }), request, uri);
+    assert.equal(request.uri, document);
+  }
+});
+
+test("every behaviour compresses; only identical-for-everyone reads are cached (2026-10-21)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const behaviours = cacheBehaviours(template);
+  for (const [path, block] of behaviours)
+    assert.match(block, /\n\s+Compress: true\n/, `${path} compresses`);
+  const cached = behaviours.filter(([, block]) =>
+    block.includes(`CachePolicyId: ${CACHING_OPTIMIZED}\n`),
+  );
+  assert.deepEqual(
+    cached.map(([path]) => path),
+    ["/api/public/*", "/battle/*", "/.well-known/*"],
+  );
+  for (const [path, block] of cached) {
+    // Nothing but the path reaches the origin, so one cached object is
+    // right for every caller; and nothing but a read is allowed.
+    assert.doesNotMatch(block, /OriginRequestPolicyId/, path);
+    assert.match(block, /AllowedMethods: \[GET, HEAD\]\n/, path);
+  }
+  for (const [path, block] of behaviours)
+    if (!cached.some(([p]) => p === path))
+      assert.match(
+        block,
+        /CachePolicyId: !Ref WebPrivateCachePolicy\n/,
+        `${path} is private`,
+      );
+  const [, metadata] = cached.find(([path]) => path === "/.well-known/*");
+  assert.match(metadata, /TargetOriginId: mcpapi\n/);
+});
+
 test("every public read is cached at the edge by one /api/public/* behaviour (#73)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const behaviours = cacheBehaviours(template);
