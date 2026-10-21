@@ -276,6 +276,42 @@ function edgeRouter() {
   return (uri) => handler({ request: { uri } }).uri;
 }
 
+/** Every file in the built tree, as URL paths. */
+function builtFiles(dir = out) {
+  const found = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) found.push(...builtFiles(full));
+    else found.push(`/${path.relative(out, full).split(path.sep).join("/")}`);
+  }
+  return found;
+}
+
+test(
+  "the edge's scanner 404 matches no file or page the site builds (#451)",
+  { skip },
+  () => {
+    const route = edgeRouter();
+    const files = builtFiles();
+    assert.ok(files.length > 1000, `${files.length} files`);
+    for (const file of files) {
+      // A file is itself: the router passes it to the bucket untouched,
+      // as typed and as a browser encodes it.
+      assert.equal(route(file), file, `${file} is answered 404 at the edge`);
+      const encoded = file.split("/").map(encodeURIComponent).join("/");
+      assert.equal(route(encoded), encoded, `${encoded} is answered 404`);
+      // A page is its directory, with or without the trailing slash.
+      if (file.endsWith("/index.html") && file !== "/index.html") {
+        const page = file.slice(0, -"/index.html".length);
+        assert.equal(route(page), file, `${page} is answered 404`);
+        assert.equal(route(`${page}/`), file, `${page}/ is answered 404`);
+      }
+    }
+    // The favicon is a file of the site's own now, not a miss.
+    assert.ok(files.includes("/favicon.ico"));
+  },
+);
+
 /** The native app bypasses the static router through an explicit behavior. */
 function assertNativeApp(uri) {
   const template = readFileSync(
