@@ -351,6 +351,24 @@ test("a path no operation answers is a 404 that points to the docs, whatever the
       assert.equal(line.status, 404);
       assert.equal(line.operation, undefined);
     }
+  // A body that is not JSON does not change the answer (Codex on #621);
+  // on a real operation it is still invalid_json, before the credential.
+  const garbled = await handler({
+    path: "/api/v1/chat/completions",
+    method: "POST",
+    headers: { authorization: "Bearer sk-not-an-elixir-key" },
+    body: "{not json",
+  });
+  assert.equal(garbled.statusCode, 404, garbled.body);
+  assert.equal(JSON.parse(garbled.body).code, "not_found");
+  const real = await handler({
+    path: "/api/v1/feedback",
+    method: "POST",
+    headers: {},
+    body: "{not json",
+  });
+  assert.equal(real.statusCode, 400, real.body);
+  assert.equal(JSON.parse(real.body).code, "invalid_json");
   // Nothing was authenticated, so nothing was audited or counted.
   const { rows } = await db.query(
     `select count(*)::int as n from mcp_call_audit where audit_id > $1`,
