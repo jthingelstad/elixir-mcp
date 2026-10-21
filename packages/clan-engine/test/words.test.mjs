@@ -16,7 +16,8 @@ import {
 } from "../src/words.mjs";
 import { PITCH_FIELDS } from "../src/recruit.mjs";
 import { describePolicy } from "../src/render.mjs";
-import { ANGLES_HEADING } from "../src/context.mjs";
+import { ANGLES_HEADING, clanContext, VOICE_RULE } from "../src/context.mjs";
+import { editorPreviewRequest, editorRequest } from "../src/editor.mjs";
 import { policyFromGoals } from "../src/goals.mjs";
 
 const FACTS = {
@@ -663,5 +664,61 @@ test("award drafts reserve space for every recipient, including a full-size segm
         },
       ),
     RangeError,
+  );
+});
+
+test("one voice for the drafts and the Discord editor (call 5): the leaders' words in THE CLAN, the same rule in both instructions, which lifts none", () => {
+  const voice = "Dry and short. Cheer the grinders. Spanish please.";
+  const withVoice = clanContext({ name: "Example Clan", voice });
+  assert.match(
+    withVoice,
+    /How its leaders want it to sound: Dry and short\. Cheer the grinders\. Spanish please\./,
+  );
+  assert.doesNotMatch(
+    clanContext({ name: "Example Clan" }),
+    /want it to sound/,
+  );
+  const requests = [
+    ...["welcome", "removal", "promotion", "demotion"].map((kind) =>
+      clanChatRequest({ kind, context: withVoice, packet: PACKET }),
+    ),
+    ...["promotion", "demotion", "awards", "rules"].map((kind) =>
+      leaderMessageRequest({ kind, context: withVoice, packet: PACKET }),
+    ),
+    editorRequest({ context: withVoice }),
+    editorPreviewRequest({ context: withVoice }),
+  ];
+  for (const r of requests) {
+    assert.equal(
+      r.context,
+      withVoice,
+      "the voice rides in THE CLAN, the cached prefix",
+    );
+    assert.ok(r.system.includes(VOICE_RULE), r.purpose);
+    assert.match(r.system, /clan's voice asks for another language/);
+    // The voice is never the system's: a clan with none gets the same instructions.
+    assert.doesNotMatch(r.system, /Cheer the grinders/);
+  }
+  assert.match(VOICE_RULE, /never the facts/);
+  assert.match(VOICE_RULE, /never lifts a rule/);
+  // The rules it never lifts are still there, after it.
+  const chat = clanChatRequest({
+    kind: "promotion",
+    context: withVoice,
+  }).system;
+  assert.ok(chat.indexOf(VOICE_RULE) < chat.indexOf("Never judge a member"));
+  assert.ok(chat.indexOf(VOICE_RULE) < chat.indexOf("never '&'"));
+  assert.equal(
+    clanChatRequest({ kind: "promotion", context: withVoice }).system,
+    clanChatRequest({ kind: "promotion", context: CONTEXT }).system,
+  );
+  // The words after a removal take no note, but the clan's voice still.
+  assert.match(
+    clanChatRequest({ kind: "removal", context: withVoice }).system,
+    /Write in English unless the clan's voice asks for another language\./,
+  );
+  assert.match(
+    clanChatRequest({ kind: "welcome", context: withVoice }).system,
+    /unless the leader's note or the clan's voice asks for another language/,
   );
 });

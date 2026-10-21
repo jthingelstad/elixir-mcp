@@ -34,6 +34,7 @@ import {
   memberLines,
   strictTool,
   unknownNames,
+  VOICE_RULE,
 } from "./context.mjs";
 import { DEPARTURE_CLASSIFIED, namesIn, rewriteText } from "./activity.mjs";
 
@@ -157,6 +158,7 @@ const system = ({ lookups = true } = {}) =>
     "- Tell several stories in one post when they belong together (members reaching the same arena, one member's milestones from one session), listing every key the post tells.",
     "- Skip a story not worth a post (a small step, something the channel just said) with a short reason. A story you neither post nor skip is posted in Elixir's version.",
     "Rules:",
+    `- ${VOICE_RULE}`,
     `- Every name, number and event comes from THE CLAN${lookups ? ", a STORY or a lookup's answer" : " or a STORY"}. Never invent a result, an opponent, a reason, a feeling or a plan. When the facts say little, write little.`,
     "- Name members and opponents exactly as written; never shorten, translate or correct a name. Keep every name a story's version says.",
     "- Never judge a member: nobody is slacking, disappointing, lazy or in trouble. Celebrate what went well; state the rest plainly. A member's share of the clan's fame is never told.",

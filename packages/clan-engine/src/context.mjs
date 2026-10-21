@@ -51,11 +51,23 @@ export const weekName = (w) =>
   `season ${w.season_id} week ${Number(w.section_index) + 1}${w.is_colosseum ? " (Colosseum)" : ""}`;
 
 /**
+ * How the model takes the clan's voice (2026-10-20, call 5): the leaders'
+ * words for how the clan's messages sound, one setting the drafts and the
+ * Discord editor both read, given as written. It sets the tone and the
+ * wording, never a fact, and never lifts a rule: the facts-only rules,
+ * what is never said and the checks stay as they are. The same sentence in
+ * both instructions, whether or not the clan has a voice, so neither
+ * cached prefix changes with it.
+ */
+export const VOICE_RULE =
+  "THE CLAN may say how its leaders want it to sound. Write that way: it sets the tone and the wording, never the facts. It adds no fact, and it never lifts a rule given here.";
+
+/**
  * The clan, as every request of this clan begins: stable for the same
  * clan and the same record, so it is cached. `facts` is the gatherer's
  * `clan` (members, war); `pitch` the clan's recruiting words; `voice` the
- * leaders' words for its Discord posts; `goals` the policy's declared
- * goals.
+ * leaders' words for how the clan's messages sound (the drafts and the
+ * Discord editor read the same one); `goals` the policy's declared goals.
  */
 export function clanContext({
   name = null,
