@@ -7,7 +7,7 @@ order: 1
 navTitle: "Bring your clan"
 icon: users
 lede: "Elixir Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
-reviewed: "2026-10-20; a leader or co-leader with Actions waiting lands on Actions, and the roster has its own address; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
+reviewed: "2026-10-20; the clan you are in heads the rail, and you switch clans there; a leader or co-leader with Actions waiting lands on Actions, and the roster has its own address; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
@@ -92,14 +92,21 @@ If two of your players are in the same clan, the higher role counts.
 standing, Actions and awards, and nothing is pooled across clans. If
 your players are in different clans (a clan family's main and its
 feeders, say), Clan asks which one to work in and remembers it; switch
-at any time under **Clans**. A family is how Elixir *records* clans:
+at any time from the top of the rail. A family is how Elixir *records* clans:
 the Family tier's several comprehensive watches ([Roles](/docs/roles)).
 Clan does not know which clans make up a family, only which clans your
 own players are in.
 
 ## Finding your way
 
-The rail down the side lists Clan's pages:
+The top of the rail is the clan you are in: its name, its tag, your role
+there and, while your player there is not verified, **unverified**. If
+your players are in more than one clan, it opens to each of them (its
+name, its tag, the player you are there and your role) and to **All your
+clans…**, the full list; picking a clan opens it as coming to a clan
+does, below. With one clan there is nothing to open.
+
+Below it, the rail lists Clan's pages:
 
 - The clan itself: **Roster**, **Your clan record** (your own numbers in
   the clan), [The week](/docs/clan-week) and [Season](/docs/clan-season);
@@ -122,11 +129,13 @@ The rail down the side lists Clan's pages:
   answer comes to your [feedback](/docs/your-account#feedback) and your
   inbox.
 
-On a phone the rail folds into one row above the page; while it is
-closed, a mark on that row says Actions are waiting for you.
+On a phone the rail folds into one row above the page, with the clan you
+are in beside it; while the row is closed, a mark on it says Actions are
+waiting for you.
 
-Coming to a clan (its address, [/clan](/clan), picking one under
-**Clans**, or coming back from sign-in) opens its **Roster**. The leader
+Coming to a clan (its address, [/clan](/clan), picking one at the top of
+the rail or under **All your clans…**, or coming back from sign-in)
+opens its **Roster**. The leader
 and co-leaders open **Actions** instead while Actions are waiting for
 them, and the roster when none are. An address that names a page always
 opens that page: the roster's own is `/clan/<tag>/roster`, and the rail's
