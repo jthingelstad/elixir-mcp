@@ -11,23 +11,28 @@
   "engines": {
     "node": "24.x"
   },
+  "overrides": {
+    "@tailwindcss/cli": {
+      "@parcel/watcher": "^2.6.0"
+    }
+  },
   "devDependencies": {
-    "@aws-sdk/client-cloudformation": "^3.1146.0",
-    "@aws-sdk/client-cloudfront": "^3.1146.0",
-    "@aws-sdk/client-lambda": "^3.1146.0",
-    "@aws-sdk/client-lambda-web": "3.1150.0",
-    "@aws-sdk/client-s3": "^3.1146.0",
-    "@aws-sdk/client-secrets-manager": "^3.1146.0",
-    "@aws-sdk/client-sts": "^3.1146.0",
-    "@axe-core/playwright": "^4.13.0",
+    "@aws-sdk/client-cloudformation": "^3.1152.0",
+    "@aws-sdk/client-cloudfront": "^3.1152.0",
+    "@aws-sdk/client-lambda": "^3.1152.0",
+    "@aws-sdk/client-lambda-web": "3.1152.0",
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "@aws-sdk/client-secrets-manager": "^3.1152.0",
+    "@aws-sdk/client-sts": "^3.1152.0",
+    "@axe-core/playwright": "^4.14.0",
     "@elixir-mcp/clan-engine": "0.1.0",
-    "@playwright/test": "^1.63.0",
-    "@tanstack/router-core": "1.171.34",
+    "@playwright/test": "^1.64.1",
+    "@tanstack/router-core": "1.171.38",
     "esbuild": "^0.28.2",
-    "knip": "^6.39.0",
-    "oxlint": "^1.86.0",
-    "playwright": "^1.63.0",
-    "prettier": "^3.9.9",
+    "knip": "^6.41.0",
+    "oxlint": "^1.88.0",
+    "playwright": "^1.64.1",
+    "prettier": "^3.9.10",
     "typescript": "^7.0.2"
   },
   "scripts": {
