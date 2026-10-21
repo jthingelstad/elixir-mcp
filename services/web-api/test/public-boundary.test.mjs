@@ -147,8 +147,11 @@ test("every other route refuses a request with no credential", async () => {
 });
 
 test("the doors by prefix refuse with no credential", async () => {
-  // The JSON API needs a bearer.
-  assert.equal((await call("GET", "/api/v1/me/players")).statusCode, 401);
+  // The JSON API needs a bearer for every operation it has; a path it
+  // has none for is a 404 to the docs (integration-routing.test.mjs).
+  assert.equal((await call("GET", "/api/v1/me")).statusCode, 401);
+  assert.equal((await call("POST", "/api/v1/me/players")).statusCode, 401);
+  assert.equal((await call("GET", "/api/v1/me/players")).statusCode, 404);
   // An agent's console needs its owner signed in.
   assert.equal(
     (await call("GET", "/api/agent/abcdefgh/timeline")).statusCode,

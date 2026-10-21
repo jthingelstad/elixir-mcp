@@ -102,7 +102,7 @@ unknown response fields as compatible additions.
 ## Versions
 
 The JSON API carries its own semantic version, the OpenAPI document's
-`info.version`; the current version is **3.1.0**. Its callers are programs, so
+`info.version`. Its callers are programs, so
 a removed or renamed response field is a major, and an added field or
 operation is a minor. (MCP versions differently: its callers are agents
 reading the current declaration.) The path stays `/api/v1` across majors,
@@ -265,7 +265,7 @@ These allowances do not increase the collector fleet's shared upstream budget.
 | 400 | `invalid_json` (checked before authentication; send `{}` on GET), `invalid_tag`, `idempotency_key_required`, or `bad_request` for a badly percent-encoded path; on a person's operation also `bad_request` and `result_too_large` from the tool; on a fact write `unknown_fact_type` or `invalid_fact` |
 | 401 | `unauthenticated`: missing, wrong-purpose, revoked or suspended credential |
 | 403 | Missing permission; `insufficient_scope` when a person's grant lacks the operation's scope; `not_entitled` from a person's tool; on a clan fact `family_apps_only`, `not_in_clan` or `not_permitted` |
-| 404 | Unknown or inaccessible resource (`not_found`); `not_recorded` for missing profile data; `no_subject` on a person's operation with nothing to answer about |
+| 404 | Unknown or inaccessible resource (`not_found`); a path or method no operation answers is `not_found` before any credential is checked, its `detail` pointing to the docs; `not_recorded` for missing profile data; `no_subject` on a person's operation with nothing to answer about |
 | 409 | `idempotency_conflict`; `ref_conflict` when a fact's `ref` already names another type or subject |
 | 429 | `rate_limited` (also a refresh when the shared CR budget is spent until the next tick), `daily_quota_exceeded` or `refresh_quota_exceeded`; `quota_exceeded` from a person's tool |
 | 500 | `internal`: a fault on Elixir's side that a retry will not fix; no `Retry-After` |

@@ -72,7 +72,9 @@ result in `data`, without the size cap an agent's answer has.
 An error is `application/problem+json`: `type`, `title`, `status`, a
 `code` to branch on, a `detail` to show, the `request_id`, and, when
 they apply, a `hint` and `retry_after_s` with a `Retry-After` header.
-The codes and statuses are listed under
+A path no operation above answers is a 404 `not_found` whatever the
+credential, its `detail` pointing here and to the OpenAPI document. The
+codes and statuses are listed under
 [Limits and errors](/docs/integrations#limits-and-errors). Honor
 `Retry-After`, and quote the `request_id` when you
 [report a problem](/console/account/feedback).
@@ -83,8 +85,8 @@ The JSON API has its own version, separate from the MCP contract, in the
 OpenAPI document's `info.version`. Adding an operation or a field is a
 minor version. Removing or renaming a field is a major version, and the
 path stays `/api/v1` whatever the version, because the path is what a
-person's grant is for. The current version is 3.1.0; what changed in each
-version is in the OpenAPI document and on [Updates](/updates).
+person's grant is for. What changed in each version is in the OpenAPI
+document and on [Updates](/updates).
 
 ## Limits
 
