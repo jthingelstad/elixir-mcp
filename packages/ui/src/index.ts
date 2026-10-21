@@ -90,6 +90,8 @@ export {
 } from "./WriteError.tsx";
 export { useClock, ZoneProvider } from "./Zone.tsx";
 
+export { useFlash } from "./flash.ts";
+
 export { MODE_LABEL } from "./battle-mode.ts";
 export { noun } from "./noun.ts";
 

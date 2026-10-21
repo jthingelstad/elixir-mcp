@@ -10,6 +10,7 @@ import {
   useClock,
   WriteError,
   noun,
+  useFlash,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { usePublicStats } from "../lib/queries.js";
@@ -207,14 +208,13 @@ function NicknameEditor({ nick, onSaved }) {
 }
 
 function CopyLink() {
-  const [copied, setCopied] = useState(false);
+  const [copied, flash] = useFlash();
   return (
     <button
       className="btn--text"
       onClick={() => {
         navigator.clipboard?.writeText(window.location.href);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        flash();
       }}
     >
       {copied ? "copied" : "copy link"}

@@ -1,5 +1,12 @@
 import { useWrite } from "@elixir-mcp/client";
-import { Fresh, Icon, Link, useClock, WriteError } from "@elixir-mcp/ui";
+import {
+  Fresh,
+  Icon,
+  Link,
+  useClock,
+  WriteError,
+  useFlash,
+} from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api.js";
@@ -46,7 +53,7 @@ export function Connections({ me, navigate }) {
   const refusals = conns?.refusals ?? [];
   const principals = useMyPrincipals().data?.agents ?? null;
   const agents = scope ? [] : principals;
-  const [copied, setCopied] = useState(false);
+  const [copied, flash] = useFlash();
 
   const invalidate = useInvalidate();
   // A dismissed refusal also clears the rail's alert dot, which reads
@@ -199,8 +206,7 @@ export function Connections({ me, navigate }) {
           className={"btn btn--primary" + (scope ? " ml-auto" : "")}
           onClick={() => {
             navigator.clipboard?.writeText(url);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
+            flash();
           }}
         >
           {copied ? "Copied" : `Copy ${scope ? "its" : "/mcp"} URL`}

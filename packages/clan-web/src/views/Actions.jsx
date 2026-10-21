@@ -1,4 +1,4 @@
-import { Fresh, Icon, ago, TagText } from "@elixir-mcp/ui";
+import { Fresh, Icon, ago, TagText, useFlash } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { keys, useAction, useActions, useInvalidate } from "../lib/queries.js";
 import {
@@ -382,7 +382,7 @@ export function Actions({ clan, who, navigate, scope: routeScope }) {
 
 /** Copy the action's address, to send to someone in the clan. */
 function CopyLink({ path }) {
-  const [done, setDone] = useState(false);
+  const [done, flash] = useFlash();
   return (
     <button
       type="button"
@@ -393,8 +393,7 @@ function CopyLink({ path }) {
             `${window.location.origin}${path}`,
           );
           trackEvent("clan.action_link_copied");
-          setDone(true);
-          setTimeout(() => setDone(false), 1500);
+          flash();
         } catch {
           // The address is in the browser's bar to copy by hand.
         }
