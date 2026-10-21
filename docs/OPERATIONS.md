@@ -55,12 +55,24 @@ ledger should drain, and both doors should serve.
   log carries `archetype_stamp`, the decks re-stamped after a vocabulary
   or grammar change: a non-zero `written` on a day with neither, and no
   deploy, needs a reason. The hourly operational sweep carries the war
-  calendar's health read.
+  calendar's health read. `elixir-mcp-season-war-id-mismatch` pages on
+  the first race log read whose seasonId the calendar does not derive
+  and holds ALARM for 30 hours after the last one (a clan's log is read
+  about daily), so a standing mismatch is one page, not one a day: read
+  the season table against the log entry; nothing relabels itself.
 - **The doors.** Quiet: the MCP and web-api error alarms, both p95
   latency alarms, and `elixir-mcp-door-handled-failures` (the failures
   the doors answer themselves, `tool_failed_unexpectedly` and
-  `db_connect_failed`, which no Lambda error counts). OAuth discovery
-  serving. `elixir-mcp-site-certificate-expiry` quiet: ACM renewal
+  `db_connect_failed`, which no Lambda error counts). It pages on the
+  third in an hour and holds ALARM about an hour past the last, so one
+  broken tool is one page: read the MCP log's `tool_failed_unexpectedly`
+  lines for the tool, then reproduce its arguments read-only.
+  `elixir-mcp-door-throttles` is a door answering 429 for capacity (its
+  Web Function's MaxEnvironments or RateLimit) in 3 of 6 five-minute
+  periods; the dashboard's "Doors: requests throttled" says which door
+  and which limit. The web-api's single five-minute bursts are scanner
+  waves meeting its two environments and stay on the dashboard; raising
+  MaxEnvironments is a cost call, Jamie's. OAuth discovery serving. `elixir-mcp-site-certificate-expiry` quiet: ACM renewal
   depends on the validation CNAME at the registrar, which only Jamie can
   change. Firing now:
   `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --state-value ALARM`.
@@ -129,7 +141,9 @@ failure, and never delete what you have not read.
   redriving one only runs the sync again, which never posts a story
   twice; read `/aws/lambda/elixir-mcp-timeline-sync` for
   `clan_activity_synced` (its `editor`, `rounds`, `lookups`, `merged`,
-  `model_skips`, `refused` and `rewrite_code`) first. `timeline-discord/`
+  `model_skips`, `refused` and `rewrite_code`) first, and
+  `timeline_sync_retry <kind> <message>` for a wake that threw (five
+  throws and it is a dead letter; fix the cause before any redrive). `timeline-discord/`
   is the Discord sends themselves (a person's cross-post and a clan's
   channel), drained by the VPC-less `elixir-mcp-email-relay`, with
   `elixir-mcp-timeline-discord-dlq` (alarm
