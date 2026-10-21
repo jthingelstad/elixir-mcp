@@ -62,7 +62,7 @@ test("web-api: a cold start parses no server rendering, no icon set and no docs 
   assert.ok(!has(all, "node_modules/lucide-react/dist/cjs/"));
 });
 
-test("the docs corpus rides only the doors that answer the docs tools", async () => {
+test("the docs corpus rides only the bundles that can call the docs tools", async () => {
   const carries = Object.fromEntries(
     await Promise.all(
       ["mcp", "jobs", "migrate"].map(async (name) => [
@@ -71,7 +71,9 @@ test("the docs corpus rides only the doors that answer the docs tools", async ()
       ]),
     ),
   );
-  assert.deepEqual(carries, { mcp: true, jobs: false, migrate: false });
+  // migrate's profile_tool op takes any read-only tool, the docs tools
+  // included (Codex on #623).
+  assert.deepEqual(carries, { mcp: true, jobs: false, migrate: true });
 });
 
 test("a bundle is the same bytes every build", async () => {

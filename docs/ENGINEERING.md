@@ -603,8 +603,9 @@ invariants:
 - The doors' bundles are split (`infra/scripts/build.mjs`): what a cold
   start does not need (server rendering, the docs corpus) is a
   content-named chunk beside `index.mjs`, loaded by a dynamic import on
-  first use. Only web-api and MCP carry the docs corpus; in every other
-  bundle a docs read fails with `docs_corpus_not_bundled`.
+  first use. Only web-api, MCP and migrate (its `profile_tool` op) carry
+  the docs corpus; in every other bundle a docs read fails with
+  `docs_corpus_not_bundled`.
 - The vocabulary import refuses an uncommitted reference checkout; a
   release that must not change reference content uses
   `--verify-reference-seed`, which compares the live tables with the seed
