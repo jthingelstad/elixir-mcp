@@ -246,9 +246,11 @@ assets, lane, the endpoint grant check (a missing or foreign CloudFront
 grant refuses the deploy before anything is migrated or switched: find
 who changed it, and restoring it is Jamie's call), migrations (a failure
 stops the deploy before code flips), vocabulary import, stack, the
-endpoint grant and its read-back, card art, site publish (assets first,
-never deleted; then documents; `lib/site-publish.mjs`), CloudFront
-invalidation and the prune of assets unshipped for 14 days, smoke
+endpoint grant and its read-back, card art, site publish (only what
+changed, by MD5 and headers; assets first, never deleted; then documents;
+`lib/site-publish.mjs`), CloudFront invalidation and the prune of assets
+no deploy has shipped for 14 days (the `deploys/site-assets/`
+manifests), smoke
 (`infra/scripts/smoke.mjs`), acceptance when asked, the record. A
 red smoke or acceptance means the code is already live: "a red smoke means
 fix forward now, not walk away". Migrations never roll back.

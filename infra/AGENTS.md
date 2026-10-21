@@ -79,6 +79,17 @@ site, invalidation, prune), smoke, then acceptance when asked
   policy is missing or not the deploy's own; restoring one is an access
   change outside a deploy, Jamie's to approve. After the stack update the
   deploy writes any missing grant and reads every one back.
+- **Site publish:** the site phase builds only the static site
+  (`build-site.mjs --prebuilt`; the build phase built the rest) and
+  uploads only what changed: each file's MD5 against the object's ETag,
+  and its Content-Type and Cache-Control against the last publish's record
+  (`deploys/site-published.json` in the code bucket, HEAD where the record
+  is silent), 16 at a time (`scripts/lib/site-publish.mjs`). A new kind
+  of file needs its type in `CONTENT_TYPES`; the site build refuses one
+  without. Each deploy writes the `assets/` keys it ships to
+  `deploys/site-assets/`, and the prune takes only an asset no deploy in
+  the last 14 days shipped and none uploaded; any manifest it cannot read
+  stops the prune, never the deploy.
 - **The deploy record:** every deploy writes `deploys/production.json` to
   the code bucket and comments on each pull request it shipped, with the
   time, the versions, the acceptance result and the timing: when it
