@@ -743,7 +743,21 @@ table {
   max-height: calc(100dvh - 61px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 20px 12px 28px;
+  padding: 20px 12px 0;
+}
+/* A rail taller than its pin scrolls under the foot, which keeps to the
+   pin's lower edge, so Send feedback is in reach on any window. The
+   pin's bottom space is its last child's, so nothing shows below a
+   foot that has stuck. */
+.rail__pin > .rail__foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-bottom: 12px;
+  background: var(--ground-chrome);
+}
+.rail__pin > :last-child {
+  padding-bottom: 28px;
 }
 
 .rail__group {
@@ -965,6 +979,13 @@ button.rail__switch-head:hover {
     max-height: none;
     overflow: visible;
     padding: 0;
+  }
+  .rail__pin > .rail__foot {
+    position: static;
+    padding-bottom: 0;
+  }
+  .rail__pin > :last-child {
+    padding-bottom: 0;
   }
   .rail__toggle {
     display: flex;

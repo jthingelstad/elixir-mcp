@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ME, mockApi, signedIn } from "./fixtures.ts";
-import { ME as ACCOUNT } from "../fixtures.ts";
+import { ME as ACCOUNT, railStaysInView } from "../fixtures.ts";
 import {
   FIELDS,
   GROUPS,
@@ -1031,6 +1031,27 @@ test.describe("signed in", () => {
     await accessible(page, "you here");
     await page.getByRole("link", { name: "How Elder works here ›" }).click();
     await expect(page).toHaveURL(/\/standing$/);
+  });
+
+  test("the rail stays in view down a long page, its foot in reach", async ({
+    page,
+  }) => {
+    await page.goto("/clan/2PQRJ8LV/standing");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await railStaysInView(page);
+  });
+
+  test("@narrow the folded rail marks the Actions waiting for you, and not on Actions itself", async ({
+    page,
+  }) => {
+    await page.goto("/clan/2PQRJ8LV");
+    const toggle = page.locator(".rail__toggle");
+    await expect(
+      toggle.getByRole("img", { name: "Actions: 2 waiting for you" }),
+    ).toBeVisible();
+    await page.goto("/clan/2PQRJ8LV/actions");
+    await expect(toggle).toContainText("Actions");
+    await expect(toggle.locator(".rail__dot")).toHaveCount(0);
   });
 
   test("@narrow the rail is a disclosure above the content", async ({
