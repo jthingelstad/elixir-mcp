@@ -8,7 +8,11 @@
  *    "This week vs your last 4" strip, and the line in Tuesday's Arena
  *    mail);
  *  - the deck change: the season before and since the first battle on
- *    the deck the player has played most this season (Ladder).
+ *    the deck the player has played most this season (Ladder);
+ *  - the season: the season beside the one before it (Ladder, Jamie
+ *    2026-10-20), a running one also beside last season to the same
+ *    point; each side is shaped alone (seasonSide), under the same
+ *    minimum.
  *
  * Every number is battles_performance's own (`window`/`compare_window`,
  * or `before`/`after`), one call, one mode: modes are different games,
@@ -173,4 +177,60 @@ export function deckChange(decks) {
 export function deckForm(perf, mode) {
   const p = pair(perf?.before, perf?.after, mode);
   return p ? { mode, before: p.a, since: p.b } : null;
+}
+
+const HOUR_MS = 3_600_000;
+
+/**
+ * The season reading's same-point window (2026-10-20): last season from
+ * its start to as far into it as the running season is now, to the
+ * whole hour, so a page left open keeps one window and a reload within
+ * the hour reads the same one. `startsAt` is the running season's start,
+ * `previousStartsAt`/`previousEndsAt` last season's bounds, as the tools
+ * named them. Null when the season is under an hour old, or when it has
+ * run as long as last season did: then last season in full is the same
+ * point, and the page sets that beside it instead.
+ */
+export function samePointWindow({
+  startsAt,
+  previousStartsAt,
+  previousEndsAt,
+  nowMs,
+}) {
+  const start = Date.parse(startsAt ?? "");
+  const prevStart = Date.parse(previousStartsAt ?? "");
+  const prevEnd = Date.parse(previousEndsAt ?? "");
+  if (![start, prevStart, prevEnd, nowMs].every(Number.isFinite)) return null;
+  const elapsed = Math.floor((nowMs - start) / HOUR_MS) * HOUR_MS;
+  if (elapsed < HOUR_MS) return null;
+  const to = prevStart + elapsed;
+  if (to >= prevEnd) return null;
+  return { from: iso(prevStart), to: iso(to) };
+}
+
+/**
+ * One side of the season reading: a battles_performance window (its
+ * `window` or `compare_window`) and, when it was read, battles_decks'
+ * answer over the same stretch. Null when the side is under
+ * FORM_MIN_BATTLES decided battles, as a side of the other two
+ * readings is: then it is not set beside another. Otherwise its counts,
+ * its win rate, net trophies where trophies move, and decks played, the
+ * tool's `total_decks` over the battles that had one (null when that
+ * read was not made or failed).
+ */
+export function seasonSide(window, mode, decks = null) {
+  const s = side(window);
+  if (!s || s.decided_battles < FORM_MIN_BATTLES || s.win_rate == null)
+    return null;
+  return {
+    battles: s.battles,
+    wins: s.wins,
+    losses: s.losses,
+    draws: s.draws,
+    decided_battles: s.decided_battles,
+    win_rate: s.win_rate,
+    net_trophies: TROPHY_MODES.has(mode) ? s.net_trophies : null,
+    decks: decks ? count(decks.total_decks) : null,
+    deck_battles: decks ? count(decks.total_battles_in_window) : 0,
+  };
 }

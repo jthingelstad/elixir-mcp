@@ -7,6 +7,8 @@ import {
   formArgs,
   formWindows,
   gameWeekStartMs,
+  samePointWindow,
+  seasonSide,
   weekForm,
 } from "../src/form.mjs";
 
@@ -185,4 +187,103 @@ test("the deck reading is the before_after answer, under the same minimum", () =
     deckForm({ before: w({ decided_battles: 3 }), after: w() }, "ladder"),
     null,
   );
+});
+
+/* This season beside the last (Jamie, 2026-10-20). */
+
+const S135 = {
+  previousStartsAt: "2026-08-03T10:00:00.000Z",
+  previousEndsAt: "2026-09-07T10:00:00.000Z",
+  startsAt: "2026-09-07T10:00:00.000Z",
+};
+
+test("the same point is as far into last season as this one is now, to the hour", () => {
+  // 24 days, 11 hours and 40 minutes into Season 136.
+  assert.deepEqual(
+    samePointWindow({ ...S135, nowMs: at("2026-10-01T21:40:00Z") }),
+    { from: "2026-08-03T10:00:00.000Z", to: "2026-08-27T21:00:00.000Z" },
+  );
+  // Any minute in the same hour cuts at the same instant, so a reload
+  // reads the same window.
+  assert.deepEqual(
+    samePointWindow({ ...S135, nowMs: at("2026-10-01T21:00:00Z") }),
+    samePointWindow({ ...S135, nowMs: at("2026-10-01T21:59:59Z") }),
+  );
+});
+
+test("no same point in a season's first hour, nor once it has run as long as the last", () => {
+  assert.equal(
+    samePointWindow({ ...S135, nowMs: at("2026-09-07T10:59:00Z") }),
+    null,
+  );
+  assert.ok(samePointWindow({ ...S135, nowMs: at("2026-09-07T11:00:00Z") }));
+  // Season 135 ran 35 days; a 28-day season would be done before it.
+  const short = {
+    previousStartsAt: "2026-09-07T10:00:00.000Z",
+    previousEndsAt: "2026-10-05T10:00:00.000Z",
+    startsAt: "2026-10-05T10:00:00.000Z",
+  };
+  assert.equal(
+    samePointWindow({ ...short, nowMs: at("2026-11-02T09:00:00Z") }).to,
+    "2026-10-05T09:00:00.000Z",
+  );
+  assert.equal(
+    samePointWindow({ ...short, nowMs: at("2026-11-02T10:00:00Z") }),
+    null,
+  );
+  // A bound the tools did not name is no window, never a guess.
+  assert.equal(
+    samePointWindow({
+      ...S135,
+      previousStartsAt: null,
+      nowMs: at("2026-10-01T21:00:00Z"),
+    }),
+    null,
+  );
+});
+
+test("a season side keeps the tool's numbers, each beside its count", () => {
+  assert.deepEqual(
+    seasonSide(w(), "ladder", { total_decks: 4, total_battles_in_window: 31 }),
+    {
+      battles: 31,
+      wins: 17,
+      losses: 14,
+      draws: 0,
+      decided_battles: 31,
+      win_rate: 0.548,
+      net_trophies: 45,
+      decks: 4,
+      deck_battles: 31,
+    },
+  );
+  // Net trophies only where trophies move; decks unknown until read.
+  assert.equal(seasonSide(w(), "war").net_trophies, null);
+  assert.equal(seasonSide(w(), "war").decks, null);
+});
+
+test("a season side under the minimum is not a side at all, as in the other readings", () => {
+  assert.equal(
+    seasonSide(
+      w({ battles: 9, wins: 5, losses: 4, decided_battles: 9 }),
+      "ladder",
+    ),
+    null,
+  );
+  // Exactly the minimum is a side.
+  assert.ok(seasonSide(w({ decided_battles: FORM_MIN_BATTLES }), "war"));
+  // Ten battles with a draw are nine decided: not yet.
+  assert.equal(
+    seasonSide(w({ battles: 10, draws: 1, decided_battles: 9 }), "event"),
+    null,
+  );
+  assert.equal(
+    seasonSide(
+      w({ battles: 0, wins: 0, losses: 0, decided_battles: 0, win_rate: null }),
+      "ranked",
+    ),
+    null,
+  );
+  assert.equal(seasonSide(w({ win_rate: null }), "ladder"), null);
+  assert.equal(seasonSide(null, "ladder"), null);
 });
