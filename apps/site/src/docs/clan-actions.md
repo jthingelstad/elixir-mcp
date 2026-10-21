@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
+reviewed: "2026-10-20; the leader and co-leaders open on Actions while Actions wait for them; 2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
 ---
 
 # Actions
@@ -321,6 +321,10 @@ role, and no others: another's action number answers that there is no
 such action. **Nobody below co-leader ever sees a removal action or who
 is on the clock.** The leader and co-leaders also have **Decisions**,
 every action the clan has had with its outcome, and the holds.
+
+The leader and co-leaders open on **Actions** when they come to the clan
+while Actions are waiting for them, and on the roster when none are
+([Finding your way](/docs/bring-your-clan#finding-your-way)).
 
 You need a verified player to decide or comment; until then you can
 read your own actions.
