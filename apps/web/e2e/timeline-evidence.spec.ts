@@ -41,7 +41,7 @@ for (const width of [390, 1280]) {
               200,
               {
                 timeline: [item],
-                read_to: null,
+                seen_to: null,
                 window: {
                   from: "2026-09-27T12:40:00Z",
                   to: "2026-10-04T12:40:00Z",
@@ -166,7 +166,7 @@ for (const status of ["unknown", "proved"]) {
                   from: "2026-09-27T12:40:00Z",
                   to: "2026-10-04T12:40:00Z",
                 },
-                read_to: null,
+                seen_to: null,
               },
             ];
           return [
@@ -258,7 +258,7 @@ for (const [summaryCount, evidenceCount] of [
                   from: "2026-09-27T12:00:00Z",
                   to: "2026-10-04T12:00:00Z",
                 },
-                read_to: null,
+                seen_to: null,
               },
             ];
           return [

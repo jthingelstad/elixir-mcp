@@ -3,8 +3,8 @@ import { STATUS } from "./status-fixture.ts";
 
 /** A signed-in person with one claimed player and the signals the rail
  *  reads: a count on Tracking, an unread dot on Timeline (one item
- *  pending, and the fixture timeline's one item past a null read_to),
- *  two connections. */
+ *  pending: the fixture timeline has no window, so the page never moves
+ *  the console's place and the dot stays), two connections. */
 export const ME = {
   authenticated: true,
   features: { clan_internal: true },
@@ -140,8 +140,13 @@ export function signedIn(
             facts: { battles: 3 },
           },
         ],
-        read_to: null,
+        seen_to: null,
       },
+    ],
+    // The Console's own place (2026-10-20): the window end it was sent.
+    "POST /api/me/timeline/seen": (route) => [
+      200,
+      { seen_to: route.request().postDataJSON()?.to ?? null },
     ],
     "GET /api/me/requests": [200, { requests: [] }],
     "GET /api/me/connections": [200, { connections: [], refusals: [] }],

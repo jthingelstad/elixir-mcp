@@ -7001,6 +7001,21 @@ button.ladder-player__head:hover {
   align-items: center;
   gap: 8px;
 }
+/* "New since your last visit": a rule under the last new row, its label
+   pointing up at them (2026-10-20). */
+.timeline-list__divider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--accent-bright);
+  color: var(--accent-bright);
+  font-size: 12.5px;
+}
+.timeline-list__new {
+  color: var(--accent-bright);
+  font-size: 12px;
+}
 .action-workspace {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);

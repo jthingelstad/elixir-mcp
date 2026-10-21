@@ -202,6 +202,10 @@ export const api = {
   timelineEvidence: (params, agent) =>
     request("GET", `${home(agent)}/timeline?${new URLSearchParams(params)}`),
   myTimeline: (agent) => request("GET", `${home(agent)}/timeline`),
+  // The Console's own place in the timeline (2026-10-20): the window end
+  // the page showed. Never an agent's read pointer.
+  markTimelineSeen: (to, agent) =>
+    request("POST", `${home(agent)}/timeline/seen`, { to }),
   // The timeline cross-posted to Discord: { enabled, webhook (shortened),
   // ... }; saving takes { url?, enabled }.
   timelineDiscord: (agent) => request("GET", `${home(agent)}/timeline/discord`),

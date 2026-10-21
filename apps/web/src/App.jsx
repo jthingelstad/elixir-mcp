@@ -1929,10 +1929,11 @@ function ConsoleShell() {
   if (here.scope && subject?.signals?.feedback > 0)
     counts.feedback = String(subject.signals.feedback);
   /** The two dots the design puts on the rail: unread on Timeline while
-   *  the feed holds events no connection has read, and an alert on
-   *  Connections while a credential that no longer works is still being
-   *  presented — the one thing on this rail that wants you before you
-   *  go looking. */
+   *  the feed holds news since this console last showed it (its own
+   *  place, never a connection's read pointer: Jamie, 2026-10-20), and
+   *  an alert on Connections while a credential that no longer works is
+   *  still being presented — the one thing on this rail that wants you
+   *  before you go looking. */
   const dots = {
     timeline:
       subject?.signals?.timeline_pending > 0
