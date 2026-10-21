@@ -165,9 +165,9 @@ function SeasonBody({
             </div>
           ) : null}
           {/* "Am I improving?": the week and deck panels draw only
-              above the minimum; the season beside the last always draws
-              its counts. The week reading belongs to the season running
-              now. */}
+              above the minimum; the season beside the last always draws,
+              and says in a sentence when a side has too few. The week
+              reading belongs to the season running now. */}
           {season.current ? <WeekForm player={player} mode={mode} /> : null}
           <SeasonForm
             player={player}
