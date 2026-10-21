@@ -2,8 +2,10 @@ import { useInitialTime } from "@elixir-mcp/ui";
 import { Icon, Link, useClock, noun } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import {
+  askedMode,
   clockTime,
   fmt,
+  leadFirst,
   longDay,
   seasonName,
   seasonWords,
@@ -40,9 +42,17 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
  * to the sweep's cap). Forty compact rows fit the result cap with room;
  * a page that does not is read again at the limit the hub's refusal
  * names (lib/battle-sweep.js). Each mode keeps its own mark and its own
- * record; the page counts battles and never rates a day.
+ * record; the page counts battles and never rates a day. The mode the
+ * address names leads the calendar: first in each day and in the key,
+ * the others still there and quieter.
  */
-export function Days({ player, season: picked, seasonPicker, summary }) {
+export function Days({
+  player,
+  season: picked,
+  seasonPicker,
+  summary,
+  search,
+}) {
   const { zone } = useClock();
   const [now] = useInitialTime();
   const coverage = useToolRead("elixir_coverage", {
@@ -111,6 +121,7 @@ export function Days({ player, season: picked, seasonPicker, summary }) {
           floor={summary.data?.trophy_floor?.floor ?? null}
           zone={zone}
           coverageError={coverage.isError}
+          lead={askedMode(search)}
         />
       )}
     </div>
@@ -130,6 +141,7 @@ function DaysBody({
   floor,
   zone,
   coverageError,
+  lead,
 }) {
   const modes = modeDays(cal.days);
   const gap = longestBreak(cal.days);
@@ -196,6 +208,7 @@ function DaysBody({
         season={season}
         zone={zone}
         running={running}
+        lead={lead}
       />
       <p className="footnote">
         Open a night and choose a captured battle to inspect it and share why it
@@ -206,12 +219,21 @@ function DaysBody({
   );
 }
 
-function Calendar({ cal, name, season, zone, running = true }) {
-  const present = [
+/** The emphasis of one mode's mark when the address names a mode: its
+ *  own mark leads, every other is quiet. No mode named, no emphasis. */
+const emphasis = (key, focus, block) =>
+  focus ? ` ${block}--${key === focus ? "lead" : "quiet"}` : "";
+
+function Calendar({ cal, name, season, zone, running = true, lead = null }) {
+  const seen = [
     ...new Map(
       cal.days.flatMap((d) => d.modes).map((m) => [m.key, m.label]),
     ).entries(),
   ];
+  // Only a mode the season has: an asked mode with no battles would
+  // leave every mark quiet.
+  const focus = seen.some(([key]) => key === lead) ? lead : null;
+  const present = leadFirst(seen, focus, ([key]) => key);
   return (
     <section className="panel" aria-labelledby="ladder-cal">
       <div className="panel__head">
@@ -219,7 +241,10 @@ function Calendar({ cal, name, season, zone, running = true }) {
           {name[0].toUpperCase() + name.slice(1)}, day by day
         </h2>
         {present.map(([key, label]) => (
-          <span key={key} className="ladder-key">
+          <span
+            key={key}
+            className={`ladder-key${emphasis(key, focus, "ladder-key")}`}
+          >
             <span
               className={`mode-chip__dot mode-chip__dot--${key}`}
               aria-hidden="true"
@@ -246,7 +271,7 @@ function Calendar({ cal, name, season, zone, running = true }) {
             />
           ))}
           {cal.days.map((d) => (
-            <Day key={d.ymd} day={d} />
+            <Day key={d.ymd} day={d} focus={focus} />
           ))}
         </ol>
       </div>
@@ -261,7 +286,7 @@ function Calendar({ cal, name, season, zone, running = true }) {
   );
 }
 
-function Day({ day }) {
+function Day({ day, focus = null }) {
   const counted = day.count > 0 || day.capture.quiet;
   const none =
     day.state === "future"
@@ -299,8 +324,11 @@ function Day({ day }) {
           </span>
         ) : null}
       </span>
-      {day.modes.map((m) => (
-        <span key={m.key} className="ladder-day__mode">
+      {leadFirst(day.modes, focus, (m) => m.key).map((m) => (
+        <span
+          key={m.key}
+          className={`ladder-day__mode${emphasis(m.key, focus, "ladder-day__mode")}`}
+        >
           <span
             className={`mode-chip__dot mode-chip__dot--${m.key}`}
             aria-hidden="true"

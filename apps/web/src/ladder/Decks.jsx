@@ -1,6 +1,14 @@
 import { CardArt, DeckGrid, useClock } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
-import { fmt, longDay, pct, shortDay, signed } from "./ladder.js";
+import {
+  askedMode,
+  fmt,
+  leadFirst,
+  longDay,
+  pct,
+  shortDay,
+  signed,
+} from "./ladder.js";
 import { groupLabel } from "./ladder-days.js";
 import {
   GRID_MODES,
@@ -30,8 +38,11 @@ const LIMIT = 100;
  * modes, and the duel rounds), then once per mode; the trophy modes show
  * each deck's cards (one read per deck, by its deck_hash), and every
  * other mode is a row of one table. No record here pools two modes.
+ * The mode the address names comes first (its panel, or the table with
+ * its rows first); the others keep their order, and a row of links
+ * jumps to each mode's decks.
  */
-export function Decks({ player, season, seasonPicker }) {
+export function Decks({ player, season, seasonPicker, search }) {
   const { zone } = useClock();
   const base = { player_tag: player.player_tag, season: season.arg };
   const all = useToolRead(
@@ -46,6 +57,36 @@ export function Decks({ player, season, seasonPicker }) {
   );
   const byMode = Object.fromEntries(modes.map((m, i) => [m, reads[i]]));
   const count = all.data ? deckCount(all.data) : 0;
+  const lead = askedMode(search);
+  const grid = leadFirst(
+    modes.filter((m) => GRID_MODES.includes(m)),
+    lead,
+  );
+  const other = leadFirst(
+    modes.filter((m) => !GRID_MODES.includes(m)),
+    lead,
+  );
+  // The table goes first only when it holds the address's mode.
+  const tableFirst = other.includes(lead);
+  const order = tableFirst ? [...other, ...grid] : [...grid, ...other];
+  const panels = grid.map((mode) => (
+    <ModeDecks
+      key={mode}
+      mode={mode}
+      read={byMode[mode]}
+      base={base}
+      zone={zone}
+    />
+  ));
+  const table = (
+    <OtherDecks
+      key="other"
+      modes={other}
+      byMode={byMode}
+      all={all.data}
+      lead={lead}
+    />
+  );
 
   return (
     <div className="ladder-page">
@@ -87,22 +128,23 @@ export function Decks({ player, season, seasonPicker }) {
         </div>
       ) : (
         <>
-          {modes
-            .filter((m) => GRID_MODES.includes(m))
-            .map((mode) => (
-              <ModeDecks
-                key={mode}
-                mode={mode}
-                read={byMode[mode]}
-                base={base}
-                zone={zone}
-              />
-            ))}
-          <OtherDecks
-            modes={modes.filter((m) => !GRID_MODES.includes(m))}
-            byMode={byMode}
-            all={all.data}
-          />
+          {order.length > 1 ? (
+            <nav
+              aria-label="Modes on this page"
+              className="flex flex-wrap gap-2"
+            >
+              {order.map((m) => (
+                <a key={m} className="mode-chip" href={`#decks-${m}`}>
+                  <span
+                    className={`mode-chip__dot mode-chip__dot--${m}`}
+                    aria-hidden="true"
+                  />
+                  {groupLabel(m)}
+                </a>
+              ))}
+            </nav>
+          ) : null}
+          {tableFirst ? [table, ...panels] : [...panels, table]}
         </>
       )}
     </div>
@@ -132,7 +174,11 @@ function ModeDecks({ mode, read, base, zone }) {
 
   return (
     <>
-      <section className="panel" aria-labelledby={id}>
+      <section
+        id={`decks-${mode}`}
+        className="panel scroll-mt-4"
+        aria-labelledby={id}
+      >
         <div className="panel__head">
           <h2 id={id} className="ladder-panel-title">
             {label}
@@ -339,8 +385,10 @@ function SwapPanel({ swap, mode, zone }) {
 }
 
 /** Every deck of the modes shown without cards: war, its duel rounds,
- *  events and the rest, one row per deck per mode. */
-function OtherDecks({ modes, byMode, all }) {
+ *  events and the rest, one row per deck per mode, the address's mode
+ *  (`lead`) first. Each mode's first row is its jump target; a mode with
+ *  no row yet (still reading, or its read failed) lands on the table. */
+function OtherDecks({ modes, byMode, all, lead }) {
   const id = useId();
   if (!modes.length) return null;
   const pending = modes.some((m) => byMode[m]?.isPending);
@@ -348,12 +396,24 @@ function OtherDecks({ modes, byMode, all }) {
   const bodies = Object.fromEntries(
     modes.filter((m) => byMode[m]?.data).map((m) => [m, byMode[m].data]),
   );
-  const rows = pending ? [] : tableRows(bodies, all);
+  const rows = pending ? [] : tableRows(bodies, all, lead);
+  const anchored = new Set();
+  const anchor = (mode) => {
+    if (!mode || anchored.has(mode)) return undefined;
+    anchored.add(mode);
+    return `decks-${mode}`;
+  };
+  const keyed = rows.map((r) => ({ r, id: anchor(r.mode) }));
   return (
     <section className="panel" aria-labelledby={id}>
+      {modes
+        .filter((m) => !anchored.has(m))
+        .map((m) => (
+          <span key={m} id={`decks-${m}`} className="block scroll-mt-4" />
+        ))}
       <div className="panel__head">
         <h2 id={id} className="ladder-panel-title">
-          {pending ? "Other modes" : tableTitle(rows)}
+          {pending ? "Other modes" : tableTitle(rows, lead)}
         </h2>
       </div>
       {pending ? (
@@ -385,8 +445,12 @@ function OtherDecks({ modes, byMode, all }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.key}>
+                  {keyed.map(({ r, id: at }) => (
+                    <tr
+                      key={r.key}
+                      id={at}
+                      className={at ? "scroll-mt-4" : undefined}
+                    >
                       <td className="ladder-table__deck">{r.label}</td>
                       <td className="ladder-table__mode">
                         <span className="ladder-key">

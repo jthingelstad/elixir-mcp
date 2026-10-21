@@ -247,6 +247,22 @@ export function pickMode(param, modes) {
   );
 }
 
+/** The mode the address names (`?mode=`), when it is one; else null.
+ *  Days and Decks show every mode, and put this one first: a mode Ladder
+ *  picked on its own (pickMode's default) is not asked for. */
+export const askedMode = (search) =>
+  MODES.some((m) => m.key === search?.mode) ? search.mode : null;
+
+/** `list` with the entries of the `lead` mode first and the rest in the
+ *  order they had. Order only: nothing is dropped, merged or ranked. */
+export function leadFirst(list, lead, key = (x) => x) {
+  if (!lead) return list;
+  return [
+    ...list.filter((x) => key(x) === lead),
+    ...list.filter((x) => key(x) !== lead),
+  ];
+}
+
 /**
  * The first capture has not landed yet (2026-10-08). A player just added
  * has nothing to read back, and an empty mode or a refusal would read as
