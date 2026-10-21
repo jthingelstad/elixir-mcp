@@ -5,7 +5,7 @@
 # The journeys serve the built site and app tree with /api/* answered by
 # fixtures, so what lands in that tree, or builds and serves it, can break
 # them. A few specs also import code outside the tree: native-ssr bundles
-# services/web-api's app-pages.mjs with build.mjs's router alias, and the
+# services/web-api's app-pages.mjs with build.mjs's own options, and the
 # mail and battle-activity specs render with packages/mail, the relay's
 # templates and the web API's day shaping. Those files are named below.
 # Doc pages and the updates feed are checked by verify's site build,

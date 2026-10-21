@@ -5,8 +5,9 @@
  * the journeys on a pull request that can break them.
  *
  * - `specClosure`: every repository file in the static import closure of
- *   the specs, plus the entries a spec bundles itself (an esbuild
- *   `entryPoints: [path.join(repoRoot, "<file>")]`, as native-ssr does).
+ *   the specs, plus the entries a spec bundles itself: any source file a
+ *   spec names by its repository path in a string (native-ssr builds
+ *   `"services/web-api/src/app-pages.mjs"` with build.mjs's options).
  *   Packages outside the workspace are left out; `@elixir-mcp/*` is
  *   followed to its source.
  * - `openedDocs`: the doc pages a journey opens by name
@@ -36,9 +37,10 @@ export async function specClosure(repoRoot) {
   const entries = new Set(specs(repoRoot));
   for (const file of specs(repoRoot))
     for (const m of readFileSync(file, "utf8").matchAll(
-      /path\.join\(\s*repoRoot,\s*"([^"]+\.m?[jt]sx?)"\s*\)/g,
+      /["'`]((?:apps|packages|services|infra)\/[\w./-]+\.m?[jt]sx?)["'`]/g,
     ))
-      entries.add(path.join(repoRoot, m[1]));
+      if (existsSync(path.join(repoRoot, m[1])))
+        entries.add(path.join(repoRoot, m[1]));
   const result = await build({
     absWorkingDir: repoRoot,
     entryPoints: [...entries],
