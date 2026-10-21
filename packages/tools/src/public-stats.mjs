@@ -84,9 +84,16 @@ export async function calculatePublicStats(db, { fetchesDaily } = {}) {
 // out changed (a gateway renamed to or from the backfill name); and once
 // a day whatever the guards say, so a case none of them sees is never
 // stale for longer than that.
+//
+// Every refresh adds a mark, and so does every platform deploy. With six
+// kept, six refreshes inside an hour would push out every mark an hour
+// old, and the next refresh would count in full. On 2026-10-21 five
+// landed between 07:05Z and 08:05Z. A day of marks costs about 1.5 KB in
+// the state row, and the marks an hour back survive anything short of
+// 24 refreshes in one hour.
 const MARK_MARGIN_MS = 60 * 60_000;
 const FULL_EVERY_MS = 24 * 60 * 60_000;
-const MARKS_KEPT = 6;
+const MARKS_KEPT = 24;
 const SERIES_STATE_VERSION = 1;
 
 async function refreshFetchesDaily(db, previous) {
