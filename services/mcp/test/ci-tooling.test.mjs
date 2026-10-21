@@ -228,6 +228,13 @@ test("validate runs the runner's shards and the journeys' shards it names, and g
   );
   assert.doesNotMatch(job("e2e"), /--shard/, "Playwright's count split");
   assert.match(job("static"), /npm run verify:static/);
+  // Every dependency is gated at high; production ones at any advisory.
+  assert.match(
+    job("static"),
+    /- run: npm audit --omit=dev --audit-level=low\n/,
+  );
+  assert.match(job("static"), /- run: npm audit --audit-level=high\n/);
+  assert.doesNotMatch(workflow, /npm audit[^\n]*\|\|/, "an audit nobody reads");
   assert.match(job("static"), /node infra\/scripts\/build\.mjs/);
   assert.match(
     job("validate"),
