@@ -7,7 +7,8 @@
   "scripts": {
     "build": "eleventy",
     "dev": "eleventy --serve",
-    "test": "node ../../infra/scripts/build-site.mjs --skip-stats && node --test"
+    "pretest": "node ../../infra/scripts/build-site.mjs --skip-stats",
+    "test": "node --test"
   },
   "dependencies": {
     "@elixir-mcp/contracts": "*",
