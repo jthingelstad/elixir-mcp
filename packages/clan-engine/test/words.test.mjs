@@ -16,6 +16,7 @@ import {
 } from "../src/words.mjs";
 import { PITCH_FIELDS } from "../src/recruit.mjs";
 import { describePolicy } from "../src/render.mjs";
+import { ANGLES_HEADING } from "../src/context.mjs";
 import { policyFromGoals } from "../src/goals.mjs";
 
 const FACTS = {
@@ -556,6 +557,21 @@ test("a Leader Message request carries the clan, the member by name, the leader'
     /THE LEADER'S NOTE \(follow it; it may add facts of its own\): Mention the Colosseum week & keep it short/,
   );
   assert.match(r.prompt, /THE ASK: Tell the clan this member is now an Elder/);
+  // The ask points at the story angles only when the packet has them.
+  assert.doesNotMatch(r.prompt, /STORY ANGLES/);
+  const angled = leaderMessageRequest({
+    kind: "promotion",
+    packet: [
+      "MEMBER: Secretname",
+      "",
+      ANGLES_HEADING,
+      "1. Played every war week of the last 12.",
+    ].join("\n"),
+  });
+  assert.match(
+    angled.prompt,
+    /THE ASK: .*Start from the STORY ANGLES; every number you use is in the packet\.$/,
+  );
   const demotion = leaderMessageRequest({ kind: "demotion" });
   assert.match(demotion.prompt, /never say or hint why/);
   assert.doesNotMatch(demotion.prompt, /short/i);
