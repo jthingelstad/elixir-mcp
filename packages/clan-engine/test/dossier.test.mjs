@@ -85,7 +85,7 @@ const DOSSIER = {
       "Goblin Barrel",
     ],
     legendary_badges: ["Classic Challenge 12 Wins", "Grand Challenge 12 Wins"],
-    pol_best_season: { season: "2026-09", league: 6, name: "Royal Champion" },
+    pol_best: { season: "2026-09", league: 6, name: "Royal Champion" },
     clan_war_wins: 150,
   },
   decks: [
@@ -182,7 +182,7 @@ test("a promotion is told the whole dossier, labelled, and no judgment", () => {
   assert.match(text, /Donations in their career, every clan: 45,210/);
   assert.match(
     text,
-    /In the game \(their profile\): 6 years playing Clash Royale; favourite card Hog Rider; 11 cards at Mastery level 10 \(Hog Rider, Musketeer, Knight, Valkyrie, Fireball, Zap, Archers, Goblin Barrel and more\); best Path of Legends league in a season on record: Royal Champion \(the 2026-09 season\); Clan War Wins badge at 150/,
+    /In the game \(their profile\): 6 years playing Clash Royale; favourite card Hog Rider; 11 cards at Mastery level 10 \(Hog Rider, Musketeer, Knight, Valkyrie, Fireball, Zap, Archers, Goblin Barrel and more\); best Path of Legends league in a season on record: Royal Champion \(finished the 2026-09 season there\); Clan War Wins badge at 150/,
   );
   assert.match(
     text,
@@ -313,6 +313,53 @@ test("a welcome leads with who they are in the game; a returning member with the
     member: { ...fresh, stints_before: 1 },
   });
   assert.match(back[0], /^They are back: 1 earlier stint in this clan\.$/);
+});
+
+test("Ultimate Champion leads a welcome and a promotion, from a recorded season or the profile's best", () => {
+  const withPol = (pol) => ({
+    ...DOSSIER,
+    profile: { ...DOSSIER.profile, pol_best: pol },
+  });
+  const recorded = withPol({
+    season: "2026-08",
+    league: 7,
+    name: "Ultimate Champion",
+    ultimate_seasons: 3,
+  });
+  const fresh = { ...MEMBER, role: "member", tenure_days: 1, awards: [] };
+  for (const [kind, member] of [
+    ["welcome", fresh],
+    ["promotion", MEMBER],
+  ])
+    assert.equal(
+      storyAngles(recorded, kind, { member })[0],
+      "They finished the 2026-08 season in Ultimate Champion, Path of Legends' top league (3 of their recorded seasons ended there).",
+    );
+  assert.match(
+    dossierLines(recorded, "promotion").join("\n"),
+    /; Path of Legends: finished the 2026-08 season in Ultimate Champion, the top league \(3 recorded seasons ended there\); /,
+  );
+  // Before Elixir's record: the profile's rated best, with no season.
+  const before = withPol({
+    season: null,
+    league: 7,
+    name: "Ultimate Champion",
+    ultimate_seasons: 0,
+  });
+  assert.equal(
+    storyAngles(before, "welcome", { member: fresh })[0],
+    "They have reached Ultimate Champion, Path of Legends' top league (their profile's best; that season is not in Elixir's record).",
+  );
+  assert.match(
+    dossierLines(before, "welcome").join("\n"),
+    /Path of Legends: has reached Ultimate Champion, the top league \(the profile's best; that season is not in Elixir's record\)/,
+  );
+  // Any other league is one angle among the rest.
+  assert.ok(
+    !/Path of Legends/.test(
+      storyAngles(DOSSIER, "promotion", { member: MEMBER })[0],
+    ),
+  );
 });
 
 test("every angle's number is one the member's record states, for every kind", () => {

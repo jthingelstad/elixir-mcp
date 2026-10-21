@@ -31,6 +31,7 @@
  * Pure: facts in, text out.
  */
 
+import { ULTIMATE_CHAMPION } from "@elixir-mcp/record/ranked-leagues";
 import { GOALS } from "./goals.mjs";
 import { FIELDS } from "./policy.mjs";
 import { MODE_GROUP_LABEL } from "./render.mjs";
@@ -551,10 +552,8 @@ export function dossierLines(dossier, kind, { recentWeeks = 4 } = {}) {
       game.push(
         `${plural(p.masteries_at_top, "card")} at Mastery level ${p.mastery_level}${p.masteries?.length ? ` (${p.masteries.map((c) => one(c, 40)).join(", ")}${p.masteries_at_top > p.masteries.length ? " and more" : ""})` : ""}`,
       );
-    if (p.pol_best_season?.name)
-      game.push(
-        `best Path of Legends league in a season on record: ${p.pol_best_season.name} (the ${p.pol_best_season.season} season)`,
-      );
+    const pol = polBestLine(p.pol_best);
+    if (pol) game.push(pol);
     if (isNum(p.clan_war_wins) && p.clan_war_wins > 0)
       game.push(`Clan War Wins badge at ${n(p.clan_war_wins)}`);
     if (game.length)
@@ -591,6 +590,18 @@ export function dossierLines(dossier, kind, { recentWeeks = 4 } = {}) {
   return lines.length
     ? ["MEMBER DOSSIER (more of Elixir's record of this member)", ...lines]
     : [];
+}
+
+/** The dossier's Path of Legends line, or null (`pol_best`). */
+function polBestLine(pol) {
+  if (!pol?.name) return null;
+  if (pol.league === ULTIMATE_CHAMPION)
+    return pol.season
+      ? `Path of Legends: finished the ${pol.season} season in Ultimate Champion, the top league${pol.ultimate_seasons > 1 ? ` (${pol.ultimate_seasons} recorded seasons ended there)` : ""}`
+      : "Path of Legends: has reached Ultimate Champion, the top league (the profile's best; that season is not in Elixir's record)";
+  return pol.season
+    ? `best Path of Legends league in a season on record: ${pol.name} (finished the ${pol.season} season there)`
+    : null;
 }
 
 /**
@@ -650,10 +661,20 @@ export function storyAngles(
         .map((b) => one(b, 60))
         .join(", ")}.`,
     );
-  if (p?.pol_best_season?.name)
+  const pol = p?.pol_best;
+  // Reaching Ultimate Champion is a big deal (Jamie, 2026-10-20): it
+  // leads (only a welcome and a promotion are told the profile).
+  if (pol?.name && pol.league === ULTIMATE_CHAMPION)
+    add(
+      97,
+      pol.season
+        ? `They finished the ${pol.season} season in Ultimate Champion, Path of Legends' top league${pol.ultimate_seasons > 1 ? ` (${pol.ultimate_seasons} of their recorded seasons ended there)` : ""}.`
+        : "They have reached Ultimate Champion, Path of Legends' top league (their profile's best; that season is not in Elixir's record).",
+    );
+  else if (pol?.name && pol.season)
     add(
       welcome ? 70 : 45,
-      `They reached ${p.pol_best_season.name} in Path of Legends in the ${p.pol_best_season.season} season.`,
+      `They finished the ${pol.season} season in ${pol.name} in Path of Legends.`,
     );
   if (p && isNum(p.clan_war_wins) && p.clan_war_wins > 0 && welcome)
     add(60, `Their Clan War Wins badge is at ${n(p.clan_war_wins)}.`);

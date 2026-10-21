@@ -32,7 +32,10 @@ import { deckIdentities, participantGamesSql } from "@elixir-mcp/tools/shared";
 import { activityCategory } from "@elixir-mcp/clan-engine";
 import { modeGroupSql, typesForModeGroup } from "@elixir-mcp/contracts";
 import { badgeLabel, masteryCard } from "@elixir-mcp/record/badge-names";
-import { rankedLeagueName } from "@elixir-mcp/record/ranked-leagues";
+import {
+  seasonResultLeague,
+  ULTIMATE_CHAMPION,
+} from "@elixir-mcp/record/ranked-leagues";
 import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
 import { memberActivityWeeks } from "@elixir-mcp/record/member-activity";
 import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
@@ -336,8 +339,10 @@ export const draftStory = (db, clanTag, playerTags, { nowMs } = {}) =>
  *    (0); and `career`, the profile's lifetime count (all clans).
  *  - `profile`: years played, favourite card, the cards at Mastery's
  *    top level, legendary badges (one-time badges; a dated seasonal
- *    one is left out), the best Path of Legends league in a season the
- *    record holds (`pol_best_season`: season, league and its name)
+ *    one is left out), Path of Legends at its best (`pol_best`: the
+ *    best league a recorded season ended in, by name, or Ultimate
+ *    Champion from a rated profile best with `season` null; for
+ *    Ultimate Champion, `ultimate_seasons` counts the recorded ones)
  *    and the Clan War Wins badge's count.
  *  - `decks`: by mode (Trophy Road, Path of Legends, this clan's war),
  *    over the last 28 days by `battle_time`: games, wins and losses for
@@ -481,17 +486,34 @@ async function dossierProfile(db, playerTag) {
     .filter((b) => b.level == null && !/_\d{6}(?:_v\d+)?$/.test(b.name))
     .map((b) => badgeLabel(b.name))
     .filter(Boolean);
-  // The best league in a season Elixir recorded, by name, the newest of
-  // equals. Never the profile's best: it can be on the earlier ten-league
-  // scale, where a 7 was Champion (`@elixir-mcp/record/ranked-leagues`).
-  const polBest = (Array.isArray(p.pol_seasons) ? p.pol_seasons : [])
+  // Path of Legends at its best (#616): the best league a recorded season
+  // ended in, the newest of equals, and for Ultimate Champion how many
+  // recorded seasons ended there; with none there, a rated profile best
+  // is Ultimate Champion too, from a season the record does not hold
+  // (`seasonResultLeague`: 1 with no rating is also not playing).
+  const seasons = (Array.isArray(p.pol_seasons) ? p.pol_seasons : [])
     .map((s) => ({
       season: s.season_month,
-      league: int(s.league),
-      name: rankedLeagueName(int(s.league)),
+      ...seasonResultLeague({
+        league: int(s.league),
+        trophies: int(s.trophies),
+      }),
     }))
-    .filter((s) => s.name && s.season)
-    .reduce((best, s) => (!best || s.league > best.league ? s : best), null);
+    .filter((s) => s.name && s.season);
+  const top = seasons.reduce(
+    (best, s) => (!best || s.league > best.league ? s : best),
+    null,
+  );
+  const ultimate = seasons.filter((s) => s.league === ULTIMATE_CHAMPION);
+  const profileBest = seasonResultLeague(
+    { league: int(p.pol_best_league), trophies: int(p.pol_best_trophies) },
+    { best: true },
+  );
+  const polBest = ultimate.length
+    ? { ...top, ultimate_seasons: ultimate.length }
+    : profileBest
+      ? { season: null, ...profileBest, ultimate_seasons: 0 }
+      : top;
   const cww = badges.find((b) => b.name === "ClanWarWins");
   return {
     career_donations: int(p.total_donations),
@@ -502,7 +524,7 @@ async function dossierProfile(db, playerTag) {
       mastery_level: masteries[0]?.level ?? null,
       masteries: masteries.slice(0, DOSSIER_MASTERIES).map((m) => m.card),
       legendary_badges: legendary.slice(0, DOSSIER_BADGES),
-      pol_best_season: polBest,
+      pol_best: polBest,
       clan_war_wins: Number.isInteger(cww?.progress) ? cww.progress : null,
     },
   };

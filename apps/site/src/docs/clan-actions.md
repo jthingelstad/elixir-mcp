@@ -236,13 +236,14 @@ member and this clan rather than anyone's (2026-10-11):
   their donations here week by week over the last 12 weeks, and in their
   career; from their game profile, years playing, favourite card, cards
   at the top Mastery level, legendary badges, their best Path of Legends
-  league by name in a season Elixir recorded (never the profile's own
-  best, which can be on the game's older league scale) and their Clan
-  War Wins badge; their decks over the last 28 days, each
+  league by name in a season Elixir recorded (Ultimate Champion, the top
+  league, also from the profile's own best when that season is older
+  than the record) and their Clan War Wins badge; their decks over the last 28 days, each
   mode on its own, named by archetype with games, wins and losses; their
   milestones over the last 28 days; and their role changes here. Elixir
   then picks up to four story angles from it, strongest first, and every
-  number in an angle is in that record.
+  number in an angle is in that record. Reaching Ultimate Champion leads
+  a welcome's or a promotion's angles.
   - A **demotion** is told only what they gave before the policy's
     recent weeks, so the message can thank them for it: never those
     weeks' numbers, a zero, a missed week or how long it has been.
