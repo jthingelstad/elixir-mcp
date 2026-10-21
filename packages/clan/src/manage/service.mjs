@@ -57,6 +57,7 @@ import {
   ACTIONS_MAIL_KIND,
   actionDelivery,
   deliveryWords,
+  CHAT_LINES,
   CHAT_MAX,
   effectivePolicyValues,
   ownStandingLine,
@@ -1789,14 +1790,27 @@ export function createManageService({
             throw new ManageError(400, "bad_message");
           }
         }
-      } else if (status === "done" && card.type === "welcome" && sent?.line) {
+      } else if (
+        status === "done" &&
+        card.type === "welcome" &&
+        (sent?.line || sent?.lines)
+      ) {
+        // A welcome's words as sent: its lines (a draft may run to
+        // `CHAT_LINES.welcome`), or one line from an older page.
+        const lines = sent.lines ?? [sent.line];
         if (
-          typeof sent.line !== "string" ||
-          !sent.line.trim() ||
-          sent.line.length > CHAT_MAX
+          !Array.isArray(lines) ||
+          !lines.length ||
+          lines.length > CHAT_LINES.welcome ||
+          lines.some(
+            (line) =>
+              typeof line !== "string" ||
+              !line.trim() ||
+              line.length > CHAT_MAX,
+          )
         )
           throw new ManageError(400, "bad_message");
-        reviewed = { channel: "clan_chat", lines: [sent.line] };
+        reviewed = { channel: "clan_chat", lines: [...lines] };
       }
       const decided = {
         ...card,

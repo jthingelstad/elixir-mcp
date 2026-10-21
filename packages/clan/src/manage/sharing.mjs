@@ -182,18 +182,22 @@ export function factsOfAction(
         detail: m,
       });
   }
-  if (card.type === "welcome" && (sent?.line || sent?.lines))
-    facts.push({
-      type: "clan_message",
-      ref: `${ref}:message`,
-      occurred_at: at,
-      detail: {
-        channel: "clan_chat",
-        body: sent.lines
-          ? sent.lines.join("\n")
-          : String(sent.line).trim().slice(0, 200),
-      },
-    });
+  if (card.type === "welcome" && (sent?.line || sent?.lines)) {
+    // One line is the welcome's message, as before; a drafted welcome of
+    // two lines is two chat messages, each within the game's 200.
+    const lines = decided.sent?.lines ?? sent.lines ?? [sent.line];
+    if (lines.length > 1) facts.push(...chatFacts(`${ref}:message`, at, lines));
+    else
+      facts.push({
+        type: "clan_message",
+        ref: `${ref}:message`,
+        occurred_at: at,
+        detail: {
+          channel: "clan_chat",
+          body: String(lines[0]).trim().slice(0, 200),
+        },
+      });
+  }
   if (card.type === "awards_announcement")
     for (const g of grants.filter(
       (g) =>
