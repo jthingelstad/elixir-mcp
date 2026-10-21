@@ -21,13 +21,17 @@ export function makeDatabase({ connectionString, max = 4, pool = null }) {
     max,
     allowExitOnIdle: true,
     connectionTimeoutMillis: 2500,
-    // An idle connection is kept for most of its life (2026-10-21): at 30 s,
-    // 62% of web-api's routed requests in the week to 10-21 waited for a
-    // fresh one (TLS and auth, about 50 ms). Nothing on the path closes an
-    // idle connection sooner: the instance sets no idle_session_timeout,
-    // and keepalive probes after a minute keep any flow-tracking hop on
-    // the network connector from forgetting it (350 s is AWS's usual).
-    idleTimeoutMillis: 240_000,
+    // An idle connection is kept 120 s (2026-10-21). At 30 s, 62% of
+    // web-api's routed requests in the week to 10-21 waited for a fresh
+    // one (TLS and auth, about 50 ms). Replayed through this pool, 120 s
+    // saves 82-89% of what 240 s saved (environments churn, and a new
+    // one always connects) for about half the idle backends 240 s held
+    // on the 1 GB micro, which swaps under heavy reads
+    // (docs/notes/2026-10-21-pool-idle-120.md). Nothing closes an idle
+    // connection sooner: the instance sets no idle_session_timeout, and
+    // keepalive probes after a minute keep any flow-tracking hop on the
+    // network connector from forgetting it (350 s is AWS's usual).
+    idleTimeoutMillis: 120_000,
     maxLifetimeSeconds: 300,
     keepAlive: true,
     keepAliveInitialDelayMillis: 60_000,
