@@ -176,7 +176,7 @@ test.describe("a leader with Actions waiting", () => {
     await expect(page).toHaveURL(/\/clan\/clans$/);
   });
 
-  test("the switcher from another clan's roster lands on Actions, with no roster first", async ({
+  test("the Clan picker from another clan's roster lands on Actions, with no roster first", async ({
     page,
   }) => {
     // Selected: Second Clan, where the person is a member.
@@ -202,10 +202,10 @@ test.describe("a leader with Actions waiting", () => {
     await page.evaluate(() => {
       (window as Window & { rosterShown?: boolean }).rosterShown = false;
     });
-    // The roster's clan switcher (the fixture's roster is named
-    // Example Clan whichever clan asks, so find it by its menu).
-    await page.locator('button[aria-haspopup="menu"]').click();
-    await page.getByRole("menuitem", { name: /Example Clan/ }).click();
+    // The Clan picker, at the head of the rail (Jamie, 2026-10-20).
+    const rail = page.locator(".rail");
+    await rail.getByRole("button", { name: /Second Clan/ }).click();
+    await rail.getByRole("link", { name: /Example Clan/ }).click();
     await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
     await expect(
       page.getByRole("heading", { name: "Actions", exact: true }),

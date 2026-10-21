@@ -159,12 +159,16 @@ test("switching back from two small clans restores the active clan's navigation 
     }),
   );
   await page.goto("/clan/2PQRJ8LV");
+  const rail = page.locator(".rail");
+  let from = first;
   for (const clan of [second, third, first]) {
-    await page
-      .locator(".rail")
-      .getByRole("link", { name: "Clans", exact: true })
-      .click();
-    await page.getByRole("button", { name: new RegExp(clan.name) }).click();
+    // The Clan picker, at the head of the rail (Jamie, 2026-10-20).
+    await rail.getByRole("button", { name: new RegExp(from.name) }).click();
+    await rail.getByRole("link", { name: new RegExp(clan.name) }).click();
+    await expect(
+      rail.getByRole("button", { name: new RegExp(clan.name) }),
+    ).toBeVisible();
+    from = clan;
     const active = clan.clan_tag === first.clan_tag;
     await expect(
       page.locator(".rail").getByRole("link", { name: /^Actions/ }),
