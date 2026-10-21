@@ -490,8 +490,15 @@ async function dossierProfile(db, playerTag) {
   // ended in, the newest of equals, and for Ultimate Champion how many
   // recorded seasons ended there; with none there, a rated profile best
   // is Ultimate Champion too, from a season the record does not hold
-  // (`seasonResultLeague`: 1 with no rating is also not playing).
-  const seasons = (Array.isArray(p.pol_seasons) ? p.pol_seasons : [])
+  // (`seasonResultLeague`: 1 with no rating is also not playing). Every
+  // recorded season, not the profile read's newest 12: an older finish
+  // still counts, and is still in the record.
+  const { rows: polSeasons } = await db.query(
+    `select season_month, league, trophies from player_pol_season
+      where player_tag = $1 order by season_month desc`,
+    [playerTag],
+  );
+  const seasons = polSeasons
     .map((s) => ({
       season: s.season_month,
       ...seasonResultLeague({

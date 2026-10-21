@@ -486,10 +486,21 @@ test("Path of Legends at its best: a rated final or a rated profile best is Ulti
     );
     // Synthetic members: two Ultimate Champion finals on record; one
     // only before the record (a rated best of 10, the earlier scale's
-    // top); one who never played (1 with 0 every season, an unrated 9).
+    // top); one who never played (1 with 0 every season, an unrated 9);
+    // one whose two Ultimate Champion finals are older than their newest
+    // 12 recorded seasons (still counted, still in the record).
     const RECORDED = "#2QQ0RPV8";
     const BEFORE = "#8LJ9CVGQ";
     const NEVER = "#9VQ2LJ8C";
+    const LONG = "#R8YQ0JLP";
+    const longSeasons = [
+      ["2025-08", 7, 1650],
+      ["2025-09", 7, 1700],
+      ...Array.from({ length: 12 }, (_, i) => {
+        const m = new Date(Date.UTC(2025, 9 + i, 1));
+        return [m.toISOString().slice(0, 7), 3, 0];
+      }),
+    ];
     for (const [tag, bestLeague, bestTrophies, seasons] of [
       [
         RECORDED,
@@ -520,6 +531,7 @@ test("Path of Legends at its best: a rated final or a rated profile best is Ulti
           ["2026-08", 1, 0],
         ],
       ],
+      [LONG, 7, 1700, longSeasons],
     ]) {
       await db.query(
         `insert into player (player_tag, name, years_played) values ($1, 'Someone', 3)`,
@@ -560,6 +572,13 @@ test("Path of Legends at its best: a rated final or a rated profile best is Ulti
       ultimate_seasons: 0,
     });
     assert.equal(await best(NEVER), null);
+    assert.equal(longSeasons.at(-1)[0], "2026-09");
+    assert.deepEqual(await best(LONG), {
+      season: "2025-09",
+      league: 7,
+      name: "Ultimate Champion",
+      ultimate_seasons: 2,
+    });
   } finally {
     await scratch.drop();
   }
