@@ -213,6 +213,11 @@ Empty cells show unknown or incomplete capture unless coverage supports a zero;
 positive battle records remain visible even when capture is incomplete. Today
 and season-clipped days cannot establish a whole quiet day.
 
+War battles are on the calendar like any other, each on the day you
+played it: Ladder shows your battles one by one. Elixir shows war by the
+week where it is about your clan's war, such as the decks a member used
+in a race week, not here.
+
 A defense of your clan's boat is not your battle, so Days played leaves it
 out, as the season home does.
 
