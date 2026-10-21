@@ -577,7 +577,9 @@ for (const width of [390, 1280]) {
     await page.goBack();
     await expect(recording).toContainText("Captured data available");
     await page.goto("/console/account/feedback");
+    // The page's own compose; the rail's foot opens the sheet.
     await page
+      .getByRole("main")
       .getByRole("button", { name: "Send feedback", exact: true })
       .click();
     const message = page.getByRole("textbox", { name: "Message", exact: true });

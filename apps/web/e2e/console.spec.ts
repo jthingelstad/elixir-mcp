@@ -166,7 +166,6 @@ test.describe("signed in", () => {
       ["Connections", /\/console\/account\/connections$/, "Connections"],
       ["Status", /\/console\/status\/service$/, "Status"],
       ["Explore", /\/console\/explore$/, "Explore"],
-      ["Send feedback", /\/console\/account\/feedback$/, "Feedback"],
     ];
     for (const [label, url, heading] of sections) {
       await rail
@@ -186,6 +185,25 @@ test.describe("signed in", () => {
         await expect(session).toContainText("Unread by connections");
       }
     }
+    // Send feedback is the foot (2026-10-20): it opens the sheet over
+    // the page you are on, and the sheet links what you have filed.
+    await rail
+      .getByRole("button", { name: "Send feedback", exact: true })
+      .click();
+    const sheet = page.getByRole("dialog", { name: "Send feedback" });
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toContainText("About the Console.");
+    await expect(page).toHaveURL(/\/console\/explore$/);
+    await accessible(page, "feedback sheet");
+    await sheet
+      .getByRole("link", { name: "Your feedback and its answers ›" })
+      .click();
+    await expect(page).toHaveURL(/\/console\/account\/feedback$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Feedback",
+    );
+    await rendered(page);
+
     // Subs render only under the current item: Status's two, and the
     // current one marked.
     await expect(rail.getByRole("link", { name: "Collectors" })).toHaveCount(0);

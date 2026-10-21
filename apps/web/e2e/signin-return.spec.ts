@@ -138,7 +138,9 @@ for (const width of [390, 1280]) {
       await page.goForward();
       await arrived(page, paths[3]!.to);
       await page.getByRole("button", { name: "Close", exact: true }).click();
+      // The page's own compose; the rail's foot opens the sheet.
       await page
+        .getByRole("main")
         .getByRole("button", { name: "Send feedback", exact: true })
         .click();
       await expect(page.getByText(/Reporting one email/)).toBeVisible();

@@ -4,6 +4,7 @@ import {
   Disclaimer,
   ErrorBoundary,
   FAMILY_DOCS,
+  FeedbackSheet,
   FAMILY_PRODUCTS,
   FAMILY_SIGN_IN,
   Icon,
@@ -48,8 +49,9 @@ import {
   resetSessionCache,
 } from "@elixir-mcp/client";
 import { createClanRoutes } from "@elixir-mcp/clan-web/routes";
+import { FEEDBACK_CATEGORIES } from "@elixir-mcp/contracts";
 import { api } from "./api.js";
-import { useAgentMe } from "./lib/queries.js";
+import { keys, useAgentMe, useInvalidate } from "./lib/queries.js";
 import { CardArtSource } from "./components/CardArtSource.jsx";
 import { CONSOLE, appPath } from "./lib/console.js";
 import {
@@ -279,12 +281,15 @@ export const RAIL = [
 ];
 
 /** The foot of your console's rail: feedback is always one click away,
- *  and every item is answered. */
+ *  and every item is answered. It opens the kit's sheet in place, as
+ *  Ladder's and Clan's do (2026-10-20), with the page you are on riding
+ *  along; `history` is where what you have filed is read, linked from
+ *  the sheet and from the account menu. */
 export const RAIL_FOOT = {
   key: "feedback",
   label: "Send feedback",
   icon: "message-square",
-  to: `${CONSOLE}/account/feedback`,
+  history: `${CONSOLE}/account/feedback`,
 };
 
 /** The Admin console's rail: bare labels again, because nothing else is
@@ -1266,6 +1271,8 @@ export function railConsoles(me, openAgent = null) {
  *  never the rail's. */
 function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
   const [signOutFailed, setSignOutFailed] = useState(null);
+  const [feedback, setFeedback] = useState(false);
+  const invalidate = useInvalidate();
   const consoles = railConsoles(me, here.scope);
   const settings = here.rail === "account";
   const rail = here.scope
@@ -1331,31 +1338,57 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
     );
   }
 
+  // Feedback is filed as you, from your own console (2026-09-23): an
+  // agent's console and Admin have no foot.
+  const files = !here.scope && here.rail !== "admin";
   return (
-    <RailList
-      label={
-        here.scope
-          ? "Agent console sections"
-          : here.rail === "admin"
-            ? "Admin console sections"
-            : "Console sections"
-      }
-      items={items}
-      current={here.key}
-      sub={here.sub}
-      navigate={navigate}
-      narrow={narrow}
-      title="Console"
-      subtitle={here.scope ? (agent?.name ?? current.label) : current.label}
-      accounts={consoles}
-      account={account}
-      manage={{ label: "Manage agents…", to: `${CONSOLE}/account/agents` }}
-      foot={
-        here.scope || here.rail === "admin"
-          ? undefined
-          : { ...RAIL_FOOT, current: here.key === RAIL_FOOT.key }
-      }
-    />
+    <>
+      <RailList
+        label={
+          here.scope
+            ? "Agent console sections"
+            : here.rail === "admin"
+              ? "Admin console sections"
+              : "Console sections"
+        }
+        items={items}
+        current={here.key}
+        sub={here.sub}
+        navigate={navigate}
+        narrow={narrow}
+        title="Console"
+        subtitle={here.scope ? (agent?.name ?? current.label) : current.label}
+        accounts={consoles}
+        account={account}
+        manage={{ label: "Manage agents…", to: `${CONSOLE}/account/agents` }}
+        foot={
+          files
+            ? {
+                label: RAIL_FOOT.label,
+                icon: RAIL_FOOT.icon,
+                onClick: () => setFeedback(true),
+              }
+            : undefined
+        }
+      />
+      {files && feedback && (
+        <FeedbackSheet
+          area="console"
+          categories={FEEDBACK_CATEGORIES}
+          about="About the Console. The page you are on rides along."
+          context={{ page: here.key, ...(here.sub ? { sub: here.sub } : {}) }}
+          send={async (body) => {
+            const r = await api.sendFeedback(body);
+            // Your feedback page and the rail's counts read it next.
+            if (r.ok) invalidate(keys.me);
+            return r;
+          }}
+          onClose={() => setFeedback(false)}
+          itemHref={(id) => `${RAIL_FOOT.history}/${id}`}
+          historyHref={RAIL_FOOT.history}
+        />
+      )}
+    </>
   );
 }
 

@@ -50,6 +50,10 @@ export interface FeedbackSheetProps {
   onClose: () => void;
   /** Where the filed item can be read, given its id. */
   itemHref?: (id: string) => string;
+  /** Where everything you have filed, and each answer, is read: the
+   *  sheet links it before and after sending, so opening the sheet never
+   *  hides the history the rail's foot used to lead to. */
+  historyHref?: string;
 }
 
 const label = (c: string) => c.replaceAll("_", " ");
@@ -66,6 +70,7 @@ export function FeedbackSheet({
   send,
   onClose,
   itemHref,
+  historyHref,
 }: FeedbackSheetProps) {
   const box = useRef<HTMLDialogElement>(null);
   const [category, setCategory] = useState(initial);
@@ -109,6 +114,12 @@ export function FeedbackSheet({
       );
   };
 
+  const history = historyHref ? (
+    <p className="feedback-sheet__after">
+      <a href={historyHref}>Your feedback and its answers ›</a>
+    </p>
+  ) : null;
+
   return (
     <dialog
       ref={box}
@@ -144,6 +155,7 @@ export function FeedbackSheet({
                 <a href={itemHref(filed)}>Read it as fb_{filed}</a>
               </p>
             )}
+            {history}
           </>
         ) : (
           <>
@@ -186,6 +198,7 @@ export function FeedbackSheet({
                 {busy ? "Sending…" : "Send"}
               </button>
             </div>
+            {history}
           </>
         )}
       </div>

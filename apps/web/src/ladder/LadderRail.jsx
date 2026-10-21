@@ -79,6 +79,7 @@ export function LadderRail({ me, search, here, navigate, narrow }) {
           send={api.sendFeedback}
           onClose={() => setFeedback(false)}
           itemHref={(id) => `${CONSOLE}/account/feedback/${id}`}
+          historyHref={`${CONSOLE}/account/feedback`}
         />
       )}
     </>
