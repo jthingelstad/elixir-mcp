@@ -42,6 +42,7 @@ import {
   numbersOf,
   strictTool,
   unknownNames,
+  VOICE_RULE,
 } from "./context.mjs";
 
 /** What a clan's model may write. */
@@ -367,14 +368,15 @@ const writing = ({ note }) => [
   "ELIXIR'S PLAIN WORDS are what Elixir sends when nobody drafts. They are the floor: say at least what they say, every number in them included, then go further.",
   "Use two to four facts that belong to this person, starting from the STORY ANGLES when there are any: a best they reached, a war week they carried, how long they have been here, an award they hold, a moment from their record. Say what a number means, not only the number, and give each fact its own sentence. Every number you write is one the packet states.",
   'Sound like a person in the clan talking to friends: warm, plain and specific. Cut anything that would fit any member of any clan. Never write filler such as "by clan rules", "better with you in it", "keep climbing with us", or "earned it" without the fact that earned it.',
+  VOICE_RULE,
   note
     ? "Every name, number and event you write comes from those facts or from the leader's note. When something is not there, leave it out; never guess and never round a number up."
     : "Every name, number and event you write comes from those facts. When something is not there, leave it out; never guess and never round a number up.",
   "Never judge a member: no score, rank, percentile or standing, never a member's share of fame (war points are points, never fame), and no advice on how to play.",
   "The game's chat filter blanks some innocent text, so: write 'and', never '&'; never put '+' before a number; never join two words with a hyphen; never write 'phone'; no links, emoji, hashtags, markdown or @mentions.",
   note
-    ? "Write in English unless the leader's note asks for another language."
-    : "Write in English.",
+    ? "Write in English unless the leader's note or the clan's voice asks for another language."
+    : "Write in English unless the clan's voice asks for another language.",
 ];
 
 /** Where a title-and-message draft goes, said to the model: the Inbox, or
