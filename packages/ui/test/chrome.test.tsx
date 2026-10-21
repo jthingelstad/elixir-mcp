@@ -103,8 +103,13 @@ test("the account slot is one slot: empty while unknown, Sign in signed out, the
   rerender(<Chrome current="console" account={ACCOUNT} />);
   const me = screen.getByRole("button", { name: "Account: King Thing" });
   expect(me.closest(".chrome__account")).toBe(slot());
-  expect(me.textContent).toContain("KT");
-  expect(me.textContent).toContain("King Thing");
+  // The initials are drawn by CSS, so the only text is the name: axe's
+  // label-content-name-mismatch holds the label "Account: King Thing" to
+  // the button's visible text.
+  expect(
+    me.querySelector(".chrome__avatar")?.getAttribute("data-initials"),
+  ).toBe("KT");
+  expect(me.textContent).toBe("King Thing");
 });
 
 test("the account menu opens from the button, lists the players, and closes on Escape", () => {

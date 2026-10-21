@@ -412,6 +412,11 @@ table {
   font-weight: 700;
   letter-spacing: 0.02em;
 }
+/* The account button's avatar: its initials are a picture, not label
+   text, so the button's name ("Account: <name>") need not contain them. */
+.chrome__avatar[data-initials]::before {
+  content: attr(data-initials);
+}
 .chrome__avatar--lg {
   width: 44px;
   height: 44px;

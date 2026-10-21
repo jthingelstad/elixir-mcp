@@ -206,9 +206,15 @@ export function Chrome({
                   setOpen((v) => (v === "account" ? null : "account"))
                 }
               >
-                <span className="chrome__avatar" aria-hidden="true">
-                  {account.initials ?? initialsOf(account.name)}
-                </span>
+                {/* The initials are the account's picture, drawn by CSS
+                    (components.css, .chrome__avatar[data-initials]) so
+                    they are not label text the name has to contain
+                    (WCAG 2.5.3, axe label-content-name-mismatch). */}
+                <span
+                  className="chrome__avatar"
+                  aria-hidden="true"
+                  data-initials={account.initials ?? initialsOf(account.name)}
+                />
                 <span className="chrome__me-name">{account.name}</span>
                 <Icon name="chevron-down" size={16} />
               </button>
