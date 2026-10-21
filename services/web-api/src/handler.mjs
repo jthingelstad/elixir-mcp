@@ -125,6 +125,33 @@ export const CLAN_UNSIGNED = Object.freeze({
     json(410, { error: "retired_oauth_callback" }),
 });
 
+/** The answer when no database connection could be had: the JSON API's
+ *  documented problem (integrations.md, 503 temporarily_unavailable), and
+ *  the site API's own shape with words a person can act on. Both carry
+ *  Retry-After and a request id to quote. */
+const UNAVAILABLE_MESSAGE =
+  "Elixir could not reach its database. Nothing was read or changed; try again in a few seconds.";
+function unavailable(isIntegration, lambdaRequestId) {
+  const requestId = lambdaRequestId ?? randomUUID();
+  return isIntegration
+    ? integrationProblem(
+        503,
+        "temporarily_unavailable",
+        requestId,
+        UNAVAILABLE_MESSAGE,
+        5,
+      )
+    : json(
+        503,
+        {
+          error: "unavailable",
+          message: UNAVAILABLE_MESSAGE,
+          request_id: requestId,
+        },
+        { "retry-after": "5" },
+      );
+}
+
 /** The route for a path and the key it is registered under. */
 function findRoute(routes, method, path, event) {
   const exact = `${method} ${path}`;
@@ -396,6 +423,12 @@ export function makeHandler({
     const path = event.path ?? "/";
     const isIntegration = path.startsWith("/api/v1/");
     const isClan = clan && path.startsWith("/api/clan/");
+    // The Clan door's unsigned answers read nothing, so they take no
+    // database lease: the health check stays a liveness check when the
+    // pool is full or the instance is away.
+    const unsignedClan = isClan
+      ? (CLAN_UNSIGNED[`${method} ${path}`] ?? CLAN_UNSIGNED[`ANY ${path}`])
+      : null;
     const agentPath = isIntegration ? null : AGENT_PATH.exec(path);
     const found = isIntegration
       ? {
@@ -413,10 +446,7 @@ export function makeHandler({
         ? {
             key: `${method} /api/clan/*`,
             route: async (db, event, body) => {
-              const unsigned =
-                CLAN_UNSIGNED[`${method} ${path}`] ??
-                CLAN_UNSIGNED[`ANY ${path}`];
-              if (unsigned) return unsigned();
+              if (unsignedClan) return unsignedClan();
               const person = await resolvePerson(db, event, {
                 requireContractHeader: !["GET", "HEAD"].includes(method),
               });
@@ -514,7 +544,7 @@ export function makeHandler({
     let status = 500;
     let connectMs = 0;
     let timedOut = false;
-    const db = database.lease();
+    const db = unsignedClan ? null : database.lease();
     const soft = deadlineMs(context, event);
     // A route that runs a tool races the invoker's deadline inside this
     // one (deadline.mjs), so the tool answers query_timeout with its
@@ -524,8 +554,18 @@ export function makeHandler({
       const res = await withDeadline(
         soft,
         async () => {
-          await db.connect();
-          connectMs = Date.now() - started;
+          if (db) {
+            try {
+              await db.connect();
+            } catch (error) {
+              // A full pool or a database that will not connect: nothing
+              // was read or written, so the caller is told to come back,
+              // in its door's shape (MCP's is live_unavailable).
+              console.error({ event: "db_connect_failed", name: error.name });
+              return unavailable(isIntegration, requestId);
+            }
+            connectMs = Date.now() - started;
+          }
           if (agentPath) {
             const person = await resolvePerson(db, event);
             if (!person) return json(401, { error: "unauthenticated" });
@@ -551,7 +591,7 @@ export function makeHandler({
       // client_connection_check_interval (0186). What bounds the query is
       // its statement_timeout: the invoker's for a tool, and the
       // connection's PGOPTIONS ceiling (infra/template.yaml) for the rest.
-      await db.end().catch(() => {});
+      await db?.end().catch(() => {});
       console.info({
         at: new Date().toISOString(),
         http: routeKey,
