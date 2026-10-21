@@ -13,13 +13,28 @@
  *  clan announced them (`award_granted`, this season and last), and
  *  their recent milestones in the timeline. Nothing private to Clan
  *  (notes, holds, rationale, a grant not yet announced) is read here. A
- *  fact the record lacks is absent, never filled in. */
+ *  fact the record lacks is absent, never filled in.
+ *
+ *  A leader's draft about one member also asks for that member's
+ *  dossier (`dossier`, `memberDossier`; Jamie, 2026-10-20: "use the full
+ *  data resources of Elixir to create a meaningfully more in-depth and
+ *  personalized message"): every war week in this clan, donations week
+ *  by week and in their career, the profile's highlights, their decks
+ *  by mode over 28 days, their milestones over 28 days and their role
+ *  changes here. The engine's `dossierLines` and `storyAngles` decide
+ *  what of it each kind of draft is told. */
 import {
   buildTimeline,
   factItems,
   isPublishable,
 } from "@elixir-mcp/tools/activity/entries";
+import { deckIdentities, participantGamesSql } from "@elixir-mcp/tools/shared";
 import { activityCategory } from "@elixir-mcp/clan-engine";
+import { modeGroupSql, typesForModeGroup } from "@elixir-mcp/contracts";
+import { badgeLabel, masteryCard } from "@elixir-mcp/record/badge-names";
+import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
+import { memberActivityWeeks } from "@elixir-mcp/record/member-activity";
+import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
 import { seasonFromDate } from "@elixir-mcp/record/war-clock";
 
 const DAY_MS = 24 * 3600_000;
@@ -30,26 +45,66 @@ const MOMENT_DAYS = 14;
 const MOMENTS_MAX = 5;
 /** Announced awards told per member, newest season first. */
 const AWARDS_MAX = 6;
+/** A dossier's bounds: the clan's finished war weeks read (a year), the
+ *  whole weeks of donations, the days of decks and milestones, the
+ *  milestones kept, the decks kept per mode, the fewest games a deck
+ *  needs to be told, the legendary badges and Mastery cards named, and
+ *  the role changes. */
+const DOSSIER_WAR_WEEKS = 52;
+const DOSSIER_DONATION_WEEKS = 12;
+const DOSSIER_DAYS = 28;
+const DOSSIER_MOMENTS = 8;
+const DOSSIER_DECKS_PER_MODE = 2;
+const DOSSIER_DECK_GAMES = 3;
+const DOSSIER_BADGES = 6;
+const DOSSIER_MASTERIES = 8;
+const DOSSIER_ROLES = 6;
+/** The modes a dossier tells decks for, each its own: never pooled. */
+const DOSSIER_MODES = ["ladder", "ranked", "war"];
 
 const iso = (d) => (d instanceof Date ? d.toISOString() : (d ?? null));
 const int = (x) => (x == null ? null : Number(x));
+const WEEK_MS = 7 * DAY_MS;
+/** Monday 00:00Z of the week holding `ms`: the game day's week, as the
+ *  donation counter's weeks are read (`date_trunc('week', snapshot_date)`). */
+const mondayOf = (ms) => {
+  const d = new Date(ms);
+  const midnight = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+  );
+  return midnight - ((d.getUTCDay() + 6) % 7) * DAY_MS;
+};
 
 /**
  * @param {import("pg").ClientBase} db
  * @param {string} clanTag
  * @param {{ playerTags?: string[], nowMs?: number,
- *   moments?: boolean | { max?: number, members?: number, except?: string[] } }} [opts]
+ *   moments?: boolean | { max?: number, members?: number, except?: string[] },
+ *   dossier?: string | null, identities?: typeof deckIdentities }} [opts]
  *   `moments`: read each member's recent milestones from the timeline.
  *   `true` for a leader's draft (one member, five moments); the Discord
  *   run bounds it (`max` moments each, for the first `members` members,
  *   one timeline read per member inside the sync's time budget) and
  *   leaves out the items it is posting (`except`, by id).
- * @returns {Promise<{ clan: object|null, members: Record<string, object> }>}
+ *   `dossier`: one of `playerTags` whose dossier is read too (a
+ *   leader's draft only). Their history is then told once, in the
+ *   dossier: their entry's `war` and `moments` stay empty.
+ *   `identities`: the deck namer (`deckIdentities`; a test's own).
+ * @returns {Promise<{ clan: object|null, members: Record<string, object>,
+ *   dossier?: object|null }>}
  */
 export async function clanStoryFacts(
   db,
   clanTag,
-  { playerTags = [], nowMs = Date.now(), moments = false } = {},
+  {
+    playerTags = [],
+    nowMs = Date.now(),
+    moments = false,
+    dossier = null,
+    identities = deckIdentities,
+  } = {},
 ) {
   const tags = [...new Set(playerTags.filter(Boolean))];
   const {
@@ -191,7 +246,7 @@ export async function clanStoryFacts(
     const skip = new Set(want?.except ?? []);
     if (want)
       for (const tag of tags
-        .filter((t) => members[t])
+        .filter((t) => members[t] && t !== dossier)
         .slice(0, want.members ?? tags.length)) {
         const { timeline } = await buildTimeline(
           db,
@@ -210,7 +265,25 @@ export async function clanStoryFacts(
           .map((it) => ({ at: it.at, text: it.text }));
       }
   }
+  // The dossier's subject: their history is the dossier's to tell.
+  const subject = dossier && members[dossier] ? members[dossier] : null;
+  if (subject) {
+    subject.war = [];
+    subject.moments = [];
+  }
   return {
+    ...(dossier
+      ? {
+          dossier: subject
+            ? await memberDossier(db, clanTag, dossier, {
+                nowMs,
+                joinedAt: subject.joined_at,
+                awards: subject.awards,
+                identities,
+              })
+            : null,
+        }
+      : {}),
     clan: clan
       ? {
           name: clan.name ?? null,
@@ -229,4 +302,295 @@ export async function clanStoryFacts(
       : null,
     members,
   };
+}
+
+/** What a leader's draft is told for every draft (the web adapter's
+ *  `storyFor`): the clan, and the member with their dossier when the
+ *  draft is about one member. */
+export const draftStory = (db, clanTag, playerTags, { nowMs } = {}) =>
+  clanStoryFacts(db, clanTag, {
+    playerTags,
+    nowMs,
+    moments: true,
+    dossier: playerTags.length === 1 ? playerTags[0] : null,
+  });
+
+/**
+ * One member's dossier, for the leader's draft about them: each part
+ * from the reader Elixir already has, bounded, and read one after
+ * another (one client is one connection: ENGINEERING.md). Facts only:
+ * no rating, rank, share or rate; a deck's wins and losses are counted
+ * for one mode at a time.
+ *
+ *  - `war`: their war weeks in this clan, newest first, for the clan's
+ *    last finished weeks (`DOSSIER_WAR_WEEKS`): decks used and points
+ *    (never fame), `ago` counting finished weeks back from the newest
+ *    (0). Weekly aggregates only.
+ *  - `donations`: their donations in this clan for each of the last
+ *    whole weeks they were here for all of (`memberActivityWeeks`; a
+ *    week they joined in has none), `ago` counting back from last week
+ *    (0); and `career`, the profile's lifetime count (all clans).
+ *  - `profile`: years played, favourite card, the cards at Mastery's
+ *    top level, legendary badges (one-time badges; a dated seasonal
+ *    one is left out), the best Path of Legends league the record holds
+ *    and the Clan War Wins badge's count.
+ *  - `decks`: by mode (Trophy Road, Path of Legends, this clan's war),
+ *    over the last 28 days by `battle_time`: games, wins and losses for
+ *    the mode, and its most played decks by archetype label (an
+ *    unclassified deck is not named). A boat defense is not theirs; a
+ *    duel counts as its rounds.
+ *  - `moments`: their milestones over the last 28 days, newest first.
+ *  - `roles`: their role changes in this clan, newest first.
+ *  - `awards`: the clan's awards they hold, as the clan announced them.
+ */
+async function memberDossier(
+  db,
+  clanTag,
+  playerTag,
+  {
+    nowMs = Date.now(),
+    joinedAt = null,
+    awards = [],
+    identities = deckIdentities,
+  } = {},
+) {
+  const fromMs = nowMs - DOSSIER_DAYS * DAY_MS;
+  const war = await dossierWar(db, clanTag, playerTag);
+  const donations = await dossierDonations(db, clanTag, playerTag, {
+    nowMs,
+    joinedAt,
+  });
+  const profile = await dossierProfile(db, playerTag);
+  const decks = await dossierDecks(db, clanTag, playerTag, {
+    fromMs,
+    toMs: nowMs,
+    identities,
+  });
+  const moments = await dossierMoments(db, playerTag, {
+    fromMs,
+    toMs: nowMs,
+  });
+  const roles = await dossierRoles(db, clanTag, playerTag);
+  return {
+    days: DOSSIER_DAYS,
+    war,
+    donations: { weeks: donations, career: profile?.career_donations ?? null },
+    profile: profile?.highlights ?? null,
+    decks,
+    moments,
+    roles,
+    awards,
+  };
+}
+
+async function dossierWar(db, clanTag, playerTag) {
+  const { rows } = await db.query(
+    `with weeks as (
+       select w.season_id, w.section_index, w.is_colosseum,
+              (row_number() over (order by w.season_id desc, w.section_index desc) - 1)::int as ago
+         from war_week w
+         join war_week_clan own on own.clan_tag = w.clan_tag
+          and own.season_id = w.season_id and own.section_index = w.section_index
+          and own.participant_clan_tag = w.clan_tag
+        where w.clan_tag = $1 and own.rank is not null
+        order by w.season_id desc, w.section_index desc
+        limit $3)
+     select k.season_id, k.section_index, k.is_colosseum, k.ago,
+            wp.decks_used, wp.points
+       from weeks k
+       join war_participation wp on wp.clan_tag = $1 and wp.player_tag = $2
+        and wp.season_id = k.season_id and wp.section_index = k.section_index
+      order by k.ago`,
+    [clanTag, playerTag, DOSSIER_WAR_WEEKS],
+  );
+  return rows.map((r) => ({
+    season_id: r.season_id,
+    section_index: r.section_index,
+    is_colosseum: r.is_colosseum,
+    ago: r.ago,
+    decks_used: int(r.decks_used),
+    points: int(r.points),
+  }));
+}
+
+async function dossierDonations(db, clanTag, playerTag, { nowMs, joinedAt }) {
+  const thisWeek = mondayOf(nowMs);
+  const weeks = Array.from({ length: DOSSIER_DONATION_WEEKS }, (_, i) => {
+    const from = thisWeek - (i + 1) * WEEK_MS;
+    return {
+      iso_week: new Date(from).toISOString().slice(0, 10),
+      from: new Date(from).toISOString(),
+      to: new Date(from + WEEK_MS).toISOString(),
+    };
+  });
+  const oldest = weeks.at(-1).from;
+  const rows = await memberActivityWeeks(
+    db,
+    clanTag,
+    playerTag,
+    weeks,
+    joinedAt && joinedAt > oldest ? joinedAt : oldest,
+    new Date(thisWeek).toISOString(),
+  );
+  const ago = new Map(weeks.map((w, i) => [w.iso_week, i]));
+  return rows
+    .filter((r) => r.donations != null)
+    .map((r) => ({
+      week: r.iso_week,
+      ago: ago.get(r.iso_week),
+      donations: int(r.donations),
+    }))
+    .sort((a, b) => a.ago - b.ago);
+}
+
+async function dossierProfile(db, playerTag) {
+  const p = await readRecordedProfile(db, playerTag);
+  if (!p) return null;
+  const {
+    rows: [card],
+  } = p.favorite_card_id
+    ? await db.query(`select name from card where card_id = $1`, [
+        p.favorite_card_id,
+      ])
+    : { rows: [] };
+  const badges = Array.isArray(p.badges) ? p.badges : [];
+  const masteries = badges
+    .filter(
+      (b) =>
+        masteryCard(b.name) &&
+        Number.isInteger(b.level) &&
+        Number.isInteger(b.max_level) &&
+        b.level >= b.max_level,
+    )
+    .map((b) => ({ card: masteryCard(b.name), level: b.level }));
+  const legendary = badges
+    .filter((b) => b.level == null && !/_\d{6}(?:_v\d+)?$/.test(b.name))
+    .map((b) => badgeLabel(b.name))
+    .filter(Boolean);
+  const leagues = [
+    int(p.pol_best_league),
+    ...(Array.isArray(p.pol_seasons) ? p.pol_seasons : []).map((s) =>
+      int(s.league),
+    ),
+  ].filter(Number.isInteger);
+  const cww = badges.find((b) => b.name === "ClanWarWins");
+  return {
+    career_donations: int(p.total_donations),
+    highlights: {
+      years_played: int(p.years_played),
+      favorite_card: card?.name ?? null,
+      masteries_at_top: masteries.length,
+      mastery_level: masteries[0]?.level ?? null,
+      masteries: masteries.slice(0, DOSSIER_MASTERIES).map((m) => m.card),
+      legendary_badges: legendary.slice(0, DOSSIER_BADGES),
+      pol_best_league: leagues.length ? Math.max(...leagues) : null,
+      clan_war_wins: Number.isInteger(cww?.progress) ? cww.progress : null,
+    },
+  };
+}
+
+async function dossierDecks(
+  db,
+  clanTag,
+  playerTag,
+  { fromMs, toMs, identities },
+) {
+  const types = DOSSIER_MODES.flatMap((m) => typesForModeGroup(m));
+  const { rows } = await db.query(
+    `with mine as (
+       select bp.battle_id, bp.player_tag, bp.side, bp.battle_time, bp.type,
+              bp.type_class, bp.deck_hash, bp.outcome, bp.deck_avg_level,
+              bp.opp_deck_avg_level, bp.starting_trophies
+         from battle_participant bp
+        where bp.player_tag = $1
+          and bp.battle_time >= $2 and bp.battle_time < $3
+          and bp.type = any($4::text[])
+          -- War is this clan's war: a week played for another clan is not.
+          and (bp.type <> all($5::text[]) or bp.clan_tag = $6)
+          and ${notBoatDefense("bp", { lookupByKey: true })})
+     select g.deck_hash, ${modeGroupSql("g.type", "b.event_tag")} as mode,
+            count(*)::int as games,
+            count(*) filter (where g.outcome = 'win')::int as wins,
+            count(*) filter (where g.outcome = 'loss')::int as losses
+       from ${participantGamesSql("mine")} g
+       join battle b on b.battle_id = g.battle_id
+      where g.deck_hash is not null
+      group by 1, 2`,
+    [
+      playerTag,
+      new Date(fromMs),
+      new Date(toMs),
+      types,
+      typesForModeGroup("war"),
+      clanTag,
+    ],
+  );
+  const out = [];
+  const named = await identities(
+    db,
+    rows.map((r) => r.deck_hash),
+  );
+  for (const mode of DOSSIER_MODES) {
+    const mine = rows
+      .filter((r) => r.mode === mode)
+      .sort(
+        (a, b) => b.games - a.games || a.deck_hash.localeCompare(b.deck_hash),
+      );
+    if (!mine.length) continue;
+    const sum = (k) => mine.reduce((n, r) => n + r[k], 0);
+    out.push({
+      mode,
+      games: sum("games"),
+      wins: sum("wins"),
+      losses: sum("losses"),
+      decks: mine
+        .filter((r) => r.games >= DOSSIER_DECK_GAMES)
+        .map((r) => ({ ...r, archetype: named.get(r.deck_hash)?.archetype }))
+        .filter(
+          (r) => r.archetype?.label && r.archetype.family !== "unclassified",
+        )
+        .slice(0, DOSSIER_DECKS_PER_MODE)
+        .map((r) => ({
+          label: r.archetype.label,
+          games: r.games,
+          wins: r.wins,
+          losses: r.losses,
+        })),
+    });
+  }
+  return out;
+}
+
+async function dossierMoments(db, playerTag, { fromMs, toMs }) {
+  const { timeline } = await buildTimeline(
+    db,
+    [{ kind: "player", tag: playerTag }],
+    {
+      fromMs,
+      toMs,
+      filter: (it) =>
+        isPublishable(it) && activityCategory(it) === "milestones",
+    },
+  );
+  return timeline
+    .filter((it) => it.text)
+    .sort((a, b) => String(b.at ?? "").localeCompare(String(a.at ?? "")))
+    .slice(0, DOSSIER_MOMENTS)
+    .map((it) => ({ at: it.at, text: it.text }));
+}
+
+async function dossierRoles(db, clanTag, playerTag) {
+  const { rows } = await db.query(
+    `select window_end, role_before, role_after
+       from clan_event
+      where clan_tag = $1 and event_type = 'role_changed' and player_tag = $2
+      order by window_end desc, event_id desc
+      limit $3`,
+    [clanTag, playerTag, DOSSIER_ROLES],
+  );
+  return rows.map((r) => ({
+    at: iso(r.window_end),
+    before: r.role_before ?? null,
+    after: r.role_after ?? null,
+  }));
 }
