@@ -124,12 +124,13 @@ async function seed(db) {
     [DOT, CLAN],
   );
   await db.query(
-    // The profile's best (9 above) is on the earlier ten-league scale and
-    // never named; the best recorded season is, the newest of equals.
+    // The profile's best (9 above, unrated) is on the earlier ten-league
+    // scale and never named; the best recorded season is, the newest of
+    // equals. Below Ultimate Champion a final carries no rating.
     `insert into player_pol_season (player_tag, season_month, league, trophies, rank, observed_at)
-     values ($1, '2026-09', 6, 2100, null, '2026-10-01T00:00:00Z'),
-            ($1, '2026-08', 6, 2050, null, '2026-09-01T00:00:00Z'),
-            ($1, '2026-07', 4, 1800, null, '2026-08-01T00:00:00Z')`,
+     values ($1, '2026-09', 6, 0, null, '2026-10-01T00:00:00Z'),
+            ($1, '2026-08', 6, 0, null, '2026-09-01T00:00:00Z'),
+            ($1, '2026-07', 4, 0, null, '2026-08-01T00:00:00Z')`,
     [DOT],
   );
   for (const [name, level, max, progress] of [
@@ -313,7 +314,7 @@ test("a member's dossier: every war week here, donations, profile highlights, de
       mastery_level: 10,
       masteries: ["Hog Rider", "Musketeer"],
       legendary_badges: ["Classic Challenge 12 Wins"],
-      pol_best_season: { season: "2026-09", league: 6, name: "Royal Champion" },
+      pol_best: { season: "2026-09", league: 6, name: "Royal Champion" },
       clan_war_wins: 150,
     });
     // Modes on their own; a duel's rounds are games; a boat defense,
@@ -470,6 +471,95 @@ test("a war week that closed more than a year ago is never told, even inside the
     );
     const told = dossierLines(dossier, "promotion").join("\n");
     assert.doesNotMatch(told, /season 123|3,000|3,200/);
+  } finally {
+    await scratch.drop();
+  }
+});
+
+test("Path of Legends at its best: a rated final or a rated profile best is Ultimate Champion; 1 with no rating is never named", async () => {
+  const scratch = await scratchDb("story_dossier_pol");
+  try {
+    const db = scratch.db;
+    await db.query(
+      `insert into clan (clan_tag, name) values ($1, 'Example Clan')`,
+      [CLAN],
+    );
+    // Synthetic members: two Ultimate Champion finals on record; one
+    // only before the record (a rated best of 10, the earlier scale's
+    // top); one who never played (1 with 0 every season, an unrated 9).
+    const RECORDED = "#2QQ0RPV8";
+    const BEFORE = "#8LJ9CVGQ";
+    const NEVER = "#9VQ2LJ8C";
+    for (const [tag, bestLeague, bestTrophies, seasons] of [
+      [
+        RECORDED,
+        7,
+        1805,
+        [
+          ["2026-09", 1, 0],
+          ["2026-08", 7, 1507],
+          ["2026-07", 7, 1805],
+          ["2026-06", 5, 0],
+        ],
+      ],
+      [
+        BEFORE,
+        10,
+        1596,
+        [
+          ["2026-09", 1, 0],
+          ["2026-08", 4, 0],
+        ],
+      ],
+      [
+        NEVER,
+        9,
+        0,
+        [
+          ["2026-09", 1, 0],
+          ["2026-08", 1, 0],
+        ],
+      ],
+    ]) {
+      await db.query(
+        `insert into player (player_tag, name, years_played) values ($1, 'Someone', 3)`,
+        [tag],
+      );
+      await db.query(
+        `insert into clan_membership (clan_tag, player_tag, role, joined_observed_at, left_observed_at, baseline)
+         values ($1, $2, 'member', '2026-05-04T12:00:00Z', null, false)`,
+        [CLAN, tag],
+      );
+      await db.query(
+        `insert into player_snapshot_daily
+           (player_tag, snapshot_date, snapshot_kind, clan_tag, pol_best_league, pol_best_trophies,
+            profile_observed_at, observed_at)
+         values ($1, '2026-10-19', 'daily', $2, $3, $4, '2026-10-19T08:00:00Z', '2026-10-19T08:00:00Z')`,
+        [tag, CLAN, bestLeague, bestTrophies],
+      );
+      for (const [month, league, trophies] of seasons)
+        await db.query(
+          `insert into player_pol_season (player_tag, season_month, league, trophies, rank, observed_at)
+           values ($1, $2, $3, $4, null, $5)`,
+          [tag, month, league, trophies, `${month}-28T00:00:00Z`],
+        );
+    }
+    const best = async (tag) =>
+      (await draftStory(db, CLAN, [tag], { nowMs: NOW })).dossier?.profile
+        ?.pol_best ?? null;
+    assert.deepEqual(await best(RECORDED), {
+      season: "2026-08",
+      league: 7,
+      name: "Ultimate Champion",
+      ultimate_seasons: 2,
+    });
+    assert.deepEqual(await best(BEFORE), {
+      season: null,
+      league: 7,
+      name: "Ultimate Champion",
+      ultimate_seasons: 0,
+    });
+    assert.equal(await best(NEVER), null);
   } finally {
     await scratch.drop();
   }

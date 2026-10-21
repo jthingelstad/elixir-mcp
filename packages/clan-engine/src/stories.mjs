@@ -31,6 +31,7 @@
  */
 
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
+import { ULTIMATE_CHAMPION } from "@elixir-mcp/record/ranked-leagues";
 import { activityCategory } from "./activity.mjs";
 
 /** A story is posted once its newest item is this old... */
@@ -494,7 +495,11 @@ function clause(it) {
     case "arena_changed":
       return `${f.to != null && f.from != null && f.to < f.from ? "moved to" : "moved up to"} ${f.to_name ?? "a new arena"}`;
     case "ranked_promotion":
-      return `was promoted to ${f.to_name ?? "a new league"}`;
+      // Reaching Ultimate Champion is a big deal (Jamie, 2026-10-20), and
+      // every season starts at Master I, so it is always the whole climb.
+      return f.to === ULTIMATE_CHAMPION
+        ? "made it all the way to Ultimate Champion"
+        : `was promoted to ${f.to_name ?? "a new league"}`;
     case "best_trophies_band": {
       // As it happened (2026-10-11): the profile's best can be later and
       // higher than the battle that crossed the rung, so the crossing is

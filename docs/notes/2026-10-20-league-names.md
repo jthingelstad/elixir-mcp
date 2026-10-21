@@ -12,18 +12,41 @@ the only rated league); the API itself names no league.
   timeline had its own copy (from elixir-bot) with Master 1, 2 and 3; it
   now imports this one, so `ranked_promotion` names read Master I to III
   (MCP 11.13.2, a correction).
-- **The draft dossier names the best recorded season.** `pol_best_season`
-  is the highest league in a season `player_pol_season` holds (the last
-  12), the newest of equals, with its season and name. It replaces
-  `pol_best_league`, which took the larger of the profile's best and the
-  recorded seasons: a profile's best can be on the earlier ten-league
-  scale, where 8 to 10 are seen and a 7 was Champion, so a max across
-  the two mixed scales and could tell the model a lower league as the
-  higher one. Within Jamie's call 2 of the Draft in our voice redesign
+- **What a season result can name** (`seasonResultLeague`). A survey of
+  249 players in five clans on 2026-10-20 (cr-agent-api-docs #13): only
+  Ultimate Champion is rated, on either league scale. Current and last
+  results in leagues 1 to 6 read 0 trophies and league 7 is always
+  rated; a best of 10 is always rated and 8 or 9 never is. And a player
+  who did not play a season reads league 1 with 0, the same as a Master
+  I finish. So a rated result is Ultimate Champion whatever its number,
+  a recorded final names 2 to 6 when unrated, and 1 is never named
+  (#616 first named it Master I, which would have told a draft that a
+  member who never played Ranked reached Master I).
+- **The draft dossier's `pol_best`.** The best league a recorded season
+  (`player_pol_season`, the last 12) ended in, the newest of equals,
+  with its season and name; for Ultimate Champion, `ultimate_seasons`
+  counts the recorded seasons that ended there. With none there, a rated
+  profile best is Ultimate Champion with `season` null: it is from a
+  season the record does not hold, and the profile's other bests stay
+  unnamed (a best can be on the earlier ten-league scale, where a 7 was
+  Champion). It replaces `pol_best_league`, a max across the two mixed
+  scales. Within Jamie's call 2 of the Draft in our voice redesign
   (members may see their Path of Legends league).
+- **Ultimate Champion leads.** Jamie: "Getting to ultimate champ is a
+  big deal." Its story angle scores 97, above every other angle; it
+  says the top league and, when more than one recorded season ended
+  there, how many. Only a welcome and a promotion are told the profile,
+  so only they get it; a demotion, a removal or a departure never names
+  a league. Clan's
+  Discord editor tells a promotion to it as "made it all the way to
+  Ultimate Champion" (every season starts at Master I); every other
+  league is still "was promoted to". The timeline's own line is the
+  hub's and stays plain.
 - Pinned by `packages/record/test/ranked-leagues.test.mjs`, the dossier
   tests in syndication (a profile best of 9 ignored; two seasons tied at
-  Royal Champion, the newer named), clan-engine and clan, and the
+  Royal Champion, the newer named; two rated finals, a rated best of 10
+  and a member who never played), clan-engine (Ultimate Champion leads
+  a welcome and a promotion) and clan, the Clan stories test and the
   timeline tool test.
 - The milestone mail takes its league from the timeline item, so it
   says "up from Master III" too (its golden in

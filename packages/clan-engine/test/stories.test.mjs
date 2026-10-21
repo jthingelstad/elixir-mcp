@@ -571,3 +571,29 @@ test("a move the roster saw before its battle is still told who is there", () =>
     "Har moved up to Summit of Heroes, joining Ak and Tere there. It's their second promotion in a day.",
   );
 });
+
+test("reaching Ultimate Champion is told as the whole climb; any other league is a promotion", () => {
+  const uc = item("ranked_promotion", {
+    ...ADA,
+    from: 6,
+    to: 7,
+    from_name: "Royal Champion",
+    to_name: "Ultimate Champion",
+    promoted_by: WIN,
+  });
+  assert.equal(
+    renderStory({ key: uc.id, items: [uc] }, { nowMs: T }),
+    "Ada made it all the way to Ultimate Champion with a 3-0 win over keyluis.",
+  );
+  const royal = item("ranked_promotion", {
+    ...BO,
+    from: 5,
+    to: 6,
+    to_name: "Royal Champion",
+    promoted_by: { ...WIN, battle_id: "b2" },
+  });
+  assert.equal(
+    renderStory({ key: royal.id, items: [royal] }, { nowMs: T }),
+    "Bo was promoted to Royal Champion with a 3-0 win over keyluis.",
+  );
+});
