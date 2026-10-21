@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "3.2.0",
+    "version": "3.2.1",
     "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Integrations do not enroll players or clans for recording; people manage their own tracked record. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
@@ -20,6 +20,7 @@
       "get": {
         "operationId": "gameClock",
         "x-permission": "game:read",
+        "x-principals": ["integration"],
         "parameters": [],
         "responses": {
           "200": {
@@ -68,6 +69,7 @@
       "get": {
         "operationId": "playerProfile",
         "x-permission": "players:read",
+        "x-principals": ["integration"],
         "parameters": [
           {
             "name": "tag",
@@ -125,6 +127,7 @@
       "post": {
         "operationId": "requestProfileRefresh",
         "x-permission": "profiles:refresh",
+        "x-principals": ["integration"],
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -210,6 +213,7 @@
       "get": {
         "operationId": "profileRefreshStatus",
         "x-permission": "profiles:refresh",
+        "x-principals": ["integration"],
         "parameters": [
           {
             "name": "id",
@@ -1204,6 +1208,7 @@
         "operationId": "playerFactWrite",
         "summary": "Record what a family app's own game produced for a player (personal_record): seen by whoever has the player on their timeline. Supplied tags are unverified; this is never a game observation.",
         "x-permission": "facts:write",
+        "x-principals": ["integration"],
         "parameters": [
           {
             "name": "tag",
@@ -1290,6 +1295,7 @@
         "operationId": "clanMailSend",
         "summary": "A family app's own mail, sent through Elixir: per player tag, a subject, plain lines and a link into the app. Elixir resolves each to the account that verified the player, if the player is in the clan today and the kind is switched on (it is on to start), sends at most one of the kind per clan per account per UTC day, and records it like every Elixir email. The app never sees an address.",
         "x-permission": "mail:send",
+        "x-principals": ["integration"],
         "parameters": [
           {
             "name": "tag",

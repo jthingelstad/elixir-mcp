@@ -25,7 +25,8 @@ import contract from "@elixir-mcp/contracts/integration-api.openapi.json" with {
 import { migrate } from "../../migrate/src/migrate.mjs";
 import { createSession, mintTokens, registerClient } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
-import { integrationApi } from "../src/integration-api.mjs";
+import { integrationApi, secondsLeftInHour } from "../src/integration-api.mjs";
+import { v1Operation } from "../src/v1-operations.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ?? "postgres://otto@localhost:5432/postgres";
@@ -277,4 +278,124 @@ test("GET /feedback forwards feedback_id and verbosity to the tool (3.2.0, Codex
   assert.equal(compact.body.data.applied.verbosity, "compact");
   const full = await read({});
   assert.equal(full.body.data.applied.verbosity, "full");
+});
+
+/** The handler's request lines while `run` runs. */
+async function linesOf(run) {
+  const lines = [];
+  const info = console.info;
+  console.info = (line) => lines.push(line);
+  try {
+    return { response: await run(), lines };
+  } finally {
+    console.info = info;
+  }
+}
+
+test("every operation in the contract resolves to its own operationId, and nothing else does", () => {
+  for (const route of operations)
+    assert.equal(
+      v1Operation(route.method, concrete(route)),
+      route.op.operationId,
+      `${route.method} ${route.template}`,
+    );
+  for (const [method, path] of [
+    ["GET", "/api/v1/models"],
+    ["POST", "/api/v1/chat/completions"],
+    ["GET", "/api/v1/game/clock/"],
+    ["DELETE", "/api/v1/game/clock"],
+    ["HEAD", "/api/v1/game/clock"],
+    ["GET", "/api/v1/players/%232PP/extra"],
+    ["GET", "/api/v1/clans//roster"],
+    ["GET", "/api/v1"],
+  ])
+    assert.equal(v1Operation(method, path), null, `${method} ${path}`);
+});
+
+test("a path no operation answers is a 404 that points to the docs, whatever the credential (review 2026-10-21)", async () => {
+  const { rows: mark } = await db.query(
+    `select coalesce(max(audit_id), 0) as last from mcp_call_audit`,
+  );
+  for (const [method, path] of [
+    ["GET", "/api/v1/models"],
+    ["POST", "/api/v1/chat/completions"],
+    ["DELETE", "/api/v1/game/clock"],
+  ])
+    for (const authorization of [
+      undefined,
+      "Bearer sk-not-an-elixir-key",
+      `Bearer ${integrationToken}`,
+      `Bearer ${personToken}`,
+    ]) {
+      const { response, lines } = await linesOf(() =>
+        handler({
+          path,
+          method,
+          headers: authorization ? { authorization } : {},
+        }),
+      );
+      const body = JSON.parse(response.body);
+      assert.equal(response.statusCode, 404, `${method} ${path}`);
+      assert.equal(body.code, "not_found");
+      assert.equal(
+        response.headers["content-type"],
+        "application/problem+json",
+      );
+      assert.match(
+        body.detail,
+        /https:\/\/elixir\.poapkings\.com\/docs\/json-api/,
+      );
+      assert.match(body.detail, /integration-api\.json/);
+      const line = lines.find((l) => l?.http === `${method} /api/v1/*`);
+      assert.ok(line, `no request line for ${method} ${path}`);
+      assert.equal(line.status, 404);
+      assert.equal(line.operation, undefined);
+    }
+  // Nothing was authenticated, so nothing was audited or counted.
+  const { rows } = await db.query(
+    `select count(*)::int as n from mcp_call_audit where audit_id > $1`,
+    [mark[0].last],
+  );
+  assert.equal(rows[0].n, 0);
+});
+
+test("every operation still refuses a missing or unknown credential with 401", async () => {
+  for (const route of operations)
+    for (const authorization of [undefined, "Bearer sk-not-an-elixir-key"]) {
+      const response = await handler({
+        path: concrete(route),
+        method: route.method,
+        headers: authorization ? { authorization } : {},
+        body: JSON.stringify(bodyFor(route)),
+      });
+      assert.equal(
+        response.statusCode,
+        401,
+        `${route.method} ${route.template}: ${response.body}`,
+      );
+      assert.equal(JSON.parse(response.body).code, "unauthenticated");
+    }
+});
+
+test("the request line names the operation, which the route key cannot (review 2026-10-21)", async () => {
+  const { response, lines } = await linesOf(() =>
+    handler({
+      path: "/api/v1/game/clock",
+      method: "GET",
+      headers: { authorization: `Bearer ${integrationToken}` },
+    }),
+  );
+  const line = lines.find((l) => l?.http === "GET /api/v1/*");
+  assert.ok(line, "no request line");
+  assert.equal(line.operation, "gameClock");
+  assert.equal(line.status, response.statusCode);
+});
+
+test("an hourly 429 waits the seconds to the top of the hour, never 0", () => {
+  const at = (iso) => secondsLeftInHour(Date.parse(iso));
+  assert.equal(at("2026-10-21T12:59:50.000Z"), 10);
+  assert.equal(at("2026-10-21T12:59:59.900Z"), 1);
+  assert.equal(at("2026-10-21T12:00:00.000Z"), 3600);
+  assert.equal(at("2026-10-21T12:30:15.500Z"), 1785);
+  assert.ok(secondsLeftInHour() >= 1 && secondsLeftInHour() <= 3600);
 });

@@ -10,6 +10,7 @@ import {
   validateServiceToken,
   validateAccessToken,
   checkRateLimit,
+  WINDOW_SECONDS,
 } from "@elixir-mcp/auth";
 import { describeIdentity, principalBlock } from "@elixir-mcp/tools/identity";
 import { myPlayers } from "@elixir-mcp/record/players";
@@ -31,6 +32,7 @@ import {
   writePlayerFact,
 } from "./attested-facts.mjs";
 import { sendClanMail } from "./clan-mail.mjs";
+import { v1Operation } from "./v1-operations.mjs";
 
 /** The audience a person's grant for this door carries (0160). */
 const API_RESOURCE = "https://elixir.poapkings.com/api/v1";
@@ -58,6 +60,20 @@ const STATUS_OF_CLASS = {
 };
 
 const flag = (v) => v === "1" || v === "true";
+
+/** What a 404 for a path no operation answers says (review 2026-10-21). */
+const UNKNOWN_OPERATION =
+  "No /api/v1 operation answers this method at this path. The operations are listed at https://elixir.poapkings.com/docs/json-api and described in https://elixir.poapkings.com/docs/integration-api.json.";
+
+/** Seconds until the hourly windows of checkRateLimit roll over: the
+ *  Retry-After of an hourly 429. Seconds as well as minutes, so a 429 at
+ *  12:59:50 says 10, not 60, and never 0. */
+export function secondsLeftInHour(now = Date.now()) {
+  return Math.max(
+    1,
+    WINDOW_SECONDS - (Math.floor(now / 1000) % WINDOW_SECONDS),
+  );
+}
 
 /** A clan's recorded war weeks (2.8.0), for either caller: the
  *  war_history tool over a number of seasons, never one member's. */
@@ -554,6 +570,12 @@ export async function integrationApi(db, event, body, deps = {}) {
     toolAudited = false;
   const method = event.method ?? "GET";
   try {
+    // A path no operation answers is a 404 that says where the operations
+    // are, before any credential is read: a 401 there told an OpenAI-style
+    // client (GET /api/v1/models) that a key would help. Every real
+    // operation is authenticated below exactly as before.
+    if (!v1Operation(method, event.path))
+      throw new ApiError(404, "not_found", UNKNOWN_OPERATION);
     if (!body || typeof body !== "object" || Array.isArray(body))
       throw new ApiError(400, "invalid_json");
     const token = bearer(event);
@@ -579,7 +601,7 @@ export async function integrationApi(db, event, body, deps = {}) {
             429,
             "rate_limited",
             undefined,
-            3600 - new Date().getUTCMinutes() * 60,
+            secondsLeftInHour(),
           );
       }
       if (route.tool) {
@@ -612,12 +634,7 @@ export async function integrationApi(db, event, body, deps = {}) {
         max: policy.hourly_limit,
       });
       if (!ok)
-        throw new ApiError(
-          429,
-          "rate_limited",
-          undefined,
-          3600 - new Date().getUTCMinutes() * 60,
-        );
+        throw new ApiError(429, "rate_limited", undefined, secondsLeftInHour());
       const usage = (
         await db.query(
           `insert into integration_usage(account_id,day,calls) values($1,(now() at time zone 'UTC')::date,1)

@@ -2,6 +2,7 @@ import { integrationsRoutes } from "./routes/integrations.mjs";
 import { verifyRoutes } from "./routes/verify.mjs";
 import { battleActivityRoutes } from "./routes/battle-activity.mjs";
 import { integrationApi, integrationProblem } from "./integration-api.mjs";
+import { v1Operation } from "./v1-operations.mjs";
 import { randomUUID } from "node:crypto";
 /**
  * Site API — docs/ENGINEERING.md One credential core, this is the web shell.
@@ -441,6 +442,8 @@ export function makeHandler({
                 : null,
             }),
           key: `${method} /api/v1/*`,
+          // The line names the operation the key cannot (review 2026-10-21).
+          operation: v1Operation(method, path),
         }
       : isClan
         ? {
@@ -595,6 +598,7 @@ export function makeHandler({
       console.info({
         at: new Date().toISOString(),
         http: routeKey,
+        ...(found.operation ? { operation: found.operation } : {}),
         status,
         ms: Date.now() - started,
         connect_ms: connectMs,
