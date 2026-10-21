@@ -539,7 +539,10 @@ private state is read through the IAM-only `{clan_maintenance}` op
   "clan_tag": "#TAG", "card_id": "<id>"}}` is the exact request "Draft in
   our voice" builds for that Action, with `channel`, `note` and `tone` as
   a leader would pick them: the plain words it must at least say, the
-  clan's context, the member packet and the provider body. It runs in a
+  clan's context, the clan's voice (`voice`, "How our messages sound",
+  as the request carries it), the member packet and the provider body.
+  The Action's log keeps what the model answered on its "drafted" entry
+  (`lane: "action_log"`). It runs in a
   read-only transaction and calls no model, so judge a complaint about a
   draft against what the model was told before changing the prompt.
 - **Writes.** `lane: "respond"` (a feedback reply, "Feedback" above) and

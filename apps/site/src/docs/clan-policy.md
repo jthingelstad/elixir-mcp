@@ -7,7 +7,7 @@ order: 6
 navTitle: "The policy"
 icon: scroll-text
 lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
-reviewed: "2026-10-13; Your own view, read by your own connection (contract 11.12.0); 2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
+reviewed: "2026-10-20; How our messages sound: one voice for the drafts and the activity editor, set in Clan settings; 2026-10-13; Your own view, read by your own connection (contract 11.12.0); 2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
 ---
 
 # Write how your clan runs
@@ -204,7 +204,8 @@ does not save it:
   action, the reviewed message (clan chat or a Clan Leader Message) for a promotion, demotion, awards
   announcement or policy-change announcement, plus welcome and post-decision
   removal chat lines, plus a departure message after a leader confirms
-  Kicked or Left. Saved recruiting words provide the clan's voice. The
+  Kicked or Left. Saved recruiting words say what the clan is about,
+  and **How our messages sound** (below) how it sounds. The
   model is told what Elixir records about the clan, the Action and the
   member it is about, by name ([what it
   receives](/docs/clan-actions#the-words-to-send)), with what the leader
@@ -237,6 +238,16 @@ does not save it:
   leader turns it on (below); its runs are counted apart, and the cap
   stops them too. A use whose answer never arrived (the provider may
   still have charged for it) is counted toward the cap at its estimate.
+- **How our messages sound**: the clan's voice, in its leaders' own
+  words (2026-10-20). The clan's model gets it as written both when it
+  drafts a message on an Action and when it edits the [activity
+  channel](#the-clans-activity-in-discord). It sets the tone and the
+  wording, never the facts: what a draft or a post may say, and what is
+  never sent, stay as they are, and a voice never lifts a rule. At most
+  400 characters in one paragraph, with no links or mentions; a longer
+  one is refused, never cut. Empty means none. Only the leader and
+  co-leaders read or change it. Until 2026-10-20 the activity channel
+  kept a voice of its own; that voice became this one.
 
 ## The clan's activity in Discord
 
@@ -309,7 +320,8 @@ told more than three hours late says when in words ("Yesterday").
   anyone; items only the leaders may see are never posted.
 - **Edited by the clan's own model**: with the clan's own model key
   set, a leader can have the clan's model edit the channel in the clan's
-  voice, described in up to 400 characters. Its posts are made without
+  voice (**How our messages sound** in [Clan settings](#clan-settings);
+  the page shows it and links there). Its posts are made without
   anyone reading them first. The model is handed a run's stories, up to
   12, each with Elixir's own words for it, and the clan (its name,
   recruiting words, goals, member count and last war weeks), the
@@ -351,9 +363,9 @@ told more than three hours late says when in words ("Yesterday").
   apart from the leaders' drafts and shown in the key's use log with
   each request; the clan's monthly cap, when set, stops them as it stops
   drafts. What a run costs is on [Limits](/docs/limits).
-  **Preview the last 5 in this voice** hands the five newest stories
-  the channel could post from the last week to the editor, in the voice
-  in the box (saved or not), and shows what it would do: each post with
+  **Preview the last 5 in the clan's voice** hands the five newest
+  stories the channel could post from the last week to the editor, in
+  the clan's saved voice, and shows what it would do: each post with
   the stories it tells and Elixir's versions of them, each skip with its
   reason, and each story kept in Elixir's words with why when the model's
   post or skip was refused. It is one request with no lookups, so a

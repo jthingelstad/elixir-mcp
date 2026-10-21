@@ -7,7 +7,7 @@ order: 4
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
-reviewed: "2026-10-20; the leader and co-leaders open on Actions while Actions wait for them; 2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
+reviewed: "2026-10-20; one voice for the clan's drafts, set in Settings; the drafted entry keeps the model's words for leaders; the leader and co-leaders open on Actions while Actions wait for them; 2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
 ---
 
 # Actions
@@ -134,8 +134,13 @@ back: a week for a removal and two weeks for a promotion or demotion, to
 start, or what the clan set.
 
 Every action has a log: when it was raised and by which rule and policy
-version, every comment, the decision and the outcome. Anyone who can
-see it can comment, up to 1,000 characters.
+version, every comment, every draft, the decision and the outcome.
+Anyone who can see it can comment, up to 1,000 characters. A **Drafted
+by the clan's model** entry keeps what the model wrote, exactly as it
+wrote it, before anyone edited it (2026-10-20). Only the leader and
+co-leaders see those words; an elder or a member who can see the
+action's log sees that a draft was made, not what it said. An older
+draft's entry has no words.
 
 An award standings update has one numbered Action containing every message in
 order, in compact game copy; as-of times and coverage stay in the app for
@@ -242,6 +247,8 @@ member and this clan rather than anyone's (2026-10-11):
   - A **removal** or **departure** is told only the war weeks they
     played.
   - A promotion or a welcome is told all of it.
+- **The clan's voice**: **How our messages sound**, as its leaders
+  wrote it (below).
 - **What you ask for** in **What should it say?**, as you wrote it.
 
 Never sent: a tag, a note saved on the Action (yours or another
@@ -274,7 +281,13 @@ confirmation or frozen detail clears older words and rejects an
 in-flight result. A careful draft can take longer than one request; the
 page keeps asking until it lands, for up to about 100 seconds.
 
-The clan's saved words in **Recruit** supply its voice. For a welcome or
+The clan's saved words in **Recruit** say what it is about, and **How
+our messages sound** in [Clan
+settings](/docs/clan-policy#clan-settings) says how it sounds: the
+leaders' own words, given to the model as written (2026-10-20). They set
+the tone and the wording, never the facts: everything above still holds,
+and a voice never lifts a rule or adds to what is sent. The clan's
+Discord activity editor reads the same voice. For a welcome or
 a farewell, choose a tone and add a short note in **What should it
 say?** on what to stress; the words after a removal take only a tone;
 a promotion, a demotion or an announcement takes the note. Review and
