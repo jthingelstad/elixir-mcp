@@ -28,6 +28,7 @@ import {
   projectRounds,
 } from "./deck-cards.mjs";
 import { canonicalBattleTime } from "./battle-time.mjs";
+import { upsertPlayersSeen } from "./catalog-upserts.mjs";
 
 function slimCards(cards) {
   if (!Array.isArray(cards)) return undefined;
@@ -555,15 +556,10 @@ export async function ingestBattlelog(
   const tags = [
     ...new Set([observer, ...[...parts.values()].map((p) => p.player_tag)]),
   ];
-  await db.query(
-    `insert into player (player_tag, name)
-     select t.tag, t.name from unnest($1::text[], $2::text[]) as t(tag, name)
-     on conflict (player_tag) do update set
-       last_seen_at = now(),
-       name = coalesce(player.name, excluded.name)
-     where (player.name is null and excluded.name is not null)
-        or player.last_seen_at < now() - interval '1 day'`,
-    [tags, tags.map((t) => nameByTag.get(t) ?? null)],
+  await upsertPlayersSeen(
+    db,
+    tags,
+    tags.map((t) => nameByTag.get(t) ?? null),
   );
 
   let battlesInserted = 0;

@@ -40,6 +40,7 @@
 import { gameDay, inPreResetWindow, normalizeTag } from "@elixir-mcp/contracts";
 import { inSeasonRollWindow } from "@elixir-mcp/record/war-clock";
 import { crTimeToIso } from "./battle-time.mjs";
+import { upsertArenaNames } from "./catalog-upserts.mjs";
 import { rosterRecords } from "./roster.mjs";
 import { ensureSeason, parseProgressKey } from "@elixir-mcp/record/season";
 import {
@@ -206,15 +207,7 @@ export async function projectClanSeries(
   for (const m of payload.memberList ?? [])
     if (int(m.arena?.id) && typeof m.arena?.name === "string")
       arenaNames.set(m.arena.id, m.arena.name);
-  if (arenaNames.size > 0)
-    await db.query(
-      `insert into arena (arena_id, name, observed_at)
-       select t.id, t.name, $3::timestamptz from unnest($1::int[], $2::text[]) as t(id, name)
-       on conflict (arena_id) do update
-         set name = excluded.name, observed_at = excluded.observed_at
-       where arena.name is distinct from excluded.name`,
-      [[...arenaNames.keys()], [...arenaNames.values()], observedAt],
-    );
+  await upsertArenaNames(db, arenaNames, observedAt);
 
   let membersMoved = 0;
   let arenaMoments = 0;
@@ -474,15 +467,7 @@ export async function projectPlayerProgress(
     for (const bucket of Object.values(progress))
       if (int(bucket?.arena?.id) && typeof bucket.arena?.name === "string")
         arenas.set(bucket.arena.id, bucket.arena.name);
-    if (arenas.size > 0)
-      await db.query(
-        `insert into arena (arena_id, name, observed_at)
-         select t.id, t.name, $3::timestamptz from unnest($1::int[], $2::text[]) as t(id, name)
-         on conflict (arena_id) do update
-           set name = excluded.name, observed_at = excluded.observed_at
-         where arena.name is distinct from excluded.name`,
-        [[...arenas.keys()], [...arenas.values()], observedAt],
-      );
+    await upsertArenaNames(db, arenas, observedAt);
     const { rowCount } = await db.query(
       `insert into player_progress_daily
          (player_tag, progress_key, day, snapshot_kind, observed_at, trophies, best_trophies, arena_id)
