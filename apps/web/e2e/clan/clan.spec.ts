@@ -358,10 +358,11 @@ test.describe("signed in", () => {
     await expect(editor).toHaveValue("Glad you joined, Zed!");
     await expect(copy).toBeEnabled();
     await expect(welcomed).toBeEnabled();
-    await editor.fill("x".repeat(121));
+    // A chat line is the game's 200 characters.
+    await editor.fill("x".repeat(201));
     await expect(copy).toBeDisabled();
     await expect(
-      page.getByText("Shorten to 120 characters before copying."),
+      page.getByText("Shorten to 200 characters before copying."),
     ).toBeVisible();
     await editor.fill("Welcome aboard, Zed! Glad you're here.");
     await expect(copy).toBeEnabled();
@@ -379,7 +380,7 @@ test.describe("signed in", () => {
           status: "done",
           reason: null,
           note: null,
-          sent: { line: "Welcome aboard, Zed! Glad you're here." },
+          sent: { lines: ["Welcome aboard, Zed! Glad you're here."] },
         },
       ]);
   });

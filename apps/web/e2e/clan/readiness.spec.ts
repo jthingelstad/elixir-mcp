@@ -41,7 +41,11 @@ for (const size of ["wide", "@narrow"]) {
       ],
       "POST /api/clan/clans/2PQRJ8LV/actions/welcome1/draft": (route) => {
         drafts++;
-        expect(route.request().postDataJSON()).toEqual({ note: "warm" });
+        // The tone is its own field beside the leader's note.
+        expect(route.request().postDataJSON()).toEqual({
+          note: null,
+          tone: "warm",
+        });
         return [
           200,
           { line: "Glad you joined, Newcomer!", model: "stub", warnings: [] },
@@ -104,7 +108,7 @@ for (const size of ["wide", "@narrow"]) {
         status: "done",
         reason: null,
         note: null,
-        sent: { line: "Welcome aboard, Newcomer!" },
+        sent: { lines: ["Welcome aboard, Newcomer!"] },
       },
     ]);
     expect(errors).toEqual([]);
