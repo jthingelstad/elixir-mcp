@@ -352,6 +352,17 @@ test("in-game copy is plain, filter-safe, and names nobody's rules", () => {
   }
 });
 
+test("Elixir's own demotion message says Elder can come back and never hints why", async () => {
+  const { leaderMessage } = await import("../src/render.mjs");
+  const m = leaderMessage("demotion", { name: "Ada" });
+  assert.equal(m.title, "Elder update");
+  assert.equal(
+    m.body,
+    "Ada moves from Elder back to Member for now, and Elder can come back.",
+  );
+  assert.doesNotMatch(m.body, /keep playing|lately|quiet|inactiv|active/i);
+});
+
 test("a Clan Leader Message fits the game: a title of 24 and a message of 180, filter-safe", async () => {
   const { leaderMessage, LEADER_MESSAGE } = await import("../src/render.mjs");
   assert.deepEqual(LEADER_MESSAGE, { title: 24, body: 180 });
