@@ -24,14 +24,41 @@ export interface RailItem {
   label: string;
   icon: string;
   to: string;
-  /** A group heading above this item. */
+  /** The group this item is in. Its heading is drawn once, above the
+   *  first item of a run in that group, so an item may name its group
+   *  even when the one before it does too: which heading an item sits
+   *  under never depends on what happens to precede it. */
   group?: string;
   /** A count beside the label: the reader's own things, a number and
    *  never a list. */
   meta?: string;
   dot?: RailDot | null;
+  /** Something in this item waits for the reader to act on, in words
+   *  the item's label leads ("Actions: 2 waiting for you"). Drawn
+   *  nowhere on the wide rail, where the item's own count shows it; the
+   *  narrow row's mark counts it. A plain count (what you track) is not
+   *  attention. */
+  attention?: string;
   /** Rendered only while this item is current. */
   subs?: RailSub[];
+}
+
+/** What waits for the reader in an item other than the current one: a
+ *  dot (an alert beats unread) or an item's `attention`, folded into the
+ *  one mark the narrow row shows while the list is closed. Null when
+ *  nothing does. */
+function waiting(
+  items: RailItem[],
+  current: string | null | undefined,
+): RailDot | null {
+  const rows = items.filter((r) => r.key !== current && (r.dot || r.attention));
+  if (!rows.length) return null;
+  return {
+    tone: rows.some((r) => r.dot?.tone === "alert") ? "alert" : "unread",
+    title: rows
+      .map((r) => `${r.label}: ${r.dot?.title ?? r.attention}`)
+      .join("; "),
+  };
 }
 
 /** One account the rail can be the console of: the person, one of their
@@ -80,11 +107,18 @@ export interface RailFoot {
  * is how two sections can each have a "Collectors" without ever showing
  * both.
  *
+ * Above the breakpoint the column runs the page's height and what is in
+ * it sticks: it starts under the top bar, stays in view as the page
+ * scrolls, and scrolls on its own when it is taller than the window, so
+ * the foot is always in reach (2026-10-20).
+ *
  * Below the one breakpoint it becomes a DISCLOSURE ABOVE THE CONTENT:
  * a 44px row naming the section and whose console it is, expanding to
  * the same head, list and foot in the same order. Not a drawer over the
  * content - a drawer hides the page you are reading in order to show
- * you a list of pages.
+ * you a list of pages. While it is closed, ONE mark on the row says
+ * that something in another section waits for you (an alert, unread,
+ * an item's `attention`), so folding the list never hides it.
  *
  * `title` and `aside` are the plain desktop head (the product, and a
  * mono aside such as the role or the clan tag); `subtitle` is what the
@@ -158,12 +192,14 @@ export function Rail({
 
   const list = (
     <nav aria-label={label} className="flex flex-col gap-[2px]">
-      {items.map((row) => {
+      {items.map((row, i) => {
         const on = row.key === current;
         const dot = row.dot;
         return (
           <div key={row.key}>
-            {row.group && <div className="rail__group">{row.group}</div>}
+            {row.group && row.group !== items[i - 1]?.group && (
+              <div className="rail__group">{row.group}</div>
+            )}
             <a
               className={"rail__item" + (on ? " rail__item--on" : "")}
               href={row.to}
@@ -240,30 +276,10 @@ export function Rail({
     </div>
   );
 
-  return (
-    <aside className="rail">
-      {narrow && head}
-      {narrow && (
-        <button
-          type="button"
-          className="rail__toggle"
-          aria-expanded={open}
-          data-scoped={scoped}
-          onClick={() => setOpen(!open)}
-        >
-          {active && <Icon name={active.icon} size={17} />}
-          <span className="text-[13.5px] font-semibold">
-            {active?.label ?? foot?.label ?? title}
-          </span>
-          <span className="truncate text-[13px] text-ink-faint">
-            {subtitle ?? subLabel ?? ""}
-          </span>
-          <span className="ml-auto flex">
-            <Icon name={open ? "chevron-up" : "chevron-down"} size={17} />
-          </span>
-        </button>
-      )}
+  const mark = narrow && !open ? waiting(items, current) : null;
 
+  const body = (
+    <>
       {shown && back && (
         <a className="rail__back" href={back.to} onClick={go(back.to)}>
           <Icon name="chevron-left" size={15} />
@@ -306,6 +322,44 @@ export function Rail({
         </div>
       )}
       {shown && identity && <div className="mt-auto pt-4">{identity}</div>}
+    </>
+  );
+
+  return (
+    <aside className="rail">
+      {narrow && head}
+      {narrow && (
+        <button
+          type="button"
+          className="rail__toggle"
+          aria-expanded={open}
+          data-scoped={scoped}
+          onClick={() => setOpen(!open)}
+        >
+          {active && <Icon name={active.icon} size={17} />}
+          <span className="text-[13.5px] font-semibold">
+            {active?.label ?? foot?.label ?? title}
+          </span>
+          <span className="truncate text-[13px] text-ink-faint">
+            {subtitle ?? subLabel ?? ""}
+          </span>
+          <span className="ml-auto flex items-center gap-[10px]">
+            {mark && (
+              <span
+                className={`rail__dot rail__dot--${mark.tone}`}
+                title={mark.title}
+                role="img"
+                aria-label={mark.title}
+              />
+            )}
+            <Icon name={open ? "chevron-up" : "chevron-down"} size={17} />
+          </span>
+        </button>
+      )}
+      {/* Wide, the column runs the page's height and this sticks in it
+          (components.css, .rail__pin); narrow, the disclosure's open
+          list flows above the page as it always has. */}
+      {narrow ? body : <div className="rail__pin">{body}</div>}
     </aside>
   );
 }
