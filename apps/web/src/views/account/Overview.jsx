@@ -206,9 +206,13 @@ function Players({ me, navigate }) {
           <p className="empty__body">
             No players yet — nothing here defaults to you.
           </p>
+          {/* Onto the field it came for, focused, as a new account's
+              first landing does (#add-player-tag). */}
           <button
             className="btn btn--primary"
-            onClick={() => navigate(`${CONSOLE}/account/tracking`)}
+            onClick={() =>
+              navigate(`${CONSOLE}/account/tracking#add-player-tag`)
+            }
           >
             Add your player
           </button>

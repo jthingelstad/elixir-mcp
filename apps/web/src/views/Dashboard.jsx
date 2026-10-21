@@ -25,6 +25,7 @@ export function Dashboard({
   itemId,
   recordId,
   search,
+  hash,
 }) {
   if (me === null) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   if (page === "timeline") return <Timeline />;
@@ -45,7 +46,7 @@ export function Dashboard({
         tag={itemId}
       />
     ) : (
-      <Tracking me={me} refresh={refresh} navigate={navigate} />
+      <Tracking me={me} refresh={refresh} navigate={navigate} hash={hash} />
     );
   if (page === "profile" && itemId === "email")
     return <EmailPage navigate={navigate} />;

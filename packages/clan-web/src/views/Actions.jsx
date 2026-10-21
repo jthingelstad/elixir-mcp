@@ -183,11 +183,13 @@ function ActionList({ id, title, tone, actions, clan, navigate, foot, scope }) {
  */
 function DiscordNudge({ discord, to, navigate }) {
   if (!discord || (discord.set && !discord.refused)) return null;
+  // Onto Settings with the Discord setting open (#discord), the way the
+  // activity page reaches the clan model (#settings-model).
   const go = (e) => {
     if (!navigate) return;
     e.preventDefault();
     trackEvent("clan.discord_nudge");
-    navigate(to);
+    navigate(to, { hash: "discord" });
   };
   return (
     <div
@@ -198,7 +200,7 @@ function DiscordNudge({ discord, to, navigate }) {
         {discord.set
           ? "Discord stopped accepting the clan’s webhook, so Actions are not being posted there. "
           : "Post Actions to your leaders’ Discord channel: each new one appears there, and is marked when someone completes it. "}
-        <a href={to} onClick={go}>
+        <a href={`${to}#discord`} onClick={go}>
           {discord.set
             ? "Connect it again in Settings ›"
             : "Set it up in Settings ›"}

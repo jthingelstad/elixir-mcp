@@ -123,6 +123,9 @@ test(
       }
       return { ok: true, text: async () => JSON.stringify(data) };
     });
+    // The router scrolls a hash's element into view; jsdom has no
+    // scrolling.
+    Element.prototype.scrollIntoView ??= () => {};
     window.history.pushState({}, "", "/console/account/overview");
     render(<App />);
 
@@ -138,7 +141,13 @@ test(
     await waitFor(() =>
       expect(window.location.pathname).toBe("/console/account/tracking"),
     );
-    const input = document.getElementById("add-player-tag");
+    // On the field it came for, ready to type in.
+    expect(window.location.hash).toBe("#add-player-tag");
+    const input = await waitFor(() => {
+      const el = document.getElementById("add-player-tag");
+      expect(document.activeElement).toBe(el);
+      return el;
+    });
     fireEvent.change(input, { target: { value: player.player_tag } });
     fireEvent.click(input.parentElement.querySelector("button"));
 

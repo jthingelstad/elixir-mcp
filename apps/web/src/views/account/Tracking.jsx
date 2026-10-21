@@ -38,7 +38,7 @@ function freshness(ts, now) {
   return { text: ago(ts, now), tone: "ink-faint" };
 }
 
-export function Tracking({ me, refresh, navigate }) {
+export function Tracking({ me, refresh, navigate, hash }) {
   const clansQuery = useMyClans();
   const clans = clansQuery.data ?? null;
   const [filter, setFilter] = useState("all");
@@ -55,13 +55,20 @@ export function Tracking({ me, refresh, navigate }) {
   const [clanErr, setClanErr] = useState("");
   const [now] = useInitialTime();
   // A new account that gave no tag at signup lands here
-  // (#add-player-tag): the field it came to fill is ready to type in.
+  // (#add-player-tag), and so do Overview's and Ladder's "Add your
+  // player": the field it came to fill is ready to type in. `hash` is the
+  // router's: an in-app move renders this page before the address bar
+  // has the new hash, so the window's read alone missed every one of
+  // those (2026-10-20). Without a router (a view on its own), the window.
+  const landing =
+    hash ??
+    (typeof window === "undefined" ? "" : window.location.hash.slice(1));
   const tagInput = useRef(null);
   useEffect(() => {
-    if (window.location.hash !== "#add-player-tag") return;
+    if (landing !== "add-player-tag") return;
     tagInput.current?.scrollIntoView?.({ block: "center" });
     tagInput.current?.focus({ preventScroll: true });
-  }, []);
+  }, [landing]);
 
   // A tracking change moves the rail's count as well as this list, so
   // it invalidates everything that is the reader's own, not just clans.
