@@ -398,8 +398,13 @@ CloudFront signs origin requests to three IAM-protected Lambda Web Function
 endpoints with `always-amz-auth`. Private cache behaviors carry Authorization
 in the cache policy, forward their existing cookie/header allowlists, and use
 zero default/minimum TTL; every private response says `no-store`. Public
-reads retain their credential-free cache behaviors. API Gateway is absent.
-The collector has an origin of its own and precedes `/api/*`.
+reads (`/api/public/*`, `/battle/*` and the OAuth metadata at
+`/.well-known/*`) are cached by URL alone, with no origin request policy, so
+a response there must be the same for every caller. Every behavior
+compresses. API Gateway is absent. The collector has an origin of its own
+and precedes `/api/*`. The static router answers scanner paths (dot-files,
+server-side code and configuration, secret file names) 404 at the edge; the
+site tests walk the built tree so that no real file matches.
 
 Each endpoint pins one immutable revision at 100%, with automatic deployment
 disabled. Revisions pin both an S3 object version and a connector version.
@@ -414,9 +419,14 @@ before switching revisions. HTML and server rendering ride the web bundle.
 
 Web-api/MCP pools allow four connections per process; the collector allows
 two. Two environments per endpoint cap the combined pool capacity at twenty
-connections. Cleanup rolls back and discards all session state; a failed,
-unfinished or prepared query destroys its client instead of returning it.
-A lease expiring while waiting cannot acquire a usable client afterward.
+connections. An idle connection is kept 240 s, under its 300 s lifetime,
+with TCP keepalive. Cleanup rolls back a transaction the server reports open
+(never otherwise, so Postgres logs no warning) and discards all session
+state; a failed, unfinished or prepared query destroys its client instead of
+returning it. A lease expiring while waiting cannot acquire a usable client
+afterward. A connection that cannot be had answers 503 with `Retry-After`
+in the door's own shape (MCP `live_unavailable`, `/api/v1`
+`temporarily_unavailable`, the site API `unavailable` with a message).
 SIGTERM has one second; durable work still goes through the outbox/ledger.
 
 Console, Ladder and Clan use request-local React/router/query state. The
