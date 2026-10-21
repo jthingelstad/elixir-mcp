@@ -85,7 +85,7 @@ for (const width of [390, 1280]) {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/2PQRJ8LV/roster");
     await page.getByRole("link", { name: "Ben", exact: true }).click();
     await expect(page).toHaveURL(/\/members\/uq8lp2r9c$/);
     await expect(

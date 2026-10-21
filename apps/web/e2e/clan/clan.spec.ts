@@ -404,9 +404,12 @@ test.describe("signed in", () => {
     await expect(rail.getByRole("link", { name: /^Feedback/ })).toHaveCount(0);
     await accessible(page, "chooser");
 
-    // Picking one is remembered and lands on its page.
+    // Picking one is remembered and lands on it: Actions, for a leader
+    // with two waiting (Jamie, 2026-10-20); the roster is in the rail.
     await page.getByText("Example Clan").first().click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
+    await rail.getByRole("link", { name: /^Roster/ }).click();
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/roster$/);
     await expect(page.getByText("Ben")).toBeVisible();
     await expect(page.getByText("Co-leader").first()).toBeVisible();
     // The canvas: the clan's own figures, its comings and goings in the
@@ -593,7 +596,7 @@ test.describe("signed in", () => {
       page,
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/policy": [200, POLICY_VIEW] }),
     );
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/2PQRJ8LV/roster");
     await page
       .locator(".rail")
       .getByRole("link", { name: /^Policy/ })
@@ -660,7 +663,7 @@ test.describe("signed in", () => {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/2PQRJ8LV/roster");
     await page
       .locator(".rail")
       .getByRole("link", { name: /^Settings/ })
@@ -872,7 +875,7 @@ test.describe("signed in", () => {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/2PQRJ8LV/roster");
     const rail = page.locator(".rail");
     await rail.getByRole("link", { name: /^Actions/ }).click();
     await expect(page).toHaveURL(/\/actions$/);
@@ -963,7 +966,7 @@ test.describe("signed in", () => {
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/2PQRJ8LV/roster");
     const rail = page.locator(".rail");
     await rail.getByRole("link", { name: /^The week/ }).click();
     await expect(page).toHaveURL(/\/week$/);
@@ -1000,7 +1003,7 @@ test.describe("signed in", () => {
       page,
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
     );
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/2PQRJ8LV/roster");
     const rail = page.locator(".rail");
     await rail.getByRole("link", { name: /^Your clan record/ }).click();
     await expect(page).toHaveURL(/\/me$/);
@@ -1044,7 +1047,7 @@ test.describe("signed in", () => {
   test("@narrow the folded rail marks the Actions waiting for you, and not on Actions itself", async ({
     page,
   }) => {
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/2PQRJ8LV/roster");
     const toggle = page.locator(".rail__toggle");
     await expect(
       toggle.getByRole("img", { name: "Actions: 2 waiting for you" }),
@@ -1057,7 +1060,7 @@ test.describe("signed in", () => {
   test("@narrow the rail is a disclosure above the content", async ({
     page,
   }) => {
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/2PQRJ8LV/roster");
     const toggle = page.locator(".rail__toggle");
     await expect(toggle).toBeVisible();
     await expect(toggle).toContainText("Clan");
@@ -1082,7 +1085,7 @@ test.describe("signed in", () => {
       page,
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
     );
-    await page.goto("/clan/2PQRJ8LV");
+    await page.goto("/clan/2PQRJ8LV/roster");
     await page.locator(".rail__toggle").click();
     await page
       .getByRole("navigation", { name: "Sections" })
@@ -1146,7 +1149,9 @@ test("one application and account survive Console and Clan navigation at phone, 
         .getByRole("link", { name: "Clan", exact: true })
         .click();
     }
-    await expect(page).toHaveURL(/\/clan\/(clans|2PQRJ8LV)$/);
+    // The chooser, then the clan's landing: Actions, for this leader
+    // with two waiting.
+    await expect(page).toHaveURL(/\/clan\/(clans|2PQRJ8LV\/actions)$/);
     expect(
       await page.evaluate(
         () =>
@@ -1155,7 +1160,7 @@ test("one application and account survive Console and Clan navigation at phone, 
     ).toBe("same-app");
     if (page.url().endsWith("/clans"))
       await page.getByText("Example Clan", { exact: true }).first().click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
     await expect(
       page.getByRole("button", { name: "Account: Ada", exact: true }),
     ).toHaveCount(1);
