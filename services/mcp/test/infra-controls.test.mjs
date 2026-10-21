@@ -22,13 +22,6 @@ import {
   sameTemplate,
 } from "../../../infra/scripts/lib/deploy-lane.mjs";
 import {
-  IMMUTABLE,
-  REVALIDATE,
-  hashedAssets,
-  publishSteps,
-  pruneCandidates,
-} from "../../../infra/scripts/lib/site-publish.mjs";
-import {
   CORPUS_SOURCES,
   LAMBDAS,
   RDS_CA_BUNDLE,
@@ -1444,101 +1437,7 @@ test("every /api/public route is a GET that states its own freshness (#73)", asy
   }
 });
 
-// Publishing the site (#73). One `s3 sync
-// --delete` with no Cache-Control removed the old build's lazy chunks
-// while an open console, or an edge still holding the old app.html,
-// could ask for them: a blank page mid-session.
-const VITE_OUT = [
-  "AccountPage-C3FTy2qB.js",
-  "index-BTm8TzAt.js",
-  "index-DQxSyd3a.css",
-  "tag-url-DSiL-xl4.js",
-];
-
-test("publish: only Vite's content-hashed chunks are immutable (#73)", () => {
-  const hashed = hashedAssets(
-    [
-      ...VITE_OUT.map((f) => `assets/${f}`),
-      // The site's own assets keep one name and are busted by ?v=, which
-      // the edge's cache key ignores: they must revalidate.
-      "assets/site.css",
-      "assets/chrome-menu.js",
-      "assets/rail-anchors.js",
-      "assets/updates-filter.js",
-      "assets/fonts/Clash_Regular.otf",
-      "assets/cards/26000000_evo.png",
-      "index.html",
-    ],
-    [...VITE_OUT, "fonts"],
-  );
-  assert.deepEqual(
-    [...hashed].sort(),
-    VITE_OUT.map((f) => `assets/${f}`).sort(),
-  );
-  // A name that merely looks hashed but did not come from Vite is not.
-  assert.deepEqual([...hashedAssets(["assets/some-abcdefgh.js"], [])], []);
-});
-
-test("publish: assets first without --delete, then documents, each with Cache-Control (#73)", () => {
-  const steps = publishSteps({
-    dir: "/tmp/site",
-    bucket: "b",
-    hashed: new Set(["assets/index-BTm8TzAt.js", "assets/index-DQxSyd3a.css"]),
-  });
-  const joined = steps.map((s) => s.join(" "));
-  // 1. the hashed chunks, immutable, never deleting
-  assert.deepEqual(steps[0].slice(0, 4), [
-    "s3",
-    "sync",
-    "/tmp/site/assets",
-    "s3://b/assets",
-  ]);
-  assert.ok(joined[0].includes("--include index-BTm8TzAt.js"));
-  assert.ok(steps[0].includes(IMMUTABLE));
-  // 2. every other asset, revalidated, never deleting
-  assert.ok(joined[1].includes("--exclude index-BTm8TzAt.js"));
-  assert.ok(steps[1].includes(REVALIDATE));
-  for (const step of steps.slice(0, 2)) {
-    assert.ok(!step.includes("--delete"), step.join(" "));
-  }
-  // 3. the documents: revalidated, deleting, and never touching assets/
-  assert.deepEqual(steps[2].slice(0, 4), ["s3", "sync", "/tmp/site", "s3://b"]);
-  assert.ok(steps[2].includes("--delete"));
-  assert.ok(joined[2].includes("--exclude assets/*"));
-  assert.ok(steps[2].includes(REVALIDATE));
-  // 4. the .txt charset rewrite keeps the Cache-Control it replaces
-  assert.ok(joined[3].includes("--content-type text/plain; charset=utf-8"));
-  assert.ok(steps[3].includes("--metadata-directive"));
-  assert.ok(steps[3].includes(REVALIDATE));
-  assert.ok(joined[3].includes("--exclude assets/*"));
-  assert.equal(steps.length, 4);
-  // Every sync and copy states a Cache-Control.
-  for (const step of steps) assert.ok(step.includes("--cache-control"));
-});
-
-test("publish: prune only assets the build no longer ships, after they have been gone long enough (#73)", () => {
-  const now = Date.parse("2026-09-28T00:00:00Z");
-  const day = 86_400_000;
-  const objects = [
-    // shipped by this build: kept however old
-    { Key: "assets/index-NEW00000.js", LastModified: new Date(now - 90 * day) },
-    // last shipped 20 days ago: an open tab from then is long gone
-    { Key: "assets/index-OLD00000.js", LastModified: new Date(now - 20 * day) },
-    // last shipped yesterday: an open console may still ask for it
-    { Key: "assets/index-RECENT00.js", LastModified: new Date(now - day) },
-    // never under assets/: not the prune's business
-    { Key: "index.html", LastModified: new Date(now - 90 * day) },
-  ];
-  const current = new Set(["assets/index-NEW00000.js"]);
-  assert.deepEqual(pruneCandidates({ objects, current, now, days: 14 }), [
-    "assets/index-OLD00000.js",
-  ]);
-  // An empty build prunes nothing: it is a broken build, not a new one.
-  assert.deepEqual(
-    pruneCandidates({ objects, current: new Set(), now, days: 14 }),
-    [],
-  );
-});
+// Publishing the site (#73, 2026-10-21): services/mcp/test/site-publish.test.mjs.
 
 test("CI builds the site once per job (#73)", async () => {
   // The test runner (infra/scripts/test.mjs) builds the merged tree once
