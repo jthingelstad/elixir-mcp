@@ -143,7 +143,11 @@ refused rather than quietly answering about the wrong subject.
 The rail groups the console into what you are reading, what we record for
 you, who can call on your behalf, and how the service is running. The
 switcher at the top moves between you and each agent you own, whose console
-is the same pages scoped to it (below).
+is the same pages scoped to it (below). On a wide screen the rail stays in
+view as a page scrolls. On a phone it folds into one row above the page,
+and while it is closed a mark on that row says something waits on another
+page, such as an unread timeline; a count, such as the players you track,
+is not one.
 
 | Page | What it does |
 |---|---|
@@ -155,7 +159,7 @@ is the same pages scoped to it (below).
 | Access → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its console; and **New agent** |
 | Access → Usage | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, the Console's and Ladder's own reads counted apart (they spend no daily quota), and **MCP requests**, every call with its `request_id` |
 | Service → Status | recording health, budget gauge, capture gaps; under it **Collectors** (the fleet, your own collectors, the one-time token reveal) and **Efficiency** (what the battle-log schedule costs and loses) |
-| Send feedback | what you filed and what the maintainer answered |
+| Send feedback | a sheet over the page you are on: write what you think, and the page rides along. The sheet links **Feedback** (also in the account menu): what you filed and what the maintainer answered |
 
 **Account settings**, in the account menu at the top, has its own rail:
 
