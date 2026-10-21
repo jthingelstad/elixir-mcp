@@ -227,6 +227,19 @@ test("draft_packet builds the exact request a draft would send, in a transaction
     [clan, tag],
   );
   await ledger.savePolicy(clan, { values: defaults(), by: "#LEAD" });
+  // One finished war week they played, which only their dossier tells.
+  await db.query(
+    "insert into war_week (clan_tag, season_id, section_index, is_colosseum) values ($1, 140, 2, false)",
+    [clan],
+  );
+  await db.query(
+    "insert into war_week_clan (clan_tag, season_id, section_index, participant_clan_tag, participant_name, fame, rank, trophy_change) values ($1, 140, 2, $1, 'Synthetic Crew', 30000, 2, 0)",
+    [clan],
+  );
+  await db.query(
+    "insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used) values ($1, 140, 2, $2, 1850, 13)",
+    [clan, tag],
+  );
   // As `raiseAction` stores a fresh promotion: its words frozen in
   // `delivery`, clan chat only.
   const card = {
@@ -277,6 +290,9 @@ test("draft_packet builds the exact request a draft would send, in a transaction
   assert.match(packet.request.prompt, /ELIXIR'S PLAIN WORDS/);
   assert.match(packet.request.prompt, /40 of 48 war decks/);
   assert.match(packet.request.context, /Synthetic Crew/);
+  // The same reader as the draft route: the member's dossier.
+  assert.match(packet.request.prompt, /MEMBER DOSSIER/);
+  assert.match(packet.request.prompt, /1,850/);
   // The provider's body, as the relay would send it.
   assert.equal(packet.body.tools[0].name, "write_clan_chat");
   assert.equal(packet.body.messages[0].content, packet.request.prompt);
