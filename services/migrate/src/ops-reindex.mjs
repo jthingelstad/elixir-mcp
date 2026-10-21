@@ -3,11 +3,11 @@
  * time with REINDEX INDEX CONCURRENTLY. REINDEX CONCURRENTLY and DROP
  * INDEX CONCURRENTLY refuse a transaction block, and the migrate runner
  * wraps every migration in one, so this is an op, as `{vacuum}` is.
- * Added 2026-10-21 (#630): RDS lowered shared_buffers to 88 MB from the
- * next restart, and `battle`'s indexes held about 118 MB for about 92,000
- * rows after the bulk deletions (battle_pkey 78 MB, battle_time_idx
- * 21 MB, battle_cursor_key 19 MB). Jamie approved the op and the rebuild
- * on 2026-10-21.
+ * Added 2026-10-21 (#630), the memory lever after RDS warned it would
+ * lower shared_buffers: `battle`'s indexes held about 118 MB for about
+ * 92,000 rows after the bulk deletions (battle_pkey 78 MB,
+ * battle_time_idx 21 MB, battle_cursor_key 19 MB). Jamie approved the
+ * op and the rebuild on 2026-10-21.
  *
  *   {"reindex": {"table": "battle"}}
  *     Read (a read-only session). Every index on the table: its size,
