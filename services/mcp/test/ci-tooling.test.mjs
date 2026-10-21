@@ -17,6 +17,11 @@ import {
   openedDocs,
   specClosure,
 } from "../../../infra/scripts/lib/e2e-inputs.mjs";
+import {
+  SPEC_WEIGHTS,
+  e2eShard,
+  specs as e2eSpecs,
+} from "../../../infra/scripts/e2e-shard.mjs";
 
 /**
  * The CI tooling (2026-10-21): infra/scripts/e2e-needed.sh, which decides
@@ -58,6 +63,7 @@ test("e2e-needed: what builds, serves or lands in the journeys' tree says true",
     "infra/scripts/build.mjs",
     "infra/scripts/build-site.mjs",
     "infra/scripts/serve-site.mjs",
+    "infra/scripts/e2e-shard.mjs",
     "package.json",
     "package-lock.json",
     ".node-version",
@@ -175,6 +181,30 @@ test("test runner: --shard, the pool and the Node check", () => {
   });
 });
 
+test("e2e shards: every spec file in exactly one, balanced, and never an empty one", () => {
+  const all = e2eSpecs(repoRoot);
+  assert.ok(all.length > 20, `${all.length} specs`);
+  // A weight for a spec that no longer exists is a stale table.
+  for (const s of Object.keys(SPEC_WEIGHTS)) assert.ok(all.includes(s), s);
+  const shards = [1, 2, 3].map((i) => e2eShard(`${i}/3`, repoRoot));
+  assert.deepEqual(
+    shards.flat().sort(),
+    all.map((s) => `apps/web/e2e/${s}`).sort(),
+  );
+  const load = (files) =>
+    files.reduce(
+      (t, f) => t + (SPEC_WEIGHTS[f.replace("apps/web/e2e/", "")] ?? 1),
+      0,
+    );
+  const loads = shards.map(load);
+  assert.ok(
+    Math.max(...loads) - Math.min(...loads) <=
+      Math.max(...Object.values(SPEC_WEIGHTS)),
+    `loads ${loads.join(", ")}`,
+  );
+  assert.throws(() => e2eShard(`40/40`, repoRoot), /no spec files/);
+});
+
 test("validate runs the runner's shards and the journeys' shards it names, and gates on all of them", async () => {
   const workflow = await readFile(
     path.join(repoRoot, ".github/workflows/validate.yml"),
@@ -192,7 +222,11 @@ test("validate runs the runner's shards and the journeys' shards it names, and g
     /node infra\/scripts\/test\.mjs --shard \$\{\{ matrix\.shard \}\}\/3/,
   );
   assert.deepEqual(shards(job("e2e")), [1, 2, 3]);
-  assert.match(job("e2e"), /--shard=\$\{\{ matrix\.shard \}\}\/3/);
+  assert.match(
+    job("e2e"),
+    /node infra\/scripts\/e2e-shard\.mjs \$\{\{ matrix\.shard \}\}\/3/,
+  );
+  assert.doesNotMatch(job("e2e"), /--shard/, "Playwright's count split");
   assert.match(job("static"), /npm run verify:static/);
   assert.match(job("static"), /node infra\/scripts\/build\.mjs/);
   assert.match(
