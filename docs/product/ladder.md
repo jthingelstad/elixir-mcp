@@ -27,7 +27,8 @@ understands it is a recorder and sees their next step. [Jamie,
    no model behind it. [Jamie, 2026-10-02]
 3. **Form is numbers only.** "Am I improving?" is two stretches of one
    mode's record side by side (this game week beside the four before;
-   before and since the most-played deck arrived), each with its count;
+   before and since the most-played deck arrived; this season beside the
+   last [Jamie, 2026-10-20]), each with its count;
    a direction stated with its numbers is a fact; no verdict word,
    arrow, colour, score or advice; under ten decided battles a side is
    not shown. [Jamie, 2026-10-08, 2026-10-11]
