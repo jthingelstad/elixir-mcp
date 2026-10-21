@@ -421,7 +421,7 @@ only JSON never parses them.
 
 Web-api/MCP pools allow four connections per process; the collector allows
 two. Two environments per endpoint cap the combined pool capacity at twenty
-connections. An idle connection is kept 240 s, under its 300 s lifetime,
+connections. An idle connection is kept 120 s, under its 300 s lifetime,
 with TCP keepalive. Cleanup rolls back a transaction the server reports open
 (never otherwise, so Postgres logs no warning) and discards all session
 state; a failed, unfinished or prepared query destroys its client instead of
