@@ -520,6 +520,34 @@ describe("actions", () => {
     expect(screen.queryByRole("button", { name: "Complete" })).toBeNull();
   });
 
+  test("the leaders' Discord nudge lands on Settings with the Discord setting open", async () => {
+    for (const discord of [{ set: false }, { set: true, refused: true }]) {
+      vi.spyOn(manageApi, "actions").mockResolvedValue(view({ discord }));
+      const navigate = vi.fn();
+      renderWithProviders(
+        <Actions
+          clan={clan}
+          who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
+          navigate={navigate}
+        />,
+      );
+      const link = await screen.findByRole("link", {
+        name: discord.set
+          ? "Connect it again in Settings ›"
+          : "Set it up in Settings ›",
+      });
+      expect(link.getAttribute("href")).toBe(
+        "/clan/2PQRJ8LV/manage/settings#discord",
+      );
+      fireEvent.click(link);
+      expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/manage/settings", {
+        hash: "discord",
+      });
+      cleanup();
+      vi.restoreAllMocks();
+    }
+  });
+
   test("an action that is not yours, or not there, says there is no such action here", async () => {
     vi.spyOn(manageApi, "action").mockResolvedValue({
       ok: false,

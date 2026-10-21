@@ -249,6 +249,11 @@ for (const width of [390, 1280]) {
     await page
       .getByRole("button", { name: "Add your player", exact: true })
       .click();
+    // Onto the field it came for, ready to type in (2026-10-20).
+    await expect(page).toHaveURL(
+      /\/console\/account\/tracking#add-player-tag$/,
+    );
+    await expect(page.getByLabel("Player tag")).toBeFocused();
     await expect(
       page.getByText(/open your profile: the tag starting with #/),
     ).toBeVisible();
@@ -276,10 +281,7 @@ for (const width of [390, 1280]) {
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Elixir → Tracking ›" }),
-    ).toHaveAttribute(
-      "href",
-      "https://elixir.poapkings.com/console/account/tracking",
-    );
+    ).toHaveAttribute("href", "/console/account/tracking");
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - innerWidth,

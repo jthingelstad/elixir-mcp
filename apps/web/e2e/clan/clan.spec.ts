@@ -784,6 +784,33 @@ test.describe("signed in", () => {
     await accessible(page, "clan settings with a key");
   });
 
+  test("the leaders' Discord nudge opens Settings on the Discord setting", async ({
+    page,
+  }) => {
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/clan/clans/2PQRJ8LV/actions": [
+          200,
+          {
+            clan_tag: "#2PQRJ8LV",
+            as_of: "2026-09-13T09:00:00Z",
+            open: [],
+            recent: [],
+            decline_reasons: ["not_now", "other"],
+            discord: { set: false },
+          },
+        ],
+      }),
+    );
+    await page.goto("/clan/2PQRJ8LV/actions");
+    await page.getByRole("link", { name: "Set it up in Settings ›" }).click();
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/manage\/settings#discord$/);
+    await expect(
+      page.getByRole("dialog", { name: "Actions in Discord" }),
+    ).toBeVisible();
+  });
+
   test("actions are a short list; each has its own address, with its log open", async ({
     page,
   }) => {
