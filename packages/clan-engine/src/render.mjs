@@ -575,7 +575,9 @@ export function leaderMessage(kind, data = {}) {
     body = `${name} is now an Elder${data.phrase ? `: ${chatSafe(data.phrase)}` : ""}. Thank you for showing up for the clan.`;
   } else if (kind === "demotion") {
     title = "Elder update";
-    body = `${name} moves from Elder back to Member for now. Keep playing and it can come back.`;
+    // Never a hint at why: "Keep playing" read as one, and a draft must
+    // say at least what this says (Jamie, 2026-10-20).
+    body = `${name} moves from Elder back to Member for now, and Elder can come back.`;
   } else if (kind === "awards") {
     title = `Season ${data.season_id} awards`;
     const lines = (data.awards ?? []).map(
