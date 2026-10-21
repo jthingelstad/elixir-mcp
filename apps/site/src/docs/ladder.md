@@ -186,7 +186,8 @@ numbers, each with the battles it is over:
 
 A season still running is **so far**. It sits beside last season to the
 same point, as far into it to the hour as this season is when you open
-the page, and beside all of last season. Once this season has run as
+the page, and beside all of last season. In a season's first hour there
+is no same point yet, and the page says so. Once this season has run as
 long as last season did, all of last season is the same point and stands
 alone. A past season, such as `?season=136`, sits beside the season
 before it, both whole. Seasons differ in length, so the page says how
