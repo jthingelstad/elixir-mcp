@@ -37,6 +37,7 @@ import { CHAT_MAX, chatSafe, chatWarnings, clipChat } from "./chat.mjs";
 import { chatLines } from "./delivery.mjs";
 import { inGameCopy, LEADER_MESSAGE } from "./render.mjs";
 import {
+  ANGLES_HEADING,
   inventedNumbers,
   numbersOf,
   strictTool,
@@ -400,19 +401,19 @@ const MESSAGE_KINDS = ["promotion", "demotion", "awards", "rules"];
  *  it thanks the member for what came before. */
 const ASK = {
   promotion:
-    "Tell the clan this member is now an Elder, and thank them for what made it, from their own record: start from the STORY ANGLES.",
+    "Tell the clan this member is now an Elder, and thank them for what made it, from their own record.",
   demotion:
-    "Tell the clan this Elder moves back to Member for now and that Elder can come back. Thank them for good history from their record: the STORY ANGLES, their time in the clan, an award they hold. Never shame them, and never say or hint why: nothing about lately, being quiet, missing or inactivity, and no number from recent weeks.",
+    "Tell the clan this Elder moves back to Member for now and that Elder can come back. Thank them for good history from their record: what they gave before, their time in the clan, an award they hold. Never shame them, and never say or hint why: nothing about lately, being quiet, missing or inactivity, and no number from recent weeks.",
   awards:
     "Announce the season's awards. Keep the words around {winners} short; a line on one winner's number is welcome.",
   rules:
     "Tell the clan how it runs now, in plain words members will read in the game. Say what changed, not the whole policy.",
   welcome:
-    "Welcome this member. Make them feel seen with true details about them (the STORY ANGLES, their career wins, a best, their arena, their collection), and make no promises or demands.",
+    "Welcome this member. Make them feel seen with true details about them (their career wins, a best, their arena, their collection), and make no promises or demands.",
   returning:
     "Welcome this member back: the record shows an earlier time in this clan. Add true details about them, and make no promises or demands.",
   member_left:
-    "A leader confirmed this member left on their own. Write a friendly farewell: thank them for specific things they gave the clan (the STORY ANGLES, the war weeks they played) and wish them well. Never invent why they left.",
+    "A leader confirmed this member left on their own. Write a friendly farewell: thank them for specific things they gave the clan (the war weeks they played) and wish them well. Never invent why they left.",
   member_kicked:
     "A leader confirmed this member was removed. Write brief, respectful words: thank them for their time and what they gave, without blame and without a reason. Never describe it as a voluntary leave, never mention inactivity, and promise nothing about returning.",
   removal:
@@ -451,7 +452,15 @@ function draftPrompt({ packet, ask, plain = null, note = null }) {
       "",
       `THE LEADER'S NOTE (follow it; it may add facts of its own): ${said}`,
     );
-  lines.push("", `THE ASK: ${ask}`);
+  // The angles are where a draft about one member starts, when the
+  // packet has them; a packet without a dossier is not pointed at them.
+  const angled = String(packet ?? "")
+    .split("\n")
+    .includes(ANGLES_HEADING);
+  lines.push(
+    "",
+    `THE ASK: ${ask}${angled ? " Start from the STORY ANGLES; every number you use is in the packet." : ""}`,
+  );
   return lines.join("\n").trim();
 }
 

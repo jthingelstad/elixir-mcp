@@ -699,13 +699,14 @@ export function storyAngles(
     .map((x) => x.text);
 }
 
+/** The angles block's heading; a draft's ask points at it when present. */
+export const ANGLES_HEADING =
+  "STORY ANGLES (Elixir's pick from the record, strongest first)";
+
 /** The angles as the packet's block, numbered strongest first. */
 export function angleLines(angles) {
   return angles?.length
-    ? [
-        "STORY ANGLES (Elixir's pick from the record, strongest first)",
-        ...angles.map((a, i) => `${i + 1}. ${a}`),
-      ]
+    ? [ANGLES_HEADING, ...angles.map((a, i) => `${i + 1}. ${a}`)]
     : [];
 }
 
