@@ -188,7 +188,10 @@ test.describe("signed in", () => {
           hasText: "Played a battle session.",
         });
         await expect(session).toContainText("King Thing");
-        await expect(session).toContainText("Unread by connections");
+        // Rows say nothing of what connections have read (2026-10-20);
+        // a first visit, with no place yet, marks nothing new.
+        await expect(session).not.toContainText("Unread by connections");
+        await expect(session.locator(".timeline-list__new")).toHaveCount(0);
       }
     }
     // Send feedback is the foot (2026-10-20): it opens the sheet over
@@ -288,53 +291,115 @@ test.describe("signed in", () => {
     await expect(page).toHaveURL(/\/console\/account\/overview$/);
   });
 
-  test("a read timeline has no unread dot and its rows say read; an empty week says so", async ({
+  test("opening the Timeline clears its dot and rules off what is new since the last visit; an empty week says so", async ({
     page,
   }) => {
-    // Every item is at or before the read pointer and nothing is pending:
-    // the timeline contract's read case (me.signals.timeline_pending and
-    // GET /api/me/timeline's read_to).
+    // Jamie, 2026-10-20: "timeline should be independent of what agents
+    // have seen via MCP." The Console keeps its own place: the page moves
+    // it to the window it showed, and the rail's dot counts against it.
+    const TO = "2026-09-12T16:00:00.000Z";
+    const item = (text: string, at: string) => ({
+      at,
+      observed_at: at,
+      subject_tag: "#20JJJ2CCRU",
+      subject_name: "King Thing",
+      kind: "battle_session",
+      section: "battles",
+      text,
+      facts: { battles: 3 },
+    });
     let items: Record<string, unknown>[] = [
-      {
-        at: "2026-09-12T15:00:00Z",
-        subject_tag: "#20JJJ2CCRU",
-        subject_name: "King Thing",
-        kind: "battle_session",
-        section: "battles",
-        text: "Played a battle session.",
-        facts: { battles: 3 },
-      },
+      item("The latest sitting.", "2026-09-12T15:30:00Z"),
+      item("A sitting since.", "2026-09-12T15:00:00Z"),
+      item("A sitting you saw.", "2026-09-12T12:00:00Z"),
+      item("An older sitting.", "2026-09-11T12:00:00Z"),
     ];
+    let seenTo = "2026-09-12T13:00:00.000Z";
+    const marks: unknown[] = [];
+    const writes: string[] = [];
+    page.on("request", (r) => {
+      if (r.method() !== "GET" && new URL(r.url()).pathname.startsWith("/api/"))
+        writes.push(`${r.method()} ${new URL(r.url()).pathname}`);
+    });
     await mockApi(page, {
       ...signedIn(),
-      "GET /api/me": [
+      // The server's count: news since the Console's own place.
+      "GET /api/me": () => [
         200,
-        { ...ME, signals: { ...ME.signals, timeline_pending: 0 } },
+        {
+          ...ME,
+          signals: { ...ME.signals, timeline_pending: seenTo < TO ? 1 : 0 },
+        },
       ],
       "GET /api/me/timeline": () => [
         200,
-        { timeline: items, read_to: "2026-09-12T15:00:00Z" },
+        {
+          window: { from: "2026-09-05T16:00:00.000Z", to: TO },
+          seen_to: seenTo,
+          timeline: items,
+        },
       ],
+      "POST /api/me/timeline/seen": (route) => {
+        const body = route.request().postDataJSON();
+        marks.push(body);
+        seenTo = body.to;
+        return [200, { seen_to: seenTo }];
+      },
     });
-    await page.goto("/console/account/timeline");
+    await page.goto("/console/account/overview");
     const rail = page.locator(".rail");
-    await expect(rail).toBeVisible();
+    const dot = rail.getByRole("img", { name: "Unread notifications" });
+    await expect(dot).toBeVisible();
+
+    await rail
+      .getByRole("link", { name: /^Timeline/ })
+      .first()
+      .click();
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Timeline",
     );
-    const session = page.locator(".timeline-list > li").filter({
-      hasText: "Played a battle session.",
-    });
+    // The page marks the window it showed, once, and the dot follows.
+    await expect.poll(() => marks).toEqual([{ to: TO }]);
+    await expect(dot).toHaveCount(0);
+    // The rule sits under the last new row, drawn from the place as the
+    // page opened, so it holds after the write moved it.
+    const list = page.locator(".timeline-list > li");
+    await expect(list).toHaveText([
+      /The latest sitting\./,
+      /A sitting since\./,
+      /New since your last visit/,
+      /A sitting you saw\./,
+      /An older sitting\./,
+    ]);
+    await expect(list.nth(0).locator(".timeline-list__new")).toHaveText("New");
+    await expect(list.nth(1).locator(".timeline-list__new")).toHaveText("New");
+    await expect(list.nth(3).locator(".timeline-list__new")).toHaveCount(0);
+    await expect(page.locator("main")).not.toContainText(
+      "Unread by connections",
+    );
+    await rendered(page);
+    await accessible(page, "timeline, new since your last visit");
+    // The State filter narrows to the earlier rows; no rule over them.
     await page
       .getByRole("combobox", { name: "State", exact: true })
-      .selectOption("read");
-    await expect(session).toBeVisible();
-    await expect(session).not.toContainText("unread");
-    await expect(
-      rail.getByRole("img", { name: "Unread notifications" }),
-    ).toHaveCount(0);
-    await rendered(page);
-    await accessible(page, "timeline, read");
+      .selectOption("earlier");
+    await expect(list).toHaveText([
+      /A sitting you saw\./,
+      /An older sitting\./,
+    ]);
+    // The page's one write is the Console's own place: nothing an
+    // agent reads moves.
+    expect(writes).toEqual(["POST /api/me/timeline/seen"]);
+
+    // A return visit opens from the place the last one left: nothing is
+    // new, there is no rule and no dot, and the same window is not
+    // marked twice.
+    await page.reload();
+    await expect(list.filter({ hasText: "An older sitting." })).toBeVisible();
+    await expect(page.locator(".timeline-list__divider")).toHaveCount(0);
+    await expect(page.locator(".timeline-list__new")).toHaveCount(0);
+    await expect(dot).toHaveCount(0);
+    expect(marks).toHaveLength(1);
 
     // A quiet week: no rows, the empty line, and still no dot.
     items = [];
@@ -342,12 +407,7 @@ test.describe("signed in", () => {
     await expect(
       page.getByText(/^Nothing in the last seven days/),
     ).toBeVisible();
-    await expect(
-      page.locator(".timeline-list > li").filter({ hasText: "unread" }),
-    ).toHaveCount(0);
-    await expect(
-      rail.getByRole("img", { name: "Unread notifications" }),
-    ).toHaveCount(0);
+    await expect(dot).toHaveCount(0);
     await rendered(page);
   });
 
@@ -378,7 +438,7 @@ test.describe("signed in", () => {
               },
             },
           ],
-          read_to: null,
+          seen_to: null,
         },
       ],
     });

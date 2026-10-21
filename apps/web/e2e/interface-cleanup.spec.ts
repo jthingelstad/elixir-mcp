@@ -120,7 +120,7 @@ for (const width of [390, 1280]) {
   });
 }
 
-test("@narrow a timeline event keeps its reading width when evidence and unread controls are present", async ({
+test("@narrow a timeline event keeps its reading width when evidence and the New mark are present", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -134,7 +134,12 @@ test("@narrow a timeline event keeps its reading width when evidence and unread 
       "GET /api/me/timeline": [
         200,
         {
-          read_to: null,
+          window: {
+            from: "2026-10-06T12:30:00.000Z",
+            to: "2026-10-13T12:30:00.000Z",
+          },
+          // Learned since the last visit: the row carries the New mark.
+          seen_to: "2026-10-13T10:00:00.000Z",
           timeline: [
             {
               id: "tl_fixture_session",
@@ -151,6 +156,10 @@ test("@narrow a timeline event keeps its reading width when evidence and unread 
           ],
         },
       ],
+      "POST /api/me/timeline/seen": [
+        200,
+        { seen_to: "2026-10-13T12:30:00.000Z" },
+      ],
     }),
   );
   await page.goto("/console/account/timeline");
@@ -159,6 +168,7 @@ test("@narrow a timeline event keeps its reading width when evidence and unread 
   await expect(
     controls.getByRole("button", { name: "View games" }),
   ).toBeVisible();
+  await expect(controls.getByText("New", { exact: true })).toBeVisible();
   const textBox = await sentence.boundingBox();
   const controlsBox = await controls.boundingBox();
   expect(textBox!.width).toBeGreaterThan(320);

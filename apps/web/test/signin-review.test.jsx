@@ -118,7 +118,7 @@ test(
       "GET /api/me/activity": [200, { events: [] }],
       "GET /api/me/timeline": [
         200,
-        { timeline: [], entries: [], quiet: [], read_to: null },
+        { timeline: [], entries: [], quiet: [], seen_to: null },
       ],
       "GET /api/me/usage": [200, {}],
       "GET /api/me/connections": [200, { connections: [] }],

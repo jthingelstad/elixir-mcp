@@ -711,7 +711,7 @@ test(
     // Jamie, 2026-09-23: the console knew the zone and printed UTC anyway.
     const timeline = {
       window: { from: "2026-09-06T02:30:00Z", to: "2026-09-13T02:30:00Z" },
-      read_to: null,
+      seen_to: null,
       timeline: [
         {
           at: "2026-09-13T02:30:00Z",
@@ -734,6 +734,7 @@ test(
           { authenticated: true, timezone, claims: [], recordings: [] },
         ],
         "GET /api/me/timeline": [200, timeline],
+        "POST /api/me/timeline/seen": [200, { seen_to: timeline.window.to }],
       });
 
     window.history.pushState({}, "", "/console/account/timeline");
@@ -771,7 +772,7 @@ test(
       "GET /api/me/timeline": [
         200,
         {
-          read_to: null,
+          seen_to: null,
           timeline: [
             item("2026-09-12T10:00:00Z", "The newer session."),
             item("2026-09-10T10:00:00Z", "The older session."),
@@ -791,6 +792,108 @@ test(
     expect(
       screen.getByText(/the 2 newest are shown, and 7 more this week are not/),
     ).toBeTruthy();
+  },
+);
+
+test(
+  "the timeline keeps the console's own place: it marks what it showed and rules off what is new",
+  { timeout: 20000 },
+  async () => {
+    // Jamie, 2026-10-20: "timeline should be independent of what agents
+    // have seen via MCP." The page moves the console's place to the
+    // window it showed, the rail's dot follows, and the rule sits where
+    // the place stood when the page opened.
+    const item = (text, at, observed_at) => ({
+      at,
+      observed_at,
+      subject_tag: "#20JJJ2CCRU",
+      subject_name: "Jamie",
+      kind: "battle_session",
+      section: "battles",
+      text,
+      facts: {},
+    });
+    const TO = "2026-09-13T02:30:00.000Z";
+    const posts = [];
+    let pending = 1;
+    global.fetch = mockFetch({
+      "GET /api/me": () => [
+        200,
+        {
+          authenticated: true,
+          claims: [],
+          recordings: [],
+          signals: { tracking: 1, timeline_pending: pending },
+        },
+      ],
+      "GET /api/me/timeline": [
+        200,
+        {
+          window: { from: "2026-09-06T02:30:00.000Z", to: TO },
+          seen_to: "2026-09-12T12:00:00.000Z",
+          timeline: [
+            item(
+              "Learned since.",
+              "2026-09-13T01:00:00Z",
+              "2026-09-13T01:05:00Z",
+            ),
+            item(
+              "Seen before.",
+              "2026-09-12T10:00:00Z",
+              "2026-09-12T10:05:00Z",
+            ),
+            item(
+              "Older still.",
+              "2026-09-11T10:00:00Z",
+              "2026-09-11T10:05:00Z",
+            ),
+          ],
+          timeline_more: 0,
+          entries: [],
+          quiet: [],
+        },
+      ],
+      "POST /api/me/timeline/seen": (init) => {
+        posts.push(JSON.parse(init.body));
+        pending = 0;
+        return [200, { seen_to: TO }];
+      },
+    });
+    window.history.pushState({}, "", "/console/account/timeline");
+    render(<App />);
+    await screen.findByText("Learned since.");
+    await waitFor(() => expect(posts).toEqual([{ to: TO }]));
+    // The rail's dot clears once the console's own place has moved: the
+    // write refetches the console's `me`.
+    await waitFor(() =>
+      expect(
+        global.fetch.mock.calls.filter(
+          ([p, init]) => p === "/api/me" && (init?.method ?? "GET") === "GET",
+        ).length,
+      ).toBeGreaterThanOrEqual(2),
+    );
+    await waitFor(() =>
+      expect(
+        within(document.querySelector(".rail")).queryByRole("img", {
+          name: "Unread notifications",
+        }),
+      ).toBeNull(),
+    );
+    // One rule, under the last new row; the row above it says New.
+    const list = [...document.querySelector(".timeline-list").children];
+    expect(list.map((li) => li.className)).toEqual([
+      "timeline-list__row",
+      "timeline-list__divider",
+      "timeline-list__row",
+      "timeline-list__row",
+    ]);
+    expect(list[1].textContent).toContain("New since your last visit");
+    expect(list[0].textContent).toContain("New");
+    expect(list[2].textContent).not.toContain("New");
+    // The place this visit opened from holds: the rule stays put after
+    // the write moved it.
+    expect(document.querySelectorAll(".timeline-list__divider").length).toBe(1);
+    expect(document.body.textContent).not.toContain("Unread by connections");
   },
 );
 
@@ -833,7 +936,7 @@ describe("an agent's console (2026-09-23)", () => {
     signals: { tracking: 1, connections: 0, feedback: 2, timeline_pending: 1 },
   };
   const timeline = (text) => ({
-    read_to: null,
+    seen_to: null,
     timeline: [
       {
         at: "2026-09-12T10:00:00Z",

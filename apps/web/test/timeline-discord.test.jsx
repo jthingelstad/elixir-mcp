@@ -32,7 +32,7 @@ const ME = {
   recordings: [],
 };
 const TIMELINE = {
-  read_to: null,
+  seen_to: null,
   timeline: [],
   timeline_more: 0,
   entries: [],

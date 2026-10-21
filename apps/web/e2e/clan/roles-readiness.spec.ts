@@ -132,7 +132,7 @@ function roleRoutes(role: "member" | "elder", small = false) {
           },
         ],
         window: { from: "2026-09-27T12:00:00Z", to: stamp },
-        read_to: null,
+        seen_to: null,
       },
     ],
     [`GET ${apiBase}/actions`]: [200, { open: [], recent: [] }],
@@ -412,7 +412,7 @@ for (const size of ["wide", "@narrow"])
           .getByText("Ada played recorded games.", { exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByText(/Viewing this page leaves their place unchanged/),
+        page.getByText(/changes nothing your connections have read/),
       ).toBeVisible();
       expect(writes).toEqual([]);
       expect(errors).toEqual([]);

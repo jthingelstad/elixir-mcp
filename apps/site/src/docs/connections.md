@@ -152,7 +152,7 @@ is not one.
 | Page | What it does |
 |---|---|
 | Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; your tier's slot usage; once your primary's clan is on record, [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates) |
-| Timeline | what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`; reading it here marks nothing read |
+| Timeline | what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`. Viewing it clears its dot and marks what is new since your last visit; it never changes what your connections have read ([its own place](#the-console-keeps-its-own-place-in-the-timeline)) |
 | Explore | the same read tools in a browser (players, clans and wars, decks, war weeks); the one write is nicknames |
 | Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
 | Your record → Verify | prove that you control a player by playing one battle with a deck Elixir names |
@@ -176,13 +176,30 @@ rail:
 | Page | What it does |
 |---|---|
 | Overview | its clan, its key and when it was first used, its last successful call, where it connects from, anything refusing it, and the address to connect it at |
-| Timeline | its timeline, newest first, the items it reads with `elixir_timeline`; reading it here never moves its pointer |
+| Timeline | its timeline, newest first, the items it reads with `elixir_timeline`; viewing it here clears its dot and never moves its pointer |
 | Its record → Tracking | the clans and players it tracks, and which clan it acts for |
 | Its record → Activity | its calls with `request_id`, and its account events |
 | Its record → Usage | its calls as a share of your budget, which it spends |
 | Access → Connections | the clients connected as it, what each may do, and refusals of its key |
 | Access → Settings | its name, what its key may do, the key itself (issue, revoke, suspend), removing a suspended agent from view, and who it answers for |
 | Access → Feedback | what it has filed and what the maintainer answered; new feedback is filed as you |
+
+### The Console keeps its own place in the timeline
+
+Console ▸ Timeline has a place of its own in the
+[timeline](/docs/timeline), apart from every read pointer. Showing the
+page moves it to the end of the window the page showed; it never moves
+back. The rail's Timeline dot shows while the recorder has admitted
+something for one of your subjects since that place. The page marks each
+item the record learned since the place it opened from (by `observed_at`)
+**New**, and draws a **New since your last visit** rule under the last of
+them. A first visit has no place yet and marks nothing new.
+
+The two never move each other. Viewing the page leaves your read pointer,
+every `reader`'s and `meta.timeline_pending` where they were, and an
+agent's `mark_read` never clears the Console's dot. On an agent's console
+the place is the agent's, moved when you view its Timeline, and still not
+its pointer.
 
 ## Making one
 

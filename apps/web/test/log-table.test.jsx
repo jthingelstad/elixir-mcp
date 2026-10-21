@@ -59,7 +59,7 @@ const PAGES = [
     {
       "me/timeline": {
         window: { from: "2026-09-08T06:00:00Z", to: "2026-09-09T06:02:00Z" },
-        read_to: null,
+        seen_to: null,
         timeline: [
           {
             at: "2026-09-09T06:02:00Z",
@@ -282,4 +282,66 @@ test("a tone puts the dot and the ink on one value, never on two", () => {
   const span = within(cell).getByText("refused");
   expect(span.style.color).toBe("var(--bad)");
   expect(cell.querySelector(".chip__dot").style.background).toBe("var(--bad)");
+});
+
+test("an event list's divider sits under the last row it picks, only when rows follow", () => {
+  // Timeline's "New since your last visit" (2026-10-20): the rule goes
+  // under the last new row, so nothing new is below it, and it is drawn
+  // over what the filters show.
+  const list = (rows, divider, filters = []) =>
+    render(
+      <LogTable
+        title="Timeline"
+        cols={[
+          ["WHAT", "left"],
+          ["STATE", "left"],
+        ]}
+        rows={rows}
+        filters={filters}
+        renderRow={(row) => <span>{String(row[0])}</span>}
+        divider={divider}
+      />,
+    );
+  const shape = () =>
+    [...document.querySelector("ol.timeline-list").children].map((li) =>
+      li.className === "timeline-list__divider" ? "|" : li.textContent,
+    );
+  const isNew = { after: (row) => row[1] === "new", label: "New above" };
+
+  list(
+    [
+      ["a", "new"],
+      ["b", "earlier"],
+      ["c", "new"],
+      ["d", "earlier"],
+    ],
+    isNew,
+    [{ key: "state", label: "State", col: 1 }],
+  );
+  expect(shape()).toEqual(["a", "b", "c", "|", "d"]);
+  fireEvent.change(screen.getByLabelText("State"), {
+    target: { value: "new" },
+  });
+  expect(shape(), "nothing follows the last new row").toEqual(["a", "c"]);
+  cleanup();
+
+  list(
+    [
+      ["a", "earlier"],
+      ["b", "earlier"],
+    ],
+    isNew,
+  );
+  expect(shape(), "nothing new").toEqual(["a", "b"]);
+  cleanup();
+
+  // A divider past the first page is drawn on the page that holds it.
+  const rows = Array.from({ length: 30 }, (_, i) => [
+    `r${i}`,
+    i < 27 ? "new" : "earlier",
+  ]);
+  list(rows, isNew);
+  expect(shape()).not.toContain("|");
+  fireEvent.click(screen.getByRole("button", { name: "Older" }));
+  expect(shape()).toEqual(["r25", "r26", "|", "r27", "r28", "r29"]);
 });

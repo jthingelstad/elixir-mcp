@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { Link } from "./Link.tsx";
 import { TagText } from "./Tag.tsx";
 
@@ -83,6 +83,11 @@ export function LogTable({
   /** Rendered between the title and the table: a form the action opens. */
   above = null,
   renderRow = null,
+  /** A rule across an event list (renderRow only), after the last row
+   *  `after` picks, when rows follow it: Timeline's "New since your last
+   *  visit" (2026-10-20). It is drawn over the filtered rows, on the
+   *  page that holds that row. */
+  divider = null,
   /** Filters already applied when the table opens, keyed like `filters`.
    *  A link can therefore ARRIVE filtered — Usage's busiest tools open
    *  the requests for that one tool, which is the question the number
@@ -111,6 +116,7 @@ export function LogTable({
   actions?: ReactNode;
   above?: ReactNode;
   renderRow?: ((row: LogRow, index: number) => ReactNode) | null;
+  divider?: { after: (row: LogRow) => boolean; label: ReactNode } | null;
   initialFilters?: Record<string, string> | null;
   loading?: boolean;
   error?: ReactNode;
@@ -132,6 +138,11 @@ export function LogTable({
   const at = Math.min(page, pages - 1);
   const window = shown.slice(at * PAGE, at * PAGE + PAGE);
   const anyPicked = Object.values(picked).some(Boolean);
+  const dividerAt = useMemo(() => {
+    if (!divider) return -1;
+    const last = shown.findLastIndex((row) => divider.after(row));
+    return last >= 0 && last < shown.length - 1 ? last : -1;
+  }, [shown, divider]);
 
   const choose = (key: string, value: string) => {
     setPicked((p) => ({ ...p, [key]: value }));
@@ -193,9 +204,14 @@ export function LogTable({
           {renderRow ? (
             <ol className="timeline-list">
               {window.map((row, i) => (
-                <li key={at * PAGE + i} className="timeline-list__row">
-                  {renderRow(row, at * PAGE + i)}
-                </li>
+                <Fragment key={at * PAGE + i}>
+                  <li className="timeline-list__row">
+                    {renderRow(row, at * PAGE + i)}
+                  </li>
+                  {at * PAGE + i === dividerAt && divider ? (
+                    <li className="timeline-list__divider">{divider.label}</li>
+                  ) : null}
+                </Fragment>
               ))}
             </ol>
           ) : (
