@@ -31,7 +31,6 @@ const view = (extra = {}) => ({
     disabled_reason: null,
     categories: { milestones: false },
     rewrite: false,
-    voice: "",
     set_by: "#20QQL8CCRU",
     set_by_name: "Ada",
     updated_at: "2026-10-10T12:00:00Z",
@@ -51,6 +50,7 @@ const view = (extra = {}) => ({
   ],
   in_effect: { members: true, milestones: false, war: false },
   model: { available: true, set: false, refused: false },
+  voice: "",
   voice_max: 400,
   editor_runs_per_day: 50,
   ...extra,
@@ -164,7 +164,7 @@ describe("the clan's activity in Discord", () => {
     });
   });
 
-  test("with the key, the editor and the voice are saved", async () => {
+  test("with the key, the editor is saved; the voice is the clan's, shown here and set in Settings", async () => {
     vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
       ok(
         view({
@@ -180,7 +180,10 @@ describe("the clan's activity in Discord", () => {
     const save = vi
       .spyOn(manageApi, "saveActivityDiscord")
       .mockResolvedValue(ok(view()));
-    renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+    const navigate = vi.fn();
+    renderWithProviders(
+      <ActivityDiscordSetting clan={clan} navigate={navigate} />,
+    );
     await openEditor("Channel voice");
     fireEvent.click(
       await screen.findByLabelText("Have the clan’s model edit the channel"),
@@ -204,18 +207,43 @@ describe("the clan's activity in Discord", () => {
         /Edited by Claude Sonnet 5\.5, the model Elixir Clan uses/,
       ),
     ).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("How the posts should sound"), {
-      target: { value: "Short and loud" },
+    // No second copy of the voice here: no box, no save, a link to the
+    // one setting.
+    expect(
+      screen.getByText(/No voice set; the model writes plainly/),
+    ).toBeTruthy();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save the voice" })).toBeNull();
+    fireEvent.click(
+      screen.getByRole("link", { name: "Settings › How our messages sound" }),
+    );
+    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/manage/settings", {
+      hash: "settings-voice",
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save the voice" }));
-    await waitFor(() =>
-      expect(save).toHaveBeenCalledWith("#2PQRJ8LV", {
-        voice: "Short and loud",
-      }),
+    expect(save).not.toHaveBeenCalledWith(
+      "#2PQRJ8LV",
+      expect.objectContaining({ voice: expect.anything() }),
     );
   });
 
-  test("a leader previews the editor on the last few stories in the voice in the box: posts, stories told together, skips and refusals; a draft that outlasts its request is asked for again", async () => {
+  test("the clan's saved voice is shown as written", async () => {
+    vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
+      ok(
+        view({
+          model: { available: true, set: true, refused: false, name: "X" },
+          voice: "Warm and short; cheer the wins.",
+        }),
+      ),
+    );
+    renderWithProviders(<ActivityDiscordSetting clan={clan} />);
+    await openEditor("Channel voice");
+    expect(
+      await screen.findByText("“Warm and short; cheer the wins.”"),
+    ).toBeTruthy();
+    expect(screen.getByText(/also used for drafts on Actions/)).toBeTruthy();
+  });
+
+  test("a leader previews the editor on the last few stories in the clan's voice: posts, stories told together, skips and refusals; a draft that outlasts its request is asked for again", async () => {
     vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
       ok(
         view({
@@ -278,15 +306,9 @@ describe("the clan's activity in Discord", () => {
     try {
       renderWithProviders(<ActivityDiscordSetting clan={clan} />);
       await openEditor("Channel voice");
-      fireEvent.change(
-        await screen.findByLabelText("How the posts should sound"),
-        {
-          target: { value: "Pirate talk" },
-        },
-      );
       fireEvent.click(
-        screen.getByRole("button", {
-          name: "Preview the last 5 in this voice",
+        await screen.findByRole("button", {
+          name: "Preview the last 5 in the clan’s voice",
         }),
       );
       await vi.advanceTimersByTimeAsync(3000);
@@ -296,18 +318,9 @@ describe("the clan's activity in Discord", () => {
     } finally {
       vi.useRealTimers();
     }
-    expect(preview).toHaveBeenNthCalledWith(
-      1,
-      "#2PQRJ8LV",
-      "Pirate talk",
-      null,
-    );
-    expect(preview).toHaveBeenNthCalledWith(
-      2,
-      "#2PQRJ8LV",
-      "Pirate talk",
-      "req-1",
-    );
+    // The page sends no voice: the server reads the clan's saved one.
+    expect(preview).toHaveBeenNthCalledWith(1, "#2PQRJ8LV", null);
+    expect(preview).toHaveBeenNthCalledWith(2, "#2PQRJ8LV", "req-1");
     expect(screen.getByText("Bo reached 9,000 trophies.")).toBeTruthy();
     expect(
       screen.getByText(/a number the record did not give it/),
@@ -447,34 +460,6 @@ test.each(["Close", "Escape"])(
   },
 );
 
-test("closing the voice editor discards its unsaved text", async () => {
-  const d = view({
-    model: {
-      available: true,
-      set: true,
-      refused: false,
-      name: "Claude Sonnet 5.5",
-    },
-  });
-  d.connection.voice = "Saved voice";
-  vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(ok(d));
-  const save = vi.spyOn(manageApi, "saveActivityDiscord");
-  renderWithProviders(<ActivityDiscordSetting clan={clan} />);
-  await openEditor("Channel voice");
-  fireEvent.change(screen.getByLabelText("How the posts should sound"), {
-    target: { value: "Unsaved voice" },
-  });
-  fireEvent(
-    screen.getByRole("dialog"),
-    new Event("cancel", { bubbles: true, cancelable: true }),
-  );
-  await openEditor("Channel voice");
-  expect(screen.getByLabelText("How the posts should sound").value).toBe(
-    "Saved voice",
-  );
-  expect(save).not.toHaveBeenCalled();
-});
-
 test("a pending preview cannot be submitted again after reopening the voice editor", async () => {
   vi.spyOn(manageApi, "activityDiscord").mockResolvedValue(
     ok(
@@ -500,21 +485,25 @@ test("a pending preview cannot be submitted again after reopening the voice edit
   renderWithProviders(<ActivityDiscordSetting clan={clan} />);
   await openEditor("Channel voice");
   fireEvent.click(
-    screen.getByRole("button", { name: "Preview the last 5 in this voice" }),
+    screen.getByRole("button", {
+      name: "Preview the last 5 in the clan’s voice",
+    }),
   );
   await waitFor(() => expect(preview).toHaveBeenCalledOnce());
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   await openEditor("Channel voice");
   expect(
-    screen.getByRole("button", { name: "Preview the last 5 in this voice" })
-      .disabled,
+    screen.getByRole("button", {
+      name: "Preview the last 5 in the clan’s voice",
+    }).disabled,
   ).toBe(true);
   await act(async () => {
     finish(ok({ empty: true }));
   });
   expect(
-    screen.getByRole("button", { name: "Preview the last 5 in this voice" })
-      .disabled,
+    screen.getByRole("button", {
+      name: "Preview the last 5 in the clan’s voice",
+    }).disabled,
   ).toBe(false);
   expect(
     screen.queryByText(

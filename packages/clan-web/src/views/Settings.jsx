@@ -1,9 +1,10 @@
 import { Disclosure, Setting } from "@elixir-mcp/ui";
-import { useDiscord, useModel, useSocial } from "../lib/queries.js";
+import { useDiscord, useModel, useSocial, useVoice } from "../lib/queries.js";
 import { Model } from "./Model.jsx";
 import { Sharing } from "./Sharing.jsx";
 import { SocialSetting } from "./SocialSetting.jsx";
 import { DiscordSetting } from "./DiscordSetting.jsx";
+import { VoiceSetting } from "./VoiceSetting.jsx";
 
 const reading = (state, describe) =>
   state.error || state.forbidden
@@ -12,11 +13,20 @@ const reading = (state, describe) =>
       ? describe(state.data)
       : "Reading…";
 
+/** The leaders' words, short enough for one settings row, cut at a word. */
+function excerpt(text, n = 60) {
+  if (text.length <= n) return `“${text}”`;
+  const cut = text.slice(0, n - 1);
+  const space = cut.lastIndexOf(" ");
+  return `“${(space > n / 2 ? cut.slice(0, space) : cut).trimEnd()}…”`;
+}
+
 /** Current state first; existing editors and their consequences remain contextual. */
 export function Settings({ clan }) {
   const social = useSocial(clan.clan_tag).state;
   const discord = useDiscord(clan.clan_tag).state;
   const model = useModel(clan.clan_tag).state;
+  const voice = useVoice(clan.clan_tag).state;
   return (
     <div className="grid gap-6">
       <div>
@@ -82,6 +92,17 @@ export function Settings({ clan }) {
           )}
         >
           <Model clan={clan} />
+        </Setting>
+        <Setting
+          title="How our messages sound"
+          anchor="settings-voice"
+          description={reading(voice, (d) =>
+            d.voice
+              ? `${excerpt(d.voice)} · Used by drafts and the Discord editor`
+              : "Not set · Used by drafts and the Discord editor",
+          )}
+        >
+          <VoiceSetting clan={clan} />
         </Setting>
       </div>
       <Disclosure title="Recording and visibility: what is recorded and who can read it">

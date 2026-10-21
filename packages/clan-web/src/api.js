@@ -158,12 +158,17 @@ export const manageApi = {
   // A leader's thumbs up or down on one post of the channel (2026-10-11).
   rateActivityDiscord: (tag, body) =>
     post(`${clanBase(tag)}/activity-discord/rate`, body),
-  // The last few items in a voice, by the clan's model, posted nowhere.
-  previewActivityDiscord: (tag, voice, pending = null) =>
-    post(`${clanBase(tag)}/activity-discord/preview`, {
-      voice,
-      ...(pending ? { pending } : {}),
-    }),
+  // The last few items in the clan's voice, by the clan's model, posted
+  // nowhere.
+  previewActivityDiscord: (tag, pending = null) =>
+    post(
+      `${clanBase(tag)}/activity-discord/preview`,
+      pending ? { pending } : {},
+    ),
+  // How our messages sound (2026-10-20): the clan's one voice, for the
+  // drafts and the Discord editor alike. "" or null clears it.
+  voice: (tag) => get(`${clanBase(tag)}/voice`),
+  setVoice: (tag, voice) => put(`${clanBase(tag)}/voice`, { voice }),
   // Social (2026-09-26): the clan map, and the switch leaders turn off.
   map: (tag) => get(`${clanBase(tag)}/map`),
   social: (tag) => get(`${clanBase(tag)}/social`),

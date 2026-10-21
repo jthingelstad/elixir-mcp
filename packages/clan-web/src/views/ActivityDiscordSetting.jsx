@@ -16,10 +16,11 @@ const dead = (c) =>
  * The parent observes pending operations across closing and reopening. */
 export function ActivityDiscordSetting({ clan, navigate }) {
   const settings = `${clanPath(clan.clan_tag)}/manage/settings`;
-  const toSettings = (e) => {
+  // A link into Settings, opening the named row there.
+  const toSettings = (hash) => (e) => {
     if (!navigate) return;
     e.preventDefault();
-    navigate(settings, { hash: "settings-model" });
+    navigate(settings, { hash });
   };
   const { state } = useActivityDiscord(clan.clan_tag);
   const invalidate = useInvalidate();
@@ -74,11 +75,11 @@ export function ActivityDiscordSetting({ clan, navigate }) {
           "clan.activity_discord_removed",
         )
       }
-      preview={(voice) =>
+      preview={() =>
         perform(
           () =>
             untilWritten((pending) =>
-              manageApi.previewActivityDiscord(clan.clan_tag, voice, pending),
+              manageApi.previewActivityDiscord(clan.clan_tag, pending),
             ),
           "clan.activity_discord_preview",
           undefined,
@@ -218,9 +219,7 @@ function ActivityEditor({
   const c = d.connection;
   const saved = c?.categories ?? {};
   const [url, setUrl] = useState("");
-  const [voice, setVoice] = useState(null);
   const [message, setMessage] = useState("");
-  const voiceNow = voice ?? c?.voice ?? "";
   const send = async (...args) => {
     setMessage("");
     const r = await save(...args);
@@ -410,7 +409,10 @@ function ActivityEditor({
                   To have the clan&rsquo;s own model edit the channel in the
                   clan&rsquo;s voice rather than post Elixir&rsquo;s own
                   stories, add the clan&rsquo;s Anthropic API key in{" "}
-                  <a href={`${settings}#settings-model`} onClick={toSettings}>
+                  <a
+                    href={`${settings}#settings-model`}
+                    onClick={toSettings("settings-model")}
+                  >
                     Settings ›
                   </a>
                 </span>
@@ -470,40 +472,29 @@ function ActivityEditor({
                     never past the clan&rsquo;s monthly cap.
                   </p>
                 </Disclosure>
-                <form
-                  className="grid gap-2"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (await send({ voice: voiceNow })) setVoice(null);
-                  }}
-                >
-                  <label className="field-label" htmlFor="activity-voice">
-                    How the posts should sound
-                  </label>
-                  <textarea
-                    id="activity-voice"
-                    className="input min-h-[96px]"
-                    maxLength={d.voice_max}
-                    placeholder="Warm and a little cheeky; cheer the wins, keep departures short."
-                    value={voiceNow}
-                    onChange={(e) => setVoice(e.target.value)}
-                  />
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="submit"
-                      className="btn btn--sm"
-                      disabled={busy || voice === null}
+                <div className="grid gap-1">
+                  <span className="field-label">How the posts sound</span>
+                  {d.voice ? (
+                    <p className="m-0 break-words">&ldquo;{d.voice}&rdquo;</p>
+                  ) : (
+                    <p className="page-head__note m-0">
+                      No voice set; the model writes plainly.
+                    </p>
+                  )}
+                  <p className="page-head__note m-0">
+                    The clan&rsquo;s one voice, also used for drafts on Actions.
+                    Leaders and co-leaders set it in{" "}
+                    <a
+                      href={`${settings}#settings-voice`}
+                      onClick={toSettings("settings-voice")}
                     >
-                      Save the voice
-                    </button>
-                    <span className="page-head__note">
-                      {voiceNow.length}/{d.voice_max}. No links or mentions.
-                    </span>
-                  </div>
-                </form>
+                      Settings › How our messages sound
+                    </a>
+                    .
+                  </p>
+                </div>
                 <EditorPreview
                   preview={preview}
-                  voice={voiceNow}
                   disabled={busy || d.model.refused}
                 />
               </>
@@ -550,20 +541,20 @@ const PREVIEW_ERROR = {
 
 /**
  * The last few stories the channel could post, as the clan's editor
- * would tell them in the voice in the box (saved or not): each post with
+ * would tell them in the clan's saved voice: each post with
  * the stories it tells, each skip with its reason, and each story kept
  * in Elixir's words with why. A leader's own use, counted with the
  * drafts in Settings, in one request with no lookups; nothing is posted
  * (2026-10-11).
  */
-function EditorPreview({ preview, voice, disabled }) {
+function EditorPreview({ preview, disabled }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const run = async () => {
     setBusy(true);
     setError("");
-    const r = await preview(voice);
+    const r = await preview();
     setBusy(false);
     if (!r.ok) {
       setResult(null);
@@ -586,7 +577,7 @@ function EditorPreview({ preview, voice, disabled }) {
           disabled={disabled || busy}
           onClick={run}
         >
-          {busy ? "Editing…" : "Preview the last 5 in this voice"}
+          {busy ? "Editing…" : "Preview the last 5 in the clan’s voice"}
         </button>
         <span className="page-head__note">
           Counts as one of the leaders&rsquo; drafts today. Nothing is posted,

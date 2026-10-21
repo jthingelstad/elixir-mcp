@@ -33,6 +33,7 @@ Elixir Clan's views. Read `packages/clan/AGENTS.md` first, and
   `clan.model_key_set`, `clan.note_added`, `clan.place_cleared`,
   `clan.place_set`, `clan.policy_preset`, `clan.policy_previewed`,
   `clan.policy_saved`, `clan.recruit_copied`, `clan.recruit_saved`,
-  `clan.scout`, `clan.social_set`, and the client's `web.*` failures.
+  `clan.scout`, `clan.social_set`, `clan.voice_set`, and the client's
+  `web.*` failures.
 - Tests: `npm test -w @elixir-mcp/clan-web` (vitest, jsdom) and
   `apps/web/e2e/clan/`.

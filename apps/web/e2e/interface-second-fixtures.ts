@@ -7,7 +7,6 @@ export const ACTIVITY_CHANNEL = {
     disabled_reason: null,
     categories: {},
     rewrite: true,
-    voice: "Warm and concise.",
     set_by_name: "Ada",
     updated_at: "2026-10-10T12:00:00Z",
     delivery: null,
@@ -41,6 +40,8 @@ export const ACTIVITY_CHANNEL = {
     refused: false,
     name: "Claude Sonnet 5.5",
   },
+  // The clan's one voice (2026-10-20), shown here, set in Settings.
+  voice: "Warm and concise.",
   voice_max: 400,
   editor_runs_per_day: 50,
 };

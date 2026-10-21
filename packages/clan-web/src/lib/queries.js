@@ -39,6 +39,7 @@ export const keys = {
   social: (tag) => ["me", "clan", "record", tag, "social"],
   discord: (tag) => ["me", "clan", "record", tag, "discord"],
   activityDiscord: (tag) => ["me", "clan", "record", tag, "activity-discord"],
+  voice: (tag) => ["me", "clan", "record", tag, "voice"],
   standing: (tag) => ["me", "clan", "record", tag, "standing"],
   trophies: (tag) => ["me", "clan", "record", tag, "trophies"],
   actions: (tag) => ["me", "clan", "record", tag, "actions"],
@@ -160,6 +161,10 @@ export const useDiscord = (tag) =>
  *  the webhook), the policy's word on each category, the clan's key. */
 export const useActivityDiscord = (tag) =>
   useGated(keys.activityDiscord(tag), () => manageApi.activityDiscord(tag));
+
+/** How our messages sound: the clan's one voice, for its leaders. */
+export const useVoice = (tag) =>
+  useGated(keys.voice(tag), () => manageApi.voice(tag));
 
 /** What the clan records in Elixir, and who sees it there (read-only). */
 export const useSharing = (tag) =>
