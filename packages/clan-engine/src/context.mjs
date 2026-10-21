@@ -551,9 +551,9 @@ export function dossierLines(dossier, kind, { recentWeeks = 4 } = {}) {
       game.push(
         `${plural(p.masteries_at_top, "card")} at Mastery level ${p.mastery_level}${p.masteries?.length ? ` (${p.masteries.map((c) => one(c, 40)).join(", ")}${p.masteries_at_top > p.masteries.length ? " and more" : ""})` : ""}`,
       );
-    if (isNum(p.pol_best_league))
+    if (p.pol_best_season?.name)
       game.push(
-        `best Path of Legends league reached: league ${p.pol_best_league}`,
+        `best Path of Legends league in a season on record: ${p.pol_best_season.name} (the ${p.pol_best_season.season} season)`,
       );
     if (isNum(p.clan_war_wins) && p.clan_war_wins > 0)
       game.push(`Clan War Wins badge at ${n(p.clan_war_wins)}`);
@@ -650,10 +650,10 @@ export function storyAngles(
         .map((b) => one(b, 60))
         .join(", ")}.`,
     );
-  if (p && isNum(p.pol_best_league))
+  if (p?.pol_best_season?.name)
     add(
       welcome ? 70 : 45,
-      `Best Path of Legends league reached: league ${p.pol_best_league}.`,
+      `They reached ${p.pol_best_season.name} in Path of Legends in the ${p.pol_best_season.season} season.`,
     );
   if (p && isNum(p.clan_war_wins) && p.clan_war_wins > 0 && welcome)
     add(60, `Their Clan War Wins badge is at ${n(p.clan_war_wins)}.`);

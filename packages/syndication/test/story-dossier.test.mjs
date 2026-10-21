@@ -119,13 +119,17 @@ async function seed(db) {
        (player_tag, snapshot_date, snapshot_kind, clan_tag, donations, trophies, best_trophies,
         wins, collection_level, total_donations, favorite_card_id, pol_best_league,
         profile_observed_at, observed_at)
-     values ($1, '2026-10-19', 'daily', $2, 0, 9100, 9400, 5200, 60, 45210, 26000021, 7,
+     values ($1, '2026-10-19', 'daily', $2, 0, 9100, 9400, 5200, 60, 45210, 26000021, 9,
              '2026-10-19T08:00:00Z', '2026-10-19T08:00:00Z')`,
     [DOT, CLAN],
   );
   await db.query(
+    // The profile's best (9 above) is on the earlier ten-league scale and
+    // never named; the best recorded season is, the newest of equals.
     `insert into player_pol_season (player_tag, season_month, league, trophies, rank, observed_at)
-     values ($1, '2026-09', 8, 2100, null, '2026-10-01T00:00:00Z')`,
+     values ($1, '2026-09', 6, 2100, null, '2026-10-01T00:00:00Z'),
+            ($1, '2026-08', 6, 2050, null, '2026-09-01T00:00:00Z'),
+            ($1, '2026-07', 4, 1800, null, '2026-08-01T00:00:00Z')`,
     [DOT],
   );
   for (const [name, level, max, progress] of [
@@ -309,7 +313,7 @@ test("a member's dossier: every war week here, donations, profile highlights, de
       mastery_level: 10,
       masteries: ["Hog Rider", "Musketeer"],
       legendary_badges: ["Classic Challenge 12 Wins"],
-      pol_best_league: 8,
+      pol_best_season: { season: "2026-09", league: 6, name: "Royal Champion" },
       clan_war_wins: 150,
     });
     // Modes on their own; a duel's rounds are games; a boat defense,

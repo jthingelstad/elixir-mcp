@@ -32,6 +32,7 @@ import { deckIdentities, participantGamesSql } from "@elixir-mcp/tools/shared";
 import { activityCategory } from "@elixir-mcp/clan-engine";
 import { modeGroupSql, typesForModeGroup } from "@elixir-mcp/contracts";
 import { badgeLabel, masteryCard } from "@elixir-mcp/record/badge-names";
+import { rankedLeagueName } from "@elixir-mcp/record/ranked-leagues";
 import { notBoatDefense } from "@elixir-mcp/record/boat-defense-sql";
 import { memberActivityWeeks } from "@elixir-mcp/record/member-activity";
 import { readRecordedProfile } from "@elixir-mcp/record/recorded-profile";
@@ -335,7 +336,8 @@ export const draftStory = (db, clanTag, playerTags, { nowMs } = {}) =>
  *    (0); and `career`, the profile's lifetime count (all clans).
  *  - `profile`: years played, favourite card, the cards at Mastery's
  *    top level, legendary badges (one-time badges; a dated seasonal
- *    one is left out), the best Path of Legends league the record holds
+ *    one is left out), the best Path of Legends league in a season the
+ *    record holds (`pol_best_season`: season, league and its name)
  *    and the Clan War Wins badge's count.
  *  - `decks`: by mode (Trophy Road, Path of Legends, this clan's war),
  *    over the last 28 days by `battle_time`: games, wins and losses for
@@ -479,12 +481,17 @@ async function dossierProfile(db, playerTag) {
     .filter((b) => b.level == null && !/_\d{6}(?:_v\d+)?$/.test(b.name))
     .map((b) => badgeLabel(b.name))
     .filter(Boolean);
-  const leagues = [
-    int(p.pol_best_league),
-    ...(Array.isArray(p.pol_seasons) ? p.pol_seasons : []).map((s) =>
-      int(s.league),
-    ),
-  ].filter(Number.isInteger);
+  // The best league in a season Elixir recorded, by name, the newest of
+  // equals. Never the profile's best: it can be on the earlier ten-league
+  // scale, where a 7 was Champion (`@elixir-mcp/record/ranked-leagues`).
+  const polBest = (Array.isArray(p.pol_seasons) ? p.pol_seasons : [])
+    .map((s) => ({
+      season: s.season_month,
+      league: int(s.league),
+      name: rankedLeagueName(int(s.league)),
+    }))
+    .filter((s) => s.name && s.season)
+    .reduce((best, s) => (!best || s.league > best.league ? s : best), null);
   const cww = badges.find((b) => b.name === "ClanWarWins");
   return {
     career_donations: int(p.total_donations),
@@ -495,7 +502,7 @@ async function dossierProfile(db, playerTag) {
       mastery_level: masteries[0]?.level ?? null,
       masteries: masteries.slice(0, DOSSIER_MASTERIES).map((m) => m.card),
       legendary_badges: legendary.slice(0, DOSSIER_BADGES),
-      pol_best_league: leagues.length ? Math.max(...leagues) : null,
+      pol_best_season: polBest,
       clan_war_wins: Number.isInteger(cww?.progress) ? cww.progress : null,
     },
   };

@@ -645,7 +645,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
   const text = (kind) =>
     body.timeline.filter((it) => it.kind === kind).map((it) => it.text);
   assert.deepEqual(text("ranked_promotion"), [
-    "AHMOメŞΛDØW was promoted to Master 2, on a 1-0 win over XTRAXTOR, +30.",
+    "AHMOメŞΛDØW was promoted to Master II, on a 1-0 win over XTRAXTOR, +30.",
   ]);
   assert.deepEqual(text("best_trophies_band"), [
     // The best (6,087) came after the crossing battle (to 6,000), so

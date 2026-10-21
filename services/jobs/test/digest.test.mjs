@@ -45,7 +45,7 @@ const GOLDEN = {
       instant: "2026-10-07T18:30:00.000Z",
       headline: "You advanced to Champion",
       big: "Champion",
-      big_label: "Path of Legends, up from Master 3",
+      big_label: "Path of Legends, up from Master III",
       lines: [],
       battle: null,
     },

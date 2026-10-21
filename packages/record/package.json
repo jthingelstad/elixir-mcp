@@ -19,6 +19,7 @@
     "./member-activity": "./src/member-activity.mjs",
     "./participation-sql": "./src/participation-sql.mjs",
     "./players": "./src/players.mjs",
+    "./ranked-leagues": "./src/ranked-leagues.mjs",
     "./recorded-profile": "./src/recorded-profile.mjs",
     "./season": "./src/season.mjs",
     "./snapshot-columns": "./src/snapshot-columns.mjs",

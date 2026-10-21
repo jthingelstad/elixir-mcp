@@ -56,7 +56,7 @@ const DOSSIER = {
     mastery_level: 10,
     masteries: ["Valkyrie", "Hog Rider", "Zap"],
     legendary_badges: ["Classic Challenge 12 Wins"],
-    pol_best_league: 6,
+    pol_best_season: { season: "2026-09", league: 6, name: "Royal Champion" },
     clan_war_wins: 87,
   },
   decks: [
