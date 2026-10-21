@@ -147,6 +147,9 @@ export const handler = makeHandler({
       editor,
       policyFor: (d, tag) => createPostgresLedger(d).currentPolicy(tag),
       pitchFor: (d, tag) => createPostgresLedger(d).currentPitch(tag),
+      // The clan's one voice, the drafts' too (2026-10-20).
+      voiceFor: async (d, tag) =>
+        (await createPostgresLedger(d).clanVoice(tag))?.voice ?? null,
       rewrite: rewriter(remainingMs),
       captureRun,
     }),

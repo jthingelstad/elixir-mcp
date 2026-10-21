@@ -18,6 +18,10 @@
  * its own send (`clanChatRequest`); the Inbox, and an announcement's
  * heading and message, a title and a message (`leaderMessageRequest`).
  *
+ * The clan's voice (2026-10-20, call 5) is THE CLAN's "How its leaders
+ * want it to sound": the one setting the Discord editor reads too, as
+ * the leaders wrote it (`voice#<clan>`, `voice.mjs`).
+ *
  * A person reviews, edits and sends; drafting only adds a log entry,
  * never a decision. A draft that outlasts the request (`pending`) is
  * collected by asking again with its id. `request` builds the exact
@@ -129,7 +133,7 @@ export function createDrafts({
 
   /** What the model is told for this Action: the clan block (the cached
    *  prefix) and the packet (the moment and its people). */
-  async function told(clanTag, card, kind, { policy, pitch, clanName }) {
+  async function told(clanTag, card, kind, { policy, pitch, voice, clanName }) {
     const ev = card.evidence ?? {};
     const all = kind === "awards" ? await ledger.grants(clanTag) : [];
     const refs = new Set(ev.grant_refs ?? []);
@@ -142,6 +146,7 @@ export function createDrafts({
     const context = clanContext({
       name: clanName ?? story?.clan?.name ?? null,
       pitch: pitch?.values ?? null,
+      voice: voice?.voice || null,
       goals: policy ? declaredGoals(policy.values) : [],
       facts: story?.clan ?? null,
     });
@@ -261,13 +266,15 @@ export function createDrafts({
         : null;
     if (kind === "departure" && !confirmedDeparture(card))
       throw new ManageError(409, "departure_unconfirmed");
-    const [policy, pitch] = await Promise.all([
+    const [policy, pitch, voice] = await Promise.all([
       ledger.currentPolicy(clanTag),
       ledger.currentPitch(clanTag),
+      ledger.clanVoice(clanTag),
     ]);
     const { context, packet } = await told(clanTag, card, kind, {
       policy,
       pitch,
+      voice,
       clanName,
     });
     const plain = plainWords(card, kind, { shape, delivery });
@@ -291,7 +298,15 @@ export function createDrafts({
             note: said,
             destination: chosen,
           });
-    return { kind, shape, chosen, plain, departure, request };
+    return {
+      kind,
+      shape,
+      chosen,
+      plain,
+      departure,
+      request,
+      voice: voice?.voice ?? "",
+    };
   }
 
   return {
@@ -309,7 +324,7 @@ export function createDrafts({
     ) {
       const card = await ledger.card(clanTag, cardId);
       if (!card) throw new ManageError(404, "no_action");
-      const { kind, shape, chosen, plain, request } = await prepare(
+      const { kind, shape, chosen, plain, request, voice } = await prepare(
         clanTag,
         card,
         { note, tone, channel, clanName },
@@ -319,6 +334,8 @@ export function createDrafts({
         shape,
         channel: chosen,
         status: card.status,
+        // The clan's voice as saved, which THE CLAN carries (call 5).
+        voice,
         plain,
         request,
       };

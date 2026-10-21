@@ -46,6 +46,7 @@ import { createAwardsService } from "@elixir-mcp/clan/manage/awards.mjs";
 import { createRecruitService } from "@elixir-mcp/clan/manage/recruit.mjs";
 import { createScout } from "@elixir-mcp/clan/manage/scout.mjs";
 import { createSocialService } from "@elixir-mcp/clan/manage/social.mjs";
+import { createVoiceService } from "@elixir-mcp/clan/manage/voice.mjs";
 import { diskGeo } from "@elixir-mcp/clan/geo.mjs";
 import { normalizeTag } from "@elixir-mcp/clan/gate.mjs";
 import { createPostgresStore } from "@elixir-mcp/clan-state/postgres";
@@ -335,12 +336,16 @@ export function createClanRequest({
               ),
           })
         : null;
+    // How the clan's messages sound: one setting, read by the drafts and
+    // the Discord editor (2026-10-20).
+    const voices = createVoiceService({ ledger });
     // The clan's activity in its own Discord channel (Social).
     const activity = activitySeal
       ? createActivityService({
           ledger,
           model,
           ratings,
+          voice: voices,
           store: {
             async read(clanTag) {
               const row = await readClanActivity(db, clanTag);
@@ -403,6 +408,7 @@ export function createClanRequest({
                 voice,
                 policyFor: (_db, tag) => ledger.currentPolicy(tag),
                 pitchFor: (_db, tag) => ledger.currentPitch(tag),
+                voiceFor: (_db, tag) => voices.current(tag),
               }),
           },
         })
@@ -410,6 +416,7 @@ export function createClanRequest({
     const handler = createHandler({
       ...context,
       activity,
+      voice: voices,
       discord,
       mcp,
       manage,

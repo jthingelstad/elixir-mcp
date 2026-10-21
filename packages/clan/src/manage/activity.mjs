@@ -17,6 +17,9 @@
  *    posting nothing.
  * `ratings` (2026-10-11): a leader's thumbs up or down on a post of the
  * channel, filed as feedback by the host (`{ rate, mine }`), or null.
+ * `voice` (2026-10-20): the clan's one voice setting (`voice.mjs`), which
+ * the editor reads and the page shows; it is set in Settings now, and a
+ * voice sent here (a page from before) is saved there.
  */
 
 import {
@@ -58,6 +61,7 @@ export function createActivityService({
   store,
   model = null,
   ratings = null,
+  voice: voices = null,
 }) {
   const requireLeader = (who) => {
     if (!LEADERS.has(who.role) || who.verified === false)
@@ -93,6 +97,9 @@ export function createActivityService({
             name: key.model_for?.discord_activity?.name ?? null,
           }
         : { available: false, set: false, refused: false, name: null },
+      // The clan's voice, the editor's and the drafts' alike: shown
+      // here, set in Settings (2026-10-20).
+      voice: voices ? await voices.current(clanTag) : "",
       voice_max: VOICE_MAX,
       editor_runs_per_day: ACTIVITY_USES_PER_DAY,
     };
@@ -113,8 +120,10 @@ export function createActivityService({
 
     /**
      * Connect or replace the webhook, switch posting on or off, switch a
-     * category (true, false, or null for the policy's default), the
-     * editor (`rewrite`) and the voice. Only what the body names changes.
+     * category (true, false, or null for the policy's default) and the
+     * editor (`rewrite`). Only what the body names changes. A `voice`
+     * (a page from before 2026-10-20, which kept it here) is the clan's
+     * voice setting's, saved there under its rules.
      */
     async save(clanTag, who, body = {}, { clanName = null } = {}) {
       requireLeader(who);
@@ -168,9 +177,9 @@ export function createActivityService({
         change.rewrite = body.rewrite;
       }
       if (body.voice !== undefined) {
-        if (body.voice !== null && typeof body.voice !== "string")
-          throw new ManageError(400, "bad_request");
-        change.voice = cleanVoice(body.voice);
+        if (!voices) throw new ManageError(400, "bad_request");
+        await voices.set(clanTag, who, body.voice);
+        if (!Object.keys(change).length) return view(clanTag);
       }
       const r = await store.save(clanTag, change, { who, clanName });
       if (r.error) throw refusals[r.error] ?? new ManageError(400, r.error);
@@ -179,7 +188,8 @@ export function createActivityService({
 
     /**
      * The last few stories as the clan's editor would tell them in
-     * `voice` (the saved voice when absent): a leader's own use, counted
+     * `voice` (the clan's saved voice when absent; the page sends none
+     * since 2026-10-20): a leader's own use, counted
      * with the leaders' drafts, in one request with no lookups, that
      * posts and records nothing in Discord. Each story comes back with
      * Elixir's version and what the editor did with it: its post (and

@@ -154,7 +154,7 @@ async function inTransaction(db, fn) {
 
 const ROW_SQL = `select d.channel_id, d.webhook_sealed, d.webhook_fp, d.enabled,
             d.enabled_at, d.synced_to, d.updated_at, d.categories,
-            d.rewrite, d.voice, c.name as clan_name
+            d.rewrite, c.name as clan_name
        from clan_activity_discord d
        left join clan c on c.clan_tag = d.clan_tag
       where d.clan_tag = $1`;
@@ -167,6 +167,7 @@ const ROW_SQL = `select d.channel_id, d.webhook_sealed, d.webhook_fp, d.enabled,
  *   readStatus?: (channelId: string) => Promise<object|null>,
  *   policyFor: (db: any, clanTag: string) => Promise<object|null>,
  *   pitchFor?: ((db: any, clanTag: string) => Promise<object|null>) | null,
+ *   voiceFor?: ((db: any, clanTag: string) => Promise<string|null>) | null,
  *   rewrite?: ((db: any, clanTag: string, request: object,
  *     opts: { run: string, round: number }) => Promise<{ ok: boolean,
  *     answer?: object, calls?: object[], content?: object[],
@@ -536,6 +537,7 @@ async function planRun(
     readStatus = async () => null,
     policyFor,
     pitchFor = null,
+    voiceFor = null,
     rewrite = null,
     editor = false,
     now = Date.now(),
@@ -828,6 +830,7 @@ async function planRun(
   const built = await editorPackets(db, clanTag, row, batch, {
     policy,
     pitchFor,
+    voiceFor,
     now,
     story,
     today: today.posts,
@@ -844,7 +847,9 @@ async function planRun(
  * What the clan's model is told for some posts: the clan block (the
  * cached prefix) and one packet per post, with Elixir's own words for
  * its story, its members' records and what the channel already told of
- * them this week.
+ * them this week. The clan's voice is its one setting (2026-10-20), read
+ * through `voiceFor` (the drafts read the same one); a preview may try
+ * another (`voice`).
  */
 async function editorPackets(
   db,
@@ -854,6 +859,8 @@ async function editorPackets(
   {
     policy = null,
     pitchFor = null,
+    voiceFor = null,
+    voice: trying = undefined,
     now = Date.now(),
     story,
     today = new Map(),
@@ -865,6 +872,12 @@ async function editorPackets(
     ),
   ];
   const pitch = pitchFor ? await pitchFor(db, clanTag).catch(() => null) : null;
+  const voice =
+    trying !== undefined
+      ? trying
+      : voiceFor
+        ? await voiceFor(db, clanTag).catch(() => null)
+        : null;
   const history = tags.length
     ? (
         await db.query(
@@ -881,7 +894,7 @@ async function editorPackets(
   const context = clanContext({
     name: row.clan_name,
     pitch: pitch?.values ?? null,
-    voice: row.voice,
+    voice: voice || null,
     goals: policy ? declaredGoals(policy.values) : [],
     facts: story.clan,
   });
@@ -1358,7 +1371,13 @@ async function recordEditorRun(
 export async function clanEditorPreview(
   db,
   clanTag,
-  { policyFor, pitchFor = null, voice = undefined, now = Date.now() },
+  {
+    policyFor,
+    pitchFor = null,
+    voiceFor = null,
+    voice = undefined,
+    now = Date.now(),
+  },
 ) {
   const {
     rows: [row],
@@ -1415,14 +1434,15 @@ export async function clanEditorPreview(
       members: story.members,
       nowMs: now,
     });
-  const built = await editorPackets(
-    db,
-    clanTag,
-    // The voice being written in the page, when the leader is trying one.
-    voice === undefined ? row : { ...row, voice },
-    posts,
-    { policy, pitchFor, now, story },
-  );
+  // The clan's saved voice, or one a leader is trying.
+  const built = await editorPackets(db, clanTag, row, posts, {
+    policy,
+    pitchFor,
+    voiceFor,
+    voice,
+    now,
+    story,
+  });
   return {
     empty: false,
     posts: posts.map((p) => ({

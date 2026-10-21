@@ -127,15 +127,22 @@ export const activityShareable = (item, categories) => {
 /** How the leaders want the posts to sound, in their words. */
 export const VOICE_MAX = 400;
 
-/** A leader's voice text, tidied: one paragraph, no links, at most
- *  VOICE_MAX characters. Empty is no voice (Elixir's plain one). */
-export function cleanVoice(text) {
+/** A leader's voice text, tidied: one paragraph, no links or mentions,
+ *  not yet bounded, so the clan's voice setting (2026-10-20) can refuse
+ *  words over VOICE_MAX rather than cut them. Empty is no voice
+ *  (Elixir's plain one). */
+export function tidyVoice(text) {
   return String(text ?? "")
     .replace(/https?:\/\/\S+|www\.\S+/gi, "")
     .replace(/[<>`@]/g, "")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, VOICE_MAX);
+    .trim();
+}
+
+/** A voice tidied and held to VOICE_MAX characters: a preview's trial
+ *  voice, which is never saved. */
+export function cleanVoice(text) {
+  return tidyVoice(text).slice(0, VOICE_MAX);
 }
 
 /* ------------------------------------------------------------------ */

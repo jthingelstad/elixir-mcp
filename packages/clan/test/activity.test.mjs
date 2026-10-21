@@ -16,6 +16,7 @@ import {
   editorStory,
 } from "@elixir-mcp/clan-engine";
 import { createActivityService } from "@elixir-mcp/clan/manage/activity.mjs";
+import { createVoiceService } from "@elixir-mcp/clan/manage/voice.mjs";
 import { fetchRoster } from "@elixir-mcp/clan/manage/service.mjs";
 import {
   ACTIVITY_USES_PER_DAY,
@@ -108,7 +109,6 @@ function fakeStore() {
         webhook: "discord.com/api/webhooks/1…",
         categories,
         rewrite: change.rewrite ?? was?.rewrite ?? false,
-        voice: change.voice ?? was?.voice ?? "",
         set_by: who.player_tag,
       };
       rows.set(tag, row);
@@ -163,11 +163,13 @@ function harness({
     now,
   });
   const store = fakeStore();
+  const voice = createVoiceService({ ledger, now });
   const handler = createHandler({
     mcp,
     ...createTestAccount(),
     model,
-    activity: createActivityService({ ledger, store, model, ratings }),
+    voice,
+    activity: createActivityService({ ledger, store, model, ratings, voice }),
     appUrl: "https://elixir.test/clan",
     elixirUrl: "https://elixir.test",
     now,
@@ -249,7 +251,7 @@ test("activity: no policy, nothing is on", async () => {
   });
 });
 
-test("activity: the rewrite asks for the clan's key first; the voice is tidied", async () => {
+test("activity: the rewrite asks for the clan's key first; a voice sent here (a page from before) is the clan's voice, tidied", async () => {
   const h = harness();
   const c = await signedIn(h);
   await api(h, c, "PUT", PATH, { url: "https://discord.com/x" });
@@ -272,8 +274,26 @@ test("activity: the rewrite asks for the clan's key first; the voice is tidied",
   });
   assert.equal(on.status, 200, JSON.stringify(on.body));
   assert.equal(on.body.connection.rewrite, true);
-  assert.equal(on.body.connection.voice, "Loud and proud here");
+  // The voice is the clan's one setting now: shown here, kept there.
+  assert.equal(on.body.voice, "Loud and proud here");
+  assert.equal(on.body.connection.voice, undefined);
+  assert.equal((await h.ledger.clanVoice(TAG)).voice, "Loud and proud here");
+  assert.equal((await h.ledger.clanVoice(TAG)).set_by, ADA);
   assert.ok(!JSON.stringify(on.body).includes(GOOD));
+  // A voice alone changes nothing of the connection.
+  const alone = await api(h, c, "PUT", PATH, { voice: "Quiet." });
+  assert.equal(alone.status, 200, JSON.stringify(alone.body));
+  assert.equal(alone.body.voice, "Quiet.");
+  assert.equal(alone.body.connection.rewrite, true);
+  // Over the bound is refused, not cut, and nothing else is saved.
+  const long = await api(h, c, "PUT", PATH, {
+    rewrite: false,
+    voice: "x".repeat(401),
+  });
+  assert.equal(long.status, 400);
+  assert.equal(long.body.error, "voice_too_long");
+  assert.equal((await h.store.read(TAG)).rewrite, true);
+  assert.equal((await api(h, c, "GET", PATH)).body.voice, "Quiet.");
 });
 
 test("activity: only a leader or co-leader", async () => {

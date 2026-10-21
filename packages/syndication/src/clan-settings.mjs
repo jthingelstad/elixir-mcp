@@ -1,7 +1,9 @@
 /** A clan's activity channel (Social ▸ Discord; Jamie, 2026-10-10):
  *  the clan's own Discord webhook, which categories of its timeline are
  *  told there, and whether the clan's model edits the channel in the
- *  leaders' voice (the `rewrite` column). Leaders' alone, through Elixir Clan; never MCP or
+ *  leaders' voice (the `rewrite` column; the voice itself is the clan's
+ *  one setting since 2026-10-20, `voice#<clan>` in the Clan ledger, and
+ *  the `voice` column is no longer read or written). Leaders' alone, through Elixir Clan; never MCP or
  *  `/api/v1`. The webhook is sealed as it is saved, bound to a random
  *  channel id that a new webhook replaces, and never read back whole:
  *  leaders see its shortened form, and only the relay opens it. What the
@@ -18,7 +20,7 @@ import { deliveriesView } from "./settings.mjs";
 
 const COLUMNS = `channel_id, webhook_sealed, webhook_fp, webhook_display,
   enabled, enabled_at, disabled_reason, disabled_at, categories, rewrite,
-  voice, set_by, set_by_name, updated_at`;
+  set_by, set_by_name, updated_at`;
 
 const DISCLAIMER =
   "This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: <https://www.supercell.com/fan-content-policy>.";
@@ -88,7 +90,6 @@ export function clanActivityRowView(row, status = null, history = null) {
     disabled_at: row.disabled_at?.toISOString() ?? null,
     categories: row.categories ?? {},
     rewrite: row.rewrite,
-    voice: row.voice ?? "",
     set_by: row.set_by,
     set_by_name: row.set_by_name ?? null,
     updated_at: row.updated_at?.toISOString() ?? null,
@@ -106,13 +107,13 @@ export function clanActivityRowView(row, status = null, history = null) {
 
 /**
  * Connect a webhook, change one, switch posting on or off, or change
- * the categories, the rewrite and the voice. A new webhook gets a new
+ * the categories and the rewrite. A new webhook gets a new
  * channel id (the relay's records start over) and, like turning it back
  * on, starts from now: nothing earlier is posted. Either one sends the
  * hello line through the relay. `seal` is clanActivitySeal(box).seal;
  * `change` holds only what the leader changed, already checked by the
- * caller (categories as booleans or null for the policy's default, the
- * voice cleaned). Returns { row, hello } or { error } (webhook_invalid,
+ * caller (categories as booleans or null for the policy's default).
+ * Returns { row, hello } or { error } (webhook_invalid,
  * webhook_required).
  */
 export async function saveClanActivity(
@@ -158,20 +159,20 @@ export async function saveClanActivity(
     `insert into clan_activity_discord
             (clan_tag, channel_id, webhook_sealed, webhook_fp, webhook_display,
              enabled, enabled_at, synced_to, updated_at, disabled_reason,
-             disabled_at, categories, rewrite, voice, set_by, set_by_name)
+             disabled_at, categories, rewrite, set_by, set_by_name)
      values ($1, $2, $3, $4, $5, $6, $7, $7, $7,
              case when $6 then null else 'leader' end,
              case when $6 then null else $7::timestamptz end,
-             $8, $9, $10, $11, $12)
+             $8, $9, $10, $11)
      on conflict (clan_tag) do update
         set channel_id = excluded.channel_id,
             webhook_sealed = excluded.webhook_sealed,
             webhook_fp = excluded.webhook_fp,
             webhook_display = excluded.webhook_display,
             enabled = excluded.enabled,
-            enabled_at = case when $13 then excluded.enabled_at
+            enabled_at = case when $12 then excluded.enabled_at
                               else clan_activity_discord.enabled_at end,
-            synced_to = case when $13 then excluded.synced_to
+            synced_to = case when $12 then excluded.synced_to
                              else clan_activity_discord.synced_to end,
             disabled_reason = case
               when excluded.enabled then null
@@ -184,7 +185,6 @@ export async function saveClanActivity(
             updated_at = excluded.updated_at,
             categories = excluded.categories,
             rewrite = excluded.rewrite,
-            voice = excluded.voice,
             set_by = excluded.set_by,
             set_by_name = excluded.set_by_name
      returning ${COLUMNS}`,
@@ -200,7 +200,6 @@ export async function saveClanActivity(
       typeof change.rewrite === "boolean"
         ? change.rewrite
         : (existing?.rewrite ?? false),
-      typeof change.voice === "string" ? change.voice : (existing?.voice ?? ""),
       who.player_tag,
       who.name ?? null,
       fresh,

@@ -6,7 +6,8 @@
  * `draft_packet` builds the exact request "Draft in our voice" would send
  * for one Action (2026-10-20), in a read-only transaction: no model call,
  * no key, no draft log entry. It is how a weak draft is checked against
- * what the model was told. */
+ * what the model was told, the clan's voice as saved (`voice`, call 5)
+ * included. */
 import pg from "pg";
 import { createHash } from "node:crypto";
 import { createPostgresLedger } from "@elixir-mcp/clan-state/postgres";
