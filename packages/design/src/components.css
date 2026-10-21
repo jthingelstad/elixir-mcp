@@ -928,6 +928,20 @@ button.rail__switch-head:hover {
   border-radius: 0;
   color: var(--ink-link);
 }
+/* A switcher's second line can carry chips (Clan's role, "unverified"):
+   drawn small, and wrapping under the tag rather than past the rail. */
+.rail__switch-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.rail__switch .chip {
+  padding: 1px 7px;
+  font-size: 11.5px;
+}
 
 /* A settings rail's way back to its console, above the head. */
 .rail__back {
@@ -953,14 +967,6 @@ button.rail__switch-head:hover {
   color: var(--ink-faint);
   text-align: left;
   cursor: pointer;
-}
-
-.rail__identity {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 11px 0;
-  border-top: 1px solid var(--line-soft);
 }
 
 @media (max-width: 900px) {
@@ -1010,6 +1016,30 @@ button.rail__switch-head:hover {
   }
   .rail__foot {
     margin-top: 8px;
+  }
+  /* A switcher that is the rail's head (Clan's clan) sits beside the
+     row's toggle, as Ladder's player does: it names what the rail
+     belongs to while the list is folded. Its open list spans the row. */
+  .rail:has(> .rail__switch--head) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 4px;
+  }
+  .rail:has(> .rail__switch--head) > :not(.rail__switch--head, .rail__toggle) {
+    grid-column: 1 / -1;
+  }
+  .rail .rail__switch--head {
+    margin: 0;
+  }
+  .rail__switch--head .rail__switch-head {
+    padding: 5px 4px;
+  }
+  .rail__switch--head .rail__switch-mark {
+    display: none;
+  }
+  .rail__switch--head .rail__switch-list {
+    right: calc(-100% - 4px);
   }
 }
 

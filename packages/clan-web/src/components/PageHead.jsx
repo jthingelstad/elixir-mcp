@@ -8,7 +8,7 @@ import { CLAN, clanPath } from "../lib/base.js";
  * own name; on the clan's front page there is none, and the clan's
  * name is the last step. `via` is a step between the clan and the page
  * (`{ label, to }`: Actions, above one action). `children` sit under the
- * lede (a week's earlier and later links, a clan switcher).
+ * lede (a week's earlier and later links, the roster's clan name).
  */
 export function PageHead({
   clan,

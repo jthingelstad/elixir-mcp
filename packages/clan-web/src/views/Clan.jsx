@@ -11,7 +11,6 @@ import {
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useRoster } from "../lib/queries.js";
-import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
 import { SpreadWord, spreadState } from "../components/SpreadWord.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
@@ -172,10 +171,8 @@ export function RosterTable({
   );
 }
 
-export function ClanHeader({ clan, roster, others = [], navigate }) {
+export function ClanHeader({ clan, roster, navigate }) {
   const clanName = roster?.name ?? clan.name ?? <Tag tag={clan.clan_tag} />;
-  const [open, setOpen] = useState(false);
-  const chip = clanName;
   return (
     <PageHead
       clan={clan}
@@ -205,59 +202,10 @@ export function ClanHeader({ clan, roster, others = [], navigate }) {
         ) : null
       }
     >
+      {/* The clan's name; switching clans is the rail's head, the Clan
+          picker (Jamie, 2026-10-20). */}
       <div>
-        {others.length > 0 ? (
-          <span className="relative">
-            {/* .chip sets no background, so a BUTTON wearing it kept the
-                browser's grey buttonface under light ink (axe: contrast). */}
-            <button
-              type="button"
-              className="chip cursor-pointer border-0 bg-transparent text-inherit [font:inherit]"
-              aria-haspopup="menu"
-              aria-expanded={open}
-              onClick={() => setOpen((v) => !v)}
-            >
-              {chip} <span aria-hidden="true">▾</span>
-            </button>
-            {open ? (
-              <div
-                role="menu"
-                className="panel absolute top-[110%] left-0 z-20 min-w-[260px]"
-              >
-                {others.map((c) => (
-                  <a
-                    key={c.clan_tag}
-                    role="menuitem"
-                    href={clanPath(c.clan_tag)}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setOpen(false);
-                      navigate(clanPath(c.clan_tag));
-                    }}
-                    className="flex items-center gap-2 px-3.5 py-2.5 text-inherit"
-                  >
-                    <span>{c.name ?? <Tag tag={c.clan_tag} />}</span>
-                    <RoleChip role={c.role} label={c.role_label} />
-                  </a>
-                ))}
-                <a
-                  role="menuitem"
-                  href={`${CLAN}/clans`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setOpen(false);
-                    navigate(`${CLAN}/clans`);
-                  }}
-                  className="block px-3.5 py-2.5 border-t border-line-soft text-[13px]"
-                >
-                  All your clans ›
-                </a>
-              </div>
-            ) : null}
-          </span>
-        ) : (
-          <span className="chip">{chip}</span>
-        )}
+        <span className="chip">{clanName}</span>
       </div>
     </PageHead>
   );
@@ -399,8 +347,6 @@ function Comings({ roster, clan, history, navigate }) {
  *  `path` is the address it is on (the clan's own or its `/roster`),
  *  which a search keeps. */
 export function Clan({ me, clan, navigate, search, path = null }) {
-  const others = (me.clans ?? []).filter((c) => c.clan_tag !== clan.clan_tag);
-
   const tag = clan.clan_tag;
   const gated = useRoster(tag);
   const state = { ...gated.state, roster: gated.state.data };
@@ -433,12 +379,7 @@ export function Clan({ me, clan, navigate, search, path = null }) {
 
   return (
     <ZoneProvider zone={roster?.meta?.timezone_applied ?? null}>
-      <ClanHeader
-        clan={clan}
-        roster={roster}
-        others={others}
-        navigate={navigate}
-      />
+      <ClanHeader clan={clan} roster={roster} navigate={navigate} />
       {state.loading && !roster ? (
         <p className="page__lede">Reading the roster from Elixir…</p>
       ) : state.error ? (

@@ -22,14 +22,13 @@ import {
   FeedbackSheet,
   Link,
   Rail as RailList,
-  RailIdentity,
 } from "@elixir-mcp/ui";
 import { api, feedbackApi } from "./api.js";
 import { keys, useMeQuery } from "./lib/queries.js";
 import { railItems, railKey } from "./lib/rail.js";
 import { landingPath, useLanding } from "./lib/landing.js";
 import { CLAN, appPath, clanPath, isClanSegment, tagOf } from "./lib/base.js";
-import { RoleChip } from "./components/RoleChip.jsx";
+import { ClanPicker } from "./components/ClanPicker.jsx";
 import { RoleConfirming } from "./components/RoleConfirming.jsx";
 import {
   FEEDBACK_HISTORY,
@@ -389,9 +388,13 @@ export function MaintainPage() {
   return null;
 }
 
-export function Rail({ me, path, navigate, narrow }) {
+export function Rail({ me, path, navigate, narrow, select, selecting }) {
   const clan = me?.selected ?? null;
   const [feedback, setFeedback] = useState(false);
+  // The Clan picker heads the rail wherever a clan is selected (Jamie,
+  // 2026-10-20); the chooser keeps the plain head, being the full list.
+  const picker =
+    Boolean(me?.ok && clan && me.clans?.length) && appPath(path) !== "/clans";
   return (
     <>
       <RailList
@@ -402,33 +405,16 @@ export function Rail({ me, path, navigate, narrow }) {
         narrow={narrow}
         title={clan?.name ?? "Elixir Clan"}
         aside={clan?.clan_tag}
-        subtitle={clan?.name ?? ""}
-        identity={
-          <RailIdentity
-            href={`${CLAN}/you`}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(`${CLAN}/you`);
-            }}
-            name={
-              <>
-                <span className="yours">★</span>{" "}
-                {clan?.player_name ?? me?.primary?.name ?? "Signed in"}
-              </>
-            }
-            detail={
-              clan ? (
-                <>
-                  <RoleChip role={clan.role} label={clan.role_label} />
-                  {clan.verified === false ? (
-                    <span className="chip chip--warn">unverified</span>
-                  ) : null}
-                </>
-              ) : (
-                "with Elixir"
-              )
-            }
-          />
+        subtitle={picker ? undefined : (clan?.name ?? "")}
+        head={
+          picker ? (
+            <ClanPicker
+              me={me}
+              navigate={navigate}
+              select={select}
+              selecting={selecting}
+            />
+          ) : undefined
         }
         // Feedback is Elixir's one system (2026-10-08): the foot opens
         // the shared sheet, about this clan and the page it was on.
@@ -474,15 +460,21 @@ export function ClanShell({
   const select = useCallback(
     async (tag, { keepPath = false } = {}) => {
       setSelecting(true);
-      const r = await api.select(tag);
-      setSelecting(false);
-      if (r.ok) {
-        setMe(r.data);
-        // Straight to the clan's landing: the answer carries what waits
-        // for the person there, so the roster never shows first.
-        if (!keepPath) navigate(landingPath(r.data, tag));
-      } else if (r.status === 401) {
-        setMe({ signed_in: false, expired: true });
+      try {
+        const r = await api.select(tag);
+        if (r.ok) {
+          setMe(r.data);
+          // Straight to the clan's landing: the answer carries what
+          // waits for the person there, so the roster never shows first
+          // and no redirect follows. Still selecting until the address
+          // is the new clan's: the Clan picker picks from another clan's
+          // page, which the gate below would otherwise select back.
+          if (!keepPath) await navigate(landingPath(r.data, tag));
+        } else if (r.status === 401) {
+          setMe({ signed_in: false, expired: true });
+        }
+      } finally {
+        setSelecting(false);
       }
     },
     [navigate, setMe],
@@ -556,7 +548,14 @@ export function ClanShell({
           className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
         >
           {showRail ? (
-            <Rail me={me} path={path} navigate={navigate} narrow={narrow} />
+            <Rail
+              me={me}
+              path={path}
+              navigate={navigate}
+              narrow={narrow}
+              select={select}
+              selecting={selecting}
+            />
           ) : null}
           <main className="page">
             <div
