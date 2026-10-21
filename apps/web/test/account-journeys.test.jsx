@@ -23,6 +23,9 @@ import { createSession, emailHash } from "../../../packages/auth/src/index.mjs";
 configure({ asyncUtilTimeout: 5000 });
 let scratch, handler, cookie, accountId;
 const pending = new Set();
+// The scratch database runs every migration, and CREATE DATABASE queues
+// behind any other on the host: 15 s missed on a host running several
+// verify passes at once (2026-10-21). A bound, not a latency target.
 beforeAll(async () => {
   scratch = await scratchDb("ui_journeys");
   const hash = emailHash("journeys@example.com");
@@ -67,7 +70,7 @@ beforeAll(async () => {
     promise.finally(() => pending.delete(promise));
     return promise;
   });
-}, 15000);
+}, 60000);
 afterEach(async () => {
   cleanup();
   await Promise.all([...pending]);
