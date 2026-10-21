@@ -54,7 +54,6 @@ import {
   HeadObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
-  ListObjectsV2Command,
   DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
 import {
@@ -103,8 +102,16 @@ import { bundleFingerprint, chooseLane, codeKey } from "./lib/deploy-lane.mjs";
 import {
   PRUNE_AFTER_DAYS,
   hashedAssets,
-  publishSteps,
+  listObjects,
+  md5,
+  publish,
+  publishPlan,
   pruneCandidates,
+  readPublished,
+  referencedAssets,
+  siteAssetsKey,
+  writeAssetManifest,
+  writePublished,
 } from "./lib/site-publish.mjs";
 import {
   checkWebEndpointGrants,
@@ -144,6 +151,17 @@ function walkFiles(root, base = root) {
     if (statSync(full).isDirectory()) out.push(...walkFiles(full, base));
     else out.push(path.relative(base, full));
   }
+  return out;
+}
+
+/** Every file under a directory with its MD5, keyed as `prefix + path`. */
+async function hashTree(root, prefix = "") {
+  const out = [];
+  for (const rel of walkFiles(root))
+    out.push({
+      rel: `${prefix}${rel.split(path.sep).join("/")}`,
+      md5: md5(await readFile(path.join(root, rel))),
+    });
   return out;
 }
 
@@ -369,32 +387,44 @@ export const DEPLOY_PHASES = [
   {
     // The native HTML bundle names these assets. Publish before
     // CloudFormation routes its revision; an old browser's immutable
-    // chunks stay in the bucket.
+    // chunks stay in the bucket. Only what changed is uploaded, with the
+    // headers the site phase gives the same files (lib/site-publish.mjs),
+    // so the site phase finds them published. This deploy's manifest of
+    // the assets it ships is written here, before the switch: a later
+    // deploy's prune never takes an asset a deploy in its window shipped.
     name: "assets",
     async run(d) {
-      for (const rel of walkFiles(
-        path.join(repoRoot, "apps/web/dist/assets"),
-      )) {
-        const ext = path.extname(rel);
-        await d.s3.send(
-          new PutObjectCommand({
-            Bucket: `elixir-mcp-site-${d.accountId}`,
-            Key: `assets/${rel}`,
-            Body: await readFile(
-              path.join(repoRoot, "apps/web/dist/assets", rel),
-            ),
-            ContentType:
-              ext === ".js"
-                ? "application/javascript"
-                : ext === ".css"
-                  ? "text/css"
-                  : ext === ".png"
-                    ? "image/png"
-                    : "application/octet-stream",
-            CacheControl: "public, max-age=31536000, immutable",
-          }),
-        );
-      }
+      const bucket = `elixir-mcp-site-${d.accountId}`;
+      const viteDir = path.join(repoRoot, "apps/web/dist/assets");
+      const files = await hashTree(viteDir, "assets/");
+      d.published = await readPublished(d.s3, d.codeBucket);
+      const plan = publishPlan({
+        files,
+        listing: await listObjects(d.s3, bucket, { prefix: "assets/" }),
+        published: d.published,
+        hashed: hashedAssets(
+          files.map((f) => f.rel),
+          readdirSync(viteDir),
+        ),
+      });
+      const result = await publish({
+        s3: d.s3,
+        bucket,
+        plan,
+        read: (rel) =>
+          readFile(path.join(viteDir, rel.slice("assets/".length))),
+      });
+      Object.assign(d.published, result.entries);
+      await writePublished(d.s3, d.codeBucket, d.published);
+      d.assetManifestKey = siteAssetsKey(d.startedAt, d.headSha);
+      await writeAssetManifest(d.s3, d.codeBucket, {
+        key: d.assetManifestKey,
+        sha: d.headSha,
+        assets: files.map((f) => f.rel),
+      });
+      console.error(
+        `app assets: ${result.uploaded} uploaded, ${result.unchanged + result.confirmed} unchanged.`,
+      );
     },
   },
   {
@@ -705,33 +735,59 @@ export const DEPLOY_PHASES = [
   {
     // Two builds merged into one tree, validated before anything is
     // uploaded: dead sitemap entries, dangling llms.txt links, a missing
-    // app shell or a missing asset fail here instead of on the live
-    // site. Then assets first and never deleted, then the documents,
-    // each with its Cache-Control; the old build's chunks are pruned
-    // after the invalidation, once nothing can ask for them (#73;
-    // site-publish.mjs).
+    // app shell, a missing asset or a file with no content type fail
+    // here instead of on the live site. The build phase built the
+    // contract, the docs corpus and the app moments ago, so only the
+    // static site builds here (--prebuilt). Then only what changed is
+    // published: assets first and never deleted, then the documents,
+    // each with its Content-Type and Cache-Control, then the documents
+    // the build no longer has are deleted; the old build's chunks are
+    // pruned after the invalidation, once nothing can ask for them (#73;
+    // lib/site-publish.mjs).
     name: "site",
     when: web,
     async run(d) {
       console.error("building the site (app + static)...");
       execFileSync(
         "node",
-        [path.join(repoRoot, "infra/scripts/build-site.mjs")],
+        [path.join(repoRoot, "infra/scripts/build-site.mjs"), "--prebuilt"],
         { cwd: repoRoot, stdio: "inherit" },
       );
       const siteDir = path.join(repoRoot, "dist/site");
-      d.siteFiles = walkFiles(siteDir);
-      const hashed = hashedAssets(
-        d.siteFiles,
-        readdirSync(path.join(repoRoot, "apps/web/dist/assets")),
+      const files = await hashTree(siteDir);
+      d.siteFiles = files.map((f) => f.rel);
+      const bucket = d.outputs.SiteBucketName;
+      const plan = publishPlan({
+        files,
+        listing: await listObjects(d.s3, bucket),
+        published: d.published,
+        hashed: hashedAssets(
+          d.siteFiles,
+          readdirSync(path.join(repoRoot, "apps/web/dist/assets")),
+        ),
+        removeMissing: true,
+      });
+      const result = await publish({
+        s3: d.s3,
+        bucket,
+        plan,
+        read: (rel) => readFile(path.join(siteDir, rel)),
+      });
+      const removed = new Set(plan.remove);
+      d.published = Object.fromEntries(
+        Object.entries({ ...d.published, ...result.entries }).filter(
+          ([key]) => !removed.has(key),
+        ),
       );
-      for (const step of publishSteps({
-        dir: siteDir,
-        bucket: d.outputs.SiteBucketName,
-        hashed,
-      })) {
-        execFileSync("aws", step, { stdio: "inherit" });
-      }
+      await writePublished(d.s3, d.codeBucket, d.published);
+      await writeAssetManifest(d.s3, d.codeBucket, {
+        key: d.assetManifestKey,
+        sha: d.headSha,
+        assets: d.siteFiles.filter((rel) => rel.startsWith("assets/")),
+      });
+      console.error(
+        `site: ${files.length} files; ${result.uploaded} uploaded, ${result.unchanged + result.confirmed} unchanged, ${result.removed} removed.`,
+      );
     },
   },
   {
@@ -763,34 +819,41 @@ export const DEPLOY_PHASES = [
     },
   },
   {
-    // Prune: an asset this build no longer ships, and no deploy has
-    // shipped for PRUNE_AFTER_DAYS, can no longer be asked for by a page
-    // that is still open.
+    // Prune: an asset this build does not ship, that no deploy in the
+    // last PRUNE_AFTER_DAYS shipped (their manifests), and that was not
+    // uploaded in that window, can no longer be asked for by a page that
+    // is still open. Any doubt about what is referenced (a manifest that
+    // cannot be read, this deploy's own not listed) prunes nothing.
     name: "prune",
     when: web,
     async run(d) {
-      const current = new Set(
-        d.siteFiles.filter((rel) => rel.startsWith("assets/")),
-      );
-      const objects = [];
-      let ContinuationToken;
-      do {
-        const page = await d.s3.send(
-          new ListObjectsV2Command({
-            Bucket: d.outputs.SiteBucketName,
-            Prefix: "assets/",
-            ContinuationToken,
-          }),
+      const now = Date.now();
+      let referenced;
+      try {
+        referenced = await referencedAssets(d.s3, d.codeBucket, {
+          now,
+          days: PRUNE_AFTER_DAYS,
+          own: d.assetManifestKey,
+        });
+      } catch (err) {
+        console.warn(
+          `WARNING: no prune this deploy; the asset manifests could not be read: ${err?.message ?? err}`,
         );
-        objects.push(...(page.Contents ?? []));
-        ContinuationToken = page.IsTruncated
-          ? page.NextContinuationToken
-          : undefined;
-      } while (ContinuationToken);
+        return;
+      }
+      const listing = await listObjects(d.s3, d.outputs.SiteBucketName, {
+        prefix: "assets/",
+      });
       const prune = pruneCandidates({
-        objects,
-        current,
-        now: Date.now(),
+        objects: [...listing].map(([Key, o]) => ({
+          Key,
+          LastModified: o.lastModified,
+        })),
+        current: new Set(
+          d.siteFiles.filter((rel) => rel.startsWith("assets/")),
+        ),
+        referenced,
+        now,
         days: PRUNE_AFTER_DAYS,
       });
       for (let i = 0; i < prune.length; i += 1000) {
@@ -805,7 +868,7 @@ export const DEPLOY_PHASES = [
         );
       }
       console.error(
-        `pruned ${prune.length} asset(s) unshipped for ${PRUNE_AFTER_DAYS}+ days`,
+        `pruned ${prune.length} asset(s) no deploy has shipped for ${PRUNE_AFTER_DAYS}+ days`,
       );
     },
   },
