@@ -1404,21 +1404,37 @@ test("actions: a newcomer's welcome is for elders and leaders, with a line for c
   assert.deepEqual(welcome.audience, { kind: "elders" });
   assert.equal(welcome.copy, "Welcome to the clan, Newbie!");
   assert.match(welcome.log[0].text, /Newbie joined the clan/);
+  // A drafted welcome runs to two lines, each within the game's 200.
+  const decide = (sent) =>
+    api(
+      eh,
+      ec,
+      "POST",
+      `/api/clans/2PQRJ8LV/actions/${welcome.card_id}/decide`,
+      { status: "done", sent },
+    );
+  for (const lines of [["One", "Two", "Three"], ["x".repeat(201)], [""]]) {
+    const refused = await decide({ lines });
+    assert.equal(refused.status, 400, JSON.stringify(lines));
+    assert.equal(refused.body.error, "bad_message");
+  }
   // An elder completes it without a reason; the log says who.
-  const done = await api(
-    eh,
-    ec,
-    "POST",
-    `/api/clans/2PQRJ8LV/actions/${welcome.card_id}/decide`,
-    { status: "done" },
-  );
-  assert.equal(done.status, 200);
+  const lines = ["Welcome to the clan, Newbie!", "Glad you found us."];
+  const done = await decide({ lines });
+  assert.equal(done.status, 200, JSON.stringify(done.body));
+  assert.deepEqual((await ledger.card("#2PQRJ8LV", welcome.card_id)).sent, {
+    channel: "clan_chat",
+    lines,
+  });
   const log = await ledger.actionLog("#2PQRJ8LV", welcome.card_id);
   assert.deepEqual(
     log.map((e) => [e.kind, e.by.tag ?? e.by.system]),
     [
       ["raised", "elixir-clan"],
       ["completed", "#O1"],
+      // Each line is shared with Elixir as its own chat message.
+      ["shared", "#O1"],
+      ["shared", "#O1"],
     ],
   );
   // One welcome per join: the next look raises none.
@@ -1984,6 +2000,30 @@ test("sharing: each completed action attests only what happened, in the words se
     channel: "clan_chat",
     body: "Welcome to the clan, Sleepy!",
   });
+  assert.equal(welcome[0].ref, "action:c1:message");
+  // A drafted welcome of two lines is two chat messages, each its own.
+  const twoLines = factsOfAction(
+    card("welcome"),
+    {
+      ...done,
+      sent: {
+        channel: "clan_chat",
+        lines: ["Welcome to the clan, Sleepy!", "3,000 career wins already."],
+      },
+    },
+    {
+      sent: {
+        lines: ["Welcome to the clan, Sleepy!", "3,000 career wins already."],
+      },
+    },
+  );
+  assert.deepEqual(
+    twoLines.map((f) => [f.ref, f.detail.body]),
+    [
+      ["action:c1:message:chat:1", "Welcome to the clan, Sleepy!"],
+      ["action:c1:message:chat:2", "3,000 career wins already."],
+    ],
+  );
   const left = factsOfAction(card("departure", { evidence: { left_at: at } }), {
     status: "done",
     decided_at: at,
