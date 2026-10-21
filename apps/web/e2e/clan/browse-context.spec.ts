@@ -138,7 +138,7 @@ for (const size of ["wide", "@narrow"]) {
         ],
       }),
     );
-    await page.goto(base);
+    await page.goto(`${base}/roster`);
     await page.getByRole("searchbox", { name: "Find a member" }).fill("Ben");
     await expect(page).toHaveURL(/\?find=Ben$/);
     await page.getByRole("link", { name: "Ben", exact: true }).click();
@@ -168,7 +168,7 @@ for (const size of ["wide", "@narrow"]) {
       page.getByRole("searchbox", { name: "Find a member" }),
     ).toHaveValue("Ben");
     await page.getByRole("searchbox", { name: "Find a member" }).fill("");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/roster$/);
     await expect(
       page.getByRole("link", { name: "Ada", exact: true }),
     ).toBeVisible();
