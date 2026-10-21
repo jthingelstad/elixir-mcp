@@ -34,7 +34,7 @@ reaches_journeys() {
       -e '^services/web-api/src/(app-pages|http|share-files)\.mjs$' \
       -e '^services/web-api/src/routes/battle-activity\.mjs$' \
       -e '^services/email-relay/src/templates\.mjs$' \
-      -e '^infra/scripts/(build|build-site|serve-site)\.mjs$' \
+      -e '^infra/scripts/(build|build-site|serve-site|e2e-shard)\.mjs$' \
       -e '^package(-lock)?\.json$' \
       -e '^\.node-version$' \
       -e '^\.github/workflows/validate\.yml$' \

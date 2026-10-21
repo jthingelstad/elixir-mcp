@@ -124,9 +124,11 @@ jobs:
   # Journeys against the built tree behind the edge's document-or-shell
   # rule, /api/* answered by route fixtures: the real bundle, the real
   # router, the real chunks, axe on every page a journey lands on. Split
-  # across shards, each building the tree once (build-site.mjs runs the
-  # package build first). The browser is cached on Playwright's version;
-  # its system libraries are installed every time.
+  # across shards by whole spec files, balanced on measured time
+  # (infra/scripts/e2e-shard.mjs; Playwright's own --shard cuts by test
+  # count, and the slow specs sort last), each building the tree once
+  # (build-site.mjs runs the package build first). The browser is cached
+  # on Playwright's version; its system libraries install every time.
   e2e:
     name: e2e (${{ matrix.shard }}/3)
     needs: changes
@@ -159,7 +161,9 @@ jobs:
       - if: steps.browsers.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       - run: node infra/scripts/build-site.mjs --skip-stats
-      - run: npm run e2e -- --shard=${{ matrix.shard }}/3
+      - run: |
+          files="$(node infra/scripts/e2e-shard.mjs ${{ matrix.shard }}/3)"
+          npm run e2e -- $files
       # No AWS credentials in validate; production uses the canonical deploy lane.
 
   validate:
