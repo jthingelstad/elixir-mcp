@@ -62,6 +62,10 @@ import { isDeepStrictEqual } from "node:util";
  *                            grants are facts of the record, manual ones
  *                            a leader's (kept: this is the trophy case)
  *
+ *   voice#<clan>             how the clan's messages sound (2026-10-20):
+ *                            the leaders' words, read by the drafts and the
+ *                            Discord editor alike, who set them and when
+ *                            (0229 copied each editor's voice here)
  *   social#<clan>            the clan's Social switch (2026-09-26): on
  *                            unless a leader turned it off, who and when
  *   discord#<clan>           the clan's Discord webhook for Actions
@@ -630,6 +634,21 @@ export function ledgerOver(io) {
     },
     async removePlaces(tags) {
       for (const tag of tags) await remove(`place#${tag}`);
+    },
+    // ---- how the clan's messages sound (2026-10-20): one voice for
+    // the drafts and the Discord editor, in the clan's partition --------
+    async clanVoice(clanTag) {
+      const item = await io.get(`voice#${clanTag}`);
+      return item ? stripKeys(item) : null;
+    },
+    async saveClanVoice(clanTag, value) {
+      await io.put({
+        pk: `voice#${clanTag}`,
+        gsi1pk: clanKey(clanTag),
+        gsi1sk: "voice",
+        clan_tag: clanTag,
+        ...value,
+      });
     },
     async socialSetting(clanTag) {
       const item = await io.get(`social#${clanTag}`);
