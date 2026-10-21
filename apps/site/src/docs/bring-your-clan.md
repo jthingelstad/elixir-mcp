@@ -122,6 +122,9 @@ The rail down the side lists Clan's pages:
   answer comes to your [feedback](/docs/your-account#feedback) and your
   inbox.
 
+On a phone the rail folds into one row above the page; while it is
+closed, a mark on that row says Actions are waiting for you.
+
 ## When the clan is not on Elixir
 
 Clan works from what Elixir records. Elixir follows your primary player's

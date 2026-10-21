@@ -156,7 +156,7 @@ track stays. Partner is granted by hand. The tiers and their numbers are on
 
 Every part of Elixir takes feedback, and all of it lands in one place:
 **Send feedback** at the foot of the Console's, Ladder's and Elixir
-Clan's rail, **Report this** beside an Elixir Clan action, Standing and
+Clan's rail (a sheet over the page you are on), **Report this** beside an Elixir Clan action, Standing and
 the award races, **Something wrong on this page?** on every docs page,
 and **Send feedback about this email** in every email's footer. Each
 note carries where it was written and what it is about (the page, the
@@ -165,7 +165,8 @@ you think. Sending feedback needs you signed in; without an account,
 write to [admin@poapkings.com](mailto:admin@poapkings.com).
 
 Every item is answered, by Elixir's maintainer, sometimes with help
-from AI agents. **Console ▸ Feedback** lists what you have sent
+from AI agents. **Console ▸ Feedback** (in the account menu, and linked
+from the sheet) lists what you have sent
 with its state and the maintainer's answer, and an item's own page
 shows the whole thread: answer an answer with **Reply** and the two
 stay linked. Each answer is an item on your [timeline](/docs/timeline),

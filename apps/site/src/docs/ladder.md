@@ -49,7 +49,9 @@ all of them would describe none of them. [Modes](/docs/modes) says how
 Elixir tells them apart.
 
 Days played and Decks show every mode on one page, and they still keep
-each mode's mark and record apart. The season home opens on the mode you
+each mode's mark and record apart. When the address names a mode (the
+rail's links carry it, as in `/ladder/decks?mode=war`), that mode comes
+first on both, and the others keep their order. The season home opens on the mode you
 played most in the last 30 days, including War and Events. Ties keep the first
 tab in the order shown; with no recorded battles, Trophy Road is the default. The tabs are
 addresses (`/ladder?mode=ranked`), so a link to one mode stays in it.
@@ -195,7 +197,9 @@ did not reach are marked "partially read"; any battles already read stay visible
   time since the latest observation remain unknown and break the stretch.
 - **The calendar**: one cell a day, each mode with its own mark and
   record, and the day's battles counted in the corner. A battle after
-  midnight counts on the next day.
+  midnight counts on the next day. When the address names a mode the
+  season has, its mark comes first in each day and in the key, and the
+  other modes' marks stay, in quieter ink.
 - **Nights**: a night is a run of battles with no gap longer than 30
   minutes, newest first. A night in one mode shows its record; a night
   across modes shows each mode's record where it was played, and never one
@@ -241,6 +245,10 @@ war deck (which has no tower troop) is its own row.
   when it is the same cards as a Trophy Road deck. A duel has no single
   deck, so its rows are the decks you played in its rounds, each round won
   or lost on its own crowns.
+
+The sections run in the order above unless the address names a mode: then
+that mode's section comes first, or the table with that mode's rows
+first. A row of links at the top of the page jumps to each mode's decks.
 
 ## Cards
 
