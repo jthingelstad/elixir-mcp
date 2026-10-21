@@ -117,6 +117,57 @@ export async function liveVersions({ fetch, base }) {
   };
 }
 
+/** Milliseconds as seconds, to one decimal. */
+export const toSeconds = (ms) => Math.round(ms / 100) / 10;
+
+/**
+ * The deploy's timing, for its record (2026-10-21): when it started,
+ * before the CI gate; how long the gate waited (null when --break-glass
+ * skipped it); the seconds from the start to the record; and each phase
+ * that ran, in order, with its seconds (deploy.mjs's DEPLOY_PHASES, the
+ * record's own phase aside). Until then neither the gate's wait nor a
+ * phase could be measured, only the deploy's end.
+ *
+ * @param {{ startedAt: string, recordedAt: string, breakGlass?: boolean,
+ *   phases: { name: string, seconds: number }[] }} input
+ */
+export function deployTiming({ startedAt, recordedAt, breakGlass, phases }) {
+  const gate = phases.find((p) => p.name === "ci-gate");
+  return {
+    started_at: startedAt,
+    gate_wait_seconds: breakGlass || !gate ? null : gate.seconds,
+    seconds: toSeconds(Date.parse(recordedAt) - Date.parse(startedAt)),
+    phases: phases.map(({ name, seconds }) => ({ phase: name, seconds })),
+  };
+}
+
+/** 42 s, or 2 m 41 s. */
+export function span(seconds) {
+  const whole = Math.round(seconds);
+  return whole < 60
+    ? `${whole} s`
+    : `${Math.floor(whole / 60)} m ${whole % 60} s`;
+}
+
+/** The comment's timing line: the start, the gate's wait, then the
+ *  rest, naming each phase that took a second or more. */
+export function timingLine(timing) {
+  const gate = timing.gate_wait_seconds;
+  const after = timing.phases.filter((p) => p.phase !== "ci-gate");
+  const rest = timing.seconds - (gate ?? 0);
+  const shown = after
+    .filter((p) => p.seconds >= 1)
+    .map((p) => `${p.phase} ${span(p.seconds)}`);
+  return [
+    `- Timing: started ${utcAndCentral(timing.started_at)}; `,
+    gate === null
+      ? "the CI gate skipped (--break-glass), "
+      : `the CI gate waited ${span(gate)}, `,
+    `then ${span(rest)} to this record`,
+    shown.length ? `: ${shown.join(", ")}` : "",
+  ].join("");
+}
+
 const versionLine = (live, declared) =>
   live === null
     ? `unknown (could not read it live; this commit declares ${declared})`
@@ -134,6 +185,7 @@ export function commentBody({
   declared,
   acceptance,
   prCommits,
+  timing,
 }) {
   const link = (s) =>
     `[\`${s.slice(0, 8)}\`](https://github.com/${repo}/commit/${s})`;
@@ -145,6 +197,7 @@ export function commentBody({
     `- MCP contract: ${versionLine(live.contract, declared.contract)}`,
     `- JSON API: ${versionLine(live.api, declared.api)}`,
     `- Acceptance: ${acceptance}`,
+    ...(timing ? [timingLine(timing)] : []),
   ].join("\n");
 }
 

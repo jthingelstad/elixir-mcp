@@ -1,20 +1,21 @@
 #!/usr/bin/env node
-import {
-  GetWebFunctionRevisionCommand,
-  LambdaWebClient,
-} from "@aws-sdk/client-lambda-web";
-import { grantWebEndpoints } from "./lib/web-release.mjs";
 /**
- * Deploy (run with AWS_PROFILE=cloud-engineer). Order: build -> upload ->
- * lane -> MIGRATE (the migrate bundle is pushed ahead of the flip, so a
- * failed migration stops the deploy before any code changes) -> vocabulary
- * import -> stack update -> web sync and invalidation -> smoke ->
- * acceptance when asked -> the deploy record and its PR comments. The
- * whole run holds the production lock (lib/production-lock.mjs), taken
- * after the CI gate and before the build. On --create the stack comes
- * first and migrations run after it. When no Lambda bundle and not the template changed, the
- * SITE lane skips the migrate push, the migrations and the stack update
- * (lib/deploy-lane.mjs); --platform takes the whole path anyway.
+ * Deploy (run with AWS_PROFILE=cloud-engineer). The deploy is
+ * DEPLOY_PHASES below, run in order: the worktree and CI gate checks,
+ * the production lock (lib/production-lock.mjs, taken after the gate and
+ * held to the end), the account, build -> upload -> the app's immutable
+ * assets -> lane -> the endpoint grant check -> MIGRATE (the migrate
+ * bundle is pushed ahead of the flip, so a failed migration stops the
+ * deploy before any code changes) -> vocabulary import -> stack update
+ * -> the endpoint grant -> site publish, invalidation and prune ->
+ * smoke -> acceptance when asked -> the deploy record and its PR
+ * comments. Each phase says when it runs: on --create the stack comes
+ * first and migrations run after it; when no Lambda bundle and not the
+ * template changed, the SITE lane skips the migrate push, the
+ * migrations and the stack update (lib/deploy-lane.mjs); --platform
+ * takes the whole path anyway. The tests read the list itself
+ * (services/mcp/test/infra-controls.test.mjs), and the deploy record
+ * carries each phase's seconds.
  *
  *   node infra/scripts/deploy.mjs --create   # first deploy (GATED)
  *   node infra/scripts/deploy.mjs            # update
@@ -23,16 +24,18 @@ import { grantWebEndpoints } from "./lib/web-release.mjs";
  */
 
 import { createHash } from "node:crypto";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { readdirSync, statSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { versionsIn } from "../../packages/contracts/scripts/changes-index.mjs";
+import {
+  GetWebFunctionRevisionCommand,
+  LambdaWebClient,
+} from "@aws-sdk/client-lambda-web";
 import {
   CloudFrontClient,
   CreateInvalidationCommand,
-  ListDistributionsCommand,
 } from "@aws-sdk/client-cloudfront";
 import {
   CloudFormationClient,
@@ -61,13 +64,18 @@ import {
   waitUntilFunctionUpdatedV2,
 } from "@aws-sdk/client-lambda";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+import { versionsIn } from "../../packages/contracts/scripts/changes-index.mjs";
 import { buildAll } from "./build.mjs";
 import {
   buildParameters,
   originRotation,
   webBuildParameters,
 } from "./parameters.mjs";
-import { DEPLOY_USAGE, parseDeployArgs } from "./lib/deploy-args.mjs";
+import {
+  DEPLOY_USAGE,
+  argumentRefusal,
+  parseDeployArgs,
+} from "./lib/deploy-args.mjs";
 import { ciGate } from "./lib/ci-gate.mjs";
 import {
   acquireLock,
@@ -79,9 +87,11 @@ import {
   commentBody,
   commentOnPulls,
   deployHistoryKey,
+  deployTiming,
   liveVersions,
   shippedCommits,
   shippedPulls,
+  toSeconds,
 } from "./lib/deploy-record.mjs";
 import { prepareReferenceSeedRefresh } from "./lib/reference-seed-check.mjs";
 import {
@@ -96,19 +106,12 @@ import {
   publishSteps,
   pruneCandidates,
 } from "./lib/site-publish.mjs";
+import {
+  checkWebEndpointGrants,
+  grantWebEndpoints,
+} from "./lib/web-release.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-
-/** Every file under a directory, as paths relative to it. */
-function walkFiles(root, base = root) {
-  const out = [];
-  for (const entry of readdirSync(root)) {
-    const full = path.join(root, entry);
-    if (statSync(full).isDirectory()) out.push(...walkFiles(full, base));
-    else out.push(path.relative(base, full));
-  }
-  return out;
-}
 const repoRoot = path.resolve(here, "../..");
 const REGION = process.env.AWS_REGION ?? "us-east-1";
 const STACK = "elixir-mcp";
@@ -133,608 +136,765 @@ const stackTags = (accountId) => [
   { Key: "Repository", Value: GITHUB_REPO },
 ];
 
-// Refuse anything but a known flag before the first AWS call: an unknown
-// one used to be ignored, so `--help` deployed production (2026-09-25).
-const args = parseDeployArgs(process.argv.slice(2));
-if (args.help) {
-  console.log(DEPLOY_USAGE);
-  process.exit(0);
-}
-if (args.unknown.length > 0) {
-  console.error(
-    `deploy: unknown argument ${args.unknown.join(" ")}; nothing was deployed.\n\n${DEPLOY_USAGE}`,
-  );
-  process.exit(2);
-}
-const isCreate = args.create;
-const skipWeb = args.skipWeb;
-if (args.verifyReferenceSeed && isCreate) {
-  console.error(
-    "deploy: --verify-reference-seed requires an existing stack; nothing was deployed.",
-  );
-  process.exit(2);
-}
-if (
-  args.rotateOriginSecret &&
-  (isCreate ||
-    args.params.OriginSecret !== undefined ||
-    args.params.OriginSecretPrevious !== undefined)
-) {
-  console.error(
-    "deploy: --rotate-origin-secret sets OriginSecret and OriginSecretPrevious itself, on an update only; nothing was deployed.",
-  );
-  process.exit(2);
-}
-
-// Deploy what is committed (DECISIONS "One worktree per run": deploy from a clean
-// worktree). The build bundles the working tree as it is, so an edit that
-// was never committed would ship with no trace in git. Untracked files
-// (local progress files, caches) are not the build's and do not count.
-const dirty = execFileSync(
-  "git",
-  ["status", "--porcelain", "--untracked-files=no"],
-  { cwd: repoRoot, encoding: "utf8" },
-).trim();
-if (dirty) {
-  console.error(
-    `deploy: the worktree has uncommitted changes; commit them first. Nothing was deployed.\n${dirty}`,
-  );
-  process.exit(2);
-}
-
-// Deploy only what main holds and CI passed (the PR workflow,
-// 2026-09-26; lib/ci-gate.mjs). --break-glass is for GitHub being
-// unreachable, never for a red check.
-if (args.breakGlass) {
-  console.warn(
-    "deploy: WARNING --break-glass: the CI gate is skipped; record why in a docs/notes/ fragment.",
-  );
-} else {
-  const gate = await ciGate({
-    git: (a) =>
-      execFileSync("git", a, { cwd: repoRoot, encoding: "utf8" }).trim(),
-    ghApi: async (p) =>
-      JSON.parse(execFileSync("gh", ["api", p], { encoding: "utf8" })),
-    repo: GITHUB_REPO,
-    log: (line) => console.log(line),
-  });
-  if (!gate.ok) {
-    console.error(`deploy: ${gate.reason}`);
-    process.exit(2);
+/** Every file under a directory, as paths relative to it. */
+function walkFiles(root, base = root) {
+  const out = [];
+  for (const entry of readdirSync(root)) {
+    const full = path.join(root, entry);
+    if (statSync(full).isDirectory()) out.push(...walkFiles(full, base));
+    else out.push(path.relative(base, full));
   }
-  console.log(
-    `deploy: CI gate passed for ${gate.sha.slice(0, 8)} (validate green on ${gate.via}).`,
-  );
+  return out;
 }
 
-// The production lock (lib/production-lock.mjs), --break-glass included:
-// GitHub being down is no reason for two deploys at once. Taken here,
-// after the checks that only read (arguments, the worktree, the CI gate,
-// which can wait minutes for a check) and before the build, so a refused
-// deploy stops in seconds and nothing is built or sent without it. It is
-// held to the end: the deploy record below is a production write too.
-// Released when this process ends, however it ends (holdUntilExit), since
-// the exits above and below are process.exit() calls a finally never sees.
 const git = (...a) =>
   execFileSync("git", a, {
     cwd: repoRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
-const headSha = git("rev-parse", "HEAD");
-const lockFile = lockFileFor(repoRoot);
-const locked = acquireLock({
-  file: lockFile,
-  holder: "deploy",
-  purpose: `deploy.mjs ${process.argv.slice(2).join(" ") || "(update)"}`.trim(),
-  worktree: git("rev-parse", "--show-toplevel"),
-  head: headSha,
-});
-if (!locked.ok) {
-  console.error(`deploy: ${locked.reason}\nNothing was deployed.`);
-  process.exit(3);
-}
-const releaseLock = holdUntilExit({ file: lockFile, lock: locked.lock });
-console.error(`deploy: production lock taken (${lockFile}).`);
 
-const sts = new STSClient({ region: REGION });
-const caller = await sts.send(new GetCallerIdentityCommand({}));
-if (
-  caller.Account !== "999153317627" ||
-  !caller.Arn?.includes(
-    "assumed-role/ProjectsCloudEngineer/projects-cloud-engineer",
-  )
-)
-  throw new Error("deploy requires the cloud-engineer account and role");
-const accountId = caller.Account;
-const codeBucket = `elixir-mcp-code-${accountId}`;
-const cfn = new CloudFormationClient({ region: REGION });
-const s3 = new S3Client({ region: REGION });
-
-// Web revisions require an immutable source version. The bootstrap code
-// bucket predates Web Functions; enabling versioning is one deployment write,
-// inside the production lock. Never suspend it or expire referenced versions.
-const versioning = await s3.send(
-  new GetBucketVersioningCommand({ Bucket: codeBucket }),
-);
-if (versioning.Status !== "Enabled") {
-  await s3.send(
-    new PutBucketVersioningCommand({
-      Bucket: codeBucket,
-      VersioningConfiguration: { Status: "Enabled" },
-    }),
-  );
-}
-const codeVersions = {};
-// 1. Build + upload ---------------------------------------------------------
-console.error("building lambda bundles...");
-const artifacts = await buildAll();
-const codeKeys = {};
-for (const { name, zipPath, dir } of artifacts) {
-  // Named by content, not by the zip's bytes (zip stamps mtimes): the
-  // same code keeps its key and the stack sees no change for it.
-  const key = codeKey(name, bundleFingerprint(dir));
-  // Reuse the existing immutable object when content is unchanged. Uploading
-  // it on every run creates a new VersionId and needlessly replaces revisions.
-  let version;
-  try {
-    version = (
-      await s3.send(new HeadObjectCommand({ Bucket: codeBucket, Key: key }))
-    ).VersionId;
-  } catch (error) {
-    if (!["NotFound", "NoSuchKey"].includes(error.name)) throw error;
+/** A phase's way of ending the deploy with an exit code and a message,
+ *  as `process.exit` did; anything else thrown is a crash (exit 1). */
+export class DeployExit extends Error {
+  /** @param {number} code @param {string} message */
+  constructor(code, message) {
+    super(message);
+    this.code = code;
   }
-  if (!version || version === "null") {
-    const uploaded = await s3.send(
-      new PutObjectCommand({
-        Bucket: codeBucket,
-        Key: key,
-        Body: await readFile(zipPath),
-      }),
-    );
-    version = uploaded.VersionId;
-  }
-  if (!version || version === "null")
-    throw new Error(`No immutable source version for ${name}`);
-  codeVersions[name] = version;
-  codeKeys[name] = key;
-  console.error(`uploaded ${key}`);
-}
-const required = {
-  CodeBucket: codeBucket,
-  WebApiCodeVersion: codeVersions["web-api"],
-  McpCodeVersion: codeVersions.mcp,
-  CollectorCodeVersion: codeVersions.collector,
-  ...webBuildParameters(codeKeys),
-  WebApiCodeKey: codeKeys["web-api"],
-  McpCodeKey: codeKeys.mcp,
-  SchedulerCodeKey: codeKeys.scheduler,
-  EmailRelayCodeKey: codeKeys["email-relay"],
-  MigrateCodeKey: codeKeys.migrate,
-  JobsCodeKey: codeKeys.jobs,
-  CollectorCodeKey: codeKeys.collector,
-  TimelineSyncCodeKey: codeKeys["timeline-sync"],
-};
-const templateBody = await readFile(
-  path.join(repoRoot, "infra/template.yaml"),
-  "utf8",
-);
-
-// The native HTML bundle names these assets. Publish before CloudFormation
-// routes its revision; an old browser's immutable chunks stay in the bucket.
-for (const rel of walkFiles(path.join(repoRoot, "apps/web/dist/assets"))) {
-  const ext = path.extname(rel);
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: `elixir-mcp-site-${accountId}`,
-      Key: `assets/${rel}`,
-      Body: await readFile(path.join(repoRoot, "apps/web/dist/assets", rel)),
-      ContentType:
-        ext === ".js"
-          ? "application/javascript"
-          : ext === ".css"
-            ? "text/css"
-            : ext === ".png"
-              ? "image/png"
-              : "application/octet-stream",
-      CacheControl: "public, max-age=31536000, immutable",
-    }),
-  );
 }
 
-// 2. Lane (lib/deploy-lane.mjs) -----------------------------------------------
-// The live stack's code keys and template against this build's. A deploy
-// that changes neither ships the site alone: nothing to migrate, nothing
-// for CloudFormation to do.
-let lane = "platform";
-if (!isCreate) {
-  const { Stacks: live } = await cfn.send(
-    new DescribeStacksCommand({ StackName: STACK }),
-  );
-  const { TemplateBody: liveTemplate } = await cfn.send(
-    new GetTemplateCommand({ StackName: STACK, TemplateStage: "Original" }),
-  );
-  const choice = chooseLane({
-    codeKeys: required,
-    liveParameters: live[0].Parameters,
-    template: templateBody,
-    liveTemplate,
-    platform: args.platform,
-    parameterChange:
-      Object.keys(args.params).length > 0 || args.rotateOriginSecret,
-  });
-  lane = choice.lane;
-  console.error(
-    lane === "site"
-      ? "lane: site - no Lambda bundle and not the template changed; no migrations, no stack update."
-      : `lane: platform - changed: ${choice.changed.join(", ")}.`,
-  );
-}
-
-// 3. Migrate BEFORE the flip (sol-6 F2) -------------------------------------
-// Migrations are expand-and-contract by policy: applying them first
-// means the currently-serving code (which tolerates the expanded
-// schema by construction) never races a schema it predates, and a
-// failed migration stops the deploy before any application code flips.
-// On --create the stack doesn't exist yet; migrations run after create.
-const lambda = new LambdaClient({ region: REGION });
-async function runMigrations(functionName) {
+/** The migrate Lambda applies every pending migration (`{}`). */
+async function runMigrations(d, functionName) {
   console.error("running migrations via the migrate lambda...");
-  const invoked = await lambda.send(
+  const invoked = await d.lambda.send(
     new InvokeCommand({ FunctionName: functionName, Payload: "{}" }),
   );
   const migrateResult = JSON.parse(
     Buffer.from(invoked.Payload).toString() || "null",
   );
-  if (invoked.FunctionError) {
-    console.error(`MIGRATE FAILED: ${JSON.stringify(migrateResult)}`);
-    process.exit(1);
-  }
+  if (invoked.FunctionError)
+    throw new DeployExit(1, `MIGRATE FAILED: ${JSON.stringify(migrateResult)}`);
   console.error(`migrations: ${JSON.stringify(migrateResult)}`);
 }
-if (!isCreate && lane === "platform") {
-  console.error("pushing migrate bundle ahead of the stack flip...");
-  await lambda.send(
-    new UpdateFunctionCodeCommand({
-      FunctionName: "elixir-mcp-migrate",
-      S3Bucket: codeBucket,
-      S3Key: codeKeys.migrate,
-    }),
-  );
-  await waitUntilFunctionUpdatedV2(
-    { client: lambda, maxWaitTime: 120 },
-    { FunctionName: "elixir-mcp-migrate" },
-  );
-}
-const verifiedReferenceSeed = args.verifyReferenceSeed
-  ? await prepareReferenceSeedRefresh(lambda)
-  : null;
-if (!isCreate && lane === "platform") await runMigrations("elixir-mcp-migrate");
-if (!isCreate) {
-  // The archetype vocabulary rides every deploy, site lane included
-  // (0147): the Lambdas have no internet, so this checkout's sibling
-  // cr-agent-api-docs is the source, and its commit is the version.
-  console.error(
-    "importing the archetype vocabulary from ../cr-agent-api-docs...",
-  );
-  const vocabulary = verifiedReferenceSeed?.vocabulary ?? readVocabulary();
-  saveVocabularySnapshot(vocabulary);
-  if (verifiedReferenceSeed) await verifiedReferenceSeed.refresh();
-  else await importReferenceSeed(lambda, vocabulary);
-}
 
-// 4. Stack (the platform lane) ----------------------------------------------
-if (lane === "platform") {
-  // Inline TemplateBody caps at 51,200 bytes and the template passed it on
-  // 2026-09-09; by URL the cap is 1 MB. The object rides the code bucket
-  // under its content hash, like the bundles.
-  const templateKey = `templates/${createHash("sha256").update(templateBody).digest("hex").slice(0, 16)}.yaml`;
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: codeBucket,
-      Key: templateKey,
-      Body: templateBody,
-      ContentType: "application/x-yaml",
-    }),
-  );
-  const templateUrl = `https://${codeBucket}.s3.${REGION}.amazonaws.com/${templateKey}`;
-  await cfn.send(new ValidateTemplateCommand({ TemplateURL: templateUrl }));
+const platformUpdate = (d) => !d.isCreate && d.lane === "platform";
+const update = (d) => !d.isCreate;
+const web = (d) => !d.args.skipWeb;
 
-  // --param=Key=Value: one-time explicit values for PRESERVED parameters
-  // (a parameter's first deploy cannot UsePreviousValue).
-  const paramOverrides = { ...args.params };
-
-  // --rotate-origin-secret (docs/SECRETS.md): the current value is read
-  // from the deployed web door, since the stack masks NoEcho parameters,
-  // and held in this process only. The template makes CloudFront wait for
-  // every door, so they accept the new value before any edge sends it.
-  if (args.rotateOriginSecret) {
-    const { Stacks: rotationStack } = await cfn.send(
-      new DescribeStacksCommand({ StackName: STACK }),
-    );
-    const revisionId = rotationStack[0].Outputs.find(
-      (o) => o.OutputKey === "WebApiWebRevisionId",
-    )?.OutputValue;
-    if (!revisionId)
-      throw new Error("Rotate only after the native migration has deployed");
-    const revision = await new LambdaWebClient({ region: REGION }).send(
-      new GetWebFunctionRevisionCommand({
-        functionName: "elixir-mcp-web-api-web",
-        revisionId,
-      }),
-    );
-    const vars = revision.serviceConfig?.environmentVariables ?? {};
-    if (vars.ORIGIN_SECRET_PREVIOUS) {
-      console.error(
-        "deploy: the last origin rotation has not been cleared; deploy with --param=OriginSecretPrevious= first. The code is uploaded and migrated; the stack is unchanged.",
+/**
+ * The deploy, in order. Each phase runs when its `when` says (always
+ * without one), against one state object `d` that the phases before it
+ * filled in, and is timed for the deploy record. A phase ends the deploy
+ * by throwing DeployExit; the phases after it never run.
+ *
+ * @type {{ name: string, when?: (d: any) => boolean, run: (d: any) => Promise<void> }[]}
+ */
+export const DEPLOY_PHASES = [
+  {
+    // Deploy what is committed (DECISIONS "One worktree per run": deploy
+    // from a clean worktree). The build bundles the working tree as it
+    // is, so an edit that was never committed would ship with no trace
+    // in git. Untracked files (local progress files, caches) are not the
+    // build's and do not count.
+    name: "worktree",
+    async run() {
+      const dirty = git("status", "--porcelain", "--untracked-files=no");
+      if (dirty)
+        throw new DeployExit(
+          2,
+          `deploy: the worktree has uncommitted changes; commit them first. Nothing was deployed.\n${dirty}`,
+        );
+    },
+  },
+  {
+    // Deploy only what main holds and CI passed (the PR workflow,
+    // 2026-09-26; lib/ci-gate.mjs). --break-glass is for GitHub being
+    // unreachable, never for a red check. The gate can wait minutes for
+    // a check still running; the record says how long.
+    name: "ci-gate",
+    async run(d) {
+      if (d.args.breakGlass) {
+        console.warn(
+          "deploy: WARNING --break-glass: the CI gate is skipped; record why in a docs/notes/ fragment.",
+        );
+        return;
+      }
+      const gate = await ciGate({
+        git: (a) =>
+          execFileSync("git", a, { cwd: repoRoot, encoding: "utf8" }).trim(),
+        ghApi: async (p) =>
+          JSON.parse(execFileSync("gh", ["api", p], { encoding: "utf8" })),
+        repo: GITHUB_REPO,
+        log: (line) => console.log(line),
+      });
+      if (!gate.ok) throw new DeployExit(2, `deploy: ${gate.reason}`);
+      console.log(
+        `deploy: CI gate passed for ${gate.sha.slice(0, 8)} (validate green on ${gate.via}).`,
       );
-      process.exit(2);
-    }
-    Object.assign(paramOverrides, originRotation(vars.ORIGIN_SECRET));
-    console.error("rotating the origin secret (values not shown)...");
-  }
-
-  if (isCreate) {
-    console.error("creating stack (this starts billing: RDS ~$15/mo)...");
-    await cfn.send(
-      new CreateStackCommand({
-        StackName: STACK,
-        TemplateURL: templateUrl,
-        Parameters: buildParameters(required, {}),
-        Capabilities: ["CAPABILITY_NAMED_IAM"],
-        Tags: stackTags(accountId),
-      }),
-    );
-    await waitUntilStackCreateComplete(
-      { client: cfn, maxWaitTime: 2400 },
-      { StackName: STACK },
-    );
-  } else {
-    console.error("updating stack...");
-    // Which parameters the live stack already carries: a SECRET parameter
-    // absent here is on its first deploy and gets minted, never reset.
-    const { Stacks: current } = await cfn.send(
-      new DescribeStacksCommand({ StackName: STACK }),
-    );
-    const existingKeys = (current[0].Parameters ?? []).map(
-      (p) => p.ParameterKey,
-    );
-    try {
-      await cfn.send(
-        new UpdateStackCommand({
-          StackName: STACK,
-          TemplateURL: templateUrl,
-          Parameters: buildParameters(
-            required,
-            null,
-            paramOverrides,
-            existingKeys,
-          ),
-          Capabilities: ["CAPABILITY_NAMED_IAM"],
-          Tags: stackTags(accountId),
+    },
+  },
+  {
+    // The production lock (lib/production-lock.mjs), --break-glass
+    // included: GitHub being down is no reason for two deploys at once.
+    // Taken after the checks that only read (arguments, the worktree,
+    // the CI gate) and before the account is read or anything is built,
+    // so a refused deploy stops in seconds and nothing is built or sent
+    // without it. Held to the end: the deploy record is a production
+    // write too. Released when this process ends, however it ends
+    // (holdUntilExit).
+    name: "lock",
+    async run(d) {
+      d.headSha = git("rev-parse", "HEAD");
+      const lockFile = lockFileFor(repoRoot);
+      const locked = acquireLock({
+        file: lockFile,
+        holder: "deploy",
+        purpose: `deploy.mjs ${d.argv.join(" ") || "(update)"}`.trim(),
+        worktree: git("rev-parse", "--show-toplevel"),
+        head: d.headSha,
+      });
+      if (!locked.ok)
+        throw new DeployExit(
+          3,
+          `deploy: ${locked.reason}\nNothing was deployed.`,
+        );
+      d.releaseLock = holdUntilExit({ file: lockFile, lock: locked.lock });
+      console.error(`deploy: production lock taken (${lockFile}).`);
+    },
+  },
+  {
+    // The caller, and the code bucket's versioning. Web revisions
+    // require an immutable source version. The bootstrap code bucket
+    // predates Web Functions; enabling versioning is one deployment
+    // write, inside the production lock. Never suspend it or expire
+    // referenced versions.
+    name: "account",
+    async run(d) {
+      const caller = await new STSClient({ region: REGION }).send(
+        new GetCallerIdentityCommand({}),
+      );
+      if (
+        caller.Account !== "999153317627" ||
+        !caller.Arn?.includes(
+          "assumed-role/ProjectsCloudEngineer/projects-cloud-engineer",
+        )
+      )
+        throw new Error("deploy requires the cloud-engineer account and role");
+      d.accountId = caller.Account;
+      d.codeBucket = `elixir-mcp-code-${d.accountId}`;
+      d.cfn = new CloudFormationClient({ region: REGION });
+      d.s3 = new S3Client({ region: REGION });
+      d.lambda = new LambdaClient({ region: REGION });
+      const versioning = await d.s3.send(
+        new GetBucketVersioningCommand({ Bucket: d.codeBucket }),
+      );
+      if (versioning.Status !== "Enabled") {
+        await d.s3.send(
+          new PutBucketVersioningCommand({
+            Bucket: d.codeBucket,
+            VersioningConfiguration: { Status: "Enabled" },
+          }),
+        );
+      }
+    },
+  },
+  {
+    name: "build",
+    async run(d) {
+      console.error("building lambda bundles...");
+      d.artifacts = await buildAll();
+    },
+  },
+  {
+    name: "upload",
+    async run(d) {
+      const codeVersions = {};
+      const codeKeys = {};
+      for (const { name, zipPath, dir } of d.artifacts) {
+        // Named by content, not by the zip's bytes (zip stamps mtimes):
+        // the same code keeps its key and the stack sees no change for it.
+        const key = codeKey(name, bundleFingerprint(dir));
+        // Reuse the existing immutable object when content is unchanged.
+        // Uploading it on every run creates a new VersionId and
+        // needlessly replaces revisions.
+        let version;
+        try {
+          version = (
+            await d.s3.send(
+              new HeadObjectCommand({ Bucket: d.codeBucket, Key: key }),
+            )
+          ).VersionId;
+        } catch (error) {
+          if (!["NotFound", "NoSuchKey"].includes(error.name)) throw error;
+        }
+        if (!version || version === "null") {
+          const uploaded = await d.s3.send(
+            new PutObjectCommand({
+              Bucket: d.codeBucket,
+              Key: key,
+              Body: await readFile(zipPath),
+            }),
+          );
+          version = uploaded.VersionId;
+        }
+        if (!version || version === "null")
+          throw new Error(`No immutable source version for ${name}`);
+        codeVersions[name] = version;
+        codeKeys[name] = key;
+        console.error(`uploaded ${key}`);
+      }
+      d.codeKeys = codeKeys;
+      d.required = {
+        CodeBucket: d.codeBucket,
+        WebApiCodeVersion: codeVersions["web-api"],
+        McpCodeVersion: codeVersions.mcp,
+        CollectorCodeVersion: codeVersions.collector,
+        ...webBuildParameters(codeKeys),
+        WebApiCodeKey: codeKeys["web-api"],
+        McpCodeKey: codeKeys.mcp,
+        SchedulerCodeKey: codeKeys.scheduler,
+        EmailRelayCodeKey: codeKeys["email-relay"],
+        MigrateCodeKey: codeKeys.migrate,
+        JobsCodeKey: codeKeys.jobs,
+        CollectorCodeKey: codeKeys.collector,
+        TimelineSyncCodeKey: codeKeys["timeline-sync"],
+      };
+      d.templateBody = await readFile(
+        path.join(repoRoot, "infra/template.yaml"),
+        "utf8",
+      );
+    },
+  },
+  {
+    // The native HTML bundle names these assets. Publish before
+    // CloudFormation routes its revision; an old browser's immutable
+    // chunks stay in the bucket.
+    name: "assets",
+    async run(d) {
+      for (const rel of walkFiles(
+        path.join(repoRoot, "apps/web/dist/assets"),
+      )) {
+        const ext = path.extname(rel);
+        await d.s3.send(
+          new PutObjectCommand({
+            Bucket: `elixir-mcp-site-${d.accountId}`,
+            Key: `assets/${rel}`,
+            Body: await readFile(
+              path.join(repoRoot, "apps/web/dist/assets", rel),
+            ),
+            ContentType:
+              ext === ".js"
+                ? "application/javascript"
+                : ext === ".css"
+                  ? "text/css"
+                  : ext === ".png"
+                    ? "image/png"
+                    : "application/octet-stream",
+            CacheControl: "public, max-age=31536000, immutable",
+          }),
+        );
+      }
+    },
+  },
+  {
+    // lib/deploy-lane.mjs: the live stack's code keys and template
+    // against this build's. A deploy that changes neither ships the
+    // site alone: nothing to migrate, nothing for CloudFormation to do.
+    name: "lane",
+    when: update,
+    async run(d) {
+      const { Stacks: live } = await d.cfn.send(
+        new DescribeStacksCommand({ StackName: STACK }),
+      );
+      d.liveOutputs = Object.fromEntries(
+        (live[0].Outputs ?? []).map((o) => [o.OutputKey, o.OutputValue]),
+      );
+      const { TemplateBody: liveTemplate } = await d.cfn.send(
+        new GetTemplateCommand({ StackName: STACK, TemplateStage: "Original" }),
+      );
+      const choice = chooseLane({
+        codeKeys: d.required,
+        liveParameters: live[0].Parameters,
+        template: d.templateBody,
+        liveTemplate,
+        platform: d.args.platform,
+        parameterChange:
+          Object.keys(d.args.params).length > 0 || d.args.rotateOriginSecret,
+      });
+      d.lane = choice.lane;
+      console.error(
+        d.lane === "site"
+          ? "lane: site - no Lambda bundle and not the template changed; no migrations, no stack update."
+          : `lane: platform - changed: ${choice.changed.join(", ")}.`,
+      );
+    },
+  },
+  {
+    // Read-only, before anything is migrated or switched: the CloudFront
+    // grant on each live Web Function endpoint is written outside
+    // CloudFormation (the "grants" phase), so nothing else notices it
+    // drift. A missing or foreign one stops the deploy here instead of
+    // after the switch (lib/web-release.mjs).
+    name: "grants-check",
+    when: update,
+    async run(d) {
+      const check = await checkWebEndpointGrants({
+        web: new LambdaWebClient({ region: REGION, maxAttempts: 1 }),
+        outputs: d.liveOutputs,
+        distributionArn: `arn:aws:cloudfront::${d.accountId}:distribution/${d.liveOutputs.SiteDistributionId}`,
+      });
+      if (!check.ok)
+        throw new DeployExit(
+          2,
+          [
+            "deploy: a Web Function endpoint's CloudFront grant is not the deploy's own; refused before any migration or revision switch:",
+            ...check.problems.map((p) => `  - ${p}`),
+            "Access changed outside a deploy: find who changed it before anything restores it (an access change outside a deploy is Jamie's to approve).",
+          ].join("\n"),
+        );
+      console.error(
+        `endpoint grants checked: ${JSON.stringify(check.receipt)}`,
+      );
+    },
+  },
+  {
+    // Migrate BEFORE the flip (sol-6 F2). Migrations are
+    // expand-and-contract by policy: applying them first means the
+    // currently-serving code (which tolerates the expanded schema by
+    // construction) never races a schema it predates, and a failed
+    // migration stops the deploy before any application code flips. On
+    // --create the stack doesn't exist yet; migrations run after it.
+    name: "migrate-push",
+    when: platformUpdate,
+    async run(d) {
+      console.error("pushing migrate bundle ahead of the stack flip...");
+      await d.lambda.send(
+        new UpdateFunctionCodeCommand({
+          FunctionName: "elixir-mcp-migrate",
+          S3Bucket: d.codeBucket,
+          S3Key: d.codeKeys.migrate,
         }),
       );
-      await waitUntilStackUpdateComplete(
-        { client: cfn, maxWaitTime: 2400 },
-        { StackName: STACK },
+      await waitUntilFunctionUpdatedV2(
+        { client: d.lambda, maxWaitTime: 120 },
+        { FunctionName: "elixir-mcp-migrate" },
       );
-    } catch (err) {
-      if (
-        String(err.message ?? "").includes("No updates are to be performed")
-      ) {
-        console.error("stack unchanged");
-      } else {
-        throw err;
+    },
+  },
+  {
+    // --verify-reference-seed: after the operator code is pushed and
+    // before migrations and the vocabulary refresh, compare every live
+    // reference seed column with the seed, read-only.
+    name: "seed-check",
+    when: (d) => d.args.verifyReferenceSeed,
+    async run(d) {
+      d.verifiedReferenceSeed = await prepareReferenceSeedRefresh(d.lambda);
+    },
+  },
+  {
+    name: "migrate",
+    when: platformUpdate,
+    async run(d) {
+      await runMigrations(d, "elixir-mcp-migrate");
+    },
+  },
+  {
+    // The archetype vocabulary rides every deploy, site lane included
+    // (0147): the Lambdas have no internet, so this checkout's sibling
+    // cr-agent-api-docs is the source, and its commit is the version.
+    name: "vocabulary",
+    when: update,
+    async run(d) {
+      console.error(
+        "importing the archetype vocabulary from ../cr-agent-api-docs...",
+      );
+      const vocabulary =
+        d.verifiedReferenceSeed?.vocabulary ?? readVocabulary();
+      saveVocabularySnapshot(vocabulary);
+      if (d.verifiedReferenceSeed) await d.verifiedReferenceSeed.refresh();
+      else await importReferenceSeed(d.lambda, vocabulary);
+    },
+  },
+  {
+    // The stack (the platform lane, --create included): the revision
+    // switch.
+    name: "stack",
+    when: (d) => d.lane === "platform",
+    async run(d) {
+      // Inline TemplateBody caps at 51,200 bytes and the template passed
+      // it on 2026-09-09; by URL the cap is 1 MB. The object rides the
+      // code bucket under its content hash, like the bundles.
+      const templateKey = `templates/${createHash("sha256").update(d.templateBody).digest("hex").slice(0, 16)}.yaml`;
+      await d.s3.send(
+        new PutObjectCommand({
+          Bucket: d.codeBucket,
+          Key: templateKey,
+          Body: d.templateBody,
+          ContentType: "application/x-yaml",
+        }),
+      );
+      const templateUrl = `https://${d.codeBucket}.s3.${REGION}.amazonaws.com/${templateKey}`;
+      await d.cfn.send(
+        new ValidateTemplateCommand({ TemplateURL: templateUrl }),
+      );
+
+      // --param=Key=Value: one-time explicit values for PRESERVED
+      // parameters (a parameter's first deploy cannot UsePreviousValue).
+      const paramOverrides = { ...d.args.params };
+
+      // --rotate-origin-secret (docs/SECRETS.md): the current value is
+      // read from the deployed web door, since the stack masks NoEcho
+      // parameters, and held in this process only. The template makes
+      // CloudFront wait for every door, so they accept the new value
+      // before any edge sends it.
+      if (d.args.rotateOriginSecret) {
+        const { Stacks: rotationStack } = await d.cfn.send(
+          new DescribeStacksCommand({ StackName: STACK }),
+        );
+        const revisionId = rotationStack[0].Outputs.find(
+          (o) => o.OutputKey === "WebApiWebRevisionId",
+        )?.OutputValue;
+        if (!revisionId)
+          throw new Error(
+            "Rotate only after the native migration has deployed",
+          );
+        const revision = await new LambdaWebClient({ region: REGION }).send(
+          new GetWebFunctionRevisionCommand({
+            functionName: "elixir-mcp-web-api-web",
+            revisionId,
+          }),
+        );
+        const vars = revision.serviceConfig?.environmentVariables ?? {};
+        if (vars.ORIGIN_SECRET_PREVIOUS)
+          throw new DeployExit(
+            2,
+            "deploy: the last origin rotation has not been cleared; deploy with --param=OriginSecretPrevious= first. The code is uploaded and migrated; the stack is unchanged.",
+          );
+        Object.assign(paramOverrides, originRotation(vars.ORIGIN_SECRET));
+        console.error("rotating the origin secret (values not shown)...");
       }
-    }
-  }
-}
 
-const { Stacks } = await cfn.send(
-  new DescribeStacksCommand({ StackName: STACK }),
-);
-const outputs = Object.fromEntries(
-  Stacks[0].Outputs.map((o) => [o.OutputKey, o.OutputValue]),
-);
+      if (d.isCreate) {
+        console.error("creating stack (this starts billing: RDS ~$15/mo)...");
+        await d.cfn.send(
+          new CreateStackCommand({
+            StackName: STACK,
+            TemplateURL: templateUrl,
+            Parameters: buildParameters(d.required, {}),
+            Capabilities: ["CAPABILITY_NAMED_IAM"],
+            Tags: stackTags(d.accountId),
+          }),
+        );
+        await waitUntilStackCreateComplete(
+          { client: d.cfn, maxWaitTime: 2400 },
+          { StackName: STACK },
+        );
+        return;
+      }
+      console.error("updating stack...");
+      // Which parameters the live stack already carries: a SECRET
+      // parameter absent here is on its first deploy and gets minted,
+      // never reset.
+      const { Stacks: current } = await d.cfn.send(
+        new DescribeStacksCommand({ StackName: STACK }),
+      );
+      const existingKeys = (current[0].Parameters ?? []).map(
+        (p) => p.ParameterKey,
+      );
+      try {
+        await d.cfn.send(
+          new UpdateStackCommand({
+            StackName: STACK,
+            TemplateURL: templateUrl,
+            Parameters: buildParameters(
+              d.required,
+              null,
+              paramOverrides,
+              existingKeys,
+            ),
+            Capabilities: ["CAPABILITY_NAMED_IAM"],
+            Tags: stackTags(d.accountId),
+          }),
+        );
+        await waitUntilStackUpdateComplete(
+          { client: d.cfn, maxWaitTime: 2400 },
+          { StackName: STACK },
+        );
+      } catch (err) {
+        if (
+          String(err.message ?? "").includes("No updates are to be performed")
+        ) {
+          console.error("stack unchanged");
+        } else {
+          throw err;
+        }
+      }
+    },
+  },
+  {
+    // The stack's outputs, then the exact CloudFront grant on each Web
+    // Function endpoint, read back with the endpoint's pinned revision
+    // (lib/web-release.mjs; the registry's ResourcePolicy type cannot
+    // express it).
+    name: "grants",
+    async run(d) {
+      const { Stacks } = await d.cfn.send(
+        new DescribeStacksCommand({ StackName: STACK }),
+      );
+      d.outputs = Object.fromEntries(
+        Stacks[0].Outputs.map((o) => [o.OutputKey, o.OutputValue]),
+      );
+      const webRelease = await grantWebEndpoints({
+        web: new LambdaWebClient({ region: REGION, maxAttempts: 1 }),
+        outputs: d.outputs,
+        distributionArn: `arn:aws:cloudfront::${d.accountId}:distribution/${d.outputs.SiteDistributionId}`,
+      });
+      console.error(`web revisions verified: ${JSON.stringify(webRelease)}`);
+    },
+  },
+  {
+    // First-create migrations (the update path migrated pre-flip).
+    name: "first-migrations",
+    when: (d) => d.isCreate,
+    async run(d) {
+      await runMigrations(d, d.outputs.MigrateFunctionName);
+    },
+  },
+  {
+    name: "public-stats",
+    when: (d) => d.lane === "platform",
+    async run(d) {
+      const snapshot = await d.lambda.send(
+        new InvokeCommand({
+          FunctionName: "elixir-mcp-jobs",
+          Payload: JSON.stringify({ public_stats: true }),
+        }),
+      );
+      if (snapshot.FunctionError)
+        throw new Error(
+          "Public statistics snapshot failed; inspect the jobs log",
+        );
+      console.error("public statistics snapshot published");
+    },
+  },
+  {
+    // Card art first (2026-10-08): what the bucket holds, then each form
+    // the live catalog names that it lacks, so the art the card responses
+    // carry answers and a fresh worktree ships the whole mirror. A
+    // failure warns and ships what the bucket held: never a reason to
+    // stop a deploy.
+    name: "card-art",
+    when: web,
+    async run(d) {
+      try {
+        execFileSync(
+          "node",
+          [
+            path.join(repoRoot, "infra/scripts/mirror-card-art.mjs"),
+            "--seed-bucket",
+            d.outputs.SiteBucketName,
+          ],
+          { cwd: repoRoot, stdio: "inherit" },
+        );
+      } catch (err) {
+        console.error(`WARNING: card art mirror failed: ${err.message}`);
+      }
+    },
+  },
+  {
+    // Two builds merged into one tree, validated before anything is
+    // uploaded: dead sitemap entries, dangling llms.txt links, a missing
+    // app shell or a missing asset fail here instead of on the live
+    // site. Then assets first and never deleted, then the documents,
+    // each with its Cache-Control; the old build's chunks are pruned
+    // after the invalidation, once nothing can ask for them (#73;
+    // site-publish.mjs).
+    name: "site",
+    when: web,
+    async run(d) {
+      console.error("building the site (app + static)...");
+      execFileSync(
+        "node",
+        [path.join(repoRoot, "infra/scripts/build-site.mjs")],
+        { cwd: repoRoot, stdio: "inherit" },
+      );
+      const siteDir = path.join(repoRoot, "dist/site");
+      d.siteFiles = walkFiles(siteDir);
+      const hashed = hashedAssets(
+        d.siteFiles,
+        readdirSync(path.join(repoRoot, "apps/web/dist/assets")),
+      );
+      for (const step of publishSteps({
+        dir: siteDir,
+        bucket: d.outputs.SiteBucketName,
+        hashed,
+      })) {
+        execFileSync("aws", step, { stdio: "inherit" });
+      }
+    },
+  },
+  {
+    // Every web deploy still flushes the edge: objects published before
+    // #73 carry no Cache-Control and sit at the edge for the policy's
+    // day, and the site's own ?v= assets share one cache key per name.
+    // The distribution is the stack's own output (2026-10-21), not a
+    // search of the account's distributions by comment.
+    name: "invalidate",
+    when: web,
+    async run(d) {
+      const DistributionId = d.outputs.SiteDistributionId;
+      if (!DistributionId) {
+        console.warn(
+          "WARNING: the stack has no SiteDistributionId output; nothing invalidated.",
+        );
+        return;
+      }
+      await new CloudFrontClient({ region: REGION }).send(
+        new CreateInvalidationCommand({
+          DistributionId,
+          InvalidationBatch: {
+            CallerReference: String(Date.now()),
+            Paths: { Quantity: 1, Items: ["/*"] },
+          },
+        }),
+      );
+      console.error(`invalidated ${DistributionId}`);
+    },
+  },
+  {
+    // Prune: an asset this build no longer ships, and no deploy has
+    // shipped for PRUNE_AFTER_DAYS, can no longer be asked for by a page
+    // that is still open.
+    name: "prune",
+    when: web,
+    async run(d) {
+      const current = new Set(
+        d.siteFiles.filter((rel) => rel.startsWith("assets/")),
+      );
+      const objects = [];
+      let ContinuationToken;
+      do {
+        const page = await d.s3.send(
+          new ListObjectsV2Command({
+            Bucket: d.outputs.SiteBucketName,
+            Prefix: "assets/",
+            ContinuationToken,
+          }),
+        );
+        objects.push(...(page.Contents ?? []));
+        ContinuationToken = page.IsTruncated
+          ? page.NextContinuationToken
+          : undefined;
+      } while (ContinuationToken);
+      const prune = pruneCandidates({
+        objects,
+        current,
+        now: Date.now(),
+        days: PRUNE_AFTER_DAYS,
+      });
+      for (let i = 0; i < prune.length; i += 1000) {
+        await d.s3.send(
+          new DeleteObjectsCommand({
+            Bucket: d.outputs.SiteBucketName,
+            Delete: {
+              Objects: prune.slice(i, i + 1000).map((Key) => ({ Key })),
+              Quiet: true,
+            },
+          }),
+        );
+      }
+      console.error(
+        `pruned ${prune.length} asset(s) unshipped for ${PRUNE_AFTER_DAYS}+ days`,
+      );
+    },
+  },
+  {
+    // Smoke gate: a deploy is not done until the read-only checks pass
+    // against the live doors.
+    name: "smoke",
+    async run() {
+      const smoke = spawnSync(
+        process.execPath,
+        [path.join(here, "smoke.mjs")],
+        { stdio: "inherit" },
+      );
+      if (smoke.status !== 0)
+        throw new DeployExit(
+          1,
+          "SMOKE FAILED - the stack deployed but the doors misbehave.",
+        );
+    },
+  },
+  {
+    // Acceptance gate (2026-09-21): the deployed product against the
+    // real record, read-only, as a read-only agent principal -
+    // invariants the fixture tests cannot see (live data shape, live
+    // scale). Opt-in per deploy (Jamie, 2026-09-21: ~4.5 minutes and a
+    // pass of heavy reads on the shared micro, so it is turned on when
+    // wanted, not on every deploy): `--acceptance` on the command line
+    // or ACCEPTANCE=1 in the environment. Without it the deploy says so
+    // in one line. A red case fails the deploy; a missing token file
+    // warns. --acceptance=<family> runs only that family's cases
+    // (2026-09-23: a full pass on every deploy of a sweep drained the
+    // database's EBS byte balance). Plain --acceptance is the whole
+    // suite, for releases that touch shared code.
+    name: "acceptance",
+    async run(d) {
+      const acceptanceEnv = path.join(repoRoot, "acceptance/.env");
+      const acceptanceFamily = d.args.acceptanceFamily;
+      const wantAcceptance =
+        d.args.acceptance || process.env.ACCEPTANCE === "1";
+      d.acceptanceResult = "not run";
+      if (!wantAcceptance) {
+        console.log(
+          "WARNING: acceptance NOT run. Pass --acceptance=<family> when a tool in that family changed, --acceptance for shared code or a release (or ACCEPTANCE=1); npm run acceptance any time.",
+        );
+      } else if (existsSync(acceptanceEnv)) {
+        const acceptance = spawnSync(
+          process.execPath,
+          [
+            path.join(repoRoot, "acceptance/run.mjs"),
+            ...(acceptanceFamily ? ["--family", acceptanceFamily] : []),
+          ],
+          { stdio: "inherit" },
+        );
+        if (acceptance.status !== 0)
+          throw new DeployExit(
+            1,
+            "ACCEPTANCE FAILED - the deploy is live but an invariant broke; fix forward or roll back.",
+          );
+        d.acceptanceResult = acceptanceFamily
+          ? `passed (\`--acceptance=${acceptanceFamily}\`)`
+          : "passed (the whole suite)";
+      } else {
+        d.acceptanceResult =
+          "not run (no acceptance/.env on the deploying machine)";
+        console.warn(
+          "acceptance: skipped - no acceptance/.env on this machine (see acceptance/README.md).",
+        );
+      }
+    },
+  },
+  {
+    // The deploy record (lib/deploy-record.mjs): what is live, how long
+    // each phase took, and a comment on each PR this deploy shipped for
+    // the first time. The previous record says where the last deploy
+    // stopped. Nothing here fails a deploy that is already live; it
+    // warns.
+    name: "record",
+    async run(d) {
+      try {
+        await writeRecord(d);
+      } catch (err) {
+        console.warn(`WARNING: deploy record failed: ${err?.message ?? err}`);
+      }
+    },
+  },
+];
 
-const webRelease = await grantWebEndpoints({
-  web: new LambdaWebClient({ region: REGION, maxAttempts: 1 }),
-  outputs,
-  distributionArn: `arn:aws:cloudfront::${accountId}:distribution/${outputs.SiteDistributionId}`,
-});
-console.error(`web revisions verified: ${JSON.stringify(webRelease)}`);
-
-// 5. First-create migrations (the update path migrated pre-flip) -----------
-if (isCreate) {
-  await runMigrations(outputs.MigrateFunctionName);
-}
-
-if (lane === "platform") {
-  const snapshot = await lambda.send(
-    new InvokeCommand({
-      FunctionName: "elixir-mcp-jobs",
-      Payload: JSON.stringify({ public_stats: true }),
-    }),
-  );
-  if (snapshot.FunctionError)
-    throw new Error("Public statistics snapshot failed; inspect the jobs log");
-  console.error("public statistics snapshot published");
-}
-
-// 6. Web --------------------------------------------------------------------
-if (!skipWeb) {
-  console.error("building the site (app + static)...");
-  // Two builds merged into one tree, validated before anything is
-  // uploaded: dead sitemap entries, dangling llms.txt links, a missing
-  // app shell or a missing asset fail here instead of on the live site.
-  // This replaces the old deploy-time bake, which patched live stats
-  // into the single shared shell; the static build now reads the same
-  // endpoint at build time and writes real pages.
-  // Card art first (2026-10-08): what the bucket holds, then each form
-  // the live catalog names that it lacks, so the art the card responses
-  // carry answers and a fresh worktree ships the whole mirror. A failure
-  // warns and ships what the bucket held: never a reason to stop a deploy.
-  try {
-    execFileSync(
-      "node",
-      [
-        path.join(repoRoot, "infra/scripts/mirror-card-art.mjs"),
-        "--seed-bucket",
-        outputs.SiteBucketName,
-      ],
-      { cwd: repoRoot, stdio: "inherit" },
-    );
-  } catch (err) {
-    console.error(`WARNING: card art mirror failed: ${err.message}`);
-  }
-  execFileSync("node", [path.join(repoRoot, "infra/scripts/build-site.mjs")], {
-    cwd: repoRoot,
-    stdio: "inherit",
-  });
-  // Assets first and never deleted, then the documents, each with its
-  // Cache-Control; the old build's chunks are pruned below, after the
-  // invalidation, once nothing can ask for them (#73; site-publish.mjs).
-  const siteDir = path.join(repoRoot, "dist/site");
-  const shipped = walkFiles(siteDir);
-  const hashed = hashedAssets(
-    shipped,
-    readdirSync(path.join(repoRoot, "apps/web/dist/assets")),
-  );
-  for (const step of publishSteps({
-    dir: siteDir,
-    bucket: outputs.SiteBucketName,
-    hashed,
-  })) {
-    execFileSync("aws", step, { stdio: "inherit" });
-  }
-  // Every web deploy still flushes the edge: objects published before
-  // #73 carry no Cache-Control and sit at the edge for the policy's day,
-  // and the site's own ?v= assets share one cache key per name.
-  const cloudfront = new CloudFrontClient({ region: REGION });
-  const { DistributionList } = await cloudfront.send(
-    new ListDistributionsCommand({}),
-  );
-  const dist = DistributionList.Items.find(
-    (d) => d.Comment === "elixir.poapkings.com",
-  );
-  if (dist) {
-    await cloudfront.send(
-      new CreateInvalidationCommand({
-        DistributionId: dist.Id,
-        InvalidationBatch: {
-          CallerReference: String(Date.now()),
-          Paths: { Quantity: 1, Items: ["/*"] },
-        },
-      }),
-    );
-    console.error(`invalidated ${dist.Id}`);
-  }
-  // Prune: an asset this build no longer ships, and no deploy has
-  // shipped for PRUNE_AFTER_DAYS, can no longer be asked for by a page
-  // that is still open.
-  const current = new Set(shipped.filter((rel) => rel.startsWith("assets/")));
-  const objects = [];
-  let ContinuationToken;
-  do {
-    const page = await s3.send(
-      new ListObjectsV2Command({
-        Bucket: outputs.SiteBucketName,
-        Prefix: "assets/",
-        ContinuationToken,
-      }),
-    );
-    objects.push(...(page.Contents ?? []));
-    ContinuationToken = page.IsTruncated
-      ? page.NextContinuationToken
-      : undefined;
-  } while (ContinuationToken);
-  const prune = pruneCandidates({
-    objects,
-    current,
-    now: Date.now(),
-    days: PRUNE_AFTER_DAYS,
-  });
-  for (let i = 0; i < prune.length; i += 1000) {
-    await s3.send(
-      new DeleteObjectsCommand({
-        Bucket: outputs.SiteBucketName,
-        Delete: {
-          Objects: prune.slice(i, i + 1000).map((Key) => ({ Key })),
-          Quiet: true,
-        },
-      }),
-    );
-  }
-  console.error(
-    `pruned ${prune.length} asset(s) unshipped for ${PRUNE_AFTER_DAYS}+ days`,
-  );
-}
-
-// Smoke gate: a deploy is not done until the
-// read-only checks pass against the live doors.
-const { spawnSync } = await import("node:child_process");
-const smoke = spawnSync(
-  process.execPath,
-  [new URL("./smoke.mjs", import.meta.url).pathname],
-  { stdio: "inherit" },
-);
-if (smoke.status !== 0) {
-  console.error("SMOKE FAILED - the stack deployed but the doors misbehave.");
-  process.exit(1);
-}
-
-// Acceptance gate (2026-09-21): the deployed product against the real
-// record, read-only, as a read-only agent principal - invariants the
-// fixture tests cannot see (live data shape, live scale). Opt-in per
-// deploy (Jamie, 2026-09-21: ~4.5 minutes and a pass of heavy reads on
-// the shared micro, so it is turned on when wanted, not on every
-// deploy): `--acceptance` on the command line or ACCEPTANCE=1 in the
-// environment. Without it the deploy says so in one line. A red case
-// fails the deploy; a missing token file warns.
-const { existsSync } = await import("node:fs");
-const acceptanceEnv = new URL("../../acceptance/.env", import.meta.url)
-  .pathname;
-// --acceptance=<family> runs only that family's cases (2026-09-23: a
-// full pass on every deploy of a sweep drained the database's EBS byte
-// balance). Plain --acceptance is the whole suite, for releases that
-// touch shared code.
-const acceptanceFamily = args.acceptanceFamily;
-const wantAcceptance = args.acceptance || process.env.ACCEPTANCE === "1";
-let acceptanceResult = "not run";
-if (!wantAcceptance) {
-  console.log(
-    "WARNING: acceptance NOT run. Pass --acceptance=<family> when a tool in that family changed, --acceptance for shared code or a release (or ACCEPTANCE=1); npm run acceptance any time.",
-  );
-} else if (existsSync(acceptanceEnv)) {
-  const acceptance = spawnSync(
-    process.execPath,
-    [
-      new URL("../../acceptance/run.mjs", import.meta.url).pathname,
-      ...(acceptanceFamily ? ["--family", acceptanceFamily] : []),
-    ],
-    { stdio: "inherit" },
-  );
-  if (acceptance.status !== 0) {
-    console.error(
-      "ACCEPTANCE FAILED - the deploy is live but an invariant broke; fix forward or roll back.",
-    );
-    process.exit(1);
-  }
-  acceptanceResult = acceptanceFamily
-    ? `passed (\`--acceptance=${acceptanceFamily}\`)`
-    : "passed (the whole suite)";
-} else {
-  acceptanceResult = "not run (no acceptance/.env on the deploying machine)";
-  console.warn(
-    "acceptance: skipped - no acceptance/.env on this machine (see acceptance/README.md).",
-  );
-}
-
-// The deploy record (lib/deploy-record.mjs): what is live, and a comment
-// on each PR this deploy shipped for the first time. The previous record
-// says where the last deploy stopped. Nothing here fails a deploy that
-// is already live; it warns.
-try {
+async function writeRecord(d) {
+  const { s3, codeBucket, headSha, lane } = d;
   const deployedAt = new Date().toISOString();
   let previous = null;
   try {
@@ -761,14 +921,21 @@ try {
     fetch,
     base: "https://elixir.poapkings.com",
   });
+  const timing = deployTiming({
+    startedAt: d.startedAt,
+    recordedAt: deployedAt,
+    breakGlass: d.args.breakGlass,
+    phases: d.phases,
+  });
   const record = {
     sha: headSha,
     deployed_at: deployedAt,
     lane,
     contract_version: live.contract ?? declared.contract,
     api_version: live.api ?? declared.api,
-    acceptance: acceptanceResult,
+    acceptance: d.acceptanceResult,
     previous_sha: previous?.sha ?? null,
+    ...timing,
   };
   // Recorded before the comments: a comment that fails must not leave
   // the next deploy counting this one's commits again.
@@ -789,50 +956,117 @@ try {
   });
   if (!range.ok) {
     console.warn(`deploy record: no PR comments; ${range.reason}.`);
-  } else {
-    const ghApi = async (p) =>
-      JSON.parse(execFileSync("gh", ["api", p], { encoding: "utf8" }));
-    const ghPost = async (p, body) =>
-      execFileSync("gh", ["api", "-X", "POST", p, "--input", "-"], {
-        input: JSON.stringify(body),
-        encoding: "utf8",
-      });
-    const pulls = await shippedPulls({
-      ghApi,
-      repo: GITHUB_REPO,
-      commits: range.commits,
-    });
-    const result = await commentOnPulls({
-      ghApi,
-      ghPost,
-      repo: GITHUB_REPO,
-      sha: headSha,
-      pulls,
-      bodyFor: (pr) =>
-        commentBody({
-          repo: GITHUB_REPO,
-          sha: headSha,
-          deployedAt,
-          lane,
-          live,
-          declared,
-          acceptance: acceptanceResult,
-          prCommits: pr.commits,
-        }),
-      warn: (line) => console.warn(line),
-    });
-    console.error(
-      `deploy record: ${range.commits.length} commit(s) shipped; commented on ${result.commented.map((n) => `#${n}`).join(", ") || "no PR"}${result.skipped.length ? `; already commented: ${result.skipped.map((n) => `#${n}`).join(", ")}` : ""}.`,
-    );
+    return;
   }
-} catch (err) {
-  console.warn(`WARNING: deploy record failed: ${err?.message ?? err}`);
+  const ghApi = async (p) =>
+    JSON.parse(execFileSync("gh", ["api", p], { encoding: "utf8" }));
+  const ghPost = async (p, body) =>
+    execFileSync("gh", ["api", "-X", "POST", p, "--input", "-"], {
+      input: JSON.stringify(body),
+      encoding: "utf8",
+    });
+  const pulls = await shippedPulls({
+    ghApi,
+    repo: GITHUB_REPO,
+    commits: range.commits,
+  });
+  const result = await commentOnPulls({
+    ghApi,
+    ghPost,
+    repo: GITHUB_REPO,
+    sha: headSha,
+    pulls,
+    bodyFor: (pr) =>
+      commentBody({
+        repo: GITHUB_REPO,
+        sha: headSha,
+        deployedAt,
+        lane,
+        live,
+        declared,
+        acceptance: d.acceptanceResult,
+        prCommits: pr.commits,
+        timing,
+      }),
+    warn: (line) => console.warn(line),
+  });
+  console.error(
+    `deploy record: ${range.commits.length} commit(s) shipped; commented on ${result.commented.map((n) => `#${n}`).join(", ") || "no PR"}${result.skipped.length ? `; already commented: ${result.skipped.map((n) => `#${n}`).join(", ")}` : ""}.`,
+  );
 }
-releaseLock();
 
-console.log("\ndeploy complete.");
-console.log(
-  `site + mcp door: https://${outputs.SiteDistributionDomain}  (CNAME elixir.poapkings.com here)`,
-);
-console.log(`connect URL: https://elixir.poapkings.com/mcp`);
-console.log(`alarm topic: ${outputs.AlarmTopicArn}`);
+/**
+ * Run the phases in order, each when its `when` allows, timing each
+ * into `d.phases` ({ name, seconds }) as it ends.
+ */
+export async function runPhases(phases, d, { now = Date.now } = {}) {
+  d.phases ??= [];
+  for (const phase of phases) {
+    if (phase.when && !phase.when(d)) continue;
+    const started = now();
+    await phase.run(d);
+    d.phases.push({ name: phase.name, seconds: toSeconds(now() - started) });
+  }
+}
+
+/**
+ * The deploy: its arguments are refused before any phase (so before the
+ * first AWS call), then DEPLOY_PHASES. Returns the exit code.
+ *
+ * @param {string[]} argv process.argv.slice(2)
+ * @param {{ phases?: typeof DEPLOY_PHASES, now?: () => number }} [options]
+ */
+export async function deploy(
+  argv,
+  { phases = DEPLOY_PHASES, now = Date.now } = {},
+) {
+  // The deploy's start, before the CI gate: the record measures the
+  // gate's wait from here.
+  const startedAt = new Date(now()).toISOString();
+  // Refuse anything but a known flag before the first AWS call: an
+  // unknown one used to be ignored, so `--help` deployed production
+  // (2026-09-25).
+  const args = parseDeployArgs(argv);
+  if (args.help) {
+    console.log(DEPLOY_USAGE);
+    return 0;
+  }
+  const refusal = argumentRefusal(args);
+  if (refusal) {
+    console.error(refusal);
+    return 2;
+  }
+  const d = {
+    argv,
+    args,
+    isCreate: args.create,
+    lane: "platform",
+    startedAt,
+    phases: [],
+  };
+  try {
+    await runPhases(phases, d, { now });
+  } catch (error) {
+    if (!(error instanceof DeployExit)) throw error;
+    console.error(error.message);
+    return error.code;
+  }
+  d.releaseLock?.();
+  if (d.outputs) {
+    console.log("\ndeploy complete.");
+    console.log(
+      `site + mcp door: https://${d.outputs.SiteDistributionDomain}  (CNAME elixir.poapkings.com here)`,
+    );
+    console.log(`connect URL: https://elixir.poapkings.com/mcp`);
+    console.log(`alarm topic: ${d.outputs.AlarmTopicArn}`);
+  }
+  return 0;
+}
+
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  const code = await deploy(process.argv.slice(2));
+  if (code !== 0) process.exit(code);
+}

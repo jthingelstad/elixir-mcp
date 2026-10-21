@@ -8,6 +8,7 @@ import {
   verifyReferenceSeed,
   prepareReferenceSeedRefresh,
 } from "../../../infra/scripts/lib/reference-seed-check.mjs";
+import { DEPLOY_PHASES } from "../../../infra/scripts/deploy.mjs";
 
 const adminUrl =
   process.env.PG_ADMIN_URL ??
@@ -317,22 +318,36 @@ test("release verification accepts identical readonly receipts and fails closed 
   }
 });
 test("release guard executes after operator code update and before migrations and reference refresh", () => {
-  const source = readFileSync(
-    new URL("../../../infra/scripts/deploy.mjs", import.meta.url),
-    "utf8",
+  const names = DEPLOY_PHASES.map((p) => p.name);
+  const at = (name) => names.indexOf(name);
+  // The migrate push (UpdateFunctionCode, then its wait) is the
+  // operator code update; the guard follows it, then the migrations,
+  // then the vocabulary refresh that reads the guard's verified seed.
+  assert.ok(at("migrate-push") >= 0);
+  assert.equal(at("seed-check"), at("migrate-push") + 1);
+  assert.equal(at("migrate"), at("seed-check") + 1);
+  assert.equal(at("vocabulary"), at("migrate") + 1);
+  const phase = (name) => DEPLOY_PHASES[at(name)];
+  assert.match(
+    phase("migrate-push").run.toString(),
+    /waitUntilFunctionUpdatedV2/,
   );
-  const preview = source.indexOf("? await prepareReferenceSeedRefresh(lambda)");
-  assert.ok(preview > source.indexOf("await waitUntilFunctionUpdatedV2"));
-  assert.ok(
-    preview <
-      source.indexOf(
-        'if (!isCreate && lane === "platform") await runMigrations',
-      ),
+  assert.match(
+    phase("seed-check").run.toString(),
+    /prepareReferenceSeedRefresh\(d\.lambda\)/,
   );
-  assert.ok(
-    preview <
-      source.indexOf(
-        "if (verifiedReferenceSeed) await verifiedReferenceSeed.refresh()",
-      ),
+  assert.match(
+    phase("vocabulary").run.toString(),
+    /d\.verifiedReferenceSeed\.refresh\(\)/,
   );
+  // Only when asked, in either lane.
+  for (const [args, want] of [
+    [{ verifyReferenceSeed: true }, true],
+    [{ verifyReferenceSeed: false }, false],
+  ])
+    for (const lane of ["site", "platform"])
+      assert.equal(
+        phase("seed-check").when({ args, lane, isCreate: false }),
+        want,
+      );
 });

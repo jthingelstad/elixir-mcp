@@ -1,20 +1,24 @@
 /**
  * The deploy record (infra/scripts/lib/deploy-record.mjs) and where
  * deploy.mjs takes the production lock. git and GitHub are stubs; the
- * structural checks read deploy.mjs's source, as infra-controls does.
+ * structural checks read deploy.mjs's DEPLOY_PHASES, as infra-controls
+ * does.
  */
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   MAX_COMMITS,
   commentBody,
   commentOnPulls,
   deployHistoryKey,
+  deployTiming,
   liveVersions,
   shippedCommits,
   shippedPulls,
+  span,
+  timingLine,
 } from "../../../infra/scripts/lib/deploy-record.mjs";
+import { DEPLOY_PHASES } from "../../../infra/scripts/deploy.mjs";
 
 const REPO = "jthingelstad/elixir-mcp";
 const A = "a".repeat(40);
@@ -225,26 +229,90 @@ test("deploy record: live versions come from the published site; a failed read i
   );
 });
 
-test("deploy.mjs takes the production lock after the CI gate, break-glass included, before anything is built or sent", async () => {
-  const source = await readFile(
-    new URL("../../../infra/scripts/deploy.mjs", import.meta.url),
-    "utf8",
-  );
-  const gateEnd = source.indexOf("CI gate passed for");
-  const lock = source.indexOf("acquireLock({");
-  assert.ok(gateEnd > 0 && lock > gateEnd);
-  for (const first of ["new STSClient(", "buildAll(", ".send(", "spawnSync("])
-    assert.ok(lock < source.indexOf(first), first);
-  // Not inside the break-glass branch: the gate's if/else has closed.
-  const between = source.slice(source.indexOf("if (args.breakGlass)"), lock);
-  const opens = (between.match(/{/g) ?? []).length;
-  const closes = (between.match(/}/g) ?? []).length;
-  assert.equal(opens, closes, "the lock is taken at the top level");
+test("deploy.mjs takes the production lock after the CI gate, break-glass included, before anything is built or sent", async (t) => {
+  const names = DEPLOY_PHASES.map((p) => p.name);
+  const at = (name) => names.indexOf(name);
+  assert.ok(at("ci-gate") >= 0 && at("lock") === at("ci-gate") + 1);
+  for (const later of [
+    "account",
+    "build",
+    "upload",
+    "assets",
+    "stack",
+    "site",
+    "smoke",
+  ])
+    assert.ok(at("lock") < at(later), later);
+  // No `when`: --break-glass skips the gate inside its phase, never the lock.
+  const lock = DEPLOY_PHASES[at("lock")];
+  assert.equal(lock.when, undefined);
+  assert.match(lock.run.toString(), /acquireLock\(/);
   // Held until the process ends, however it ends.
-  assert.ok(source.indexOf("holdUntilExit(") > lock);
-  // The record is written after the smoke and the acceptance gate.
-  const record = source.indexOf("DEPLOY_RECORD_KEY, deployHistoryKey");
-  assert.ok(record > source.indexOf("SMOKE FAILED"));
-  assert.ok(record > source.indexOf("ACCEPTANCE FAILED"));
-  assert.ok(record < source.indexOf("releaseLock();"));
+  assert.match(lock.run.toString(), /holdUntilExit\(/);
+  const gate = DEPLOY_PHASES[at("ci-gate")];
+  assert.equal(gate.when, undefined);
+  const warned = [];
+  t.mock.method(console, "warn", (line) => warned.push(line));
+  await gate.run({ args: { breakGlass: true } });
+  assert.match(warned.join("\n"), /--break-glass: the CI gate is skipped/);
+  // The record is written after the smoke and the acceptance gate, last.
+  assert.deepEqual(names.slice(-3), ["smoke", "acceptance", "record"]);
+  for (const phase of ["smoke", "acceptance", "record"])
+    assert.equal(DEPLOY_PHASES[at(phase)].when, undefined, phase);
+});
+
+test("deploy record: the start, the CI gate's wait and each phase's seconds", () => {
+  const phases = [
+    { name: "worktree", seconds: 0.1 },
+    { name: "ci-gate", seconds: 187.4 },
+    { name: "lock", seconds: 0 },
+    { name: "build", seconds: 26.2 },
+    { name: "stack", seconds: 61 },
+    { name: "site", seconds: 0.4 },
+    { name: "smoke", seconds: 5.3 },
+  ];
+  const timing = deployTiming({
+    startedAt: "2026-10-21T15:00:00.000Z",
+    recordedAt: "2026-10-21T15:05:01.250Z",
+    phases,
+  });
+  assert.deepEqual(timing, {
+    started_at: "2026-10-21T15:00:00.000Z",
+    gate_wait_seconds: 187.4,
+    seconds: 301.3,
+    phases: phases.map(({ name, seconds }) => ({ phase: name, seconds })),
+  });
+  assert.equal(
+    timingLine(timing),
+    "- Timing: started 2026-10-21T15:00:00Z (2026-10-21 10:00:00 CDT); the CI gate waited 3 m 7 s, then 1 m 54 s to this record: build 26 s, stack 1 m 1 s, smoke 5 s",
+  );
+  // --break-glass skipped the gate: no wait to report, not a zero.
+  const glass = deployTiming({
+    startedAt: "2026-10-21T15:00:00.000Z",
+    recordedAt: "2026-10-21T15:01:00.000Z",
+    breakGlass: true,
+    phases: [{ name: "ci-gate", seconds: 0 }],
+  });
+  assert.equal(glass.gate_wait_seconds, null);
+  assert.match(
+    timingLine(glass),
+    /the CI gate skipped \(--break-glass\), then 1 m 0 s to this record$/,
+  );
+  assert.equal(span(59.6), "1 m 0 s");
+  assert.equal(span(42.2), "42 s");
+  // The PR comment carries the line; without timing it is unchanged.
+  const body = {
+    repo: REPO,
+    sha: D,
+    deployedAt: "2026-10-21T15:05:01.250Z",
+    lane: "site",
+    live: { contract: "1.0.0", api: "1.0.0" },
+    declared: { contract: "1.0.0", api: "1.0.0" },
+    acceptance: "not run",
+    prCommits: [D],
+  };
+  assert.ok(
+    commentBody({ ...body, timing }).endsWith(`\n${timingLine(timing)}`),
+  );
+  assert.doesNotMatch(commentBody(body), /Timing/);
 });
