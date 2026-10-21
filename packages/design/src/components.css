@@ -6359,6 +6359,26 @@ button.ladder-player__head:hover {
   font-size: 11.5px;
   color: var(--ink-body);
 }
+/* The mode the address names leads the calendar (Days); every other
+   mode's mark stays, quieter. Text stays at the faint ink's contrast;
+   only the decorative dot fades. */
+.ladder-day__mode--lead,
+.ladder-key--lead {
+  color: var(--ink);
+  font-weight: 600;
+}
+.ladder-day__mode--quiet,
+.ladder-key--quiet {
+  color: var(--ink-faint);
+}
+.ladder-day__mode--quiet .mode-chip__dot,
+.ladder-key--quiet .mode-chip__dot {
+  opacity: 0.45;
+}
+.ladder-day__mode--quiet .ladder-w,
+.ladder-day__mode--quiet .ladder-l {
+  color: var(--ink-faint);
+}
 .ladder-day__label {
   flex-grow: 1;
   min-width: 0;

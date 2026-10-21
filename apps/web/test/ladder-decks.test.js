@@ -210,6 +210,30 @@ test("the table: other modes' decks with their own records, then duel rounds; no
   expect(tableTitle(rows.filter((r) => r.mode === "event"))).toBe("Events");
 });
 
+test("the address's mode leads the table and its title; the rest keep their order", () => {
+  const byMode = {
+    war: { decks: [MORTAR], duel_decks: [] },
+    event: { decks: [{ ...AFTER, cards: undefined, battles: 2 }] },
+  };
+  const rows = tableRows(byMode, ALL, "event");
+  // The two duel decks no mode's answer claimed stay last, with no mode.
+  expect(rows.map((r) => r.modeLabel)).toEqual([
+    "Event",
+    "War",
+    "Duel",
+    "Duel",
+  ]);
+  expect(tableTitle(rows, "event")).toBe("Events, War and duels");
+  // No mode asked: reading order, as before.
+  expect(tableRows(byMode, ALL).map((r) => r.modeLabel)).toEqual([
+    "War",
+    "Event",
+    "Duel",
+    "Duel",
+  ]);
+  expect(tableTitle(rows)).toBe("War, duels and events");
+});
+
 test("a swap: same eight cards, forms moved, the first deck put down before the second", () => {
   const [swap, ...rest] = formSwaps([AFTER, BEFORE]);
   expect(rest).toEqual([]);

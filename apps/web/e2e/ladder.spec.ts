@@ -799,6 +799,47 @@ test.describe("Ladder days played", () => {
     expect(overflow).toBeLessThanOrEqual(0);
     await accessible(page, "ladder days narrow");
   });
+
+  test("the address's mode leads the calendar, and every other mode stays, quieter", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(TODAY);
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder/days?mode=war");
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "17 days with recorded battles",
+      }),
+    ).toBeVisible();
+
+    const keys = page.locator("#ladder-cal ~ .ladder-key");
+    await expect(keys.first()).toHaveText("War");
+    await expect(keys.first()).toHaveClass(/ladder-key--lead/);
+    await expect(keys.filter({ hasText: "Trophy Road" }).first()).toHaveClass(
+      /ladder-key--quiet/,
+    );
+
+    // A day with War and another mode: War first and led, the other
+    // still there with its own record.
+    const mixed = page
+      .locator(".ladder-day")
+      .filter({ has: page.locator(".ladder-day__mode--lead") })
+      .filter({ has: page.locator(".ladder-day__mode--quiet") })
+      .first();
+    const marks = mixed.locator(".ladder-day__mode");
+    await expect(marks.first()).toContainText("War");
+    await expect(marks.first()).toHaveClass(/ladder-day__mode--lead/);
+    await expect(marks.nth(1)).toHaveClass(/ladder-day__mode--quiet/);
+    await expect(marks.nth(1).getByRole("img")).toBeVisible();
+    await accessible(page, "ladder days, war asked");
+
+    // No mode in the address: no mark leads.
+    await page.goto("/ladder/days");
+    await expect(page.locator(".ladder-day__mode").first()).toBeVisible();
+    await expect(page.locator(".ladder-day__mode--quiet")).toHaveCount(0);
+    await expect(page.locator(".ladder-key--lead")).toHaveCount(0);
+  });
 });
 
 test.describe("Ladder decks", () => {
@@ -933,6 +974,42 @@ test.describe("Ladder decks", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Decks" }),
     ).toBeVisible();
+  });
+
+  test("the address's mode comes first, the others keep their order, and a row of links jumps to each", async ({
+    page,
+  }) => {
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder/decks");
+    const jumps = page
+      .getByRole("navigation", { name: "Modes on this page" })
+      .getByRole("link");
+    await expect(jumps).toHaveText(["Trophy Road", "War", "Event"]);
+
+    await page.goto("/ladder/decks?mode=event");
+    await expect(jumps).toHaveText(["Event", "War", "Trophy Road"]);
+    // The table, with the events first, now leads the page.
+    const titles = page.locator(".ladder-page .ladder-panel-title");
+    await expect(titles.first()).toHaveText("Events, War and duels");
+    const rows = page.locator(".ladder-table tbody tr");
+    await expect(rows.first()).toContainText("Event");
+    await expect(rows.first()).toContainText("Evo Royal Hogs bridge spam");
+    // Every event row, then War's: the rows of a mode stay together.
+    const modes = (
+      await page
+        .locator(".ladder-table tbody .ladder-table__mode")
+        .allTextContents()
+    ).map((m) => m.trim());
+    const firstWar = modes.findIndex((m) => m.startsWith("War"));
+    expect(firstWar).toBeGreaterThan(0);
+    expect(modes.lastIndexOf("Event")).toBeLessThan(firstWar);
+
+    // A jump is a place on the page, not a new page.
+    await jumps.filter({ hasText: "Trophy Road" }).click();
+    await expect(page).toHaveURL(/\/ladder\/decks\?mode=event#decks-ladder$/);
+    await expect(page.locator("#decks-ladder")).toBeInViewport();
+    await expect(titles.first()).toHaveText("Events, War and duels");
+    await accessible(page, "ladder decks, events asked");
   });
 
   test("@narrow a deck's cards fall under its record, and nothing scrolls sideways", async ({

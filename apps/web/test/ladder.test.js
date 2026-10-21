@@ -7,6 +7,7 @@
 import { describe, test, expect } from "vitest";
 import {
   LADDER_PAGES,
+  askedMode,
   captureLanded,
   capturePending,
   clockTime,
@@ -21,6 +22,7 @@ import {
   ladderLegal,
   ladderPlayers,
   ladderTitle,
+  leadFirst,
   longDay,
   monthName,
   pickMode,
@@ -157,6 +159,27 @@ test("the mode is the one asked for, else the one with the most recorded battles
   expect(
     pickMode(undefined, { ladder: { battles: 3 }, ranked: { battles: 3 } }),
   ).toBe("ladder");
+});
+
+test("the address's mode leads; a mode Ladder picked itself is not asked for", () => {
+  expect(askedMode({ mode: "war" })).toBe("war");
+  expect(askedMode({ mode: "bogus" })).toBeNull();
+  expect(askedMode({})).toBeNull();
+  expect(askedMode(undefined)).toBeNull();
+  // Order only: the asked mode's entries first, the others as they were,
+  // nothing dropped or merged.
+  const modes = ["ladder", "ranked", "war", "event"];
+  expect(leadFirst(modes, "war")).toEqual(["war", "ladder", "ranked", "event"]);
+  expect(leadFirst(modes, null)).toBe(modes);
+  expect(leadFirst(modes, "casual")).toEqual(modes);
+  const days = [
+    { key: "ladder", battles: 3 },
+    { key: "event", battles: 1 },
+  ];
+  expect(leadFirst(days, "event", (m) => m.key).map((m) => m.key)).toEqual([
+    "event",
+    "ladder",
+  ]);
 });
 
 test("dates are prose in the account's zone", () => {

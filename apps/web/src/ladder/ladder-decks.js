@@ -8,7 +8,7 @@
  */
 import { cardLabel } from "@elixir-mcp/ui";
 import { groupLabel } from "./ladder-days.js";
-import { shortDay } from "./ladder.js";
+import { leadFirst, shortDay } from "./ladder.js";
 
 /** Mode groups in reading order: the two trophy games first. */
 const ORDER = [
@@ -121,8 +121,9 @@ export function dayRange(first, last, zone) {
   return `${a} – ${b}`;
 }
 
-/** "War, duels and events": the table's title, from what is in it. */
-export function tableTitle(rows) {
+/** "War, duels and events": the table's title, from what is in it, in
+ *  the table's order (the address's mode, `lead`, first). */
+export function tableTitle(rows, lead = null) {
   const parts = [];
   const has = (pred) => rows.some(pred);
   const PLURAL = {
@@ -134,7 +135,7 @@ export function tableTitle(rows) {
     ladder: "Trophy Road",
     ranked: "Path of Legends",
   };
-  for (const m of ORDER) {
+  for (const m of leadFirst(ORDER, lead)) {
     if (has((r) => r.mode === m && !r.duel)) parts.push(PLURAL[m]);
     if (m === "war" && has((r) => r.duel)) parts.push("duels");
   }
@@ -149,18 +150,21 @@ export function tableTitle(rows) {
 
 /**
  * The table: every deck of the modes shown without cards, mode by mode
- * in reading order, each mode's decks as the tool sorted them, then its
- * duel rounds. `byMode` maps a mode to its battles_decks answer. A duel
- * deck in the every-mode answer that no mode's answer claimed keeps no
- * mode rather than a guessed one.
+ * in reading order (the address's mode, `lead`, first), each mode's
+ * decks as the tool sorted them, then its duel rounds. `byMode` maps a
+ * mode to its battles_decks answer. A duel deck in the every-mode answer
+ * that no mode's answer claimed keeps no mode rather than a guessed one.
  */
-export function tableRows(byMode, all) {
+export function tableRows(byMode, all, lead = null) {
   const rows = [];
   const claimed = new Set();
   const grid = GRID_MODES.flatMap((m) =>
     (byMode[m]?.decks ?? []).map((d) => ({ d, mode: m })),
   );
-  const modes = Object.keys(byMode).sort((a, b) => rank(a) - rank(b));
+  const modes = leadFirst(
+    Object.keys(byMode).sort((a, b) => rank(a) - rank(b)),
+    lead,
+  );
   for (const mode of modes) {
     const body = byMode[mode];
     if (!GRID_MODES.includes(mode))
