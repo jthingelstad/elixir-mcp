@@ -13448,7 +13448,7 @@
     },
     "request_id": "76616a22-d7a8-47ff-92d0-bd540348e8b3",
     "when": {
-      "eq": ["c.section_index", 2]
+      "all": [{ "eq": ["c.season_id", 136] }, { "eq": ["c.section_index", 2] }]
     },
     "assert": [
       {
@@ -13463,7 +13463,8 @@
           "h.standings[?clan_tag=#QUGRGLU2].clan_war_trophies"
         ]
       }
-    ]
+    ],
+    "amended": "Amended 2026-10-21: the guard also needs c.season_id 136. The h call is pinned to S136 week 3, and the guard checked only section_index, so S137 week 3 (from 10-19) compared the live race with S136's week (1360 against 1200) and failed at the 026bb2c7 deploy. Outside S136 week 3 it is SKIPPED; the live-equals-recorded check stands for that week."
   },
   {
     "id": "313.4",
