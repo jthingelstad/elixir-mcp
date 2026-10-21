@@ -1552,5 +1552,12 @@
     "case": "contracts/clans-my-view-agent-refused",
     "captures": ["clans_my_view-agent-served.json"],
     "expect": "An agent is refused a person's own Clan view"
+  },
+  {
+    "contract": "11.13.0",
+    "why": "the agents' compact poll on war day 1 (2026-10-15), when buildClanEntry read an undeclared nowMs: every timeline with a tracked clan's entry threw until 11.13.1",
+    "case": "contracts/timeline-war-day-in-progress",
+    "captures": ["nowms-elixir_timeline-war-day.json"],
+    "expect": "failed unexpectedly"
   }
 ]
