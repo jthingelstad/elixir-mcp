@@ -1,15 +1,17 @@
 # 2026-10-21 — {reindex}: battle's indexes rebuilt concurrently, one at a time
 
-Jamie accepted RDS's lowered `shared_buffers` (88 MB, from 180 MB, at the
-maintenance restart) and approved the next memory lever the same day:
-"Approved: add an ops command to elixir-mcp and rebuild the battle
-table's indexes concurrently in production after the 10-23 maintenance"
-(#630). The platform review found `battle` holding 92,291 rows behind
-indexes sized for many more, left by the bulk deletions: `battle_pkey`
-78 MB, `battle_time_idx` 21 MB and `battle_cursor_key` 19 MB (6 scans
-since the statistics reset). The hourly battles-by-day series and the
-stats totals walk those indexes, so rebuilding them frees more cache
-than anything else left.
+RDS warned in October that a restart would lower `shared_buffers` to 88
+MB, and Jamie accepted that (#630). After the 10-21 maintenance restarts
+it was still 180 MB, the engine default; nothing pins it either way. He
+approved the next memory lever the same day: "Approved: add an ops
+command to elixir-mcp and rebuild the battle table's indexes
+concurrently in production after the 10-23 maintenance". The maintenance
+ran early, on 10-21. The platform review found `battle` holding 92,291
+rows behind indexes sized for many more, left by the bulk deletions:
+`battle_pkey` 78 MB, `battle_time_idx` 21 MB and `battle_cursor_key` 19
+MB (6 scans since the statistics reset). The hourly battles-by-day
+series and the stats totals walk those indexes, so rebuilding them frees
+more cache than anything else left.
 
 `REINDEX CONCURRENTLY` and `DROP INDEX CONCURRENTLY` refuse a transaction
 block, and the migrate runner wraps every migration in one, so this is
@@ -63,10 +65,7 @@ the valid index and drops the leftover, and the rebuild then succeeds.
 Every refusal is covered: another table, an index of another table or of
 none, apply without an index, an index without apply, an unknown key.
 
-The infrastructure template's comment on `shared_buffers` now cites the
-new DECISIONS line instead of calling it the engine default.
-
 No migration, and no contract or JSON API change (MCP 11.13.3, JSON API
 3.2.1). The deploy runs no acceptance family, because no tool changed.
-The rebuild itself runs after the maintenance restart, one index at a
-time, smallest first.
+The rebuild itself runs after the 10-21 maintenance, one index at a
+time, smallest first, when Jamie says.
