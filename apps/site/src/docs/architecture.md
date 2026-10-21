@@ -18,8 +18,7 @@ description of record**; there is no fuller internal one.
 
 ## The shape of the system
 
-<svg viewBox="0 0 880 560" role="img" aria-label="Elixir MCP architecture"
-     style="width:100%;height:auto;font-family:inherit">
+<svg viewBox="0 0 880 560" role="img" aria-label="Elixir MCP architecture" style="width:100%;height:auto;font-family:inherit">
   <style>
     .box { fill: none; stroke: var(--ink); stroke-width: 2.5; }
     .store { fill: none; stroke: var(--ink-faint); stroke-width: 1.5; stroke-dasharray: 6 4; }
