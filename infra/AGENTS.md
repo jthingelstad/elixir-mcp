@@ -89,7 +89,8 @@ site, invalidation, prune), smoke, then acceptance when asked
   without. Each deploy writes the `assets/` keys it ships to
   `deploys/site-assets/`, and the prune takes only an asset no deploy in
   the last 14 days shipped and none uploaded; any manifest it cannot read
-  stops the prune, never the deploy.
+  stops the prune, never the deploy. A document S3 keeps on delete fails
+  the publish; an asset it keeps is a warning.
 - **The deploy record:** every deploy writes `deploys/production.json` to
   the code bucket and comments on each pull request it shipped, with the
   time, the versions, the acceptance result and the timing: when it
