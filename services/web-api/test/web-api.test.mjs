@@ -1833,7 +1833,8 @@ test("activity APIs: own request log, read-only notification view, collector det
   );
   assert.ok(Array.isArray(ev.timeline));
   assert.ok(Array.isArray(ev.entries));
-  assert.ok("read_to" in ev);
+  assert.ok("seen_to" in ev, "the Console's own place, before this read");
+  assert.ok(!("read_to" in ev), "the agents' pointer is not the page's");
   const after = await db.query(
     `select activity_seen_at from account where email_hash = $1`,
     [emailHash(JAMIE)],

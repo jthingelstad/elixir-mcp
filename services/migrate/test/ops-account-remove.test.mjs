@@ -61,8 +61,10 @@ before(async () => {
   ).account_id;
   ids.person = (
     await one(
-      `insert into account (email_hash, email, status, role, request_note, timezone)
-       values ($1, $2, 'approved', 'member', 'let me in', 'America/Chicago')
+      `insert into account (email_hash, email, status, role, request_note, timezone,
+                            activity_seen_at, console_timeline_seen_at)
+       values ($1, $2, 'approved', 'member', 'let me in', 'America/Chicago',
+               now(), now())
        returning account_id`,
       [emailHash(ADDRESS), ADDRESS],
     )
@@ -397,7 +399,8 @@ test("the run removes the person and their agent, keeps the game record, and lea
   assert.equal(r.recordings_stopped, 2);
 
   const acct = await one(
-    `select email, email_hash, status, request_note, timezone, newsletter_opt_in
+    `select email, email_hash, status, request_note, timezone, newsletter_opt_in,
+            activity_seen_at, console_timeline_seen_at
        from account where account_id = $1`,
     [ids.person],
   );
@@ -408,6 +411,10 @@ test("the run removes the person and their agent, keeps the game record, and lea
     request_note: null,
     timezone: null,
     newsletter_opt_in: false,
+    // Both places in the timeline are the account's: the agents' read
+    // pointer and the Console's own (0228).
+    activity_seen_at: null,
+    console_timeline_seen_at: null,
   });
   assert.equal(
     (await one(`select status from account where account_id = $1`, [ids.agent]))

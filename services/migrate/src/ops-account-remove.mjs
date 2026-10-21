@@ -278,7 +278,7 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
               status = 'disabled', request_note = null,
               requested_player_tag = null, timezone = null,
               newsletter_opt_in = false, onboarded_at = null,
-              activity_seen_at = null
+              activity_seen_at = null, console_timeline_seen_at = null
         where account_id = any($1::uuid[])`,
       [ids],
     );
