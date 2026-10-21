@@ -36,27 +36,38 @@ export async function readPublicStatus(db, { deadLetters }) {
   // already. The account never appears: its email hash has no
   // business on an unauthenticated page. A collector with no owner,
   // or an owner who has claimed no player, simply shows no credit.
+  // A collector's last hour and day come from ONE pass over the day's
+  // receipts, grouped by collector, on api_receipt_fetched. Three
+  // subqueries per collector used to answer it, and from 2026-10-15 to
+  // 10-17 the planner walked each collector's whole history through the
+  // idempotency index instead: 50 runs over a second, p50 3.6 s
+  // (platform review §3). Same filters, same rounding.
   const collectors = await q(
-    `select coalesce(g.card_name, 'unnamed') as name, avatar.card_id, avatar.icon_medium, g.status,
+    `with recent as (
+       select ar.gateway_id,
+              count(*) filter (where ar.fetched_at > now() - interval '1 hour')::int as fetches_1h,
+              round(avg(case when ar.new_facts > 0 then 1 else 0 end)
+                      filter (where ar.new_facts is not null), 3) as yield_24h,
+              sum(ar.observed) filter (where ar.endpoint = 'player_battlelog'
+                                         and ar.observed is not null) as observed_24h,
+              sum(ar.filtered) filter (where ar.endpoint = 'player_battlelog'
+                                         and ar.observed is not null) as filtered_24h
+       from api_receipt ar
+       where ar.fetched_at > now() - interval '24 hours'
+       group by ar.gateway_id
+     )
+     select coalesce(g.card_name, 'unnamed') as name, avatar.card_id, avatar.icon_medium, g.status,
             g.channel, g.last_success_at, g.last_heartbeat_at,
             g.last_seen_sha, g.binary_sha256,
             ${RELEASE_SIGNED_SQL},
             op.name as operator,
             op.player_tag as operator_tag,
-            (select count(*)::int from api_receipt ar
-             where ar.gateway_id = g.gateway_id
-               and ar.fetched_at > now() - interval '1 hour') as fetches_1h,
-            (select round(avg(case when ar.new_facts > 0 then 1 else 0 end), 3)
-               from api_receipt ar where ar.gateway_id = g.gateway_id
-               and ar.fetched_at > now() - interval '24 hours'
-               and ar.new_facts is not null) as yield_24h,
-            (select case when sum(ar.observed) > 0
-                      then round(sum(ar.filtered)::numeric / sum(ar.observed), 3) end
-               from api_receipt ar where ar.gateway_id = g.gateway_id
-               and ar.endpoint = 'player_battlelog'
-               and ar.fetched_at > now() - interval '24 hours'
-               and ar.observed is not null) as edge_filtered_24h
+            coalesce(rc.fetches_1h, 0) as fetches_1h,
+            rc.yield_24h,
+            case when rc.observed_24h > 0
+                 then round(rc.filtered_24h::numeric / rc.observed_24h, 3) end as edge_filtered_24h
      from gateway g
+     left join recent rc on rc.gateway_id = g.gateway_id
      left join card avatar on avatar.name = g.card_name and avatar.kind = 'card'
      left join lateral (
        select p.name, p.player_tag
@@ -144,11 +155,16 @@ export async function readPublicStatus(db, { deadLetters }) {
   const day = foldCapture(
     await captureRows(HOURLY, "(now() - interval '23 hours')", "1 hour"),
   );
+  // Two freshness counters, each one probe of api_receipt_fetched from
+  // the newest end. They used to share one aggregate, and a FILTERed
+  // max cannot use an index: every status read scanned all of
+  // api_receipt (about 18,000 blocks from disk, 700 ms), the largest
+  // reader in pg_stat_statements since 2026-09-06 (41.7M blocks over
+  // 4,838 calls). The same maxima, and null when there is none.
   const latest = await q(
-    `select extract(epoch from now() - max(fetched_at))::int as last_fetch_s,
-            extract(epoch from now() - max(fetched_at)
-              filter (where admission = 'admitted'))::int as last_admit_s
-     from api_receipt`,
+    `select extract(epoch from now() - (select max(fetched_at) from api_receipt))::int as last_fetch_s,
+            extract(epoch from now() - (select max(fetched_at) from api_receipt
+                                         where admission = 'admitted'))::int as last_admit_s`,
   );
   const hourTotals = await q(
     `select count(*)::int as battles_1h from battle
