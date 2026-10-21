@@ -1,4 +1,4 @@
-import { Tag } from "@elixir-mcp/ui";
+import { Link, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
@@ -125,13 +125,13 @@ export function Clans({ me, onSelect, selecting }) {
                     in {i.clan_name ?? <Tag tag={i.clan_tag} />}
                   </span>
                 ) : null}
-                <a
+                <Link
                   className="btn btn--sm"
-                  href={ELIXIR_LINKS.verify}
+                  to={ELIXIR_LINKS.verify}
                   style={{ marginLeft: "auto" }}
                 >
                   Verify in Elixir ›
-                </a>
+                </Link>
               </div>
             ))}
           </div>

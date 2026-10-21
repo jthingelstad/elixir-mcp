@@ -20,6 +20,7 @@ import {
   Disclaimer,
   ErrorBoundary,
   FeedbackSheet,
+  Link,
   Rail as RailList,
   RailIdentity,
 } from "@elixir-mcp/ui";
@@ -551,9 +552,9 @@ export function ClanShell({
                       ? `In the game ${me.selected.unlock.name ?? me.selected.unlock.player_tag} is ${me.selected.unlock.role_label === "Elder" ? "an" : "a"} ${me.selected.unlock.role_label}. Verify that player in Elixir to use those tools here; until then you are here as a member.`
                       : "Your player is not verified in Elixir, so you are here as a member who reads: verify it to mark yourself away, comment or join the clan map."}
                   </span>
-                  <a className="btn btn--sm" href={ELIXIR_LINKS.verify}>
+                  <Link className="btn btn--sm" to={ELIXIR_LINKS.verify}>
                     Verify in Elixir ›
-                  </a>
+                  </Link>
                 </div>
               ) : null}
               <RoleConfirming />

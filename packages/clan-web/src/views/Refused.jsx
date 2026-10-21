@@ -1,6 +1,6 @@
-import { ELIXIR_LINKS } from "../lib/links.js";
+import { ELIXIR_LINKS, inApp } from "../lib/links.js";
 import { CLAN } from "../lib/base.js";
-import { useClock, Tag } from "@elixir-mcp/ui";
+import { Link, useClock, Tag } from "@elixir-mcp/ui";
 
 /**
  * One page per gate refusal, in gate order. Each says exactly what to do
@@ -94,9 +94,15 @@ export function Refused({ reason, me, onRecheck, checking }) {
         <span>{page.action}</span>
       </div>
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        <a className="btn btn--primary" href={page.link[0]}>
-          {page.link[1]} ›
-        </a>
+        {inApp(page.link[0]) ? (
+          <Link className="btn btn--primary" to={page.link[0]}>
+            {page.link[1]} ›
+          </Link>
+        ) : (
+          <a className="btn btn--primary" href={page.link[0]}>
+            {page.link[1]} ›
+          </a>
+        )}
         {page.retry ? (
           <a className="btn" href={page.retry}>
             Sign in again

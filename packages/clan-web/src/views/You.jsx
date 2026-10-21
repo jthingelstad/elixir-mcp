@@ -1,4 +1,4 @@
-import { ago, Tag } from "@elixir-mcp/ui";
+import { ago, Link, Tag } from "@elixir-mcp/ui";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
 import { CLAN } from "../lib/base.js";
@@ -78,7 +78,7 @@ export function You({ me }) {
           </Row>
           <Row label="Elixir account">
             {me.principal?.subject?.name ?? "person"} on the personal door ·{" "}
-            <a href={ELIXIR_LINKS.overview}>open Elixir</a>
+            <Link to={ELIXIR_LINKS.overview}>open Elixir</Link>
           </Row>
           <Row label="Capabilities">
             <code>{me.scope || "cr:read"}</code>
@@ -93,10 +93,10 @@ export function You({ me }) {
         </div>
         <div className="panel__foot">
           Change any of this in Elixir:{" "}
-          <a href={ELIXIR_LINKS.tracking}>Tracking</a>,{" "}
-          <a href={ELIXIR_LINKS.verify}>Verify</a>,{" "}
-          <a href={ELIXIR_LINKS.connections}>Connections</a> (where this sign-in
-          can be revoked).
+          <Link to={ELIXIR_LINKS.tracking}>Tracking</Link>,{" "}
+          <Link to={ELIXIR_LINKS.verify}>Verify</Link>,{" "}
+          <Link to={ELIXIR_LINKS.connections}>Connections</Link> (where this
+          sign-in can be revoked).
         </div>
       </div>
     </div>
