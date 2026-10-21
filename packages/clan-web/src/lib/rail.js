@@ -52,14 +52,18 @@ export function railItems(me) {
       icon: "calendar-days",
       to: `${base}/season`,
     });
-    // Actions: what waits for you, as who you are in this clan.
+    // Actions: what waits for you, as who you are in this clan. The
+    // count is attention, not a total: folded on a phone, the rail's
+    // row marks it (the kit's Rail, `attention`).
+    const waiting = set ? Number(me.open_actions ?? 0) : 0;
     if (set)
       items.push({
         key: "actions",
         label: "Actions",
         icon: "inbox",
         to: `${base}/actions`,
-        meta: me.open_actions ? String(me.open_actions) : undefined,
+        meta: waiting ? String(waiting) : undefined,
+        attention: waiting ? `${waiting} waiting for you` : undefined,
       });
     if (set)
       items.push({
@@ -87,6 +91,10 @@ export function railItems(me) {
     // sharing, which a leader can turn off; Recruit stays either way. It
     // is for verified members: an unverified player does not see it.
     const social = me?.social?.enabled !== false && clan.verified !== false;
+    // Every item names its group, and the kit draws a heading where the
+    // group changes: an item's heading never depends on which items the
+    // reader's role and the policy happen to put before it (an elder in
+    // a clan with a policy once found Scout under Social).
     if (social)
       items.push({
         group: "Social",
@@ -96,7 +104,7 @@ export function railItems(me) {
         to: `${base}/map`,
       });
     items.push({
-      ...(social ? {} : { group: "Social" }),
+      group: "Social",
       key: "recruit",
       label: "Recruit",
       icon: "megaphone",
@@ -108,6 +116,7 @@ export function railItems(me) {
     // (without one it posts nothing, and the page says so).
     if (leader)
       items.push({
+        group: "Social",
         key: "discord",
         label: "Discord",
         icon: "message-square",
@@ -124,6 +133,7 @@ export function railItems(me) {
           to: `${base}/manage/board`,
         });
         items.push({
+          group: "Manage",
           key: "history",
           label: "Decisions",
           icon: "history",
@@ -131,7 +141,7 @@ export function railItems(me) {
         });
       }
       items.push({
-        ...(set ? {} : { group: "Manage" }),
+        group: "Manage",
         key: "policy",
         label: "Policy",
         icon: "file-text",
@@ -140,6 +150,7 @@ export function railItems(me) {
       // Clan settings: what belongs to the whole clan (the clan's own
       // model first). Any clan, with or without a policy, like Recruit.
       items.push({
+        group: "Manage",
         key: "settings",
         label: "Settings",
         icon: "settings",
@@ -148,7 +159,7 @@ export function railItems(me) {
     }
     if (elder) {
       items.push({
-        ...(leader || set ? {} : { group: "Manage" }),
+        group: "Manage",
         key: "scout",
         label: "Scout",
         icon: "search",
@@ -165,6 +176,7 @@ export function railItems(me) {
   });
   if (clan && policy?.away)
     items.push({
+      group: "You",
       key: "away",
       label: "Away",
       icon: "plane",
