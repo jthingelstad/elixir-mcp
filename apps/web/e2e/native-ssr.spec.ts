@@ -5,7 +5,11 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { WEB_ROUTER_ALIAS, repoRoot } from "../../../infra/scripts/build.mjs";
+import {
+  LAMBDAS,
+  esbuildOptions,
+  repoRoot,
+} from "../../../infra/scripts/build.mjs";
 import { ME, SIGNED_OUT, signedIn, mockApi } from "./fixtures.ts";
 
 let server: Server;
@@ -13,22 +17,16 @@ let dir: string;
 let origin: string;
 test.beforeAll(async () => {
   dir = await mkdtemp(path.join(tmpdir(), "elixir-native-ssr-"));
-  const outfile = path.join(dir, "app-pages.mjs");
-  await build({
-    entryPoints: [path.join(repoRoot, "services/web-api/src/app-pages.mjs")],
-    outfile,
-    bundle: true,
-    platform: "node",
-    format: "esm",
-    target: "node24",
-    banner: {
-      js: "import {createRequire} from 'node:module';const require=createRequire(import.meta.url);",
-    },
-    define: { "process.env.NODE_ENV": '"production"' },
-    alias: WEB_ROUTER_ALIAS,
-    loader: { ".css": "empty", ".png": "dataurl" },
-    external: ["pg-native"],
-  });
+  // The web-api Lambda's own options (split, lucide-react's ES modules),
+  // with app-pages.mjs as the entry, so the journeys render what ships.
+  const webApi = LAMBDAS.find((l) => l.name === "web-api")!;
+  await build(
+    esbuildOptions(
+      { ...webApi, entry: "services/web-api/src/app-pages.mjs" },
+      dir,
+    ),
+  );
+  const outfile = path.join(dir, "index.mjs");
   const { makeAppPages } = await import(pathToFileURL(outfile).href);
   const pages = makeAppPages({
     shell: () => readFile(path.join(repoRoot, "dist/site/app.html"), "utf8"),

@@ -1,5 +1,11 @@
 import { readFile } from "node:fs/promises";
-import { renderApp } from "@elixir-mcp/web/server";
+
+/** Server rendering (React, the router, the console's pages) is loaded
+ *  on the first page, never at import: a cold start that serves a JSON
+ *  route does not pay for it (docs/notes/2026-10-21-web-api-cold-start.md).
+ *  The bundle carries it as a chunk of its own (infra/scripts/build.mjs). */
+const renderApp = async (input) =>
+  (await import("@elixir-mcp/web/server")).renderApp(input);
 
 const APP_PATH = /^\/(?:console|clan|ladder)(?:\/|$)/;
 const safeJson = (value) =>

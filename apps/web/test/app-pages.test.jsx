@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { test, expect } from "vitest";
 import { makeAppPages } from "../../../services/web-api/src/app-pages.mjs";
+// The pages load server rendering on the first page; loading it here,
+// before any test starts, keeps vitest's transform of the whole app out
+// of a test's five-second budget (it timed out on a loaded host).
+import "../src/entry-server.jsx";
 
 const request = {
   method: "GET",
