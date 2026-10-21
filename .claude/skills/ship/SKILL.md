@@ -190,7 +190,8 @@ holder has is a wait, never a workaround: the refusal names the holder,
 since when and what for, and their deploy ships origin/main, so yours may
 find nothing left to do. Never clear another holder's lock. A live deploy
 writes `deploys/production.json` and comments on each pull request it
-shipped (the time, the versions, the acceptance result).
+shipped (the time, the versions, the acceptance result, and the timing:
+the start, the CI gate's wait, each phase's seconds).
 
 The profile goes in the environment: "the CLI profile flag alone does not
 satisfy the SDK's provider chain" (ENGINEERING). The only flags
@@ -240,10 +241,15 @@ below still runs. The log names the lane and, for the platform lane,
 what changed. A docs page is always platform: the corpus rides the
 web-api, MCP and migrate bundles.
 
-**Order:** build, upload, lane, migrations (a failure stops the deploy before
-code flips), vocabulary import, stack, site publish (assets first,
+**Order** (`DEPLOY_PHASES` in `deploy.mjs`): build, upload, the app's
+assets, lane, the endpoint grant check (a missing or foreign CloudFront
+grant refuses the deploy before anything is migrated or switched: find
+who changed it, and restoring it is Jamie's call), migrations (a failure
+stops the deploy before code flips), vocabulary import, stack, the
+endpoint grant and its read-back, card art, site publish (assets first,
 never deleted; then documents; `lib/site-publish.mjs`), CloudFront
-invalidation and the prune of assets unshipped for 14 days, smoke (`infra/scripts/smoke.mjs`), acceptance when asked. A
+invalidation and the prune of assets unshipped for 14 days, smoke
+(`infra/scripts/smoke.mjs`), acceptance when asked, the record. A
 red smoke or acceptance means the code is already live: "a red smoke means
 fix forward now, not walk away". Migrations never roll back.
 
