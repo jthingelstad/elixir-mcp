@@ -22,7 +22,7 @@ import { createActionStore } from "@elixir-mcp/clan/manage/actions.mjs";
 import { createDrafts } from "@elixir-mcp/clan/manage/drafts.mjs";
 import { messageBody } from "@elixir-mcp/clan/anthropic.mjs";
 import { modelFor, NOTE_MAX } from "@elixir-mcp/clan-engine";
-import { clanStoryFacts } from "@elixir-mcp/syndication";
+import { draftStory } from "@elixir-mcp/syndication";
 const digest = (body) =>
   createHash("sha256").update(JSON.stringify(body)).digest("hex");
 const id = (value) => {
@@ -297,8 +297,7 @@ export async function clanMaintenance(databaseUrl, spec) {
       const drafts = createDrafts({
         ledger,
         model: null,
-        storyFor: (tag, playerTags) =>
-          clanStoryFacts(db, tag, { playerTags, moments: true }),
+        storyFor: (tag, playerTags) => draftStory(db, tag, playerTags),
       });
       const built = await drafts
         .request(clanTag, cardId, {
