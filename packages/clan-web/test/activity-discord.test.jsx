@@ -365,9 +365,9 @@ describe("Social ▸ Discord in the rail", () => {
       const at = rail.findIndex((r) => r.key === "discord");
       expect(at).toBeGreaterThan(-1);
       expect(rail[at].to).toBe("/clan/2PQRJ8LV/discord");
-      // After Recruit, before Manage starts its own group.
+      // After Recruit, in its group, before Manage starts its own.
       expect(rail[at - 1].key).toBe("recruit");
-      expect(rail[at].group).toBeUndefined();
+      expect(rail[at].group).toBe("Social");
       expect(rail.slice(at + 1).find((r) => r.group)?.group).toBe("Manage");
     }
     expect(items(me("elder")).map((r) => r.key)).not.toContain("discord");
