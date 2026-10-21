@@ -166,8 +166,8 @@ body of up to 180, and appears in members' Inbox, separate from chat.
 Routine messages default to **Clan chat**, where members normally talk.
 For award standings, final award announcements and important rule changes,
 choose **Durable Leader Message · Inbox** when you want members to keep it.
-Welcomes remain chat. Edit welcomes (up to 120 characters) and removal
-messages (up to 200) before copying them into the game. Each field counts
+Welcomes remain chat. Edit welcomes and removal messages (up to 200
+characters a line) before copying them into the game. Each field counts
 characters and warns about known chat-filter problems. Copying a field waits
 until its text fits; your edits stay in place to shorten. Nothing is ever
 posted for the clan automatically.
@@ -208,9 +208,12 @@ member and this clan rather than anyone's (2026-10-11):
 - **The clan**: its name, its recruiting words and declared goals, its
   member count and its last few finished war weeks (place and war
   trophies).
+- **Elixir's own words** for the Action, the ones the card shows with no
+  draft. A draft says at least that much, then more of the member.
 - **What happened**: the Action's own evidence in plain words. For a
-  promotion or demotion, what the rules counted (war decks, donations,
-  time in the clan) against the policy's bar; for the season's awards,
+  promotion, what the rules counted (war decks, donations, time in the
+  clan) against the policy's bar; for a demotion, only that the Elder
+  moves back to Member for now, never why; for the season's awards,
   each award with its winner and number; for a policy change, what the
   policy now says; for a welcome, the frozen return or recorded career
   detail with when it was observed; for a confirmed departure, the
@@ -218,8 +221,9 @@ member and this clan rather than anyone's (2026-10-11):
 - **The member**, by name: trophies and best, arena, career wins,
   collection level, time in the clan and any earlier stint, their recent
   war weeks as decks used and points, their recent moments in the clan's
-  timeline and the awards they hold here. For a removal or a departure
-  only their time in the clan and the weeks they played: never their
+  timeline and the awards they hold here. For a demotion only their time
+  in the clan and the awards they hold. For a removal or a departure only
+  their time in the clan and the weeks they played: never their
   trophies, a week they missed or why they were removed.
 - **More of their record**, when the draft is about one member: every
   war week they played in the clan over the last year as decks and
@@ -244,21 +248,38 @@ Never sent: a tag, a note saved on the Action (yours or another
 leader's), a hold, a removal's
 rationale or inactivity numbers, a member's share of the clan's fame, or
 anything the record does not hold. A fact the record lacks is left out.
-The model picks one or two details that make the moment personal and
-leaves the rest. A draft that carries a number or a name the model was
-not given is marked for you to check before sending; it is still your
-draft to edit. The model never decides whether to promote, demote or
+A draft says at least what Elixir's own words say, then two to four
+facts that belong to this member, each said for what it means, one to a
+sentence (2026-10-20). It never judges a member (no score, rank or
+standing) and gives no advice on how to play. A demotion thanks the
+member for what they did before and never says or hints why.
+
+In clan chat a draft is lines, each its own send of up to 200
+characters: up to three for a promotion, two for a welcome, a demotion
+or a farewell, and one for the words after a removal. The card shows a
+field for each line, with its own copy button; completing a welcome
+records every line as you edited it. An awards or policy announcement
+keeps its heading and message. In the Inbox a draft is a title and a
+message; it aims for 150 characters of the message, short of the 180
+leaders report the game takes, because that limit is reported, not
+published.
+
+A draft is marked for you to check before sending when it carries a
+number or a name the model was not given, says less of the record than
+Elixir's own words, hints at why in a demotion, or has a line the chat
+filter may mask or that runs past the limit. It is still your draft to
+edit. The model never decides whether to promote, demote or
 remove anyone. Drafts are bound to the Action's context: a changed
 confirmation or frozen detail clears older words and rejects an
 in-flight result. A careful draft can take longer than one request; the
 page keeps asking until it lands, for up to about 100 seconds.
 
-The clan's saved words in **Recruit** supply its voice. Choose a fixed
-tone for a welcome, removal or farewell line, or add a short note on what
-the message should stress; review and edit the answer.
-**Put back what I had** restores your previous words. Elders can edit and
-copy welcomes without using the clan's model. Completing a welcome records
-the words as edited. Drafting completes no action and sends no game message.
+The clan's saved words in **Recruit** supply its voice. For a welcome or
+a farewell, choose a tone and add a short note in **What should it
+say?** on what to stress; the words after a removal take only a tone;
+a promotion, a demotion or an announcement takes the note. Review and
+edit the answer. **Put back what I had** restores your previous words.
+Elders can edit and copy welcomes without using the clan's model. Drafting completes no action and sends no game message.
 While a draft is loading, copying and action decisions wait for it to finish.
 Review the returned words before sending and marking the action complete.
 
