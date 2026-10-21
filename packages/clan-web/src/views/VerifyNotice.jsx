@@ -1,4 +1,4 @@
-import { Tag } from "@elixir-mcp/ui";
+import { Link, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
@@ -45,9 +45,9 @@ export function VerifyNotice({ me, onAcknowledge }) {
         </span>
       </div>
       <div className="flex flex-wrap gap-2.5">
-        <a className="btn btn--primary" href={ELIXIR_LINKS.verify}>
+        <Link className="btn btn--primary" to={ELIXIR_LINKS.verify}>
           Verify in Elixir ›
-        </a>
+        </Link>
         <button
           type="button"
           className="btn"

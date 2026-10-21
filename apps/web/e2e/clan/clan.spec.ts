@@ -269,6 +269,16 @@ test("an unverified Leader: the notice first, then the clan as a member with the
   ).toBeVisible();
   await rendered(page);
   await accessible(page, "unverified clan page");
+
+  // Into the Console on this origin, in the app (2026-10-20): the link
+  // was production's address, whatever origin the page was on.
+  const origin = new URL(page.url()).origin;
+  await page
+    .getByRole("link", { name: /Verify in Elixir/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(`${origin}/console/account/verify`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Verify");
 });
 
 test.describe("signed in", () => {

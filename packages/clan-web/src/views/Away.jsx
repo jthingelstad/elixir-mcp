@@ -1,5 +1,5 @@
 import { useInitialTime } from "@elixir-mcp/ui";
-import { noun, Tag } from "@elixir-mcp/ui";
+import { Link, noun, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useMyAway } from "../lib/queries.js";
@@ -98,7 +98,7 @@ export function Away({ me }) {
             Saying you are away shields removal eligibility while active and
             tells Elixir in your player&rsquo;s name, so it waits until your
             player is verified.{" "}
-            <a href={ELIXIR_LINKS.verify}>Verify in Elixir ›</a>
+            <Link to={ELIXIR_LINKS.verify}>Verify in Elixir ›</Link>
           </span>
         </div>
       ) : state.allowed ? (

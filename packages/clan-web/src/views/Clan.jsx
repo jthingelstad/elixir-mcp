@@ -458,9 +458,9 @@ export function Clan({ me, clan, navigate, search }) {
             Elixir → Tracking (clans), and the roster arrives with the first
             poll.
           </p>
-          <a className="btn btn--primary" href={ELIXIR_LINKS.tracking}>
+          <Link className="btn btn--primary" to={ELIXIR_LINKS.tracking}>
             Elixir → Tracking ›
-          </a>
+          </Link>
         </div>
       ) : roster ? (
         <>
