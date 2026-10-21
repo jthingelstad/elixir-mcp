@@ -141,9 +141,13 @@ export function makeHandler({
         try {
           outcome = await fromRecord(db, record.body, remainingMs);
         } catch (err) {
+          // The kind and what broke, as the tools' invoker logs it: the
+          // 596 dead letters of 2026-10-15 logged only "ReferenceError"
+          // here, and their cause was read from the MCP door's log.
           console.error(
             "timeline_sync_retry",
             err?.code ?? err?.name ?? "error",
+            err?.message,
           );
           outcome = "retry";
         }
