@@ -1124,6 +1124,26 @@ test("one application and account survive Console and Clan navigation at phone, 
   });
   await mockApi(page, signedIn());
   await page.emulateMedia({ reducedMotion: "reduce" });
+  // From one product to another through the shared chrome. At 900px and
+  // below it folds the places into the sheet behind the "Product: …"
+  // button (components.css), so the width says which to use. Never ask
+  // whether the bar's link is visible yet: that check does not wait, and
+  // a header still drawing sent the desktop pass to the narrow button,
+  // which is never drawn there (CI, 2026-10-21).
+  const switchTo = async (from: string, to: string, width: number) => {
+    if (width > 900)
+      return page
+        .locator("header")
+        .getByRole("link", { name: to, exact: true })
+        .click();
+    await page
+      .getByRole("button", { name: `Product: ${from}`, exact: true })
+      .click();
+    await page
+      .locator("#chrome-sheet")
+      .getByRole("link", { name: to, exact: true })
+      .click();
+  };
   for (const viewport of [
     { width: 390, height: 844 },
     { width: 844, height: 390 },
@@ -1136,19 +1156,7 @@ test("one application and account survive Console and Clan navigation at phone, 
       (window as Window & { applicationMarker?: string }).applicationMarker =
         "same-app";
     });
-    const clanLink = page
-      .locator("header")
-      .getByRole("link", { name: "Clan", exact: true });
-    if (await clanLink.isVisible()) await clanLink.click();
-    else {
-      await page
-        .getByRole("button", { name: "Product: Console", exact: true })
-        .click();
-      await page
-        .locator("#chrome-sheet")
-        .getByRole("link", { name: "Clan", exact: true })
-        .click();
-    }
+    await switchTo("Console", "Clan", viewport.width);
     // The chooser, then the clan's landing: Actions, for this leader
     // with two waiting.
     await expect(page).toHaveURL(/\/clan\/(clans|2PQRJ8LV\/actions)$/);
@@ -1171,19 +1179,7 @@ test("one application and account survive Console and Clan navigation at phone, 
       "no sideways scroll",
     ).toBe(false);
     await accessible(page, `shared clan ${viewport.width}x${viewport.height}`);
-    const consoleLink = page
-      .locator("header")
-      .getByRole("link", { name: "Console", exact: true });
-    if (await consoleLink.isVisible()) await consoleLink.click();
-    else {
-      await page
-        .getByRole("button", { name: "Product: Clan", exact: true })
-        .click();
-      await page
-        .locator("#chrome-sheet")
-        .getByRole("link", { name: "Console", exact: true })
-        .click();
-    }
+    await switchTo("Clan", "Console", viewport.width);
     await expect(page).toHaveURL(/\/console\/account\/overview$/);
     expect(
       await page.evaluate(
