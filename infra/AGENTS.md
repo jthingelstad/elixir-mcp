@@ -48,9 +48,12 @@ in `deploy.mjs`, an ordered list of named phases, each with the condition
 it runs on; `services/mcp/test/infra-controls.test.mjs` asserts the list
 and each lane's sequence directly. Order: worktree, CI gate, lock,
 account, build, upload, the app's assets, lane, the endpoint grant check,
-migrate, vocabulary import, stack, the endpoint grant, web (card art,
-site, invalidation, prune), smoke, then acceptance when asked
-(`--acceptance` or `--acceptance=<family>`), and the record.
+migrate (push the migrate bundle, the reference-seed check when asked,
+apply), vocabulary import, stack, the endpoint grant, the first
+migrations (`--create` only), the public statistics snapshot (platform
+lane; a failed snapshot stops the deploy), web (card art, site,
+invalidation, prune), smoke, then acceptance when asked (`--acceptance`
+or `--acceptance=<family>`), and the record.
 
 - **Lanes:** bundles are named by content, so a change that touches no
   Lambda and not the template takes the site lane and skips migrations and

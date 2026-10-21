@@ -55,19 +55,3 @@ the acceptance suite; nearly all of it was repeated work:
 
 The deploy no longer calls the AWS CLI. No MCP, JSON API or schema
 change.
-
-**Measured.** The first deploy with it (#639, 2026-10-21 03:01 CDT, site
-lane) spent 1.7 s in the assets phase (was 20.3 s) and 7.4 s in the site
-phase (was 21.4 s), 22.2 s before the acceptance suite (was 56.9 s). It
-had no publish record yet, so the site phase confirmed about 1,470
-matching files with HEAD; from the next deploy the record vouches for
-them. Live read-back: `llms.txt` and the font licence serve
-`text/plain; charset=utf-8`, a Vite chunk `text/javascript` immutable,
-the documents and `site.css` revalidate.
-
-**Deletes S3 keeps.** DeleteObjects answers 200 even when S3 keeps some
-keys, naming them in `Errors` (Codex on #639). `deleteKeys` returns
-those: a document the build no longer has that S3 kept fails the
-publish, like a failed PUT, since it may have been taken down on
-purpose; an asset the prune could not delete is a warning, left for the
-next prune.
