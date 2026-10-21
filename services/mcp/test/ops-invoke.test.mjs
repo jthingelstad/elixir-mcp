@@ -68,6 +68,7 @@ test("op: reads are reads", () => {
     { family_clients: { list: true } },
     { oauth_grants: { redirect_host: "drop.poapkings.com" } },
     { rollup_regroup: { census: true } },
+    { reindex: { table: "battle" } },
     { account_remove: { email: "x", dry_run: true } },
     { account_track: { primary_tag: "#A", player_tag: "#B", dry_run: true } },
     { agent_recordings: { dry_run: true } },
@@ -108,6 +109,13 @@ test("op: everything else is a write, and takes the lock", () => {
     { oauth_grants: { revoke: ["f"] } },
     { oauth_grants: { redirect_host: "x", revoke: ["f"] } },
     { rollup_regroup: true },
+    // The rebuild and the leftover's drop; anything beside the table.
+    { reindex: { table: "battle", index: "battle_pkey", apply: true } },
+    { reindex: { table: "battle", drop_invalid: "battle_pkey_ccnew" } },
+    { reindex: { table: "battle", index: "battle_pkey" } },
+    { reindex: { table: "battle", apply: false } },
+    { reindex: true },
+    { reindex: {} },
     { account_remove: { email: "x" } }, // defaults to a dry run; not counted
     { account_enroll: { dry_run: false } },
     { account_track: { primary_tag: "#A" } }, // defaults to a REAL run

@@ -103,6 +103,8 @@ const MIGRATE_READS = {
   oauth_grants: (v) =>
     exactly(v, { redirect_host: (h) => typeof h === "string" && h !== "" }),
   rollup_regroup: (v) => exactly(v, { census: true }),
+  // The report names only the table; a rebuild or a drop names more.
+  reindex: (v) => exactly(v, { table: (t) => typeof t === "string" }),
   // A dry run reads; only an explicit one counts (two of the three
   // default to a dry run, account_track does not).
   account_remove: (v) => isObject(v) && v.dry_run === true,

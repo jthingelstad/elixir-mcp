@@ -212,6 +212,7 @@ read-only session (no issue, no send).
 | What was a Clan draft's model told? | `{clan_maintenance}` with `"lane": "draft_packet"` |
 | What is the database doing right now? | `{backends}` |
 | Where is the database's weight? | `{tables}` |
+| How bloated are `battle`'s indexes? | `{reindex}` with only `table` |
 | Did the series backfill land? | `{series_status}`, `{series_census_self}` |
 
 ## Adding or removing an op

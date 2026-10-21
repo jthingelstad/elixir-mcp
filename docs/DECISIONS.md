@@ -246,6 +246,7 @@ restating it in wider words.
 
 - **Cost calls are Jamie's** — account-wide spend never changes through an Elixir runtime change. [Jamie, 2026-09-13, 2026-09-21]
 - **The database is db.t4g.micro** — again since 2026-10-08, the class the reserved instance covers; the small (2026-09-23 to 10-08) held a record the tracked-only correction removed. [Jamie, 2026-09-03, 2026-09-23, 2026-10-08]
+- **`shared_buffers` follows RDS's memory-pressure setting** — 88 MB from the maintenance restart that applies it; nothing pins it. [Jamie, 2026-10-21; #630]
 - **No Lambda-to-Lambda from the NAT-free VPC** — VPC Lambdas hand work to the non-VPC relay by writing one object to the outbox bucket (`email/`, `clan-model/`) through the S3 gateway endpoint; S3 notifies SQS, which holds retries and DLQs. [Jamie, 2026-09-24; engineering: no Lambda-to-Lambda, 2026-09-06]
 - **The edge compresses every door and caches only what is the same for everyone** — every behaviour sets `Compress: true`; `/api/public/*`, `/battle/*` and the OAuth metadata at `/.well-known/*` are cached by URL alone with no origin request policy, and every other door is private (TTL 0, Authorization in the key); the static router answers scanner paths 404 itself, and no built file may match one. [engineering, 2026-10-21]
 - **Door pools keep an idle connection 120 s** — under the 300 s lifetime, with TCP keepalive (240 s held twice the idle backends for 11-18% more of the latency win, on a micro that swaps); a returned lease rolls back only a transaction the server reports open, then `DISCARD ALL`; on MCP and web-api a connection that cannot be had answers 503 with `Retry-After` (the collector door's 503 carries none: its client retries a 5xx on its own backoff). [engineering, 2026-10-21]
@@ -267,6 +268,7 @@ restating it in wider words.
 - **Cards are rows, not JSON** — fixed-shape JSON becomes typed columns; `deck_hash` is the natural key. [Jamie, 2026-09-15, 2026-09-17]
 - **Time-series shape** — `season` keyed on `season_month`; `war_period` rows; day grain with the last observation winning; a war-id mismatch alarms but never relabels. [Jamie, 2026-09-17]
 - **A backfill that does not vacuum is not finished** — never run a backfill and a deploy together. [engineering, 2026-09-22]
+- **`battle`'s indexes are rebuilt concurrently by `{reindex}`** — `REINDEX INDEX CONCURRENTLY` through `npm run op`, after the maintenance restart. [Jamie, 2026-10-21; engineering: one index per invocation, `battle` the op's only table; `docs/notes/2026-10-21-battle-reindex-op.md`]
 - **Live diagnostics only through migrate ops** — EXPLAIN the exact SQL the tool serves. [engineering, 2026-09-15, 2026-09-17]
 - **Incident authority** — while the door or pipeline is failing, `{terminate_backends}` (named, on a migration or backfill backend past five minutes) and `{gateway_drain}`/`{gateway_recover}` may be run within the bounds in `docs/OPERATIONS.md`, each use recorded with its evidence; account-touching write ops (`{account_*}`, `{oauth_grants}`) stay Jamie's. [Jamie, 2026-09-25, 2026-10-10]
 

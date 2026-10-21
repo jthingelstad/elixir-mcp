@@ -77,6 +77,7 @@ import {
 } from "./ops-series.mjs";
 import { duelRoundDecks } from "./ops-duel-rounds.mjs";
 import { rollupRegroup } from "./ops-rollup-regroup.mjs";
+import { reindex } from "./ops-reindex.mjs";
 
 /** The function's own application_name (PGAPPNAME in
  *  infra/template.yaml), read once, before any op renames it. */
@@ -225,6 +226,13 @@ async function dispatch(event) {
   }
   if (event?.vacuum) {
     const result = await vacuum(process.env.DATABASE_URL, event.vacuum);
+    console.log(JSON.stringify(result));
+    return result;
+  }
+  if (event?.reindex) {
+    // Report by default; a rebuild or a leftover's drop is named
+    // (ops-reindex.mjs). Sizes and names only, so the answer is loggable.
+    const result = await reindex(process.env.DATABASE_URL, event.reindex);
     console.log(JSON.stringify(result));
     return result;
   }
