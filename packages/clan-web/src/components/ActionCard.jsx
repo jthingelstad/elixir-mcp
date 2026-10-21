@@ -805,6 +805,32 @@ function By({ by }) {
   );
 }
 
+/** What the clan's model wrote, as it wrote it (2026-10-20, call 6):
+ *  kept on the "drafted" entry, and only leaders and co-leaders are sent
+ *  it. The words the leader sent, if any, are the decision's own. */
+function DraftAsWritten({ draft }) {
+  const lines = Array.isArray(draft.lines) ? draft.lines : null;
+  return (
+    <div className="grid gap-1 border-l-2 border-line-row pl-3 text-ink-body">
+      <span className="page-head__note">What the model wrote</span>
+      {lines ? (
+        lines.map((line, i) => (
+          <p className="m-0 whitespace-pre-wrap break-words" key={i}>
+            {line}
+          </p>
+        ))
+      ) : (
+        <>
+          {draft.title ? <strong>{draft.title}</strong> : null}
+          {draft.body ? (
+            <p className="m-0 whitespace-pre-wrap break-words">{draft.body}</p>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+}
+
 /** An action's log, oldest first, and a place to add to it. */
 export function ActionLog({ action, clan, onChanged }) {
   const { zone: accountZone } = useClock();
@@ -854,6 +880,9 @@ export function ActionLog({ action, clan, onChanged }) {
               </span>
             </div>
             {e.text ? <div className="text-ink-body">{e.text}</div> : null}
+            {e.kind === "drafted" && e.detail?.draft ? (
+              <DraftAsWritten draft={e.detail.draft} />
+            ) : null}
             {e.detail?.reason ? (
               <div className="page-head__note">
                 reason: {e.detail.reason.replaceAll("_", " ")}
