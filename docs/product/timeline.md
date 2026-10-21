@@ -25,7 +25,9 @@ lives above it, in the editors. [Jamie, 2026-10-11]
 
 - **A person**, in the console, by mail, and cross-posted to a Discord
   channel of their own: every player they track with notifications on,
-  every clan they added.
+  every clan they added. What the console shows as new is its own:
+  "timeline should be independent of what agents have seen via MCP."
+  [Jamie, 2026-10-20]
 - **An agent**: the clans it tracks (members appear on the clan's
   timeline, never as subjects of their own) and the players it watches.
   Every agent has its own read pointer, and a consumer may name a
