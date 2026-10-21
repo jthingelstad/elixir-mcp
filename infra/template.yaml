@@ -2714,6 +2714,7 @@ Resources:
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
             FunctionAssociations:
               - EventType: viewer-request
@@ -2725,6 +2726,7 @@ Resources:
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
             FunctionAssociations:
               - EventType: viewer-request
@@ -2735,6 +2737,7 @@ Resources:
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
             FunctionAssociations:
               - EventType: viewer-request
@@ -2746,6 +2749,7 @@ Resources:
             # AWS managed CachingDisabled
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
             OriginRequestPolicyId: !Ref SiteApiOriginRequestPolicy
             FunctionAssociations:
               - EventType: viewer-request
@@ -2759,6 +2763,7 @@ Resources:
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
             FunctionAssociations:
               - EventType: viewer-request
@@ -2775,6 +2780,7 @@ Resources:
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
             FunctionAssociations:
               - EventType: viewer-request
@@ -2785,6 +2791,7 @@ Resources:
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
             FunctionAssociations:
               - EventType: viewer-request
@@ -2799,6 +2806,7 @@ Resources:
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
             OriginRequestPolicyId: !Ref OauthAuthorizeOriginRequestPolicy
             FunctionAssociations:
               - EventType: viewer-request
@@ -2809,17 +2817,23 @@ Resources:
             AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
             CachePolicyId: !Ref WebPrivateCachePolicy
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
+            Compress: true
             OriginRequestPolicyId: !Ref McpOriginRequestPolicy
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
+          # The OAuth metadata documents (RFC 8414, RFC 9728) are built
+          # from the issuer and the path alone, carry no credential, and
+          # say max-age=300 themselves; every MCP client fetches them
+          # before it connects. Cached like the public reads: nothing
+          # reaches the door but the path (2026-10-21).
           - PathPattern: /.well-known/*
             TargetOriginId: mcpapi
             ViewerProtocolPolicy: https-only
             AllowedMethods: [GET, HEAD]
-            CachePolicyId: !Ref WebPrivateCachePolicy
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
             ResponseHeadersPolicyId: !Ref SecurityHeadersPolicy
-            OriginRequestPolicyId: !Ref McpOriginRequestPolicy
+            Compress: true
             FunctionAssociations:
               - EventType: viewer-request
                 FunctionARN: !GetAtt OauthQueryNormalizer.FunctionMetadata.FunctionARN
@@ -2917,9 +2931,42 @@ Resources:
         Comment: Route content paths to static site documents
         Runtime: cloudfront-js-2.0
       FunctionCode: |
+        // Scanners walk every host for secrets and admin pages (/.env,
+        // /.git/config, /wp-login.php, /phpinfo, /config.json): 425 of the
+        // 728 site misses that failed over to the web API in the week to
+        // 10-21 (#451). The site serves no dot-file, no server-side code
+        // or configuration, and no such directory, so the edge answers
+        // these 404 itself. apps/site/test/site.test.mjs walks the built
+        // tree so that no real path can match.
+        var SCANNED = [
+          // A dot-file or dot-directory anywhere: .env, .git, .aws, .npmrc.
+          /\/\./,
+          // Server-side code, configuration, dumps and editor leftovers.
+          /\.(php\d?|phtml|aspx?|jsp|cgi|env|ini|sql|bak|old|orig|save|swp|log|ya?ml|toml|py|sh|tar|t?gz|zip|rar|7z|sqlite3?|pem|key)$/i,
+          // Admin, framework and credential directories.
+          /\/(wp|wp-[\w-]*|wordpress|phpinfo|phpmyadmin|_profiler|cgi-bin|vendor|credentials|env|dockerfile)(\/|$)/i,
+          // Configuration and credentials served as script or JSON, by
+          // whole file name: a built chunk is always name-hash.js.
+          /\/(_*env|(app|env|runtime|window|global|server|sftp)?[.-]?config|appsettings(\.\w+)?|credentials|secrets?|settings|aws-exports|composer|auth|keys)\.(js|json)$/i
+        ];
+
         function handler(event) {
           var request = event.request;
           var uri = request.uri;
+
+          for (var i = 0; i < SCANNED.length; i++) {
+            if (SCANNED[i].test(uri)) {
+              return {
+                statusCode: 404,
+                statusDescription: 'Not Found',
+                headers: {
+                  'content-type': { value: 'text/plain; charset=utf-8' },
+                  'cache-control': { value: 'public, max-age=86400' }
+                },
+                body: 'Not found\n'
+              };
+            }
+          }
 
           // A path whose last segment has an extension is asking for a
           // real file; if it is not there, that is a 404 and must stay
