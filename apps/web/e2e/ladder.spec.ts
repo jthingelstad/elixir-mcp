@@ -7,7 +7,13 @@ import {
   railStaysInView,
   signedIn,
 } from "./fixtures.ts";
-import { FORM, explore, summary, type ToolCall } from "./ladder-fixture.ts";
+import {
+  FORM,
+  explore,
+  summary,
+  tally,
+  type ToolCall,
+} from "./ladder-fixture.ts";
 
 /** Nothing serious or critical, on every page a journey lands on. */
 async function accessible(page: Page, name: string) {
@@ -212,7 +218,15 @@ test.describe("Ladder signed in", () => {
       ]),
     );
     expect(perf.every((c) => c.args.player_tag === "#20JJJ2CCRU")).toBe(true);
-    expect(perf.every((c) => c.args.season === "current")).toBe(true);
+    // The page's own reads name the current season; "This season vs
+    // last" reads the season before by its number, in the same mode.
+    expect(
+      perf.every(
+        (c) =>
+          c.args.season === "current" ||
+          (c.args.season === 135 && c.args.mode === "ladder"),
+      ),
+    ).toBe(true);
     await accessible(page, "ladder season");
   });
 
@@ -329,7 +343,12 @@ test.describe("Ladder signed in", () => {
       .click();
     await expect(page).toHaveURL(/\/ladder\?mode=war$/);
     await expect(page.locator(".ladder-tile").nth(3)).toContainText("Crowns");
-    await expect(page.locator(".ladder-form")).toHaveCount(0);
+    // Neither the week nor the deck panel: the one form panel is the
+    // season's, with no War battle in Season 135 to set beside.
+    await expect(
+      page.getByRole("region", { name: "This season vs last" }),
+    ).toContainText("Elixir recorded no War battles in Season 135");
+    await expect(page.locator(".ladder-form")).toHaveCount(1);
   });
 
   test("a mode is an address, and a mode with no battles says so", async ({
@@ -1342,7 +1361,7 @@ test.describe("Ladder seasons", () => {
     ).toBeVisible();
     await expect(page.getByLabel("Season", { exact: true })).toHaveValue("135");
     // Its record is shown, not an empty page.
-    await expect(page.locator(".ladder-tiles")).toContainText("35");
+    await expect(page.locator(".ladder-tiles")).toContainText("52");
     await accessible(page, "ladder, an empty current season");
 
     // The empty season itself, one click away, says it is empty.
@@ -1354,5 +1373,356 @@ test.describe("Ladder seasons", () => {
       }),
     ).toBeVisible();
     await expect(note).toHaveCount(0);
+  });
+});
+
+/* "This season vs last" (Jamie, 2026-10-20): the season home's mode,
+   this season beside the one before it on record. Thursday 4:00 pm
+   Central, 24 days and 11 hours into Season 136. */
+test.describe("Ladder this season vs last", () => {
+  const NOW = new Date("2026-10-01T21:00:00Z");
+  const PLAYER = "#20JJJ2CCRU";
+  /** The reads that name a season other than the current one, or a
+   *  stretch of it: the comparison's own. */
+  const added = (calls: ToolCall[]) =>
+    calls.filter(
+      (c) =>
+        (c.args.season != null && c.args.season !== "current") ||
+        c.args.from === "2026-08-03T10:00:00.000Z",
+    );
+
+  test("a running season so far, beside last season to the same point and in full: counts and numbers, no verdict", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder");
+
+    const panel = page.getByRole("region", { name: "This season vs last" });
+    await expect(panel).toContainText("Trophy Road");
+    await expect(panel).toContainText(
+      "Your Trophy Road record so far this season, beside Season 135's.",
+    );
+    const head = panel.locator("thead th");
+    await expect(head.nth(1)).toHaveText("Season 136 so far");
+    await expect(head.nth(2)).toHaveText("Season 135 to the same point");
+    await expect(head.nth(3)).toHaveText("All of Season 135");
+    const rows = panel.locator("tbody tr");
+    await expect(rows.locator("th")).toHaveText([
+      "Won–lost",
+      "Win rate",
+      "Net trophies",
+      "Decks played",
+    ]);
+    const cells = (i: number) => rows.nth(i).locator("td");
+    // Every side shows its counts, each number over the battles it is over.
+    await expect(cells(0).nth(0)).toContainText("12–23");
+    await expect(cells(0).nth(0)).toContainText("12 won, 23 lost");
+    await expect(cells(0).nth(0)).toContainText("35 battles");
+    await expect(cells(0).nth(1)).toContainText("12–9");
+    await expect(cells(0).nth(1)).toContainText("21 battles");
+    await expect(cells(0).nth(2)).toContainText("28–24");
+    await expect(cells(0).nth(2)).toContainText("52 battles");
+    await expect(cells(1)).toHaveText([
+      "34%35 battles",
+      "57%21 battles",
+      "54%52 battles",
+    ]);
+    await expect(cells(2)).toHaveText([
+      "−1035 battles",
+      "+5421 battles",
+      "+9652 battles",
+    ]);
+    await expect(cells(3)).toHaveText([
+      "235 battles",
+      "221 battles",
+      "352 battles",
+    ]);
+
+    // Fairness and its limits, said plainly.
+    const foot = panel.locator(".panel__foot");
+    await expect(foot).toContainText(
+      "Season 135 to the same point is its first 24 days and 11 hours, to Thursday, August 27 at 4:00 pm CDT: as far into it, to the hour, as this season is now. All of Season 135 ran 35 days.",
+    );
+    await expect(foot).toContainText(
+      "Elixir's record of you begins Wednesday, August 19, partway through Season 135, so not all of that season is on record.",
+    );
+    await expect(foot).toContainText(
+      "In Season 136 you stood on an arena floor, where a loss costs no trophies.",
+    );
+    await expect(foot).toContainText("A side is shown from 10 decided battles");
+    await expect(foot).toContainText("they do not say why the seasons differ.");
+    await expect(panel).not.toContainText(
+      /improv|better|worse|good|bad|great|declin|trend|ahead|behind|score|rating|should|try /i,
+    );
+
+    // Three reads added, each once: Season 135 with its same point, and
+    // the decks of each; this season's side is the page's own reads.
+    const reads = added(calls);
+    expect(reads).toHaveLength(3);
+    expect(reads.map((c) => [c.tool, c.args])).toEqual(
+      expect.arrayContaining([
+        [
+          "battles_performance",
+          {
+            player_tag: PLAYER,
+            season: 135,
+            mode: "ladder",
+            compare_from: "2026-08-03T10:00:00.000Z",
+            compare_to: "2026-08-27T21:00:00.000Z",
+          },
+        ],
+        // The Decks page's own read of Season 135 (the same key).
+        [
+          "battles_decks",
+          { player_tag: PLAYER, season: 135, mode: "ladder", limit: 100 },
+        ],
+        // limit 1: total_decks counts every deck whatever the page size.
+        [
+          "battles_decks",
+          {
+            player_tag: PLAYER,
+            mode: "ladder",
+            from: "2026-08-03T10:00:00.000Z",
+            to: "2026-08-27T21:00:00.000Z",
+            limit: 1,
+          },
+        ],
+      ]),
+    );
+    // This season's decks: the deck panel's read, made once.
+    expect(
+      calls.filter(
+        (c) =>
+          c.tool === "battles_decks" &&
+          c.args.season === "current" &&
+          c.args.mode === "ladder",
+      ),
+    ).toHaveLength(1);
+    await accessible(page, "ladder this season vs last");
+  });
+
+  test("a mode with no battles last season says so, and reads no decks for it", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder?mode=war");
+    const panel = page.getByRole("region", { name: "This season vs last" });
+    await expect(panel).toContainText("War");
+    await expect(panel).toContainText(
+      "Elixir recorded no War battles in Season 135, so there is nothing to set beside this season.",
+    );
+    await expect(panel.locator("table")).toHaveCount(0);
+    await expect(panel.locator(".panel__foot")).toContainText(
+      "partway through Season 135",
+    );
+    // One read: Season 135 in War. With no battle, no deck read.
+    expect(added(calls).map((c) => [c.tool, c.args])).toEqual([
+      [
+        "battles_performance",
+        {
+          player_tag: PLAYER,
+          season: 135,
+          mode: "war",
+          compare_from: "2026-08-03T10:00:00.000Z",
+          compare_to: "2026-08-27T21:00:00.000Z",
+        },
+      ],
+    ]);
+    await accessible(page, "ladder this season vs last, none last season");
+  });
+
+  test("this season under the minimum is not set beside last season, which is not read", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    // Events: three battles this season.
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder?mode=event");
+    await expect(
+      page.getByRole("region", { name: "This season vs last" }),
+    ).toContainText(
+      "This season has fewer than 10 decided Events battles so far, so it is not set beside Season 135 yet.",
+    );
+    expect(added(calls)).toEqual([]);
+    await accessible(page, "ladder this season vs last, too few so far");
+  });
+
+  test("last season under the minimum is not set beside this one, and its decks are not read", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    // Six Trophy Road battles in all of Season 135.
+    const calls: ToolCall[] = [];
+    await mockApi(
+      page,
+      signedIn({
+        "POST /api/explore": explore(calls, {
+          past: { ladder: tally(6, 2, -40) },
+          samePoint: { ladder: tally(4, 1, -40) },
+        }),
+      }),
+    );
+    await page.goto("/ladder?mode=ladder");
+    const panel = page.getByRole("region", { name: "This season vs last" });
+    await expect(panel).toContainText(
+      "Elixir recorded fewer than 10 decided Trophy Road battles in Season 135, so it is not set beside this season.",
+    );
+    await expect(panel.locator("table")).toHaveCount(0);
+    expect(added(calls).map((c) => c.tool)).toEqual(["battles_performance"]);
+  });
+
+  test("last season to the same point under the minimum drops out, and all of last season stays", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    const calls: ToolCall[] = [];
+    await mockApi(
+      page,
+      signedIn({
+        "POST /api/explore": explore(calls, {
+          samePoint: { ladder: tally(7, 3, 12) },
+        }),
+      }),
+    );
+    await page.goto("/ladder?mode=ladder");
+    const panel = page.getByRole("region", { name: "This season vs last" });
+    await expect(panel.locator("thead th")).toHaveText([
+      "Number",
+      "Season 136 so far",
+      "All of Season 135",
+    ]);
+    await expect(panel.locator("tbody tr").nth(1).locator("td")).toHaveText([
+      "34%35 battles",
+      "54%52 battles",
+    ]);
+    await expect(panel.locator(".panel__foot")).toContainText(
+      "Season 135 to the same point is its first 24 days and 11 hours, to Thursday, August 27 at 4:00 pm CDT: as far into it, to the hour, as this season is now. It has fewer than 10 decided Trophy Road battles, so it is not shown. All of Season 135 ran 35 days.",
+    );
+    // No decks read for a side that is not shown.
+    expect(
+      added(calls).map((c) => [c.tool, c.args.season ?? c.args.from]),
+    ).toEqual([
+      ["battles_performance", 135],
+      ["battles_decks", 135],
+    ]);
+  });
+
+  test("a past season sits beside the one before it, both whole, on the Season page's own reads", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    const calls: ToolCall[] = [];
+    await mockApi(
+      page,
+      signedIn({ "POST /api/explore": explore(calls, { earlier: true }) }),
+    );
+    await page.goto("/ladder?mode=ladder&season=135");
+    const panel = page.getByRole("region", {
+      name: "Season 135 vs Season 134",
+    });
+    await expect(panel).toContainText(
+      "Your Trophy Road record in Season 135, beside Season 134's.",
+    );
+    const head = panel.locator("thead th");
+    await expect(head).toHaveText(["Number", "Season 135", "Season 134"]);
+    const rows = panel.locator("tbody tr");
+    await expect(rows.nth(0).locator("td")).toContainText(["28–24", "10–8"]);
+    await expect(rows.nth(1).locator("td")).toHaveText([
+      "54%52 battles",
+      "56%18 battles",
+    ]);
+    await expect(rows.nth(2).locator("td")).toHaveText([
+      "+9652 battles",
+      "+6018 battles",
+    ]);
+    await expect(rows.nth(3).locator("td")).toHaveText([
+      "352 battles",
+      "118 battles",
+    ]);
+    const foot = panel.locator(".panel__foot");
+    await expect(foot).toContainText(
+      "Season 135 ran 35 days and Season 134 ran 28 days; each is read whole.",
+    );
+    await expect(foot).toContainText(
+      "Elixir's record of you begins Thursday, July 9, partway through Season 134",
+    );
+    await expect(foot).not.toContainText("arena floor");
+    await expect(panel).not.toContainText("so far");
+
+    // Two reads, both the keys the Season and Decks pages use for 134.
+    const of134 = () =>
+      calls.filter((c) => c.args.season === 134).map((c) => [c.tool, c.args]);
+    expect(of134()).toEqual(
+      expect.arrayContaining([
+        [
+          "battles_performance",
+          { player_tag: PLAYER, season: 134, mode: "ladder" },
+        ],
+        [
+          "battles_decks",
+          { player_tag: PLAYER, season: 134, mode: "ladder", limit: 100 },
+        ],
+      ]),
+    );
+    expect(of134()).toHaveLength(2);
+    await accessible(page, "ladder a past season vs the one before");
+
+    // Opening Season 134 reads its record from the same cache entry.
+    await page.getByLabel("Season", { exact: true }).selectOption("134");
+    await expect(page).toHaveURL(/\/ladder\?mode=ladder&season=134$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Season 134" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Season 134 vs the season before" }),
+    ).toContainText(
+      "Elixir's record of you holds no season before Season 134, so there is nothing to set beside it.",
+    );
+    expect(
+      calls.filter(
+        (c) =>
+          c.tool === "battles_performance" &&
+          c.args.season === 134 &&
+          !c.args.group_by,
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("the first season on record has none before it, and reads nothing for one", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    const calls: ToolCall[] = [];
+    await mockApi(page, signedIn({ "POST /api/explore": explore(calls) }));
+    await page.goto("/ladder?mode=ladder&season=135");
+    await expect(
+      page.getByRole("region", { name: "Season 135 vs the season before" }),
+    ).toContainText(
+      "Elixir's record of you holds no season before Season 135, so there is nothing to set beside it.",
+    );
+    expect(calls.some((c) => c.args.season === 134)).toBe(false);
+    await accessible(page, "ladder no season before");
+  });
+
+  test("@narrow the season table fits a phone, three sides and all", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder");
+    const panel = page.getByRole("region", { name: "This season vs last" });
+    await expect(panel.locator("thead th")).toHaveCount(4);
+    await expect(panel.locator("tbody tr")).toHaveCount(4);
+    await panel.scrollIntoViewIfNeeded();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+    await accessible(page, "ladder this season vs last narrow");
   });
 });

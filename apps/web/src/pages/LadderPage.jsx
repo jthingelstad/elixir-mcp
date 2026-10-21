@@ -82,6 +82,9 @@ export function LadderPage() {
     // page that read Trophy Road first would read it twice.
     modeReady: (modeAsked || !summary.isPending) && season.ready,
     season,
+    // The seasons on record, undefined while they are read: the season
+    // home sets the season it reads beside the one before.
+    seasons,
     seasonPicker: {
       seasons: seasons ?? [],
       value: season.key,

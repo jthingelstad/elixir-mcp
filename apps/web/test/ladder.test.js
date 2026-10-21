@@ -28,9 +28,11 @@ import {
   pickMode,
   pickPlayer,
   pickSeason,
+  previousSeason,
   recordedSeasons,
   seasonArg,
   seasonName,
+  seasonRows,
   seasonWords,
   zoneShort,
   seasonHead,
@@ -302,6 +304,47 @@ describe("the season a page reads (2026-10-08)", () => {
       ["135", "Season 135", false],
     ]);
     expect(recordedSeasons(undefined)).toEqual([]);
+  });
+
+  test("each season on record carries the start the tool named for it", () => {
+    const seasons = recordedSeasons(LISTED);
+    expect(seasons.map((s) => [s.key, s.startsAt])).toEqual([
+      ["137", "2026-10-05T10:00:00.000Z"],
+      ["136", "2026-09-07T10:00:00.000Z"],
+      // The window's own season began before the record: no start named.
+      ["135", null],
+    ]);
+  });
+
+  test("the season before is the next one on record, read by its number (2026-10-20)", () => {
+    const seasons = recordedSeasons(LISTED);
+    const at = (key) => seasons.find((s) => s.key === key);
+    expect(previousSeason(seasons, at("137"))).toMatchObject({
+      key: "136",
+      arg: 136,
+      name: "Season 136",
+      startsAt: "2026-09-07T10:00:00.000Z",
+    });
+    expect(previousSeason(seasons, at("136"))).toMatchObject({
+      key: "135",
+      arg: 135,
+    });
+    // The first season on record, or one older than the record: none.
+    expect(previousSeason(seasons, at("135"))).toBeNull();
+    expect(previousSeason(seasons, { key: "120" })).toBeNull();
+    expect(previousSeason([], { key: "137" })).toBeNull();
+    // The list is still being read: not yet known.
+    expect(previousSeason(undefined, at("137"))).toBeUndefined();
+    // A season with no war number is read by its month.
+    expect(
+      previousSeason(
+        [
+          { key: "2026-10", war: null, month: "2026-10" },
+          { key: "2026-09", war: null, month: "2026-09" },
+        ],
+        { key: "2026-10" },
+      ),
+    ).toMatchObject({ arg: "2026-09" });
   });
 
   test("an address that names a season gets it, even an empty one", () => {
@@ -674,5 +717,72 @@ describe("formRows: the form tables lay the tool's numbers out, never rate them"
     expect(rows.map((r) => r.key)).toEqual(["win_rate"]);
     expect(JSON.stringify(rows)).not.toMatch(/better|worse|improv|good|bad/i);
     expect(formRows(null, side())).toEqual([]);
+  });
+});
+
+describe("seasonRows: this season beside the last, the tool's numbers laid out (2026-10-20)", () => {
+  const side = (over = {}) => ({
+    battles: 31,
+    wins: 17,
+    losses: 14,
+    draws: 0,
+    decided_battles: 31,
+    win_rate: 0.548,
+    net_trophies: 45,
+    decks: 4,
+    deck_battles: 31,
+    ...over,
+  });
+  test("every side shows its counts, each number over the battles it is over", () => {
+    const rows = seasonRows([
+      side(),
+      side({
+        battles: 40,
+        wins: 18,
+        losses: 21,
+        draws: 1,
+        decided_battles: 39,
+        win_rate: 0.462,
+        net_trophies: -30,
+        decks: 7,
+        deck_battles: 40,
+      }),
+      side({ battles: 1, wins: 1, losses: 0, decided_battles: 1 }),
+    ]);
+    expect(rows.map((r) => r.label)).toEqual([
+      "Won–lost",
+      "Win rate",
+      "Net trophies",
+      "Decks played",
+    ]);
+    expect(rows[0].cells[0]).toEqual({
+      value: "17–14",
+      said: "17 won, 14 lost",
+      count: "31 battles",
+    });
+    expect(rows[0].cells[1]).toMatchObject({
+      value: "18–21–1",
+      said: "18 won, 21 lost, 1 drawn",
+    });
+    expect(rows[0].cells[2].count).toBe("1 battle");
+    expect(rows[1].cells[1]).toEqual({ value: "46%", count: "39 battles" });
+    expect(rows[2].cells.map((c) => c.value)).toEqual(["+45", "−30", "+45"]);
+    expect(rows[3].cells[1]).toEqual({ value: "7", count: "40 battles" });
+  });
+  test("net trophies only where every side has them; decks not read say so", () => {
+    const rows = seasonRows([
+      side({ net_trophies: null }),
+      side({ net_trophies: null, decks: null, deck_battles: 0 }),
+    ]);
+    expect(rows.map((r) => r.key)).toEqual(["record", "win_rate", "decks"]);
+    expect(rows[2].cells[1]).toEqual({ value: "—", count: "not read" });
+    expect(JSON.stringify(rows)).not.toMatch(
+      /better|worse|improv|good|bad|up |down |ahead|behind/i,
+    );
+  });
+  test("one side, or a side the shaping dropped, is no table", () => {
+    expect(seasonRows([side()])).toEqual([]);
+    expect(seasonRows([side(), null])).toEqual([]);
+    expect(seasonRows(undefined)).toEqual([]);
   });
 });
