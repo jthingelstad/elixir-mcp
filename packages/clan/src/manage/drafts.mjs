@@ -95,10 +95,19 @@ function plainWords(card, kind, { shape, delivery }) {
   const options = delivery?.parts[0]?.options ?? {};
   if (shape === "chat")
     return {
-      lines: options.clan_chat?.lines ?? chatLines(options.leader_message),
+      lines: (
+        options.clan_chat?.lines ?? chatLines(options.leader_message)
+      ).map(oneColon),
     };
   return options.leader_message ?? null;
 }
+
+/** An Action raised before 2026-10-20 froze its chat line with a second
+ *  colon after a heading that ends its sentence ("Congrats, new Elder!:
+ *  ..."); the floor the model copies says it once, as `chatLines` now
+ *  does. The Action's own frozen words are left as they were. */
+const oneColon = (line) =>
+  String(line ?? "").replace(/^([^\n:]{0,23}[.!?]): /, "$1 ");
 
 /**
  * @param {{
