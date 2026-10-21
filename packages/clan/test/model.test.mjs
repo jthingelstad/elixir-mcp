@@ -704,6 +704,29 @@ test("model: a production-shaped Action gives the model its plain words as the f
     `${told.context}\n${told.prompt}`,
     /0 of 52|ranked|36\.91|days ago|capture|War weeks|16 decks|0 decks|Trophies|moments|In short|counted/,
   );
+
+  // An Action raised before the fix froze its line with a second colon;
+  // the floor the model copies says it once.
+  const older = raised("promotion", { phrase: "48 of 48 war decks" });
+  older.card_id = "older";
+  older.delivery.parts[0].options.clan_chat.lines = [
+    "Congrats, new Elder!: Secretname is now an Elder: 48 of 48 war decks.",
+  ];
+  await h.ledger.putCard("#2PQRJ8LV", older);
+  const frozen = await api(
+    h,
+    c,
+    "POST",
+    "/api/clans/2PQRJ8LV/actions/older/draft",
+    {},
+  );
+  assert.equal(frozen.status, 200, JSON.stringify(frozen.body));
+  const [, , floor] = h.anthropic.state.calls.at(-1);
+  assert.match(
+    floor.prompt,
+    /\nCongrats, new Elder! Secretname is now an Elder: 48 of 48 war decks\./,
+  );
+  assert.doesNotMatch(floor.prompt, /!:/);
 });
 
 test("model: only leaders draft Leader Messages", async () => {
