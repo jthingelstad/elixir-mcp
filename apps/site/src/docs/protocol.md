@@ -29,7 +29,8 @@ on [Reading a response](/docs/responses).
 | SSE | Not used. No `text/event-stream`, no server-initiated messages. |
 | Sessions | None. No `Mcp-Session-Id` header is issued or required; every request stands alone. |
 | Batches | Refused: a JSON array body answers HTTP 400 with JSON-RPC `-32600` "Batched requests are not supported." |
-| Notifications | A message without `id` answers HTTP 202 with an empty body. |
+| Notifications | A message without `id` answers HTTP 202 with an empty body, after the credential check. |
+| Hourly limit | Counts calls only (`tools/call`, `resources/read`, `prompts/get`); notifications, `initialize`, `ping` and the `*/list` methods are not counted ([Limits](/docs/limits#the-table)). |
 | Any non-POST | HTTP 405 with `allow: POST` and an empty body. This includes `GET /mcp`. |
 | Malformed JSON (after auth) | HTTP 400 `{"error":"invalid_json"}` |
 | CORS | No `Access-Control-*` headers and no `OPTIONS` handling. Browser-resident clients need a proxy. |

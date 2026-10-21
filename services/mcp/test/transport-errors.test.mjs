@@ -135,3 +135,66 @@ test("every request leaves one timing line: door, rpc method, tool, status, requ
   assert.equal(timing[1].rpc, undefined);
   assert.equal(timing[1].status, 503);
 });
+
+test("the timing line names a protocol version this server does not speak (review 2026-10-21 §2)", async () => {
+  // 245 server/discover a week were refused with 400 and the line said
+  // nothing about what the client sent, so a real client revision being
+  // turned away could not be told from noise.
+  const lines = [];
+  const realLog = console.info;
+  console.info = (line) => lines.push(line);
+  const send = (headers, body) =>
+    handler(
+      event({
+        path: "/mcp",
+        headers: { authorization: "Bearer svt_whatever", ...headers },
+        body: JSON.stringify(body),
+      }),
+    );
+  try {
+    await send(
+      { "mcp-protocol-version": "2026-07-28" },
+      { jsonrpc: "2.0", id: 1, method: "server/discover" },
+    );
+    await send(
+      {},
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "initialize",
+        params: { protocolVersion: "2099-01-01\n" },
+      },
+    );
+    await send(
+      { "mcp-protocol-version": "2025-06-18" },
+      { jsonrpc: "2.0", id: 3, method: "tools/list" },
+    );
+    await send(
+      {},
+      {
+        jsonrpc: "2.0",
+        id: 4,
+        method: "initialize",
+        params: { protocolVersion: "2025-03-26" },
+      },
+    );
+    await send(
+      { "mcp-protocol-version": "x".repeat(200) },
+      { jsonrpc: "2.0", method: "notifications/initialized" },
+    );
+  } finally {
+    console.info = realLog;
+  }
+  const timing = lines.filter((l) => l.http);
+  assert.equal(timing.length, 5);
+  assert.equal(timing[0].rpc, "server/discover");
+  assert.equal(timing[0].protocol_version, "2026-07-28", "the refused header");
+  assert.equal(
+    timing[1].protocol_version,
+    "2099-01-01",
+    "initialize's own ask, trimmed",
+  );
+  assert.equal(timing[2].protocol_version, undefined, "a supported header");
+  assert.equal(timing[3].protocol_version, undefined, "a supported ask");
+  assert.equal(timing[4].protocol_version.length, 40, "bounded");
+});

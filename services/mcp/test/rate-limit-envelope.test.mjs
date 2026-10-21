@@ -25,6 +25,7 @@ import {
   hourlyBucketFor,
   HOURLY_RATE_LIMIT,
 } from "../src/handler.mjs";
+import { countsAgainstHour } from "../src/protocol.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -38,12 +39,22 @@ const KEY = "svt_rate_limited_key";
 let db;
 let handler;
 
-const call = () =>
+// A message that counts against the hour. The handshake does not
+// (DECISIONS, "Only calls count against the MCP hour"), so these tests
+// spend the hour with a read of the manual, which does.
+const COUNTED = {
+  jsonrpc: "2.0",
+  id: 1,
+  method: "resources/read",
+  params: { uri: "elixir://changelog" },
+};
+
+const call = (body = COUNTED, key = KEY) =>
   handler({
     path: "/mcp",
     method: "POST",
-    headers: { authorization: `Bearer ${KEY}` },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
+    headers: { authorization: `Bearer ${key}` },
+    body: JSON.stringify(body),
   });
 
 before(async () => {
@@ -118,12 +129,7 @@ test("a key with its own ceiling spends from its own bucket, not its owner's (20
      select account_id, 'plain-bot', $1 from service_token where name = 'busy-bot'`,
     [crypto.createHash("sha256").update(plain).digest("hex")],
   );
-  const res = await handler({
-    path: "/mcp",
-    method: "POST",
-    headers: { authorization: `Bearer ${plain}` },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 3, method: "initialize" }),
-  });
+  const res = await call(COUNTED, plain);
   assert.equal(res.statusCode, 200, JSON.stringify(res.body).slice(0, 200));
   const { rows } = await db.query(
     `select bucket from rate_limit where bucket like 'mcp#%' order by bucket`,
@@ -174,7 +180,7 @@ test("each agent has its own hour; the owner's and its siblings' are untouched (
       path: `/a/${a.pub}/mcp`,
       method: "POST",
       headers: { authorization: `Bearer ${a.key}` },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 4, method: "initialize" }),
+      body: JSON.stringify(COUNTED),
     });
   for (const a of agents) {
     const res = await agentCall(a);
@@ -236,4 +242,109 @@ test("hourlyBucketFor: a key's own ceiling, else the principal, never the payer"
     "mcp#agent",
   );
   assert.equal(hourlyBucketFor({ accountId: "person" }), "mcp#person");
+});
+
+test("the handshake is authenticated but never counted; a call is (review 2026-10-21 §2)", async () => {
+  // About 900 handshake messages a week each took an upsert and a slot of
+  // the hour. They read no record; the hour is for calls. Which bucket a
+  // counted call spends from is unchanged ("The hour is the principal's").
+  const { rows: acct } = await db.query(
+    `insert into account (email_hash, status) values ($1, 'approved')
+     returning account_id`,
+    [emailHash("handshake@example.com")],
+  );
+  const key = "svt_" + "h".repeat(43);
+  await db.query(
+    `insert into service_token (account_id, name, token_hash)
+     values ($1, 'handshake-bot', $2)`,
+    [acct[0].account_id, crypto.createHash("sha256").update(key).digest("hex")],
+  );
+  const bucket = `mcp#${acct[0].account_id}`;
+  const spent = async () => {
+    const { rows } = await db.query(
+      `select coalesce(sum(count), 0)::int as n from rate_limit where bucket = $1`,
+      [bucket],
+    );
+    return rows[0].n;
+  };
+  const handshake = [
+    [{ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }, 200],
+    [{ jsonrpc: "2.0", method: "notifications/initialized" }, 202],
+    [{ jsonrpc: "2.0", id: 2, method: "ping" }, 200],
+    [{ jsonrpc: "2.0", id: 3, method: "tools/list" }, 200],
+    [{ jsonrpc: "2.0", id: 4, method: "resources/list" }, 200],
+    [{ jsonrpc: "2.0", id: 5, method: "resources/templates/list" }, 200],
+    [{ jsonrpc: "2.0", id: 6, method: "prompts/list" }, 200],
+  ];
+  for (const [body, status] of handshake) {
+    const res = await call(body, key);
+    assert.equal(res.statusCode, status, `${body.method}: ${res.body}`);
+  }
+  assert.equal(await spent(), 0, "no handshake message spent the hour");
+
+  assert.equal((await call(COUNTED, key)).statusCode, 200);
+  assert.equal(await spent(), 1, "a read of the manual is a call");
+
+  // A spent hour refuses the next call, and still lets a client connect:
+  // reconnecting is how it learns the hour's reset from the 429.
+  await db.query(`update rate_limit set count = $2 where bucket = $1`, [
+    bucket,
+    HOURLY_RATE_LIMIT,
+  ]);
+  assert.equal((await call(COUNTED, key)).statusCode, 429);
+  for (const [body, status] of handshake) {
+    assert.equal((await call(body, key)).statusCode, status, body.method);
+  }
+
+  // Not counted is never unauthenticated: a dead key's notification is a 401.
+  const refused = await call(
+    { jsonrpc: "2.0", method: "notifications/initialized" },
+    "svt_" + "d".repeat(43),
+  );
+  assert.equal(refused.statusCode, 401);
+  const anonymous = await handler({
+    path: "/mcp",
+    method: "POST",
+    headers: {},
+    body: JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/list" }),
+  });
+  assert.equal(anonymous.statusCode, 401);
+});
+
+test("countsAgainstHour: calls, reads and unknown methods count; the handshake does not", () => {
+  const msg = (method, extra = { id: 1 }) => ({
+    jsonrpc: "2.0",
+    method,
+    ...extra,
+  });
+  for (const method of [
+    "initialize",
+    "ping",
+    "tools/list",
+    "resources/list",
+    "resources/templates/list",
+    "prompts/list",
+  ])
+    assert.equal(countsAgainstHour(msg(method)), false, method);
+  assert.equal(
+    countsAgainstHour(msg("notifications/initialized", {})),
+    false,
+    "a notification",
+  );
+  for (const method of [
+    "tools/call",
+    "resources/read",
+    "prompts/get",
+    "server/discover",
+  ])
+    assert.equal(countsAgainstHour(msg(method)), true, method);
+  assert.equal(countsAgainstHour(msg("tools/list", { id: null })), false);
+  // Refused before any work anyway; counted so a malformed stream is not free.
+  assert.equal(countsAgainstHour([msg("ping")]), true, "a batch");
+  assert.equal(
+    countsAgainstHour({ id: 1, method: "ping" }),
+    true,
+    "no jsonrpc",
+  );
+  assert.equal(countsAgainstHour(null), true);
 });
