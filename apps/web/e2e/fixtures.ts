@@ -1,4 +1,4 @@
-import type { Page, Route } from "@playwright/test";
+import { expect, type Page, type Route } from "@playwright/test";
 import { STATUS } from "./status-fixture.ts";
 
 /** A signed-in person with one claimed player and the signals the rail
@@ -164,4 +164,26 @@ export function signedIn(
     ],
     ...overrides,
   };
+}
+
+/** Wide, the rail stays in view as a long page scrolls (2026-10-20): its
+ *  contents stick to the top of the window, so the foot is in reach at
+ *  the bottom of the page as at the top. */
+export async function railStaysInView(page: Page) {
+  const foot = page
+    .locator(".rail")
+    .getByRole("button", { name: "Send feedback", exact: true });
+  await expect(foot).toBeInViewport();
+  await page.evaluate(() =>
+    window.scrollTo(0, document.documentElement.scrollHeight),
+  );
+  // The page must be long enough for this to say anything.
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(200);
+  await expect(foot).toBeInViewport();
+  const top = await page
+    .locator(".rail__pin")
+    .evaluate((el) => el.getBoundingClientRect().top);
+  expect(top).toBeLessThanOrEqual(1);
 }

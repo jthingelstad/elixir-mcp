@@ -1,6 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
+import {
+  ME,
+  SIGNED_OUT,
+  mockApi,
+  railStaysInView,
+  signedIn,
+} from "./fixtures.ts";
 import { FORM, explore, summary, type ToolCall } from "./ladder-fixture.ts";
 
 /** Nothing serious or critical, on every page a journey lands on. */
@@ -774,6 +780,21 @@ test.describe("Ladder days played", () => {
     await night.getByRole("button").click();
     await expect(night.locator("span.battle-row")).toHaveCount(1);
     await expect(night.locator("a.battle-row")).toHaveCount(3);
+  });
+
+  test("the rail stays in view down the season's days, its foot in reach", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(TODAY);
+    await mockApi(page, signedIn({ "POST /api/explore": explore() }));
+    await page.goto("/ladder/days");
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: "17 days with recorded battles",
+      }),
+    ).toBeVisible();
+    await railStaysInView(page);
   });
 
   test("@narrow the calendar is a list of the days so far, and nothing scrolls sideways", async ({

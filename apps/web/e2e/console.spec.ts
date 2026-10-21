@@ -1,6 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { ME, SIGNED_OUT, mockApi, signedIn } from "./fixtures.ts";
+import {
+  ME,
+  SIGNED_OUT,
+  mockApi,
+  signedIn,
+  railStaysInView,
+} from "./fixtures.ts";
 
 /** Nothing serious or critical, on every page a journey lands on. */
 async function accessible(page: Page, name: string) {
@@ -513,6 +519,44 @@ test.describe("signed in", () => {
     await expect(page.getByText("Copy this key now.")).toBeVisible();
     await expect(page.getByText("svt_fixture_not_a_real_key")).toBeVisible();
     await expect(page.getByRole("alert")).toHaveCount(0);
+  });
+
+  test("the rail stays in view down a long page, its foot in reach", async ({
+    page,
+  }) => {
+    await page.goto("/console/status/service");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Status",
+    );
+    await railStaysInView(page);
+  });
+
+  test("@narrow the folded rail carries one mark for what waits elsewhere; a count is not one", async ({
+    page,
+  }) => {
+    await page.goto("/console/account/usage");
+    const toggle = page.locator(".rail__toggle");
+    await expect(toggle).toContainText("Usage");
+    // Tracking's count is what you track, not something waiting: only
+    // the unread Timeline is in the mark.
+    const mark = toggle.getByRole("img", {
+      name: "Timeline: Unread notifications",
+    });
+    await expect(mark).toBeVisible();
+    await expect(mark).toHaveAttribute(
+      "title",
+      "Timeline: Unread notifications",
+    );
+    await expect(toggle.locator(".rail__dot")).toHaveCount(1);
+    // Open, each item carries its own; the row's mark goes.
+    await toggle.click();
+    await expect(toggle.locator(".rail__dot")).toHaveCount(0);
+    await expect(
+      page
+        .getByRole("navigation", { name: "Console sections" })
+        .getByRole("img", { name: "Unread notifications" }),
+    ).toBeVisible();
+    await accessible(page, "narrow rail open");
   });
 
   test("@narrow the rail is a disclosure above the content, naming where you are", async ({
