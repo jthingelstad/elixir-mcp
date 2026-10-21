@@ -132,10 +132,13 @@ for (const width of [390, 1280]) {
       await expect(
         page.getByRole("link", { name: "The week ›", exact: true }),
       ).toHaveAttribute("href", `${base}/week`);
-      if (width === 390)
-        await page
-          .getByRole("button", { name: /Season.*Example Clan/ })
-          .click();
+      // On a phone the rail folds into its row; the clan is the picker
+      // beside it, so the row names only the page.
+      if (width === 390) {
+        const toggle = page.locator(".rail__toggle");
+        await expect(toggle).toContainText("Season");
+        await toggle.click();
+      }
       await expect(
         page
           .locator(".rail")

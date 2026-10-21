@@ -306,10 +306,11 @@ for (const size of ["wide", "@narrow"])
       );
       await mockApi(page, roleRoutes(role));
       await page.goto(base);
-      if (size === "@narrow")
-        await page
-          .getByRole("button", { name: /Roster.*Example Clan/ })
-          .click();
+      if (size === "@narrow") {
+        const toggle = page.locator(".rail__toggle");
+        await expect(toggle).toContainText("Roster");
+        await toggle.click();
+      }
       const rail = page.locator(".rail");
       for (const name of ["Member review", "Decisions", "Policy", "Settings"])
         await expect(rail.getByRole("link", { name, exact: true })).toHaveCount(
@@ -563,14 +564,22 @@ for (const size of ["wide", "@narrow"])
           "Scout is for elders, co-leaders and the leader",
         );
         await expect(
-          page.getByRole("button", { name: "Scout", exact: true }),
+          page.getByRole("main").getByRole("button", {
+            name: "Scout",
+            exact: true,
+          }),
         ).toHaveCount(0);
         await expect(page.getByPlaceholder("#TAG from the game")).toHaveCount(
           0,
         );
       } else {
+        // The page's own button: on a phone the rail's row is named Scout
+        // too.
         await expect(
-          page.getByRole("button", { name: "Scout", exact: true }),
+          page.getByRole("main").getByRole("button", {
+            name: "Scout",
+            exact: true,
+          }),
         ).toBeEnabled();
         await expect(
           page.getByRole("textbox", { name: "Player tag", exact: true }),

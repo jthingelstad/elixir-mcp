@@ -1064,7 +1064,11 @@ test.describe("signed in", () => {
     await page.goto("/clan/2PQRJ8LV/roster");
     const toggle = page.locator(".rail__toggle");
     await expect(toggle).toBeVisible();
-    await expect(toggle).toContainText("Clan");
+    await expect(toggle).toContainText("Roster");
+    // The clan is the picker beside the row, above the page.
+    await expect(page.locator(".rail .rail__switch-head")).toContainText(
+      "Example Clan",
+    );
     await expect(
       page.getByRole("navigation", { name: "Sections" }),
     ).toHaveCount(0);
