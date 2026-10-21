@@ -410,7 +410,9 @@ The code bucket is versioned and referenced source versions must remain.
 `deploy.mjs` owns the exact CloudFront endpoint grants under its production
 lock because the registry's ResourcePolicy type does not support these ARNs.
 It verifies policy/routing read-back and publishes immutable browser assets
-before switching revisions. HTML and server rendering ride the web bundle.
+before switching revisions. HTML and server rendering ride the web bundle
+as a chunk of their own, read on the first page, so a cold start that serves
+only JSON never parses them.
 
 Web-api/MCP pools allow four connections per process; the collector allows
 two. Two environments per endpoint cap the combined pool capacity at twenty
@@ -588,6 +590,11 @@ invariants:
 - A bundle is named by its content, so the same source must build the same
   bytes: nothing a Lambda carries reads the clock at build time (the docs
   corpus takes `SOURCE_DATE_EPOCH` from its sources' last commit).
+- The doors' bundles are split (`infra/scripts/build.mjs`): what a cold
+  start does not need (server rendering, the docs corpus) is a
+  content-named chunk beside `index.mjs`, loaded by a dynamic import on
+  first use. Only web-api and MCP carry the docs corpus; in every other
+  bundle a docs read fails with `docs_corpus_not_bundled`.
 - The vocabulary import refuses an uncommitted reference checkout; a
   release that must not change reference content uses
   `--verify-reference-seed`, which compares the live tables with the seed
