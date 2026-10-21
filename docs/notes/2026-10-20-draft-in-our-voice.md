@@ -10,8 +10,11 @@ Draft in our voice redesign in elixir-mcp (bug fixes, new prompt, full
 member record, product calls 1-6 as recommended)") ships in three
 stages. This is the first: the bug fixes, the prompt, the output's
 shape, the demotion's packet, the read-only packet check, and calls 1, 3
-(the packet half) and 4. No contract change: MCP 11.13.1 and JSON API
-3.2.0. No migration.
+(the packet half) and 4. It lands after stage 2, the member's dossier
+and story angles (#607,
+`docs/notes/2026-10-20-draft-dossier-and-angles.md`), and its prompt
+starts from them. No contract change: MCP 11.13.1 and JSON API 3.2.0.
+No migration.
 
 Why drafts were worse:
 
@@ -32,7 +35,8 @@ What changed:
   Every request carries ELIXIR'S PLAIN WORDS: the card's delivery
   template for its channel, or the in-game copy for a welcome, a removal
   or a farewell. The system says to say at least that, then go further.
-- **The prompt.** Two to four facts of the member's own, a number said
+- **The prompt.** Two to four facts of the member's own, starting from
+  the STORY ANGLES, every number one the packet states, a number said
   for what it means, one fact to a sentence, and named filler banned
   ("by clan rules", "better with you in it", "keep climbing with us",
   "earned it" without the fact). Kept: nothing guessed or rounded, no
@@ -48,9 +52,10 @@ What changed:
   page's `sent.line` still works) and shares two lines as two chat
   facts.
 - **A demotion's packet** (call 3). It is told the Elder moves back to
-  Member for now, the member's time in the clan and the awards they
-  hold: no war weeks, ranked battles, last battle or shortfall. The ask
-  thanks them for good history and never says or hints why. The
+  Member for now, the member's time in the clan, the awards they hold
+  and the dossier's older history (stage 2): no trophies, recent war
+  weeks, ranked battles, last battle or shortfall. The ask thanks them
+  for good history and never says or hints why. The
   "capture does not prove inactivity" caveat and a promotion's "last
   captured battle" and "rests on" facts are told to no draft.
 - **The leader's note** (call 4). A welcome and a confirmed departure
@@ -78,9 +83,10 @@ Defaults taken [engineering]:
 - The Leader Message stays at 150 characters asked of 180 allowed. The
   180 is "bounded by typing, not read from a spec"
   (`cr-agent-api-docs/wiki-api-crosswalk.md`), so it was not raised.
-- A demotion is told no war weeks at all: the record's weeks are the
-  last four, the same window the review counted. Older weeks need an
-  explicit cut before the review window (stage 2).
+- A demotion's member block carries no war weeks, trophies or profile:
+  its recorded weeks are the last four, inside the window the review
+  counted. Its older weeks come only from the dossier, cut before the
+  policy's recent weeks.
 - The floor check compares numbers only. A plain "N+" is met by any
   number of at least N; percentages and the awards' `{winners}` list
   are not compared.
@@ -97,9 +103,7 @@ Defaults taken [engineering]:
   a closed Action as it would have been drafted. It does not check a
   removal's safety proof, which needs a person's sign-in.
 
-Left for stage 2: new fact kinds for a member and the older history a
-demotion can be thanked for (`told()` in `drafts.mjs` and `memberLines`
-scope `history` are where it plugs in; `draft_packet` reads the record
-through the same `clanStoryFacts` call as the web API and must change
-with it). Stage 3: one "how our messages sound" setting (call 5) and the
-draft text stored on its "drafted" log entry (call 6).
+`draft_packet` reads the record through the same `draftStory` call as
+the web API, so the two change together. Left for stage 3: one "how our
+messages sound" setting (call 5) and the draft text stored on its
+"drafted" log entry (call 6).
