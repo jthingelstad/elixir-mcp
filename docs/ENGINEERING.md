@@ -429,9 +429,12 @@ with TCP keepalive. Cleanup rolls back a transaction the server reports open
 (never otherwise, so Postgres logs no warning) and discards all session
 state; a failed, unfinished or prepared query destroys its client instead of
 returning it. A lease expiring while waiting cannot acquire a usable client
-afterward. A connection that cannot be had answers 503 with `Retry-After`
-in the door's own shape (MCP `live_unavailable`, `/api/v1`
-`temporarily_unavailable`, the site API `unavailable` with a message).
+afterward. On MCP and web-api a connection that cannot be had answers 503
+with `Retry-After` in the door's own shape (MCP `live_unavailable`,
+`/api/v1` `temporarily_unavailable`, the site API `unavailable` with a
+message). The collector door answers its generic 503 with no
+`Retry-After`; the collector retries a 5xx on its own backoff and reads
+`Retry-After` only on a retryable 4xx.
 SIGTERM has one second; durable work still goes through the outbox/ledger.
 
 Console, Ladder and Clan use request-local React/router/query state. The
