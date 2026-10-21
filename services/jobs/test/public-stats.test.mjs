@@ -230,6 +230,18 @@ test("the fetch series refreshed in part equals a full count", async () => {
     result = await publishPublicStats(scratch.url);
     assert.equal(result.fetches_recounted, null);
 
+    // Deploys refresh between the hourly runs: seven refreshes inside
+    // eighty minutes on 2026-10-21. A burst like that keeps a mark an hour
+    // back, so none of its refreshes counts in full. Six kept marks lost
+    // the last one at the seventh.
+    await ageMarks();
+    for (let i = 1; i <= 8; i++) {
+      await receipts("alpha", 0, 1);
+      result = await publishPublicStats(scratch.url);
+      assert.notEqual(result.fetches_recounted, "all", `refresh ${i}`);
+    }
+    assert.deepEqual((await stored()).series, await full());
+
     // The bookkeeping is never served.
     const served = await readPublicStats(db);
     assert.equal(JSON.stringify(served).includes("marks"), false);
