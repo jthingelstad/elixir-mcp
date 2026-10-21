@@ -724,6 +724,25 @@ table {
   flex-direction: column;
   background: var(--ground-chrome);
   border-right: 1px solid var(--line-soft);
+}
+
+/* Wide, the column runs the page's height and what is in it sticks
+   (2026-10-20): it starts under the top bar, stays in view as the page
+   scrolls, and scrolls on its own when it is taller than the window.
+   It fills the column on a short page, so the foot keeps its place at
+   the bottom; on a long one it is the window's height less the top bar
+   (60px and its rule), so the foot is in view before the first scroll
+   and stays there. */
+.rail__pin {
+  position: sticky;
+  top: 0;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 61px);
+  max-height: calc(100dvh - 61px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px 12px 28px;
 }
 
@@ -938,6 +957,14 @@ button.rail__switch-head:hover {
     border-right: 0;
     border-bottom: 1px solid var(--line-soft);
     padding: 10px 12px 12px;
+  }
+  /* Narrow draws no pin (Rail.tsx); this holds for the first paint,
+     before the app has read the width. */
+  .rail__pin {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
   }
   .rail__toggle {
     display: flex;
