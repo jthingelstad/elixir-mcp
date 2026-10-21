@@ -117,6 +117,30 @@ test("discovery documents are well-formed and cacheable", async () => {
     "account:email",
     "clans:attest",
   ]);
+  // The edge caches them by URL alone (/.well-known/* on CachingOptimized,
+  // 2026-10-21), so each is public, carries its own lifetime, and is the
+  // same document whoever asks: a credential or cookie changes nothing.
+  for (const [path, doc] of [
+    ["/.well-known/oauth-authorization-server", as],
+    ["/.well-known/oauth-protected-resource", pr],
+    ["/.well-known/oauth-protected-resource/a/abcdefgh/mcp", null],
+  ]) {
+    const plain = doc ?? (await handler(event({ method: "GET", path })));
+    assert.equal(plain.statusCode, 200, path);
+    assert.equal(plain.headers["cache-control"], "public, max-age=300", path);
+    const credentialed = await handler(
+      event({
+        method: "GET",
+        path,
+        headers: { authorization: "Bearer someone", cookie: "__Host-s=x" },
+      }),
+    );
+    assert.equal(credentialed.body, plain.body, path);
+    // HEAD is a read of the same document (the server sends no body).
+    const head = await handler(event({ method: "HEAD", path }));
+    assert.equal(head.statusCode, 200, path);
+    assert.equal(head.headers["cache-control"], "public, max-age=300", path);
+  }
 });
 
 test("full flow: register -> authorize (email, code) -> 303 with iss -> token -> live bearer", async () => {

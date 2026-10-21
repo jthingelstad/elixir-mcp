@@ -144,21 +144,18 @@ export function makeHandler({
     const method = event.method ?? "GET";
     const path = event.path ?? "/";
 
-    // Metadata documents need no auth and no DB.
-    if (
-      method === "GET" &&
-      path === "/.well-known/oauth-authorization-server"
-    ) {
+    // Metadata documents need no auth and no DB. HEAD is answered as GET
+    // is (the server sends no body): the edge caches them (2026-10-21),
+    // and a probe's HEAD is a read like any other.
+    const read = method === "GET" || method === "HEAD";
+    if (read && path === "/.well-known/oauth-authorization-server") {
       return oauth.authorizationServerMetadata();
     }
     // RFC 9728 path-suffixed form: each protected resource publishes its own
     // metadata, so a client 401'd at an agent URL discovers THAT resource
     // rather than the canonical one and asks for a token with the wrong
     // audience.
-    if (
-      method === "GET" &&
-      path.startsWith("/.well-known/oauth-protected-resource")
-    ) {
+    if (read && path.startsWith("/.well-known/oauth-protected-resource")) {
       const suffix = path.slice("/.well-known/oauth-protected-resource".length);
       const target = resourceForPath(suffix || "/mcp", issuer);
       if (!target) {
