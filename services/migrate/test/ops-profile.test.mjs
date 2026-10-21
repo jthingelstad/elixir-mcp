@@ -136,6 +136,11 @@ test("profile_read runs the status door's and the stats job's own reads, explain
     for (const q of explained)
       assert.equal(typeof q.plan.exec_ms, "number", q.sql);
   }
+  // With no stored snapshot the job would count the fetch series in full.
+  assert.deepEqual(
+    (await profileRead(SCRATCH_URL, { read: "public_stats" })).summary,
+    { fetches_recounted: "all" },
+  );
   assert.equal(
     (await profileRead(SCRATCH_URL, { read: "no_such_read" })).error,
     "unknown_read",

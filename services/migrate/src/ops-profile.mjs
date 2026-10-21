@@ -207,7 +207,9 @@ export async function profileTool(databaseUrl, spec = {}) {
  *   outbox dead-letter count is an S3 read, not a query, and is left out
  *   (null), so `health.ok` is not this op's answer.
  * - "public_stats": the hourly snapshot the jobs Lambda publishes for
- *   GET /api/public/stats (`calculatePublicStats`).
+ *   GET /api/public/stats (`refreshPublicStats` from the stored row, as
+ *   the job runs it). `summary.fetches_recounted` says whether the fetch
+ *   series would be counted in full ("all") or from which day.
  *
  * Read-only by construction: the session is
  * `default_transaction_read_only`, and nothing is published or returned
@@ -220,10 +222,18 @@ const READS = {
     return readPublicStatus(db, { deadLetters: async () => null });
   },
   public_stats: async (db) => {
-    const { calculatePublicStats } =
+    const { refreshPublicStats } =
       await import("@elixir-mcp/tools/public-stats");
-    return calculatePublicStats(db);
+    const { rows } = await db.query(
+      "select payload, state from public_stats_cache where cache_key = 1",
+    );
+    return refreshPublicStats(db, rows[0] ?? null);
   },
+};
+
+// What a read's answer says about the path it took; never its body.
+const SUMMARIES = {
+  public_stats: (body) => ({ fetches_recounted: body.fetches_recounted }),
 };
 
 export async function profileRead(databaseUrl, spec = {}) {
@@ -240,9 +250,11 @@ export async function profileRead(databaseUrl, spec = {}) {
     const t0 = performance.now();
     let error = null;
     let resultBytes = null;
+    let summary = null;
     try {
       const body = await READS[read](recordingDb(db, { explain, log }));
       resultBytes = JSON.stringify(body).length;
+      summary = SUMMARIES[read]?.(body) ?? null;
     } catch (err) {
       error = { code: err?.code ?? null, message: err?.message ?? String(err) };
     }
@@ -254,6 +266,7 @@ export async function profileRead(databaseUrl, spec = {}) {
       db_ms: log.reduce((a, q) => a + (q.ms ?? 0), 0),
       queries: log.length,
       result_bytes: resultBytes,
+      summary,
       error,
       // Slowest first; the order they ran in is `i` and `at_ms`.
       slowest: [...log].sort((a, b) => (b.ms ?? 0) - (a.ms ?? 0)).slice(0, 16),
