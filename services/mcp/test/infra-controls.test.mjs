@@ -1376,9 +1376,10 @@ test("publish: prune only assets the build no longer ships, after they have been
 });
 
 test("CI builds the site once per job (#73)", async () => {
-  // The site workspace's test builds the merged tree inside `npm run
-  // verify`, so the verify job never builds it again; the e2e job runs on
-  // a runner of its own and builds it once for the Playwright webServer.
+  // The test runner (infra/scripts/test.mjs) builds the merged tree once
+  // when the site workspace is among its units, so no test shard builds
+  // it in a step of its own; each e2e shard runs on a runner of its own
+  // and builds it once for the Playwright webServer.
   const workflow = await readFile(
     new URL("../../../.github/workflows/validate.yml", import.meta.url),
     "utf8",
@@ -1388,7 +1389,8 @@ test("CI builds the site once per job (#73)", async () => {
       .split(/^ {2}(?=[a-z][\w-]*:\s*$)/m)
       .find((block) => block.startsWith(`${name}:`)) ?? "";
   const builds = /^\s*- run: .*build-site\.mjs/gm;
-  assert.equal(job("verify").match(builds)?.length ?? 0, 0);
+  assert.equal(job("test").match(builds)?.length ?? 0, 0);
+  assert.equal(job("static").match(builds)?.length ?? 0, 0);
   assert.equal(job("e2e").match(builds)?.length ?? 0, 1);
   assert.equal(workflow.match(builds)?.length ?? 0, 1);
   const playwright = await readFile(
@@ -1402,7 +1404,15 @@ test("CI builds the site once per job (#73)", async () => {
       "utf8",
     ),
   );
-  assert.match(site.scripts.test, /build-site\.mjs/);
+  // A focused `npm test -w @elixir-mcp/site` builds it in pretest; the
+  // runner skips pretest (--ignore-scripts) because it built it first.
+  assert.match(site.scripts.pretest, /build-site\.mjs/);
+  assert.doesNotMatch(site.scripts.test, /build/);
+  const runner = await readFile(
+    new URL("../../../infra/scripts/test.mjs", import.meta.url),
+    "utf8",
+  );
+  assert.match(runner, /"infra\/scripts\/build-site\.mjs", "--skip-stats"/);
 });
 
 test("the one-minute mail rule also drains answers to feedback (0204)", async () => {
