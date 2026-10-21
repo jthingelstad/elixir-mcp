@@ -1,0 +1,31 @@
+{
+  "contract_version": "11.13.0",
+  "captured_at": "2026-10-16T03:31:46.803Z",
+  "request": {
+    "tool": "elixir_timeline",
+    "arguments": {
+      "days": 1,
+      "basis": "occurred",
+      "mark_read": false,
+      "verbosity": "compact"
+    }
+  },
+  "response": {
+    "error": {
+      "code": "internal",
+      "class": "server",
+      "message": "Tool elixir_timeline failed unexpectedly; the arguments were accepted and the server failed.",
+      "hint": "Retry the same elixir_timeline call once; if it fails again, elixir_send_feedback({ category: \"bug\", request_id: \"351bb4cb-9855-4112-a7ff-7458cf073ee9\" }) with the arguments."
+    },
+    "meta": {
+      "contract_version": "11.13.0"
+    }
+  },
+  "timings": {
+    "db_ms": 365,
+    "db_queries": 165,
+    "live_wait_ms": null,
+    "serialize_ms": null,
+    "cold_start": false
+  }
+}

@@ -9,6 +9,7 @@ import {
   answered,
   ok,
   eq,
+  isInt,
   everyRowHas,
   notesNameFields,
   CLAN,
@@ -155,6 +156,73 @@ export const contracts = [
         ok(!error, `outputSchema: ${error}`);
       }
       return { ms: detail.ms };
+    },
+  },
+  {
+    // 11.13.1: from war day 1 of 2026-10-15 every timeline that built a
+    // tracked clan's entry threw (nowMs is not defined): the war deck
+    // tally runs only while the window ends inside the war day in
+    // progress, and no acceptance run had read a timeline then. The
+    // agents' own poll shape must answer on any day; on a war day still
+    // being played, the clan's war line carries the tally and it adds
+    // up. Read-only (mark_read: false, the acceptance principal's own
+    // pointer untouched); invariants only; any other day says so.
+    id: "timeline-war-day-in-progress",
+    tools: ["elixir_timeline"],
+    run: async (ctx) => {
+      const poll = await ctx.read("elixir_timeline", {
+        days: 1,
+        basis: "occurred",
+        mark_read: false,
+        verbosity: "compact",
+      });
+      answered(poll, "elixir_timeline, the agents' compact poll");
+      const fullRead = await ctx.read("elixir_timeline", {
+        days: 2,
+        mark_read: false,
+      });
+      const full = answered(fullRead, "elixir_timeline, two days in full");
+      const clan = (full.entries ?? []).find(
+        (e) => e.kind === "clan_activity" && e.subject_tag === CLAN,
+      );
+      ok(clan?.war, `${CLAN}'s clan entry carries its war line`);
+      const war = clan.war;
+      const toMs = Date.parse(full.window.to);
+      const fromMs = Date.parse(full.window.from);
+      if (!war.war_day)
+        return {
+          skip: `no war day in progress at ${full.window.to} (day_kind ${war.day_kind}); the tally branch runs Thursday to Sunday from 10:00Z`,
+        };
+      if (war.race_finished_at && Date.parse(war.race_finished_at) <= toMs)
+        return {
+          skip: `war day ${war.war_day}: the race finished at ${war.race_finished_at}, so no tally is served`,
+        };
+      // The door reads the clock again after the window: a window ending
+      // in the last minutes of a war day can close the gate on its own.
+      const sinceRollover = (toMs - 10 * 3600000) % 86400000;
+      if (86400000 - sinceRollover < 5 * 60000)
+        return {
+          skip: `the window ends within five minutes of the 10:00Z rollover (${full.window.to})`,
+        };
+      const d = war.decks;
+      ok(
+        d,
+        `war day ${war.war_day} in progress, race not finished: war.decks is served`,
+      );
+      for (const k of ["untouched", "partial", "finished", "participants"])
+        ok(isInt(d[k]) && d[k] >= 0, `war.decks.${k} ${JSON.stringify(d[k])}`);
+      ok(d.participants > 0, "a served tally counts someone");
+      eq(
+        d.untouched + d.partial + d.finished,
+        d.participants,
+        "untouched + partial + finished",
+      );
+      const asOf = Date.parse(d.as_of);
+      ok(
+        asOf >= fromMs && asOf <= toMs,
+        `war.decks.as_of ${d.as_of} inside the window`,
+      );
+      return { ms: (poll.ms ?? 0) + (fullRead.ms ?? 0) };
     },
   },
   {
