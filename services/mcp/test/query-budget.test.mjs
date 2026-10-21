@@ -296,6 +296,58 @@ test("a connection-wide ceiling from PGOPTIONS stays a ceiling: the per-call bud
   }
 });
 
+test("a deadline that passes while the budget is still being set leaves the connection as it found it", async () => {
+  // Found under load (2026-10-21, the concurrent test runner): when the
+  // deadline fired before the budget's first read of the connection's
+  // settings had returned, the restore found nothing to restore, and the
+  // abandoned tool then set statement_timeout to its remaining budget on
+  // a connection the caller had already been answered on. A slow first
+  // read makes that order certain here.
+  const settings = async () =>
+    (
+      await db.query(
+        "select current_setting('statement_timeout') as statement_timeout, current_setting('lock_timeout') as lock_timeout, current_setting('work_mem') as work_mem",
+      )
+    ).rows[0];
+  const before = await settings();
+  let settled;
+  const done = new Promise((r) => (settled = r));
+  const slowFirstRead = new Proxy(db, {
+    get(target, prop) {
+      if (prop !== "query") {
+        const v = target[prop];
+        return typeof v === "function" ? v.bind(target) : v;
+      }
+      return async (sql, ...rest) => {
+        if (String(sql).includes("current_setting('statement_timeout')"))
+          await new Promise((r) => setTimeout(r, 300));
+        return target.query(sql, ...rest);
+      };
+    },
+  });
+  const result = await makeInvoker({
+    db: slowFirstRead,
+    account,
+    queryBudgetMs: 100,
+    registry: {
+      invoke: async (_name, ctx) => {
+        try {
+          await ctx.db.query("select pg_sleep(0.5)");
+          return { ok: true };
+        } finally {
+          settled();
+        }
+      },
+    },
+  })("clans_standings", {});
+  assert.equal(result.body.error.code, "query_timeout");
+  await done;
+  // The abandoned read was cancelled at the server, and nothing it set
+  // outlives the call.
+  await new Promise((r) => setTimeout(r, 50));
+  assert.deepEqual(await settings(), before);
+});
+
 test("a read-only tool behind a lock gives up at the lock timeout, answers query_timeout, and restores the setting", async () => {
   // The 2026-09-15 shape: an orphaned backend holds ACCESS EXCLUSIVE and
   // every read queues behind it, each holding a connection.
