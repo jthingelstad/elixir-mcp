@@ -1,12 +1,26 @@
-# Security updates for the toolchain (#32).
+# Dependency updates (#32), grouped so a week brings a few pull requests,
+# each one kind of change to review (2026-10-21; one dev-toolchain group of
+# every package before, whose 29-update PR #597 nobody could read):
 #
-# The production bundle has always audited clean; what bit us was the
-# DEV toolchain - a critical Vitest dev-server advisory sat unnoticed
-# because nothing was watching. This is the thing that watches.
+# - aws-sdk: the AWS SDK clients, which release almost daily and move
+#   together; every Lambda carries them.
+# - react: React, React DOM and TanStack, the Console's and Clan's frame.
+# - vite: Vite, Vitest and their plugins, which pin one another.
+# - playwright: Playwright and its axe adapter; CI's browser cache keys on
+#   Playwright's version.
+# - runtime: every other production dependency, what a Lambda or the
+#   browser runs.
+# - dev-toolchain: every other development dependency (lint, format,
+#   types, the site and CSS builds, knip).
 #
-# Grouped into one PR per ecosystem per week: this is a single-owner
-# repo and five separate dependency PRs a week is how a person learns
-# to ignore dependency PRs.
+# A dependency joins the first group that matches it, so the named groups
+# come first. Groups take minor and patch updates; a major is a pull
+# request of its own. @types/node follows the runtime's major
+# (.node-version, Lambda's nodejs24.x), so its majors are not offered.
+#
+# validate gates every dependency on `npm audit --audit-level=high` and the
+# production ones on any advisory, so an advisory shows up as a red check
+# whether or not one of these pull requests is open.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -14,9 +28,34 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 6
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
+      aws-sdk:
+        patterns: ["@aws-sdk/*", "@smithy/*"]
+        update-types: [minor, patch]
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+          - "@tanstack/*"
+        update-types: [minor, patch]
+      vite:
+        patterns: ["vite", "vitest", "@vitest/*", "@vitejs/*"]
+        update-types: [minor, patch]
+      playwright:
+        patterns: ["playwright", "@playwright/*", "@axe-core/playwright"]
+        update-types: [minor, patch]
+      runtime:
+        dependency-type: production
+        patterns: ["*"]
+        update-types: [minor, patch]
       dev-toolchain:
+        dependency-type: development
         patterns: ["*"]
         update-types: [minor, patch]
     commit-message:
@@ -25,5 +64,8 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
     commit-message:
       prefix: ci
