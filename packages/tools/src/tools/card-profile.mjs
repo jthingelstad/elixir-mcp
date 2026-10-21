@@ -50,6 +50,41 @@ const OWN_GAMES = notBoatDefense("bp", {
   side: `(select own.side from battle_participant own
           where own.battle_id=bp.battle_id and own.player_tag=bp.player_tag)`,
 });
+/**
+ * The earliest own game of each form of a card in the selected history:
+ * the first play of every deck the selection played, then the decks
+ * holding the card. `segWhere` selects participants (`bp`); `anchorParam`
+ * is the card id's placeholder.
+ *
+ * The card's decks are read once from deck_card_card (card_id, form,
+ * deck_hash) and hash-joined to the decks played. Probing deck_card's
+ * primary key once per deck played instead (the planner's choice when
+ * the join was written the other way) cost POAP KINGS 10,192 probes:
+ * 1.1 to 1.6 s warm and 7.5 s cold for The Log (2026-10-21 profile).
+ * This side is bounded by how many recorded decks hold the card, not by
+ * how long the history is. A tower troop has no such index, and its
+ * question is rare: it still joins deck by primary key.
+ */
+export function firstPlayedSql(segWhere, anchorParam, towerTroop) {
+  return `with selected_participants as materialized (
+     select ${SELECTED_COLUMNS} from battle_participant bp
+     where ${segWhere} and ${OWN_GAMES}
+   ), first_deck_play as materialized (
+     select bp.deck_hash, min(bp.battle_time) as at from ${SELECTED_GAMES} bp
+     where bp.deck_hash is not null group by bp.deck_hash
+   ) ${
+     towerTroop
+       ? `select 0 as form, min(g.at) as at from first_deck_play g
+          join deck d on d.deck_hash = g.deck_hash and d.tower_troop_id = ${anchorParam}`
+       : `, card_decks as materialized (
+            select dc.form, dc.deck_hash from deck_card dc
+            where dc.card_id = ${anchorParam}
+          ) select cd.form, min(g.at) as at from card_decks cd
+          join first_deck_play g on g.deck_hash = cd.deck_hash
+          group by cd.form`
+   }`;
+}
+
 export const cardProfileTools = {
   cards_card: {
     description:
@@ -84,22 +119,8 @@ export const cardProfileTools = {
         [anchor.id],
       );
       params.push(anchor.id);
-      const anchorParam = `$${params.length}`;
       const { rows: firstPlayed } = await ctx.db.query(
-        `with selected_participants as materialized (
-           select ${SELECTED_COLUMNS} from battle_participant bp
-           where ${seg.where} and ${OWN_GAMES}
-         ), first_deck_play as materialized (
-           select bp.deck_hash, min(bp.battle_time) as at from ${SELECTED_GAMES} bp
-           where bp.deck_hash is not null group by bp.deck_hash
-         ) ${
-           anchor.tower_troop
-             ? `select 0 as form, min(g.at) as at from first_deck_play g
-                join deck d on d.deck_hash = g.deck_hash and d.tower_troop_id = ${anchorParam}`
-             : `select dc.form, min(g.at) as at from first_deck_play g
-                join deck_card dc on dc.deck_hash = g.deck_hash and dc.card_id = ${anchorParam}
-                group by dc.form`
-         }`,
+        firstPlayedSql(seg.where, `$${params.length}`, anchor.tower_troop),
         params,
       );
       const first = { base: null, evolution: null, hero: null };
