@@ -28,7 +28,9 @@ export function PageHead({
     navigate(path);
   };
   const clanName = name ?? clan.name ?? <Tag tag={clan.clan_tag} />;
-  const home = clanPath(clan.clan_tag);
+  // The clan's roster, by its own address: the clan's bare one is the
+  // landing, Actions for a leader with Actions waiting.
+  const home = `${clanPath(clan.clan_tag)}/roster`;
   return (
     <div className="flex flex-wrap items-end gap-x-6 gap-y-3 mb-[22px]">
       <div className="grow basis-[420px] min-w-0 grid gap-2">
