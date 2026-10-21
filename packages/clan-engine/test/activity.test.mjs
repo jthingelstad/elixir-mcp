@@ -100,7 +100,10 @@ test("a voice is one short paragraph without links or mentions", () => {
   assert.equal(cleanVoice(null), "");
   // The setting refuses words over the bound; it never cuts them.
   assert.equal(tidyVoice("x".repeat(VOICE_MAX + 50)).length, VOICE_MAX + 50);
-  assert.equal(tidyVoice(" Dry  and\nshort, see www.x.test "), "Dry and short, see");
+  assert.equal(
+    tidyVoice(" Dry  and\nshort, see www.x.test "),
+    "Dry and short, see",
+  );
 });
 
 test("every person the sentence names is kept, an arena or a league is not; a model's post is tidied, its markdown kept", () => {
