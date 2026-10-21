@@ -28,7 +28,7 @@ import {
   saveClanActivity,
   wakeAfterFact,
   CLAN_ACTIVITY_PURPOSE,
-  clanStoryFacts,
+  draftStory,
 } from "@elixir-mcp/syndication";
 /** Clan inside the web API: the authenticated Elixir person, the request's
  * connected Postgres client, and the same recorded facts the public doors
@@ -421,8 +421,7 @@ export function createClanRequest({
         requireRemovalSafety: manage.requireRemovalSafety,
         // What the record says about the clan and the Action's member,
         // for the clan's model (2026-10-11).
-        storyFor: (clanTag, playerTags) =>
-          clanStoryFacts(db, clanTag, { playerTags, moments: true }),
+        storyFor: (clanTag, playerTags) => draftStory(db, clanTag, playerTags),
       }),
       recruit: createRecruitService({ ledger, mcp, model }),
       scout: createScout({ mcp }),

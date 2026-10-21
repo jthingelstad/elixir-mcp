@@ -25,9 +25,11 @@ import {
   clanContext,
   declaredGoals,
   describePolicy,
+  dossierBlock,
   leaderMessageFromDraft,
   leaderMessageRequest,
   memberLines,
+  recentWeeksFor,
 } from "@elixir-mcp/clan-engine";
 import { ManageError } from "./service.mjs";
 import {
@@ -128,6 +130,11 @@ export function createDrafts({
         "",
         ...memberLines(member, {
           scope: CONTRIBUTION.has(kind) ? "contribution" : "full",
+        }),
+        // Their dossier and Elixir's story angles, what `kind` may tell.
+        ...dossierBlock(story?.dossier, kind, {
+          recentWeeks: recentWeeksFor(policy?.values),
+          member,
         }),
       );
     }

@@ -221,6 +221,23 @@ member and this clan rather than anyone's (2026-10-11):
   timeline and the awards they hold here. For a removal or a departure
   only their time in the clan and the weeks they played: never their
   trophies, a week they missed or why they were removed.
+- **More of their record**, when the draft is about one member: every
+  war week they played in the clan over the last year as decks and
+  points, with their best week and their longest run of weeks in a row;
+  their donations here week by week over the last 12 weeks, and in their
+  career; from their game profile, years playing, favourite card, cards
+  at the top Mastery level, legendary badges, best Path of Legends league
+  and their Clan War Wins badge; their decks over the last 28 days, each
+  mode on its own, named by archetype with games, wins and losses; their
+  milestones over the last 28 days; and their role changes here. Elixir
+  then picks up to four story angles from it, strongest first, and every
+  number in an angle is in that record.
+  - A **demotion** is told only what they gave before the policy's
+    recent weeks, so the message can thank them for it: never those
+    weeks' numbers, a zero, a missed week or how long it has been.
+  - A **removal** or **departure** is told only the war weeks they
+    played.
+  - A promotion or a welcome is told all of it.
 - **What you ask for** in **What should it say?**, as you wrote it.
 
 Never sent: a tag, a note saved on the Action (yours or another
