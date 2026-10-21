@@ -62,8 +62,18 @@ const OWN_GAMES = notBoatDefense("bp", {
  * the join was written the other way) cost POAP KINGS 10,192 probes:
  * 1.1 to 1.6 s warm and 7.5 s cold for The Log (2026-10-21 profile).
  * This side is bounded by how many recorded decks hold the card, not by
- * how long the history is. A tower troop has no such index, and its
- * question is rare: it still joins deck by primary key.
+ * how long the history is.
+ *
+ * A tower troop has no such index (deck.tower_troop_id is unindexed, and
+ * deck's heap is 63 MB, so neither a scan nor a new index is cheap on
+ * the micro). Its first play is the earliest deck played whose tower
+ * troop it is: the decks played are taken oldest first and each looked
+ * up by primary key until one matches. The lookup is a scalar subquery
+ * so the planner cannot turn it into a join over all of deck. POAP
+ * KINGS's Dagger Duchess matches on its first days of recorded history,
+ * where the join probed all 10,192 decks played (1.1 s warm, 9.4 s
+ * cold; the acceptance gym asks for it). A tower troop never played
+ * still looks up every deck played, as the join did.
  */
 export function firstPlayedSql(segWhere, anchorParam, towerTroop) {
   return `with selected_participants as materialized (
@@ -74,8 +84,14 @@ export function firstPlayedSql(segWhere, anchorParam, towerTroop) {
      where bp.deck_hash is not null group by bp.deck_hash
    ) ${
      towerTroop
-       ? `select 0 as form, min(g.at) as at from first_deck_play g
-          join deck d on d.deck_hash = g.deck_hash and d.tower_troop_id = ${anchorParam}`
+       ? `select 0 as form, (
+            select g.at from (
+              select fd.at, fd.deck_hash from first_deck_play fd order by fd.at
+            ) g
+            where (select d.tower_troop_id from deck d
+                   where d.deck_hash = g.deck_hash) = ${anchorParam}
+            limit 1
+          ) as at`
        : `, card_decks as materialized (
             select dc.form, dc.deck_hash from deck_card dc
             where dc.card_id = ${anchorParam}

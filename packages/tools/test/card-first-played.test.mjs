@@ -1,8 +1,10 @@
 /**
  * cards_card's first play by form reads the card's decks once and joins
- * them to the decks played (2026-10-21, platform review §2). The answer
- * must be the one the per-deck probe gave: the old statement is kept here
- * as the reference and both run over the same record.
+ * them to the decks played (2026-10-21, platform review §2); a tower
+ * troop's takes the decks played oldest first and stops at the first
+ * that is its. The answer must be the one the per-deck probe gave: the
+ * old statements are kept here as the reference and both run over the
+ * same record.
  */
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -22,6 +24,7 @@ const POOL = [
 const EVOLVES = new Set([26000000, 26000007, 26000010, 28000011]);
 const HERO = 26000021;
 const TOWERS = [159000000, 159000001];
+const UNPLAYED_TOWER = 159000003; // in a deck nobody selected played
 const NEVER = 26000099; // in a deck nobody selected played
 
 const served = firstPlayedSql("bp.player_tag = any($1::text[])", "$2", false);
@@ -30,6 +33,15 @@ const reference =
   `select dc.form, min(g.at) as at from first_deck_play g
    join deck_card dc on dc.deck_hash = g.deck_hash and dc.card_id = $2
    group by dc.form`;
+const servedTower = firstPlayedSql(
+  "bp.player_tag = any($1::text[])",
+  "$2",
+  true,
+);
+const referenceTower =
+  servedTower.slice(0, servedTower.indexOf("select 0 as form")) +
+  `select 0 as form, min(g.at) as at from first_deck_play g
+   join deck d on d.deck_hash = g.deck_hash and d.tower_troop_id = $2`;
 
 before(async () => {
   scratch = await scratchDb("card_first_played");
@@ -81,9 +93,14 @@ before(async () => {
       supportCards,
     });
   }
-  // A recorded deck holding a card no selected game played.
+  // A recorded deck holding a card no selected game played, and one
+  // behind a tower troop no selected game played.
   await seedDeck(db, {
     cards: [{ id: NEVER }, ...POOL.slice(0, 7).map((id) => ({ id }))],
+  });
+  await seedDeck(db, {
+    cards: POOL.slice(0, 8).map((id) => ({ id })),
+    supportCards: [{ id: UNPLAYED_TOWER }],
   });
   await db.query("analyze");
 });
@@ -121,10 +138,27 @@ test("the card's decks joined to the decks played answer what the per-deck probe
   );
 });
 
+test("a tower troop's earliest deck played answers what the join did", async () => {
+  let compared = 0;
+  for (const tags of [PLAYERS, [PLAYERS[1]], [IDLE]])
+    for (const tower of [...TOWERS, UNPLAYED_TOWER, NEVER]) {
+      const expected = await rows(referenceTower, tags, tower);
+      assert.deepEqual(
+        await rows(servedTower, tags, tower),
+        expected,
+        `${tags.join(",")} tower ${tower}`,
+      );
+      assert.equal(expected.length, 1, "one row, played or not");
+      if (expected[0].at) compared += 1;
+    }
+  // Both played tower troops, for both selections that played.
+  assert.equal(compared, 4);
+});
+
 // The plan with hash and merge joins off: what production's planner
 // chose for the old statement (its estimate of the decks played was far
 // under the 10,192 it met), reproduced on a small record.
-const deckCardScans = async (sql) => {
+const scansOf = async (relation, sql, card = 26000007) => {
   const { db } = scratch;
   await db.query("begin");
   let plan;
@@ -136,19 +170,21 @@ const deckCardScans = async (sql) => {
     } = await db.query(
       `explain (analyze, format json) ${sql
         .replaceAll("$1::text[]", `'{${PLAYERS.join(",")}}'::text[]`)
-        .replaceAll("$2", "26000007")}`,
+        .replaceAll("$2", String(card))}`,
     ));
   } finally {
     await db.query("rollback");
   }
   const scans = [];
   const walk = (node) => {
-    if (node["Relation Name"] === "deck_card") scans.push(node);
+    if (node["Relation Name"] === relation) scans.push(node);
     for (const child of node.Plans ?? []) walk(child);
   };
   walk(plan[0].Plan);
   return scans;
 };
+
+const deckCardScans = (sql) => scansOf("deck_card", sql);
 
 test("deck_card is read once for the card, never probed per deck played", async () => {
   const old = await deckCardScans(reference);
@@ -159,4 +195,29 @@ test("deck_card is read once for the card, never probed per deck played", async 
   const scans = await deckCardScans(served);
   assert.equal(scans.length, 1, "one read of deck_card");
   assert.equal(scans[0]["Actual Loops"], 1, "not once per deck");
+});
+
+test("a tower troop's decks played are looked up oldest first, stopping at its own", async () => {
+  const lookups = async (sql, tower) =>
+    (await scansOf("deck", sql, tower)).reduce(
+      (n, scan) => n + scan["Actual Loops"],
+      0,
+    );
+  const { rows: played } = await scratch.db.query(
+    `select count(distinct deck_hash)::int as n from battle_participant
+     where player_tag = any($1::text[])`,
+    [PLAYERS],
+  );
+  for (const tower of TOWERS) {
+    assert.ok(
+      (await lookups(referenceTower, tower)) >= played[0].n,
+      "the join looked up every deck played",
+    );
+    assert.ok(
+      (await lookups(servedTower, tower)) < 10,
+      `tower ${tower}: stops at the first deck that is its`,
+    );
+  }
+  // A tower troop nobody selected played: every deck played, as before.
+  assert.equal(await lookups(servedTower, UNPLAYED_TOWER), played[0].n);
 });
