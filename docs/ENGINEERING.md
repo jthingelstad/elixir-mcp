@@ -615,8 +615,13 @@ invariants:
 
 `npm run verify` is the pre-push gate and CI's `validate` check (which also
 builds the site and runs the Playwright journeys): formatting, lint, knip,
-the TypeScript check over the console and the kit, and all workspace tests.
-The root test command first builds the shared contracts. Knip entries name
+the TypeScript check over the console and the kit, all workspace tests and
+the Lambda bundles. CI splits it across parallel jobs (`static`, three
+`test` shards, three `e2e` shards); `validate` passes only when each one
+it needed did. The test runner (`infra/scripts/test.mjs`) builds the
+shared outputs once and then runs workspaces concurrently, so a test only
+reads built output, and anything two test processes share (a database, a
+port, a file) is named per process. Knip entries name
 actual executable roots per workspace; remove obsolete entries instead of
 suppressing hints. Account journeys use the real web API and per-run scratch
 Postgres databases.

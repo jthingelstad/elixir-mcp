@@ -77,5 +77,8 @@ asked (`--acceptance` or `--acceptance=<family>`).
 a claim), `name-collector-release.mjs` (`docs/RELEASING-COLLECTOR.md`),
 `editor-replay.mjs` (`npm run editor-replay`, a clan model's raw run
 through today's editor on a maintainer's own key; the `discord-review`
-skill), `build-site.mjs`, `smoke.mjs` and `test-workflows.sh` (the
-workflow lint).
+skill), `build-site.mjs`, `smoke.mjs`, `test-workflows.sh` (the
+workflow lint), `test.mjs` (`npm test`: every workspace test, one build
+then a bounded pool locally, `--shard i/n` in CI) and `e2e-needed.sh`
+(whether a change needs the journeys; `lib/e2e-inputs.mjs` is its test's
+measure of what the specs read).
