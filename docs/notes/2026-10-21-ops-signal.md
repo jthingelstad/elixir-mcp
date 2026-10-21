@@ -77,4 +77,7 @@ minutes, comes from RDS's `archive_timeout` of 300 s, a system value
 this cannot change. Expect about 96 checkpoints a day and no change in
 `TransactionLogsGeneration`.
 
-No MCP or JSON API version changes.
+No MCP or JSON API version changes. The deploy runs no acceptance: nothing a tool
+serves changed (alarms, a parameter group, a log line, a test-only case), and the
+new case was run alone against production, read-only, before the merge (a
+Wednesday, so it skipped aloud on a training day).
