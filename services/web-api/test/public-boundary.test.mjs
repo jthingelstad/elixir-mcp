@@ -46,6 +46,10 @@ const PUBLIC = {
   "POST /api/auth/redeem": "plumbing",
   "POST /api/auth/poll": "plumbing",
   "POST /api/auth/code": "plumbing",
+  // Discord's sign-in (#531): both are browser navigations that end in a
+  // redirect; linking needs the session, checked inside.
+  "GET /api/auth/discord/start": "plumbing",
+  "GET /api/auth/discord/callback": "plumbing",
   "POST /api/session/signout": "plumbing",
   "GET /api/email/unsubscribe": "plumbing",
   "POST /api/email/unsubscribe": "plumbing",

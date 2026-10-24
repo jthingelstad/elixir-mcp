@@ -15,6 +15,7 @@ import {
   OAUTH_SCOPE_DETAILS,
 } from "@elixir-mcp/contracts";
 import { accountZone, normalizeScope } from "@elixir-mcp/auth";
+import { discordLinkOf } from "@elixir-mcp/auth/discord";
 import { enqueueJob } from "@elixir-mcp/ledger";
 import { makeLive, requestFirstRead } from "@elixir-mcp/tools/live";
 import { firstAnswer } from "../first-answer.mjs";
@@ -46,6 +47,8 @@ export function accountRoutes({
   logEvent,
   capture = null,
   clanInternal = false,
+  /** Linking and signing in with Discord are configured (#531). */
+  discordLogin = false,
   live = null,
 }) {
   // The first read of an added tag (live.mjs requestFirstRead): the live
@@ -162,7 +165,10 @@ export function accountRoutes({
       if (!account)
         return json(200, {
           authenticated: false,
-          features: { clan_internal: clanInternal },
+          features: {
+            clan_internal: clanInternal,
+            discord_login: discordLogin,
+          },
         });
       // One client is one connection: pg queues concurrent queries on it
       // anyway, so Promise.all bought no parallelism and only tripped the
@@ -300,7 +306,10 @@ export function accountRoutes({
         );
         return json(200, {
           authenticated: true,
-          features: { clan_internal: clanInternal },
+          features: {
+            clan_internal: clanInternal,
+            discord_login: discordLogin,
+          },
           kind: "agent",
           public_id: account.publicId,
           name: account.name,
@@ -360,7 +369,7 @@ export function accountRoutes({
         : { rows: [] };
       return json(200, {
         authenticated: true,
-        features: { clan_internal: clanInternal },
+        features: { clan_internal: clanInternal, discord_login: discordLogin },
         kind: "person",
         claim_notice: notice[0]
           ? {
@@ -380,6 +389,11 @@ export function accountRoutes({
         // and in the console rail. Never on a public surface (0046).
         email: e.email ?? null,
         newsletter_opt_in: e.newsletter_opt_in === true,
+        // The Discord user linked to this account (#531): who it is to
+        // Discord, for the profile to show and disconnect. Never the id.
+        discord: await discordLinkOf(db, account.accountId).then((d) =>
+          d ? { username: d.username, linked_at: d.linked_at } : null,
+        ),
         role: e.role,
         entitlements: {
           ...entitlements,
