@@ -30,6 +30,7 @@ import { makeRegistry } from "@elixir-mcp/tools";
 
 import { authRoutes } from "./routes/auth.mjs";
 import { accountRoutes } from "./routes/account.mjs";
+import { discordRoutes } from "./routes/discord.mjs";
 import { timelineDiscordRoutes } from "./routes/timeline-discord.mjs";
 import { wakeAfterFact } from "@elixir-mcp/syndication";
 import { emailRoutes } from "./routes/email.mjs";
@@ -206,6 +207,11 @@ export function makeHandler({
   /** { outbox, readStatus, readHistory } for the timeline's Discord cross-post
    *  (routes/timeline-discord.mjs); null = no hello line, no status. */
   discord = null,
+  /** { clientId, bridge } for linking and signing in with Discord
+   *  (routes/discord.mjs, #531): the app's public id and the outbox
+   *  round trip to the relay, which alone reaches Discord; null = the
+   *  Console offers neither. */
+  discordLogin = null,
   /** Internal Clan request handler. Null until the reviewed state cutover;
    * the old origin continues to serve Clan during preparation. */
   clan = null,
@@ -389,6 +395,13 @@ export function makeHandler({
       notifyOwner,
       capture,
       clanInternal: Boolean(clan),
+      discordLogin: Boolean(discordLogin),
+    }),
+    ...discordRoutes({
+      resolveAccount,
+      mintSessionResponse,
+      logEvent,
+      discordLogin,
     }),
     ...timelineDiscordRoutes({ resolveAccount, discord, notifyOwner }),
     ...clansRoutes({ resolveAccount, logEvent }),

@@ -16,6 +16,10 @@ import { makeShareImage } from "./share-image.mjs";
 import { createClanRequest } from "./clan.mjs";
 import { createBox } from "@elixir-mcp/clan/sealed.mjs";
 import {
+  createDiscordLoginBridge,
+  DISCORD_LOGIN_PURPOSE,
+} from "@elixir-mcp/auth/discord";
+import {
   makeHistoryReader,
   makeStatusReader,
   webhookSeal,
@@ -111,6 +115,22 @@ const handler = makeHandler({
         readHistory: makeHistoryReader(process.env.OUTBOX_BUCKET),
       }
     : null,
+  // Linking and signing in with Discord (#531): the code goes to the
+  // relay sealed (the VPC has no route to Discord) and the user comes
+  // back the same way. Off until the Discord app's id is configured.
+  discordLogin:
+    process.env.DISCORD_CLIENT_ID && process.env.CLAN_MODEL_SECRET
+      ? {
+          clientId: process.env.DISCORD_CLIENT_ID,
+          bridge: createDiscordLoginBridge({
+            box: createBox(
+              process.env.CLAN_MODEL_SECRET,
+              DISCORD_LOGIN_PURPOSE,
+            ),
+            storage: modelStorage(process.env.OUTBOX_BUCKET),
+          }),
+        }
+      : null,
   // Captured tool calls are read back for the console's call record;
   // absent bucket = the record carries the row only.
   capture: makeCaptureStore(process.env.ARCHIVE_BUCKET),
