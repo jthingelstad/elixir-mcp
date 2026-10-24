@@ -45,6 +45,13 @@ page lists how long. Your address is never public, and it goes to one
 kind of app only: an Elixir family app you sign in to and allow to see
 it.
 
+**Connecting Discord.** If you connect Discord or sign in with it, Elixir
+keeps your Discord user id and username, to sign you in and to tell your
+clan's Discord agent who you are. Discord's sign-in also tells Elixir
+your email address if it has verified one; Elixir uses it to find or
+create your account and keeps nothing else Discord sends. Disconnect on
+Profile removes both.
+
 **Mail.** Occasional product news goes out through
 [Buttondown](https://buttondown.com). The sign-in/create-account form has
 **Send me Elixir product news**, checked by default for a new account;
@@ -77,8 +84,9 @@ aggregate. No account is attached to a visit.
 
 **Services Elixir uses.** Elixir runs on Amazon Web Services in the
 United States, which also delivers its account mail. Buttondown holds
-and sends the newsletter, Tinylytics does the counting, and Cloudflare
-Turnstile checks the sign-in forms.
+and sends the newsletter, Tinylytics does the counting, Cloudflare
+Turnstile checks the sign-in forms, and Discord, when you connect it,
+confirms who you are there.
 Fonts are served from this site, so reading a page tells no one else
 what you read.
 
