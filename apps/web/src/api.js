@@ -75,6 +75,8 @@ export const api = {
     return result;
   },
   setTimezone: (timezone) => request("POST", "/api/me/timezone", { timezone }),
+  /** Disconnect the Discord linked to this account (#531). */
+  unlinkDiscord: () => request("POST", "/api/me/discord/unlink", {}),
   emailPrefs: () => request("GET", "/api/me/email"),
   setEmailPref: (kind, enabled) =>
     request("PUT", "/api/me/email", { kind, enabled }),

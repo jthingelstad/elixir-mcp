@@ -1604,16 +1604,24 @@ const signInRoute = createRoute({
       rememberAfterSignIn(destination);
     const token = typeof window === "undefined" ? null : takeLoginToken();
     const forward = me?.authenticated === true && !token && !completing;
+    // Back from Discord with a new account (#531): its first landing,
+    // as an emailed proof's would be.
+    const discordNew =
+      new URLSearchParams(location.searchStr).get("discord") === "new";
     useEffect(() => {
       if (forward)
-        navigate(takeAfterSignIn() ?? `${CONSOLE}/account/overview`, {
-          replace: true,
-        });
-    }, [forward, navigate]);
+        navigate(
+          takeAfterSignIn() ??
+            (discordNew ? newAccountLanding({ player_tag: null }) : null) ??
+            `${CONSOLE}/account/overview`,
+          { replace: true },
+        );
+    }, [forward, navigate, discordNew]);
     if (forward || (me === null && !token)) return null;
     return (
       <SignIn
         search={location.searchStr}
+        discordLogin={me?.features?.discord_login === true}
         onAuthed={async (newAccount) => {
           setCompleting(true);
           const next =

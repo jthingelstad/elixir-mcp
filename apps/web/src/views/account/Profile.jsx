@@ -5,6 +5,7 @@ import { useUsage } from "../../lib/queries.js";
 import { quotaReading } from "../../lib/quota.js";
 import { CONSOLE } from "../../lib/console.js";
 import { TimelineDiscordState } from "./TimelineDiscord.jsx";
+import { discordOutcome, discordStartHref } from "../../discord.js";
 
 /**
  * Profile — the account you are signed in as, all on one page.
@@ -54,7 +55,15 @@ export function Profile({ me, refresh, navigate }) {
             }
             note="Used for sign-in and email."
           />
-          <Field label="Sign-in" value="Email link, or a six-digit code" />
+          <Field
+            label="Sign-in"
+            value={
+              me?.discord
+                ? "Email link, a six-digit code, or Discord"
+                : "Email link, or a six-digit code"
+            }
+          />
+          <DiscordField me={me} refresh={refresh} />
           <Field
             label="Timezone"
             value={
@@ -241,6 +250,58 @@ function SubpageLink({ to, icon, title, note }) {
         <Icon name="arrow-right" size={15} />
       </span>
     </Link>
+  );
+}
+
+/** The Discord linked to this account (#531): connect one, or disconnect
+ *  it. Shown when Discord sign-in is configured, or a link exists. */
+function DiscordField({ me, refresh }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  // What a link round trip that came back here says, read once.
+  const [came] = useState(() =>
+    discordOutcome(
+      typeof window === "undefined" ? "" : window.location.search,
+      "link",
+    ),
+  );
+  const linked = me?.discord ?? null;
+  if (!linked && me?.features?.discord_login !== true) return null;
+  return (
+    <Field
+      label="Discord"
+      value={
+        linked ? (
+          <>
+            {linked.username}{" "}
+            <button
+              type="button"
+              className="link ml-2"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                const r = await api.unlinkDiscord();
+                if (!r?.ok) setError("Discord could not be disconnected.");
+                await refresh();
+                setBusy(false);
+              }}
+            >
+              Disconnect
+            </button>
+          </>
+        ) : (
+          <a className="link" href={discordStartHref({ intent: "link" })}>
+            Connect Discord
+          </a>
+        )
+      }
+      note={
+        error ??
+        came?.text ??
+        "Sign in with it, and a clan's Discord agent knows it is you."
+      }
+    />
   );
 }
 
