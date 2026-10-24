@@ -898,12 +898,16 @@ test("9.14.0: a form unlock is an item and the only news a player needs", async 
 });
 
 test("player_tag keeps one member's items, before the cap; a bad tag is refused (7.1.5, Gym #253)", async () => {
+  // A closed window: an open one is capped at 30 days before now, which
+  // passed the fixture's September on 2026-10-24.
   const all = await call("elixir_timeline", {
     from: "2026-09-01",
+    to: "2026-09-30",
     mark_read: false,
   });
   const mine = await call("elixir_timeline", {
     from: "2026-09-01",
+    to: "2026-09-30",
     mark_read: false,
     player_tag: OBSERVER,
   });
@@ -917,6 +921,7 @@ test("player_tag keeps one member's items, before the cap; a bad tag is refused 
   assert.ok(mine.body.timeline.length <= all.body.timeline.length);
   const bad = await call("elixir_timeline", {
     from: "2026-09-01",
+    to: "2026-09-30",
     mark_read: false,
     player_tag: "#NOPE!!",
   });
