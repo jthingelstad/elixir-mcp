@@ -188,6 +188,17 @@ before(async () => {
      values ($1, '#2PP0V9QQ', 'buddy')`,
     [ids.person],
   );
+  // A linked Discord and a link round trip still open (0233, #531).
+  await db.query(
+    `insert into account_discord (account_id, discord_user_id, username)
+     values ($1, '123456789012345678', 'leaver')`,
+    [ids.person],
+  );
+  await db.query(
+    `insert into discord_login (state_hash, nonce_hash, intent, account_id, session_id, expires_at)
+     values ('s', 'n', 'link', $1, 'sess', now() + interval '10 minutes')`,
+    [ids.person],
+  );
   await db.query(
     `insert into attested_fact (subject_kind, clan_tag, fact_type, detail, visibility,
                                 source, source_ref, attester_account_id, attester_tag, occurred_at)
@@ -300,6 +311,8 @@ test("a dry run is the default: it reports what would go and writes nothing", as
     discord_post: 1,
     clan_state: 1,
     agent_identity: 0,
+    account_discord: 1,
+    discord_login: 1,
     feedback: 1,
     collector_version_event: 0,
     email_send: 1,
@@ -438,6 +451,8 @@ test("the run removes the person and their agent, keeps the game record, and lea
     "timeline_discord",
     "timeline_discord_told",
     "discord_post",
+    "account_discord",
+    "discord_login",
   ]) {
     assert.equal(
       await count(
