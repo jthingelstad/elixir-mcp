@@ -222,6 +222,8 @@ async function removeAccount(db, { hash, accountId, dryRun }) {
       [ids.map((id) => `account#${id}`)],
     ],
     ["agent_identity", `agent_identity where account_id = any($1::uuid[])`],
+    ["account_discord", `account_discord where account_id = any($1::uuid[])`],
+    ["discord_login", `discord_login where account_id = any($1::uuid[])`],
     ["feedback", `feedback where account_id = any($1::uuid[])`],
     [
       "collector_version_event",

@@ -200,6 +200,12 @@ export async function sweepOperational(databaseUrl) {
         `delete from magic_login where expires_at < now() - interval '30 days'`,
       )
     ).rowCount;
+    // A Discord round trip lives ten minutes and is used once (0233).
+    out.discord_login = (
+      await db.query(
+        `delete from discord_login where expires_at < now() - interval '1 day'`,
+      )
+    ).rowCount;
     // A console session's address is kept no longer than a connection's
     // (limits.md: addresses are cleared after 30 days). An active
     // session rewrites it on every request; an idle one used to keep it
