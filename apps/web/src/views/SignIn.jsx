@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { consumeLoginToken } from "../url-hygiene.js";
 import { CONSOLE } from "../lib/console.js";
 import { useTurnstile } from "../turnstile.js";
+import { discordOutcome, discordStartHref } from "../discord.js";
 
 /** One email door for sign-in and public member signup. Email verification
  * opens a new account; collector admission and recording quotas are separate.
@@ -76,7 +77,11 @@ function Eyebrow({ icon, tone, children }) {
 export function SignIn({
   search = typeof window === "undefined" ? "" : window.location.search,
   onAuthed,
+  /** Sign-in with Discord is configured (/api/me features, #531). */
+  discordLogin = false,
 }) {
+  // What a Discord round trip that came back here says (#531).
+  const fromDiscord = discordOutcome(search, "signin");
   const [email, setEmail] = useState("");
   const [productNews, setProductNews] = useState(true);
   useEffect(() => {
@@ -510,6 +515,11 @@ export function SignIn({
         We’ll email you a sign-in link and a six-digit code. Use either to
         continue.
       </p>
+      {fromDiscord && (
+        <p className="field-error" role="alert">
+          {fromDiscord.text}
+        </p>
+      )}
       <form onSubmit={sendEmail}>
         <label className="field-label" htmlFor="signin-email">
           Email
@@ -590,6 +600,18 @@ export function SignIn({
           {busy ? "Sending…" : "Send sign-in email"}
         </button>
       </form>
+      {discordLogin && (
+        <a
+          className="btn mt-3 w-full justify-center py-3 text-[15px]"
+          href={discordStartHref({
+            intent: "signin",
+            zone: browserZone(),
+            news: productNews,
+          })}
+        >
+          Continue with Discord
+        </a>
+      )}
       <p className="footnote mt-4 mb-0 text-pretty">
         {creating ? (
           "A tag you give is for a new account only; one you already have keeps its players. "
