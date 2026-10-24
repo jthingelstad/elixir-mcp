@@ -134,7 +134,19 @@ to fall back on):
     "hint": "Ask who they are in the clan, then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly." } }
 ```
 
-Map it once with `elixir_identify` (scope `account:write`). The tag must be a
+A person can connect their Discord account to Elixir from their
+profile, proved by Discord's own sign-in. Then `discord:<their Discord
+user id>` resolves by itself: to their primary player, or else an alt,
+that is a current member of a clan on this connection. Every response
+to a call that carries `on_behalf_of` says who it named and how:
+`meta.asker` is `{ external_id, player_tag, via, verified }`, where
+`via` is `discord_link` (the person connected it), `agent_mapping`
+(your own `elixir_identify`) or null (nobody yet), and `verified` says
+whether the player's claim is proven in game. A `discord:` id nobody has
+connected or mapped is `no_subject`, whose hint adds that the person can
+connect Discord on their profile.
+
+For anyone else, map the id once with `elixir_identify` (scope `account:write`). The tag must be a
 **current member of a clan on this connection**; anything else is
 `not_entitled`, because a wrong mapping answers confidently about the wrong
 person for good. The mapping is per agent account, invisible to every other

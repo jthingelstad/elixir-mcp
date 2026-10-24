@@ -82,6 +82,27 @@ battle returns to that battle. Completed sign-in replaces the sign-in step
 in history. Back leaves an automatically opened email-feedback form; Forward
 returns with the email attached. Reload keeps the record address.
 
+### Signing in with Discord
+
+**Continue with Discord** on the sign-in page signs you in with your
+Discord account once it is connected to your Elixir account. Connect it
+on **Profile** (**Connect Discord**); Discord asks you to allow Elixir to
+know who you are, and the account it shows is the one linked. One Discord
+account per Elixir account, and one Elixir account per Discord account;
+**Disconnect** on Profile removes it.
+
+With no Discord connected yet, **Continue with Discord** uses the email
+address Discord has verified: it signs you in to the Elixir account with
+that address, or creates one (with the product news box and time zone
+from the page), and connects the Discord account to it. An address
+Discord has not verified cannot sign you in; sign in with your email,
+then connect Discord from Profile. If the account for that address is
+already connected to a different Discord account, sign in with your
+email.
+
+A connected Discord also tells your clan's Discord agent who you are,
+so it never has to ask ([Agents](/docs/agents#knowing-which-human-is-asking)).
+
 A sign-in lasts **thirty days from its last use and ninety days at
 most**. **Account settings ▸ Sign-in and devices** (Account settings is in
 the account menu on the top bar) lists every session that can act
@@ -195,7 +216,8 @@ There is no delete button. Write to admin@poapkings.com, or send it as
 feedback from the console, and the removal is carried out in one
 reviewed step. Removing the account deletes the account:
 
-- **your address**, and every way to sign in as you;
+- **your address**, and every way to sign in as you, a connected
+  Discord account included;
 - **your claims**: the players and clans you track;
 - **your nicknames** for players;
 - **your agents**, their keys and the identities they map;
