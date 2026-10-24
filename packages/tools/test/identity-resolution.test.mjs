@@ -463,3 +463,95 @@ test("7.1.0: an agent tracks a rival in its owner's slots, and keeps the clan it
   });
   assert.equal(removed.removed, true);
 });
+
+// ------------------------------------------- a linked Discord (#531)
+
+const DISCORD = "112233445566778899";
+
+test("a linked Discord resolves to the person's player in the agent's clan", async () => {
+  const { askerFor } = await import("../src/entitlements.mjs");
+  await db.query(
+    `insert into account_discord (account_id, discord_user_id, username)
+     values ($1, $2, 'raq')`,
+    [person.accountId, DISCORD],
+  );
+  try {
+    assert.deepEqual(
+      await askerFor(db, agent.accountId, `discord:${DISCORD}`),
+      {
+        tag: ME,
+        via: "discord_link",
+        verified: true,
+      },
+    );
+    const s = await resolveSubject(db, agent, undefined, "full", {
+      onBehalfOf: `discord:${DISCORD}`,
+    });
+    assert.equal(s.tag, ME);
+
+    // The primary left the clan: the alt still in it answers, flagged as
+    // an unproven claim (call 3).
+    await db.query(
+      `update clan_membership set left_observed_at = now() where player_tag = $1`,
+      [ME],
+    );
+    assert.deepEqual(
+      await askerFor(db, agent.accountId, `discord:${DISCORD}`),
+      {
+        tag: ALT,
+        via: "discord_link",
+        verified: false,
+      },
+    );
+
+    // Neither in a clan this agent acts for: the link reaches nothing
+    // (call 1), and the agent's own mapping is what stands.
+    await db.query(
+      `update clan_membership set left_observed_at = now() where player_tag = $1`,
+      [ALT],
+    );
+    assert.equal(
+      await askerFor(db, agent.accountId, `discord:${DISCORD}`),
+      null,
+    );
+    await db.query(
+      `insert into agent_identity (account_id, external_id, player_tag)
+       values ($1, $2, $3)`,
+      [agent.accountId, `discord:${DISCORD}`, OTHER],
+    );
+    assert.deepEqual(
+      await askerFor(db, agent.accountId, `discord:${DISCORD}`),
+      {
+        tag: OTHER,
+        via: "agent_mapping",
+        verified: false,
+      },
+    );
+  } finally {
+    await db.query(`delete from agent_identity where external_id = $1`, [
+      `discord:${DISCORD}`,
+    ]);
+    await db.query(
+      `update clan_membership set left_observed_at = null where player_tag = any($1::text[])`,
+      [[ME, ALT]],
+    );
+    await db.query(`delete from account_discord where discord_user_id = $1`, [
+      DISCORD,
+    ]);
+  }
+});
+
+test("an unlinked Discord id is told the person can link it", async () => {
+  await assert.rejects(
+    resolveSubject(db, agent, undefined, "full", {
+      onBehalfOf: "discord:998877665544332211",
+    }),
+    (err) =>
+      err.code === "no_subject" && /\/console\/account\/profile/.test(err.hint),
+  );
+  // Another surface's id says nothing about Discord.
+  await assert.rejects(
+    resolveSubject(db, agent, undefined, "full", { onBehalfOf: "telegram:9" }),
+    (err) => err.code === "no_subject" && !/Discord/.test(err.hint),
+  );
+});
