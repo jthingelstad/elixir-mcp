@@ -4,6 +4,10 @@ import { createAnthropicClient } from "@elixir-mcp/clan/anthropic.mjs";
 import { createDiscordWorker } from "@elixir-mcp/clan/discord-bridge.mjs";
 import { createDiscordWebhook } from "@elixir-mcp/clan/discord-webhook.mjs";
 import { createBox } from "@elixir-mcp/clan/sealed.mjs";
+import {
+  createDiscordLoginWorker,
+  DISCORD_LOGIN_PURPOSE,
+} from "@elixir-mcp/auth/discord";
 import { createTimelineDiscordWorker } from "@elixir-mcp/syndication/relay";
 import {
   clanActivitySeal,
@@ -147,8 +151,30 @@ const timelineDiscordWorker = timelineDiscordRecords
     })
   : null;
 
+// Linking and signing in with Discord (#531): the code the web API
+// sealed, traded here for who the user is; the token is revoked at once.
+const discordLoginWorker =
+  process.env.CLAN_MODEL_SECRET &&
+  process.env.OUTBOX_BUCKET &&
+  process.env.DISCORD_CLIENT_ID &&
+  process.env.DISCORD_CLIENT_SECRET
+    ? createDiscordLoginWorker({
+        box: createBox(process.env.CLAN_MODEL_SECRET, DISCORD_LOGIN_PURPOSE),
+        storage: modelStorage(process.env.OUTBOX_BUCKET, s3),
+        clientId: process.env.DISCORD_CLIENT_ID,
+        clientSecret: process.env.DISCORD_CLIENT_SECRET,
+      })
+    : null;
+
 export const handler = makeHandler({
   timelineDiscordObject: timelineDiscordWorker,
+  discordLoginObject: discordLoginWorker
+    ? async ({ bucket, key }) => {
+        if (bucket !== process.env.OUTBOX_BUCKET)
+          throw new Error("unsupported discord login bucket");
+        await discordLoginWorker(key);
+      }
+    : null,
   // A Discord lane's record held back until Discord's limit resets.
   defer: async (record, seconds) => {
     const QueueUrl = queueUrlOf(record.eventSourceARN);

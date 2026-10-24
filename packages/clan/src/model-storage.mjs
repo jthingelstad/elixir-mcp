@@ -24,7 +24,7 @@ export function modelStorage(bucket, s3 = new S3Client({ maxAttempts: 2 })) {
         // denied list or a listed object keeps the original lookup failure.
         if (
           e.name === "AccessDenied" &&
-          /^clan-(?:model|discord)\/(?:reply|claim)\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}(?:\.\d{1,2})?\.json$/.test(
+          /^(?:clan-(?:model|discord)|discord-login)\/(?:reply|claim)\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}(?:\.\d{1,2})?\.json$/.test(
             key,
           )
         ) {
