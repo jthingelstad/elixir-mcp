@@ -42,7 +42,7 @@ Parameters:
   AppSecretName:
     Type: String
     Default: elixir-mcp/app
-    Description: Secrets Manager secret with db_password, session_secret, buttondown_api_token, clan_sealing_secret when ClanInternal is true, and optionally unsubscribe_secret, session_secret_previous and turnstile_secret_key (URL-safe values; docs/SECRETS.md)
+    Description: Secrets Manager secret with db_password, session_secret, buttondown_api_token, clan_sealing_secret when ClanInternal is true, discord_client_secret when DiscordSecretInSecret is true, and optionally unsubscribe_secret, session_secret_previous and turnstile_secret_key (URL-safe values; docs/SECRETS.md)
   SiteCertificateArn:
     Type: String
     Default: ""
