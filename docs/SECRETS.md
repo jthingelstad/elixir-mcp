@@ -65,6 +65,28 @@ same key, and deploy with `--param=SecretEpoch=<YYYY-MM-DD>`. Checks made
 between the two fail as `error` (Cloudflare refuses the old secret), and
 `error` never refuses a mail.
 
+## Discord client secret (once)
+
+Linking and signing in with Discord (#531) stay off until the stack
+knows the Discord application. Only the relay holds its secret: it
+alone can reach Discord.
+
+1. Jamie, at discord.com/developers/applications: New Application,
+   named "Elixir". Under OAuth2, add the redirect
+   `https://elixir.poapkings.com/api/auth/discord/callback`, then copy
+   the Client ID and Reset Secret to copy the client secret.
+2. Jamie, in the AWS console (us-east-1): Secrets Manager,
+   `elixir-mcp/app`, Retrieve secret value, Edit. Add the key
+   `discord_client_secret` with that value, Save.
+3. Deploy with `--param=DiscordClientId=<the client id>
+   --param=DiscordSecretInSecret=true` (the id is public).
+4. Check: `/api/me` says `features.discord_login: true`, and Profile
+   offers Connect Discord.
+
+To rotate it, reset the secret in Discord, put the new value in the
+same key, and deploy with `--param=SecretEpoch=<YYYY-MM-DD>`. Round
+trips between the two answer `?discord=failed`.
+
 ## Session secret
 
 Tokens are signed with `SESSION_SECRET` and verified against it and

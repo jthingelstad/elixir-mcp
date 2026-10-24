@@ -87,6 +87,10 @@ export const PRESERVED_PARAMETERS = [
   // resets either.
   "TurnstileKeyInSecret",
   "TurnstileMode",
+  // Discord sign-in (#531): the Discord app's public id and the switch
+  // for its secret in the app secret; set once, never reset by a deploy.
+  "DiscordClientId",
+  "DiscordSecretInSecret",
 ];
 
 /**

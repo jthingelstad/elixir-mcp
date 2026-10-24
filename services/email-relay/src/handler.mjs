@@ -48,6 +48,9 @@ export function makeHandler({
   modelObject = null,
   discordObject = null,
   timelineDiscordObject = null,
+  /** A Discord sign-in or link's code to trade for the user (#531,
+   *  @elixir-mcp/auth/discord createDiscordLoginWorker). */
+  discordLoginObject = null,
   upgradeDelivery = null,
   /** `(record, seconds)`: hold a record back that long (SQS
    *  ChangeMessageVisibility), for a Discord lane that knows when to try
@@ -259,6 +262,12 @@ export function makeHandler({
       if (obj.key.startsWith("timeline-discord/")) {
         if (!timelineDiscordObject) return "bad_message";
         await timelineDiscordObject(obj, { final });
+        continue;
+      }
+      // Linking or signing in with Discord (#531): a code to trade.
+      if (obj.key.startsWith("discord-login/")) {
+        if (!discordLoginObject) return "bad_message";
+        await discordLoginObject(obj);
         continue;
       }
       const text = await readObject(obj);

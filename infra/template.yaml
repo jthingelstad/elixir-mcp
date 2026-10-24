@@ -110,6 +110,21 @@ Parameters:
       Elixir sign-in widget's secret); until then the relay records every
       sign-in mail's Turnstile check as unconfigured and sends it
       (docs/SECRETS.md).
+  DiscordClientId:
+    Type: String
+    Default: ""
+    AllowedPattern: "^[0-9]{0,20}$"
+    Description: >-
+      The Elixir Discord application's client id (public). With
+      DiscordSecretInSecret it turns on linking and signing in with
+      Discord (#531); empty, the Console offers neither.
+  DiscordSecretInSecret:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      Set to true once the app secret carries discord_client_secret; only
+      the relay holds it, to trade a sign-in's code (docs/SECRETS.md).
   TurnstileMode:
     Type: String
     Default: observe
@@ -141,6 +156,10 @@ Conditions:
   HasSessionSecretPrevious: !Equals [!Ref SessionSecretPreviousInSecret, "true"]
   HasUnsubscribeKey: !Equals [!Ref UnsubscribeKeyInSecret, "true"]
   HasTurnstileKey: !Equals [!Ref TurnstileKeyInSecret, "true"]
+  HasDiscordLogin: !And
+    - !Condition HasInternalClan
+    - !Equals [!Ref DiscordSecretInSecret, "true"]
+    - !Not [!Equals [!Ref DiscordClientId, ""]]
   TickIsOneMinute: !Equals [!Ref SchedulerTickMinutes, 1]
 
 Resources:
@@ -596,6 +615,33 @@ Resources:
                     NumericLessThanEquals:
                       s3:max-keys: "1"
                 - !Ref AWS::NoValue
+              # Linking and signing in with Discord (#531): the code goes
+              # to the relay sealed, and who the user is comes back; a
+              # reply not there yet is confirmed with an exact-key list.
+              - !If
+                - HasDiscordLogin
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/discord-login/request/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasDiscordLogin
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/discord-login/reply/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasDiscordLogin
+                - Effect: Allow
+                  Action: s3:ListBucket
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
+                  Condition:
+                    StringLike:
+                      s3:prefix:
+                        - discord-login/reply/*
+                    NumericLessThanEquals:
+                      s3:max-keys: "1"
+                - !Ref AWS::NoValue
               # A leader's attested fact (a departure classified, an
               # award) wakes the clan's activity sync (2026-10-10).
               - Effect: Allow
@@ -985,6 +1031,16 @@ Resources:
                 S3Key:
                   { Rules: [{ Name: prefix, Value: clan-discord/request/ }] }
             - !Ref AWS::NoValue
+          # A Discord sign-in's code (#531) rides the sign-in mail's
+          # queue: a person is waiting on both.
+          - !If
+            - HasDiscordLogin
+            - Event: s3:ObjectCreated:*
+              Queue: !GetAtt EmailQueue.Arn
+              Filter:
+                S3Key:
+                  { Rules: [{ Name: prefix, Value: discord-login/request/ }] }
+            - !Ref AWS::NoValue
           # The timeline to Discord (2026-10-10): a wake for the sync, and
           # the sync's lines for the relay.
           - Event: s3:ObjectCreated:*
@@ -1155,6 +1211,35 @@ Resources:
                   Resource:
                     - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/claim/*
                     - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/clan-discord/reply/*
+                - !Ref AWS::NoValue
+              # Discord sign-in (#531): the code to trade, claimed once,
+              # and who the user is, sealed for the web API.
+              - !If
+                - HasDiscordLogin
+                - Effect: Allow
+                  Action: s3:GetObject
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/discord-login/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasDiscordLogin
+                - Effect: Allow
+                  Action: s3:PutObject
+                  Resource:
+                    - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/discord-login/claim/*
+                    - !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}/discord-login/reply/*
+                - !Ref AWS::NoValue
+              - !If
+                - HasDiscordLogin
+                - Effect: Allow
+                  Action: s3:ListBucket
+                  Resource: !Sub arn:aws:s3:::elixir-mcp-outbox-${AWS::AccountId}
+                  Condition:
+                    StringLike:
+                      s3:prefix:
+                        - discord-login/reply/*
+                        - discord-login/claim/*
+                    NumericLessThanEquals:
+                      s3:max-keys: "1"
                 - !Ref AWS::NoValue
               # The timeline to Discord (2026-10-10): its lines, read and
               # deleted once delivered, and the relay's own records of
@@ -1413,6 +1498,10 @@ Resources:
           # Under enforce the door refuses a sign-in with no Turnstile token.
           TURNSTILE_MODE: !Ref TurnstileMode
           CLAN_INTERNAL: !Ref ClanInternal
+          # Discord sign-in (#531): the app's public id; its secret is
+          # the relay's alone.
+          DISCORD_CLIENT_ID:
+            !If [HasDiscordLogin, !Ref DiscordClientId, !Ref AWS::NoValue]
           CLAN_MODEL_SECRET:
             !If [
               HasInternalClan,
@@ -1706,6 +1795,14 @@ Resources:
           TURNSTILE_SECRET_KEY: !If
             - HasTurnstileKey
             - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:turnstile_secret_key}}"
+            - !Ref AWS::NoValue
+          # Discord sign-in (#531): only the relay can reach Discord, so
+          # only it trades a code, with the app's secret.
+          DISCORD_CLIENT_ID:
+            !If [HasDiscordLogin, !Ref DiscordClientId, !Ref AWS::NoValue]
+          DISCORD_CLIENT_SECRET: !If
+            - HasDiscordLogin
+            - !Sub "{{resolve:secretsmanager:${AppSecretName}:SecretString:discord_client_secret}}"
             - !Ref AWS::NoValue
           CLAN_MODEL_SECRET:
             !If [
