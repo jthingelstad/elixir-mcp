@@ -236,6 +236,21 @@ const META = {
     timezone_applied: { type: "string" },
     feedback_responses_pending: COUNT,
     timeline_pending: COUNT,
+    asker: {
+      type: "object",
+      description:
+        "An agent's call with on_behalf_of: who that is (#531). via discord_link is a Discord account the person linked themselves; agent_mapping is the agent's own elixir_identify; null, nobody yet. verified says the player's claim is proven in game.",
+      properties: {
+        external_id: { type: "string" },
+        player_tag: { type: ["string", "null"] },
+        via: {
+          type: ["string", "null"],
+          enum: ["discord_link", "agent_mapping", null],
+        },
+        verified: { type: "boolean" },
+      },
+      required: ["external_id", "player_tag", "via", "verified"],
+    },
     quota: { type: "object" },
     request_id: { type: "string" },
     disclaimer: { type: "string" },

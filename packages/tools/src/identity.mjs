@@ -254,7 +254,7 @@ export function identitySentences(identity, { compact = false } = {}) {
       "OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it (the roster is not here: it changes daily).",
     );
     out.push(
-      "Nothing defaults to 'you': for a human asking about themselves, pass on_behalf_of (their id on your surface); unmapped, ask who they are and call elixir_identify once.",
+      "Nothing defaults to 'you': for a human asking about themselves, pass on_behalf_of (their id on your surface; discord:<user id> resolves itself once they link Discord to Elixir); unmapped, ask who they are and call elixir_identify once.",
     );
     if (identity.identityCount)
       out.push(`You already know ${identity.identityCount} of them.`);

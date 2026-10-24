@@ -167,13 +167,60 @@ async function resolveEntitlements(db, account) {
  * paper over.
  */
 export async function identityFor(db, accountId, externalId) {
+  return (await askerFor(db, accountId, externalId))?.tag ?? null;
+}
+
+const DISCORD_ASKER = /^discord:([0-9]{17,20})$/;
+
+/**
+ * Who on_behalf_of names, and how we know (#531).
+ *
+ * `discord:<user id>` first goes through the Discord link a person made
+ * from their own Console (Discord's sign-in proved it): their primary or
+ * an alt, but only one that is a current member of a clan this agent acts
+ * for (Jamie, 2026-10-24, call 1), so a link never reaches past the
+ * agent's clans. A claim still unverified resolves, flagged (call 3).
+ * Otherwise the agent's own mapping (elixir_identify), which only the
+ * agent vouches for.
+ *
+ * Returns { tag, via: 'discord_link' | 'agent_mapping', verified } or null.
+ */
+export async function askerFor(db, accountId, externalId) {
   if (typeof externalId !== "string" || !externalId.trim()) return null;
+  const id = externalId.trim();
+  const discord = DISCORD_ASKER.exec(id);
+  if (discord) {
+    const { rows } = await db.query(
+      `select c.player_tag, c.status = 'verified' as verified
+         from account_discord d
+         join account p on p.account_id = d.account_id
+                       and p.kind = 'person' and p.status = 'approved'
+         join claim c on c.account_id = d.account_id
+                     and c.relationship in ('primary', 'alt')
+         join clan_membership cm on cm.player_tag = c.player_tag
+                                and cm.left_observed_at is null
+         join account_clan ac on ac.clan_tag = cm.clan_tag
+                             and ac.account_id = $1
+        where d.discord_user_id = $2
+        order by c.is_primary desc, (c.status = 'verified') desc, c.player_tag
+        limit 1`,
+      [accountId, discord[1]],
+    );
+    if (rows[0])
+      return {
+        tag: rows[0].player_tag,
+        via: "discord_link",
+        verified: rows[0].verified === true,
+      };
+  }
   const { rows } = await db.query(
     `select player_tag from agent_identity
      where account_id = $1 and external_id = $2`,
-    [accountId, externalId.trim()],
+    [accountId, id],
   );
-  return rows[0]?.player_tag ?? null;
+  return rows[0]
+    ? { tag: rows[0].player_tag, via: "agent_mapping", verified: false }
+    : null;
 }
 
 /** The clan members whose WHOLE name matches the asker's display name
@@ -245,13 +292,16 @@ export async function resolveSubject(
           ? `No player is mapped to ${onBehalfOf} yet.`
           : "This connection acts for a clan, so there is no default player.",
         hint:
-          candidates.length === 1
+          (DISCORD_ASKER.test(onBehalfOf?.trim() ?? "")
+            ? "They can connect Discord on their Elixir profile (/console/account/profile) to be known everywhere without asking. "
+            : "") +
+          (candidates.length === 1
             ? `candidates[] holds the one clan member whose whole name is '${displayName}': elixir_identify({ external_id: ${JSON.stringify(onBehalfOf)}, player_tag: ${JSON.stringify(candidates[0].player_tag)} }) once, say so in a line, and answer.`
             : candidates.length > 1
               ? `candidates[] holds ${candidates.length} clan members named '${displayName}': ask which one they are, then elixir_identify({ external_id, player_tag }) once.`
               : onBehalfOf && displayName
                 ? `No clan member's whole name is '${displayName}': ask who they are in the clan, then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly.`
-                : "Ask who they are in the clan (pass display_name beside on_behalf_of and the refusal names the matching members), then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly.",
+                : "Ask who they are in the clan (pass display_name beside on_behalf_of and the refusal names the matching members), then elixir_identify({ external_id, player_tag }) once to remember it. Or pass player_tag explicitly."),
         ...(onBehalfOf ? { data: { candidates } } : {}),
       };
     } else {

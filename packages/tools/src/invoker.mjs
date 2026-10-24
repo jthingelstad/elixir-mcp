@@ -14,6 +14,7 @@ import { ToolFailure } from "./tools.mjs";
 import { pendingHints } from "./tools/shared.mjs";
 import { MCP_RESULT_MAX_CHARS } from "./result-text.mjs";
 import { captureCall } from "./capture.mjs";
+import { askerFor } from "./entitlements.mjs";
 
 const MAX_AUDIT_ARG_BYTES = 4000;
 const MAX_ON_BEHALF_OF_CHARS = 200;
@@ -493,6 +494,18 @@ export function makeInvoker({
       if (body && typeof body === "object" && body.meta) {
         const hints = await pendingHints(db, account);
         for (const [k, v] of Object.entries(hints)) body.meta[k] = v;
+        // Who an agent's on_behalf_of names, and how we know (#531): a
+        // Discord link the person made, or the agent's own mapping.
+        const asking = account.kind === "agent" ? onBehalfOfOf(args) : null;
+        if (asking) {
+          const who = await askerFor(db, account.accountId, asking);
+          body.meta.asker = {
+            external_id: asking,
+            player_tag: who?.tag ?? null,
+            via: who?.via ?? null,
+            verified: who?.verified ?? false,
+          };
+        }
       }
       const s0 = performance.now();
       const resultBytes = JSON.stringify(body).length;
