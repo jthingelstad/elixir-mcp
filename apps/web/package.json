@@ -17,7 +17,7 @@
     "@elixir-mcp/design": "*",
     "@elixir-mcp/ui": "*",
     "@tanstack/react-query": "^5.104.4",
-    "@tanstack/react-router": "^1.170.45",
+    "@tanstack/react-router": "^1.170.46",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "@elixir-mcp/clan-web": "*"
