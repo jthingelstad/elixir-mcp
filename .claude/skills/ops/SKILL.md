@@ -144,7 +144,8 @@ pipeline question here, then `{stats}`.
 **CloudWatch Logs Insights.** Native HTTP logs are
 `/aws/lambda/web/elixir-mcp-<name>-web` for `mcp`, `web-api` and `collector`.
 Event Function logs remain `/aws/lambda/elixir-mcp-<name>` for `scheduler`,
-`jobs`, `migrate`, `email-relay` and `timeline-sync` (30 days); `/aws/rds/instance/elixir-mcp-enc/postgresql` (14 days).
+`jobs`, `migrate`, `email-relay` and `timeline-sync` (30 days); `/aws/rds/instance/elixir-mcp-enc/postgresql` (14 days). CloudFront's
+request log is `/elixir-mcp/web-access` (731 days; no IP, no query string).
 Stamps are UTC; Jamie reads US Central.
 
 - The native doors log structured objects under `message`: `message.http`
