@@ -2446,13 +2446,13 @@ Resources:
           Columns:
             - { Name: json, Type: string }
 
-  # CloudFront standard (access) logs for the one hostname. Turned on
-  # 2026-09-12 after a browser-side stall left no trace at the origin:
-  # Lambda, API Gateway and CloudFront metrics were all clean, so the
-  # edge's own request log is the only evidence that can place the next
-  # one. ACLs stay enabled on this bucket because standard logging is
-  # delivered through the awslogsdelivery ACL grant; 30 days matches the
-  # Lambda log groups.
+  # RETIRED 2026-10-28: the legacy CloudFront standard log to S3 (turned
+  # on 2026-09-12, client IP and query string included). The distribution
+  # no longer writes here; its access log is the IP-free
+  # /elixir-mcp/web-access group below. Nothing else uses this bucket.
+  # It is unversioned, so the 30-day lifecycle empties it by 2026-11-28;
+  # after that a later change removes this resource and CloudFormation
+  # deletes the empty bucket. Never empty or delete it by hand.
   EdgeLogBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -2685,10 +2685,6 @@ Resources:
         Enabled: true
         Comment: elixir.poapkings.com
         HttpVersion: http2and3
-        Logging:
-          Bucket: !GetAtt EdgeLogBucket.RegionalDomainName
-          Prefix: cloudfront/
-          IncludeCookies: false
         Aliases: !If [HasSiteCert, [elixir.poapkings.com], !Ref "AWS::NoValue"]
         ViewerCertificate: !If
           - HasSiteCert
@@ -3024,9 +3020,9 @@ Resources:
   # CloudFront standard logging v2 into CloudWatch Logs, kept 24 months
   # (731 days, Jamie 2026-10-28), in the same IP-free shape as the other
   # sites' /<site>/web-access groups: no client IP, no query string (OAuth
-  # codes and states travel there), no cookies, no referrer. The legacy
-  # S3 log above (EdgeLogBucket, 30 days) still runs beside it until it
-  # is retired on its own.
+  # codes and states travel there), no cookies, no referrer. It is the
+  # distribution's only access log: the legacy S3 log (EdgeLogBucket)
+  # was retired 2026-10-28.
   WebAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:

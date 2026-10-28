@@ -943,6 +943,20 @@ test("CloudFront access logs reach CloudWatch for 24 months, without IP or query
   ]);
 });
 
+test("the legacy S3 edge log is retired: no client IP or query string kept (2026-10-28)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const distribution = resource(
+    template,
+    "SiteDistribution",
+    "WebAccessLogGroup",
+  );
+  // Standard logging v2 (WebAccessLogDelivery) is the only access log;
+  // the legacy Logging block wrote client IPs and query strings to S3.
+  assert.match(distribution, /^        Comment: elixir\.poapkings\.com$/m);
+  assert.doesNotMatch(distribution, /^        Logging:/m);
+  assert.doesNotMatch(template, /EdgeLogBucket\.RegionalDomainName/);
+});
+
 test("the database connections verify the server against the bundled RDS roots (#71)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const urls = template.match(/^          DATABASE_URL: .+$/gm) ?? [];
