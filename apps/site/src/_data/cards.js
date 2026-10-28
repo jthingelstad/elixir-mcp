@@ -15,29 +15,9 @@
  * network, so the card pages and the index are built and tested there
  * too.
  */
-import { readFile } from "node:fs/promises";
+import { readCatalogBody } from "../_lib/catalog.mjs";
 import { shapeCards } from "../_lib/cards.mjs";
 
-const URL_ =
-  process.env.ELIXIR_CARDS_URL ??
-  "https://elixir.poapkings.com/api/public/cards";
-const FIXTURE = new URL(
-  "../../test/fixtures/public-cards.json",
-  import.meta.url,
-);
-
 export default async function cards() {
-  if (process.env.ELIXIR_SKIP_STATS === "1")
-    return shapeCards(JSON.parse(await readFile(FIXTURE, "utf8")));
-  try {
-    const res = await fetch(URL_, { signal: AbortSignal.timeout(20000) });
-    if (!res.ok) {
-      console.warn(`[site] cards skipped: endpoint ${res.status}`);
-      return [];
-    }
-    return shapeCards(await res.json());
-  } catch (err) {
-    console.warn(`[site] cards skipped: ${err.message}`);
-    return [];
-  }
+  return shapeCards((await readCatalogBody()) ?? {});
 }

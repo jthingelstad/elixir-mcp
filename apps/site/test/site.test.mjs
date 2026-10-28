@@ -238,6 +238,51 @@ test("the sitemap lists exactly the static pages", { skip }, async () => {
   assert.deepEqual(locs, expected);
 });
 
+test(
+  "every sitemap URL carries a W3C lastmod, never the build's clock",
+  { skip },
+  () => {
+    const xml = read("sitemap.xml");
+    const urls = [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map((m) => m[1]);
+    assert.ok(urls.length > 0);
+    const W3C = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}Z)?$/;
+    const byLoc = new Map();
+    for (const body of urls) {
+      const loc = body.match(/<loc>([^<]+)<\/loc>/)?.[1];
+      const lastmod = body.match(/<lastmod>([^<]+)<\/lastmod>/)?.[1] ?? "";
+      assert.match(lastmod, W3C, `${loc}: lastmod`);
+      assert.ok(
+        Date.parse(lastmod) <= Date.now(),
+        `${loc}: ${lastmod} is in the future`,
+      );
+      assert.doesNotMatch(
+        body,
+        /<(priority|changefreq)>/,
+        `${loc}: lastmod only`,
+      );
+      byLoc.set(
+        loc.replace("https://elixir.poapkings.com", "") || "/",
+        lastmod,
+      );
+    }
+    // Pages are dated by their own sources and data, so they differ.
+    assert.ok(
+      new Set(byLoc.values()).size > 10,
+      "every page shares a few dates",
+    );
+    // A list page is as new as the newest thing it lists.
+    const newestUnder = (prefix) =>
+      [...byLoc]
+        .filter(([u]) => u.startsWith(prefix))
+        .map(([, d]) => Date.parse(d));
+    for (const hub of ["/updates", "/docs"])
+      assert.ok(
+        Date.parse(byLoc.get(hub)) >= Math.max(...newestUnder(`${hub}/`)),
+        `${hub} is older than a page it lists`,
+      );
+  },
+);
+
 test("the app shell is not indexable", { skip }, () => {
   // It renders nothing without JavaScript. Listing it, or letting a
   // crawler index it, is how the site ended up looking like one page.

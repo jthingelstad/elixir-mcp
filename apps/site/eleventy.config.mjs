@@ -24,6 +24,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import DOC_GROUPS from "./src/_data/docGroups.js";
 import { firstParagraph } from "./src/_lib/plain-text.mjs";
+import { makeLastmod } from "./src/_lib/lastmod.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -280,6 +281,29 @@ export default function (eleventyConfig) {
       updatedCache.set(key, stamp || new Date().toISOString().slice(0, 10));
     }
     return updatedCache.get(key);
+  });
+  /** A sitemap page's <lastmod>: when its content last really changed
+   *  (src/_lib/lastmod.mjs says how). Made once per build, from every
+   *  page the sitemap lists, so a list page can take its newest item. */
+  const pageUrlOf = (p) => {
+    const raw = p?.canonical ?? p?.url ?? "/";
+    const clean = String(raw).replace(/index\.html$/, "");
+    return clean.length > 1 ? clean.replace(/\/$/, "") : "/";
+  };
+  let lastmodFor = null;
+  let lastmodPages = null;
+  eleventyConfig.addFilter("sitemapLastmod", (p, all, data) => {
+    if (lastmodPages !== all) {
+      lastmodPages = all;
+      lastmodFor = makeLastmod({
+        pages: all.filter(
+          (x) => !x.data.eleventyExcludeFromCollections && x.url,
+        ),
+        data,
+        pageUrl: pageUrlOf,
+      });
+    }
+    return lastmodFor(p);
   });
   /** Where a source file is edited: the public repository, on main. */
   eleventyConfig.addFilter(
