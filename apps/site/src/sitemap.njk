@@ -10,7 +10,7 @@ eleventyExcludeFromCollections: true
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {%- for p in collections.all %}
 {%- if not p.data.eleventyExcludeFromCollections and p.url %}
-  <url><loc>{{ site.url }}{{ p | pageUrl }}</loc></url>
+  <url><loc>{{ site.url }}{{ p | pageUrl }}</loc><lastmod>{{ p | sitemapLastmod(collections.all, { stats: stats, catalogAsOf: catalogAsOf, updatesView: updatesView }) }}</lastmod></url>
 {%- endif %}
 {%- endfor %}
 </urlset>
