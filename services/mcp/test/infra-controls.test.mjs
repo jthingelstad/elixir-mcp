@@ -916,6 +916,33 @@ test("checkpoints every fifteen minutes, on the parameter group the database alr
   assert.doesNotMatch(group, /DBParameterGroupName:/);
 });
 
+test("CloudFront access logs reach CloudWatch for 24 months, without IP or query (2026-10-28)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const group = resource(template, "WebAccessLogGroup", "WebAccessLogSource");
+  assert.match(group, /^      LogGroupName: \/elixir-mcp\/web-access$/m);
+  assert.match(group, /^      RetentionInDays: 731$/m);
+  const source = resource(
+    template,
+    "WebAccessLogSource",
+    "WebAccessLogDestination",
+  );
+  assert.match(source, /^      LogType: ACCESS_LOGS$/m);
+  assert.match(source, /distribution\/\$\{SiteDistribution\}$/m);
+  const delivery = resource(template, "WebAccessLogDelivery", "SpaRouter");
+  const fields = [...delivery.matchAll(/^        - (.+)$/gm)].map((m) => m[1]);
+  assert.deepEqual(fields, [
+    "timestamp(ms)",
+    "cs-method",
+    "cs-uri-stem",
+    "sc-status",
+    "sc-bytes",
+    "sc-range-start",
+    "sc-range-end",
+    "cs(User-Agent)",
+    "x-edge-result-type",
+  ]);
+});
+
 test("the database connections verify the server against the bundled RDS roots (#71)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const urls = template.match(/^          DATABASE_URL: .+$/gm) ?? [];
