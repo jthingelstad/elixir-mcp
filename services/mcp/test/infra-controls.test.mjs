@@ -893,6 +893,21 @@ test("the stack owns no CloudWatch dashboard; Grafana on Otto reads its metrics 
   assert.doesNotMatch(template, /^  OpsDashboard:$/m);
 });
 
+test("the distribution carries the shared edge web ACL, imported from projects-sysadmin (2026-11-02)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  const distribution = resource(
+    template,
+    "SiteDistribution",
+    "WebAccessLogGroup",
+  );
+  assert.match(
+    distribution,
+    /^        WebACLId: !ImportValue edge-waf-WebAclArn$/m,
+  );
+  // The web ACL is the edge-waf stack's; this stack owns none.
+  assert.doesNotMatch(template, /AWS::WAFv2::/);
+});
+
 test("checkpoints every fifteen minutes, on the parameter group the database already has (2026-10-21)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const group = resource(template, "DbParameterGroup", "DbPostgresLogGroup");

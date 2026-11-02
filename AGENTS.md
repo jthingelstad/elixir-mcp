@@ -188,6 +188,8 @@ Skills and tests cite these by number; keep the numbering.
   `projects-ops-alerts` queue; no email. A custom metric exists only
   behind an alarm. The stack owns no dashboard: Elixir's are in Grafana
   on Otto (`otto-ops`), and add none.
+- The distribution carries projects-sysadmin's shared `edge` AWS WAF web
+  ACL (`!ImportValue edge-waf-WebAclArn`, count mode); the stack owns none.
 - `deploy.mjs` tags the stack (`awsApplication`, `Application=Elixir`,
   `Project=elixir-mcp`, `Environment`, `ManagedBy`, `Repository`);
   CloudFormation propagates them.
