@@ -69,17 +69,18 @@ ledger should drain, and both doors should serve.
   lines for the tool, then reproduce its arguments read-only.
   `elixir-mcp-door-throttles` is a door answering 429 for capacity (its
   Web Function's MaxEnvironments or RateLimit) in 3 of 6 five-minute
-  periods; the dashboard's "Doors: requests throttled" says which door
-  and which limit. The web-api's single five-minute bursts are scanner
-  waves meeting its two environments and stay on the dashboard; raising
+  periods; the "Web throttles" panel of Grafana's Elixir dashboard
+  (`otto-ops`) says which door and which limit. The web-api's single
+  five-minute bursts are scanner waves meeting its two environments and
+  stay on that panel; raising
   MaxEnvironments is a cost call, Jamie's. OAuth discovery serving. `elixir-mcp-site-certificate-expiry` quiet: ACM renewal
   depends on the validation CNAME at the registrar, which only Jamie can
   change. Firing now:
   `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --state-value ALARM`.
   Every `elixir-mcp-*` alarm publishes to SNS `elixir-mcp-alarms`, which
   feeds the sysadmin `projects-ops-alerts` queue. A custom metric exists
-  only behind an alarm; the `elixir-mcp` dashboard shows those and adds
-  none.
+  only behind an alarm; Grafana's Elixir dashboards on Otto read those
+  and add none.
 - **`elixir-mcp-migrate-duration`** fires when a migrate invocation runs
   past 90 s: someone ran a heavy op against production. Find who and why.
 - **The acceptance suite.** `npm run acceptance` is read-only (the

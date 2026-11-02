@@ -28,10 +28,10 @@ VPC, S3 (payload archive, outbox, web), CloudFront in front of one origin.
   reserved concurrency 1, so never run a backfill and a deploy together.
 - **Alarms** publish to SNS `elixir-mcp-alarms` for the sysadmin
   `projects-ops-alerts` queue, never email. A custom metric exists only to
-  back an alarm. The `elixir-mcp` dashboard (`OpsDashboard`) reads only
-  standard AWS metrics, those alarm-backed metrics and Logs Insights; keep
-  it at 50 metrics or fewer (the account's free tier is three dashboards
-  of 50).
+  back an alarm. The stack owns no CloudWatch dashboard: Elixir's
+  operations and product dashboards are Grafana's on Otto (`otto-ops`,
+  `scripts/build_grafana_dashboards.py`), which read these same metrics
+  and log groups, so check them before removing one.
 - **IAM** ships with the stack through a deploy. An IAM change outside a
   deploy is Jamie's to approve, and a deploy never carries an access change
   Jamie has blocked: deploys are cumulative.
