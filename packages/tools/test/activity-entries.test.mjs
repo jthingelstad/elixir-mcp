@@ -23,6 +23,7 @@ import {
   subjectsFor,
 } from "../src/activity/entries.mjs";
 import { periodAt } from "../src/war-period.mjs";
+import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 
 const CLAN = "#J2RGCRVG";
 const OBSERVER = "#UVQ8RJYG9"; // the battlelog fixture's own player
@@ -34,6 +35,9 @@ let roster;
 
 before(async () => {
   ctx = await scratchDb("activity");
+  // The migration seeds seasons only to 2026-10; the scheduler keeps the
+  // current and next present in production, so a test does the same.
+  await ensureSeasonsAround(ctx.db);
   await trackClans(ctx.db, [CLAN]);
   const db = ctx.db;
   await db.query(
