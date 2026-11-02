@@ -16,6 +16,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { deckHash } from "@elixir-mcp/contracts";
 import { scratchDb } from "../../ingest/test/helpers.mjs";
+import { ensureSeasonsAround } from "@elixir-mcp/record/season";
 import { makeRegistry } from "../src/tools.mjs";
 import { seedPlayedDeck, seedDeck } from "./deck-rows.mjs";
 
@@ -89,6 +90,9 @@ async function seed({ id, evo, day }) {
 before(async () => {
   scratch = await scratchDb("deck_form_identity");
   await scratch.db.query("set timezone to 'UTC'");
+  // The migration seeds seasons only to 2026-10; the scheduler keeps the
+  // current and next present in production, so a test does the same.
+  await ensureSeasonsAround(scratch.db);
   const {
     rows: [row],
   } = await scratch.db.query(
