@@ -295,14 +295,9 @@ test("the collector door is its own function, role and route on the site API (20
   assert.match(endpoint, /AuthType: IamAuth/);
   assert.match(endpoint, /EndpointType: HomeRegion/);
   assert.match(endpoint, /RevisionId: !GetAtt CollectorWebRevision.RevisionId/);
-  // Its ingest failures and its crashes page as the web-api's did.
-  const filter = resource(
-    template,
-    "CollectorSubmitIngestErrorFilter",
-    "SubmitIngestErrorAlarm",
-  );
-  assert.match(filter, /LogGroupName: !Ref CollectorLogGroup/);
-  assert.match(filter, /MetricName: SubmitIngestError\n/);
+  // Native HTTP 5xx owns collector failure detection; no duplicate paid counter.
+  assert.doesNotMatch(template, /^  CollectorSubmitIngestErrorFilter:/m);
+  assert.doesNotMatch(template, /^  SubmitIngestErrorAlarm:/m);
   const errors = resource(template, "CollectorErrorsAlarm", "McpLatencyAlarm");
   assert.match(errors, /Value: elixir-mcp-collector-web/);
   assert.match(errors, /AlarmActions: \[!Ref AlarmTopic\]/);
@@ -779,8 +774,7 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (#7
   assert.doesNotMatch(filter, /^ *DefaultValue:/m);
   const expected = [
     // [logical id, next logical id, metric, threshold]
-    ["HandledFailureAlarm", "WebApiLatencyAlarm", "HandledFailure", "3"],
-    ["WebApiLatencyAlarm", "CollectorLatencyAlarm", "WebApiDuration", "15000"],
+    ["HandledFailureAlarm", "CollectorLatencyAlarm", "HandledFailure", "3"],
     ["CollectorLatencyAlarm", "DoorThrottleAlarm", "CollectorDuration", "5000"],
     ["DbEbsByteBalanceAlarm", "DbFreeableMemoryAlarm", "EBSByteBalance%", "25"],
     [
@@ -823,7 +817,7 @@ function alarms(template) {
 test("an incident pages once: the alarms hold ALARM through it, and every one pages the ops queue (2026-10-21)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const all = alarms(template);
-  assert.equal(all.size, 28);
+  assert.equal(all.size, 25);
   for (const [id, block] of all) {
     // Alarms reach the sysadmin queue through the topic, never email,
     // and say what missing data means.
