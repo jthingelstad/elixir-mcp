@@ -183,9 +183,10 @@ leaders-only fact read here is still leaders-only.
 **Alarms.** Every `elixir-mcp-*` alarm publishes to SNS
 `elixir-mcp-alarms`, which feeds the sysadmin `projects-ops-alerts` queue
 the sysadmin Operator drains daily. No email, and a custom metric only
-to back an alarm. The `elixir-mcp` CloudWatch dashboard shows the same
-alarms and metrics for a person looking; alarms, not the dashboard, are
-how trouble is noticed.
+to back an alarm. Grafana on Otto (`otto-ops`: the Elixir and Elixir
+product dashboards) shows the same metrics and logs for a person looking,
+but not the alarm states; alarms, not a dashboard, are how trouble is
+noticed.
 Firing now: `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --state-value ALARM`.
 
 **The jobs Lambda** (`elixir-mcp-jobs`) has its own payload keys, such as

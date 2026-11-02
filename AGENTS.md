@@ -186,7 +186,8 @@ Skills and tests cite these by number; keep the numbering.
   `infra/scripts/parameters.mjs`. An unclassed one resets to its default.
 - Alarms publish to SNS `elixir-mcp-alarms` for the sysadmin
   `projects-ops-alerts` queue; no email. A custom metric exists only
-  behind an alarm; the one dashboard, `elixir-mcp`, adds none.
+  behind an alarm. The stack owns no dashboard: Elixir's are in Grafana
+  on Otto (`otto-ops`), and add none.
 - `deploy.mjs` tags the stack (`awsApplication`, `Application=Elixir`,
   `Project=elixir-mcp`, `Environment`, `ManagedBy`, `Repository`);
   CloudFormation propagates them.

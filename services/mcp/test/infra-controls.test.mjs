@@ -885,15 +885,12 @@ test("an incident pages once: the alarms hold ALARM through it, and every one pa
   assert.match(throttles, /^      DatapointsToAlarm: 3$/m);
   assert.match(throttles, /^      Threshold: 1$/m);
   assert.match(throttles, /^      TreatMissingData: notBreaching$/m);
-  // The dashboard shows the new alarm and stays inside the free tier's
-  // 50 metrics.
-  const dashboard = template.slice(
-    template.indexOf("  OpsDashboard:"),
-    template.indexOf("\nOutputs:"),
-  );
-  assert.match(dashboard, /"\$\{DoorThrottleAlarm\.Arn\}"/);
-  const metrics = dashboard.match(/\["(AWS|ElixirMCP)\//g) ?? [];
-  assert.ok(metrics.length <= 50, `${metrics.length} dashboard metrics`);
+});
+
+test("the stack owns no CloudWatch dashboard; Grafana on Otto reads its metrics (2026-11-02)", async () => {
+  const template = await readFile(templateUrl, "utf8");
+  assert.doesNotMatch(template, /AWS::CloudWatch::Dashboard/);
+  assert.doesNotMatch(template, /^  OpsDashboard:$/m);
 });
 
 test("checkpoints every fifteen minutes, on the parameter group the database already has (2026-10-21)", async () => {
