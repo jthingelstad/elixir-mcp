@@ -2684,6 +2684,8 @@ Resources:
       DistributionConfig:
         Enabled: true
         Comment: elixir.poapkings.com
+        # projects-sysadmin's shared edge web ACL (stack edge-waf); its rules only count.
+        WebACLId: !ImportValue edge-waf-WebAclArn
         HttpVersion: http2and3
         Aliases: !If [HasSiteCert, [elixir.poapkings.com], !Ref "AWS::NoValue"]
         ViewerCertificate: !If
