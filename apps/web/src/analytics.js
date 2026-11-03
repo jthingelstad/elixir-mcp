@@ -73,15 +73,37 @@ export function loadTinylytics() {
     return;
   }
 
+  quietEmbedNavigation();
   const script = document.createElement("script");
   script.defer = true;
-  script.src = `https://tinylytics.app/embed/${SITE_ID}/min.js?hits&countries&events&beacon`;
+  script.src = EMBED_SRC;
+  script.dataset.site = SITE_ID;
   document.body.appendChild(script);
 }
 
+/** The one Tinylytics tag for every site: the site rides in data-site and
+ *  the URL takes no parameters; hits, countries, events and beacon are the
+ *  site's settings in Tinylytics. */
+const EMBED_SRC = "https://tinylytics.app/js/script.js";
+
 /**
- * The embed records one hit at document load; pushState navigation is
- * invisible to it. Bridge route changes to the collector as virtual page hits
+ * The embed counts History API navigation by itself (pushState,
+ * replaceState, popstate), at the raw address. Here that would be a second
+ * count of every view the bridge below already counts, and it would carry
+ * what the bridge exists to keep out: a record's id in the path, a roster
+ * search's free text in ?find=. The embed skips its own History counting
+ * when window.Turbo is set, because a Turbo app counts on turbo:load
+ * instead; this app never fires turbo:load, so the mark leaves the embed
+ * the document hit, the events and the widgets, and the bridge every view
+ * after it.
+ */
+function quietEmbedNavigation() {
+  window.Turbo ??= { tinylyticsBridge: true };
+}
+
+/**
+ * The embed records one hit at document load; its own pushState counting is
+ * switched off (quietEmbedNavigation, above). Bridge route changes to the collector as virtual page hits
  * (Elixir Drop's technique, adapted from hash routing to pushState).
  *
  * An Explore record lives at /explore/player/2ABC — the id is a path segment,
