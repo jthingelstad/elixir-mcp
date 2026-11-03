@@ -75,9 +75,12 @@ ledger should drain, and both doors should serve.
   validation CNAME at the registrar, which only Jamie can change (ACM's
   `DaysToExpiry`, no alarm). Firing now:
   `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --state-value ALARM`.
-  The stack keeps three alarms since 2026-11-03 (the account keeps
-  alarms only where someone acts on them): `elixir-mcp-ledger-dead-jobs`,
-  `elixir-mcp-scheduler-missing` and `elixir-mcp-db-storage`. Each
+  The stack keeps two alarms since 2026-11-03 (the account keeps
+  alarms only where someone acts on them): `elixir-mcp-ledger-dead-jobs`
+  and `elixir-mcp-scheduler-missing`. Database free storage (under 2 GiB,
+  or a week's trend reaching it within 7 days) and the three dead-letter
+  queues are watched hourly by otto-ops' `check-cloud-metrics`, which
+  posts to #needs-jamie. Each alarm
   publishes to SNS `elixir-mcp-alarms`, which feeds the sysadmin
   `projects-ops-alerts` queue. The custom metrics the removed alarms read
   stay for Grafana's Elixir dashboards on Otto.

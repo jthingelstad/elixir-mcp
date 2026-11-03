@@ -390,8 +390,10 @@ size 1, so a busy channel never holds up sign-in mail. The relay answers
 back the same way: its receipts for the Discord quality ledger
 (`discord-receipt/`) wake the timeline sync, which reads them into the
 database. Metrics ride the EMF log line; a custom metric exists
-only to back an alarm. Since 2026-11-03 the stack keeps three alarms, and
-the metrics the removed ones read stay for Grafana for now (DECISIONS.md).
+only to back an alarm, a dashboard or a Dagu check. Since 2026-11-03 the
+stack keeps two alarms, database storage and the dead-letter queues are
+otto-ops' hourly `check-cloud-metrics`, and the metrics the removed alarms
+read stay for Grafana (DECISIONS.md).
 
 ## Native HTTP runtime
 

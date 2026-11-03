@@ -785,19 +785,19 @@ function alarms(template) {
   return found;
 }
 
-test("the stack keeps three alarms, and each pages the ops queue (2026-11-03)", async () => {
+test("the stack keeps two alarms, and each pages the ops queue (2026-11-03)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const all = alarms(template);
   // The account keeps alarms only where someone acts on them (Jamie,
-  // 2026-11-03): these three are Elixir's.
+  // 2026-11-03): these two are Elixir's. Database free storage moved to
+  // otto-ops' hourly check-cloud-metrics the same day.
   assert.deepEqual(
     [...all.keys()],
-    ["LedgerDeadJobsAlarm", "SchedulerMissingAlarm", "DbStorageAlarm"],
+    ["LedgerDeadJobsAlarm", "SchedulerMissingAlarm"],
   );
   const names = {
     LedgerDeadJobsAlarm: "elixir-mcp-ledger-dead-jobs",
     SchedulerMissingAlarm: "elixir-mcp-scheduler-missing",
-    DbStorageAlarm: "elixir-mcp-db-storage",
   };
   for (const [id, block] of all) {
     assert.match(block, new RegExp(`^      AlarmName: ${names[id]}$`, "m"), id);

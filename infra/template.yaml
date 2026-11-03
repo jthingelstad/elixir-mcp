@@ -3224,9 +3224,10 @@ Resources:
               ArnLike:
                 aws:SourceArn: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/elixir-mcp
 
-  # The stack keeps three alarms since 2026-11-03 (ledger dead jobs,
-  # scheduler missing, database storage): the account keeps alarms only
-  # where someone acts on them. The metric filters below stay for
+  # The stack keeps two alarms since 2026-11-03 (ledger dead jobs,
+  # scheduler missing): the account keeps alarms only where someone acts
+  # on them. Database free storage is watched hourly by otto-ops'
+  # check-cloud-metrics instead. The metric filters below stay for
   # Grafana's Elixir dashboards (otto-ops), with no alarm on them.
   LedgerDeadJobsAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -3315,21 +3316,6 @@ Resources:
           MetricName: McpDuration
           MetricValue: $.message.ms
           Unit: Milliseconds
-
-  DbStorageAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-db-storage
-      Namespace: AWS/RDS
-      MetricName: FreeStorageSpace
-      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
-      Statistic: Minimum
-      Period: 900
-      EvaluationPeriods: 1
-      Threshold: 2147483648
-      ComparisonOperator: LessThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
 
   # Failures the doors handle themselves (review 2026-09-27 §8.6, issue
   # #71). The invoker catches every tool exception and answers an
