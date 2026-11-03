@@ -225,6 +225,7 @@ test("a rung names the value that crossed it; the net and the peak are both told
   assert.doesNotMatch(sitting.text, /best win|2v2/);
   assert.equal(sitting.facts.trophy_net, 120);
   assert.equal(sitting.facts.trophy_net_peak, 180);
+  assert.deepEqual(sitting.facts.trophy_net_by_mode, { ladder: 120 });
   assert.match(sitting.text, /\+120 trophies, peak \+180/);
   // The sitting's evidence is the sitting the item counts.
   assert.equal(sitting.evidence.count, sitting.facts.battles);

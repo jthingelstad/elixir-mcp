@@ -285,11 +285,12 @@ only when more canonical games remain; closing the panel returns to its row.
 
 Every supported item carries `evidence.kind`, `version`, `observed_at`,
 `count` and `completeness`. `observed_at_basis` distinguishes recorded
-capture/observation time from `legacy_window`: old rows retain the original
-observation window because their proof attachment time was not recorded. A sitting says `recorded_only`: actual capture
-completeness is **unknown**, even when all its recorded games are listed.
-`anchor_bound` means the 200-step search may omit its beginning. `open` says
-whether the sitting was still open at this read. Boat defenses and games
+capture/observation time from `legacy_window`: old rows keep the original
+observation window, as their proof's attachment time was not recorded. A sitting
+says `recorded_only`: capture completeness is **unknown**, even when all its
+recorded games are listed.
+`anchor_bound` means the 200-step search may omit its beginning. `open`: the
+sitting was still open at this read. Boat defenses and games
 captured more than a day late remain outside these sessions.
 
 A crossing says `proved` only when its canonical game establishes it.
@@ -297,8 +298,8 @@ For a ranked promotion, the observed profile league change is paired with the
 last recorded winning Path of Legends game stamped in the prior league. Its
 API-reported `trophy_change` belongs to that ranked game. In the lower leagues
 the win field is +30 without a starting rating; it does not establish a Trophy
-Road increase or a measured rating change. Keep a player's current Trophy Road
-standing and wider mixed-mode statistics separate from the crossing's evidence.
+Road increase or a measured rating change. Keep current Trophy Road standing
+and mixed-mode statistics apart from the crossing's evidence.
 Otherwise it says `unknown`; it never substitutes the nearest game. A
 roster-observed arena move can later gain proof: its origin is frozen
 before enrichment, its ID stays, and its evidence revision, `revision` and
@@ -345,8 +346,8 @@ about a player, a member's moment on a clan's timeline included, carries
 
 | kind | version | `at` is | `facts` |
 |---|---|---|---|
-| `battle_session` | 2 | the sitting's first battle; `sort_at` is its last | `player_tag`, `name`, `started_at`, `ended_at`, `duration_s`, `battles`, `won`, `lost`, `drawn`, `by_mode` (battles per mode group), `trophy_net` (the session's ladder net), `trophy_net_peak` (the running ladder net furthest from zero), `won_in_a_row`, `open`, `decks` (up to three `{ label, battles }`, by archetype label), `events` (`{ event_tag, name, battles }` per event or challenge played) |
-| `session_standout` | 3 | the battle that crossed the first new rung; `sort_at` is the sitting's last battle | the session's keys, plus `crossed` (every rung passed, as `won_in_a_row>=5`, `trophy_net>=300`, `battles>=20`), `newly` (the rungs this window learned) and `crossings` (each rung's `{ rung, key, threshold, value, at, battle_id }`: the value at the battle that crossed it, signed, so a trophy rung crossed going down reads negative, and that battle), [`teammate`] (`{ player_tag, name, battles }`, the 2v2 partner: tell a pair's sittings once), [`best_win`] (the win over the highest-rated opponent, the battle shape below plus `mode`) |
+| `battle_session` | 3 | the sitting's first battle; `sort_at` is its last | `player_tag`, `name`, `started_at`, `ended_at`, `duration_s`, `battles`, `won`, `lost`, `drawn`, `by_mode` (battles per mode group), `trophy_net` (the session's Trophy Road net), `trophy_net_peak` (its value furthest from 0), `trophy_net_by_mode` (each trophy mode's net), `won_in_a_row`, `open`, `decks` (up to three `{ label, battles }`, by archetype label), `events` (`{ event_tag, name, battles }` per event or challenge played) |
+| `session_standout` | 4 | the battle that crossed the first new rung; `sort_at` is the sitting's last battle | the session's keys, plus `crossed` (every rung passed, as `won_in_a_row>=5`, `trophy_net>=300`, `battles>=20`), `newly` (the rungs this window learned) and `crossings` (each rung's `{ rung, key, threshold, value, at, battle_id }`: the value at the battle that crossed it, signed, so a trophy rung crossed going down reads negative, and that battle), [`teammate`] (`{ player_tag, name, battles }`, the 2v2 partner: tell a pair's sittings once), [`best_win`] (the win over the highest-rated opponent, the battle shape below plus `mode`) |
 | `badge_earned` | 2 | the profile read that saw the level | `player_tag`, `name`, `badge`, `badge_label`, [`level`, `max_level`, `prior_level`] |
 | `legendary_badge_earned` | 2 | the profile read that saw it | `player_tag`, `name`, `badge`, `badge_label` |
 | `arena_changed` | 2 | the promoting battle when `promoted_by` is there, else the read that saw the move | `player_tag`, `name`, `from`, `to` (arena ids), `from_name`, `to_name`, [`promoted_by`] |
