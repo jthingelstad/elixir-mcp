@@ -259,9 +259,12 @@ describe("loadTinylytics", () => {
 
   test("an ordinary start loads the embed and bridges as well", async () => {
     await load("/console/account/overview");
-    expect(embeds()).toEqual([
-      `https://tinylytics.app/embed/${SITE_ID}/min.js?hits&countries&events&beacon`,
-    ]);
+    expect(embeds()).toEqual(["https://tinylytics.app/js/script.js"]);
+    const [script] = document.body.querySelectorAll("script");
+    expect(script.dataset.site).toBe(SITE_ID);
+    expect(script.defer).toBe(true);
+    // The embed's own History counting is off; the bridge counts views.
+    expect(window.Turbo).toBeTruthy();
 
     // The embed already recorded this document; only the NEXT page beacons.
     window.history.pushState({}, "", "/console/account/usage");

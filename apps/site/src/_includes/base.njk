@@ -188,10 +188,13 @@
     </div>
     {#- Tinylytics: a static page is a real document load, so the embed
         records the hit by itself. No pushState bridge is needed here -
-        that belongs to the app. Same privacy posture: anonymous only. -#}
+        that belongs to the app. Same privacy posture: anonymous only.
+        The one tag Tinylytics uses for every site: the site rides in
+        data-site and the URL takes no parameters (hits, countries and
+        events are the site's Tinylytics settings). -#}
     {#- The narrow menu. External file, never inline: the CSP forbids
         inline script and a test pins that. -#}
     <script defer src="{{ "/assets/chrome-menu.js" | asset }}"></script>
-    <script defer src="https://tinylytics.app/embed/{{ site.tinylyticsId }}/min.js?hits&countries&events"></script>
+    <script defer src="https://tinylytics.app/js/script.js" data-site="{{ site.tinylyticsId }}"></script>
   </body>
 </html>

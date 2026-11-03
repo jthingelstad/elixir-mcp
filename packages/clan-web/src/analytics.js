@@ -21,9 +21,15 @@ const LOCAL = ["localhost", "127.0.0.1", "::1"];
 export function loadTinylytics() {
   if (LOCAL.includes(window.location.hostname)) return;
   bridgeRouteChanges();
+  // The embed would count pushState and popstate itself, at the raw
+  // address, beside the bridge: Elixir's loader (apps/web/src/analytics.js,
+  // quietEmbedNavigation) explains the mark that switches that off.
+  window.Turbo ??= { tinylyticsBridge: true };
   const script = document.createElement("script");
   script.defer = true;
-  script.src = `https://tinylytics.app/embed/${SITE_ID}/min.js?hits&countries&events&beacon`;
+  // The one tag for every site: no URL parameters, the site in data-site.
+  script.src = "https://tinylytics.app/js/script.js";
+  script.dataset.site = SITE_ID;
   document.body.appendChild(script);
 }
 

@@ -1008,6 +1008,10 @@ test("signup is one email door, and it is in the app", { skip }, () => {
 });
 
 // --------------------------------------------------------------- #25
+// The one Tinylytics tag: no URL parameters, the site in data-site.
+const TINYLYTICS_TAG =
+  '<script defer src="https://tinylytics.app/js/script.js" data-site="Yzx8dUUvUPn9AEJpTMeU"></script>';
+
 test("analytics only ever comes from tinylytics.app", { skip }, () => {
   // #25 took the embed off the app; that turned out to protect nothing,
   // because the same Path=/ session cookie is live on every static page
@@ -1038,7 +1042,7 @@ test("analytics only ever comes from tinylytics.app", { skip }, () => {
 
   // Both halves count visits, each the way its own page model works: the
   // static site is a real document load, the app bridges pushState.
-  assert.ok(read("index.html").includes("tinylytics.app/embed/"));
+  assert.ok(read("index.html").includes(TINYLYTICS_TAG));
   const bundle = read("app.html").match(
     /src="(\/assets\/index-[^"]+\.js)"/,
   )?.[1];
@@ -1072,15 +1076,21 @@ test("every built page counts its own visit", { skip }, () => {
   const pages = htmlPages().filter((rel) => rel !== "app.html");
   assert.ok(pages.length > 40, `only ${pages.length} pages built`);
   for (const rel of pages) {
+    const html = read(rel);
     assert.ok(
-      read(rel).includes("tinylytics.app/embed/"),
+      html.includes(TINYLYTICS_TAG),
       `${rel} carries no analytics - has it left base.njk?`,
+    );
+    // Each tag sends its own page view: the old embed must be gone.
+    assert.ok(
+      !html.includes("tinylytics.app/embed/"),
+      `${rel} still carries the old Tinylytics embed`,
     );
   }
   // app.html is the exception and not an omission: the application
   // loads the embed from its bundle, because it also has to bridge
   // pushState and skip /console/signin.
-  assert.ok(!read("app.html").includes("tinylytics.app/embed/"));
+  assert.ok(!read("app.html").includes("tinylytics.app/js/script.js"));
 });
 
 test("nothing in the built site relies on inline script", { skip }, () => {
