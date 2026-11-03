@@ -242,7 +242,8 @@ skipped, and an item that happened before `from` says `late: true`
 
 The item and entry shapes are on [Timeline](/docs/timeline), with the
 `facts` keys each `kind` carries and its version (a `battle_session` has
-`battles`, `won`, `lost`, `by_mode`, `trophy_net` and `trophy_net_peak`;
+`battles`, `won`, `lost`, `by_mode`, `trophy_net` and
+`trophy_net_peak` (the session's Trophy Road net), `trophy_net_by_mode`;
 a `session_standout` adds `crossed`, `newly` and `crossings`, the value at
 each rung's battle; a `ranked_promotion` has `from`, `to` and their names and, when the
 record holds it, the promoting battle under `promoted_by`; a clan's

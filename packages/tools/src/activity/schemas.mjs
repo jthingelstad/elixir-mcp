@@ -26,6 +26,7 @@ const SITTING = [
   "by_mode",
   "trophy_net",
   "trophy_net_peak",
+  "trophy_net_by_mode",
   "won_in_a_row",
   "open",
   "decks",
@@ -35,14 +36,16 @@ const ROSTER = ["roster_size_before", "roster_size_after"];
 
 export const TIMELINE_KIND_SCHEMAS = {
   battle_session: {
-    version: 2,
+    // 3 (2026-11-03): trophy_net_by_mode, each trophy mode's own net.
+    version: 3,
     at: "the sitting's first battle; sort_at is its last",
     facts: SITTING,
   },
   session_standout: {
     // 3 (2026-10-11): crossings[] name their battle_id; teammate and
-    // best_win say how the sitting went.
-    version: 3,
+    // best_win say how the sitting went. 4 (2026-11-03):
+    // trophy_net_by_mode, each trophy mode's own net.
+    version: 4,
     at: "the battle that crossed the newest rung this window learned (every rung's is crossings[].at); sort_at is the sitting's last battle",
     facts: [...SITTING, "crossed", "newly", "crossings"],
     optional: ["teammate", "best_win"],

@@ -1144,3 +1144,47 @@ test("9.15.0: a duplicated ledger moment keeps one id whichever row a window hol
   for (const it of body.timeline)
     assert.ok(!JSON.stringify(it).includes(String(n)), "no raw sequence");
 });
+
+test("11.15.0: a ranked sitting's trophy_net is Trophy Road's alone, and trophy_net_by_mode names what it moved (#381, #382)", async () => {
+  // A member wins five Path of Legends games in a row (+30 each): the
+  // streak rung makes it a standout, Trophy Road does not move, and
+  // battles_performance's net_trophies over the same games is 150.
+  const { rows: mem } = await ctx.db.query(
+    `select cm.player_tag from clan_membership cm join player p on p.player_tag = cm.player_tag
+      where cm.clan_tag = $1 and cm.left_observed_at is null and p.name is not null
+      order by cm.player_tag offset 1 limit 1`,
+    [CLAN],
+  );
+  const tag = mem[0].player_tag;
+  const base = Date.parse("2026-09-13T12:00:00Z");
+  const mk = async (i, type, change) => {
+    const at = new Date(base + i * 4 * 60_000).toISOString();
+    await ctx.db.query(
+      `insert into battle (battle_id, battle_time, type, type_class, created_at)
+       values ($1, $2, $3, 'pvp', '2026-09-13T12:40:00Z')`,
+      [`rk-${i}`, at, type],
+    );
+    await ctx.db.query(
+      `insert into battle_participant (battle_id, player_tag, battle_time, side, outcome, trophy_change, clan_tag, type, type_class)
+       values ($1, $2, $3, 0, 'win', $4, $5, $6, 'pvp')`,
+      [`rk-${i}`, tag, at, change, CLAN, type],
+    );
+  };
+  for (let i = 0; i < 5; i++) await mk(i, "pathOfLegend", 30);
+  // One Trophy Road win after them: ladder keeps its own net.
+  await mk(5, "PvP", 12);
+
+  const { isError, body } = await call("elixir_timeline", {
+    from: "2026-09-13T12:30:00Z",
+    to: "2026-09-13T12:50:00Z",
+    kinds: ["session_standout"],
+    basis: "observed",
+    mark_read: false,
+  });
+  assert.equal(isError, false, JSON.stringify(body));
+  const item = body.timeline.find((it) => it.facts.player_tag === tag);
+  assert.ok(item, JSON.stringify(body.timeline));
+  assert.equal(item.schema, "session_standout/4");
+  assert.equal(item.facts.trophy_net, 12, "Trophy Road's alone");
+  assert.deepEqual(item.facts.trophy_net_by_mode, { ranked: 150, ladder: 12 });
+});

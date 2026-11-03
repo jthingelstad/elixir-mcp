@@ -740,6 +740,12 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
         // the net is crossed by how far it moved, which the final net
         // need not show (#373: crossed 150, ended at +117).
         trophy_net_peak: 0,
+        // Every trophy-bearing mode's own net (feedback #381, #382):
+        // trophy_net is Trophy Road's alone, while Path of Legends and the
+        // seasonal Trophy Road (event content) report a trophy_change too,
+        // which battles_performance's net_trophies sums. Keyed by mode
+        // group, only for modes whose battles reported a delta.
+        trophy_net_by_mode: {},
         run: 0,
         won_in_a_row: 0,
         // Rungs crossed so far, and which of those crossings this window
@@ -773,6 +779,9 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     }
     const g = modeGroupOf(b.type, b.event_tag);
     cur.by_mode[g] = (cur.by_mode[g] ?? 0) + 1;
+    if (typeof b.trophy_change === "number")
+      cur.trophy_net_by_mode[g] =
+        (cur.trophy_net_by_mode[g] ?? 0) + b.trophy_change;
     if (g === "ladder") {
       cur.trophy_net += b.trophy_change ?? 0;
       if (Math.abs(cur.trophy_net) > Math.abs(cur.trophy_net_peak))
@@ -823,6 +832,7 @@ function sessionsOf(battles, toMs, { learned = () => true } = {}) {
     by_mode: s.by_mode,
     trophy_net: s.trophy_net,
     trophy_net_peak: s.trophy_net_peak,
+    trophy_net_by_mode: s.trophy_net_by_mode,
     won_in_a_row: s.won_in_a_row,
     open: toMs - s.endMs < SESSION_GAP_MS,
     crossed: s.crossed,
