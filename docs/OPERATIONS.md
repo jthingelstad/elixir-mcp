@@ -55,32 +55,32 @@ ledger should drain, and both doors should serve.
   log carries `archetype_stamp`, the decks re-stamped after a vocabulary
   or grammar change: a non-zero `written` on a day with neither, and no
   deploy, needs a reason. The hourly operational sweep carries the war
-  calendar's health read. `elixir-mcp-season-war-id-mismatch` pages on
-  the first race log read whose seasonId the calendar does not derive
-  and holds ALARM for 30 hours after the last one (a clan's log is read
-  about daily), so a standing mismatch is one page, not one a day: read
-  the season table against the log entry; nothing relabels itself.
-- **The doors.** Quiet: the MCP and web-api error alarms, both p95
-  latency alarms, and `elixir-mcp-door-handled-failures` (the failures
-  the doors answer themselves, `tool_failed_unexpectedly` and
-  `db_connect_failed`, which no Lambda error counts). It pages on the
-  third in an hour and holds ALARM about an hour past the last, so one
-  broken tool is one page: read the MCP log's `tool_failed_unexpectedly`
-  lines for the tool, then reproduce its arguments read-only.
-  `elixir-mcp-door-throttles` is a door answering 429 for capacity (its
-  Web Function's MaxEnvironments or RateLimit) in 3 of 6 five-minute
-  periods; the "Web throttles" panel of Grafana's Elixir dashboard
-  (`otto-ops`) says which door and which limit. The web-api's single
-  five-minute bursts are scanner waves meeting its two environments and
-  stay on that panel; raising
-  MaxEnvironments is a cost call, Jamie's. OAuth discovery serving. `elixir-mcp-site-certificate-expiry` quiet: ACM renewal
-  depends on the validation CNAME at the registrar, which only Jamie can
-  change. Firing now:
+  calendar's health read. `ElixirMCP/Record` `SeasonWarIdMismatch` counts a race
+  log read whose seasonId the calendar does not derive (no alarm since
+  2026-11-03): read the season table against the log entry; nothing
+  relabels itself.
+- **The doors.** No alarm watches them since 2026-11-03; read the
+  metrics. The doors' HTTP 5xx (`AWS/Lambda/Web`), p95 latency
+  (`ElixirMCP/Web` `McpDuration`, `CollectorDuration`) and the failures
+  the doors answer themselves (`ElixirMCP/Door` `HandledFailure`:
+  `tool_failed_unexpectedly` and `db_connect_failed`, which no Lambda
+  error counts): read the MCP log's `tool_failed_unexpectedly` lines for
+  the tool, then reproduce its arguments read-only. A door answering 429
+  for capacity (its Web Function's MaxEnvironments or RateLimit) shows
+  on the "Web throttles" panel of Grafana's Elixir dashboard
+  (`otto-ops`), which says which door and which limit. The web-api's
+  single five-minute bursts are scanner waves meeting its two
+  environments; raising MaxEnvironments is a cost call, Jamie's. OAuth
+  discovery serving. The site certificate: ACM renewal depends on the
+  validation CNAME at the registrar, which only Jamie can change (ACM's
+  `DaysToExpiry`, no alarm). Firing now:
   `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --state-value ALARM`.
-  Every `elixir-mcp-*` alarm publishes to SNS `elixir-mcp-alarms`, which
-  feeds the sysadmin `projects-ops-alerts` queue. A custom metric exists
-  only behind an alarm; Grafana's Elixir dashboards on Otto read those
-  and add none.
+  The stack keeps three alarms since 2026-11-03 (the account keeps
+  alarms only where someone acts on them): `elixir-mcp-ledger-dead-jobs`,
+  `elixir-mcp-scheduler-missing` and `elixir-mcp-db-storage`. Each
+  publishes to SNS `elixir-mcp-alarms`, which feeds the sysadmin
+  `projects-ops-alerts` queue. The custom metrics the removed alarms read
+  stay for Grafana's Elixir dashboards on Otto.
 - **`elixir-mcp-migrate-duration`** fires when a migrate invocation runs
   past 90 s: someone ran a heavy op against production. Find who and why.
 - **The acceptance suite.** `npm run acceptance` is read-only (the
@@ -90,10 +90,10 @@ ledger should drain, and both doors should serve.
   finding, never re-run until it is green. The `budgets` suite is
   capacity; the rest is product.
 - **The database.** db.t4g.micro again since 2026-10-08. Its limit is
-  `EBSByteBalance%` (`elixir-mcp-db-ebs-byte-balance`): a heavy batch, a
+  `EBSByteBalance%` (no alarm since 2026-11-03): a heavy batch, a
   Gym sweep or a full acceptance gate can drain it, so space them. On
   2026-09-23 a full gate on every deploy drained it in an afternoon.
-  Also `elixir-mcp-db-freeable-memory`, `SwapUsage`, the Enhanced
+  Also `FreeableMemory`, `SwapUsage`, the Enhanced
   Monitoring OS split (on since 2026-09-11) and storage headroom
   (autoscaling from 20 GB to 100 GB). What spends its time and reads is
   `{statements}`; what holds it now is `{backends}`; where its weight is,
@@ -137,7 +137,7 @@ failure, and never delete what you have not read.
   `timeline-editor/` (a clan's model editing its activity channel, one
   clan an invocation, up to three model rounds) wake
   `elixir-mcp-timeline-sync` (180 s timeout) and share the DLQ
-  `elixir-mcp-timeline-sync-dlq` (alarm `elixir-mcp-dlq-timeline-sync`);
+  `elixir-mcp-timeline-sync-dlq` (no alarm since 2026-11-03);
   A sync wake (`{ v: 1, clan_tag }`, or a person's) carries no post, so
   redriving one only runs the sync again, which never posts a story
   twice; read `/aws/lambda/elixir-mcp-timeline-sync` for
@@ -147,8 +147,8 @@ failure, and never delete what you have not read.
   throws and it is a dead letter; fix the cause before any redrive). `timeline-discord/`
   is the Discord sends themselves (a person's cross-post and a clan's
   channel), drained by the VPC-less `elixir-mcp-email-relay`, with
-  `elixir-mcp-timeline-discord-dlq` (alarm
-  `elixir-mcp-dlq-timeline-discord`): its objects are the posts, and a
+  `elixir-mcp-timeline-discord-dlq` (no alarm since 2026-11-03): its
+  objects are the posts, and a
   send whose outcome is unknown is never made again, so read the relay's
   log before any redrive. `discord-receipt/` runs the other way: the
   relay's answers for the quality ledger (0222), read into `discord_post`
@@ -164,8 +164,8 @@ failure, and never delete what you have not read.
   Discord's refusals and sends with no answer, for all three features,
   are one line each in the relay's log (`discord_undelivered <feature>
   <refused|unknown|not_delivered> <fingerprint>`), counted by
-  `ElixirMCP/Discord Undelivered`; `elixir-mcp-discord-undelivered`
-  fires at five in an hour. Read the relay's log for the fingerprints,
+  `ElixirMCP/Discord Undelivered` (no alarm since 2026-11-03). Read the
+  relay's log for the fingerprints,
   then the ledger rows under them; a connection's check is never
   counted. A ledger write that fails is logged `discord_quality_failed`
   and never stops a delivery; the relay's `timeline_discord_receipt_failed`

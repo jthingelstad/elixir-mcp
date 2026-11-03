@@ -126,8 +126,8 @@ racing the delete) is accepted rather than giving the relay a database.
 The run logs `{sent, already_sent, remaining, ms}` on its `{email: ...}`
 line. With 90 s left (`STOP_MARGIN_MS`) it stops taking recipients and
 the handler fails the invocation (`email_run_incomplete`), so the retry
-resumes from the ledger and the jobs errors alarm says a run has outgrown
-one invocation. `JobsInvokeConfig` allows two retries inside an hour.
+resumes from the ledger, and the jobs Lambda's `Errors` metric says a run
+has outgrown one invocation. `JobsInvokeConfig` allows two retries inside an hour.
 
 ### Composition and rendering
 

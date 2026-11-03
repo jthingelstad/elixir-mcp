@@ -147,8 +147,8 @@ something that fails one of these:
    defect in what Elixir sent (length, content) or a dead webhook (404,
    the leaders' to fix and already shown on their page). `unknown` and
    `not_delivered` over 2% of a feature's posts in a week is a
-   delivery defect. The `elixir-mcp-discord-undelivered` alarm is the
-   hourly version.
+   delivery defect. `ElixirMCP/Discord` `Undelivered` is the hourly
+   count (no alarm since 2026-11-03).
 9. **Deleted after posting:** someone in the channel removed it. One is
    noise; two in a destination, or one with a 👎, is a finding about
    what was said.
