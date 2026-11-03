@@ -180,9 +180,12 @@ which stubs `attested` and `account` items. Attested facts are counted,
 never quoted into a note or the repo: a capture holds them whole, and a
 leaders-only fact read here is still leaders-only.
 
-**Alarms.** Three since 2026-11-03 (the account keeps alarms only where
-someone acts on them): `elixir-mcp-ledger-dead-jobs`,
-`elixir-mcp-scheduler-missing` and `elixir-mcp-db-storage`. Each
+**Alarms.** Two since 2026-11-03 (the account keeps alarms only where
+someone acts on them): `elixir-mcp-ledger-dead-jobs` and
+`elixir-mcp-scheduler-missing`. Database free storage (under 2 GiB, or a
+week's trend reaching it within 7 days) and the three dead-letter queues
+are otto-ops' hourly `check-cloud-metrics` Dagu job, which posts to
+#needs-jamie. Each alarm
 publishes to SNS `elixir-mcp-alarms`, which feeds the sysadmin
 `projects-ops-alerts` queue the sysadmin Operator drains daily. No email.
 Grafana on Otto (`otto-ops`: the Elixir and Elixir product dashboards)

@@ -27,9 +27,11 @@ VPC, S3 (payload archive, outbox, web), CloudFront in front of one origin.
   just under its Lambda timeout. Migrate, jobs and scheduler run at
   reserved concurrency 1, so never run a backfill and a deploy together.
 - **Alarms** publish to SNS `elixir-mcp-alarms` for the sysadmin
-  `projects-ops-alerts` queue, never email. Three since 2026-11-03
-  (`elixir-mcp-ledger-dead-jobs`, `-scheduler-missing`, `-db-storage`):
-  the account keeps alarms only where someone acts on them. The custom
+  `projects-ops-alerts` queue, never email. Two since 2026-11-03
+  (`elixir-mcp-ledger-dead-jobs`, `-scheduler-missing`): the account
+  keeps alarms only where someone acts on them. Database free storage
+  and the dead-letter queues are watched hourly by otto-ops'
+  `check-cloud-metrics` (its `config/cloud-metrics.yaml`). The custom
   metrics the removed alarms read stay. The stack owns no CloudWatch dashboard: Elixir's
   operations and product dashboards are Grafana's on Otto (`otto-ops`,
   `scripts/build_grafana_dashboards.py`), which read these same metrics
