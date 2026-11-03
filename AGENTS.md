@@ -185,9 +185,10 @@ Skills and tests cite these by number; keep the numbering.
 - One stack, `infra/template.yaml`; every parameter is classed in
   `infra/scripts/parameters.mjs`. An unclassed one resets to its default.
 - Alarms publish to SNS `elixir-mcp-alarms` for the sysadmin
-  `projects-ops-alerts` queue; no email. A custom metric exists only
-  behind an alarm. The stack owns no dashboard: Elixir's are in Grafana
-  on Otto (`otto-ops`), and add none.
+  `projects-ops-alerts` queue; no email. Three since 2026-11-03
+  (ledger dead jobs, scheduler missing, database storage); the custom
+  metrics the removed alarms read stay for Grafana. The stack owns no
+  dashboard: Elixir's are in Grafana on Otto (`otto-ops`), and add none.
 - The distribution carries projects-sysadmin's shared `edge` AWS WAF web
   ACL (`!ImportValue edge-waf-WebAclArn`, count mode); the stack owns none.
 - `deploy.mjs` tags the stack (`awsApplication`, `Application=Elixir`,

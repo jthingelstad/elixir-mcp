@@ -390,7 +390,8 @@ size 1, so a busy channel never holds up sign-in mail. The relay answers
 back the same way: its receipts for the Discord quality ledger
 (`discord-receipt/`) wake the timeline sync, which reads them into the
 database. Metrics ride the EMF log line; a custom metric exists
-only to back an alarm.
+only to back an alarm. Since 2026-11-03 the stack keeps three alarms, and
+the metrics the removed ones read stay for Grafana for now (DECISIONS.md).
 
 ## Native HTTP runtime
 
@@ -444,8 +445,9 @@ session without a second initial `/api/me` fetch. Fragment login tokens
 remain browser-only and complete through the shared auth routes. No session
 keys, cookie names, OAuth audiences, redirect addresses or grants change.
 
-Request timing is structured under `message` in native logs. Alarms use
-`AWS/Lambda/Web` HTTP 5XX metrics and alarm-backed duration filters. Both
+Request timing is structured under `message` in native logs, counted in
+`AWS/Lambda/Web` HTTP 5XX metrics and duration filters (no alarm on them
+since 2026-11-03). Both
 central and local log groups have retention. Public corpus statistics use an
 hourly jobs snapshot (`public_stats_cache`, migration 0226), with `as_of`;
 a missing or stale snapshot computes the answer directly.

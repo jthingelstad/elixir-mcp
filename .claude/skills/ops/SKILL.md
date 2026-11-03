@@ -153,8 +153,8 @@ Stamps are UTC; Jamie reads US Central.
   MCP adds `message.rpc` and `message.tool`, web-api `message.connect_ms`
   and `message.timed_out`. Per-tool numbers are `{audit_census}`'s.
 - The scheduler's EMF line, one a tick (`ElixirMCP/Ledger`), carries two
-  metrics behind the ledger alarms, `OldestQueuedAgeSeconds` and
-  `DeadJobs`, and plain properties: `QueuedJobs`, `PlannedJobs`,
+  metrics, `OldestQueuedAgeSeconds` and `DeadJobs` (behind the
+  `elixir-mcp-ledger-dead-jobs` alarm), and plain properties: `QueuedJobs`, `PlannedJobs`,
   `SessionFollowupJobs`, `ReadCappedJobs`, `RequestedProfileJobs`,
   `RetryJobs` (planned only because a failed fetch owed a retry, 0188),
   `NotFoundHeld`, `FetchesHour`, `FetchErrorsHour`, `CeilingHour`,
@@ -180,13 +180,14 @@ which stubs `attested` and `account` items. Attested facts are counted,
 never quoted into a note or the repo: a capture holds them whole, and a
 leaders-only fact read here is still leaders-only.
 
-**Alarms.** Every `elixir-mcp-*` alarm publishes to SNS
-`elixir-mcp-alarms`, which feeds the sysadmin `projects-ops-alerts` queue
-the sysadmin Operator drains daily. No email, and a custom metric only
-to back an alarm. Grafana on Otto (`otto-ops`: the Elixir and Elixir
-product dashboards) shows the same metrics and logs for a person looking,
-but not the alarm states; alarms, not a dashboard, are how trouble is
-noticed.
+**Alarms.** Three since 2026-11-03 (the account keeps alarms only where
+someone acts on them): `elixir-mcp-ledger-dead-jobs`,
+`elixir-mcp-scheduler-missing` and `elixir-mcp-db-storage`. Each
+publishes to SNS `elixir-mcp-alarms`, which feeds the sysadmin
+`projects-ops-alerts` queue the sysadmin Operator drains daily. No email.
+Grafana on Otto (`otto-ops`: the Elixir and Elixir product dashboards)
+shows the metrics and logs, including those the removed alarms read, for
+a person looking.
 Firing now: `aws cloudwatch describe-alarms --alarm-name-prefix elixir-mcp- --state-value ALARM`.
 
 **The jobs Lambda** (`elixir-mcp-jobs`) has its own payload keys, such as

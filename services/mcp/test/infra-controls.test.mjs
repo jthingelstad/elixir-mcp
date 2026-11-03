@@ -295,12 +295,9 @@ test("the collector door is its own function, role and route on the site API (20
   assert.match(endpoint, /AuthType: IamAuth/);
   assert.match(endpoint, /EndpointType: HomeRegion/);
   assert.match(endpoint, /RevisionId: !GetAtt CollectorWebRevision.RevisionId/);
-  // Native HTTP 5xx owns collector failure detection; no duplicate paid counter.
+  // Native HTTP 5xx counts collector failures; no duplicate paid counter.
   assert.doesNotMatch(template, /^  CollectorSubmitIngestErrorFilter:/m);
   assert.doesNotMatch(template, /^  SubmitIngestErrorAlarm:/m);
-  const errors = resource(template, "CollectorErrorsAlarm", "McpLatencyAlarm");
-  assert.match(errors, /Value: elixir-mcp-collector-web/);
-  assert.match(errors, /AlarmActions: \[!Ref AlarmTopic\]/);
   // The writer sends If-None-Match before the policy demands it.
   assert.match(
     resource(template, "ArchiveBucketPolicy", "GlueArchiveDatabase"),
@@ -761,7 +758,7 @@ test("ci gate: a run not yet created or still going is waited for, up to the dea
   assert.match(late.reason, /did not finish/);
 });
 
-test("the failures the doors handle themselves are alarmed, to the ops queue (#71)", async () => {
+test("the failures the doors handle themselves are counted (#71)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const filter = resource(
     template,
@@ -772,32 +769,6 @@ test("the failures the doors handle themselves are alarmed, to the ops queue (#7
   assert.match(filter, /"tool_failed_unexpectedly"/);
   assert.match(filter, /"db_connect_failed"/);
   assert.doesNotMatch(filter, /^ *DefaultValue:/m);
-  const expected = [
-    // [logical id, next logical id, metric, threshold]
-    ["HandledFailureAlarm", "CollectorLatencyAlarm", "HandledFailure", "3"],
-    ["CollectorLatencyAlarm", "DoorThrottleAlarm", "CollectorDuration", "5000"],
-    ["DbEbsByteBalanceAlarm", "DbFreeableMemoryAlarm", "EBSByteBalance%", "25"],
-    [
-      "DbFreeableMemoryAlarm",
-      "SiteCertificateExpiryAlarm",
-      "FreeableMemory",
-      "67108864",
-    ],
-    ["SiteCertificateExpiryAlarm", "Outputs", "DaysToExpiry", "30"],
-  ];
-  for (const [logicalId, next, metric, threshold] of expected) {
-    const block =
-      next === "Outputs"
-        ? template.slice(
-            template.indexOf(`  ${logicalId}:`),
-            template.indexOf("\nOutputs:"),
-          )
-        : resource(template, logicalId, next);
-    assert.match(block, /Type: AWS::CloudWatch::Alarm/, logicalId);
-    assert.ok(block.includes(`MetricName: ${metric}\n`), logicalId);
-    assert.match(block, new RegExp(`^      Threshold: ${threshold}$`, "m"));
-    assert.match(block, /AlarmActions: \[!Ref AlarmTopic\]/, logicalId);
-  }
 });
 
 /** Every alarm resource in the template, by logical id. */
@@ -814,11 +785,22 @@ function alarms(template) {
   return found;
 }
 
-test("an incident pages once: the alarms hold ALARM through it, and every one pages the ops queue (2026-10-21)", async () => {
+test("the stack keeps three alarms, and each pages the ops queue (2026-11-03)", async () => {
   const template = await readFile(templateUrl, "utf8");
   const all = alarms(template);
-  assert.equal(all.size, 25);
+  // The account keeps alarms only where someone acts on them (Jamie,
+  // 2026-11-03): these three are Elixir's.
+  assert.deepEqual(
+    [...all.keys()],
+    ["LedgerDeadJobsAlarm", "SchedulerMissingAlarm", "DbStorageAlarm"],
+  );
+  const names = {
+    LedgerDeadJobsAlarm: "elixir-mcp-ledger-dead-jobs",
+    SchedulerMissingAlarm: "elixir-mcp-scheduler-missing",
+    DbStorageAlarm: "elixir-mcp-db-storage",
+  };
   for (const [id, block] of all) {
+    assert.match(block, new RegExp(`^      AlarmName: ${names[id]}$`, "m"), id);
     // Alarms reach the sysadmin queue through the topic, never email,
     // and say what missing data means.
     assert.match(block, /^      AlarmActions: \[!Ref AlarmTopic\]$/m, id);
@@ -838,53 +820,6 @@ test("an incident pages once: the alarms hold ALARM through it, and every one pa
     assert.ok(n >= 1 && m >= 1 && m <= n, id);
     assert.ok(n * period <= (period < 3600 ? 86_400 : 604_800), id);
   }
-  // A broken tool failing every five minutes swung a ten-minute sum
-  // around 3 and paged 42 times: an hour's sum, 1 of 2.
-  const door = all.get("HandledFailureAlarm");
-  assert.match(door, /^      Period: 3600$/m);
-  assert.match(door, /^      EvaluationPeriods: 2$/m);
-  assert.match(door, /^      DatapointsToAlarm: 1$/m);
-  assert.match(door, /^      Threshold: 3$/m);
-  assert.match(door, /^      TreatMissingData: notBreaching$/m);
-  // A daily log read is the season check's evidence: 1 of 30 hours.
-  const season = all.get("SeasonMismatchAlarm");
-  assert.match(season, /^      Period: 3600$/m);
-  assert.match(season, /^      EvaluationPeriods: 30$/m);
-  assert.match(season, /^      DatapointsToAlarm: 1$/m);
-  assert.match(season, /^      Threshold: 1$/m);
-  assert.match(season, /^      TreatMissingData: notBreaching$/m);
-  // Throttles: the standard endpoint counts of the three doors, summed,
-  // 3 of 6 five-minute periods; no metric of Elixir's own.
-  const throttles = all.get("DoorThrottleAlarm");
-  assert.match(throttles, /AlarmName: elixir-mcp-door-throttles\n/);
-  assert.match(throttles, /Expression: SUM\(METRICS\(\)\)\n/);
-  assert.equal(throttles.match(/ReturnData: true/g)?.length, 1);
-  for (const fn of [
-    "elixir-mcp-mcp-web",
-    "elixir-mcp-web-api-web",
-    "elixir-mcp-collector-web",
-  ]) {
-    for (const metric of [
-      "EndpointActiveEnvironmentThrottles",
-      "EndpointRequestThrottles",
-    ]) {
-      assert.ok(
-        new RegExp(
-          `MetricName: ${metric}\\n +Dimensions:\\n +- \\{ Name: FunctionName, Value: ${fn} \\}\\n +- \\{ Name: EndpointName, Value: live \\}\\n +- \\{ Name: ExecutionRegion, Value: !Ref AWS::Region \\}\\n +Period: 300\\n +Stat: Sum\\n`,
-        ).test(throttles),
-        `${fn} ${metric}`,
-      );
-    }
-  }
-  assert.equal(
-    throttles.match(/Namespace: AWS\/Lambda\/Web\/Usage/g)?.length,
-    6,
-  );
-  assert.doesNotMatch(throttles, /Account\w*Throttles/);
-  assert.match(throttles, /^      EvaluationPeriods: 6$/m);
-  assert.match(throttles, /^      DatapointsToAlarm: 3$/m);
-  assert.match(throttles, /^      Threshold: 1$/m);
-  assert.match(throttles, /^      TreatMissingData: notBreaching$/m);
 });
 
 test("the stack owns no CloudWatch dashboard; Grafana on Otto reads its metrics (2026-11-02)", async () => {
@@ -1572,24 +1507,17 @@ test("a site miss fails over to the site's 404 page, on the site behaviour alone
   );
 });
 
-test("Discord posts refused or lost across every webhook page the ops queue, from the relay's log", async () => {
+test("Discord posts refused or lost across every webhook are counted from the relay's log", async () => {
   const template = await readFile(templateUrl, "utf8");
   const filter = resource(
     template,
     "DiscordUndeliveredFilter",
-    "DiscordUndeliveredAlarm",
+    "SchedulerMissingAlarm",
   );
   assert.match(filter, /LogGroupName: !Ref EmailRelayLogGroup/);
   assert.match(filter, /FilterPattern: '"discord_undelivered"'/);
   assert.match(filter, /MetricName: Undelivered\n/);
-  const alarm = resource(
-    template,
-    "DiscordUndeliveredAlarm",
-    "WarUnresolvedAlarm",
-  );
-  assert.match(alarm, /Period: 3600/);
-  assert.match(alarm, /Threshold: 5/);
-  assert.match(alarm, /AlarmActions: \[!Ref AlarmTopic\]/);
+  assert.doesNotMatch(template, /^  DiscordUndeliveredAlarm:$/m);
 });
 
 test("OAuth form spaces normalize before origin signing without changing literal pluses or repeats", async () => {

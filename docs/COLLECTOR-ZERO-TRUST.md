@@ -165,10 +165,10 @@ in Admin → Collectors, and keeps drain and revoke.
 ### Fleet health
 
 Database heartbeats are the fleet-health truth (Admin → Collectors,
-`elixir_collectors`). Fleet death is alarmed by `LedgerOldestJobAlarm`
-(`OldestQueuedAgeSeconds` in `ElixirMCP/Ledger`), an exhausted job by
-`LedgerDeadJobsAlarm`, and the door itself by `CollectorErrorsAlarm` and
-`CollectorLatencyAlarm`.
+`elixir_collectors`). Fleet death shows as `OldestQueuedAgeSeconds` in
+`ElixirMCP/Ledger` (no alarm since 2026-11-03), an exhausted job pages
+through `LedgerDeadJobsAlarm`, and the door itself shows in its HTTP 5xx
+and `CollectorDuration` metrics (no alarm since 2026-11-03).
 
 ## What a hostile operator can still do, and can't
 

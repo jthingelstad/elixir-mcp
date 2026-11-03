@@ -486,8 +486,8 @@ Resources:
   # a clan's close is edited within minutes. One record a run; the relay
   # spaces a request's posts itself. A request whose post another run is
   # still making comes back after the visibility (90 s, over the relay's
-  # 60 s timeout). What dead-letters joins the mail's dead letters, which
-  # already alarm, as it did on the mail's queue.
+  # 60 s timeout). What dead-letters joins the mail's dead letters, as it
+  # did on the mail's queue.
   ClanDiscordQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -3224,83 +3224,10 @@ Resources:
               ArnLike:
                 aws:SourceArn: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/elixir-mcp
 
-  DlqAlarmEmail:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-dlq-email
-      Namespace: AWS/SQS
-      MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions: [{ Name: QueueName, Value: !GetAtt EmailDlq.QueueName }]
-      Statistic: Maximum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 0
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  DlqAlarmTimelineSync:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-dlq-timeline-sync
-      Namespace: AWS/SQS
-      MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions:
-        [{ Name: QueueName, Value: !GetAtt TimelineSyncDlq.QueueName }]
-      Statistic: Maximum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 0
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  DlqAlarmTimelineDiscord:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-dlq-timeline-discord
-      Namespace: AWS/SQS
-      MetricName: ApproximateNumberOfMessagesVisible
-      Dimensions:
-        [{ Name: QueueName, Value: !GetAtt TimelineDiscordDlq.QueueName }]
-      Statistic: Maximum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 0
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  JobsErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-jobs-errors
-      Namespace: AWS/Lambda
-      MetricName: Errors
-      Dimensions: [{ Name: FunctionName, Value: !Ref JobsFunction }]
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  LedgerOldestJobAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-ledger-oldest-job
-      AlarmDescription: Oldest queued job is stale; the fleet is down or drowning
-      Namespace: ElixirMCP/Ledger
-      MetricName: OldestQueuedAgeSeconds
-      Statistic: Maximum
-      Period: 900
-      EvaluationPeriods: 2
-      Threshold: 1800
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
+  # The stack keeps three alarms since 2026-11-03 (ledger dead jobs,
+  # scheduler missing, database storage): the account keeps alarms only
+  # where someone acts on them. The metric filters below stay for
+  # Grafana's Elixir dashboards (otto-ops), with no alarm on them.
   LedgerDeadJobsAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -3316,38 +3243,10 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
-  # The season row's derived war number disagreed with a riverracelog
-  # entry (0104; packages/record/src/season.mjs): the calendar the record
-  # files everything under is wrong for that month. Nothing relabels
-  # itself; a human reads the season table and the log entry.
-  #
-  # The shape (2026-10-21): the evidence arrives with a clan's river race
-  # log read, about once a day, so one hour, 1 of 1 sat in ALARM three
-  # hours per read and paged again on the next: 14 pages from 10-08 to
-  # 10-16 for one standing defect (issue #593). 1 of 30 hourly
-  # datapoints pages on the first read, as before, and holds ALARM until
-  # a day's read plus six hours of drift has passed with no mismatch.
-  SeasonMismatchAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-season-war-id-mismatch
-      AlarmDescription: A river race log entry carried a seasonId the season calendar does not derive; check the season table against the log
-      Namespace: ElixirMCP/Record
-      MetricName: SeasonWarIdMismatch
-      Statistic: Sum
-      Period: 3600
-      EvaluationPeriods: 30
-      DatapointsToAlarm: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
   # A product email that failed to compose for one account
   # (email_compose_failed in the jobs log): the run itself succeeds, so
-  # the Lambda Errors alarm never sees it. 2026-09-19: every product send
-  # since the 09-18 evening deploy had thrown in the renderer for a day
-  # with nothing paging. One failure is worth a look.
+  # the Lambda Errors metric never sees it. 2026-09-19: every product send
+  # since the 09-18 evening deploy had thrown in the renderer for a day.
   EmailComposeFailedFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
@@ -3359,9 +3258,9 @@ Resources:
           MetricValue: "1"
           # No DefaultValue: a default writes a zero on every jobs log
           # event and bills the metric every hour; without one it exists
-          # only when a compose fails, and the alarm fires the same.
+          # only when a compose fails.
   # A family app's mail composes in the web-api (JSON API 2.4.0): its
-  # failures count toward the same metric and alarm.
+  # failures count toward the same metric.
   WebApiEmailComposeFailedFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
@@ -3371,26 +3270,11 @@ Resources:
         - MetricNamespace: ElixirMCP/Email
           MetricName: ComposeFailed
           MetricValue: "1"
-  EmailComposeFailedAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-email-compose-failed
-      AlarmDescription: A product email failed to compose for an account (email_compose_failed in the jobs log); the run succeeded, the send did not
-      Namespace: ElixirMCP/Email
-      MetricName: ComposeFailed
-      Statistic: Sum
-      Period: 3600
-      EvaluationPeriods: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
   # Discord refusing posts, or posts whose outcome is unknown, across
   # every webhook (the timeline cross-post, a clan's activity channel,
   # Clan's Actions): the relay logs one discord_undelivered line each.
   # A single channel's webhook going away is one line and its owner's
-  # page says so; five in an hour is Elixir's problem, not a channel's.
+  # page says so; many in an hour is Elixir's problem, not a channel's.
   DiscordUndeliveredFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
@@ -3402,54 +3286,6 @@ Resources:
           MetricValue: "1"
           # No DefaultValue, as EmailComposeFailedFilter: the metric
           # exists only in an hour a post is refused or lost.
-  DiscordUndeliveredAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-discord-undelivered
-      AlarmDescription: Discord refused posts or their outcome is unknown across all webhooks (discord_undelivered in the email relay log, by feature, outcome and webhook fingerprint); read the discord_post ledger for which channels and why
-      Namespace: ElixirMCP/Discord
-      MetricName: Undelivered
-      Statistic: Sum
-      Period: 3600
-      EvaluationPeriods: 1
-      Threshold: 5
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  # A war-typed battle in the last seven days outside every war_period
-  # row (the diagnostics probe's UNRESOLVED bucket, emitted hourly by the
-  # meta rollup job): the scheduler's season upsert failed and the war
-  # readers are blind to those battles. Fires at one.
-  WarUnresolvedAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-war-battle-unresolved
-      AlarmDescription: A recent war battle falls in no war_period row; the season and period calendar has a gap (check the scheduler tick and the season table)
-      Namespace: ElixirMCP/Record
-      MetricName: WarBattleUnresolved
-      Statistic: Maximum
-      Period: 3600
-      EvaluationPeriods: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  SchedulerErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-scheduler-errors
-      Namespace: AWS/Lambda
-      MetricName: Errors
-      Dimensions: [{ Name: FunctionName, Value: !Ref SchedulerFunction }]
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
 
   SchedulerMissingAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -3469,66 +3305,6 @@ Resources:
       TreatMissingData: breaching
       AlarmActions: [!Ref AlarmTopic]
 
-  # The user-facing doors: the pipeline was fully
-  # alarmed but a 500ing MCP or web-api lambda was invisible - users
-  # would find out before the ops queue did.
-  McpErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-mcp-errors
-      Namespace: AWS/Lambda/Web
-      MetricName: HTTPResponseStatusClass5XX
-      Dimensions:
-        [
-          { Name: FunctionName, Value: elixir-mcp-mcp-web },
-          { Name: EndpointName, Value: live },
-        ]
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  WebApiErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-web-api-errors
-      Namespace: AWS/Lambda/Web
-      MetricName: HTTPResponseStatusClass5XX
-      Dimensions:
-        [
-          { Name: FunctionName, Value: elixir-mcp-web-api-web },
-          { Name: EndpointName, Value: live },
-        ]
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  CollectorErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-collector-errors
-      Namespace: AWS/Lambda/Web
-      MetricName: HTTPResponseStatusClass5XX
-      Dimensions:
-        [
-          { Name: FunctionName, Value: elixir-mcp-collector-web },
-          { Name: EndpointName, Value: live },
-        ]
-      Statistic: Sum
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
   McpDurationFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
@@ -3539,35 +3315,6 @@ Resources:
           MetricName: McpDuration
           MetricValue: $.message.ms
           Unit: Milliseconds
-
-  McpLatencyAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-mcp-latency-p95
-      Namespace: ElixirMCP/Web
-      MetricName: McpDuration
-      ExtendedStatistic: p95
-      Period: 300
-      EvaluationPeriods: 3
-      Threshold: 8000
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  DbCpuAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-db-cpu
-      Namespace: AWS/RDS
-      MetricName: CPUUtilization
-      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 3
-      Threshold: 85
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
 
   DbStorageAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -3584,41 +3331,13 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: [!Ref AlarmTopic]
 
-  DbConnectionsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-db-connections
-      Namespace: AWS/RDS
-      MetricName: DatabaseConnections
-      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
-      Statistic: Maximum
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 60
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
   # Failures the doors handle themselves (review 2026-09-27 §8.6, issue
   # #71). The invoker catches every tool exception and answers an
   # `internal` result (tool_failed_unexpectedly, in the MCP door and in
   # the web-api's Explore and /api/v1, which run the same invoker), and a
   # refused database connection becomes a handled 503 (db_connect_failed
-  # in the MCP door). Neither is a Lambda error, so McpErrorsAlarm fired
-  # only when the door itself crashed: a deploy that broke a shared tool
-  # path paged nobody until acceptance, the Gym or feedback noticed. Three
-  # in an hour is a broken path, not one unlucky call (one failure in the
-  # 14 days to 2026-10-21 outside the incident below).
-  #
-  # The shape (2026-10-21): one hour, 1 of 2 datapoints. A broken tool
-  # (elixir_timeline, nowMs) failed from 10-15 05:20 to 10-16 05:25 CDT,
-  # every 40 minutes at first and about every five from 09:00; a
-  # ten-minute sum at 3 swung 2 to 3 and back, so the alarm entered ALARM
-  # 42 times, the first at 09:41. An hour's sum pages within a minute of
-  # any third failure in 60 minutes (never later than the ten-minute
-  # shape), and the second period holds ALARM across a quiet half hour.
-  # Replayed over that day: one page, at 09:06, clearing about two hours
-  # after the last failure.
+  # in the MCP door). Neither is a Lambda error, so only this metric
+  # counts them.
   McpHandledFailureFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
@@ -3639,26 +3358,11 @@ Resources:
         - MetricNamespace: ElixirMCP/Door
           MetricName: HandledFailure
           MetricValue: "1"
-  HandledFailureAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-door-handled-failures
-      AlarmDescription: Tools are failing unexpectedly or the MCP door cannot reach the database (tool_failed_unexpectedly or db_connect_failed in the MCP or web-api log); callers get internal or 503 answers, and no Lambda error is counted
-      Namespace: ElixirMCP/Door
-      MetricName: HandledFailure
-      Statistic: Sum
-      Period: 3600
-      EvaluationPeriods: 2
-      DatapointsToAlarm: 1
-      Threshold: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
 
-  # The collector door's latency, for the same reason: it answers 504 at
-  # its deadline. Its calls are short (lease p95 61 ms, submit p95 388 ms
-  # over the three days to 2026-09-29), so 5 s at p95 for a quarter hour
-  # is a door in trouble long before its 20 s kill.
+  # The collector door's latency: it answers 504 at its deadline. Its
+  # calls are short (lease p95 61 ms, submit p95 388 ms over the three
+  # days to 2026-09-29), so seconds at p95 is a door in trouble long
+  # before its 20 s kill.
   CollectorDurationFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
@@ -3669,181 +3373,6 @@ Resources:
           MetricName: CollectorDuration
           MetricValue: $.message.ms
           Unit: Milliseconds
-
-  CollectorLatencyAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-collector-latency-p95
-      AlarmDescription: The collector door's p95 duration is over 5 s; leases and submits are slow or answering 504
-      Namespace: ElixirMCP/Web
-      MetricName: CollectorDuration
-      ExtendedStatistic: p95
-      Period: 300
-      EvaluationPeriods: 3
-      Threshold: 5000
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  # Requests a door turned away with a 429 (review 2026-10-21: nothing
-  # alarmed on them). Lambda publishes the standard throttle counts in
-  # AWS/Lambda/Web/Usage only for a period that had one:
-  # EndpointActiveEnvironmentThrottles when serving would pass the
-  # endpoint's MaxEnvironments, EndpointRequestThrottles at its RateLimit.
-  # The account-quota kinds are left out; the account's quotas sit far
-  # above every door's ceiling. In the 14 days to 2026-10-21 only the
-  # web-api throttled, each time in one five-minute burst of 1 to 29
-  # requests (scanner waves meeting its two environments); bursts like
-  # that stay on Grafana's Elixir dashboard (otto-ops), unpaged. 3 of 6
-  # five-minute periods is a door refusing callers for a quarter hour of
-  # half an hour: replayed, it pages once 15 to 25 minutes in, and never
-  # on those bursts.
-  DoorThrottleAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-door-throttles
-      AlarmDescription: A door answered 429 for capacity (Web Function throttles at its MaxEnvironments or RateLimit) in 3 of the last 6 five-minute periods; callers are being turned away
-      Metrics:
-        - Id: throttled
-          Label: Requests throttled at the mcp, web-api and collector doors
-          Expression: SUM(METRICS())
-          ReturnData: true
-        - Id: mcpenv
-          MetricStat:
-            Metric:
-              Namespace: AWS/Lambda/Web/Usage
-              MetricName: EndpointActiveEnvironmentThrottles
-              Dimensions:
-                - { Name: FunctionName, Value: elixir-mcp-mcp-web }
-                - { Name: EndpointName, Value: live }
-                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: mcprate
-          MetricStat:
-            Metric:
-              Namespace: AWS/Lambda/Web/Usage
-              MetricName: EndpointRequestThrottles
-              Dimensions:
-                - { Name: FunctionName, Value: elixir-mcp-mcp-web }
-                - { Name: EndpointName, Value: live }
-                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: webenv
-          MetricStat:
-            Metric:
-              Namespace: AWS/Lambda/Web/Usage
-              MetricName: EndpointActiveEnvironmentThrottles
-              Dimensions:
-                - { Name: FunctionName, Value: elixir-mcp-web-api-web }
-                - { Name: EndpointName, Value: live }
-                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: webrate
-          MetricStat:
-            Metric:
-              Namespace: AWS/Lambda/Web/Usage
-              MetricName: EndpointRequestThrottles
-              Dimensions:
-                - { Name: FunctionName, Value: elixir-mcp-web-api-web }
-                - { Name: EndpointName, Value: live }
-                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: colenv
-          MetricStat:
-            Metric:
-              Namespace: AWS/Lambda/Web/Usage
-              MetricName: EndpointActiveEnvironmentThrottles
-              Dimensions:
-                - { Name: FunctionName, Value: elixir-mcp-collector-web }
-                - { Name: EndpointName, Value: live }
-                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: colrate
-          MetricStat:
-            Metric:
-              Namespace: AWS/Lambda/Web/Usage
-              MetricName: EndpointRequestThrottles
-              Dimensions:
-                - { Name: FunctionName, Value: elixir-mcp-collector-web }
-                - { Name: EndpointName, Value: live }
-                - { Name: ExecutionRegion, Value: !Ref AWS::Region }
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-      EvaluationPeriods: 6
-      DatapointsToAlarm: 3
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  # The database's two documented failure modes: the micro
-  # ran its EBS byte balance to 0 three times, and there were two memory
-  # recoveries on 2026-09-11. Both are free RDS metrics. Under a quarter
-  # of the burst balance left, reads are about to be held to the
-  # baseline; under about 64 MB freeable, the micro is near a recovery
-  # (150 MB on the small; the old micro idled at 80-260 MB).
-  DbEbsByteBalanceAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-db-ebs-byte-balance
-      AlarmDescription: The database's EBS byte balance is below 25%; at 0 its reads are held to the baseline throughput
-      Namespace: AWS/RDS
-      MetricName: EBSByteBalance%
-      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
-      Statistic: Minimum
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 25
-      ComparisonOperator: LessThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  DbFreeableMemoryAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: elixir-mcp-db-freeable-memory
-      AlarmDescription: The database has under about 64 MB of freeable memory; memory recoveries followed a squeeze like this on 2026-09-11
-      Namespace: AWS/RDS
-      MetricName: FreeableMemory
-      Dimensions: [{ Name: DBInstanceIdentifier, Value: !Ref Database }]
-      Statistic: Minimum
-      Period: 300
-      EvaluationPeriods: 3
-      Threshold: 67108864
-      ComparisonOperator: LessThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
-
-  # The site certificate: ACM renews it only while the
-  # validation CNAME, kept by hand at Namecheap, still resolves. ACM
-  # publishes DaysToExpiry daily; 30 days is a month to fix the record.
-  SiteCertificateExpiryAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Condition: HasSiteCert
-    Properties:
-      AlarmName: elixir-mcp-site-certificate-expiry
-      AlarmDescription: The elixir.poapkings.com certificate expires in under 30 days; ACM has not renewed it (check the validation CNAME at Namecheap)
-      Namespace: AWS/CertificateManager
-      MetricName: DaysToExpiry
-      Dimensions: [{ Name: CertificateArn, Value: !Ref SiteCertificateArn }]
-      Statistic: Minimum
-      Period: 86400
-      EvaluationPeriods: 1
-      Threshold: 30
-      ComparisonOperator: LessThanThreshold
-      TreatMissingData: notBreaching
-      AlarmActions: [!Ref AlarmTopic]
 
 Outputs:
   SiteDistributionId:
