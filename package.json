@@ -27,7 +27,7 @@
     "@axe-core/playwright": "^4.14.0",
     "@elixir-mcp/clan-engine": "0.1.0",
     "@playwright/test": "^1.64.1",
-    "@tanstack/router-core": "1.171.38",
+    "@tanstack/router-core": "1.171.39",
     "esbuild": "^0.28.2",
     "knip": "^6.41.0",
     "oxlint": "^1.88.0",
