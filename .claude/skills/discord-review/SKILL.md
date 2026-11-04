@@ -15,7 +15,7 @@ in those servers, so quality is judged only from what Elixir kept
 | Every post, edit and skip: the text handed over, the mode, what Discord answered (outcome, HTTP status, its reason), latency | `discord_post` (0222) | 90 days |
 | One read-back per post, about a day later: still there or deleted, reactions when Discord returns them, a thread | `discord_post.checked_at`, `present`, `reactions`, `thread` | 90 days |
 | Each run of a clan's model: rounds, lookups, posts, merges, skips, fallbacks, the checks' refusals, cost | `discord_run` | 90 days |
-| A run's raw inputs and answers | `s3://elixir-mcp-archive-999153317627/discord-runs/` | 30 days |
+| A run's raw inputs and answers | `s3://elixir-mcp-archive-<account>/discord-runs/` | 30 days |
 | A leader's or owner's 👍/👎 and note | feedback, ref kind `discord_post` | as feedback |
 
 Never stored, so never looked for: the webhook URL (only its
@@ -44,7 +44,7 @@ Jamie; this skill is the agent's path to them.
 ## Preflight
 
 1. `AWS_PROFILE=cloud-engineer aws sts get-caller-identity` names
-   account 999153317627 and `assumed-role/ProjectsCloudEngineer/`.
+   account `<account>` and `assumed-role/ProjectsCloudEngineer/`.
 2. Read the previous run's notes for this skill in
    `../AGENT-TEAM/notes/`: a finding already filed is a comment on its
    issue with the new evidence, never a second issue

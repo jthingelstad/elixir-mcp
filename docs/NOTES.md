@@ -739,7 +739,7 @@ Electro Wizard. All are `image/png`. A battle page, its share PNG and
   of the response's text. Neither is built.
 - **The resized objects are deleted.** Jamie, verbatim: "Approved: delete
   the 546 resized card art objects (assets/cards/*-128/-192/-285.png) from
-  elixir-mcp-site-999153317627 and invalidate CloudFront /assets/cards/*".
+  elixir-mcp-site-`<account>` and invalidate CloudFront /assets/cards/*".
   Done 2026-10-09 about 02:00Z: the bucket holds the 182 originals and
   no resized object, the invalidation completed, and an old `-285.png`
   URL answers 404. Mail sent before 2026-10-08 named the resized URLs,
