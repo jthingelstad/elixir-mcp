@@ -7,7 +7,7 @@ description: Check that cr-agent-api-docs keeps up with what the Clash Royale AP
 
 cr-agent-api-docs is the one book of Clash Royale API truth, and it is
 meant to be written to (AGENTS.md rule 8). Elixir is its best evidence:
-the archive at `s3://elixir-mcp-archive-999153317627/payloads/` holds every
+the archive at `s3://elixir-mcp-archive-<account>/payloads/` holds every
 distinct payload the collectors have fetched, kept forever, across every
 recorded clan and player and the boards and event lists no single-clan
 tool reads. This skill turns that into doc patches.
@@ -28,7 +28,7 @@ its own evidence tool (`tools/cr-probe`) for live calls.
 
 ## Preflight
 
-1. The AWS caller is `cloud-engineer` in account 999153317627:
+1. The AWS caller is `cloud-engineer` in account `<account>`:
    `AWS_PROFILE=cloud-engineer aws sts get-caller-identity`.
 2. `../cr-agent-api-docs` is clean and synced with `origin/main`
    (`git -C ../cr-agent-api-docs status -sb`). A dirty or behind

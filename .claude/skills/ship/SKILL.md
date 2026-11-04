@@ -30,7 +30,7 @@ op `/ops`; they end here. Steps, in order: `preflight`, `bookkeeping`,
    `CODEX_WORKTREE_PATH` set. Edits, commits and pull requests take no
    lock; the deploy takes the production lock itself (Deploy, below).
 2. **The caller is cloud-engineer:** `AWS_PROFILE=cloud-engineer aws sts
-   get-caller-identity` answers account 999153317627, ARN containing
+   get-caller-identity` answers account <account>, ARN containing
    `assumed-role/ProjectsCloudEngineer/projects-cloud-engineer`, as
    `infra/scripts/deploy.mjs` checks. Native endpoint throttles live in
    `infra/template.yaml`, not API Gateway stage settings. Never the `jamie` profile.
