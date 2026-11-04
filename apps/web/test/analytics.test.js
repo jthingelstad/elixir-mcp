@@ -264,7 +264,8 @@ describe("loadTinylytics", () => {
     expect(script.dataset.site).toBe(SITE_ID);
     expect(script.defer).toBe(true);
     // The embed's own History counting is off; the bridge counts views.
-    expect(window.Turbo).toBeTruthy();
+    expect(script.dataset.spa).toBe("false");
+    expect(window.Turbo).toBeUndefined();
 
     // The embed already recorded this document; only the NEXT page beacons.
     window.history.pushState({}, "", "/console/account/usage");

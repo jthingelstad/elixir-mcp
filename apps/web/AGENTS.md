@@ -37,8 +37,8 @@ behaviour is in `apps/site/src/docs/`, not here.
 - **Analytics:** `src/analytics.js` is the Tinylytics bridge. Counts per
   page, never per account; a record page reports as its kind; `/console/signin`
   loads no analytics. The embed (`/js/script.js`, site in `data-site`) counts
-  the document; its own History counting is switched off with a `window.Turbo`
-  mark so the bridge counts each view after it once.
+  the document; its own History counting is switched off with `data-spa="false"`
+  so the bridge counts each view after it once.
 - No Radix before a real dialog; no PWA. `test/inline-styles.test.js` is a
   ratchet on inline styles: the count only goes down.
 
