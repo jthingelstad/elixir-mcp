@@ -22,6 +22,16 @@ The first Console page includes your current sign-in state. Your browser keeps
 that state fresh as you use the Console. If a page cannot check your session,
 it says Elixir did not answer so you can retry.
 
+The public pages (home, docs, cards) never ask the server who you are. When
+you use the app, your browser keeps a small note on that device: until when
+to expect you, and your player's name. It holds no address and no key, and
+it is never sent anywhere. The public pages read it so they can show your
+player instead of **Sign in**. Signing out on that device removes it, and it
+runs out by itself after thirty days. It is only a note: if you were signed
+out somewhere else, a public page can still show your name until you next
+open the app, which asks you to sign in. A browser that keeps no notes just
+shows **Sign in**.
+
 ## Create your account
 
 Anyone can create a free ordinary member account at
