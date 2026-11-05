@@ -115,6 +115,11 @@ node --input-type=module -e '
 chmod 600 acceptance/.env; rm acceptance/.env.pending /tmp/acc-hash.txt
 ```
 
+On Otto, `acceptance/.env` is generated from `acceptance/.env.tpl` by the
+otto-ops job `render-env-files-from-1password`. After minting, put both new
+values in the 1Password item `Elixir MCP - elixir-mcp-acceptance` (fields
+`credential` and `ELIXIR_MCP_URL`), or the next render reports a difference.
+
 Without the file the deploy prints a warning and skips the gate; it
 never skips silently.
 
