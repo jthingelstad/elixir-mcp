@@ -78,6 +78,11 @@ sends Cloudflare only the check's token, never your email address, and
 keeps whether the check passed in its sign-in logs, beside a shortened
 fingerprint of the address rather than the address itself.
 
+**A note in your browser.** After you use the app, your browser keeps your
+player's name and an expiry date on that device, so public pages can show
+you as signed in without asking the server. It is never sent anywhere
+([Your account](/docs/your-account)).
+
 **Counting visits.** Pages use [Tinylytics](https://tinylytics.app), a
 small, cookie-free analytics service, to count visits and errors in
 aggregate. No account is attached to a visit.
