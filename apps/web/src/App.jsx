@@ -66,6 +66,7 @@ import { LadderRail } from "./ladder/LadderRail.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
 import { tagPath } from "./lib/tag-url.js";
+import { forgetSession, rememberSession } from "./lib/session-hint.js";
 
 /**
  * Shell + rail (design handoff 2026-09-09). The three-tier top nav is
@@ -1176,6 +1177,11 @@ export function consoleAccount(me, unreachable, signOut) {
 }
 
 function Chrome({ navigate, me, unreachable, current }) {
+  // The static half's first paint reads this (lib/session-hint.js). An
+  // unreachable session is not an answer, so it changes nothing.
+  useEffect(() => {
+    if (!unreachable) rememberSession(me);
+  }, [me, unreachable]);
   // A sign-out that did not take says so in the menu, where the button
   // is, instead of leaving for the home page still signed in (review
   // 2026-09-27 §7.5).
@@ -1208,6 +1214,7 @@ function Chrome({ navigate, me, unreachable, current }) {
         return setSignOutFailed(
           `Not signed out. ${writeErrorText({ status: r.status, transport: r.error, data: r.data })}`,
         );
+      forgetSession();
       window.location.assign(STATIC_LINKS.home);
     },
   });
@@ -1331,6 +1338,7 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
               return setSignOutFailed(
                 `Not signed out. ${writeErrorText({ status: r.status, transport: r.error, data: r.data })}`,
               );
+            forgetSession();
             window.location.assign(STATIC_LINKS.home);
           },
         }}

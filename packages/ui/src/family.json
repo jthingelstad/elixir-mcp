@@ -38,6 +38,10 @@
     "path": "/console/signin",
     "icon": "key-round"
   },
+  "account": {
+    "label": "Your account",
+    "path": "/console"
+  },
   "sampleBattle": {
     "label": "See a recorded battle",
     "path": "/battle/69dcc4e93f15"

@@ -28,6 +28,7 @@ restating it in wider words.
 - **Application controls and data first** — keep the product tabs and left rail; use quiet surfaces, readable rows and concise titles, with explanation and configuration available in contextual disclosures and drawers. Recording failures, uncertainty, privacy limits and the consequences of an action remain visible where needed. [Jamie, 2026-10-13]
 
 - **Contextual editors use native controls** — drawers use a modal dialog with Escape and focus restoration; expandable explanations use native details. [engineering, 2026-10-13]
+- **A static page chooses its face before it paints** — the app leaves a browser-only hint (an expiry and the player's name, never the address) and a blocking script reads it, so nothing on a static page swaps after load; it is never authority. [engineering, 2026-11-05]
 
 ## Scope and footprint
 

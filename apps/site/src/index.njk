@@ -29,10 +29,11 @@ navActive: home
       email, or to your own AI.
     </p>
     <div class="flex flex-wrap items-center gap-3">
-      <a class="btn btn--primary btn--lg" href="/console/signin?signup">Create your account</a>
+      <a class="btn btn--primary btn--lg" data-session-face="out" href="/console/signin?signup">Create your account</a>
+      <a class="btn btn--primary btn--lg" data-session-face="in" href="{{ familyBar.account.path }}">Open Elixir</a>
       <a class="btn btn--text" href="{{ familyBar.sampleBattle.path }}">{{ familyBar.sampleBattle.label }}</a>
     </div>
-    <p class="footnote m-0">
+    <p class="footnote m-0" data-session-face="out">
       Free signup. Verify your email, then add your player in Console.
     </p>
   </div>
@@ -205,7 +206,7 @@ navActive: home
     in and asking to are one decision, and this half once had a second
     implementation of the same POST that broke silently. This panel
     posts nothing; signup and sign-in share one email verification door. -#}
-<section class="panel panel--cta mt-14" id="request" aria-labelledby="home-request">
+<section class="panel panel--cta mt-14" id="request" data-session-face="out" aria-labelledby="home-request">
   <div class="panel__body flex flex-col items-start gap-3 wide:flex-row wide:items-center wide:gap-6">
     <div class="flex min-w-0 flex-auto flex-col gap-1">
       <h2 class="panel-title m-0" id="home-request">Create your account</h2>
