@@ -593,7 +593,12 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
   );
 }
 
-export function Agents({ navigate }) {
+/**
+ * Making an agent: where the person is, on Connections and on the agent
+ * list alike, so it never costs them their place. The key is shown here,
+ * once, with the address it goes with.
+ */
+export function NewAgent() {
   const { data: principals = null } = useMyPrincipals();
   const [form, setForm] = useState({ name: "", clan_tag: "" });
   const [minted, setMinted] = useState(null);
@@ -605,10 +610,6 @@ export function Agents({ navigate }) {
   const load = () => invalidate();
 
   const clans = principals?.addable_clans ?? [];
-  // A removed agent (0215) is folded below the table, not in it.
-  const agents = principals?.agents ?? [];
-  const shown = agents.filter((a) => !a.removed_at);
-  const removedAgents = agents.filter((a) => a.removed_at);
 
   async function create(e) {
     e.preventDefault();
@@ -639,6 +640,76 @@ export function Agents({ navigate }) {
     setForm({ name: "", clan_tag: "" });
     load();
   }
+
+  return (
+    <>
+      {minted && (
+        <div className="panel__body">
+          <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
+            <strong>Copy this key now.</strong> It is shown once and never again
+            — only its hash is stored.
+          </p>
+          <code style={{ wordBreak: "break-all" }}>{minted.token}</code>
+          {minted.publicId && (
+            <>
+              <p style={{ fontSize: "12.5px", margin: "10px 0 6px" }}>
+                Connect it at this URL — its own door, not the personal one:
+              </p>
+              <code style={{ wordBreak: "break-all" }}>
+                {`${window.location.origin}/a/${minted.publicId}/mcp`}
+              </code>
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="panel__body">
+        {clans.length === 0 ? (
+          <p style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
+            Add a clan on your Overview first — an agent needs a clan to act
+            for.
+          </p>
+        ) : (
+          <form
+            onSubmit={create}
+            style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+          >
+            <input
+              placeholder="agent name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+            />
+            <select
+              value={form.clan_tag}
+              onChange={(e) => setForm({ ...form, clan_tag: e.target.value })}
+            >
+              {clans.map((c) => (
+                <option key={c.clan_tag} value={c.clan_tag}>
+                  {/* The name is what a leader recognises; the tag
+                      disambiguates two clans with one name. */}
+                  {c.name ? `${c.name} (${c.clan_tag})` : c.clan_tag}
+                </option>
+              ))}
+            </select>
+            <button type="submit">Create agent</button>
+          </form>
+        )}
+        {error && (
+          <p style={{ fontSize: "12.5px", color: "var(--warn)" }}>{error}</p>
+        )}
+      </div>
+    </>
+  );
+}
+
+export function Agents({ navigate }) {
+  const { data: principals = null } = useMyPrincipals();
+
+  // A removed agent (0215) is folded below the table, not in it.
+  const agents = principals?.agents ?? [];
+  const shown = agents.filter((a) => !a.removed_at);
+  const removedAgents = agents.filter((a) => a.removed_at);
 
   return (
     <>
@@ -782,67 +853,7 @@ export function Agents({ navigate }) {
               </details>
             )}
 
-            {minted && (
-              <div className="panel__body">
-                <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
-                  <strong>Copy this key now.</strong> It is shown once and never
-                  again — only its hash is stored.
-                </p>
-                <code style={{ wordBreak: "break-all" }}>{minted.token}</code>
-                {minted.publicId && (
-                  <>
-                    <p style={{ fontSize: "12.5px", margin: "10px 0 6px" }}>
-                      Connect it at this URL — its own door, not the personal
-                      one:
-                    </p>
-                    <code style={{ wordBreak: "break-all" }}>
-                      {`${window.location.origin}/a/${minted.publicId}/mcp`}
-                    </code>
-                  </>
-                )}
-              </div>
-            )}
-
-            <div className="panel__body">
-              {clans.length === 0 ? (
-                <p style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-                  Add a clan on your Overview first — an agent needs a clan to
-                  act for.
-                </p>
-              ) : (
-                <form
-                  onSubmit={create}
-                  style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
-                >
-                  <input
-                    placeholder="agent name"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    required
-                  />
-                  <select
-                    value={form.clan_tag}
-                    onChange={(e) =>
-                      setForm({ ...form, clan_tag: e.target.value })
-                    }
-                  >
-                    {clans.map((c) => (
-                      <option key={c.clan_tag} value={c.clan_tag}>
-                        {/* The name is what a leader recognises; the tag
-                            disambiguates two clans with one name. */}
-                        {c.name ? `${c.name} (${c.clan_tag})` : c.clan_tag}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit">Create agent</button>
-                </form>
-              )}
-              {error && (
-                <p style={{ fontSize: "12.5px", color: "var(--warn)" }}>
-                  {error}
-                </p>
-              )}
-            </div>
+            <NewAgent />
           </section>
         </div>
       </div>

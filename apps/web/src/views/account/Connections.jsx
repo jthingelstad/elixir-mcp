@@ -22,6 +22,7 @@ import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { ClanRefs } from "../../components/ClanRefs.jsx";
 import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
 import { CONSOLE } from "../../lib/console.js";
+import { NewAgent } from "./Agents.jsx";
 
 /**
  * Connections — everything that can call Elixir with your authority.
@@ -99,6 +100,7 @@ export function Connections({ me, navigate }) {
   // its console, not here.
   const keyed = agents ?? [];
   const [showInactive, setShowInactive] = useState(false);
+  const [addingAgent, setAddingAgent] = useState(false);
   const inactive = keyed.filter((a) => a.status !== "approved");
   const active = keyed.filter((a) => a.status === "approved");
   const total = clients.length + active.length;
@@ -196,7 +198,8 @@ export function Connections({ me, navigate }) {
           <button
             className="btn"
             style={{ marginLeft: "auto" }}
-            onClick={() => navigate(`${CONSOLE}/account/agents`)}
+            aria-expanded={addingAgent}
+            onClick={() => setAddingAgent(!addingAgent)}
           >
             <Icon name="plus" size={16} />
             New agent
@@ -212,6 +215,12 @@ export function Connections({ me, navigate }) {
           {copied ? "Copied" : `Copy ${scope ? "its" : "/mcp"} URL`}
         </button>
       </div>
+
+      {addingAgent && !scope ? (
+        <section className="panel" aria-label="New agent">
+          <NewAgent />
+        </section>
+      ) : null}
 
       {connections !== null && total === 0 && keyed.length === 0 ? (
         <div className="empty">
