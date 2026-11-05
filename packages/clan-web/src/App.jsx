@@ -8,6 +8,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -58,6 +59,26 @@ import { ELIXIR_LINKS } from "./lib/links.js";
 const ClanMap = lazy(() =>
   import("./views/ClanMap.jsx").then((m) => ({ default: m.ClanMap })),
 );
+
+const neverChanges = () => () => {};
+/** The map draws only in a browser. A lazy view in the server's
+ *  renderToString aborts its boundary, and the browser then reports React
+ *  #419 on every visit, so the server and hydration both draw the waiting
+ *  line and the view loads after. */
+function MapWhenInBrowser({ clan }) {
+  const reading = <p className="page__lede">Reading…</p>;
+  const inBrowser = useSyncExternalStore(
+    neverChanges,
+    () => true,
+    () => false,
+  );
+  if (!inBrowser) return reading;
+  return (
+    <Suspense fallback={reading}>
+      <ClanMap key={clan.clan_tag} clan={clan} />
+    </Suspense>
+  );
+}
 
 /**
  * Routes, all under Elixir's /clan (CLAN, lib/base.js): `/clan` (landing,
@@ -301,12 +322,7 @@ export function ClanPage() {
     return (
       <ActivityDiscord key={clan.clan_tag} clan={clan} navigate={navigate} />
     );
-  if (parsed.section === "map")
-    return (
-      <Suspense fallback={<p className="page__lede">Reading…</p>}>
-        <ClanMap key={clan.clan_tag} clan={clan} />
-      </Suspense>
-    );
+  if (parsed.section === "map") return <MapWhenInBrowser clan={clan} />;
   return (
     <Clan
       key={clan.clan_tag}
