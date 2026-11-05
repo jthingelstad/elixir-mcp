@@ -46,3 +46,4 @@ packages/mail/.preview/
 # The contract changelog's index, written by the contracts build from
 # packages/contracts/src/changes/ (scripts/changes-index.mjs).
 packages/contracts/src/generated/
+!.env.tpl
