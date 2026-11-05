@@ -8,7 +8,7 @@
  *
  * At narrow width the places (Console, Ladder, Clan), Docs and Play
  * Drop fold into the sheet behind one button. The account slot stays on
- * the bar at every width; on this half it is always "Sign in".
+ * the bar at every width.
  *
  * Progressive enhancement: with the script off the button does nothing
  * and every link is still in the sheet's markup, a real page a crawler

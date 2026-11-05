@@ -661,7 +661,14 @@ test(
       kit.FAMILY_LOGO,
     );
     assert.deepEqual(links(".chrome__nav a"), places);
-    assert.deepEqual(links(".chrome__end a"), [docs, ...games, signIn]);
+    assert.deepEqual(links(".chrome__end a"), [
+      docs,
+      ...games,
+      signIn,
+      // The other face of the account slot: its name is drawn by CSS from
+      // the session hint, so its markup carries none.
+      link("", "/console", { label: "Your account", glyphs: 0 }),
+    ]);
     assert.deepEqual(links("#chrome-sheet a"), [...places, docs, ...games]);
     for (const a of site.querySelectorAll('.chrome a[target="_blank"]'))
       assert.equal(a.getAttribute("rel"), "noopener");
@@ -1177,13 +1184,76 @@ test(
 );
 
 test(
+  "a static page picks its signed-in or signed-out face before it paints",
+  { skip },
+  async () => {
+    const { JSDOM } = await import("jsdom");
+    const html = read("index.html");
+    // A blocking script in the head, ahead of the body: deferred would
+    // paint the signed-out face first, and the bar would read as a glitch.
+    const head = html.slice(0, html.indexOf("<body"));
+    assert.match(
+      head,
+      /<script src="\/assets\/session-hint\.js[^"]*"><\/script>/,
+    );
+    // Read from the built tree: a script the build does not copy is a 404
+    // that leaves every signed-in reader on the signed-out face.
+    const script = read("assets/session-hint.js");
+    const face = (stored) => {
+      const dom = new JSDOM(html, {
+        url: "https://elixir.poapkings.com/",
+        runScripts: "outside-only",
+      });
+      if (stored) dom.window.localStorage.setItem("elixir.session", stored);
+      dom.window.eval(script);
+      const root = dom.window.document.documentElement;
+      return {
+        session: root.getAttribute("data-session"),
+        name: root.style.getPropertyValue("--session-name"),
+        initials: root.style.getPropertyValue("--session-initials"),
+      };
+    };
+    const until = Date.now() + 86_400_000;
+    assert.deepEqual(face(null), { session: null, name: "", initials: "" });
+    assert.equal(
+      face(JSON.stringify({ until: Date.now() - 1, name: "Old" })).session,
+      null,
+      "an expired hint is no hint",
+    );
+    assert.equal(face("not json").session, null);
+    assert.deepEqual(face(JSON.stringify({ until, name: "King Thing" })), {
+      session: "in",
+      name: '"King Thing"',
+      initials: '"KT"',
+    });
+    assert.deepEqual(face(JSON.stringify({ until, name: null })), {
+      session: "in",
+      name: "",
+      initials: "",
+    });
+
+    // Both faces are in the markup; the sign-up calls are the signed-out one.
+    const doc = new JSDOM(html).window.document;
+    for (const a of doc.querySelectorAll('a[href="/console/signin?signup"]'))
+      assert.ok(
+        a.closest('[data-session-face="out"]'),
+        "a sign-up call shows to someone signed in",
+      );
+    assert.ok(doc.querySelector('.chrome__signin[data-session-face="out"]'));
+    assert.ok(doc.querySelector('.chrome__me[data-session-face="in"]'));
+    const css = read("assets/site.css");
+    assert.match(css, /data-session-face/);
+  },
+);
+
+test(
   "the narrow menu opens and closes, and the account slot stays on the bar",
   { skip },
   async () => {
     // The static half's menu is hand-written JavaScript, so it gets the
     // same exercise the app's React one does. At narrow width the places,
-    // Docs and the game fold behind one button; the account slot (here,
-    // always Sign in) is never in there.
+    // Docs and the game fold behind one button; the account slot is never
+    // in there.
     const { JSDOM } = await import("jsdom");
     const dom = new JSDOM(read("index.html"), { runScripts: "outside-only" });
     const { window } = dom;

@@ -30,8 +30,8 @@ export interface ChromeProduct extends FamilyProduct {
  * holds (`account`): a person is their initials and name, opening the
  * account menu; `null` is "Sign in", the same width; `undefined`, while
  * the app is still asking, is the empty slot. The static site cannot
- * know the session at build time, so it always shows "Sign in", and
- * that link takes a reader who is signed in straight to their console.
+ * know the session at build time, so it carries both faces and a blocking
+ * script picks one before the first paint (apps/site assets/session-hint.js).
  * Nothing on the bar swaps after load.
  *
  * The SAME markup at every width: which width is showing is a media

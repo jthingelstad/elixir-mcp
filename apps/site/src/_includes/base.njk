@@ -29,6 +29,8 @@
     {#- Autodiscovery: a feed nobody can find is a feed nobody reads. -#}
     <link rel="alternate" type="application/rss+xml" title="{{ site.name }} updates" href="/feed.xml" />
     <link rel="stylesheet" href="{{ "/assets/site.css" | asset }}" />
+    {#- Blocking on purpose: it picks the page's signed-in or signed-out face before the first paint. -#}
+    <script src="{{ "/assets/session-hint.js" | asset }}"></script>
     <link rel="alternate" type="application/rss+xml" title="{{ site.name }} updates" href="{{ site.url }}/feed.xml" />
     <link rel="alternate" type="application/feed+json" title="{{ site.name }} updates" href="{{ site.url }}/feed.json" />
   </head>
@@ -42,9 +44,9 @@
 
           THE BAR'S SHAPE NEVER VARIES BY SESSION: the account slot is a
           fixed width everywhere. An app fills it from the session it
-          already holds; this build cannot know the session, so it always
-          shows "Sign in", and the Console's sign-in page sends a reader
-          who is signed in straight on to their console. Nothing here is
+          already holds; this build cannot know the session, so both faces
+          are in the markup and session-hint.js, a blocking script in the
+          head, chooses one before the first paint. Nothing here is
           swapped after load. (It once showed "Sign in" and swapped it to
           "Account" when /api/me answered, and the bar read as a glitch.)
 
@@ -98,9 +100,13 @@
             {%- endif %}{% endfor %}
             <span class="chrome__rule" aria-hidden="true"></span>
             <div class="chrome__account">
-              <a class="chrome__signin" href="{{ familyBar.signIn.path }}">
+              <a class="chrome__signin" data-session-face="out" href="{{ familyBar.signIn.path }}">
                 {% chromeIcon familyBar.signIn.icon, 16 %}
                 <span>{{ familyBar.signIn.label }}</span>
+              </a>
+              <a class="chrome__me" data-session-face="in" href="{{ familyBar.account.path }}" aria-label="{{ familyBar.account.label }}">
+                <span class="chrome__avatar chrome__avatar--hint" aria-hidden="true"></span>
+                <span class="chrome__me-name chrome__me-name--hint"></span>
               </a>
             </div>
           </div>

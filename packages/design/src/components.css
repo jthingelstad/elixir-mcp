@@ -397,6 +397,18 @@ table {
 .chrome__signin > svg {
   color: var(--gold);
 }
+/* The static half's two faces: session-hint.js sets data-session before the
+   first paint, so a page never shows one and then the other. */
+html:not([data-session="in"]) [data-session-face="in"],
+html[data-session="in"] [data-session-face="out"] {
+  display: none !important;
+}
+.chrome__me-name--hint::before {
+  content: var(--session-name, "Your account");
+}
+.chrome__avatar--hint::before {
+  content: var(--session-initials, "");
+}
 .chrome__avatar {
   display: flex;
   flex: 0 0 auto;
