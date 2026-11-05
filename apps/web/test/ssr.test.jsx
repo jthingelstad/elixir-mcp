@@ -86,3 +86,31 @@ test("every Console section can render a signed-in initial document without a br
     expect(html, url).toContain("not endorsed by Supercell");
   }
 });
+
+// The clan map loads Leaflet, which needs a browser, as a lazy view. A lazy
+// view in renderToString aborts its boundary, and the browser then reports
+// React #419 on every visit. The server draws the map's waiting line instead.
+test("the clan map renders on the server without aborting a boundary", async () => {
+  const me = {
+    ok: true,
+    status: 200,
+    data: {
+      authenticated: true,
+      email: "fictional@example.test",
+      features: { clan_internal: true },
+      claims: [],
+      recordings: [],
+      signals: {},
+    },
+  };
+  const clan = { clan_tag: "#2PQRJ8LV", name: "Example Clan", role: "member" };
+  const clanMe = {
+    ok: true,
+    status: 200,
+    data: { ok: true, clans: [clan], selected: clan },
+  };
+  const html = await renderApp({ url: "/clan/2PQRJ8LV/map", me, clanMe });
+  expect(html).toContain("not endorsed by Supercell");
+  expect(html).toContain("Reading");
+  expect(html).not.toContain("<!--$!-->");
+});
