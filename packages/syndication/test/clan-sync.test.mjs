@@ -150,7 +150,9 @@ test("connecting seals the webhook to its channel and says hello; nothing earlie
     entries: [
       { at: at(T), outcome: "posted", excerpt: "Ada joined", rewritten: true },
     ],
-    missed: { [at(T).slice(0, 10)]: 2 },
+    // The count is the last 30 days by the real clock, so this day is
+    // today's, never T's: T aged out of the window on 2026-11-05.
+    missed: { [new Date().toISOString().slice(0, 10)]: 2 },
   });
   assert.equal(told.deliveries[0].rewritten, true);
   assert.equal(told.not_delivered, 2);
