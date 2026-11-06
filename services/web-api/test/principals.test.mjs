@@ -124,6 +124,17 @@ after(async () => {
 test("an agent is created for a clan you already added, and its key is shown once", async () => {
   const cookie = bossCookie;
 
+  // A missing clan is the route's own refusal, never a 500.
+  const noClan = await handler(
+    event({
+      path: "/api/me/agents",
+      cookie,
+      body: { name: "poap-kings" },
+    }),
+  );
+  assert.equal(noClan.statusCode, 400, noClan.body);
+  assert.equal(parse(noClan).error, "invalid_tag");
+
   const res = await handler(
     event({
       path: "/api/me/agents",

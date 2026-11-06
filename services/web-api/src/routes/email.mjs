@@ -65,7 +65,7 @@ function page({ title, lead, form = "" }) {
 <body><main><div class="wm">ELIXIR</div><h1>${esc(title)}</h1><p>${lead}</p>${form}<p class="f">This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy.</p></main></body></html>`;
 }
 
-function labelOf(kind) {
+export function labelOf(kind) {
   return kind === "all" ? "every Elixir email" : (KIND_LABELS[kind] ?? kind);
 }
 

@@ -24,7 +24,7 @@ const LABELS = {
   gateway_card_picked: "Collector card changed",
   gateway_token_staged: "Collector token staged",
   gateway_config_claimed: "Collector token revealed",
-  email_pref_changed: "Email choice changed",
+  email_pref: "Email choice changed",
 };
 
 const GROUP = {
@@ -50,11 +50,10 @@ export const EVENT_GROUPS = [
   { key: "discord", label: "Discord" },
 ];
 
-export const eventLabel = (kind) => {
-  if (LABELS[kind]) return LABELS[kind];
-  const words = String(kind ?? "").replaceAll("_", " ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
-};
+const upper = (words) => words.charAt(0).toUpperCase() + words.slice(1);
+
+export const eventLabel = (kind) =>
+  LABELS[kind] ?? upper(String(kind ?? "").replaceAll("_", " "));
 
 export const eventGroup = (kind) => GROUP[kind] ?? "access";
 
@@ -62,6 +61,8 @@ export const eventGroup = (kind) => GROUP[kind] ?? "access";
  *  event carried. Empty when it carried neither. */
 export function eventDetail(e) {
   const d = e.detail ?? {};
+  if (e.kind === "email_pref")
+    return `${upper(d.label ?? d.kind ?? "")}: ${d.enabled ? "on" : "off"}`;
   const tag = d.player_tag ?? d.clan_tag ?? null;
   if (tag) return d.subject_name ? `${d.subject_name} ${tag}` : tag;
   return d.username ?? d.client_name ?? d.role ?? d.name ?? "";

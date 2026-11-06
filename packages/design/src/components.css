@@ -1494,13 +1494,6 @@ main.wrap {
   gap: 20px;
   align-items: flex-start;
 }
-.cols__rail {
-  flex: 1 1 300px;
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
 
 /* In-page tabs — a segmented control sunk in a well. Third distinct
    shape; used for tab sets inside a page (Activity's three tabs, meta

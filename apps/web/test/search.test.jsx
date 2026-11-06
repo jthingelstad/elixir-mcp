@@ -75,7 +75,12 @@ describe("one name, one door", () => {
   });
   test("before typing: You, Clanmates, People you follow, Clans, each once", () => {
     const groups = beforeTyping(sources());
-    expect(groups.map((g) => g.h)).toEqual(["You", "Clanmates", "Clans"]);
+    expect(groups.map((g) => g.h)).toEqual([
+      "You",
+      "Clanmates",
+      "Clans",
+      "Look up",
+    ]);
     // A friend who is also a clanmate is a clanmate.
     expect(groups[1].rows.map((r) => r.t)).toEqual([
       "Clanmate One",
@@ -98,6 +103,40 @@ describe("one name, one door", () => {
     expect(
       groups.find((g) => g.h === "Settings").rows.map((r) => r.href),
     ).toEqual(["/settings/emails"]);
+  });
+});
+
+describe("a deck hash or a war week", () => {
+  const first = (q, over) => typedGroups(q, sources(over))[0];
+  test("a hash opens its deck on Explore, for no read", () => {
+    const hash = "ABCDEF0123456789abcdef";
+    expect(readable(hash)).toBe(false);
+    expect(first(`deck:${hash}`).rows[0].href).toBe(
+      `/console/explore/deck/${hash.toLowerCase()}`,
+    );
+  });
+  test.each(["S135 W3", "s135w3", "135-3"])(
+    "%s is the home clan's week, for no read",
+    (q) => {
+      expect(readable(q)).toBe(false);
+      expect(first(q).rows[0]).toMatchObject({
+        t: "Season 135, week 3",
+        d: "Example Clan",
+        href: "/console/explore/week/2PQRJ8LV~135~2",
+      });
+    },
+  );
+  test("with no home clan, a week goes to the lookup to say which", () => {
+    const row = first("S135 W3", { clans: {} }).rows[0];
+    expect(row.href).toBe("/console/explore");
+  });
+  test("the lookup is found by name, and a plain miss stays a miss", () => {
+    expect(
+      typedGroups("deck", sources())
+        .flatMap((g) => g.rows)
+        .map((r) => r.href),
+    ).toContain("/console/explore");
+    expect(typedGroups("zzzz", sources())).toEqual([]);
   });
 });
 

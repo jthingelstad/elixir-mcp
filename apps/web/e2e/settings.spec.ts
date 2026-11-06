@@ -28,6 +28,10 @@ const mocks = signedIn({
     { ...ME, agents: [{ public_id: AGENT.public_id, name: AGENT.name }] },
   ],
   "GET /api/me/principals": [200, { agents: [AGENT], addable_clans: [] }],
+  [`GET /api/agent/${AGENT.public_id}/feedback`]: [
+    200,
+    { feedback: [], total: 3 },
+  ],
   [`GET /api/agent/${AGENT.public_id}`]: [
     200,
     { ...ME, kind: "agent", name: AGENT.name, email: null, claims: [] },
@@ -111,6 +115,29 @@ test.describe("@narrow Settings at phone width", () => {
     expect(writes).toEqual([]);
     await page.keyboard.press("Escape");
     await expect(sheet).toHaveCount(0);
+  });
+
+  test("a deck hash typed in search lands on Explore's record", async ({
+    page,
+  }) => {
+    const hash = "abcdef0123456789";
+    await page.goto("/home");
+    await page
+      .locator(".kit-bottom")
+      .getByRole("button", { name: /Search/ })
+      .click();
+    const sheet = page.getByRole("dialog");
+    await sheet.getByRole("searchbox").fill(hash);
+    await sheet.getByRole("link", { name: /^Deck abcdef012345/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/console/explore/deck/${hash}$`));
+    await expect(sheet).toHaveCount(0);
+  });
+
+  test("an agent's overview counts the feedback it has sent", async ({
+    page,
+  }) => {
+    await page.goto(`/settings/agents/${AGENT.public_id}/overview`);
+    await expect(page.getByText("3 items.")).toBeVisible();
   });
 
   test("help opens in place, names the page and links its docs", async ({

@@ -19,7 +19,13 @@ import {
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { usePublicStats } from "../lib/queries.js";
-import { normTag, tagPath, tagFromPath } from "../lib/tag-url.js";
+import {
+  HASH_RE,
+  WEEK_RE,
+  normTag,
+  tagPath,
+  tagFromPath,
+} from "../lib/tag-url.js";
 import { CONSOLE, appPath } from "../lib/console.js";
 import { SETTINGS } from "../lib/settings.js";
 
@@ -34,16 +40,6 @@ import { SETTINGS } from "../lib/settings.js";
  */
 
 const TAG_RE = /^#?[0-9a-zA-Z]{3,12}$/;
-const HASH_RE = /^(deck:)?[0-9a-f]{16,64}$/i;
-// A war week is Season and Week, the way the game and the rest of this
-// console name it: "S135 W3", "s135w3", "S135-W3". It used to accept only
-// an ISO calendar week (2026-W36), which nothing else here uses and the
-// page's own hint contradicted, so the advertised form fell through to a
-// name search and a miss.
-// "136-2", "S136 W2", "136w2" (console walk 2: "136-2" was refused).
-export const WEEK_RE =
-  /^(?:season\s+|s)?\s*(\d{1,4})\s*(?:[-·,]\s*(?:week\s*|w)?|\s*(?:week\s*|w))\s*(\d{1,2})$/i;
-
 // Tag <-> URL is one seam for the whole app now (lib/tag-url.js).
 const encTag = tagPath;
 const decTag = tagFromPath;

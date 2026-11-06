@@ -1,6 +1,6 @@
 import { CONSOLE } from "../lib/console.js";
 import { SETTINGS_RAIL } from "../lib/settings.js";
-import { normTag, tagPath } from "../lib/tag-url.js";
+import { HASH_RE, WEEK_RE, normTag, tagPath } from "../lib/tag-url.js";
 import { ladderHref } from "../ladder/ladder.js";
 import { DOC_LINKS } from "./doc-links.js";
 
@@ -12,7 +12,8 @@ import { DOC_LINKS } from "./doc-links.js";
  *
  * One name, one door: you open in Ladder, a clanmate on their Clan member page,
  * anyone else on their record. A clan is found by tag or from your own list,
- * never searched by name across the record.
+ * never searched by name across the record. A deck hash or a war week is a
+ * lookup of its own: it costs no read here, and Explore opens the record.
  */
 
 const ROLE = {
@@ -39,7 +40,12 @@ export function isTagQuery(q) {
 /** Whether a query is worth a read at all. */
 export function readable(q) {
   const t = String(q ?? "").trim();
-  return t.length >= NAME_READ_MIN && t.length <= 50;
+  return (
+    t.length >= NAME_READ_MIN &&
+    t.length <= 50 &&
+    !HASH_RE.test(t) &&
+    !WEEK_RE.test(t)
+  );
 }
 
 /** What the sheet knows without asking: the session and two cached reads. */
@@ -124,6 +130,43 @@ function people(s) {
 const group = (h, rows, cap) =>
   rows.length ? { h, rows: rows.slice(0, cap) } : null;
 
+/** [engineering, 2026-11-06] Explore has no other door from the app. */
+const EXPLORE_LOOKUP = {
+  t: "Look up a tag, deck or war week",
+  d: "Explore",
+  href: `${CONSOLE}/explore`,
+};
+const MEANS_LOOKUP = /look|explor|deck|hash|\bwar\b|week/;
+
+/** A typed deck hash or war week, opened as Explore's lookup opens it: a week
+ *  on its own names the home clan's race, and with no home clan the lookup is
+ *  where to say which. */
+function lookupRows(raw, s) {
+  const t = String(raw ?? "").trim();
+  if (HASH_RE.test(t)) {
+    const hash = t.replace(/^deck:/i, "").toLowerCase();
+    return [
+      {
+        t: `Deck ${hash.slice(0, 12)}…`,
+        d: "Record",
+        href: `${CONSOLE}/explore/deck/${hash}`,
+      },
+    ];
+  }
+  const week = WEEK_RE.exec(t);
+  if (!week) return [];
+  if (!s.home?.clan_tag) return [EXPLORE_LOOKUP];
+  const season = Number(week[1]);
+  const section = Number(week[2]) - 1;
+  return [
+    {
+      t: `Season ${season}, week ${section + 1}`,
+      d: s.home.name ?? "Your clan",
+      href: `${CONSOLE}/explore/week/${tagPath(s.home.clan_tag)}~${season}~${section}`,
+    },
+  ];
+}
+
 /** The sheet before a key is pressed. */
 export function beforeTyping(s) {
   const { you, mates, following, clans } = people(s);
@@ -132,6 +175,7 @@ export function beforeTyping(s) {
     group("Clanmates", mates, BEFORE_TYPING),
     group("People you follow", following, BEFORE_TYPING),
     group("Clans", clans, BEFORE_TYPING),
+    group("Look up", [EXPLORE_LOOKUP], BEFORE_TYPING),
   ].filter(Boolean);
 }
 
@@ -177,6 +221,7 @@ export function typedGroups(raw, s, found = null) {
   const seen = new Set(
     [...youRows, ...mateRows, ...followRows].map((r) => r.href),
   );
+  const lookup = lookupRows(raw, s);
   const fresh = [];
   for (const p of found?.players ?? []) {
     const label = p.label ?? nameOf(p);
@@ -192,6 +237,7 @@ export function typedGroups(raw, s, found = null) {
     (r) => match(r.match) && !foundClans.some((c) => c.href === r.href),
   );
   return [
+    group("Look up", lookup, TYPED),
     group("You", youRows, TYPED),
     group("Clanmates", mateRows, TYPED),
     group("People you follow", followRows, TYPED),
@@ -219,6 +265,9 @@ export function typedGroups(raw, s, found = null) {
       SETTINGS_PAGES.filter((r) => match(r.t)),
       TYPED,
     ),
+    lookup.length || !MEANS_LOOKUP.test(q)
+      ? null
+      : group("Look up", [EXPLORE_LOOKUP], TYPED),
   ].filter(Boolean);
 }
 

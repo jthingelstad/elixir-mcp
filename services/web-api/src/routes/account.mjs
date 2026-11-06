@@ -27,6 +27,7 @@ import {
 } from "@elixir-mcp/tools/activity/entries";
 
 import { json, UUID_RE, ID_RE } from "../http.mjs";
+import { labelOf as emailChoiceLabel } from "./email.mjs";
 import { loadCallRecord } from "../call-record.mjs";
 
 /** An audit row the daily tool-call limiter charged (`mcpday#`,
@@ -681,6 +682,11 @@ export function accountRoutes({
       }
       return json(200, {
         events: rows.map((r) => {
+          if (r.kind === "email_pref")
+            return {
+              ...r,
+              detail: { ...r.detail, label: emailChoiceLabel(r.detail?.kind) },
+            };
           const tag = r.detail?.player_tag ?? r.detail?.clan_tag ?? null;
           return tag && names.has(tag)
             ? { ...r, detail: { ...r.detail, subject_name: names.get(tag) } }

@@ -23,6 +23,7 @@ import {
   useInvalidate,
   useMyPrincipals,
   usePrincipalIdentities,
+  useMyFeedback,
 } from "../../lib/queries.js";
 import { AGENT_TABS, SETTINGS } from "../../lib/settings.js";
 import { TimelineDiscordState } from "./TimelineDiscord.jsx";
@@ -171,7 +172,10 @@ function IssueKey({ agent, onMinted, className }) {
 
 /** Overview: how the agent is doing, what is refusing it, and where to
  *  connect it. */
-export function AgentOverview({ agent, feedbackCount }) {
+export function AgentOverview({ agent }) {
+  // The scope is this agent's, and reading an agent's list marks nothing seen.
+  const feedback = useMyFeedback();
+  const feedbackCount = feedback.data?.total ?? null;
   const [minted, setMinted] = useState(null);
   const [copied, flash] = useFlash();
   const key = liveKey(agent);
@@ -306,7 +310,9 @@ export function AgentOverview({ agent, feedbackCount }) {
             [
               "Feedback it has sent",
               <>
-                {feedbackCount != null ? `${feedbackCount} items. ` : ""}
+                {feedbackCount != null
+                  ? `${feedbackCount.toLocaleString()} ${feedbackCount === 1 ? "item" : "items"}. `
+                  : ""}
                 <Link to={`${base}/feedback`}>Open its feedback</Link>
               </>,
             ],
