@@ -25,8 +25,9 @@ import { SearchSheet } from "./SearchSheet.jsx";
  * The shell on every page of the app: the top bar, the avatar's menu, the
  * phone's tabs, the footer, the search sheet and the help drawer. The words and
  * addresses are the kit's manifest (packages/ui/src/family.json), the list
- * apps/site draws the same bar from. That static bar's Search and Help stay
- * links: a page with no app under it has no sheet to open.
+ * apps/site draws the same bar from. A static page has no app under it: its
+ * Help is a small drawer of its own (assets/site-help.js) and its Search comes
+ * here as `/home?search`.
  */
 const product = (key) => FAMILY_PRODUCTS.find((p) => p.key === key);
 const PLACES = {
@@ -347,6 +348,16 @@ export function ShellFrame({ me, unreachable = false, area, children }) {
   // for search until someone opens it.
   const [sheet, setSheet] = useState(null);
   const close = () => setSheet(null);
+  // The static half's Search lands here as ?search, since a static page has no
+  // sheet of its own. [engineering, 2026-11-06]
+  useEffect(() => {
+    if (!signedIn) return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("search")) return;
+    url.searchParams.delete("search");
+    window.history.replaceState(null, "", url);
+    setSheet("search");
+  }, [signedIn]);
   return (
     <div className={`kit-shell${signedIn ? " kit-shell--in" : ""}`}>
       <TopBar me={me} area={area} open={setSheet} />

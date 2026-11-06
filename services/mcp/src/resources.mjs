@@ -24,7 +24,7 @@
  */
 
 import { CHANGELOG, CONTRACT_VERSION, DISCLAIMER } from "@elixir-mcp/contracts";
-import { corpus } from "@elixir-mcp/docs";
+import { corpus, movedSection } from "@elixir-mcp/docs";
 import { readCatalog } from "@elixir-mcp/tools/cards";
 
 const SCHEME = "elixir://";
@@ -170,10 +170,15 @@ export async function readResource(uri, { db } = {}) {
       disclaimer: DISCLAIMER,
     });
   if (parts[0] === "docs" && parts.length === 2) {
-    const doc = c.docs.find((d) => d.slug === parts[1].toLowerCase());
+    const asked = parts[1].toLowerCase();
+    // A section that moved when its page split reads from its new page.
+    const moved = fragment
+      ? await movedSection(asked, fragment.toLowerCase())
+      : null;
+    const doc = c.docs.find((d) => d.slug === (moved?.page ?? asked));
     if (!doc) return null;
     if (fragment) {
-      const want = fragment.toLowerCase();
+      const want = moved?.section ?? fragment.toLowerCase();
       const sec = doc.sections.find(
         (x) => x.slug === want || x.title.toLowerCase() === want,
       );

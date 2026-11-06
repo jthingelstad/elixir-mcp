@@ -1,0 +1,22 @@
+---
+pagination:
+  data: updatesMonths.months
+  size: 1
+  alias: m0
+  addAllPagesToCollections: true
+permalink: "/updates/{{ m0.key }}/index.html"
+layout: base.njk
+navActive: updates
+eleventyComputed:
+  title: "Updates, {{ m0.label }}"
+  canonical: "/updates/{{ m0.key }}"
+  description: "What changed on Elixir in {{ m0.label }}, newest first."
+---
+{%- set shown = [m0] %}
+{%- set hereKey = m0.key %}
+{%- set hereLabel = m0.label %}
+{%- set newerKey = m0.newer %}
+{%- set newerLabel = m0.newerLabel %}
+{%- set olderKey = m0.older %}
+{%- set olderLabel = m0.olderLabel %}
+{%- include "updates-list.njk" %}

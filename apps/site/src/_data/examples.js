@@ -3,7 +3,7 @@
  * renamed the section Examples on 2026-09-10).
  *
  * The transcripts are REAL (2026-09-10): each question was put to the
- * live door as King Thing (#20JJJ2CCRU, POAP KINGS #J2RGCRVG), the
+ * live door as the example player and clan, the
  * tools under each window are the ones that were actually called, and
  * every number in an answer came back from them that morning. The
  * three "For builders" exchanges read the documentation through
@@ -29,7 +29,7 @@ export default [
         icon: "trending-up",
         label: "Understand your play",
         title: "Understand your own play",
-        lede: "Not “you won 61%” — which deck, which mode, which week, and whether the grind is actually paying off.",
+        lede: "Not “you won 61%”, which deck, which mode, which week, and whether the grind is actually paying off.",
         reads: [
           "Every battle recorded for you, with decks and outcomes",
           "A profile reading for each game day one landed, from the first the record holds",
@@ -45,7 +45,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Mostly grinding, with one bright spot. I looked at your last 30 days — 79 recorded battles since August 11.\n\n**By week** your win rate has bounced rather than climbed: 61% → 63% → 48% → 80% → 45%. Your trophies have gone nowhere: 12,593 five weeks ago, 12,562 today.\n\n**By deck** is where the story is:\n\n- **Royal Hogs bridge spam** — your main deck, 54 battles, 68% of your games: 25–29, **46%**\n- **Mortar siege** — 13 battles: 11–2, **85%**\n\nThe deck you play least is the one that wins. That is not grinding paying off; that is a deck choice.",
+              text: "Mostly grinding, with one bright spot. I looked at your last 30 days, 79 recorded battles since August 11.\n\n**By week** your win rate has bounced rather than climbed: 61% → 63% → 48% → 80% → 45%. Your trophies have gone nowhere: 12,593 five weeks ago, 12,562 today.\n\n**By deck** is where the story is:\n\n- **Royal Hogs bridge spam**: your main deck, 54 battles, 68% of your games: 25–29, **46%**\n- **Mortar siege**: 13 battles: 11–2, **85%**\n\nThe deck you play least is the one that wins. That is not grinding paying off; that is a deck choice.",
             },
           ],
         },
@@ -58,7 +58,7 @@ export default [
         lede: "Trophy pushes stall for boring, findable reasons. A record of every battle makes the pattern visible instead of anecdotal.",
         reads: [
           "Your battle record by mode and by week",
-          "Daily trophy and best-trophy snapshots",
+          "Daily trophy and best-trophy readings",
           "Net trophies per week, war modes excluded",
         ],
         setup: ["Track your player", "Set your timezone"],
@@ -71,7 +71,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Your best is **12,622** and you are at **12,562** — 60 away, a gap that keeps closing and reopening. Net trophies over the last five weeks: +32, −57, +6, −32, +52. You have been oscillating, not sinking.\n\nWhat the record shows since August 11:\n\n- Ladder is the only mode you lose in: **25–29 (46%)**, against 76% in war 1v1s and 75% in duels.\n- Every one of those Ladder games was on your main Witch / Royal Hogs deck. Your Mortar deck, 11–2 overall, has barely touched Ladder.\n- Volume is low and steady, 11–28 battles a week. At 46% that is a coin flip per session.\n\nNothing here says tilt or time of day — there are not enough Ladder games to split by session honestly. ",
+              text: "Your best is **12,622** and you are at **12,562**: 60 away, a gap that keeps closing and reopening. Net trophies over the last five weeks: +32, −57, +6, −32, +52. You have been oscillating, not sinking.\n\nWhat the record shows since August 11:\n\n- Ladder is the only mode you lose in: **25–29 (46%)**, against 76% in war 1v1s and 75% in duels.\n- Every one of those Ladder games was on your main Witch / Royal Hogs deck. Your Mortar deck, 11–2 overall, has barely touched Ladder.\n- Volume is low and steady, 11–28 battles a week. At 46% that is a coin flip per session.\n\nNothing here says tilt or time of day, there are not enough Ladder games to split by session honestly. ",
             },
           ],
         },
@@ -81,7 +81,7 @@ export default [
         icon: "users",
         label: "Follow your friends",
         title: "Follow your friends",
-        lede: "The people you play with, tracked because you asked — what they are on, how much they are playing, and what changed since you last looked.",
+        lede: "The people you play with, tracked because you asked, what they are on, how much they are playing, and what changed since you last looked.",
         reads: [
           "Profiles and daily readings for the players you track",
           "Their recorded decks and results",
@@ -97,7 +97,7 @@ export default [
             },
             {
               role: "agent",
-              text: "He is at the ceiling. **Alex is sitting at 14,000 trophies**, the Trophy Road cap, and has been there in every weekly reading since mid-August — so there is nowhere left to climb on Ladder. What he *has* been doing:\n\n- **72 battles in the last four weeks** (4,254 → 4,326 lifetime), a steady 15–30 a week.\n- Donations are up: 453, 319, 354 and 403 on the last four weekly counters.\n- Since August 16 he is on one deck almost exclusively — **Witch / Mini P.E.K.K.A / Elite Barbarians / Dart Goblin / Skeleton Barrel** — 36–28 (56%) with it.\n\nHis best league season on record is 5,316 from May 2022, so if he says climbing he means Path of Legends, not trophies.",
+              text: "He is at the ceiling. **Alex is sitting at 14,000 trophies**, the Trophy Road cap, and has been there in every weekly reading since mid-August, so there is nowhere left to climb on Ladder. What he *has* been doing:\n\n- **72 battles in the last four weeks** (4,254 → 4,326 lifetime), a steady 15–30 a week.\n- Donations are up: 453, 319, 354 and 403 on the last four weekly counters.\n- Since August 16 he is on one deck almost exclusively, **Witch / Mini P.E.K.K.A / Elite Barbarians / Dart Goblin / Skeleton Barrel**, 36–28 (56%) with it.\n\nHis best league season on record is 5,316 from May 2022, so if he says climbing he means Path of Legends, not trophies.",
             },
             {
               role: "user",
@@ -105,7 +105,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Two things from the record:\n\n1. You will collide on cards — he runs Witch, Mini P.E.K.K.A and Arrows, the same as your main deck.\n2. Your feed shows his battles landing in evening batches (2 on September 5, 8 on September 6), and the game last saw him at 02:59Z on the 10th — he plays late, your time.\n\nHe is a co-leader four years into the game. He will be fine.",
+              text: "Two things from the record:\n\n1. You will collide on cards, he runs Witch, Mini P.E.K.K.A and Arrows, the same as your main deck.\n2. Your feed shows his battles landing in evening batches (2 on September 5, 8 on September 6), and the game last saw him at 02:59Z on the 10th, he plays late, your time.\n\nHe is a co-leader four years into the game. He will be fine.",
             },
           ],
         },
@@ -120,7 +120,7 @@ export default [
         icon: "swords",
         label: "Win your river race",
         title: "Win your river race",
-        lede: "The finished race, the one that just opened, and who has battled so far today — from a record the game's own API forgets after ten weeks.",
+        lede: "The finished race, the one that just opened, and who has battled so far today, from a record the game's own API forgets after ten weeks.",
         reads: [
           "River races recorded weekly, corrected as they run",
           "Per-member points, decks used and boat attacks",
@@ -136,12 +136,12 @@ export default [
             },
             {
               role: "agent",
-              text: "**First of five, for the ninth race running.**\n\nLast week was Colosseum — Season 135, Week 4 — and the boat finished at **38,700 fame** for **+100 clan trophies**. The four regular weeks before it all ended the same way: POAP KINGS hit the 10,000-fame line early every time, +20 each. Season 134 was a clean sweep too, with a 51,900-fame Colosseum.\n\nThis week's race (Season 136, Week 1) opened this morning against **De stichting, Legend Royale, Happy Win and Les champs** — none of whom we have raced before.",
+              text: "**First of five, for the ninth race running.**\n\nLast week was Colosseum, Season 135, Week 4, and the boat finished at **38,700 fame** for **+100 clan trophies**. The four regular weeks before it all ended the same way: POAP KINGS hit the 10,000-fame line early every time, +20 each. Season 134 was a clean sweep too, with a 51,900-fame Colosseum.\n\nThis week's race (Season 136, Week 1) opened this morning against **De stichting, Legend Royale, Happy Win and Les champs**: none of whom we have raced before.",
             },
             { role: "user", text: "Who has carried so far this week?" },
             {
               role: "agent",
-              text: "War day 1 has been open a couple of hours, so this is *so far*, not final:\n\n- **Sandeep** — 800 points, all four decks used\n- **Aaqib Javed** and **Mega Goblin** — 600 each, all four decks\n- **ryguy67** — 425 with three decks and a boat attack\n- **I Hate Witch** and **Andy** — started, not finished\n\nThat is 6 of the 45 in the race roster with a battle in; 39 have not touched it yet, which is normal this early. Four members are not in the race roster at all — the game leaves out anyone it had not seen since before the race started.",
+              text: "War day 1 has been open a couple of hours, so this is *so far*, not final:\n\n- **Sana**: 800 points, all four decks used\n- **Aaron Jay** and **Mega Moth**: 600 each, all four decks\n- **ryguy67**: 425 with three decks and a boat attack\n- **I Hate Witch** and **Andy**: started, not finished\n\nThat is 6 of the 45 in the race roster with a battle in; 39 have not touched it yet, which is normal this early. Four members are not in the race roster at all, the game leaves out anyone it had not seen since before the race started.",
             },
           ],
         },
@@ -151,20 +151,20 @@ export default [
         icon: "heart-pulse",
         label: "Keep the roster healthy",
         title: "Keep the roster healthy",
-        lede: "Who has gone quiet, who just arrived, and who the game itself has stopped counting — so a check-in happens before a race is lost.",
+        lede: "Who has gone quiet, who just arrived, and who the game itself has stopped counting, so a check-in happens before a race is lost.",
         reads: [
-          "Roster snapshots with the game's own last-seen date per member",
+          "Daily roster readings with the game's own last-seen date per member",
           "This week's race roster, which the game seeds from that date",
           "Each member's recorded battles over the last 30 days",
         ],
-        setup: ["Track your clan and every member", "Read about scopes"],
+        setup: ["Track your clan, every member", "Read about scopes"],
         script: {
           tool: "clans_roster · war_current · clans_standings",
           lines: [
             { role: "user", text: "Who has gone quiet in POAP KINGS?" },
             {
               role: "agent",
-              text: "Three members have not been seen in the game for a while — by Clash Royale's own last-seen date, not by whether we happened to record them:\n\n- **Mika** — last seen August 29\n- **Noor** — last seen August 31\n- **Sol** — last seen September 3\n\nAll three are still on the roster, and the game left them out of this week's race roster, which is what it does with anyone it has not seen since before the race started. Nothing here says why. Mika was one of the more active members before that — 158 recorded battles in the last 30 days — so this reads like a break rather than a fade. A friendly check-in is the move, not a kick.\n\nThe newest arrivals are settling in fast: **Ines** joined September 4 and already has 309 donations this week, and **Theo** joined on the 8th. The roster stands at 49 of 50.",
+              text: "Three members have not been seen in the game for a while, by Clash Royale's own last-seen date, not by whether we happened to record them:\n\n- **Mika**: last seen August 29\n- **Noor**: last seen August 31\n- **Sol**: last seen September 3\n\nAll three are still on the roster, and the game left them out of this week's race roster, which is what it does with anyone it has not seen since before the race started. Nothing here says why. Mika was one of the more active members before that, 158 recorded battles in the last 30 days, so this reads like a break rather than a fade. A friendly check-in is the move, not a kick.\n\nThe newest arrivals are settling in fast: **Ines** joined September 4 and already has 309 donations this week, and **Theo** joined on the 8th. The roster stands at 49 of 50.",
             },
           ],
         },
@@ -174,7 +174,7 @@ export default [
         icon: "binoculars",
         label: "Scout the other clan",
         title: "Scout the other clan",
-        lede: "Every race captures all five clans in the bracket, and following a clan directly keeps it recorded — so the comparison is always there to ask for.",
+        lede: "Every race records all five clans in the bracket, and following a clan directly keeps it recorded, so the comparison is always there to ask for.",
         reads: [
           "Rival fingerprints from every race a recorded clan has shared",
           "Week-by-week war history for any recorded clan",
@@ -190,7 +190,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Five clans, twelve races each on record since Season 133, and they split into three tiers.\n\n**The two that finish like we do**\n\n- **Calalas España** — five firsts in Season 135, every regular week finished early, and a 150,700-fame Colosseum. Mean fame 48,299 over their twelve races.\n- **#MuUuKaNs!!** — the same clean sweep, with a 144,700 Colosseum. Mean 46,450.\n\n**The middle**\n\n- **! ShocK-13 !** — fifth of five in every Season 135 race, but the fame says bracket rather than clan: 70,700 in Colosseum, and 3,300–3,900 in regular weeks against clans that were finishing.\n- **Canadian** — third or fourth all season, 3,470–4,761 fame in regular weeks and 17,600 in Colosseum.\n\n**The outlier**\n\n- **Elite Forcers** — six open members, zero fame in nine of their twelve races. Tracked for contrast, and earning its keep.\n\nFor comparison, POAP KINGS' Season 135 was five firsts with a 38,700 Colosseum. Calalas España and #MuUuKaNs!! reached the 10,000 line in every regular week just as we did; the difference is the Colosseum, where they put up nearly four times our fame.",
+              text: "Five clans, twelve races each on record since Season 133, and they split into three tiers.\n\n**The two that finish like we do**\n\n- **Harbor Hill**: five firsts in Season 135, every regular week finished early, and a 150,700-fame Colosseum. Mean fame 48,299 over their twelve races.\n- **#MuUuKaNs!!**: the same clean sweep, with a 144,700 Colosseum. Mean 46,450.\n\n**The middle**\n\n- **! ShocK-13 !**: fifth of five in every Season 135 race, but the fame says bracket rather than clan: 70,700 in Colosseum, and 3,300–3,900 in regular weeks against clans that were finishing.\n- **Canadian**: third or fourth all season, 3,470–4,761 fame in regular weeks and 17,600 in Colosseum.\n\n**The outlier**\n\n- **Elite Forcers**: six open members, zero fame in nine of their twelve races. Tracked for contrast, and earning its keep.\n\nFor comparison, POAP KINGS' Season 135 was five firsts with a 38,700 Colosseum. Harbor Hill and #MuUuKaNs!! reached the 10,000 line in every regular week just as we did; the difference is the Colosseum, where they put up nearly four times our fame.",
             },
           ],
         },
@@ -216,7 +216,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Here is a draft you can paste:\n\n> **POAP KINGS — Season 135 wrap**\n>\n> Colosseum week: **1st of 5, 38,700 fame, +100 clan trophies.** That closes out a perfect season — five races, five firsts, every regular week finished early.\n>\n> Ladder form over the last 30 days (recorded battles, 10+ decided): clan median win rate **52.8%** across 48 ranked members. Top of the table: **Kai 70%** (78–34), **Dana 65%**, **Omar 62%**. Volume award goes to **Tomas** with 1,334 recorded battles.\n>\n> Welcome to **Ines** and **Theo**. Season 136 opened this morning against De stichting, Legend Royale, Happy Win and Les champs — the first time we have met any of them.\n\nWant it shorter, or with every member's points listed?",
+              text: "Here is a draft you can paste:\n\n> **POAP KINGS, Season 135 wrap**\n>\n> Colosseum week: **1st of 5, 38,700 fame, +100 clan trophies.** That closes out a perfect season, five races, five firsts, every regular week finished early.\n>\n> Ladder form over the last 30 days (recorded battles, 10+ decided): clan median win rate **52.8%** across 48 ranked members. Top of the table: **Kai 70%** (78–34), **Dana 65%**, **Omar 62%**. Volume award goes to **Tomas** with 1,334 recorded battles.\n>\n> Welcome to **Ines** and **Theo**. Season 136 opened this morning against De stichting, Legend Royale, Happy Win and Les champs, the first time we have met any of them.\n\nWant it shorter, or with every member's points listed?",
             },
           ],
         },
@@ -231,7 +231,7 @@ export default [
         icon: "bot",
         label: "Answer your clanmates",
         title: "Answer your clanmates",
-        lede: "An agent acts for one clan rather than for you: its own door, its own key, its own feed — and a map from a Discord id to a player tag.",
+        lede: "An agent acts for one clan rather than for you: its own door, its own key, its own feed, and a map from a Discord id to a player tag.",
         reads: [
           "The documentation itself, served over MCP",
           "Recorded history for the clan the agent acts for",
@@ -247,7 +247,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Yes — that is what an **agent** is for. I read the Agents page of the documentation; the shape is:\n\n- An agent *acts for a clan, not for a person*: its own identity, its own key and URL (`https://elixir.poapkings.com/a/<public_id>/mcp`), its own timeline pointer and feedback inbox. Nothing it does lands in your history.\n- You create it under **Connections → Agents → Create agent** with a name and the clan tag. The key is shown once; only its hash is stored.\n- It spends *your* daily call budget, and every tier can create agents — 3, 5, 10 or 25 depending on tier.\n- When a member first asks “how am I doing”, the bot calls `elixir_identify` once with their Discord id and player tag. After that `on_behalf_of` resolves them with no lookup.\n\nSo the loop is: you create the agent, your bot holds the key, and your clanmates talk to the bot. There is a reference bot already running in POAP KINGS' Discord if you want the pattern.",
+              text: "Yes, that is what an **agent** is for. I read the Agents page of the documentation; the shape is:\n\n- An agent *acts for a clan, not for a person*: its own identity, its own key and URL (`https://elixir.poapkings.com/a/<public_id>/mcp`), its own timeline pointer and feedback inbox. Nothing it does lands in your history.\n- You create it under **Settings › Connections & agents › New agent** with a name and the clan tag. The key is shown once; only its hash is stored.\n- It spends *your* daily call budget, and every tier can create agents, 3, 5, 10 or 25 depending on tier.\n- When a member first asks “how am I doing”, the bot calls `elixir_identify` once with their Discord id and player tag. After that `on_behalf_of` resolves them with no lookup.\n\nSo the loop is: you create the agent, your bot holds the key, and your clanmates talk to the bot. There is a reference bot already running in POAP KINGS' Discord if you want the pattern.",
             },
           ],
         },
@@ -263,9 +263,8 @@ export default [
           "Every recorded river race, past the API's ten-week window",
           "The clan's 30-day ladder table",
         ],
-        // An agent connection: war_history and clans_standings are MCP
-        // tools, and the JSON API (/api/v1) serves neither (review
-        // 2026-09-27 §7.7).
+        // An agent connection: elixir_docs and clans_standings are MCP tools
+        // only, and the JSON API (/api/v1) serves neither.
         setup: ["Create an agent", "Read the agents doc"],
         script: {
           tool: "elixir_docs · war_history · clans_standings",
@@ -276,7 +275,7 @@ export default [
             },
             {
               role: "agent",
-              text: "You can build that on the record instead of on a second Clash key, through **an agent connection**: the same tools I am using, over MCP with the agent's own key and URL. It suits a site that renders at build time. The war history and the ladder table are MCP tools; the JSON API at `https://elixir.poapkings.com/api/v1`, which integrations use, serves neither. The key is shown once and never belongs in a browser.\n\nWhat you would be publishing that the game's own API forgets: **every recorded river race**. POAP KINGS' record runs from Season 134, Week 1 to today — nine finished races, all firsts — plus a 30-day ladder table for the clan (48 ranked members, median win rate 52.8%).\n\nThe Agents page of the documentation covers the setup: create one under **Connections → Agents → Create agent**, then put its key and URL in the build's environment.",
+              text: "You can build that on the record instead of on a second Clash key, through **an agent connection**: the same tools I am using, over MCP with the agent's own key and URL. It suits a site that renders at build time. The ladder table is an MCP tool; the JSON API at `https://elixir.poapkings.com/api/v1`, which integrations use, serves the war history but not that table. The key is shown once and never belongs in a browser.\n\nWhat you would be publishing that the game's own API forgets: **every recorded river race**. POAP KINGS' record runs from Season 134, Week 1 to today, nine finished races, all firsts, plus a 30-day ladder table for the clan (48 ranked members, median win rate 52.8%).\n\nThe Agents page of the documentation covers the setup: create one under **Settings › Connections & agents › New agent**, then put its key and URL in the build's environment.",
             },
           ],
         },
@@ -289,7 +288,7 @@ export default [
         lede: "Volunteer a machine that fetches for the recorder. It is named for a card, credited to you, and while it is active it earns you the Family tier.",
         reads: [
           "The collector fleet: cards, status, last success",
-          "Coverage on your own tag: polls, captures, completeness",
+          "Coverage on your own tag: reads, recorded battles, completeness",
           "The operators guide, served over MCP",
         ],
         setup: ["Read the operators guide", "Raise your hand"],
@@ -302,7 +301,7 @@ export default [
             },
             {
               role: "agent",
-              text: "The Family tier — and a more complete record of your own tag.\n\n**The fleet right now:** three collectors, all active: Ram Rider, Tesla and Wall Breakers. All three fetched within the last minute.\n\n**What you earn:** while your collector is active, your account holds the Family tier, with more clan slots and a bigger daily call budget than Member (the roles page has the numbers). That is the whole reward: there are no points, credits or bonus slots. The budget the fleet works inside is shared — more collectors are resilience, never more Clash API quota.\n\n**What it costs:** a machine that is usually on with a static IP, and your own Clash Royale API key allowlisted to it. Per the operators guide the collector holds exactly two secrets and has no cloud access.\n\n**Why it matters to you:** coverage on your tag today is complete — 5 of 5 expected battles captured in the latest interval, 100% over the 78 hours we could measure — because three machines are polling. That is the thing you would be adding to.",
+              text: "The Family tier, and a more complete record of your own tag.\n\n**The fleet right now:** three collectors, all active: Ram Rider, Tesla and Wall Breakers. All three fetched within the last minute.\n\n**What you earn:** while your collector is active, your account holds the Family tier, with more clan slots and a bigger daily call budget than Member (the roles page has the numbers). That is the whole reward: there are no points, credits or bonus slots. The budget the fleet works inside is shared, more collectors are resilience, never more Clash API quota.\n\n**What it costs:** a machine that is usually on with a static IP, and your own Clash Royale API key allowlisted to it. Per the operators guide the collector holds exactly two secrets and has no cloud access.\n\n**Why it matters to you:** coverage on your tag today is complete, 5 of 5 expected battles captured in the latest interval, 100% over the 78 hours we could measure, because three machines are polling. That is the thing you would be adding to.",
             },
           ],
         },

@@ -8,18 +8,15 @@ eleventyExcludeFromCollections: true
 
 Sign in with an email address at {{ site.url }}/signin; that creates your account. All recorded GAME data is readable by every account, the same posture as the game's public API. ACCOUNT data is private to its owner. Roles never gate what you can read: they set how much the service records for you and how many calls per day your agent gets.
 {% if stats.ok %}
-Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | number }} battles, {{ stats.totals.players_recording | number }} recorded players and {{ stats.totals.clans_recording | number }} recorded clans (plus {{ stats.totals.players | number }} players seen only as opponents or teammates), captured by {{ stats.totals.collectors_active }} collectors, oldest battle {{ stats.totals.oldest_battle | day }}. These figures are baked at build time; {{ site.url }}/api/public/stats is live.
+Record as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | number }} battles, {{ stats.totals.players_recording | number }} recorded players and {{ stats.totals.clans_recording | number }} recorded clans (plus {{ stats.totals.players | number }} players seen only as opponents or teammates), captured by {{ stats.totals.collectors_active }} collectors, oldest battle {{ stats.totals.oldest_battle | day }}. These figures are baked at build time; {{ site.url }}/api/public/stats is live.
 {% endif %}
 ## Documentation
 - [All documentation]({{ site.url }}/docs): index of every page below
 {% for d in collections.docs %}- [{{ d.data.title | safe }}]({{ site.url }}{{ d | pageUrl }}): {{ d.data.description | safe }}
-{% endfor %}- [The corpus]({{ site.url }}/data): the totals - battles, players, clans, war weeks and snapshots recorded so far
-- [Retained battles over time]({{ site.url }}/data/growth): currently retained battles by played day, with the displayed window, full retained total and snapshot fetch time
-- [What we collect]({{ site.url }}/data/collect): each subject, how often it is collected, since when and how long it is kept
-- [Recording now]({{ site.url }}/data/now): the live strip - last battle seen, battles this hour, collectors running
-- [For machines]({{ site.url }}/data/machines): the public JSON and text surfaces, no key needed
+{% endfor %}- [Status and data]({{ site.url }}/data): the one public status page: what is being recorded right now, the totals (battles, players, clans, war weeks and daily player records), battles by played day, what is recorded and how long it is kept, and the public JSON and text surfaces, no key needed
 - [Cards]({{ site.url }}/cards): every Clash Royale card with its catalog facts; each card has its own page at /cards/<card id>
-- [What's new]({{ site.url }}/updates): every user-visible change, newest first, each on its own page
+- [Updates]({{ site.url }}/updates): what changed, newest first, each on its own page and each month at /updates/<YYYY-MM>
+- [Examples]({{ site.url }}/examples): real exchanges with a connected agent, grouped by who they are for
 {% for g in examples %}{% for c in g.cases %}- [Example: {{ c.title }}]({{ site.url }}/examples/{{ c.key }}): {{ c.lede | safe }}
 {% endfor %}{% endfor %}- [The family]({{ site.url }}/family): the POAP KINGS products that read from this hub, and the Clash Royale things we like but are unconnected to
 {% for p in familyFlat %}{% if not p.first %}- [Family: {{ p.label }}]({{ site.url }}/family/{{ p.key }}): {{ p.lede | safe }}
@@ -27,7 +24,7 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 ## Machine-readable
 - [Full content bundle]({{ site.url }}/llms-full.txt): every documentation page and the whole tool reference in one fetch
 - [Tool registry JSON]({{ site.url }}/tools.json): all {{ tools.count }} tools with groups, descriptions, arguments, and required OAuth capabilities
-- [Public corpus stats JSON]({{ site.url }}/api/public/stats): live totals plus the full-history daily series; no authentication
+- [Public stats JSON]({{ site.url }}/api/public/stats): live totals plus the full-history daily series; no authentication
 - [Public service status JSON]({{ site.url }}/api/public/status): recording health; no authentication
 - [Public cards JSON]({{ site.url }}/api/public/cards): the card catalog; /api/public/cards/<card id> is one card's catalog facts; no authentication
 - [Updates feed]({{ site.url }}/feed.xml): RSS 2.0 of what's new, product updates and contract versions
@@ -44,15 +41,14 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 {% for t in g.tools %}- `{{ t.name }}` ({{ t.title | safe }}): {{ t.description | clamp(240) | safe }}
 {% endfor %}{% endfor %}
 ## Interactive pages (JavaScript application, not in this index)
-- {{ site.url }}/console/data/dashboard: full-history charts over the public stats endpoint
 - {{ site.url }}/signin, /home, /settings, /console/explore, /data/service: require a session
 - {{ site.url }}/ladder: Ladder, one of your players' season read back; requires a session
-- {{ site.url }}/clan: Elixir Clan, on the same Elixir account and session
+- {{ site.url }}/clan: Clan, on the same Elixir account and session
 - {{ site.url }}/battle/<short id>: one recorded battle, public; its JSON is {{ site.url }}/api/public/battles/<id>
 
 ## Optional
 - [Source repository]({{ site.repo }}): the recorder, MCP server, web app, and infrastructure are public code
-- [Clash Royale API agent docs](https://github.com/jthingelstad/cr-agent-api-docs): the standalone reference this service contributes observed API behavior to
+- [Clash Royale API agent docs](https://github.com/jthingelstad/cr-agent-api-docs): the standalone reference this service contributes recorded API behaviour to
 - [POAP KINGS](https://poapkings.com/): the clan this product belongs to
 
 ---

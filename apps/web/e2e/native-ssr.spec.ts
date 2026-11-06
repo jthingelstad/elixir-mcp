@@ -157,7 +157,9 @@ test("@narrow native production HTML hydrates with session, clock and browser pr
       await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
     if (route === "/clan")
       await expect(
-        page.getByRole("link", { name: "Sign in with Elixir", exact: true }),
+        page
+          .getByRole("main")
+          .getByRole("link", { name: "Sign in", exact: true }),
       ).toBeVisible();
     if (route === "/ladder")
       await expect(

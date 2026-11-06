@@ -29,6 +29,19 @@ export async function corpus() {
   return loaded;
 }
 
+/**
+ * Where a section that moved now lives: `{ page, section }`, or null when the
+ * address has not moved. Responses and mail already sent name the old place,
+ * so `battles` + `war-weeks-points-and-fame` keeps answering after the split.
+ */
+export async function movedSection(page, section) {
+  const { forwards = {} } = await corpus();
+  const to = forwards[`${page}#${section}`];
+  if (!to) return null;
+  const [p, s] = to.split("#");
+  return { page: p, section: s };
+}
+
 /** Query terms: lower-case words of two or more characters. A plural's
  *  trailing "s" is dropped so "quotas" finds "quota" the way "quota"
  *  already found "quotas" by substring; "ss" endings and

@@ -74,7 +74,10 @@ async function enter(page: Page, path: (typeof paths)[number]) {
   if (path.name === "battle")
     await page.getByRole("link", { name: "Create your account" }).click();
   else if (path.name === "clan")
-    await page.getByRole("link", { name: "Sign in with Elixir" }).click();
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: "Sign in", exact: true })
+      .click();
   else {
     await expect(
       page.getByRole("heading", { name: "Sign in first" }),

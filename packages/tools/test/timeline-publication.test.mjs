@@ -319,7 +319,7 @@ test("every item carries its kind's facts and schema, and the docs list every ki
       assert.ok(Object.hasOwn(it, k), `${it.kind} lacks ${k}`);
   }
   const docs = await readFile(
-    new URL("../../../apps/site/src/docs/timeline.md", import.meta.url),
+    new URL("../../../apps/site/src/docs/timeline-tool.md", import.meta.url),
     "utf8",
   );
   for (const [kind, s] of Object.entries(TIMELINE_KIND_SCHEMAS))

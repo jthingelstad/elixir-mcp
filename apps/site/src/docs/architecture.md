@@ -53,7 +53,7 @@ description of record**; there is no fuller internal one.
   <line class="edge" x1="240" y1="310" x2="180" y2="390"/>
   <line class="edge" x1="440" y1="310" x2="440" y2="390"/>
   <line class="edge" x1="640" y1="310" x2="700" y2="390"/>
-  <text class="note" x="452" y="352">job ledger — priority-ordered by Elixir MCP</text>
+  <text class="note" x="452" y="352">job ledger, priority-ordered by Elixir MCP</text>
   <text class="note" x="452" y="368">(collectors never choose targets)</text>
   <!-- collectors -->
   <rect class="box" x="70" y="390" width="220" height="70"/>
@@ -81,7 +81,7 @@ serves the MCP and OAuth doors; **collector** is the collector door;
 and the **email relay**, the one function outside the VPC, carries what
 must reach the internet ([below](#the-outbound-relay)).
 
-The only machines with Clash Royale API keys are **collectors** —
+The only machines with Clash Royale API keys are **collectors**,
 operator-run workers that lease fetch jobs from the job ledger, fetch
 with their IP-allowlisted key, and post results back. They never choose
 their own targets, hold no user data, and earn their operator the
@@ -96,12 +96,12 @@ empty is not queued; it is answered with the record and a time to try again.
 
 A collector is a single static Go binary (its own public repo,
 [elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector))
-that runs anywhere with a static IP — a Mac in a closet, a Synology NAS
+that runs anywhere with a static IP, a Mac in a closet, a Synology NAS
 at a cabin. What makes the fleet interesting:
 
 - **Card identities.** Every collector is named after a Clash Royale
-  card — the operator's pick, and one collector per card — and appears
-  publicly only by that card name; machine labels and IPs stay private. The console's [Status](/console/status/service) page shows
+  card, the operator's pick, and one collector per card, and appears
+  publicly only by that card name; machine labels and IPs stay private. The signed-in [service](/data/service) page shows
   each card's heartbeat and hourly fetch rate, and `/api/public/status`
   publishes the same fleet without a session.
 - **The Family tier.** An operator whose collector is active holds the
@@ -110,7 +110,7 @@ at a cabin. What makes the fleet interesting:
   [Roles and tiers](/docs/roles#upgrades).
 - **Zero trust, zero AWS.** A collector holds exactly two secrets: its
   operator's own IP-bound Clash Royale key, and a bearer token we
-  issue. It speaks three HTTPS routes (config / lease / submit) —
+  issue. It speaks three HTTPS routes (config / lease / submit),
   no AWS credentials, no queues, nothing that touches the tenant. The
   server computes each job's CR path and stamps the collector's
   identity onto results itself, so impersonation is structurally
@@ -125,7 +125,7 @@ at a cabin. What makes the fleet interesting:
   `live: true` fetch is picked up by whichever machine checks in next;
   there is no separate live channel.
 - **Self-update, server-authorized.** The config endpoint names the one
-  binary version and SHA-256 a collector may install — a compromised
+  binary version and SHA-256 a collector may install, a compromised
   release page alone cannot push code to operators. An update failure
   never stops collection; a dev build never self-updates.
 - **Misbehavior is bounded.** At most two unsubmitted leases at a time;
@@ -135,9 +135,9 @@ at a cabin. What makes the fleet interesting:
   provenance-stamped with the collector that fetched it and kept in the
   archive for good, so a late-discovered bad actor's contributions can be
   traced to the payloads they came from.
-- **Capture audit.** Every fresh battle-log poll with prior coverage is
+- **Read audit.** Every fresh battle-log poll with prior coverage is
   audited: if the payload's *oldest* battle was previously unseen, the
-  rotating log may have rolled past something — recorded as a possible
+  rotating log may have rolled past something, recorded as a possible
   gap. The 24-hour gap count is public (`capture_audit_24h` in
   `/api/public/status`), so "no gaps" is a measurement, not a promise.
 
@@ -163,7 +163,7 @@ connected: yours on your own connection, the agent's on an agent's);
 people file it from Settings, Ladder, Clan, the docs and an
 email's footer, and integrations over the JSON API. It is one record
 for all of Elixir, each item tagged with the part of Elixir it is about
-and what it points at (a call, an email, a clan action). Every item gets a maintainer response, sometimes written with help from AI agents —
+and what it points at (a call, an email, a clan action). Every item gets a maintainer response, sometimes written with help from AI agents,
 `elixir_my_feedback` pages through the full ledger, an
 `account_feedback_responded` item lands on the filer's timeline, and
 shipped fixes link the change. The same loop feeds the public
@@ -174,7 +174,7 @@ tools trace directly to agent-filed feedback.
 
 ## The outbound relay
 
-The VPC has no NAT — cloud components cannot reach the internet at
+The VPC has no NAT. Cloud components cannot reach the internet at
 all, which is a security posture worth keeping. They reach S3 and
 nothing else, so anything bound for the internet leaves as an object in
 an **outbox** bucket: S3 notifies a queue, and a small non-VPC **relay**
@@ -203,29 +203,29 @@ Elixir's servers send nothing to analytics.
 
 - **Canonical battles.** The same battle appears in every participant's
   battle log; we store it once under a content-derived ID (time +
-  sorted participant tags + battle class). Later observations *enrich*
+  sorted participant tags + battle class). Later readings *enrich*
   the record (fill missing fields) but never overwrite it.
 - **Payloads and receipts.** Every API response is content-addressed
   and receipted with which collector fetched it and when. Projections
-  (battles, snapshots, war tables) are derived from payloads and are
+  (battles, readings, war tables) are derived from payloads and are
   rebuildable from source.
 - **The S3 payload archive.** New payload content is archived to S3 at
   admission (Hive-partitioned by endpoint, entity, and date; gzip JSON;
-  lifecycle to Infrequent Access at 30 days) before the database commit
-  — a committed row always has its S3 twin. S3 is the system of record
-  for raw observations; Postgres keeps a payload's JSON only for a
+  lifecycle to Infrequent Access at 30 days) before the database commit,
+  a committed row always has its S3 twin. S3 is the system of record
+  for raw readings; Postgres keeps a payload's JSON only for a
   fetch a reader is waiting on (a `live: true` request, read within
   seconds of admission) and only for two hours; an hourly sweep nulls
   it and retires superseded rows only after verifying their archived
-  copy — the database holds metadata and projections, S3 holds the
+  copy, the database holds metadata and projections, S3 holds the
   bytes. Athena (via one Glue table with
   partition projection over every archived endpoint) and DuckDB both
   query the layout directly.
-- **Snapshots and events.** Daily profile snapshots feed trophy/donation
+- **Readings and events.** Daily profile readings feed trophy/donation
   timelines; diffs between polls emit events with honest time semantics
-  (most things are "observed between polls", and the data says so).
+  (most things are "seen between polls", and the data says so).
 - **War data.** Clan-scoped, multi-tenant (every war table is keyed by
-  the observing clan), points-vs-fame discipline enforced at write time,
+  the clan that saw it), points-vs-fame discipline enforced at write time,
   and one global 10:00 UTC grid, the same for every clan, files battles
   into seasons and weeks from their own timestamps. War facts are served
   as the game's weekly counters: a race's real daily rollover drifts per
@@ -260,17 +260,17 @@ API budget. For players the scheduler runs **the session clock**:
   but a 404) is planned again 15 minutes later, then 30, then 60, and
   each retry is charged to the one budget like any other plan.
 
-Profiles are read once a day, because the record keeps one snapshot per
+Profiles are read once a day, because the record keeps one reading per
 game day, and once after a session: a battle log that delivered battles
 asks for the profile unless one was read in the last eight hours. The
-one time-critical profile read, the pre-reset capture of the weekly
+one time-critical profile read, the pre-reset read of the weekly
 donation counter, is forced separately. The signed-in
-[Efficiency](/console/status/efficiency) page shows what the schedule costs
-and what it loses, per day. Clan rosters follow the clan's own day — every 15
+[efficiency](/console/status/efficiency) page shows what the schedule costs
+and what it loses, per day. Clan rosters follow the clan's own day, every 15
 minutes while members of a tracked clan are in the game, coasting to
 hourly and then four-hourly as the roster's `lastSeen` stamps go quiet,
 and a few times a day for a clan read only because a recorded player is
-in it — and war-race
+in it, and war-race
 polling reads the period type the API itself reports: tight on war days,
 relaxed on training days, with the war race also raising the battle-log
 cadence of members it names as having just battled. Because every
@@ -281,10 +281,10 @@ offset de-phases such cohorts within a few cycles.
 What this means when you read: every response carries the age of the
 polls it was built from (`freshness_seconds` in `meta`), `elixir_coverage`
 compares the lifetime battle counter against what was recorded over each
-observation interval and says so when they disagree, and the public
+reading interval and says so when they disagree, and the public
 health views report how many of the last day's polls found the log had
 already rolled: `capture_audit_24h` in `/api/public/status`, with no
-sign-in, and [Recording now](/data/now) for the live strip. The signed-in
+sign-in, and [Status and data](/data#right-now) for the live strip. The signed-in
 [service](/data/service) page shows the same to a signed-in account. When you need the state of play right
 now rather than the recorded history, `live: true` spends your live
 allowance on a fresh read instead of waiting for the schedule;
@@ -293,10 +293,10 @@ allowance on a fresh read instead of waiting for the schedule;
 ## Access: entitlements, not permissions
 
 - A **claim** on your tag (trust-based; accounts open after email verification)
-  gives your agent your full history — including battles recorded
+  gives your agent your full history, including battles recorded
   before you joined.
-- **Universal game reads**: all recorded game data — battles, profiles,
-  timelines, clan rosters and wars — is readable by every active
+- **Universal game reads**: all recorded game data, battles, profiles,
+  timelines, clan rosters and wars, is readable by every active
   account, the same posture as the game's own public API (no membership
   gate on the clan tools). Your account data stays private.
 - The MCP door is OAuth 2.1 with rotating refresh tokens. `cr:read` is the
@@ -310,11 +310,11 @@ allowance on a fresh read instead of waiting for the schedule;
   [JSON API](/docs/integrations) at `/api/v1`.
   Grants are audience-bound to exactly one of them, so a credential
   presented at the wrong door is refused rather than quietly answering
-  about the wrong subject — which matters because the three publish
+  about the wrong subject, which matters because the three publish
   different tool surfaces and mean different things by "me". See
   [Users, agents and integrations](/docs/connections).
-- Service tokens are for **headless** principals — a Discord bot, a
-  scheduled job, an app back end — and carry only the capabilities they
+- Service tokens are for **headless** principals, a Discord bot, a
+  scheduled job, an app back end, and carry only the capabilities they
   were issued with. A human driving an agent signs in and consents
   instead, and never handles a raw key. The site uses cookie sessions;
   every tool call is audited against the credential that made it, with
@@ -356,20 +356,20 @@ dead-code analysis and workspace tests.
 
 Elixir MCP is built in the open:
 
-- [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp)
-  — this service: recorder, MCP door, web app, and these pages
+- [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp),
+  this service: recorder, MCP door, web app, and these pages
   (the docs you are reading are the source of record; `docs/ENGINEERING.md`
   holds the build invariants). Clan is part of the same
   application, account and deployment, with its management records in
   Elixir's private store; its role checks use the signed-in person's
   verified players.
-- [jthingelstad/elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector)
-  — the collector binary operators run.
-- [jthingelstad/elixir-mcp-discord](https://github.com/jthingelstad/elixir-mcp-discord)
-  — the Discord agent any clan can run, POAP KINGS' included; each bot is
+- [jthingelstad/elixir-mcp-collector](https://github.com/jthingelstad/elixir-mcp-collector),
+  the collector binary operators run.
+- [jthingelstad/elixir-mcp-discord](https://github.com/jthingelstad/elixir-mcp-discord),
+  the Discord agent any clan can run, POAP KINGS' included; each bot is
   an agent here, reading this service over MCP with its agent token.
-- [jthingelstad/drop.poapkings.com](https://github.com/jthingelstad/drop.poapkings.com)
-  — Elixir Drop, the elixir-cost learning game, which signs people in
+- [jthingelstad/drop.poapkings.com](https://github.com/jthingelstad/drop.poapkings.com),
+  Elixir Drop, the elixir-cost learning game, which signs people in
   with Elixir and reads the game clock as an integration.
 
 All of it orbits [POAP KINGS](https://poapkings.com), the clan.

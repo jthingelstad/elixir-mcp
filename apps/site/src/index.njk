@@ -6,12 +6,9 @@ permalink: /index.html
 canonical: /
 navActive: home
 ---
-{#- The front door, as the canvas's Site board draws it (2026-09-29):
-    what Elixir is for a player, then what each part of it does, and Drop
-    next door. Below the board, the parts
-    the page has always had to carry: the agent transcript (an exchange
-    says what the record is FOR), the corpus totals baked from
-    /api/public/stats at build, and the gate.
+{#- The front door: what Elixir is for a player, what each part of it does,
+    Drop next door, an agent exchange (it says what the record is FOR), the
+    totals baked from /api/public/stats at build, and the way in.
 
     No number on this page is invented. The tiles describe a part of
     Elixir instead of showing a record, because a visitor here has none
@@ -21,7 +18,7 @@ navActive: home
 <div data-home>
 <section class="grid items-center gap-6 pt-6 wide:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] wide:gap-10 wide:pt-10">
   <div class="flex min-w-0 flex-col items-start gap-5">
-    <span class="chip chip--ok"><span class="chip__dot"></span>recording now</span>
+    <span class="chip chip--ok" data-recording-now hidden><span class="chip__dot"></span>Recording now</span>
     <h1 class="home-title">Your Clash Royale,<br />on the record.</h1>
     <p class="home-lede">
       Track your player and Elixir keeps your battles, clan weeks and river races, and
@@ -34,7 +31,7 @@ navActive: home
       <a class="btn btn--text" href="{{ familyBar.sampleBattle.path }}">{{ familyBar.sampleBattle.label }}</a>
     </div>
     <p class="footnote m-0" data-session-face="out">
-      Free signup. Verify your email, then add your player on Home.
+      Free signup. Verify your email, then add your player.
     </p>
   </div>
   <div class="home-art">
@@ -49,15 +46,15 @@ navActive: home
   </div>
   <div class="grid gap-5 wide:grid-cols-3">
     <article class="home-tile">
-      <span class="home-tile__head"><span class="home-tile__icon">{% icon "user-round", 18 %}</span><span class="home-tile__product">Home</span></span>
+      <span class="home-tile__head"><span class="home-tile__icon">{% icon "user-round", 18 %}</span><span class="home-tile__product">Your record</span></span>
       <h3 class="home-tile__question">Start your record here</h3>
       <p class="home-tile__text">Add your player, alts and friends. Choose what to record, manage your emails and connect an agent if you want one.</p>
-      <ul class="home-tile__sample" aria-label="Your first steps on Home">
+      <ul class="home-tile__sample" aria-label="Your first steps">
         <li class="home-tile__row">Create your account with an email</li>
-        <li class="home-tile__row">Add your player under Tracking</li>
-        <li class="home-tile__caption">History starts with the first read; an agent is optional</li>
+        <li class="home-tile__row">Add your player, and history starts with the first read</li>
+        <li class="home-tile__caption">An agent is optional</li>
       </ul>
-      <a class="home-tile__cta" href="/home">Start on Home ›</a>
+      <a class="home-tile__cta" href="/home">Get started ›</a>
     </article>
 
     <article class="home-tile">
@@ -68,8 +65,7 @@ navActive: home
         <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--ladder"></span>Trophy Road</li>
         <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--ranked"></span>Path of Legends</li>
         <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--war"></span>War</li>
-        <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--event"></span>Events</li>
-        <li class="home-tile__caption">Add your player on Home, then read the recorded battles here</li>
+        <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--event"></span>Casual</li>
       </ul>
       <a class="home-tile__cta" href="/ladder">Open Ladder ›</a>
     </article>
@@ -81,7 +77,7 @@ navActive: home
       <ul class="home-tile__sample" aria-label="Two of the calls Clan hands leaders">
         <li class="home-tile__row">{% icon "award", 14 %}<span class="grow">Promote to Elder</span><span class="chip chip--warn">waiting</span></li>
         <li class="home-tile__row">{% icon "user-plus", 14 %}<span class="grow">Welcome a newcomer</span><span class="chip chip--warn">waiting</span></li>
-        <li class="home-tile__caption">Add your primary or alt, then verify it to act in your game role</li>
+        <li class="home-tile__caption">Add your player, then verify it to act in your game role</li>
       </ul>
       <a class="home-tile__cta" href="/docs/bring-your-clan">Bring your clan ›</a>
     </article>
@@ -102,7 +98,7 @@ navActive: home
     <article class="home-tile">
       <span class="home-tile__head"><span class="home-tile__icon">{% icon "mail", 18 %}</span><span class="home-tile__product">Emails</span></span>
       <h3 class="home-tile__question">Tell me without me asking</h3>
-      <p class="home-tile__text">One short email for each part of your week, each with its own switch. Milestones arrive within the hour.</p>
+      <p class="home-tile__text">Short emails for each part of your week, each with its own switch. Milestones arrive within the hour.</p>
       <ul class="home-tile__sample" aria-label="The weekly emails">
         <li class="home-tile__row"><span class="home-tile__day">Mon</span>Clan report</li>
         <li class="home-tile__row"><span class="home-tile__day">Tue</span>Your week in the Arena</li>
@@ -130,8 +126,7 @@ navActive: home
 <section class="home-drop" aria-labelledby="home-drop">
   <span class="home-drop__mark">{% icon drop.icon, 44 %}</span>
   <div class="home-drop__body">
-    <span class="home-drop__eyebrow">A game, next door</span>
-    <h2 class="home-drop__title" id="home-drop">{{ drop.label }}</h2>
+    <h2 class="home-drop__title" id="home-drop">{{ drop.label }}, a game next door</h2>
     <p class="home-drop__text">Know your elixir costs cold. Ranked games, Practice, badges and seasons, signed in with your Elixir account.</p>
   </div>
   <a class="home-drop__play" href="{{ drop.href }}" target="_blank" rel="noopener" aria-label="{{ drop.action }}, {{ drop.about }} (opens {{ drop.href | host }} in a new window)">
@@ -147,7 +142,7 @@ navActive: home
     <div class="flex min-w-0 flex-col items-start gap-4">
       <h2 class="home-band__title" id="home-ask">Ask in plain language</h2>
       <p class="m-0 text-[15px] leading-[1.6] text-ink-body">
-        Your agent gets the tools, the entitlements on your account, and
+        Your agent gets the tools, what your account allows, and
         every answer with its sample size. You ask the way you would ask a
         clanmate; the answer comes from the record, with the numbers
         behind it.
@@ -161,8 +156,8 @@ navActive: home
       {%- set scripts = transcript %}
       {% include "transcript.njk" %}
       <p class="footnote mx-0.5 mb-0 mt-3">
-        A real exchange, recorded on 2026-09-10: each question was put to
-        the live door, the tools under the window are the ones that
+        A real exchange, recorded Sep 10: each question was put to
+        the live service, the tools under the window are the ones that
         answered it, and every number came back from them.
       </p>
     </div>
@@ -173,30 +168,29 @@ navActive: home
   <div class="home-band__head">
     <h2 class="home-band__title home-band__title--plain" id="home-corpus">What it is reading</h2>
     <span class="home-band__note">the whole record, when this page was published</span>
-    <a class="text-[14px]" href="/data">The record ›</a>
+    <a class="text-[14px]" href="/data">Status and data ›</a>
   </div>
-  {#- The one place a number is gold on the home page: a brand moment
-      on the marketing half, not a reading in the console. Baked at
-      deploy from the same stats /data draws. -#}
+  {#- The one place a number is gold on the home page. Baked at deploy from
+      the same stats /data draws. -#}
   <div class="stats">
     <div class="stats__cell">
-      <div class="label">battles</div>
-      <div class="stats__value stats__value--brand">{% if t %}{{ t.battles | number }}{% else %}—{% endif %}</div>
-      <div class="stats__note">{% if t %}since {{ t.oldest_battle | day }}{% else %}recorded{% endif %}</div>
+      <div class="label">Battles</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.battles | number }}{% else %}unknown{% endif %}</div>
+      <div class="stats__note">{% if t %}since {{ t.oldest_battle | shortDay }}{% else %}recorded{% endif %}</div>
     </div>
     <div class="stats__cell">
-      <div class="label">players</div>
-      <div class="stats__value stats__value--brand">{% if t %}{{ t.players_recording | number }}{% else %}—{% endif %}</div>
-      <div class="stats__note">recorded{% if t %} · {{ t.players | number }} seen in a battle{% endif %}</div>
+      <div class="label">Players</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.players_recording | number }}{% else %}unknown{% endif %}</div>
+      <div class="stats__note">recorded</div>
     </div>
     <div class="stats__cell">
-      <div class="label">clans</div>
-      <div class="stats__value stats__value--brand">{% if t %}{{ t.clans_recording | number }}{% else %}—{% endif %}</div>
-      <div class="stats__note">recorded{% if t %} · {{ t.clans | number }} seen in a battle{% endif %}</div>
+      <div class="label">Clans</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.clans_recording | number }}{% else %}unknown{% endif %}</div>
+      <div class="stats__note">recorded</div>
     </div>
     <div class="stats__cell">
-      <div class="label">war weeks</div>
-      <div class="stats__value stats__value--brand">{% if t %}{{ t.war_weeks | number }}{% else %}—{% endif %}</div>
+      <div class="label">War weeks</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.war_weeks | number }}{% else %}unknown{% endif %}</div>
       <div class="stats__note">recorded races</div>
     </div>
   </div>
@@ -211,7 +205,7 @@ navActive: home
     <div class="flex min-w-0 flex-auto flex-col gap-1">
       <h2 class="panel-title m-0" id="home-request">Create your account</h2>
       <p class="footnote m-0">
-        Free signup. Verify your email, then add your player on Home.
+        Free signup. Verify your email, then add your player.
         Running a collector is optional and open to anyone; recording has limits.
       </p>
     </div>
@@ -221,3 +215,4 @@ navActive: home
 </div>
 
 <script src="{{ "/assets/transcript.js" | asset }}" defer></script>
+<script src="{{ "/assets/home-status.js" | asset }}" defer></script>

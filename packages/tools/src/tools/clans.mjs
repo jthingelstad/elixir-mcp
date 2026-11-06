@@ -361,7 +361,7 @@ export const clansTools = {
           "win_rate = wins/(wins+losses), draws excluded; percentile = 1 - (rank-1)/ranked_members; members below min_battles are in below_floor without a rank.",
           "net_trophies sums trophy_change on ladder battles in the window and is null when ladder_battles is 0; modes splits each member's battles by mode group and mean_level_gap is their deck's average level minus the opposing side's over their latest level_gap_battles (at most 50) battles in the window; current_streak is the run of equal decided outcomes ending at the member's latest recorded battle in the window, null with no decided battle.",
         ),
-        docs: docsRef("recording", "completeness"),
+        docs: docsRef("freshness-and-gaps", "completeness"),
         meta: responseMeta({
           as_of: new Date().toISOString(),
           ...(win.timezone ? { timezone_applied: win.timezone } : {}),
@@ -1085,7 +1085,7 @@ export const clansTools = {
           coverageBasisNote(coverage.basis),
           "Counts cover RECORDED battles only (log_recorded and recorded_since per member say whose log is recorded and since when; elixir_coverage per tag says how complete it is); last_battle_time_in_clan is the last recorded battle played as a member of this clan.",
         ),
-        docs: docsRef("recording", "participation-by-week"),
+        docs: docsRef("freshness-and-gaps", "participation-by-week"),
         meta: await buildMeta(ctx.db, ctx.account, clanTag, ["clan"]),
       };
     },

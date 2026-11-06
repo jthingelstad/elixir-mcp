@@ -1,65 +1,213 @@
 ---
-layout: data-page.njk
-title: "The corpus"
-description: "Elixir's record as it stands, counted: battles, players, clans, war weeks and daily snapshots. The counts name no player or clan."
+layout: base.njk
+navActive: data
+title: "Status and data"
+description: "What Elixir is recording now, and the record as it stands, counted: battles, players, clans, war weeks and daily player records. The counts name no player or clan."
 permalink: /data/index.html
 canonical: /data
-dataNav: totals
 ---
 {#-
-  The corpus proof, and the reason this is a real document rather than a
-  screen in the app: a count of what the recorder holds is service status,
-  public while it names no subject (DECISIONS "Recorder counts are service
-  status"), and a crawler, an agent and a person who has not signed in
-  should all be able to read it.
-  Baked at deploy from /api/public/stats.
+  The one public status and data page (redesign step 7): what used to
+  be the old /data sub-pages and the app's charts. The old paths answer 301 at the edge (infra/template.yaml).
+
+  A count of what the recorder holds is service status, public while it names
+  no subject (DECISIONS "Recorder counts are service status"), and a crawler,
+  an agent and a person who has not signed in should all be able to read it.
+  The record is baked at deploy from /api/public/stats. Right now is baked too
+  and replaced by data-live.js when /api/public/status answers.
 -#}
+{%- macro dataChart(chart, chartKey, chartHidden) %}
+{#- One window of the daily chart: bars, not a cumulative curve, because a
+    running total only goes up and a day the collectors stalled would be
+    invisible in it. A day with no battles keeps its width as a real zero. -#}
+<div class="data-chart" data-chart="{{ chartKey }}"{% if chartHidden %} hidden{% endif %}>
+  <svg viewBox="0 0 700 168" style="width: 100%; height: auto; display: block" role="img"
+       aria-label="Retained battles by played day, {{ chart.first | shortDay }} to {{ chart.last | shortDay }}, peaking at {{ chart.top | number }} on {{ chart.busiest.day | shortDay }}">
+    <line x1="20" x2="640" y1="140" y2="140" stroke="var(--line)"></line>
+    <line x1="20" x2="640" y1="76" y2="76" stroke="var(--line-soft)" stroke-dasharray="2 5"></line>
+    <line x1="20" x2="640" y1="12" y2="12" stroke="var(--line-soft)" stroke-dasharray="2 5"></line>
+    {%- for b in chart.bars %}
+    <rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.width }}" height="{{ b.height }}" fill="var(--accent-bright)" opacity="0.85">
+      <title>{{ b.day | shortDay }}: {{ b.battles | number }} battles</title>
+    </rect>
+    {%- endfor %}
+    <text x="648" y="16" fill="var(--ink-faint)" font-size="11" font-family="ui-monospace, Menlo, monospace">{{ chart.top | number }}</text>
+    <text x="648" y="80" fill="var(--ink-faint)" font-size="11" font-family="ui-monospace, Menlo, monospace">{{ chart.half | number }}</text>
+    {%- for tick in chart.ticks %}
+    <text x="{{ tick.x }}" y="158" fill="var(--ink-faint)" font-size="11" font-family="ui-monospace, Menlo, monospace" text-anchor="middle">{{ tick.label }}</text>
+    {%- endfor %}
+  </svg>
+  <p class="footnote">
+    {{ chart.total | number }} retained battles in this {{ chart.days }}-day window, a mean of
+    {{ chart.mean | number }} a day; the busiest was {{ chart.busiest.day | shortDay }} with
+    {{ chart.busiest.battles | number }}.{% if stats.totals %} The full record holds
+    {{ stats.totals.battles | number }} battles across all dates.{% endif %}
+    The newest day is partial.
+  </p>
+</div>
+{%- endmacro %}
+
 {%- set t = stats.totals %}
-{%- set n = "—" %}
-<div class="page-head" style="align-items: flex-end">
+{%- set n = "unknown" %}
+{%- set wide = stats.series.battles_daily | dailyBars %}
+{%- set narrow = stats.series.battles_daily | dailyBars(56) %}
+<div class="page-head">
   <div>
-    <h1 class="hero-title" style="margin-bottom: 6px">The corpus</h1>
-    <p class="lede" style="margin: 0; max-width: 58ch">
-      The record as it stands, counted. These counts name no player or
-      clan; the record itself needs a free account.
+    <h1 class="hero-title">Status and data</h1>
+    <p class="lede">
+      What Elixir is recording now, and the record as it stands, counted. These
+      counts name no player or clan; the record itself needs a free account.
     </p>
   </div>
-  <span class="mono" style="margin-left: auto; text-align: right; font-size: 12px; color: var(--ink-faint)">
-    {% if t %}snapshot fetched {{ stats.fetched_at | stamp }}{% else %}awaiting the next build{% endif %}<br />refreshed when the site is published
-  </span>
 </div>
 
-{#- Five totals. This is the ONE place a number is gold: a brand moment
-    on the marketing half, not a reading in the console. -#}
-<div class="stats" style="margin-bottom: 22px">
-  <div class="stats__cell">
-    <div class="label">battles</div>
-    <div class="stats__value stats__value--brand">{% if t %}{{ t.battles | number }}{% else %}{{ n }}{% endif %}</div>
-    <div class="stats__note">{% if t %}{{ t.oldest_battle | day }} → {{ t.newest_battle | day }}{% else %}recorded{% endif %}</div>
-  </div>
-  <div class="stats__cell">
-    <div class="label">players</div>
-    <div class="stats__value stats__value--brand">{% if t %}{{ t.players_recording | number }}{% else %}{{ n }}{% endif %}</div>
-    <div class="stats__note">recorded{% if t %} · {{ t.players | number }} observed{% endif %}</div>
-  </div>
-  <div class="stats__cell">
-    <div class="label">clans</div>
-    <div class="stats__value stats__value--brand">{% if t %}{{ t.clans_recording | number }}{% else %}{{ n }}{% endif %}</div>
-    <div class="stats__note">recorded{% if t %} · {{ t.clans | number }} observed{% endif %}</div>
-  </div>
-  <div class="stats__cell">
-    <div class="label">war weeks</div>
-    <div class="stats__value stats__value--brand">{% if t %}{{ t.war_weeks | number }}{% else %}{{ n }}{% endif %}</div>
-    <div class="stats__note">past the API&rsquo;s ten-week window</div>
-  </div>
-  <div class="stats__cell">
-    <div class="label">snapshots</div>
-    <div class="stats__value stats__value--brand">{% if t %}{{ t.snapshots | number }}{% else %}{{ n }}{% endif %}</div>
-    <div class="stats__note">daily player snapshots</div>
-  </div>
-</div>
+<nav class="data-jump" aria-label="On this page">
+  <a class="chip" href="#right-now">Right now</a>
+  <a class="chip" href="#the-record">The record</a>
+  <a class="chip" href="#battles-by-day">Battles by day</a>
+  <a class="chip" href="#what-is-recorded">What is recorded</a>
+  <a class="chip" href="#for-machines">For machines</a>
+</nav>
 
-<p class="lede" style="max-width: 62ch; font-size: 15px">
-  <a href="/data/growth">Retained history by played day</a> · <a href="/data/collect">what we collect and for how long</a> ·
-  <a href="/data/now">what is being recorded right now</a> · <a href="/data/machines">the machine-readable surfaces</a>.
-</p>
+<section class="data-sec" id="right-now" data-live-section>
+  <div class="data-sec__head">
+    <h2>Right now</h2>
+    <span class="chip chip--ok" data-live-tag="ok" hidden><span class="chip__dot"></span>Recording</span>
+    <span class="chip chip--warn" data-live-tag="behind" hidden>Running behind</span>
+  </div>
+  <p class="footnote" data-live-line="behind" hidden>Elixir is behind on some of its work. Nothing recorded is lost; new battles may take longer to appear.</p>
+  <p class="footnote" data-live-line="stale" hidden>This could not refresh just now. These are the numbers from when the site was last published.</p>
+  {#- With JavaScript off this shows the deploy-time values and still reads
+      true, which is why the numbers are rendered here and replaced only if
+      the fetch succeeds. -#}
+  <div class="stats">
+    <div class="stats__cell">
+      <div class="label">Last battle</div>
+      <div class="stats__value" data-live="last">{% if t %}{{ t.newest_battle | shortDay }}{% else %}{{ n }}{% endif %}</div>
+    </div>
+    <div class="stats__cell">
+      <div class="label">Battles this hour</div>
+      <div class="stats__value" data-live="hour">{{ n }}</div>
+    </div>
+    <div class="stats__cell">
+      <div class="label">Collectors</div>
+      <div class="stats__value" data-live="collectors">{% if t %}{{ t.collectors_active }}{% else %}{{ n }}{% endif %}</div>
+      <div class="stats__note">fetching now</div>
+    </div>
+    <div class="stats__cell">
+      <div class="label">Shared API budget</div>
+      <div class="stats__value" data-live="budget">{{ n }}</div>
+      <div class="stats__note">of the day&rsquo;s</div>
+    </div>
+  </div>
+  <p class="footnote" data-session-face="in"><a href="/data/service">See the service in detail ›</a></p>
+</section>
+
+<section class="data-sec" id="the-record">
+  <div class="data-sec__head"><h2>The record, counted</h2></div>
+  <p class="footnote">Refreshed when the site is published.{% if stats.fetched_at %} Last counted {{ stats.fetched_at | countedAt }}.{% endif %}</p>
+  {#- The other place a number is gold: the record itself. -#}
+  <div class="stats">
+    <div class="stats__cell">
+      <div class="label">Battles</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.battles | number }}{% else %}{{ n }}{% endif %}</div>
+      {% if t %}<div class="stats__note">{{ t.oldest_battle | shortDay }} → {{ t.newest_battle | shortDay }}</div>{% endif %}
+    </div>
+    <div class="stats__cell">
+      <div class="label">Players</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.players_recording | number }}{% else %}{{ n }}{% endif %}</div>
+    </div>
+    <div class="stats__cell">
+      <div class="label">Clans</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.clans_recording | number }}{% else %}{{ n }}{% endif %}</div>
+    </div>
+    <div class="stats__cell">
+      <div class="label">War weeks</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.war_weeks | number }}{% else %}{{ n }}{% endif %}</div>
+      <div class="stats__note">past the API&rsquo;s ten-week window</div>
+    </div>
+    <div class="stats__cell">
+      <div class="label">Daily player records</div>
+      <div class="stats__value stats__value--brand">{% if t %}{{ t.snapshots | number }}{% else %}{{ n }}{% endif %}</div>
+    </div>
+  </div>
+</section>
+
+<section class="data-sec" id="battles-by-day">
+  <div class="data-sec__head"><h2>Battles by the day they were played</h2></div>
+  <section class="panel">
+    <div class="panel__body">
+    {%- if wide.bars %}
+      <div class="data-range" data-chart-range hidden>
+        <button type="button" class="chip" aria-pressed="true" data-range="wide">{{ wide.days }} days</button>
+        <button type="button" class="chip" aria-pressed="false" data-range="narrow">Last 8 weeks</button>
+      </div>
+      {{ dataChart(wide, "wide", false) }}
+      {{ dataChart(narrow, "narrow", true) }}
+      <p class="footnote">Days run in UTC. Removed records are left out. The numbers are as of the date shown.</p>
+      <details class="data-table">
+        <summary>The same numbers as a table</summary>
+        <div class="data-rows data-rows--days">
+          {%- for b in wide.bars | reverse %}
+          <div class="data-rows__row"><span>{{ b.day | shortDay }}</span><span>{{ b.battles | number }}</span></div>
+          {%- endfor %}
+        </div>
+      </details>
+    {%- else %}
+      <p class="footnote m-0">The chart is drawn from the daily series when the site is published; there was no series to draw from this time.</p>
+    {%- endif %}
+    </div>
+  </section>
+</section>
+
+<section class="data-sec" id="what-is-recorded">
+  <div class="data-sec__head">
+    <h2>What is recorded</h2>
+    <a class="data-sec__link" href="/docs/recording">How recording works ›</a>
+  </div>
+  <p class="footnote">What is recorded, how often, and how long it is kept.</p>
+  {%- set kept = "while tracked, and a year after" %}
+  <section class="panel">
+    <div class="data-rows data-rows--three" role="table" aria-label="What is recorded">
+      <div class="data-rows__row data-rows__row--head" role="row"><span role="columnheader">What</span><span role="columnheader">How often</span><span role="columnheader">Kept</span></div>
+      <div class="data-rows__row" role="row"><b role="cell">Player battle logs</b><span role="cell" data-col="How often">every 30 min while playing, backing off to at most 2 h</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
+      <div class="data-rows__row" role="row"><b role="cell">Player profiles</b><span role="cell" data-col="How often">daily (every 8 h for a player tracked directly), and after a session</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
+      <div class="data-rows__row" role="row"><b role="cell">Clans</b><span role="cell" data-col="How often">tracked clans every 15 min while members are online, backing off when idle</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
+      <div class="data-rows__row" role="row"><b role="cell">River races (clan wars)</b><span role="cell" data-col="How often">every 30 min on war days, 2 h on training days; the race log daily</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
+      <div class="data-rows__row" role="row"><b role="cell">Game events</b><span role="cell" data-col="How often">once a game day</span><span role="cell" data-col="Kept">{{ kept }}</span></div>
+      <div class="data-rows__row" role="row"><b role="cell">Decks, cards, matchups</b><span role="cell" data-col="How often">worked out from recorded battles</span><span role="cell" data-col="Kept">recomputed</span></div>
+    </div>
+  </section>
+  <p class="footnote">
+    A player or clan is recorded because an account tracks it (or its clan).
+    Elixir keeps every battle it records. History stays for at least a year
+    after the last person stops tracking. Raw game data is archived when
+    admitted. Account data is never public. A gap in the record means unknown,
+    not that nothing happened.
+  </p>
+  <p class="footnote">Want to add capacity? <a href="/docs/operators">Run a collector ›</a></p>
+</section>
+
+<section class="data-sec" id="for-machines">
+  <div class="data-sec__head"><h2>For machines</h2></div>
+  <p class="footnote">Read the record&rsquo;s public shape without an account, a key or a browser.</p>
+  <section class="panel">
+    <div class="data-rows data-rows--two">
+      <div class="data-rows__row"><a class="mono" href="/api/public/stats">/api/public/stats</a><span>The totals and the daily series on this page</span></div>
+      <div class="data-rows__row"><a class="mono" href="/api/public/status">/api/public/status</a><span>Right now, and each collector credited to its operator</span></div>
+      <div class="data-rows__row"><a class="mono" href="/api/public/cards">/api/public/cards</a><span>The card catalog</span></div>
+      <div class="data-rows__row"><a class="mono" href="/tools.json">/tools.json</a><span>Every tool and its arguments</span></div>
+      <div class="data-rows__row"><a class="mono" href="/llms.txt">/llms.txt</a><span>A guide to the site for an agent</span></div>
+      <div class="data-rows__row"><a class="mono" href="/feed.xml">/feed.xml</a><span>Updates, as a feed</span></div>
+      <div class="data-rows__row"><a class="mono" href="/feed.json">/feed.json</a><span>Updates, as JSON</span></div>
+    </div>
+  </section>
+  <p class="footnote">
+    No key needed for any of these. The recorded history itself needs an
+    account, over <a href="/docs/protocol">MCP</a> or the
+    <a href="/docs/json-api">JSON API</a>; one battle&rsquo;s own page is the
+    only part of it open to anyone.
+  </p>
+</section>
+
+<script defer src="{{ "/assets/data-live.js" | asset }}"></script>

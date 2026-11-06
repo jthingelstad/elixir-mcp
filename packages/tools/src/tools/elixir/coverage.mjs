@@ -81,7 +81,7 @@ export const elixir_coverage = {
           ? "completeness_last_7_days covers observation intervals ENDING in the last seven days; compare measured_hours against 168 before reading average_ratio as a week, and treat unmeasured_tail_hours after the latest profile as unknown."
           : null,
       ),
-      docs: docsRef("recording", "completeness"),
+      docs: docsRef("freshness-and-gaps", "completeness"),
       meta: await buildMeta(ctx.db, ctx.account, tag, [
         "player",
         "player_battlelog",

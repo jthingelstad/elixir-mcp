@@ -69,6 +69,24 @@ test("the tool-choice guide counts live flags from the current registry", async 
   assert.equal(Number(count[1]), liveTools.length);
 });
 
+test("elixir_docs: a section that moved answers from its new page", async () => {
+  const moved = await elixirTools.elixir_docs.handler(ctx, {
+    page: "protocol",
+    section: "oauth-2-1",
+  });
+  assert.equal(moved.slug, "connecting");
+  assert.match(moved.markdown ?? moved.section?.markdown ?? "", /OAuth/);
+
+  // What the acceptance suite's elixir_docs-section case reads.
+  const war = await elixirTools.elixir_docs.handler(ctx, {
+    page: "battles",
+    section: "war-weeks-points-and-fame",
+  });
+  assert.equal(war.slug, "decks-and-war");
+  for (const field of ["finished_early", "finish_war_day", "decks_used"])
+    assert.ok(JSON.stringify(war).includes(field), field);
+});
+
 test("elixir_docs: the index, one page, and a search that says where", async () => {
   const index = await elixirTools.elixir_docs.handler(ctx, {});
   assert.ok(index.pages.length >= 16);

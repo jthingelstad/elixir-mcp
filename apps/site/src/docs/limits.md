@@ -2,13 +2,13 @@
 slug: limits
 title: "Limits"
 description: "Every quota and rate limit in one table, with the exact refusal each produces: the hourly bucket, daily tool calls, live fetches, slots, agents, OAuth registration, sign-in codes, the collector door, the REST API and Clan's model."
-section: agent
-order: 7
+section: protocol
+order: 4
 navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."
-console: ["Your budget and what spent it", "/settings/usage", "Settings ▸ Usage"]
 reviewed: "2026-10-12 collector credits and bonus slots retired, the upgrade request removed; 2026-10-08 against contract 11.5.1 and JSON API 3.1.0"
+callout: ["Open it at Settings › Usage and limits", "/settings/usage", "Open Usage and limits"]
 ---
 
 # Limits
@@ -29,14 +29,14 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Limit | Applies to | Bucket | Max | Refusal |
 |---|---|---|---|---|
 | MCP calls per hour | every credential on the door, keyed by the **principal** that made the call: a person or an integration its own account, and each agent its own bucket at its owner's tier rate, so one busy agent cannot refuse its owner or its sibling agents (the daily quotas below stay the owner's). Counts `tools/call`, `resources/read`, `prompts/get` and any method the door does not serve; connecting is not counted: notifications, `initialize`, `ping` and the `*/list` methods are authenticated and answered without spending the hour | `mcp#<principal>`, or `mcp#token#<key>` for a key with its own ceiling | 300 (per-token override possible) | HTTP 429 in the standard error envelope, `error.code` `quota_exceeded`, naming the ceiling that applied, with `meta.request_id` and a `Retry-After` giving the seconds left in the hourly window |
-| Explorer calls per hour | your own reads on the website: the Explore page and Ladder | the signed-in person's bucket above, shared with your own MCP clients | 300 | HTTP 429 `{"error":"rate_limited"}` |
+| Explorer calls per hour | your own reads on the website: record pages and Ladder | the signed-in person's bucket above, shared with your own MCP clients | 300 | HTTP 429 `{"error":"rate_limited"}` |
 | Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` (the tier read now) or the account override; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
-| Explorer calls per day | the Explore page and Ladder | none: your own reads on Elixir's website spend no daily tool-call quota, and neither do Clan's reads or `/api/v1` | no daily ceiling; each read is still in the call log, and Usage counts your website reads apart from the budget | never refused for the day; the hourly bucket above still applies |
+| Explorer calls per day | record pages and Ladder | none: your own reads on Elixir's website spend no daily tool-call quota, and neither do Clan's reads or `/api/v1` | no daily ceiling; each read is still in the call log, and Usage counts your website reads apart from the budget | never refused for the day; the hourly bucket above still applies |
 | Live fetches per day | `live_fetch`, and `live: true` on {{ tools.liveFlagNames }}; every agent shares its owner's lane | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> tier, shared with your owner's other agents)." |
 | Live fetches, fleet-wide | every new live read (the live lane, a JSON API profile refresh, a card first seen in a deck) | the one global bucket the scheduler plans from | one token per new live read, from the same bucket scheduled collection spends; it accrues at the fleet's rate (1 request per second by default), settles at each scheduler tick, and banks at most 300 seconds' worth | nothing is queued and nothing is charged against your own quota: `live_status` `pending` with `retry_after_s` at the next scheduler tick and a note saying the budget had no room; on `/api/v1` HTTP 429 `rate_limited` with `Retry-After` |
 | Player slots | `elixir_track_player`, `POST /api/claims` | live count across you and your active agents | 50 (member to partner); override `max_player_recordings`. A tier lost leaves what you track in place; only the next add is refused | MCP: `quota_exceeded` "Tracked players are capped at N for the <role> tier." Web: HTTP 429 same message |
-| Clan slots, activity | `elixir_track_clan`, `POST /api/me/clans` | live count per scope | 1 / 1 / 3 / 10 | `not_entitled` "The <role> tier has no activity-scope clan slots" or `quota_exceeded` "Your activity-scope clan slots are full (N for the <role> tier)." Web: HTTP 429 |
-| Clan slots, comprehensive | same | same | 0 / 1 / 3 / 5 | same wording with `comprehensive` |
+| Clan slots, the clan only (`activity`) | `elixir_track_clan`, `POST /api/me/clans` | live count per scope | 1 / 1 / 3 / 10 | `not_entitled` "The <role> tier has no activity-scope clan slots" or `quota_exceeded` "Your activity-scope clan slots are full (N for the <role> tier)." Web: HTTP 429 |
+| Clan slots, every member (`comprehensive`) | same | same | 0 / 1 / 3 / 5 | same wording with `comprehensive` |
 | Agents | `POST /api/me/agents` | live count of active agents | 3 / 5 / 10 / 25 | HTTP 400 `{"error":"not_entitled","reason":"agent_limit","limit":N,"role":"…"}` |
 | OAuth client registration | `POST /oauth/register` | `dcr#<ip>`, `dcr#global` | 20 per hour per address; 5,000 per day in total | HTTP 429 `{"error":"temporarily_unavailable"}` |
 | Sign-in emails (OAuth) | `/oauth/authorize` step one | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email; both shared with the website's sign-in | the page says the limit was reached; no mail is sent |
@@ -58,11 +58,11 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | REST profile refreshes per day | `POST /api/v1/profile-refreshes` | usage row | per integration, default 1,000; an idempotent replay does not spend one | HTTP 429 problem `refresh_quota_exceeded`, `Retry-After: 3600` |
 | Batch size | `players_names`, `POST /api/v1/players/names` | per call | 1 to 100 tags | tool error `bad_request`; on `/api/v1` HTTP 400 problem `bad_request` |
 | Query budget | the analytical reads (`battles_trends`, `cards_card`, `clans_standings`, `war_history`) | per call | up to 18 seconds of database time, shortened when the function has less time left | tool error `query_timeout` with a retry hint and `meta.request_id`; no partial aggregation (see [Protocol](/docs/protocol#errors)) |
-| Read deadline | every other read-only tool, on MCP, in Explore and on `/api/v1` | per call | the function's remaining time less 1.5 seconds (about 23 seconds on MCP, 17 on the web door); a read waits at most 5 seconds for a lock | the same `query_timeout` (HTTP 503 with `retry_after_s` on `/api/v1`); a write is never raced, so a retry cannot double-apply it |
+| Read deadline | every other read-only tool, on MCP, on record pages and on `/api/v1` | per call | the function's remaining time less 1.5 seconds (about 23 seconds on MCP, 17 on the web door); a read waits at most 5 seconds for a lock | the same `query_timeout` (HTTP 503 with `retry_after_s` on `/api/v1`); a write is never raced, so a retry cannot double-apply it |
 | Response size | every tool result | per call | 48,000 characters | `result_too_large` "Result is N characters; the cap is 48000.", with a hint naming the arguments that narrow it (see [Protocol](/docs/protocol#the-response-cap)); `live_fetch` refuses a battle-log path with the same code before spending the lane |
 | Audit argument size | the call log | per call | 4,000 bytes | arguments are trimmed in the log only; the call is unaffected |
 | Clan model drafts per day | a clan's own model key, used by its leader and co-leaders: the words on an Action, the recruiting pitch, and a preview of the activity channel's editor | per clan, UTC date | 20 | HTTP 429 `{"error":"model_daily_limit","per_day":20}`; the page says to try again tomorrow |
-| Clan Discord editor runs per day | the clan's activity channel edited by its own model ([Clan policy](/docs/clan-policy#the-clans-activity-in-discord)); a run hands the model up to 12 stories and is one to three requests (up to six read-only lookups in each of the first two rounds, then its answer); on Claude Sonnet 5.5 at Anthropic's list prices a run is about 1 to 3 US cents, often under a cent a story (an estimate: the key's use log has each request's tokens) | per clan, UTC date, counted apart from the drafts | 50 runs | none: the stories are Elixir's own until the day turns |
+| Clan Discord editor runs per day | the clan's activity channel edited by its own model ([Clan policy](/docs/clan-discord#the-clans-activity-in-discord)); a run hands the model up to 12 stories and is one to three requests (up to six read-only lookups in each of the first two rounds, then its answer); on Claude Sonnet 5.5 at Anthropic's list prices a run is about 1 to 3 US cents, often under a cent a story (an estimate: the key's use log has each request's tokens) | per clan, UTC date, counted apart from the drafts | 50 runs | none: the stories are Elixir's own until the day turns |
 | Clan monthly spend cap | every use of the clan's model, drafts and the editor's runs alike, priced from its tokens at Anthropic's list rates (an estimate, not the bill) | per clan, UTC month; kept when the key is replaced | none until the leader or a co-leader sets one, $0.01 to $1,000; a draft that starts under it may finish a little over | a draft: HTTP 429 `{"error":"model_spend_cap","spend_cap_usd":N,"spend_usd":N}`; the editor: Elixir's own stories |
 
 ## Reading your balance
@@ -84,7 +84,7 @@ agents' share broken out.
 ## What is deliberately unlimited
 
 Reads of recorded game data are bounded only by the daily call quota, never by
-tier or by subject. Your own reads on Elixir's website, Explore and
+tier or by subject. Your own reads on Elixir's website, record pages and
 Ladder, are not bounded by the daily quota either: only the hourly limit
 applies to them. Feedback has no limit of its own. The daily counter fails open:
 if the quota store is unreachable, active accounts keep working.
@@ -98,7 +98,7 @@ if the quota store is unreachable, active accounts keep working.
 | Call log rows | indefinitely: the tool, when, which credential and client, the country it came from, and how the call went; the address (`viewer_ip`) cleared after 30 days; arguments cleared after 90 days |
 | Credential refusal counts | 30 days |
 | Timeline game-moment ledger | indefinitely; a timeline read covers at most 30 days |
-| Captured request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the website stops offering them on the same clock) |
+| Saved request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the website stops offering them on the same clock) |
 | OAuth tokens | 90 days past expiry (grant life is 90 days) |
 | Website sessions | 90 days absolute, 30 days sliding; the address a session was last used from cleared 30 days after that use; rows purged 30 days after expiry |
 | Sign-in codes | 15 minutes live; rows purged 30 days after expiry |

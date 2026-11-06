@@ -3,11 +3,12 @@ slug: standing
 title: "Standing and the Elder band"
 description: "How Clan reads where each member stands: the four things a clan can count, minimums, how Elder is earned when the clan ranks it, the Elder band, why a change must hold for several reviews, and who sees what on the Standing page."
 section: clan
-order: 3
+order: 4
 navTitle: "Standing"
 icon: chart-no-axes-column
 lede: "Standing is taking part in what your clan counts, compared across its members. Everyone sees how it works and where they stand; nobody below co-leader sees a removal or a clock."
 reviewed: "2026-10-12; inactivity runs from the battle log and raises removal Actions again; 2026-10-01 against contract 9.17.1"
+callout: ["Open it at Clan › Members › Standing", "/clan", "Open Standing"]
 ---
 
 # Standing and the Elder band
@@ -18,7 +19,7 @@ it. It is participation, not skill: wins, win rates and trophies won are
 not weighed. Inactivity is the days since a member's last recorded battle
 (a rise in their profile's battle count counts as play), and a member past
 the policy's removal day becomes a removal Action for the leaders
-([Actions](/docs/clan-actions#the-inactivity-clock)). Standing appears once the clan has a policy and at least
+([Actions](/docs/inactivity-clock#the-inactivity-clock)). Standing appears once the clan has a policy and at least
 10 members.
 
 ## What a clan can count
@@ -133,7 +134,7 @@ inactivity clock.** A member sees only their own activity clock and its uncertai
 ## When it is read
 
 Clan reads every clan with a policy each morning from 11:00 UTC. Opening
-Standing or the leaders' Member review reads it again when the last reading is
+Standing or the leaders' Review reads it again when the last reading is
 more than five minutes old. Actions opens the last reading, and reads
 again when someone chooses **Refresh suggestions** or the policy has a
 new version. A reading can raise or withdraw

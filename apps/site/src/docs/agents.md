@@ -2,12 +2,12 @@
 slug: agents
 title: "Building an agent"
 description: "A clan agent is a principal you own with its own key, URL, timeline read pointer and feedback inbox. Creating one, what initialize tells it, resolving which human is asking with on_behalf_of and elixir_identify, consuming the timeline with its own named reader, and the key lifecycle."
-section: agent
-order: 2
+section: connect
+order: 3
 navTitle: "Your agents"
 icon: bot
 lede: "A runtime that acts for one clan, with its own door, key, identity map and feed."
-console: ["Create and manage agents", "/settings/connections", "Settings ▸ Connections"]
+callout: ["Open it at Settings › Connections & agents and agents", "/settings/connections", "Open Connections and agents"]
 ---
 
 # Building an agent
@@ -20,9 +20,9 @@ do never shows up as its. If you have not read
 
 ## Create one
 
-**Connections → New agent → Create agent**, or `POST /api/me/agents` with a session.
+**Settings › Connections & agents › New agent**, or `POST /api/me/agents` with a session.
 
-Every agent you own has **its own page**, opened from its row in **Settings ▸
+Every agent you own has **its own page**, opened from its row in **Settings ›
 Connections & agents**, at `/settings/agents/<public_id>`. It has five tabs:
 **Overview** (key, last call, what is refusing it, the address to connect it
 at, and links to its Timeline and the feedback it has filed), **What it reads**
@@ -74,10 +74,10 @@ agent's key answers 401 too.
 
 ```json
 { "serverInfo": { "name": "elixir-mcp", "version": "{{ tools.contractVersion }}+tools.…" },
-  "instructions": "YOU ACT FOR POAP KINGS #J2RGCRVG (47 members). Leadership: King Thing (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it… Nothing defaults to 'you': … pass on_behalf_of… call elixir_identify once. You already know 9 of them. …",
+  "instructions": "YOU ACT FOR Tidewater #QRP2GV (47 members). Leadership: Birch Lantern (leader), … OMIT clan_tag to mean it. Pull clans_roster ONCE per run and reuse it… Nothing defaults to 'you': … pass on_behalf_of… call elixir_identify once. You already know 9 of them. …",
   "_meta": { "elixir.poapkings.com/principal": {
       "kind": "agent",
-      "subject": { "type": "clan", "tag": "#J2RGCRVG", "name": "POAP KINGS", "members": 47 } } } }
+      "subject": { "type": "clan", "tag": "#QRP2GV", "name": "Tidewater", "members": 47 } } } }
 ```
 
 Use `_meta` to assert the boot: `kind` must be `agent` and `subject` must
@@ -107,15 +107,15 @@ take you past a slot ceiling, and the refusal says how many to free.
 One of its clans is the clan it **acts for**, its default wherever
 `clan_tag` is omitted. It cannot remove that clan, or its last one; you can
 make another of its clans the one it acts for from its pages
-(**Tracking**), and then remove the old one. What it tracks, and every
-change to it, is on its pages: **Tracking** and **Activity → Account
-events**.
+(**What it reads**), and then remove the old one. What it tracks is on
+**What it reads**, and every change to it on **Usage**, under its account
+events.
 
 An agent never reads a person's view in Clan: `clans_my_view`
 answers only a person's own connection
-([Your own view](/docs/clan-policy#your-own-view)). An agent's one read
+([Your own view](/docs/clan-your-own-view#your-own-view)). An agent's one read
 of Clan is its assigned clan's war intent, with an approved grant
-([Agent context](/docs/clan-policy#agent-context)).
+([Agent context](/docs/clan-agent-context#agent-context)).
 
 ## Knowing which human is asking
 
@@ -162,20 +162,20 @@ and never a partial match. One candidate is one `elixir_identify` call;
 zero or several is a question to the person.
 
 ```text
-member Raquaza (discord:1234): how am I doing?
+member Birch Lantern (discord:1234): how am I doing?
 
-→ players_summary({ on_behalf_of: "discord:1234", display_name: "Raquaza" })
+→ players_summary({ on_behalf_of: "discord:1234", display_name: "Birch Lantern" })
 ← { error: { code: "no_subject", class: "subject", message: "No player is mapped to discord:1234 yet.",
-    candidates: [ { player_tag: "#UL2V9QRG0", name: "raquaza", clan_tag: "#J2RGCRVG", role: "coLeader" } ],
-    hint: "candidates[] holds the one clan member whose whole name is 'Raquaza': elixir_identify({ external_id: \"discord:1234\", player_tag: \"#UL2V9QRG0\" }) once, say so in a line, and answer." } }
+    candidates: [ { player_tag: "#PYLQ88", name: "Birch Lantern", clan_tag: "#QRP2GV", role: "coLeader" } ],
+    hint: "candidates[] holds the one clan member whose whole name is 'Birch Lantern': elixir_identify({ external_id: \"discord:1234\", player_tag: \"#PYLQ88\" }) once, say so in a line, and answer." } }
 
-→ elixir_identify({ external_id: "discord:1234", player_tag: "#UL2V9QRG0" })
-← { external_id: "discord:1234", player_tag: "#UL2V9QRG0", name: "raquaza", clan_tag: "#J2RGCRVG",
+→ elixir_identify({ external_id: "discord:1234", player_tag: "#PYLQ88" })
+← { external_id: "discord:1234", player_tag: "#PYLQ88", name: "Birch Lantern", clan_tag: "#QRP2GV",
     notes: ["Pass this external_id as on_behalf_of from now on; omit player_tag and it means them.", …],
     docs: "agents#knowing-which-human-is-asking" }
 
 → players_summary({ on_behalf_of: "discord:1234" })
-← { player_tag: "#UL2V9QRG0", name: "raquaza", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, win_rate: 0.585, … }, top_deck: …,
+← { player_tag: "#PYLQ88", name: "Birch Lantern", trophies: …, last_30_days: { battles: 41, wins: 24, losses: 17, draws: 0, win_rate: 0.585, … }, top_deck: …,
     applied: { window: { from: "…", to: null, source: "fixed", days: 30 } }, notes: […], docs: "recording#completeness",
     meta: { freshness_seconds: 27, source_polls: { player_battlelog: { observed_at: "…", freshness_seconds: 27 } }, … } }
 ```
@@ -236,7 +236,7 @@ when things **happened** (`basis: occurred`), keeps every pointer, and
 leaves out the earlier games the record learned in the window. A poller's
 read is by when the record **learned** them, so nothing learned late is
 skipped, and an item that happened before `from` says `late: true`
-([Two kinds of window](/docs/timeline#two-kinds-of-window)).
+([Two kinds of window](/docs/timeline-tool#two-kinds-of-window)).
 
 The item and entry shapes are on [Timeline](/docs/timeline), with the
 `facts` keys each `kind` carries and its version (a `battle_session` has
@@ -281,11 +281,11 @@ permission count expands to show its grants and the edit control.
 
 | Action | Where | Effect |
 |---|---|---|
-| Rotate | its pages → Settings → Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
-| Revoke | its pages → Settings → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready: it takes the name and scope of the most recent key, and is refused (`409 name_taken`) only if another of your live agents has taken that name since. |
-| Suspend / Resume | its pages → Settings | `status: disabled`; the same key reads as invalid until resumed. Its players and clans leave your slots and stop recording unless someone else tracks them. Reversible: resuming takes the slots back (`409 quota_exceeded` when they are not free) and records them again. |
-| Remove / Restore | a suspended agent's pages → Settings | takes it out of the Agents table into a folded **Removed agents** list on the Agents page. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own console. Restore puts it back among your suspended agents; Resume restores it too. |
-| Rename | its pages → Settings | changes the name; must stay unique among your live agents |
+| Rotate | its **Settings** tab, Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
+| Revoke | its **Settings** tab, Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready: it takes the name and scope of the most recent key, and is refused (`409 name_taken`) only if another of your live agents has taken that name since. |
+| Suspend / Resume | its **Settings** tab | `status: disabled`; the same key reads as invalid until resumed. Its players and clans leave your slots and stop recording unless someone else tracks them. Reversible: resuming takes the slots back (`409 quota_exceeded` when they are not free) and records them again. |
+| Remove / Restore | a suspended agent's **Settings** tab | takes it out of the Agents table into a folded **Removed agents** list on the Agents page. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own console. Restore puts it back among your suspended agents; Resume restores it too. |
+| Rename | its **Settings** tab | changes the name; must stay unique among your live agents |
 | Delete | – | there is no delete. Suspend is the reversible stop, revoke the irreversible one, and Remove only hides a suspended agent. |
 
 An agent acts only while its owner has access. If your access is

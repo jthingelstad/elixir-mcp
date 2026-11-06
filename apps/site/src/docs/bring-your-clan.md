@@ -18,10 +18,10 @@ have written how the clan runs, standing, actions and awards. It never
 acts in the game and never decides for anyone; the leaders do. Every
 page is behind sign-in, and only people sign in. Today an agent gets
 one narrow read of the clan's war intent with an explicit grant
-([Agent context](/docs/clan-policy#agent-context)). What you connect to
+([Agent context](/docs/clan-agent-context#agent-context)). What you connect to
 Elixir as yourself can read your own view here (the policy, your own
 standing line and the Actions waiting for you), never anyone else's
-([Your own view](/docs/clan-policy#your-own-view)).
+([Your own view](/docs/clan-your-own-view#your-own-view)).
 
 Clan is part of Elixir's shared application, account and storage. Your Elixir
 sign-in opens Clan directly; there is no second consent or Clan account.
@@ -34,7 +34,7 @@ You need two things:
    sign-up for Clan. [Your account](/docs/your-account) has how to create
    one by verifying your email.
 2. **Your player on it.** Your primary player or an alt, under
-   **Settings ▸ Players**. A friend or a player you watch does not
+   **Settings › Players & tracking**. A friend or a player you watch does not
    count: Clan goes by the players that are you.
 
 Then open [/clan](/clan). Your existing Elixir session opens it directly;
@@ -147,18 +147,18 @@ Clan works from what Elixir records. Elixir follows your primary player's
 clan for you at activity scope once your player's profile shows it, when
 you have a clan slot free ([Your player's
 clan](/docs/recording#your-players-clan)). If your clan is not recorded
-yet, Clan says so and sends you to **Settings ▸ Players** to track the
+yet, Clan says so and sends you to **Settings › Players & tracking** to track the
 clan; the roster arrives with Elixir's first read of it. A clan recorded with
 its members' battle logs ([the clan and every member](/docs/recording)) gives
 fuller battle numbers than one recorded at activity scope, and Clan
 holds back a judgment the record cannot support rather than guess.
 
-When profile or roster observations cannot establish your membership, Clan
-says **Waiting for your clan record** and links to Tracking. A missing clan tag
+When profile or roster readings cannot establish your membership, Clan
+says **Waiting for your clan record** and links to Players & tracking. A missing clan tag
 or roster role does not prove you are outside a clan.
 
 Only explicit absence in the latest admitted profiles for all your own players
-shows **No clan in your recorded profiles**, dated by those observations. This
+shows **No clan in your recorded profiles**, dated by those readings. This
 is not a live check: if it is still accurate, join a clan in the game;
 otherwise wait for a fresh profile and clan roster and check again. Friends
 and watched players do not decide your membership or grant roles.
@@ -183,7 +183,7 @@ message, and the leaders are shown where to start.
 
 Your own page labels weekly battle counts as recorded battles. Zero recorded
 battles does not prove inactivity. Weeks before roster recording began are
-marked; their counts do not establish membership or complete observation.
+marked; their counts do not establish membership or complete reading.
 
 ## Reads and access
 

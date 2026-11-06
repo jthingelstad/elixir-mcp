@@ -3,7 +3,7 @@ slug: email
 title: "Email"
 description: "The seven emails Elixir sends: four weekly reports built from your record, a milestone note when you or an alt reach a big first, Clan's note when something new in your clan is yours to do, and the answer to feedback you filed. Every one is a switch on your account page; every issue carries a turn-off link; opens and clicks are counted per issue, never per reader."
 section: friends
-order: 3
+order: 4
 navTitle: "Email"
 icon: mail
 lede: "Seven kinds, each a switch and a turn-off link: four weekly reports, milestones, clan actions waiting and answers to your feedback."
@@ -14,7 +14,7 @@ reviewed: "2026-10-12 the collector week is Saturday to Saturday, and one a day 
 
 Elixir sends seven kinds of email. All seven start **on by default** for an active
 person account, and all seven are **a switch on your account page**
-([Settings ▸ Emails](/settings/emails)), with a *turn off* link in every
+([Settings › Emails](/settings/emails)), with a *turn off* link in every
 issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
@@ -81,13 +81,13 @@ the headline and the featured deck cover the same completed game week.
 ### Collector upgrade notices
 
 The collector email switch also controls upgrade notices: one email for each
-collector whose installed version Elixir observes change to a higher released
+collector whose installed version Elixir sees change to a higher released
 version. Five upgraded collectors produce five separate emails, normally within
 a few minutes of their check-ins. Naming an available release sends nothing.
-Each notice names the old and new versions, the observation time and security
+Each notice names the old and new versions, the reading time and security
 status. First check-ins, unknown/dev versions, downgrades and same-version
 restarts produce no upgrade notice. A later upgrade following a rollback is a
-new observed transition.
+new recorded transition.
 
 When available, the notice includes the target release’s published notes and a
 maintainer-supplied reason for naming it. These explain the release’s purpose;
@@ -133,7 +133,7 @@ even for a full clan: it links the roster rather than printing it.
 ## Turning one off
 
 Each kind has its own switch on [Emails](/settings/emails)
-(Settings ▸ Emails). Each scheduled kind shows its local
+(Settings › Emails). Each scheduled kind shows its local
 day and time beside its switch. Event-driven kinds follow below, then the
 latest sent records. **Every email** turns them all off, or all back on. Every issue's
 footer has a

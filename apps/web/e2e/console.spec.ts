@@ -91,18 +91,24 @@ test.describe("signed out", () => {
     await expect(page.locator(".kit-foot .disclaimer__text")).toHaveCount(1);
   });
 
-  test("the Console's old root addresses are not aliased: a miss is a miss", async ({
+  test("a miss is a miss, and only the old root paths go on from the 404 page", async ({
     page,
   }) => {
-    // Jamie, 2026-09-28: one origin, the Console under /console, and no
-    // redirects from where it was. Outside the prefix every path is a
-    // site document, so a page the site does not build is an honest 404,
-    // never the app shell.
-    for (const old of ["/account/overview", "/not-a-place"]) {
-      const res = await page.goto(old);
-      expect(res?.status(), old).toBe(404);
-      await expect(page.locator("#root")).toHaveCount(0);
-    }
+    // Outside the app's prefixes every path is a site document, so a page the
+    // site does not build is an honest 404, never the app shell.
+    const miss = await page.goto("/not-a-place");
+    expect(miss?.status()).toBe(404);
+    await expect(page.locator("#root")).toHaveCount(0);
+    await expect(page).toHaveURL(/\/not-a-place$/);
+
+    // Mail from before the prefix carries bare root paths. They still answer
+    // 404, and the page sends them on in the browser, query and hash intact.
+    await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
+    const old = await page.goto("/explore/player/2ABC?from=mail#top");
+    expect(old?.status()).toBe(404);
+    await expect(page).toHaveURL(
+      /\/console\/explore\/player\/2ABC\?from=mail#top$/,
+    );
   });
 
   test("sign in: email, then the six-digit code, then Home", async ({

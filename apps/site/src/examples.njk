@@ -1,6 +1,6 @@
 ---
 layout: base.njk
-navActive: examples
+navActive: docs
 pagination:
   data: examplesFlat
   size: 1
@@ -12,43 +12,28 @@ eleventyComputed:
   description: "{{ ex.lede | safe }}"
 ---
 {#-
-  One example per page, as the design draws it: a rail of all ten
-  under their three headings with the one you are reading marked, a
-  breadcrumb, the title in the display face, the lede, the transcript
-  typed live with the tools it called linked to their reference, what
-  it reads, the steps to set it up as buttons that go somewhere real, a
-  gold Create your account, and three more like it.
+  One example per page, inside the docs: the docs' rail, a breadcrumb, the
+  title, the lede, the transcript typed live with the tools it called linked
+  to their reference, what it reads, the steps to set it up as buttons that
+  go somewhere real, Create your account (signed out only), and three more.
 
   Every tool named under a window is in the registry — the build links
   each one to its own heading and a test refuses a name it does not know.
 -#}
-<div class="siterail">
-  <aside class="siterail__nav" data-siterail data-open="false">
-    <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="examples-rail">
-      <span class="siterail__head-title">Examples</span>
-      <span class="siterail__head-here">{{ ex.label }}</span>
-      <span class="siterail__head-meta">{{ ex.count }}<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
-    </button>
-    <nav class="siterail__list" id="examples-rail" aria-label="Examples">
-      {%- for g in examples %}
-      <div class="rail__group">{{ g.group }}</div>
-      {%- for c in g.cases %}
-      <a class="rail__item{% if c.key == ex.key %} rail__item--on{% endif %}" href="/examples/{{ c.key }}"{% if c.key == ex.key %} aria-current="page"{% endif %}>{% icon c.icon, 18 %}{{ c.label }}</a>
-      {%- endfor %}
-      {%- endfor %}
-    </nav>
-    <div class="siterail__foot">
-      Every example runs against recorded history. <a href="/data">See the record ›</a>
-    </div>
-  </aside>
+{%- set railOn = "example:" + ex.key %}
+{%- set railTop = "reference" if ex.group == "For builders" else "connect" %}
+{%- set railHere = ex.label %}
+{%- set railOutline = [] %}
+<div class="siterail siterail--docs">
+  {% include "docs-rail.njk" %}
 
   <div class="siterail__body">
     <div class="docs__crumb">
-      <a href="/examples/play">Examples</a><span aria-hidden="true">/</span><span>{{ ex.group }}</span>
+      <a href="/docs">Docs</a><span aria-hidden="true">/</span>{% if ex.group == "For builders" %}<span>Build &amp; reference</span><span aria-hidden="true">/</span><span>Build</span>{% else %}<span>Connect an AI</span><span aria-hidden="true">/</span><a href="/examples">Examples</a>{% endif %}<span aria-hidden="true">/</span><span>{{ ex.label }}</span>
     </div>
     <h1 class="hero-title" style="font-size: 38px; margin: 0 0 10px">{{ ex.title }}</h1>
     <p class="docs__lede" style="max-width: 60ch; margin-bottom: 22px">{{ ex.lede | safe }}</p>
-    <p class="footnote" style="margin: -12px 0 18px">A real exchange, recorded 2026-09-10 as King Thing of POAP KINGS: the tools under the window are the ones that answered, and every number came back from them.</p>
+    <p class="footnote" style="margin: -12px 0 18px">A real exchange, recorded Sep 10 as King Thing of POAP KINGS: the tools under the window are the ones that answered, and every number came back from them.</p>
 
     <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start">
       {%- if ex.script %}

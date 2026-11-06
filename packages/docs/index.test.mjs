@@ -93,11 +93,6 @@ test("section slugs are GitHub-style, the shape the code's docs pointers use", (
       "mode-groups",
       "events-are-their-own-group",
       "duels-and-boat-battles",
-      "comparisons-and-what-a-battle-proves-about-its-own-length",
-      "the-control-next-to-the-number",
-      "decided-battles-and-denominators",
-      "deck-identity-and-forms",
-      "war-weeks-points-and-fame",
     ],
   );
   // The mode table is rendered from the contract, not typed.
@@ -140,9 +135,9 @@ test("the Clan docs advertise both uses of the clan's own model", () => {
   assert.match(actions, /Draft in our voice/);
   assert.match(actions, /promotion, demotion, awards announcement/);
 
-  const policy = DOCS.find((d) => d.slug === "clan-policy").markdown;
-  assert.match(policy, /recruiting pitch in Recruit/);
-  assert.match(policy, /Clan Leader Message/);
+  const settings = DOCS.find((d) => d.slug === "clan-settings").markdown;
+  assert.match(settings, /recruiting pitch in Recruit/);
+  assert.match(settings, /Clan Leader Message/);
 });
 
 test("the index lede is never shorter than 40 characters, and description rides beside it", () => {

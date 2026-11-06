@@ -1,18 +1,15 @@
 ---
 layout: doc.njk
 title: "Docs"
-description: "Elixir's documentation, by what you came to do: your account and players, your clan, your friends and the weekly emails, your own AI agent, what every number in the record means, and building on Elixir."
+description: "Elixir's documentation, by what you came to do: use Elixir, connect an AI, or build on it and look something up."
 permalink: /docs/index.html
 canonical: /docs
 navActive: docs
 ---
 {#-
-  The docs home, as the 2026-10-01 design draws it: the title, then one
-  card per thing a person comes to do, each linking the pages that do
-  it; a pointer to the Quickstart for someone new; and the record's
-  reference pages as a row of links. A card links only pages that
-  exist (`docPages` leaves out a slug no page has yet), and a card with
-  none is left out, so the home never links a page before it is written.
+  The docs home: one card per thing a person comes to do, the New here band
+  for someone signed out, and the three parents as panels. A card links only
+  pages that exist (`docPages` leaves out a slug no page has yet).
 -#}
 {%- set tasks = [
   { icon: "chart-line", title: "See how I am doing", product: "Ladder",
@@ -34,10 +31,17 @@ navActive: docs
     text: "Sign in with Elixir, the JSON API and integration keys, and running a collector of your own.",
     slugs: ["sign-in-with-elixir", "json-api", "integrations", "operators"] }
 ] %}
-{%- set record = collections.docSections | docGroup("record") %}
+{%- set panels = [
+  { title: "Use Elixir", text: "What each page shows and how to read it: your Ladder, your clan, your friends, your emails, your account.",
+    links: [["Welcome", "/docs/about"]] },
+  { title: "Connect an AI", text: "Connect a client, what your agent can read, which tool answers what, and ten recorded examples.",
+    links: [["Connect an agent", "/docs/connections"], ["All examples", "/examples"]] },
+  { title: "Build & reference", text: "What every number means, for people and agents alike. The tool reference, the protocol, and these pages read by a machine.",
+    links: [["What Elixir records", "/docs/recording"], ["Tools", "/docs/tools"]] }
+] %}
 <nav class="docs__crumb" aria-label="Breadcrumb"><span aria-current="page">Docs</span></nav>
 <h1 class="hero-title docs__title">Elixir docs</h1>
-<p class="docs__lede">Elixir keeps your Clash Royale record and reads it back to you: on Home, in your clan, by email and through your own AI. Start with what you want to do.</p>
+<p class="docs__lede">Elixir keeps your Clash Royale record and reads it back to you: on your Ladder, in your clan, by email and through your own AI. Start with what you want to do.</p>
 
 <div class="docs-tasks">
   {%- for t in tasks %}
@@ -60,41 +64,22 @@ navActive: docs
   {%- endfor %}
 </div>
 
-<div class="docs-new">
+<div class="docs-new" data-session-face="out">
   {% icon "rocket", 18 %}
-  <p><b>New here?</b> Create a free account, add your player tag, and follow the first read through to your saved profile and battles in the browser. Connecting an AI client is optional.</p>
+  <p><b>New here?</b> Create a free account, add your player tag, and Elixir starts recording it. Connecting an AI is optional.</p>
   <a class="btn btn--gold" href="/docs/quickstart">Quickstart</a>
 </div>
 
-<section class="docs-ref" aria-labelledby="docs-ref">
-  <div class="docs-ref__head">
-    <h2 id="docs-ref">The record</h2>
-    <span>what every number means, for people and agents alike</span>
-  </div>
-  <div class="docs-ref__links">
-    {%- for d in record.pages %}
-    <a href="{{ d | pageUrl }}">{{ d.data.navTitle or d.data.title }}</a>
-    {%- endfor %}
-  </div>
-</section>
-
-<section class="docs-ref" aria-labelledby="docs-agents">
-  <div class="docs-ref__head">
-    <h2 id="docs-agents">For agents</h2>
-    <span>these pages and the tool reference, read by a machine</span>
-  </div>
-  <dl class="outline">
-    <dt><code>elixir_docs</code>, <code>elixir_examples</code>, <code>elixir_updates</code></dt>
-    <dd>This documentation, the worked examples and What's new, read over the MCP connection itself: the index, one page, one section, or a word search. Start with <a href="/docs/choosing-a-tool">Choosing a tool</a> and the <a href="/docs/glossary">glossary</a>.</dd>
-    <dt><code>elixir://docs/&lt;slug&gt;</code> and friends</dt>
-    <dd>The same pages as MCP resources (<code>elixir://docs</code>, <code>elixir://docs/&lt;slug&gt;#&lt;section&gt;</code>, <code>elixir://examples</code>, <code>elixir://changelog</code>, <code>elixir://updates</code>, <code>elixir://cards</code>), listed lazily by clients that cache <code>tools/list</code>; the ten examples are also prompts.</dd>
-    <dt><a href="/llms.txt">/llms.txt</a> and <a href="/llms-full.txt">/llms-full.txt</a></dt>
-    <dd>What this service is and where everything lives, in one short file; and every documentation page with the whole tool reference in one fetch.</dd>
-    <dt><a href="/tools.json">/tools.json</a></dt>
-    <dd>The tool registry as JSON: names, groups, descriptions, arguments, and the capability each one requires.</dd>
-    <dt><a href="/api/public/stats">/api/public/stats</a></dt>
-    <dd>Live record totals and the full-history daily series. No authentication.</dd>
-    <dt><a href="/updates">Updates</a></dt>
-    <dd>Every contract version and what shipped in it, the same list <code>elixir_changelog</code> returns.</dd>
-  </dl>
-</section>
+<div class="docs-tops">
+  {%- for p in panels %}
+  <section class="docs-task">
+    <div class="docs-task__head"><h2 class="docs-task__title">{{ p.title }}</h2></div>
+    <p class="docs-task__text">{{ p.text }}</p>
+    <div class="docs-task__links">
+      {%- for l in p.links %}
+      <a href="{{ l[1] }}">{{ l[0] }}</a>
+      {%- endfor %}
+    </div>
+  </section>
+  {%- endfor %}
+</div>

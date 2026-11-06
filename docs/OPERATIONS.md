@@ -29,7 +29,7 @@ Battles played in the game should become rows within minutes, the job
 ledger should drain, and both doors should serve.
 
 - **The verdict.** `curl -s https://elixir.poapkings.com/api/public/status`
-  (about 60 s edge-cached; `/data/now` is the other public health read;
+  (about 60 s edge-cached; `/data` is the other public health read;
   the Console's `/console/status` is signed-in): the health verdict, last
   admission age, battles in the last hour, the budget line
   (`useful_hour / measured_hour`: how much of the hour's spend changed

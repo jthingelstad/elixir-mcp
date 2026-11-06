@@ -204,7 +204,7 @@ export const cardsTools = {
               ? "art is each form's image on Elixir's own origin (the forms iconUrls carries): an exact copy of that icon, never resized or altered, so size it in the page. Show a played form's art, else the base card's: a new form's image can take about two weeks to answer after the catalog lists it."
               : "art (each form's image on Elixir's own origin) rides when ids or query name the cards: the whole catalog leaves it out to stay under the result cap.",
         ),
-        docs: docsRef("battles", "deck-identity-and-forms"),
+        docs: docsRef("decks-and-war", "deck-identity-and-forms"),
         meta: responseMeta({ as_of: new Date().toISOString() }),
       };
     },

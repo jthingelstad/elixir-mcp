@@ -26,8 +26,8 @@ navActive: cards
       <label class="flex items-center gap-2 text-[12.5px] text-ink-faint">
         Sort
         <select class="select" data-cards-sort>
-          <option value="elixir">Elixir cost</option>
           <option value="name">Name</option>
+          <option value="elixir">Elixir cost</option>
         </select>
       </label>
     </div>
@@ -65,10 +65,15 @@ navActive: cards
     </li>
     {%- endfor %}
   </ul>
+  <div class="flex flex-col items-start gap-2" data-cards-none hidden>
+    <h2 class="panel-title m-0">No cards match</h2>
+    <p class="footnote m-0">Clear a filter or the search to see more.</p>
+    <button type="button" class="btn btn--sm" data-cards-clear>Clear filters</button>
+  </div>
   {%- else %}
   <p class="footnote m-0">
-    The card list is built from Elixir&rsquo;s catalog, and this version of the site had
-    none to read. It arrives when the site is next published.
+    The card list is built from Elixir&rsquo;s catalog, and there was none to read
+    when the site was last published. It arrives with the next publish.
   </p>
   {%- endif %}
 

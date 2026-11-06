@@ -67,16 +67,16 @@
             <a href="{{ product.path }}">{{ product.label }}</a>
             {%- endif %}{% endfor %}
           </nav>
-          <a class="kit-top__search" data-session-face="in" href="{{ familyBar.search.path }}">
+          <a class="kit-top__search" data-session-face="in" href="{{ familyBar.search.staticPath }}">
             {% chromeIcon familyBar.search.icon, 18 %}
             <span>{{ familyBar.search.prompt }}</span>
           </a>
           <span class="kit-top__gap"></span>
           <a class="kit-top__link" data-session-face="out" href="{{ familyBar.signIn.path }}">{{ familyBar.signIn.label }}</a>
           <a class="btn btn--sm btn--primary" data-session-face="out" href="{{ familyBar.createAccount.path }}">{{ familyBar.createAccount.label }}</a>
-          <a class="kit-top__icon" data-session-face="in" href="{{ familyBar.help.path }}" aria-label="{{ familyBar.help.label }}">
+          <button type="button" class="kit-top__icon" data-session-face="in" data-help-open aria-label="{{ familyBar.help.label }}">
             {% chromeIcon familyBar.help.icon, 18 %}
-          </a>
+          </button>
           {%- for product in familyBar.products %}{% if product.game %}
           <a class="kit-top__drop" data-session-face="in" href="{{ product.href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ product.action }}, {{ product.about }}, opens in a new window">
             {% chromeIcon product.icon, 18 %}
@@ -127,12 +127,45 @@
           <span>{{ product.label }}</span>
         </a>
         {%- endif %}{% endfor %}
-        <a href="{{ familyBar.search.path }}">
+        <a href="{{ familyBar.search.staticPath }}">
           {% chromeIcon familyBar.search.icon, 18 %}
           <span>{{ familyBar.search.label }}</span>
         </a>
       </nav>
     </div>
+    {#- Help, on a static page: the same drawer as the app's (HelpDrawer.jsx, the
+        kit's classes and words), in plain script because the app's bundle is
+        too large to load here. Signed in only: the bar's button is the only way
+        in. `helpText` is the page's own line; site-help.js posts a note with the
+        page riding along. [engineering, 2026-11-06] -#}
+    <dialog class="kit-help" data-help aria-labelledby="help-title">
+      <div class="kit-help__box">
+        <header class="kit-help__head">
+          <h2 id="help-title">Help for {{ title }}</h2>
+          <button type="button" class="btn btn--sm btn--quiet" aria-label="Close" data-help-close>{% chromeIcon "x", 16 %}</button>
+        </header>
+        <p>{{ helpText or description }}</p>
+        <section>
+          <h3>Read more</h3>
+          <div class="kit-help__links">
+            <a class="btn btn--sm" href="{{ familyBar.docs.path }}">Docs home</a>
+            <a class="btn btn--sm" href="/docs/about">About Elixir</a>
+          </div>
+        </section>
+        <form data-help-form data-page="{{ title }}">
+          <h3><label for="help-note">Something wrong, or missing?</label></h3>
+          <p class="kit-tiny">The page you are on rides along. Every item is answered, and the answer comes to your email and your timeline.</p>
+          <p role="status" data-help-done hidden>Received, thank you. Every item is answered, and the answer comes to your email when it lands.</p>
+          <textarea id="help-note" rows="4" data-help-note></textarea>
+          <p class="kit-form__err" role="alert" data-help-error hidden></p>
+          <div class="kit-help__links">
+            <button type="submit" class="btn btn--primary" data-help-send disabled>Send</button>
+            <a class="btn btn--quiet" href="/settings/feedback">Your feedback and its answers</a>
+          </div>
+        </form>
+      </div>
+    </dialog>
+    <script defer src="{{ "/assets/site-help.js" | asset }}"></script>
     {#- Tinylytics: a static page is a real document load, so the embed
         records the hit by itself. No pushState bridge is needed here -
         that belongs to the app. Same privacy posture: anonymous only.

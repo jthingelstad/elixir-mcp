@@ -38,7 +38,7 @@ export const BATTLE = {
       },
       players: [
         {
-          player_tag: "#JYRQ8U92C",
+          player_tag: "#PYLQ88",
           name: "Birch Lantern",
           clan_tag: "#J2RGCRVG",
           clan_name: null,
@@ -120,7 +120,7 @@ export const BATTLE = {
       },
       players: [
         {
-          player_tag: "#20GVLYJV9P",
+          player_tag: "#PYLQ99",
           name: "Harbor Moth",
           clan_tag: null,
           clan_name: null,
@@ -263,7 +263,7 @@ export const DUEL = {
       },
       players: [
         {
-          player_tag: "#JYRQ8U92C",
+          player_tag: "#PYLQ88",
           name: "Birch Lantern",
           clan_tag: "#J2RGCRVG",
           clan_name: null,
@@ -457,7 +457,7 @@ export const DUEL = {
       },
       players: [
         {
-          player_tag: "#UPJU8VJ09",
+          player_tag: "#PYLQ77",
           name: "Hydra",
           clan_tag: "#GQVLU28J",
           clan_name: null,

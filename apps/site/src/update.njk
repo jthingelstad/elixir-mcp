@@ -32,7 +32,7 @@ eleventyComputed:
 </p>
 
 <div style="display: flex; align-items: center; gap: 11px; flex-wrap: wrap; margin-bottom: 6px">
-  <span class="chip {% if u.kind == 'shipped' %}chip--ok{% elif u.kind == 'contract' %}chip--info{% else %}chip--warn{% endif %}">{{ u.kind }}</span>
+  <span class="chip {% if u.kind == 'shipped' %}chip--ok{% elif u.kind == 'contract' %}chip--info{% else %}chip--warn{% endif %}">{{ u.kind | capitalize }}</span>
   {%- if u.version %}
   <span class="mono" style="font-size: 12px; color: var(--ink-body); border: 1px solid var(--line-strong); border-radius: 6px; padding: 2px 7px">{{ u.version }}</span>
   {%- endif %}

@@ -3,7 +3,7 @@ slug: clan-season
 title: "Your clan's season record"
 description: "Recorded Clan Wars decks, war points and contributors across a season, with race-by-race totals and clear limits when reads are partial."
 section: clan
-order: 2.5
+order: 3
 navTitle: "Season"
 icon: calendar-days
 lede: "See the recorded season so far or a closed season, and follow its races in order."

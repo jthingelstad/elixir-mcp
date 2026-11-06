@@ -30,7 +30,7 @@ Agents use MCP. Programs use the **JSON API at
   `GET /api/v1/me` returns who you are to Elixir and the players you track,
   and, for a family app whose grant holds `account:email`, your `email` (the
   capability is offered to the family's own apps only; see
-  [Signing a person in](/docs/protocol#signing-a-person-in-with-elixir)).
+  [Signing a person in](/docs/connecting#signing-a-person-in-with-elixir)).
   `POST /api/v1/me/players` tracks a player for the signed-in person, the
   JSON API's `elixir_track_player`, and needs `recordings:write` on the
   grant. A person's read operations answer with the structured result of
@@ -149,7 +149,7 @@ person's grant.
 {
   "type": "departure_classified",
   "ref": "the app's own id for it",
-  "player_tag": "#2PPGY0Q8",
+  "player_tag": "#PYLQ88",
   "occurred_at": "2026-09-25T18:00:00Z",
   "detail": { "kind": "leave" }
 }
@@ -179,7 +179,7 @@ email is for by player tag:
   "kind": "clan_actions_waiting",
   "messages": [
     {
-      "player_tag": "#2PPGY0Q8",
+      "player_tag": "#PYLQ88",
       "subject": "2 actions waiting for you in Example Clan",
       "lines": ["Promote to Elder: Ada (new)", "Welcome a newcomer: Newbie"],
       "link": "https://elixir.poapkings.com/clan/2PQRJ8LV/today"
@@ -205,8 +205,8 @@ messages a call.
 `period_index`, `day_kind` (`training` or `war`), `war_day` (integer or
 `null`), `day_started_at`, `day_ends_at` and `notes` (strings). Its calendar is the
 same calculation as MCP's `game_clock`: days and seasons roll at **10:00 UTC**;
-seasons span first Monday to first Monday. It does not borrow a clan's observed
-river-race opening. `as_of` dates the calculation, not a collector observation.
+seasons span first Monday to first Monday. It does not borrow a clan's recorded
+river-race opening. `as_of` dates the calculation, not a collector reading.
 
 Consumers should use the supplied boundaries. Drop retains its FIFO rule:
 finalize the previous season successfully before caching the new clock. Existing
@@ -217,9 +217,9 @@ not carry the old season beyond its explicit end.
 
 `GET /players/{tag}` performs no live fetch. `observed_at` is the recorder's
 source timestamp, not the time the response was delivered. A known tag without a
-profile observation returns `404 not_recorded`. Names, clan and account age can
+profile reading returns `404 not_recorded`. Names, clan and account age can
 be incomplete; null means unknown, not zero. Tracking a player is not itself
-an observation.
+an reading.
 
 When a profile is missing or too old for your product, send:
 

@@ -130,13 +130,6 @@ export const SECTIONS = {
       { slug: "service-tokens", label: "Service tokens", ownerOnly: true },
     ],
   },
-  // The in-app charts. /data is the site's corpus page; under /console
-  // the paths no longer collide, so the bare section is just its page.
-  data: {
-    label: "Data",
-    authed: false,
-    pages: [{ slug: "dashboard", label: "Charts" }],
-  },
 };
 
 /**
@@ -282,11 +275,6 @@ export function railPosition(path) {
   }
   // Admin's rail's items are its pages.
   if (section === "admin") return { rail: "admin", key: page ?? "requests" };
-  // The in-app charts are the record in detail, reached from the site's /data
-  // page and the service page. They sit under Explore's rail with no item
-  // marked: losing the whole navigation on one route is worse.
-  if (section === "data" && page === "dashboard")
-    return { rail: "explore", key: "charts" };
   return {};
 }
 
@@ -303,7 +291,7 @@ export function barArea(path) {
   if (isLadder(path)) return "ladder";
   if (isClan(path)) return "clan";
   const section = (appPath(path) ?? "").split("/")[1];
-  return section === "explore" || section === "data" ? "search" : undefined;
+  return section === "explore" ? "search" : undefined;
 }
 
 const HOME_PATHS = new Set([HOME, `${HOME}/timeline`, `${HOME}/friends`]);
@@ -667,12 +655,18 @@ const APP_PATHS =
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {
     const path = location.pathname;
-    const owned = legalRoute(movedTo(path, location.hash) ?? path);
+    const target = movedTo(path, location.hash) ?? path;
+    const owned = legalRoute(target);
     if (owned === null) {
       // CloudFront only sends this app's own paths here, so anything else
-      // got here by a link inside the page and is a site document: load it.
-      if (typeof window !== "undefined" && !APP_PATHS.test(path))
-        window.location.replace(path);
+      // got here by a link inside the page, or moved onto the site (the old
+      // charts), and is a site document: load it.
+      if (typeof window !== "undefined" && !APP_PATHS.test(target))
+        window.location.replace(
+          target === path
+            ? path
+            : `${target}${location.searchStr ?? ""}${location.hash ? `#${location.hash}` : ""}`,
+        );
       throw notFound();
     }
     if (owned !== path)
@@ -811,12 +805,6 @@ const homeRoute = createRoute({
   ),
 });
 
-const dataRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: `${CONSOLE}/data/{-$page}`,
-  component: lazyRouteComponent(() => import("./views/Data.jsx"), "Data"),
-});
-
 export const routeTree = rootRoute.addChildren([
   homeRoute,
   signInRoute,
@@ -825,7 +813,6 @@ export const routeTree = rootRoute.addChildren([
   statusRoute,
   serviceRoute,
   adminRoute,
-  dataRoute,
   battleRoute,
   ladderRoute,
   createClanRoutes(rootRoute, {

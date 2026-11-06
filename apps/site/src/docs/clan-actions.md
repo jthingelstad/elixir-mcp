@@ -3,11 +3,12 @@ slug: clan-actions
 title: "Actions"
 description: "Clan's actions: the calls a clan's policy hands its leaders, elders and members, each kind and who gets it, when one appears and is withdrawn, how to decide one, the inactivity clock behind a removal, holds and away notices, the morning email, and Actions in the clan's Discord."
 section: clan
-order: 4
+order: 5
 navTitle: "Actions"
 icon: list-checks
 lede: "An action is one call the clan's policy hands to a person: promote, welcome, answer a departure. Clan suggests it with its evidence and words to send; the person decides, and makes the change in the game."
 reviewed: "2026-10-20; one voice for the clan's drafts, set in Settings; the drafted entry keeps the model's words for leaders; the leader and co-leaders open on Actions while Actions wait for them; 2026-10-12; a removal says what it rests on and what it cannot see; the Discord channel only receives; removal Actions raised again from the battle log, at the policy's removal day; a removal that no longer qualifies withholds its words; 2026-10-11; Actions in the clan's Discord: in order, forums, a role to mention, the last deliveries, each rated by a leader; contracts unchanged"
+guide: clan-actions
 ---
 
 # Actions
@@ -25,7 +26,7 @@ Roster names, current members in the award races, Standing and Season, and
 member Actions link to **View member activity**, a page for
 a current member of a clan you belong to (the counts are recorded game
 data; the page lives inside Clan). It shows four weeks,
-each from Monday's reset to the next, of clan-scoped recorded battle counts and observed donation counters, the
+each from Monday's reset to the next, of clan-scoped recorded battle counts and recorded donation counters, the
 recorded war weeks' deck usage and points, and paged battles grouped into
 recorded sessions. Each battle opens its full detail page. Weekly
 contributions and war weeks stay distinct; decks are never assigned to war days.
@@ -33,18 +34,18 @@ Battle modes use the same names as the battle detail page; an unrecognized
 mode retains its recorded name. Roster search is kept when opening activity,
 returning to the roster or refreshing the page.
 
-Battle detail is clipped to the member's current observed stint and only
+Battle detail is clipped to the member's current recorded stint and only
 battles whose participant names this clan. A returning player's earlier
 stint and other-clan play do not enter these counts. Donation counters are
-unknown for a week that starts before the current observed stint. Earlier
+unknown for a week that starts before the current recorded stint. Earlier
 war weeks are omitted; weekly totals crossing the stint or fixed read
 boundary remain unknown rather than being split into days. Missing or failed
 coverage reads remain unknown. Profile-counter intervals ending in the last
 seven days can show missing battles, but do not prove that the entire
-displayed window was observed. No recorded battle is not proof of no play.
+displayed window was seen. No recorded battle is not proof of no play.
 Saved Action evidence retains its original timestamp and policy version;
 the activity view is a new read. Removal eligibility is always checked
-against current profile observations.
+against current profile readings.
 
 ## The kinds
 
@@ -52,7 +53,7 @@ against current profile observations.
 |---|---|---|
 | Promote to Elder | the leader and co-leaders | clan chat |
 | Demote to Member | the leader and co-leaders | clan chat |
-| Remove from the clan ([the inactivity clock](#the-inactivity-clock)) | the leader and co-leaders | a line for clan chat |
+| Remove from the clan ([the inactivity clock](/docs/inactivity-clock#the-inactivity-clock)) | the leader and co-leaders | a line for clan chat |
 | Departure: kicked, left, or ignore? | the leader and co-leaders | none |
 | Welcome a newcomer | elders, co-leaders and the leader | a line for clan chat |
 | Going to be away? | the quiet member alone | none |
@@ -91,7 +92,7 @@ a week past the join.
   explains it, because a leave and a kick look the same in the record:
   say which, so the clan's history knows.
 - **Going to be away?** goes to a member who has reached at risk on the
-  [inactivity clock](#the-inactivity-clock), asking them before anyone
+  [inactivity clock](/docs/inactivity-clock#the-inactivity-clock), asking them before anyone
   else is.
 - An **announcement** is raised when a season's awards are decided, or
   when the leaders save a new version of the policy.
@@ -198,13 +199,13 @@ cannot guarantee readable delivery or identify every filter trigger. Elixir
 cannot verify game delivery or readability and never automatically resends.
 Completed decisions and saved receipts do not change.
 
-With the clan's own model set up under **Run ▸ Model & voice**, an open
+With the clan's own model set up under **Run › Model & voice**, an open
 message, welcome or removal action offers leaders and co-leaders
 **Draft in our voice**. It uses the
 clan's Anthropic key to draft a promotion, demotion, awards announcement
 or policy-change announcement, a welcome, or a chat line to use after a
 removal decision. After a leader confirms **Kicked** or **Left**, the departure
-Action can also draft a respectful departure message or farewell. An observed
+Action can also draft a respectful departure message or farewell. An recorded
 departure alone does not say which happened; an unconfirmed or ignored
 departure has no voice draft.
 
@@ -222,7 +223,7 @@ member and this clan rather than anyone's (2026-10-11):
   moves back to Member for now, never why; for the season's awards,
   each award with its winner and number; for a policy change, what the
   policy now says; for a welcome, the frozen return or recorded career
-  detail with when it was observed; for a confirmed departure, the
+  detail with when it was seen; for a confirmed departure, the
   leader's classification and the recorded tenure.
 - **The member**, by name: trophies and best, arena, career wins,
   collection level, time in the clan and any earlier stint, their recent
@@ -287,7 +288,7 @@ page keeps asking until it lands, for up to about 100 seconds.
 
 The clan's saved words in **Recruit** say what it is about, and **How
 our messages sound** in [Clan
-settings](/docs/clan-policy#clan-settings) says how it sounds: the
+settings](/docs/clan-settings#clan-settings) says how it sounds: the
 leaders' own words, given to the model as written (2026-10-20). They set
 the tone and the wording, never the facts: everything above still holds,
 and a voice never lifts a rule or adds to what is sent. The clan's
@@ -309,65 +310,6 @@ The worker checks for an existing reply before starting a request. A missing
 reply or claim is confirmed separately from denied access; a denied read of
 an existing object still fails without starting another model call.
 
-## The inactivity clock
-
-When the clan turns on **Suggest removals**, each member has a clock: the
-days since their last battle in Elixir's record, or since they joined if
-they have not battled since. A rise in the battle count on their profile
-between two reads is play too, so it can only move the clock forward.
-Logging in and collecting rewards are not battles. The clock passes
-**getting quiet**, then **at risk**, then the policy's **removal day**,
-each a number of days without a battle. On the removal day (plus any
-grace for meeting the minimums) the leader and co-leaders get a
-**Remove from the clan** Action; a member at risk is asked **Going to be
-away?** first, when the policy asks quiet members.
-The leader, co-leaders, members on a hold and, unless the clan allows
-it, Elders are shown as **Protected** on Member review and are never put up for
-removal.
-
-The clock waits only when it cannot be read: Elixir could not read the
-member's activity just now, or the player is no longer in the clan. The
-next run reads it again. Missing days of profile reads do not hold it.
-
-A removal Action says what it rests on. Its **Rests on** row names the
-member's last recorded battle, with its time and mode (or that no battle
-is recorded), when they joined (or that they were in the clan before
-recording began), and what the battle count on their profile did across
-Elixir's reads: when it last rose, or that it did not. Under it, every
-removal says: modes the battle log does not carry are not seen, so the
-leader weighs it. The clan's Discord and the morning email name only the
-Action and the member. A removal raised before this row existed keeps
-its saved evidence and still carries the sentence.
-
-A removal Action is withdrawn at the next evaluation when the member
-plays, with the reason in its log; its number, evidence and earlier
-decisions stay recorded. Every time a removal is opened, drafted,
-completed or reopened, Clan checks the current record again. A
-removal that no longer qualifies says so, and withholds its copy, model
-drafting, completion and reopening; leadership can still explicitly
-Decline it.
-
-Member review distinguishes **Protected**, **Not currently a removal candidate**,
-**Evidence held** and **Eligible**. Protected roles and recent recorded play
-do not become removal cases just because some coverage is incomplete. These
-labels keep evidence quality separate from relevance; they do not relax the
-current-evidence checks on an Action.
-Member review counts held promotion and demotion evidence separately from removal
-evidence; one member can appear in more than one count. Choose a Member review group
-to jump to its members. On a narrow screen, scroll the table sideways to read
-every column.
-
-Two things shield removal eligibility while active:
-
-- **A hold**, set by the leader or a co-leader on a member who said they
-  will be away. Silence is not a hold.
-- **An away notice**, set by the member under **Away**, up to the number
-  of days the clan allows. Leaders see it beside the member's name. It
-  waits until the member's player is verified.
-
-Neither resets the activity anchor nor subtracts held time from elapsed time.
-After it clears or expires, the current evidence and policy are assessed again.
-
 ## Who sees what
 
 **Actions** lists what is waiting for you and what closed in the last
@@ -383,64 +325,3 @@ while Actions are waiting for them, and on the roster when none are
 
 You need a verified player to decide or comment; until then you can
 read your own actions.
-
-## The morning email
-
-**Clan actions waiting** comes from Elixir in the morning, after the
-clan is read, when something new became yours to do: everything waiting
-for you, newest first, each with a line saying why it is waiting and a link
-straight to it. The subject leads with the action, and the number Discord uses
-stays out of the mail. It goes only to the
-account that verified the player, only while that player is in the
-clan, and at most once a day per clan. Turn it off on
-[Settings ▸ Emails](/settings/emails)
-([Turn an email off](/docs/turn-an-email-off)).
-
-## Actions in the clan's Discord
-
-The leader or a co-leader can connect a Discord webhook under
-**Run ▸ Discord** ([Clan settings](/docs/clan-policy#clan-settings)).
-From then on, every open action that leaders or elders can take is posted
-to that channel as one message: its number, what it is and who it is
-about, and a link to it here. When someone completes or declines it,
-the same message is edited to say so and by whom; when Clan withdraws it,
-the message says that. A declined action that is reopened reads as open
-again.
-
-- The channel only receives. An action is decided here, in Clan, never
-  from Discord; whether a leader may one day act from Discord (deciding an
-  action, a member marking themselves away) is deliberately left open
-  while we learn what clans do there. Clan does not answer questions in
-  Discord either: conversation is the [Discord bot](/family/discord)'s,
-  which a clan runs on its own keys.
-- Actions already open when the webhook is connected are posted too; one
-  that closes before it was ever posted is not.
-- A member's own **Going to be away?** prompt is never posted.
-- Messages name the member, removals included, so use a channel only the
-  clan's leaders can read. The link opens the action only for someone
-  signed in who could see it here.
-- Messages go out as Clan works: after a visit that raises or decides an
-  action, after the morning read, and a minute after each batch, so a
-  close is edited within minutes. They go in action number order, up to
-  ten at a time, spaced under Discord's limit for a channel; a long
-  backlog arrives over a few minutes.
-- Nothing pings anyone unless the leader or a co-leader names one Discord
-  role to mention (Settings, by the role's id). That role, and only it, is
-  mentioned when an action is first posted; an edit never mentions
-  anyone. Connecting a different webhook clears the role, since it may
-  be another server's channel.
-- A forum channel's webhook works: each action becomes a forum post of its
-  own, named for it, and its close is edited in that post. A webhook
-  ending in `?thread_id=` posts every action into that one thread.
-- Settings lists the last deliveries: posted, edited, refused (with what
-  Discord said), and those Discord never answered, which may be in the
-  channel and are never sent again (a duplicate is worse than a missing
-  message). It counts what did not arrive in the last 30 days. When
-  Discord refuses one action's message, only that one is skipped.
-- A leader or co-leader can rate each delivered message with 👍 or 👎,
-  and a note if they like: feedback to Elixir about that message from
-  their own account (Elixir cannot see the channel), and each sees only
-  their own.
-- Until a webhook is connected, **Today** suggests one to the
-  leader and co-leaders. If Discord stops taking it (the webhook was
-  deleted, say), posting stops and **Run ▸ Discord** and **Today** say so.

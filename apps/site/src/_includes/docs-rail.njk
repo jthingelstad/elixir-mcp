@@ -1,0 +1,50 @@
+{#- The docs' rail, on every article, the docs home and the examples: three
+    parents that fold, the one you are reading in open, with its sub-groups
+    and pages. Without JavaScript every parent still opens (a <details>) and
+    every link works. Below 900px it is one line that opens above the content,
+    never a drawer over it. The caller sets railOn (the row's id), railTop
+    (the parent to open) and railHere (the words beside Docs menu). -#}
+<aside class="siterail__nav" data-siterail data-open="false">
+  <label class="docs-search">
+    {% icon "search", 16 %}
+    <input type="search" placeholder="Search the docs" aria-label="Search the docs" data-docs-search autocomplete="off" />
+    <kbd>/</kbd>
+  </label>
+  <button type="button" class="siterail__head" data-rail-toggle aria-expanded="false" aria-controls="docs-rail">
+    <span class="siterail__head-title">Docs menu</span>
+    <span class="siterail__head-here">{{ railHere }}</span>
+    <span class="siterail__head-meta"><span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
+  </button>
+  <nav class="siterail__list" id="docs-rail" aria-label="Documentation" data-docs-list>
+    {%- for top in collections.docSections | docTops(examples) %}
+    <details class="docrail__group" data-docs-group{% if top.key == railTop %} open{% endif %}>
+      <summary class="rail__item docrail__summary">
+        <span class="docrail__label">{{ top.label }}</span><span class="docrail__count">{{ top.count }}</span>{% icon "chevron-right", 14 %}
+      </summary>
+      {%- for sub in top.subs %}
+      <div class="docrail__subgroup" data-docs-sub>
+        <div class="docrail__sub">{{ sub.label }}</div>
+        {%- for r in sub.rows %}
+        <a class="rail__child{% if r.family %} docrail__family{% endif %}{% if r.id == railOn %} rail__child--on{% endif %}" href="{{ r.href }}"{% if r.id == railOn %} aria-current="page"{% endif %} data-search="{{ r.search | lower }}">
+          {{- r.title }}
+          {%- if r.gen %}<span class="rail__gen" title="Generated from the MCP tool registry">gen</span>{% endif -%}
+        </a>
+        {#- The tools of the family you are reading, each a link to its own heading. -#}
+        {%- if r.family and r.id == railOn %}{% for h in railOutline %}
+        <a class="rail__child rail__child--deep mono" href="#{{ h.id }}" data-search="{{ h.id }}">{{ h.id }}</a>
+        {%- endfor %}{% endif %}
+        {%- endfor %}
+      </div>
+      {%- endfor %}
+    </details>
+    {%- endfor %}
+  </nav>
+  <div class="siterail__foot">
+    <p class="docrail__note">Your agent reads these same pages as <code>elixir_docs</code>.</p>
+    <div class="siterail__chips">
+      <a href="/llms.txt">{% icon "file-text", 14 %}llms.txt</a>
+      <a href="/tools.json">{% icon "braces", 14 %}tools.json</a>
+      <a href="/feed.xml">{% icon "rss", 14 %}feed.xml</a>
+    </div>
+  </div>
+</aside>

@@ -1,0 +1,42 @@
+---
+layout: base.njk
+navActive: docs
+title: "Examples"
+description: "Real exchanges with a connected AI, each one start to finish: what was asked, the tools that answered, and what you need to set it up."
+permalink: /examples/index.html
+canonical: /examples
+---
+{#- The examples' own front door (redesign step 7): the bar used to go straight
+    to the first one. Seven here, three listed under Build in the rail. The
+    leads are each example's own lede, from _data/examples.js. -#}
+{%- set railOn = "examples" %}
+{%- set railTop = "connect" %}
+{%- set railHere = "All examples" %}
+{%- set railOutline = [] %}
+<div class="siterail siterail--docs">
+  {% include "docs-rail.njk" %}
+  <div class="siterail__body">
+    <nav class="docs__crumb" aria-label="Breadcrumb">
+      <a href="/docs">Docs</a><span aria-hidden="true">/</span><span>Connect an AI</span><span aria-hidden="true">/</span><span aria-current="page">Examples</span>
+    </nav>
+    <h1 class="hero-title docs__title">Examples</h1>
+    <p class="docs__lede">{{ description }}</p>
+    {%- for g in examples %}{% if g.group != "For builders" %}
+    <section class="panel" style="margin-bottom: 18px">
+      <div class="panel__head"><h2 style="font-size: 15px; font-weight: 600; margin: 0">{{ g.group }}</h2></div>
+      {%- for c in g.cases %}
+      <a class="examples-row" href="/examples/{{ c.key }}">
+        <span class="examples-row__title">{{ c.label }}</span>
+        <span class="examples-row__lede">{{ c.lede | safe }}</span>
+        <span class="examples-row__go">Read it</span>
+      </a>
+      {%- endfor %}
+    </section>
+    {%- endif %}{% endfor %}
+    <p class="footnote">
+      Three more are for builders: Answer your clanmates, Publish your own stats and Run a collector.
+      <a href="/docs/integrations">Build &amp; reference &rsaquo;</a>
+    </p>
+  </div>
+</div>
+<script defer src="{{ "/assets/site-rail.js" | asset }}"></script>

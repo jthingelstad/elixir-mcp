@@ -6,9 +6,9 @@ import { JSDOM } from "jsdom";
 import configure from "../eleventy.config.mjs";
 import stats from "../src/_data/stats.js";
 
-test("published growth excludes removed counts and distinguishes the window from all retained history", async () => {
+test("the published chart excludes removed counts and distinguishes the window from the whole record", async () => {
   const render = await RenderPlugin.File(
-    fileURLToPath(new URL("../src/data/growth.njk", import.meta.url)),
+    fileURLToPath(new URL("../src/data/index.njk", import.meta.url)),
     { config: configure },
   );
   const series = [
@@ -27,20 +27,21 @@ test("published growth excludes removed counts and distinguishes the window from
   const document = new JSDOM(html).window.document;
   const text = document.body.textContent.replace(/\s+/g, " ");
   assert.match(text, /5 retained battles in this 120-day window/);
-  assert.match(text, /full retained record contains 12 battles/);
-  assert.match(text, /Snapshot fetched 2026-10-06 07:34Z/);
-  assert.match(text, /Removed records are excluded/);
+  assert.match(text, /full record holds 12 battles/);
+  assert.match(text, /Last counted/);
+  assert.match(text, /Removed records are left out/);
   assert.doesNotMatch(
     text,
     /Full history is deliberate|retention policy comes/,
   );
-  const titles = [...document.querySelectorAll("rect title")].map(
-    (title) => title.textContent,
-  );
-  assert.equal(titles.length, 120, "gaps remain real zero days");
-  assert.ok(titles.includes("2026-09-13 · 3 battles"));
-  assert.ok(titles.includes("2026-09-14 · 0 battles"));
-  assert.ok(!titles.some((title) => title.includes("2026-01-03")));
+  // The page draws a wide and a narrow window; the wide one is the 120 days.
+  const shown = [
+    ...document.querySelectorAll('[data-chart="wide"] rect title'),
+  ].map((title) => title.textContent);
+  assert.equal(shown.length, 120, "gaps remain real zero days");
+  assert.ok(shown.includes("Sep 13: 3 battles"), shown.at(-1));
+  assert.ok(shown.includes("Sep 14: 0 battles"));
+  assert.ok(!shown.some((title) => title.includes("Jan 3")));
 
   const reduced = await render({
     stats: {
@@ -57,10 +58,10 @@ test("published growth excludes removed counts and distinguishes the window from
     /2 retained battles in this 120-day window/,
   );
   assert.equal(
-    [...remaining.querySelectorAll("rect title")].find((title) =>
-      title.textContent.startsWith("2026-09-13"),
+    [...remaining.querySelectorAll('[data-chart="wide"] rect title')].find(
+      (title) => title.textContent.startsWith("Sep 13"),
     ).textContent,
-    "2026-09-13 · 0 battles",
+    "Sep 13: 0 battles",
     "a removed daily population does not survive in the chart",
   );
 });
@@ -88,26 +89,4 @@ test("stats loader timestamps the fetched snapshot and preserves the current ret
     if (skip === undefined) delete process.env.ELIXIR_SKIP_STATS;
     else process.env.ELIXIR_SKIP_STATS = skip;
   }
-});
-
-test("the mobile Data disclosure names the current retained-history page", async () => {
-  const render = await RenderPlugin.File(
-    fileURLToPath(new URL("../src/_includes/data-page.njk", import.meta.url)),
-    {
-      config(config) {
-        configure(config);
-        config.addFilter("asset", (url) => url);
-      },
-    },
-  );
-  const html = await render({ dataNav: "growth", content: "Chart" });
-  const document = new JSDOM(html).window.document;
-  assert.equal(
-    document.querySelector(".siterail__head-here").textContent,
-    "Retained history",
-  );
-  assert.equal(
-    document.querySelector('[aria-current="page"]').getAttribute("href"),
-    "/data/growth",
-  );
 });

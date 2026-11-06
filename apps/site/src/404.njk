@@ -18,14 +18,16 @@ noindex: true
   <h1 class="hero-title m-0">Nothing at this address</h1>
   <p class="docs__lede m-0">
     Elixir has no page here. The link may be old, or mistyped. Your record
-    is where it was: start from Home or the docs.
+    is where it was: start from home or the docs.
   </p>
-  <div class="flex flex-wrap items-center gap-3">
-    <a class="btn btn--primary" href="/home">Go to Home</a>
+  <div class="flex flex-wrap items-center gap-3" data-session-face="out">
+    <a class="btn btn--primary" href="/">Elixir home</a>
+    <a class="btn" href="/docs">Read the docs</a>
+    <a class="btn btn--quiet" href="/signin">Sign in</a>
+  </div>
+  <div class="flex flex-wrap items-center gap-3" data-session-face="in">
+    <a class="btn btn--primary" href="/home">Open Home</a>
     <a class="btn" href="/docs">Read the docs</a>
   </div>
-  <p class="footnote m-0">
-    Looking for a battle? A battle&rsquo;s page lives at
-    <span class="mono">/battle/&lt;id&gt;</span>, and the link Elixir gave you names it.
-  </p>
 </section>
+<script src="{{ "/assets/not-found.js" | asset }}"></script>

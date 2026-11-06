@@ -2,8 +2,8 @@
 slug: choosing-a-tool
 title: "Choosing a tool"
 description: "Which tool answers which shape of question, the four call sequences most answers follow (how am I doing, scout a bracket, name to tag to drill, how have I moved), and the conventions every tool shares on one screen: defaults, windows, verbosity, notes and docs, live reads and the timezone argument."
-section: agent
-order: 3
+section: connect
+order: 4
 navTitle: "Choosing a tool"
 icon: compass
 lede: "The tool reference is exhaustive. This page is the map: question in, tool out."
@@ -31,7 +31,7 @@ conventions that hold everywhere.
 | Which clanmates played this exact deck? | `battles_decks` for a `deck_hash`, then `battles_query({ deck_hash })` without `player_tag`, and compare the returned tags with `clans_roster`; this is exact deck evidence, not a playstyle similarity score |
 | Who has gone quiet? | `clans_roster`, reading `last_seen_in_game` beside `last_recorded_battle` |
 | What is waiting for me in Clan, and how do I stand there? | `clans_my_view` (your own connection only: the policy summary, your own standing line and the Actions waiting for you, each with a link to decide it in Clan; never another member's line or a removal) |
-| Who should be promoted, demoted or removed? | Elixir serves the facts and the clan decides: `clans_participation` (war decks, battles and donations per member per week), `clans_standings` (win rate and activity over a window, with who joined mid-window and whose battles were not captured), and `clans_roster` (role, tenure, `last_seen_in_game`). Read a member's week with the capture note in view: a low count can be a capture gap. |
+| Who should be promoted, demoted or removed? | Elixir serves the facts and the clan decides: `clans_participation` (war decks, battles and donations per member per week), `clans_standings` (win rate and activity over a window, with who joined mid-window and whose battles were not recorded), and `clans_roster` (role, tenure, `last_seen_in_game`). Read a member's week with the recording note in view: a low count can be a recording gap. |
 | What did every member do this week, and the weeks before? | `clans_participation` (battles, ranked battles and donations per member per week, and war decks used per race week, in one call) |
 | How has the clan moved over the season: score, war trophies, members, the members' trophies? | `clans_timeline` (one point per game day, with the aggregates over the members' rows) |
 | How has each member's trophies or rank moved day by day? | `clans_members_timeline` (every member's day series in one call; compact for first, last and delta) |
@@ -77,12 +77,12 @@ before quoting a number.
 then `war_rivals` for what the record knows about each rival, then, for the
 one that matters, `war_current({ clan_tag, live: true })` or
 `clans_roster({ clan_tag, live: true })`: a fresh read of any clan, recorded
-or not — served at once if one is in hand, otherwise queued while the record
+or not, served at once if one is in hand, otherwise queued while the record
 answers with `live_status.state: "pending"` and when to call again.
 If a rival's recorded roster returns `not_recorded`, follow its exact
 `clans_roster({ clan_tag, live: true })` retry hint; `live_pending` means wait
 `retry_after_s` and repeat, not that the roster is unobtainable. A live read
-records that observation but does not start an ongoing clan watch.
+records that reading but does not start an ongoing clan watch.
 
 **Name to tag to drill.** `players_search({ query })` resolves a name (your
 nicknames and clanmates rank first), then any player tool with the tag. In
@@ -108,7 +108,7 @@ trophies and the ranked standing, so the two sides of it are not one series.
   for); when that clan is not recorded, or there is none, the call is
   refused with the fixing call in the hint, never answered for another
   clan. Nothing is looked up first.
-- **Segment tools name a subject.** `battles_trends`, `cards_card` and `badges_*` require `"mine"` (your clan), `{player_tag}` or `{clan_tag}`. A clan read describes its current members. There is no corpus segment.
+- **Segment tools name a subject.** `battles_trends`, `cards_card` and `badges_*` require `"mine"` (your clan), `{player_tag}` or `{clan_tag}`. A clan read describes its current members. There is no record segment.
 - **Windows are `from`/`to`**, ISO instants or `YYYY-MM-DD` resolved in the
   account's timezone; a date-only `to` covers that whole day. The daily
   series (`players_timeline`, `clans_timeline`, `clans_members_timeline`)
@@ -148,8 +148,8 @@ trophies and the ranked standing, so the two sides of it are not one series.
 Two tools read Clan, each for one kind of connection. A person's own
 connection uses `clans_my_view` for that person's own view (the policy
 summary, their standing line, the Actions waiting for them), for a player
-they have verified; see [Your own view](/docs/clan-policy#your-own-view).
+they have verified; see [Your own view](/docs/clan-your-own-view#your-own-view).
 An assigned agent with an explicit private-context grant uses `clans_context`
 for its clan’s declared war intent and policy revision. It accepts no clan tag;
 game reads and clan assignment alone do not grant this private access. See
-[Agent context](/docs/clan-policy#agent-context).
+[Agent context](/docs/clan-agent-context#agent-context).

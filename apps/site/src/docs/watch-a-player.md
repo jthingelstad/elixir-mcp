@@ -7,8 +7,8 @@ order: 2
 navTitle: "Watch any player"
 icon: eye
 lede: "Any player with a tag can be tracked. Adding one is recording it, from the next read on, and a watched player gets a line in your Wednesday email."
-console: ["Track a player", "/settings/players", "Settings ▸ Players"]
 reviewed: "2026-10-01 against contract 9.17.1"
+callout: ["Open it at Settings › Players & tracking and tracking", "/settings/players", "Open Players and tracking"]
 ---
 
 # Watch any player
@@ -20,7 +20,7 @@ starts with (your first player is your primary), and the only one an
 
 ## Adding a player
 
-**Settings ▸ Players ▸ Track a player**: enter the tag and press
+**Settings › Players & tracking › Track a player**: enter the tag and press
 **Track**. Through a [connected app](/docs/connections), `elixir_track_player`
 with the tag; with no `relationship` it watches.
 
@@ -35,7 +35,7 @@ has the schedule and what each read reads.
 ## Slots
 
 Every tracked player takes one of your player slots, whatever
-the relationship; **Settings ▸ Players** shows how many you use. When
+the relationship; **Settings › Players & tracking** shows how many you use. When
 they are full, adding another is refused until you remove one or your limits
 rises: lead a clan you track, or run a collector.
 [Roles and limits](/docs/roles#upgrades) has the numbers.

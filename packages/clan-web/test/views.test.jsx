@@ -238,9 +238,7 @@ describe("the landing page", () => {
         "/signin?signup&return_to=%2Fclan",
       );
     expect(
-      screen
-        .getByRole("link", { name: "Sign in with Elixir" })
-        .getAttribute("href"),
+      screen.getByRole("link", { name: "Sign in" }).getAttribute("href"),
     ).toBe("/signin");
     expect(
       screen.getByText(

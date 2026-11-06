@@ -154,10 +154,6 @@ test("Settings' rail: seven places, and Collectors for who runs one", () => {
 test("Explore is its own rail, and a page says which rail it wears", () => {
   expect(EXPLORE_RAIL[0].to).toBe("/console/explore");
   expect(railPosition("/console/explore/player/2ABC").rail).toBe("explore");
-  expect(railPosition("/console/data/dashboard")).toMatchObject({
-    rail: "explore",
-    key: "charts",
-  });
   expect(settingsHere("/settings/usage").key).toBe("usage");
   expect(railPosition("/console/admin/emails").rail).toBe("admin");
 });

@@ -47,7 +47,7 @@ export const clanContextTools = {
         notes: notes(
           "policy_saved_at is save provenance; read_at times this current read. Unknown or failed context must defer the affected routine.",
         ),
-        docs: docsRef("clan-policy", "agent-context"),
+        docs: docsRef("clan-agent-context", "agent-context"),
         meta: responseMeta({ as_of: context.read_at }),
       };
     },
@@ -93,7 +93,7 @@ export const clanContextTools = {
             ? "Some Actions are shown only in Elixir Clan: open the clan's Actions list there for every Action waiting for you."
             : null,
         ),
-        docs: docsRef("clan-policy", "your-own-view"),
+        docs: docsRef("clan-your-own-view", "your-own-view"),
         meta: responseMeta({ as_of: view.read_at }),
       };
     },

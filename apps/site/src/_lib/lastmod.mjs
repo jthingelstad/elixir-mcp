@@ -151,7 +151,11 @@ export function makeLastmod({ pages, data, pageUrl }) {
     const dates = url.startsWith("/updates/") ? [] : [committed(template)];
     for (const [re, extra] of EXTRA)
       if (re.test(url)) dates.push(...extra.map((f) => committed(src(f))));
-    if (url.startsWith("/updates/")) dates.push(updateDate(p.data.u));
+    // A month's page is the newest of the entries it lists.
+    if (url.startsWith("/updates/"))
+      dates.push(
+        ...(p.data.u ? [p.data.u] : (p.data.m0?.items ?? [])).map(updateDate),
+      );
     if (url.startsWith("/cards")) dates.push(data.catalogAsOf);
     if (STATS.test(url) && data.stats?.ok) dates.push(data.stats.fetched_at);
     // Generated from the tool registry: every change to it is a contract

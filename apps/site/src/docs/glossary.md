@@ -3,7 +3,7 @@ slug: glossary
 title: "Glossary"
 description: "The words Elixir MCP uses, each in a sentence or two: recorded and tracked, claims and relationships, scope and segment, decided battles and head-to-head, the game day, series, stamps, kinds and the four trophy kinds, the policy day and war vocabulary, forms and deck identity, principals and budgets, and the response fields and controls that carry caveats."
 section: record
-order: 8
+order: 12
 navTitle: "Glossary"
 icon: book-a
 lede: "Sixty-odd words the service uses precisely, so a search for one of them finds the page that uses it."
@@ -17,60 +17,60 @@ and notes; when a note says "decided" or "policy day", this is what it means.
 
 ## The record
 
-**recorded** — a subject the service is capturing, or has captured: its
+**recorded**: a subject the service is recording, or has recorded: its
 history is in the record. Everything recorded is readable by every account;
 with no account, only a battle's own page opens (see [Privacy](/docs/privacy)).
 
-**tracked** — a subject on *your* account: you asked for it to be recorded
+**tracked**: a subject on *your* account: you asked for it to be recorded
 with `elixir_track_player` or `elixir_track_clan`, and it occupies one of
 your slots. Tracked means recorded; there is no separate watch step. See [Recording](/docs/recording#added-means-recorded).
 
-**claim** — the link between your account and a player tag you track. Claims
+**claim**: the link between your account and a player tag you track. Claims
 are taken at your word (`claim_status: unverified`) until
 [Verify](/docs/verify) proves one, and several accounts may track the same
 player and share one recording. A verified player is its owner's alone: no
 other account may hold it as its primary or an alt (a friend or watching is
 fine), and such a claim ends when the player is verified.
 
-**relationship** — who a tracked player is to you: `primary` (you; exactly
+**relationship**: who a tracked player is to you: `primary` (you; exactly
 one), `alt` (also you, another tag), `friend`, or `watching` (the default).
 The primary is what omitting `player_tag` means on a personal connection,
 and its current clan is what omitting `clan_tag` means. It is never
 reassigned for you: removing it is refused while you track other players
 (make another primary first).
 
-**reason** — why a subject is recorded: claimed, or tracked as a clan. Only
+**reason**: why a subject is recorded: claimed, or tracked as a clan. Only
 people's tracking is a reason. The widest reason wins; the recording stops
 only when no reason remains. See [One recording, many reasons](/docs/recording#added-means-recorded).
 
-**scope** — how deeply a clan is recorded. `activity` polls the roster,
+**scope**: how deeply a clan is recorded. `activity` polls the roster,
 current race and race log; `comprehensive` also records every current
 member's battles and profile, following joins and leaves.
 
-**record** — the history Elixir stores for players and clans people follow, including opponents who appeared in their games.
+**record**: the history Elixir stores for players and clans people follow, including opponents who appeared in their games.
 
-**segment** — the player or clan named for a read: `"mine"` (your clan), `{player_tag}` or `{clan_tag}` (current members). `segment` is required on tools that use it.
+**segment**: the player or clan named for a read: `"mine"` (your clan), `{player_tag}` or `{clan_tag}` (current members). `segment` is required on tools that use it.
 
-**owned card collection** — the cards and forms a player owns, recorded from their profile and read with `players_collection`.
+**owned card collection**: the cards and forms a player owns, recorded from their profile and read with `players_collection`.
 
-**capture gap** — a stretch the recorder did not see: a burst that rolled off
-the ~30-battle log between polls, a week observed without a standings
-capture, a subject nobody polled. `elixir_coverage` measures it for a player;
+**recording gap**: a stretch the recorder did not see: a burst that rolled off
+the ~30-battle log between polls, a week seen without a standings
+recording, a subject nobody polled. `elixir_coverage` measures it for a player;
 a `null` in a war week reports it rather than writing zero.
 
-**freshness** — the age of the oldest relevant poll behind an answer,
+**freshness**: the age of the oldest relevant poll behind an answer,
 `meta.freshness_seconds`; `null` when a required source has never been polled.
 
-**completeness** — how much of a player's expected play the record actually
+**completeness**: how much of a player's expected play the record actually
 holds, from `elixir_coverage`; `meta.completeness_note` appears when it is
 known to be short.
 
-**collector** — a volunteer machine that fetches Clash Royale data with its own
+**collector**: a volunteer machine that fetches Clash Royale data with its own
 API key and posts it back; the fleet the recorder runs on. Anyone signed in may
 run one: raising a hand approves it, and every result must pass the admission
 checks. See [Running a collector](/docs/operators).
 
-**live lane** — the one path that reaches the Clash Royale API at read time:
+**live lane**: the one path that reaches the Clash Royale API at read time:
 `live_fetch`, and `live: true` on `players_profile`, `clans_roster`,
 `war_current`, `battles_query`. Asynchronous: a fresh
 read is served if in hand, otherwise queued for the next collector and
@@ -78,37 +78,37 @@ answered from the record with `live_status`. Capped per day by tier.
 
 ## Battles and numbers
 
-**decided battle** — a head-to-head battle whose outcome is a win or a loss.
+**decided battle**: a head-to-head battle whose outcome is a win or a loss.
 Draws, unresolved outcomes and boat battles are not decided.
 `decided_battles = decided_wins + decided_losses`.
 
-**decided_battles vs battles** — `battles` is every recorded battle in a
+**decided_battles vs battles**: `battles` is every recorded battle in a
 window; `decided_battles` is the win-rate denominator. The difference is
 draws, unresolved outcomes and boat battles. See
-[Decided battles and denominators](/docs/battles#decided-battles-and-denominators).
+[Decided battles and denominators](/docs/reading-the-numbers#decided-battles-and-denominators).
 
-**head-to-head** — a battle with opposing sides, as against a boat battle
+**head-to-head**: a battle with opposing sides, as against a boat battle
 (an attack on a static defense). `three_crown_rate` is over head-to-head
 battles.
 
-**duel** — a river-race duel of up to three games, recorded as one row:
+**duel**: a river-race duel of up to three games, recorded as one row:
 crowns summed, `deck_hash` null, decks under `deck.rounds[]`. Each round is
 also a game of its own, with its own deck and result. The record keeps
 each round’s deck identity and outcome.
 
-**boat battle** — a river-race battle at a boat, `type_class: "boat"`. A
+**boat battle**: a river-race battle at a boat, `type_class: "boat"`. A
 boat **attack** (the member attacking a rival's boat defense) is the member's
 battle: it spends a war deck and counts in `battles` and `wins`, outside
 every decided denominator. A boat **defense** (a rival attacking the
 member's boat, answered by the defense deck) is not the member's battle: it
 is left out of battles, wins, losses and streaks on every surface.
 
-**both perspectives** — every battle is one row seen from each participant's
+**both perspectives**: every battle is one row seen from each participant's
 side; `me`, `teammates` and `opponents` are relative to the tag asked about.
 
-**player-battle observation** — a recorded game from one participant's perspective. Opponents remain part of the complete game; two perspectives are not independent matches.
+**player-battle reading**: a recorded game from one participant's perspective. Opponents remain part of the complete game; two perspectives are not independent matches.
 
-**timeline** — `elixir_timeline`: what happened to the players and clans you
+**timeline**: `elixir_timeline`: what happened to the players and clans you
 track since your read pointer, as items newest first (battle sessions, named
 moments, roster and war moments, presence) plus one summary entry per
 subject. A **session** is a run of one player's battles with no gap of 30
@@ -116,31 +116,31 @@ minutes or more.
 
 ## War and the clock
 
-**policy day** — the day the recorder keeps for every clan, rolling at
+**policy day**: the day the recorder keeps for every clan, rolling at
 10:00 UTC, instead of each race's drifting reset. See
 [The policy day](/docs/clocks#the-policy-day).
 
-**war day** — `war_day`, 1-based: battle days 1 to 4 of a war week; `null`
+**war day**: `war_day`, 1-based: battle days 1 to 4 of a war week; `null`
 on a training day.
 
-**day_in_week** — 0-based position in the week: 0 to 2 training, 3 to 6
+**day_in_week**: 0-based position in the week: 0 to 2 training, 3 to 6
 battle days.
 
-**period, section, week, season** — one policy day; the game's word for a
+**period, section, week, season**: one policy day; the game's word for a
 week (0-based `section_index`); the same week 1-based; first Monday of the
 month to first Monday of the next.
 
-**Colosseum** — the final section of every season, scored differently in the
+**Colosseum**: the final section of every season, scored differently in the
 game; its practice days still report as training.
 
-**points vs fame** — points are what each member contributes to the race;
+**points vs fame**: points are what each member contributes to the race;
 fame belongs to the boat, the clan's total. Fame is never divided among
-members here. See [War weeks, points and fame](/docs/battles#war-weeks-points-and-fame).
+members here. See [War weeks, points and fame](/docs/decks-and-war#war-weeks-points-and-fame).
 
-**boat** — the clan's river-race vessel: the thing fame accrues to and the
+**boat**: the clan's river-race vessel: the thing fame accrues to and the
 thing a boat battle attacks.
 
-**clan_score** — two different numbers share this name in the API. On the war
+**clan_score**: two different numbers share this name in the API. On the war
 tools it is the clan's WAR trophies going into a race (1,200-ish for a
 mid-ladder clan), served as `clan_war_trophies` (`our_clan_war_trophies` on
 `war_history.weeks`): on `war_current.standings[]`, the exact week's
@@ -150,41 +150,41 @@ figure the clan ladder ranks by (about a hundred times larger), is
 `clans_roster.clan_score` (and the `clan_score` metric on
 `clans_timeline`, beside `clan_war_trophies`).
 
-**repair_points** — what repairing the boat cost in a race: per clan on the
+**repair_points**: what repairing the boat cost in a race: per clan on the
 standings, per member on participation. Never fame, never points.
 
-**PoL, Trophy Road** — Path of Legends is the ranked ladder (`mode:
+**PoL, Trophy Road**: Path of Legends is the ranked ladder (`mode:
 "ranked"`, with `league_number`); Trophy Road is the trophy ladder
 (`mode: "ladder"`).
 
-**game day** — the day every daily series and the war grid are keyed by:
+**game day**: the day every daily series and the war grid are keyed by:
 the date whose 10:00 UTC start an instant falls after, pure UTC arithmetic,
 so a season roll and a war day never straddle a row. `day` on a point is a
 game day; the year graphic on a player's page is on UTC calendar days
 instead. See [The game day](/docs/clocks#the-game-day).
 
-**series** — a day-grained history read as points: `players_timeline`,
+**series**: a day-grained history read as points: `players_timeline`,
 `clans_timeline` and `clans_members_timeline`, one point per game day, the
-last observation of the day winning. A series takes `from`/`to` as game
+last reading of the day winning. A series takes `from`/`to` as game
 days and floors an instant to its day, saying so under
 `applied.window.floored`.
 
-**stamp** — the instant that produced a value: `observed_at` (a point's
-newest observation of either writer), `profile_observed_at` (the profile
+**stamp**: the instant that produced a value: `observed_at` (a point's
+newest reading of either writer), `profile_observed_at` (the profile
 poll that wrote the lifetime block; `clans_roster.lifetime` carries it
 too), `roster_observed_at` (the roster poll that wrote
 the clan columns), and on war and roster events `started_observed_at`,
 `finished_observed_at`, `joined_observed_at`. Null means that writer never
 touched the row.
 
-**source** — where a value came from, said locally each time: on a series
+**source**: where a value came from, said locally each time: on a series
 point, `api` (a recorded payload) or `elixir-bot` (the import from POAP
 KINGS' earlier bot); on `applied.window`, `argument`, `default`,
 `unbounded`, `season`, `fixed` or, on `elixir_timeline`, `pointer`; on
 `trophy_floor`, how the floor was learned; on a `players_search` match, what
 matched.
 
-**badge label** — a badge the way a player says it. The API names a
+**badge label**: a badge the way a player says it. The API names a
 badge by the game's internal identifier and carries no display name, so
 `MasterySkeletonWarriors` is served as `label` `Guards Mastery` beside
 its `name` on `players_profile`, `badges_rarity` and `badges_holders`,
@@ -198,13 +198,13 @@ A near-miss or a misspelling is refused with the closest badges. The original an
 players, so `badges_rarity` quotes each pair as distinct players and how
 many hold both, and `badges_holders` names the other half of a pair.
 
-**since** — on a `badges_holders` row, when the record first saw the badge
+**since**: on a `badges_holders` row, when the record first saw the badge
 at its current level and progress. The row's `observed_at` is the last
 profile poll that read it, as everywhere else. A `since` at the start of
 recording, or just after the player joined, is a first sighting, not when
 the badge was earned.
 
-**kind** — a local enum, five of them: a series point's snapshot kind
+**kind**: a local enum, five of them: a series point's reading kind
 (`daily`, `pre_reset`, `season_roll`); a timeline item's kind
 (`battle_session`, `ranked_promotion` and the rest, on
 [Timeline](/docs/timeline)); a war period's kind (`war` or `training`; a
@@ -212,19 +212,19 @@ Colosseum week is `is_colosseum`, not a kind); a badge's kind (`one_off`,
 `tiered`); an entry's kind
 (`player_activity`, `clan_activity`). `crosses[].kind` is always `season`.
 
-**progress bucket** — one of the profile's side ladders (the seasonal
+**progress bucket**: one of the profile's side ladders (the seasonal
 Trophy Road, 2v2 League, Merge Tactics), each with its own trophies, best
 trophies and arena, keyed by the game's own `progress` key and read with
 `players_timeline({ progress_key })`. A bucket at zero is not a row.
 
-**the four trophy kinds** — `trophies` is Trophy Road, the number on the
+**the four trophy kinds**: `trophies` is Trophy Road, the number on the
 profile (`best_trophies` its peak); `season_trophies` is the API's legacy
 `leagueStatistics` mirror of Trophy Road, with a frozen best in
 `season_best_trophies`, and NOT the seasonal Trophy Road, which is a
 progress bucket (above) read with `progress_key`; `pol_trophies`
 is the Path of Legends standing carried in that player's own profile.
 
-**league_number** — the API's own `leagueNumber`, passed through
+**league_number**: the API's own `leagueNumber`, passed through
 unchanged. On a battle row it is the value the battle log carried: the
 API sends one on battles that are not ranked too, so it names a Path of
 Legends league only on a `pathOfLegend` battle, where it is the league the
@@ -233,33 +233,33 @@ current Path of Legends season result that day. The record does not interpret th
 promotion names the leagues beside it (`from_name`, `to_name`). The profile's
 `path_of_legend` object keeps the API's own `leagueNumber`.
 
-**tenure, YearsPlayed** — how long an account has existed, read from the
+**tenure, YearsPlayed**: how long an account has existed, read from the
 `YearsPlayed` badge; unknown when the badge is absent, which is usually an
 account under a year old.
 
 ## Cards and decks
 
-**deck_hash** — a deck's identity: SHA-256 over sorted card ids with their
+**deck_hash**: a deck's identity: SHA-256 over sorted card ids with their
 forms plus the tower troop, never levels. See
-[Deck identity and forms](/docs/battles#deck-identity-and-forms).
+[Deck identity and forms](/docs/decks-and-war#deck-identity-and-forms).
 
-**form** — which variant of a card was played: `"base"`, `"evolution"` or
+**form**: which variant of a card was played: `"base"`, `"evolution"` or
 `"hero"`, the one spelling on every card object (the API's
 bit field `evolutionLevel`, 1 = Evolution, 2 = Hero, 3 = both, is decoded
 into it, and into the `forms_available` / `forms_unlocked` sets on the
 catalog and collections). Part of deck identity; never a level. See
 [Cards](/docs/cards).
 
-**type** — a card's kind: `troop`, `building`, `spell` or `tower_troop`,
+**type**: a card's kind: `troop`, `building`, `spell` or `tower_troop`,
 derived from the id range because the API carries no type field.
 
-**tower troop** — the card in the princess-tower slot (Tower Princess, Cannoneer,
+**tower troop**: the card in the princess-tower slot (Tower Princess, Cannoneer,
 Dagger Duchess, ...); part of deck identity.
 
-**maxLevel vs maxLevelRarityScale** — the in-game 1 to 16 cap every recorded
+**maxLevel vs maxLevelRarityScale**: the in-game 1 to 16 cap every recorded
 tool uses, and the API's per-rarity cap that only `live_fetch` payloads show.
 
-**deck_selection** — how the deck a battle was played with was chosen:
+**deck_selection**: how the deck a battle was played with was chosen:
 `collection` is the player's own deck, and `warDeckPick` a river-race duel
 deck picked from their own war decks. `draft`, `draftCompetitive`, `pick`,
 `predefined` and the like describe decks handed out or drafted for that
@@ -268,32 +268,32 @@ battle. The recorded value appears inside `context` on full-verbosity
 
 ## Principals and the service
 
-**door** — an MCP endpoint: `/mcp` for a person, `/a/<public_id>/mcp` for an
+**door**: an MCP endpoint: `/mcp` for a person, `/a/<public_id>/mcp` for an
 agent. A credential works at exactly one door.
 
-**principal** — who is calling: a `person` (you, over OAuth), an `agent` (a
+**principal**: who is calling: a `person` (you, over OAuth), an `agent` (a
 runtime you own that acts for one clan), or an `integration` (a platform
 using the REST API with its own key). See
 [Users, agents and integrations](/docs/connections).
 
-**budget account** — whose daily quotas a call spends. An agent spends its
+**budget account**: whose daily quotas a call spends. An agent spends its
 owner's call budget and live lane; an integration spends its own. A person's
-own reads on Explore and Ladder spend no daily call budget. The
+own reads on record pages and Ladder spend no daily call budget. The
 hourly rate limit is not a budget: it belongs to the principal, so each agent
 has its own hour, and a person's website reads share theirs.
 
-**on_behalf_of** — on an agent connection, the end user's id in your own
+**on_behalf_of**: on an agent connection, the end user's id in your own
 space (`discord:1234`), mapped once with `elixir_identify`; omit
 `player_tag` and the tools mean that person. Ignored on a personal
 connection, and the mapping tools are agent-only.
 
-**external_id** — the same id as stored: the key `elixir_my_identities` lists
+**external_id**: the same id as stored: the key `elixir_my_identities` lists
 and `elixir_identify` maps.
 
-**request_id** — the id minted for one call and stamped into `meta`; quote it
+**request_id**: the id minted for one call and stamped into `meta`; quote it
 when reporting an answer.
 
-**contract version** — the version of the tool surface, `meta.contract_version`
+**contract version**: the version of the tool surface, `meta.contract_version`
 and the first part of `serverInfo.version`: a minor adds a capability, a patch
 corrects (a removed unreliable field included), a major marks a shift in
 the domain model. `elixir_changelog` lists what each one changed. See
@@ -301,42 +301,42 @@ the domain model. `elixir_changelog` lists what each one changed. See
 
 ## Responses
 
-**applied** — the one echo block on a response: the window (`from`, `to`,
+**applied**: the one echo block on a response: the window (`from`, `to`,
 `timezone`, `source`, the `season` it starts in, `crosses`,
 `season_age_days`), `limit`, `sort`, `mode`, `segment`, `verbosity`, as
 the tool actually used them. Read it before quoting a bound.
 
-**control** — the field beside a number that says what population produced
+**control**: the field beside a number that says what population produced
 it: a row's `modes` (battles per mode group) and `dominant_mode`,
 `mean_level_gap` and `level_gap_battles`, `trophy_floor`, `partial` with
 `covers` on a clipped week or month, `comparable` on a ranked list. One module computes them for every tool,
 and a note fires only when a control detects a confound. See
-[The control next to the number](/docs/battles#the-control-next-to-the-number).
+[The control next to the number](/docs/reading-the-numbers#the-control-next-to-the-number).
 
-**comparable** — `false` on a ranked list (`clans_standings`,
+**comparable**: `false` on a ranked list (`clans_standings`,
 `battles_decks`) when two rows were played in different
 modes (each at least 60% in its own) or against level gaps half a level
 apart, with the note naming the pair; rank within one mode and similar
 gaps, or pass `mode`.
 
-**floor** — the Trophy Road floor a player stood on in a window: a loss ON
+**floor**: the Trophy Road floor a player stood on in a window: a loss ON
 the floor costs nothing (`trophy_change` null), so `net_trophies` counts
 wins in full and those losses at zero. `trophy_floor` names the floor, the
 arena and the losses it absorbed; `floored: true` is the tell.
 
-**manifest** — the recorder's declaration of what every key of every API
+**manifest**: the recorder's declaration of what every key of every API
 payload becomes: the table and column it lands in, a derived value, or a
 documented drop. A nightly census samples the day's archived payloads
 against it and files a key the API added or retired as a work item, so a
 field the tools serve can be traced to the key it came from and a field
 the API sends cannot go unnoticed.
 
-**notes** — `notes[]`, one-sentence caveats a response asks you to repeat
+**notes**: `notes[]`, one-sentence caveats a response asks you to repeat
 with its numbers.
 
-**docs pointer** — `docs`, a `page#section` you can hand to `elixir_docs` or
+**docs pointer**: `docs`, a `page#section` you can hand to `elixir_docs` or
 read at `elixir://docs/<page>#<section>` for the formulas behind the answer.
 
-**verbosity** — the one size control: `full` (default) or `compact`, which
+**verbosity**: the one size control: `full` (default) or `compact`, which
 drops the bulk (decks, tower hitpoints, curve rows, participant arrays) and
 keeps the identities and counts.

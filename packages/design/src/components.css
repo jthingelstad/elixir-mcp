@@ -3180,23 +3180,80 @@ input[aria-invalid="true"] {
   margin: 0 0 24px;
   text-wrap: pretty;
 }
-.docs__console {
+.docs__callout {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 6px 12px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--r-block);
-  padding: 12px 15px;
-  margin-top: 30px;
+  padding: 9px 14px;
+  margin: 0 0 16px;
   font-size: 14px;
-  color: var(--ink-body);
+  color: var(--ink-dim);
 }
-.docs__console > svg {
+.docs__guide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+.docs__guide .chip {
+  text-decoration: none;
+}
+.docs__guide .chip--on {
+  background: var(--panel-raised);
+  color: var(--ink);
+  font-weight: 600;
+}
+.docrail__count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+.docrail__sub {
+  padding: 10px 10px 3px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.docs-tops {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.examples-row {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) auto;
+  gap: 3px 14px;
+  padding: 11px 16px;
+  border-top: 1px solid var(--line-row);
+  font-size: 14px;
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+.examples-row__title {
+  color: var(--ink);
+  font-weight: 500;
+}
+.examples-row__go {
   color: var(--accent-bright);
 }
-.docs__console .btn {
-  margin-left: auto;
+@media (max-width: 900px) {
+  .docs-tops,
+  .examples-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .docs__guide .chip {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
 }
 
 /* ── The docs rail, page and home (design 2026-10-01) ────────────────
@@ -3296,9 +3353,22 @@ input[aria-invalid="true"] {
   color: var(--ink-faint);
 }
 .docs__next-links {
-  flex: 1 1 auto;
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+}
+.docs__next-on {
+  margin-left: auto;
 }
 .docs__wrong {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -8208,5 +8278,209 @@ button.kit-row {
   .kit-help {
     width: 100%;
     border: 0;
+  }
+}
+
+/* Status and data (/data): one page, jumps, and rows that never scroll a phone. */
+.data-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 22px;
+}
+.data-jump .chip {
+  text-decoration: none;
+}
+.data-sec {
+  margin: 0 0 32px;
+  scroll-margin-top: 72px;
+}
+.data-sec__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+.data-sec__head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.data-sec__link {
+  font-size: 14px;
+}
+.data-range {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.data-range[hidden],
+.data-chart[hidden] {
+  display: none;
+}
+.data-table summary {
+  cursor: pointer;
+  font-size: 14px;
+}
+.data-rows__row {
+  display: grid;
+  gap: 4px 16px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 14px;
+  min-width: 0;
+}
+.data-rows__row > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.data-rows__row:first-child {
+  border-top: 0;
+}
+.data-rows__row--head {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+.data-rows--days .data-rows__row {
+  grid-template-columns: 1fr auto;
+  padding: 6px 0;
+}
+@media (min-width: 720px) {
+  .data-rows--three .data-rows__row {
+    grid-template-columns: 2fr 4fr 3fr;
+  }
+  .data-rows--two .data-rows__row {
+    grid-template-columns: 2fr 5fr;
+  }
+}
+/* A class that sets display beats the browser's own [hidden] rule. */
+.chip[hidden],
+.data-chart[hidden],
+.data-range[hidden],
+.updates-switch[hidden],
+.updates-entry[hidden] {
+  display: none;
+}
+@media (max-width: 719px) {
+  .data-rows__row--head {
+    display: none;
+  }
+  /* The head row is gone at phone width, so each cell names its column. */
+  [data-col]::before {
+    content: attr(data-col) ": ";
+    color: var(--ink-faint);
+  }
+  .data-jump .chip,
+  .data-range .chip {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* Updates: the contract switch, an entry, the month pager. */
+.updates-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.updates-switch[hidden] {
+  display: none;
+}
+.updates-switch__words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.updates-switch__name {
+  font-size: 14px;
+  font-weight: 600;
+}
+.updates-switch input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.updates-month {
+  margin: 26px 0 12px;
+}
+.updates-entry {
+  margin-bottom: var(--s-3);
+}
+.updates-entry[hidden] {
+  display: none;
+}
+.updates-entry .panel__head {
+  flex-wrap: wrap;
+  gap: 11px;
+}
+.updates-entry__date {
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+.updates-entry__title {
+  margin: 0 0 6px;
+}
+.updates-entry__text {
+  color: var(--ink-body);
+  margin: 0 0 10px;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+.updates-entry__more {
+  font-size: 13.5px;
+}
+.updates-pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.updates-pager__older {
+  margin-left: auto;
+}
+
+/* Support Elixir. */
+.support-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+.support-actions--foot {
+  margin: 12px 0 0;
+}
+.support-note {
+  margin: 0 0 30px;
+  max-width: 66ch;
+}
+.support-costs {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.support-costs__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.support-costs__text {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-dim);
+}
+@media (min-width: 720px) {
+  .data-rows--levels .data-rows__row {
+    grid-template-columns: 2fr 5fr 1fr;
   }
 }

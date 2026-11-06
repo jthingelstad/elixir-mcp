@@ -4,7 +4,7 @@ title: "The week in your clan"
 description: "Clan's weekly report: which weeks it covers and when one closes, the four areas it reads (Clan Wars, donations, ranked play, battles), what it highlights and why, who came and went, and what it leaves out."
 section: clan
 order: 2
-navTitle: "A week"
+navTitle: "The week"
 icon: calendar-range
 lede: "A report on each closed week of the clan: what the clan did in Clan Wars, donations, ranked play and battles, who took part, and who came and went."
 reviewed: "2026-11-06; a week now lives under the Season tab; 2026-10-04; Clan browsing context and read clarity, contracts unchanged"

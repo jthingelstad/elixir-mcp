@@ -120,7 +120,7 @@ test("@narrow invitation entry and signup fit phone and desktop without changing
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    for (const name of ["Home", "Ladder", "Clan"])
+    for (const name of ["Your record", "Ladder", "Clan"])
       await expect(
         page
           .locator(".home-tile__product")
