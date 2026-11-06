@@ -106,7 +106,7 @@ Where each real page that the first structure dropped goes:
 | Sent emails and each email's record | Settings, Emails, Sent to you |
 | A tracked player's page and its battle activity graph | Settings, Players and tracking, the player |
 | Track a clan, what to record, slot counts | Players and tracking, Clans |
-| Invite clanmates | Clan, Members, and Home's empty state |
+| Invite clanmates | Clan, Members (Spread the word), and folded on Ladder's Season (A30). Not on Home: its first steps end the moment a read names the clan, so an invite there would never be seen |
 | Connect Discord, Timeline to Discord and its delivery log | Connections and agents, Discord; Timeline links there |
 | Refusal notices and each connection's permissions | Connections and agents, the connection |
 | Agent keys, suspend and restore, who it answers for, its logs | The agent's tabs; logs under Usage; Timeline and Feedback are links |

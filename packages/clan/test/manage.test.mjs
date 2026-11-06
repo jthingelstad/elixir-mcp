@@ -636,6 +636,7 @@ test("standing for members: evidence in a player's terms, no internals; private 
   assert.ok(!/\b(score|percentile|rank|slot)\b/i.test(JSON.stringify(s.body)));
   assert.ok(s.body.you);
   assert.equal(s.body.you.inactivity, null);
+  assert.equal(typeof s.body.you.at_risk_days, "number");
   // How the clan runs, from its policy, for every member, opening with
   // what the clan is for (the categories it counts).
   assert.deepEqual(

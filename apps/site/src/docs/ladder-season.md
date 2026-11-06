@@ -130,5 +130,5 @@ leans either way. The numbers are the tool's, and so is the conclusion
 yours.
 
 Below the season, once your primary player's clan is on record, the page
-offers [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates):
+offers [Invite clanmates](/docs/bring-your-clan#bring-your-clanmates):
 words to invite your clan.

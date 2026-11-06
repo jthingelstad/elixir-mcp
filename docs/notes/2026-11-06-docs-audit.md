@@ -17,12 +17,12 @@ test moved with it.
 
 **Found, not changed:**
 
-- `docs/product/structure.md` puts Invite clanmates in Clan, Members and Home's
-  empty state; `BringClanmates` is only on Ladder's Season tab. The doc page now
-  says what the code does. The brief wins or moves: Jamie's call.
-- `Standing.jsx` reads `you.inactivity.at_risk_days`, and the service sends a
-  string in that place, so the callout says "from its at-risk day" and never
-  shows the number.
+- `docs/product/structure.md` put Invite clanmates in Home's empty state too.
+  Home's first steps end the moment a read names the clan, so it would never be
+  seen; the record now says Clan's Spread the word and Ladder's Season.
+- `Standing.jsx` read `you.inactivity.at_risk_days`, and the service sent a
+  string in that place, so the callout never showed the number. Fixed: the
+  service sends `at_risk_days` beside it.
 - `timeline-tool.md` names `account_role_changed`; the code has
   `account_tier_changed`.
 

@@ -305,6 +305,44 @@ describe("standing", () => {
     );
   });
 
+  test("a quiet member's callout names the clan's at-risk day", async () => {
+    vi.spyOn(manageApi, "standing").mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: {
+        policy_version: 1,
+        ranks_elder: true,
+        how: [],
+        weights: [],
+        as_of: "2026-09-12T18:00:00Z",
+        freshness_seconds: 60,
+        rows: [],
+        you: {
+          player_tag: "#20QQL8CCRU",
+          status: "rising",
+          evidence: "Some evidence.",
+          war: [],
+          next: [],
+          inactivity: "at_risk",
+          at_risk_days: 7,
+          days_idle: 8.5,
+          hold: null,
+        },
+      },
+    });
+    renderWithProviders(
+      <Standing
+        clan={poap}
+        who={{ player_tag: "#20QQL8CCRU", role: "member" }}
+      />,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "You" }).textContent).toMatch(
+        /8 days since your last battle; this clan counts a member at risk from 7 days\./,
+      ),
+    );
+  });
+
   test("a clan with no policy yet says so", async () => {
     vi.spyOn(manageApi, "standing").mockResolvedValue({
       ok: false,

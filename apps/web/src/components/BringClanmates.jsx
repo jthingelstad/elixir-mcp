@@ -44,8 +44,8 @@ function Copyable({ text, label, channel, multiline = false }) {
 }
 
 /**
- * Bring your clanmates (2026-10-08), on Console ▸ Overview and Ladder:
- * shown only when the account's primary player has a recorded clan
+ * Invite clanmates, folded on Ladder's Season tab; Clan has its own in
+ * Spread the word. Shown only when the account's primary player has a recorded clan
  * (`/api/me/clans` home_clan), and named for it. A line for clan chat,
  * a longer note for Discord or a message, and the device's share sheet
  * where there is one. Without a clan it draws nothing.
