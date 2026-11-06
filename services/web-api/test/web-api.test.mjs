@@ -1343,6 +1343,12 @@ test("emails sent to me: the list, one record with its archived body (pixel stri
     parse(await get("/api/me/email")).kinds.every((k) => k.enabled === true),
   );
   assert.equal((await put({ kind: "nope", enabled: true })).statusCode, 400);
+  // The change reads back on the account's events, named as the page names it.
+  const choice = parse(await get("/api/me/activity")).events.find(
+    (e) => e.kind === "email_pref",
+  );
+  assert.equal(choice.detail.enabled, true);
+  assert.equal(choice.detail.label, "every Elixir email");
 
   // Without a store: the row answers, the body is null.
   const bare = parse(await get(`/api/me/email/sends/${mine[0].send_id}`));

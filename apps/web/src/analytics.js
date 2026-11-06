@@ -55,6 +55,15 @@ const isSignIn = (pathname) =>
  */
 const PRIVATE_RECORD = /^\/((account|admin)\/[^/]+\/.|agent\/)/;
 
+/** A Settings address the report names otherwise carries a record's id, which
+ *  the embed's raw-URL hit would keep. Every such page, by what the report
+ *  says it is, so a new record route needs no second list. */
+function settingsRecord(pathname) {
+  if (pathname !== "/settings" && !pathname.startsWith("/settings/"))
+    return false;
+  return settingsLocation(pathname, window.location.origin).path !== pathname;
+}
+
 export function loadTinylytics() {
   if (["localhost", "127.0.0.1", "::1"].includes(window.location.hostname))
     return;
@@ -75,7 +84,11 @@ export function loadTinylytics() {
   const clanSearch =
     window.location.pathname.startsWith("/clan/") &&
     new URLSearchParams(window.location.search).has("find");
-  if (PRIVATE_RECORD.test(app) || clanSearch) {
+  if (
+    PRIVATE_RECORD.test(app) ||
+    settingsRecord(window.location.pathname) ||
+    clanSearch
+  ) {
     landing();
     return;
   }

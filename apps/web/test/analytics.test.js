@@ -234,6 +234,52 @@ describe("loadTinylytics", () => {
     expect(beacons[1]).not.toMatch(/Private|search|find=|uq8lp2r9c/);
   });
 
+  // Codex on #692: a direct visit ran the raw-URL embed, id and all.
+  test.each([
+    ["/settings/players/2ABC", "/settings/players"],
+    ["/settings/players/2ABC/verify", "/settings/players/verify"],
+    ["/settings/emails/5c1c5dbf", "/settings/emails"],
+    ["/settings/usage/requests/5c1c5dbf", "/settings/usage/requests"],
+    ["/settings/feedback/812", "/settings/feedback"],
+    ["/settings/collectors/5c1c5dbf", "/settings/collectors"],
+    ["/settings/agents/a1b2c3d4e5f6", "/settings/agents"],
+    ["/settings/agents/a1b2c3d4e5f6/overview", "/settings/agents/overview"],
+    ["/settings/agents/a1b2c3d4e5f6/reads", "/settings/agents/reads"],
+    ["/settings/agents/a1b2c3d4e5f6/usage", "/settings/agents/usage"],
+    [
+      "/settings/agents/a1b2c3d4e5f6/usage/requests/5c1c5dbf",
+      "/settings/agents/usage",
+    ],
+    ["/settings/agents/a1b2c3d4e5f6/feedback/812", "/settings/agents/feedback"],
+    ["/settings/agents/a1b2c3d4e5f6/timeline", "/settings/agents/timeline"],
+    [
+      "/settings/agents/a1b2c3d4e5f6/connections",
+      "/settings/agents/connections",
+    ],
+    ["/settings/agents/a1b2c3d4e5f6/settings", "/settings/agents/settings"],
+  ])("a direct visit to %s reports its kind by beacon", async (path, kind) => {
+    await load(path);
+    expect(embeds()).toEqual([]);
+    settle();
+    expect(beacons).toHaveLength(1);
+    expect(new URL(beacons[0]).searchParams.get("path")).toBe(kind);
+    expect(beacons[0]).not.toMatch(/2ABC|5c1c5dbf|812|a1b2c3d4e5f6/);
+  });
+
+  test.each([
+    "/settings",
+    "/settings/players",
+    "/settings/players/verify",
+    "/settings/emails",
+    "/settings/emails/sent",
+    "/settings/usage/requests",
+    "/settings/connections/discord",
+    "/settings/collectors/new",
+  ])("a direct visit to %s, no record in it, loads the embed", async (path) => {
+    await load(path);
+    expect(embeds()).toHaveLength(1);
+  });
+
   test.each([
     "/clan/2PQRJ8LV?find=Current%20search",
     "/clan/2PQRJ8LV/members/uq8lp2r9c?find=Current%20search",

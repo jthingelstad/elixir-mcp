@@ -12,6 +12,9 @@ test("accepts canonical input unchanged", () => {
 
 test("adds missing hash prefix", () => {
   assert.equal(normalizeTag("2PP0V90Y"), "#2PP0V90Y");
+  // A request body's field may be missing: refused, never a TypeError.
+  assert.throws(() => normalizeTag(undefined), { code: "invalid_tag" });
+  assert.throws(() => normalizeTag(null), { code: "invalid_tag" });
 });
 
 test("uppercases and folds letter O to zero", () => {

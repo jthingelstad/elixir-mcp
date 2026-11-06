@@ -10,7 +10,8 @@ import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { api } from "../src/api.js";
-import { Explore, WEEK_RE } from "../src/views/Explore.jsx";
+import { Explore } from "../src/views/Explore.jsx";
+import { WEEK_RE } from "../src/lib/tag-url.js";
 
 const answer = (body) => ({ ok: true, status: 200, data: { body } });
 

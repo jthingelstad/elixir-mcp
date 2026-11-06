@@ -41,3 +41,14 @@ export function normTag(q) {
       .replaceAll("O", "0")
   );
 }
+
+/** A deck hash, as Explore's lookup and the search sheet read it. */
+export const HASH_RE = /^(deck:)?[0-9a-f]{16,64}$/i;
+// A war week is Season and Week, the way the game and the rest of this
+// console name it: "S135 W3", "s135w3", "S135-W3". It used to accept only
+// an ISO calendar week (2026-W36), which nothing else here uses and the
+// page's own hint contradicted, so the advertised form fell through to a
+// name search and a miss.
+// "136-2", "S136 W2", "136w2" (console walk 2: "136-2" was refused).
+export const WEEK_RE =
+  /^(?:season\s+|s)?\s*(\d{1,4})\s*(?:[-·,]\s*(?:week\s*|w)?|\s*(?:week\s*|w))\s*(\d{1,2})$/i;

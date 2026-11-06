@@ -62,8 +62,9 @@ value `area: "console"` stays and shows as Elixir.
 - The page-view analytics for an agent's page send the kind of page, never its id.
 - An agent's player gets a confirm on Remove, which the boards did not draw.
 
-**Known gaps.** Explore's lookup has no bar entry from the app now; deck-hash and
-war-week lookups live only there. `packages/clan-web` still links the old paths and
-relies on the map. Mail's wording is step 8. Two things the boards draw that the
-server has no data for are left out: an "email choice changed" event, and the
-feedback count on an agent's Overview.
+**Explore from the app.** The bar has no Explore entry, so the search sheet is its
+door: a typed deck hash or war week opens the record for no read, a week names the
+home clan's race as Explore's own lookup does, and a "Look up" row goes to the
+lookup. `[engineering, 2026-11-06]`
+
+**Known gaps.** Mail's wording is step 8.

@@ -30,6 +30,8 @@ export type CanonicalTag = string & { readonly __brand: "CanonicalTag" };
  * folding — a malformed tag must never reach a query or the CR API.
  */
 export function normalizeTag(input: string): CanonicalTag {
+  // Callers hand over request bodies, whose field may simply be missing.
+  if (typeof input !== "string") throw new InvalidTagError(String(input));
   const folded = input.trim().toUpperCase().replaceAll("O", "0");
   const tag = folded.startsWith("#") ? folded : `#${folded}`;
   if (!CANONICAL_RE.test(tag)) throw new InvalidTagError(input);
