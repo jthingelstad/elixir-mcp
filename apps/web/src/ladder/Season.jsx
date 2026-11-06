@@ -1,178 +1,120 @@
 import {
   DeckGrid,
+  Disclosure,
+  Empty,
+  FeedbackSheet,
   Icon,
   Link,
-  useClock,
-  noun,
   Panel,
-  Empty,
+  useClock,
+  useInitialTime,
 } from "@elixir-mcp/ui";
+import { FEEDBACK_CATEGORIES } from "@elixir-mcp/contracts";
+import { useState } from "react";
 import {
-  LADDER_PAGES,
-  deckModes,
-  fmt,
+  OTHER,
+  clockTime,
   floorNote,
+  fmt,
   fourthTile,
-  ladderHref,
   modeLabel,
+  modeWords,
   pct,
+  playerName,
+  readModes,
   seasonHead,
-  shortDay,
   signed,
-  weekBars,
+  weekRows,
 } from "./ladder.js";
-import { useToolRead } from "../lib/queries.js";
+import {
+  chipCalendar,
+  seasonCalendar,
+  spanLabel,
+  weekdayOf,
+} from "./ladder-days.js";
+import { gapLine, formNames } from "./ladder-decks.js";
+import { api } from "../api.js";
 import { BringClanmates } from "../components/BringClanmates.jsx";
+import { CONSOLE } from "../lib/console.js";
+import { useBattleSweep, useToolRead, useToolReads } from "../lib/queries.js";
 import { DeckForm, SeasonForm, WeekForm } from "./Form.jsx";
 import { YoungRecord } from "./YoungRecord.jsx";
-import {
-  LadderHead,
-  Loading,
-  ModeSwitch,
-  ReadError,
-  Record,
-  Tile,
-} from "./common.jsx";
+import { Loading, ReadError, Record, Tile, useSeasonEdge } from "./common.jsx";
 
-/**
- * The season home (Ladder.dc.html): one mode's season so far, as
- * battles_performance reads it, week by week, and the deck played most
- * over the last 30 days as players_summary names it. Every number is
- * one the tools returned; the page adds no rate, pace or verdict.
- */
-export function Season({
+/** The season tab: one chip's season so far, as battles_performance reads it,
+ *  its days on the account's calendar, week by week, and its deck played most.
+ *  Every number is one the tools returned; the page adds no rate, pace or
+ *  verdict. Other holds two games, so it is two panels and nothing else. */
+export function Season(ctx) {
+  const { player, mode, modeReady, season, summary, search } = ctx;
+  const args = { player_tag: player.player_tag, season: season.arg };
+  const reads = useToolReads(
+    "battles_performance",
+    readModes(mode).map((m) => ({ ...args, mode: m })),
+    { enabled: modeReady },
+  );
+  return (
+    <>
+      {!modeReady || reads.some((r) => r.isPending) ? (
+        <Loading what="the season" />
+      ) : reads.some((r) => r.isError) ? (
+        <ReadError
+          error={reads.find((r) => r.isError).error}
+          what="this season"
+        />
+      ) : mode === OTHER.key ? (
+        <OtherSeason season={season} reads={reads} />
+      ) : (
+        <OneMode {...ctx} body={reads[0].data} args={args} />
+      )}
+      <YoungRecord player={player} summary={summary} />
+      <BringClanmates />
+      <SeasonExtras player={player} search={search} />
+    </>
+  );
+}
+
+const inSeason = (season, name) =>
+  season.current ? "this season" : `in ${name ?? season.name}`;
+
+function OneMode({
   player,
   mode,
   modeReady,
   season,
   seasons,
-  seasonPicker,
   summary,
-  search,
-}) {
-  const { zone, when } = useClock();
-  const args = { player_tag: player.player_tag, season: season.arg, mode };
-  const perf = useToolRead("battles_performance", args, { enabled: modeReady });
-  const weeks = useToolRead(
-    "battles_performance",
-    { ...args, group_by: "week" },
-    { enabled: modeReady },
-  );
-
-  const body = perf.data;
-  const head = seasonHead(body?.applied);
-  const at = when;
-  const ends = !head.endsAt
-    ? ""
-    : head.running
-      ? ` The season ends ${at(head.endsAt)}.`
-      : head.startsAt
-        ? ` The season began ${at(head.startsAt)} and ended ${at(head.endsAt)}.`
-        : "";
-  const hrefFor = (m) =>
-    ladderHref("season", {
-      player: search.player,
-      mode: m,
-      season: search.season,
-    });
-
-  return (
-    <div className="ladder-page">
-      <LadderHead
-        player={player}
-        page="Season"
-        title={
-          head.running && head.age != null
-            ? `${head.name} · ${fmt(head.age)} ${noun(head.age, "day")} in`
-            : body
-              ? head.name
-              : season.name
-        }
-        lede={ends.trim()}
-        observedAt={body?.meta?.source_polls?.player_battlelog?.observed_at}
-        season={season}
-        seasonPicker={seasonPicker}
-      />
-      <ModeSwitch mode={mode} hrefFor={hrefFor} />
-
-      {!modeReady || perf.isPending ? (
-        <Loading what="the season" />
-      ) : perf.isError ? (
-        <ReadError error={perf.error} what="this season" />
-      ) : (
-        <SeasonBody
-          player={player}
-          season={season}
-          seasons={seasons}
-          mode={mode}
-          body={body}
-          weeks={weeks}
-          summary={summary}
-          search={search}
-          zone={zone}
-          startsAt={head.startsAt}
-          running={head.running || season.current}
-          seasonName={head.name}
-        />
-      )}
-      {/* While the record is young, the one thing to do next. */}
-      <YoungRecord player={player} summary={summary} className="mt-6" />
-      <BringClanmates className="mt-6" />
-    </div>
-  );
-}
-
-function SeasonBody({
-  player,
-  season,
-  seasons,
-  mode,
   body,
-  weeks,
-  summary,
-  search,
-  zone,
-  startsAt,
-  running,
-  seasonName,
+  args,
+  hrefFor,
 }) {
-  const { when } = useClock();
   const w = body.window ?? {};
   const played = Number(w.battles ?? 0) > 0;
-  const fourth = fourthTile(mode, w, body.trophy_floor);
-  const note =
-    mode === "ladder"
-      ? floorNote(
-          body.trophy_floor,
-          running ? "this season" : `in ${seasonName}`,
-        )
-      : null;
+  const head = seasonHead(body.applied);
+  const { when } = useClock();
   return (
     <>
       {played ? (
+        <Summary mode={mode} season={season} body={body} head={head} />
+      ) : (
+        <Empty
+          title={`No ${modeLabel(mode)} battles ${inSeason(season, head.name)}`}
+          titleAs="h2"
+        >
+          {season.current
+            ? `Elixir has recorded none in this mode since the season began${head.startsAt ? ` on ${when(head.startsAt)}` : ""}. Each mode keeps its own record; the others are a chip away.`
+            : `Elixir recorded none in this mode in ${head.name}.`}
+        </Empty>
+      )}
+      <Calendar
+        player={player}
+        mode={mode}
+        season={season}
+        modeReady={modeReady}
+      />
+      {played ? (
         <>
-          <div className="ladder-tiles">
-            <Tile label="Battles">{fmt(w.battles)}</Tile>
-            <Tile label="Record">
-              <Record wins={w.wins} losses={w.losses} draws={w.draws} />
-            </Tile>
-            <Tile label="Won">{pct(w.win_rate)}</Tile>
-            {fourth ? (
-              <Tile label={fourth.label} small>
-                {fourth.value}
-              </Tile>
-            ) : null}
-          </div>
-          {note ? (
-            <div className="callout callout--info">
-              <Icon name="info" size={17} />
-              <span>{note}</span>
-            </div>
-          ) : null}
-          {/* "Am I improving?": the week and deck panels draw only
-              above the minimum; the season beside the last always draws,
-              and says in a sentence when a side has too few. The week
-              reading belongs to the season running now. */}
+          <WeekByWeek mode={mode} args={args} running={season.current} />
           {season.current ? <WeekForm player={player} mode={mode} /> : null}
           <SeasonForm
             player={player}
@@ -183,277 +125,452 @@ function SeasonBody({
             summary={summary}
           />
           <DeckForm player={player} mode={mode} season={season} />
+          <TopDeck mode={mode} args={args} hrefFor={hrefFor} />
         </>
-      ) : (
-        <Empty
-          title={
-            <>
-              No {modeLabel(mode)} battles{" "}
-              {running ? "this season" : `in ${seasonName}`}
-            </>
-          }
-          titleAs="h2"
-        >
-          {running
-            ? `Elixir has recorded none in this mode since the season began${
-                startsAt ? ` on ${when(startsAt)}` : ""
-              }.`
-            : `Elixir recorded none in this mode in ${seasonName}.`}{" "}
-          Each mode keeps its own record; the others are a tab away.
-        </Empty>
-      )}
-
-      <div className="ladder-split">
-        {played ? <WeekByWeek mode={mode} weeks={weeks} /> : null}
-        {running ? (
-          <TopDeck
-            summary={summary}
-            search={search}
-            zone={zone}
-            wide={!played}
-          />
-        ) : (
-          <SeasonDecks search={search} name={seasonName} wide={!played} />
-        )}
-      </div>
+      ) : null}
     </>
   );
 }
 
-/** Wins up in blue, losses down in rose, one column per ISO week of the
- *  season, oldest on the left the way a chart reads. A partial week is
- *  marked, and its rate is the one to compare (the tool's own note). */
-function WeekByWeek({ mode, weeks }) {
-  const trophies = mode === "ladder" || mode === "ranked";
-  const bars = weeks.data ? weekBars(weeks.data.weekly, { net: trophies }) : [];
+/** The chip's season in four tiles. The first says what it counts from, and
+ *  from when the record begins when that is later than the season. */
+function Summary({ mode, season, body, head }) {
+  const { when } = useClock();
+  const w = body.window ?? {};
+  const fourth = fourthTile(mode, w, body.trophy_floor);
+  const observed = body.meta?.source_polls?.player_battlelog?.observed_at;
+  const from = w.from ?? head.startsAt;
+  const begins =
+    body.meta?.recorded_since &&
+    head.startsAt &&
+    Date.parse(body.meta.recorded_since) > Date.parse(head.startsAt);
+  const note = floorNote(
+    mode === "ladder" ? body.trophy_floor : null,
+    inSeason(season, head.name),
+  );
+  const { zone } = useClock();
   return (
     <Panel
-      title="Week by week"
-      titleId="ladder-weeks"
-      action={
-        <>
-          <span className="ladder-key">
-            <span className="ladder-key__swatch ladder-key__swatch--win" />
-            wins
-          </span>
-          <span className="ladder-key">
-            <span className="ladder-key__swatch ladder-key__swatch--loss" />
-            losses
-          </span>
-        </>
+      title={
+        season.current
+          ? `${modeLabel(mode)} this season`
+          : `${modeLabel(mode)} in ${head.name}`
       }
-      className="ladder-span-3"
-      aria-labelledby="ladder-weeks"
+      action={
+        mode === "casual" ? (
+          <span className="ladder-aside">
+            2v2, friendly and clanmate battles
+          </span>
+        ) : observed && season.current ? (
+          <span className="ladder-aside">
+            As of {clockTime(observed, zone)}
+          </span>
+        ) : null
+      }
     >
-      <div className="panel__body">
-        {weeks.isPending ? (
-          <Loading what="the weeks" />
-        ) : weeks.isError ? (
-          <ReadError error={weeks.error} what="the weeks" />
-        ) : bars.length === 0 ? (
-          <p className="text-ink-faint">No weeks to show yet.</p>
-        ) : (
-          <ol className="ladder-weeks">
-            {bars.map((b) => (
-              <li key={b.key} className="ladder-week">
-                <WeekBars bar={b} />
-                <span className="ladder-week__date">{b.label}</span>
-                {b.note ? (
-                  <span className="ladder-week__note">{b.note}</span>
-                ) : null}
-                <span className="ladder-week__note">{pct(b.rate)} won</span>
-              </li>
-            ))}
-          </ol>
-        )}
+      <div className="ladder-tiles">
+        <Tile
+          label="Battles"
+          sub={
+            !season.current
+              ? `in ${head.name}`
+              : from
+                ? `since ${when(begins ? body.meta.recorded_since : from)}${begins ? ", when your record begins" : ""}`
+                : null
+          }
+        >
+          {fmt(w.battles)}
+        </Tile>
+        <Tile label="Record">
+          <Record wins={w.wins} losses={w.losses} draws={w.draws} />
+        </Tile>
+        <Tile label="Won">{pct(w.win_rate)}</Tile>
+        {fourth ? (
+          <Tile
+            label={fourth.label}
+            small
+            sub={
+              fourth.label === "Trophy range" && w.net_trophies != null
+                ? `net ${signed(w.net_trophies)}`
+                : null
+            }
+          >
+            {fourth.value}
+          </Tile>
+        ) : null}
       </div>
+      {note ? <div className="panel__foot">{note}</div> : null}
+    </Panel>
+  );
+}
+
+/** Other: Challenge and Tournament, a panel each, and never one number. */
+function OtherSeason({ season, reads }) {
+  const name = seasonHead(reads[0].data?.applied).name;
+  const groups = readModes(OTHER.key)
+    .map((key, i) => ({ key, read: reads[i] }))
+    .filter(({ read }) => Number(read.data?.window?.battles ?? 0) > 0);
+  if (!groups.length)
+    return (
+      <Empty
+        title={`No Challenge or Tournament battles ${inSeason(season, name)}`}
+        titleAs="h2"
+      >
+        {season.current
+          ? "Elixir has recorded none in this mode since the season began."
+          : `Elixir recorded none in this mode in ${name}.`}
+      </Empty>
+    );
+  return groups.map(({ key, read }, i) => {
+    const w = read.data.window;
+    const crowns = fourthTile(key, w, null);
+    return (
+      <Panel
+        key={key}
+        title={`${modeLabel(key)} ${inSeason(season, name)}`}
+        action={
+          i === 0 ? (
+            <span className="ladder-aside">
+              Other holds Challenge and Tournament, never pooled
+            </span>
+          ) : null
+        }
+      >
+        <div className="ladder-tiles">
+          <Tile label="Battles">{fmt(w.battles)}</Tile>
+          <Tile label="Record">
+            <Record wins={w.wins} losses={w.losses} draws={w.draws} />
+          </Tile>
+          {crowns ? <Tile label="Crowns">{crowns.value}</Tile> : null}
+        </div>
+        {i > 0 ? (
+          <div className="panel__foot">
+            A second read, its own panel. A Tournament is not a Challenge, so
+            the two are never added up.
+          </div>
+        ) : null}
+      </Panel>
+    );
+  });
+}
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/** The key lists only what this calendar draws, so nothing stands unexplained. */
+const KEY = [
+  ["l2", "Battles in this mode. Darker is more."],
+  ["other", "None recorded in this mode, some in others."],
+  ["quiet", "No battles: the whole day was read."],
+  ["part", "Partly read. Unknown."],
+  ["unk", "Unknown. No read covers this day."],
+  ["unread", "Not read: past the newest 480 battles."],
+  ["fut", "To come."],
+];
+
+/**
+ * Days played: the season on the account's calendar, in this chip's mode. One
+ * no-mode sweep draws every chip's calendar, and each mode keeps its own count:
+ * another mode's battles show as a count on their day, never pooled into this
+ * one. A day is "No battles" only when a whole-day read proves it.
+ */
+function Calendar({ player, mode, season, modeReady }) {
+  const { zone } = useClock();
+  const edge = useSeasonEdge();
+  const [now] = useInitialTime();
+  const coverage = useToolRead("elixir_coverage", {
+    player_tag: player.player_tag,
+  });
+  const sweep = useBattleSweep(
+    {
+      player_tag: player.player_tag,
+      season: season.arg,
+      verbosity: "compact",
+      limit: 40,
+    },
+    { enabled: modeReady },
+  );
+  const applied = sweep.data?.first?.applied?.window?.season ?? null;
+  if (sweep.isPending)
+    return (
+      <Panel title="Days played">
+        <div className="panel__body">
+          <Loading what="the season's days" />
+        </div>
+      </Panel>
+    );
+  if (sweep.isError)
+    return (
+      <Panel title="Days played">
+        <div className="panel__body">
+          <ReadError error={sweep.error} what="the season's days" />
+        </div>
+      </Panel>
+    );
+  if (!applied?.starts_at) return null;
+  const battles = sweep.data?.battles ?? [];
+  const capped = Boolean(sweep.data?.capped);
+  const cal = chipCalendar(
+    seasonCalendar({
+      battles,
+      startsAt: applied.starts_at,
+      endsAt: applied.ends_at,
+      now,
+      zone,
+      readFrom: capped ? (battles.at(-1)?.battle_time ?? null) : null,
+      observationIntervals: coverage.data?.observation_intervals ?? [],
+    }),
+    readModes(mode),
+    { coverageFailed: coverage.isError },
+  );
+  const name = applied.war != null ? `Season ${applied.war}` : season.name;
+  const shown = new Set(cal.days.map((d) => d.cls));
+  const firstRead = cal.days.find((d) => d.state !== "unread");
+  return (
+    <>
+      {capped ? (
+        <div className="callout callout--info" role="status">
+          <Icon name="info" size={17} />
+          <span>
+            This page reads the newest {fmt(battles.length)} of{" "}
+            {fmt(sweep.data.total)} battles in {name}, so the days before{" "}
+            {firstRead?.label} are marked not read rather than drawn empty. Any
+            battles already read stay visible.
+          </span>
+        </div>
+      ) : null}
+      {coverage.isError ? (
+        <div className="callout callout--info" role="status">
+          <Icon name="info" size={17} />
+          <span>
+            Coverage could not be checked, so a day without a recorded battle
+            shows as unknown.
+          </span>
+        </div>
+      ) : null}
+      <Panel
+        title="Days played"
+        action={
+          <span className="ladder-aside">
+            {fmt(cal.played)} {cal.played === 1 ? "day" : "days"} with recorded
+            battles, of {fmt(cal.of)}
+            {season.current ? " so far" : ""}
+          </span>
+        }
+      >
+        <ol className="ladder-cal" aria-label={`${modeWords(mode)} by day`}>
+          {WEEKDAYS.map((w) => (
+            <li key={w} className="ladder-cal__wd" aria-hidden="true">
+              {w}
+            </li>
+          ))}
+          {Array.from({ length: cal.lead }, (_, i) => (
+            <li
+              key={`lead${i}`}
+              className="ladder-cal__lead"
+              aria-hidden="true"
+            />
+          ))}
+          {cal.days.map((d) => (
+            <li
+              key={d.ymd}
+              className={`ladder-day ladder-day--${d.cls}${d.today ? " ladder-day--today" : ""}`}
+              aria-current={d.today ? "date" : undefined}
+            >
+              <span className="ladder-day__n">
+                <span className="ladder-day__wd">{weekdayOf(d.ymd)} </span>
+                {d.label}
+              </span>
+              {d.text ? <span>{d.text}</span> : null}
+            </li>
+          ))}
+        </ol>
+        <ul className="ladder-legend">
+          {KEY.filter(([cls]) =>
+            cls === "l2" ? cal.played > 0 : shown.has(cls),
+          ).map(([cls, words]) => (
+            <li key={cls}>
+              <span
+                className={`ladder-swatch ladder-day--${cls}`}
+                aria-hidden="true"
+              />
+              {words}
+            </li>
+          ))}
+        </ul>
+        <div className="panel__foot">
+          {mode === "ladder"
+            ? `${name} ${season.current ? "runs" : "ran"} ${edge(applied.starts_at)} to ${edge(applied.ends_at)}. Battles after midnight count on the next day.`
+            : "Same key in every mode. Other modes show as a count, never pooled into this one."}
+          {cal.gap
+            ? ` Longest stretch with no battles in this mode, all days fully read: ${fmt(cal.gap.length)} ${cal.gap.length === 1 ? "day" : "days"}, ${spanLabel(cal.gap)}.`
+            : ""}
+        </div>
+      </Panel>
+    </>
+  );
+}
+
+/** Newest week first, each a record and a bar of its wins and losses. */
+function WeekByWeek({ mode, args, running }) {
+  const trophies = mode === "ladder" || mode === "ranked";
+  const weeks = useToolRead("battles_performance", {
+    ...args,
+    mode,
+    group_by: "week",
+  });
+  const rows = weeks.data
+    ? weekRows(weeks.data.weekly, { net: trophies, running })
+    : [];
+  return (
+    <Panel title="Week by week">
+      {weeks.isPending ? (
+        <div className="panel__body">
+          <Loading what="the weeks" />
+        </div>
+      ) : weeks.isError ? (
+        <div className="panel__body">
+          <ReadError error={weeks.error} what="the weeks" />
+        </div>
+      ) : (
+        <ol className="ladder-wks">
+          {rows.map((r) => (
+            <li key={r.key} className="ladder-wk">
+              <span className="ladder-wk__label">{r.label}</span>
+              <svg
+                className="ladder-bar"
+                width="100%"
+                height="8"
+                aria-hidden="true"
+              >
+                <rect
+                  className="ladder-bar__w"
+                  width={`${r.winShare}%`}
+                  height="8"
+                />
+                <rect
+                  className="ladder-bar__l"
+                  x={`${r.winShare}%`}
+                  width={`${100 - r.winShare}%`}
+                  height="8"
+                />
+              </svg>
+              <span className="ladder-wk__note">{r.note}</span>
+            </li>
+          ))}
+        </ol>
+      )}
       <div className="panel__foot">
         Partial weeks compare by win rate, never by count.
         {trophies ? " Signed numbers are net trophies." : ""}
+        {mode === "war"
+          ? " Calendar weeks do not line up with race weeks."
+          : ""}
       </div>
     </Panel>
   );
 }
 
-/** One week's two bars. SVG, so a bar's height is an attribute the data
- *  sets rather than a style: the axis sits at 76, wins grow up from it
- *  and losses down, and a count sits inside its bar when the bar is tall
- *  enough to hold it, beside the axis when it is not. */
-const AXIS = 76;
-function WeekBars({ bar }) {
-  const inWin = bar.winH >= 20;
-  const inLoss = bar.lossH >= 20;
-  return (
-    <svg
-      className="ladder-week__chart"
-      width="100%"
-      height="196"
-      role="img"
-      aria-label={`Week of ${bar.label}${bar.partial ? " (partial)" : ""}: ${bar.wins} won, ${bar.losses} lost`}
-    >
-      <line
-        className="ladder-week__axis"
-        x1="0"
-        x2="100%"
-        y1={AXIS + 0.5}
-        y2={AXIS + 0.5}
-      />
-      <svg x="50%" overflow="visible">
-        {bar.winH > 0 ? (
-          <rect
-            className="ladder-bar--win"
-            x="-22"
-            y={AXIS - bar.winH}
-            width="44"
-            height={bar.winH}
-            rx="5"
-          />
-        ) : null}
-        {bar.lossH > 0 ? (
-          <rect
-            className="ladder-bar--loss"
-            x="-22"
-            y={AXIS + 1}
-            width="44"
-            height={bar.lossH}
-            rx="5"
-          />
-        ) : null}
-      </svg>
-      <text
-        className={`ladder-bar__n${inWin ? "" : " ladder-bar__n--out"}`}
-        x="50%"
-        y={inWin ? AXIS - bar.winH + 15 : AXIS - bar.winH - 5}
-        textAnchor="middle"
-      >
-        {bar.wins}
-      </text>
-      <text
-        className={`ladder-bar__n${inLoss ? "" : " ladder-bar__n--out"}`}
-        x="50%"
-        y={inLoss ? AXIS + bar.lossH - 5 : AXIS + bar.lossH + 15}
-        textAnchor="middle"
-      >
-        {bar.losses}
-      </text>
-    </svg>
+/** The most battles in this chip's mode and this season: the Decks tab's own
+ *  read, so moving between the two reads it once. */
+function TopDeck({ mode, args, hrefFor }) {
+  const { when } = useClock();
+  const base = { ...args, mode };
+  const list = useToolRead("battles_decks", { ...base, limit: 100 });
+  const top = list.data?.decks?.[0] ?? null;
+  const detail = useToolRead(
+    "battles_decks",
+    { ...base, deck_hash: top?.deck_hash },
+    { enabled: Boolean(top) },
   );
-}
-
-/** players_summary's top_deck: the deck played most over the last 30
- *  days, all modes, with its record per mode. A rate shows only when it
- *  is one mode's own (ladder.js deckModes). */
-function TopDeck({ summary, search, zone, wide }) {
-  const deck = summary.data?.top_deck ?? null;
-  const decksPage = LADDER_PAGES.some((p) => p.slug === "decks");
+  if (list.isPending || list.isError || !top) return null;
+  const full =
+    detail.data?.decks?.find((r) => r.deck_hash === top.deck_hash) ?? null;
+  const name = top.archetype_label ?? "Unnamed deck";
+  const forms = formNames(full ?? top);
+  const line = [
+    full?.archetype?.average_elixir != null
+      ? `${Number(full.archetype.average_elixir).toFixed(2)} average elixir.`
+      : null,
+    top.tower_troop_name ? `${top.tower_troop_name}.` : null,
+    `${fmt(top.wins)}–${fmt(top.losses)}${top.win_rate != null ? `, ${pct(top.win_rate)} won` : ""}.`,
+    (() => {
+      const gap = gapLine(top.mean_level_gap);
+      return gap ? `${gap[0].toUpperCase()}${gap.slice(1)}.` : null;
+    })(),
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <Panel
-      className={`${wide ? "ladder-span-5" : "ladder-span-2"} ladder-deck`}
-      titleId="ladder-top-deck"
-      title="Most-played deck"
+      title="Most played deck"
       action={
-        <span className="text-[12.5px] font-normal text-ink-faint">
-          last 30 days
-        </span>
+        <Link to={hrefFor({ slug: "decks" })}>Every deck you played ›</Link>
       }
     >
-      <div className="panel__body ladder-deck__body">
-        {summary.isPending ? (
-          <Loading what="your decks" />
-        ) : summary.isError ? (
-          <ReadError error={summary.error} what="your decks" />
-        ) : !deck ? (
-          <p className="text-ink-faint">
-            No battles recorded in the last 30 days.
-          </p>
+      <div className="panel__body ladder-top">
+        <p className="ladder-top__name">{name}</p>
+        <p className="ladder-top__sub">
+          {fmt(top.battles)} {top.battles === 1 ? "battle" : "battles"}
+          {top.last_used ? `, last played ${when(top.last_used)}` : ""}
+          {forms ? ` · ${forms}` : ""}
+        </p>
+        {full?.cards?.length ? (
+          <DeckGrid
+            cards={full.cards}
+            size={52}
+            columns={8}
+            showLevel={false}
+            label={`Cards in ${name}`}
+          />
+        ) : detail.isPending ? (
+          <Loading what="the cards" />
         ) : (
-          <>
-            <div>
-              <p className="ladder-deck__name">
-                {deck.archetype?.label ?? "Unnamed deck"}
-              </p>
-              <p className="ladder-deck__sub">
-                {[
-                  deck.archetype?.average_elixir != null
-                    ? `${deck.archetype.average_elixir.toFixed(2)} average elixir`
-                    : null,
-                  deck.last_played_at
-                    ? `last played ${shortDay(deck.last_played_at, zone)}`
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            </div>
-            <DeckGrid
-              cards={deck.cards ?? []}
-              size={52}
-              showLevel={false}
-              label={`Cards in ${deck.archetype?.label ?? "the deck"}`}
-            />
-            <dl className="ladder-facts">
-              {deckModes(deck).map((m) => (
-                <div key={m.key} className="ladder-fact">
-                  <dt>{m.label}</dt>
-                  <dd>
-                    <Record wins={m.wins} losses={m.losses} />
-                    {m.rate != null ? (
-                      <span className="ladder-fact__aside">{pct(m.rate)}</span>
-                    ) : null}
-                  </dd>
-                </div>
-              ))}
-              {deck.mean_level_gap != null ? (
-                <div className="ladder-fact">
-                  <dt>Your card levels against theirs, on average</dt>
-                  <dd>{signed(deck.mean_level_gap, 2)}</dd>
-                </div>
-              ) : null}
-            </dl>
-            {decksPage ? (
-              <Link
-                className="ladder-more"
-                to={ladderHref("decks", {
-                  player: search.player,
-                  mode: search.mode,
-                  season: search.season,
-                })}
-              >
-                Every deck you played ›
-              </Link>
-            ) : null}
-          </>
+          <p className="ladder-top__sub">{top.card_names}</p>
         )}
+        <p className="ladder-top__line">{line}</p>
       </div>
     </Panel>
   );
 }
 
-/** An earlier season's home: the most-played deck panel is the last 30
- *  days (players_summary), which is not that season, so the panel points
- *  to the season's own decks instead. */
-function SeasonDecks({ search, name, wide }) {
+/** What the record is, and feedback about Ladder, at the foot of Season. */
+function SeasonExtras({ player, search }) {
+  const [feedback, setFeedback] = useState(false);
   return (
-    <Panel
-      className={`${wide ? "ladder-span-5" : "ladder-span-2"} ladder-deck`}
-      titleId="ladder-season-decks"
-      title="Decks"
-    >
-      <div className="panel__body ladder-deck__body">
-        <p className="text-ink-faint">
-          Every deck you played in {name}, each in the mode it was played in.
+    <>
+      <Disclosure title="About this record">
+        <p className="m-0 text-[13.5px] text-ink-body">
+          Each mode is its own game and keeps its own record. Ladder reads the
+          recorded battles, without pooling modes or rating players. Counts and
+          gaps in the record are shown with the figures they affect.
         </p>
-        <Link
-          className="ladder-more"
-          to={ladderHref("decks", {
-            player: search.player,
-            mode: search.mode,
-            season: search.season,
-          })}
+      </Disclosure>
+      <div>
+        <button
+          type="button"
+          className="btn btn--sm btn--quiet"
+          onClick={() => setFeedback(true)}
         >
-          The decks of {name} ›
-        </Link>
+          Send feedback about Ladder
+        </button>
       </div>
-    </Panel>
+      {feedback ? (
+        <FeedbackSheet
+          area="ladder"
+          categories={FEEDBACK_CATEGORIES}
+          about={`About Ladder, ${playerName(player)}'s season. The page you are on rides along.`}
+          refs={[{ kind: "player", ref: player.player_tag }]}
+          context={{
+            page: "season",
+            ...(search.mode ? { mode: search.mode } : {}),
+            ...(search.season != null ? { season: String(search.season) } : {}),
+          }}
+          send={api.sendFeedback}
+          onClose={() => setFeedback(false)}
+          itemHref={(id) => `${CONSOLE}/account/feedback/${id}`}
+          historyHref={`${CONSOLE}/account/feedback`}
+        />
+      ) : null}
+    </>
   );
 }

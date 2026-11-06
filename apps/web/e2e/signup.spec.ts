@@ -269,8 +269,10 @@ for (const width of [390, 1280]) {
       page.getByRole("main").getByRole("link", { name: "Verify", exact: true }),
     ).toHaveAttribute("href", "/console/account/verify");
     await page.goto("/ladder");
-    await page.getByRole("link", { name: "Go to Tracking" }).click();
-    await expect(page).toHaveURL(/\/console\/account\/tracking$/);
+    await page.getByRole("link", { name: "Add your player" }).click();
+    await expect(page).toHaveURL(
+      /\/console\/account\/tracking#add-player-tag$/,
+    );
     await page.goto("/clan");
     await expect(
       page.getByRole("heading", { name: "Add your player in Elixir" }),

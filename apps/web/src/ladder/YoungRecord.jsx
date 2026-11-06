@@ -18,7 +18,7 @@ const STEPS = {
   follow: {
     text: "Track a friend's tag and mark them as a friend: their battles are recorded beside yours.",
     action: "Follow a friend",
-    to: `${CONSOLE}/account/tracking#add-player-tag`,
+    to: "/home/friends",
   },
 };
 

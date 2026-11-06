@@ -15,8 +15,9 @@ console: ["Open Ladder", "/ladder", "Ladder ▸ Season"]
 The game forgets: its battle log holds roughly your last 30 battles. Elixir keeps
 every battle it records, and **Ladder**, at `/ladder`, reads that record
 back to you as a season: what you played, in which mode, and how it went.
-It sits beside Home, signed in like Home, with its own menu down the
-left.
+It sits beside Home, signed in like Home. A bar at the top says whose
+season, which season and which mode you are reading; four tabs under it are
+the pages: **Season**, **Battles**, **Decks** and **Cards**.
 
 Ladder is a mirror, not a coach. It shows what happened and leaves the
 conclusion to you: no verdict, no pace, no advice, and no number the tools
@@ -41,25 +42,33 @@ opens on the player's page while the first read comes in.
 
 ## One mode at a time
 
-Each mode is its own game, so each has its own tab, and nothing on a page
-pools across them. **Trophy Road** and **Path of Legends** match you by
+Each mode is its own game, so each has its own chip in the bar, and nothing on a
+page pools across them. **Trophy Road** and **Path of Legends** match you by
 different rules; a war battle draws its opponent from the clans racing that
 week, not from your trophies; an event plays by its own. A win rate across
 all of them would describe none of them. [Modes](/docs/modes) says how
 Elixir tells them apart.
 
-Days played and Decks show every mode on one page, and they still keep
-each mode's mark and record apart. When the address names a mode (the
-rail's links carry it, as in `/ladder/decks?mode=war`), that mode comes
-first on both, and the others keep their order. The season home opens on the mode you
-played most in the last 30 days, including War and Events. Ties keep the first
-tab in the order shown; with no recorded battles, Trophy Road is the default. The tabs are
-addresses (`/ladder?mode=ranked`), so a link to one mode stays in it.
+There are five chips: Trophy Road, Path of Legends, War, Events and Casual.
+A sixth, **Other**, appears only when your season holds a Challenge or a
+Tournament battle. It shows the two apart, one panel each, because a Tournament
+is not a Challenge; they are never added up.
+
+The chip sticks as you move between tabs. Ladder opens on the mode you played
+most this season, ties keeping the order of the chips; with no recorded battles,
+Trophy Road is the default. The mode is part of the address
+(`/ladder/decks?mode=war`), so a link to one mode stays in it.
+
+On War, every tab says this week's decks and points for your clan's race, as
+the clan's record holds them, and links to the race in Clan. A duel spends one
+deck a round, so decks and battles differ. Where the game has not drawn the
+season's races yet, the line says so, and where the race cannot be read there
+is no line.
 
 ## Which season
 
-Ladder opens on the current season, and the **Season** switch beside the
-page's freshness offers every season your player has battles in: the
+Ladder opens on the current season, and the **Season** list in the bar
+offers every season your player has battles in: the
 current one, the last one, and each one before it back to the first battle
 Elixir recorded. The list comes from the tools, not a calendar: one
 [battles_performance](/docs/tools/battles#battles_performance) read from
@@ -69,10 +78,8 @@ and the one running is marked *now*.
 
 The season is part of the address (`/ladder?season=135`), like the mode,
 so a link to a past season stays on it, a reload keeps it, and every page
-honours it: the season home, Days played, Decks and Cards each read that
-season with `season: 135`. A past season's home shows its dates and record
-week by week, and links its decks in place of the most-played deck, which
-is always the last 30 days. Emails that describe a season link Ladder with
+honours it: Season, Battles, Decks and Cards each read that season with
+`season: 135`. Emails that describe a season link Ladder with
 it (see [Emails](/docs/email)).
 
 When the current season has no recorded battles yet (the first days after
@@ -91,14 +98,18 @@ that those records are missing.
 ## Whose season
 
 Ladder reads your own players: your primary, and any alt you track as
-yours. The player at the top of the menu is whose season you are reading,
-and with more than one it opens a list to switch. A friend's or a watched
-player's season is not on Ladder; it is theirs. With no player of your own
-yet, Ladder sends you to **Tracking** to add the player you play as.
+yours. The first thing in the bar is whose season you are reading: a name and
+a tag with one player, a list to switch with more than one. A friend's or a
+watched player's season is not on Ladder; it is theirs. With no player of your
+own yet, Ladder offers **Add your player**.
 
-## The season home
+Beside the chips, a small chip says when this player's battle log was last read.
+Open it for what that means: the game keeps about the last 30 battles, so a long
+session between reads can leave a gap, and a gap means unknown, not no battles.
 
-The season home is the season so far in the chosen mode (the current one
+## The Season tab
+
+The Season tab is the season so far in the chosen mode (the current one
 unless you picked another), from
 [battles_performance](/docs/tools/battles#battles_performance) with
 `season: current` (or the season's number):
@@ -112,18 +123,17 @@ unless you picked another), from
 - **The floor**: when you stood on an arena floor, losses there cost
   nothing, so net trophies say more about how recently you played than how
   well. The page says where you stood and how many losses it absorbed.
-- **Week by week**: the same tool with `group_by: week`, wins up and
-  losses down, one column per ISO week. A week the season clips is marked
-  partial and compares by its win rate, never by its count.
-- **Most-played deck**: from [players_summary](/docs/tools/players#players_summary),
-  the deck you played most in the last 30 days in any mode, its archetype
-  label and average elixir, and its record in each mode it was played in.
-  A rate appears only when the deck was played in one mode, where it is
-  that mode's own; across modes it would pool them. Shown for the running
-  season only; a past season links its decks instead.
+- **Days played**: the calendar, [below](#days-played).
+- **Week by week**: the same tool with `group_by: week`, each week's record as
+  a bar of wins and losses, newest first. A week the season clips is marked
+  part of a week.
+- **Most played deck**: from [battles_decks](/docs/tools/battles#battles_decks),
+  the deck you played most in this mode and this season, in its real cards, with
+  its archetype label, its record and its average elixir. Under it, a link to
+  every deck you played.
 
 While your record is young (recorded for under 28 days, counted from
-the start of recording the tools report), the season home also says
+the start of recording the tools report), the Season tab also says
 **Your record is N days old** and offers one next step: **Verify your
 player** if it is not verified; **Open Clan** if it is verified and its
 clan is recorded; otherwise **Follow a friend**. It is a link, not advice
@@ -137,7 +147,7 @@ says so.
 
 ### This week vs your last 4
 
-In the current season, the season home sets the game week so far beside
+In the current season, the Season tab sets the game week so far beside
 the four whole game weeks before it, in the chosen mode only. A game week
 runs Monday 10:00 UTC to Monday 10:00 UTC, the week the Arena email
 reports; the page names when this one began in your own timezone. It is
@@ -162,7 +172,7 @@ weeks are the game's, not the season's.
 
 When the deck you played most this season in the chosen mode (a deck is
 its exact cards, as on Decks) arrived after you had played others, the
-season home splits the season at its first battle and shows the same three
+Season tab splits the season at its first battle and shows the same three
 numbers before and since, from one battles_performance read with
 `before_after`. The deck is named by its archetype label, and the page
 names the deck you played most before it. Both sides count every deck you
@@ -173,7 +183,7 @@ change caused it.
 
 ### This season vs last
 
-The season home sets the season you are reading beside the one before it
+The Season tab sets the season you are reading beside the one before it
 on your record, in the chosen mode only. Each side shows the tool's own
 numbers, each with the battles it is over:
 
@@ -206,7 +216,7 @@ It reads last season with one battles_performance read (the season, with
 the same point as `compare_from`/`compare_to`) and, for each of its sides
 it shows, one [battles_decks](/docs/tools/battles#battles_decks) read for
 `total_decks`; the read of last season's decks is the Decks page's own.
-This season's side is the season home's own reads. Under the minimum,
+This season's side is the Season tab's own reads. Under the minimum,
 none of these is made. The panel says nothing about why the two seasons
 differ.
 
@@ -220,84 +230,78 @@ words to invite your clan, the same panel as on Home.
 
 ## Days played
 
-**Days played**, at `/ladder/days`, lays the season on your calendar in
-your own timezone, from [battles_query](/docs/tools/battles#battles_query):
-the season's battles in compact form, read forty to a page. A page view
-reads at most twelve pages, the newest 480 battles; past that, the days it
-did not reach are marked "partially read"; any battles already read stay visible.
+The calendar on the Season tab lays the season on your calendar in your own
+timezone, from [battles_query](/docs/tools/battles#battles_query): the season's
+battles in compact form, read forty to a page, the newest 480 at most. The same
+read serves every chip.
 
-- **Days with recorded battles**: the days with at least one captured battle,
-  today included. The season's elapsed days do not measure capture coverage.
-- **A tile for each of the two modes you played most**: the days you
-  played it, its battles and its own record.
-- **Longest covered quiet stretch**: consecutive whole days before today
-  with no recorded battles, only where complete comparable profile intervals
-  cover every instant of each day. Missing intervals, partial reads and the
-  time since the latest observation remain unknown and break the stretch.
-- **The calendar**: one cell a day, each mode with its own mark and
-  record, and the day's battles counted in the corner. A battle after
-  midnight counts on the next day. When the address names a mode the
-  season has, its mark comes first in each day and in the key, and the
-  other modes' marks stay, in quieter ink.
-- **Nights**: a night is a run of battles with no gap longer than 30
-  minutes, newest first. A night in one mode shows its record; a night
-  across modes shows each mode's record where it was played, and never one
-  for the night. On Trophy Road it shows the trophies you started and
-  ended on, and says so when you ended on the floor. Open a night for its
-  battles; a battle opens on its own page when the record has one.
+Each day shows its count in the chosen mode, shaded by how many, and the key
+under the calendar says what each shade means. A day with battles only in other
+modes shows that count, never pooled into this one. Today has a ring, and days
+to come say nothing. A battle after midnight counts on the next day.
 
-The page checks [capture coverage](/docs/recording#completeness) separately.
-A successful read or a seven-day average does not prove a whole day was captured.
-Empty cells show unknown or incomplete capture unless coverage supports a zero;
-positive battle records remain visible even when capture is incomplete. Today
-and season-clipped days cannot establish a whole quiet day.
+Empty days are the careful part. The page checks
+[capture coverage](/docs/recording#completeness) separately, because a
+successful read or a seven-day average does not prove a whole day was captured:
 
-War battles are on the calendar like any other, each on the day you
-played it: Ladder shows your battles one by one. Elixir shows war by the
-week where it is about your clan's war, such as the decks a member used
-in a race week, not here.
+- **No battles**: the whole day was read, across every mode.
+- **Partly read**: some of the day was read, so it may still hold battles.
+- **Unknown**: no read covers this day.
 
-A defense of your clan's boat is not your battle, so Days played leaves it
-out, as the season home does.
+If coverage cannot be checked, the page says so and no day is called empty. Past
+the 480 battles, older days are marked not read and the battles already read
+stay visible. **Longest stretch with no battles** counts only whole days fully
+read; missing, partial and today's days end the stretch. On a phone the calendar
+is a list of the days, newest first.
+
+## Battles
+
+**Battles**, at `/ladder/battles`, lists the season's battles in the chosen
+mode, newest first: a panel for each day, headed by its count and record, and
+under it each sitting, a run of battles with no gap longer than 30 minutes. A
+sitting that crosses midnight splits, so a day's panel matches its day on the
+calendar. A sitting shows its times, its record and, on Trophy Road, the
+trophies you started and ended on. Open it for its battles; a battle opens on its
+own page when the record has one. The page reads this mode's battles only, and
+shows seven days until you ask for older ones.
+
+War battles are listed like any other, each on the day you played it: Ladder
+shows your battles one by one. Elixir shows war by the week where it is about
+your clan's war, such as the decks a member used in a race week, as the line at
+the top says.
+
+A defense of your clan's boat is not your battle, so Battles leaves it out, as
+the Season tab does.
+
+The old address, `/ladder/days`, lands here with its player, mode and season.
 
 ## Decks
 
-**Decks**, at `/ladder/decks`, is every deck you played in the season, each
-with its record in the mode it was played in, from
-[battles_decks](/docs/tools/battles#battles_decks) with `season: current`
-(or the season picked):
-one read over every mode to learn which modes you played, then one read per
-mode, so a deck you took from Trophy Road into an event has a record in
-each and never one across them. A deck is its exact cards, forms and tower
-troop, so the same eight cards with an evolution moved are two decks, and a
-war deck (which has no tower troop) is its own row.
+**Decks**, at `/ladder/decks`, is every deck you played in the season in the
+chosen mode, most played first, from
+[battles_decks](/docs/tools/battles#battles_decks) with that one `mode` and the
+season: one read for the list and one per deck for its cards, so a deck you took
+from Trophy Road into an event has a record on each chip and never one across
+them. A deck is its exact cards, forms and tower troop, so the same eight cards
+with an evolution moved are two decks, and a war deck (which has no tower troop)
+is its own row.
 
-- **Trophy Road and Path of Legends**: a section each, headed by the mode's
-  season record from battles_performance. Each deck shows its archetype
-  label, its evolutions and hero forms, the days you first and last played
-  it, its average elixir, its eight cards, its battles, record and win rate
-  in that mode, and its mean level gap: how many levels your cards sat
-  above or below your opponents', on average. A deck's cards are one read
-  each, so a mode shows the six decks played most until you ask for all.
+- **Every chip**: each deck shows its archetype label, its evolutions and hero
+  forms, the days you first and last played it, its average elixir, its eight
+  cards in their real art, its battles, record and win rate, and how many levels
+  your cards sat above or below your opponents', on average.
 - **A swap of forms**: when two decks of one mode are the same eight cards
   with a form moved, and you put the first down before you picked the
   second up, the page draws the swap: the forms before and after, the
   cards that did not change, and each deck's own record. It reads back
   what happened after the change; it does not say the change caused it.
-- **War, duels and events**: every other mode's decks as rows of one
-  table, each with that mode's record, its forms, its level gap and a note
-  when it is the same cards as a Trophy Road deck. A duel has no single
-  deck, so its rows are the decks you played in its rounds, each round won
-  or lost on its own crowns.
-
-The sections run in the order above unless the address names a mode: then
-that mode's section comes first, or the table with that mode's rows
-first. A row of links at the top of the page jumps to each mode's decks.
+- **Duel rounds**: on War, a duel has no single deck, so the decks you played in
+  its rounds have a panel of their own, each round won or lost on its own crowns.
 
 ## Cards
 
 **Cards**, at `/ladder/cards`, is one mode's season card by card, with
-the same mode tabs as the season home. An evolution or a hero is a
+the same chips as every tab. An evolution or a hero is a
 different card from its base form, so each keeps its own row, as the tools
 keep it. Each card's name opens its public page, which holds the card's
 catalog facts: rarity, elixir cost and forms.
@@ -326,7 +330,7 @@ catalog facts: rarity, elixir cost and forms.
   the most battles. A card is listed only from three battles and a player
   from two meetings, and the page says so beside the choice, so a single
   loss does not lead the list. The order is part of the address
-  (`/ladder/cards?order=losses`), and the mode tabs and the season switch
+  (`/ladder/cards?order=losses`), and the chips and the Season list
   keep it. It puts no label on any row: the record, in the order you
   asked for.
 
@@ -335,7 +339,7 @@ catalog facts: rarity, elixir cost and forms.
 - **A verdict.** Nothing on Ladder rates you, projects a pace ("at this
   rate, Arena 20 by Friday") or suggests a change. A record is evidence;
   what it means is yours to say.
-- **When you play.** The nights on Days played say when you played, and
+- **When you play.** The sittings on Battles say when you played, and
   no chart sums them into an hour-of-day habit.
 - **Comparing two decks.** There is no deck-against-deck page; each deck's
   record sits in its own row, and a comparison across rows is only fair

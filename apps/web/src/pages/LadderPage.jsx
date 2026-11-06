@@ -2,6 +2,7 @@ import { useLocation } from "@tanstack/react-router";
 import { useMe, useNav } from "../App.jsx";
 import {
   MODES,
+  OTHER,
   capturePending,
   ladderHref,
   ladderPlayers,
@@ -14,19 +15,21 @@ import {
 import { useToolRead } from "../lib/queries.js";
 import { NoPlayers } from "../ladder/common.jsx";
 import { Cards } from "../ladder/Cards.jsx";
-import { Days } from "../ladder/Days.jsx";
+import { Battles } from "../ladder/Battles.jsx";
 import { Pending } from "../ladder/Pending.jsx";
 import { Decks } from "../ladder/Decks.jsx";
+import { LadderFrame } from "../ladder/ScopeBar.jsx";
 import { Season } from "../ladder/Season.jsx";
 
 /**
  * /ladder/{page}: whose season (`?player=`, one of yours, the primary by
  * default), which game (`?mode=`, else the mode played most) and which
  * season (`?season=`, else the current one, or the last with battles
- * while the current has none: pickSeason), then the page.
- * players_summary is read once here: it names the mode a page opens on
- * and the deck the season home shows, and its recorded_since starts the
- * read that lists the player's seasons for the picker.
+ * while the current has none: pickSeason), then the page inside the scope
+ * bar's frame. players_summary is read once here: it names the mode a page
+ * opens on, and its recorded_since starts the read that lists the player's
+ * seasons for the picker. One no-mode read of the season gives the head its
+ * dates, the chips their Other, and the bar its freshness.
  */
 export function LadderPage() {
   const { me } = useMe();
@@ -54,7 +57,8 @@ export function LadderPage() {
     { player_tag: player?.player_tag, season: "current" },
     { enabled: Boolean(player) && !asked },
   );
-  if (!player) return <NoPlayers />;
+  // No session answer yet says nothing about whose players there are.
+  if (!player) return me ? <NoPlayers /> : null;
   // Nothing captured yet: say so, calmly, on every page (Pending.jsx).
   if (capturePending(summary)) return <Pending player={player} />;
 
@@ -72,37 +76,93 @@ export function LadderPage() {
         : undefined,
   });
   const slug = ladderSlug(pathname);
-  const modeAsked = MODES.some((m) => m.key === search?.mode);
+  const modeAsked =
+    search?.mode === OTHER.key || MODES.some((m) => m.key === search?.mode);
   const mode = pickMode(search?.mode, summary.data?.last_30_days?.modes);
+  const scope = { player_tag: player.player_tag, season: season.arg };
+  // Until the summary answers, an unasked mode is not known yet, and a
+  // page that read Trophy Road first would read it twice.
+  const modeReady = (modeAsked || !summary.isPending) && season.ready;
+  return (
+    <ScopedPage
+      slug={slug}
+      search={search ?? {}}
+      navigate={navigate}
+      scope={scope}
+      season={season}
+      seasons={seasons}
+      player={player}
+      players={players}
+      mode={mode}
+      modeReady={modeReady}
+      summary={summary}
+    />
+  );
+}
+
+/** The scope bar's read and frame, once the season is known. */
+function ScopedPage({
+  slug,
+  search,
+  navigate,
+  scope,
+  season,
+  seasons,
+  player,
+  players,
+  mode,
+  modeReady,
+  summary,
+}) {
+  const read = useToolRead("battles_performance", scope, {
+    enabled: season.ready,
+  });
+  const hrefFor = ({ slug: to = slug, ...over } = {}) => {
+    const keep = {
+      player: search.player,
+      mode: search.mode,
+      season: search.season,
+      order: search.order,
+      ...over,
+    };
+    return ladderHref(to, {
+      ...keep,
+      player: keep.player ?? undefined,
+    });
+  };
   const ctx = {
     player,
-    players,
     mode,
-    // Until the summary answers, an unasked mode is not known yet, and a
-    // page that read Trophy Road first would read it twice.
-    modeReady: (modeAsked || !summary.isPending) && season.ready,
+    modeReady,
     season,
-    // The seasons on record, undefined while they are read: the season
-    // home sets the season it reads beside the one before.
     seasons,
-    seasonPicker: {
-      seasons: seasons ?? [],
-      value: season.key,
-      navigate,
-      hrefFor: (key) =>
-        ladderHref(slug, {
-          player: search?.player,
-          mode: search?.mode,
-          season: key,
-          order: search?.order,
-        }),
-    },
     summary,
-    search: search ?? {},
+    search,
+    hrefFor,
+    startsAt: read.data?.applied?.window?.season?.starts_at ?? null,
   };
+  return (
+    <LadderFrame
+      slug={slug}
+      player={player}
+      players={players}
+      mode={mode}
+      season={season}
+      seasons={seasons}
+      scope={read}
+      summary={summary}
+      hrefFor={hrefFor}
+      navigate={navigate}
+    >
+      <Tab slug={slug} {...ctx} />
+    </LadderFrame>
+  );
+}
+
+function Tab({ slug, ...ctx }) {
   switch (slug) {
-    case "days":
-      return <Days {...ctx} />;
+    case "battles":
+      return <Battles {...ctx} />;
     case "decks":
       return <Decks {...ctx} />;
     case "cards":

@@ -83,32 +83,29 @@ for (const suffix of ["", " @narrow"]) {
           },
         }),
       );
-      await page.goto("/ladder/days");
-      await expect(
-        page.getByRole("heading", { name: "17 days with recorded battles" }),
-      ).toBeVisible();
-      const days = page.locator(".ladder-cal > li:not(.ladder-day--blank)");
-      await expect(days.nth(3).locator(".ladder-day__n")).toHaveText("4");
+      await page.goto("/ladder");
+      const panel = page
+        .locator("section")
+        .filter({ has: page.getByRole("heading", { name: "Days played" }) });
+      await expect(panel).toContainText("days with recorded battles, of 23");
+      const days = page.locator(".ladder-day");
+      await expect(days.nth(3)).toContainText("Sep 10");
       const empty = days.nth(6); // Sep 13, a closed whole day without a captured battle.
       if (capture.quiet) {
-        await expect(empty).toContainText(
-          "no recorded battles, and the record covers the day",
-        );
-        await expect(empty.locator(".ladder-day__n")).toHaveText("0");
-        await expect(page.locator(".ladder-tile").last()).toContainText(
-          "2 days",
+        await expect(empty).toContainText("No battles");
+        await expect(panel.locator(".panel__foot")).toContainText(
+          "Longest stretch with no battles in this mode, all days fully read: 2 days",
         );
       } else {
-        await expect(empty).toContainText(/unknown|partly read/);
-        await expect(empty.locator(".ladder-day__n")).toHaveCount(0);
-        await expect(page.locator(".ladder-tile").last()).toContainText(
-          "Unknown",
+        await expect(empty).toContainText(/Unknown|Partly read/);
+        await expect(panel.locator(".panel__foot")).not.toContainText(
+          "Longest stretch",
         );
       }
-      await expect(days.nth(22)).toContainText("today, still being read");
+      await expect(days.nth(22)).toHaveAttribute("aria-current", "date");
       await page.reload();
       await expect(empty).toContainText(
-        capture.quiet ? "the record covers the day" : /unknown|partly read/,
+        capture.quiet ? "No battles" : /Unknown|Partly read/,
       );
       await soundPage(page);
       expect(errors).toEqual([]);

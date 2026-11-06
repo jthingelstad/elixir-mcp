@@ -6,13 +6,17 @@
  */
 import { describe, test, expect } from "vitest";
 import {
+  modeChips,
+  modeLabel,
+  modeWords,
+  readModes,
+  warLine,
+  weekRows,
   LADDER_PAGES,
-  askedMode,
   captureLanded,
   capturePending,
   clockTime,
   dateLabel,
-  deckModes,
   floorNote,
   formRows,
   fourthTile,
@@ -22,7 +26,6 @@ import {
   ladderLegal,
   ladderPlayers,
   ladderTitle,
-  leadFirst,
   monthName,
   pickMode,
   pickPlayer,
@@ -37,7 +40,6 @@ import {
   seasonHead,
   shortDay,
   signed,
-  weekBars,
 } from "../src/ladder/ladder.js";
 import { DOC_LINKS, legalRoute, titleFor } from "../src/App.jsx";
 
@@ -162,27 +164,6 @@ test("the mode is the one asked for, else the one with the most recorded battles
   ).toBe("ladder");
 });
 
-test("the address's mode leads; a mode Ladder picked itself is not asked for", () => {
-  expect(askedMode({ mode: "war" })).toBe("war");
-  expect(askedMode({ mode: "bogus" })).toBeNull();
-  expect(askedMode({})).toBeNull();
-  expect(askedMode(undefined)).toBeNull();
-  // Order only: the asked mode's entries first, the others as they were,
-  // nothing dropped or merged.
-  const modes = ["ladder", "ranked", "war", "event"];
-  expect(leadFirst(modes, "war")).toEqual(["war", "ladder", "ranked", "event"]);
-  expect(leadFirst(modes, null)).toBe(modes);
-  expect(leadFirst(modes, "casual")).toEqual(modes);
-  const days = [
-    { key: "ladder", battles: 3 },
-    { key: "event", battles: 1 },
-  ];
-  expect(leadFirst(days, "event", (m) => m.key).map((m) => m.key)).toEqual([
-    "event",
-    "ladder",
-  ]);
-});
-
 test("dates are prose in the account's zone", () => {
   // 10:00Z on a Monday is 5:00 am in Chicago in October.
   expect(clockTime("2026-10-05T10:00:00.000Z", CHI)).toBe("5:00 am");
@@ -227,6 +208,7 @@ const APPLIED = {
 test("the season head is the tool's own window", () => {
   expect(seasonHead(APPLIED)).toEqual({
     month: "2026-09",
+    war: null,
     name: "September season",
     age: 24,
     startsAt: "2026-09-07T10:00:00.000Z",
@@ -478,63 +460,78 @@ const WEEKLY = [
   },
 ];
 
-test("week bars keep the tool's order and share one scale for wins and losses", () => {
-  const bars = weekBars(WEEKLY);
-  expect(bars.map((b) => b.label)).toEqual([
-    "Sep 7",
-    "Sep 14",
-    "Sep 21",
-    "Sep 28",
-  ]);
-  // Seven losses is the tallest half: 16px a battle fits both halves.
-  expect(bars.map((b) => [b.winH, b.lossH])).toEqual([
-    [64, 96],
-    [64, 96],
-    [64, 112],
-    [0, 48],
-  ]);
-  expect(bars.map((b) => b.note)).toEqual([
-    "partial · −6",
-    "+29",
-    "−3",
-    "partial · −30",
-  ]);
-  expect(bars[2].rate).toBe(0.364);
-  // A bigger week shrinks the unit rather than overflowing the chart.
-  const big = weekBars([{ week_of: "2026-09-07", wins: 35, losses: 14 }]);
-  expect(big[0].winH).toBeLessThanOrEqual(70);
-  expect(big[0].winH / 35).toBeCloseTo(big[0].lossH / 14, 0);
+test("week rows run newest first, each a record, a share and its facts", () => {
+  const rows = weekRows(WEEKLY, { running: true });
+  expect(rows[0].label).toBe("Week of Sep 28 (so far)");
+  expect(rows.at(-1).label).toBe("Week of Sep 7 (part of a week)");
+  expect(rows[1].label).toBe("Week of Sep 21");
+  expect(rows.at(-1).note).toBe("4–6 · 40% won · −6");
+  expect(rows.at(-1).winShare).toBe(40);
   // Where trophies do not move, the note leaves net trophies out.
-  expect(weekBars(WEEKLY, { net: false }).map((b) => b.note)).toEqual([
-    "partial",
-    "",
-    "",
-    "partial",
-  ]);
+  expect(weekRows(WEEKLY, { net: false }).at(-1).note).toBe("4–6 · 40% won");
+  // A week on a closed season is never "so far".
+  expect(weekRows(WEEKLY)[0].label).toBe("Week of Sep 28 (part of a week)");
+  expect(weekRows(undefined)).toEqual([]);
 });
 
-test("a deck's rate shows only when it is one mode's own", () => {
-  const one = {
-    win_rate: 0.375,
-    modes: { ladder: { battles: 24, wins: 9, losses: 15 } },
+test("Other is two games read apart, and a chip only when it holds a battle", () => {
+  expect(readModes("other")).toEqual(["challenge", "tournament"]);
+  expect(readModes("war")).toEqual(["war"]);
+  expect(modeWords("other")).toBe("Challenge and Tournament");
+  expect(modeLabel("tournament")).toBe("Tournament");
+  const keys = (modes, current) => modeChips(modes, current).map((m) => m.key);
+  const five = ["ladder", "ranked", "war", "event", "casual"];
+  expect(keys(undefined)).toEqual(five);
+  expect(keys({ challenge: { battles: 0 } })).toEqual(five);
+  expect(keys({ tournament: { battles: 2 } })).toEqual([...five, "other"]);
+  // An address standing on Other keeps its chip.
+  expect(keys({}, "other")).toEqual([...five, "other"]);
+  expect(pickMode("other", {})).toBe("other");
+  expect(pickMode("casual", {})).toBe("casual");
+});
+
+test("the war line says what the week holds, and never an out-of", () => {
+  const current = {
+    season_id: 138,
+    section_index: 0,
+    day_kind: "war",
+    period: { source_observed_at: "2026-11-05T02:00:00Z" },
+    standings: [{ clan_tag: "#X" }],
   };
-  expect(deckModes(one)).toEqual([
-    { key: "ladder", label: "Trophy Road", wins: 9, losses: 15, rate: 0.375 },
-  ]);
-  // Played in two modes, win_rate pools them: no rate, a record each.
-  const two = {
-    win_rate: 0.5,
-    modes: {
-      ladder: { battles: 10, wins: 4, losses: 6 },
-      war: { battles: 10, wins: 6, losses: 4 },
-      event: { battles: 0, wins: 0, losses: 0 },
-    },
-  };
-  expect(deckModes(two)).toEqual([
-    { key: "ladder", label: "Trophy Road", wins: 4, losses: 6, rate: null },
-    { key: "war", label: "War", wins: 6, losses: 4, rate: null },
-  ]);
-  expect(deckModes(null)).toEqual([]);
+  const weeks = [
+    { season_id: 138, section_index: 0, decks_used: 12, points: 2150 },
+    { season_id: 137, section_index: 3, decks_used: 16, points: 3000 },
+  ];
+  const line = warLine({ current, weeks, seasonWar: 138 });
+  expect(line.line).toBe("This week: 12 war decks used, 2,150 points.");
+  expect(line.at).toBe("2026-11-05T02:00:00Z");
+  expect(line.note).toBe("Season 138, week 1");
+  expect(line.line).not.toMatch(/ of /);
+  expect(warLine({ current, weeks: [], seasonWar: 138 }).line).toBe(
+    "No war decks used yet this week.",
+  );
+  expect(
+    warLine({
+      current: { ...current, day_kind: "training" },
+      weeks,
+      seasonWar: 138,
+    }).line,
+  ).toBe("This week: training days, so no war decks count yet.");
+  // The game has not drawn this season's race: the last one is not this week.
+  expect(warLine({ current, weeks, seasonWar: 139 }).line).toBe(
+    "The game hasn't drawn this week's race yet.",
+  );
+  expect(
+    warLine({ current: { ...current, standings: [] }, weeks, seasonWar: 138 })
+      .line,
+  ).toBe("The game hasn't drawn this week's race yet.");
+  expect(
+    warLine({
+      current: { ...current, race_finished_at: "2026-11-05T01:00:00Z" },
+      weeks,
+      seasonWar: 138,
+    }).finished,
+  ).toBe(true);
 });
 
 test("a player with nothing captured yet is pending, never an error or an empty mode", () => {

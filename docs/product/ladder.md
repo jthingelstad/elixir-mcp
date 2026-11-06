@@ -2,7 +2,7 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
-*Its arrangement is to be rewritten at step 5 of the redesign ([Structure](structure.md)).*
+*Rearranged at step 5 of the redesign, 2026-11-06: a scope bar (Player, Season, mode, freshness) and four tabs, Season, Battles, Decks, Cards ([Structure](structure.md)).*
 
 ## What it is for
 
@@ -42,8 +42,8 @@ understands it is a recorder and sees their next step. [Jamie,
    losses first is a choice in the address; a row needs its floor; no
    row is labelled or advised on. [Jamie, 2026-10-08]
 6. **A person's battles, one by one.** Ladder treats battles
-   individually, war battles included: Days played shows each on the day
-   it was played. War by the week is about the clan war's week, not a
+   individually, war battles included: the calendar and Battles show each on
+   the day it was played. War by the week is about the clan war's week, not a
    person's battles. [Jamie, 2026-10-20]
 
 ## What it never does

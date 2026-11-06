@@ -1,10 +1,12 @@
 # Ladder
 
 `/ladder`: a player's season, read back. A section of the Elixir app
-beside the Console, in the same shell, with its own rail (`LadderRail.jsx`)
-and pages: Season, Days played, Decks, Cards. The route is in
-`src/App.jsx`, the page chunk `src/pages/LadderPage.jsx`; the views and
-their shaping functions (`ladder*.js`) live here. Public docs:
+in the shared shell, with a scope bar instead of a rail (`ScopeBar.jsx`:
+Player, Season, mode chips, freshness) and four tabs: Season, Battles, Decks,
+Cards. The route is in `src/App.jsx`, the page chunk
+`src/pages/LadderPage.jsx`, which owns the scope read and each tab's href; the
+views and their shaping functions (`ladder*.js`) live here. Paths that moved
+are in `src/lib/moved.js`. Public docs:
 `apps/site/src/docs/ladder.md`.
 
 - **Ladder has no API of its own.** Every read is an MCP tool answered
@@ -15,7 +17,7 @@ their shaping functions (`ladder*.js`) live here. Public docs:
   pages cache for minutes and never poll. Two exceptions (2026-10-08),
   both account state and not tool reads: before a
   player's first capture lands, `Pending.jsx` shows "Your first capture
-  is on its way" and polls the Console's capture status
+  is on its way" and polls the capture status
   (`/api/me/first-answer`, every 5 s for the first 3 minutes after the
   add, then every 60 s: `nextPoll` in `hooks/useFirstAnswer.js`), then
   refreshes the Ladder reads once when it lands. "Lands" is both reads:
@@ -33,6 +35,9 @@ their shaping functions (`ladder*.js`) live here. Public docs:
   direction stated with its numbers ("up from 52% to 58%") is a fact.
   The shaping functions route and shape, they never rate.
 - **Modes are different games.** Every read passes one `mode`, and nothing
-  on a page pools across modes (`MODES` in `ladder.js`).
+  on a page pools across modes (`MODES` in `ladder.js`). Two exceptions, neither
+  a rate: the scope read has no mode, to learn which chips to draw, and the
+  season sweep behind the calendar has none, to count other modes on a day
+  apart. Other (`OTHER_GROUPS`) reads Challenge and Tournament apart.
 - Tests: `apps/web/test/ladder*.test.js` (shaping) and
   `apps/web/e2e/ladder.spec.ts` with `ladder-fixture.ts`.

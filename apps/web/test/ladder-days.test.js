@@ -1,9 +1,9 @@
 /**
- * Ladder's Days page shaping (ladder/ladder-days.js): the season's battles
- * laid on the account's calendar and chained into nights. These pin the
- * seams where a day or a night could invent a number: which day a late
- * battle lands on, a boat defense, a day the sweep never reached, a
- * night's record across modes, the trophies a floor loss leaves.
+ * Ladder's calendar and battle list shaping (ladder/ladder-days.js): the
+ * season's battles laid on the account's calendar and chained into sittings.
+ * These pin the seams where a day or a sitting could invent a number: which day
+ * a late battle lands on, a boat defense, a day the sweep never reached, a day
+ * a chip cannot speak for, the trophies a floor loss leaves.
  */
 import { test, expect } from "vitest";
 import {
@@ -11,14 +11,16 @@ import {
   battlePath,
   battleScore,
   battleWho,
+  battleDays,
+  battleKind,
+  battleResult,
+  chipCalendar,
   counted,
-  daysPlayed,
   localDate,
   longestBreak,
-  modeDays,
-  nightLine,
-  nightsOf,
   seasonCalendar,
+  sittingsOf,
+  tallyLine,
   spanLabel,
   timeSpan,
   weekdayIndex,
@@ -115,13 +117,13 @@ test("the calendar: every season day, each mode its own record, today and the da
   expect(cal.days.find((d) => d.ymd === "2026-09-30").state).toBe("future");
   expect(cal.days.find((d) => d.ymd === "2026-09-28").state).toBe("past");
 
-  expect(daysPlayed(cal.days)).toEqual({ played: 3, of: 23 });
-  // Most battles first: war's three, then Trophy Road's two.
-  expect(modeDays(cal.days).map((m) => [m.key, m.days, m.battles])).toEqual([
-    ["war", 2, 3],
-    ["ladder", 2, 2],
-    ["event", 1, 1],
-  ]);
+  // Each chip reads its own days from the one calendar.
+  const on = (groups) => chipCalendar(cal, groups);
+  expect([on(["ladder"]).played, on(["ladder"]).of]).toEqual([2, 23]);
+  expect(on(["war"]).played).toBe(2);
+  expect(on(["event"]).played).toBe(1);
+  const war = on(["war"]).days.find((d) => d.ymd === "2026-09-09");
+  expect([war.mine.battles, war.others, war.text]).toEqual([2, 2, "2 · 1–1"]);
 });
 
 test("quiet days require whole-day coverage; gaps and the unbracketed tail never form breaks", () => {
@@ -155,7 +157,7 @@ test("quiet days require whole-day coverage; gaps and the unbracketed tail never
   expect(day("2026-09-27").capture.quiet).toBe(false);
   expect(day("2026-09-28").capture.quiet).toBe(false);
   expect(day("2026-09-29").capture.quiet).toBe(false);
-  expect(longestBreak(cal.days)).toEqual({
+  expect(chipCalendar(cal, ["ladder"]).gap).toEqual({
     from: "2026-09-24",
     to: "2026-09-25",
     length: 2,
@@ -179,7 +181,7 @@ test("a successful poll or a season-clipped day cannot establish zero play", () 
     ],
   });
   expect(cal.days[0].capture.quiet).toBe(false);
-  expect(longestBreak(cal.days)).toBeNull();
+  expect(chipCalendar(cal, ["ladder"]).gap).toBeNull();
 });
 
 test("quiet-day coverage respects both short and long DST days", () => {
@@ -233,19 +235,26 @@ test("a capped sweep marks the days it did not reach as not read, never as empty
   expect(state("2026-09-15")).toMatchObject({ state: "unread", count: 1 });
   expect(state("2026-09-16").state).toBe("past");
   expect(state("2026-09-19").count).toBe(1);
-  expect(daysPlayed(cal.days)).toEqual({ played: 2, of: 23 });
+  const chip = chipCalendar(cal, ["ladder"]);
+  expect([chip.played, chip.of]).toEqual([2, 23]);
+  const cell = (ymd) => chip.days.find((d) => d.ymd === ymd);
+  expect(cell("2026-09-07")).toMatchObject({ cls: "unread", text: "Not read" });
+  // A partly read day keeps the battle it did read.
+  expect(cell("2026-09-15").text).toBe("1 · 0–1");
   // An unread day is not a break.
-  expect(longestBreak(cal.days)).toBeNull();
+  expect(chip.gap).toBeNull();
 });
 
 test("the longest break is whole days before today, and its span reads as prose", () => {
+  const whole = { coverage: "complete" };
+  const none = { battles: 0 };
   const days = [
-    { ymd: "2026-09-07", state: "past", count: 0, capture: { quiet: true } },
-    { ymd: "2026-09-08", state: "past", count: 2 },
-    { ymd: "2026-09-09", state: "past", count: 0, capture: { quiet: true } },
-    { ymd: "2026-09-10", state: "past", count: 0, capture: { quiet: true } },
-    { ymd: "2026-09-11", state: "today", count: 0 },
-    { ymd: "2026-09-12", state: "future", count: 0 },
+    { ymd: "2026-09-07", state: "past", mine: none, capture: whole },
+    { ymd: "2026-09-08", state: "past", mine: { battles: 2 }, capture: whole },
+    { ymd: "2026-09-09", state: "past", mine: none, capture: whole },
+    { ymd: "2026-09-10", state: "past", mine: none, capture: whole },
+    { ymd: "2026-09-11", state: "today", mine: none, capture: whole },
+    { ymd: "2026-09-12", state: "future", mine: none },
   ];
   expect(longestBreak(days)).toEqual({
     from: "2026-09-09",
@@ -267,7 +276,7 @@ test("the longest break is whole days before today, and its span reads as prose"
   );
 });
 
-test("nights: runs with no gap over half an hour, newest first, each mode its own record", () => {
+test("sittings: runs with no gap over half an hour, newest first, each mode its own record", () => {
   const battles = [
     // Monday the 28th: two events, then three on Trophy Road down to
     // the floor (the last loss stands on it and carries no change).
@@ -281,17 +290,17 @@ test("nights: runs with no gap over half an hour, newest first, each mode its ow
       start: 12515,
       change: -15,
     }),
-    // Exactly 30 minutes on: the same night.
+    // Exactly 30 minutes on: the same sitting.
     battle("2026-09-29T04:40:00Z", "ladder", "loss", { start: 12500 }),
-    // 31 minutes on: a new night.
+    // 31 minutes on: a new sitting.
     battle("2026-09-29T05:11:00Z", "ladder", "win", {
       start: 12500,
       change: 30,
     }),
-    // A boat defense never joins a night.
+    // A boat defense never joins a sitting.
     battle("2026-09-29T05:20:00Z", "war", "loss", { boat: "defender" }),
   ];
-  const nights = nightsOf([...battles].reverse(), CHI);
+  const nights = sittingsOf([...battles].reverse(), CHI);
   expect(nights.length).toBe(2);
   const [late, night] = nights;
   expect(late.battles.length).toBe(1);
@@ -305,13 +314,10 @@ test("nights: runs with no gap over half an hour, newest first, each mode its ow
     ["event", 2, 0, 2],
     ["ladder", 3, 0, 3],
   ]);
-  expect(nightLine(night.sequence)).toBe(
-    "2 event battles, then 3 on Trophy Road",
-  );
   expect(night.modes.map((m) => m.key)).toEqual(["ladder", "event"]);
-  // The floor loss costs nothing: the night ends on the floor.
+  // The floor loss costs nothing: the sitting ends on the floor.
   expect(night.trophies).toEqual({ from: 12530, to: 12500 });
-  // Newest first inside a night too.
+  // Newest first inside a sitting too.
   expect(night.battles.map((b) => b.battle_time)).toEqual(
     battles
       .slice(0, 5)
@@ -320,20 +326,13 @@ test("nights: runs with no gap over half an hour, newest first, each mode its ow
   );
 });
 
-test("a night's words: a span across noon or midnight, one battle, war and casual", () => {
+test("a span across noon or midnight, and one battle", () => {
   expect(timeSpan("2026-09-29T04:50:00Z", "2026-09-29T05:20:00Z", CHI)).toBe(
     "11:50 pm – 12:20 am",
   );
   expect(timeSpan("2026-09-29T04:50:00Z", "2026-09-29T04:50:00Z", CHI)).toBe(
     "11:50 pm",
   );
-  expect(
-    nightLine([
-      { key: "war", label: "War", battles: 1 },
-      { key: "casual", label: "Casual", battles: 2 },
-      { key: "ranked", label: "Path of Legends", battles: 4 },
-    ]),
-  ).toBe("1 war battle, then 2 casual battles, then 4 on Path of Legends");
 });
 
 test("a battle row names its opponents and score, and links only a url the tool gave", () => {
@@ -371,4 +370,104 @@ test("a battle row names its opponents and score, and links only a url the tool 
       boat: { side: "attacker", role: "defender" },
     }),
   ).toBe(false);
+});
+
+test("a chip's calendar says only what the read can prove about a day", () => {
+  const day = (ymd, extra) => ({
+    ymd,
+    label: ymd,
+    state: "past",
+    count: 0,
+    modes: [],
+    capture: { coverage: "none", quiet: false },
+    ...extra,
+  });
+  const ladder = (battles) => ({
+    key: "ladder",
+    battles,
+    wins: battles,
+    losses: 0,
+    draws: 0,
+  });
+  const cal = {
+    lead: 0,
+    days: [
+      day("2026-09-07", { count: 9, modes: [ladder(9)] }),
+      day("2026-09-08", { count: 3, modes: [ladder(3)] }),
+      day("2026-09-09", {
+        count: 4,
+        modes: [{ key: "war", battles: 4, wins: 2, losses: 2, draws: 0 }],
+      }),
+      day("2026-09-10", { capture: { coverage: "complete", quiet: true } }),
+      day("2026-09-11", { capture: { coverage: "partial", quiet: false } }),
+      day("2026-09-12"),
+      day("2026-09-13", { state: "unread" }),
+      day("2026-09-14", { state: "today" }),
+      day("2026-09-15", { state: "future" }),
+    ],
+  };
+  const words = (opts) =>
+    chipCalendar(cal, ["ladder"], opts).days.map((d) => [d.cls, d.text]);
+  expect(words()).toEqual([
+    ["l3", "9 · 9–0"],
+    ["l1", "3 · 3–0"],
+    ["other", "4 in other modes"],
+    ["quiet", "No battles"],
+    ["part", "Partly read"],
+    ["unk", "Unknown"],
+    ["unread", "Not read"],
+    ["fut", "Still being read"],
+    ["fut", ""],
+  ]);
+  // No coverage answer proves nothing: quiet and partly read become unknown.
+  const failed = words({ coverageFailed: true });
+  expect(failed[3]).toEqual(["unk", "Unknown"]);
+  expect(failed[4]).toEqual(["unk", "Unknown"]);
+  expect(
+    chipCalendar(cal, ["ladder"], { coverageFailed: true }).gap,
+  ).toBeNull();
+});
+
+test("a day groups its sittings, split at midnight as the calendar's day is", () => {
+  const days = battleDays(
+    [
+      battle("2026-09-29T05:10:00Z", "ladder", "win"), // Sep 29, 12:10 am
+      battle("2026-09-29T04:50:00Z", "ladder", "loss"), // Sep 28, 11:50 pm
+      battle("2026-09-28T02:00:00Z", "ladder", "win"), // Sep 27
+      battle("2026-09-29T04:55:00Z", "war", "loss", { boat: "defender" }),
+    ],
+    CHI,
+  );
+  expect(days.map((d) => [d.ymd, d.label, d.battles])).toEqual([
+    ["2026-09-29", "Tue Sep 29", 1],
+    ["2026-09-28", "Mon Sep 28", 1],
+    ["2026-09-27", "Sun Sep 27", 1],
+  ]);
+  expect(days[0].sittings.length).toBe(1);
+  expect(tallyLine(days[0])).toBe("1 battle · 1–0");
+  expect(tallyLine({ battles: 6, wins: 3, losses: 2, draws: 1 })).toBe(
+    "6 battles · 3–2–1",
+  );
+});
+
+test("a row names its kind where a mode's rows differ", () => {
+  const row = (mode_group, type, opponents = [{}]) => ({
+    mode_group,
+    type,
+    opponents,
+  });
+  expect(battleKind(row("war", "riverRaceDuel"))).toBe("War duel");
+  expect(battleKind(row("war", "boatBattle"))).toBe("Boat attack");
+  expect(battleKind(row("war", "riverRacePvP"))).toBe("War battle");
+  expect(battleKind(row("casual", "friendly"))).toBe("Casual");
+  expect(battleKind(row("casual", "clanMate"))).toBe("Clanmate battle");
+  expect(battleKind(row("casual", "clanMate2v2", [{}, {}]))).toBe("2v2");
+  expect(battleKind(row("challenge", "challenge"))).toBe("Challenge");
+  expect(battleKind(row("ladder", "PvP"))).toBeNull();
+  expect(
+    battleResult({
+      ...row("tournament", "tournament", [{ crowns: 1 }]),
+      me: { outcome: "win", crowns: 2 },
+    }),
+  ).toBe("Tournament · won 2–1");
 });

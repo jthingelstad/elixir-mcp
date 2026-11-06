@@ -14,6 +14,7 @@ const MAP = [
   ["/console/admin", "/console/admin/requests"],
   ["/console/explore/player", "/console/explore"],
   ["/console/explore/clan", "/console/explore"],
+  ["/ladder/days", "/ladder/battles"],
 ];
 
 // Every address mail can carry, today or from the archive. packages/mail,
@@ -31,7 +32,8 @@ const MAIL_STAYS = [
   "/console/account/feedback/42",
   "/clan/J2RGCRVG/actions",
   "/ladder",
-  "/ladder/days",
+  "/ladder/decks",
+  "/ladder/cards",
 ];
 
 describe("the map of moved addresses", () => {

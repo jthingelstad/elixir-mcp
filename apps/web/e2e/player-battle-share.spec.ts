@@ -103,9 +103,8 @@ test("choose a captured battle, inspect facts, preview and copy only deliberate 
       },
     }),
   );
-  await page.goto("/ladder/days");
-  await page.locator(".ladder-night").first().getByRole("button").click();
-  await page.locator("a.battle-row").first().click();
+  await page.goto("/ladder/battles");
+  await page.locator(".ladder-row a").first().click();
   await expect(page).toHaveURL(new RegExp(`${path}$`));
   await expect(page.getByRole("heading", { level: 1 })).toContainText("2 to 1");
   await expect(

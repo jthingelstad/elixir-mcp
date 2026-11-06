@@ -58,7 +58,7 @@ export function WeekForm({ player, mode }) {
       cols={["This week", "Last 4 weeks"]}
       a={form.week}
       b={form.previous}
-      foot={`Game weeks start Monday at 10:00 UTC; this one began ${when(from)} and runs to now. Each number is shown once both sides have at least ${FORM_MIN_BATTLES} battles; each count is the battles it is over.`}
+      foot={`A game week starts on Monday morning; this one began ${when(from)} and runs to now. Each number is shown once both sides have at least ${FORM_MIN_BATTLES} battles; each count is the battles it is over.`}
     />
   );
 }
