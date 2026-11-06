@@ -298,6 +298,20 @@ async function clanAttester(db, account, clanTag, internal = false) {
   return { seat, source };
 }
 
+/** Who a leader said was removed from a clan in a window, as a Set of tags.
+ *  The fact is clan-visible, so a caller shows the word to the clan's own
+ *  readers and nobody else (the clan report's render does). */
+export async function removedFromClan(db, clanTag, fromMs, toMs) {
+  const { rows } = await db.query(
+    `select player_tag from attested_fact
+      where fact_type = 'departure_classified' and clan_tag = $1
+        and detail->>'kind' = 'kick'
+        and occurred_at >= $2 and occurred_at < $3`,
+    [clanTag, new Date(fromMs), new Date(toMs)],
+  );
+  return new Set(rows.map((r) => r.player_tag));
+}
+
 export function writeClanFact(db, account, clanInput, body) {
   return writeClanFactWith(db, account, clanInput, body, false);
 }

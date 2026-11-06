@@ -1,6 +1,6 @@
 /** collector_activity: one mail per ACCOUNT, every collector it runs
- *  pooled (Jamie, 2026-09-18). Fetches from api_receipt (the ledger the
- *  fleet pages read), pacing and gaps from the receipt times, and the
+ *  pooled (Jamie, 2026-09-18). Fetches from api_receipt (what the
+ *  collector pages read), pacing and gaps from the receipt times, and the
  *  tier: an active collector earns the Family tier, and nothing else
  *  (#539; points, credits and bonus slots retired). Only accounts with
  *  a collector get one. */
@@ -17,7 +17,7 @@ export async function buildCollector({ db, account, week, now = new Date() }) {
   const { rows: gws } = await db.query(
     // The card a collector is named for, by id, for its art (the
     // elixir_collectors tool lists the whole fleet and no owner, so the
-    // account's own collectors are read here, the way the console does).
+    // account's own collectors are read here, the way the collector pages do).
     `select g.gateway_id, g.name, g.card_name, g.status, g.enrolled_at,
             g.last_seen_sha, g.binary_sha256, ${RELEASE_SIGNED_SQL}, g.missed_streak, g.last_heartbeat_at, c.card_id
        from gateway g
@@ -130,7 +130,7 @@ export async function buildCollector({ db, account, week, now = new Date() }) {
     tier,
     fleet_note: `${newFacts.toLocaleString("en-US")} new facts entered the record through your collectors this week (battles, membership events, moved player readings, changed cards).`,
     coverage:
-      "Counted from every fetch your collectors submitted from Saturday 00:00 UTC to the next Saturday 00:00 UTC. The edge filter share is what the collectors read and dropped as already recorded.",
+      "Counted from every fetch your collectors submitted, Saturday to Saturday. The blocked share is what they read and dropped as already recorded.",
   };
 }
 

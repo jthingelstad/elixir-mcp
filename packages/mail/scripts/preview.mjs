@@ -16,6 +16,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderMail, htmlToText } from "../src/index.mjs";
+import { MAIL_PATHS } from "../src/paths.mjs";
 import { renderEmail } from "../../../services/email-relay/src/templates.mjs";
 import { mailPreviewCases } from "./preview-cases.mjs";
 
@@ -58,7 +59,7 @@ for (const specimen of mailPreviewCases()) {
     ? renderEmail({ v: 1, to: "preview@example.org", ...message })
     : renderMail(kind, facts, {
         unsubscribe: `${SITE}/api/email/unsubscribe?t=preview`,
-        manage: `${SITE}/console/account/profile/email`,
+        manage: MAIL_PATHS.emails,
         period: "preview",
         send_id: "00000000-0000-4000-8000-000000000000",
         timezone: tz,

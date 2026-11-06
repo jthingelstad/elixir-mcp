@@ -16,6 +16,7 @@ import {
   cardAsset,
   resolveCardArt,
 } from "../src/index.mjs";
+import { MAIL_PATHS } from "../src/paths.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SITE = "https://elixir.poapkings.com";
@@ -44,7 +45,7 @@ const stored = (name) =>
   JSON.parse(readFileSync(path.join(here, "fixtures", `${name}.json`), "utf8"));
 const links = {
   unsubscribe: "https://elixir.poapkings.com/api/email/unsubscribe?t=x",
-  manage: "https://elixir.poapkings.com/console/account/profile/email",
+  manage: "https://elixir.poapkings.com/settings/emails",
   period: "2026-W37",
 };
 
@@ -125,7 +126,7 @@ test("names are links into Browse carrying the campaign tag, tags only in the ti
   assert.ok(html.includes('title="#20JJJ2CCRU"'));
   // The manage link is tagged; the one-click unsubscribe is not (an API
   // path with no embed, and the ledger records it anyway).
-  assert.ok(html.includes("account/profile/email?utm_source=email"));
+  assert.ok(html.includes("settings/emails?utm_source=email"));
   assert.ok(
     html.includes(
       'href="https://elixir.poapkings.com/api/email/unsubscribe?t=x"',
@@ -143,34 +144,25 @@ test("links.pixel false renders tagged links without the open pixel (the public 
   assert.ok(html.includes("utm_campaign=milestone-2026-W37"));
 });
 
-test("links.send_id puts the send's id and its console link in the footer; a page render has neither", () => {
+test("links.send_id puts the short mail id in the footer, the whole id in its links; a page render has neither", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "milestone.json"), "utf8"),
   );
   const id = "3f2a9c1b-0000-4000-8000-000000000001";
   const { html } = renderMail("milestone", facts, { ...links, send_id: id });
-  assert.ok(html.includes(`This email is <a`));
-  // The record, the feedback link and the list are tagged like every
-  // other link into the site: a send id is a product identifier, and
-  // the click is counted per campaign (ENGINEERING, "Product
-  // identifiers versus measurement").
+  // Six characters to read, the whole id behind the link: the record and the
+  // feedback are tagged like every other link into the site, because a send
+  // id is a product identifier and the click is counted per campaign
+  // (ENGINEERING, "Product identifiers versus measurement").
+  assert.match(html, />Mail 3f2a9c</);
   assert.ok(
-    html.includes(
-      `href="https://elixir.poapkings.com/console/account/activity/e/${id}?utm_source=email`,
-    ),
+    html.includes(`${MAIL_PATHS.record(id)}?utm_source=email`),
+    "the mail's record",
   );
   assert.ok(
-    html.includes(
-      `href="https://elixir.poapkings.com/console/account/activity/e/${id}?report=1&amp;utm_source=email`,
-    ) ||
-      html.includes(
-        `href="https://elixir.poapkings.com/console/account/activity/e/${id}?report=1&utm_source=email`,
-      ),
-  );
-  assert.ok(
-    html.includes(
-      "https://elixir.poapkings.com/console/account/activity/emails?utm_source=email",
-    ),
+    html.includes(`${MAIL_PATHS.report(id)}&utm_source=email`) ||
+      html.includes(`${MAIL_PATHS.report(id)}&amp;utm_source=email`),
+    "feedback with the mail attached",
   );
   // Every product email carries the same support line, tagged by kind.
   assert.ok(
@@ -182,7 +174,7 @@ test("links.send_id puts the send's id and its console link in the footer; a pag
   const text = htmlToText(html);
   assert.ok(text.includes(id), "the text alternative carries the id too");
   const page = renderMail("milestone", facts, links).html;
-  assert.ok(!page.includes("This email is <a"));
+  assert.ok(!page.includes(">Mail "));
 });
 
 test("tagLink leaves foreign URLs alone and keeps an existing query string", async () => {
@@ -389,9 +381,9 @@ test("one shell: the wordmark, the product source, the why-line in the reader's 
   // 14:00 UTC is 9:00 am in daylight time and 8:00 am in standard.
   assert.match(
     html,
-    /You get this on Mondays at [89]:00 am Central, for each clan you track\./,
+    /You get this on Mondays at [89]:00 am Central, for each clan you track where something happened that week\./,
   );
-  assert.match(html, /Turn off the clan report/);
+  assert.match(html, /Turn off this mail/);
   const utc = renderMail("clan_report", facts, links).html;
   assert.match(utc, /on Mondays at 2:00 pm UTC/);
   // Mail is tables: no flex, no grid, no background image anywhere.
@@ -411,7 +403,7 @@ test("the friends mail is called what it is: Your friends this week (Jamie, 2026
   assert.equal(KIND_LABELS.tracking_report, "Your friends this week");
   assert.match(out.subject, /^Your friends this week/);
   assert.ok(!/Tracking report/.test(out.html));
-  assert.match(out.html, /Turn off Your friends this week/);
+  assert.match(out.html, /Turn off this mail/);
 });
 
 test("the friends mail: a clan is a headline and at most three bullets, a month quiet is one line, and a full stop never doubles (Jamie, 2026-10-08)", () => {
@@ -434,7 +426,7 @@ test("the friends mail: a clan is a headline and at most three bullets, a month 
   // Quiet a month or more: one line, longest first, no day counts.
   assert.match(
     text,
-    /Quiet for 30\+ days: Lord of Latency[^\n]*, Lucky Red Panda[^\n]*\./,
+    /Quiet for 30 days or more: Lord of Latency[^\n]*, Lucky Red Panda[^\n]*\./,
   );
   assert.doesNotMatch(text, /169 days/);
   assert.match(text, /No battle recorded this week: JaxikoLane/);
@@ -466,7 +458,7 @@ test("the Arena week counts each player's card unlocks and badge levels, and lin
   const text = htmlToText(renderMail("arena_week", facts, links).html);
   assert.match(text, /King Thing[^\n]*: 1 card unlocked, 2 badge levels/);
   assert.match(text, /thingles[^\n]*: 3 cards unlocked, 1 badge level\b/);
-  assert.match(text, /\/console\/account\/timeline\?utm_source=email/);
+  assert.match(text, /\/home\/timeline\?utm_source=email/);
   delete facts.progress;
   assert.doesNotMatch(
     htmlToText(renderMail("arena_week", facts, links).html),
@@ -735,7 +727,7 @@ test("the drawn image is the base card's, with the form's name as its alt", asyn
 test("cards unlocked are their art, each a link to the card's page in Elixir", () => {
   const facts = stored("milestone-cards");
   const { subject, preheader, html } = renderMail("milestone", facts, links);
-  assert.match(html, /Big Thing unlocked three cards/);
+  assert.match(html, /You unlocked three cards/);
   for (const m of facts.milestones) {
     assert.ok(
       html.includes(`/assets/cards/${m.card.id}.png`),
@@ -903,7 +895,7 @@ test("each collector is its card, with what it is doing now", () => {
   assert.match(html, /silent since Sat Sep 26, 9:40 pm UTC/);
   assert.match(html, /stopped on purpose, last checked in on Sep 17/);
   assert.match(preheader, /Royal Hogs has been silent since Sep 26\./);
-  assert.match(html, /href="[^"]*\/console\/status\/collectors/);
+  assert.match(html, /href="[^"]*\/settings\/collectors/);
 });
 
 test("a collector issue stored before its cards and states still renders from its status", () => {
@@ -922,15 +914,18 @@ test("a collector issue stored before its cards and states still renders from it
   assert.doesNotMatch(html, /undefined|NaN/);
 });
 
-test("the collector mail says the tier, never points or credits (#539)", () => {
+test("the collector mail says the limits, never points or credits (#539)", () => {
   const facts = JSON.parse(
     readFileSync(path.join(fixtures, "collector_activity.json"), "utf8"),
   );
   const { html, preheader } = renderMail("collector_activity", facts, links);
-  assert.match(html, /Your tier/);
-  assert.match(html, /earns your account the Family tier/);
+  assert.match(html, /Your limits/);
+  assert.match(html, /raises your limits to Family/);
   assert.match(html, /fetches with new facts/);
-  assert.match(preheader, /Your active collector earns the Family tier\./);
+  assert.match(
+    preheader,
+    /Your active collector raises your limits to Family\./,
+  );
   assert.doesNotMatch(html, /points|credits?\b/i);
 
   // An issue stored before 2026-10-12 carried points and credits: it
@@ -943,7 +938,7 @@ test("the collector mail says the tier, never points or credits (#539)", () => {
     x.lifetime_points = 4639;
   }
   const stored = renderMail("collector_activity", old, links);
-  assert.doesNotMatch(stored.html, /points|credits?\b|Your tier/i);
+  assert.doesNotMatch(stored.html, /points|credits?\b|Your limits/i);
   assert.doesNotMatch(stored.html, /undefined|NaN/);
 });
 
@@ -957,12 +952,12 @@ test("actions waiting: action rows, the app's count of the rest, and one primary
   ];
   const { html, preheader } = renderMail("clan_actions_waiting", facts, links);
   assert.match(html, /15 actions waiting/);
-  assert.match(html, /And 5 more on the Actions page\./);
+  assert.match(html, /And 5 more in .*Clan › Today/);
   assert.doesNotMatch(html, /Decide ›/);
-  assert.equal(html.match(/>Open Actions in Clan</g).length, 1);
+  assert.equal(html.match(/>Review in Clan</g).length, 1);
   assert.equal(
     preheader,
-    "#60 Welcome: Player 0 · #59 Welcome: Player 1 · #58 Welcome: Player 2",
+    "#60 Welcome: Player 0 · #59 Welcome: Player 1 · #58 Welcome: Player 2 · #57 Welcome: Player 3",
   );
   const one = renderMail(
     "clan_actions_waiting",
@@ -972,6 +967,38 @@ test("actions waiting: action rows, the app's count of the rest, and one primary
   assert.match(one, /One action waiting/);
   assert.match(one, />· New<\/span>/);
   assert.doesNotMatch(one, /\(new\)/);
+});
+
+test("an action in mail: its title, its reason, a link to it, and never its number", () => {
+  const facts = JSON.parse(
+    readFileSync(path.join(fixtures, "clan_actions_waiting.json"), "utf8"),
+  );
+  const at = "2026-10-20T15:00:00.000Z";
+  const out = renderMail(
+    "clan_actions_waiting",
+    {
+      ...facts,
+      lines: [
+        {
+          title: "Welcome: Player",
+          reason: `Joined {{when:${at}}}. Welcome them in clan chat.`,
+          number: 92,
+          new: true,
+        },
+        { title: "Promote to Elder: Player Two", reason: "", number: 93 },
+      ],
+    },
+    { ...links, timezone: "America/Chicago" },
+  );
+  const tag = facts.clan.tag.slice(1);
+  assert.ok(
+    out.html.includes(`/clan/${tag}/actions/92?`),
+    "the row's own page",
+  );
+  assert.doesNotMatch(out.html, /#92\b|\{\{when/);
+  assert.match(out.html, /Joined [^<]*\. Welcome them in clan chat\./);
+  assert.match(out.html, />· New<\/span>/);
+  assert.match(out.preheader, /Welcome: Player/);
 });
 
 test("collector upgrade notices escape release text and distinguish unknown historical security", () => {
@@ -1081,8 +1108,8 @@ test("activity-only clan reports preserve unknown battle counts, including older
     facts.headline.battles = battles;
     facts.headline.active = battles;
     const out = renderMail("clan_report", facts, links);
-    assert.match(out.preheader, /Battle activity is not recorded/);
-    assert.match(out.html, /Battle activity is not recorded/);
+    assert.match(out.preheader, /battles are not recorded, only its roster/);
+    assert.match(out.html, /battles are not recorded, only its roster/);
     assert.doesNotMatch(htmlToText(out.html), /0 battles|by 0 of/);
     assert.match(out.subject, /departed/);
     assert.doesNotMatch(out.html, />[^<]* left(?:,|<)/);

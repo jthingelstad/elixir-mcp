@@ -23,7 +23,7 @@ test("login template leads with the code and carries link, consent, disclaimer",
   );
   // The token rides the fragment, which never leaves the browser: a
   // query string would reach the CDN's access logs (#129).
-  assert.match(text, /\/console\/signin#login_token=tok_abc/);
+  assert.match(text, /\/signin#login_token=tok_abc/);
   assert.doesNotMatch(text, /\?login_token=/);
   assert.match(text, /signing in to Claude with Elixir/);
   assert.match(text, /not endorsed by Supercell/);
@@ -722,7 +722,7 @@ test("verified signup welcome carries the explicit enrollment decision; unflagge
   assert.deepEqual(result.batchItemFailures, []);
   assert.deepEqual(enrolled, ["new@example.com"]);
   const welcome = renderEmail({ v: 1, kind: "welcome", to: "new@example.com" });
-  assert.match(welcome.text, /Add your player in Console/);
+  assert.match(welcome.text, /Add your player on Home/);
   assert.doesNotMatch(welcome.text, /already being recorded/);
 });
 
@@ -811,7 +811,7 @@ test("welcome starts the record and every service mail includes the disclaimer i
   const welcome = renderEmail({ kind: "welcome" });
   assert.match(
     welcome.html,
-    /href="https:\/\/elixir.poapkings.com\/console\/account\/tracking"[^>]*>Start your record/,
+    /href="https:\/\/elixir.poapkings.com\/home"[^>]*>Start your record/,
   );
   assert.doesNotMatch(welcome.html, /when your access is approved/);
   for (const kind of ["login", "welcome", "owner_notify"]) {

@@ -7,6 +7,7 @@
  *  it calls can write: no issue, no send, no mail. */
 import pg from "pg";
 import { renderMail, htmlToText } from "@elixir-mcp/mail";
+import { MAIL_PATHS } from "@elixir-mcp/mail/paths";
 import { loadRecipients, accountCtx, callTool } from "./ctx.mjs";
 import { lastGameWeek } from "./week.mjs";
 import { buildClan } from "./build-clan.mjs";
@@ -37,7 +38,7 @@ export async function clanReportPreview({ databaseUrl, db: given }, spec = {}) {
     const links = {
       unsubscribe:
         "https://elixir.poapkings.com/api/email/unsubscribe?t=preview",
-      manage: "https://elixir.poapkings.com/console/account/profile/email",
+      manage: MAIL_PATHS.emails,
       period: week.key,
       timezone: account.timezone ?? "UTC",
     };

@@ -4,11 +4,26 @@
   "name": "POAP KINGS"
  },
  "app": "Elixir Clan",
- "subject": "3 actions waiting for you in POAP KINGS",
+ "subject": "3 actions in POAP KINGS: promote God Bless You, welcome Toji, welcome back ⚡️❤️Nerfie❤️⚡️",
  "lines": [
-  "#41 Promote to Elder: God Bless You (new)",
-  "#40 Welcome back: ⚡️❤️Nerfie❤️⚡️ (new)",
-  "#38 Welcome: Toji"
+  {
+   "title": "Promote to Elder: God Bless You",
+   "reason": "In line for promotion on 3 weekly reviews (needs 3). Elders hold 6 places, and your clan aims for 8.",
+   "number": 41,
+   "new": true
+  },
+  {
+   "title": "Welcome back: ⚡️❤️Nerfie❤️⚡️",
+   "reason": "Joined {{when:2026-09-25T15:04:00.000Z}}. Welcome them in clan chat, then mark it done.",
+   "number": 40,
+   "new": true
+  },
+  {
+   "title": "Welcome: Toji",
+   "reason": "Joined {{when:2026-09-23T17:38:00.000Z}}. Welcome them in clan chat, then mark it done.",
+   "number": 38,
+   "new": false
+  }
  ],
- "link": "https://elixir.poapkings.com/clan/J2RGCRVG/actions"
+ "link": "https://elixir.poapkings.com/clan/J2RGCRVG/today"
 }

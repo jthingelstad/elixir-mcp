@@ -1,7 +1,7 @@
 /** The sent mail itself, kept: every product send's rendered HTML goes
  *  to the archive bucket under mail/sent/, keyed by the send's own id,
  *  so the console can show a person the email they were sent
- *  (/console/account/activity/emails) and a report about one can carry it.
+ *  (/settings/emails/sent) and a report about one can carry it.
  *
  *  Same split as call capture (packages/tools/src/capture.mjs): S3 holds
  *  the body, email_send holds the pointer (archived). Written BEFORE

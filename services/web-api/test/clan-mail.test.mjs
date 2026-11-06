@@ -205,8 +205,12 @@ test("award scope with twelve maximum-length names still passes the real mail do
   const r = await mail({ kind: "clan_actions_waiting", messages: [generated] });
   assert.equal(r.statusCode, 200, r.body);
   assert.equal(data(r).data.results[0].status, "sent");
-  assert.equal(generated.lines[0], `#9999999 ${actionLabel(card)} (new)`);
-  assert.match(generated.lines[0], /and 10 more awards/);
+  assert.equal(
+    generated.lines[0].title,
+    actionLabel({ ...card, number: null }),
+  );
+  assert.equal(generated.lines[0].number, 9999999);
+  assert.match(generated.lines[0].title, /and 10 more awards/);
   assert.equal(
     card.evidence.awards.length,
     12,
