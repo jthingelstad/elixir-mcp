@@ -251,13 +251,13 @@ test("a welcome's ask follows the Action: back again, or new; its frozen detail 
     {
       lines: [
         "Welcome Secretname, 9,000 trophies!",
-        "Say hi to Jotaro, 4,400 wins.",
+        "Say hi to Stoatling, 4,400 wins.",
       ],
     },
     { kind: "welcome", name: "Secretname", told },
   );
   assert.ok(checked.warnings.some((w) => /4,400 is not in anything/.test(w)));
-  assert.ok(checked.warnings.some((w) => /Jotaro is not a name/.test(w)));
+  assert.ok(checked.warnings.some((w) => /Stoatling is not a name/.test(w)));
   assert.ok(!checked.warnings.some((w) => /9,000/.test(w)));
 });
 

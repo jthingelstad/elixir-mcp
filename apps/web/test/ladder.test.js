@@ -119,7 +119,7 @@ test("Cards keeps a chosen order in its address, and only most losses", () => {
 
 const CLAIMS = [
   { player_tag: "#FRIEND1", relationship: "friend" },
-  { player_tag: "#VJQV8G8RL", name: "thingles", relationship: "alt" },
+  { player_tag: "#VJQV8G8RL", name: "Spry Kestrel", relationship: "alt" },
   {
     player_tag: "#20JJJ2CCRU",
     name: "King Thing",

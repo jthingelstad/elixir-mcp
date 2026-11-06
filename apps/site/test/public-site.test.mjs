@@ -8,7 +8,6 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import vm from "node:vm";
 import { JSDOM } from "jsdom";
 import { movedTo } from "../../web/src/lib/moved.js";
 
@@ -164,52 +163,12 @@ test("member docs use step 1's words", { skip: false }, () => {
   assert.deepEqual(hits, []);
 });
 
-test("the 404 page forwards only the old root paths", () => {
-  const code = readFileSync(path.join(site, "assets/not-found.js"), "utf8");
-  const run = (pathname, search = "", hash = "") => {
-    const replaced = [];
-    const sandbox = {
-      location: {
-        pathname,
-        search,
-        hash,
-        replace: (to) => replaced.push(to),
-      },
-    };
-    vm.runInNewContext(code, sandbox);
-    return replaced[0] ?? null;
-  };
-  assert.equal(run("/admin"), "/console/admin");
-  assert.equal(
-    run("/explore/player/ABC", "?x=1", "#y"),
-    "/console/explore/player/ABC?x=1#y",
-  );
-  assert.equal(run("/account/profile"), "/console/account/profile");
-  assert.equal(run("/account/profile/"), "/console/account/profile");
-  // Everything else stays a 404.
-  for (const miss of [
-    "/accounts",
-    "/explored",
-    "/administrator",
-    "/nothing",
-    "/docs/gone",
-    "/",
-  ])
-    assert.equal(run(miss), null, miss);
-
-  // The app's one map takes an old account path the rest of the way, query and
-  // hash intact, so the 404 page keeps none of its own.
-  assert.equal(movedTo("/console/account/profile"), "/settings/profile");
-  assert.equal(movedTo("/console/account/usage"), "/settings/usage");
-  assert.equal(movedTo("/console/admin"), "/console/admin/requests");
-});
-
 test(
-  "the 404 page loads its forwarder and keeps the way home",
+  "the 404 page sends nobody anywhere and keeps the way home",
   { skip },
   () => {
     const html = read("404.html");
-    assert.match(html, /src="\/assets\/not-found(\.[^"]*)?\.js[^"]*"/);
+    assert.doesNotMatch(html, /location\.replace|not-found\.js/);
     assert.match(html, /Nothing at this address/);
     assert.match(html, /noindex/);
   },

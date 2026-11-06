@@ -60,7 +60,6 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy("src/assets/transcript.js");
   eleventyConfig.addPassthroughCopy("src/assets/rail-anchors.js");
   eleventyConfig.addPassthroughCopy("src/assets/site-help.js");
-  eleventyConfig.addPassthroughCopy("src/assets/not-found.js");
   eleventyConfig.addPassthroughCopy("src/assets/home-status.js");
   eleventyConfig.addPassthroughCopy("src/assets/updates-filter.js");
   eleventyConfig.addPassthroughCopy("src/assets/site-rail.js");

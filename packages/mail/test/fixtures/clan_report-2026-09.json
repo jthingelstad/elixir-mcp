@@ -21,7 +21,7 @@
   "sessions": 803,
   "donations": 542,
   "donations_leader": {
-   "name": "Chanco",
+   "name": "Crisp Marten",
    "tag": "#20R8QRLYLP",
    "n": 74
   }
@@ -41,17 +41,17 @@
  "membership": {
   "joined": [
    {
-    "name": "Brotherinpants",
+    "name": "Coral Otter",
     "tag": "#RRU9PGJQ9",
     "at": "2026-09-08T18:00:00Z"
    },
    {
-    "name": "VVSBUDGET",
+    "name": "Teal Gecko",
     "tag": "#20CLVPLG8R",
     "at": "2026-09-12T18:00:00Z"
    },
    {
-    "name": "ㅤᴀɴᴅᴇʀㅤ:)",
+    "name": "Woolly Shrew é⚡",
     "tag": "#LCUVPUYCY",
     "at": "2026-09-12T18:00:00Z",
     "note": "left again the same day"
@@ -59,19 +59,19 @@
   ],
   "left": [
    {
-    "name": "pax",
+    "name": "Pale Egret",
     "tag": "#UCP028JQ8",
     "at": "2026-09-10T18:00:00Z",
     "role": "member"
    },
    {
-    "name": "Ditaka",
+    "name": "Fern Finch",
     "tag": "#VGJJLC9PR",
     "at": "2026-09-10T18:00:00Z",
     "role": "member"
    },
    {
-    "name": "Th15_Guy",
+    "name": "Slate Koala",
     "tag": "#QLGYYG0Q",
     "at": "2026-09-10T18:00:00Z",
     "role": "member"
@@ -79,13 +79,13 @@
   ],
   "roles": [
    {
-    "name": "pax",
+    "name": "Pale Egret",
     "tag": "#UCP028JQ8",
     "from": "elder",
     "to": "member"
    },
    {
-    "name": "Th15_Guy",
+    "name": "Slate Koala",
     "tag": "#QLGYYG0Q",
     "from": "elder",
     "to": "member"
@@ -94,27 +94,27 @@
  },
  "standouts": [
   {
-   "name": "Aaqib Javed",
+   "name": "Azure Beaver",
    "tag": "#2G2RPVPP",
    "text": "449 battles, the most in the clan; 37 in one {{day:2026-09-12T18:00:00Z}} sitting with 12 wins in a row; promoted to Master 2 in ranked"
   },
   {
-   "name": "L-Drxgo⚡",
+   "name": "Keen Zebu é⚡",
    "tag": "#2CY2RJL9G",
    "text": "48 battles in one sitting Saturday, 24W-24L, half of them ranked"
   },
   {
-   "name": "NOBITA",
+   "name": "Oak Vole",
    "tag": "#JRVV9VC0C",
    "text": "44 battles in one Monday sitting, 10W-34L"
   },
   {
-   "name": "canavar",
+   "name": "Crisp Curlew",
    "tag": "#P2U0PC2UU",
    "text": "+350 trophies, 13,650 → 14,000, clan rank 17 → 2"
   },
   {
-   "name": "MONICA",
+   "name": "Mossy Raven",
    "tag": "#VGC22YGP",
    "text": "+353 trophies, 13,647 → 14,000, clan rank 18 → 6"
   }
@@ -154,7 +154,7 @@
  "roster_note": null,
  "roster": [
   {
-   "name": "Aaqib Javed",
+   "name": "Azure Beaver",
    "tag": "#2G2RPVPP",
    "role": "member",
    "trophies": 14000,
@@ -162,7 +162,7 @@
    "battles": 393
   },
   {
-   "name": "canavar",
+   "name": "Crisp Curlew",
    "tag": "#P2U0PC2UU",
    "role": "member",
    "trophies": 14000,
@@ -170,7 +170,7 @@
    "battles": 101
   },
   {
-   "name": "L-Drxgo⚡",
+   "name": "Keen Zebu é⚡",
    "tag": "#2CY2RJL9G",
    "role": "member",
    "trophies": 14000,
@@ -178,7 +178,7 @@
    "battles": 205
   },
   {
-   "name": "Vijay",
+   "name": "Tawny Toad",
    "tag": "#C920YGLC2",
    "role": "co-leader",
    "trophies": 14000,
@@ -186,7 +186,7 @@
    "battles": 264
   },
   {
-   "name": "Sandeep",
+   "name": "Rapid Robin",
    "tag": "#UQ2R9RGVP",
    "role": "member",
    "trophies": 14000,
@@ -194,7 +194,7 @@
    "battles": 102
   },
   {
-   "name": "MONICA",
+   "name": "Mossy Raven",
    "tag": "#VGC22YGP",
    "role": "member",
    "trophies": 14000,
@@ -202,7 +202,7 @@
    "battles": 141
   },
   {
-   "name": "TDuck",
+   "name": "Silver Thrush",
    "tag": "#PLCCYUQL",
    "role": "member",
    "trophies": 14000,
@@ -210,7 +210,7 @@
    "battles": 58
   },
   {
-   "name": "The Joesma",
+   "name": "Slate Panda",
    "tag": "#PR8YLQ2CV",
    "role": "member",
    "trophies": 14000,
@@ -218,7 +218,7 @@
    "battles": 14
   },
   {
-   "name": "dez42",
+   "name": "Ember Toad",
    "tag": "#9Q9QRCPPU",
    "role": "member",
    "trophies": 14000,
@@ -226,7 +226,7 @@
    "battles": 31
   },
   {
-   "name": "King Levy",
+   "name": "Jolly Stoat",
    "tag": "#U8RYG9Y2U",
    "role": "co-leader",
    "trophies": 14000,
@@ -234,7 +234,7 @@
    "battles": 16
   },
   {
-   "name": "OllieTurtle",
+   "name": "Onyx Ocelot",
    "tag": "#RJ9RRQPVU",
    "role": "member",
    "trophies": 14000,
@@ -242,7 +242,7 @@
    "battles": 39
   },
   {
-   "name": "Kurd Paraw",
+   "name": "Keen Stoat",
    "tag": "#2G09Q20QC",
    "role": "member",
    "trophies": 14000,
@@ -250,7 +250,7 @@
    "battles": 17
   },
   {
-   "name": "Fullboat",
+   "name": "Foggy Stoat",
    "tag": "#8U2P0JPR",
    "role": "member",
    "trophies": 14000,
@@ -258,7 +258,7 @@
    "battles": 42
   },
   {
-   "name": "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
+   "name": "Zesty Weasel é⚡",
    "tag": "#2P9GRU2Q0",
    "role": "member",
    "trophies": 14000,
@@ -266,7 +266,7 @@
    "battles": null
   },
   {
-   "name": "raquaza",
+   "name": "Plum Heron",
    "tag": "#UL2V9QRG0",
    "role": "co-leader",
    "trophies": 13904,
@@ -274,7 +274,7 @@
    "battles": 7
   },
   {
-   "name": "AHMOメŞΛDØW",
+   "name": "Bold Pelican é⚡",
    "tag": "#UVQ8RJYG9",
    "role": "member",
    "trophies": 13681,
@@ -282,7 +282,7 @@
    "battles": 28
   },
   {
-   "name": "sikander sidhu",
+   "name": "Sage Ferret",
    "tag": "#JYRQ8U92C",
    "role": "member",
    "trophies": 13598,
@@ -290,7 +290,7 @@
    "battles": 124
   },
   {
-   "name": "Chanco",
+   "name": "Crisp Marten",
    "tag": "#20R8QRLYLP",
    "role": "member",
    "trophies": 13560,
@@ -298,7 +298,7 @@
    "battles": 46
   },
   {
-   "name": "ryguy67",
+   "name": "Quiet Weasel",
    "tag": "#V8Q8PUL0U",
    "role": "member",
    "trophies": 13184,
@@ -306,7 +306,7 @@
    "battles": 61
   },
   {
-   "name": "kiruba⚜️",
+   "name": "Keen Crane é⚡",
    "tag": "#G2CUUJQ8V",
    "role": "member",
    "trophies": 13177,
@@ -314,7 +314,7 @@
    "battles": 30
   },
   {
-   "name": "blackberry",
+   "name": "Clay Ibis",
    "tag": "#L9CUUJPLJ",
    "role": "member",
    "trophies": 13000,
@@ -330,7 +330,7 @@
    "battles": 18
   },
   {
-   "name": "Alfablack",
+   "name": "Bold Vole",
    "tag": "#2YG98VVQ",
    "role": "member",
    "trophies": 12349,
@@ -338,7 +338,7 @@
    "battles": 23
   },
   {
-   "name": "shimmeringhost",
+   "name": "Rustic Seal",
    "tag": "#2209PJPVGG",
    "role": "member",
    "trophies": 12289,
@@ -346,7 +346,7 @@
    "battles": 83
   },
   {
-   "name": "God Bless You",
+   "name": "Glad Crane",
    "tag": "#U92P8PQG0",
    "role": "member",
    "trophies": 12105,
@@ -354,7 +354,7 @@
    "battles": 57
   },
   {
-   "name": "I Hate Witch",
+   "name": "Indigo Linnet",
    "tag": "#20LP8UPJ8R",
    "role": "member",
    "trophies": 11616,
@@ -362,7 +362,7 @@
    "battles": null
   },
   {
-   "name": "Tere",
+   "name": "Slate Crane",
    "tag": "#U08P889Y0",
    "role": "member",
    "trophies": 11532,
@@ -370,7 +370,7 @@
    "battles": 19
   },
   {
-   "name": "Andy",
+   "name": "Brisk Egret",
    "tag": "#2LRYLQPL",
    "role": "member",
    "trophies": 11110,
@@ -378,7 +378,7 @@
    "battles": 57
   },
   {
-   "name": "Ak",
+   "name": "Bold Raven",
    "tag": "#UCRLVL29U",
    "role": "member",
    "trophies": 11085,
@@ -386,7 +386,7 @@
    "battles": 75
   },
   {
-   "name": "BigNorton",
+   "name": "Cedar Robin",
    "tag": "#CV20JCY0V",
    "role": "member",
    "trophies": 11004,
@@ -394,7 +394,7 @@
    "battles": 37
   },
   {
-   "name": "Gabriel",
+   "name": "Gentle Badger",
    "tag": "#8G8UYG2PQ",
    "role": "member",
    "trophies": 9527,
@@ -402,7 +402,7 @@
    "battles": 11
   },
   {
-   "name": "Mega Goblin",
+   "name": "Misty Pelican",
    "tag": "#229QY8UL9U",
    "role": "member",
    "trophies": 9446,
@@ -410,7 +410,7 @@
    "battles": 60
   },
   {
-   "name": "nyje47",
+   "name": "Olive Dormouse",
    "tag": "#VC8VY8R29",
    "role": "member",
    "trophies": 8807,
@@ -418,7 +418,7 @@
    "battles": 55
   },
   {
-   "name": "bonus",
+   "name": "Copper Koala",
    "tag": "#20GPQPC9RV",
    "role": "member",
    "trophies": 8600,
@@ -426,7 +426,7 @@
    "battles": 139
   },
   {
-   "name": "NOBITA",
+   "name": "Oak Vole",
    "tag": "#JRVV9VC0C",
    "role": "member",
    "trophies": 8530,
@@ -434,7 +434,7 @@
    "battles": 160
   },
   {
-   "name": "round hamster",
+   "name": "Quiet Ocelot",
    "tag": "#VR0QRP2PG",
    "role": "member",
    "trophies": 8067,
@@ -442,7 +442,7 @@
    "battles": null
   },
   {
-   "name": "Brotherinpants",
+   "name": "Coral Otter",
    "tag": "#RRU9PGJQ9",
    "role": "member",
    "trophies": 7884,
@@ -450,7 +450,7 @@
    "battles": null
   },
   {
-   "name": "VVSBUDGET",
+   "name": "Teal Gecko",
    "tag": "#20CLVPLG8R",
    "role": "member",
    "trophies": 7750,
@@ -458,7 +458,7 @@
    "battles": 27
   },
   {
-   "name": "£eoππe§§;",
+   "name": "Umber Stoat é⚡",
    "tag": "#VJG09L9YY",
    "role": "member",
    "trophies": 7667,
@@ -466,7 +466,7 @@
    "battles": 21
   },
   {
-   "name": "pokemon",
+   "name": "Pale Vole",
    "tag": "#V0CRYP2GG",
    "role": "member",
    "trophies": 7563,
@@ -474,7 +474,7 @@
    "battles": null
   },
   {
-   "name": "Waltadr",
+   "name": "Teal Koala",
    "tag": "#20G9RY299P",
    "role": "member",
    "trophies": 7405,
@@ -482,7 +482,7 @@
    "battles": 20
   },
   {
-   "name": "alex",
+   "name": "Bold Shrew",
    "tag": "#20G0JGQLPL",
    "role": "member",
    "trophies": 7262,
@@ -490,7 +490,7 @@
    "battles": null
   },
   {
-   "name": "pigsareus",
+   "name": "Pale Kestrel",
    "tag": "#20CGPVUL92",
    "role": "member",
    "trophies": 6452,
@@ -498,7 +498,7 @@
    "battles": null
   },
   {
-   "name": "Gem",
+   "name": "Gentle Linnet",
    "tag": "#20GQUGPRC2",
    "role": "member",
    "trophies": 5971,
@@ -506,7 +506,7 @@
    "battles": null
   },
   {
-   "name": "1spaceO2",
+   "name": "Amber Pelican",
    "tag": "#VQUQJP8Q9",
    "role": "member",
    "trophies": 5844,
@@ -514,7 +514,7 @@
    "battles": 5
   },
   {
-   "name": "x.x.hari.x.x",
+   "name": "Tidy Gibbon",
    "tag": "#URPCLR8UQ",
    "role": "member",
    "trophies": 5794,

@@ -216,10 +216,10 @@ test("a person is told who they are, and told not to look it up", async () => {
     kind: "person",
     grouped: {
       primary: [
-        { player_tag: "#UL2V9QRG0", name: "raquaza", is_primary: true },
+        { player_tag: "#UL2V9QRG0", name: "Plum Heron", is_primary: true },
       ],
-      alt: [{ player_tag: "#U8RYG9Y2U", name: "King Levy" }],
-      watching: [{ player_tag: "#20R8QRLYLP", name: "Chanco" }],
+      alt: [{ player_tag: "#U8RYG9Y2U", name: "Jolly Stoat" }],
+      watching: [{ player_tag: "#20R8QRLYLP", name: "Crisp Marten" }],
     },
     clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
     // "Your clan" is the primary player's current clan (2026-09-25).
@@ -232,9 +232,9 @@ test("a person is told who they are, and told not to look it up", async () => {
     )
   ).payload.result.instructions;
 
-  assert.match(text, /YOU ARE raquaza #UL2V9QRG0/);
-  assert.match(text, /Also you, under another tag: King Levy #U8RYG9Y2U/);
-  assert.match(text, /watching: Chanco #20R8QRLYLP/);
+  assert.match(text, /YOU ARE Plum Heron #UL2V9QRG0/);
+  assert.match(text, /Also you, under another tag: Jolly Stoat #U8RYG9Y2U/);
+  assert.match(text, /watching: Crisp Marten #20R8QRLYLP/);
   assert.match(text, /Your clan is POAP KINGS #J2RGCRVG/);
   assert.match(text, /OMIT player_tag and clan_tag/);
 });
@@ -245,7 +245,7 @@ test("an agent is told its clan and how to learn who is asking", async () => {
     clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS", members: 48 }],
     leaders: [
       { player_tag: "#20JJJ2CCRU", name: "King Thing", role: "leader" },
-      { player_tag: "#UL2V9QRG0", name: "raquaza", role: "coLeader" },
+      { player_tag: "#UL2V9QRG0", name: "Plum Heron", role: "coLeader" },
     ],
     identityCount: 3,
   };

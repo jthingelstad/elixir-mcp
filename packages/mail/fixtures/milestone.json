@@ -8,12 +8,12 @@
    "kind": "arena_changed",
    "subject": {
     "tag": "#VJG0J29QP",
-    "name": "Big Thing",
+    "name": "Cedar Mole",
     "relationship": "alt"
    },
    "at": "Tue 19:53",
    "instant": "2026-09-30T00:53:00Z",
-   "headline": "Big Thing reached Royal Arena",
+   "headline": "Cedar Mole reached Royal Arena",
    "big": "Royal Arena",
    "big_label": "Up from P.E.K.K.A's Playhouse, at 2,021 trophies",
    "lines": [],
@@ -24,7 +24,7 @@
     "crowns_against": 0,
     "opponent": {
      "tag": "#2PGQ8Y0L",
-     "name": "SparkSanji",
+     "name": "Sandy Lemur",
      "starting_trophies": 1991
     },
     "trophy_change": 29,
@@ -35,12 +35,12 @@
  "also": [
   {
    "tag": "#VJG0J29QP",
-   "name": "Big Thing",
+   "name": "Cedar Mole",
    "text": "set a new best: 2,021 trophies"
   },
   {
    "tag": "#VJG0J29QP",
-   "name": "Big Thing",
+   "name": "Cedar Mole",
    "text": "unlocked Royal Recruits",
    "card": {
     "id": 26000047,

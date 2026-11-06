@@ -303,7 +303,9 @@ const BATTLES = {
       type: "PvP",
       game_mode: { id: 72000006, name: "Ladder" },
       me: { player_tag: "#20JJJ2CCRU", outcome: "loss", crowns: 0 },
-      opponents: [{ player_tag: "#VJQV8G8RL", name: "thingles", crowns: 1 }],
+      opponents: [
+        { player_tag: "#VJQV8G8RL", name: "Spry Kestrel", crowns: 1 },
+      ],
     },
   ],
 };

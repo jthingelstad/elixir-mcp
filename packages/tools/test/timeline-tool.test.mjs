@@ -467,7 +467,11 @@ test("an arena move names the win that carried the player over the floor, at tha
     crowns_against: 0,
     trophy_change: 30,
     opponents: [
-      { player_tag: "#VRL0QQVCP", name: "Jotaro", starting_trophies: 5976 },
+      {
+        player_tag: "#VRL0QQVCP",
+        name: "Stoatling",
+        starting_trophies: 5976,
+      },
     ],
   });
   await emitEvent(ctx.db, "arena_changed", {
@@ -485,7 +489,7 @@ test("an arena move names the win that carried the player over the floor, at tha
         type: "PvP",
         opponent: {
           player_tag: "#VRL0QQVCP",
-          name: "Jotaro",
+          name: "Stoatling",
           starting_trophies: 5976,
         },
         crowns: 3,
@@ -514,10 +518,10 @@ test("an arena move names the win that carried the player over the floor, at tha
     "2026-09-02T06:46:32.000Z",
     "the battle, not the poll",
   );
-  assert.equal(moved.facts.promoted_by.opponent.name, "Jotaro");
+  assert.equal(moved.facts.promoted_by.opponent.name, "Stoatling");
   assert.equal(
     moved.text,
-    "AHMOメŞΛDØW moved to Royal Crypt from Executioner's Kitchen, on a 3-0 win over Jotaro (5,976), +30 to 6,000.",
+    "Bold Pelican é⚡ moved to Royal Crypt from Executioner's Kitchen, on a 3-0 win over Stoatling (5,976), +30 to 6,000.",
   );
 });
 
@@ -530,7 +534,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     crowns: 1,
     crowns_against: 0,
     trophy_change: 30,
-    opponents: [{ player_tag: "#UYCL80G0", name: "XTRAXTOR" }],
+    opponents: [{ player_tag: "#UYCL80G0", name: "Fern Vole" }],
   });
   await seedCrossing(ctx.db, {
     battle_id: "y2",
@@ -541,7 +545,11 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     crowns_against: 0,
     trophy_change: 30,
     opponents: [
-      { player_tag: "#VRL0QQVCP", name: "Jotaro", starting_trophies: 5976 },
+      {
+        player_tag: "#VRL0QQVCP",
+        name: "Stoatling",
+        starting_trophies: 5976,
+      },
     ],
   });
   await seedCrossing(ctx.db, {
@@ -563,7 +571,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
     type: "pathOfLegend",
     opponent: {
       player_tag: "#UYCL80G0",
-      name: "XTRAXTOR",
+      name: "Fern Vole",
       starting_trophies: null,
     },
     crowns: 1,
@@ -592,7 +600,7 @@ test("ranked, best-band and career-wins moments name their battle the same way",
         type: "PvP",
         opponent: {
           player_tag: "#VRL0QQVCP",
-          name: "Jotaro",
+          name: "Stoatling",
           starting_trophies: 5976,
         },
         crowns: 3,
@@ -643,17 +651,17 @@ test("ranked, best-band and career-wins moments name their battle the same way",
   const text = (kind) =>
     body.timeline.filter((it) => it.kind === kind).map((it) => it.text);
   assert.deepEqual(text("ranked_promotion"), [
-    "AHMOメŞΛDØW was promoted to Master II, on a 1-0 win over XTRAXTOR, +30.",
+    "Bold Pelican é⚡ was promoted to Master II, on a 1-0 win over Fern Vole, +30.",
   ]);
   assert.deepEqual(text("best_trophies_band"), [
     // The best (6,087) came after the crossing battle (to 6,000), so
     // the crossing is told, then the peak (2026-10-11).
-    "AHMOメŞΛDØW passed 6,000 trophies for the first time, on a 3-0 win over Jotaro (5,976), +30 to 6,000, and went on to a best of 6,087.",
+    "Bold Pelican é⚡ passed 6,000 trophies for the first time, on a 3-0 win over Stoatling (5,976), +30 to 6,000, and went on to a best of 6,087.",
   ]);
   // Newest first (7.0.0).
   assert.deepEqual(text("career_wins_step"), [
-    "AHMOメŞΛDØW passed 12,003 career wins.",
-    "AHMOメŞΛDØW passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #2VVVV.",
+    "Bold Pelican é⚡ passed 12,003 career wins.",
+    "Bold Pelican é⚡ passed 11,001 career wins, the 11,000th, on a 2-1 win over Ann and #2VVVV.",
   ]);
 });
 

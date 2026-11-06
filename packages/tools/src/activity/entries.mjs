@@ -1493,8 +1493,8 @@ export async function buildPlayerEntry(
   const items = [];
   // The in-game name is the subject's name everywhere it is said; a
   // reader's nickname is theirs, a field of its own (DECISIONS:
-  // nicknames are private; #374: the same member was "Tyler" in one copy
-  // and "raquaza" in the other, and the bot posted the nickname).
+  // nicknames are private; #374: the same member was "Sam" in one copy
+  // and "Plum Heron" in the other, and the bot posted the nickname).
   const subject = {
     subject_tag: tag,
     subject_name: name,
@@ -2268,7 +2268,7 @@ export async function buildClanEntry(
     ),
   );
   // The same moment written twice in the ledger is one moment in the
-  // entry too, as in the items (Gym #250: "Aaqib Javed -> Master 2"
+  // entry too, as in the items (Gym #250: "Azure Beaver -> Master 2"
   // twice in the standouts and the summary while the items said it once).
   const moments = (await hydratePlayerEvents(db, momentRows))
     .filter((m) => ledgerInWindow(m, fromMs, toMs, basis))

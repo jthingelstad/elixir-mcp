@@ -49,8 +49,8 @@ before(async () => {
     [CLAN],
   );
   for (const [tag, name] of [
-    [ME, "raquaza"],
-    [ALT, "King Levy"],
+    [ME, "Plum Heron"],
+    [ALT, "Jolly Stoat"],
     [OTHER, "King Thing"],
   ]) {
     await db.query(`insert into player (player_tag, name) values ($1, $2)`, [
@@ -130,13 +130,13 @@ test("3.18.0: an unmapped on_behalf_of with a display_name carries the whole-nam
     () =>
       resolveSubject(db, agent, undefined, "full", {
         onBehalfOf: "discord:77",
-        displayName: "king levy",
+        displayName: "jolly stoat",
       }),
     (e) =>
       e.code === "no_subject" &&
       e.data.candidates.length === 1 &&
       e.data.candidates[0].player_tag === ALT &&
-      e.data.candidates[0].name === "King Levy" &&
+      e.data.candidates[0].name === "Jolly Stoat" &&
       e.data.candidates[0].clan_tag === CLAN &&
       /elixir_identify\(\{ external_id: "discord:77", player_tag: "#/.test(
         e.hint,
@@ -231,8 +231,8 @@ test("the id is opaque: any surface's namespace works", async () => {
 
 test("a person's block names them, their alt, and their clan", async () => {
   const text = identitySentences(await describeIdentity(db, person));
-  assert.match(text, /YOU ARE raquaza #UL2V9QRG0/);
-  assert.match(text, /Also you, under another tag: King Levy #U8RYG9Y2U/);
+  assert.match(text, /YOU ARE Plum Heron #UL2V9QRG0/);
+  assert.match(text, /Also you, under another tag: Jolly Stoat #U8RYG9Y2U/);
   assert.match(text, /POAP KINGS #J2RGCRVG/);
 });
 

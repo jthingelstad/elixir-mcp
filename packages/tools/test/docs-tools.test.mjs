@@ -87,6 +87,20 @@ test("elixir_docs: a section that moved answers from its new page", async () => 
     assert.ok(JSON.stringify(war).includes(field), field);
 });
 
+test("elixir_docs: a moved section answers to its old title as well as its slug", async () => {
+  const bySlug = await elixirTools.elixir_docs.handler(ctx, {
+    page: "recording",
+    section: "daily-series",
+  });
+  const byTitle = await elixirTools.elixir_docs.handler(ctx, {
+    page: "recording",
+    section: "Daily series",
+  });
+  assert.equal(byTitle.slug, "freshness-and-gaps");
+  assert.equal(byTitle.section_slug, "daily-series");
+  assert.equal(byTitle.markdown, bySlug.markdown);
+});
+
 test("elixir_docs: the index, one page, and a search that says where", async () => {
   const index = await elixirTools.elixir_docs.handler(ctx, {});
   assert.ok(index.pages.length >= 16);

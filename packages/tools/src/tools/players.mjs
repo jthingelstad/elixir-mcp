@@ -964,7 +964,7 @@ export const playersTools = {
 
   players_search: {
     description:
-      'Name-to-tag resolution across the whole recorded corpus: case-insensitive substring on last-observed display names AND your private nicknames, nicknames ranked first ("tyler" finds the player you call Tyler). Unknown names return an honest empty list, never a guess. The inverse (tags to names, in bulk) is players_names.',
+      'Name-to-tag resolution across the whole recorded corpus: case-insensitive substring on last-observed display names AND your private nicknames, nicknames ranked first ("sam" finds the player you call Sam). Unknown names return an honest empty list, never a guess. The inverse (tags to names, in bulk) is players_names.',
     inputSchema: {
       type: "object",
       properties: {

@@ -9,7 +9,7 @@ import {
 
 export const elixir_nickname = {
   description:
-    "Give a player YOUR nickname, private to your account and visible only to you and your agents ('to me Raquaza is Tyler'). Nicknames ride along wherever names appear (search matches them, summaries and rosters show them). Pass nickname: null to clear.",
+    "Give a player YOUR nickname, private to your account and visible only to you and your agents ('to me Plum Heron is Sam'). Nicknames ride along wherever names appear (search matches them, summaries and rosters show them). Pass nickname: null to clear.",
   inputSchema: {
     type: "object",
     properties: {

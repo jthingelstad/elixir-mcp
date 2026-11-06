@@ -139,7 +139,7 @@
    "again": [
     {
      "tag": "#20V9PQLPCG",
-     "name": "Toxic_Watson",
+     "name": "Steady Crane",
      "battles": 2,
      "wins": 1,
      "losses": 1,
@@ -149,14 +149,14 @@
    "rows": [
     {
      "tag": "#20V9PQLPCG",
-     "name": "Toxic_Watson",
+     "name": "Steady Crane",
      "mode": "Trophy Road",
      "result": "1–1",
      "when": "Sat"
     },
     {
      "tag": "#2Q8U0L9C",
-     "name": "juancho",
+     "name": "Jolly Beaver",
      "mode": "War Duel",
      "result": "W",
      "when": "Thu"
@@ -168,7 +168,7 @@
  "alts": [
   {
    "tag": "#VJQV8G8RL",
-   "name": "thingles",
+   "name": "Spry Kestrel",
    "battles": 34,
    "wins": 29,
    "losses": 5,
@@ -197,7 +197,7 @@
   },
   {
    "tag": "#VJG0J29QP",
-   "name": "Big Thing",
+   "name": "Cedar Mole",
    "battles": 37,
    "wins": 31,
    "losses": 6,
@@ -234,7 +234,7 @@
   },
   {
    "tag": "#VJQV8G8RL",
-   "name": "thingles",
+   "name": "Spry Kestrel",
    "cards_unlocked": 3,
    "badge_levels": 1
   }

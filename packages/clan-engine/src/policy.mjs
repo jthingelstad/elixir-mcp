@@ -597,7 +597,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "Off, Elders are shown as Protected on Board. Leaders and co-leaders are always protected.",
+    why: "Off, Elders are shown as protected in Review. Leaders and co-leaders are always protected.",
     when: [{ removal_enabled: true }],
   },
   away_max_days: {

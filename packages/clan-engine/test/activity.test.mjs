@@ -111,12 +111,12 @@ test("every person the sentence names is kept, an arena or a league is not; a mo
     namesIn(
       item("session_standout", {
         name: "Ada",
-        best_win: { opponent: { name: "Jotaro" } },
+        best_win: { opponent: { name: "Stoatling" } },
         league: { name: "Master I" },
       }),
-      "Ada beat Jotaro and reached Master I.",
+      "Ada beat Stoatling and reached Master I.",
     ),
-    ["Ada", "Jotaro"],
+    ["Ada", "Stoatling"],
   );
   assert.equal(
     rewriteText("  Welcome **Neo** to <The Clan>!\n "),

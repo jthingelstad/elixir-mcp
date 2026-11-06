@@ -404,7 +404,7 @@ function Lookup({ me, navigate, browse }) {
           go("clan", id);
           return;
         }
-        // Not a recorded tag - maybe it was a NAME all along ("tyler").
+        // Not a recorded tag - maybe it was a NAME all along ("sam").
         if (await searchNames(query)) return;
         setMiss(tag);
         return;

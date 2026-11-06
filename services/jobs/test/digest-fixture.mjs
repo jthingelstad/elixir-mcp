@@ -19,7 +19,7 @@ export async function milestoneFixture(db) {
   ).rows[0].account_id;
   await db.query(
     `insert into player (player_tag, name) values
-       ($1, 'Primary One'), ($2, 'Alt Two'), ($3, 'SparkSanji')`,
+       ($1, 'Primary One'), ($2, 'Alt Two'), ($3, 'Sandy Lemur')`,
     [PRIMARY, ALT, OPPONENT],
   );
   await db.query(
