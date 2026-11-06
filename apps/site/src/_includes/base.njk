@@ -64,7 +64,7 @@
           </nav>
           <nav class="kit-top__nav" data-session-face="in" aria-label="Main">
             {%- for product in familyBar.products %}{% if not product.game %}
-            <a href="{{ product.path }}">{{ product.label }}</a>
+            <a href="{{ product.path }}">{% chromeIcon product.icon, 18 %}{{ product.label }}</a>
             {%- endif %}{% endfor %}
           </nav>
           <a class="kit-top__search" data-session-face="in" href="{{ familyBar.search.staticPath }}">

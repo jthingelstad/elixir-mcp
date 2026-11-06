@@ -245,6 +245,7 @@ function TopBar({ me, area, open }) {
         <nav className="kit-top__nav" aria-label="Main">
           {TABS.filter((t) => t.key !== "search").map((t) => (
             <Link key={t.key} to={PLACES[t.key]} {...here(t.key, area)}>
+              <Icon name={t.icon} size={18} />
               {t.label}
             </Link>
           ))}

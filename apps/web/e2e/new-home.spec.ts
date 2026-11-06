@@ -347,3 +347,26 @@ test("the old Overview address lands on Home, with no offer to try it", async ({
     page.getByRole("link", { name: /Try the new Home/ }),
   ).toHaveCount(0);
 });
+
+test("the signed-in bar shows the app's places as tabs, and Help has no stray border", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1180, height: 844 });
+  await mockApi(page, homeApi());
+  await page.goto("/home");
+  const nav = page.getByRole("navigation", { name: "Main", exact: true });
+  for (const name of ["Home", "Ladder", "Clan"])
+    await expect(nav.getByRole("link", { name }).locator("svg")).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(
+    page.getByRole("button", { name: "Help for this page" }),
+  ).toHaveCSS("border-top-width", "0px");
+  // Search shares a rule with Help, and keeps the outline Help must not have.
+  await expect(page.locator(".kit-top__search")).toHaveCSS(
+    "border-top-width",
+    "1px",
+  );
+});
