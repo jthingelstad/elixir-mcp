@@ -133,20 +133,22 @@ for (const size of ["wide", "@narrow"])
       );
       await page.goto(
         entry === "history"
-          ? "/clan/2PQRJ8LV/manage/history"
-          : "/clan/2PQRJ8LV/actions",
+          ? "/clan/2PQRJ8LV/today/decided"
+          : "/clan/2PQRJ8LV/actions/33",
       );
-      if (entry === "closed")
+      if (entry === "history") {
+        // Over thirty days old, so it sits in Decided's older fold.
+        await page.getByText("Older actions · 1").click();
         await page
-          .getByRole("combobox", { name: "Show" })
-          .selectOption("closed");
-      const detail = `/clan/2PQRJ8LV/actions/33${entry === "closed" ? "?show=closed" : ""}`;
-      await page.locator(`a[href="${detail}"]`).last().click();
+          .locator(`a[href="/clan/2PQRJ8LV/actions/33"]`)
+          .last()
+          .click();
+      }
       await page
         .getByRole("button", { name: "Reopen action", exact: true })
         .click();
       await expect(
-        page.getByRole("button", { name: "Complete update", exact: true }),
+        page.getByRole("button", { name: "Done", exact: true }),
       ).toBeDisabled();
       await page
         .locator("summary")
@@ -194,17 +196,11 @@ for (const size of ["wide", "@narrow"])
         path: `/tmp/elixir-reopen-${entry}-${size === "wide" ? "wide" : "narrow"}.png`,
         fullPage: true,
       });
-      await page.goBack();
-      if (entry === "history")
+      if (entry === "history") {
+        await page.goBack();
+        await expect(page).toHaveURL(/\/today\/decided$/);
         await expect(
-          page.getByText("No action taken yet.", { exact: true }),
-        ).toBeVisible();
-      else {
-        await expect(page.getByRole("combobox", { name: "Show" })).toHaveValue(
-          "closed",
-        );
-        await expect(
-          page.getByText("No closed actions in the last 30 days.", {
+          page.getByText("No action decided in the last 30 days.", {
             exact: true,
           }),
         ).toBeVisible();

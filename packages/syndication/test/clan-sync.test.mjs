@@ -655,7 +655,7 @@ test("same-kind milestones are one story under its first item's key; a refused p
   const story = refused.sent[0].message.posts[0].content;
   assert.equal(
     story,
-    "Joiner and Stayer took the clan's Shield for season 136.",
+    "Joiner and Stayer took the clan's Shield for Season 136.",
   );
   assert.equal("rewritten" in refused.sent[0].message.posts[0], false);
   // The ledger keeps the refusal with the words the checks stopped, and
@@ -894,7 +894,7 @@ test("the editor may tell two stories in one post and skip one with its reason; 
           posts: [
             {
               keys: [key("award granted"), key("member joined")],
-              text: "Welcome Newbie! And Stayer took the clan's Star for season 136.",
+              text: "Welcome Newbie! And Stayer took the clan's Star for Season 136.",
             },
           ],
           skips: [

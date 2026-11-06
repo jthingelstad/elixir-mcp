@@ -301,7 +301,7 @@ test("season projects real recorded counters with the canonical calendar and no 
     assert.equal(season.coverage.recorded_sections, 1);
     assert.match(
       response.headers["server-timing"],
-      /elixir;dur=\d+;desc="2 calls"/,
+      /elixir;dur=\d+;desc="3 calls"/,
     );
     const after = (
       await scratch.db.query(

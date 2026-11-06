@@ -532,7 +532,7 @@ function clause(it) {
     case "legendary_badge_earned":
       return `earned ${f.badge_label ?? badgeLabel(f.badge ?? f.name)}`;
     case "award_granted":
-      return `took the clan's ${f.award ?? "award"}${f.season_id != null ? ` for season ${f.season_id}` : ""}`;
+      return `took the clan's ${f.award ?? "award"}${f.season_id != null ? ` for Season ${f.season_id}` : ""}`;
     default:
       return null;
   }
@@ -645,13 +645,17 @@ function sittingStory(it, { after = false, told = new Set() } = {}) {
 function rosterStory(it, member) {
   const f = it.facts ?? {};
   const name = f.name ?? "A member";
-  // A tenure the record can stand behind: not a baseline member's
-  // (their join is when tracking began, not when they joined).
-  const days =
-    member && !member.baseline && Number.isInteger(member.tenure_days)
-      ? member.tenure_days
-      : null;
-  const after = days != null && days > 0 ? ` after ${plural(days, "day")}` : "";
+  // How long someone stayed is not part of a departure's record; the role
+  // they held is, and reads the way the timeline says it (11.16.0).
+  const was = (r) => {
+    const word = {
+      coLeader: "Co-leader",
+      leader: "Leader",
+      elder: "Elder",
+      member: "Member",
+    }[r];
+    return word ? ` (was ${word})` : "";
+  };
   switch (it.kind) {
     case "member_joined": {
       const role = f.role && f.role !== "member" ? ` as ${f.role}` : "";
@@ -661,17 +665,12 @@ function rosterStory(it, member) {
           : "";
       return `${name} joined the clan${role}${back}.`;
     }
-    case "member_left": {
-      const role =
-        f.role_at_departure && f.role_at_departure !== "member"
-          ? `, ${/^[aeiou]/i.test(f.role_at_departure) ? "an" : "a"} ${f.role_at_departure},`
-          : "";
-      return `${name}${role} departed the clan${after}.`;
-    }
+    case "member_left":
+      return `${name} departed the clan${was(f.role_at_departure)}.`;
     case "departure_classified":
       return f.kind === "kick"
-        ? `${name} was removed from the clan${after}.`
-        : `${name} left the clan on their own${after}.`;
+        ? `${name} was removed from the clan${was(f.role_at_departure)}.`
+        : `${name} left the clan on their own${was(f.role_at_departure)}.`;
     case "member_role_changed": {
       const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
       const say = (r) => (r === "coLeader" ? "co-leader" : r);
@@ -688,16 +687,24 @@ function rosterStory(it, member) {
   }
 }
 
-/** The clan's war week. Points, never a member's share of fame. */
+/** A finishing place in figures: 1st, 2nd, 3rd, 4th. */
+const place = (n) => {
+  const tens = n % 100;
+  const suffix =
+    tens >= 11 && tens <= 13
+      ? "th"
+      : ({ 1: "st", 2: "nd", 3: "rd" }[n % 10] ?? "th");
+  return `${n}${suffix} place`;
+};
+
+/** The clan's week of Clan Wars. Points, never a member's share of fame. */
 function warStory(it) {
   const f = it.facts ?? {};
-  const week = (f.section_index ?? 0) + 1;
+  const week = `${f.season_id != null ? `Season ${f.season_id}, week` : "Week"} ${(f.section_index ?? 0) + 1}${f.is_colosseum ? " (Colosseum)" : ""}`;
   switch (it.kind) {
     case "bracket_observed": {
       const rivals = (f.rivals ?? []).map((r) => r.name).filter(Boolean);
-      return rivals.length
-        ? `War week ${week}${f.is_colosseum ? " (Colosseum)" : ""}: up against ${andList(rivals)}.`
-        : null;
+      return rivals.length ? `${week}: up against ${andList(rivals)}.` : null;
     }
     case "race_finished":
       return `The boat crossed the finish line${f.fame != null ? ` with ${num(f.fame)} fame` : ""}.`;
@@ -713,7 +720,7 @@ function warStory(it) {
         typeof f.trophy_change === "number" && f.trophy_change !== 0
           ? ` (${f.trophy_change > 0 ? "+" : ""}${num(f.trophy_change)} war trophies)`
           : "";
-      return `War week ${week} finished${f.rank ? ` in place ${f.rank}` : ""}${f.fame != null ? ` with ${num(f.fame)} fame` : ""}${war}${top.length ? `, led by ${andList(top)}` : ""}.`;
+      return `${week} finished${f.rank ? ` in ${place(f.rank)}` : ""}${f.fame != null ? ` with ${num(f.fame)} fame` : ""}${war}${top.length ? `, led by ${andList(top)}` : ""}.`;
     }
     default:
       return null;

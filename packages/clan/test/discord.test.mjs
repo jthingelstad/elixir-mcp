@@ -661,7 +661,7 @@ test("a forum channel: each Action is a post of its own, named for it, and its c
     name: "Clan hook",
     forum: true,
   });
-  assert.equal(w.discord.opts[0].thread_name, "Elixir Clan Actions");
+  assert.equal(w.discord.opts[0].thread_name, "Clan Actions");
   assert.equal((await w.service.status(CLAN, LEAD)).forum, true);
   await w.ledger.putCard(CLAN, card(1, { player_name: "*Ana*" }));
   await w.service.share(CLAN);

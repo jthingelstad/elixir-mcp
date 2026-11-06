@@ -151,7 +151,7 @@ for (const size of ["wide", "@narrow"])
       ).toBeVisible();
       expect(receipts).toHaveLength(1);
       await expect(
-        page.getByRole("button", { name: "Complete update", exact: true }),
+        page.getByRole("button", { name: "Done", exact: true }),
       ).toBeDisabled();
       await page.getByLabel("Message", { exact: true }).fill("x".repeat(181));
       await expect(
@@ -183,10 +183,10 @@ for (const size of ["wide", "@narrow"])
       await expect(
         page.getByText("Sent as a Leader Message", { exact: true }),
       ).toBeVisible();
-      await page
-        .getByRole("button", { name: "Complete update", exact: true })
-        .click();
-      await expect(page.getByText("Completed", { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Done", exact: true }).click();
+      await expect(
+        page.getByRole("article").getByText("Done", { exact: true }),
+      ).toBeVisible();
       await page.reload();
       await expect(
         page.getByText("Sent in clan chat", { exact: true }),

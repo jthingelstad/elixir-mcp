@@ -585,7 +585,7 @@ in its hint.
 ## Feedback and the changelog, over the wire
 
 Feedback is one record for all of Elixir: an item filed here, over the
-JSON API (`POST /api/v1/feedback`), from Settings, Ladder, Elixir Clan,
+JSON API (`POST /api/v1/feedback`), from Settings, Ladder, Clan,
 the docs or an email's footer lands in the same queue, is answered there,
 and is listed by `elixir_my_feedback` wherever it was filed.
 
@@ -602,7 +602,7 @@ and is listed by `elixir_my_feedback` wherever it was filed.
   `{ kind, ref }` with kind `email` (a send id from a mail's footer),
   `feedback` (one of your own `feedback_id`s this item belongs with, such
   as another facet of one review; it is a link, not a reply), `player` or
-  `clan` (a tag), or `clan_action`, `award`, `policy` (Elixir Clan's
+  `clan` (a tag), or `clan_action`, `award`, `policy` (Clan's
   ids). Only your own calls, emails and items attach; a pointer that is
   malformed or not yours is dropped and named in `notes`, and the report
   is kept. `follows_id` names one of your own items this one follows, so

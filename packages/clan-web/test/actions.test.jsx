@@ -7,7 +7,8 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import { ActionDetail, Actions } from "../src/views/Actions.jsx";
+import { ActionDetail } from "../src/views/Actions.jsx";
+import { Today } from "../src/views/Today.jsx";
 import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
 import { ActionCard, ActionLog } from "../src/components/ActionCard.jsx";
@@ -68,6 +69,20 @@ const removal = {
       },
     },
   ],
+};
+/** Today, its side cards unread: this file is about the actions. */
+const today = (props) => {
+  vi.spyOn(manageApi, "memberView").mockResolvedValue({
+    ok: false,
+    status: 502,
+    data: {},
+  });
+  vi.spyOn(manageApi, "week").mockResolvedValue({
+    ok: false,
+    status: 502,
+    data: {},
+  });
+  return renderWithProviders(<Today me={{ open_actions: 0 }} {...props} />);
 };
 /** The same action, as its own page answers it. */
 const one = (extra = {}) => {
@@ -274,9 +289,7 @@ describe("actions", () => {
       screen.queryByRole("button", { name: "Draft in our voice" }),
     ).toBeNull();
     expect(screen.queryByRole("button", { name: "Reopen action" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Complete" }).disabled).toBe(
-      true,
-    );
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Decline" }));
     fireEvent.change(screen.getByLabelText("Why decline"), {
       target: { value: "evidence_wrong" },
@@ -361,12 +374,12 @@ describe("actions", () => {
     expect(await screen.findByText(/History · 1 entry/)).toBeTruthy();
     expect(
       screen.getByRole("heading", {
-        level: 1,
-        name: "Remove from the clan · Sleepy",
+        level: 2,
+        name: "Remove from the clan",
       }),
     ).toBeTruthy();
     fireEvent.click(screen.getByText(/History · 1 entry/));
-    expect(screen.getByText("‹ All actions")).toBeTruthy();
+    expect(screen.getByText("‹ Today")).toBeTruthy();
     expect(
       screen.getByText(
         /Earlier: declined \w+ Sep [12]( 2026)? \(knows the member\)/,
@@ -386,7 +399,7 @@ describe("actions", () => {
         "Messaged them first.",
       ),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Complete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
       expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "a1", {
         status: "done",
@@ -429,7 +442,7 @@ describe("actions", () => {
       ).toBeTruthy(),
     );
     fireEvent.click(screen.getByRole("link", { name: "Mark me away" }));
-    expect(navigate).toHaveBeenCalledWith("/clan/you/away");
+    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/members/away");
     expect(screen.getByRole("button", { name: "I’m not away" })).toBeTruthy();
   });
 
@@ -470,21 +483,16 @@ describe("actions", () => {
       }),
     );
     const navigate = vi.fn();
-    renderWithProviders(
-      <Actions
-        clan={clan}
-        who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
-        navigate={navigate}
-      />,
-    );
-    // Each list is its own panel, headed by its name and its count.
+    today({
+      clan,
+      who: { player_tag: "#20QQL8CCRU", role: "leader" },
+      navigate,
+    });
+    // The list is its own panel, headed by its name and its count.
     const waiting = await screen.findByRole("region", {
       name: "Waiting for you",
     });
     expect(waiting.textContent).toMatch(/^Waiting for you2/);
-    expect(
-      screen.queryByRole("region", { name: "Closed in the last 30 days" }),
-    ).toBeNull();
     const openLinks = screen
       .getAllByRole("link")
       .filter((l) => /\/actions\/\d+$/.test(l.getAttribute("href")));
@@ -497,54 +505,27 @@ describe("actions", () => {
     );
     fireEvent.click(openLinks[1]);
     expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/actions/37");
-    fireEvent.change(screen.getByRole("combobox", { name: "Show" }), {
-      target: { value: "closed" },
-    });
-    expect(
-      screen.getByRole("region", { name: "Closed in the last 30 days" })
-        .textContent,
-    ).toMatch(/^Closed in the last 30 days1/);
-    expect(
-      screen.queryByRole("region", { name: "Waiting for you" }),
-    ).toBeNull();
-    expect(screen.getByRole("link", { name: "Decisions ›" })).toBeTruthy();
-    const links = screen
-      .getAllByRole("link")
-      .filter((l) =>
-        /\/actions\/\d+\?show=closed$/.test(l.getAttribute("href")),
-      );
-    expect(links).toHaveLength(1);
-    expect(links[0].getAttribute("href")).toBe(
-      "/clan/2PQRJ8LV/actions/5?show=closed",
-    );
-    expect(links[0].textContent).toMatch(/#5.*Promote to Elder.*Completed/);
     // The list decides nothing: that is on the action's page.
-    expect(screen.queryByRole("button", { name: "Complete" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
+    // A leader reads what was decided on Decided, not in a fold here.
+    expect(screen.queryByText(/Closed in the last 30 days/)).toBeNull();
   });
 
-  test("the leaders' Discord nudge lands on Settings with the Discord setting open", async () => {
+  test("the leaders' Discord nudge goes to Run's Discord", async () => {
     for (const discord of [{ set: false }, { set: true, refused: true }]) {
       vi.spyOn(manageApi, "actions").mockResolvedValue(view({ discord }));
       const navigate = vi.fn();
-      renderWithProviders(
-        <Actions
-          clan={clan}
-          who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
-          navigate={navigate}
-        />,
-      );
+      today({
+        clan,
+        who: { player_tag: "#20QQL8CCRU", role: "leader" },
+        navigate,
+      });
       const link = await screen.findByRole("link", {
-        name: discord.set
-          ? "Connect it again in Settings ›"
-          : "Set it up in Settings ›",
+        name: discord.set ? /Connect it again/ : /Set it up/,
       });
-      expect(link.getAttribute("href")).toBe(
-        "/clan/2PQRJ8LV/manage/settings#discord",
-      );
+      expect(link.getAttribute("href")).toBe("/clan/2PQRJ8LV/run/discord");
       fireEvent.click(link);
-      expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/manage/settings", {
-        hash: "discord",
-      });
+      expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/run/discord");
       cleanup();
       vi.restoreAllMocks();
     }
@@ -587,14 +568,15 @@ describe("actions", () => {
 
   test("nothing waiting says so", async () => {
     vi.spyOn(manageApi, "actions").mockResolvedValue(view({ open: [] }));
-    renderWithProviders(
-      <Actions clan={clan} who={{ player_tag: "#X", role: "member" }} />,
-    );
+    today({
+      clan: { ...clan, role: "member" },
+      who: { player_tag: "#X", role: "member" },
+    });
     await waitFor(() =>
       expect(screen.getByText("Nothing waiting for you")).toBeTruthy(),
     );
-    // History is the leaders'; a member is not pointed at it.
-    expect(screen.queryByRole("link", { name: "Decisions ›" })).toBeNull();
+    // Decided is the leaders'; a member is not pointed at it.
+    expect(screen.queryByRole("link", { name: "Decided" })).toBeNull();
   });
 });
 
@@ -677,18 +659,18 @@ describe("clan leader messages", () => {
     fireEvent.change(await screen.findByLabelText("Chat message"), {
       target: { value: "x".repeat(201) },
     });
-    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(true);
     expect(
       screen.getByRole("button", { name: "Copy the chat message" }).disabled,
     ).toBe(true);
     fireEvent.change(screen.getByLabelText("Delivery channel"), {
       target: { value: "leader_message" },
     });
-    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(false);
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(false);
     fireEvent.change(screen.getByLabelText("Message"), {
       target: { value: "x".repeat(181) },
     });
-    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(true);
     fireEvent.change(screen.getByLabelText("Delivery channel"), {
       target: { value: "clan_chat" },
     });
@@ -696,7 +678,7 @@ describe("clan leader messages", () => {
     fireEvent.change(screen.getByLabelText("Chat message"), {
       target: { value: "Shortened." },
     });
-    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(false);
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(false);
   });
 
   test("an interrupted mixed-channel update recovers saved words without duplicate receipts or a game resend", async () => {
@@ -754,9 +736,7 @@ describe("clan leader messages", () => {
     await screen.findByText("Sent in clan chat");
     expect(screen.getByText("Reviewed first chat.")).toBeTruthy();
     expect(sent).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByRole("button", { name: "Complete update" }).disabled,
-    ).toBe(true);
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(true);
     expect(screen.getByLabelText("Chat message").value).toBe(
       "Keep this second edit.",
     );
@@ -770,9 +750,7 @@ describe("clan leader messages", () => {
       screen.getByRole("button", { name: "Mark message 2 sent" }),
     );
     await screen.findByText("Sent as a Leader Message");
-    expect(
-      screen.getByRole("button", { name: "Complete update" }).disabled,
-    ).toBe(false);
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(false);
     expect(card.messages_sent.map((r) => r.channel)).toEqual([
       "clan_chat",
       "leader_message",
@@ -804,19 +782,17 @@ describe("clan leader messages", () => {
         ],
       }),
     );
-    renderWithProviders(<Actions clan={clan} who={{ role: "leader" }} />);
+    today({ clan, who: { role: "leader" } });
     await screen.findByText(/2 Actions need Leader Messages/);
+    expect(screen.getByText(/Latest Done in Elixir: Action #45/)).toBeTruthy();
     expect(
-      screen.getByText(/Latest completion in Elixir: Action #45/),
+      screen.getByText(/records a decision, not what the game/),
     ).toBeTruthy();
-    expect(screen.getByText(/records a decision, not the game/)).toBeTruthy();
     expect(screen.getByRole("link", { name: /#48.*Clan chat/ })).toBeTruthy();
     expect(
       screen.getByRole("link", { name: /#46.*Leader Message/ }),
     ).toBeTruthy();
-    expect(
-      screen.queryByText(/Latest completion in Elixir: Action #44/),
-    ).toBeNull();
+    expect(screen.queryByText(/Latest Done in Elixir: Action #44/)).toBeNull();
   });
 
   test("review later leaves the Action open and warns about masked delivery without disabling a human send", async () => {
@@ -837,14 +813,14 @@ describe("clan leader messages", () => {
     await screen.findByText(/A delivered message can be masked/);
     expect(screen.getByText(/cannot see sends/)).toBeTruthy();
     expect(screen.getByText(/does not guarantee/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Sent" }).disabled).toBe(false);
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(false);
     expect(
       screen.getByRole("button", { name: "Copy the message" }).disabled,
     ).toBe(false);
     fireEvent.click(
       screen.getByRole("link", { name: "Review later · leave open" }),
     );
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/actions");
+    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/today");
     expect(decide).not.toHaveBeenCalled();
     expect(sent).not.toHaveBeenCalled();
   });
@@ -853,7 +829,7 @@ describe("clan leader messages", () => {
     vi.spyOn(manageApi, "actions").mockResolvedValue(
       view({ open: [{ ...removal, channel: "clan_chat", number: 48 }] }),
     );
-    renderWithProviders(<Actions clan={clan} who={{ role: "leader" }} />);
+    today({ clan, who: { role: "leader" } });
     await screen.findByRole("link", { name: /#48/ });
     expect(screen.queryByText(/Leader Message availability/)).toBeNull();
   });
@@ -956,7 +932,7 @@ describe("clan leader messages", () => {
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Our rules" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Sent" }));
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
       expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "r1", {
         status: "done",
@@ -1003,9 +979,9 @@ describe("the clan's model on a Leader Message", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: "Draft in our voice" }),
     );
-    const sent = screen.getByRole("button", { name: "Sent" });
+    const sent = screen.getByRole("button", { name: "Done" });
     expect(sent.disabled).toBe(true);
-    expect(screen.getByRole("button", { name: "Skip" }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Decline" }).disabled).toBe(true);
     expect(
       screen.getByRole("button", { name: "Copy the title" }).disabled,
     ).toBe(true);
@@ -1221,7 +1197,7 @@ describe("editable clan chat", () => {
     );
     const editor = await screen.findByLabelText("Chat message");
     fireEvent.change(editor, { target: { value: "My reviewed welcome" } });
-    const welcomed = screen.getByRole("button", { name: "Welcomed" });
+    const welcomed = screen.getByRole("button", { name: "Done" });
     fireEvent.click(welcomed);
     expect(editor.disabled).toBe(true);
     expect(welcomed.disabled).toBe(true);
@@ -1271,10 +1247,10 @@ describe("editable clan chat", () => {
     expect(editor.disabled).toBe(true);
     expect(screen.getByLabelText("Draft tone").disabled).toBe(true);
     const copy = screen.getByRole("button", { name: "Copy the chat message" });
-    const welcomed = screen.getByRole("button", { name: "Welcomed" });
+    const welcomed = screen.getByRole("button", { name: "Done" });
     expect(copy.disabled).toBe(true);
     expect(welcomed.disabled).toBe(true);
-    expect(screen.getByRole("button", { name: "Skip" }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Decline" }).disabled).toBe(true);
     fireEvent.click(copy);
     fireEvent.click(welcomed);
     expect(write).not.toHaveBeenCalled();
@@ -1369,7 +1345,7 @@ describe("editable clan chat", () => {
     fireEvent.change(await screen.findByLabelText("Chat message 2"), {
       target: { value: "Glad you found us." },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Welcomed" }));
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     await waitFor(() =>
       expect(decide).toHaveBeenCalledWith("#2PQRJ8LV", "a1", {
         status: "done",
@@ -1417,9 +1393,7 @@ describe("editable clan chat", () => {
     ).toBe(false);
     expect(draft).toHaveBeenCalledTimes(1);
     expect(decide).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Complete" }).disabled).toBe(
-      false,
-    );
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(false);
     expect(
       screen.getByRole("button", { name: "Copy the chat message" }).disabled,
     ).toBe(false);
@@ -1569,9 +1543,7 @@ describe("editable clan chat", () => {
       screen.queryByRole("button", { name: "Copy the chat message" }),
     ).toBeNull();
     expect(screen.queryByText("Put back what I had")).toBeNull();
-    expect(screen.getByRole("button", { name: "Complete" }).disabled).toBe(
-      true,
-    );
+    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(true);
     expect(changed).toHaveBeenCalledTimes(1);
     expect(draft).toHaveBeenCalledTimes(2);
   });
@@ -1684,13 +1656,12 @@ describe("you here", () => {
       expect(screen.getByText("How you are doing here")).toBeTruthy(),
     );
     expect(screen.getByText("Participating")).toBeTruthy();
-    expect(screen.getByText(/5 more days in the clan/)).toBeTruthy();
     expect(screen.getByText(/23 of the 28 days/)).toBeTruthy();
     expect(
       screen.getByRole("link", { name: /1 action waits for you/ }),
     ).toBeTruthy();
     const week = screen.getByRole("group", { name: "This week so far" });
-    expect(week.textContent).toMatch(/War decks8Race 136\/0, four a war day/);
+    expect(week.textContent).toMatch(/War decks8Season 136, week 1, so far/);
     // Ranked is not what this clan counts; donations are.
     expect(week.textContent).toMatch(
       /Path of Legends battles2Not counted here/,
@@ -1698,16 +1669,15 @@ describe("you here", () => {
     expect(week.textContent).toMatch(/Donations100Battles/);
     expect(
       screen.getByRole("img", {
-        name: "Your war decks: 135/4 16 of 16, 136/0 8 so far",
+        name: "Your war decks: Season 135, week 5 16 of 16, Season 136, week 1 8 so far",
       }),
     ).toBeTruthy();
     expect(screen.getByText("16 of 16 in the finished race.")).toBeTruthy();
     expect(screen.getByRole("cell", { name: "16 of 16" })).toBeTruthy();
-    expect(screen.getByText("135/4 · Colosseum")).toBeTruthy();
-    expect(screen.getByText("This week, so far")).toBeTruthy();
+    expect(screen.getByText("Season 135, week 5 · Colosseum")).toBeTruthy();
     expect(screen.getByText(/Joined Aug 20: 23 days/)).toBeTruthy();
     expect(
-      screen.getByRole("link", { name: "How Elder works here ›" }),
+      screen.getByRole("link", { name: "‹ Back to Members" }),
     ).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/\bcard\b/i);
   });
@@ -1771,7 +1741,7 @@ test("one update contains editable messages and explicit delivery progress; copy
     />,
   );
   const complete = await screen.findByRole("button", {
-    name: "Complete update",
+    name: "Done",
   });
   expect(complete.disabled).toBe(true);
   fireEvent.click(
@@ -1862,7 +1832,7 @@ describe("reopening declined actions", () => {
       ],
     };
     finish({ ok: true, status: 200, data: card });
-    await screen.findByRole("button", { name: "Complete" });
+    await screen.findByRole("button", { name: "Done" });
     expect(screen.queryByRole("button", { name: "Reopen action" })).toBeNull();
     expect(screen.getByText("Waited for context.")).toBeTruthy();
     expect(screen.getByText("Reopened for review.")).toBeTruthy();

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { FIELDS, GROUPS, TABS, policyFromGoals } from "@elixir-mcp/clan-engine";
+
 import { mockApi as clanApi, signedIn as clanIn } from "./clan/fixtures.ts";
 import { mockApi, signedIn } from "./fixtures.ts";
 import { explore } from "./ladder-fixture.ts";
@@ -9,26 +9,6 @@ import { explore } from "./ladder-fixture.ts";
  * and a table fits its box. A table page and a tabbed page stand in for the
  * rest.
  */
-const POLICY_VIEW = {
-  can_edit: true,
-  set: true,
-  members: 40,
-  min_members: 10,
-  big_enough: true,
-  current: {
-    set: true,
-    version: 1,
-    values: policyFromGoals(["war", "donations"], "standard"),
-    saved_at: "2026-09-20T12:00:00Z",
-    saved_by: "#20QQL8CCRU",
-    saved_by_name: "Ada",
-  },
-  tabs: TABS,
-  groups: GROUPS,
-  fields: FIELDS,
-  versions: [],
-};
-
 async function expectNoSidewaysScroll(page: Page) {
   const { over, wide } = await page.evaluate(() => ({
     over: document.documentElement.scrollWidth - window.innerWidth,
@@ -44,7 +24,7 @@ async function expectNoSidewaysScroll(page: Page) {
 test("a table page stays inside a phone's width", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await clanApi(page, clanIn());
-  await page.goto("/clan/2PQRJ8LV/roster");
+  await page.goto("/clan/2PQRJ8LV/members");
   await expect(page.getByRole("table")).toBeVisible();
   await expect(
     page.getByRole("columnheader", { name: "Trophies" }),
@@ -56,12 +36,9 @@ test("a tabbed page stays inside a phone's width, and its tabs take the keyboard
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await clanApi(
-    page,
-    clanIn({ "GET /api/clan/clans/2PQRJ8LV/policy": [200, POLICY_VIEW] }),
-  );
-  await page.goto("/clan/2PQRJ8LV/manage/policy");
-  const tabs = page.getByRole("tablist", { name: "Policy" }).getByRole("tab");
+  await clanApi(page, clanIn());
+  await page.goto("/clan/2PQRJ8LV/today");
+  const tabs = page.getByRole("tablist", { name: "Clan" }).getByRole("tab");
   await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
   await tabs.first().focus();
   await page.keyboard.press("ArrowRight");

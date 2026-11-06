@@ -161,6 +161,32 @@ export async function fetchParticipation(mcp, token, clanTag) {
 
 /** The roster with its recent join/leave/role events; null when Elixir
  *  cannot answer (the evaluation goes on without the timeline). */
+/** How each race finished for this clan, keyed "<season>/<section>": rank,
+ *  fame and war trophies, every week the record holds. A failed read is
+ *  unknown: the pages say nothing about a result rather than guess one. */
+async function fetchRaceResults(mcp, token, clanTag) {
+  const results = new Map();
+  try {
+    const r = await mcp.callTool(token, "war_history", {
+      clan_tag: clanTag,
+      seasons: 12,
+    });
+    if (!r.ok) return results;
+    for (const w of r.body?.weeks ?? []) {
+      if (!w.finished && w.in_progress) continue;
+      results.set(`${w.season_id}/${w.section_index}`, {
+        rank: w.our_rank ?? null,
+        fame: w.our_fame ?? null,
+        trophy_change: w.trophy_change ?? null,
+        clan_war_trophies: w.our_clan_war_trophies ?? null,
+      });
+    }
+  } catch {
+    return results;
+  }
+  return results;
+}
+
 export async function fetchRoster(mcp, token, clanTag) {
   const r = await mcp.callTool(token, "clans_roster", { clan_tag: clanTag });
   if (!r.ok) {
@@ -1097,6 +1123,7 @@ export function createManageService({
         clanBattles,
       });
       if (!report) throw new ManageError(404, "no_week");
+      const results = await fetchRaceResults(mcp, token, clanTag);
       return {
         clan_tag: clanTag,
         clan_name: part.name ?? roster?.name ?? null,
@@ -1104,6 +1131,19 @@ export function createManageService({
         freshness_seconds: part.meta?.freshness_seconds ?? null,
         policy: { set: policy.set, active },
         ...report,
+        areas: (report.areas ?? []).map((a) =>
+          a.war
+            ? {
+                ...a,
+                war: {
+                  ...a.war,
+                  result:
+                    results.get(`${a.war.season_id}/${a.war.section_index}`) ??
+                    null,
+                },
+              }
+            : a,
+        ),
       };
     },
 
@@ -1114,18 +1154,27 @@ export function createManageService({
       const part = await fetchParticipation(mcp, token, clanTag);
       if (part.clan_tag !== clanTag)
         throw new ManageError(502, "elixir_unavailable");
+      const results = await fetchRaceResults(mcp, token, clanTag);
+      const report = seasonReport(part, {
+        calendar: seasonCalendar(
+          t,
+          (part.war_weeks ?? []).map((w) => w.season_id),
+        ),
+        now: new Date(t),
+      });
       return {
         clan_tag: clanTag,
         clan_name: part.name ?? null,
         as_of: part.meta?.as_of ?? null,
         freshness_seconds: part.meta?.freshness_seconds ?? null,
-        ...seasonReport(part, {
-          calendar: seasonCalendar(
-            t,
-            (part.war_weeks ?? []).map((w) => w.season_id),
-          ),
-          now: new Date(t),
-        }),
+        ...report,
+        seasons: report.seasons.map((s) => ({
+          ...s,
+          races: s.races.map((r) => ({
+            ...r,
+            result: results.get(`${s.season_id}/${r.section_index}`) ?? null,
+          })),
+        })),
       };
     },
 

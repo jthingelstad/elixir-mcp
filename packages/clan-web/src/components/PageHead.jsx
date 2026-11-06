@@ -1,85 +1,18 @@
-import { PageHead as KitHead, Stat, Stats, Tag, TagText } from "@elixir-mcp/ui";
-import { CLAN, clanPath } from "../lib/base.js";
+import { PageHead as KitHead, Stat, Stats, TagText } from "@elixir-mcp/ui";
 
 /**
- * The head every redesigned Clan page wears (the October 2026 canvas):
- * where you are (Clan › the clan › the page), the page's title, one
- * lede, and how fresh the read is on the right. `crumb` is the page's
- * own name; on the clan's front page there is none, and the clan's
- * name is the last step. `via` is a step between the clan and the page
- * (`{ label, to }`: Actions, above one action). `children` sit under the
- * lede (a week's earlier and later links, the roster's clan name).
+ * A page's own head under the clan's (`ClanHead`, whose h1 is the clan's name):
+ * its title as an h2, one lede, how fresh its read is on the right. `children`
+ * sit under the lede. There is no breadcrumb: the tabs say where you are, and
+ * a page one level down carries its own back link.
  */
-export function PageHead({
-  clan,
-  name,
-  crumb,
-  via,
-  title,
-  lede,
-  fresh,
-  navigate,
-  children,
-  breadcrumb = true,
-}) {
-  const go = (path) => (e) => {
-    if (!navigate) return;
-    e.preventDefault();
-    navigate(path);
-  };
-  const clanName = name ?? clan.name ?? <Tag tag={clan.clan_tag} />;
-  // The clan's roster, by its own address: the clan's bare one is the
-  // landing, Actions for a leader with Actions waiting.
-  const home = `${clanPath(clan.clan_tag)}/roster`;
+export function PageHead({ title, lede, fresh, children }) {
   return (
     <KitHead
+      as="h2"
       title={<TagText>{title}</TagText>}
       sub={lede}
       aside={fresh}
-      crumb={
-        breadcrumb ? (
-          <nav
-            aria-label="Breadcrumb"
-            className="page__crumb m-0 flex flex-wrap items-center gap-2 text-ink-faint"
-          >
-            <a
-              className="text-ink-faint"
-              href={`${CLAN}/clans`}
-              onClick={go(`${CLAN}/clans`)}
-            >
-              Clan
-            </a>
-            <span aria-hidden="true">›</span>
-            {crumb ? (
-              <>
-                <a className="text-ink-faint" href={home} onClick={go(home)}>
-                  {clanName}
-                </a>
-                <span aria-hidden="true">›</span>
-                {via ? (
-                  <>
-                    <a
-                      className="text-ink-faint"
-                      href={via.to}
-                      onClick={go(via.to)}
-                    >
-                      {via.label}
-                    </a>
-                    <span aria-hidden="true">›</span>
-                  </>
-                ) : null}
-                <span aria-current="page" className="text-ink-dim">
-                  {crumb}
-                </span>
-              </>
-            ) : (
-              <span aria-current="page" className="text-ink-dim">
-                {clanName}
-              </span>
-            )}
-          </nav>
-        ) : null
-      }
     >
       {children}
     </KitHead>

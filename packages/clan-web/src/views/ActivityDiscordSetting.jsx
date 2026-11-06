@@ -20,12 +20,12 @@ const dead = (c) =>
 /** Current state stays visible; each scoped editor owns its unsaved draft.
  * The parent observes pending operations across closing and reopening. */
 export function ActivityDiscordSetting({ clan, navigate }) {
-  const settings = `${clanPath(clan.clan_tag)}/manage/settings`;
-  // A link into Settings, opening the named row there.
-  const toSettings = (hash) => (e) => {
+  const modelVoice = `${clanPath(clan.clan_tag)}/run/model-voice`;
+  // A link to the clan's model and voice, in Run.
+  const toModelVoice = (e) => {
     if (!navigate) return;
     e.preventDefault();
-    navigate(settings, { hash });
+    navigate(modelVoice);
   };
   const { state } = useActivityDiscord(clan.clan_tag);
   const invalidate = useInvalidate();
@@ -65,8 +65,8 @@ export function ActivityDiscordSetting({ clan, navigate }) {
       kind={kind}
       d={d}
       busy={busy}
-      settings={settings}
-      toSettings={toSettings}
+      modelVoice={modelVoice}
+      toModelVoice={toModelVoice}
       save={(body, event, label) =>
         perform(
           () => manageApi.saveActivityDiscord(clan.clan_tag, body),
@@ -220,8 +220,8 @@ function ActivityEditor({
   save,
   remove: disconnect,
   preview,
-  settings,
-  toSettings,
+  modelVoice,
+  toModelVoice,
 }) {
   const { whenDay } = useClock();
   const c = d.connection;
@@ -417,11 +417,8 @@ function ActivityEditor({
                   To have the clan&rsquo;s own model edit the channel in the
                   clan&rsquo;s voice rather than post Elixir&rsquo;s own
                   stories, add the clan&rsquo;s Anthropic API key in{" "}
-                  <a
-                    href={`${settings}#settings-model`}
-                    onClick={toSettings("settings-model")}
-                  >
-                    Settings ›
+                  <a href={modelVoice} onClick={toModelVoice}>
+                    Model &amp; voice
                   </a>
                 </span>
               </div>
@@ -431,8 +428,8 @@ function ActivityEditor({
                   <div className="callout callout--warn" role="alert">
                     <span>
                       Anthropic stopped accepting the clan&rsquo;s key. Add it
-                      again in Settings; until then Elixir&rsquo;s own stories
-                      are posted.
+                      again in Model &amp; voice; until then Elixir&rsquo;s own
+                      stories are posted.
                     </span>
                   </div>
                 ) : null}
@@ -492,11 +489,8 @@ function ActivityEditor({
                   <p className="page-head__note m-0">
                     The clan&rsquo;s one voice, also used for drafts on Actions.
                     Leaders and co-leaders set it in{" "}
-                    <a
-                      href={`${settings}#settings-voice`}
-                      onClick={toSettings("settings-voice")}
-                    >
-                      Settings › How our messages sound
+                    <a href={modelVoice} onClick={toModelVoice}>
+                      Model &amp; voice
                     </a>
                     .
                   </p>
@@ -540,11 +534,11 @@ const REFUSED = {
 
 const PREVIEW_ERROR = {
   still_pending:
-    "The model is taking longer than usual. The use is counted in Settings; try again in a minute.",
+    "The model is taking longer than usual. The use is counted in Model & voice; try again in a minute.",
   model_daily_limit:
     "The clan's model has drafted as many times as it may today. Try again tomorrow.",
   model_spend_cap:
-    "The clan's model has reached this month's spend cap. A leader can raise it in Settings.",
+    "The clan's model has reached this month's spend cap. A leader can raise it in Model & voice.",
 };
 
 /**
@@ -552,7 +546,7 @@ const PREVIEW_ERROR = {
  * would tell them in the clan's saved voice: each post with
  * the stories it tells, each skip with its reason, and each story kept
  * in Elixir's words with why. A leader's own use, counted with the
- * drafts in Settings, in one request with no lookups; nothing is posted
+ * drafts in Model & voice, in one request with no lookups; nothing is posted
  * (2026-10-11).
  */
 function EditorPreview({ preview, disabled }) {
@@ -569,7 +563,7 @@ function EditorPreview({ preview, disabled }) {
       setError(
         PREVIEW_ERROR[r.data?.error] ??
           r.data?.message ??
-          "The model did not answer. Check Settings before trying again.",
+          "The model did not answer. Check Model & voice before trying again.",
       );
       return;
     }

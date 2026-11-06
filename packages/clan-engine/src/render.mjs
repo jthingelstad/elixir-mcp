@@ -591,14 +591,14 @@ export function leaderMessage(kind, data = {}) {
   } else if (kind === "rules") {
     if (data.first) {
       title = "How our clan runs";
-      body = `We now run the clan with Elixir Clan${data.goals ? `: ${chatSafe(data.goals)}` : ""}. Sign in with Elixir to see how it works and where you stand.`;
+      body = `We now run the clan with Elixir${data.goals ? `: ${chatSafe(data.goals)}` : ""}. Sign in with Elixir to see how it works and where you stand.`;
     } else {
       title = "Our clan rules changed";
       body = `We changed ${fitList(
         (data.changes ?? []).map((c) => chatSafe(c)),
         120,
         ", ",
-      ).replace(/\.$/, "")}. See How it works here in Elixir Clan.`;
+      ).replace(/\.$/, "")}. See How it works here in Elixir.`;
     }
   } else return null;
   return {
@@ -667,8 +667,8 @@ export function awardAnnouncementParts(grants) {
 export function inviteCopy(kind, { clanName = null } = {}) {
   const clan = clanName ? chatSafe(clanName) : "our clan";
   const text = {
-    leaders: `Leaders: I use Elixir Clan to see our clan's numbers. Set up how ${clan} runs there and we all see how Elder works and where we stand. Sign in with Elixir.`,
-    clanmates: `I check where I stand in ${clan} on Elixir Clan. Sign in with Elixir to see yours and how the clan runs.`,
+    leaders: `Leaders: I use Elixir to see our clan's numbers. Set up how ${clan} runs there and we all see how Elder works and where we stand. Sign in with Elixir.`,
+    clanmates: `I check where I stand in ${clan} on Elixir. Sign in with Elixir to see yours and how the clan runs.`,
   }[kind];
   if (!text) return null;
   return clip(chatSafe(text), CHAT_MAX);

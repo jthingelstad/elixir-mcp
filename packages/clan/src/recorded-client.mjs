@@ -10,6 +10,7 @@ const READS = new Set([
   "battles_query",
   "elixir_coverage",
   "live_fetch",
+  "war_history",
 ]);
 export function createRecordedClient({
   credential,

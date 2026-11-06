@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { ME, mockApi, signedIn } from "./fixtures.ts";
-import { ME as ACCOUNT, railStaysInView } from "../fixtures.ts";
+import { ME, clanTab, mockApi, signedIn } from "./fixtures.ts";
+import { ME as ACCOUNT } from "../fixtures.ts";
 import {
   FIELDS,
   GROUPS,
@@ -128,7 +128,7 @@ async function rendered(page: Page) {
   await expect(page.locator("main")).not.toContainText("failed to render");
 }
 
-test("a signed-out Clan deep link uses the common sign-in and comes back to its action page", async ({
+test("a signed-out Clan deep link uses the common sign-in and comes back to its page", async ({
   page,
 }) => {
   let authed = false;
@@ -150,26 +150,27 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
       return [200, { ok: true }];
     },
   });
-  await page.goto("/clan/2PQRJ8LV/actions");
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
+  await page.goto("/clan/2PQRJ8LV/today");
+  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
   await expect
     .poll(() =>
       page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
     )
-    .toBe("/clan/2PQRJ8LV/actions");
+    .toBe("/clan/2PQRJ8LV/today");
   await page.getByRole("link", { name: "Sign in with Elixir" }).click();
   await expect(page).toHaveURL(/\/signin$/);
   expect(
     await page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
-  ).toBe("/clan/2PQRJ8LV/actions");
+  ).toBe("/clan/2PQRJ8LV/today");
   await page.getByLabel("Email").fill("ada@example.com");
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
-  await expect(
-    page.getByRole("heading", { name: "Actions", exact: true }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+  await expect(clanTab(page, /^Today/)).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await accessible(page, "shared sign-in return");
 });
 
@@ -257,26 +258,21 @@ test("an unverified Leader: the notice first, then the clan as a member with the
   await page
     .getByRole("button", { name: "I understand, continue as a member" })
     .click();
-  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV$/);
+  await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+  await expect(clanTab(page, "Run")).toHaveCount(0);
+  await clanTab(page, "Members").click();
   await expect(page.getByText("Ben")).toBeVisible();
-  const rail = page.locator(".rail");
-  await expect(rail.getByRole("link", { name: /^Member review/ })).toHaveCount(
-    0,
-  );
-  await expect(rail.getByRole("link", { name: /^Map/ })).toHaveCount(0);
-  await expect(
-    page.getByRole("link", { name: /Verify in Elixir/ }).first(),
-  ).toBeVisible();
+  const rows = page.getByRole("navigation", { name: "Members" });
+  await expect(rows.getByRole("link", { name: "Review" })).toHaveCount(0);
+  await expect(rows.getByRole("link", { name: "Map" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Verify Ada" })).toBeVisible();
   await rendered(page);
   await accessible(page, "unverified clan page");
 
   // Into the Console on this origin, in the app (2026-10-20): the link
   // was production's address, whatever origin the page was on.
   const origin = new URL(page.url()).origin;
-  await page
-    .getByRole("link", { name: /Verify in Elixir/ })
-    .first()
-    .click();
+  await page.getByRole("link", { name: "Verify Ada" }).click();
   await expect(page).toHaveURL(`${origin}/console/account/verify`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Verify");
 });
@@ -344,13 +340,13 @@ test.describe("signed in", () => {
     await page.goto("/clan/2PQRJ8LV/actions/37");
     const editor = page.getByLabel("Chat message", { exact: true });
     const copy = page.getByRole("button", { name: "Copy the chat message" });
-    const welcomed = page.getByRole("button", { name: "Welcomed" });
+    const welcomed = page.getByRole("button", { name: "Done", exact: true });
     await page.getByRole("button", { name: "Draft in our voice" }).click();
     await expect(editor).toBeDisabled();
     await expect(copy).toBeDisabled();
     await expect(welcomed).toBeDisabled();
     await expect(
-      page.getByRole("button", { name: "Skip", exact: true }),
+      page.getByRole("button", { name: "Decline", exact: true }),
     ).toBeDisabled();
     expect(deliveries).toEqual([]);
     await accessible(page, "pending welcome draft");
@@ -385,75 +381,62 @@ test.describe("signed in", () => {
       ]);
   });
 
-  test("choose a clan, read its roster, walk the rail, report a standing", async ({
+  test("choose a clan, read its roster, walk the tabs, report a standing", async ({
     page,
   }) => {
     // `vite preview` answers the prefix only with its slash; the edge
     // serves /clan too.
     await page.goto("/clan/");
-    // Nothing selected: the chooser.
-    await expect(page).toHaveURL(/\/clan\/clans$/);
+    // Nothing selected: the chooser, at Clan's own address.
+    await expect(page).toHaveURL(/\/clan\/?$/);
     await expect(
       page.getByRole("heading", { name: "Your clans" }),
     ).toBeVisible();
-    const rail = page.locator(".rail");
-    // Feedback is the rail's foot, into Elixir's one record; Clan keeps
-    // no queue of its own (2026-10-08).
-    await expect(
-      rail.getByRole("button", { name: "Send feedback" }),
-    ).toBeVisible();
-    await expect(rail.getByRole("link", { name: /^Feedback/ })).toHaveCount(0);
     await accessible(page, "chooser");
 
-    // Picking one is remembered and lands on it: Actions, for a leader
-    // with two waiting (Jamie, 2026-10-20); the roster is in the rail.
+    // Picking one is remembered and lands on its Today.
     await page.getByText("Example Clan").first().click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
-    await rail.getByRole("link", { name: /^Roster/ }).click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/roster$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
+    await clanTab(page, "Members").click();
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members$/);
     await expect(page.getByText("Ben")).toBeVisible();
     await expect(page.getByText("Co-leader").first()).toBeVisible();
-    // The canvas: the clan's own figures, its comings and goings in the
-    // account's zone, and a roster that finds a member.
+    // The clan's own figures, its comings and goings in the account's zone,
+    // and a roster that finds a member.
     await expect(
       page.getByText("Invite only · 5,000 trophies to join", { exact: false }),
     ).toBeVisible();
     const tiles = page.getByRole("group", { name: "The clan in numbers" });
     await expect(tiles).toContainText("1,220");
-    await expect(tiles).toContainText("1st in race 135/4, +100");
-    await page
-      .getByText("Recent changes and recruiting", { exact: true })
-      .click();
     const comings = page.getByRole("region", { name: "Comings and goings" });
     await expect(comings).toContainText("Lu departed");
     await expect(comings).toContainText(
-      "Finished 1st in the Colosseum, race 135/4 with 10,305 fame",
+      "Finished 1st in the Colosseum, Season 135, week 5, with 10,305 fame",
     );
     await expect(comings).toContainText(/Sat Sep 5( 2026)?, 5:13 pm/);
     await expect(comings).not.toContainText(/kick|\bleft\b/i);
-    await page.getByRole("searchbox", { name: "Find a member" }).fill("ze");
-    const roster = page.getByRole("region", { name: "Roster" });
+    const find = page.getByRole("searchbox", { name: "Find a member" });
+    await find.fill("ze");
+    await find.press("Enter");
+    const roster = page.getByRole("region", { name: "Members" });
     await expect(roster).toContainText("Zed");
     await expect(roster).not.toContainText("Ben");
-    await page.getByRole("searchbox", { name: "Find a member" }).fill("");
-    // The rail now carries the clan: Manage for a leader, the tag aside.
-    await expect(rail.getByRole("link", { name: /^Actions/ })).toBeVisible();
-    await expect(
-      rail.getByRole("link", { name: /^Member review/ }),
-    ).toBeVisible();
-    await expect(rail).toContainText("#2PQRJ8LV");
+    await find.fill("");
+    await find.press("Enter");
+    // The tabs carry the clan: Run and Review for a leader.
+    const rows = page.getByRole("navigation", { name: "Members" });
+    await expect(rows.getByRole("link", { name: "Review" })).toBeVisible();
+    await expect(clanTab(page, "Run")).toBeVisible();
     await rendered(page);
     await accessible(page, "clan page");
 
-    // Standing, through the rail.
-    await rail.getByRole("link", { name: /^Standing/ }).click();
-    await expect(page).toHaveURL(/\/standing$/);
+    // Standing, on Members' row.
+    await rows.getByRole("link", { name: "Standing" }).click();
+    await expect(page).toHaveURL(/\/members\/standing$/);
     await expect(page.getByRole("heading", { name: "Standing" })).toBeVisible();
-    await page
-      .locator("summary")
-      .filter({ hasText: /^How standing works/ })
-      .click();
-    await expect(page.getByText("How it works here")).toBeVisible();
+    await expect(
+      page.getByText(/^How it works here · Policy v1/),
+    ).toBeVisible();
     // Each group its own panel; war decks per race in words for a reader;
     // a leader is not banded, so their own line carries their role.
     await expect(
@@ -461,16 +444,18 @@ test.describe("signed in", () => {
     ).toContainText("Cy");
     await expect(
       page.getByRole("img", {
-        name: "Zed's war decks: 135/4 12 of 16, 136/0 12 of 12, 136/1 16 of 16",
+        name: "Zed's war decks: Season 135, week 5 12 of 16, Season 136, week 1 12 of 12, Season 136, week 2 16 of 16",
       }),
     ).toBeVisible();
     const yours = page.getByRole("region", { name: "You" });
     await expect(yours).toContainText("Leader");
     await expect(yours).toContainText("44 of 44");
-    await expect(yours).toContainText("Races 135/4 to 136/1.");
-    await expect(page.getByText("Read the policy in full ›")).toBeVisible();
+    await page.getByText(/^How it works here · Policy v1/).click();
     await expect(
-      page.getByText(/Leaders and co-leaders are not banded/),
+      page.getByText("Read the policy in full, in Run"),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Leaders and co-leaders have no group/).first(),
     ).toBeVisible();
     await rendered(page);
     await accessible(page, "standing");
@@ -495,7 +480,7 @@ test.describe("signed in", () => {
       message: "Zed played every deck last week.",
       category: "judgment",
       area: "clan",
-      context: { path: "/clan/2PQRJ8LV/standing" },
+      context: { path: "/clan/2PQRJ8LV/members/standing" },
     });
     expect(body.refs).toContainEqual({ kind: "clan", ref: "#2PQRJ8LV" });
     await expect(sheet.getByRole("status")).toContainText("Received");
@@ -511,33 +496,31 @@ test.describe("signed in", () => {
     page,
   }) => {
     await page.goto("/clan/GQ08RJPL");
-    await expect(page).toHaveURL(/\/clan\/GQ08RJPL$/);
-    const rail = page.locator(".rail");
-    await expect(rail).toContainText("Second Clan");
-    // A member: no Manage group.
-    await expect(
-      rail.getByRole("link", { name: /^Member review/ }),
-    ).toHaveCount(0);
+    await expect(page).toHaveURL(/\/clan\/GQ08RJPL\/today$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Second Clan",
+    );
+    // A member: no Run.
+    await expect(clanTab(page, "Run")).toHaveCount(0);
   });
 
-  test("a clan with no policy yet: only the roster, Recruit, Scout, the policy editor and clan settings", async ({
+  test("a clan with no policy yet keeps its tabs, and Today says what waits on one", async ({
     page,
   }) => {
-    await mockApi(page, signedIn({}, { policy: { set: false } }));
+    await mockApi(
+      page,
+      signedIn(
+        {
+          "GET /api/clan/clans/2PQRJ8LV/actions": [409, { error: "no_policy" }],
+        },
+        { policy: { set: false } },
+      ),
+    );
     await page.goto("/clan/2PQRJ8LV");
-    const rail = page.locator(".rail");
-    await expect(rail.getByRole("link", { name: /^Policy/ })).toBeVisible();
-    await expect(rail.getByRole("link", { name: /^Scout/ })).toBeVisible();
-    await expect(rail.getByRole("link", { name: /^Recruit/ })).toBeVisible();
-    await expect(rail.getByRole("link", { name: /^Settings/ })).toBeVisible();
-    for (const name of [
-      /^Actions/,
-      /^Member review/,
-      /^Standing/,
-      /^Award history/,
-      /^Away/,
-    ])
-      await expect(rail.getByRole("link", { name })).toHaveCount(0);
+    for (const name of ["Members", "Season", "Awards", "Run"])
+      await expect(clanTab(page, name)).toBeVisible();
+    await expect(clanTab(page, /^Today/)).toBeVisible();
+    await expect(page.locator(".clan-today")).toContainText(/policy/i);
   });
 
   test("a clan below 10 members is a statistics view: the policy editor says so", async ({
@@ -570,17 +553,8 @@ test.describe("signed in", () => {
         { policy: { set: false, active: false, members: 6 } },
       ),
     );
-    await page.goto("/clan/2PQRJ8LV");
-    const rail = page.locator(".rail");
-    for (const name of [
-      /^Actions/,
-      /^Member review/,
-      /^Standing/,
-      /^Award history/,
-    ])
-      await expect(rail.getByRole("link", { name })).toHaveCount(0);
-    await rail.getByRole("link", { name: /^Policy/ }).click();
-    await expect(page).toHaveURL(/\/manage\/policy$/);
+    await page.goto("/clan/2PQRJ8LV/manage/policy");
+    await expect(page).toHaveURL(/\/run\/about$/);
     await expect(
       page.getByText(/Leaders can prepare and save its policy now/),
     ).toBeVisible();
@@ -590,42 +564,40 @@ test.describe("signed in", () => {
     ).toBeEnabled();
   });
 
-  test("the policy editor is tabs along the top: one at a time, each switched on or off", async ({
+  test("the policy is separated sections: one at a time, each switched on or off", async ({
     page,
   }) => {
     await mockApi(
       page,
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/policy": [200, POLICY_VIEW] }),
     );
-    await page.goto("/clan/2PQRJ8LV/roster");
-    await page
-      .locator(".rail")
-      .getByRole("link", { name: /^Policy/ })
-      .click();
-    const tabs = page.getByRole("tablist", { name: "Policy" });
-    await expect(
-      tabs.getByRole("tab", { name: /^Clan Wars, on/ }),
-    ).toBeVisible();
-    await expect(
-      tabs.getByRole("tab", { name: /^Ranked play, off/ }),
-    ).toBeVisible();
-    // About first; nothing from another tab on the page.
+    await page.goto("/clan/2PQRJ8LV/members");
+    await clanTab(page, "Run").click();
+    await expect(page).toHaveURL(/\/run$/);
+    const list = page.getByRole("navigation", { name: "Run" });
+    await expect(list.getByRole("link", { name: /^Clan Wars/ })).toContainText(
+      "On",
+    );
+    await expect(list.getByRole("link", { name: /^Ranked/ })).toContainText(
+      "Off",
+    );
+    // About first; nothing from another section on the page.
     await expect(page.getByLabel(/War rate window/)).toHaveCount(0);
-    await tabs.getByRole("tab", { name: /^Clan Wars/ }).click();
+    await list.getByRole("link", { name: /^Clan Wars/ }).click();
+    await expect(page).toHaveURL(/\/run\/clan-wars$/);
     await expect(page.getByLabel(/Minimum war decks/)).toHaveValue("8");
-    await tabs.getByRole("tab", { name: /^Ranked play/ }).click();
-    await expect(
-      page.getByText(/Off: this clan does not use it/),
-    ).toBeVisible();
+    await list.getByRole("link", { name: /^Ranked/ }).click();
     await page.getByLabel("Count ranked play").check();
     await expect(page.getByLabel(/Minimum ranked battles/)).toHaveValue("5");
+    await expect(list.getByRole("link", { name: /^Ranked/ })).toContainText(
+      "changed",
+    );
     await expect(
-      tabs.getByRole("tab", { name: /^Ranked play, on, changed/ }),
+      page
+        .locator(".clan-save")
+        .getByText(/settings? changed: Count ranked play/),
     ).toBeVisible();
-    await expect(
-      page.getByText(/settings? changed: Count ranked play/),
-    ).toBeVisible();
-    await accessible(page, "policy tabs");
+    await accessible(page, "policy sections");
   });
 
   test("clan settings hold the clan's own model, for leaders", async ({
@@ -664,39 +636,26 @@ test.describe("signed in", () => {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/roster");
-    await page
-      .locator(".rail")
-      .getByRole("link", { name: /^Settings/ })
-      .click();
-    await expect(page).toHaveURL(/\/manage\/settings$/);
+    await page.goto("/clan/2PQRJ8LV/members");
+    await clanTab(page, "Run").click();
+    const list = page.getByRole("navigation", { name: "Run" });
+    await list.getByRole("link", { name: /^Clan settings/ }).click();
+    await expect(page).toHaveURL(/\/run\/settings$/);
     await expect(
       page.getByRole("heading", { name: "Clan settings" }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "Clan model", exact: true }),
-    ).toBeVisible();
-    await page
-      .getByText(
-        "Recording and visibility: what is recorded and who can read it",
-        { exact: true },
-      )
-      .click();
     await expect(page.getByText("Kicks and leaves")).toBeVisible();
-    await expect(page.getByRole("checkbox")).toHaveCount(0);
-    await page
-      .getByRole("button", { name: "Manage Clan model", exact: true })
-      .click();
+    await accessible(page, "clan settings");
+    await list.getByRole("link", { name: /^Model & voice/ }).click();
+    await expect(page).toHaveURL(/\/run\/model-voice$/);
     await expect(page.getByLabel("Add the clan's key")).toHaveAttribute(
       "type",
       "password",
     );
-    // The model's old address lands on settings.
+    // The model's old address lands on the page.
     await page.goto("/clan/2PQRJ8LV/manage/model");
-    await expect(
-      page.getByRole("heading", { name: "Clan settings" }),
-    ).toBeVisible();
-    await accessible(page, "clan settings");
+    await expect(page).toHaveURL(/\/run\/model-voice$/);
+    await accessible(page, "model and voice");
   });
 
   test("a clan's key shows about what the month cost, and its monthly cap", async ({
@@ -768,10 +727,7 @@ test.describe("signed in", () => {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/manage/settings");
-    await page
-      .getByRole("button", { name: "Change Monthly cap", exact: true })
-      .click();
+    await page.goto("/clan/2PQRJ8LV/run/model-voice");
     await expect(
       page.getByText(
         /6 uses · 5,088 tokens in, 404 out · about \$0\.01 of the \$5\.00 cap/,
@@ -789,10 +745,10 @@ test.describe("signed in", () => {
     await expect(
       page.getByText("Recruiting pitch: Claude Opus 5.5"),
     ).toBeVisible();
-    await accessible(page, "clan settings with a key");
+    await accessible(page, "model and voice with a key");
   });
 
-  test("the leaders' Discord nudge opens Settings on the Discord setting", async ({
+  test("the leaders' Discord nudge opens Run's Discord page", async ({
     page,
   }) => {
     await mockApi(
@@ -811,11 +767,11 @@ test.describe("signed in", () => {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/actions");
-    await page.getByRole("link", { name: "Set it up in Settings ›" }).click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/manage\/settings#discord$/);
+    await page.goto("/clan/2PQRJ8LV/today");
+    await page.getByRole("link", { name: "Set it up in Run" }).click();
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/run\/discord$/);
     await expect(
-      page.getByRole("dialog", { name: "Actions in Discord" }),
+      page.getByRole("region", { name: "Actions in Discord" }),
     ).toBeVisible();
   });
 
@@ -880,16 +836,15 @@ test.describe("signed in", () => {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/roster");
-    const rail = page.locator(".rail");
-    await rail.getByRole("link", { name: /^Actions/ }).click();
-    await expect(page).toHaveURL(/\/actions$/);
+    await page.goto("/clan/2PQRJ8LV/members");
+    await clanTab(page, /^Today/).click();
+    await expect(page).toHaveURL(/\/today$/);
     const row = page.getByRole("link", { name: /#37.*Remove from the clan/ });
     await expect(row).toContainText("1 comment");
     await expect(
       page.getByRole("region", { name: "Waiting for you" }),
     ).toContainText("Sleepy");
-    await expect(page.getByRole("button", { name: "Complete" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
     await accessible(page, "actions list");
     await row.click();
     await expect(page).toHaveURL(/\/actions\/37$/);
@@ -901,17 +856,11 @@ test.describe("signed in", () => {
       .filter({ hasText: /^History · 2 entries/ })
       .click();
     await expect(page.getByText("I messaged them yesterday.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Complete" })).toBeVisible();
-    // The action names itself, under the breadcrumb back to the list.
-    await expect(
-      page.getByRole("heading", { name: "Evidence and message" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("navigation", { name: "Breadcrumb" }),
-    ).toContainText("Actions›#37");
-    await expect(rail.getByRole("link", { name: /^Actions/ })).toHaveAttribute(
-      "aria-current",
-      "page",
+    await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
+    // An action's page is under Today.
+    await expect(clanTab(page, /^Today/)).toHaveAttribute(
+      "aria-selected",
+      "true",
     );
     await rendered(page);
     await accessible(page, "an action's page");
@@ -920,8 +869,8 @@ test.describe("signed in", () => {
     await expect(
       page.getByRole("heading", { name: "Remove from the clan · Sleepy" }),
     ).toBeVisible();
-    await page.getByRole("link", { name: "‹ All actions" }).click();
-    await expect(page).toHaveURL(/\/actions$/);
+    await page.getByRole("link", { name: "‹ Today" }).click();
+    await expect(page).toHaveURL(/\/today$/);
     await page.goto("/clan/2PQRJ8LV/actions/99");
     await expect(page.getByText("No action #99 here")).toBeVisible();
   });
@@ -971,34 +920,34 @@ test.describe("signed in", () => {
         },
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/roster");
-    const rail = page.locator(".rail");
-    await rail.getByRole("link", { name: /^The week/ }).click();
-    await expect(page).toHaveURL(/\/week$/);
-    await expect(page.getByRole("heading", { name: "The week" })).toBeVisible();
+    await page.goto("/clan/2PQRJ8LV/week");
+    await expect(page).toHaveURL(/\/season$/);
     await expect(page.getByText(/what this clan counts/)).toBeVisible();
-    const all = page.getByRole("list", {
-      name: "Clan Wars: played every deck asked",
-    });
-    const partway = page.getByRole("list", { name: "Clan Wars: partway" });
-    await expect(all).toContainText("Ada16/16");
-    await expect(partway).toContainText("Ben10/16");
-    await expect(all).not.toContainText("Zed");
-    await expect(partway).not.toContainText("Zed");
-    await expect(
-      page.getByRole("navigation", { name: "Breadcrumb" }),
-    ).toContainText("The week");
-    await expect(page.getByText("Departed", { exact: true })).toBeVisible();
+    await page
+      .getByLabel("Period")
+      .selectOption({ label: "The week of Aug 31" });
+    await expect(page).toHaveURL(/\/season\/2026-w36$/);
+    const war = page
+      .getByRole("region", { name: "War decks and points" })
+      .first();
+    await expect(war.getByRole("row", { name: /^Ada 16/ })).toBeVisible();
+    await expect(war.getByRole("row", { name: /^Ben 10/ })).toBeVisible();
+    await page.getByText("Who came and went · 1").click();
+    await expect(page.getByText("Lu departed")).toBeVisible();
     await rendered(page);
     await accessible(page, "the week");
-    await page.getByRole("link", { name: /← Week of/ }).click();
-    await expect(page).toHaveURL(/\/week\/2026-w35$/);
-    await expect(rail.getByRole("link", { name: /^The week/ })).toHaveAttribute(
-      "aria-current",
-      "page",
+    await page
+      .getByLabel("Period")
+      .selectOption({ label: "The week of Aug 24" });
+    await expect(page).toHaveURL(/\/season\/2026-w35$/);
+    await expect(clanTab(page, "Season")).toHaveAttribute(
+      "aria-selected",
+      "true",
     );
-    await expect(page.getByText(/This week so far/)).toHaveCount(0);
     await rendered(page);
+    // A week's old address keeps naming the week.
+    await page.goto("/clan/2PQRJ8LV/week/2026-w35");
+    await expect(page).toHaveURL(/\/season\/2026-w35$/);
   });
 
   test("you here: your week, your races, what the policy makes of them", async ({
@@ -1008,104 +957,91 @@ test.describe("signed in", () => {
       page,
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
     );
-    await page.goto("/clan/2PQRJ8LV/roster");
-    const rail = page.locator(".rail");
-    await rail.getByRole("link", { name: /^Your clan record/ }).click();
-    await expect(page).toHaveURL(/\/me$/);
-    await expect(
-      page.getByRole("heading", { name: "Your clan record" }),
-    ).toBeVisible();
-    await expect(page.getByText("since Aug 20")).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /2 actions wait for you/ }),
-    ).toBeVisible();
+    await page.goto("/clan/2PQRJ8LV/members");
+    await page
+      .getByRole("region", { name: "Members" })
+      .getByRole("link", { name: "Ada", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
+    await expect(page.getByText("only you see this page")).toBeVisible();
+    await expect(page.getByText(/Aug 20: Co-leader → Leader/)).toBeVisible();
     await expect(
       page.getByRole("group", { name: "This week so far" }),
-    ).toContainText("Race 136/0, four a war day");
+    ).toContainText("Season 136, week 1, so far");
     await expect(
       page.getByRole("img", {
-        name: "Your war decks: 135/1 16 of 16, 135/2 16 of 16, 135/3 16 of 16, 135/4 16 of 16, 136/0 8 so far",
+        name: "Your war decks: Season 135, week 2 16 of 16, Season 135, week 3 16 of 16, Season 135, week 4 16 of 16, Season 135, week 5 16 of 16, Season 136, week 1 8 so far",
       }),
     ).toBeVisible();
     await expect(
       page.getByText("64 of 64 in the finished races."),
     ).toBeVisible();
-    await expect(page.getByText("This week, so far")).toBeVisible();
     await expect(page.getByText(/War Champ · 1st/)).toBeVisible();
-    await expect(
-      page.getByRole("navigation", { name: "Breadcrumb" }),
-    ).toContainText("Your clan record");
     await rendered(page);
     await accessible(page, "you here");
-    await page.getByRole("link", { name: "How Elder works here ›" }).click();
-    await expect(page).toHaveURL(/\/standing$/);
+    // The old address of your record still finds it.
+    await page.goto("/clan/2PQRJ8LV/me");
+    await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
   });
 
-  test("the rail stays in view down a long page, its foot in reach", async ({
+  test("@narrow the five tabs fit a phone and the count of what waits rides on Today", async ({
     page,
   }) => {
-    await page.goto("/clan/2PQRJ8LV/standing");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await railStaysInView(page);
-  });
-
-  test("@narrow the folded rail marks the Actions waiting for you, and not on Actions itself", async ({
-    page,
-  }) => {
-    await page.goto("/clan/2PQRJ8LV/roster");
-    const toggle = page.locator(".rail__toggle");
-    await expect(
-      toggle.getByRole("img", { name: "Actions: 2 waiting for you" }),
-    ).toBeVisible();
-    await page.goto("/clan/2PQRJ8LV/actions");
-    await expect(toggle).toContainText("Actions");
-    await expect(toggle.locator(".rail__dot")).toHaveCount(0);
-  });
-
-  test("@narrow the rail is a disclosure above the content", async ({
-    page,
-  }) => {
-    await page.goto("/clan/2PQRJ8LV/roster");
-    const toggle = page.locator(".rail__toggle");
-    await expect(toggle).toBeVisible();
-    await expect(toggle).toContainText("Roster");
-    // The clan is the picker beside the row, above the page.
-    await expect(page.locator(".rail .rail__switch-head")).toContainText(
-      "Example Clan",
+    await page.goto("/clan/2PQRJ8LV/members");
+    await expect(clanTab(page, /^Today/)).toHaveAccessibleName(
+      /^Today ?, 2 waiting for you$/,
     );
-    await expect(
-      page.getByRole("navigation", { name: "Sections" }),
-    ).toHaveCount(0);
-    await toggle.click();
+    for (const name of ["Members", "Season", "Awards", "Run"])
+      await expect(clanTab(page, name)).toBeAttached();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
     await page
-      .getByRole("navigation", { name: "Sections" })
-      .getByRole("link", { name: /^Standing/ })
+      .getByRole("navigation", { name: "Members" })
+      .getByRole("link", { name: "Standing" })
       .click();
     await expect(page).toHaveURL(/\/standing$/);
-    await expect(
-      page.getByRole("navigation", { name: "Sections" }),
-    ).toHaveCount(0);
     await accessible(page, "narrow standing");
   });
-  test("@narrow you here: one column, nothing wider than the phone", async ({
+
+  test("@narrow Run is a list, then a section with a way back", async ({
+    page,
+  }) => {
+    await mockApi(
+      page,
+      signedIn({ "GET /api/clan/clans/2PQRJ8LV/policy": [200, POLICY_VIEW] }),
+    );
+    await page.goto("/clan/2PQRJ8LV/run");
+    const list = page.getByRole("navigation", { name: "Run" });
+    await expect(list).toBeVisible();
+    await expect(page.locator(".clan-run__section")).toBeHidden();
+    await list.getByRole("link", { name: /^Clan Wars/ }).click();
+    await expect(list).toBeHidden();
+    await expect(page.getByLabel(/Minimum war decks/)).toHaveValue("8");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await page.getByRole("link", { name: "‹ Run" }).click();
+    await expect(list).toBeVisible();
+    await accessible(page, "narrow run");
+  });
+
+  test("@narrow your record: one column, nothing wider than the phone", async ({
     page,
   }) => {
     await mockApi(
       page,
       signedIn({ "GET /api/clan/clans/2PQRJ8LV/me": [200, memberView()] }),
     );
-    await page.goto("/clan/2PQRJ8LV/roster");
-    await page.locator(".rail__toggle").click();
-    await page
-      .getByRole("navigation", { name: "Sections" })
-      .getByRole("link", { name: /^Your clan record/ })
-      .click();
-    await expect(page).toHaveURL(/\/me$/);
+    await page.goto("/clan/2PQRJ8LV/members/me");
+    await expect(page).toHaveURL(/\/members\/20qql8ccru$/i);
+    await expect(page.getByText("only you see this page")).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Your clan record" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("img", { name: /^Your war decks: 135\/1/ }),
+      page.getByRole("img", { name: /^Your war decks: Season 135/ }),
     ).toBeVisible();
     const wide = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth,
@@ -1155,18 +1091,17 @@ test("one application and account survive Home and Clan navigation at phone, tab
         "same-app";
     });
     await switchTo("Clan", viewport.width);
-    // The chooser, then the clan's landing: Actions, for this leader
-    // with two waiting.
-    await expect(page).toHaveURL(/\/clan\/(clans|2PQRJ8LV\/actions)$/);
+    // The chooser, then the clan's landing: Today.
+    await expect(page).toHaveURL(/\/clan(\/2PQRJ8LV\/today|\/)?$/);
     expect(
       await page.evaluate(
         () =>
           (window as Window & { applicationMarker?: string }).applicationMarker,
       ),
     ).toBe("same-app");
-    if (page.url().endsWith("/clans"))
+    if (!page.url().endsWith("/today"))
       await page.getByText("Example Clan", { exact: true }).first().click();
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/actions$/);
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/today$/);
     await expect(
       page.getByRole("button", { name: "Account: Ada", exact: true }),
     ).toHaveCount(1);

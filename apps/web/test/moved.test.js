@@ -30,7 +30,7 @@ const MAIL_STAYS = [
   "/console/account/tracking",
   "/console/status/collectors",
   "/console/account/feedback/42",
-  "/clan/J2RGCRVG/actions",
+  "/clan/J2RGCRVG/actions/12",
   "/ladder",
   "/ladder/decks",
   "/ladder/cards",
@@ -60,6 +60,10 @@ describe("the map of moved addresses", () => {
 
   test.each(MAIL_STAYS)("mail's %s still resolves", (path) => {
     expect(legalRoute(path)).toBe(path);
+  });
+
+  test("Clan's old list of Actions, in mail from the archive, goes to Today", () => {
+    expect(movedTo("/clan/J2RGCRVG/actions")).toBe("/clan/J2RGCRVG/today");
   });
 
   test("an account page that no longer exists goes Home", () => {

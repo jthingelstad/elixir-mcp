@@ -12,7 +12,7 @@ reviewed: "2026-10-06; member-visible season record, contracts unchanged"
 
 # Your clan's season record
 
-**Season**, beside [The week](/docs/clan-week) in Clan, shows recorded
+**Season**, a tab in Clan that also holds each [week](/docs/clan-week), shows recorded
 war decks, member war points and contributors. Every clan member can read
 it, verified or not, with or without a clan policy. Each contributor counts
 once in the season total even when they played in several races.

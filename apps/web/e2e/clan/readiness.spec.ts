@@ -69,7 +69,7 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(page, responses);
     await page.goto("/clan/2PQRJ8LV/actions/37");
     await expect(
-      page.getByRole("heading", { name: "Welcome a newcomer" }),
+      page.getByRole("heading", { name: "Welcome a newcomer", exact: true }),
     ).toBeVisible();
     const editor = page.getByLabel("Chat message", { exact: true });
     await editor.fill("Welcome aboard, Newcomer!");
@@ -101,8 +101,10 @@ for (const size of ["wide", "@narrow"]) {
       path: `/tmp/elixir-clan-readiness-${size === "wide" ? "wide" : "narrow"}.png`,
       fullPage: true,
     });
-    await page.getByRole("button", { name: "Welcomed", exact: true }).click();
-    await expect(page.getByText("Completed", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(
+      page.getByRole("article").getByText("Done", { exact: true }),
+    ).toBeVisible();
     expect(decisions).toEqual([
       {
         status: "done",

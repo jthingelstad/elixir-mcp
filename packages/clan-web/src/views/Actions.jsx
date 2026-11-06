@@ -1,27 +1,10 @@
-import {
-  Fresh,
-  Icon,
-  ago,
-  TagText,
-  useFlash,
-  Panel,
-  Empty,
-} from "@elixir-mcp/ui";
-import { useState } from "react";
-import { ACTION_ORDER as ORDER } from "@elixir-mcp/clan-engine";
-import { keys, useAction, useActions, useInvalidate } from "../lib/queries.js";
-import {
-  ActionCard,
-  LeaderMessageNotice,
-  STATUS,
-  TypeIcon,
-} from "../components/ActionCard.jsx";
+import { Icon, ago, TagText, useFlash, Panel, Empty } from "@elixir-mcp/ui";
+import { keys, useAction, useInvalidate } from "../lib/queries.js";
+import { ActionCard, STATUS, TypeIcon } from "../components/ActionCard.jsx";
 import { TooFew } from "../components/TooFew.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { trackEvent } from "../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
-
-const LEADERS = new Set(["leader", "coLeader"]);
 
 /** An action's own address: the one people send each other. */
 const actionPath = (clan, number) =>
@@ -36,7 +19,7 @@ const about = (a) =>
       : "The clan";
 
 /** The page's refusals, the same on the list and on one action. */
-function Refused({ state, query, head }) {
+function ActionRefused({ state, query, head }) {
   if (state.error === "too_few_members") {
     const e = query.data?.data ?? {};
     return (
@@ -73,7 +56,7 @@ function Refused({ state, query, head }) {
 /** One line of the list: the kind's mark, the number and what, who it
  *  is about and its comments, and when (or how it closed); the whole line
  *  opens the action's own page. */
-function ActionRow({ action, clan, navigate, scope }) {
+function ActionRow({ action, clan, navigate }) {
   const n = action.number;
   const open = action.status === "proposed";
   const comments = (action.log ?? []).filter(
@@ -92,7 +75,7 @@ function ActionRow({ action, clan, navigate, scope }) {
         <span className="text-[12.5px] text-ink-dim">
           <TagText>{about(action)}</TagText>
           {action.status !== "proposed" && action.delivery_channels?.length > 1
-            ? " · Clan chat and Inbox"
+            ? " · Clan chat and Leader Message"
             : action.channel === "leader_message"
               ? " · Leader Message"
               : action.channel === "clan_chat"
@@ -124,7 +107,7 @@ function ActionRow({ action, clan, navigate, scope }) {
         {line}
       </li>
     );
-  const href = actionPath(clan, n) + (scope === "closed" ? "?show=closed" : "");
+  const href = actionPath(clan, n);
   return (
     <li data-action={action.card_id}>
       <a
@@ -143,7 +126,7 @@ function ActionRow({ action, clan, navigate, scope }) {
 }
 
 /** A list of actions in its own panel: its name, its count, its lines. */
-function ActionList({ id, title, tone, actions, clan, navigate, foot, scope }) {
+export function ActionList({ id, title, tone, actions, clan, navigate, foot }) {
   return (
     <Panel className="overflow-hidden" aria-labelledby={id}>
       <div className="panel__head">
@@ -157,7 +140,6 @@ function ActionList({ id, title, tone, actions, clan, navigate, foot, scope }) {
           <ActionRow
             key={a.card_id}
             action={a}
-            scope={scope}
             clan={clan}
             navigate={navigate}
           />
@@ -175,15 +157,13 @@ function ActionList({ id, title, tone, actions, clan, navigate, foot, scope }) {
  * to the leader and co-leaders while the clan has no webhook, or when
  * Discord stopped taking the one it has. Nothing when it works.
  */
-function DiscordNudge({ discord, to, navigate }) {
+export function DiscordNudge({ discord, to, navigate }) {
   if (!discord || (discord.set && !discord.refused)) return null;
-  // Onto Settings with the Discord setting open (#discord), the way the
-  // activity page reaches the clan model (#settings-model).
   const go = (e) => {
     if (!navigate) return;
     e.preventDefault();
     trackEvent("clan.discord_nudge");
-    navigate(to, { hash: "discord" });
+    navigate(to);
   };
   return (
     <div
@@ -194,180 +174,11 @@ function DiscordNudge({ discord, to, navigate }) {
         {discord.set
           ? "Discord stopped accepting the clan’s webhook, so Actions are not being posted there. "
           : "Post Actions to your leaders’ Discord channel: each new one appears there, and is marked when someone completes it. "}
-        <a href={`${to}#discord`} onClick={go}>
-          {discord.set
-            ? "Connect it again in Settings ›"
-            : "Set it up in Settings ›"}
+        <a href={to} onClick={go}>
+          {discord.set ? "Connect it again in Run" : "Set it up in Run"}
         </a>
       </span>
     </div>
-  );
-}
-
-/**
- * Actions, for everyone in a clan with a policy: a list of what is
- * waiting for you (assigned to you, or open to your role) and what closed
- * in the last 30 days, one line each (Jamie, 2026-09-25: the page of full
- * actions was too long). Each line opens the action's own page. The saved
- * evaluation keeps processing quick; a refresh re-reads the record.
- */
-export function Actions({ clan, who, navigate, scope: routeScope }) {
-  const [localScope, setScope] = useState("open");
-  const scope = routeScope ?? localScope;
-  const { state, query, load } = useActions(clan.clan_tag);
-  if (state.signedOut) {
-    window.location.assign(`${CLAN}?error=session_expired`);
-    return null;
-  }
-  const d = state.data;
-  const head = (
-    <PageHead
-      clan={clan}
-      crumb="Actions"
-      title="Actions"
-      lede="Review the evidence, act in the game, then record your decision."
-      navigate={navigate}
-      fresh={
-        <div className="flex flex-wrap items-center gap-3">
-          {d?.as_of ? <Fresh label="as of" ts={d.as_of} /> : null}
-          <button
-            className="btn btn--small"
-            disabled={state.loading}
-            onClick={() => load(true)}
-          >
-            {state.loading ? "Refreshing…" : "Refresh suggestions"}
-          </button>
-        </div>
-      }
-    />
-  );
-  if (state.forbidden)
-    return (
-      <>
-        {head}
-        <div className="callout callout--warn" role="alert">
-          <span>
-            These Actions are unavailable for your current clan access.
-          </span>
-        </div>
-      </>
-    );
-  if (state.error) return <Refused state={state} query={query} head={head} />;
-  if (!d)
-    return (
-      <>
-        {head}
-        <p className="page__lede">Reading the record…</p>
-      </>
-    );
-  const rank = (t) => {
-    const i = ORDER.indexOf(t);
-    return i < 0 ? ORDER.length : i;
-  };
-  const open = [...d.open].sort(
-    (a, b) => rank(a.type) - rank(b.type) || (a.number ?? 0) - (b.number ?? 0),
-  );
-  const history = `${clanPath(clan.clan_tag)}/manage/history`;
-  const leads = LEADERS.has(who?.role ?? clan.role);
-  const leaderMessages = open.filter((a) => a.channel === "leader_message");
-  const lastLeaderCompletion = [...d.recent]
-    .filter(
-      (a) =>
-        a.channel === "leader_message" && a.status === "done" && a.decided_at,
-    )
-    .sort((a, b) => b.decided_at.localeCompare(a.decided_at))[0];
-  return (
-    <>
-      {head}
-      {leads ? (
-        <DiscordNudge
-          discord={d.discord}
-          to={`${clanPath(clan.clan_tag)}/manage/settings`}
-          navigate={navigate}
-        />
-      ) : null}
-      <div className="grid gap-4">
-        <label className="flex items-center gap-3">
-          <span className="field-label">Show</span>
-          <select
-            className="input w-auto"
-            value={scope}
-            onChange={(e) => {
-              const next = e.target.value;
-              if (navigate && routeScope != null)
-                navigate(
-                  `${clanPath(clan.clan_tag)}/actions${next === "closed" ? "?show=closed" : ""}`,
-                );
-              else setScope(next);
-            }}
-          >
-            <option value="open">Open ({open.length})</option>
-            <option value="closed">Closed</option>
-          </select>
-        </label>
-        {scope === "open" && leaderMessages.length > 0 ? (
-          <LeaderMessageNotice count={leaderMessages.length}>
-            {lastLeaderCompletion ? (
-              <p className="page-head__note mb-0">
-                <Fresh
-                  label={`Latest completion in Elixir: Action #${lastLeaderCompletion.number}`}
-                  ts={lastLeaderCompletion.decided_at}
-                />{" "}
-                This records a decision, not the game&rsquo;s remaining message
-                capacity.
-              </p>
-            ) : null}
-          </LeaderMessageNotice>
-        ) : null}
-        {scope === "open" &&
-          (open.length === 0 ? (
-            <Empty title="Nothing waiting for you">
-              An action appears here when the clan&rsquo;s policy suggests
-              something you can do: for you alone, or for anyone in your role.
-            </Empty>
-          ) : (
-            <ActionList
-              id="actions-waiting"
-              title="Waiting for you"
-              tone="chip--info"
-              actions={open}
-              clan={clan}
-              navigate={navigate}
-            />
-          ))}
-        {scope === "closed" &&
-          (d.recent.length ? (
-            <ActionList
-              scope="closed"
-              id="actions-closed"
-              title="Closed in the last 30 days"
-              tone="chip--mute"
-              actions={d.recent}
-              clan={clan}
-              navigate={navigate}
-              foot={
-                leads ? (
-                  <>
-                    Every decided action stays in{" "}
-                    <a
-                      href={history}
-                      onClick={(e) => {
-                        if (!navigate) return;
-                        e.preventDefault();
-                        navigate(history);
-                      }}
-                    >
-                      Decisions ›
-                    </a>
-                  </>
-                ) : null
-              }
-            />
-          ) : (
-            <p className="page__lede">No closed actions in the last 30 days.</p>
-          ))}
-      </div>
-    </>
   );
 }
 
@@ -403,7 +214,7 @@ function CopyLink({ path }) {
  * the action is for can open it; anyone else is told there is no such
  * action here, the same answer as a number that does not exist.
  */
-export function ActionDetail({ clan, who, number, navigate, scope }) {
+export function ActionDetail({ clan, who, number, navigate }) {
   const { state, query } = useAction(clan.clan_tag, number);
   const invalidate = useInvalidate();
   const changed = () => {
@@ -415,18 +226,15 @@ export function ActionDetail({ clan, who, number, navigate, scope }) {
     window.location.assign(`${CLAN}?error=session_expired`);
     return null;
   }
-  const list = `${clanPath(clan.clan_tag)}/actions${scope === "closed" ? "?show=closed" : ""}`;
+  const list = `${clanPath(clan.clan_tag)}/today`;
+  const a = state.data?.action;
   const head = (
     <PageHead
-      clan={clan}
-      via={{ label: "Actions", to: list }}
-      crumb={`#${number}`}
       title={
-        state.data?.action
-          ? `${state.data.action.label}${state.data.action.player_name ? ` · ${state.data.action.player_name}` : ""}`
+        a
+          ? `${a.label}${a.player_name ? ` · ${a.player_name}` : ""}`
           : `Action #${number}`
       }
-      navigate={navigate}
     >
       <div className="flex flex-wrap items-center gap-3">
         <a
@@ -437,8 +245,9 @@ export function ActionDetail({ clan, who, number, navigate, scope }) {
             navigate(list);
           }}
         >
-          {scope === "closed" ? "‹ Closed actions" : "‹ All actions"}
+          ‹ Today
         </a>
+        <span className="mono text-ink-faint">#{number}</span>
         <CopyLink path={actionPath(clan, number)} />
       </div>
     </PageHead>
@@ -464,7 +273,8 @@ export function ActionDetail({ clan, who, number, navigate, scope }) {
         </div>
       </>
     );
-  if (state.error) return <Refused state={state} query={query} head={head} />;
+  if (state.error)
+    return <ActionRefused state={state} query={query} head={head} />;
   const d = state.data;
   if (!d)
     return (

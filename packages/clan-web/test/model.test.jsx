@@ -4,7 +4,6 @@ import { renderWithProviders } from "./helpers.jsx";
 import { Model } from "../src/views/Model.jsx";
 import { Recruit } from "../src/views/Recruit.jsx";
 import { manageApi } from "../src/api.js";
-import { railItems, railKey } from "../src/lib/rail.js";
 import { PITCH_FIELDS } from "@elixir-mcp/clan-engine";
 
 afterEach(() => {
@@ -297,28 +296,8 @@ describe("the clan's model", () => {
     renderWithProviders(<Recruit clan={leaderClan} navigate={navigate} />);
     fireEvent.click(await screen.findByText("write the pitch"));
     fireEvent.click(screen.getByText("Add the clan's key"));
-    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/manage/settings");
+    expect(navigate).toHaveBeenCalledWith("/clan/2PQRJ8LV/run/model-voice");
     expect(screen.queryByRole("button", { name: "Draft it" })).toBeNull();
-  });
-
-  test("the rail offers clan settings to leaders, with or without a policy, and to no one else", () => {
-    const me = (role, policy) => ({
-      ok: true,
-      selected: { clan_tag: "#2PQRJ8LV", role },
-      clans: [{}],
-      policy,
-    });
-    const keys = (m) => railItems(m).map((r) => r.key);
-    expect(keys(me("leader", { set: false }))).toContain("settings");
-    expect(keys(me("coLeader", { set: true, active: true }))).toContain(
-      "settings",
-    );
-    expect(keys(me("elder", { set: true, active: true }))).not.toContain(
-      "settings",
-    );
-    expect(keys(me("member", { set: false }))).not.toContain("settings");
-    expect(railKey("/clan/2PQRJ8LV/manage/settings")).toBe("settings");
-    expect(railKey("/clan/2PQRJ8LV/manage/model")).toBe("settings");
   });
 });
 

@@ -129,6 +129,17 @@ describe("Tabs", () => {
     expect(tab.tagName).toBe("A");
     expect(tab.getAttribute("href")).toBe("/clan/timeline");
   });
+
+  test("a count can say what it counts, read aloud after the number", () => {
+    render(
+      <Tabs
+        label="Clan"
+        value="a"
+        items={[{ key: "a", label: "Today", count: 2, countLabel: "waiting" }]}
+      />,
+    );
+    expect(screen.getByRole("tab").textContent).toBe("Today, 2 waiting");
+  });
 });
 
 describe("Chips", () => {

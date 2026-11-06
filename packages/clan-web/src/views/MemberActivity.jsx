@@ -6,29 +6,111 @@ import {
   Tag,
   Panel,
   Table,
+  noun,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
-import { useMemberActivity } from "../lib/queries.js";
+import {
+  useActions,
+  useManage,
+  useMemberActivity,
+  useRoster,
+  useStanding,
+} from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
+import { leads } from "../lib/tabs.js";
+import { ROLE, n, seasonWeek } from "../lib/words.js";
+import { MemberSheet } from "../components/MemberSheet.jsx";
+import { ReportThis } from "../components/ReportThis.jsx";
+import { statusChip } from "../components/YouHereCard.jsx";
 
-const number = (v) => (v == null ? "Unknown" : v.toLocaleString());
+const OUTCOME = { win: "win", loss: "loss", draw: "draw" };
 
-/** A page cannot assert a complete session: the next page may continue it. */
-export function recordedSessions(battles) {
-  const sessions = [];
-  for (const b of battles) {
-    const previous = sessions.at(-1);
-    if (
-      !previous ||
-      Date.parse(previous.at(-1).battle_time) - Date.parse(b.battle_time) >=
-        30 * 60_000
-    )
-      sessions.push([b]);
-    else previous.push(b);
-  }
-  return sessions;
+/** The numbers the game's counter and Elixir's matched battles agree on, or
+ *  null when no span can be compared. */
+function matched(coverage) {
+  const known = (coverage?.intervals ?? []).filter(
+    (i) => i.expected_battles != null && i.captured_battles != null,
+  );
+  if (!known.length) return null;
+  return {
+    captured: known.reduce((k, i) => k + i.captured_battles, 0),
+    expected: known.reduce((k, i) => k + i.expected_battles, 0),
+  };
 }
 
+/** The leaders' block: another person's clock, and what waits on them. Below
+ *  co-leader nobody sees it (Q1). */
+function ActivityClock({ clan, playerTag, navigate, who }) {
+  const { state, load } = useManage(clan.clan_tag, true);
+  const actions = useActions(clan.clan_tag).state.data;
+  const [open, setOpen] = useState(false);
+  const m = state.data?.board?.find((x) => x.player_tag === playerTag);
+  if (!m) return null;
+  const r = m.removal ?? {};
+  const days = r.days_idle == null ? null : Math.floor(r.days_idle);
+  const removalDay = r.removal_day ?? null;
+  const waiting = (actions?.open ?? []).find(
+    (a) => a.player_tag === playerTag && Number.isInteger(a.number),
+  );
+  const to = waiting
+    ? `${clanPath(clan.clan_tag)}/actions/${waiting.number}`
+    : null;
+  return (
+    <Panel aria-labelledby="member-clock" className="mb-4">
+      <div className="panel__head">
+        <h3 id="member-clock" className="m-0 grow text-[14px] font-semibold">
+          Activity clock, leaders only
+        </h3>
+      </div>
+      <div className="panel__body grid gap-2">
+        <p className="m-0">
+          {days === null
+            ? "Their activity could not be read just now."
+            : `${days} ${noun(days, "day")} without a battle.${r.at_risk_days != null ? ` At risk at ${r.at_risk_days}${removalDay != null ? `, action at ${removalDay}` : ""}${r.grace_days ? `, with ${r.grace_days} grace ${noun(r.grace_days, "day")} today` : ", no grace days today"}.` : ""}`}
+        </p>
+        {waiting ? (
+          <p className="m-0">Action #{waiting.number} waits on Today.</p>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {to ? (
+            <a
+              className="btn btn--sm"
+              href={to}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate?.(to);
+              }}
+            >
+              Open Action
+            </a>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn--sm"
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+          >
+            Notes and hold
+          </button>
+        </div>
+        {open ? (
+          <MemberSheet
+            clanTag={clan.clan_tag}
+            member={m}
+            role={who?.role}
+            onChange={() => load(true)}
+          />
+        ) : null}
+      </div>
+    </Panel>
+  );
+}
+
+/**
+ * Another member's page in this clan: who they are here, then the numbers
+ * every member may read. Facts only; a dash where the record holds nothing,
+ * and a gap is unknown, never a claim they did not play.
+ */
 export function MemberActivity({
   clan,
   playerTag,
@@ -38,32 +120,44 @@ export function MemberActivity({
   const { when } = useClock();
   const [pages, setPages] = useState([{ cursor: null, to: null }]);
   const current = pages.at(-1);
-  const { state } = useMemberActivity(
+  const { state, load } = useMemberActivity(
     clan.clan_tag,
     playerTag,
     current.cursor,
     current.to,
   );
+  const lead = leads(clan);
+  const roster = useRoster(clan.clan_tag).state.data;
+  const standing = useStanding(clan.clan_tag).data;
   const d = state.data;
-  const stamp = (at) => (at ? when(at) : "Unknown");
+  const stamp = (at) => (at ? when(at) : "—");
+  const row = roster?.members?.find((m) => m.player_tag === playerTag);
+  const standingRow = standing?.ok
+    ? standing.data?.rows?.find((r) => r.player_tag === playerTag)
+    : null;
+  const chip = standingRow?.status ? statusChip(standingRow.status) : null;
+  const back = (
+    <Link
+      to={
+        `${clanPath(clan.clan_tag)}/members` +
+        (rosterSearch ? `?${new URLSearchParams({ find: rosterSearch })}` : "")
+      }
+      navigate={navigate}
+    >
+      ‹ Back to Members
+    </Link>
+  );
+  const name = d?.name ?? row?.name;
   const head = (
     <>
-      <Link
-        to={
-          `${clanPath(clan.clan_tag)}/roster` +
-          (rosterSearch
-            ? `?${new URLSearchParams({ find: rosterSearch })}`
-            : "")
-        }
-        navigate={navigate}
-      >
-        Back to {clan.name ?? "clan"}
-      </Link>
+      {back}
       <div className="page-head mt-3">
-        <h1 className="page__title">
-          {d?.name ?? <Tag tag={playerTag} />} · Activity
-        </h1>
-        <span className="tag">{playerTag}</span>
+        <h2 className="page__title">{name ?? <Tag tag={playerTag} />}</h2>
+        <span className="page-head__note">
+          {row
+            ? `${ROLE[row.role] ?? row.role} · ${n(row.trophies)} trophies${lead && row.joined_observed_at ? ` · in ${clan.name ?? "this clan"} since ${when(row.joined_observed_at)}` : ""}`
+            : null}
+        </span>
       </div>
     </>
   );
@@ -71,268 +165,173 @@ export function MemberActivity({
     return (
       <>
         {head}
-        {state.forbidden || state.signedOut || state.error ? (
+        {state.error === "not_current_member" ? (
+          <div className="callout" role="note">
+            <span>
+              <b>This player is no longer on this clan&rsquo;s roster.</b> Their
+              record stays in Ladder; it is not read here.
+            </span>
+          </div>
+        ) : state.forbidden || state.signedOut || state.error ? (
           <div className="callout callout--warn" role="alert">
             <span>
-              {state.error === "not_current_member"
-                ? "This player is no longer on this clan’s recorded roster."
-                : "Activity is unavailable. Check your clan access or try again."}
+              <b>This page did not load.</b> Check your clan access or try
+              again.{" "}
+              <button
+                type="button"
+                className="btn--text"
+                onClick={() => load()}
+              >
+                Try again
+              </button>
             </span>
           </div>
         ) : (
-          <p className="page__lede">Reading this member’s recorded activity…</p>
+          <p className="page__lede">Reading this member&rsquo;s numbers…</p>
         )}
       </>
     );
-  const sessions = recordedSessions(d.battles);
+  const count = matched(d.coverage);
   return (
     <>
       {head}
-      <p className="page__lede">
-        Recorded play for this clan from {stamp(d.window.from)} to{" "}
-        {stamp(d.window.to)}. Battle detail is limited to their current time in
-        the clan and battles that name this clan.
-      </p>
-      <div className="callout mb-4" role="note">
-        <span>
-          No recorded activity does not mean no play. Gaps, and the time since
-          their profile was last read, stay unknown.
-        </span>
-      </div>
-      <dl className="grid gap-2 mb-4">
+      <dl className="clan-facts mb-4">
         <div>
-          <dt className="label">Last recorded battle in this clan</dt>
+          <dt className="label">Last battle in this clan</dt>
           <dd className="m-0">{stamp(d.last_recorded_battle_in_clan)}</dd>
         </div>
         <div>
           <dt className="label">Last seen in game</dt>
           <dd className="m-0">
-            {stamp(d.last_seen_in_game)} · the game’s timestamp, separate from
-            recorded play
+            {stamp(d.last_seen_in_game)}
+            <span className="block page-head__note">
+              The game&rsquo;s own time, separate from battles.
+            </span>
           </dd>
         </div>
         <div>
-          <dt className="label">Contribution record as of</dt>
+          <dt className="label">Numbers as of</dt>
           <dd className="m-0">{stamp(d.as_of)}</dd>
         </div>
       </dl>
-      <Panel title="Weekly contributions" titleAs="div" className="mb-4">
-        <div className="panel__body">
-          <Disclosure title="How weekly contributions are counted">
-            <p className="page-head__note">
-              Four weeks, each from Monday&rsquo;s reset to the next, including
-              the current partial week, clipped to the current time in the clan.
-              Battles must name this clan. Donations are the highest count seen
-              for this clan in each week. A join inside a week makes its
-              cumulative donation counter unknown here. Unknown stays unknown.
-            </p>
-          </Disclosure>
+      {chip ? (
+        <p className="mb-4 flex flex-wrap items-center gap-2">
+          <span className={`chip ${chip[1]}`}>{chip[0]}</span>
+          {standingRow.evidence ? (
+            <span className="text-ink-dim">{standingRow.evidence}</span>
+          ) : null}
+        </p>
+      ) : null}
+      {lead ? (
+        <ActivityClock
+          clan={clan}
+          playerTag={playerTag}
+          navigate={navigate}
+          who={{ role: clan.role }}
+        />
+      ) : null}
+      <Panel title="War decks, race by race" titleAs="h3" className="mb-4">
+        {d.war_weeks.length ? (
           <Table
             columns={[
               {
-                head: "Week",
+                head: "Race",
                 cell: (w) => (
                   <>
-                    {w.iso_week}
-                    {w.partial ? " · partial" : ""}
-                    <div className="page-head__note">
-                      {stamp(w.from)} – {stamp(w.to)}
-                    </div>
+                    {seasonWeek(w)}
+                    {w.open ? " so far" : ""}
+                    {w.attribution_unknown ? " · not known" : ""}
+                    {w.is_colosseum
+                      ? " · Colosseum"
+                      : w.finished_early
+                        ? " · clan finished early"
+                        : ""}
                   </>
                 ),
               },
-              {
-                head: "Recorded battles",
-                num: true,
-                cell: (w) => number(w.battles),
-              },
-              {
-                head: "Path of Legends battles",
-                num: true,
-                cell: (w) => number(w.ranked_battles),
-              },
-              {
-                head: "Donations",
-                num: true,
-                cell: (w) => number(w.donations),
-              },
+              { head: "Decks", num: true, cell: (w) => n(w.decks) },
+              { head: "Points", num: true, cell: (w) => n(w.points) },
             ]}
-            rows={d.weeks}
-            rowKey={(w) => w.iso_week}
+            rows={d.war_weeks}
+            rowKey={(w) => `${w.season_id}-${w.section_index}`}
           />
-        </div>
+        ) : (
+          <p className="panel__body m-0 text-ink-dim">
+            No race in this read for this member.
+          </p>
+        )}
       </Panel>
-      <Panel title="War usage" titleAs="div" className="mb-4">
-        <div className="panel__body">
-          <Disclosure title="About war usage">
-            <p className="page-head__note">
-              Recorded weekly totals; decks cannot reliably be assigned to
-              individual war days. A duel can use several decks. War weeks and
-              weekly contributions are read separately. A week crossing the
-              current stint or read boundary has unknown attribution; its totals
-              are withheld.
-            </p>
-          </Disclosure>
-          {d.war_weeks.length ? (
-            <Table
-              columns={[
-                {
-                  head: "War week",
-                  cell: (w) => (
-                    <>
-                      S{w.season_id} W{w.section_index + 1}
-                      {w.attribution_unknown ? " · attribution unknown" : ""}
-                      {w.is_colosseum
-                        ? " · Colosseum"
-                        : w.finished_early
-                          ? " · clan finished early"
-                          : ""}
-                    </>
-                  ),
-                },
-                { head: "Decks used", num: true, cell: (w) => number(w.decks) },
-                { head: "Points", num: true, cell: (w) => number(w.points) },
-              ]}
-              rows={d.war_weeks}
-              rowKey={(w) => `${w.season_id}-${w.section_index}`}
-            />
-          ) : (
-            <p>No war week recorded in this window.</p>
-          )}
-        </div>
+      <Panel title="Week by week" titleAs="h3" className="mb-4">
+        <Table
+          columns={[
+            {
+              head: "Week of",
+              cell: (w) => (
+                <>
+                  {when(w.from)}
+                  {w.partial ? " · so far" : ""}
+                </>
+              ),
+            },
+            { head: "Battles", num: true, cell: (w) => n(w.battles) },
+            { head: "Ranked", num: true, cell: (w) => n(w.ranked_battles) },
+            { head: "Donations", num: true, cell: (w) => n(w.donations) },
+          ]}
+          rows={d.weeks}
+          rowKey={(w) => w.iso_week}
+        />
       </Panel>
-      <Panel title="What was read" titleAs="div" className="mb-4">
-        <div className="panel__body">
-          <Disclosure title="About what was read">
-            <p className="page-head__note">
-              Spans between two profile reads, ending in the last seven days and
-              inside the dates above. They do not show the whole of those dates
-              was read, or anything after the last span.
-            </p>
-          </Disclosure>
-          {d.coverage.intervals.length ? (
-            <Table
-              columns={[
-                {
-                  head: "Between reads",
-                  cell: (i) => (
-                    <>
-                      {stamp(i.from)} – {stamp(i.to)}
-                    </>
-                  ),
-                },
-                {
-                  head: "Counter increase",
-                  num: true,
-                  cell: (i) => number(i.expected_battles),
-                },
-                {
-                  head: "Battles recorded",
-                  num: true,
-                  cell: (i) => number(i.captured_battles),
-                },
-                {
-                  head: "Comparison",
-                  cell: (i) =>
-                    i.complete === true
-                      ? "Matches counter"
-                      : i.complete === false
-                        ? "Missing battles"
-                        : "Not comparable",
-                },
-              ]}
-              rows={d.coverage.intervals}
-              rowKey={(i) => i.to}
-            />
+      <div className="grid gap-3 mb-4">
+        <Disclosure title="Recent battles in this clan">
+          {d.battles.length ? (
+            <ul className="m-0 grid list-none gap-1.5 p-0">
+              {d.battles.map((b) => (
+                <li
+                  key={b.battle_id}
+                  className="flex justify-between gap-3 text-[13.5px]"
+                >
+                  <span>
+                    {b.url ? (
+                      <a href={b.url}>
+                        {MODE_LABEL[b.mode_group] ??
+                          b.game_mode?.name ??
+                          "Battle"}
+                      </a>
+                    ) : (
+                      (MODE_LABEL[b.mode_group] ??
+                      b.game_mode?.name ??
+                      "Battle")
+                    )}
+                    {b.outcome ? ` · ${OUTCOME[b.outcome] ?? b.outcome}` : ""}
+                    {b.crowns != null && b.opponent_crowns != null
+                      ? ` · ${b.crowns} to ${b.opponent_crowns}`
+                      : ""}
+                  </span>
+                  <span className="shrink-0 text-ink-faint">
+                    {stamp(b.battle_time)}
+                  </span>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <p>
-              {d.coverage.available
-                ? "No comparable observation interval is available here. Coverage is unknown."
-                : "Coverage could not be read. Battle evidence is still shown; coverage is unknown."}
+            <p className="m-0 text-ink-dim">
+              No battle in this clan on this page.{" "}
+              {d.next_cursor ? "There are older ones to read." : ""}
             </p>
           )}
-        </div>
-      </Panel>
-      <Panel>
-        <h2 className="panel__head m-0">
-          Recorded sessions · page {pages.length}
-        </h2>
-        <div className="panel__body">
-          <Disclosure title="About recorded groups">
-            <p className="page-head__note">
-              Adjacent recorded battles less than 30 minutes apart are grouped
-              here. Groups cover this page only and may continue on another
-              page; gaps can hide play. Each mode stays named separately. Open a
-              battle for its existing full detail and session.
-            </p>
-          </Disclosure>
-          {!sessions.length ? (
-            <p>
-              No clan battles recorded on this page.{" "}
-              {d.next_cursor
-                ? "There are older records to read."
-                : "The bounded record is exhausted."}{" "}
-              Gaps stay unknown.
-            </p>
-          ) : (
-            sessions.map((group, index) => (
-              <div key={group[0].battle_id} className="mb-4">
-                <h3 className="label">
-                  Recorded group {index + 1} · {stamp(group.at(-1).battle_time)}{" "}
-                  – {stamp(group[0].battle_time)}
-                </h3>
-                <Table
-                  columns={[
-                    {
-                      head: "Battle",
-                      cell: (b) =>
-                        b.url ? (
-                          <a href={b.url}>{stamp(b.battle_time)}</a>
-                        ) : (
-                          stamp(b.battle_time)
-                        ),
-                    },
-                    {
-                      head: "Mode",
-                      cellProps: (b) => ({
-                        title: b.game_mode?.name ?? undefined,
-                      }),
-                      cell: (b) =>
-                        MODE_LABEL[b.mode_group] ??
-                        b.game_mode?.name ??
-                        b.mode_group ??
-                        "Unknown",
-                    },
-                    { head: "Result", cell: (b) => b.outcome ?? "Unknown" },
-                    {
-                      head: "Crowns",
-                      num: true,
-                      cell: (b) => (
-                        <>
-                          {number(b.crowns)} – {number(b.opponent_crowns)}
-                        </>
-                      ),
-                    },
-                  ]}
-                  rows={group}
-                  rowKey={(b) => b.battle_id}
-                />
-              </div>
-            ))
-          )}
-          <div className="flex gap-2">
+          <div className="mt-3 flex gap-2">
             {pages.length > 1 ? (
               <button
-                className="btn"
+                className="btn btn--sm"
                 type="button"
                 onClick={() => setPages((p) => p.slice(0, -1))}
               >
-                Newer records
+                Newer battles
               </button>
             ) : null}
             {d.next_cursor ? (
               <button
-                className="btn"
+                className="btn btn--sm"
                 type="button"
                 onClick={() =>
                   setPages((p) => [
@@ -341,12 +340,33 @@ export function MemberActivity({
                   ])
                 }
               >
-                Older records
+                Older battles
               </button>
             ) : null}
           </div>
-        </div>
-      </Panel>
+        </Disclosure>
+        <Disclosure title="How these are counted">
+          <p className="m-0 text-[13.5px]">
+            Battles name this clan and fall in this member&rsquo;s current time
+            here. A count from the week they joined stays unknown, shown as a
+            dash.
+          </p>
+          <p className="mt-2 mb-0 text-[13.5px]">
+            A gap is unknown. No battle here does not prove no play
+            {count
+              ? `: Elixir last matched ${n(count.captured)} of the ${n(count.expected)} battles the game's counter added.`
+              : "."}
+          </p>
+        </Disclosure>
+      </div>
+      <ReportThis
+        about={`${name ?? playerTag} in ${clan.name ?? clan.clan_tag}. Say what reads wrong.`}
+        refs={[
+          { kind: "clan", ref: clan.clan_tag },
+          { kind: "player", ref: playerTag },
+        ]}
+        context={{ page: "member" }}
+      />
     </>
   );
 }

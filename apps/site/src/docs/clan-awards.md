@@ -40,8 +40,7 @@ Awards follow Clan Wars seasons as the record saw them. A season is
 judged once it has **closed** (every week finished, its Colosseum week
 last or the next season begun) and Clan holds it **whole** (unique sections
 from zero through an observed final Colosseum week, with no gaps). The first reading after that writes the
-season's winners: the morning run, or anyone opening Award history or
-Award races. A season still being fought shows on Award races as
+season's winners: the morning run, or anyone opening **Awards**. A season still being fought shows on **Awards** as
 provisional, with nothing granted. Missing evidence holds the affected award,
 not every award in the season: points need the possible contenders' counters,
 donations break consequential point ties, rookies need first-season history,
@@ -63,7 +62,7 @@ so later capture or configuration changes do not rewrite the podium.
 ## Who does what
 
 - The leader and co-leaders set up the clan's awards.
-- Every member sees **Award races**, with one season selected at a time.
+- Every member sees **Awards**, with one season selected at a time.
   The newest recorded season is selected first; choose a previous season to
   read its saved grants.
 - A **Leaders' pick** is granted by the leader and co-leaders, or by
@@ -76,7 +75,7 @@ so later capture or configuration changes do not rewrite the podium.
 
 ## Where members see them
 
-**Award races** shows the selected season's provisional races or final saved grants, with award setup for leaders.
+**Awards** shows the selected season's provisional races or final saved grants, with award setup for leaders under **Run ▸ Awards setup**.
 Equal points use known season donations to break ties, and equal in both share
 a place. The displayed place includes this donation tiebreak; `=` means a
 shared place after both values match. The season donation totals shown alongside
@@ -85,20 +84,19 @@ shows recorded donations in descending order,
 unknown totals last; its pass-or-fail eligibility still depends only on decks
 and the configured allowed misses. No donation total changes attendance eligibility.
 
-Current members' names in Award races open their
+Current members' names in the award races open their
 [recorded activity](/docs/clan-actions#inspect-a-members-recorded-activity) in
 the clan. A previous recipient who has left stays a saved name, without a
 current-member activity link.
 
-**Award history** is every member's page: their own trophy case, what the
-clan awards, and each season's winners, place by place. It shows only
-decided seasons, never a live race.
+**Awards** also holds every member's own trophy case, what the clan awards,
+and each decided season's winners, place by place.
 
 ## How they reach the clan
 
 **Weekly progress.** After a war week is recorded as closed, the normal
 morning evaluation gives leaders one Action with provisional standings through
-that completed week. Opening Award races or Award history can also raise it. Only the
+that completed week. Opening **Awards** can also raise it. Only the
 newest observed closed week of the newest recorded season is eligible, and
 its observed finish must be within the last seven days. A finished Colosseum
 uses the final season path. Later open

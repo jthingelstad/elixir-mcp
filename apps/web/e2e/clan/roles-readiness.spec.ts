@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { FIELDS, GROUPS, TABS, defaults } from "@elixir-mcp/clan-engine";
-import { ME, mockApi, signedIn } from "./fixtures.ts";
+import { clanTab, ME, mockApi, signedIn } from "./fixtures.ts";
 
 const base = "/clan/2PQRJ8LV";
 const apiBase = "/api/clan/clans/2PQRJ8LV";
@@ -305,52 +305,34 @@ for (const size of ["wide", "@narrow"])
         }),
       );
       await mockApi(page, roleRoutes(role));
-      await page.goto(base);
-      if (size === "@narrow") {
-        const toggle = page.locator(".rail__toggle");
-        await expect(toggle).toContainText("Roster");
-        await toggle.click();
-      }
-      const rail = page.locator(".rail");
-      for (const name of ["Member review", "Decisions", "Policy", "Settings"])
-        await expect(rail.getByRole("link", { name, exact: true })).toHaveCount(
-          0,
-        );
-      await expect(
-        rail.getByRole("link", { name: "Scout", exact: true }),
-      ).toHaveCount(role === "elder" ? 1 : 0);
-      await page.goto(`${base}/manage/board`);
-      await expect(page.getByRole("alert")).toContainText(
-        "Manage is for the leader and co-leaders",
+      await page.goto(`${base}/members`);
+      await expect(clanTab(page, "Run")).toHaveCount(0);
+      const row = page.getByRole("navigation", { name: "Members" });
+      await expect(row.getByRole("link", { name: "Standing" })).toBeVisible();
+      await expect(row.getByRole("link", { name: "Review" })).toHaveCount(0);
+      await expect(row.getByRole("link", { name: "Scout" })).toHaveCount(
+        role === "elder" ? 1 : 0,
       );
-      await page.goto(`${base}/manage/policy`);
-      await expect(page.getByRole("tablist", { name: "Policy" })).toBeVisible();
+      await page.goto(`${base}/members/review`);
+      await expect(page.getByRole("alert")).toContainText(
+        "Review is for the leader and co-leaders",
+      );
+      // Run is the leaders'. A member's "Run" is how the clan runs, in
+      // their words, with the section open and nothing to change.
+      await page.goto(`${base}/run/about`);
+      await expect(page).toHaveURL(/\/members\/standing\?from=run$/);
       await expect(
         page.getByRole("button", { name: "Save this clan's policy" }),
       ).toHaveCount(0);
-      await expect(
-        page.getByRole("combobox", { name: /Clan War participation/ }),
-      ).toBeDisabled();
-      await page.goto(`${base}/standing`);
-      await page
-        .locator("summary")
-        .filter({ hasText: /^How standing works/ })
-        .click();
       await expect(
         page.getByRole("heading", { name: "How it works here" }),
       ).toBeVisible();
       await page.getByRole("link", { name: "Ben", exact: true }).click();
       await expect(
-        page.getByText(/No recorded activity does not mean no play/),
-      ).toBeVisible();
-      await expect(
-        page.getByText(/No clan battles recorded on this page/),
-      ).toBeVisible();
-      await page.goto(`${base}/week`);
-      await page.getByRole("link", { name: "Ben", exact: true }).click();
-      await expect(
-        page.getByRole("heading", { name: "Ben · Activity" }),
-      ).toBeVisible();
+        page.getByText(
+          /^A gap is unknown\. No battle here does not prove no play/,
+        ),
+      ).toBeHidden();
       await page.goto(`${base}/awards`);
       await expect(
         page.getByRole("button", { name: /Grant Clan Pick for season 135/ }),
@@ -362,13 +344,9 @@ for (const size of ["wide", "@narrow"])
       ).toHaveCount(0);
       await page.getByRole("link", { name: "Ben", exact: true }).click();
       await expect(
-        page.getByRole("heading", { name: "Ben · Activity" }),
+        page.getByRole("heading", { name: "Ben", exact: true }),
       ).toBeVisible();
-      await page.goto(`${base}/trophies`);
-      await expect(
-        page.getByText("No awards yet", { exact: true }),
-      ).toBeVisible();
-      await page.goto(`${base}/actions`);
+      await page.goto(`${base}/today`);
       await expect(
         page.getByText("Nothing waiting for you", { exact: true }),
       ).toBeVisible();
@@ -376,17 +354,14 @@ for (const size of ["wide", "@narrow"])
       await expect(
         page.getByText("No action #99 here", { exact: true }),
       ).toBeVisible();
-      await page.goto(`${base}/me`);
-      await expect(
-        page.getByRole("heading", { name: "Your clan record", exact: true }),
-      ).toBeVisible();
+      await page.goto(`${base}/members/me`);
       await expect(
         page.getByText("Before roster recording", { exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByText(/No recorded battles does not mean no play/),
+        page.getByText(/Zero battles here does not prove no play/),
       ).toBeVisible();
-      await page.goto(`${base}/map`);
+      await page.goto(`${base}/members/map`);
       await expect(
         page.getByRole("heading", { name: "Clan map", exact: true }),
       ).toBeVisible();
@@ -425,35 +400,16 @@ for (const size of ["wide", "@narrow"])
       await mockApi(page, roleRoutes(role, true));
       await page.goto(`${base}/awards`);
       await expect(page.getByText(/starts at 10 members/)).toBeVisible();
-      if (size === "@narrow")
-        await page
-          .getByRole("complementary")
-          .getByRole("button")
-          .first()
-          .click();
-      for (const name of [
-        "Actions",
-        "Standing",
-        "Award history",
-        "Award races",
-        "Member review",
-        "Policy",
-      ])
+      await expect(clanTab(page, "Run")).toHaveCount(0);
+      for (const name of [/^Today/, "Members", "Season", "Awards"])
+        await expect(clanTab(page, name)).toBeVisible();
+      await clanTab(page, "Members").click();
+      const row = page.getByRole("navigation", { name: "Members" });
+      for (const name of ["Roster", "Map", "Recruit"])
         await expect(
-          page
-            .locator(".rail")
-            .getByRole("link", { name: new RegExp(`^${name}`) }),
-        ).toHaveCount(0);
-      for (const name of [
-        "Roster",
-        "Your clan record",
-        "The week",
-        "Map",
-        "Recruit",
-      ])
-        await expect(
-          page.locator(".rail").getByRole("link", { name, exact: true }),
+          row.getByRole("link", { name, exact: true }),
         ).toBeVisible();
+      await expect(row.getByRole("link", { name: "Review" })).toHaveCount(0);
     });
   }
 
@@ -462,34 +418,19 @@ for (const size of ["wide", "@narrow"])
     page,
   }) => {
     const routes = roleRoutes("member");
-    for (const part of [
-      "awards",
-      "policy",
-      "actions",
-      "me",
-      "week",
-      "map",
-      "trophies",
-    ])
+    for (const part of ["awards", "policy", "actions", "me", "week", "map"])
       routes[`GET ${apiBase}/${part}`] = [403, { error: "forbidden" }];
     await mockApi(page, routes);
     for (const path of [
       "awards",
-      "manage/policy",
-      "actions",
-      "me",
-      "week",
-      "map",
-      "trophies",
+      "today",
+      "members/me",
+      "season",
+      "members/map",
     ]) {
       await page.goto(`${base}/${path}`);
       await expect(page.getByRole("alert")).toBeVisible();
     }
-    routes[`GET ${apiBase}/policy`] = [503, { error: "unavailable" }];
-    await page.goto(`${base}/manage/policy`);
-    await expect(page.getByRole("alert")).toContainText(
-      "Elixir did not answer the policy read",
-    );
     routes[`GET ${apiBase}/members/UQ8LP2R9C/activity`] = [
       503,
       { error: "unavailable" },
@@ -498,7 +439,7 @@ for (const size of ["wide", "@narrow"])
     // The shared client quietly retries a 503 once. In a full concurrent
     // run its timer can be delayed beyond the default five-second wait.
     await expect(page.getByRole("alert")).toContainText(
-      "Activity is unavailable",
+      "This page did not load",
       { timeout: 10_000 },
     );
   });
@@ -521,7 +462,7 @@ for (const size of ["wide", "@narrow"])
       },
     ];
     await mockApi(page, routes);
-    await page.goto(base);
+    await page.goto(`${base}/members`);
     await expect(
       page.getByText("No members on the record", { exact: true }),
     ).toBeVisible();
@@ -535,9 +476,9 @@ for (const size of ["wide", "@narrow"])
       { boundaries: [], policy_version: 1 },
     ];
     routes[`GET ${apiBase}/history`] = [503, { error: "unavailable" }];
-    await page.goto(`${base}/manage/history`);
+    await page.goto(`${base}/today/decided`);
     await expect(page.getByRole("alert")).toContainText(
-      "History could not be read",
+      "This page did not load",
     );
     await expect(
       page.getByText(
@@ -558,7 +499,7 @@ for (const size of ["wide", "@narrow"])
         return [403, { error: "elders_only" }];
       };
       await mockApi(page, routes);
-      await page.goto(`${base}/manage/scout`);
+      await page.goto(`${base}/members/scout`);
       if (role === "member") {
         await expect(page.getByRole("alert")).toContainText(
           "Scout is for elders, co-leaders and the leader",
@@ -594,17 +535,13 @@ for (const size of ["wide", "@narrow"])
 
 for (const size of ["wide", "@narrow"])
   for (const role of ["member", "elder"] as const)
-    test(`${role} direct Settings entry preserves Social reads without leader controls ${size}`, async ({
+    test(`${role} direct Run entry lands on Standing with no leader controls ${size}`, async ({
       page,
     }) => {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       let writes = 0;
       const routes = roleRoutes(role);
-      routes[`GET ${apiBase}/social`] = [200, { enabled: true }];
-      routes[`GET ${apiBase}/sharing`] = [403, { error: "leaders_only" }];
-      routes[`GET ${apiBase}/model`] = [403, { error: "leaders_only" }];
-      routes[`GET ${apiBase}/voice`] = [403, { error: "leaders_only" }];
       routes[`PUT ${apiBase}/social`] = () => {
         writes++;
         return [403, { error: "leaders_only" }];
@@ -614,57 +551,19 @@ for (const size of ["wide", "@narrow"])
         return [403, { error: "leaders_only" }];
       };
       await mockApi(page, routes);
-      await page.goto(`${base}/manage/settings`);
-      await page
-        .getByRole("button", { name: "Manage Member map", exact: true })
-        .click();
-      await expect(page.getByText("It is on.", { exact: false })).toBeVisible();
-      await expect(
-        page.getByText(
-          "Only the leader and co-leaders can change this setting.",
-          { exact: true },
-        ),
-      ).toBeVisible();
+      for (const slug of [
+        "settings",
+        "model-voice",
+        "discord",
+        "awards-setup",
+      ]) {
+        await page.goto(`${base}/run/${slug}`);
+        await expect(page).toHaveURL(/\/members\/standing\?from=run$/);
+      }
       await expect(
         page.getByRole("button", { name: /Turn the member map/ }),
       ).toHaveCount(0);
-      await page.getByRole("button", { name: "Close", exact: true }).click();
-      await page
-        .getByText(
-          "Recording and visibility: what is recorded and who can read it",
-          { exact: true },
-        )
-        .click();
-      await expect(
-        page.getByRole("alert").filter({
-          hasText: "The recording summary is for the leader and co-leaders.",
-        }),
-      ).toBeVisible();
-      await page
-        .getByRole("button", { name: "Manage Clan model", exact: true })
-        .click();
-      await expect(
-        page.getByRole("alert").filter({
-          hasText: "The clan’s model is for the leader and co-leaders.",
-        }),
-      ).toBeVisible();
-      await page.getByRole("button", { name: "Close", exact: true }).click();
-      // The clan's voice (2026-10-20) is the leaders' alone, to read too.
-      await page
-        .getByRole("button", {
-          name: "Manage How our messages sound",
-          exact: true,
-        })
-        .click();
-      await expect(
-        page.getByText(
-          "Only the leader and co-leaders can set how the clan’s messages sound.",
-          { exact: true },
-        ),
-      ).toBeVisible();
-      await expect(page.getByRole("dialog").getByRole("textbox")).toHaveCount(
-        0,
-      );
+      await expect(page.getByLabel("How our messages sound")).toHaveCount(0);
       await page.screenshot({
         path: `/tmp/elixir-${role}-settings-${size.replace("@", "")}.png`,
         fullPage: true,
@@ -696,15 +595,9 @@ for (const size of ["wide", "@narrow"])
           ],
         }),
       );
-      await page.goto(`${base}/manage/settings`);
-      await page
-        .getByRole("button", { name: "Manage Member map", exact: true })
-        .click();
+      await page.goto(`${base}/run/settings`);
       await expect(
-        page.getByRole("button", {
-          name: "Turn the member map off",
-          exact: true,
-        }),
+        page.getByRole("checkbox", { name: /^Member map/ }),
       ).toBeEnabled();
       await expect(
         page.getByText(

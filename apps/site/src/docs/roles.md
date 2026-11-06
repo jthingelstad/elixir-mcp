@@ -43,7 +43,7 @@ Your own reads on Elixir's website, Explore and Ladder, never count
 against them; they share only the hourly limit ([Limits](/docs/limits)).
 
 Member, Leader and Family are **earned in the game**, and checked every
-time you use Elixir, the way Elixir Clan checks your role
+time you use Elixir, the way Clan checks your role
 ([Upgrades](#upgrades)). Partner is granted.
 
 **member** — signup. You, a couple of alts, and your clan at
@@ -58,7 +58,7 @@ membership as it changes. This is the tier a clan's own agent needs.
 
 **family** — you run a collector for Elixir. Multiple comprehensive
 watches, for a clan family (a main plus feeders) or the clans you follow. A family is how they are
-recorded; in [Elixir Clan](/docs/bring-your-clan#your-role-here)
+recorded; in [Clan](/docs/bring-your-clan#your-role-here)
 each clan keeps its own policy, standing, Actions and awards, and you
 switch between the clans your own players (your primary and alts) are
 in. A clan you only record or watch does not appear there.

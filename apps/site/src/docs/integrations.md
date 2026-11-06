@@ -112,7 +112,7 @@ changed in each version is in the OpenAPI document and on
 
 ## Attested facts
 
-Elixir Clan, and a family app through this API, can tell Elixir what a
+Clan, and a family app through this API, can tell Elixir what a
 person did in a clan; an integration can say what its own game produced for
 a player. Elixir keeps these **attested facts** apart from the game record, which only collectors write, and
 labels each with its source, the person's player, their role, and when. They
@@ -127,7 +127,7 @@ the [timeline](/docs/timeline) of the readers their type allows.
 | `member_away` | clan, about a member | leader, co-leader, or the member | the clan's leaders and co-leaders | `until` (an instant, or null) |
 | `clan_message` | clan | leader, co-leader, elder (a Clan Leader Message: leaders and co-leaders) | the clan | `channel` (`leader_message` or `clan_chat`), `title` (24), `body` (200) |
 | `personal_record` | player | an integration with `facts:write` | whoever has the player on their timeline | `game` (40), `score`, `previous_best` |
-| `award_standing` | clan, about a member | the app itself (Elixir Clan, or an integration with `facts:write`) | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
+| `award_standing` | clan, about a member | the app itself (Clan, or an integration with `facts:write`) | the clan | `award` (60), `award_id` (40), `season_id`, `place` (1-10), `value`, `unit` (`points`, `donations` or `war_decks`), `as_of`, `previous_player_tag` |
 
 "The clan" is anyone whose verified player is in it today, and an agent
 whose owner's player is. A fact for the clan's leaders reaches only a
@@ -135,11 +135,11 @@ person whose verified player leads it: never an agent and never mail.
 A departure's kind is the clan's: the game already tells the whole clan in clan chat that a member was kicked, and its leaders say why
 there.
 
-A clan fact is written by a **person**: in Elixir Clan, or through a family
+A clan fact is written by a **person**: in Clan, or through a family
 app (its provisioned client) whose grant holds `clans:attest`, with
 `POST /clans/{tag}/facts`. The one exception is what the app itself
 computes from its own rules: `award_standing`, where a member stands in one
-of the clan's own awards for a season still running (Elixir Clan writes it
+of the clan's own awards for a season still running (Clan writes it
 each morning). An integration holding `facts:write` writes and takes back
 only those types, on the same paths, labelled as the app's and never as a
 person's; a person's kinds are refused on its key, and the app's kind on a
@@ -169,7 +169,7 @@ and the same body; its tag is unverified, as everywhere on this API.
 ## A family app's mail
 
 A family app can send people its own mail through Elixir, which holds the
-address, the switch and the unsubscribe. The one kind is Elixir Clan's
+address, the switch and the unsubscribe. The one kind is Clan's
 **clan actions waiting** ([Email](/docs/email)), which Clan sends from
 inside Elixir under the same rules. `POST /clans/{tag}/mail` names who each
 email is for by player tag:
@@ -182,7 +182,7 @@ email is for by player tag:
       "player_tag": "#2PPGY0Q8",
       "subject": "2 actions waiting for you in Example Clan",
       "lines": ["Promote to Elder: Ada (new)", "Welcome a newcomer: Newbie"],
-      "link": "https://elixir.poapkings.com/clan/2PQRJ8LV/actions"
+      "link": "https://elixir.poapkings.com/clan/2PQRJ8LV/today"
     }
   ]
 }

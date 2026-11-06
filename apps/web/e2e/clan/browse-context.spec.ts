@@ -57,7 +57,7 @@ const activity = {
 };
 
 for (const size of ["wide", "@narrow"]) {
-  test(`closed Actions retain the filter through back forward reload and explicit return ${size}`, async ({
+  test(`Decided keeps its place through back forward and reload ${size}`, async ({
     page,
   }) => {
     const writes: string[] = [];
@@ -77,45 +77,44 @@ for (const size of ["wide", "@narrow"]) {
           200,
           { clan_tag: "#2PQRJ8LV", open: [], recent: [closed] },
         ],
+        "GET /api/clan/clans/2PQRJ8LV/history": [
+          200,
+          {
+            cards: [{ ...closed, decided_at: new Date().toISOString() }],
+            timeline: [],
+            holds: [],
+          },
+        ],
         "GET /api/clan/clans/2PQRJ8LV/actions/44": [
           200,
           { action: closed, decline_reasons: [] },
         ],
       }),
     );
-    await page.goto(`${base}/actions`);
-    await expect(
-      page.getByText("Nothing waiting for you", { exact: true }),
-    ).toBeVisible();
-    await page.getByRole("combobox", { name: "Show" }).selectOption("closed");
-    await expect(page).toHaveURL(/\/actions\?show=closed$/);
+    await page.goto(`${base}/today`);
+    await page.getByRole("link", { name: /^Decided/ }).click();
+    await expect(page).toHaveURL(/\/today\/decided$/);
     await page.getByRole("link", { name: /Earlier welcome/ }).click();
-    await expect(page).toHaveURL(/\/actions\/44\?show=closed$/);
+    await expect(page).toHaveURL(/\/actions\/44$/);
     await page.goBack();
-    await expect(page.getByRole("combobox", { name: "Show" })).toHaveValue(
-      "closed",
-    );
+    await expect(page).toHaveURL(/\/today\/decided$/);
     await expect(
       page.getByRole("link", { name: /Earlier welcome/ }),
     ).toBeVisible();
     await page.goForward();
     await expect(
-      page.getByRole("heading", { name: "Earlier welcome", exact: true }),
+      page
+        .getByRole("heading", { name: "Earlier welcome", exact: true })
+        .first(),
     ).toBeVisible();
     await page.reload();
-    await page.getByRole("link", { name: "‹ Closed actions" }).click();
-    await expect(page.getByRole("combobox", { name: "Show" })).toHaveValue(
-      "closed",
-    );
-    await page.getByRole("combobox", { name: "Show" }).selectOption("open");
-    await expect(page).toHaveURL(/\/actions$/);
+    await page.getByRole("link", { name: "‹ Today" }).click();
+    await expect(page).toHaveURL(/\/today$/);
     await expect(
       page.getByText("Nothing waiting for you", { exact: true }),
     ).toBeVisible();
     await page.goBack();
-    await expect(page.getByRole("combobox", { name: "Show" })).toHaveValue(
-      "closed",
-    );
+    await expect(page).toHaveURL(/\/actions\/44$/);
     await page.screenshot({
       path: `/tmp/elixir-actions-context-${size.replace("@", "")}.png`,
       fullPage: true,
@@ -138,23 +137,19 @@ for (const size of ["wide", "@narrow"]) {
         ],
       }),
     );
-    await page.goto(`${base}/roster`);
+    await page.goto(`${base}/members`);
     await page.getByRole("searchbox", { name: "Find a member" }).fill("Ben");
+    await page.getByRole("searchbox", { name: "Find a member" }).press("Enter");
     await expect(page).toHaveURL(/\?find=Ben$/);
     await page.getByRole("link", { name: "Ben", exact: true }).click();
     await expect(
-      page.getByRole("heading", { name: "Ben · Activity" }),
+      page.getByRole("heading", { name: "Ben", exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("cell", { name: "War", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("cell", { name: "Path of Legends", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("cell", { name: "New mode", exact: true }),
-    ).toBeVisible();
-    await page.getByRole("link", { name: "Back to Example Clan" }).click();
+    await page.getByText("Recent battles in this clan").click();
+    await expect(page.getByText(/^War · win/)).toBeVisible();
+    await expect(page.getByText(/^Path of Legends · loss/)).toBeVisible();
+    await expect(page.getByText(/^New mode · draw/)).toBeVisible();
+    await page.getByRole("link", { name: "‹ Back to Members" }).click();
     await expect(
       page.getByRole("searchbox", { name: "Find a member" }),
     ).toHaveValue("Ben");
@@ -168,7 +163,8 @@ for (const size of ["wide", "@narrow"]) {
       page.getByRole("searchbox", { name: "Find a member" }),
     ).toHaveValue("Ben");
     await page.getByRole("searchbox", { name: "Find a member" }).fill("");
-    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/roster$/);
+    await page.getByRole("searchbox", { name: "Find a member" }).press("Enter");
+    await expect(page).toHaveURL(/\/clan\/2PQRJ8LV\/members$/);
     await expect(
       page.getByRole("link", { name: "Ada", exact: true }),
     ).toBeVisible();

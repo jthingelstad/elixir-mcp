@@ -30,10 +30,10 @@ export function Sharing({ clan }) {
     <div className="grid gap-3">
       <p className="page__lede m-0">
         What your clan does here is recorded in Elixir, said by the person who
-        did it, and where the award races stand each morning, said by Elixir
-        Clan itself, so the family&rsquo;s other apps (the Discord narrator
-        among them) know what the clan knows. Elixir keeps it apart from the
-        game record and shows each kind only to the people below.
+        did it, and where the award races stand each morning, said by Clan
+        itself, so other Elixir apps, including the Discord bot, know what the
+        clan knows. Elixir keeps it apart from the game record and shows each
+        kind only to the people below.
       </p>
       <div className="grid gap-3">
         {Object.entries(d.types).map(([key, t]) => (

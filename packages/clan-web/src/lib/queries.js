@@ -41,7 +41,6 @@ export const keys = {
   activityDiscord: (tag) => ["me", "clan", "record", tag, "activity-discord"],
   voice: (tag) => ["me", "clan", "record", tag, "voice"],
   standing: (tag) => ["me", "clan", "record", tag, "standing"],
-  trophies: (tag) => ["me", "clan", "record", tag, "trophies"],
   actions: (tag) => ["me", "clan", "record", tag, "actions"],
   action: (tag, number) => ["me", "clan", "record", tag, "actions", number],
   memberView: (tag) => ["me", "clan", "record", tag, "me"],
@@ -204,8 +203,8 @@ export const useMemberActivity = (tag, player, cursor = null, to = null) =>
     manageApi.memberActivity(tag, player, cursor, to),
   );
 
-export const useWeek = (tag, week) =>
-  useGated(keys.week(tag, week), () => manageApi.week(tag, week));
+export const useWeek = (tag, week, options) =>
+  useGated(keys.week(tag, week), () => manageApi.week(tag, week), options);
 
 export const useSeason = (tag) =>
   useGated(keys.season(tag), () => manageApi.season(tag));
@@ -217,9 +216,6 @@ export const useActions = (tag) =>
  *  list refetches it too. */
 export const useAction = (tag, number) =>
   useGated(keys.action(tag, number), () => manageApi.action(tag, number));
-
-export const useTrophies = (tag) =>
-  useGated(keys.trophies(tag), () => manageApi.trophies(tag));
 
 export const useMyAway = (tag) =>
   useQuery({

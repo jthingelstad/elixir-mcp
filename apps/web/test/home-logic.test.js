@@ -48,7 +48,7 @@ describe("Needs you", () => {
     expect(more.title).toBe("and 3 more in Clan › Today");
   });
 
-  test("an Action not numbered yet goes to the list", () => {
+  test("an Action not numbered yet goes to Today", () => {
     const { rows } = needsYou({
       clan: clan({
         needs: [{ type: "welcome", number: null, subject_name: "Ada" }],
@@ -56,7 +56,7 @@ describe("Needs you", () => {
       }),
       clock,
     });
-    expect(rows[0].to).toBe("/clan/2PQRJ8LV/actions");
+    expect(rows[0].to).toBe("/clan/2PQRJ8LV/today");
   });
 
   test("Away goes to your own switch", () => {

@@ -353,13 +353,13 @@ export function createDiscordService({
           message:
             "A Discord webhook address starts https://discord.com/api/webhooks/.",
         });
-      const text = `Elixir Clan will post ${clanName ?? clanTag}'s Actions here, and mark each one when it is done.\n<${actionsLink(clanTag)}>`;
+      const text = `Elixir will post ${clanName ?? clanTag}'s Actions here, and mark each one when it is done.\n<${actionsLink(clanTag)}>`;
       const sent = await bridge.send({
         method: "post",
         url: hook.url,
         content: text,
         // A forum channel takes this as a post of its own.
-        thread_name: "Elixir Clan Actions",
+        thread_name: "Clan Actions",
       });
       if (!sent.ok) throw refusal({ code: "outbox_unavailable" });
       const reply = await bridge.wait(sent.id, waitMs());

@@ -92,7 +92,7 @@ for (const width of [390, 820, 1280]) {
         ],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/discord");
+    await page.goto("/clan/2PQRJ8LV/run/discord");
     const trigger = page.getByRole("button", {
       name: "Manage Activity channel",
       exact: true,
@@ -123,12 +123,12 @@ for (const width of [390, 820, 1280]) {
       .getByRole("button", { name: "Manage Channel voice", exact: true })
       .click();
     // The clan's one voice is shown as written, with no second box: it is
-    // set in Settings.
+    // set in Run, Model and voice.
     await expect(page.getByText("“Warm and concise.”")).toBeVisible();
     await expect(page.getByRole("dialog").getByRole("textbox")).toHaveCount(0);
     await expect(
-      page.getByRole("link", { name: "Settings › How our messages sound" }),
-    ).toHaveAttribute("href", /\/manage\/settings#settings-voice$/);
+      page.getByRole("dialog").getByRole("link", { name: "Model & voice" }),
+    ).toHaveAttribute("href", /\/run\/model-voice$/);
     expect(
       (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze())
         .violations,
@@ -151,14 +151,15 @@ for (const width of [390, 820, 1280]) {
         "GET /api/clan/clans/2PQRJ8LV/recruit": [200, RECRUIT],
       }),
     );
-    await page.goto("/clan/2PQRJ8LV/recruit");
+    await page.goto("/clan/2PQRJ8LV/members/recruit");
     const note = page.getByRole("textbox", {
       name: "Personal note",
       exact: true,
     });
     await expect(note).toBeVisible();
     const box = await note.boundingBox();
-    expect(box!.y).toBeLessThan(450); // The copy begins in the first half of the viewport.
+    // The copy begins on the first screen, under the tabs and Members' row.
+    expect(box!.y).toBeLessThan(800);
     await page.screenshot({
       path: `/tmp/elixir-second-recruit-${width}.png`,
       fullPage: false,

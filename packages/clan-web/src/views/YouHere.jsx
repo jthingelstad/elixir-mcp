@@ -1,55 +1,23 @@
-import {
-  Fresh,
-  Icon,
-  noun,
-  Tag,
-  monthDayAt,
-  Panel,
-  Table,
-} from "@elixir-mcp/ui";
+import { Fresh, Icon, noun, Tag, Link, Panel, Table } from "@elixir-mcp/ui";
 import { useMemberView } from "../lib/queries.js";
-import { RoleChip } from "../components/RoleChip.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
+import { HowYouAreDoing, statusChip } from "../components/YouHereCard.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
+import { ROLE, date, n, ordinal, seasonWeek } from "../lib/words.js";
 
-const STATUS = {
-  holding: ["Holding Elder", "chip--ok"],
-  slipping: ["Slipping: demotion building", "chip--warn"],
-  rising: ["Rising: promotion building", "chip--info"],
-  participating: ["Participating", "chip--mute"],
-  quiet: ["Quiet", "chip--mute"],
-};
-const ROLE = {
-  leader: "Leader",
-  coLeader: "Co-leader",
-  elder: "Elder",
-  member: "Member",
-};
-const MINIMUM = {
-  war: ["war deck", "war decks"],
-  ranked: ["ranked battle", "ranked battles"],
-  donations: ["donation a week", "donations a week"],
-  trophies: ["trophy", "trophies"],
-};
 /** How many races the chart draws; every race stays in the table. */
 const CHART = 5;
 const WORDS = ["", "one", "two", "three", "four", "five"];
-const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
-/** A date as the canvas writes it ("Sep 21"). Weeks and races turn on
- *  UTC boundaries, so the day is read in UTC, as The week reads it. */
-const date = (ts) => monthDayAt(ts, "UTC");
-const race = (w) => `${w.season_id}/${w.section_index}`;
-const ordinal = (k) =>
-  k === 1 ? "1st" : k === 2 ? "2nd" : k === 3 ? "3rd" : `${k}th`;
+const race = (w) => seasonWeek(w);
 
 /** The panels' heads: a title, and the chip that says whether the
  *  clan's active policy counts this (only once there is one). */
 function Head({ id, title, counted, children }) {
   return (
     <div className="panel__head flex-wrap gap-2">
-      <h2 id={id} className="m-0 grow text-[14px] font-semibold">
+      <h3 id={id} className="m-0 grow text-[14px] font-semibold">
         {title}
-      </h2>
+      </h3>
       {counted === false ? (
         <span className="chip chip--mute">Not counted here</span>
       ) : null}
@@ -109,7 +77,7 @@ function Races({ races }) {
               {w.decks === null ? "—" : w.decks}
             </span>
             <span className="text-[11px] text-ink-faint">
-              {race(w)}
+              Week {w.section_index + 1}
               {w.open ? " · now" : ""}
             </span>
           </span>
@@ -136,39 +104,43 @@ export function YouHere({ clan, navigate }) {
     navigate(path);
   };
   const y = d?.you;
-  const since = y?.time_here.events.find(
-    (e) => e.type === "role_changed" && e.role_after === y.role,
-  );
+  const away = `${base}/members/away`;
   const head = (
-    <PageHead
-      clan={clan}
-      name={d?.clan_name}
-      crumb="Your clan record"
-      title="Your clan record"
-      lede="Your own numbers in this clan, week by week, and what its policy makes of them. Only you see this page."
-      navigate={navigate}
-      fresh={
-        d?.as_of ? (
-          <Fresh label="as of" seconds={d.freshness_seconds} ts={d.as_of} />
-        ) : null
-      }
-    >
-      {y ? (
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="yours">★</span>
-          <span className="text-[15px] font-semibold">
-            {y.name ?? <Tag tag={y.player_tag} />}
-          </span>
-          <span className="tag">{y.player_tag}</span>
-          <RoleChip role={y.role} label={ROLE[y.role] ?? y.role} />
-          {since ? (
-            <span className="text-[13px] text-ink-dim">
-              since {date(since.at)}
-            </span>
+    <>
+      <Link to={`${base}/members`} navigate={navigate}>
+        ‹ Back to Members
+      </Link>
+      <div className="mt-3">
+        <PageHead
+          title={
+            y ? (
+              <>
+                {y.name ?? <Tag tag={y.player_tag} />}{" "}
+                <span className="chip chip--info align-middle">you</span>
+              </>
+            ) : (
+              "Your record here"
+            )
+          }
+          lede={
+            y
+              ? `${ROLE[y.role] ?? y.role} · ${n(y.trophies)} trophies · only you see this page`
+              : undefined
+          }
+          fresh={
+            d?.as_of ? (
+              <Fresh label="as of" seconds={d.freshness_seconds} ts={d.as_of} />
+            ) : null
+          }
+        >
+          {d?.clan ? (
+            <a className="btn btn--sm w-fit" href={away} onClick={go(away)}>
+              Away
+            </a>
           ) : null}
-        </div>
-      ) : null}
-    </PageHead>
+        </PageHead>
+      </div>
+    </>
   );
   if (state.signedOut) {
     window.location.assign(`${CLAN}?error=session_expired`);
@@ -209,7 +181,7 @@ export function YouHere({ clan, navigate }) {
   // Only an active policy says what counts; without one, nothing is
   // marked either way.
   const counted = (k) => (c ? (c.counted ?? []).includes(k) : undefined);
-  const s = c?.status ? STATUS[c.status] : null;
+  const s = c?.status ? statusChip(c.status) : null;
   const war = y.this_war_week;
   const weeks = [...y.weeks].reverse();
   const races = y.war_weeks;
@@ -218,7 +190,7 @@ export function YouHere({ clan, navigate }) {
   const asked = closed.every((w) => w.decks !== null && w.decks_asked !== null)
     ? closed.reduce((k, w) => k + w.decks_asked, 0)
     : null;
-  const elder = `${base}/standing`;
+  const elder = `${base}/members/standing`;
   return (
     <>
       {head}
@@ -227,8 +199,8 @@ export function YouHere({ clan, navigate }) {
         <Panel
           as="a"
           className="flex items-center gap-3 px-4 py-3.5 mb-[22px] text-ink no-underline hover:bg-panel-raised"
-          href={`${base}/actions`}
-          onClick={go(`${base}/actions`)}
+          href={`${base}/today`}
+          onClick={go(`${base}/today`)}
         >
           <span className="flex items-center justify-center w-[34px] h-[34px] rounded-control bg-info-fill text-accent-bright">
             <Icon name="inbox" size={17} />
@@ -243,17 +215,16 @@ export function YouHere({ clan, navigate }) {
         </Panel>
       ) : null}
 
-      <h2 className="label mt-0 mb-2.5">This week so far</h2>
+      <h3 className="label mt-0 mb-2.5">This week so far</h3>
       <Tiles label="This week so far">
         {war ? (
           <Tile
             label="War decks"
             value={n(war.decks)}
-            of={war.decks_asked !== null ? `of ${war.decks_asked}` : undefined}
             hint={
               counted("war") === false
                 ? "Not counted here"
-                : `Race ${race(war)}, four a war day`
+                : `${race(war)}, so far`
             }
           />
         ) : null}
@@ -281,110 +252,13 @@ export function YouHere({ clan, navigate }) {
             <Head id="you-doing" title="How you are doing here">
               {s ? <span className={`chip ${s[1]}`}>{s[0]}</span> : null}
             </Head>
-            <div className="panel__body grid gap-3">
-              {c ? (
-                <>
-                  <p className="m-0">
-                    {c.evidence ||
-                      "Nothing recorded yet in what the clan counts."}
-                  </p>
-                  {c.next.map((line) => (
-                    <p key={line} className="m-0 text-[13.5px] text-ink-dim">
-                      → {line}
-                    </p>
-                  ))}
-                  {Object.keys(c.minimums.set).length ? (
-                    <div className="grid gap-1.5">
-                      <h3 className="label m-0">
-                        Minimums (
-                        {c.minimums.rule === "all" ? "all of" : "any one of"},
-                        over {c.minimums.window_weeks}{" "}
-                        {noun(c.minimums.window_weeks, "week")})
-                      </h3>
-                      <ul className="m-0 p-0 list-none grid gap-1">
-                        {Object.entries(c.minimums.set).map(([k, need]) => {
-                          const met = c.minimums.met[k];
-                          return (
-                            <li key={k} className="flex items-center gap-2">
-                              <span
-                                className={
-                                  met === true
-                                    ? "text-ok"
-                                    : met === false
-                                      ? "text-warn"
-                                      : "text-ink-faint"
-                                }
-                              >
-                                <Icon
-                                  name={
-                                    met === true
-                                      ? "circle-check"
-                                      : met === false
-                                        ? "x"
-                                        : "circle-dashed"
-                                  }
-                                  size={15}
-                                />
-                              </span>
-                              <span>
-                                {n(need)}{" "}
-                                {MINIMUM[k]?.[need === 1 ? 0 : 1] ?? k}
-                                <span className="sr-only">
-                                  {met === true
-                                    ? ": met"
-                                    : met === false
-                                      ? ": not met"
-                                      : ": not known yet"}
-                                </span>
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {c.tenure_min_days != null && y.time_here.tenure_known ? (
-                    <p className="m-0 text-[13.5px] text-ink-dim">
-                      {y.time_here.days >= c.tenure_min_days
-                        ? `${y.time_here.days} ${noun(y.time_here.days, "day")} in the clan: past the ${c.tenure_min_days} ${noun(c.tenure_min_days, "day")} Elder asks for.`
-                        : `${y.time_here.days} of the ${c.tenure_min_days} ${noun(c.tenure_min_days, "day")} in the clan Elder asks for.`}
-                    </p>
-                  ) : null}
-                  {c.inactivity && c.inactivity.state !== "none" ? (
-                    <div className="callout callout--warn">
-                      <span>
-                        {c.inactivity.judgment === "held"
-                          ? `Your activity could not be read just now. ${c.inactivity.activity_evidence?.reason ?? ""}`.trim()
-                          : `${Math.floor(c.inactivity.days_idle)} days since your last battle; this clan counts a member at risk from ${c.inactivity.at_risk_days}.`}
-                      </span>
-                    </div>
-                  ) : null}
-                </>
-              ) : d.policy.set ? (
-                <p className="m-0 text-ink-dim">
-                  Clan management starts at {d.min_members} members; this clan
-                  has {d.members}. Your numbers are below.
-                </p>
-              ) : (
-                <p className="m-0 text-ink-dim">
-                  This clan&rsquo;s leaders have not set up how the clan runs
-                  here yet. Your numbers are below.
-                </p>
-              )}
-              {d.hold ? (
-                <div className="notice">
-                  {d.hold.kind === "away"
-                    ? "You are marked away"
-                    : "A leader has you on hold"}
-                  {d.hold.until ? ` until ${date(d.hold.until)}` : ""}.
-                </div>
-              ) : null}
+            <div className="panel__body">
+              <HowYouAreDoing d={d} base={base} navigate={navigate} />
             </div>
             {c ? (
               <div className="panel__foot">
                 <a href={elder} onClick={go(elder)}>
-                  {c.ranks_elder ? "How Elder works here" : "How it works here"}{" "}
-                  ›
+                  How it works here
                 </a>
               </div>
             ) : null}
@@ -428,7 +302,9 @@ export function YouHere({ clan, navigate }) {
                     cell: (w) => (
                       <>
                         {n(w.decks)}
-                        {w.decks_asked != null ? ` of ${w.decks_asked}` : ""}
+                        {w.open || w.decks_asked == null
+                          ? ""
+                          : ` of ${w.decks_asked}`}
                       </>
                     ),
                   },
@@ -443,19 +319,17 @@ export function YouHere({ clan, navigate }) {
           <Panel aria-labelledby="you-weeks">
             <Head id="you-weeks" title="Week by week" />
             <p className="page-head__note px-4">
-              Battle counts are what Elixir recorded, not all play. No recorded
-              battles does not mean no play. Weeks before roster recording began
-              do not establish membership in this clan.
+              A gap is unknown. Zero battles here does not prove no play.
             </p>
             <Table
               columns={[
                 {
-                  head: "Week",
+                  head: "Week of",
                   cell: (w) => (
                     <>
                       {w.complete
                         ? `Week of ${date(w.from)}`
-                        : "This week, so far"}
+                        : "This week so far"}
                       {Date.parse(w.from) <
                       Date.parse(y.time_here.recording_since) ? (
                         <span className="block page-head__note">
@@ -469,12 +343,12 @@ export function YouHere({ clan, navigate }) {
                   ),
                 },
                 {
-                  head: "Recorded battles",
+                  head: "Battles",
                   num: true,
                   cell: (w) => n(w.battles),
                 },
                 {
-                  head: "Recorded ranked battles",
+                  head: "Path of Legends",
                   num: true,
                   cell: (w) => n(w.ranked_battles),
                 },
@@ -508,7 +382,7 @@ export function YouHere({ clan, navigate }) {
 
           {d.trophies.length ? (
             <Panel aria-labelledby="you-trophies">
-              <Head id="you-trophies" title="Your trophies here" />
+              <Head id="you-trophies" title="Your awards here" />
               <ul className="m-0 p-0 list-none">
                 {d.trophies.map((g) => (
                   <li
@@ -523,7 +397,7 @@ export function YouHere({ clan, navigate }) {
                       {g.manual ? "" : ` · ${ordinal(g.rank)}`}
                     </span>
                     <span className="text-[12.5px] text-ink-faint">
-                      season {g.season_id}
+                      Season {g.season_id}
                     </span>
                   </li>
                 ))}

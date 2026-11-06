@@ -6,6 +6,8 @@ export interface TabItem {
   label: ReactNode;
   /** A count badge after the label: "Timeline 3". Nothing at null or 0. */
   count?: number | null;
+  /** What the count counts, read aloud after it: "2 waiting for you". */
+  countLabel?: string;
   /** A plain mark after the label, for "something new here" when no honest
    *  count exists. Read aloud as `markLabel`. */
   mark?: boolean;
@@ -104,7 +106,17 @@ export function Tabs({
         const body = (
           <>
             {t.label}
-            {t.count ? <em className="kit-tabs__count">{t.count}</em> : null}
+            {t.count && t.countLabel ? (
+              <span className="sr-only">, </span>
+            ) : null}
+            {t.count ? (
+              <em className="kit-tabs__count">
+                {t.count}
+                {t.countLabel ? (
+                  <span className="sr-only"> {t.countLabel}</span>
+                ) : null}
+              </em>
+            ) : null}
             {t.mark ? (
               <em className="kit-tabs__mark">
                 <span className="sr-only">{t.markLabel ?? "New"}</span>

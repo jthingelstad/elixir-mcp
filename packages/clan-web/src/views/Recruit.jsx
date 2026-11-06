@@ -1,12 +1,5 @@
-import {
-  Disclosure,
-  Fresh,
-  Icon,
-  noun,
-  useClock,
-  Panel,
-  PageHead,
-} from "@elixir-mcp/ui";
+import { Disclosure, Fresh, Icon, noun, useClock, Panel } from "@elixir-mcp/ui";
+import { PageHead } from "../components/PageHead.jsx";
 import { useEffect, useState } from "react";
 import { manageApi } from "../api.js";
 import { useRecruit } from "../lib/queries.js";
@@ -332,30 +325,31 @@ function CopyFormats({ copy }) {
 const DRAFT_ERROR = {
   no_model_key: "The clan has no model key yet.",
   model_key_refused:
-    "Anthropic stopped accepting the clan's key. Add it again in Settings.",
-  model_key_unreadable: "The clan's key needs to be added again in Settings.",
+    "Anthropic stopped accepting the clan's key. Add it again in Model & voice.",
+  model_key_unreadable:
+    "The clan's key needs to be added again in Model & voice.",
   model_unavailable:
     "The clan's key could not reach the model Clan uses for this. Try again; if it fails again, opening Settings checks the key with Anthropic.",
   model_daily_limit:
     "The clan's model has drafted as many times as it may today. Try again tomorrow.",
   model_spend_cap:
-    "The clan's model has reached this month's spend cap. A leader can raise it in Settings.",
+    "The clan's model has reached this month's spend cap. A leader can raise it in Model & voice.",
   still_pending:
-    "The model is taking longer than usual. Its draft is counted in Settings; try again in a minute.",
+    "The model is taking longer than usual. Its draft is counted in Model & voice; try again in a minute.",
   no_pending_draft: "That draft is no longer waiting. Ask for another.",
 };
 
 /**
  * The clan's own model drafting the pitch: the words fill the editor, the
  * leader edits them, and nothing is saved until they save. The clan's
- * key lives in Manage ▸ Settings.
+ * key lives in Run › Model & voice.
  */
 function DraftWithModel({ clan, model, navigate, current, onDraft }) {
   const [ask, setAsk] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [previous, setPrevious] = useState(null);
-  const modelPath = `${clanPath(clan.clan_tag)}/manage/settings`;
+  const modelPath = `${clanPath(clan.clan_tag)}/run/model-voice`;
   const toModel = (e) => {
     e.preventDefault();
     navigate?.(modelPath);
@@ -384,7 +378,7 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
       setResult({
         error:
           e.error === "model_key_owner_left"
-            ? `The clan's key was added by ${e.set_by_name}, who no longer leads the clan. Add a key of yours in Settings.`
+            ? `The clan's key was added by ${e.set_by_name}, who no longer leads the clan. Add a key of yours in Model & voice.`
             : (DRAFT_ERROR[e.error] ??
               e.message ??
               "The clan's model did not answer. Try again in a minute."),
@@ -488,10 +482,10 @@ function PitchEditor({ clan, view, navigate, onDone }) {
     onDone();
   };
   return (
-    <div style={{ display: "grid", gap: "14px", maxWidth: "720px" }}>
+    <div className="grid max-w-[720px] gap-3.5">
       <PageHead
         title="The pitch"
-        sub={
+        lede={
           <>
             Your words; the numbers come from the game. Every save is a new
             version.

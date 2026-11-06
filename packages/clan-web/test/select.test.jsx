@@ -10,7 +10,7 @@ import {
 import { renderWithProviders } from "./helpers.jsx";
 import { api } from "../src/api.js";
 import { useSelectClan } from "../src/lib/select.js";
-import { Rail } from "../src/App.jsx";
+import { ClanPicker } from "../src/components/ClanPicker.jsx";
 
 /**
  * One clan selection at a time. Codex on #610, 2026-10-20: "When a clan
@@ -85,7 +85,7 @@ describe("selecting a clan", () => {
       await first;
     });
     expect(setMe.mock.calls).toEqual([[me(SECOND)]]);
-    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL"]]);
+    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL/today"]]);
     expect(result.current.selecting).toBe(false);
 
     // Once it lands, the next selection runs.
@@ -97,10 +97,10 @@ describe("selecting a clan", () => {
       answer[THIRD.clan_tag]();
       await third;
     });
-    expect(navigate.mock.calls.at(-1)).toEqual(["/clan/9QJ0YJPU"]);
+    expect(navigate.mock.calls.at(-1)).toEqual(["/clan/9QJ0YJPU/today"]);
   });
 
-  test("the Clan picker is busy while a pick is pending: the list closes and will not open again until it lands", async () => {
+  test("the Clan picker is busy while a pick is pending, and free once it lands", async () => {
     const navigate = vi.fn(async () => {});
     function Shell() {
       const { select, selecting } = useSelectClan({
@@ -108,44 +108,23 @@ describe("selecting a clan", () => {
         setMe: vi.fn(),
       });
       return (
-        <Rail
+        <ClanPicker
           me={me()}
-          path="/clan/2PQRJ8LV/roster"
           navigate={navigate}
-          narrow={false}
           select={select}
           selecting={selecting}
         />
       );
     }
     renderWithProviders(<Shell />);
-    const head = () => screen.getByRole("button", { name: /Example Clan/ });
-    const list = () => document.getElementById("rail-clans");
+    const box = () => screen.getByLabelText("Clan");
 
-    fireEvent.click(head());
-    fireEvent.click(screen.getByRole("link", { name: /Second Clan/ }));
+    fireEvent.change(box(), { target: { value: SECOND.clan_tag } });
     expect(api.select).toHaveBeenCalledTimes(1);
-    expect(head().textContent).toContain("Opening Second Clan…");
-    expect(head().closest(".rail__switch").getAttribute("aria-busy")).toBe(
-      "true",
-    );
-    expect(head().getAttribute("aria-disabled")).toBe("true");
-
-    // Reopening does nothing while the first pick is pending.
-    fireEvent.click(head());
-    expect(list()).toBeNull();
-    expect(head().getAttribute("aria-expanded")).toBe("false");
-    expect(api.select).toHaveBeenCalledTimes(1);
+    expect(box().disabled).toBe(true);
 
     await act(async () => answer[SECOND.clan_tag]());
-    await waitFor(() =>
-      expect(head().closest(".rail__switch").getAttribute("aria-busy")).toBe(
-        null,
-      ),
-    );
-    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL"]]);
-    expect(head().getAttribute("aria-disabled")).toBe(null);
-    fireEvent.click(head());
-    expect(list()).not.toBeNull();
+    await waitFor(() => expect(box().disabled).toBe(false));
+    expect(navigate.mock.calls).toEqual([["/clan/GQ08RJPL/today"]]);
   });
 });

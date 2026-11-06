@@ -143,6 +143,12 @@ const ROSTER = {
   ],
 };
 
+/** One of Clan's five tabs. */
+export const clanTab = (page: Page, name: string | RegExp) =>
+  page
+    .getByRole("tablist", { name: "Clan" })
+    .getByRole("tab", { name, exact: typeof name === "string" });
+
 type Answer =
   [status: number, body: unknown] | ((route: Route) => [number, unknown]);
 
@@ -168,7 +174,7 @@ export async function mockApi(page: Page, routes: Record<string, Answer>) {
   });
 }
 
-/** Signed in, with the reads the rail's pages make. `select` is stateful:
+/** Signed in, with the reads the tabs' pages make. `select` is stateful:
  *  picking a clan changes what /api/clan/me answers, as the Lambda does. */
 export function signedIn(
   overrides: Record<string, Answer> = {},

@@ -73,7 +73,7 @@ description of record**; there is no fuller internal one.
 
 Everything cloud-side is serverless: RDS Postgres, S3 and seven Lambdas in
 one CloudFormation stack, inside a VPC with no NAT. The **web API** serves
-Home, Ladder, Elixir Clan, the JSON API and battle pages; **MCP**
+Home, Ladder, Clan, the JSON API and battle pages; **MCP**
 serves the MCP and OAuth doors; **collector** is the collector door;
 **scheduler** plans fetch jobs into the Postgres job ledger on every tick;
 **jobs** runs scheduled product work (mail, sweeps, Clan's morning run);
@@ -160,7 +160,7 @@ service's, and nothing on the timeline announces the time, which is
 Feedback is a first-class product surface, not a mailbox. Agents file
 it mid-session with `elixir_send_feedback` (attributed to the account that
 connected: yours on your own connection, the agent's on an agent's);
-people file it from Settings, Ladder, Elixir Clan, the docs and an
+people file it from Settings, Ladder, Clan, the docs and an
 email's footer, and integrations over the JSON API. It is one record
 for all of Elixir, each item tagged with the part of Elixir it is about
 and what it points at (a call, an email, a clan action). Every item gets a maintainer response, sometimes written with help from AI agents —
@@ -188,7 +188,7 @@ jobs, with deliberately different guarantees:
   never re-subscribed. A new account's choice is the signup checkbox,
   which starts checked; an existing account's sign-in uses its saved
   preference.
-- **Elixir Clan's model calls**, made with the clan's own model key:
+- **Clan's model calls**, made with the clan's own model key:
   requests and replies are sealed, short-lived objects, and a request is
   claimed before the provider is called, so a redelivery never spends the
   clan's tokens twice.
@@ -359,7 +359,7 @@ Elixir MCP is built in the open:
 - [jthingelstad/elixir-mcp](https://github.com/jthingelstad/elixir-mcp)
   — this service: recorder, MCP door, web app, and these pages
   (the docs you are reading are the source of record; `docs/ENGINEERING.md`
-  holds the build invariants). Elixir Clan is part of the same
+  holds the build invariants). Clan is part of the same
   application, account and deployment, with its management records in
   Elixir's private store; its role checks use the signed-in person's
   verified players.

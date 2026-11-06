@@ -350,7 +350,7 @@ export function weeklyReport(
     from,
     to,
   }));
-  const soFar = thisWeekSoFar(participation, now, clanBattles);
+  const soFar = thisWeekSoFar(participation, now, clanBattles, roster, policy);
   // When Elixir began reading this clan's roster: a week before it has
   // nothing to show, and the page says so instead of drawing it blank.
   const recordedFrom =
@@ -409,7 +409,7 @@ function runningWeek(participation, now) {
 }
 
 /** The week still running: each area's total and how many took part. */
-function thisWeekSoFar(participation, now, clanBattles) {
+function thisWeekSoFar(participation, now, clanBattles, roster, policy) {
   const running = runningWeek(participation, now);
   if (!running) return null;
   const { index, week: w } = running;
@@ -421,14 +421,30 @@ function thisWeekSoFar(participation, now, clanBattles) {
       if (wi < 0) return null;
       if (!members.some(({ m }) => Number.isInteger(m.war_decks?.[wi])))
         return null;
-      const played = members
-        .map(({ m }) => m.war_decks?.[wi])
-        .filter((v) => Number.isInteger(v) && v > 0);
+      const rows = members
+        .map(({ m, joined_during }) => ({
+          player_tag: m.player_tag,
+          name: m.name ?? null,
+          value: m.war_decks?.[wi],
+          points: m.war_points?.[wi] ?? null,
+          joined_during,
+        }))
+        .filter((r) => Number.isInteger(r.value) && r.value > 0)
+        .sort(byValue);
       return {
         key: k,
         label: WEEK_AREA_LABELS[k],
-        total: played.reduce((s, v) => s + v, 0),
-        took_part: played.length,
+        total: rows.reduce((s, r) => s + r.value, 0),
+        took_part: rows.length,
+        points: rows.every((r) => r.points === null)
+          ? null
+          : rows.reduce((s, r) => s + (r.points ?? 0), 0),
+        war: {
+          season_id: ww[wi].season_id ?? null,
+          section_index: ww[wi].section_index ?? null,
+          is_colosseum: Boolean(ww[wi].is_colosseum),
+        },
+        participants: rows,
       };
     }
     const a = area(k, participation, w, index, members, clanBattles);
@@ -438,8 +454,26 @@ function thisWeekSoFar(participation, now, clanBattles) {
           label: a.label,
           total: a.total,
           took_part: a.participants.length,
+          participants: a.participants,
         }
       : null;
   }).filter(Boolean);
-  return { iso_week: w.iso_week ?? null, from: w.from, to: w.to, areas };
+  const reset = resetBounds(w);
+  const names = new Map(
+    [...(roster?.members ?? []), ...(participation.members ?? [])]
+      .filter((m) => m.name)
+      .map((m) => [m.player_tag, m.name]),
+  );
+  const hl = highlights(areas, policy, members.length);
+  return {
+    iso_week: w.iso_week ?? null,
+    from: w.from,
+    to: w.to,
+    reset_from: new Date(reset.from).toISOString(),
+    reset_to: new Date(reset.to).toISOString(),
+    members: members.length,
+    highlight: { basis: hl.basis, counted: hl.counted },
+    areas: areas.map((a) => ({ ...a, highlighted: hl.keys.includes(a.key) })),
+    membership: membership(roster, reset.from, reset.to, names),
+  };
 }

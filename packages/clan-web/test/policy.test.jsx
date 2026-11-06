@@ -7,8 +7,9 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { useState } from "react";
 import { renderWithProviders } from "./helpers.jsx";
-import { Policy } from "../src/views/Policy.jsx";
+import { Run } from "../src/views/Run.jsx";
 import { keys } from "../src/lib/queries.js";
 import { manageApi } from "../src/api.js";
 import {
@@ -18,6 +19,11 @@ import {
   defaults,
   policyCapabilities,
 } from "@elixir-mcp/clan-engine";
+
+vi.mock("@tanstack/react-router", async (actual) => ({
+  ...(await actual()),
+  useBlocker: vi.fn(),
+}));
 
 afterEach(() => {
   cleanup();
@@ -37,20 +43,38 @@ const view = {
   fields: FIELDS,
   versions: [],
 };
-const open = (name) =>
-  fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${name}`) }));
+/** Run, walking its sections as the router would. */
+function Walk({ first }) {
+  const [section, setSection] = useState(first);
+  return (
+    <Run
+      clan={clan}
+      section={section}
+      navigate={(to) => setSection(to.split("/run/")[1] ?? null)}
+    />
+  );
+}
+const runLink = (name) =>
+  within(screen.getByRole("navigation", { name: "Run" }))
+    .getAllByRole("link")
+    .find((a) => a.textContent.startsWith(name));
+const open = (name) => fireEvent.click(runLink(name));
+const saveButton = () =>
+  within(document.querySelector(".clan-save")).getByRole("button", {
+    name: "Save this clan's policy",
+  });
 const render = async (data = view) => {
   vi.spyOn(manageApi, "policy").mockResolvedValue({
     ok: true,
     status: 200,
     data,
   });
-  const rendered = renderWithProviders(<Policy clan={clan} />);
-  await screen.findByRole("tablist", { name: "Policy" });
+  const rendered = renderWithProviders(<Walk first="about" />);
+  await screen.findByLabelText(/Clan War participation/);
   return rendered;
 };
 
-describe("policy: tabs along the top", () => {
+describe("policy: separated sections under Run", () => {
   test("the draft summary follows explicit intent, and scoring links to the question before presets without saving", async () => {
     const save = vi.spyOn(manageApi, "savePolicy");
     const { container } = await render();
@@ -103,13 +127,11 @@ describe("policy: tabs along the top", () => {
     const intent = () => screen.getByLabelText(/Clan War participation/);
     expect(intent().value).toBe("unknown");
     fireEvent.change(intent(), { target: { value: "not_participating" } });
-    fireEvent.click(screen.getByRole("button", { name: "A war clan" }));
+    fireEvent.click(screen.getByRole("button", { name: /^A war clan/ }));
     expect(intent().value).toBe("not_participating");
     open("Clan Wars");
     expect(screen.getByLabelText("Count Clan Wars").checked).toBe(true);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Save this clan's policy" }),
-    );
+    fireEvent.click(saveButton());
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1].war_intent).toBe("not_participating");
     expect(save.mock.calls[0][1].war_enabled).toBe(true);
@@ -157,7 +179,7 @@ describe("policy: tabs along the top", () => {
     ).toBeTruthy();
     expect(screen.getByText("remove")).toBeTruthy();
   });
-  test("the Inactivity tab has no enforceability label, and the saved policy says removal is live", async () => {
+  test("the Inactivity section has no enforceability label, and the saved policy says removal is live", async () => {
     const values = {
       ...defaults(),
       elder_mode: "hand",
@@ -201,14 +223,12 @@ describe("policy: tabs along the top", () => {
     expect(
       screen.getByRole("button", { name: "Preview the last reviews" }).disabled,
     ).toBe(true);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Save this clan's policy" }),
-    );
+    fireEvent.click(saveButton());
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(clan.clan_tag, defaults(), null, 0),
     );
   });
-  test("an edit invalidates a prior preview and minimums have their own tab", async () => {
+  test("an edit invalidates a prior preview and minimums have their own section", async () => {
     vi.spyOn(manageApi, "previewPolicy").mockResolvedValue({
       ok: true,
       status: 200,
@@ -221,31 +241,25 @@ describe("policy: tabs along the top", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Preview the last reviews" }),
     );
-    await screen.findByText(/Nobody’s verdict|Nobody.s verdict/);
+    await screen.findByText(/Nobody would read differently/);
     fireEvent.change(screen.getByLabelText(/How strict/), {
       target: { value: "strict" },
     });
-    expect(screen.queryByText(/Nobody’s verdict|Nobody.s verdict/)).toBeNull();
-    expect(screen.getByRole("tab", { name: /^Minimums/ })).toBeTruthy();
+    expect(screen.queryByText(/Nobody would read differently/)).toBeNull();
+    expect(runLink("Minimums")).toBeTruthy();
   });
-  test("one tab at a time, each category switched on or off; a preset fills every tab", async () => {
+  test("one section at a time, each category switched on or off; a preset fills every section", async () => {
     const save = vi
       .spyOn(manageApi, "savePolicy")
       .mockResolvedValue({ ok: true, status: 200, data: { version: 1 } });
     await render();
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^About/),
-        expect.stringMatching(/^Clan Wars/),
-        expect.stringMatching(/^Elder/),
-        expect.stringMatching(/^Inactivity/),
-      ]),
-    );
-    expect(screen.getByRole("tab", { name: /^Clan Wars, off/ })).toBeTruthy();
-    // Nothing from another tab is on the page.
+    for (const name of ["About", "Clan Wars", "Elder", "Inactivity"])
+      expect(runLink(name)).toBeTruthy();
+    expect(runLink("Clan Wars").textContent).toMatch(/Off$/);
+    // Nothing from another section is on the page.
     expect(screen.queryByLabelText(/War rate window/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "A war clan" }));
-    expect(screen.getByRole("tab", { name: /^Clan Wars, on/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^A war clan/ }));
+    expect(runLink("Clan Wars").textContent).toMatch(/On$/);
     expect(screen.getByLabelText(/How strict/).value).toBe("strict");
     open("Clan Wars");
     expect(screen.getByLabelText("Count Clan Wars").checked).toBe(true);
@@ -253,9 +267,7 @@ describe("policy: tabs along the top", () => {
     expect(screen.queryByLabelText(/How strict/)).toBeNull();
     open("Elder");
     expect(screen.getByLabelText(/Elders are chosen/).value).toBe("categories");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Save this clan's policy" }),
-    );
+    fireEvent.click(saveButton());
     await waitFor(() => expect(save).toHaveBeenCalled());
     const [, values] = save.mock.calls[0];
     expect(values.war_enabled).toBe(true);
@@ -264,31 +276,28 @@ describe("policy: tabs along the top", () => {
     expect("goal_war" in values).toBe(false);
   });
 
-  test("turning a tab on shows its settings, filled from how strict the clan is", async () => {
+  test("turning a section on shows its settings, filled from how strict the clan is", async () => {
     await render();
     open("Donations");
-    expect(screen.getByText(/Off: this clan does not use it/)).toBeTruthy();
     expect(screen.queryByLabelText(/Minimum donations/)).toBeNull();
     fireEvent.click(screen.getByLabelText("Count donations"));
     expect(screen.getByLabelText(/Minimum donations/).value).toBe("40");
     expect(screen.getByLabelText(/Donation window/).value).toBe("4");
-    expect(
-      screen.getByRole("tab", { name: /^Donations, on, changed/ }),
-    ).toBeTruthy();
+    expect(runLink("Donations").textContent).toMatch(/changedOn$/);
     fireEvent.click(screen.getByLabelText("Count donations"));
     expect(screen.queryByLabelText(/Minimum donations/)).toBeNull();
   });
 
   test("a social clan chooses Elders by hand and counts nothing", async () => {
     await render();
-    fireEvent.click(screen.getByRole("button", { name: "A social clan" }));
+    fireEvent.click(screen.getByRole("button", { name: /^A social clan/ }));
     expect(screen.getByLabelText(/Playing together/).checked).toBe(true);
-    expect(screen.getByRole("tab", { name: /^Elder, by hand/ })).toBeTruthy();
+    expect(runLink("Elder").textContent).toMatch(/by hand$/);
     open("Clan Wars");
     expect(screen.getByLabelText("Count Clan Wars").checked).toBe(false);
   });
 
-  test("a refused save opens the tab that holds the problem", async () => {
+  test("a refused save opens the section that holds the problem", async () => {
     vi.spyOn(manageApi, "savePolicy").mockResolvedValue({
       ok: false,
       status: 400,
@@ -298,18 +307,12 @@ describe("policy: tabs along the top", () => {
       },
     });
     await render();
-    fireEvent.click(screen.getByRole("button", { name: "A war clan" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Save this clan's policy" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /^A war clan/ }));
+    fireEvent.click(saveButton());
     expect(
       await screen.findByText("At risk cannot come before getting quiet."),
     ).toBeTruthy();
-    expect(
-      screen
-        .getByRole("tab", { name: /^Inactivity/ })
-        .getAttribute("aria-selected"),
-    ).toBe("true");
+    expect(runLink("Inactivity").getAttribute("aria-current")).toBe("page");
   });
 });
 
@@ -334,7 +337,9 @@ test("refetch preserves an edited draft; a newer version requires explicit disca
   expect(screen.getByLabelText(/How strict/).value).toBe("strict");
   await waitFor(() =>
     expect(
-      screen.getByRole("button", { name: "Save as new version" }).disabled,
+      screen
+        .getAllByRole("button", { name: "Save as new version" })
+        .every((b) => b.disabled),
     ).toBe(true),
   );
   fireEvent.click(

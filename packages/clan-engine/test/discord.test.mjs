@@ -52,7 +52,7 @@ test("a closed action is struck through and says how, and by whom", () => {
   );
   assert.match(
     discordActionMessage(card({ status: "withdrawn" }), where),
-    /\n➖ Withdrawn: Elixir Clan no longer suggests it\n/,
+    /\n➖ Withdrawn: Elixir no longer suggests it\n/,
   );
 });
 

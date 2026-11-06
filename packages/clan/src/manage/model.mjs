@@ -231,7 +231,7 @@ function unreachable(purpose) {
   const names = (MODEL_FOR[purpose] ?? []).map(modelName);
   return new ManageError(409, "model_unavailable", null, {
     purpose,
-    message: `The clan's key cannot reach the models Elixir Clan uses for this (${names.join(", ")}). Settings checks the key's models again when you open it.`,
+    message: `The clan's key cannot reach the models Elixir uses for this (${names.join(", ")}). Model & voice checks the key's models again when you open it.`,
   });
 }
 
@@ -385,7 +385,7 @@ export function createModelService({
       throw new ManageError(409, "model_unavailable", null, {
         model,
         purpose,
-        message: `Anthropic no longer serves ${modelName(model)} to the clan's key. Try again: Elixir Clan uses the next model this key reaches.`,
+        message: `Anthropic no longer serves ${modelName(model)} to the clan's key. Try again: Elixir uses the next model this key reaches.`,
       });
     }
     if (r.status === 429 || r.status === 529)
@@ -537,7 +537,7 @@ export function createModelService({
         ids.length > 0 && Object.keys(MODEL_FOR).some((p) => modelFor(p, ids));
       if (!reaches)
         throw new ManageError(400, "no_models", null, {
-          message: `This key cannot reach the models Elixir Clan uses (${[
+          message: `This key cannot reach the models Elixir uses (${[
             ...new Set(Object.values(MODEL_FOR).flat()),
           ]
             .map(modelName)

@@ -93,7 +93,7 @@ two things, and `basis` says which:
 
 A clan entry's `activity` follows the basis too: on an occurred read it
 counts the battles played in the window by `battle_time`, boat defenses out
-(`activity.basis` is `played`), as [The week](/docs/clan-week) does.
+(`activity.basis` is `played`), as [a week in Season](/docs/clan-week) does.
 
 ### One pointer per reader
 
@@ -163,7 +163,7 @@ section, text, visibility, publishable, facts, follow }`:
 | `card_unlocked` | player, or a clan's member | a card the player did not have: `facts.card` is the card, `facts.name` the member on a clan's timeline (level-ups are a count in the entry, never items) |
 | `card_form_unlocked` | player, or a clan's member | an Evolution or Hero form the player newly unlocked: `facts.card` is the card, `facts.form` is `evolution` or `hero`, and the text says it as a player does ("unlocked Hero Valkyrie"). One item per form, so a card that gains both at once is two. `at` is the profile read that saw it: the unlock happened **no later than** that, after some earlier read the record may not hold (collectors skip a profile that has not changed), so no earlier bound is served. Recorded from 2026-09-28 and never backfilled: a form unlocked before then is in `players_collection`'s `forms_unlocked`, never here |
 | `clan_joined`, `clan_left` | player | the player moved clans. A join is one Elixir saw happen, between two roster reads of the clan: the first time Elixir sees a player in a clan (the clan's first roster read, or the first read that records that member) is a baseline, never a join (from 2026-10-08; moments written before then are unchanged) |
-| `member_joined`, `member_left`, `member_role_changed` | clan | who, with the role; a departure is raw, the game cannot tell a leave from a kick (a clan's leaders can, through Elixir Clan: `departure_classified`), so its sentence says the member departed, never that they left; a classified kick says the member was removed. The same baseline rule: a clan's first roster read, and the first read of a clan that was read only for its tracked players before it was tracked, name nobody as joining |
+| `member_joined`, `member_left`, `member_role_changed` | clan | who, with the role; a departure is raw, the game cannot tell a leave from a kick (a clan's leaders can, through Clan: `departure_classified`), so its sentence says the member departed, never that they left; a classified kick says the member was removed. The same baseline rule: a clan's first roster read, and the first read of a clan that was read only for its tracked players before it was tracked, name nobody as joining |
 | `bracket_observed` | clan | the record's first sight of a new war week: `season_id`, `section_index`, `is_colosseum`, and `rivals[]` - the other four clans with `tag`, `name` and `recorded` (whether the hub records that clan, so a scout knows what it can drill). The week's start *time* is not here; `game_clock` has it |
 | `race_finished` | clan | the boat crossed the finish line, with fame |
 | `week_resolved` | clan | the week finished: fame, rank among the five, war trophy change, and each member's week by points |
@@ -453,7 +453,7 @@ page. Profile and agent pages show whether sharing is on.
 - **When.** About a minute after the record learns something about one
   of the subjects, the timeline is read from the cross-post's own place
   in it and anything new is posted. Nothing polls. An attested fact (a
-  leader's word in Elixir Clan, a family app's record) wakes it the same
+  leader's word in Clan, a family app's record) wakes it the same
   way. A quiet rung crossed by the clock posts with the next thing the
   record learns about that subject. Nothing from before it was turned on
   is posted. The cross-post's place never moves your read pointer, a
@@ -487,7 +487,7 @@ page. Profile and agent pages show whether sharing is on.
   with a note: feedback to Elixir, which cannot see your channel.
 
 A clan's leaders can also post the clan's own activity to a channel,
-chosen by category and set by the clan's policy, from Elixir Clan's
+chosen by category and set by the clan's policy, from Clan's
 Social ▸ Discord ([The clan's activity in
 Discord](/docs/clan-policy#the-clans-activity-in-discord)). The panel
 names each clan you follow that does, with one of your verified players

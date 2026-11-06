@@ -207,7 +207,7 @@ test("@narrow a welcome takes the leader's note and completes with both lines se
     .getByRole("textbox", { name: "Chat message 2", exact: true })
     .fill("War days are Thursday to Sunday.");
   await accessible(page);
-  await page.getByRole("button", { name: "Welcomed", exact: true }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect
     .poll(() => decisions)
     .toEqual([

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { seasonReport } from "@elixir-mcp/clan-engine";
 import { seasonRecordFixture } from "@elixir-mcp/clan-engine/fixtures";
-import { ME, mockApi, signedIn } from "./fixtures.ts";
+import { ME, clanTab, mockApi, signedIn } from "./fixtures.ts";
 
 const base = "/clan/2PQRJ8LV";
 const apiPath = "/api/clan/clans/2PQRJ8LV/season";
@@ -62,18 +62,18 @@ for (const width of [390, 1280]) {
       );
       await page.goto(`${base}/season/136`);
       await expect(
-        page.getByRole("heading", { name: "Season 136", exact: true }),
+        page.getByRole("heading", { name: /^All of Season 136/ }),
       ).toBeVisible();
       await expect(
-        page.getByRole("group", { name: "Recorded season totals" }),
+        page.getByRole("group", { name: "Season totals" }),
       ).toContainText("18,100");
       await expect(page.getByRole("table")).toContainText("Partial readings");
       await expect(page.locator("main")).toContainText(
         "2 current and 1 former",
       );
-      await expect(page.locator("main")).toContainText(
-        "Closed · partial record",
-      );
+      await expect(
+        page.getByRole("heading", { name: /^All of Season 136/ }),
+      ).toContainText("Closed");
       await expect(page.locator("main")).not.toContainText(
         /inactive|win rate|donations/i,
       );
@@ -110,40 +110,30 @@ for (const width of [390, 1280]) {
         fullPage: true,
       });
       await page
-        .getByRole("combobox", { name: "Season", exact: true })
+        .getByRole("combobox", { name: "Period", exact: true })
         .selectOption("137");
       await expect(page).toHaveURL(`${base}/season/137`);
       await expect(
-        page.getByRole("heading", { name: "Season 137", exact: true }),
+        page.getByRole("heading", { name: /^All of Season 137/ }),
       ).toBeVisible();
       await expect(page.getByRole("table")).toContainText("Upcoming");
       await expect(page.getByRole("table")).toContainText("So far");
       expect(reads).toBe(1);
       await page.goBack();
       await expect(
-        page.getByRole("heading", { name: "Season 136", exact: true }),
+        page.getByRole("heading", { name: /^All of Season 136/ }),
       ).toBeVisible();
       expect(reads).toBe(1);
       await page.reload();
       await expect(
-        page.getByRole("heading", { name: "Season 136", exact: true }),
+        page.getByRole("heading", { name: /^All of Season 136/ }),
       ).toBeVisible();
       expect(reads).toBe(2);
-      await expect(
-        page.getByRole("link", { name: "The week ›", exact: true }),
-      ).toHaveAttribute("href", `${base}/week`);
-      // On a phone the rail folds into its row; the clan is the picker
-      // beside it, so the row names only the page.
-      if (width === 390) {
-        const toggle = page.locator(".rail__toggle");
-        await expect(toggle).toContainText("Season");
-        await toggle.click();
-      }
-      await expect(
-        page
-          .locator(".rail")
-          .getByRole("link", { name: "Season", exact: true }),
-      ).toHaveAttribute("href", `${base}/season`);
+      // The Season tab keeps its address on a phone and a desktop alike.
+      await expect(clanTab(page, "Season")).toHaveAttribute(
+        "href",
+        `${base}/season`,
+      );
       expect(writes).toEqual([]);
       expect(errors).toEqual([]);
     });
@@ -169,15 +159,11 @@ test("season distinguishes no capture, missing races and unavailable reads", asy
     }),
   );
   await page.goto(`${base}/season`);
-  await expect(page.getByRole("table")).toContainText("Not recorded");
-  await expect(
-    page.getByRole("group", { name: "Recorded season totals" }),
-  ).toContainText("—");
   await page
-    .getByRole("combobox", { name: "Season", exact: true })
+    .getByRole("combobox", { name: "Period", exact: true })
     .selectOption("136");
-  await expect(page.getByRole("table")).toContainText("Not recorded");
-  await expect(page.locator("main")).toContainText("partial record");
+  await expect(page.getByRole("table")).toContainText("Not in this read");
+  await expect(page.locator("main")).toContainText("no reading yet");
   await page.goto(`${base}/season/100`);
   await expect(page.getByRole("alert")).toContainText("outside this read");
   failed = true;
@@ -185,9 +171,9 @@ test("season distinguishes no capture, missing races and unavailable reads", asy
   await expect(page.getByRole("alert")).toContainText("did not answer", {
     timeout: 10_000,
   });
-  await expect(
-    page.getByRole("group", { name: "Recorded season totals" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Season totals" })).toHaveCount(
+    0,
+  );
 });
 
 test("season API refusal shows no totals for a revoked clan entitlement", async ({
@@ -202,7 +188,7 @@ test("season API refusal shows no totals for a revoked clan entitlement", async 
   );
   await page.goto(`${base}/season/136`);
   await expect(page.getByRole("alert")).toContainText("does not allow");
-  await expect(
-    page.getByRole("group", { name: "Recorded season totals" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Season totals" })).toHaveCount(
+    0,
+  );
 });

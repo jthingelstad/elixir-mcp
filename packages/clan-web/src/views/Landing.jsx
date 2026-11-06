@@ -19,7 +19,7 @@ export function Landing({ error, here = "/clan" }) {
   const signup = signupHref(here);
   return (
     <div style={{ maxWidth: "560px", margin: "40px auto 0" }}>
-      <p className="eyebrow">ELIXIR CLAN</p>
+      <p className="eyebrow">CLAN</p>
       <h1 className="hero-title">Your clan, on Elixir.</h1>
       <p className="lede">
         The roster with every member&rsquo;s role, trophies, donations and

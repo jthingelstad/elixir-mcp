@@ -5,8 +5,7 @@ import { landingPath } from "./landing.js";
 /**
  * Selecting a clan: remember it on the server, then, unless the address
  * already names where to go (`keepPath`), go straight to the clan's
- * landing. The answer carries what waits for the person there, so the
- * roster never shows first and no redirect follows.
+ * Today, so no redirect follows.
  *
  * One selection at a time. `selecting` holds until the address is the
  * new clan's: the Clan picker picks from another clan's page, which the
