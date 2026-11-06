@@ -2,7 +2,12 @@ import { useLocation } from "@tanstack/react-router";
 import { Link, PageHead, Tabs, TagText } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
 import { CONSOLE } from "../lib/console.js";
-import { useHome, useHomeFriends, useTimelineDiscord } from "../lib/queries.js";
+import {
+  useHome,
+  useHomeFriends,
+  useTimelineDiscord,
+  useTimelineNews,
+} from "../lib/queries.js";
 import { HOME_TABS } from "../home/logic.js";
 import { NewAccount, recorded } from "../home/NewAccount.jsx";
 import { TodayError, TodayFresh, TodayPanels } from "../home/Today.jsx";
@@ -22,10 +27,18 @@ export function HomePage() {
   );
 }
 
-function HomeTabs({ value, me }) {
+/** The Timeline tab's mark says something was learned since the page was last
+ *  opened. Only a mark: the real count takes the feed itself to build, and the
+ *  page's New chip carries it, so the tab and the page cannot disagree. */
+function HomeTabs({ value }) {
+  const news = useTimelineNews();
   const items = HOME_TABS.map((t) =>
     t.key === "timeline"
-      ? { ...t, count: me?.signals?.timeline_pending ?? null }
+      ? {
+          ...t,
+          mark: news.data?.unread === true,
+          markLabel: "New since you last opened it",
+        }
       : t,
   );
   return <Tabs label="Home" items={items} value={value} />;
@@ -41,7 +54,7 @@ function TodayTab() {
     return (
       <>
         <PageHead title="Today" />
-        <HomeTabs value="today" me={me} />
+        <HomeTabs value="today" />
         <TodayError busy={query.isFetching} onRetry={() => query.refetch()} />
       </>
     );
@@ -49,7 +62,7 @@ function TodayTab() {
     return (
       <>
         <PageHead title="Today" />
-        <HomeTabs value="today" me={me} />
+        <HomeTabs value="today" />
         <div className="kit-skeleton" aria-busy="true" />
       </>
     );
@@ -81,14 +94,13 @@ function TodayTab() {
         }
         aside={<TodayFresh player={player} />}
       />
-      <HomeTabs value="today" me={me} />
+      <HomeTabs value="today" />
       <TodayPanels data={data} me={me} player={player} />
     </>
   );
 }
 
 function TimelineTab() {
-  const { me } = useMe();
   const discord = useTimelineDiscord();
   return (
     <>
@@ -97,7 +109,7 @@ function TimelineTab() {
         sub="The last seven days, newest first."
         aside={<DiscordLine status={discord.data} />}
       />
-      <HomeTabs value="timeline" me={me} />
+      <HomeTabs value="timeline" />
       <HomeTimeline />
     </>
   );
@@ -115,7 +127,6 @@ function DiscordLine({ status }) {
 }
 
 function FriendsTab() {
-  const { me } = useMe();
   const query = useHomeFriends();
   const week = query.data?.week?.label;
   return (
@@ -128,7 +139,7 @@ function FriendsTab() {
             : "The people you follow, the same week as Wednesday's mail."
         }
       />
-      <HomeTabs value="friends" me={me} />
+      <HomeTabs value="friends" />
       <HomeFriends query={query} />
     </>
   );

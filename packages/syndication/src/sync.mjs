@@ -12,6 +12,7 @@
 import { DISCORD_POSTS_MAX } from "@elixir-mcp/contracts";
 import {
   buildTimeline,
+  shownAt,
   isPublishable,
   subjectsFor,
   timelineNews,
@@ -188,7 +189,7 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
   const told = new Map(toldRows.map((r) => [r.item_id, r]));
   const fresh = items
     .filter((it) => (told.get(it.id)?.revision ?? 0) < postRevision(it))
-    .sort((a, b) => (a.at ?? "").localeCompare(b.at ?? ""));
+    .sort((a, b) => shownAt(a).localeCompare(shownAt(b)));
 
   if (fresh.length) {
     const battles = await battleLinks(
@@ -218,7 +219,7 @@ async function syncLocked(db, accountId, { outbox, readStatus, now }) {
           mode: "line",
           items: [{ id: it.id, kind: it.kind }],
           content: posts[i].content,
-          event_at: it.at,
+          event_at: shownAt(it),
           observed_at: it.observed_at ?? it.at,
           handed_at: new Date(now),
         })),

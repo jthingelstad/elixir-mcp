@@ -6,7 +6,7 @@ import { RECORDING_DOCS } from "./common.mjs";
 
 export const elixir_track_player = {
   description:
-    "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded), within your player slots (an agent spends its owner's). Say who they are to you with relationship (primary = you, alt = also you, friend, watching); your first player becomes your primary. A tag another account verified is theirs: you may only follow it (friend or watching). An agent tracks as watching only. action remove releases the claim (recording stops if you were its only reason); notify_on / notify_off control whether the player feeds your elixir_timeline.",
+    "Track a player on your account: claims the tag AND starts recording in one act (tracked means recorded), within your player slots (an agent spends its owner's). Say who they are to you with relationship (primary = you, alt = also you, friend, watching); a first player is your primary unless named friend or watching. A tag another account verified is theirs: you may only follow it (friend or watching). An agent tracks as watching only. action remove releases the claim (recording stops if you were its only reason); notify_on / notify_off control whether the player feeds your elixir_timeline.",
   inputSchema: {
     type: "object",
     properties: {
@@ -130,7 +130,9 @@ export const elixir_track_player = {
       applied: appliedBlock({
         player_tag: tag,
         action,
-        relationship: args.relationship ?? "watching",
+        relationship: r.isPrimary
+          ? "primary"
+          : (args.relationship ?? "watching"),
       }),
       notes: notes(
         r.recordingStarted
@@ -138,6 +140,9 @@ export const elixir_track_player = {
           : "Tracked; this player was already being recorded, so you share the existing record from here on.",
         first.not_found
           ? `Clash Royale answered "not found" for ${tag} on its last read today: check the tag (in the game, open the player's profile; the tag is below the name), and remove it with action remove if it is wrong.`
+          : null,
+        r.noOwnPlayer
+          ? "This account has no player of its own yet, so a tool that defaults to you has nobody to mean: add yours with relationship primary."
           : null,
         first.requested
           ? "A first read of this profile is on its way; if Clash Royale has no player with this tag, the Console's capture status says so within minutes."

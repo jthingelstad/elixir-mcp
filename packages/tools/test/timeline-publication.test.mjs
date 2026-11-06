@@ -158,11 +158,12 @@ test("Friday's games stay out of Saturday's window; a poller sees them late, dat
   assert.equal(friday.late, true);
   assert.deepEqual(friday.local, {
     date: "2026-10-09",
-    time: "15:00",
+    time: "15:06",
     weekday: "Fri",
     tz: TZ,
   });
-  assert.equal(friday.at_unix, FRIDAY_PLAY / 1000);
+  // The time shown is the time it sorts by, its last battle; `at` is its first.
+  assert.equal(friday.at_unix, Date.parse(friday.sort_at) / 1000);
   // The sentence never carries a time: the reader's clock is the
   // renderer's (Discord's <t:at_unix:f>, the console's local fields).
   for (const it of learned.timeline) {

@@ -3,10 +3,6 @@ import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { nextPoll, useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { CONSOLE } from "../lib/console.js";
 import { recordJourney } from "../lib/record-journey.js";
-import {
-  QuestionSuggestions,
-  starterQuestions,
-} from "./QuestionSuggestions.jsx";
 
 const n = (v) => (Number.isFinite(v) ? v.toLocaleString() : "unknown");
 const hasBattles = hasBattleEvidence;
@@ -17,13 +13,9 @@ const provable = (p) =>
   !p || p.is_primary !== false || p.relationship === "alt";
 
 /** Readiness is derived from the record, including a successful data read:
- * an OAuth connection alone does not show that the client's setup works.
- * `group` places a step: the record's own steps, the optional clan war
- * history, and the optional AI client (folded on the full page). */
+ * the record's own steps, on the tracked player's page. */
 function readiness(data, notFound = false) {
   const p = data.player;
-  const c = data.connection;
-  const clan = data.clan;
   const captured = hasBattles(p);
   return [
     {
@@ -89,43 +81,6 @@ function readiness(data, notFound = false) {
       action: p ? "Verify your player" : null,
       to: `${CONSOLE}/account/verify`,
     },
-    {
-      group: "clan",
-      label: "Clan war history (optional)",
-      done: Boolean(clan),
-      detail: clan
-        ? `${clan.name ?? clan.clan_tag} · ${n(clan.war_weeks)} war weeks`
-        : "no recorded clan war history available",
-      action: p ? "Clan recording" : null,
-      to: `${CONSOLE}/account/tracking`,
-    },
-    {
-      group: "ai",
-      label: "AI client connection (optional)",
-      done: (c.active_connections ?? 0) > 0,
-      detail:
-        c.active_connections == null
-          ? "connection status unavailable"
-          : c.active_connections === 0
-            ? "no connections yet"
-            : c.last_data_read_at
-              ? `${c.active_connections} connected · last read ${ago(c.last_data_read_at)}`
-              : `${c.active_connections} connected · no successful data read in the last 7 days`,
-      action: "Connect your client",
-      to: `${CONSOLE}/account/connections`,
-    },
-    {
-      group: "ai",
-      label: "AI client data reads (optional)",
-      done: Boolean(c.last_data_read_at),
-      detail: c.last_data_read_at
-        ? `successful data read ${ago(c.last_data_read_at)}`
-        : "last_data_read_at" in c
-          ? "no successful data read in the last 7 days · a connection alone does not confirm a data read"
-          : "recent data reads unavailable",
-      action: c.active_connections > 0 ? "Connection help" : null,
-      to: "/docs/quickstart",
-    },
   ].filter(Boolean);
 }
 
@@ -138,52 +93,16 @@ function readiness(data, notFound = false) {
 export function FirstAnswer({
   claimsKey,
   playerTag,
-  compact = false,
   answer = null,
   fix = null,
-  summarize = false,
 }) {
   const { when } = useClock();
   const own = useFirstAnswer(claimsKey, { playerTag, enabled: !answer });
   const { data, loading, error, refresh } = answer ?? own;
   const next = data ? recordJourney(data) : null;
   const notFound = Boolean(next?.notFound);
-  const steps = data ? readiness(data, notFound) : [];
-  // The record's steps always; clan war history on the full page; the AI
-  // client steps folded below it.
-  const shown = steps.filter(
-    (s) => !s.group || (s.group === "clan" && !compact),
-  );
-  const ai = steps.filter((s) => s.group === "ai");
+  const shown = data ? readiness(data, notFound) : [];
   const wait = data ? nextPoll(data) : null;
-  const questions = data ? starterQuestions(data).slice(0, 1) : [];
-  const healthy =
-    summarize &&
-    data?.player?.recording_status === "active" &&
-    data.player.profile_available &&
-    hasBattles(data.player) &&
-    !next?.failedAt &&
-    !next?.partial &&
-    !error;
-  if (healthy)
-    return (
-      <details className="disclosure recording-summary">
-        <summary>
-          <span>Recording active</span>
-          <span className="text-ink-dim">
-            {data.player.name ?? data.player.player_tag}
-          </span>
-          <span className="recording-summary__detail">Setup details</span>
-        </summary>
-        <div className="disclosure__body">
-          <FirstAnswer
-            claimsKey={claimsKey}
-            playerTag={playerTag}
-            answer={answer ?? own}
-          />
-        </div>
-      </details>
-    );
   return (
     <section className="mb-6" aria-labelledby="first-answer-title">
       <div className="flex flex-wrap items-baseline gap-2 pb-3">
@@ -251,29 +170,13 @@ export function FirstAnswer({
         </p>
       )}
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        {next &&
-          !notFound &&
-          !(compact && next.action === "Check recording status") && (
-            <Link className="btn btn--primary" to={next.to}>
-              {next.action} ›
-            </Link>
-          )}
+        {next && !notFound && next.action !== "Check recording status" && (
+          <Link className="btn btn--primary" to={next.to}>
+            {next.action} ›
+          </Link>
+        )}
         {next?.profile && (
           <Link to={next.profile.to}>{next.profile.action} ›</Link>
-        )}
-        {data?.clan && !compact && (
-          <Link
-            to={
-              data.clan.latest_week
-                ? `${CONSOLE}/explore/week/${data.clan.clan_tag.replace(/^#/, "")}~${data.clan.latest_week.season_id}~${data.clan.latest_week.section_index}`
-                : `${CONSOLE}/explore/list/weeks:${data.clan.clan_tag.replace(/^#/, "")}`
-            }
-          >
-            {data.clan.latest_week
-              ? "View recorded war week"
-              : "Browse recent war weeks"}{" "}
-            ›
-          </Link>
         )}
         <button className="btn btn--sm" onClick={refresh} disabled={loading}>
           {loading ? "Checking…" : "Check again"}
@@ -313,53 +216,6 @@ export function FirstAnswer({
           </div>
         ))}
       </div>
-      {!compact && data && (
-        <details className="mt-4">
-          <summary className="cursor-pointer text-[13.5px]">
-            AI clients (optional)
-          </summary>
-          <p className="mt-3 text-ink-faint">
-            Read your recorded profile and battles in this browser. Connecting
-            an AI client is optional.
-          </p>
-          {ai.map((s) => (
-            <p className="mt-3" key={s.label}>
-              <span>{s.label}</span>:{" "}
-              <span>
-                <TagText>{s.detail}</TagText>
-              </span>
-              {(!s.done || s.showAction) && s.action && (
-                <>
-                  {" "}
-                  · <Link to={s.to}>{s.action} ›</Link>
-                </>
-              )}
-            </p>
-          ))}
-          {questions.length > 0 && (
-            <div className="first-answer mt-4">
-              <h3 className="mb-2 font-semibold">
-                Ask an AI client (optional)
-              </h3>
-              <p className="mb-3 text-ink-body">
-                {data.connection.active_connections > 0
-                  ? "Copy this question into your connected AI client. A successful data read will appear above."
-                  : "If you want to ask an AI client, connect one and copy this question into that chat. You can use Ladder without connecting a client."}
-              </p>
-              <QuestionSuggestions
-                key={questions[0].prompt}
-                questions={questions}
-              />
-              <Link
-                className="inline-block pt-3"
-                to={`${CONSOLE}/account/connections`}
-              >
-                More questions and your connections ›
-              </Link>
-            </div>
-          )}
-        </details>
-      )}
     </section>
   );
 }

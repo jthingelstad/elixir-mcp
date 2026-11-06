@@ -186,21 +186,12 @@ test("readiness names what each line is waiting for, not just that it is not don
   respond();
   render(<FirstAnswer claimsKey="a" />);
   await screen.findByText("Player tag saved");
-  expect(
-    screen
-      .getByRole("link", { name: /Check recording status/ })
-      .getAttribute("href"),
-  ).toBe("/console/account/tracking/2PP0V90Y");
   expect(screen.getByText("no profile read yet")).toBeTruthy();
   expect(
     screen.getByText(
       "No battles recorded in the last 30 days · some may not have been read",
     ),
   ).toBeTruthy();
-  expect(
-    screen.getByText("no recorded clan war history available"),
-  ).toBeTruthy();
-  expect(screen.getByText("no connections yet")).toBeTruthy();
 });
 
 test("readiness carries the window on every number it shows", async () => {
@@ -227,41 +218,21 @@ test("readiness carries the window on every number it shows", async () => {
   expect(
     screen.getByText("1,284 in the last 30 days · 38 in the last 7"),
   ).toBeTruthy();
-  expect(screen.getByText("POAP KINGS · 27 war weeks")).toBeTruthy();
   expect(screen.getByText("read 4m ago")).toBeTruthy();
 });
 
-test("an active connection without a recent read is not the same as no connection", async () => {
-  // A quiet agent and a broken one look identical from a count alone,
-  // which is the whole reason this line carries the last read.
-  respond(player, { ...connection, active_connections: 1 });
-  render(<FirstAnswer claimsKey="a" />);
-  await screen.findByText(
-    "1 connected · no successful data read in the last 7 days",
-  );
-});
-
-test("a browser-only profile opens the saved profile while AI and clan setup stay optional", async () => {
+test("a browser-only profile opens the saved profile", async () => {
   respond({ ...player, profile_available: true });
   render(<FirstAnswer claimsKey="a" />);
   await screen.findByRole("link", {
     name: /Browse recorded battles|View recorded profile/,
   });
-  expect(screen.getByText("Clan war history (optional)")).toBeTruthy();
   expect(screen.getByText("read, at a time Elixir did not keep")).toBeTruthy();
   expect(screen.queryByText("snapshot never")).toBeNull();
-  expect(screen.getByText("AI client connection (optional)")).toBeTruthy();
-  fireEvent.click(screen.getByText("AI clients (optional)"));
-  expect(
-    screen.getByRole("heading", { name: "Ask an AI client (optional)" }),
-  ).toBeTruthy();
-  expect(
-    screen.getByText(/You can use Ladder without connecting a client/),
-  ).toBeTruthy();
   expect(screen.queryByText(/\d of 6/)).toBeNull();
 });
 
-test("Verify is a step after battles and before the optional ones, linking to Verify", async () => {
+test("Verify is a step after battles, linking to Verify", async () => {
   respond({ ...player, is_primary: true, verified: false, verified_at: null });
   render(<FirstAnswer claimsKey="a" />);
   const label = await screen.findByText(
@@ -269,12 +240,10 @@ test("Verify is a step after battles and before the optional ones, linking to Ve
   );
   const link = screen.getByRole("link", { name: "Verify your player ›" });
   expect(link.getAttribute("href")).toBe("/console/account/verify");
-  // In the record's own steps: after Battles on record, before the clan
-  // war history and the folded AI client steps.
+  // In the record's own steps: after Battles on record.
   const order = [
     "Battles on record",
     "Player verified (needed to act in Clan)",
-    "Clan war history (optional)",
   ].map((t) => screen.getByText(t));
   for (let i = 1; i < order.length; i++)
     expect(
@@ -297,7 +266,7 @@ test("a verified player's step is done; a friend has no Verify step", async () =
     verified: true,
     verified_at: "2026-09-08T22:00:00Z",
   });
-  render(<FirstAnswer claimsKey="a" compact />);
+  render(<FirstAnswer claimsKey="a" />);
   expect(
     await screen.findByText("Player verified (needed to act in Clan)"),
   ).toBeTruthy();
@@ -306,7 +275,7 @@ test("a verified player's step is done; a friend has no Verify step", async () =
   ).toBeNull();
   cleanup();
   respond({ ...player, is_primary: false, relationship: "friend" });
-  render(<FirstAnswer claimsKey="b" compact />);
+  render(<FirstAnswer claimsKey="b" />);
   await screen.findByText("Battles on record");
   expect(
     screen.queryByText("Player verified (needed to act in Clan)"),
@@ -332,19 +301,12 @@ test("older retained battles remain usable when recording stopped and the profil
     screen.getByRole("link", { name: /Manage recording/ }).getAttribute("href"),
   ).toBe("/console/account/tracking");
   expect(screen.queryByText(/Waiting for the first/)).toBeNull();
-  fireEvent.click(screen.getByText("AI clients (optional)"));
-  expect(
-    screen.getByRole("button", {
-      name: "Copy question: Review your retained history",
-    }),
-  ).toBeTruthy();
 });
 
 test("paused recording without capture points to status instead of promising the next poll", async () => {
   respond({ ...player, recording_status: "paused" });
   render(<FirstAnswer claimsKey="a" />);
-  await screen.findByRole("link", { name: /Check recording status/ });
-  expect(screen.getByText(/recording paused/)).toBeTruthy();
+  await screen.findByText(/recording paused/);
   expect(screen.queryByText(/Waiting for the first/)).toBeNull();
   expect(
     screen.queryByRole("link", {
@@ -354,7 +316,7 @@ test("paused recording without capture points to status instead of promising the
   expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
 });
 
-test("partial capture and connection facts are unavailable rather than invented zeroes", async () => {
+test("partial capture is unavailable rather than an invented zero", async () => {
   respond(
     {
       ...player,
@@ -371,23 +333,7 @@ test("partial capture and connection facts are unavailable rather than invented 
       name: /Browse recorded battles|View recorded profile/,
     }),
   ).toBeTruthy();
-  expect(screen.getByText("connection status unavailable")).toBeTruthy();
-  expect(screen.getByText("recent data reads unavailable")).toBeTruthy();
   expect(screen.queryByText(/0 in the last 30 days/)).toBeNull();
-  expect(screen.queryByText("no connections yet")).toBeNull();
-});
-
-test("successful reads are reported as reads, never as answers", async () => {
-  respond(player, {
-    ...connection,
-    active_connections: 1,
-    successful_data_calls_7d: 2,
-    data_read_days_7d: 2,
-    last_data_read_at: "2026-09-08T21:00:00Z",
-  });
-  render(<FirstAnswer claimsKey="a" />);
-  const line = await screen.findByText(/1 connected · last read/);
-  expect(line.textContent).not.toMatch(/answer/i);
 });
 
 test("a failed readiness request explains itself and can retry", async () => {
@@ -507,42 +453,6 @@ test("changing primary discards old suggestions even when the earlier request ar
   );
 });
 
-test("Overview links incomplete steps and offers a supported first question without counting a connection as a read", async () => {
-  respond(
-    { ...player, profile_available: true },
-    { ...connection, active_connections: 1 },
-  );
-  const copy = vi.fn().mockResolvedValue();
-  Object.defineProperty(navigator, "clipboard", {
-    configurable: true,
-    value: { writeText: copy },
-  });
-  render(<FirstAnswer claimsKey="a" />);
-  await screen.findByRole("link", {
-    name: /Browse recorded battles|View recorded profile/,
-  });
-  expect(
-    screen.getByRole("link", { name: /Clan recording/ }).getAttribute("href"),
-  ).toBe("/console/account/tracking");
-  fireEvent.click(screen.getByText("AI clients (optional)"));
-  expect(
-    screen.getByRole("link", { name: /Connection help/ }).getAttribute("href"),
-  ).toBe("/docs/quickstart");
-  fireEvent.click(
-    screen.getByRole("button", {
-      name: "Copy question: Start with your latest profile",
-    }),
-  );
-  await screen.findByText("Copied. Paste into your connected client.");
-  expect(copy.mock.calls[0][0]).toContain(player.player_tag);
-  expect(copy.mock.calls[0][0]).toContain(
-    "Do not infer progress from a single reading",
-  );
-  expect(
-    screen.getByText(/a connection alone does not confirm a data read/),
-  ).toBeTruthy();
-});
-
 // 2026-10-08: "Tag not found" took up to a minute to show after an add,
 // because the status was read once a minute. The first minutes after an
 // add are read every few seconds.
@@ -600,58 +510,4 @@ test("the status is read every few seconds just after an add, then once a minute
       { now },
     ),
   ).toBe(null);
-});
-
-test("overview folds healthy recording but keeps capture failure and partial coverage visible", () => {
-  const captured = {
-    ...player,
-    profile_available: true,
-    battles_30d: 12,
-    battles_7d: 5,
-  };
-  const answer = (p) => ({
-    data: { as_of: "2026-10-13T12:00:00Z", player: p, connection },
-    loading: false,
-    error: null,
-    refresh: vi.fn(),
-  });
-  const { container, rerender } = render(
-    <FirstAnswer summarize answer={answer(captured)} />,
-  );
-  expect(container.querySelector("details.recording-summary")).toBeTruthy();
-  expect(container.querySelector("details.recording-summary").open).toBe(false);
-  fireEvent.click(screen.getByText("Setup details"));
-  expect(screen.getByRole("heading", { name: "Your recording" })).toBeTruthy();
-  rerender(
-    <FirstAnswer
-      summarize
-      answer={answer({
-        ...captured,
-        capture_attempts: [
-          {
-            endpoint: "player_battlelog",
-            last_failed_at: "2026-10-13T11:00:00Z",
-            last_failed_status: 503,
-          },
-        ],
-      })}
-    />,
-  );
-  expect(container.querySelector("details.recording-summary")).toBeNull();
-  expect(screen.getByText("The last read failed")).toBeTruthy();
-  rerender(
-    <FirstAnswer
-      summarize
-      answer={answer({
-        ...captured,
-        capture_interval: {
-          ratio: 0.5,
-          from: "2026-10-12T12:00:00Z",
-          to: "2026-10-13T12:00:00Z",
-        },
-      })}
-    />,
-  );
-  expect(container.querySelector("details.recording-summary")).toBeNull();
-  expect(screen.getByRole("heading", { name: "Your recording" })).toBeTruthy();
 });

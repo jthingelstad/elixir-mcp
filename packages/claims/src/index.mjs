@@ -317,8 +317,16 @@ export async function addPlayer(
       [tag],
     );
 
+    // A first player is the person only when nothing says otherwise: a friend
+    // or a watched player named on the way in stays that (2026-11-06), and the
+    // account has no player of its own until it names one.
     const wantPrimary =
-      !agent && !owned && !follow && (makePrimary === true || first);
+      !agent &&
+      !owned &&
+      !follow &&
+      (makePrimary === true ||
+        (first &&
+          (!relationship || SELF_RELATIONSHIPS.includes(relationship))));
 
     // Clear the old primary BEFORE inserting the new one. Inserting a
     // second is_primary row first is what tripped the partial unique
@@ -406,6 +414,7 @@ export async function addPlayer(
       ok: true,
       added: claimed > 0,
       isPrimary: wantPrimary,
+      noOwnPlayer: first && !wantPrimary,
       recordingStarted: started,
       clanFollowed: clan?.followed ?? null,
       ...(follow ? { relationship: current } : {}),

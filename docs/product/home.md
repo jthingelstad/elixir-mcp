@@ -42,7 +42,7 @@ The signed-in person. An agent has no Home.
    2026-11-05]
 5. **A gap is unknown.** "No battle recorded this week", never that someone did
    not play. [Jamie, standing]
-6. **The place in the Timeline is the page's own.** Opening it clears the count
+6. **The place in the Timeline is the page's own.** Opening it clears the mark
    and changes nothing a connection has read. [Jamie, 2026-10-20]
 7. **Follow means Friend, and never you.** With no player of your own, Friends
    asks for yours first. They aren't told. [Jamie's ruling Q10, A4, 2026-11-05]

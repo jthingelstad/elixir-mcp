@@ -215,7 +215,6 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
         <FirstAnswer
           playerTag={wanted}
           claimsKey={`${wanted}:${claim.is_primary}`}
-          compact
           answer={answer}
           fix={
             notFound ? (

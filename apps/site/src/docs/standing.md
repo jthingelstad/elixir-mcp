@@ -28,7 +28,12 @@ the policy's removal day becomes a removal Action for the leaders
 | Clan Wars | war decks played out of the decks asked: four a war day, up to the clan's finish, all four days in a Colosseum week | the last finished war weeks, 1 to 8 |
 | Path of Legends | Path of Legends battles played; the league reached does not count | the last whole weeks, 1 to 8 |
 | Donations | cards donated, as a weekly average | the last weeks, 1 to 8 |
-| Trophy road | trophies today | no window: Standing counts today's trophies. The record keeps daily readings from the day recording began, but Standing does not compare them |
+| Trophy road | trophies today | no window: Standing counts today's trophies. The record keeps one reading for each game day a read landed, from its first reading of the player (`recorded_since`, which an imported history can put before recording began), and a day with no read is unknown. Standing does not compare them |
+
+Path of Legends and Donations read ISO weeks, starting Monday 00:00 UTC,
+ten hours before the war week and The week start at Monday's reset. So a
+game played in those ten hours counts in a different week here than on The
+week, and the two counts can differ by that much.
 
 Each category is off until the clan switches it on, and each clan picks
 its own windows. Eight weeks is the most, because Clan reads eight weeks

@@ -137,8 +137,8 @@ section, text, visibility, publishable, facts, follow }`:
 | `revision` | how far the story has grown: 1 for a moment that never grows. A sitting's is its battles the record holds so far, so a sitting told at 20 battles and read again at 40 is the same `id` at a higher `revision`; a crossing's is its proof's attachment revision |
 | `at` | when it happened; what that means for each kind is in [the facts table](#the-facts-keys-by-kind) |
 | `sort_at` | the instant the feed is ordered by and an occurred window selects on: a sitting's last battle, else `at` |
-| `at_unix` | `at` in Unix seconds, for a renderer's own clock |
-| `local` | `at` on the reader's clock: `date` (`YYYY-MM-DD`), `time` (`HH:MM`), `weekday` (`Sat`) and `tz` |
+| `at_unix` | `sort_at` in Unix seconds, for a renderer's own clock |
+| `local` | `sort_at` on the reader's clock: `date` (`YYYY-MM-DD`), `time` (`HH:MM`), `weekday` (`Sat`) and `tz` |
 | `observed_at` | when the record learned it, which an observed window selects on; a polled moment can be learned well after `at` |
 | `late` | an observed read learned it, but it happened before `from`; always `false` on an occurred read |
 | `subject_tag`, `subject_name` | whose story it is: a player or a clan, by the in-game name; `subject_tag` is null on your account's items |
@@ -310,21 +310,21 @@ An evidence read returns that one item and its page, without full summary
 entries, so even a busy feed has room for supporting game facts. The response's `evidence`
 carries `item_id`, the item's evidence fields, `offset`, `limit`, and
 `battles` with canonical `battle_id`, `at`, `type`, `mode_group`,
-`outcome`, `crowns`, `trophy_change`, `url`, `short_id` and
+`outcome`, `crowns`, `trophy_change`, `opponents` (`{ player_tag, name, crowns,
+clan_tag, clan_name }`, by in-game name), `url`, `short_id` and
 `relation` (`constituent` or `proved_crossing`), plus `next_offset` or null.
 A read that cannot be served is refused as `bad_request`, and the message
 names why: `evidence_changed` (refresh the item before continuing),
 `version_required` (a later page without `expected_evidence_version`),
 or `evidence_unavailable` (the item is not visible in that window, or
 carries no evidence). An `evidence_offset` or `evidence_limit` out of range
-is refused by argument validation, as any argument is. Evidence reads always
+is refused by argument validation. Evidence reads always
 keep the read pointer, including when `mark_read` is omitted.
-Paging constituent games does not change the newsfeed's cap or ordering.
+Paging games does not change the newsfeed's cap or order.
 The membership fingerprint and page share one database snapshot; concurrent
 capture asks for a refresh instead of silently shifting game offsets.
 
-Each result belongs to that game's mode (above). Evidence serves the same
-canonical facts to authorized MCP agents as to people.
+Each result belongs to its game's mode (above). Agents and people get the same facts.
 
 Evidence is limited to the reader's visible timeline subjects. Private
 attested facts keep their membership and role checks and carry no game

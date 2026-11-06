@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
+  clanStepLine,
   friendsView,
+  gameLine,
   lastRaceLine,
   needsYou,
   timelineDays,
@@ -163,8 +165,75 @@ describe("Timeline days", () => {
     expect(days.map((d) => d.rows.length)).toEqual([2, 1]);
     expect(days[0].rows.map((r) => r.newLine)).toEqual([false, true]);
   });
+  test("a sitting sits on the day and order of its last battle, not its first", () => {
+    const days = timelineDays(
+      [
+        {
+          id: 1,
+          at: "2026-11-04T23:30:00Z",
+          sort_at: "2026-11-05T00:30:00Z",
+        },
+        { id: 2, at: "2026-11-04T23:40:00Z" },
+      ],
+      { day, openedMs: null },
+    );
+    expect(days.map((d) => d.key)).toEqual(["2026-11-05", "2026-11-04"]);
+    expect(days[0].at).toBe("2026-11-05T00:30:00Z");
+  });
   test("a first visit marks nothing new", () => {
     const days = timelineDays(items, { day, openedMs: null });
     expect(days.flatMap((d) => d.rows).some((r) => r.isNew)).toBe(false);
   });
+});
+
+describe("One recorded game in words", () => {
+  const base = { outcome: "win", crowns: 3, mode_group: "ladder" };
+  const opponent = {
+    player_tag: "#B",
+    name: "Rival",
+    crowns: 0,
+    clan_tag: "#C",
+    clan_name: "Their clan",
+  };
+  test("says the result, score, who and mode", () => {
+    expect(gameLine({ ...base, opponents: [opponent] })).toBe(
+      "Win 3-0 against Rival, Trophy Road",
+    );
+  });
+  test("a name the record has not read falls to the clan, then the tag", () => {
+    expect(
+      gameLine({ ...base, opponents: [{ ...opponent, name: null }] }),
+    ).toBe("Win 3-0 against Their clan, Trophy Road");
+    expect(
+      gameLine({
+        ...base,
+        opponents: [{ ...opponent, name: null, clan_name: null }],
+      }),
+    ).toBe("Win 3-0 against #B, Trophy Road");
+  });
+  test("two opponents are both named", () => {
+    expect(
+      gameLine({
+        ...base,
+        opponents: [
+          opponent,
+          { ...opponent, player_tag: "#D", name: "Second" },
+        ],
+      }),
+    ).toBe("Win 3-0 against Rival and Second, Trophy Road");
+  });
+  test("what the record cannot say is not said", () => {
+    expect(gameLine({ ...base, opponents: [] })).toBe("Win, Trophy Road");
+    expect(gameLine({ outcome: null, crowns: null, opponents: [] })).toBe(
+      "Outcome unknown",
+    );
+    expect(gameLine({ ...base, crowns: null, opponents: [opponent] })).toBe(
+      "Win against Rival, Trophy Road",
+    );
+  });
+});
+
+test("step 3 names a player only when there is one", () => {
+  expect(clanStepLine("Clan", true)).toBe("Clan, your player’s clan.");
+  expect(clanStepLine("Clan", false)).toBe("Clan, a clan you track.");
 });

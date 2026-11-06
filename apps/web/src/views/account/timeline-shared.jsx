@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { noun, useClock } from "@elixir-mcp/ui";
+import { TagText, noun, useClock } from "@elixir-mcp/ui";
+import { gameLine, shownAt } from "../../home/logic.js";
 import { useMarkTimelineSeen } from "../../lib/queries.js";
 import { useScope } from "../../lib/scope.js";
 
@@ -36,6 +37,13 @@ export function useTimelinePlace(timeline) {
   return { openedMs };
 }
 
+/** A row under a day's heading: only the time, and whose clock when the
+ *  account has named none. */
+export function useRowTime() {
+  const { clock, zone } = useClock();
+  return (ts) => `${clock(ts)}${zone ? "" : " UTC"}`;
+}
+
 /** One item's evidence: the wording of what was read, and its games. */
 export function TimelineEvidence({
   selected,
@@ -43,8 +51,13 @@ export function TimelineEvidence({
   offset,
   setOffset,
   onRefresh,
+  underDay = false,
 }) {
-  const { when } = useClock();
+  const { when, day } = useClock();
+  const rowTime = useRowTime();
+  // Under a day's heading a game of that day needs only its time.
+  const headed = underDay ? day(shownAt(selected)) : null;
+  const gameTime = (at) => (day(at) === headed ? rowTime(at) : when(at));
   const evidence = query.isSuccess && !query.isFetching ? query.data : null;
   return (
     <>
@@ -108,11 +121,13 @@ export function TimelineEvidence({
           )}
           <ol className="space-y-2" start={offset + 1}>
             {evidence.battles.map((b) => (
-              <li key={b.battle_id}>
-                <a href={b.url} target="_blank" rel="noopener noreferrer">
-                  {when(b.at)} · {b.mode_group ?? "Recorded"} ·{" "}
-                  {b.outcome ?? "Outcome unknown"} · Open recorded game
-                </a>
+              <li key={b.battle_id} className="kit-row">
+                <span className="kit-row__main">
+                  <a href={b.url} target="_blank" rel="noopener noreferrer">
+                    <TagText>{gameLine(b)}</TagText>
+                  </a>
+                </span>
+                <span className="kit-row__right">{gameTime(b.at)}</span>
               </li>
             ))}
           </ol>

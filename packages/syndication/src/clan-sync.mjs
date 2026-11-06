@@ -128,7 +128,8 @@ const LOCK_NS = 0x636c616e;
 
 const observedMs = (it) => Date.parse(it.observed_at ?? it.at);
 const memberTag = (it) => it.facts?.player_tag ?? null;
-const byTime = (a, b) => (a.at ?? "").localeCompare(b.at ?? "");
+const byTime = (a, b) =>
+  (a.sort_at ?? a.at ?? "").localeCompare(b.sort_at ?? b.at ?? "");
 
 /** The wake id for a clan: its tag without the #, which S3 keys and
  *  queue logs read plainly. */

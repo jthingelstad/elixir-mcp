@@ -539,6 +539,36 @@ function sessionEvidence(playerTag, anchored, through, open) {
   };
 }
 
+/** Who was on the other side of a page of games: the record's public facts,
+ *  by in-game name (a nickname is its account's own and is never here). A
+ *  name the record has not read is null, and the tag still says who. */
+async function evidenceOpponents(db, records) {
+  const played = records.filter((r) => r.side !== null && r.side !== undefined);
+  const out = new Map();
+  if (played.length === 0) return out;
+  const { rows } = await db.query(
+    `select o.battle_id, o.player_tag, p.name, o.crowns, o.clan_tag,
+            cl.name as clan_name
+       from unnest($1::text[], $2::int[]) me(battle_id, side)
+       join battle_participant o on o.battle_id = me.battle_id and o.side <> me.side
+       left join player p on p.player_tag = o.player_tag
+       left join clan cl on cl.clan_tag = o.clan_tag
+      order by o.battle_id, o.player_tag`,
+    [played.map((r) => r.battle_id), played.map((r) => r.side)],
+  );
+  for (const r of rows) {
+    if (!out.has(r.battle_id)) out.set(r.battle_id, []);
+    out.get(r.battle_id).push({
+      player_tag: r.player_tag,
+      name: r.name ?? null,
+      crowns: r.crowns,
+      clan_tag: r.clan_tag ?? null,
+      clan_name: r.clan_name ?? null,
+    });
+  }
+  return out;
+}
+
 /** Exact ordered constituent game references, in bounded pages. This reads
  * canonical rows, never a payload copy, and never a notification pointer. */
 export async function readTimelineEvidence(
@@ -569,7 +599,7 @@ export async function readTimelineEvidence(
       rows: [current],
     } = await db.query(
       `with records as materialized (
-         select distinct b.battle_id, b.battle_time, b.type, b.event_tag, bp.outcome, bp.crowns, bp.trophy_change
+         select distinct b.battle_id, b.battle_time, b.type, b.event_tag, bp.side, bp.outcome, bp.crowns, bp.trophy_change
            from battle_participant bp join battle b on b.battle_id = bp.battle_id
           where bp.player_tag = $1 and bp.battle_time >= $2::timestamptz
             and bp.battle_time <= $3::timestamptz and ${OWN_BATTLE_SQL}
@@ -598,7 +628,7 @@ export async function readTimelineEvidence(
       `with origin as (select $1::bigint as id),
             proof as (select p.* from origin o left join lateral (${playerEventProofSql("o.id")}) p on true)
        select p.evidence_version, p.battle_id as proof_battle_id,
-              b.battle_id, b.battle_time, b.type, b.event_tag, bp.outcome, bp.crowns, bp.trophy_change
+              b.battle_id, b.battle_time, b.type, b.event_tag, bp.side, bp.outcome, bp.crowns, bp.trophy_change
          from proof p left join battle b on b.battle_id = p.battle_id
          left join battle_participant bp on bp.battle_id = b.battle_id and bp.player_tag = $2`,
       [source.origin, source.playerTag],
@@ -618,6 +648,7 @@ export async function readTimelineEvidence(
     db,
     records.map((r) => r.battle_id),
   );
+  const opposing = await evidenceOpponents(db, records);
   const battles = records.map((r) => ({
     battle_id: r.battle_id,
     at: iso(r.battle_time),
@@ -626,6 +657,7 @@ export async function readTimelineEvidence(
     outcome: r.outcome,
     crowns: r.crowns,
     trophy_change: r.trophy_change,
+    opponents: opposing.get(r.battle_id) ?? [],
     ...links.get(r.battle_id),
     relation: source.kind === "session" ? "constituent" : "proved_crossing",
   }));
@@ -3235,6 +3267,10 @@ const SITTINGS = new Set(["battle_session", "session_standout"]);
 const sortAt = (it) =>
   SITTINGS.has(it.kind) && it.facts?.ended_at ? it.facts.ended_at : it.at;
 
+/** The instant a reader sees beside an item, and sorts it by: every door's
+ *  one rule, so the order and the time shown cannot disagree. */
+export const shownAt = (it) => it.sort_at ?? sortAt(it) ?? "";
+
 /** Which copy of a story tells it: the richer kind, then the copy whose
  *  facts say more. */
 const KIND_RANK = { session_standout: 1 };
@@ -3363,8 +3399,12 @@ function localOf(isoAt, timeZone) {
  *  may see it, its facts' schema, and its time-free sentence. */
 function finishItem(it, { fromMs, basis, timezone }) {
   it.sort_at ??= sortAt(it);
-  it.at_unix = Math.floor(Date.parse(it.at) / 1000);
-  it.local = localOf(it.at, timezone);
+  // The time a reader is shown is the time the feed sorts by, so rows never
+  // read out of order. `at` stays what happened first (a sitting's first
+  // battle); `facts.started_at` and `facts.ended_at` say both.
+  const shown = shownAt(it);
+  it.at_unix = Math.floor(Date.parse(shown) / 1000);
+  it.local = localOf(shown, timezone);
   // Happened before the window that selected it: an observed read
   // learned it late (it belongs to an earlier day's story).
   it.late = basis === "observed" && Date.parse(it.sort_at) <= fromMs;

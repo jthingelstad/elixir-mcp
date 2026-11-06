@@ -64,6 +64,15 @@ for (const width of [390, 1280]) {
                   mode_group: "ladder",
                   outcome: "win",
                   crowns: 2,
+                  opponents: [
+                    {
+                      player_tag: "#QQ2CLUV",
+                      name: "Example Rival",
+                      crowns: 1,
+                      clan_tag: null,
+                      clan_name: null,
+                    },
+                  ],
                   trophy_change: 30,
                   at: "2026-10-03T12:10:00Z",
                   url: "https://elixir.poapkings.com/battle/abcdef000001",
@@ -82,7 +91,9 @@ for (const width of [390, 1280]) {
     await expect(panel).toContainText("Whether every game was read is unknown");
     await expect(panel).toContainText("still open");
     await expect(
-      panel.getByRole("link", { name: /Open recorded game/ }),
+      panel.getByRole("link", {
+        name: "Win 2-1 against Example Rival, Trophy Road",
+      }),
     ).toHaveAttribute(
       "href",
       "https://elixir.poapkings.com/battle/abcdef000001",
@@ -120,9 +131,7 @@ for (const width of [390, 1280]) {
     await page.getByRole("button", { name: "View games", exact: true }).click();
     // The query cache can show its old result until refetch; opening the
     // same evidence after a change must eventually surface the conflict.
-    await expect(
-      panel.getByRole("link", { name: /Open recorded game/ }),
-    ).toHaveCount(0);
+    await expect(panel.getByRole("link", { name: /Win 2-1/ })).toHaveCount(0);
     await expect(panel.getByRole("alert")).toContainText(
       "unavailable or changed",
     );
@@ -208,7 +217,7 @@ for (const status of ["unknown", "proved"]) {
       await expect(panel).toContainText(
         "This recorded game proves the crossing",
       );
-      await expect(panel.getByRole("link")).toContainText("ladder · win");
+      await expect(panel.getByRole("link")).toContainText("Win, Trophy Road");
     }
     await page
       .getByRole("button", { name: "Close crossing", exact: true })
@@ -302,9 +311,7 @@ for (const [summaryCount, evidenceCount] of [
     await expect(panel).toContainText(`${evidenceCount} recorded games from`);
     await expect(panel).toContainText("ends at the latest milestone");
     await expect(panel).toContainText("The summarized sitting was closed");
-    await expect(
-      panel.getByRole("link", { name: /Open recorded game/ }),
-    ).toHaveCount(evidenceCount);
+    await expect(panel.getByRole("link")).toHaveCount(evidenceCount);
     await expect(panel.getByRole("button", { name: "Next games" })).toHaveCount(
       0,
     );
@@ -319,3 +326,81 @@ for (const [summaryCount, evidenceCount] of [
     });
   });
 }
+
+test("on an agent's Timeline, evidence takes focus and Close returns it to its row", async ({
+  page,
+}) => {
+  const PUBLIC_ID = "abc12345";
+  const evidence = {
+    kind: "session",
+    status: "recorded_only",
+    version: "ev_agent",
+    observed_at: "2026-10-03T12:40:00Z",
+    count: 1,
+    completeness: "recorded_sitting",
+    capture_completeness: "unknown",
+    through: "2026-10-03T12:30:00Z",
+    open: false,
+  };
+  const item = {
+    id: "tl_00000000000000000099",
+    at: "2026-10-03T12:00:00Z",
+    subject_name: "Example Player",
+    kind: "battle_session",
+    text: "Example Player played a recorded game.",
+    facts: {},
+    evidence,
+  };
+  await mockApi(
+    page,
+    signedIn({
+      "GET /api/me/principals": [200, { agents: [], addable_clans: [] }],
+      [`GET /api/agent/${PUBLIC_ID}`]: [
+        200,
+        { authenticated: true, role: "member", claims: [], recordings: [] },
+      ],
+      [`GET /api/agent/${PUBLIC_ID}/timeline`]: (route) => {
+        const params = new URL(route.request().url()).searchParams;
+        if (!params.has("evidence_item_id"))
+          return [
+            200,
+            {
+              timeline: [item],
+              seen_to: null,
+              window: {
+                from: "2026-09-27T12:40:00Z",
+                to: "2026-10-04T12:40:00Z",
+              },
+            },
+          ];
+        return [
+          200,
+          {
+            item_id: item.id,
+            ...evidence,
+            offset: 0,
+            next_offset: null,
+            battles: [
+              {
+                battle_id: "abc",
+                at: "2026-10-03T12:10:00Z",
+                mode_group: "ladder",
+                outcome: "win",
+                url: "https://elixir.poapkings.com/battle/abcdef000003",
+              },
+            ],
+          },
+        ];
+      },
+    }),
+  );
+  await page.goto(`/console/agent/${PUBLIC_ID}/timeline`);
+  const trigger = page.getByRole("button", { name: "View games", exact: true });
+  await trigger.click();
+  const panel = page.getByRole("region", { name: "Timeline evidence" });
+  await expect(panel).toBeFocused();
+  await expect(panel.getByRole("link")).toContainText("Win, Trophy Road");
+  await panel.getByRole("button", { name: "Close evidence" }).click();
+  await expect(panel).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});

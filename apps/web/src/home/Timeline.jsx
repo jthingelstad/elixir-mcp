@@ -12,9 +12,10 @@ import { CONSOLE } from "../lib/console.js";
 import { useMyTimeline, useTimelineEvidence } from "../lib/queries.js";
 import {
   TimelineEvidence,
+  useRowTime,
   useTimelinePlace,
 } from "../views/account/timeline-shared.jsx";
-import { timelineDays, whoOf } from "./logic.js";
+import { shownAt, timelineDays, whoOf } from "./logic.js";
 
 /**
  * Home › Timeline: today's feed and today's place in it, in days. The filters
@@ -22,7 +23,8 @@ import { timelineDays, whoOf } from "./logic.js";
  * nothing a connection has read (standing ruling, 2026-10-20).
  */
 export function HomeTimeline() {
-  const { when, day, dayHeading } = useClock();
+  const { day, dayHeading } = useClock();
+  const rowTime = useRowTime();
   const query = useMyTimeline();
   const timeline = query.data ?? null;
   const { openedMs } = useTimelinePlace(timeline);
@@ -116,7 +118,9 @@ export function HomeTimeline() {
                         </button>
                       ) : null}
                     </span>
-                    <span className="kit-row__right">{when(it.at)}</span>
+                    <span className="kit-row__right">
+                      {rowTime(shownAt(it))}
+                    </span>
                   </div>
                   {openId === it.id ? (
                     <InPlaceEvidence
@@ -144,7 +148,7 @@ export function HomeTimeline() {
       </Panel>
       <p className="kit-tiny">
         New means learned since you last opened this page. Opening it clears the
-        Timeline count and changes nothing your connections have read.
+        mark on the Timeline tab and changes nothing your connections have read.
         {more > 0
           ? ` A busy week: the ${items.length} newest are shown, and ${more.toLocaleString("en-US")} more this week are not.`
           : ""}
@@ -176,6 +180,7 @@ function InPlaceEvidence({ item, window, onRefresh }) {
         offset={offset}
         setOffset={setOffset}
         onRefresh={onRefresh}
+        underDay
       />
     </div>
   );

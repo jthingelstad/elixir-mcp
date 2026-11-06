@@ -119,6 +119,7 @@ test("mode labels say what a player calls the mode", () => {
   assert.equal(modeLabel("Showdown_Friendly", "trail"), "Casual");
   assert.equal(modeLabel("ranked", ""), "Path of Legends");
   assert.equal(modeLabel("war", ""), "War");
+  assert.equal(modeLabel("event", ""), "Events");
 });
 
 test("arena mail reads card_names from a lightweight deck list row", () => {

@@ -192,7 +192,7 @@ The defaults differ by tool, and each says which applied:
 | `game_events` | the current season so far |
 | `cards_card` | the current season to date (`source: "season"`); `season` selects another |
 | `clans_standings` | 30 days |
-| `clans_participation` | 5 ISO weeks, the current one included |
+| `clans_participation` | 5 ISO weeks, the current one included (each starts Monday 00:00 UTC, ten hours before the war week; see [Seasons](#seasons)) |
 | `battles_trends` | 12 weeks |
 | `battles_performance`, `battles_decks`, `battles_query`, `battles_cards`, `battles_opponents` | unbounded: the whole recorded history, said so in `applied.window.source` |
 
@@ -243,8 +243,9 @@ scraped enters the data layer. Use a season window to keep comparisons within th
 `game_clock` carries the same two names (`season_id`, `season_month`) and
 the season's bounds for now.
 
-`group_by: "week"` on `battles_performance` and every row of
-`battles_trends` use **ISO weeks**, Monday to Sunday. A war week, by
+`group_by: "week"` on `battles_performance`, every row of
+`battles_trends`, and `clans_participation`'s weeks (which Standing's Path
+of Legends and donation minimums read) use **ISO weeks**, Monday to Sunday. A war week, by
 contrast, runs on the policy grid above, Monday 10:00 UTC to Monday 10:00
 UTC; the two start on the same weekday and ten hours apart, so never join
 them by date alone.

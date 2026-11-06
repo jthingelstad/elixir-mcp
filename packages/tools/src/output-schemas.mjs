@@ -104,6 +104,28 @@ const TIMELINE_EVIDENCE_PAGE = {
           outcome: { type: ["string", "null"] },
           crowns: NULLABLE_INT,
           trophy_change: NULLABLE_INT,
+          opponents: {
+            type: "array",
+            description:
+              "11.17.0: the other side of this game, by in-game name; empty when the record holds no such row. name is null until the record has read one.",
+            items: {
+              type: "object",
+              properties: {
+                player_tag: { type: "string" },
+                name: { type: ["string", "null"] },
+                crowns: NULLABLE_INT,
+                clan_tag: { type: ["string", "null"] },
+                clan_name: { type: ["string", "null"] },
+              },
+              required: [
+                "player_tag",
+                "name",
+                "crowns",
+                "clan_tag",
+                "clan_name",
+              ],
+            },
+          },
           short_id: { type: "string" },
           url: { type: "string" },
           relation: {
@@ -119,6 +141,7 @@ const TIMELINE_EVIDENCE_PAGE = {
           "outcome",
           "crowns",
           "trophy_change",
+          "opponents",
           "short_id",
           "url",
           "relation",
@@ -3235,12 +3258,12 @@ export const OUTPUT_SCHEMAS = {
             at_unix: {
               type: "integer",
               description:
-                "11.8.0: at in Unix seconds, for a renderer's own clock (Discord: <t:at_unix:f> or <t:at_unix:R>).",
+                "11.8.0: sort_at in Unix seconds (at until 11.17.0), for a renderer's own clock (Discord: <t:at_unix:f> or <t:at_unix:R>), so the time shown is the order served.",
             },
             local: {
               type: "object",
               description:
-                "11.8.0: at on the reader's clock (timezone): date YYYY-MM-DD, time HH:MM, weekday, tz.",
+                "11.8.0: sort_at on the reader's clock (timezone; at until 11.17.0): date YYYY-MM-DD, time HH:MM, weekday, tz.",
               properties: {
                 date: { type: "string" },
                 time: { type: "string" },

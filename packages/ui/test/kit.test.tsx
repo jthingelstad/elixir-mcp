@@ -66,6 +66,20 @@ describe("FreshChip", () => {
 });
 
 describe("Tabs", () => {
+  test("a mark says something is new without claiming a count", () => {
+    render(
+      <Tabs
+        label="Home"
+        items={[{ key: "a", label: "A", mark: true, markLabel: "New here" }]}
+        value="a"
+      />,
+    );
+    expect(
+      screen.getByText("New here").closest(".kit-tabs__mark"),
+    ).toBeTruthy();
+    expect(document.querySelector(".kit-tabs__count")).toBeNull();
+  });
+
   const items = [
     { key: "a", label: "Timeline", count: 3 },
     { key: "b", label: "Roster" },

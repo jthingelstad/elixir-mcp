@@ -952,6 +952,37 @@ test("a first player named friend or watching on a verified tag is added as that
   assert.equal(next.isPrimary, false);
 });
 
+test("a first player named friend or watching stays that, and the account has no player of its own", async () => {
+  for (const relationship of ["friend", "watching"]) {
+    const who = await account(`first-${relationship}@example.com`);
+    const r = await addPlayer(db, who, { tag: A, relationship, via: "test" });
+    assert.equal(r.ok, true);
+    assert.equal(r.isPrimary, false);
+    assert.equal(r.noOwnPlayer, true);
+    assert.deepEqual(await relOf(who, A), { relationship, is_primary: false });
+    // Only naming one makes it theirs: an unnamed next add is watching.
+    const next = await addPlayer(db, who, { tag: C, via: "test" });
+    assert.equal(next.isPrimary, false);
+    const own = await addPlayer(db, who, {
+      tag: D,
+      makePrimary: true,
+      relationship: "primary",
+      via: "test",
+    });
+    assert.equal(own.isPrimary, true);
+    assert.equal(own.noOwnPlayer, false);
+  }
+});
+
+test("a first player with no relationship, or named primary or alt, is still the person", async () => {
+  for (const relationship of [null, "primary", "alt"]) {
+    const who = await account(`first-self-${relationship}@example.com`);
+    const r = await addPlayer(db, who, { tag: C, relationship, via: "test" });
+    assert.equal(r.isPrimary, true, String(relationship));
+    assert.equal(r.noOwnPlayer, false);
+  }
+});
+
 test("the verified owner's own re-add, make primary, alt and re-verify are unaffected", async () => {
   await addPlayer(db, bob, { tag: A, via: "test" });
   await addPlayer(db, bob, { tag: C, relationship: "alt", via: "test" });

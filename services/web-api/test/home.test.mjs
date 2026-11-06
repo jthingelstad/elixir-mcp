@@ -6,6 +6,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import { emitEvent } from "../../../packages/ingest/src/events.mjs";
 import {
   seedDeck,
   seedPlayedDeck,
@@ -16,6 +17,7 @@ import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
 import { createClanRequest } from "../src/clan.mjs";
 import {
+  inOwnWords,
   openingMode,
   panel,
   readWeek,
@@ -373,6 +375,90 @@ test("panel: a throw is one panel's failure, never the page's", async (t) => {
     }),
     { ok: false },
   );
+});
+
+test("a moment reads in this reader's word for the person, and only its opening name", () => {
+  assert.equal(
+    inOwnWords("Lark played 12 games.", "Lark", "Sam"),
+    "Sam played 12 games.",
+  );
+  assert.equal(
+    inOwnWords("Lark's best deck.", "Lark", "Sam"),
+    "Sam's best deck.",
+  );
+  // No nickname: the sentence stands. Another word that merely starts with
+  // the name, or a name later in the sentence, is not touched.
+  assert.equal(inOwnWords("Lark won.", "Lark", null), "Lark won.");
+  assert.equal(inOwnWords("Larkspur won.", "Lark", "Sam"), "Larkspur won.");
+  assert.equal(inOwnWords("Beat Lark.", "Lark", "Sam"), "Beat Lark.");
+});
+
+test("a Watching row spells its modes as everything else does", async () => {
+  const TAG = "#PYLQGRUY";
+  const id = await person("home-modes");
+  await call(handler, id, "POST", "/api/claims", {
+    player_tag: "#PYLQGRVY",
+    make_primary: true,
+  });
+  await played(TAG, id);
+  await call(handler, id, "POST", "/api/claims", {
+    player_tag: TAG,
+    relationship: "watching",
+  });
+  await scratch.db.query(
+    "update claim set relationship = 'watching' where account_id = $1 and player_tag = $2",
+    [id, TAG],
+  );
+  const body = data(await call(handler, id, "GET", "/api/me/home/friends"));
+  const { line } = body.watching.find((w) => w.tag === TAG);
+  assert.match(line, /\d+ Trophy Road/);
+  assert.doesNotMatch(line, /\d (trophy|path|casual|war|event)/);
+});
+
+test("a nickname stays in its own account: another follower of the same friend reads the in-game name", async () => {
+  const TAG = "#PYLQGRLY";
+  const mine = await person("home-nick-mine");
+  const theirs = await person("home-nick-theirs");
+  for (const [id, own] of [
+    [mine, "#PYLQGRQY"],
+    [theirs, "#PYLQGRRY"],
+  ]) {
+    const r = await call(handler, id, "POST", "/api/claims", {
+      player_tag: own,
+      make_primary: true,
+    });
+    assert.equal(r.statusCode, 200, r.body);
+  }
+  await played(TAG, mine);
+  const from = lastGameWeek(new Date()).from.getTime();
+  await emitEvent(scratch.db, "arena_changed", {
+    tag: TAG,
+    payload: { from: 54000100, to: 54000101, to_name: "Example Arena" },
+    windowStart: new Date(from + 3_600_000).toISOString(),
+    windowEnd: new Date(from + 7_200_000).toISOString(),
+    occurredAt: new Date(from + 7_200_000).toISOString(),
+  });
+  await call(handler, theirs, "POST", "/api/claims", {
+    player_tag: TAG,
+    relationship: "friend",
+  });
+  await scratch.db.query(
+    "insert into player_nickname (account_id, player_tag, nickname) values ($1, $2, 'Private word')",
+    [mine, TAG],
+  );
+  const cardOf = async (id) => {
+    const r = await call(handler, id, "GET", "/api/me/home/friends");
+    assert.equal(r.statusCode, 200, r.body);
+    return data(r).friends.find((f) => f.tag === TAG);
+  };
+  const a = await cardOf(mine);
+  const b = await cardOf(theirs);
+  assert.equal(a.nickname, "Private word");
+  assert.ok(a.moments.length > 0, "the fixture's sitting is a moment");
+  assert.ok(a.moments.every((m) => !m.text.startsWith(a.name)));
+  assert.equal(b.nickname ?? null, null);
+  assert.doesNotMatch(JSON.stringify(b), /Private word/);
+  assert.ok(b.moments.some((m) => m.text.startsWith(b.name)));
 });
 
 test("the week opens on the most played mode, Trophy Road with none", () => {
