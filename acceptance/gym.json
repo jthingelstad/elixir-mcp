@@ -2966,12 +2966,13 @@
         "has": "fielded.mean_level"
       },
       {
-        "gt": ["fielded.mean_level", 15]
+        "gt": ["fielded.mean_level", 13]
       },
       {
         "notes_not_match": "rose from"
       }
-    ]
+    ],
+    "amended": "Amended 2026-11-06: a live deck's mean moves below 15 (14.98) with no fault. The invariant is that levels read on the rarity-relative scale, so the bound sits well above the old scale's values."
   },
   {
     "id": "134.1",
@@ -3108,7 +3109,7 @@
     },
     "request_id": "f215c027-2acf-4df8-a692-a779c391f83c",
     "when": {
-      "has": "trophy_floor.floor"
+      "has": "trophy_floor.floors[0]"
     },
     "assert": [
       {
@@ -3126,7 +3127,8 @@
       {
         "has": "trophy_floor.floors[0].last_at"
       }
-    ]
+    ],
+    "amended": "Amended 2026-11-06: a floor from arena snapshots has an empty floors[], which is correct, so last_at is only asked of a floor stood on with losses."
   },
   {
     "id": "135.3",
@@ -8969,7 +8971,8 @@
       {
         "notes_match": "(alex|#P8URQGR2U)[^.]*join|join[^.]*(alex|#P8URQGR2U)"
       }
-    ]
+    ],
+    "refuted": "Aged out 2026-11-06: this asserted a mid-window join note for a member who joined in September. They joined long before today's default window, so no note is right. 237.4 stays the control."
   },
   {
     "id": "237.4",
@@ -13401,11 +13404,9 @@
           ],
           "decks_today.counts.participants"
         ]
-      },
-      {
-        "eq": ["decks_today.counts.participants", "member_count"]
       }
-    ]
+    ],
+    "amended": "Amended 2026-11-06: participants equals member_count only when the game left nobody out of the race. 312.4 asks that, and the sum stays here."
   },
   {
     "id": "312.3",
@@ -13429,6 +13430,30 @@
     "amended": "Amended for 9.0.1 (Jamie 2026-09-25: war facts are weekly aggregates only; the API does not say which day a deck was played and a war day's rollover cannot be placed reliably at Elixir's scale): the attendance_by_war_day asserts went with the field and the rest of the case stands."
   },
   {
+    "id": "312.4",
+    "feedback": 312,
+    "stability": "live",
+    "control": true,
+    "tool": "war_current",
+    "args": {},
+    "request_id": "f282ae67-e838-4f04-9575-505ed6e9f938",
+    "when": {
+      "all": [
+        {
+          "eq": ["day_kind", "war"]
+        },
+        {
+          "count_eq": ["members_not_in_race[]", 0]
+        }
+      ]
+    },
+    "assert": [
+      {
+        "eq": ["decks_today.counts.participants", "member_count"]
+      }
+    ]
+  },
+  {
     "id": "313.3",
     "feedback": 313,
     "stability": "live",
@@ -13448,7 +13473,14 @@
     },
     "request_id": "76616a22-d7a8-47ff-92d0-bd540348e8b3",
     "when": {
-      "all": [{ "eq": ["c.season_id", 136] }, { "eq": ["c.section_index", 2] }]
+      "all": [
+        {
+          "eq": ["c.season_id", 136]
+        },
+        {
+          "eq": ["c.section_index", 2]
+        }
+      ]
     },
     "assert": [
       {
