@@ -35,6 +35,8 @@ export const REDIRECTS = {
   [`${CONSOLE}/admin`]: `${CONSOLE}/admin/requests`,
   [`${CONSOLE}/explore/player`]: `${CONSOLE}/explore`,
   [`${CONSOLE}/explore/clan`]: `${CONSOLE}/explore`,
+  // Ladder's Days played became Battles; the calendar moved to Season.
+  "/ladder/days": "/ladder/battles",
 };
 
 /** Where a pathname now lives, or null when it stays put. A trailing slash

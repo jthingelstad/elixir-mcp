@@ -1,4 +1,4 @@
-import { Link, TagText, Empty } from "@elixir-mcp/ui";
+import { Link, PageHead, TagText, Empty } from "@elixir-mcp/ui";
 import { useEffect, useRef } from "react";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { CONSOLE } from "../lib/console.js";
@@ -20,7 +20,7 @@ import { captureLanded, playerName } from "./ladder.js";
  */
 export function Pending({ player }) {
   const tag = player.player_tag;
-  const { data } = useFirstAnswer(tag, { playerTag: tag });
+  const { data, error } = useFirstAnswer(tag, { playerTag: tag });
   const invalidate = useInvalidate();
   const p = data?.player;
   const landed = captureLanded(p);
@@ -32,34 +32,45 @@ export function Pending({ player }) {
   }, [landed, invalidate]);
   const journey = data ? recordJourney(data) : null;
   const status = `${CONSOLE}/account/tracking/${tagPath(tag)}`;
-  if (journey?.notFound)
-    return (
-      <Empty
-        title="Tag not found"
-        titleAs="h1"
-        action={
-          <Link className="btn btn--sm" to={`${status}#fix-tag`}>
-            Fix the tag ›
-          </Link>
-        }
-        className="mt-6"
-        role="alert"
-      >
-        <TagText>{journey.text}</TagText>
-      </Empty>
-    );
+  const name = playerName(player);
   return (
-    <div className="empty mt-6">
-      <h1 className="empty__title">Your first read is on its way</h1>
-      <p className="empty__body" role="status">
-        Elixir has saved {playerName(player)}&rsquo;s tag. The first read
-        usually lands within a few minutes, and roughly the last 30 battles
-        arrive with it. This page checks again every few seconds at first, then
-        about once a minute.
-      </p>
-      <Link className="btn btn--sm" to={status}>
-        Reading status ›
-      </Link>
+    <div className="ladder-page">
+      <PageHead
+        className="ladder-head"
+        title="Ladder"
+        sub="Your season, read back"
+      />
+      {journey?.notFound ? (
+        <Empty
+          title="Tag not found"
+          titleAs="h2"
+          action={
+            <Link className="btn btn--sm" to={`${status}#fix-tag`}>
+              Fix the tag ›
+            </Link>
+          }
+          role="alert"
+        >
+          <TagText>{journey.text}</TagText>
+        </Empty>
+      ) : (
+        <Empty
+          title={<>{name}&rsquo;s first battles are on their way</>}
+          titleAs="h2"
+          action={
+            <Link className="btn btn--sm" to={status}>
+              See recording status ›
+            </Link>
+          }
+          role="status"
+        >
+          Elixir has saved {name}&rsquo;s tag. The first read usually lands
+          within a few minutes, and roughly the last 30 battles arrive with it.
+          This page checks again every few seconds at first, then about once a
+          minute.
+          {error ? " Elixir could not check just now. It will try again." : ""}
+        </Empty>
+      )}
     </div>
   );
 }

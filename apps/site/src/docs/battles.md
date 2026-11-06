@@ -121,7 +121,7 @@ link under it. It is what the link shows when it unfurls, and it can be posted
 on its own with the link beside it. Its time is in UTC, since a picture has no
 reader's clock.
 
-In Ladder ▸ Days played, open a night and choose a captured battle. Inspect
+In Ladder ▸ Battles, open a sitting and choose a captured battle. Inspect
 its facts, then choose **Share with your context** for a primary or alt on
 your account. Write up to 500 characters about why it mattered, or leave it
 blank, and preview the message before copying it or opening your device's

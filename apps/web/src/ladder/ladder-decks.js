@@ -1,105 +1,11 @@
 /**
- * Decks (LadderDecks.dc.html): every deck of the season, each with its
- * record in the mode it was played in. battles_decks answers once over
- * every mode (which modes, which duel rounds) and then once per mode, so
- * a war record and a Trophy Road record never sit in one row; the rows
- * here are those answers, shaped. Nothing here sums records across decks or
- * modes, rates a deck or reads a cause into a change.
+ * Decks: every deck of the season in the chip's mode, with its record there.
+ * battles_decks answers per mode, so a war record and a Trophy Road record never
+ * sit in one row. Nothing here sums records across decks or modes, rates a deck
+ * or reads a cause into a change.
  */
 import { cardLabel } from "@elixir-mcp/ui";
-import { groupLabel } from "./ladder-days.js";
-import { leadFirst, shortDay } from "./ladder.js";
-
-/** Mode groups in reading order: the two trophy games first. */
-const ORDER = [
-  "ladder",
-  "ranked",
-  "war",
-  "event",
-  "challenge",
-  "tournament",
-  "casual",
-];
-const rank = (m) => {
-  const i = ORDER.indexOf(m);
-  return i < 0 ? ORDER.length : i;
-};
-
-/** The modes a deck is shown with its cards; every other mode's decks
- *  are rows of one table. */
-export const GRID_MODES = ["ladder", "ranked"];
-
-/** The modes to read one by one, from the every-mode answer: each mode
- *  a row was played in, and war when there were duel rounds (a duel is
- *  outside the rows, and duels are war's). */
-export function modesOf(all) {
-  const seen = new Set();
-  for (const row of all?.decks ?? [])
-    for (const [m, s] of Object.entries(row.modes ?? {}))
-      if (Number(s?.battles ?? 0) > 0) seen.add(m);
-  if ((all?.duel_decks ?? []).length) seen.add("war");
-  return [...seen].sort((a, b) => rank(a) - rank(b));
-}
-
-/** How many decks the page shows: the distinct deck identities the
- *  every-mode answer returned, rows and duel rounds together. When the
- *  answer was cut at its limit, the tool's own total. */
-export function deckCount(all) {
-  if (all?.next_offset != null) return Number(all.total_decks ?? 0);
-  const hashes = new Set();
-  for (const d of [...(all?.decks ?? []), ...(all?.duel_decks ?? [])])
-    hashes.add(d.deck_hash);
-  return hashes.size;
-}
-
-const NUMBER = [
-  "No",
-  "One",
-  "Two",
-  "Three",
-  "Four",
-  "Five",
-  "Six",
-  "Seven",
-  "Eight",
-  "Nine",
-  "Ten",
-];
-/** "Seven decks, three modes": small counts spelled, as the board does. */
-export function decksTitle(decks, modes) {
-  const n = (k) => NUMBER[k] ?? String(k);
-  const lower = (k) => (NUMBER[k] ? n(k).toLowerCase() : n(k));
-  return `${n(decks)} ${decks === 1 ? "deck" : "decks"}, ${lower(modes)} ${
-    modes === 1 ? "mode" : "modes"
-  }`;
-}
-
-/** The forms in a deck, as a person reads them: "Evo Witch, Evo Royal
- *  Ghost". From the cards when the deck was read in full, else from the
- *  row's card_names, whose forms the tool prefixes. */
-export function formNames(row) {
-  if (Array.isArray(row?.cards))
-    return row.cards
-      .filter((c) => c.form && c.form !== "base")
-      .map(cardLabel)
-      .join(", ");
-  return cardNames(row)
-    .filter((n) => /^(Evo|Hero) /.test(n))
-    .join(", ");
-}
-
-/** The row's card_names as a list. */
-const cardNames = (row) =>
-  String(row?.card_names ?? "")
-    .split(", ")
-    .filter(Boolean);
-
-/** Same eight cards in the same forms, whatever the order: a war deck
- *  (no tower troop) and a Trophy Road deck that are the same cards. */
-const sameCards = (a, b) => {
-  const x = cardNames(a).sort().join("|");
-  return x !== "" && x === cardNames(b).sort().join("|");
-};
+import { shortDay } from "./ladder.js";
 
 /** "your cards 0.60 levels above theirs", from mean_level_gap. */
 export function gapLine(gap) {
@@ -112,102 +18,28 @@ export function gapLine(gap) {
   } theirs`;
 }
 
-/** "Sep 8 – Sep 18", or one day, in the account's zone. */
+/** "Sep 8 to Sep 18", or one day, in the account's zone. */
 export function dayRange(first, last, zone) {
   const a = shortDay(first, zone);
   const b = shortDay(last, zone);
   if (!a) return b;
   if (!b || a === b) return a;
-  return `${a} – ${b}`;
+  return `${a} to ${b}`;
 }
 
-/** "War, duels and events": the table's title, from what is in it, in
- *  the table's order (the address's mode, `lead`, first). */
-export function tableTitle(rows, lead = null) {
-  const parts = [];
-  const has = (pred) => rows.some(pred);
-  const PLURAL = {
-    war: "War",
-    event: "events",
-    challenge: "challenges",
-    tournament: "tournaments",
-    casual: "casual battles",
-    ladder: "Trophy Road",
-    ranked: "Path of Legends",
-  };
-  for (const m of leadFirst(ORDER, lead)) {
-    if (has((r) => r.mode === m && !r.duel)) parts.push(PLURAL[m]);
-    if (m === "war" && has((r) => r.duel)) parts.push("duels");
-  }
-  if (!parts.length) return "Other modes";
-  const words = parts.map((p, i) =>
-    i === 0 ? p[0].toUpperCase() + p.slice(1) : p,
-  );
-  return words.length === 1
-    ? words[0]
-    : `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
-}
-
-/**
- * The table: every deck of the modes shown without cards, mode by mode
- * in reading order (the address's mode, `lead`, first), each mode's
- * decks as the tool sorted them, then its duel rounds. `byMode` maps a
- * mode to its battles_decks answer. A duel deck in the every-mode answer
- * that no mode's answer claimed keeps no mode rather than a guessed one.
- */
-export function tableRows(byMode, all, lead = null) {
-  const rows = [];
-  const claimed = new Set();
-  const grid = GRID_MODES.flatMap((m) =>
-    (byMode[m]?.decks ?? []).map((d) => ({ d, mode: m })),
-  );
-  const modes = leadFirst(
-    Object.keys(byMode).sort((a, b) => rank(a) - rank(b)),
-    lead,
-  );
-  for (const mode of modes) {
-    const body = byMode[mode];
-    if (!GRID_MODES.includes(mode))
-      for (const d of body?.decks ?? [])
-        rows.push({
-          key: `${mode}:${d.deck_hash}`,
-          mode,
-          modeLabel: groupLabel(mode),
-          duel: false,
-          label: d.archetype_label ?? "Unnamed deck",
-          battles: d.battles,
-          wins: d.wins,
-          losses: d.losses,
-          draws: d.draws ?? 0,
-          forms: formNames(d),
-          gap: gapLine(d.mean_level_gap),
-          sameAs: grid.find((g) => sameCards(g.d, d))?.mode ?? null,
-        });
-    for (const d of body?.duel_decks ?? []) {
-      claimed.add(d.deck_hash);
-      rows.push(duelRow(d, mode));
-    }
-  }
-  for (const d of all?.duel_decks ?? [])
-    if (!claimed.has(d.deck_hash)) rows.push(duelRow(d, null));
-  return rows;
-}
-
-function duelRow(d, mode) {
-  return {
-    key: `duel:${mode ?? "any"}:${d.deck_hash}`,
-    mode,
-    modeLabel: mode ? `${groupLabel(mode)} duel` : "Duel",
-    duel: true,
-    label: d.archetype_label ?? "Unnamed deck",
-    battles: d.rounds,
-    wins: d.wins,
-    losses: d.losses,
-    draws: 0,
-    forms: formNames(d),
-    gap: null,
-    sameAs: null,
-  };
+/** The forms in a deck, as a person reads them: "Evo Witch, Evo Royal
+ *  Ghost". From the cards when the deck was read in full, else from the
+ *  row's card_names, whose forms the tool prefixes. */
+export function formNames(row) {
+  if (Array.isArray(row?.cards))
+    return row.cards
+      .filter((c) => c.form && c.form !== "base")
+      .map(cardLabel)
+      .join(", ");
+  return String(row?.card_names ?? "")
+    .split(", ")
+    .filter((n) => /^(Evo|Hero) /.test(n))
+    .join(", ");
 }
 
 const FORM_WORD = { evolution: "evolution", hero: "hero" };
@@ -279,4 +111,19 @@ export function nameList(cards) {
   const names = cards.map((c) => c.name);
   if (names.length <= 1) return names.join("");
   return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
+/** The record line of a deck: "22 battles · 15–7 · 68% won" is laid out by the
+ *  row; this is the line under its cards. */
+export function deckLine(row, full, zone) {
+  return [
+    dayRange(row.first_used, row.last_used, zone),
+    full?.archetype?.average_elixir != null
+      ? `${Number(full.archetype.average_elixir).toFixed(2)} average elixir`
+      : null,
+    row.tower_troop_name ?? null,
+    gapLine(row.mean_level_gap),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }

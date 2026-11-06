@@ -1,0 +1,193 @@
+import { Empty, Icon, Link, Panel, useClock } from "@elixir-mcp/ui";
+import { useMemo, useState } from "react";
+import { clockTime, fmt, modeWords, readModes } from "./ladder.js";
+import {
+  battleDays,
+  battlePath,
+  battleResult,
+  battleWho,
+  tallyLine,
+  timeSpan,
+  weekdayLabel,
+} from "./ladder-days.js";
+import { useBattleSweep } from "../lib/queries.js";
+import { Loading, ReadError } from "./common.jsx";
+
+/** Days a page lists before "Show older days". */
+const DAYS_SHOWN = 7;
+/** Sittings a day lists before "Show all". */
+const SITTINGS_SHOWN = 5;
+
+/**
+ * The Battles tab: every battle in this chip's mode, by day and by sitting, each
+ * opening on its own page. A war battle is listed like any other: Ladder shows a
+ * person's battles one by one, and war by the week is the clan war's rule, which
+ * the line above holds. Other reads Challenge and Tournament apart and lists them
+ * in time order; a row names its own kind, and no tally crosses into a rate.
+ */
+export function Battles({ player, mode, modeReady, season, startsAt }) {
+  const { zone, when } = useClock();
+  const groups = readModes(mode);
+  const base = {
+    player_tag: player.player_tag,
+    season: season.arg,
+    verbosity: "compact",
+    limit: 40,
+  };
+  const first = useBattleSweep(
+    { ...base, mode: groups[0] },
+    { enabled: modeReady },
+  );
+  const second = useBattleSweep(
+    { ...base, mode: groups[1] },
+    { enabled: modeReady && groups.length > 1 },
+  );
+  const sweeps = groups.length > 1 ? [first, second] : [first];
+  const firstRows = first.data?.battles;
+  const secondRows = groups.length > 1 ? second.data?.battles : undefined;
+  const battles = useMemo(
+    () =>
+      [...(firstRows ?? []), ...(secondRows ?? [])].sort(
+        (a, b) => Date.parse(b.battle_time) - Date.parse(a.battle_time),
+      ),
+    [firstRows, secondRows],
+  );
+  const days = useMemo(() => battleDays(battles, zone), [battles, zone]);
+  const [older, setOlder] = useState(false);
+  const failed = sweeps.find((s) => s.isError);
+  if (!modeReady || sweeps.some((s) => s.isPending))
+    return <Loading what="the season's battles" />;
+  if (failed) return <ReadError error={failed.error} what="your battles" />;
+  if (!days.length)
+    return (
+      <Empty
+        titleAs="h2"
+        title={
+          season.current
+            ? `No ${modeWords(mode)} battles recorded this season yet`
+            : `No ${modeWords(mode)} battles recorded in ${season.name}`
+        }
+      >
+        {season.current
+          ? `Elixir has recorded none in this mode since the season began${startsAt ? ` on ${when(startsAt)}` : ""}. Each mode keeps its own record; the others are a chip away.`
+          : `Elixir recorded none in this mode in ${season.name}.`}
+      </Empty>
+    );
+  const shown = older ? days : days.slice(0, DAYS_SHOWN);
+  const capped = sweeps.find((s) => s.data?.capped);
+  return (
+    <>
+      {capped ? (
+        <div className="callout callout--info" role="status">
+          <Icon name="info" size={17} />
+          <span>
+            This page reads the newest {fmt(capped.data.battles.length)} of{" "}
+            {fmt(capped.data.total)} battles, so anything older is not listed
+            here. It is not a claim that there were none.
+          </span>
+        </div>
+      ) : null}
+      {shown.map((day) => (
+        <Day key={day.ymd} day={day} past={!season.current} zone={zone} />
+      ))}
+      {days.length > DAYS_SHOWN ? (
+        <div>
+          <button
+            type="button"
+            className="btn btn--sm btn--quiet"
+            aria-expanded={older}
+            onClick={() => setOlder((v) => !v)}
+          >
+            {older ? `Show the newest ${DAYS_SHOWN} days` : "Show older days"}
+          </button>
+        </div>
+      ) : null}
+      <p className="footnote">
+        A sitting is a run of battles with no gap longer than 30 minutes. Open
+        one to see each battle; a battle with a page opens on it, with both
+        decks, and you can share why it mattered to you.
+        {mode === "war"
+          ? " War battles are listed one by one, like any other. Decks and points above are the clan war week."
+          : ""}
+      </p>
+    </>
+  );
+}
+
+function Day({ day, past, zone }) {
+  const [all, setAll] = useState(false);
+  const sittings = all ? day.sittings : day.sittings.slice(0, SITTINGS_SHOWN);
+  return (
+    <Panel
+      title={day.label}
+      action={<span className="ladder-aside">{tallyLine(day)}</span>}
+    >
+      {sittings.map((s, i) => (
+        <details key={s.key} className="ladder-sit" open={i === 0}>
+          <summary>
+            <span className="ladder-sit__when">
+              {past ? `${weekdayLabel(s.day)}, ` : ""}
+              {timeSpan(s.start, s.end, zone)}
+            </span>
+            <span className="ladder-sit__what">
+              {tallyLine(sittingTally(s))}
+              {s.trophies
+                ? ` · ${fmt(s.trophies.from)} to ${fmt(s.trophies.to)}`
+                : ""}
+            </span>
+          </summary>
+          <ul className="ladder-rows">
+            {s.battles.map((b) => (
+              <BattleRow key={b.battle_id ?? b.battle_time} b={b} zone={zone} />
+            ))}
+          </ul>
+        </details>
+      ))}
+      {day.sittings.length > SITTINGS_SHOWN ? (
+        <div className="panel__foot">
+          <button
+            type="button"
+            className="btn btn--sm btn--quiet"
+            aria-expanded={all}
+            onClick={() => setAll((v) => !v)}
+          >
+            {all
+              ? `Show the newest ${SITTINGS_SHOWN}`
+              : `Show all ${fmt(day.sittings.length)} sittings`}
+          </button>
+        </div>
+      ) : null}
+    </Panel>
+  );
+}
+
+const sittingTally = (s) =>
+  s.modes.reduce(
+    (t, m) => ({
+      battles: t.battles + m.battles,
+      wins: t.wins + m.wins,
+      losses: t.losses + m.losses,
+      draws: t.draws + m.draws,
+    }),
+    { battles: 0, wins: 0, losses: 0, draws: 0 },
+  );
+
+/** One battle: when, against whom, how it went, and the trophies it moved. A
+ *  battle with no change shows none: on the floor a loss costs nothing. */
+function BattleRow({ b, zone }) {
+  const who = battleWho(b);
+  const path = battlePath(b.url);
+  const change = b.me?.trophy_change;
+  return (
+    <li className="ladder-row">
+      <span className="ladder-row__t">{clockTime(b.battle_time, zone)}</span>
+      <span className="ladder-row__who">
+        {path ? <Link to={path}>{who}</Link> : who}
+      </span>
+      <span className="ladder-row__res">{battleResult(b)}</span>
+      <span className="ladder-row__tr">
+        {change ? `${change > 0 ? "+" : "−"}${fmt(Math.abs(change))}` : ""}
+      </span>
+    </li>
+  );
+}

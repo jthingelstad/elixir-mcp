@@ -1,10 +1,10 @@
 /**
- * Ladder's Days page (LadderDays.dc.html): the season's battles as
- * battles_query returned them, laid on the account's calendar and
- * chained into nights. Counting is all this does: a day holds the
- * battles that started on it in the account's zone, each mode keeps its
- * own mark and its own record, and a night is a run of battles with no
- * gap longer than half an hour. Nothing here rates a day or a night.
+ * Ladder's calendar (on Season) and battle list (on Battles): the season's
+ * battles as battles_query returned them, laid on the account's calendar and
+ * chained into sittings. Counting is all this does: a day holds the battles
+ * that started on it in the account's zone, each mode keeps its own count and
+ * its own record, and a sitting is a run of battles with no gap longer than
+ * half an hour. Nothing here rates a day or a sitting.
  */
 import { clockTime, fmt, modeLabel } from "./ladder.js";
 import { battleCapture } from "@elixir-mcp/record/capture-state";
@@ -29,16 +29,16 @@ const NAMES = {
   tournament: "Tournament",
   casual: "Casual",
 };
-/** A mode group as a day or a night names it (singular, "Event"). */
-export const groupLabel = (key) => NAMES[key] ?? modeLabel(key);
+/** A mode group as a sitting names it (singular, "Event"). */
+const groupLabel = (key) => NAMES[key] ?? modeLabel(key);
 const rank = (key) => {
   const i = ORDER.indexOf(key);
   return i < 0 ? ORDER.length : i;
 };
 
-/** Half an hour: the longest gap inside one night (the board's rule,
+/** Half an hour: the longest gap inside one sitting (the board's rule,
  *  and the battle page's sitting). */
-const NIGHT_GAP_MS = 30 * 60_000;
+const SITTING_GAP_MS = 30 * 60_000;
 
 /* ---------------------------------------------------------------- dates */
 
@@ -262,47 +262,89 @@ export function seasonCalendar({
   return { lead: weekdayIndex(first), days, busiest };
 }
 
-/** Positive captured days, with elapsed season days as calendar context.
- * The calendar denominator does not measure coverage. */
-export function daysPlayed(days) {
-  const so = days.filter((d) => d.state !== "future");
-  return { played: so.filter((d) => d.count > 0).length, of: so.length };
-}
+/* ------------------------------------------------- the calendar, by chip */
 
-/** One tile per mode played this season, most battles first: the days
- *  it was played on, its battles and its own record. */
-export function modeDays(days) {
-  const out = new Map();
-  for (const d of days)
-    for (const m of d.modes) {
-      const t = out.get(m.key) ?? {
-        key: m.key,
-        label: groupLabel(m.key),
-        days: 0,
-        battles: 0,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-      };
-      t.days++;
-      t.battles += m.battles;
-      t.wins += m.wins;
-      t.losses += m.losses;
-      t.draws += m.draws;
-      out.set(m.key, t);
+/** A count on the calendar in the board's words: "8 · 5–3", a draw last. */
+const countText = (t) =>
+  `${fmt(t.battles)} · ${fmt(t.wins)}–${fmt(t.losses)}${t.draws ? `–${fmt(t.draws)}` : ""}`;
+
+/**
+ * The calendar as one chip reads it (`groups`, the tools' modes it holds): each
+ * day's class and words, in the order the key lists them. A battle in this mode
+ * is a shade. A day with none here and some elsewhere is a count, never pooled
+ * into this mode. A day with none at all says only what the read can prove: "No
+ * battles" takes a whole day read, and anything less is partly read or unknown
+ * (`coverageFailed`, when the check itself did not answer, is unknown too).
+ */
+export function chipCalendar(cal, groups, { coverageFailed = false } = {}) {
+  const inChip = (d) => {
+    const hit = d.modes.filter((m) => groups.includes(m.key));
+    return hit.reduce(
+      (t, m) => ({
+        battles: t.battles + m.battles,
+        wins: t.wins + m.wins,
+        losses: t.losses + m.losses,
+        draws: t.draws + m.draws,
+      }),
+      { battles: 0, wins: 0, losses: 0, draws: 0 },
+    );
+  };
+  const busiest = Math.max(0, ...cal.days.map((d) => inChip(d).battles));
+  const days = cal.days.map((d) => {
+    const mine = inChip(d);
+    const others = d.count - mine.battles;
+    const today = d.state === "today";
+    let cls;
+    let text;
+    if (mine.battles > 0) {
+      cls = `l${Math.min(3, Math.ceil((3 * mine.battles) / busiest))}`;
+      text = countText(mine);
+    } else if (d.state === "unread") {
+      cls = "unread";
+      text = "Not read";
+    } else if (d.state === "future") {
+      cls = "fut";
+      text = "";
+    } else if (others > 0) {
+      cls = "other";
+      text = `${fmt(others)} in other modes`;
+    } else if (today) {
+      cls = "fut";
+      text = "Still being read";
+    } else if (!coverageFailed && d.capture.quiet) {
+      cls = "quiet";
+      text = "No battles";
+    } else if (!coverageFailed && d.capture.coverage === "partial") {
+      cls = "part";
+      text = "Partly read";
+    } else {
+      cls = "unk";
+      text = "Unknown";
     }
-  return [...out.values()].sort(
-    (a, b) => b.battles - a.battles || rank(a.key) - rank(b.key),
-  );
+    return { ...d, mine, others, cls, text, today };
+  });
+  const elapsed = days.filter((d) => d.state !== "future");
+  return {
+    lead: cal.lead,
+    days,
+    played: elapsed.filter((d) => d.mine.battles > 0).length,
+    of: elapsed.length,
+    gap: coverageFailed ? null : longestBreak(days),
+    hasUnread: days.some((d) => d.state === "unread"),
+  };
 }
 
-/** The longest run of fully covered quiet days before today.
- * Unknown days interrupt a run; null means no supported stretch. */
+/** The longest run of past days fully read with no battle in this mode. A day
+ *  not fully read is unknown, so it ends the run. */
 export function longestBreak(days) {
   let best = null;
   let run = null;
   for (const d of days) {
-    if (d.state === "past" && d.capture?.quiet === true) {
+    if (
+      d.state === "past" &&
+      d.capture?.coverage === "complete" &&
+      d.mine.battles === 0
+    ) {
       run = run
         ? { ...run, to: d.ymd, length: run.length + 1 }
         : { from: d.ymd, to: d.ymd, length: 1 };
@@ -320,18 +362,18 @@ export function spanLabel({ from, to, length }) {
   return `${dayLabel(from)} ${length === 2 ? "and" : "to"} ${end}`;
 }
 
-/* --------------------------------------------------------------- nights */
+/* ------------------------------------------------------------- sittings */
 
 /**
- * The season's nights, newest first: runs of battles with no gap longer
- * than half an hour. Each night keeps its battles newest first, its
+ * A list of battles as sittings, newest first: runs of battles with no gap
+ * longer than half an hour. Each sitting keeps its battles newest first, its
  * modes in the order they were played ("2 event battles, then 3 on
  * Trophy Road") each with its own record, and on Trophy Road the
  * trophies it started and ended on, as the battles' own
  * starting_trophies and trophy_change say (a loss on the floor carries
  * no change and costs nothing).
  */
-export function nightsOf(battles, zone, { gap = NIGHT_GAP_MS } = {}) {
+export function sittingsOf(battles, zone, { gap = SITTING_GAP_MS } = {}) {
   const rows = (battles ?? [])
     .filter(counted)
     .map((b) => ({ b, t: new Date(b.battle_time).getTime() }))
@@ -393,18 +435,6 @@ export function timeSpan(start, end, zone) {
   return ap === bp ? `${at} – ${b}` : `${a} – ${b}`;
 }
 
-/** A night's modes as played: "5 on Trophy Road", "2 event battles,
- *  then 3 on Trophy Road", "3 war battles". */
-export function nightLine(sequence) {
-  const one = (s) => {
-    const n = fmt(s.battles);
-    if (s.key === "ladder" || s.key === "ranked") return `${n} on ${s.label}`;
-    const word = s.battles === 1 ? "battle" : "battles";
-    return `${n} ${s.label.toLowerCase()} ${word}`;
-  };
-  return sequence.map(one).join(", then ");
-}
-
 /** A battle row's words: the opponent (both, in 2v2) and the score. */
 export function battleWho(b) {
   const names = (b.opponents ?? [])
@@ -430,3 +460,59 @@ export function battleScore(b) {
  *  stays in it. */
 export const battlePath = (url) =>
   String(url ?? "").replace(/^https?:\/\/[^/]+/, "");
+
+/** "War duel", "Boat attack", "2v2", "Clanmate battle", "Casual",
+ *  "Challenge", "Tournament": a row's own kind where a mode's rows differ, from
+ *  the row's API type and its sides. Null where every row is the same game. */
+export function battleKind(b) {
+  const group = b?.mode_group;
+  const type = String(b?.type ?? "");
+  if (group === "war") {
+    if (/^riverRaceDuel/.test(type)) return "War duel";
+    if (type === "boatBattle") return "Boat attack";
+    return "War battle";
+  }
+  if (group === "casual") {
+    if ((b?.opponents ?? []).length > 1) return "2v2";
+    if (/^clanMate/.test(type)) return "Clanmate battle";
+    return "Casual";
+  }
+  if (group === "challenge" || group === "tournament") return groupLabel(group);
+  return null;
+}
+
+/** A row's result: the kind, where it has one, then the score. */
+export function battleResult(b) {
+  const kind = battleKind(b);
+  return kind ? `${kind} · ${battleScore(b)}` : battleScore(b);
+}
+
+/**
+ * The Battles tab: the days with a battle in this read, newest first, each
+ * with its sittings newest first. A day is the calendar's day, so its count
+ * agrees with Season's, and a sitting that crosses midnight is two here as it
+ * is two days there.
+ */
+export function battleDays(battles, zone) {
+  const on = new Map();
+  for (const b of battles ?? []) {
+    if (!counted(b)) continue;
+    const day = localDate(b.battle_time, zone);
+    if (!day) continue;
+    if (!on.has(day)) on.set(day, []);
+    on.get(day).push(b);
+  }
+  return [...on.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : -1))
+    .map(([ymd, list]) => ({
+      ymd,
+      label: weekdayLabel(ymd),
+      ...tally(list),
+      sittings: sittingsOf(list, zone),
+    }));
+}
+
+/** "6 battles · 4–2", a draw last. */
+export function tallyLine(t) {
+  return `${fmt(t.battles)} ${t.battles === 1 ? "battle" : "battles"} · ${fmt(t.wins)}–${fmt(t.losses)}${t.draws ? `–${fmt(t.draws)}` : ""}`;
+}

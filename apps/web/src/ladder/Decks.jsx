@@ -1,157 +1,76 @@
-import {
-  CardArt,
-  DeckGrid,
-  useClock,
-  Panel,
-  Table,
-  Empty,
-} from "@elixir-mcp/ui";
+import { CardArt, DeckGrid, Empty, Panel, useClock } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
-import { askedMode, fmt, leadFirst, pct, shortDay, signed } from "./ladder.js";
-import { groupLabel } from "./ladder-days.js";
+import { OTHER, fmt, modeLabel, pct, readModes, shortDay } from "./ladder.js";
 import {
-  GRID_MODES,
+  deckLine,
   dayRange,
-  deckCount,
-  decksTitle,
   formNames,
   formSwaps,
-  gapLine,
-  modesOf,
   nameList,
-  tableRows,
-  tableTitle,
 } from "./ladder-decks.js";
-import { useToolRead, useToolReads } from "../lib/queries.js";
-import { LadderHead, Loading, ReadError, Record } from "./common.jsx";
+import { useToolReads } from "../lib/queries.js";
+import { Loading, ReadError, Record } from "./common.jsx";
 
-/** Decks a trophy mode shows with their cards before "Show all"; each
- *  shown deck is one read for its cards. */
+/** Decks a panel shows with their cards before "Show all"; each shown deck is
+ *  one read for its cards. */
 const DECKS_SHOWN = 6;
 /** One page of battles_decks: every deck a season holds, in practice. */
 const LIMIT = 100;
 
 /**
- * Decks (LadderDecks.dc.html): every deck of the season, each with its
- * record in the mode it was played in. battles_decks reads once over
- * every mode (which modes, and the duel rounds), then once per mode; the
- * trophy modes show each deck's cards (one read per deck, by its
- * deck_hash), and every other mode is a row of one table. No record here pools two modes.
- * The mode the address names comes first (its panel, or the table with
- * its rows first); the others keep their order, and a row of links
- * jumps to each mode's decks.
+ * The Decks tab: every deck of the season in this chip's mode, its record there,
+ * its real cards in every mode. A war deck has a row here like any other, and its
+ * duel rounds have their own panel, because a duel has no single deck. Other is
+ * Challenge and Tournament read apart, a section each.
  */
-export function Decks({ player, season, seasonPicker, search }) {
-  const { zone } = useClock();
+export function Decks({ player, mode, modeReady, season }) {
+  const groups = readModes(mode);
   const base = { player_tag: player.player_tag, season: season.arg };
-  const all = useToolRead(
-    "battles_decks",
-    { ...base, limit: LIMIT },
-    { enabled: season.ready },
-  );
-  const modes = all.data ? modesOf(all.data) : [];
   const reads = useToolReads(
     "battles_decks",
-    modes.map((mode) => ({ ...base, mode, limit: LIMIT })),
+    groups.map((m) => ({ ...base, mode: m, limit: LIMIT })),
+    { enabled: modeReady },
   );
-  const byMode = Object.fromEntries(modes.map((m, i) => [m, reads[i]]));
-  const count = all.data ? deckCount(all.data) : 0;
-  const lead = askedMode(search);
-  const grid = leadFirst(
-    modes.filter((m) => GRID_MODES.includes(m)),
-    lead,
-  );
-  const other = leadFirst(
-    modes.filter((m) => !GRID_MODES.includes(m)),
-    lead,
-  );
-  // The table goes first only when it holds the address's mode.
-  const tableFirst = other.includes(lead);
-  const order = tableFirst ? [...other, ...grid] : [...grid, ...other];
-  const panels = grid.map((mode) => (
-    <ModeDecks
-      key={mode}
-      mode={mode}
-      read={byMode[mode]}
-      base={base}
-      zone={zone}
-    />
-  ));
-  const table = (
-    <OtherDecks
-      key="other"
-      modes={other}
-      byMode={byMode}
-      all={all.data}
-      lead={lead}
-    />
-  );
-
-  return (
-    <div className="ladder-page">
-      <LadderHead
-        player={player}
-        page="Decks"
-        title="Decks"
-        lede={
-          all.data && count
-            ? `${decksTitle(count, modes.length)}${season.current ? "" : ` in ${season.name}`}`
-            : null
+  if (!modeReady || reads.some((r) => r.isPending))
+    return <Loading what="your decks" />;
+  const failed = reads.find((r) => r.isError);
+  if (failed) return <ReadError error={failed.error} what="your decks" />;
+  const count = (r) =>
+    (r.data?.decks?.length ?? 0) + (r.data?.duel_decks?.length ?? 0);
+  if (!reads.some((r) => count(r) > 0))
+    return (
+      <Empty
+        titleAs="h2"
+        title={
+          season.current
+            ? "No decks this season yet"
+            : `No decks in ${season.name}`
         }
-        observedAt={all.data?.meta?.source_polls?.player_battlelog?.observed_at}
-        season={season}
-        seasonPicker={seasonPicker}
+      >
+        {season.current
+          ? "Elixir has recorded no battle with a deck in this mode since the season began. The page fills from the next battle log it reads."
+          : `Elixir recorded no battle with a deck in ${season.name}.`}
+      </Empty>
+    );
+  return groups.map((m, i) =>
+    count(reads[i]) > 0 ? (
+      <ModeDecks
+        key={m}
+        mode={m}
+        read={reads[i]}
+        base={base}
+        other={mode === OTHER.key}
       />
-      {all.isPending ? (
-        <Loading what="the season's decks" />
-      ) : all.isError ? (
-        <ReadError error={all.error} what="the season's decks" />
-      ) : count === 0 ? (
-        <Empty
-          titleAs="h2"
-          title={
-            season.current
-              ? "No decks this season yet"
-              : `No decks in ${season.name}`
-          }
-        >
-          {season.current
-            ? "Elixir has recorded no battle with a deck since the season began. The page fills from the next battle log it reads."
-            : `Elixir recorded no battle with a deck in ${season.name}.`}
-        </Empty>
-      ) : (
-        <>
-          {order.length > 1 ? (
-            <nav
-              aria-label="Modes on this page"
-              className="flex flex-wrap gap-2"
-            >
-              {order.map((m) => (
-                <a key={m} className="mode-chip" href={`#decks-${m}`}>
-                  <span
-                    className={`mode-chip__dot mode-chip__dot--${m}`}
-                    aria-hidden="true"
-                  />
-                  {groupLabel(m)}
-                </a>
-              ))}
-            </nav>
-          ) : null}
-          {tableFirst ? [table, ...panels] : [...panels, table]}
-        </>
-      )}
-    </div>
+    ) : null,
   );
 }
 
-/** One trophy mode's decks, each with its cards, and any swap of forms
- *  between two of them. The heading's battles and record are the mode's
- *  season as battles_performance reads it (the season home's read). */
-function ModeDecks({ mode, read, base, zone }) {
+function ModeDecks({ mode, read, base }) {
+  const { zone } = useClock();
   const id = useId();
   const [every, setEvery] = useState(false);
-  const perf = useToolRead("battles_performance", { ...base, mode });
-  const decks = read?.data?.decks ?? [];
+  const decks = read.data?.decks ?? [];
+  const duels = read.data?.duel_decks ?? [];
   const shown = every ? decks : decks.slice(0, DECKS_SHOWN);
   const details = useToolReads(
     "battles_decks",
@@ -162,44 +81,16 @@ function ModeDecks({ mode, read, base, zone }) {
       details[i]?.data?.decks?.find((r) => r.deck_hash === d.deck_hash) ?? null,
   );
   const swaps = formSwaps(full.filter(Boolean));
-  const w = perf.data?.window;
-  const label = groupLabel(mode);
-
+  const label = modeLabel(mode);
   return (
     <>
-      <Panel
-        title={
-          <>
-            {label}
-            {w && Number(w.battles ?? 0) > 0 ? (
-              <>
-                {" "}
-                · {fmt(w.battles)} {w.battles === 1 ? "battle" : "battles"},{" "}
-                <Record wins={w.wins} losses={w.losses} draws={w.draws} />
-              </>
-            ) : null}
-          </>
-        }
-        titleId={id}
-        action={
-          <span className="text-[12.5px] text-ink-faint">
-            {fmt(decks.length)} {decks.length === 1 ? "deck" : "decks"}, played
-            most first
-          </span>
-        }
-        id={`decks-${mode}`}
-        className="scroll-mt-4"
-        aria-labelledby={id}
-      >
-        {read?.isPending ? (
-          <div className="panel__body">
-            <Loading what={`the ${label} decks`} />
-          </div>
-        ) : read?.isError ? (
-          <div className="panel__body">
-            <ReadError error={read.error} what={`the ${label} decks`} />
-          </div>
-        ) : (
+      {decks.length ? (
+        <Panel
+          title={`${fmt(decks.length)} ${decks.length === 1 ? "deck" : "decks"} in ${label}`}
+          titleId={id}
+          action={<span className="ladder-aside">Most played first</span>}
+          aria-labelledby={id}
+        >
           <ul className="ladder-decks">
             {shown.map((d, i) => (
               <DeckRow
@@ -211,59 +102,53 @@ function ModeDecks({ mode, read, base, zone }) {
               />
             ))}
           </ul>
-        )}
-        {decks.length > DECKS_SHOWN ? (
+          {decks.length > DECKS_SHOWN ? (
+            <div className="panel__foot">
+              <button
+                type="button"
+                className="btn btn--sm btn--quiet"
+                aria-expanded={every}
+                onClick={() => setEvery((v) => !v)}
+              >
+                {every
+                  ? `Show the ${DECKS_SHOWN} played most`
+                  : `Show all ${fmt(decks.length)} decks`}
+              </button>
+            </div>
+          ) : null}
+          {read.data?.next_offset != null ? (
+            <div className="panel__foot">
+              These are the {fmt(decks.length)} played most of{" "}
+              {fmt(read.data.total_decks)}.
+            </div>
+          ) : null}
           <div className="panel__foot">
-            <button
-              type="button"
-              className="btn btn--sm btn--quiet"
-              aria-expanded={every}
-              onClick={() => setEvery((v) => !v)}
-            >
-              {every
-                ? `Show the ${DECKS_SHOWN} played most`
-                : `Show all ${fmt(decks.length)} decks`}
-            </button>
+            A deck is its exact cards, forms and tower troop, so the same eight
+            names can be two rows.
           </div>
-        ) : null}
-        {read?.data?.next_offset != null ? (
-          <div className="panel__foot">
-            {decks.length === 1
-              ? "This is the deck"
-              : `These are the ${fmt(decks.length)} decks`}{" "}
-            played most of {fmt(read.data.total_decks)}.
-          </div>
-        ) : null}
-      </Panel>
+        </Panel>
+      ) : null}
       {swaps.map((s) => (
         <SwapPanel key={s.key} swap={s} mode={mode} zone={zone} />
       ))}
+      {duels.length ? <DuelRounds duels={duels} /> : null}
     </>
   );
 }
 
-/** One deck: its name and forms, when it was played, its eight cards,
- *  and its record in this mode with the level gap beside it. Until its
- *  cards are read (or if that read fails) the names stand in. */
+/** One deck: its name, its record, its eight cards, and a line of facts. Until
+ *  its cards are read (or if that read fails) the names stand in. */
 function DeckRow({ row, full, pending, zone }) {
   const name = row.archetype_label ?? "Unnamed deck";
   const forms = formNames(full ?? row);
-  const avg = full?.archetype?.average_elixir;
-  const gap = gapLine(row.mean_level_gap);
   return (
     <li className="ladder-deckrow">
-      <div className="ladder-deckrow__id">
-        <p className="ladder-deckrow__name">{name}</p>
-        {forms ? <p className="ladder-deckrow__forms">{forms}</p> : null}
-        <p className="ladder-deckrow__when">
-          {[
-            dayRange(row.first_used, row.last_used, zone),
-            avg != null ? `${Number(avg).toFixed(2)} average elixir` : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      </div>
+      <p className="ladder-deckrow__name">{name}</p>
+      <p className="ladder-deckrow__rec">
+        {fmt(row.battles)} {row.battles === 1 ? "battle" : "battles"} ·{" "}
+        <Record wins={row.wins} losses={row.losses} draws={row.draws ?? 0} />
+        {row.win_rate != null ? ` · ${pct(row.win_rate)} won` : ""}
+      </p>
       <div className="ladder-deckrow__cards">
         {full?.cards?.length ? (
           <DeckGrid
@@ -276,20 +161,38 @@ function DeckRow({ row, full, pending, zone }) {
         ) : pending ? (
           <Loading what="the cards" />
         ) : (
-          <p className="ladder-deckrow__names">{row.card_names}</p>
+          <p className="ladder-deckrow__line">{row.card_names}</p>
         )}
       </div>
-      <div className="ladder-deckrow__facts">
-        <span className="ladder-deckrow__n">
-          {fmt(row.battles)} {row.battles === 1 ? "battle" : "battles"}
-        </span>
-        <span className="ladder-deckrow__record">
-          <Record wins={row.wins} losses={row.losses} draws={row.draws} />
-          <span className="ladder-fact__aside">{pct(row.win_rate)}</span>
-        </span>
-        {gap ? <span className="ladder-deckrow__gap">{gap}</span> : null}
-      </div>
+      {forms ? <p className="ladder-deckrow__line">{forms}</p> : null}
+      <p className="ladder-deckrow__line">{deckLine(row, full, zone)}</p>
     </li>
+  );
+}
+
+/** A duel spends one deck a round, so its row counts rounds. */
+function DuelRounds({ duels }) {
+  return (
+    <Panel title="Duel rounds">
+      <ul className="ladder-rows">
+        {duels.map((d) => (
+          <li key={d.deck_hash} className="ladder-duel">
+            <span className="ladder-duel__name">
+              {d.archetype_label ?? d.card_names ?? "Unnamed deck"}
+            </span>
+            <span className="ladder-duel__rec">
+              {fmt(d.rounds)} {d.rounds === 1 ? "round" : "rounds"} ·{" "}
+              <Record wins={d.wins} losses={d.losses} />
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="panel__foot">
+        Each row is one deck in one mode. A duel row counts its rounds, each won
+        or lost on its own crowns; a duel has no single deck, so it is outside
+        the other rows.
+      </div>
+    </Panel>
   );
 }
 
@@ -308,7 +211,6 @@ function SwapPanel({ swap, mode, zone }) {
   const id = useId();
   const { before, after, unchanged, kind } = swap;
   const { whenDay } = useClock();
-  const on = whenDay(swap.at);
   const side = (deck, when, cards, caption) => (
     <div className="ladder-swap__side">
       <p className="ladder-swap__when">{when}</p>
@@ -331,26 +233,15 @@ function SwapPanel({ swap, mode, zone }) {
           />{" "}
           {pct(deck.win_rate)} won · {fmt(deck.battles)}{" "}
           {deck.battles === 1 ? "battle" : "battles"}
-          {deck.mean_level_gap != null
-            ? ` · gap ${signed(deck.mean_level_gap, 2)}`
-            : ""}
         </p>
       ) : null}
     </div>
   );
   return (
     <Panel
-      title={
-        <>
-          The {kind === "form" ? "form" : kind} swap on {on}
-        </>
-      }
+      title={`The ${kind === "form" ? "form" : kind} swap on ${whenDay(swap.at)}`}
       titleId={id}
-      action={
-        <span className="text-[12.5px] text-ink-faint">
-          {groupLabel(mode)} only
-        </span>
-      }
+      action={<span className="ladder-aside">{modeLabel(mode)} only</span>}
       className="ladder-swap"
       aria-labelledby={id}
     >
@@ -379,143 +270,9 @@ function SwapPanel({ swap, mode, zone }) {
         )}
       </div>
       <div className="panel__foot">
-        Each record is that deck&apos;s own in {groupLabel(mode)}. The record
+        Each record is that deck&apos;s own in {modeLabel(mode)}. The record
         reads back what happened after the change; it does not say the change
         caused it.
-      </div>
-    </Panel>
-  );
-}
-
-/** Every deck of the modes shown without cards: war, its duel rounds,
- *  events and the rest, one row per deck per mode, the address's mode
- *  (`lead`) first. Each mode's first row is its jump target; a mode with
- *  no row yet (still reading, or its read failed) lands on the table. */
-function OtherDecks({ modes, byMode, all, lead }) {
-  const id = useId();
-  if (!modes.length) return null;
-  const pending = modes.some((m) => byMode[m]?.isPending);
-  const failed = modes.filter((m) => byMode[m]?.isError);
-  const bodies = Object.fromEntries(
-    modes.filter((m) => byMode[m]?.data).map((m) => [m, byMode[m].data]),
-  );
-  const rows = pending ? [] : tableRows(bodies, all, lead);
-  const anchored = new Set();
-  const anchor = (mode) => {
-    if (!mode || anchored.has(mode)) return undefined;
-    anchored.add(mode);
-    return `decks-${mode}`;
-  };
-  const keyed = rows.map((r) => ({ r, id: anchor(r.mode) }));
-  return (
-    <Panel aria-labelledby={id}>
-      {modes
-        .filter((m) => !anchored.has(m))
-        .map((m) => (
-          <span key={m} id={`decks-${m}`} className="block scroll-mt-4" />
-        ))}
-      <div className="panel__head">
-        <h2 id={id} className="ladder-panel-title">
-          {pending ? "Other modes" : tableTitle(rows, lead)}
-        </h2>
-      </div>
-      {pending ? (
-        <div className="panel__body">
-          <Loading what="the other modes' decks" />
-        </div>
-      ) : (
-        <>
-          {failed.map((m) => (
-            <div key={m} className="panel__body">
-              <ReadError
-                error={byMode[m].error}
-                what={`the ${groupLabel(m)} decks`}
-              />
-            </div>
-          ))}
-          {rows.length ? (
-            <Table
-              columns={[
-                {
-                  head: "Deck",
-                  className: "ladder-table__deck",
-                  cell: ({ r }) => r.label,
-                },
-                {
-                  head: "Mode",
-                  className: "ladder-table__mode",
-                  cell: ({ r }) => (
-                    <span className="ladder-key">
-                      {r.mode ? (
-                        <span
-                          className={`mode-chip__dot mode-chip__dot--${r.mode}`}
-                          aria-hidden="true"
-                        />
-                      ) : null}
-                      {r.modeLabel}
-                    </span>
-                  ),
-                },
-                {
-                  head: "Battles",
-                  num: true,
-                  cell: ({ r }) => (
-                    <>
-                      {fmt(r.battles)}
-                      {/* A phone has no column head: the count names
-                            its unit there. */}
-                      <span className="ladder-table__unit">
-                        {" "}
-                        {r.duel
-                          ? r.battles === 1
-                            ? "round"
-                            : "rounds"
-                          : r.battles === 1
-                            ? "battle"
-                            : "battles"}
-                      </span>
-                    </>
-                  ),
-                },
-                {
-                  head: "Record",
-                  className: "ladder-table__record",
-                  cell: ({ r }) => (
-                    <Record wins={r.wins} losses={r.losses} draws={r.draws} />
-                  ),
-                },
-                {
-                  head: "Notes",
-                  className: "ladder-table__notes",
-                  cell: ({ r }) =>
-                    [
-                      r.forms,
-                      r.gap,
-                      r.duel ? "duel rounds" : null,
-                      r.sameAs
-                        ? `same cards as a ${groupLabel(r.sameAs)} deck`
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · "),
-                },
-              ]}
-              rows={keyed}
-              rowKey={({ r }) => r.key}
-              rowProps={({ id: at }) => ({
-                id: at,
-                className: at ? "scroll-mt-4" : undefined,
-              })}
-              phone="fit"
-              className="ladder-table"
-            />
-          ) : null}
-        </>
-      )}
-      <div className="panel__foot">
-        Each row is one deck in one mode. A duel row counts its rounds, each won
-        or lost on its own crowns; a duel has no single deck, so it is outside
-        the other rows.
       </div>
     </Panel>
   );

@@ -1,11 +1,22 @@
-import { CardArt, Link, noun, Tag, Panel, Empty, Table } from "@elixir-mcp/ui";
+import {
+  CardArt,
+  Chips,
+  Link,
+  noun,
+  Tag,
+  Panel,
+  Empty,
+  Table,
+} from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { CONSOLE } from "../lib/console.js";
 import {
+  OTHER,
   fmt,
-  ladderHref,
   modeLabel,
+  modeWords,
   pct,
+  readModes,
   seasonWords,
   signed,
 } from "./ladder.js";
@@ -21,13 +32,8 @@ import {
 } from "./ladder-cards.js";
 import { useToolRead } from "../lib/queries.js";
 import { tagPath } from "../lib/tag-url.js";
-import {
-  LadderHead,
-  Loading,
-  ModeSwitch,
-  ReadError,
-  Record,
-} from "./common.jsx";
+import { useNav } from "../App.jsx";
+import { Loading, ReadError, Record } from "./common.jsx";
 
 /** Rows a card table shows before "Show all". */
 const ROWS_SHOWN = 12;
@@ -36,26 +42,37 @@ const ROWS_SHOWN = 12;
 const OPPONENT_FLOOR = 2;
 
 /**
- * Cards (LadderCards.dc.html): one mode's season, card by card. Your
- * cards and the cards across the table come from battles_cards (mine and
- * opponent), each a record of the battles where that deck held the card;
- * the opponents are battles_opponents' count and its repeats. A form is
- * its own row, as the tool keeps it; no row is summed with another.
- * What you faced reads in the tools' default order (most battles first)
- * unless the reader asks for most losses first (`?order=losses`, the
- * tools' `sort: "losses"`); each row carries its level gap where the
- * record has one.
+ * The Cards tab: one chip's season, card by card. Your cards and the cards
+ * across the table come from battles_cards (mine and opponent), each a record of
+ * the battles where that deck held the card; the opponents are battles_opponents'
+ * count and its repeats. A form is its own row, as the tool keeps it; no row is
+ * summed with another. What you faced reads in the tools' default order (most
+ * battles first) unless the reader asks for most losses first (`?order=losses`,
+ * the tools' `sort: "losses"`). Other is Challenge and Tournament, read apart.
  */
-export function Cards({
-  player,
-  mode,
-  modeReady,
-  season,
-  seasonPicker,
-  search,
-}) {
-  const args = { player_tag: player.player_tag, season: season.arg, mode };
+export function Cards({ player, mode, modeReady, season, search, hrefFor }) {
+  const navigate = useNav();
   const order = pickOrder(search.order);
+  return (
+    <>
+      {readModes(mode).map((m) => (
+        <ModeCards
+          key={m}
+          player={player}
+          mode={m}
+          chip={mode}
+          modeReady={modeReady}
+          season={season}
+          order={order}
+          onOrder={(o) => navigate(hrefFor({ order: o }))}
+        />
+      ))}
+    </>
+  );
+}
+
+function ModeCards({ player, mode, chip, modeReady, season, order, onOrder }) {
+  const args = { player_tag: player.player_tag, season: season.arg, mode };
   // Only a chosen order rides on the read, so the default read is the
   // one the page always made (and shares its cache).
   const sorted = order === "losses" ? { sort: "losses" } : {};
@@ -75,113 +92,50 @@ export function Cards({
     { enabled: modeReady },
   );
   const label = modeLabel(mode);
-  const hrefFor = (m) =>
-    ladderHref("cards", {
-      player: search.player,
-      mode: m,
-      season: search.season,
-      order,
-    });
-  const orderHref = (o) =>
-    ladderHref("cards", {
-      player: search.player,
-      mode: search.mode,
-      season: search.season,
-      order: o,
-    });
   const when = seasonWords(season);
   const played = Number(modeBattles(mine.data, mode) ?? 0) > 0;
-
+  if (!modeReady || mine.isPending) return <Loading what="your cards" />;
+  if (mine.isError) return <ReadError error={mine.error} what="your cards" />;
+  if (!played)
+    return chip === OTHER.key ? null : (
+      <Empty title={`No ${modeWords(mode)} battles ${when}`} titleAs="h2">
+        {season.current
+          ? "Elixir has recorded none in this mode since the season began,"
+          : `Elixir recorded none in this mode in ${season.name},`}{" "}
+        so there are no cards to read back. Another chip may hold your season.
+      </Empty>
+    );
   return (
-    <div className="ladder-page">
-      <LadderHead
-        player={player}
-        page="Cards"
-        title="Cards"
-        lede={`${label} · ${when}`}
-        observedAt={
-          mine.data?.meta?.source_polls?.player_battlelog?.observed_at
-        }
-        season={season}
-        seasonPicker={seasonPicker}
+    <>
+      <YourCards body={mine.data} label={label} other={chip === OTHER.key} />
+      <div className="ladder-order">
+        <Chips
+          label="Order what you faced"
+          options={ORDERS}
+          value={order}
+          onChange={onOrder}
+        />
+        <span className="ladder-order__hint">
+          {order === "losses"
+            ? "Most battles lost first, then most battles."
+            : "Most battles first."}{" "}
+          A card is listed from{" "}
+          {fmt(
+            theirs.data?.applied?.min_battles ??
+              mine.data?.applied?.min_battles ??
+              1,
+          )}{" "}
+          battles, a player from {fmt(OPPONENT_FLOOR)}.
+        </span>
+      </div>
+      <TheirCards
+        read={theirs}
+        opponents={opponents.data?.distinct_opponents ?? null}
+        mode={mode}
+        order={order}
       />
-      <ModeSwitch mode={mode} hrefFor={hrefFor} />
-      {!modeReady || mine.isPending ? (
-        <Loading what="your cards" />
-      ) : mine.isError ? (
-        <ReadError error={mine.error} what="your cards" />
-      ) : !played ? (
-        <Empty
-          title={
-            <>
-              No {label} battles {when}
-            </>
-          }
-          titleAs="h2"
-        >
-          {season.current
-            ? "Elixir has recorded none in this mode since the season began,"
-            : `Elixir recorded none in this mode in ${season.name},`}{" "}
-          so there are no cards to read back. Another mode&apos;s tab may hold
-          your season.
-        </Empty>
-      ) : (
-        <>
-          <YourCards body={mine.data} />
-          <OrderSwitch
-            order={order}
-            hrefFor={orderHref}
-            cardFloor={
-              theirs.data?.applied?.min_battles ??
-              mine.data?.applied?.min_battles
-            }
-          />
-          <TheirCards
-            read={theirs}
-            opponents={opponents.data?.distinct_opponents ?? null}
-            mode={mode}
-            order={order}
-          />
-          <Opponents read={opponents} label={label} when={when} order={order} />
-        </>
-      )}
-    </div>
-  );
-}
-
-/** How what you faced is ordered: a choice the reader makes, each its own
- *  address like the mode tabs. The default is the tools' order (most
- *  battles first); most losses first is never chosen for the reader. It
- *  says the floors, so a single loss is seen not to lead the list. */
-function OrderSwitch({ order, hrefFor, cardFloor }) {
-  const id = useId();
-  return (
-    <div className="ladder-order">
-      <span id={id} className="ladder-order__label">
-        Order what you faced
-      </span>
-      <nav aria-labelledby={id} className="ladder-modes">
-        {ORDERS.map((o) => (
-          <Link
-            key={o.key}
-            to={hrefFor(o.key)}
-            className="ladder-modes__tab"
-            aria-current={o.key === order ? "true" : undefined}
-          >
-            {o.label}
-          </Link>
-        ))}
-      </nav>
-      <span className="ladder-order__hint">
-        {order === "losses"
-          ? "Most battles lost first, then most battles."
-          : "Most battles first."}{" "}
-        {cardFloor
-          ? `A card is listed from ${fmt(cardFloor)} battles, `
-          : "A card is listed from the lowest it can show, "}
-        a player from {fmt(OPPONENT_FLOOR)}.
-      </span>
-    </div>
+      <Opponents read={opponents} label={label} when={when} order={order} />
+    </>
   );
 }
 
@@ -227,21 +181,22 @@ function useShown(rows) {
   return { shown, toggle };
 }
 
-function YourCards({ body }) {
+function YourCards({ body, label, other }) {
   const id = useId();
   const rows = cardRows(body);
   const { shown, toggle } = useShown(rows);
   const floor = body?.applied?.min_battles;
   return (
     <Panel
-      title={
-        <>
-          Your cards · {fmt(rows.length)} {rows.length === 1 ? "row" : "rows"},{" "}
+      title={other ? `Your cards in ${label}` : "Your cards"}
+      titleId={id}
+      action={
+        <span className="ladder-aside">
+          {fmt(rows.length)} {rows.length === 1 ? "row" : "rows"},{" "}
           {fmt(distinctCards(rows))}{" "}
           {distinctCards(rows) === 1 ? "card" : "cards"}
-        </>
+        </span>
       }
-      titleId={id}
       aria-labelledby={id}
     >
       {rows.length ? (
@@ -257,13 +212,12 @@ function YourCards({ body }) {
           ]}
           rows={shown}
           rowKey={(r) => r.key}
-          phone="fit"
           className="ladder-cards"
         />
       ) : (
         <div className="panel__body">
           <p className="text-ink-faint">
-            No card reached the tool&apos;s floor.
+            No card reached the lowest it can show.
           </p>
         </div>
       )}
@@ -291,7 +245,7 @@ function TheirCards({ read, opponents, mode, order }) {
       title="Across the table from you"
       titleId={id}
       action={
-        <span className="text-[12.5px] text-ink-faint">
+        <span className="ladder-aside">
           {[
             battles != null
               ? `${fmt(battles)} ${battles === 1 ? "battle" : "battles"}`
@@ -327,13 +281,12 @@ function TheirCards({ read, opponents, mode, order }) {
           ]}
           rows={shown}
           rowKey={(r) => r.key}
-          phone="fit"
           className="ladder-cards"
         />
       ) : (
         <div className="panel__body">
           <p className="text-ink-faint">
-            No card reached the tool&apos;s floor.
+            No card reached the lowest it can show.
           </p>
         </div>
       )}
@@ -358,6 +311,9 @@ function Opponents({ read, label, when, order }) {
   const body = read.data;
   const repeats = body?.opponents ?? [];
   const more = Number(body?.matching_opponents ?? 0) - repeats.length;
+  // A tag only tells two players of one name apart (2026-11-05, A31).
+  const named = repeats.map(opponentName);
+  const clashes = (o) => named.filter((n) => n === opponentName(o)).length > 1;
   return (
     <Panel title="Opponents" titleId={id} aria-labelledby={id}>
       <div className="panel__body">
@@ -383,8 +339,16 @@ function Opponents({ read, label, when, order }) {
                       to={`${CONSOLE}/explore/player/${tagPath(o.player_tag)}`}
                     >
                       {opponentName(o)}
-                    </Link>{" "}
-                    <Tag tag={o.player_tag} className="ladder-opponents__tag" />
+                    </Link>
+                    {clashes(o) ? (
+                      <>
+                        {" "}
+                        <Tag
+                          tag={o.player_tag}
+                          className="ladder-opponents__tag"
+                        />
+                      </>
+                    ) : null}
                     , {times(o.battles)},{" "}
                     <Record wins={o.wins} losses={o.losses} draws={o.draws} />
                     {o.mean_level_gap != null ? (

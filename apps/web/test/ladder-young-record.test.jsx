@@ -138,7 +138,7 @@ test("renders Follow a friend for a verified player with no recorded clan", asyn
     (
       await screen.findByRole("link", { name: "Follow a friend ›" })
     ).getAttribute("href"),
-  ).toBe("/console/account/tracking#add-player-tag");
+  ).toBe("/home/friends");
 });
 
 test("draws nothing once the record is 28 days old", async () => {

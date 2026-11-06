@@ -56,7 +56,6 @@ import {
 import { HOME, SERVICE_STATUS, SIGN_IN, movedTo } from "./lib/moved.js";
 import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { LadderInvite } from "./ladder/Invite.jsx";
-import { LadderRail } from "./ladder/LadderRail.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
 
@@ -905,10 +904,10 @@ export const DOC_LINKS = {
       ["players_summary", "/docs/tools/players#players_summary"],
     ],
   ],
-  "ladder:days": [
+  "ladder:battles": [
     "Ladder",
     [
-      ["Days played", "/docs/ladder#days-played"],
+      ["Battles", "/docs/ladder#battles"],
       ["battles_query", "/docs/tools/battles#battles_query"],
     ],
   ],
@@ -1840,7 +1839,7 @@ function ConsoleShell() {
   const navigate = useNav();
   const { me, unreachable, retrying, refresh } = useMe();
   const narrow = useNarrow();
-  const { path: effectivePath, section, sec, here, search } = useHere();
+  const { path: effectivePath, section, sec, here } = useHere();
 
   const authed = me?.authenticated === true;
 
@@ -1892,6 +1891,8 @@ function ConsoleShell() {
   const needsAuth = sec?.authed && !authed && me !== null && !unreachable;
   const showUnavailable = sec?.authed && !authed && unreachable;
   const showRail = authed && !needsAuth && Boolean(here.key);
+  // Ladder has a scope bar and tabs in the page, and no rail (step 5).
+  const railed = showRail && here.product !== "ladder";
 
   // Every time a page prints is on the account's clock: the zone
   // set on Profile, or UTC when none is (Jamie, 2026-09-23). A new
@@ -1907,15 +1908,7 @@ function ConsoleShell() {
           <div
             className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
           >
-            {showRail && here.product === "ladder" ? (
-              <LadderRail
-                me={me}
-                search={search}
-                here={here}
-                navigate={navigate}
-                narrow={narrow}
-              />
-            ) : showRail ? (
+            {railed ? (
               <Rail
                 me={me}
                 agent={agent}
@@ -1929,7 +1922,7 @@ function ConsoleShell() {
 
             <main className="page">
               <div
-                className={`page__inner${showRail ? "" : " page__inner--solo"}`}
+                className={`page__inner${railed ? "" : " page__inner--solo"}`}
               >
                 {/* Keyed on the route: a boundary that has caught stays caught, so
                 without this a single bad page would keep showing its error after

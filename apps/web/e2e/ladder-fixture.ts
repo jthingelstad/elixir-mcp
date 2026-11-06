@@ -767,6 +767,19 @@ const DUELS = [
 ];
 
 /** One deck's row as battles_decks returns it, over `modes`. */
+/** A deck's cards: its own, else its names, as a war deck read in full. */
+const cardsOf = (d: Deck) =>
+  d.cards.length
+    ? d.cards
+    : d.names.split(", ").map((n, i) => {
+        const form = /^Evo /.test(n)
+          ? "evolution"
+          : /^Hero /.test(n)
+            ? "hero"
+            : "base";
+        return c(26000100 + i, n.replace(/^(Evo|Hero) /, ""), form);
+      });
+
 function deckRow(d: Deck, modes: string[], full: boolean) {
   const stats = modes.map((m) => d.per[m]).filter(Boolean) as Stat[];
   const sum = (k: "battles" | "wins" | "losses") =>
@@ -781,7 +794,7 @@ function deckRow(d: Deck, modes: string[], full: boolean) {
     tower_troop_name: d.tower,
     ...(full
       ? {
-          cards: d.cards,
+          cards: cardsOf(d),
           archetype: { label: d.label, average_elixir: d.elixir },
         }
       : {}),
@@ -985,7 +998,14 @@ export function explore(
     past = {},
     samePoint = {},
     pastStart = true,
+    warRace = null,
+    otherModes = null,
   }: {
+    /** war_current and war_history's answers; none refuses, as a clan the
+     *  account cannot read does. */
+    warRace?: { current: unknown; history: unknown } | null;
+    /** A season's Challenge and Tournament windows, for the Other chip. */
+    otherModes?: Record<string, Totals> | null;
     /** The record began in Season 134, so 135 has a season before it. */
     earlier?: boolean;
     /** The season list names when its oldest season began; false lists
@@ -1044,7 +1064,10 @@ export function explore(
           },
         ];
       const from = Number(String(args.cursor ?? "0").replace(/^at:/, ""));
-      const page = BATTLES.slice(from, from + limit);
+      const list = args.mode
+        ? BATTLES.filter((b) => b.mode_group === args.mode)
+        : BATTLES;
+      const page = list.slice(from, from + limit);
       return ok({
         player_tag: args.player_tag,
         applied: {
@@ -1053,9 +1076,8 @@ export function explore(
           verbosity: args.verbosity ?? "full",
         },
         battles: page,
-        ...(args.include_total ? { total_count: BATTLES.length } : {}),
-        next_cursor:
-          from + limit < BATTLES.length ? `at:${from + limit}` : null,
+        ...(args.include_total ? { total_count: list.length } : {}),
+        next_cursor: from + limit < list.length ? `at:${from + limit}` : null,
         notes: [],
         meta: META,
       });
@@ -1065,6 +1087,8 @@ export function explore(
       args.season === "current" || String(args.season) === String(SEASON.war);
     if (tool === "battles_decks")
       return ok(battlesDecks(args, emptyCurrent && current));
+    if (warRace && tool === "war_current") return ok(warRace.current);
+    if (warRace && tool === "war_history") return ok(warRace.history);
     if (tool === "battles_cards") return ok(battlesCards(args));
     if (tool === "battles_opponents") return ok(battlesOpponents(args));
     if (tool === "battles_performance") {
@@ -1078,6 +1102,35 @@ export function explore(
         });
       const mode = String(args.mode ?? "ladder");
       const empty = emptyCurrent && current;
+      // Every mode's read: the head's dates and the chips' Other.
+      if (
+        !args.mode &&
+        !args.group_by &&
+        !args.before_after &&
+        !args.compare_from
+      )
+        return ok({
+          player_tag: args.player_tag,
+          applied: { ...appliedFor(args.season), mode: null },
+          trophy_floor: null,
+          window: {
+            ...(empty ? NONE : (windowsFor(args.season).ladder ?? NONE)),
+            modes: empty
+              ? {}
+              : { ...windowsFor(args.season), ...(otherModes ?? {}) },
+          },
+          notes: [],
+          meta: META,
+        });
+      if (otherModes?.[mode])
+        return ok({
+          player_tag: args.player_tag,
+          applied: { ...appliedFor(args.season), mode },
+          trophy_floor: null,
+          window: otherModes[mode],
+          notes: [],
+          meta: META,
+        });
       const which = whichSeason(args.season);
       const base = {
         player_tag: args.player_tag,

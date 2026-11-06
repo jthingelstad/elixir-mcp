@@ -1,133 +1,25 @@
-import {
-  Disclosure,
-  Empty,
-  Fresh,
-  Icon,
-  Link,
-  PageHead,
-  Stat,
-} from "@elixir-mcp/ui";
-import { useId } from "react";
-import { MODES, fmt, playerName } from "./ladder.js";
-import { ZoneOffer } from "../components/ZoneOffer.jsx";
+import { Empty, Icon, Link, PageHead, Stat, useClock } from "@elixir-mcp/ui";
+import { fmt, warLine } from "./ladder.js";
+import { useToolRead } from "../lib/queries.js";
+import { tagPath } from "../lib/tag-url.js";
 
 /**
- * The pieces every Ladder page shares: the head (crumb, title, lede and
- * when the battle log was read, then the offer to set a time zone while
- * the account has none), the mode switch, a record in the
- * house's win and loss inks, and the states a read can be in.
+ * The pieces every Ladder tab shares: the callouts the frame draws, a record
+ * in the house's win and loss inks, and the states a read can be in.
  */
 
-export function LadderHead({
-  player,
-  page,
-  title,
-  lede,
-  observedAt,
-  season,
-  seasonPicker,
-}) {
-  return (
-    <>
-      <LadderHeadRow
-        player={player}
-        page={page}
-        title={title}
-        lede={lede}
-        observedAt={observedAt}
-        seasonPicker={seasonPicker}
-      />
-      <SeasonFallback season={season} seasonPicker={seasonPicker} />
-      <ZoneOffer className="mb-4" />
-      <Disclosure title="About this record">
-        <p>
-          Each mode is its own game and keeps its own record. Ladder reads the
-          recorded battles, without pooling modes or rating players. Counts, and
-          anything Elixir could not read, are shown with the figures they
-          affect.
-        </p>
-      </Disclosure>
-    </>
-  );
-}
-
-function LadderHeadRow({
-  player,
-  page,
-  title,
-  lede,
-  observedAt,
-  seasonPicker,
-}) {
-  return (
-    <PageHead
-      className="ladder-head"
-      crumb={
-        <p className="page__crumb ladder-crumb">
-          <span>Ladder</span>
-          <span aria-hidden="true">›</span>
-          <span>{playerName(player)}</span>
-          <span aria-hidden="true">›</span>
-          <span className="text-ink-dim">{page}</span>
-        </p>
-      }
-      title={title}
-      sub={lede}
-      aside={
-        seasonPicker || observedAt ? (
-          <div className="ladder-head__side">
-            {seasonPicker ? <SeasonSwitch {...seasonPicker} /> : null}
-            {observedAt ? (
-              <Fresh ts={observedAt} label="battle log read" />
-            ) : null}
-          </div>
-        ) : null
-      }
-    />
-  );
-}
-
-/** Which season the page reads (2026-10-08): the seasons on the
- *  player's record, newest first, and any other the address names. A
- *  choice is going to that season's address (`?season=136`), so a
- *  link or a reload keeps it, as the mode tabs do. */
-function SeasonSwitch({ seasons, value, hrefFor, navigate }) {
-  const id = useId();
-  const list = seasons ?? [];
-  if (!list.length) return null;
-  const options = list.some((s) => s.key === value)
-    ? list
-    : [
-        ...list,
-        { key: value, name: /^\d+$/.test(value) ? `Season ${value}` : value },
-      ];
-  return (
-    <div className="ladder-season">
-      <label htmlFor={id} className="ladder-season__label">
-        Season
-      </label>
-      <select
-        id={id}
-        className="ladder-season__select"
-        value={value}
-        onChange={(e) => navigate?.(hrefFor(e.target.value))}
-      >
-        {options.map((s) => (
-          <option key={s.key} value={s.key}>
-            {s.name}
-            {s.current ? " (now)" : ""}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+/** A season's edge always names its date: "Mon 5:00 am" reads as a day of
+ *  this week and says nothing beside another date. */
+export function useSeasonEdge() {
+  const { whenDay, clock } = useClock();
+  return (ts) => `${whenDay(ts)}, ${clock(ts)}`;
 }
 
 /** The current season has no recorded battle yet, so the page reads the
  *  one before (pickSeason): it says so, and the empty season is one click
  *  away. Calm, not an alarm: the first days of every season look like
  *  this. */
-function SeasonFallback({ season, seasonPicker }) {
+export function SeasonFallback({ season, hrefFor }) {
   const empty = season?.fallback;
   if (!empty) return null;
   return (
@@ -135,30 +27,62 @@ function SeasonFallback({ season, seasonPicker }) {
       <Icon name="info" size={17} />
       <span>
         {empty.name} has no recorded battles yet, so this is {season.name}.{" "}
-        {seasonPicker?.hrefFor ? (
-          <Link to={seasonPicker.hrefFor(empty.key)}>Show {empty.name} ›</Link>
-        ) : null}
+        <Link to={hrefFor({ season: empty.key })}>Show {empty.name} ›</Link>
       </span>
     </div>
   );
 }
 
-/** One tab per mode, each its own address: a mode is a different game,
- *  so switching is going somewhere, not filtering a pooled list. */
-export function ModeSwitch({ mode, hrefFor, modes = MODES }) {
+/**
+ * This race week, above War's pages: decks and points are the clan war week,
+ * and the battles below stay one by one. No clan on record, or a clan whose war
+ * this account cannot read, and there is no line.
+ */
+export function WarLine({ player, clan, seasonWar, full = false }) {
+  const { when } = useClock();
+  const clanTag = clan?.clan_tag ?? player.last_known_clan_tag ?? null;
+  const current = useToolRead(
+    "war_current",
+    { clan_tag: clanTag, verbosity: "compact" },
+    { enabled: Boolean(clanTag) },
+  );
+  const history = useToolRead(
+    "war_history",
+    { clan_tag: clanTag, player_tag: player.player_tag, seasons: 1 },
+    { enabled: Boolean(clanTag) },
+  );
+  if (!clanTag || current.isError || !current.data || !history.data)
+    return null;
+  const line = warLine({
+    current: current.data,
+    weeks: history.data.member_weeks,
+    seasonWar,
+  });
+  if (!line) return null;
+  const note = [
+    line.note
+      ? `${!player.is_primary && clan?.name ? `${clan.name}, ` : ""}${line.note}.`
+      : null,
+    full && line.note
+      ? "A duel spends one deck a round, so decks and battles differ."
+      : null,
+    line.finished ? "Decks after the finish earn no points." : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <nav aria-label="Mode" className="ladder-modes">
-      {modes.map((m) => (
-        <Link
-          key={m.key}
-          to={hrefFor(m.key)}
-          className="ladder-modes__tab"
-          aria-current={m.key === mode ? "true" : undefined}
-        >
-          {m.label}
+    <div className="callout callout--info ladder-war" role="status">
+      <span>
+        <b className="ladder-war__line">
+          {line.line}
+          {line.at ? ` As of ${when(line.at)}.` : ""}
+        </b>{" "}
+        {note ? <span className="ladder-war__note">{note}</span> : null}{" "}
+        <Link to={`/clan/${tagPath(clanTag)}/season`}>
+          See the race in Clan › Season
         </Link>
-      ))}
-    </nav>
+      </span>
+    </div>
   );
 }
 
@@ -215,22 +139,30 @@ export function ReadError({ error, what = "this" }) {
 }
 
 /** The reader has no player of their own yet: Ladder reads a season,
- *  and a season belongs to a player. Tracking is where one is added. */
+ *  and a season belongs to a player. */
 export function NoPlayers() {
   return (
-    <Empty
-      title="No player of yours yet"
-      titleAs="h1"
-      action={
-        <Link className="btn btn--sm" to="/console/account/tracking">
-          Go to Tracking
-        </Link>
-      }
-      className="mt-6"
-    >
-      Ladder reads back the season of a player you play as. Add the player you
-      play as on Tracking; the record starts with the next battle log Elixir
-      reads.
-    </Empty>
+    <div className="ladder-page">
+      <PageHead
+        className="ladder-head"
+        title="Ladder"
+        sub="Your season, read back"
+      />
+      <Empty
+        title="No player of yours yet"
+        titleAs="h2"
+        action={
+          <Link
+            className="btn btn--sm"
+            to="/console/account/tracking#add-player-tag"
+          >
+            Add your player
+          </Link>
+        }
+      >
+        Ladder reads back the season of a player you play as. Add the player you
+        play as, and the record starts with the next battle log Elixir reads.
+      </Empty>
+    </div>
   );
 }

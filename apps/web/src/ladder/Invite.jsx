@@ -6,12 +6,13 @@ import { LADDER_PAGES, MODES } from "./ladder.js";
  *  what is behind the sign-in. Keyed by LADDER_PAGES' slugs. */
 const ABOUT = {
   season:
-    "The season so far in one mode: your record, trophy range and week by week.",
-  days: "The season on your calendar, in your own timezone, night by night.",
+    "The season so far in one mode: your record, trophy range, week by week and the days you played.",
+  battles:
+    "Every battle it records, by day and by sitting, each opening on both decks.",
   decks:
-    "Every deck you played this season, each with its record in the mode you played it in.",
+    "Every deck you played this season, with its record. A change of one card makes a new deck.",
   cards:
-    "Your cards, the cards played against you, and the opponents you met twice.",
+    "Your record with each card you played, and against each card across the table.",
 };
 
 /**
@@ -27,19 +28,17 @@ export function LadderInvite({ returnTo, onSignIn }) {
       className="mx-auto mt-8 max-w-[640px]"
       aria-labelledby="ladder-invite"
     >
-      <p className="eyebrow">LADDER</p>
+      <p className="eyebrow">Ladder</p>
       <h1 className="hero-title" id="ladder-invite">
         Your season, read back
       </h1>
       <p className="lede">
-        The game&rsquo;s battle log holds roughly your last 30 battles. Elixir
-        keeps every battle it records, and Ladder reads that record back to you
-        as a season: what you played, in which mode, and how it went. A mirror,
-        not a coach.
+        Ladder reads your own battles back to you, one season and one mode at a
+        time, from what Elixir has recorded.
       </p>
       <p className="page__lede">
         {MODES.map((m) => m.label).join(", ")}: each mode is its own game, so
-        each is its own view, and nothing pools across them.
+        each has its own view, and nothing pools across them.
       </p>
       <ul className="mt-5 grid gap-3 p-0">
         {LADDER_PAGES.map((p) => (
@@ -63,7 +62,7 @@ export function LadderInvite({ returnTo, onSignIn }) {
         </button>
       </div>
       <p className="footnote mt-4">
-        Free signup with an email; then add your player under Tracking.{" "}
+        Free signup with an email, then add your player.{" "}
         <a href="/docs/ladder">How Ladder works</a> ·{" "}
         <a href={FAMILY_SAMPLE_BATTLE.path}>{FAMILY_SAMPLE_BATTLE.label}</a>
       </p>

@@ -1,7 +1,8 @@
 /**
  * Ladder: your season, read back (design canvas, 2026-10-01). A section
- * of Elixir itself at /ladder, beside the Console in the same app and
- * the same shell, with its own rail (placement decided 2026-09-28).
+ * of Elixir itself at /ladder, in the same app and the same shell. A scope
+ * bar (player, season, mode, freshness) and four tabs replaced its rail
+ * (redesign step 5, 2026-11-06).
  *
  * Everything on a Ladder page is a fact a tool returned: the record
  * over the season, in one mode at a time. Ladder never computes a
@@ -13,29 +14,55 @@
  * on a page pools across modes: Trophy Road and Path of Legends match
  * by different rules, and war draws opponents from the racing clans.
  */
-import { clockAt, monthDayAt, zoneShort } from "@elixir-mcp/ui";
+import { clockAt, monthDayAt, seasonWeek, zoneShort } from "@elixir-mcp/ui";
 import { tagPath } from "../lib/tag-url.js";
 
 export const LADDER = "/ladder";
 
-/** The pages, in rail order. `slug` "season" is the bare /ladder. */
+/** The pages, in tab order. `slug` "season" is the bare /ladder. */
 export const LADDER_PAGES = [
   { slug: "season", label: "Season", icon: "chart-line" },
-  { slug: "days", label: "Days played", icon: "calendar-days" },
+  { slug: "battles", label: "Battles", icon: "calendar-days" },
   { slug: "decks", label: "Decks", icon: "layers" },
   { slug: "cards", label: "Cards", icon: "gallery-horizontal-end" },
 ];
 
-/** The mode groups a Ladder page reads, one at a time, in tab order.
+/** The mode groups a Ladder page reads, one at a time, in chip order.
  *  `key` is the tools' `mode` argument. */
 export const MODES = [
   { key: "ladder", label: "Trophy Road" },
   { key: "ranked", label: "Path of Legends" },
   { key: "war", label: "War" },
   { key: "event", label: "Events" },
+  { key: "casual", label: "Casual" },
 ];
+
+/** The chip that holds Challenge and Tournament (2026-11-05, Q7), shown only
+ *  to a player with battles in either this season. It is not a mode the tools
+ *  know: a page reads each of the two on its own and never adds them up. */
+export const OTHER = { key: "other", label: "Other" };
+const OTHER_GROUPS = ["challenge", "tournament"];
+
+const GROUP_LABELS = { challenge: "Challenge", tournament: "Tournament" };
 export const modeLabel = (key) =>
-  MODES.find((m) => m.key === key)?.label ?? key;
+  key === OTHER.key
+    ? OTHER.label
+    : (GROUP_LABELS[key] ?? MODES.find((m) => m.key === key)?.label ?? key);
+
+/** The tools' `mode` arguments a chip reads: one, or Other's two. */
+export const readModes = (mode) => (mode === OTHER.key ? OTHER_GROUPS : [mode]);
+
+/** A chip as a sentence names what it reads. */
+export const modeWords = (mode) =>
+  mode === OTHER.key ? "Challenge and Tournament" : modeLabel(mode);
+
+/** The chips a season shows: the five, then Other when `modes` (a no-mode
+ *  battles_performance's window.modes) holds a Challenge or Tournament battle,
+ *  or when the address already stands on it. */
+export function modeChips(modes, current) {
+  const other = OTHER_GROUPS.some((k) => Number(modes?.[k]?.battles ?? 0) > 0);
+  return other || current === OTHER.key ? [...MODES, OTHER] : MODES;
+}
 
 /** True for a path this section owns. */
 export const isLadder = (path) =>
@@ -60,7 +87,7 @@ export function ladderLegal(path) {
   return rest.length ? `${LADDER}/${page}` : path;
 }
 
-/** Where a Ladder path sits on its rail and in the docs strip. */
+/** Where a Ladder path sits in the tabs and in the docs strip. */
 export function ladderHere(path) {
   const key = ladderSlug(path);
   return { key, product: "ladder", doc: `ladder:${key}` };
@@ -269,30 +296,15 @@ export function pickPlayer(players, param) {
 /** The mode a page opens on: the one asked for, when it is one; else
  *  the mode with the most recorded battles in the last 30 days
  *  (the Ladder brief: the default is the mode
- *  played most). `modes` is players_summary's last_30_days.modes. */
+ *  played most). `modes` is the season's own, from the scope bar's no-mode
+ *  battles_performance read. */
 export function pickMode(param, modes) {
-  if (MODES.some((m) => m.key === param)) return param;
+  if (param === OTHER.key || MODES.some((m) => m.key === param)) return param;
   const n = (k) => Number(modes?.[k]?.battles ?? 0);
   return MODES.reduce(
     (best, m) => (n(m.key) > n(best) ? m.key : best),
     "ladder",
   );
-}
-
-/** The mode the address names (`?mode=`), when it is one; else null.
- *  Days and Decks show every mode, and put this one first: a mode Ladder
- *  picked on its own (pickMode's default) is not asked for. */
-export const askedMode = (search) =>
-  MODES.some((m) => m.key === search?.mode) ? search.mode : null;
-
-/** `list` with the entries of the `lead` mode first and the rest in the
- *  order they had. Order only: nothing is dropped, merged or ranked. */
-export function leadFirst(list, lead, key = (x) => x) {
-  if (!lead) return list;
-  return [
-    ...list.filter((x) => key(x) === lead),
-    ...list.filter((x) => key(x) !== lead),
-  ];
 }
 
 /**
@@ -403,6 +415,7 @@ export function seasonHead(applied) {
   return {
     month: season?.month ?? null,
     name: seasonName(season),
+    war: season?.war ?? null,
     age: applied?.window?.season_age_days ?? null,
     startsAt: season?.starts_at ?? null,
     endsAt: season?.ends_at ?? null,
@@ -465,53 +478,80 @@ const WORDS = [
 /** Small counts as a word at the start of a sentence, the rest as digits. */
 const spell = (n) => WORDS[n] ?? fmt(n);
 
-/** The week-by-week bars from battles_performance group_by week,
- *  oldest first as the tool returns them, which is how a chart reads
- *  left to right. `unit` is pixels per battle, shared by wins and
- *  losses so the two halves compare; it shrinks to fit the tallest
- *  week into the chart's two halves. `net` off leaves net trophies out
- *  of the note, for modes where trophies do not move. */
-export function weekBars(
-  weekly,
-  { net = true, up = 70, down = 112, max = 16 } = {},
-) {
+/** The week-by-week rows from battles_performance group_by week, newest
+ *  first. Each is a record, its rate and, in a mode where trophies move, its
+ *  net trophies; the bar's share is wins over decided battles. A partial week
+ *  still running says "so far". */
+export function weekRows(weekly, { net = true, running = false } = {}) {
   const rows = weekly ?? [];
-  const most = (k) => Math.max(1, ...rows.map((w) => Number(w[k] ?? 0)));
-  const unit = Math.min(max, up / most("wins"), down / most("losses"));
-  return rows.map((w) => ({
-    key: w.iso_week ?? w.week_of,
-    label: dateLabel(w.week_of),
-    wins: Number(w.wins ?? 0),
-    losses: Number(w.losses ?? 0),
-    winH: Math.round(Number(w.wins ?? 0) * unit),
-    lossH: Math.round(Number(w.losses ?? 0) * unit),
-    rate: w.win_rate ?? null,
-    partial: Boolean(w.partial),
-    note: [
-      w.partial ? "partial" : null,
-      net && w.net_trophies != null ? signed(w.net_trophies) : null,
-    ]
-      .filter(Boolean)
-      .join(" · "),
-  }));
+  return rows
+    .map((w, i) => {
+      const wins = Number(w.wins ?? 0);
+      const losses = Number(w.losses ?? 0);
+      const decided = wins + losses;
+      const open = running && i === rows.length - 1 && Boolean(w.partial);
+      return {
+        key: w.iso_week ?? w.week_of,
+        label: `Week of ${dateLabel(w.week_of)}${
+          open ? " (so far)" : w.partial ? " (part of a week)" : ""
+        }`,
+        wins,
+        losses,
+        winShare: decided ? Math.round((wins / decided) * 100) : 0,
+        note: [
+          `${fmt(wins)}–${fmt(losses)}`,
+          w.win_rate != null ? `${pct(w.win_rate)} won` : null,
+          net && w.net_trophies != null ? signed(w.net_trophies) : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      };
+    })
+    .reverse();
 }
 
-/** The most-played deck's record lines, one per mode it was played in.
- *  A rate shows only when the deck was played in ONE mode, where the
- *  tool's win_rate is that mode's own; across modes it would pool them,
- *  so each mode shows its wins and losses and no rate. */
-export function deckModes(deck) {
-  const modes = Object.entries(deck?.modes ?? {}).filter(
-    ([, m]) => Number(m?.battles ?? 0) > 0,
+/**
+ * The line on War's pages (2026-11-05, Q5): this race week's decks and points
+ * as the clan war week counts them, beside a war battle list that stays battle
+ * by battle. `current` is war_current, `weeks` war_history's member_weeks,
+ * `seasonWar` the season the page reads. No "of N": no tool returns the decks
+ * possible, and a week still open has no such number. Null when there is
+ * nothing to say.
+ */
+export function warLine({ current, weeks, seasonWar }) {
+  if (!current) return null;
+  const at = current.period?.source_observed_at ?? null;
+  const note =
+    current.season_id != null
+      ? seasonWeek(
+          current.season_id,
+          current.section_index != null ? current.section_index + 1 : null,
+        )
+      : null;
+  if (
+    (seasonWar != null && current.season_id !== seasonWar) ||
+    !(current.standings?.length > 0)
+  )
+    return { line: "The game hasn't drawn this week's race yet.", note: null };
+  if (current.day_kind === "training")
+    return {
+      line: "This week: training days, so no war decks count yet.",
+      note,
+    };
+  const row = (weeks ?? []).find(
+    (w) =>
+      w.season_id === current.season_id &&
+      w.section_index === current.section_index,
   );
-  const one = modes.length === 1;
-  return modes.map(([key, m]) => ({
-    key,
-    label: modeLabel(key),
-    wins: Number(m.wins ?? 0),
-    losses: Number(m.losses ?? 0),
-    rate: one ? (deck.win_rate ?? null) : null,
-  }));
+  const decks = Number(row?.decks_used ?? 0);
+  if (!decks) return { line: "No war decks used yet this week.", note };
+  const points = row?.points != null ? `, ${fmt(row.points)} points` : "";
+  return {
+    line: `This week: ${fmt(decks)} war ${decks === 1 ? "deck" : "decks"} used${points}.`,
+    at,
+    note,
+    finished: Boolean(current.race_finished_at),
+  };
 }
 
 /* ---------------------------------------------------------------- form

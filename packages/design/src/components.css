@@ -5508,106 +5508,73 @@ a.card-art:hover .card-art__img {
 }
 
 /* --------------------------------------------------------------- ladder
-   Ladder (/ladder, design canvas 2026-10-01): your season, read back, a
-   section of the console's app with its own rail. A win is --win-ink and
-   a loss --loss-ink as text; as bars they are --win and --loss, the
-   activity graphic's pair. Gold is never a data value here either. */
+   Ladder (/ladder): your season, read back, a scope bar and four tabs with
+   no rail (redesign step 5, 2026-11-06). A win is --win-ink and a loss
+   --loss-ink as text; as bars they are --win-ink and --loss. Gold is never a
+   data value here: it only rings today. */
 .ladder-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
-.ladder-page .page-head {
+.ladder-head.kit-head {
   margin-bottom: 0;
-  align-items: flex-end;
 }
-.ladder-crumb {
+.ladder-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.ladder-aside {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+/* The scope bar: whose, which season, which game, how fresh. */
+.ladder-scope {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
-  color: var(--ink-faint);
 }
-
-/* The rail's head: whose season this is. */
-.ladder-player {
-  margin-bottom: 8px;
-  padding-bottom: 12px;
-}
-.ladder-player__head {
+.ladder-scope__picks {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 9px 10px;
-  border-radius: var(--r-block);
-  background: var(--panel);
-  border: 1px solid var(--line-soft);
-  color: var(--ink);
-  font: inherit;
-  text-align: left;
-}
-button.ladder-player__head {
-  cursor: pointer;
-}
-button.ladder-player__head:hover {
-  border-color: var(--line-strong);
-}
-.ladder-player__head > svg {
-  color: var(--ink-faint);
-}
-.ladder-player__mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--panel-raised);
-  color: var(--ink-dim);
-}
-.ladder-rail__note {
-  margin: 0;
-  padding: 14px 11px 0;
-  border-top: 1px solid var(--line-soft);
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--ink-faint);
-}
-
-/* One tab per mode; the current one is the selected-control violet. */
-.ladder-modes {
-  display: flex;
+  flex: none;
   flex-wrap: wrap;
-  gap: 4px;
-  padding: 0;
-  align-self: flex-start;
-  max-width: 100%;
-  border-radius: var(--r-block);
-  background: var(--ground-sunken);
-  border: 1px solid var(--line-row);
+  align-items: center;
+  gap: 8px;
 }
-.ladder-modes__tab {
+.ladder-scope__select {
+  min-height: 32px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 13.5px;
+}
+.ladder-scope__one {
   display: inline-flex;
   align-items: center;
-  height: 34px;
-  padding: 0 16px;
-  border-radius: 9px;
-  color: var(--ink-dim);
+  gap: 8px;
+  min-height: 32px;
   font-size: 13.5px;
-  font-weight: 500;
-  white-space: nowrap;
-  text-decoration: none;
-}
-.ladder-modes__tab:hover {
-  background: var(--hover-rail);
-  color: var(--ink);
-}
-.ladder-modes__tab[aria-current="true"] {
-  background: var(--panel-raised);
-  color: var(--ink);
   font-weight: 600;
+}
+.ladder-scope__tag {
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.ladder-scope__fresh {
+  margin-left: auto;
+}
+
+.mode-chip__dot--casual {
+  background: var(--ink-faint);
 }
 
 /* Cards: how what you faced is ordered, a choice beside its floors. */
@@ -5616,12 +5583,6 @@ button.ladder-player__head:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
-  margin: 4px 0 12px;
-}
-.ladder-order__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-dim);
 }
 .ladder-order__hint {
   flex: 1 1 16rem;
@@ -5630,36 +5591,14 @@ button.ladder-player__head:hover {
   color: var(--ink-faint);
 }
 
-/* Which season the page reads, beside when the battle log was read. */
-.ladder-head__side {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px 14px;
-  margin-left: auto;
-}
-.ladder-head__side .freshness {
-  margin-left: 0;
-}
-.ladder-season {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ladder-season__label {
-  font-size: 12.5px;
-  color: var(--ink-faint);
-}
-.ladder-season__select {
-  width: auto;
-  min-width: 10em;
-  height: 34px;
-  padding: 0 10px;
-  font-size: 13.5px;
-}
 .ladder-season-note a {
   white-space: nowrap;
+}
+.ladder-war__line {
+  font-weight: 600;
+}
+.ladder-war__note {
+  color: var(--ink-dim);
 }
 
 .ladder-record {
@@ -5680,6 +5619,7 @@ button.ladder-player__head:hover {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
+  padding: 10px 18px 12px;
 }
 .ladder-tile {
   display: flex;
@@ -5689,154 +5629,6 @@ button.ladder-player__head:hover {
   border-radius: 0;
   background: transparent;
   border: 0;
-  border-right: 1px solid var(--line-soft);
-}
-
-.ladder-split {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
-  align-items: stretch;
-}
-.ladder-span-2 {
-  grid-column: span 2;
-}
-.ladder-span-3 {
-  grid-column: span 3;
-}
-.ladder-span-5 {
-  grid-column: span 5;
-}
-.ladder-panel-title {
-  flex: 1 1 auto;
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-.ladder-key {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 400;
-  color: var(--ink-dim);
-}
-.ladder-key__swatch {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-.ladder-key__swatch--win {
-  background: var(--win);
-}
-.ladder-key__swatch--loss {
-  background: var(--loss);
-}
-
-/* Week by week: one column per ISO week, wins up and losses down. */
-.ladder-weeks {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 16px;
-  margin: 0;
-  padding: 2px 12px 0;
-  list-style: none;
-}
-.ladder-week {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-  text-align: center;
-}
-.ladder-week__chart {
-  display: block;
-  overflow: visible;
-}
-.ladder-week__axis {
-  stroke: var(--line-strong);
-  stroke-width: 1;
-}
-.ladder-bar--win {
-  fill: var(--win);
-}
-.ladder-bar--loss {
-  fill: var(--loss);
-}
-.ladder-bar__n {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  fill: var(--ink);
-}
-.ladder-bar__n--out {
-  fill: var(--ink-faint);
-}
-.ladder-week__date {
-  font-size: 13px;
-  color: var(--ink-body);
-}
-.ladder-week__note {
-  font-size: 11.5px;
-  color: var(--ink-faint);
-  white-space: nowrap;
-}
-
-/* The most-played deck. */
-.ladder-deck {
-  display: flex;
-  flex-direction: column;
-}
-.ladder-deck__body {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 14px;
-}
-.ladder-deck__name {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-}
-.ladder-deck__sub {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--ink-dim);
-}
-.ladder-facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 0;
-}
-.ladder-fact {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  border-radius: var(--r-control);
-  background: var(--ground-sunken);
-}
-.ladder-fact dt {
-  font-size: 11.5px;
-  color: var(--ink-faint);
-}
-.ladder-fact dd {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 17px;
-  font-weight: 600;
-}
-.ladder-fact__aside {
-  margin-left: 6px;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--ink-dim);
-}
-.ladder-more {
-  margin-top: auto;
-  font-size: 13px;
 }
 
 /* Form (2026-10-08): two stretches of one mode's record side by side,
@@ -5889,75 +5681,82 @@ button.ladder-player__head:hover {
   color: var(--ink-faint);
 }
 
-/* Days played (LadderDays.dc.html): the season on the account's
-   calendar, one cell a day, each mode its own mark and record; the shade
-   deepens with the day's battles. Then the nights, newest first. */
-.ladder-cal__weekdays,
+/* Days played: the season on the account's calendar, in one chip's mode. The
+   shade deepens with the day's battles; a day the read cannot speak for is
+   hatched, never drawn empty. */
 .ladder-cal {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-}
-.ladder-cal {
+  gap: 4px;
   margin: 0;
-  padding: 0;
+  padding: 10px 18px 12px;
   list-style: none;
 }
-.ladder-cal__weekdays {
-  margin-bottom: 8px;
-  padding-left: 4px;
-  font-size: 11px;
+.ladder-cal__wd {
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
   color: var(--ink-faint);
 }
 .ladder-day {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  min-height: 96px;
+  gap: 1px;
   min-width: 0;
-  padding: 8px;
-  border-radius: 10px;
-  background: var(--ground-sunken);
+  min-height: 56px;
+  padding: 6px 8px;
   border: 1px solid var(--line-row);
+  border-radius: var(--r-s);
   font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.ladder-day__n {
+  font-weight: 600;
 }
 .ladder-day--l1 {
-  background: color-mix(in srgb, var(--accent) 9%, var(--ground-sunken));
+  background: #33275a;
+  border-color: #33275a;
 }
 .ladder-day--l2 {
-  background: color-mix(in srgb, var(--accent) 19%, var(--ground-sunken));
+  background: #46347c;
+  border-color: #46347c;
 }
 .ladder-day--l3 {
-  background: color-mix(in srgb, var(--accent) 30%, var(--ground-sunken));
+  background: #5d45a3;
+  border-color: #5d45a3;
+}
+.ladder-day--other {
+  background: var(--panel-raised);
+  border-color: var(--line-soft);
+}
+.ladder-day--quiet {
+  background: var(--ground-sunken);
+  border-color: var(--line);
+}
+.ladder-day--part {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--panel) 0 6px,
+    #2c2444 6px 8px
+  );
+}
+.ladder-day--unk {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--panel) 0 3px,
+    #3a3055 3px 5px
+  );
+}
+.ladder-day--unread {
+  background: var(--panel);
+  border-style: dashed;
+  border-color: var(--line-strong);
+}
+.ladder-day--fut {
+  background: transparent;
+  color: var(--ink-faint);
 }
 .ladder-day--today {
-  border: 2px solid var(--ok);
-}
-.ladder-day--future,
-.ladder-day--unread {
-  background: transparent;
-  border: 1px dashed var(--line-soft);
-}
-.ladder-day--blank {
-  visibility: hidden;
-}
-.ladder-day__head {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-.ladder-day__date {
-  flex-grow: 1;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink-dim);
-}
-.ladder-day--future .ladder-day__date,
-.ladder-day--unread .ladder-day__date {
-  color: var(--ink-faint);
+  box-shadow: inset 0 0 0 1px var(--gold);
 }
 /* The weekday is the column's on a wide screen, and the row's own on a
    phone, where the calendar is a list. */
@@ -5969,171 +5768,166 @@ button.ladder-player__head:hover {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.ladder-day__n {
-  font-family: var(--font-mono);
-  color: var(--ink);
+.ladder-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 6px 18px;
+  margin: 0;
+  padding: 10px 18px;
+  border-top: 1px solid var(--line-row);
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  list-style: none;
 }
-.ladder-day--l0 .ladder-day__n {
-  color: var(--ink-faint);
-}
-.ladder-day__mode {
+.ladder-legend li {
   display: flex;
   align-items: center;
-  gap: 5px;
-  min-width: 0;
-  font-size: 11.5px;
-  color: var(--ink-body);
+  gap: 8px;
 }
-/* The mode the address names leads the calendar (Days); every other
-   mode's mark stays, quieter. Text stays at the faint ink's contrast;
-   only the decorative dot fades. */
-.ladder-day__mode--lead,
-.ladder-key--lead {
-  color: var(--ink);
-  font-weight: 600;
-}
-.ladder-day__mode--quiet,
-.ladder-key--quiet {
-  color: var(--ink-faint);
-}
-.ladder-day__mode--quiet .mode-chip__dot,
-.ladder-key--quiet .mode-chip__dot {
-  opacity: 0.45;
-}
-.ladder-day__mode--quiet .ladder-w,
-.ladder-day__mode--quiet .ladder-l {
-  color: var(--ink-faint);
-}
-.ladder-day__label {
-  flex-grow: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ladder-day__none {
-  color: var(--ink-faint);
-}
-.ladder-day--today .ladder-day__none {
-  color: var(--ok);
-}
-.mode-chip__dot--casual {
-  background: var(--ink-faint);
+.ladder-swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--line-row);
+  border-radius: 3px;
 }
 
-.ladder-nights {
+/* Week by week: newest first, a bar of wins and losses over the facts. */
+.ladder-wks {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.ladder-night {
-  border-bottom: 1px solid var(--line-row);
+.ladder-wk {
+  display: block;
+  padding: 10px 18px;
+  border-top: 1px solid var(--line-row);
+  font-size: 13.5px;
 }
-.ladder-night__head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  padding: 12px 18px;
-  border: 0;
-  background: transparent;
-  color: var(--ink-body);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
+.ladder-wk:first-child {
+  border-top: 0;
 }
-.ladder-night__head:hover {
-  background: var(--hover-row);
-}
-.ladder-night__when {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 132px;
-  flex-shrink: 0;
-}
-.ladder-night__day {
-  font-size: 14px;
+.ladder-wk__label {
+  display: block;
   font-weight: 600;
-  color: var(--ink);
 }
-.ladder-night__time,
-.ladder-night__sub {
-  font-size: 12.5px;
-  color: var(--ink-faint);
+.ladder-bar {
+  display: block;
+  height: 8px;
+  margin: 5px 0 4px;
+  border-radius: 999px;
+  background: var(--line-row);
 }
-.ladder-night__what {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  flex-grow: 1;
-  min-width: 0;
-  font-size: 13.5px;
+.ladder-bar__w {
+  fill: var(--win-ink);
 }
-.ladder-night__seg .ladder-record {
-  margin-left: 6px;
-  font-size: 12.5px;
+.ladder-bar__l {
+  fill: var(--loss);
 }
-.ladder-night__record {
-  width: 60px;
-  flex-shrink: 0;
-  text-align: right;
-  font-size: 13.5px;
-}
-.ladder-night__trophies {
-  width: 150px;
-  flex-shrink: 0;
-  text-align: right;
+.ladder-wk__note {
+  display: block;
   font-family: var(--font-mono);
   font-size: 12.5px;
   color: var(--ink-dim);
 }
-.ladder-night__chev {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: var(--ink-faint);
-  transition: transform 0.15s;
+
+/* Season's most played deck. */
+.ladder-top {
+  display: grid;
+  gap: 8px;
 }
-.ladder-night__head[aria-expanded="true"] .ladder-night__chev {
-  transform: rotate(180deg);
-}
-.ladder-night__battles {
+.ladder-top p {
   margin: 0;
-  padding: 0 18px 10px 166px;
 }
-.ladder-night__battles .battle-row__when {
-  width: 64px;
+.ladder-top__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.ladder-top__sub {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.ladder-top__line {
+  font-size: 13px;
+  color: var(--ink-dim);
 }
 
-/* Decks (LadderDecks.dc.html): each deck in the mode it was played in,
-   its eight cards in one strip, its record and level gap beside them;
-   a swap of forms between two decks of the same cards; every other
-   mode's decks as rows of one table. */
+/* Battles: a day, its sittings, and each battle. */
+.ladder-sit > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
+  min-height: 44px;
+  padding: 11px 18px;
+  border-top: 1px solid var(--line-row);
+  cursor: pointer;
+  font-size: 14px;
+}
+.ladder-sit:first-child > summary {
+  border-top: 0;
+}
+.ladder-sit__when {
+  font-weight: 600;
+}
+.ladder-sit__what {
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+.ladder-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ladder-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  min-height: 44px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--line-row);
+  font-size: 13.5px;
+}
+.ladder-row__t {
+  flex: none;
+  width: 70px;
+  color: var(--ink-faint);
+  font-size: 12.5px;
+}
+.ladder-row__who {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ladder-row__res {
+  color: var(--ink-dim);
+}
+.ladder-row__tr {
+  flex: none;
+  width: 52px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  text-align: right;
+}
+
+/* Decks: one chip's decks, each with its real cards. */
 .ladder-decks {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .ladder-deckrow {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 16px 18px;
+  display: grid;
+  gap: 6px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--line-row);
 }
 .ladder-deckrow:last-child {
   border-bottom: 0;
 }
-.ladder-deckrow__id {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 210px;
-  min-width: 0;
-  flex-shrink: 0;
-}
-.ladder-deckrow__id p,
-.ladder-deckrow__names {
+.ladder-deckrow p {
   margin: 0;
 }
 .ladder-deckrow__name {
@@ -6141,36 +5935,31 @@ button.ladder-player__head:hover {
   font-weight: 600;
   color: var(--ink);
 }
-.ladder-deckrow__forms,
-.ladder-deckrow__names {
-  font-size: 12.5px;
-  color: var(--ink-dim);
-}
-.ladder-deckrow__when {
-  font-size: 12px;
-  color: var(--ink-faint);
+.ladder-deckrow__rec {
+  font-size: 13px;
 }
 .ladder-deckrow__cards {
-  flex: 1 1 auto;
   min-width: 0;
 }
-.ladder-deckrow__facts {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  width: 240px;
-  flex-shrink: 0;
-  text-align: right;
-}
-.ladder-deckrow__n,
-.ladder-deckrow__gap {
+.ladder-deckrow__line {
   font-size: 12.5px;
   color: var(--ink-faint);
 }
-.ladder-deckrow__record {
-  font-size: 16px;
-  font-weight: 600;
+.ladder-duel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--line-row);
+  font-size: 13.5px;
+}
+.ladder-duel:first-child {
+  border-top: 0;
+}
+.ladder-duel__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .ladder-swap__body {
@@ -6214,27 +6003,8 @@ button.ladder-player__head:hover {
   font-weight: 600;
 }
 
-.ladder-table__deck {
-  font-weight: 500;
-  color: var(--ink);
-}
-.ladder-table .ladder-table__num,
-.ladder-cards .ladder-table__num {
-  text-align: right;
-  font-family: var(--font-mono);
-}
-.ladder-table td.ladder-table__notes {
-  min-width: 220px;
-  white-space: normal;
-  font-size: 12.5px;
-  color: var(--ink-dim);
-}
-.ladder-table__unit {
-  display: none;
-}
-
-/* Cards (LadderCards.dc.html): a card's art beside its name, the name
-   the one link (to the card's public page); then the opponents. */
+/* Cards: a card's art beside its name, the name the one link (to the card's
+   public page); then the opponents. */
 .ladder-card {
   display: inline-flex;
   align-items: center;
@@ -6274,47 +6044,49 @@ button.ladder-player__head:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
-  .ladder-split {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .ladder-span-2,
-  .ladder-span-3,
-  .ladder-span-5 {
-    grid-column: auto;
-  }
-  .ladder-weeks {
-    gap: 8px;
-    padding: 0;
-  }
-  .ladder-modes {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-self: stretch;
-    background: transparent;
-    border: 0;
-  }
-  .ladder-modes__tab {
-    justify-content: center;
-    padding: 0 8px;
-    min-height: 44px;
-  }
   .ladder-form__value {
     font-size: 17px;
   }
-  /* The calendar becomes a list of the days so far, newest first, each
-     naming its weekday; the weeks' padding and the days to come drop
-     out. */
+  /* Two selects side by side, full width, then the chips, every target 44px. */
+  .ladder-scope__picks {
+    flex-basis: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ladder-scope__select {
+    width: 100%;
+    min-height: 44px;
+  }
+  .ladder-scope__one {
+    min-height: 44px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ladder-scope .kit-chip,
+  .ladder-order .kit-chip {
+    min-height: 44px;
+  }
+  .ladder-scope__fresh {
+    margin-left: 0;
+  }
+  .ladder-scope .ladder-scope__fresh > summary {
+    min-height: 44px;
+  }
+  /* The calendar becomes a list of the days, newest first, each naming its
+     weekday; the column heads and the week's padding drop out. */
   .ladder-cal {
     display: flex;
     flex-direction: column-reverse;
-    gap: 6px;
+    gap: 4px;
   }
-  .ladder-cal__weekdays,
-  .ladder-day--blank,
-  .ladder-day--future {
+  .ladder-cal__wd,
+  .ladder-cal__lead {
     display: none;
   }
   .ladder-day {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 8px;
     min-height: 0;
   }
   .ladder-day__wd {
@@ -6324,114 +6096,21 @@ button.ladder-player__head:hover {
     overflow: visible;
     clip-path: none;
   }
-  .ladder-night__head {
-    flex-wrap: wrap;
-    gap: 6px 12px;
-    padding: 12px 14px;
+  .ladder-row__t {
+    width: 62px;
   }
-  .ladder-night__when {
-    width: auto;
-    flex-direction: row;
-    gap: 8px;
-    align-items: baseline;
-  }
-  .ladder-night__what {
-    flex-basis: 100%;
+  .ladder-row__res {
     order: 3;
+    flex: 1 0 100%;
+    padding-left: 72px;
   }
-  .ladder-night__record {
-    width: auto;
-    margin-left: auto;
-  }
-  .ladder-night__trophies {
-    width: auto;
-  }
-  .ladder-night__battles {
-    padding: 0 14px 10px;
-  }
-  /* A deck reads down: its name, its cards in two rows of four, then
-     its record on one line. */
-  .ladder-deckrow {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 14px;
-  }
-  .ladder-deckrow__id,
-  .ladder-deckrow__cards {
-    width: 100%;
-  }
-  .ladder-deckrow__facts {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 4px 12px;
-    width: 100%;
-    text-align: left;
-  }
-  .ladder-deckrow .deck-grid--8 {
+  .ladder-deckrow .deck-grid--8,
+  .ladder-top .deck-grid--8 {
     grid-template-columns: repeat(4, max-content);
     gap: 8px 6px;
   }
   .ladder-swap__body {
     grid-template-columns: minmax(0, 1fr);
-  }
-  /* The table's rows become blocks: the deck and its record, the mode
-     and its battles, then the notes, with no sideways scroll. */
-  .ladder-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-  .ladder-table tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "deck record"
-      "mode battles"
-      "notes notes";
-    gap: 4px 12px;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--line-row);
-  }
-  .ladder-table td {
-    display: block;
-    padding: 0;
-    border: 0;
-  }
-  .ladder-table td.ladder-table__deck {
-    grid-area: deck;
-    white-space: normal;
-  }
-  .ladder-table td.ladder-table__mode {
-    grid-area: mode;
-  }
-  .ladder-table td.ladder-table__num {
-    grid-area: battles;
-    font-size: 12.5px;
-    color: var(--ink-faint);
-  }
-  .ladder-table td.ladder-table__record {
-    grid-area: record;
-    text-align: right;
-  }
-  .ladder-table td.ladder-table__notes {
-    grid-area: notes;
-    min-width: 0;
-  }
-  .ladder-table__unit {
-    display: inline;
-  }
-  /* The card tables keep their columns and tighten them; a long name
-     wraps beside its art. */
-  .ladder-cards th,
-  .ladder-cards td {
-    padding-right: 8px;
-    padding-left: 8px;
-  }
-  .ladder-cards td:first-child {
-    white-space: normal;
   }
   .ladder-card {
     gap: 8px;
@@ -6682,34 +6361,6 @@ button.ladder-player__head:hover {
   display: block;
   overflow-wrap: anywhere;
   padding-block: 8px;
-}
-@media (max-width: 900px) {
-  .rail:has(> .ladder-player) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-    gap: 4px;
-  }
-  .rail:has(> .ladder-player) > nav,
-  .rail:has(> .ladder-player) > .rail__foot {
-    grid-column: 1 / -1;
-  }
-  .ladder-player {
-    margin: 0;
-    padding: 0;
-  }
-  .ladder-player__head {
-    background: transparent;
-    border-color: transparent;
-    padding: 5px 4px;
-    min-height: 44px;
-  }
-  .ladder-player__mark {
-    display: none;
-  }
-  .ladder-player__head .mono {
-    display: none;
-  }
 }
 
 /* Page help is secondary navigation. */
