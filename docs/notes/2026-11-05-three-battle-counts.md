@@ -24,7 +24,9 @@ Boat defenses were also counted by `buildClanEntry` and not by the others.
   basis `activity` counts battles played in `[from, to)`, including late
   captures. Boat defenses are out on both bases.
 - The week's membership, its dates and `so_far` run on the reset. Member
-  activity's battle columns move to the reset too.
+  activity moves whole: its battles, donations, week bounds and window, so a
+  battle it lists falls in a week it totals. A war week's bounds there keep the
+  window's Monday, so a first read just before the reset does not make it unknown.
 - The week says what it counts on the page, including that departed members
   are in battles while donations and war decks are for today's members.
 

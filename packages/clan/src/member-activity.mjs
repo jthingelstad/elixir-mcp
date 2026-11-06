@@ -10,6 +10,13 @@ const iso = (value) =>
     : null;
 const count = (value) =>
   Number.isSafeInteger(value) && value >= 0 ? value : null;
+/** `weeks` name Monday midnight; a member's week runs reset to reset (A13),
+ *  the same shift memberActivityWeeks applies to its counts. */
+const RESET_MS = 10 * 60 * 60 * 1000;
+const atReset = (value) => {
+  const at = iso(value);
+  return at && new Date(Date.parse(at) + RESET_MS).toISOString();
+};
 
 export function createMemberActivity({
   mcp,
@@ -45,9 +52,13 @@ export function createMemberActivity({
     if (p.clan_tag !== clanTag || !participation)
       throw new ManageError(404, "not_current_member");
     const joined = iso(participation.joined_observed_at);
-    const start = iso(p.weeks?.[0]?.from);
+    const start = atReset(p.weeks?.[0]?.from);
     if (!start) throw new ManageError(502, "elixir_unavailable");
     const from = joined && joined > start ? joined : start;
+    // A war week's first read can land just before the reset; its bounds keep
+    // the window's Monday, so that read does not make the week unknown.
+    const firstMonday = iso(p.weeks[0].from);
+    const warFrom = joined && joined > firstMonday ? joined : firstMonday;
     const end = to === null ? new Date(now()).toISOString() : iso(to);
     if (!end || end > new Date(now()).toISOString() || end <= from)
       throw new ManageError(400, "invalid_window");
@@ -128,12 +139,12 @@ export function createMemberActivity({
       // cannot prove a week's start; an earlier observed start widens it.
       const observed = iso(w.started_observed_at);
       const start = a && observed && observed < a ? observed : a;
-      if (start && z && (z <= from || start >= end)) return [];
+      if (start && z && (z <= warFrom || start >= end)) return [];
       const comparable = !!(
         start &&
         z &&
         asOf &&
-        start >= from &&
+        start >= warFrom &&
         (z <= end || asOf <= end)
       );
       return [
@@ -163,9 +174,13 @@ export function createMemberActivity({
       battles,
       next_cursor: page.next_cursor ?? null,
       weeks: (p.weeks ?? []).flatMap((w) => {
-        const a = iso(w.from),
-          z = iso(w.covers?.to ?? w.to);
-        if (!a || !z || z <= from || a >= end) return [];
+        const a = atReset(w.from),
+          weekEnd = atReset(w.to),
+          covered = iso(w.covers?.to);
+        // The record's own edge holds for the week still running; a week
+        // whose ISO days are over still runs to its reset.
+        const z = covered && covered < iso(w.to) ? covered : weekEnd;
+        if (!a || !z || z <= a || z <= from || a >= end) return [];
         const effectiveFrom = a < from ? from : a;
         const effectiveTo = z > end ? end : z;
         return [
@@ -176,7 +191,7 @@ export function createMemberActivity({
             partial:
               w.partial === true ||
               effectiveFrom !== a ||
-              effectiveTo !== iso(w.to),
+              effectiveTo !== weekEnd,
             battles: count(weekCounts.get(w.iso_week)?.battles),
             ranked_battles: count(weekCounts.get(w.iso_week)?.ranked_battles),
             donations:

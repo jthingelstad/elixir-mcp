@@ -2893,12 +2893,15 @@ async function readFactItems(
        left join player p on p.player_tag = f.player_tag
        left join player ap on ap.player_tag = f.attester_tag
        left join player pp on pp.player_tag = f.detail->>'previous_player_tag'
-       -- The role a departed member last held here, so a leader's word
-       -- on the departure reads like the roster's own line (redesign Q9).
+       -- The role held in the stint this departure ended, so a leader's word
+       -- reads like the roster's own line (redesign Q9). Never the open
+       -- stint of a member who came back: no closed stint, no role.
        left join lateral (
          select cm.role from clan_membership cm
           where f.fact_type = 'departure_classified'
             and cm.clan_tag = f.clan_tag and cm.player_tag = f.player_tag
+            and cm.left_observed_at is not null
+            and cm.joined_observed_at <= coalesce((f.detail->>'left_at')::timestamptz, f.occurred_at)
           order by cm.joined_observed_at desc limit 1
        ) dep on true
       where f.recorded_at >= ${ts(fromMs + 1)}
