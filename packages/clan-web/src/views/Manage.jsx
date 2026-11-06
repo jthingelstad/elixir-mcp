@@ -649,7 +649,7 @@ function History({ clan, navigate }) {
                   <summary className="page-head__note cursor-pointer">
                     Log · {(c.log ?? []).length}
                   </summary>
-                  <div className="mt-2 min-w-[320px]">
+                  <div className="mt-2 min-[760px]:min-w-[320px]">
                     <ActionLog action={c} clan={clan} />
                   </div>
                 </details>
