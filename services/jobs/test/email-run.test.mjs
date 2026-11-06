@@ -16,7 +16,11 @@ import {
   milestoneFromMs,
   milestonePeriodKey,
 } from "../src/email/index.mjs";
-import { buildClan, nothingHappened } from "../src/email/build-clan.mjs";
+import {
+  buildClan,
+  lastBattlesOf,
+  nothingHappened,
+} from "../src/email/build-clan.mjs";
 import { readerDoors } from "../src/email/reader.mjs";
 import { clanReportPreview } from "../src/email/clan-preview.mjs";
 import { lastGameWeek } from "../src/email/week.mjs";
@@ -278,6 +282,52 @@ test("a reader's doors: their players, the clans they are in today, who else is 
   );
   for (const clan of Object.values(doors.clanmates))
     assert.ok(doors.memberClans.includes(clan));
+});
+
+test("an unverified claim on a member opens the clan's door and admits no clan-visible fact", async () => {
+  const verified = await readerDoors(db, acct.new);
+  assert.deepEqual(verified.verifiedClans, [CLAN]);
+  await db.query(
+    `update claim set status = 'unverified' where account_id = $1`,
+    [acct.new],
+  );
+  try {
+    const claimed = await readerDoors(db, acct.new);
+    assert.deepEqual(claimed.memberClans, [CLAN]);
+    assert.deepEqual(claimed.verifiedClans, []);
+  } finally {
+    await db.query(
+      `update claim set status = 'verified' where account_id = $1`,
+      [acct.new],
+    );
+  }
+});
+
+test("a last battle is read as of the week's close, its last instant included", async () => {
+  const TAG = "#2YY2YY2Y";
+  await db.query(`insert into player (player_tag, name) values ($1, 'quiet')`, [
+    TAG,
+  ]);
+  const close = Date.parse("2026-09-14T09:59:59.999Z");
+  const played = async (id, at) => {
+    await db.query(
+      `insert into battle (battle_id, battle_time, type, type_class) values ($1, $2, 'PvP', 'pvp')`,
+      [id, at],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id, player_tag, side, battle_time, outcome, type, type_class)
+       values ($1, $2, 0, $3, 'win', 'PvP', 'pvp')`,
+      [id, TAG, at],
+    );
+  };
+  await played(`lb01${"0".repeat(60)}`, "2026-09-10T12:00:00Z");
+  const asOf = async (ms) =>
+    (await lastBattlesOf(db, [TAG], ms)).get(TAG) ?? null;
+  assert.equal(await asOf(close), "2026-09-10T12:00:00.000Z");
+  await played(`lb02${"0".repeat(60)}`, "2026-09-14T10:00:00Z");
+  assert.equal(await asOf(close), "2026-09-10T12:00:00.000Z");
+  assert.equal(await asOf(close + 1), "2026-09-14T10:00:00.000Z");
+  assert.equal(await asOf(Date.parse("2026-09-01T00:00:00Z")), null);
 });
 
 // Last: the account it adds would be one more recipient for the tests above.

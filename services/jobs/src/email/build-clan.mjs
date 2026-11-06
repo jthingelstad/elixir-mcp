@@ -41,15 +41,17 @@ export function nothingHappened(f) {
   );
 }
 
-/** Each player's last recorded battle: a member reads the date, not a count
- *  (Q2). */
-async function lastBattlesOf(db, tags) {
+/** Each player's last recorded battle as of the week's close: a member reads
+ *  the date, not a count (Q2). The same cutoff `buildClanEntry` judges quiet
+ *  by, so a battle after the close cannot be the date beside "Gone quiet". */
+export async function lastBattlesOf(db, tags, toMs) {
   if (!tags.length) return new Map();
   const { rows } = await db.query(
     `select player_tag, max(battle_time) as last_battle
-       from battle_participant where player_tag = any($1::text[])
+       from battle_participant
+      where player_tag = any($1::text[]) and battle_time < $2
       group by player_tag`,
-    [tags],
+    [tags, new Date(toMs + 1)],
   );
   return new Map(
     rows.map((r) => [
@@ -234,6 +236,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
   const lastBattles = await lastBattlesOf(
     db,
     items(entry.presence?.quiet_crossed).map((q) => q.tag),
+    toMs,
   );
 
   const facts = {

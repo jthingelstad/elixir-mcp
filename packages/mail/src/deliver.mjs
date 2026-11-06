@@ -53,6 +53,10 @@ export async function deliver({
     ...(account.memberClans?.length
       ? { member_clans: account.memberClans }
       : {}),
+    // Who may read a clan-visible fact: a verified claim only.
+    ...(account.verifiedClans?.length
+      ? { verified_clans: account.verifiedClans }
+      : {}),
     ...(account.clanmates ? { clanmates: account.clanmates } : {}),
   };
   const drawn = cardArt ? await resolveCardArt(facts, cardArt) : facts;
