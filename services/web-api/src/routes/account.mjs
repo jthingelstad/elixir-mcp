@@ -127,11 +127,23 @@ export function accountRoutes({
     }
     // 'add': added = recorded (Jamie, 2026-09-05). Slots count what
     // you've ADDED (your claims); the MCP door runs the same function.
+    // relationship "friend" is Home's Follow: never the primary, and never
+    // with make_primary. Any other relationship is not this route's to take
+    // on an add yet (the add form's "Add as" is step 6).
+    const follow = body.relationship === "friend";
+    if (follow && body.make_primary === true)
+      return json(400, { error: "bad_relationship" });
     const r = await addPlayer(db, account, {
       tag,
-      makePrimary: body.make_primary === true,
+      makePrimary: !follow && body.make_primary === true,
+      follow,
       via: "web",
     });
+    if (!r.ok && r.error === "no_own_player")
+      return json(409, {
+        error: r.error,
+        message: "Add your own player first.",
+      });
     if (!r.ok && r.error === "quota_exceeded") {
       return json(429, {
         error: "quota_exceeded",
@@ -156,6 +168,7 @@ export function accountRoutes({
       first_read: first.requested,
       not_found: first.not_found === true,
       clan_followed: r.clanFollowed ?? null,
+      ...(follow ? { added: r.added, relationship: r.relationship } : {}),
     });
   }
 

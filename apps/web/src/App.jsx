@@ -61,6 +61,7 @@ import {
   ladderLegal,
   ladderTitle,
 } from "./ladder/ladder.js";
+import { AppShell } from "./shell/Shell.jsx";
 import { LadderInvite } from "./ladder/Invite.jsx";
 import { LadderRail } from "./ladder/LadderRail.jsx";
 import { SignIn } from "./views/SignIn.jsx";
@@ -986,6 +987,11 @@ export function barArea(path) {
   return "console";
 }
 
+/** Home, at its new address (redesign step 3a). Reachable, not yet the
+ *  landing; no public page links here. */
+const HOME_PATHS = new Set(["/home", "/home/timeline", "/home/friends"]);
+const isHome = (path) => HOME_PATHS.has(path.replace(/(.)\/$/, "$1"));
+
 const isClan = (path) =>
   path === "/clan" ||
   path === "/clan/" ||
@@ -993,6 +999,7 @@ const isClan = (path) =>
 
 export function legalRoute(path) {
   if (isClan(path)) return path;
+  if (isHome(path)) return path;
   // A battle's public page is the app's too, outside the Console.
   if (BATTLE_PATH.test(path)) return path;
   // Ladder is a section of its own beside the Console (2026-09-28), and
@@ -1043,6 +1050,12 @@ const prettify = (seg) =>
         .replace(/^./, (c) => c.toUpperCase());
 
 export function titleFor(section, sec, path) {
+  if (isHome(path)) {
+    const tab = path.split("/")[2];
+    const name =
+      tab === "timeline" ? "Timeline" : tab === "friends" ? "Friends" : "Today";
+    return `${name} - Home - ${SITE}`;
+  }
   if (isLadder(path)) return ladderTitle(path, SITE);
   if (isClan(path)) {
     // Clan's own pages (/clan/you, /clan/verify...) lead with their
@@ -1461,6 +1474,7 @@ const signedInPath = (path) => {
       ) ||
       isLadder(url.pathname) ||
       isClan(url.pathname) ||
+      isHome(url.pathname) ||
       BATTLE_PATH.test(url.pathname)
     );
   } catch {
@@ -1718,6 +1732,15 @@ const ladderRoute = createRoute({
   ),
 });
 
+const homeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/home/{-$tab}",
+  component: lazyRouteComponent(
+    () => import("./pages/HomePage.jsx"),
+    "HomePage",
+  ),
+});
+
 const dataRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: `${CONSOLE}/data/{-$page}`,
@@ -1725,6 +1748,7 @@ const dataRoute = createRoute({
 });
 
 export const routeTree = rootRoute.addChildren([
+  homeRoute,
   signInRoute,
   accountRoute,
   agentRoute,
@@ -1892,7 +1916,42 @@ function SharedClanChrome({ navigate }) {
 
 function Shell() {
   const { pathname } = useLocation();
+  if (isHome(pathname)) return <HomeOutlet />;
   return isClan(pathname) ? <SharedClanOutlet /> : <ConsoleShell />;
+}
+
+/** Home's shell. Signed out it is the wall, which returns here after sign-in. */
+function HomeOutlet() {
+  const navigate = useNav();
+  const { pathname } = useLocation();
+  const { me, unreachable, retrying, refresh } = useMe();
+  useEffect(() => {
+    document.title = titleFor("home", null, pathname);
+  }, [pathname]);
+  const authed = me?.authenticated === true;
+  return (
+    <ZoneProvider zone={me?.timezone}>
+      <NavigateProvider navigate={navigate}>
+        <AppShell
+          me={unreachable ? null : me}
+          unreachable={unreachable}
+          area="home"
+        >
+          <ErrorBoundary key={pathname}>
+            {authed ? (
+              <Outlet />
+            ) : unreachable ? (
+              <Unavailable busy={retrying} onRetry={refresh} />
+            ) : me === null ? (
+              <div className="kit-skeleton" aria-busy="true" />
+            ) : (
+              <SignInWall navigate={navigate} />
+            )}
+          </ErrorBoundary>
+        </AppShell>
+      </NavigateProvider>
+    </ZoneProvider>
+  );
 }
 
 function SharedClanOutlet() {

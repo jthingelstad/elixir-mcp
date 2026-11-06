@@ -107,7 +107,12 @@ test("your record links to the primary's season, home clan and tracking", async 
       within(across)
         .getAllByRole("link")
         .map((a) => a.getAttribute("href")),
-    ).toEqual(["/ladder", "/clan/J2RGCRVG/week", "/console/account/tracking"]),
+    ).toEqual([
+      "/ladder",
+      "/clan/J2RGCRVG/week",
+      "/console/account/tracking",
+      "/home",
+    ]),
   );
   expect(within(across).getAllByRole("link")[0].textContent).toContain(
     "King Thing’s season",

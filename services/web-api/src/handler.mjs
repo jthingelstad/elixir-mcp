@@ -35,6 +35,7 @@ import { timelineDiscordRoutes } from "./routes/timeline-discord.mjs";
 import { wakeAfterFact } from "@elixir-mcp/syndication";
 import { emailRoutes } from "./routes/email.mjs";
 import { clansRoutes } from "./routes/clans.mjs";
+import { homeRoutes } from "./routes/home.mjs";
 import { publicRoutes } from "./routes/public.mjs";
 import { gatewaysRoutes } from "./routes/gateways.mjs";
 import { exploreRoutes } from "./routes/explore.mjs";
@@ -408,6 +409,7 @@ export function makeHandler({
     ...publicRoutes({ deadLetters }),
     ...gatewaysRoutes({ resolveAccount, logEvent, notifyOwner }),
     ...exploreRoutes({ resolveAccount, exploreRegistry }),
+    ...homeRoutes({ resolveAccount, exploreRegistry, clan }),
     ...feedbackRoutes({ resolveAccount, notifyOwner }),
     ...adminRoutes({
       resolveAccount,

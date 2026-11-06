@@ -385,7 +385,7 @@ function assertNativeApp(uri) {
 }
 
 test(
-  "native behaviors own /console, /ladder and /clan; the static router resolves content documents",
+  "native behaviors own /console, /ladder, /home and /clan; the static router resolves content documents",
   { skip },
   async () => {
     const route = edgeRouter();
@@ -423,6 +423,12 @@ test(
       assertNativeApp(uri);
     assert.ok(!existsSync(path.join(out, "ladder")));
     assert.equal(route("/ladders"), "/ladders/index.html");
+
+    // Home the same, and only its own prefix.
+    for (const uri of ["/home", "/home/", "/home/timeline", "/home/friends"])
+      assertNativeApp(uri);
+    assert.ok(!existsSync(path.join(out, "home")));
+    assert.equal(route("/homes"), "/homes/index.html");
 
     // Clan's prefix uses the shared native app, including when features are disabled.
     for (const uri of [

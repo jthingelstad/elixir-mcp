@@ -91,6 +91,35 @@ export function audienceOf(action) {
   return kind === "member" ? { kind, player_tag: action.player_tag } : { kind };
 }
 
+/** The order Actions lists open ones in; Home's "Needs you" takes the top
+ *  of the same list. */
+export const ACTION_ORDER = [
+  "departure",
+  "removal",
+  "promotion",
+  "demotion",
+  "awards_announcement",
+  "awards_standings",
+  "rules_announcement",
+  "welcome",
+  "away",
+];
+
+/** Open actions in that order; within a kind by number, oldest first, and
+ *  one not numbered yet after those. */
+export function inActionOrder(cards) {
+  const rank = (t) => {
+    const i = ACTION_ORDER.indexOf(t);
+    return i < 0 ? ACTION_ORDER.length : i;
+  };
+  return [...cards].sort(
+    (a, b) =>
+      rank(a.type) - rank(b.type) ||
+      (a.number ?? Infinity) - (b.number ?? Infinity) ||
+      String(a.raised_at ?? "").localeCompare(String(b.raised_at ?? "")),
+  );
+}
+
 /** Whether this person may take the action (and so see it). */
 export function canAct(action, who) {
   const a = audienceOf(action);

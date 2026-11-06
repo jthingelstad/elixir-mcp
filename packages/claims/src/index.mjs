@@ -221,8 +221,12 @@ export async function reconcileRecording(
 export async function addPlayer(
   db,
   account,
-  { tag, makePrimary, via, relationship = null },
+  { tag, makePrimary, via, relationship: asked = null, follow = false },
 ) {
+  // Home's Follow (Jamie's ruling, Q10): a Friend, beside the person's own
+  // record. It never makes anyone the primary, so it asks for their own
+  // player first rather than let a first add become "them".
+  const relationship = follow ? "friend" : asked;
   await db.query("begin");
   try {
     const acct = await lockAccount(db, account.accountId);
@@ -256,6 +260,18 @@ export async function addPlayer(
     if (owner.account_id !== account.accountId)
       await lockAccount(db, owner.account_id);
     await lockSubject(db, tag);
+
+    if (follow) {
+      const { rows: own } = await db.query(
+        `select 1 from claim where account_id = $1
+            and (is_primary or relationship in ('primary', 'alt')) limit 1`,
+        [account.accountId],
+      );
+      if (own.length === 0) {
+        await db.query("rollback");
+        return { ok: false, error: "no_own_player" };
+      }
+    }
 
     const { rows: counted } = await db.query(
       `select count(*)::int as n from claim where account_id = $1`,
@@ -301,7 +317,8 @@ export async function addPlayer(
       [tag],
     );
 
-    const wantPrimary = !agent && !owned && (makePrimary === true || first);
+    const wantPrimary =
+      !agent && !owned && !follow && (makePrimary === true || first);
 
     // Clear the old primary BEFORE inserting the new one. Inserting a
     // second is_primary row first is what tripped the partial unique
@@ -350,6 +367,20 @@ export async function addPlayer(
         via,
       });
     }
+    // Following someone already watched makes them a friend; a tag that is
+    // already you (primary or alt) stays what it is.
+    let current = null;
+    if (follow) {
+      const { rows } = await db.query(
+        `update claim set relationship = case
+                  when relationship = 'watching' and not is_primary then 'friend'
+                  else relationship end
+          where account_id = $1 and player_tag = $2
+          returning relationship`,
+        [account.accountId, tag],
+      );
+      current = rows[0]?.relationship ?? null;
+    }
 
     const { started } = await reconcileRecording(
       db,
@@ -377,6 +408,7 @@ export async function addPlayer(
       isPrimary: wantPrimary,
       recordingStarted: started,
       clanFollowed: clan?.followed ?? null,
+      ...(follow ? { relationship: current } : {}),
     };
   } catch (err) {
     await db.query("rollback").catch(() => {});

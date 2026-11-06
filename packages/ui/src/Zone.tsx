@@ -3,6 +3,7 @@ import {
   calendarDay,
   clockAt,
   dayAt,
+  dayHeadingAt,
   stamp,
   stampDay,
   stampTime,
@@ -42,6 +43,8 @@ export function useClock() {
       now,
       when: (ts: Parameters<typeof whenAt>[0]) => whenAt(ts, zone, { now }),
       whenDay: (ts: Parameters<typeof dayAt>[0]) => dayAt(ts, zone, { now }),
+      dayHeading: (ts: Parameters<typeof dayHeadingAt>[0]) =>
+        dayHeadingAt(ts, zone),
       calendar: (ymd: Parameters<typeof calendarDay>[0]) =>
         calendarDay(ymd, { now }),
       clock: (ts: Parameters<typeof clockAt>[0]) => clockAt(ts, zone),

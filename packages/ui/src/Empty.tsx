@@ -40,6 +40,7 @@ export function ErrorState({
   title = "This could not be read just now",
   onRetry,
   busy = false,
+  retryLabel = "Try again",
   children,
   className,
   ...rest
@@ -47,6 +48,7 @@ export function ErrorState({
   title?: ReactNode;
   onRetry?: () => void;
   busy?: boolean;
+  retryLabel?: string;
   children?: ReactNode;
 } & HTMLAttributes<HTMLDivElement>) {
   return (
@@ -63,7 +65,7 @@ export function ErrorState({
             disabled={busy}
             onClick={onRetry}
           >
-            {busy ? "Trying…" : "Try again"}
+            {busy ? "Trying…" : retryLabel}
           </button>
         ) : undefined
       }

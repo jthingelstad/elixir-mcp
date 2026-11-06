@@ -1,11 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Icon, LogTable, useClock, noun, TagText } from "@elixir-mcp/ui";
-import {
-  useMarkTimelineSeen,
-  useMyTimeline,
-  useTimelineEvidence,
-} from "../../lib/queries.js";
-import { useScope } from "../../lib/scope.js";
+import { Icon, LogTable, useClock, TagText } from "@elixir-mcp/ui";
+import { useMyTimeline, useTimelineEvidence } from "../../lib/queries.js";
+import { TimelineEvidence, useTimelinePlace } from "./timeline-shared.jsx";
 import { TimelineDiscord } from "./TimelineDiscord.jsx";
 
 /**
@@ -29,28 +25,10 @@ import { TimelineDiscord } from "./TimelineDiscord.jsx";
  */
 export function Timeline() {
   const { when } = useClock();
-  const agent = useScope();
   const timelineQuery = useMyTimeline();
   const timeline = timelineQuery.data ?? null;
   const more = timeline?.timeline_more ?? 0;
-  const seenTo = timeline?.seen_to ?? null;
-  const to = timeline?.window?.to ?? null;
-  // The place as this visit found it: taken from the first read, per
-  // console (an agent's console keeps the agent's place).
-  const [opened, setOpened] = useState(null);
-  if (timeline && (opened === null || opened.agent !== agent))
-    setOpened({ agent, seenTo });
-  const openedMs = opened?.seenTo ? Date.parse(opened.seenTo) : null;
-  // Once per window end shown: a refused or failed write is not retried
-  // until the page shows a later window.
-  const markSeen = useMarkTimelineSeen();
-  const markedRef = useRef(null);
-  useEffect(() => {
-    if (!to || markedRef.current === to) return;
-    if (seenTo && Date.parse(seenTo) >= Date.parse(to)) return;
-    markedRef.current = to;
-    markSeen(to);
-  }, [to, seenTo, markSeen]);
+  const { openedMs } = useTimelinePlace(timeline);
   const [selected, setSelected] = useState(null);
   const [offset, setOffset] = useState(0);
   const panelRef = useRef(null);
@@ -86,10 +64,6 @@ export function Timeline() {
         }
       : null,
   );
-  const evidence =
-    evidenceQuery.isSuccess && !evidenceQuery.isFetching
-      ? evidenceQuery.data
-      : null;
   const viewEvidence = (it) => {
     triggerRef.current = document.activeElement;
     setOffset(0);
@@ -182,110 +156,16 @@ export function Timeline() {
               >
                 Close evidence
               </button>
-              {evidenceQuery.isFetching ? (
-                <p role="status">Reading recorded games…</p>
-              ) : null}
-              {evidenceQuery.isError ? (
-                <div role="alert">
-                  <p>
-                    This evidence is unavailable or changed. Refresh the
-                    timeline and open it again.
-                  </p>
-                  <button
-                    className="btn btn--sm"
-                    type="button"
-                    onClick={() => {
-                      closeEvidence();
-                      timelineQuery.refetch();
-                    }}
-                  >
-                    Refresh timeline
-                  </button>
-                </div>
-              ) : null}
-              {evidence ? (
-                <>
-                  <p>
-                    Read {when(evidence.observed_at)}.
-                    {evidence.observed_at_basis === "legacy_window"
-                      ? " This is the older reading window; the time this proof was attached was not kept."
-                      : ""}
-                  </p>
-                  {evidence.kind === "session" ? (
-                    <>
-                      {typeof selected.facts?.battles === "number" ? (
-                        <p>
-                          The summary covers {selected.facts.battles}{" "}
-                          {noun(selected.facts.battles, "game")}
-                          {selected.facts.ended_at
-                            ? `, ending ${when(selected.facts.ended_at)}`
-                            : ""}
-                          .
-                        </p>
-                      ) : null}
-                      <p>
-                        {evidence.count} recorded games
-                        {evidence.from
-                          ? ` from ${when(evidence.from)}`
-                          : ""}{" "}
-                        through {when(evidence.through)}.
-                        {selected.kind === "session_standout"
-                          ? " This evidence ends at the latest milestone reached in this update; the summary can include later games in the same sitting."
-                          : ""}{" "}
-                        {evidence.open
-                          ? "The summarized sitting was still open at this read."
-                          : "The summarized sitting was closed at this read."}
-                      </p>
-                      <p>
-                        Whether every game was read is unknown.{" "}
-                        {evidence.completeness === "anchor_bound"
-                          ? "The bounded search may omit the beginning of this sitting."
-                          : "These are the recorded games from the start of the sitting as Elixir read it."}
-                      </p>
-                    </>
-                  ) : (
-                    <p>
-                      {evidence.status === "proved"
-                        ? "This recorded game proves the crossing."
-                        : "Elixir read the change, but the game that crossed it is unknown or unavailable."}
-                    </p>
-                  )}
-                  <ol className="space-y-2" start={offset + 1}>
-                    {evidence.battles.map((b) => (
-                      <li key={b.battle_id}>
-                        <a
-                          href={b.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {when(b.at)} · {b.mode_group ?? "Recorded"} ·{" "}
-                          {b.outcome ?? "Outcome unknown"} · Open recorded game
-                        </a>
-                      </li>
-                    ))}
-                  </ol>
-                  <div className="flex flex-wrap gap-4">
-                    {offset > 0 ? (
-                      <button
-                        className="btn btn--sm"
-                        type="button"
-                        onClick={() => setOffset(Math.max(0, offset - 25))}
-                      >
-                        Previous games
-                      </button>
-                    ) : null}
-                    {evidence.next_offset !== null ? (
-                      <button
-                        className="btn btn--sm"
-                        type="button"
-                        onClick={() => setOffset(evidence.next_offset)}
-                      >
-                        Next games
-                      </button>
-                    ) : null}
-                  </div>
-                </>
-              ) : null}
+              <TimelineEvidence
+                selected={selected}
+                query={evidenceQuery}
+                offset={offset}
+                setOffset={setOffset}
+                onRefresh={() => {
+                  closeEvidence();
+                  timelineQuery.refetch();
+                }}
+              />
             </section>
           ) : null}
         </>

@@ -50,6 +50,7 @@ function route(pathname) {
   if (/^\/battle\/[0-9a-f]{12,64}$/.test(key)) return "/app.html";
   if (key === "/clan" || key.startsWith("/clan/")) return "/app.html";
   if (key === "/ladder" || key.startsWith("/ladder/")) return "/app.html";
+  if (key === "/home" || key.startsWith("/home/")) return "/app.html";
   return `${key}/index.html`;
 }
 

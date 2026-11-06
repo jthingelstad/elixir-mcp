@@ -10,59 +10,65 @@ import { normalizeTag } from "@elixir-mcp/contracts";
 
 import { json } from "../http.mjs";
 
+/** The person's tracked clans, their slots and their primary player's clan:
+ *  what the tracking page and Home's clan card both read. */
+export async function myClans(db, account) {
+  const { rows } = await db.query(
+    `select ac.clan_tag, ac.scope, ac.notify, ac.created_at, c.name,
+            ac.is_primary, ac.auto_followed_at,
+            r.status as recording_status, r.scope as effective_scope,
+            (select count(*)::int from clan_membership cm
+              where cm.clan_tag = ac.clan_tag and cm.left_observed_at is null) as member_count
+     from account_clan ac
+     left join clan c on c.clan_tag = ac.clan_tag
+     left join recording r on r.subject_type = 'clan'
+       and r.subject_tag = ac.clan_tag and r.status = 'active'
+     where ac.account_id = $1 order by ac.created_at`,
+    [account.accountId],
+  );
+  // The person's clan slots, pooled across them and their agents.
+  const owner = await poolOwner(db, account.accountId);
+  const limits = poolLimits(owner);
+  const used = await pooledUsage(db, owner.account_id);
+  // The starred suggestion (Jamie, 2026-09-05): your primary
+  // player's current clan - "we know your clan from your account".
+  const { rows: home } = await db.query(
+    `select coalesce(cm.clan_tag, p.last_known_clan_tag) as clan_tag,
+            cl.name
+     from claim c
+     join player p on p.player_tag = c.player_tag
+     left join clan_membership cm on cm.player_tag = c.player_tag
+       and cm.left_observed_at is null
+     left join clan cl on cl.clan_tag = coalesce(cm.clan_tag, p.last_known_clan_tag)
+     where c.account_id = $1 and c.is_primary
+     limit 1`,
+    [account.accountId],
+  );
+  const lim = (v) => (v === Infinity ? null : v);
+  return {
+    clans: rows,
+    home_clan: home[0]?.clan_tag
+      ? { clan_tag: home[0].clan_tag, name: home[0].name }
+      : null,
+    slots: {
+      activity: {
+        used: used.activity_used,
+        limit: lim(limits.activity),
+      },
+      comprehensive: {
+        used: used.comprehensive_used,
+        limit: lim(limits.comprehensive),
+      },
+    },
+  };
+}
+
 export function clansRoutes({ resolveAccount }) {
   return {
     "GET /api/me/clans": async (db, event) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });
-      const { rows } = await db.query(
-        `select ac.clan_tag, ac.scope, ac.notify, ac.created_at, c.name,
-                ac.is_primary, ac.auto_followed_at,
-                r.status as recording_status, r.scope as effective_scope,
-                (select count(*)::int from clan_membership cm
-                  where cm.clan_tag = ac.clan_tag and cm.left_observed_at is null) as member_count
-         from account_clan ac
-         left join clan c on c.clan_tag = ac.clan_tag
-         left join recording r on r.subject_type = 'clan'
-           and r.subject_tag = ac.clan_tag and r.status = 'active'
-         where ac.account_id = $1 order by ac.created_at`,
-        [account.accountId],
-      );
-      // The person's clan slots, pooled across them and their agents.
-      const owner = await poolOwner(db, account.accountId);
-      const limits = poolLimits(owner);
-      const used = await pooledUsage(db, owner.account_id);
-      // The starred suggestion (Jamie, 2026-09-05): your primary
-      // player's current clan - "we know your clan from your account".
-      const { rows: home } = await db.query(
-        `select coalesce(cm.clan_tag, p.last_known_clan_tag) as clan_tag,
-                cl.name
-         from claim c
-         join player p on p.player_tag = c.player_tag
-         left join clan_membership cm on cm.player_tag = c.player_tag
-           and cm.left_observed_at is null
-         left join clan cl on cl.clan_tag = coalesce(cm.clan_tag, p.last_known_clan_tag)
-         where c.account_id = $1 and c.is_primary
-         limit 1`,
-        [account.accountId],
-      );
-      const lim = (v) => (v === Infinity ? null : v);
-      return json(200, {
-        clans: rows,
-        home_clan: home[0]?.clan_tag
-          ? { clan_tag: home[0].clan_tag, name: home[0].name }
-          : null,
-        slots: {
-          activity: {
-            used: used.activity_used,
-            limit: lim(limits.activity),
-          },
-          comprehensive: {
-            used: used.comprehensive_used,
-            limit: lim(limits.comprehensive),
-          },
-        },
-      });
+      return json(200, await myClans(db, account));
     },
 
     "POST /api/me/clans": async (db, event, body) => {

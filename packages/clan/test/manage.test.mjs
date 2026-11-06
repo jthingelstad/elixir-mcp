@@ -19,6 +19,7 @@ import {
   ledgerWithPolicy,
   seedVersion,
 } from "./fakes.mjs";
+import { inActionOrder } from "@elixir-mcp/clan-engine";
 import {
   member,
   participation,
@@ -2498,4 +2499,36 @@ test("actions: a drafted entry keeps the model's words for leaders and co-leader
       { draft },
     );
   }
+});
+
+test("Home's needs: the top two of Actions' own order, only what this person can take, and reading evaluates nothing", async () => {
+  const lh = harness({ part: partClan() });
+  const lc = await leader(lh);
+  const before = await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/home");
+  assert.equal(before.status, 200, JSON.stringify(before.body));
+  assert.equal(before.body.needs_total, 0, "Home raised nothing");
+  assert.equal(before.body.role, "leader");
+
+  await historicalRemoval(lh);
+  const list = (await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/actions")).body
+    .open;
+  assert.ok(list.length >= 1);
+  const home = (await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/home")).body;
+  assert.equal(home.needs_total, list.length);
+  assert.ok(home.needs.length <= 2);
+  assert.deepEqual(
+    home.needs.map((n) => n.number),
+    inActionOrder(list)
+      .slice(0, 2)
+      .map((a) => a.number),
+  );
+
+  const eh = harness({
+    players: [player({ player_tag: "#O1", clan_role: "elder" })],
+    part: partClan(),
+    ledger: lh.ledger,
+  });
+  const ec = await leader(eh);
+  const elder = (await api(eh, ec, "GET", "/api/clans/2PQRJ8LV/home")).body;
+  assert.ok(!elder.needs.some((n) => n.type === "removal"));
 });

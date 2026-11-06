@@ -7,6 +7,7 @@
  *  2026-10-08 it also counts the week's card unlocks and badge levels
  *  (progress), which no longer mail on their own. */
 import { accountCtx, callTool } from "./ctx.mjs";
+import { featuredDeck } from "@elixir-mcp/tools/friends-week";
 import { MODE_GROUPS } from "@elixir-mcp/contracts";
 import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
 import { formArgs, formWindows, weekForm } from "@elixir-mcp/record/form";
@@ -270,30 +271,6 @@ function byFamily(w) {
     }))
     .filter((m) => m.battles > 0)
     .sort((a, b) => b.battles - a.battles);
-}
-
-/** The deck the mail draws: the list row's record and the full read's
- *  cards (id, name, form) and tower troop, which the mail prints as
- *  text. Null when the full read is missing: no art is better than art
- *  guessed from names. */
-export function featuredDeck(row, full) {
-  if (!row || !Array.isArray(full?.cards) || full.cards.length === 0)
-    return null;
-  return {
-    family: row.dominant_mode,
-    label: full.archetype_label ?? row.archetype_label ?? null,
-    battles: row.battles,
-    wins: row.wins,
-    losses: row.losses,
-    cards: full.cards.map((c) => ({
-      id: c.id,
-      name: c.name,
-      form: c.form ?? "base",
-    })),
-    tower_troop: full.tower_troop?.name ?? full.tower_troop_name ?? null,
-    average_elixir: full.archetype?.average_elixir ?? null,
-    level_gap: row.mean_level_gap ?? null,
-  };
 }
 
 /** A battles_decks list row deliberately carries card_names, not the full
