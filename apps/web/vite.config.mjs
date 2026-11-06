@@ -15,6 +15,10 @@ export default defineConfig({
     // Playwright's journeys live in e2e/ and run under its own runner.
     exclude: ["e2e/**", "node_modules/**"],
     // A stand-in for Cloudflare's Turnstile script (src/turnstile.js).
-    setupFiles: ["test/setup-turnstile.js"],
+    setupFiles: ["test/setup-turnstile.js", "test/setup-slow-runner.js"],
+    // Whole-App tests render from a cold module graph, and a full verify
+    // beside another build took past the 5 s default. A slow runner must
+    // not read as a failed test.
+    testTimeout: 20000,
   },
 });

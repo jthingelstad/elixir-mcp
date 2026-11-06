@@ -10,7 +10,7 @@ import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { api } from "../src/api.js";
-import { Explore } from "../src/views/Explore.jsx";
+import { Explore, WEEK_RE } from "../src/views/Explore.jsx";
 
 const answer = (body) => ({ ok: true, status: 200, data: { body } });
 
@@ -365,4 +365,17 @@ test("battlePath takes only a battle page's path, never a guess", async () => {
   expect(battlePath(null)).toBe(null);
   expect(battlePath("not a url")).toBe(null);
   expect(battlePath("https://elixir.poapkings.com/console")).toBe(null);
+});
+
+test("the war week box reads the form its hint advertises, and the old forms", () => {
+  for (const typed of [
+    "Season 135, week 3",
+    "season 135 week 3",
+    "S135 W3",
+    "135-3",
+  ]) {
+    const match = WEEK_RE.exec(typed);
+    expect(match?.slice(1, 3), typed).toEqual(["135", "3"]);
+  }
+  expect(WEEK_RE.exec("Season of the Witch")).toBeNull();
 });
