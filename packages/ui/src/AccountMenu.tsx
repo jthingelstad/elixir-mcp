@@ -10,6 +10,8 @@ export interface ChromePlayer {
   tag?: string;
   /** The primary player wears the star. */
   primary?: boolean;
+  /** Who this player is to you, in words: drawn instead of the star and tag. */
+  note?: string;
   href: string;
 }
 
@@ -111,14 +113,20 @@ export function AccountMenu({
               className="account-menu__player"
               onClick={onClose}
             >
-              <span className="account-menu__star">
-                {p.primary && <Icon name="star" size={14} />}
-              </span>
+              {!p.note && (
+                <span className="account-menu__star">
+                  {p.primary && <Icon name="star" size={14} />}
+                </span>
+              )}
               {/* A player with no name is named by its tag (TagText draws it). */}
               <span className="account-menu__player-name">
                 <TagText>{p.name}</TagText>
               </span>
-              <Tag tag={p.tag} className="account-menu__tag" />
+              {p.note ? (
+                <small className="account-menu__player-note">{p.note}</small>
+              ) : (
+                <Tag tag={p.tag} className="account-menu__tag" />
+              )}
             </Link>
           ))}
           {account.playersFoot && (

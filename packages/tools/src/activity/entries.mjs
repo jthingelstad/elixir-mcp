@@ -1166,6 +1166,21 @@ function decorate(kind, payload, arenaNames) {
   return payload;
 }
 
+/** A record per mode group, busiest first, from battles already read: no
+ *  further read, so it holds for everyone however little time is left. */
+function modeRecordsOf(played) {
+  const by = new Map();
+  for (const b of played) {
+    const mode = modeGroupOf(b.type, b.event_tag);
+    const row = by.get(mode) ?? { mode, battles: 0, wins: 0, losses: 0 };
+    row.battles += 1;
+    if (b.outcome === "win") row.wins += 1;
+    else if (b.outcome === "loss") row.losses += 1;
+    by.set(mode, row);
+  }
+  return [...by.values()].sort((a, b) => b.battles - a.battles);
+}
+
 export async function buildPlayerEntry(
   db,
   {
@@ -1177,6 +1192,7 @@ export async function buildPlayerEntry(
     timezone = "UTC",
     perf = null,
     basis = "observed",
+    modeRecords = false,
   },
 ) {
   const { rows: who } = await db.query(
@@ -1362,6 +1378,7 @@ export async function buildPlayerEntry(
       three_crown_wins: threeCrowns,
       sessions: sessions.length,
       by_mode: byMode,
+      ...(modeRecords ? { mode_records: modeRecordsOf(played) } : {}),
       trophy_net_ladder: trophyNet,
       late_captures: late,
     },
@@ -3008,6 +3025,9 @@ export async function buildTimeline(
     // What the window selects by (ledgerWindowSql): what the record
     // learned in it, or what happened in it.
     basis = "observed",
+    // Each player entry also carries battles.mode_records. Off for every
+    // door: elixir_timeline's entries do not have it.
+    modeRecords = false,
   },
 ) {
   const entries = [];
@@ -3044,6 +3064,7 @@ export async function buildTimeline(
       timezone,
       perf,
       basis,
+      modeRecords,
     });
     const e = built.entry;
     const said =

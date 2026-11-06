@@ -564,6 +564,11 @@ html[data-session="in"] [data-session-face="out"] {
   font-weight: 600;
   color: var(--ink);
 }
+.account-menu__player-note {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-dim);
+}
 .account-menu__tag {
   font-family: var(--font-mono);
   font-size: 12px;

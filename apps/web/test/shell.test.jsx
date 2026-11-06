@@ -22,7 +22,10 @@ test("the menu's players are your own: a friend or a watch is not one", () => {
     () => {},
   );
   expect(account.name).toBe("Ada");
-  expect(account.players.map((p) => p.tag)).toEqual(["#A", "#B"]);
+  expect(account.players.map((p) => [p.key, p.note])).toEqual([
+    ["#A", "Your main player"],
+    ["#B", "Also you"],
+  ]);
   expect(account.links.map((l) => l.key)).not.toContain("add");
 });
 
