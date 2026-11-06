@@ -62,6 +62,9 @@ for (const [label, width] of [
       await expect(
         page.getByText("Your clans could not be read just now."),
       ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Try again" }),
+      ).toBeVisible();
       await expect(page.getByText("23–14")).toBeVisible();
       await expect(page.locator(".kit-needs")).toHaveCount(0);
       await noSideways(page);
