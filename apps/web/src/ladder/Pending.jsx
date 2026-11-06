@@ -46,15 +46,15 @@ export function Pending({ player }) {
     );
   return (
     <div className="empty mt-6">
-      <h1 className="empty__title">Your first capture is on its way</h1>
+      <h1 className="empty__title">Your first read is on its way</h1>
       <p className="empty__body" role="status">
-        Elixir has saved {playerName(player)}&rsquo;s tag. The first capture
+        Elixir has saved {playerName(player)}&rsquo;s tag. The first read
         usually lands within a few minutes, and roughly the last 30 battles
         arrive with it. This page checks again every few seconds at first, then
         about once a minute.
       </p>
       <Link className="btn btn--sm" to={status}>
-        Capture status ›
+        Reading status ›
       </Link>
     </div>
   );

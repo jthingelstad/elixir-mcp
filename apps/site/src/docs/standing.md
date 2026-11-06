@@ -1,7 +1,7 @@
 ---
 slug: standing
 title: "Standing and the Elder band"
-description: "How Elixir Clan reads where each member stands: the four things a clan can count, minimums, how Elder is earned when the clan ranks it, the Elder band, why a change must hold for several reviews, and who sees what on the Standing page."
+description: "How Clan reads where each member stands: the four things a clan can count, minimums, how Elder is earned when the clan ranks it, the Elder band, why a change must hold for several reviews, and who sees what on the Standing page."
 section: clan
 order: 3
 navTitle: "Standing"
@@ -12,7 +12,7 @@ reviewed: "2026-10-12; inactivity runs from the battle log and raises removal Ac
 
 # Standing and the Elder band
 
-A clan on Elixir Clan writes down what it counts, in its
+A clan on Clan writes down what it counts, in its
 [policy](/docs/clan-policy), and **Standing** reads every member against
 it. It is participation, not skill: wins, win rates and trophies won are
 not weighed. Inactivity is the days since a member's last recorded battle
@@ -25,10 +25,10 @@ the policy's removal day becomes a removal Action for the leaders
 
 | Category | Read as | Over |
 |---|---|---|
-| Clan Wars | war decks played out of the decks asked (four a war day up to the clan's finish, all four days in a Colosseum week) | the last finished war weeks, 1 to 8 |
-| Ranked play | Path of Legends battles played; the league reached does not count | the last whole weeks, 1 to 8 |
+| Clan Wars | war decks played out of the decks asked: four a war day, up to the clan's finish, all four days in a Colosseum week | the last finished war weeks, 1 to 8 |
+| Path of Legends | Path of Legends battles played; the league reached does not count | the last whole weeks, 1 to 8 |
 | Donations | cards donated, as a weekly average | the last weeks, 1 to 8 |
-| Trophy road | trophies today | no window: the record keeps no trophy history |
+| Trophy road | trophies today | no window: Standing counts today's trophies. The record keeps daily readings from the day recording began, but Standing does not compare them |
 
 Each category is off until the clan switches it on, and each clan picks
 its own windows. Eight weeks is the most, because Clan reads eight weeks
@@ -100,7 +100,7 @@ Once the clan has a policy, every member's **Standing** page shows:
 - **Their own line**: where they stand, the evidence in a player's
   terms ("100% war decks over 4 war weeks, 12 ranked battles, ~213
   donations a week"), their war decks race by race when the clan counts
-  war, what would move them, the observed activity clock and its uncertainty, and any
+  war, what would move them, the activity clock and its uncertainty, and any
   hold a leader has set.
 
 When the clan ranks Elder and the policy lets members see where everyone
@@ -122,7 +122,7 @@ Nobody sees a score, a percentile or a rank; the leaders' board shows
 the band's size and how full it is.
 
 **Nobody below co-leader ever sees a removal action or who is on the
-inactivity clock.** A member sees only their own observed activity clock and its uncertainty.
+inactivity clock.** A member sees only their own activity clock and its uncertainty.
 
 ## When it is read
 

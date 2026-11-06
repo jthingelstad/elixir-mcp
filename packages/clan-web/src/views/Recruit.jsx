@@ -1,4 +1,4 @@
-import { Disclosure, Fresh, Icon, noun } from "@elixir-mcp/ui";
+import { Disclosure, Fresh, Icon, noun, useClock } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { manageApi } from "../api.js";
 import { useRecruit } from "../lib/queries.js";
@@ -327,7 +327,7 @@ const DRAFT_ERROR = {
     "Anthropic stopped accepting the clan's key. Add it again in Settings.",
   model_key_unreadable: "The clan's key needs to be added again in Settings.",
   model_unavailable:
-    "The clan's key could not reach the model Elixir Clan uses for this. Try again; if it fails again, opening Settings checks the key with Anthropic.",
+    "The clan's key could not reach the model Clan uses for this. Try again; if it fails again, opening Settings checks the key with Anthropic.",
   model_daily_limit:
     "The clan's model has drafted as many times as it may today. Try again tomorrow.",
   model_spend_cap:
@@ -410,7 +410,7 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
         <span className="page-head__note">
           Uses the clan&rsquo;s Anthropic key
           {model.model_for?.recruit_pitch
-            ? ` (${model.model_for.recruit_pitch.name}, Elixir Clan's choice)`
+            ? ` (${model.model_for.recruit_pitch.name}, Clan's choice)`
             : ""}
           . It replaces the tagline, the about, the points and who you are
           looking for below; nothing is saved until you save.
@@ -452,6 +452,7 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
 }
 
 function PitchEditor({ clan, view, navigate, onDone }) {
+  const { whenDay } = useClock();
   // A first pitch starts from a draft of the clan's goals, when it has any.
   const start =
     view.pitch_version === 0 && view.suggested ? view.suggested : view.pitch;
@@ -578,7 +579,7 @@ function PitchEditor({ clan, view, navigate, onDone }) {
           {view.versions
             .map(
               (v) =>
-                `v${v.version} (${v.saved_at.slice(0, 10)}${v.note ? `, ${v.note}` : ""})`,
+                `v${v.version} (${whenDay(v.saved_at)}${v.note ? `, ${v.note}` : ""})`,
             )
             .join(" · ")}
         </p>

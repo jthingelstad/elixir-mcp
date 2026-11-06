@@ -6,12 +6,12 @@ import { youngRecord } from "./ladder.js";
 
 const STEPS = {
   verify: {
-    text: "Verify your player: one battle proves it is yours, and Elixir Clan needs it before you can act in your game role.",
+    text: "Verify your player: one battle proves it is yours. Clan asks for it before you act as an Elder or above.",
     action: "Verify your player",
     to: `${CONSOLE}/account/verify`,
   },
   clan: {
-    text: "Your player is verified and your clan is recorded, so Elixir Clan can show your clan and what your game role can do there.",
+    text: "Your player is verified and your clan is recorded, so Clan can show your clan and what your game role can do there.",
     action: "Open Clan",
     to: "/clan",
   },

@@ -41,7 +41,7 @@ export function Activity({
   sub,
   search = typeof window === "undefined" ? "" : window.location.search,
 }) {
-  const { stamp } = useClock();
+  const { when } = useClock();
   const path = useConsolePath();
   // An agent's console has no Emails: an agent has no address, and the
   // person's mail is never shown under an agent's header.
@@ -57,7 +57,7 @@ export function Activity({
 
   if (view === "requests") {
     const rows = (requests ?? []).map((r) => [
-      stamp(r.created_at),
+      when(r.created_at),
       r.token_name ?? r.surface ?? "",
       r.tool ?? "",
       r.error_code
@@ -109,7 +109,7 @@ export function Activity({
           { key: "result", label: "Result", col: 3 },
         ]}
         empty="No calls yet. A connection appears here the first time it reads."
-        footnote="mcp_call_audit — every tool call your connections and this site's explorer made, last 200. REQUEST is the id the caller was handed in meta.request_id; open it for the request, the response and where the time went."
+        footnote="Every tool call your connections and this site's explorer made, last 200. REQUEST is the id your connection was given for the call; open it for the request, the response and where the time went."
       />
     );
   }
@@ -119,7 +119,7 @@ export function Activity({
     // lists every call: the id opens the record (the mail as sent),
     // and the record is where "report a problem with this email" lives.
     const rows = (sends ?? []).map((m) => [
-      stamp(m.sent_at),
+      when(m.sent_at),
       m.label ?? m.kind,
       {
         text: m.subject ?? "—",
@@ -149,7 +149,7 @@ export function Activity({
         monoCols={[0, 4]}
         filters={[{ key: "kind", label: "Kind", col: 1 }]}
         empty="Nothing sent yet. Emails from Elixir, under your Profile, says which emails you get; each arrives here as it is sent."
-        footnote="email_send — every product email queued for your address, last 200. EMAIL is the id printed in the mail's footer; open it for the mail as it was sent and to report a problem with it. Sign-in codes are not listed."
+        footnote="Every email queued for your address, last 200. EMAIL is the id printed in the mail's footer; open it for the mail as it was sent and to report a problem with it. Sign-in codes are not listed."
       />
     );
   }
@@ -157,7 +157,7 @@ export function Activity({
   const rows = (events ?? []).map((e) => {
     const tag = e.detail?.player_tag ?? e.detail?.clan_tag ?? null;
     return [
-      stamp(e.created_at),
+      when(e.created_at),
       (e.kind ?? "").replaceAll("_", " "),
       tag
         ? e.detail?.subject_name
@@ -184,7 +184,7 @@ export function Activity({
       monoCols={[0]}
       filters={[{ key: "event", label: "Event", col: 1 }]}
       empty="Nothing yet."
-      footnote="account_event — sign-ins, players and clans added, recording changes and tier changes."
+      footnote="Sign-ins, players and clans added, recording changes and limits changes."
     />
   );
 }

@@ -1,5 +1,6 @@
 import { useInitialTime } from "@elixir-mcp/ui";
 import { ago, Icon, Link, secsSince, Tag, TagText } from "@elixir-mcp/ui";
+import { scopeLabel } from "../../lib/words.js";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
@@ -32,7 +33,7 @@ const TAG_OK = /^#?[0289PYLQGRJCUVO]{3,12}$/i;
 
 function freshness(ts, now) {
   const s = secsSince(ts, now);
-  if (s == null) return { text: "never polled", tone: "ink-faint" };
+  if (s == null) return { text: "never read", tone: "ink-faint" };
   if (s < 3600) return { text: ago(ts, now), tone: "ok" };
   if (s < 86400) return { text: ago(ts, now), tone: "warn" };
   return { text: ago(ts, now), tone: "ink-faint" };
@@ -119,8 +120,11 @@ export function Tracking({ me, refresh, navigate, hash }) {
 
   const chips = [
     e?.player_slots && ["Players", e.player_slots],
-    e?.activity_clans && ["Clans · activity", e.activity_clans],
-    e?.comprehensive_clans && ["Clans · comprehensive", e.comprehensive_clans],
+    e?.activity_clans && ["Clans · the clan only", e.activity_clans],
+    e?.comprehensive_clans && [
+      "Clans · the clan and every member",
+      e.comprehensive_clans,
+    ],
   ].filter(Boolean);
 
   return (
@@ -232,7 +236,7 @@ export function Tracking({ me, refresh, navigate, hash }) {
             <p className="empty__body" style={{ marginBottom: 0 }}>
               {filter === "clans"
                 ? "Track a clan below, or add your player to see their clan."
-                : "Add the player you play as below. Nothing here defaults to you, and capture starts on the next poll."}
+                : "Add the player you play as below. Nothing here defaults to you, and recording starts on the next read."}
             </p>
           </div>
         )
@@ -484,9 +488,9 @@ export function Tracking({ me, refresh, navigate, hash }) {
                 value="comprehensive"
                 disabled={e?.comprehensive_clans?.limit === 0}
               >
-                comprehensive
+                {scopeLabel("comprehensive")}
               </option>
-              <option value="activity">activity</option>
+              <option value="activity">{scopeLabel("activity")}</option>
             </select>
             <button
               className="btn"
@@ -511,9 +515,9 @@ export function Tracking({ me, refresh, navigate, hash }) {
             )}
           </div>
           <div className="panel__foot">
-            Comprehensive records every member; activity records the clan.
+            Pick the clan and every member, or the clan only.
             {e?.comprehensive_clans?.limit === 0
-              ? " Your account includes activity recording, with no comprehensive clan slots."
+              ? " Your account can record a clan only, with no slots for every member."
               : ""}
           </div>
         </section>
@@ -526,8 +530,8 @@ export function Tracking({ me, refresh, navigate, hash }) {
           className="footnote"
           style={{ margin: "18px 2px 0", maxWidth: "78ch" }}
         >
-          † Another account records one of these clans comprehensively — a
-          shared recording runs at the widest scope anyone requested.
+          † Another account records every member of one of these clans. A shared
+          recording runs at the widest anyone asked for.
         </p>
       )}
     </>

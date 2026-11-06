@@ -25,7 +25,7 @@ const STATES = {
     icon: "shield-check",
     label: "signed",
     title:
-      "Runs exactly a release the hub named: its binary's SHA-256 is the signed one for its version.",
+      "Runs exactly a release Elixir named: its binary's SHA-256 is the signed one for its version.",
   },
   dev_build: {
     icon: "wrench",
@@ -165,7 +165,7 @@ export function ReleaseKeyCard({ counts }) {
           Every collector release is signed with this key, and a collector
           installs an update only after checking the signature.{" "}
           <strong>Signed</strong> means the binary a collector reports running
-          is, byte for byte, a release the hub named.
+          is, byte for byte, a release Elixir named.
         </p>
         {counts && (
           <p className="release-key__counts">

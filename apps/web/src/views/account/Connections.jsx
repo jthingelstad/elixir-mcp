@@ -43,7 +43,7 @@ import { NewAgent } from "./Agents.jsx";
  * account would ever mention it.
  */
 export function Connections({ me, navigate }) {
-  const { day } = useClock();
+  const { whenDay } = useClock();
   // On an agent's console (2026-09-23) this page is the agent's: the
   // clients connected AS it, the refusals of its key, and its own door.
   // Yours lists your clients and one row per agent you own, each opening
@@ -146,8 +146,8 @@ export function Connections({ me, navigate }) {
               : "Usually a client you disconnected that is still running: it reads nothing, and keeps trying until it is stopped."}
           </span>
           {/* An alert you cannot acknowledge teaches you to ignore
-              alerts. Dismissing is per row — one credential, one source,
-              one day — so it says "I have seen today's", and a refusal
+              alerts. Dismissing is per row, one credential, one source,
+              one day, so it says "I have seen today's", and a refusal
               that is still happening tomorrow says so again. */}
           <button
             type="button"
@@ -284,7 +284,7 @@ export function Connections({ me, navigate }) {
                           marginTop: "3px",
                         }}
                       >
-                        connected {day(c.created_at)}
+                        connected {whenDay(c.created_at)}
                         {c.usage?.ip ? ` · ${c.usage.ip}` : ""}
                         {c.usage?.country ? ` (${c.usage.country})` : ""}
                       </span>
@@ -470,7 +470,7 @@ export function Connections({ me, navigate }) {
       >
         A client signed in as you sees your players, your clans and your feed.
         An agent sees what its own key allows and, if it is a clan&rsquo;s
-        agent, that clan — which is what makes the two different.
+        agent, that clan, which is what makes the two different.
       </p>
 
       {/* The first-answer questions are about YOU; an agent's console

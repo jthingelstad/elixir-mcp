@@ -15,7 +15,7 @@ reviewed: "2026-10-12 against contract 11.11.4"
 
 Adding a player to your account is a claim: "this player is me." For
 most of what Elixir does a claim is taken on trust, and that is fine.
-Acting for a clan is different: what a leader can do in Elixir Clan
+Acting for a clan is different: what a leader can do in Clan
 should open for the account that controls the leader's tag and nobody
 else. Verify turns a claim into a proven fact.
 
@@ -121,7 +121,7 @@ needs "is this claim proven" can read it without a second lookup.
 `unverified`) beside each player you track. No data tool changes its
 answers on it; the record is the same for everyone.
 
-[Elixir Clan](/clan) checks it on every request, inside Elixir. Any
+[Clan](/clan) checks it on every request, inside Elixir. Any
 player of your own (your primary or an alt) in a clan lets you open that
 clan as a member and read it. Acting in the clan, the clan map, and the
 tools your in-game role brings (Elder, Co-leader or Leader) wait until

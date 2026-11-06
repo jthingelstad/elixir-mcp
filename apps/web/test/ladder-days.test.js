@@ -68,7 +68,7 @@ test("a battle lands on the day it started in the account's zone", () => {
   expect(addDays("2026-09-30", 1)).toBe("2026-10-01");
   expect(weekdayIndex("2026-09-07")).toBe(0);
   expect(weekdayIndex("2026-10-04")).toBe(6);
-  expect(weekdayLabel("2026-09-28")).toBe("Mon, Sep 28");
+  expect(weekdayLabel("2026-09-28")).toBe("Mon Sep 28");
   expect(zoneName(CHI)).toBe("Central time");
   expect(zoneName("UTC")).toBe("UTC");
   expect(zoneName("Not/AZone")).toBe("UTC");

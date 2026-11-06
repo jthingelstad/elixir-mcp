@@ -420,7 +420,7 @@ export function Rail({ me, path, navigate, narrow, select, selecting }) {
         current={railKey(path)}
         navigate={navigate}
         narrow={narrow}
-        title={clan?.name ?? "Elixir Clan"}
+        title={clan?.name ?? "Clan"}
         aside={clan?.clan_tag}
         subtitle={picker ? undefined : (clan?.name ?? "")}
         head={
@@ -447,8 +447,8 @@ export function Rail({ me, path, navigate, narrow, select, selecting }) {
           categories={FEEDBACK_CATEGORIES}
           about={
             clan
-              ? `About Elixir Clan, in ${clan.name ?? clan.clan_tag}. The page you are on rides along.`
-              : "About Elixir Clan. The page you are on rides along."
+              ? `About Clan, in ${clan.name ?? clan.clan_tag}. The page you are on rides along.`
+              : "About Clan. The page you are on rides along."
           }
           refs={clan ? [{ kind: "clan", ref: clan.clan_tag }] : []}
           context={{ page: railKey(path) ?? "clan" }}

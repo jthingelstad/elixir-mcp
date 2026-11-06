@@ -117,7 +117,7 @@ export const MODE_GROUP_LABEL = {
   ladder: "Trophy Road",
   ranked: "Path of Legends",
   war: "War",
-  casual: "Friendly",
+  casual: "Casual",
   challenge: "Challenge",
   event: "Event",
   tournament: "Tournament",
@@ -211,7 +211,7 @@ export function cardFacts(v, policy, type = null) {
   if (counted.has("ranked"))
     facts.push({
       key: "ranked",
-      label: "Ranked",
+      label: "Path of Legends",
       value: `${f.ranked.battles} ranked battles`,
       window: `last ${policy.ranked_window_weeks} weeks`,
       fidelity: f.minimums.log_recorded === false ? "unknown" : "daily",
@@ -396,10 +396,10 @@ export function nextSteps(v, policy) {
     )
     .map(([c]) => c);
   const advice = {
-    war: "Play the war decks you are asked for: four a war day, up to the clan's finish.",
-    ranked: `Play ranked battles: ${CATEGORY_LABELS.ranked.toLowerCase()} counts here.`,
-    donations: `Donate every week: the average over ${plural(policy.donations_window_weeks, "week")} counts, not one big week.`,
-    trophies: "Climb trophy road: trophies count here.",
+    war: "War decks count here: four a war day, up to the clan's finish.",
+    ranked: `${CATEGORY_LABELS.ranked} counts here.`,
+    donations: `Donations count here: the average over ${plural(policy.donations_window_weeks, "week")}, not one big week.`,
+    trophies: "Trophies count here.",
   };
   for (const c of weakest) steps.push(advice[c]);
   return steps.slice(0, 2);

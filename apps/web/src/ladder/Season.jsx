@@ -1,20 +1,17 @@
 import { DeckGrid, Icon, Link, useClock, noun } from "@elixir-mcp/ui";
 import {
   LADDER_PAGES,
-  clockTime,
   deckModes,
   fmt,
   floorNote,
   fourthTile,
   ladderHref,
-  longDay,
   modeLabel,
   pct,
   seasonHead,
   shortDay,
   signed,
   weekBars,
-  zoneShort,
 } from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
 import { BringClanmates } from "../components/BringClanmates.jsx";
@@ -45,7 +42,7 @@ export function Season({
   summary,
   search,
 }) {
-  const { zone } = useClock();
+  const { zone, when } = useClock();
   const args = { player_tag: player.player_tag, season: season.arg, mode };
   const perf = useToolRead("battles_performance", args, { enabled: modeReady });
   const weeks = useToolRead(
@@ -56,14 +53,13 @@ export function Season({
 
   const body = perf.data;
   const head = seasonHead(body?.applied);
-  const at = (ts) =>
-    `${longDay(ts, zone)} at ${clockTime(ts, zone)} ${zoneShort(ts, zone)}`;
+  const at = when;
   const ends = !head.endsAt
     ? ""
     : head.running
       ? ` The season ends ${at(head.endsAt)}.`
       : head.startsAt
-        ? ` The season ran ${at(head.startsAt)} to ${at(head.endsAt)}.`
+        ? ` The season began ${at(head.startsAt)} and ended ${at(head.endsAt)}.`
         : "";
   const hrefFor = (m) =>
     ladderHref("season", {
@@ -132,6 +128,7 @@ function SeasonBody({
   running,
   seasonName,
 }) {
+  const { when } = useClock();
   const w = body.window ?? {};
   const played = Number(w.battles ?? 0) > 0;
   const fourth = fourthTile(mode, w, body.trophy_floor);
@@ -188,9 +185,7 @@ function SeasonBody({
           <p className="empty__body">
             {running
               ? `Elixir has recorded none in this mode since the season began${
-                  startsAt
-                    ? ` on ${longDay(startsAt, zone)} at ${clockTime(startsAt, zone)} ${zoneShort(startsAt, zone)}`
-                    : ""
+                  startsAt ? ` on ${when(startsAt)}` : ""
                 }.`
               : `Elixir recorded none in this mode in ${seasonName}.`}{" "}
             Each mode keeps its own record; the others are a tab away.
@@ -398,7 +393,7 @@ function TopDeck({ summary, search, zone, wide }) {
               ))}
               {deck.mean_level_gap != null ? (
                 <div className="ladder-fact">
-                  <dt>Mean level gap</dt>
+                  <dt>Your card levels against theirs, on average</dt>
                   <dd>{signed(deck.mean_level_gap, 2)}</dd>
                 </div>
               ) : null}

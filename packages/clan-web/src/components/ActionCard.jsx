@@ -5,12 +5,13 @@ import {
   Link,
   MODE_LABEL,
   ago,
-  stamp,
   useClock,
   noun,
   Tag,
   TagText,
   useFlash,
+  whenAt,
+  dayAt,
 } from "@elixir-mcp/ui";
 import {
   CHAT_MAX,
@@ -47,10 +48,8 @@ const LEADER_TYPES = new Set(["promotion", "demotion", "removal"]);
 function RestsOn({ fact, zone }) {
   const { last_battle: b, joined, counter } = fact;
   if (!joined || !counter) return fact.value;
-  const at = (iso) => (
-    <time dateTime={iso}>{stamp(iso, zone, { year: true })}</time>
-  );
-  const day = (iso) => <time dateTime={iso}>{iso.slice(0, 10)}</time>;
+  const at = (iso) => <time dateTime={iso}>{whenAt(iso, zone)}</time>;
+  const day = (iso) => <time dateTime={iso}>{dayAt(iso, zone)}</time>;
   const rise = counter.rise;
   return (
     <>
@@ -778,7 +777,7 @@ const DRAFT_ERROR = {
     "Anthropic stopped accepting the clan's key. Add it again in Settings.",
   model_key_unreadable: "The clan's key needs to be added again in Settings.",
   model_unavailable:
-    "The clan's key could not reach the model Elixir Clan uses for this. Try again; if it fails again, opening Settings checks the key with Anthropic.",
+    "The clan's key could not reach the model Clan uses for this. Try again; if it fails again, opening Settings checks the key with Anthropic.",
   model_daily_limit:
     "The clan's model has drafted as many times as it may today. Try again tomorrow.",
   model_spend_cap:
@@ -795,7 +794,7 @@ const DRAFT_ERROR = {
 
 /** Who wrote a log entry. */
 function By({ by }) {
-  if (!by || by.system) return <span>Elixir Clan</span>;
+  if (!by || by.system) return <span>Clan</span>;
   return (
     <span>
       {by.name ?? <Tag tag={by.tag} />}
@@ -875,7 +874,7 @@ export function ActionLog({ action, clan, onChanged }) {
                   : ""}
               </span>
               <span className="mono text-[12px] text-ink-faint">
-                <time dateTime={e.at}>{stamp(e.at, zone, { year: true })}</time>
+                <time dateTime={e.at}>{whenAt(e.at, zone)}</time>
               </span>
             </div>
             {e.text ? <div className="text-ink-body">{e.text}</div> : null}
@@ -911,7 +910,7 @@ export function ActionLog({ action, clan, onChanged }) {
                 {e.detail.prior
                   .map(
                     (p) =>
-                      `${STATUS[p.status]?.[0]?.toLowerCase() ?? p.status} ${(p.closed_at ?? p.raised_at).slice(0, 10)}${p.reason ? ` (${p.reason.replaceAll("_", " ")})` : ""}`,
+                      `${STATUS[p.status]?.[0]?.toLowerCase() ?? p.status} ${dayAt(p.closed_at ?? p.raised_at, zone)}${p.reason ? ` (${p.reason.replaceAll("_", " ")})` : ""}`,
                   )
                   .join("; ")}
               </div>
@@ -1223,11 +1222,10 @@ function BoundActionCard({
                         .observed_from
                     }
                   >
-                    {stamp(
+                    {whenAt(
                       action.removal_safety.latest_activity_interval
                         .observed_from,
                       zone,
-                      { year: true },
                     )}
                   </time>{" "}
                   and{" "}
@@ -1236,11 +1234,10 @@ function BoundActionCard({
                       action.removal_safety.latest_activity_interval.observed_to
                     }
                   >
-                    {stamp(
+                    {whenAt(
                       action.removal_safety.latest_activity_interval
                         .observed_to,
                       zone,
-                      { year: true },
                     )}
                   </time>
                   .
@@ -1249,9 +1246,7 @@ function BoundActionCard({
               <p className="m-0">
                 Checked{" "}
                 <time dateTime={action.removal_safety.checked_at}>
-                  {stamp(action.removal_safety.checked_at, zone, {
-                    year: true,
-                  })}
+                  {whenAt(action.removal_safety.checked_at, zone)}
                 </time>
                 . Removal copy, drafting and completion are withheld. The saved
                 evidence and log below are historical.
@@ -1264,8 +1259,7 @@ function BoundActionCard({
           <div className="text-[14.5px] leading-[1.6] text-ink-body">
             {action.type === "departure" ? (
               <div>
-                Departure observed {ago(ev.left_at)} ({ev.left_at?.slice(0, 10)}
-                )
+                Departed {ago(ev.left_at)} ({dayAt(ev.left_at, zone)})
                 {ev.removal_state && ev.removal_state !== "none"
                   ? ` · was ${ev.removal_state.replaceAll("_", " ")} on the clock`
                   : ""}
@@ -1453,8 +1447,8 @@ function BoundActionCard({
           {!open ? (
             <div className="page-head__note">
               {action.status === "withdrawn"
-                ? `${action.withdraw_reason ?? "Withdrawn"} · ${action.withdrawn_at?.slice(0, 10) ?? ""}`
-                : `${action.decided_by_name ?? action.decided_by ?? ""} · ${action.decided_at?.slice(0, 10) ?? ""}`}
+                ? `${action.withdraw_reason ?? "Withdrawn"} · ${action.withdrawn_at ? dayAt(action.withdrawn_at, zone) : ""}`
+                : `${action.decided_by_name ?? action.decided_by ?? ""} · ${action.decided_at ? dayAt(action.decided_at, zone) : ""}`}
               {action.outcome?.verified_at
                 ? action.type === "departure"
                   ? " · confirmed by a leader"

@@ -66,7 +66,7 @@ export function CapabilityEditor({ scope, onSave, disabled = false }) {
             disabled={value === OAUTH_SCOPES[0]}
             onChange={() => toggle(value)}
           />{" "}
-          <span className="mono">{value}</span> — {title}
+          <span className="mono">{value}</span>: {title}
           <div style={{ color: "var(--ink-faint)", marginLeft: "20px" }}>
             {description}
           </div>

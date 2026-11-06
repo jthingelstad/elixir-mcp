@@ -28,7 +28,7 @@ import { TimelineDiscord } from "./TimelineDiscord.jsx";
  * still while the place moves underneath it.
  */
 export function Timeline() {
-  const { stamp } = useClock();
+  const { when } = useClock();
   const agent = useScope();
   const timelineQuery = useMyTimeline();
   const timeline = timelineQuery.data ?? null;
@@ -107,7 +107,7 @@ export function Timeline() {
           ? { text: "new", tone: "accent-bright" }
           : "earlier";
     return [
-      stamp(it.at),
+      when(it.at),
       it.subject_name ?? it.subject_tag ?? "your account",
       // Time-free (11.8.0): the WHEN column says the time in the
       // account's zone (DECISIONS: the console tells time in it).
@@ -206,9 +206,9 @@ export function Timeline() {
               {evidence ? (
                 <>
                   <p>
-                    Observed {stamp(evidence.observed_at)}.
+                    Read {when(evidence.observed_at)}.
                     {evidence.observed_at_basis === "legacy_window"
-                      ? " This is the legacy observation window; its proof attachment time was not recorded."
+                      ? " This is the older reading window; the time this proof was attached was not kept."
                       : ""}
                   </p>
                   {evidence.kind === "session" ? (
@@ -218,7 +218,7 @@ export function Timeline() {
                           The summary covers {selected.facts.battles}{" "}
                           {noun(selected.facts.battles, "game")}
                           {selected.facts.ended_at
-                            ? `, ending ${stamp(selected.facts.ended_at)}`
+                            ? `, ending ${when(selected.facts.ended_at)}`
                             : ""}
                           .
                         </p>
@@ -226,9 +226,9 @@ export function Timeline() {
                       <p>
                         {evidence.count} recorded games
                         {evidence.from
-                          ? ` from ${stamp(evidence.from)}`
+                          ? ` from ${when(evidence.from)}`
                           : ""}{" "}
-                        through {stamp(evidence.through)}.
+                        through {when(evidence.through)}.
                         {selected.kind === "session_standout"
                           ? " This evidence ends at the latest milestone reached in this update; the summary can include later games in the same sitting."
                           : ""}{" "}
@@ -237,17 +237,17 @@ export function Timeline() {
                           : "The summarized sitting was closed at this read."}
                       </p>
                       <p>
-                        Capture completeness is unknown.{" "}
+                        Whether every game was read is unknown.{" "}
                         {evidence.completeness === "anchor_bound"
                           ? "The bounded search may omit the beginning of this sitting."
-                          : "These are the recorded games from the sitting’s observed beginning."}
+                          : "These are the recorded games from the start of the sitting as Elixir read it."}
                       </p>
                     </>
                   ) : (
                     <p>
                       {evidence.status === "proved"
                         ? "This recorded game proves the crossing."
-                        : "The change was observed, but its crossing game is unknown or unavailable."}
+                        : "Elixir read the change, but the game that crossed it is unknown or unavailable."}
                     </p>
                   )}
                   <ol className="space-y-2" start={offset + 1}>
@@ -258,7 +258,7 @@ export function Timeline() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          {stamp(b.at)} · {b.mode_group ?? "Recorded"} ·{" "}
+                          {when(b.at)} · {b.mode_group ?? "Recorded"} ·{" "}
                           {b.outcome ?? "Outcome unknown"} · Open recorded game
                         </a>
                       </li>
@@ -307,7 +307,7 @@ export function Timeline() {
           : [{ key: "state", label: "State", col: 3 }]),
       ]}
       divider={openedMs === null ? null : NEW_SINCE}
-      empty="Nothing in the last seven days — everything you track appears here while its notify switch is on."
+      empty="Nothing in the last seven days. Everything you track appears here while its notify switch is on."
       footnote={`New means learned since you last opened this page. Opening it clears the Timeline dot and changes nothing your connections have read.${more > 0 ? ` A busy week: the ${rows.length} newest are shown, and ${more.toLocaleString()} more this week are not.` : ""}`}
     />
   );

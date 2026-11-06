@@ -6,7 +6,6 @@ import {
   clockTime,
   fmt,
   leadFirst,
-  longDay,
   seasonName,
   seasonWords,
   zoneShort,
@@ -173,8 +172,8 @@ function DaysBody({
           </Tile>
         ))}
         <Tile
-          label="Longest covered quiet stretch"
-          sub={gap ? spanLabel(gap) : "No fully covered quiet days"}
+          label="Longest stretch with no battles, in this mode"
+          sub={gap ? spanLabel(gap) : "None the record fully covers"}
         >
           {gap
             ? `${fmt(gap.length)} ${gap.length === 1 ? "day" : "days"}`
@@ -185,10 +184,12 @@ function DaysBody({
       <div className="callout callout--info">
         <Icon name="info" size={17} />
         <span>
-          {coverageError ? "Capture coverage could not be checked. " : ""}
-          Recorded battles are evidence of play. Days without them stay unknown
-          unless comparable, complete profile intervals cover the whole day.
-          Gaps and the time since the latest observation are not quiet days.
+          {coverageError
+            ? "How much of this was read could not be checked. "
+            : ""}
+          A recorded battle shows play. A day without one stays unknown unless
+          Elixir read the whole day and found none. Gaps, and the time since the
+          last read, are never counted as days without a battle.
         </span>
       </div>
 
@@ -209,12 +210,11 @@ function DaysBody({
         cal={cal}
         name={name}
         season={season}
-        zone={zone}
         running={running}
         lead={lead}
       />
       <p className="footnote">
-        Open a night and choose a captured battle to inspect it and share why it
+        Open a night and choose a recorded battle to inspect it and share why it
         mattered to you.
       </p>
       <Nights battles={battles} floor={floor} zone={zone} when={when} />
@@ -227,7 +227,8 @@ function DaysBody({
 const emphasis = (key, focus, block) =>
   focus ? ` ${block}--${key === focus ? "lead" : "quiet"}` : "";
 
-function Calendar({ cal, name, season, zone, running = true, lead = null }) {
+function Calendar({ cal, name, season, running = true, lead = null }) {
+  const { when } = useClock();
   const seen = [
     ...new Map(
       cal.days.flatMap((d) => d.modes).map((m) => [m.key, m.label]),
@@ -279,11 +280,9 @@ function Calendar({ cal, name, season, zone, running = true, lead = null }) {
         </ol>
       </div>
       <div className="panel__foot">
-        The season {running ? "runs" : "ran"} {longDay(season.starts_at, zone)}{" "}
-        at {clockTime(season.starts_at, zone)}{" "}
-        {zoneShort(season.starts_at, zone)} to {longDay(season.ends_at, zone)}{" "}
-        at {clockTime(season.ends_at, zone)} {zoneShort(season.ends_at, zone)}.
-        Battles after midnight count on the next day.
+        The season began {when(season.starts_at)} and{" "}
+        {running ? "ends" : "ended"} {when(season.ends_at)}. Battles after
+        midnight count on the next day.
       </div>
     </section>
   );
@@ -298,12 +297,12 @@ function Day({ day, focus = null }) {
         ? "partially read"
         : day.count === 0
           ? day.state === "today"
-            ? "today · capture incomplete"
+            ? "today, still being read"
             : day.capture.quiet
-              ? "no recorded battles · covered day"
+              ? "no recorded battles, and the record covers the day"
               : day.capture.coverage === "partial"
-                ? "capture incomplete"
-                : "capture unknown"
+                ? "partly read"
+                : "unknown"
           : null;
   return (
     <li
@@ -413,8 +412,8 @@ function Night({ night, floor, zone }) {
         <span className="ladder-night__when">
           <span className="ladder-night__day">{weekdayLabel(night.day)}</span>
           <span className="ladder-night__time">
-            {timeSpan(night.start, night.end, zone)}{" "}
-            {zoneShort(night.start, zone)}
+            {timeSpan(night.start, night.end, zone)}
+            {zone ? "" : ` ${zoneShort(night.start, zone)}`}
           </span>
         </span>
         <span className="ladder-night__what">

@@ -27,8 +27,7 @@ function wantsReport(
 }
 
 export function EmailRecord({ id, navigate, search }) {
-  const { stamp } = useClock();
-  const when = (ts) => stamp(ts, { year: true, seconds: true });
+  const { when } = useClock();
   const [report] = useState(() => wantsReport(search));
   useEffect(() => {
     if (report && id)

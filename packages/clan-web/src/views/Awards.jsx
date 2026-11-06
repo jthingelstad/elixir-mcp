@@ -1,4 +1,4 @@
-import { Disclosure, Fresh, ago, Tag, TagText } from "@elixir-mcp/ui";
+import { Disclosure, Fresh, ago, Tag, TagText, useClock } from "@elixir-mcp/ui";
 import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useAwards } from "../lib/queries.js";
@@ -17,6 +17,7 @@ import { CLAN, clanPath } from "../lib/base.js";
  * elders grant what elders may; leaders edit.
  */
 export function Awards({ clan, navigate }) {
+  const { whenDay } = useClock();
   const [editing, setEditing] = useState(false);
   const [selection, setSelection] = useState(null);
   const { state, load, query } = useAwards(clan.clan_tag);
@@ -95,7 +96,7 @@ export function Awards({ clan, navigate }) {
         {d.config_version === 0
           ? "This clan runs no awards yet. A leader adds the ones it runs."
           : `Awards v${d.config_version}.`}{" "}
-        Judged {ago(d.evaluated_at)}
+        Worked out {ago(d.evaluated_at)}
         {d.as_of ? (
           <>
             {" "}
@@ -161,7 +162,7 @@ export function Awards({ clan, navigate }) {
           <div className="label">
             Season {season.season_id} ·{" "}
             {season.closed
-              ? `closed ${season.closed_at?.slice(0, 10) ?? ""}`
+              ? `closed ${whenDay(season.closed_at)}`
               : "in progress"}{" "}
             · {season.weeks} war week{season.weeks === 1 ? "" : "s"}
           </div>
@@ -326,6 +327,7 @@ function AwardPanel({
   previousGrants = [],
   onChange,
 }) {
+  const { whenDay } = useClock();
   const [granting, setGranting] = useState(false);
   const [tag, setTag] = useState("");
   const [note, setNote] = useState("");
@@ -430,9 +432,9 @@ function AwardPanel({
                       </MemberLink>
                     </strong>{" "}
                     <span className="tag">{r.player_tag}</span>
-                    {r.note ? ` — ${r.note}` : ""}{" "}
+                    {r.note ? `: ${r.note}` : ""}{" "}
                     <span className="page-head__note">
-                      · granted {r.granted_at?.slice(0, 10)} by{" "}
+                      · granted {whenDay(r.granted_at)} by{" "}
                       {r.granted_by_name ?? r.granted_by}
                     </span>
                     {canRevoke ? (
@@ -713,7 +715,7 @@ function OlderGrants({ grants, awardById }) {
                     {g.rank > 1 ? ` #${g.rank}` : ""} ·{" "}
                     {g.player_name ?? <Tag tag={g.player_tag} />}{" "}
                     <span className="tag">{g.player_tag}</span>
-                    {g.note ? ` — ${g.note}` : ""}
+                    {g.note ? `: ${g.note}` : ""}
                   </li>
                 ))}
             </ul>
@@ -730,6 +732,7 @@ function OlderGrants({ grants, awardById }) {
  * Validation answers come back keyed by field.
  */
 function AwardsConfig({ clan, view, onDone }) {
+  const { whenDay } = useClock();
   const [draft, setDraft] = useState(() => structuredClone(view.config));
   const [errors, setErrors] = useState({});
   const [note, setNote] = useState("");
@@ -982,7 +985,7 @@ function AwardsConfig({ clan, view, onDone }) {
           {view.versions
             .map(
               (v) =>
-                `v${v.version} (${v.saved_at.slice(0, 10)}${v.note ? `, ${v.note}` : ""})`,
+                `v${v.version} (${whenDay(v.saved_at)}${v.note ? `, ${v.note}` : ""})`,
             )
             .join(" · ")}
         </p>

@@ -126,7 +126,7 @@ for (const size of ["wide", "@narrow"])
     const alert = page.getByRole("alert");
     await expect(alert).toContainText("This Action is closed");
     await expect(alert).not.toContainText("may still explicitly decline");
-    await expect(alert).toContainText("2026-10-04 03:00 CDT");
+    await expect(alert).toContainText(/Sun Oct 4( 2026)?, 3:00 am/);
     const layout = await alert.evaluate((e) => ({
       direction: getComputedStyle(e).flexDirection,
       children: [...e.children].map((c) => {
@@ -153,9 +153,7 @@ for (const size of ["wide", "@narrow"])
       .locator("summary")
       .filter({ hasText: /^History · 2 entries/ })
       .click();
-    await expect(
-      page.getByText("2026-10-04 04:20 CDT", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText(/^Sun Oct 4( 2026)?, 4:20 am$/)).toBeVisible();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({
       path: `/tmp/elixir-triage-withdrawn-${size}.png`,
@@ -163,9 +161,9 @@ for (const size of ["wide", "@narrow"])
     });
     await page.goto("/clan/2PQRJ8LV/manage/board");
     await expect(page.getByLabel("Removal triage")).toContainText(
-      "Protected 1 · Not currently a removal candidate 1 · Evidence held 1 · Eligible 1",
+      "Protected 1 · Not currently a removal candidate 1 · Waiting on the record 1 · Eligible 1",
     );
-    await expect(page.getByLabel("Elder evidence held")).toContainText(
+    await expect(page.getByLabel("Elder, waiting on the record")).toContainText(
       "Promotion 2 · Demotion 1",
     );
     const groups = page.getByRole("navigation", { name: "Board groups" });
@@ -196,7 +194,7 @@ for (const size of ["wide", "@narrow"])
     for (const label of [
       "Protected",
       "Not currently a removal candidate",
-      "Evidence held",
+      "Waiting on the record",
       "Eligible",
     ])
       await expect(page.getByText(label, { exact: true })).toBeVisible();

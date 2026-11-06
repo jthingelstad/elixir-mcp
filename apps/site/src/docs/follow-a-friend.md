@@ -23,7 +23,7 @@ player. What changes is how Elixir reads them back to you.
 In the console:
 
 1. **Console ▸ Tracking ▸ Track a player**: enter the tag and press
-   **Track**. Added means recorded; capture starts on the next poll.
+   **Track**. Added means recorded; recording starts on the next read.
 2. A new player starts as **watching** (your first is your primary).
    Open the player from the Tracking table, and under **How you track
    it** set **Relationship** to **friend**.
@@ -34,7 +34,7 @@ relationship is set when the player is added: for a player already on
 your account, change it in the console. An [agent](/docs/agents) you own
 tracks players as watching only.
 
-A friend takes one of your tier's player slots, the same as a watched
+A friend takes one of your player slots, the same as a watched
 player.
 
 ## What a friend gets

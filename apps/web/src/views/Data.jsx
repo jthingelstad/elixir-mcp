@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useClock } from "@elixir-mcp/ui";
 import { usePublicStats } from "../lib/queries.js";
 
 /** Eight weeks. Long enough to see a trend, short enough that a daily bar is
@@ -86,8 +87,9 @@ function Chart({ label, series, hover, setHover, todayIdx }) {
 const fmt = (n) => (n == null ? "—" : n.toLocaleString());
 
 export function Data() {
+  const { calendar } = useClock();
   const { data: stats = null, error } = usePublicStats();
-  const err = error ? "Could not load corpus stats." : "";
+  const err = error ? "Could not load the record's totals." : "";
   const [hover, setHover] = useState(null);
   // Read the clock once per visit: render stays pure, and the axis cannot
   // shift under a reader between refetches.
@@ -126,10 +128,10 @@ export function Data() {
   return (
     <>
       <div style={{ marginBottom: "18px" }}>
-        <h1 className="page__title">The corpus, day by day</h1>
+        <h1 className="page__title">The record, day by day</h1>
         <p className="page__lede">
           The whole recorded series, day by day. The totals and the shape of it
-          are on <a href="/data">the corpus page</a>.
+          are on <a href="/data">the status and data page</a>.
         </p>
       </div>
       {err && <p className="field-error">{err}</p>}
@@ -140,16 +142,20 @@ export function Data() {
             [
               "battles",
               t.battles,
-              `${t.oldest_battle?.slice(0, 10)} → ${t.newest_battle?.slice(5, 10)}`,
+              `${calendar(t.oldest_battle)} to ${calendar(t.newest_battle)}`,
             ],
             [
               "players",
               t.players_recording,
-              `recorded · ${fmt(t.players)} observed`,
+              `recorded · ${fmt(t.players)} seen in a battle`,
             ],
-            ["clans", t.clans_recording, `recorded · ${fmt(t.clans)} observed`],
+            [
+              "clans",
+              t.clans_recording,
+              `recorded · ${fmt(t.clans)} seen in a battle`,
+            ],
             ["war weeks", t.war_weeks, "recorded river races"],
-            ["snapshots", t.snapshots, "daily player snapshots"],
+            ["daily readings", t.snapshots, "one a player a day"],
             ["collectors", t.collectors_active, "machines fetching now"],
           ].map(([label, v, sub]) => (
             <div key={label}>
@@ -175,7 +181,7 @@ export function Data() {
                 color: "var(--ink-faint)",
               }}
             >
-              as of {t?.newest_battle?.slice(0, 10)}
+              as of {calendar(t?.newest_battle)}
             </span>
           </div>
           <div onMouseLeave={() => setHover(null)}>
@@ -203,9 +209,10 @@ export function Data() {
           </div>
           <div className="panel__note">
             Battles are bucketed by when they were <em>played</em>, not when
-            they were captured — the first weeks are archive backfill and
-            undercount live activity. Today is partial (the faded bar).
-            Retention is deliberate: the corpus keeps its full history.
+            they were recorded. The first weeks came from an archive and
+            undercount what was played. Today is partial (the faded bar). The
+            record keeps what it records while someone tracks it, and for a year
+            after.
           </div>
         </section>
       )}

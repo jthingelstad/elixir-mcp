@@ -3,7 +3,7 @@ export const MODE_LABEL: Record<string, string> = {
   ladder: "Trophy Road",
   ranked: "Path of Legends",
   war: "War",
-  casual: "Friendly",
+  casual: "Casual",
   challenge: "Challenge",
   event: "Event",
   tournament: "Tournament",

@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { DiscordDeliveries } from "@elixir-mcp/ui";
+import { DiscordDeliveries, useClock } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
-
-const day = (ts) => (ts ? ts.slice(0, 10) : "");
 
 /**
  * Actions in the clan's Discord (Jamie, 2026-10-10). A leader or
@@ -19,6 +17,7 @@ const day = (ts) => (ts ? ts.slice(0, 10) : "");
  * Action (opt in; an edit never mentions anyone).
  */
 export function DiscordSetting({ clan }) {
+  const { whenDay } = useClock();
   const { state, load } = useDiscord(clan.clan_tag);
   const invalidate = useInvalidate();
   const [url, setUrl] = useState("");
@@ -36,7 +35,7 @@ export function DiscordSetting({ clan }) {
   if (state.error)
     return (
       <p className="page-head__note m-0">
-        Elixir Clan did not answer. Try again in a minute.
+        Clan did not answer. Try again in a minute.
       </p>
     );
   const d = state.data;
@@ -121,7 +120,7 @@ export function DiscordSetting({ clan }) {
             </span>
             <span className="label">Connected by</span>
             <span>
-              {d.set_by_name ?? d.set_by} · {day(d.set_at)}
+              {d.set_by_name ?? d.set_by} · {whenDay(d.set_at)}
             </span>
             <span className="label">Actions posted</span>
             <span>
@@ -197,9 +196,9 @@ export function DiscordSetting({ clan }) {
           {d.refused_at ? (
             <div className="callout callout--warn m-3" role="alert">
               <span>
-                Discord stopped accepting this webhook on {day(d.refused_at)}.
-                It may have been deleted in Discord. Connect it again, or a new
-                one, below.
+                Discord stopped accepting this webhook on{" "}
+                {whenDay(d.refused_at)}. It may have been deleted in Discord.
+                Connect it again, or a new one, below.
               </span>
             </div>
           ) : !d.readable ? (

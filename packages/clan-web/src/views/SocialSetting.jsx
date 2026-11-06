@@ -20,7 +20,7 @@ export function SocialSetting({ clan }) {
   if (state.error)
     return (
       <p className="page-head__note m-0">
-        Elixir Clan did not answer. Try again in a minute.
+        Clan did not answer. Try again in a minute.
       </p>
     );
   if (!d) return <p className="page__lede">Reading…</p>;
@@ -28,8 +28,8 @@ export function SocialSetting({ clan }) {
     <div className="grid gap-2">
       <p className="page__lede m-0">
         The clan map: members add a city or region and see where the clan plays
-        from, with each one&rsquo;s local time. Only this clan&rsquo;s signed-in
-        members see it, and nothing of it goes to Elixir.{" "}
+        from, with each one&rsquo;s local time. Only this clan&rsquo;s members
+        with a verified player here see it, and it stays out of the game record.{" "}
         {d.enabled ? "It is on." : "It is off."}
         {d.set_by_name ? ` Last set by ${d.set_by_name}.` : ""}
       </p>
@@ -49,7 +49,7 @@ export function SocialSetting({ clan }) {
             invalidate(keys.me);
           }}
         >
-          {d.enabled ? "Turn social features off" : "Turn social features on"}
+          {d.enabled ? "Turn the member map off" : "Turn the member map on"}
         </button>
       ) : (
         <p className="page-head__note m-0">

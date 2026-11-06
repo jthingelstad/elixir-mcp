@@ -49,7 +49,7 @@ function dayLabel(day) {
   // accessible name and the caption, and it must read the same on every
   // device (and in the tests).
   const [y, m, d] = day.split("-").map(Number);
-  return `${DOW[isoDow(day) - 1]} ${d} ${MONTHS[m - 1]} ${y}`;
+  return `${DOW[isoDow(day) - 1]} ${MONTHS[m - 1]} ${d} ${y}`;
 }
 
 /** 0..4: which step of the ramp a count sits on, relative to the
@@ -109,7 +109,7 @@ function monthLabels(cols) {
 
 export function ActivityGraph({ data, error, onRetry }) {
   const [picked, setPicked] = useState(null);
-  const { stamp } = useClock();
+  const { when, whenDay } = useClock();
   const scroller = useRef(null);
   useEffect(() => {
     // Open on the newest weeks; the past is a swipe away.
@@ -123,7 +123,7 @@ export function ActivityGraph({ data, error, onRetry }) {
       <p>
         {data
           ? "The latest activity read failed. Showing the last successful read."
-          : "The activity graphic could not be loaded right now. Capture is unknown."}
+          : "The activity graphic could not be loaded right now. What was read is unknown."}
       </p>
       {onRetry && (
         <button type="button" className="btn btn--ghost" onClick={onRetry}>
@@ -136,8 +136,8 @@ export function ActivityGraph({ data, error, onRetry }) {
   if (!data.as_of && !data.computed_at)
     return (
       <p className="activity__empty">
-        Activity evidence is unavailable. Missing capture does not establish
-        that this player did not play.
+        Activity is unavailable. A gap in the record does not mean this player
+        did not play.
       </p>
     );
 
@@ -169,15 +169,15 @@ export function ActivityGraph({ data, error, onRetry }) {
   };
   const evidenceLabel = (d) =>
     d.coverage === "complete"
-      ? "complete day capture"
+      ? "the whole day was read"
       : d.coverage === "partial"
-        ? "capture incomplete or not comparable"
-        : "capture unknown";
+        ? "part of the day was read"
+        : "unknown";
   const cellName = (d) =>
     d.battles > 0
       ? `${dayLabel(d.day)}: ${count(d.battles)} recorded${record(d)} · ${evidenceLabel(d)}`
       : d.coverage === "complete"
-        ? `${dayLabel(d.day)}: 0 battles · covered quiet day`
+        ? `${dayLabel(d.day)}: 0 battles · read in full`
         : `${dayLabel(d.day)}: ${evidenceLabel(d)} · no battles recorded`;
   const cellClass = (d) => {
     if (!d.battles && d.coverage !== "complete") return "activity__cell--none";
@@ -239,11 +239,11 @@ export function ActivityGraph({ data, error, onRetry }) {
       <div className="activity__caption" aria-live="polite">
         {selected
           ? cellName(selected)
-          : `${withBattles} ${noun(withBattles, "day")} with recorded battles · ${quietDays} covered quiet ${noun(quietDays, "day")} · ${unknownDays} empty ${noun(unknownDays, "day")} with capture incomplete or unknown · tap a day`}
+          : `${withBattles} ${noun(withBattles, "day")} with recorded battles · ${quietDays} ${noun(quietDays, "day")} read in full with no battle · ${unknownDays} empty ${noun(unknownDays, "day")} not read in full · tap a day`}
       </div>
       <p className="footnote px-4">
-        Evidence read {stamp(data.as_of ?? data.computed_at, { year: true })} ·
-        the latest UTC day in this read is still open.
+        Read {when(data.as_of ?? data.computed_at)} · the latest UTC day in this
+        read is still open.
       </p>
       <div className="activity__legend">
         <span>losses</span>
@@ -265,10 +265,10 @@ export function ActivityGraph({ data, error, onRetry }) {
         <span>more</span>
         <span className="activity__legend-gap" />
         <span className="activity__cell activity__cell--none" />
-        <span>capture incomplete or unknown</span>
+        <span>not read in full, or unknown</span>
         {data.recorded_from && <span className="activity__legend-gap" />}
         {data.recorded_from && (
-          <span>tracked since {data.recorded_from.slice(0, 10)}</span>
+          <span>tracked since {whenDay(data.recorded_from)}</span>
         )}
       </div>
 
@@ -285,7 +285,7 @@ export function ActivityGraph({ data, error, onRetry }) {
           <tbody>
             {recent.map((d) => (
               <tr key={d.day}>
-                <td className="mono">{d.day}</td>
+                <td>{dayLabel(d.day)}</td>
                 <td className="table__td--wrap">
                   {d.battles > 0 || d.coverage === "complete"
                     ? d.battles

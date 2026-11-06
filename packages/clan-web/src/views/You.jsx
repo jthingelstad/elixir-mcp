@@ -19,7 +19,7 @@ export function You({ me }) {
       <div className="page-head">
         <h1 className="page__title">You</h1>
         <span className="page-head__note">
-          Read from Elixir at sign-in. Elixir Clan holds no profile of its own.
+          Read from Elixir at sign-in. Clan holds no profile of its own.
         </span>
       </div>
       <div className="panel">

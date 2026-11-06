@@ -1,4 +1,4 @@
-import { noun, Tag } from "@elixir-mcp/ui";
+import { noun, Tag, useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
@@ -18,6 +18,7 @@ const MINIMUM_UNIT = {
 };
 
 export function Scout({ clan }) {
+  const { whenDay } = useClock();
   const [tag, setTag] = useState("");
   const [state, setState] = useState({});
   const timer = useRef(null);
@@ -89,8 +90,8 @@ export function Scout({ clan }) {
         </button>
       </form>
       <p className="page-head__note" style={{ margin: 0 }}>
-        Reads the player’s profile and battle log from the game using your live
-        allowance.
+        Reads the player’s profile and battle log from the game, from your
+        lookups left today.
       </p>
       {state.error ? (
         <div className="callout callout--warn" role="alert">
@@ -214,7 +215,7 @@ export function Scout({ clan }) {
                 {r.log.win_rate != null
                   ? ` (${Math.round(r.log.win_rate * 100)}%)`
                   : ""}
-                {r.log.oldest ? ` since ${r.log.oldest.slice(0, 10)}` : ""}
+                {r.log.oldest ? ` since ${whenDay(r.log.oldest)}` : ""}
               </div>
             )}
             {a?.tenure_note ? (

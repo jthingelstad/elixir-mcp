@@ -72,7 +72,7 @@ describe("the week in the clan", () => {
     renderWithProviders(<Week clan={clan} week={null} navigate={vi.fn()} />);
     await screen.findByText(/Highlighted: what this clan counts/);
     expect(
-      screen.getByText(/Clan Wars, Ranked play and Donations/),
+      screen.getByText(/Clan Wars, Path of Legends and Donations/),
     ).toBeTruthy();
     // War splits into every deck asked and partway, each with n/asked.
     const all = screen.getByRole("list", {

@@ -12,16 +12,13 @@ import {
   weekForm,
 } from "@elixir-mcp/record/form";
 import {
-  clockTime,
   formRows,
-  longDay,
   modeLabel,
   previousSeason,
   seasonName,
   seasonRows,
   seasonWords,
   shortDay,
-  zoneShort,
 } from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
 import { Loading, ReadError } from "./common.jsx";
@@ -42,7 +39,7 @@ import { Loading, ReadError } from "./common.jsx";
  *  beside the four whole game weeks before it. The current season only:
  *  "this week" means nothing on a season that has closed. */
 export function WeekForm({ player, mode }) {
-  const { zone } = useClock();
+  const { when } = useClock();
   // The week this page was opened in; a page left open across Monday's
   // reset keeps the week it said it was showing.
   const [start] = useState(() => gameWeekStartMs());
@@ -61,7 +58,7 @@ export function WeekForm({ player, mode }) {
       cols={["This week", "Last 4 weeks"]}
       a={form.week}
       b={form.previous}
-      foot={`Game weeks start Monday at 10:00 UTC; this one began ${longDay(from, zone)} at ${clockTime(from, zone)} ${zoneShort(from, zone)} and runs to now. Each number is shown once both sides have at least ${FORM_MIN_BATTLES} battles; each count is the battles it is over.`}
+      foot={`Game weeks start Monday at 10:00 UTC; this one began ${when(from)} and runs to now. Each number is shown once both sides have at least ${FORM_MIN_BATTLES} battles; each count is the battles it is over.`}
     />
   );
 }
@@ -105,7 +102,7 @@ export function DeckForm({ player, mode, season }) {
     <FormPanel
       title={`Before and since ${name}`}
       aside={modeLabel(mode)}
-      lede={`${name} is the deck you played most ${seasonWords(season)} in ${modeLabel(mode)} (${change.battles} ${change.battles === 1 ? "battle" : "battles"}). Its first battle was ${longDay(change.since, zone)} at ${clockTime(change.since, zone)} ${zoneShort(change.since, zone)}. Your ${modeLabel(mode)} record before it, and since, every deck included:`}
+      lede={`${name} is the deck you played most ${seasonWords(season)} in ${modeLabel(mode)} (${change.battles} ${change.battles === 1 ? "battle" : "battles"}). Its first battle was ${when(change.since)}. Your ${modeLabel(mode)} record before it, and since, every deck included:`}
       cols={[
         `Before ${shortDay(change.since, zone)}`,
         `Since ${shortDay(change.since, zone)}`,
@@ -149,7 +146,7 @@ function stretch(ms) {
  * point. No previous season on record, no read.
  */
 export function SeasonForm({ player, mode, season, seasons, body, summary }) {
-  const { zone } = useClock();
+  const { when: at, whenDay } = useClock();
   // The hour this page was opened in: the same-point window holds still
   // while the page is open.
   const [nowMs] = useState(() => Date.now());
@@ -239,7 +236,7 @@ export function SeasonForm({ player, mode, season, seasons, body, summary }) {
   const since = Date.parse(summary?.data?.meta?.recorded_since ?? "");
   const partial =
     Number.isFinite(since) && since > Date.parse(prev.startsAt ?? "")
-      ? `Elixir's record of you begins ${longDay(since, zone)}, partway through ${prev.name}, so not all of that season is on record.`
+      ? `Elixir's record of you begins ${whenDay(since)}, partway through ${prev.name}, so not all of that season is on record.`
       : null;
   const pending =
     last.isPending ||
@@ -287,8 +284,6 @@ export function SeasonForm({ player, mode, season, seasons, body, summary }) {
   const ran = (days) =>
     days != null ? ` ran ${days} ${noun(days, "day")}` : "";
   const lastRan = ran(last.data.applied?.window?.season_age_days ?? null);
-  const at = (ts) =>
-    `${longDay(ts, zone)} at ${clockTime(ts, zone)} ${zoneShort(ts, zone)}`;
   const point = same
     ? `${prev.name} to the same point is its first ${stretch(Date.parse(same.to) - Date.parse(same.from))}, to ${at(same.to)}: as far into it, to the hour, as this season is now.`
     : null;

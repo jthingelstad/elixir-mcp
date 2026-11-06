@@ -22,7 +22,7 @@ export function Sharing({ clan }) {
   if (state.error)
     return (
       <p className="page-head__note m-0">
-        Elixir Clan did not answer. Try again in a minute.
+        Clan did not answer. Try again in a minute.
       </p>
     );
   if (!d) return <p className="page__lede">Reading…</p>;

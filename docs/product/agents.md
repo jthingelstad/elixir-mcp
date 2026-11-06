@@ -2,6 +2,8 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
+*Where an agent lives (a console you switch into) is to be rewritten at step 6 of the redesign ([Structure](structure.md)).*
+
 ## What it is for
 
 MCP is how a person brings the record into a conversation with their own

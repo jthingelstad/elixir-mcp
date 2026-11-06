@@ -1,7 +1,7 @@
 ---
 slug: clan-actions
 title: "Actions"
-description: "Elixir Clan's actions: the calls a clan's policy hands its leaders, elders and members, each kind and who gets it, when one appears and is withdrawn, how to decide one, the inactivity clock behind a removal, holds and away notices, the morning email, and Actions in the clan's Discord."
+description: "Clan's actions: the calls a clan's policy hands its leaders, elders and members, each kind and who gets it, when one appears and is withdrawn, how to decide one, the inactivity clock behind a removal, holds and away notices, the morning email, and Actions in the clan's Discord."
 section: clan
 order: 4
 navTitle: "Actions"
@@ -12,7 +12,7 @@ reviewed: "2026-10-20; one voice for the clan's drafts, set in Settings; the dra
 
 # Actions
 
-Elixir Clan never acts in the game and never decides for anyone. When
+Clan never acts in the game and never decides for anyone. When
 the clan's [policy](/docs/clan-policy) says something should happen, it
 raises an **action**: one numbered call for the person or role who can
 make it, with the evidence, the rule that raised it, and the words to
@@ -341,7 +341,7 @@ its saved evidence and still carries the sentence.
 A removal Action is withdrawn at the next evaluation when the member
 plays, with the reason in its log; its number, evidence and earlier
 decisions stay recorded. Every time a removal is opened, drafted,
-completed or reopened, Elixir Clan checks the current record again. A
+completed or reopened, Clan checks the current record again. A
 removal that no longer qualifies says so, and withholds its copy, model
 drafting, completion and reopening; leadership can still explicitly
 Decline it.

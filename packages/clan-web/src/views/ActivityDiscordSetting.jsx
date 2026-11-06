@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { DISCORD_CLAN_HISTORY_MAX } from "@elixir-mcp/contracts";
-import { DiscordDeliveries, Disclosure, Setting } from "@elixir-mcp/ui";
+import {
+  DiscordDeliveries,
+  Disclosure,
+  Setting,
+  useClock,
+} from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
 import { clanPath } from "../lib/base.js";
 import { untilWritten } from "../lib/pending.js";
 
-const day = (ts) => (ts ? ts.slice(0, 10) : "");
 const dead = (c) =>
   ["gone", "forum"].includes(c?.delivery?.state) ||
   ["webhook_gone", "webhook_forum"].includes(c?.disabled_reason);
@@ -46,7 +50,7 @@ export function ActivityDiscordSetting({ clan, navigate }) {
   if (state.error)
     return (
       <p className="field-error m-0" role="alert">
-        Elixir Clan did not answer. Try again in a minute.
+        Clan did not answer. Try again in a minute.
       </p>
     );
   const d = state.data;
@@ -169,6 +173,7 @@ export function ActivityDiscordSetting({ clan, navigate }) {
 }
 
 function ActivityWarning({ connection: c }) {
+  const { whenDay } = useClock();
   if (!c) return null;
   const forum =
     c.disabled_reason === "webhook_forum" || c.delivery?.state === "forum";
@@ -188,8 +193,9 @@ function ActivityWarning({ connection: c }) {
       <div className="callout callout--warn" role="alert">
         <span>
           Discord stopped accepting this webhook
-          {c.delivery?.at ? ` on ${day(c.delivery.at)}` : ""}. It may have been
-          deleted in Discord. Manage the activity channel to connect a new one.
+          {c.delivery?.at ? ` on ${whenDay(c.delivery.at)}` : ""}. It may have
+          been deleted in Discord. Manage the activity channel to connect a new
+          one.
         </span>
       </div>
     );
@@ -197,7 +203,7 @@ function ActivityWarning({ connection: c }) {
     return (
       <div className="callout callout--warn" role="status">
         <span>
-          Discord refused a post ({day(c.delivery.at)}
+          Discord refused a post ({whenDay(c.delivery.at)}
           {c.delivery.reason ? `: ${c.delivery.reason}` : ""}). That post was
           skipped; the others are still posted.
         </span>
@@ -216,6 +222,7 @@ function ActivityEditor({
   settings,
   toSettings,
 }) {
+  const { whenDay } = useClock();
   const c = d.connection;
   const saved = c?.categories ?? {};
   const [url, setUrl] = useState("");
@@ -225,7 +232,7 @@ function ActivityEditor({
     const r = await save(...args);
     if (!r.ok)
       setMessage(
-        r.data?.message ?? "Elixir Clan did not answer. Try again in a minute.",
+        r.data?.message ?? "Clan did not answer. Try again in a minute.",
       );
     return r.ok;
   };
@@ -263,12 +270,12 @@ function ActivityEditor({
                 </dd>
                 <dt className="label">Set by</dt>
                 <dd className="m-0">
-                  {c.set_by_name ?? c.set_by} · {day(c.updated_at)}
+                  {c.set_by_name ?? c.set_by} · {whenDay(c.updated_at)}
                 </dd>
                 {c.enabled ? (
                   <>
                     <dt className="label">Posting since</dt>
-                    <dd className="m-0">{day(c.enabled_at)}</dd>
+                    <dd className="m-0">{whenDay(c.enabled_at)}</dd>
                   </>
                 ) : null}
               </dl>
@@ -454,7 +461,7 @@ function ActivityEditor({
                 <Disclosure title="How the model edits posts">
                   <p className="page-head__note m-0">
                     {d.model.name
-                      ? `Edited by ${d.model.name}, the model Elixir Clan uses for this channel. `
+                      ? `Edited by ${d.model.name}, the model Clan uses for this channel. `
                       : ""}
                     Posted without anyone reading them first. The model reads
                     Elixir&rsquo;s stories with what the record says about the

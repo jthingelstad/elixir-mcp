@@ -1,7 +1,7 @@
 ---
 slug: clan-awards
 title: "Awards and trophies"
-description: "Elixir Clan's season awards: the five kinds a clan can run and how each is decided, when a season is judged, who sets them up and who grants a leaders' pick, where members see them, and how they reach the clan in the game and on Elixir."
+description: "Clan's season awards: the five kinds a clan can run and how each is decided, when a season is judged, who sets them up and who grants a leaders' pick, where members see them, and how they reach the clan in the game and on Elixir."
 section: clan
 order: 5
 navTitle: "Awards"
@@ -12,7 +12,7 @@ reviewed: "2026-10-04; resolved award places and explicit update season, contrac
 
 # Awards and trophies
 
-A clan on Elixir Clan can run its own season awards: it names them, Clan
+A clan on Clan can run its own season awards: it names them, Clan
 decides them from the record, and every member keeps what they win in a
 trophy case. A clan starts with none. Awards need the clan's
 [policy](/docs/clan-policy), and setting them up needs at least 10

@@ -33,7 +33,7 @@ export function ClanMap({ clan }) {
     return (
       <Page clan={clan}>
         <p className="page__lede">
-          This clan&rsquo;s leaders have turned its social features off.
+          This clan&rsquo;s leaders have turned the member map off.
         </p>
       </Page>
     );
@@ -41,7 +41,7 @@ export function ClanMap({ clan }) {
     return (
       <Page clan={clan}>
         <p className="page-head__note">
-          Elixir Clan did not answer. Try again in a minute.
+          Clan did not answer. Try again in a minute.
         </p>
       </Page>
     );

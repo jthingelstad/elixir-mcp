@@ -50,7 +50,7 @@ for (const width of [390, 820, 1280]) {
     await trigger.click();
     const sheet = page.getByRole("dialog", { name: "Member map", exact: true });
     await expect(
-      sheet.getByRole("button", { name: "Turn social features off" }),
+      sheet.getByRole("button", { name: "Turn the member map off" }),
     ).toBeEnabled();
     await expect(
       sheet.getByRole("button", { name: "Close", exact: true }),

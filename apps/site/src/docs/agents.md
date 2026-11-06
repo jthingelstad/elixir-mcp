@@ -113,7 +113,7 @@ make another of its clans the one it acts for from its console
 change to it, is on its console: **Tracking** and **Activity → Account
 events**.
 
-An agent never reads a person's view in Elixir Clan: `clans_my_view`
+An agent never reads a person's view in Clan: `clans_my_view`
 answers only a person's own connection
 ([Your own view](/docs/clan-policy#your-own-view)). An agent's one read
 of Clan is its assigned clan's war intent, with an approved grant
@@ -229,7 +229,7 @@ A runtime that keeps its own cursor still can (pass `from`, `mark_read:
 false`), but then `meta.timeline_pending` cannot help it: that hint counts
 admissions since the OLDEST named pointer on the account, or the account's
 own when no reader has ever marked, so a reader that marks sees it fall to
-0 after its read and can skip the next poll when it is 0 on any call it was
+0 after its read and can skip the next read when it is 0 on any call it was
 making anyway.
 
 A reader that pulls a day's story rather than polling ("what happened

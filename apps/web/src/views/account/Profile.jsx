@@ -1,4 +1,5 @@
 import { Disclosure, Icon, Link, useClock } from "@elixir-mcp/ui";
+import { limitsLabel } from "../../lib/words.js";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useUsage } from "../../lib/queries.js";
@@ -49,7 +50,7 @@ export function Profile({ me, refresh, navigate }) {
             value={
               me?.email ?? (
                 <span style={{ color: "var(--ink-faint)" }}>
-                  not on file yet — it is recorded at your next sign-in
+                  not on file yet. It is recorded at your next sign-in
                 </span>
               )
             }
@@ -182,7 +183,7 @@ export function Profile({ me, refresh, navigate }) {
             <Icon name="server" size={17} />
           </span>
           <span style={{ fontSize: "13.5px", color: "var(--ink-body)" }}>
-            Run a collector to earn the Family tier.
+            Run a collector to raise your limits to Family.
           </span>
           <span
             style={{
@@ -214,7 +215,7 @@ export function Profile({ me, refresh, navigate }) {
           <Icon name="file-text" size={17} />
         </span>
         <span style={{ fontSize: "14px", color: "var(--ink-body)" }}>
-          What each tier records
+          What each level of limits records
         </span>
         <span
           style={{
@@ -226,7 +227,7 @@ export function Profile({ me, refresh, navigate }) {
             color: "var(--ink-link)",
           }}
         >
-          Docs ▸ Tiers <Icon name="arrow-right" size={15} />
+          Docs ▸ Limits <Icon name="arrow-right" size={15} />
         </span>
       </a>
     </>
@@ -383,12 +384,12 @@ function TierLimits({ me, entitlements: e, usage }) {
   const rows = [
     ["Player recordings", e.player_slots?.used, e.player_slots?.limit],
     [
-      "Clan watches · activity",
+      "Clan watches · the clan only",
       e.activity_clans?.used,
       e.activity_clans?.limit,
     ],
     [
-      "Clan watches · comprehensive",
+      "Clan watches · the clan and every member",
       e.comprehensive_clans?.used,
       e.comprehensive_clans?.limit,
     ],
@@ -404,10 +405,7 @@ function TierLimits({ me, entitlements: e, usage }) {
             <th>What</th>
             <th style={{ textAlign: "right" }}>Using</th>
             <th style={{ textAlign: "right" }}>
-              {String(me?.role ?? "Your tier").replace(/^./, (c) =>
-                c.toUpperCase(),
-              )}{" "}
-              allows
+              {limitsLabel(me?.role)} allow
             </th>
           </tr>
         </thead>
@@ -466,9 +464,9 @@ function TierPanel({ me, entitlements: e, usage }) {
   return (
     <section className="panel" style={{ marginBottom: "14px" }}>
       <div className="panel__head" style={{ flexWrap: "wrap" }}>
-        <span className="panel-title">Your tier</span>
+        <span className="panel-title">Your limits</span>
         {/* The one place gold is a badge: it names what is yours. */}
-        <span className="chip chip--tier">{me?.role}</span>
+        <span className="chip chip--tier">{limitsLabel(me?.role)}</span>
         <span className="text-[12.5px] text-ink-faint">
           {TIER_GROUND[me?.role] ?? ""}
         </span>
@@ -489,8 +487,8 @@ function TierPanel({ me, entitlements: e, usage }) {
         )}
       </div>
       <div className="panel__note">
-        Tiers set what Elixir records for you, your daily budgets, and how many
-        agents you can have — never what you can read.
+        Your limits set what Elixir records for you, your daily budgets, and how
+        many agents you can have, never what you can read.
       </div>
     </section>
   );

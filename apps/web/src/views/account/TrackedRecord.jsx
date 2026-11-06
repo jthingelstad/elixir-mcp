@@ -8,7 +8,9 @@ import {
   Tag,
   WriteError,
   noun,
+  useClock,
 } from "@elixir-mcp/ui";
+import { scopeLabel } from "../../lib/words.js";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -52,6 +54,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   const clans = clansQuery.data ?? null;
   const [nick, setNick] = useState(null);
   const [now] = useInitialTime();
+  const { whenDay } = useClock();
   const invalidate = useInvalidate();
   const loadClans = () => invalidate();
 
@@ -147,8 +150,8 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             <div className="empty__title">You are not tracking that</div>
             <p className="empty__body" style={{ marginBottom: 0 }}>
               <span className="mono">{wanted}</span> is not on your account. If
-              you removed it, the history we already recorded is still there —
-              look it up in Explore.
+              you removed it, history stays for at least a year after the last
+              person stops tracking. Look it up in Explore.
             </p>
           </div>
         )}
@@ -313,8 +316,10 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                   value={clan.scope}
                   onChange={(ev) => only(scope)(ev.target.value)}
                 >
-                  <option value="comprehensive">comprehensive</option>
-                  <option value="activity">activity</option>
+                  <option value="comprehensive">
+                    {scopeLabel("comprehensive")}
+                  </option>
+                  <option value="activity">{scopeLabel("activity")}</option>
                 </select>
               ) : (
                 <span style={{ color: "var(--ink-faint)" }}>
@@ -403,7 +408,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
         </section>
 
         <section className="panel" style={{ flex: "1 1 300px" }}>
-          <div className="panel__head">Capture</div>
+          <div className="panel__head">Recording</div>
           <dl
             style={{
               padding: "16px",
@@ -439,17 +444,17 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             <dd style={{ margin: 0, color: "var(--ink-body)" }}>
               {isClan
                 ? clan.scope === "comprehensive"
-                  ? "comprehensive — clan roster every 15 min while members are online, backing off when idle; the river race; every member's battles and profile"
-                  : "activity — clan roster every 15 min while members are online, backing off when idle; the river race"
+                  ? "The clan and every member: clan roster every 15 min while members are online, backing off when idle; the river race; every member's battles and profile"
+                  : "The clan only: clan roster every 15 min while members are online, backing off when idle; the river race"
                 : "battle log every 30 min while playing, backing off to 2 h · profile daily and after a session"}
             </dd>
-            <dt style={{ color: "var(--ink-faint)" }}>Freshest poll</dt>
+            <dt style={{ color: "var(--ink-faint)" }}>Last read</dt>
             <dd style={{ margin: 0, color: "var(--ink-body)" }}>
-              {/* Never polled is not stale and not zero. */}
+              {/* Never read is not stale and not zero. */}
               {notFound
                 ? "no profile: the game does not know this tag"
                 : fresh == null
-                  ? "never polled"
+                  ? "never read"
                   : ago(rec.freshest_poll, now)}
             </dd>
             <dt style={{ color: "var(--ink-faint)" }}>Fetches, 24h</dt>
@@ -470,8 +475,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                 color: "var(--ink-body)",
               }}
             >
-              {(isClan ? clan.created_at : rec?.created_at)?.slice(0, 10) ??
-                "—"}
+              {whenDay(isClan ? clan.created_at : rec?.created_at)}
             </dd>
           </dl>
         </section>
@@ -486,10 +490,10 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             onRetry={activityQuery.refetch}
           />
           <p className="footnote" style={{ padding: "0 16px 14px", margin: 0 }}>
-            UTC days from canonical battles and comparable profile intervals. A
-            whole closed day needs complete capture before an empty count means
-            quiet. Hatching means capture is incomplete or unknown; recorded
-            battles remain visible.{" "}
+            UTC days, from recorded battles and the changes between profile
+            reads. A finished day has to be read in full before an empty count
+            means no battles. Hatching means it was not read in full, or that is
+            unknown; recorded battles still show.{" "}
             <a href="/docs/activity">How this is drawn</a>
           </p>
         </section>

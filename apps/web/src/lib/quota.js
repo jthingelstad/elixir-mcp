@@ -1,4 +1,4 @@
-import { stampTime } from "@elixir-mcp/ui";
+import { whenAt } from "@elixir-mcp/ui";
 
 /**
  * ONE reading of the daily quota, for both pages that show it.
@@ -50,5 +50,5 @@ function resetsLine(zone, now = new Date()) {
   const mins = Math.max(0, Math.round((next - now) / 60000));
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  return `resets ${stampTime(next, zone)} · ${h}h ${String(m).padStart(2, "0")}m`;
+  return `resets ${whenAt(next, zone, { now: now.getTime() })} · ${h}h ${String(m).padStart(2, "0")}m`;
 }

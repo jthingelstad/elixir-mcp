@@ -1,5 +1,6 @@
 import { useWrite } from "@elixir-mcp/client";
 import { Fresh, Link, WriteError, noun, useFlash } from "@elixir-mcp/ui";
+import { limitsLabel } from "../../lib/words.js";
 import { useEffect, useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
 
@@ -262,7 +263,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
                       {key.created_at ? " since it was issued " : " "}
                       {key.created_at ? <Fresh ts={key.created_at} /> : null}.
                       If something was running before, it is still presenting
-                      the old key and being refused — a refused call never
+                      the old key and being refused. A refused call never
                       reaches this page, so it looks quiet rather than broken. A
                       quiet agent and a broken one look the same here.
                     </span>
@@ -319,8 +320,8 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
             style={{ color: "var(--warn)", fontSize: "12.5px" }}
           >
             <strong>
-              Refused attempts in the last 7 days — something is still
-              presenting a credential for this agent.
+              Refused attempts in the last 7 days. Something is still presenting
+              a credential for this agent.
             </strong>
             {agent.refusals_7d.map((r, i) => (
               <div key={i} style={{ marginTop: "4px" }}>
@@ -354,13 +355,13 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
           >
             <strong>No live key.</strong> This agent cannot authenticate until
             you issue one. Its identity, its clan and everything it has learned
-            are untouched — a new key picks up where the old one left off.
+            are untouched. A new key picks up where the old one left off.
           </div>
         )}
         {part === "overview" && connectUrl && (
           <div className="panel__body">
             <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
-              <strong>Connect this agent</strong> — add this as a remote MCP
+              <strong>Connect this agent</strong>: add this as a remote MCP
               server in the client that runs it. Its key is refused at the
               personal URL, and so is another agent&rsquo;s key here.
             </p>
@@ -393,7 +394,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
         {part === "settings" && key && (
           <div className="panel__body">
             <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
-              <strong>What this key may do</strong> — capabilities of the
+              <strong>What this key may do</strong>: capabilities of the
               agent&rsquo;s service key. An agent connected over OAuth instead
               carries its own grant, editable on{" "}
               <Link to={path(`${CONSOLE}/account/connections`)}>
@@ -479,7 +480,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
               </button>
             )}
             <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
-              Suspend is reversible — the same key comes back. Revoke is not.
+              Suspend is reversible. The same key comes back. Revoke is not.
               {/* Only active agents count against your slots (2026-10-10). */}
               {suspended
                 ? " Suspended, its players and clans take none of your slots and record only if someone else tracks them; resuming needs the slots back."
@@ -500,7 +501,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
           <div className="panel__body">
             <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
               <strong>Copy this key now.</strong> It is shown once and never
-              again — only its hash is stored. The previous key stopped working
+              again. Only its hash is stored. The previous key stopped working
               the moment this one was issued.
             </p>
             <code style={{ wordBreak: "break-all" }}>{minted}</code>
@@ -621,13 +622,13 @@ export function NewAgent() {
     if (!res.ok) {
       setError(
         res.data?.error === "clan_not_added"
-          ? "Add that clan to your account first — an agent can only act for a clan you already record."
+          ? "Add that clan to your account first. An agent can only act for a clan you already record."
           : res.data?.error === "name_taken"
             ? "You already have an agent with that name."
             : res.data?.error === "invalid_name"
               ? "Lowercase letters, numbers and hyphens."
               : res.data?.reason === "agent_limit"
-                ? `Your ${res.data.role} tier allows ${res.data.limit} ${noun(res.data.limit, "agent")}. Revoke one you no longer run; leading a clan you track (Leader) or running a collector (Family) raises your tier.`
+                ? `${limitsLabel(res.data.role)} allow ${res.data.limit} ${noun(res.data.limit, "agent")}. Revoke one you no longer run; leading a clan you track (Leader) or running a collector (Family) raises your limits.`
                 : "Could not create that agent.",
       );
       return;
@@ -646,14 +647,14 @@ export function NewAgent() {
       {minted && (
         <div className="panel__body">
           <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
-            <strong>Copy this key now.</strong> It is shown once and never again
-            — only its hash is stored.
+            <strong>Copy this key now.</strong> It is shown once and never
+            again. Only its hash is stored.
           </p>
           <code style={{ wordBreak: "break-all" }}>{minted.token}</code>
           {minted.publicId && (
             <>
               <p style={{ fontSize: "12.5px", margin: "10px 0 6px" }}>
-                Connect it at this URL — its own door, not the personal one:
+                Connect it at this URL, its own door, not the personal one:
               </p>
               <code style={{ wordBreak: "break-all" }}>
                 {`${window.location.origin}/a/${minted.publicId}/mcp`}
@@ -666,8 +667,7 @@ export function NewAgent() {
       <div className="panel__body">
         {clans.length === 0 ? (
           <p style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-            Add a clan on your Overview first — an agent needs a clan to act
-            for.
+            Add a clan on your Overview first. An agent needs a clan to act for.
           </p>
         ) : (
           <form
@@ -735,7 +735,7 @@ export function Agents({ navigate }) {
                 }}
               >
                 An agent acts for a clan rather than for you. It has its own
-                identity, its own key and its own event feed — so what it does
+                identity, its own key and its own event feed, so what it does
                 never lands in your history, and what you do never shows up as
                 its. It spends your daily calls, and you can make one for any
                 clan you already record.
@@ -759,7 +759,7 @@ export function Agents({ navigate }) {
                     <tr>
                       <th>Agent</th>
                       <th>Clan</th>
-                      <th>Tier</th>
+                      <th>Limits</th>
                       <th>Last active</th>
                       {/* An agent spends the OWNER's daily calls, and the
                         owner's own usage view cannot see them -- it filters
@@ -782,7 +782,7 @@ export function Agents({ navigate }) {
                           <td>
                             <ClanRefs clans={a.clans} navigate={navigate} />
                           </td>
-                          <td>{a.role}</td>
+                          <td>{limitsLabel(a.role)}</td>
                           <td>
                             {/* The ACCOUNT's last call, not the key's. Reading
                               last_used_at made a years-old agent report

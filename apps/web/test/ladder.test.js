@@ -23,7 +23,6 @@ import {
   ladderPlayers,
   ladderTitle,
   leadFirst,
-  longDay,
   monthName,
   pickMode,
   pickPlayer,
@@ -186,7 +185,6 @@ test("the address's mode leads; a mode Ladder picked itself is not asked for", (
 
 test("dates are prose in the account's zone", () => {
   // 10:00Z on a Monday is 5:00 am in Chicago in October.
-  expect(longDay("2026-10-05T10:00:00.000Z", CHI)).toBe("Monday, October 5");
   expect(clockTime("2026-10-05T10:00:00.000Z", CHI)).toBe("5:00 am");
   // Late evening in Chicago is the next day in UTC.
   expect(shortDay("2026-09-19T04:01:25.000Z", CHI)).toBe("Sep 18");
@@ -195,7 +193,6 @@ test("dates are prose in the account's zone", () => {
   expect(shortDay("2026-09-19T04:01:25.000Z", "Mars/Olympus")).toBe("Sep 19");
   expect(dateLabel("2026-09-07")).toBe("Sep 7");
   expect(monthName("2026-09")).toBe("September");
-  expect(longDay(null, CHI)).toBe("");
 });
 
 test("a time Ladder prints names its clock, as the battle page's does", () => {

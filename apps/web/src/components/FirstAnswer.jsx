@@ -1,4 +1,4 @@
-import { Icon, Link, TagText, ago, stamp, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, TagText, ago, useClock } from "@elixir-mcp/ui";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { nextPoll, useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import { CONSOLE } from "../lib/console.js";
@@ -51,10 +51,10 @@ function readiness(data, notFound = false) {
       done: Boolean(p?.profile_available),
       detail: p?.profile_available
         ? p.profile_observed_at
-          ? `snapshot ${ago(p.profile_observed_at)}`
-          : "snapshot recorded · observation time unavailable"
+          ? `read ${ago(p.profile_observed_at)}`
+          : "read, at a time Elixir did not keep"
         : p
-          ? "no profile snapshot available yet"
+          ? "no profile read yet"
           : "add your player to start recording",
       action: p ? "Check recording" : null,
       to: `${CONSOLE}/account/tracking`,
@@ -69,7 +69,7 @@ function readiness(data, notFound = false) {
           : captured
             ? `${n(p.battles_30d)} in the last 30 days · ${n(p.battles_7d)} in the last 7`
             : p.battles_30d === 0
-              ? "No battles captured in the last 30 days · capture may be incomplete"
+              ? "No battles recorded in the last 30 days · some may not have been read"
               : "recent battle counts unavailable",
       action: p ? "Check recording" : null,
       to: `${CONSOLE}/account/tracking`,
@@ -143,7 +143,7 @@ export function FirstAnswer({
   fix = null,
   summarize = false,
 }) {
-  const { zone } = useClock();
+  const { when } = useClock();
   const own = useFirstAnswer(claimsKey, { playerTag, enabled: !answer });
   const { data, loading, error, refresh } = answer ?? own;
   const next = data ? recordJourney(data) : null;
@@ -243,9 +243,8 @@ export function FirstAnswer({
       )}
       {next?.partial && (
         <p className="mb-3 text-ink-body">
-          Incomplete capture between{" "}
-          {stamp(next.partial.observed_from, zone, { year: true })} and{" "}
-          {stamp(next.partial.observed_to, zone, { year: true })}:{" "}
+          Not every battle was read between {when(next.partial.observed_from)}{" "}
+          and {when(next.partial.observed_to)}:{" "}
           {n(next.partial.captured_battles)} of{" "}
           {n(next.partial.expected_battles)} battles recorded. Other time
           remains unknown.

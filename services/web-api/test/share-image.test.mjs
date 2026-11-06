@@ -111,7 +111,7 @@ test("a 1v1: both names, both decks, the score, the towers, the link", () => {
   assert.ok(svg.includes(">A King Tower fell<"));
   assert.ok(svg.includes(">5:00 or less<"));
   assert.ok(svg.includes(">Trophy Road<"));
-  assert.ok(svg.includes(">Sep 3, 2026, 14:11 UTC<"));
+  assert.ok(svg.includes(">Thu Sep 3 2026, 2:11 pm UTC<"));
   assert.ok(svg.includes(">elixir.poapkings.com/battle/abababababab<"));
   assert.ok(svg.includes("not endorsed by Supercell."));
   assert.ok(svg.includes("Tower troop: Royal Chef, level 14"));
@@ -207,7 +207,7 @@ test("a 2v2 names the winning side, never one of its players", () => {
   };
   const svg = draw(read);
   assert.ok(svg.includes(">Left team won<"));
-  assert.ok(svg.includes(">Friendly · 2v2<"));
+  assert.ok(svg.includes(">Casual · 2v2<"));
   assert.equal(svg.match(/>No deck recorded</g).length, 2);
 });
 

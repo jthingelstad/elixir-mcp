@@ -1,4 +1,5 @@
 import { Tag, TagText } from "@elixir-mcp/ui";
+import { scopeLabel } from "../../lib/words.js";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
@@ -76,8 +77,8 @@ export function AgentTracking({ agent }) {
         <div className="panel__head">
           <span className="panel-title">Clans</span>
           <span className="ml-auto text-[12px] text-ink-faint">
-            your slots: activity {of(pool.activity_clans)} · comprehensive{" "}
-            {of(pool.comprehensive_clans)}
+            your slots: the clan only {of(pool.activity_clans)} · the clan and
+            every member {of(pool.comprehensive_clans)}
           </span>
         </div>
         <div className="table__scroll" tabIndex={0}>
@@ -181,8 +182,8 @@ export function AgentTracking({ agent }) {
             value={clanScope}
             onChange={(ev) => setClanScope(ev.target.value)}
           >
-            <option value="activity">activity</option>
-            <option value="comprehensive">comprehensive</option>
+            <option value="activity">{scopeLabel("activity")}</option>
+            <option value="comprehensive">{scopeLabel("comprehensive")}</option>
           </select>
           <button className="btn" type="submit">
             Track a clan

@@ -6,13 +6,13 @@ section: start
 order: 2
 navTitle: "Quickstart"
 icon: rocket
-lede: "Create your account, track your player, and read captured history in Ladder. Add clan war history or an AI client when you want them."
+lede: "Create your account, track your player, and read recorded history in Ladder. Add clan war history or an AI client when you want them."
 reviewed: "2026-10-12 against contract 11.11.2"
 ---
 
 # Get started with Elixir
 
-Start with an account and the player you play as. You can read your captured
+Start with an account and the player you play as. You can read your recorded
 record in [Ladder](/ladder) with this account, without connecting an AI client.
 Clan war history and AI clients are optional. The steps below tell you what
 to do next and what the current record can show.
@@ -30,25 +30,25 @@ does not). A tag that is not a Clash Royale tag is refused on the form,
 before any email is sent; leave the field empty to add your player later.
 Nothing happens with the tag until you verify the email: then the new
 account tracks it as your primary, and you land on that player's page with
-the first capture on its way (or **Tag not found** there, with the place to
+the first read on its way (or **Tag not found** there, with the place to
 fix it). An account opened without a tag lands on Tracking with the tag
 field ready. A tag given while signing in to an account that already exists
 is ignored; that account keeps its players.
 
 ## 2. Track your player
 
-If you gave your tag at signup, this step is done: skip to the capture
+If you gave your tag at signup, this step is done: skip to the first read
 below. Otherwise open [Console ▸ Tracking](/console/account/tracking) and add
 your Clash Royale player tag. Your first player is your **primary**, which is what every tool
 means when you omit `player_tag`. Tracking **is** recording: Elixir reads
 your profile straight away and your battle log at the scheduler's next tick,
-so the first capture usually lands within a few minutes, with roughly your
+so the first read usually lands within a few minutes, with roughly your
 last 30 battles (all the game keeps); history builds from there. Once your
 profile shows your clan, Elixir follows that clan for you at activity scope,
 which is what puts your clan's week in your Monday email ([Your player's
 clan](/docs/recording#your-players-clan)); a player in no clan follows
 nothing. Add alts and friends the same way and mark the relationship;
-the existing [tier limits](/docs/roles) still apply. See
+the existing [limits](/docs/roles) still apply. See
 [Recording and coverage](/docs/recording) for what gets fetched and how often.
 
 Find your tag in Clash Royale by opening your player profile: it appears below
@@ -58,37 +58,37 @@ type the right tag there and Elixir tracks it instead (as your primary, if
 the wrong one was), or stop tracking the wrong one. Email verification opens your Elixir account; [player
 verification](/docs/verify) separately proves ownership for the features that
 require it. An ordinary member account includes activity clan recording, not
-comprehensive capture of every member. Tracking shows the available slots.
+recording every member as well. Tracking shows the available slots.
 
 Read your personal season in [Ladder](/ladder). Adding a tag opens
 your player's Tracking record. **Player tag saved** means
 the tag is on your account, not that a profile has arrived or ownership has
 been proved. This page checks saved data every few seconds for the first
-minutes after you add a tag, then about once a minute while capture is
+minutes after you add a tag, then about once a minute while recording is
 pending; **Check again** reads the record without forcing a game fetch. The
-first capture usually lands within a few minutes; until both your profile and
+first read usually lands within a few minutes; until both your profile and
 your battle log have been read, Ladder says it is on its way rather than
 showing an empty season.
 
 **Account → Overview** lists what is done and what is next: the tag
 saved, a profile, battles on record, then **Player verified (needed to act
 in Clan)**, which links to [Verify](/console/account/verify): one battle
-with a deck Elixir names proves the player is yours, and Elixir Clan needs
+with a deck Elixir names proves the player is yours, and Clan needs
 it before you can act in your game role. Clan war history and AI clients
 follow as optional lines.
 
 **View recorded profile** opens the saved profile and its dated trophies and
-lifetime counters. **Browse recorded battles** opens captured battles newest
+lifetime counters. **Browse recorded battles** opens recorded battles newest
 first, including retained history older than 30 days; **Older battles** reads
-the next page. A profile alone does not establish captured battle history.
+the next page. A profile alone does not establish recorded battle history.
 Recorded clan history links to a specific saved war week, independently of
 private Clan actions. AI setup is optional and follows these browser reads.
 
 Capture attempts and saved facts are separate: a recent failed fetch does not
 make a tag invalid or remove retained information. An incomplete measured
-profile interval names its bounds and captured/expected counts; other time
-remains unknown, even after a successful poll. Error receipts have bounded
-retention, so missing error metadata does not establish a successful capture.
+profile interval names its bounds and recorded and expected counts; other time
+remains unknown, even after a successful read. Error receipts have bounded
+retention, so missing error metadata does not mean a read succeeded.
 Paused or stopped recording still links to the information already saved.
 Check Tracking for status rather than treating an empty window as proof that
 you did not play.
@@ -101,9 +101,9 @@ your hand approves it); it does not multiply the shared fetch budget.
 ## 3. Connect
 
 **Optional:** connect a client if you want an AI agent to ask Elixir about your
-record. You can do this while capture is pending, or keep using Ladder and Clan
+record. You can do this while recording is pending, or keep using Ladder and Clan
 in your browser. A connection authorizes access; it does not prove that a
-successful data read has happened. Console reports observed data reads within
+successful data read has happened. Console reports data reads within
 the last seven days separately from active connections.
 
 The endpoint is the same for every client:
@@ -192,7 +192,7 @@ connections and successful data reads in the last seven days are reported
 separately: authorizing a connection alone does not confirm a data read.
 
 **Account → Connections** offers more starter questions matched to it under
-**Try asking…**: a snapshot review when only a profile exists, a seven-day
+**Try asking…**: a review of one reading when only a profile exists, a seven-day
 review once battles are in (30 days if the last week is empty), a deck
 comparison when two decks appear, a week-over-week comparison when both
 windows have battles. Copy one into your client. You never need to tell

@@ -16,7 +16,7 @@ reviewed: "2026-10-12 against contract 11.11.3"
 Elixir is the account for the whole family. A family app has no sign-up of
 its own: it sends you to Elixir, you sign in or create your account there,
 and it knows who you are and which players are yours. Under the hood it is OAuth 2.1, the same sign-in
-an MCP client uses to connect. Elixir Clan needs none of this: it is part
+an MCP client uses to connect. Clan needs none of this: it is part
 of Elixir and uses your Elixir session directly.
 
 ## The apps that use it

@@ -10,7 +10,7 @@ const journey = (p) =>
   recordJourney({ player: { ...player, ...p }, as_of: "2026-10-06T12:00:00Z" });
 
 test("saved tags stay pending; profiles and older battles have destinations that actually hold them", () => {
-  expect(journey({}).state).toBe("Capture pending");
+  expect(journey({}).state).toBe("First read pending");
   expect(journey({}).text).toContain("usually lands within a few minutes");
   expect(journey({}).text).toContain("last 30 battles");
   expect(journey({ profile_available: true }).to).toBe(
@@ -35,7 +35,7 @@ test("a newer failed attempt is independent from retained facts and each endpoin
   ];
   expect(
     journey({ capture_attempts: attempts, profile_available: true }).state,
-  ).toBe("Capture attempt failed");
+  ).toBe("The last read failed");
   expect(
     journey({ capture_attempts: attempts, profile_available: true }).to,
   ).toContain("/profile/");
@@ -45,7 +45,7 @@ test("a newer failed attempt is independent from retained facts and each endpoin
         { ...attempts[0], last_admitted_at: "2026-10-06T11:01:00Z" },
       ],
     }).state,
-  ).toBe("Capture pending");
+  ).toBe("First read pending");
   expect(
     journey({
       capture_attempts: [
@@ -69,7 +69,7 @@ test("partial measured evidence stays bounded and complete intervals do not clai
     journey({ capture_interval: { ratio: 1 }, battles_30d: 2 }).partial,
   ).toBeNull();
   expect(journey({ battles_30d: 2 }).text).toContain(
-    "unobserved time remain unknown",
+    "any time Elixir did not read, stay unknown",
   );
   expect(journey({ recording_status: null }).state).toBe(
     "Recording status unknown",
@@ -95,13 +95,13 @@ test("a 404 on the profile, before anything was captured, says the tag was not f
     journey({
       capture_attempts: [{ ...missing[0], last_failed_status: 503 }],
     }).state,
-  ).toBe("Capture attempt failed");
+  ).toBe("The last read failed");
   expect(
     journey({ capture_attempts: missing, profile_available: true }).state,
-  ).toBe("Capture attempt failed");
+  ).toBe("The last read failed");
   expect(
     journey({
       capture_attempts: [{ ...missing[0], endpoint: "player_battlelog" }],
     }).state,
-  ).toBe("Capture attempt failed");
+  ).toBe("The last read failed");
 });

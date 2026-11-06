@@ -5,7 +5,7 @@ function questions(player) {
   if (!player) return [];
   const tag = player.player_tag;
   const evidence =
-    "Check capture coverage and source freshness first. Show sample sizes, separate game modes, and explain gaps or thin samples without treating them as my complete history.";
+    "Check how much of this was recorded, and how recent it is, first. Show sample sizes, separate game modes, and explain gaps or thin samples without treating them as my complete history.";
   const result = [];
   if (player.battles_30d > 0) {
     const days = player.battles_7d > 0 ? 7 : 30;
@@ -15,8 +15,8 @@ function questions(player) {
     });
   } else if (player.profile_available) {
     result.push({
-      title: "Start with your player snapshot",
-      prompt: `Summarize the latest recorded profile for ${tag}, including trophies and clan. Tell me when it was observed and what history is available. Do not infer progress from a single snapshot.`,
+      title: "Start with your latest profile",
+      prompt: `Summarize the latest recorded profile for ${tag}, including trophies and clan. Tell me when it was read and what history is available. Do not infer progress from a single reading.`,
     });
   } else if (player.last_battle_at) {
     result.push({
@@ -81,7 +81,7 @@ export function QuestionSuggestions({ questions }) {
               Copy question
             </button>
             {copied === q.title && (
-              <p role="status">Copied — paste into your connected client.</p>
+              <p role="status">Copied. Paste into your connected client.</p>
             )}
           </article>
         ))}

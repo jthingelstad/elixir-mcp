@@ -18,19 +18,16 @@ export function Fresh({
   label?: string;
 }) {
   const [now] = useInitialTime();
-  const { stamp } = useClock();
+  const { when } = useClock();
   const age = seconds ?? secsSince(ts, now);
   if (age == null)
     return (
       <span className="freshness freshness--never">
-        {seconds === undefined && ts === undefined ? "never" : "never polled"}
+        {seconds === undefined && ts === undefined ? "never" : "never read"}
       </span>
     );
   return (
-    <span
-      className={freshCls(age)}
-      title={ts ? stamp(ts, { year: true, seconds: true }) : undefined}
-    >
+    <span className={freshCls(age)} title={ts ? when(ts) : undefined}>
       {label ? `${label} ` : ""}
       {agoSeconds(age)}
     </span>

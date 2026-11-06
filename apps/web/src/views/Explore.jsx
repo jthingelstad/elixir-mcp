@@ -5,7 +5,9 @@ import {
   agoSeconds,
   freshCls,
   Link,
-  stamp,
+  whenAt,
+  calendarDay,
+  seasonWeek,
   TagText,
   useClock,
   WriteError,
@@ -53,9 +55,9 @@ function Freshness({ meta, derived = false }) {
   const s = meta?.freshness_seconds;
   if (s === null || s === undefined)
     return (
-      <span className="freshness freshness--never">poll time unavailable</span>
+      <span className="freshness freshness--never">read time unavailable</span>
     );
-  return <span className={freshCls(s)}>polled {agoSeconds(s)}</span>;
+  return <span className={freshCls(s)}>read {agoSeconds(s)}</span>;
 }
 
 function recent() {
@@ -231,7 +233,7 @@ function CopyLink() {
 const BROWSE = {
   players: {
     title: "Players",
-    lede: "Anyone the record knows — the players it records, and every opponent they have met, known from that battle alone.",
+    lede: "Anyone the record knows, the players it records, and every opponent they have met, known from that battle alone.",
     hint: "Paste a player tag, or type a name or one of your nicknames.",
     placeholder: "#2PYQ8GJ0",
   },
@@ -250,8 +252,8 @@ const BROWSE = {
   weeks: {
     title: "War weeks",
     lede: "One river race: the five clans' standings, fame and the finish.",
-    hint: "Type a week as S135 W3, or open one from a clan.",
-    placeholder: "S135 W3",
+    hint: "Type a week as Season 135, week 3, or open one from a clan.",
+    placeholder: "Season 135, week 3",
   },
 };
 
@@ -439,7 +441,7 @@ function Lookup({ me, navigate, browse }) {
         <p className="page__lede">
           {browse
             ? `${browse.lede} ${browse.hint}`
-            : "Paste any tag to land on the record we hold for it — a player, a clan, a deck hash or a war week — or type a name or one of your nicknames. When your agent says something surprising, this is where you go and check."}
+            : "Paste any tag to land on the record we hold for it, a player, a clan, a deck hash or a war week, or type a name or one of your nicknames. When your agent says something surprising, this is where you go and check."}
         </p>
         <form
           style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
@@ -587,11 +589,11 @@ function Lookup({ me, navigate, browse }) {
               </span>
             </div>
             <div className="empty__body" style={{ textAlign: "left" }}>
-              Nothing in the corpus matches that tag or name. Elixir records the
+              Nothing in the record matches that tag or name. Elixir records the
               players and clans someone added, and the game&rsquo;s
               leaderboards; it does not crawl the whole game. Add it from{" "}
               <Link to={`${CONSOLE}/account/tracking`}>Account ▸ Tracking</Link>{" "}
-              and recording starts on the next poll.
+              and recording starts on the next read.
             </div>
           </div>
         )}
@@ -642,7 +644,7 @@ function Lookup({ me, navigate, browse }) {
 
         <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
           <div className="panel__head">
-            <span className="panel-title">What the corpus holds</span>
+            <span className="panel-title">What the record holds</span>
             <Link
               to={`${CONSOLE}/data/dashboard`}
               className="mono"
@@ -671,7 +673,7 @@ function Lookup({ me, navigate, browse }) {
             )}
           </div>
           <div className="panel__note">
-            Explore is a coverage check, not a report — your agent is the
+            Explore is a coverage check, not a report. Your agent is the
             analyst.
           </div>
         </section>
@@ -814,7 +816,7 @@ function RecordPage({ me, kind, rawId, search }) {
   return (
     <>
       <div className="trail">
-        <Link to={`${CONSOLE}/explore`}>corpus</Link>
+        <Link to={`${CONSOLE}/explore`}>record</Link>
         {trail.map((c, i) => (
           <span key={c.href} style={{ display: "contents" }}>
             <span className="trail__sep">/</span>
@@ -1017,7 +1019,7 @@ function RecordPage({ me, kind, rawId, search }) {
           <pre className="code__body">{JSON.stringify(res.body, null, 1)}</pre>
         )}
         <div className="panel__foot">
-          One tool call produced this page — the same one your agent makes, with
+          One tool call produced this page, the same one your agent makes, with
           your entitlements applied.
         </div>
       </section>
@@ -1030,7 +1032,7 @@ function RecordPage({ me, kind, rawId, search }) {
 function buildView(kind, rawId, res, me, zone) {
   const b = res.body;
   const meFirstTag = me?.claims?.find((c) => c.is_primary)?.player_tag;
-  const fmt = (t) => stamp(t, zone, { year: true });
+  const fmt = (t) => whenAt(t, zone);
 
   if (kind === "profile") {
     const tag = decTag(rawId);
@@ -1040,10 +1042,13 @@ function buildView(kind, rawId, res, me, zone) {
       crumb: `profile · ${b.name ?? tag}`,
       title: `Recorded profile · ${b.name ?? tag}`,
       tag,
-      sub: `Saved profile from ${snapshot.date ?? "an unknown date"}. These are snapshot facts, not a current-season battle record.`,
+      sub: `Saved profile from ${snapshot.date ? calendarDay(snapshot.date) : "an unknown date"}. This is one day's reading, not a current-season battle record.`,
       fields: [
         { label: "Player tag", value: tag, mono: true },
-        { label: "Profile date", value: snapshot.date ?? "unknown" },
+        {
+          label: "Profile date",
+          value: snapshot.date ? calendarDay(snapshot.date) : "unknown",
+        },
         {
           label: "Trophies",
           value:
@@ -1066,7 +1071,7 @@ function buildView(kind, rawId, res, me, zone) {
           href: `${CONSOLE}/explore/list/battles:${encTag(tag)}`,
         },
       ],
-      note: "A profile's lifetime counters are separate from the battles Elixir captured. Missing captures remain unknown.",
+      note: "A profile's lifetime counters are separate from the battles Elixir recorded. Anything Elixir did not read stays unknown.",
     };
   }
 
@@ -1115,7 +1120,7 @@ function buildView(kind, rawId, res, me, zone) {
         ? { label: "tracked by you", cls: "chip--ok" }
         : b.meta?.recording_active_since
           ? { label: "recording", cls: "chip--ok" }
-          : { label: "observed only" },
+          : { label: "seen in a battle only" },
       // The record you own has its controls one click away, on the page
       // that holds them; nothing here edits.
       action: yours
@@ -1190,7 +1195,7 @@ function buildView(kind, rawId, res, me, zone) {
     const opp = bt.opponents?.[0];
     const page = battlePath(bt.url);
     const fields = [
-      { label: "battle_time", value: fmt(bt.battle_time) },
+      { label: "played", value: fmt(bt.battle_time) },
       // The public page for this battle, the link to hand a person.
       ...(page ? [{ label: "page", value: page, mono: true, href: page }] : []),
       { label: "type", value: bt.type },
@@ -1267,7 +1272,7 @@ function buildView(kind, rawId, res, me, zone) {
                   : "",
           }
         : null,
-      sub: `As recorded from ${myName ? `${myName} ${myTag}` : myTag}'s perspective. A battle has no children — every value here is the record itself.`,
+      sub: `As recorded from ${myName ? `${myName} ${myTag}` : myTag}'s perspective. A battle has no children. Every value here is the record itself.`,
       fields,
       tiles: [],
       note: b.card_legend,
@@ -1284,7 +1289,7 @@ function buildView(kind, rawId, res, me, zone) {
       title: `deck ${rawId.slice(0, 10)}…`,
       tag: null,
       chip: { label: "public" },
-      sub: "One exact deck identity across the whole corpus.",
+      sub: "One exact deck, across the whole record.",
       fields: [
         { label: "deck_hash", value: rawId, mono: true },
         ...(cards ? [{ label: "cards", value: cards }] : []),
@@ -1333,7 +1338,7 @@ function buildView(kind, rawId, res, me, zone) {
     const members = b.member_weeks ?? [];
     return {
       kindLabel: "WAR WEEK",
-      crumb: `S${wk.season_id} W${week}`,
+      crumb: seasonWeek(wk.season_id, week),
       title: `Season ${wk.season_id}, week ${week}`,
       tag: b.clan_tag,
       chip: wk.is_colosseum
@@ -1452,7 +1457,7 @@ export function battlePath(url) {
 function buildListView(rawId, res, zone) {
   const [what, key] = rawId.split(":");
   const b = res.body;
-  const fmt = (t) => stamp(t, zone);
+  const fmt = (t) => whenAt(t, zone);
 
   if (what === "battles" || what === "deckbattles") {
     const rows = (b.battles ?? []).map((bt) => {
@@ -1519,7 +1524,7 @@ function buildListView(rawId, res, zone) {
         ? `${b.total_count.toLocaleString()} recorded battles match; newest first, 25 per page.`
         : rows.length
           ? "Newest first, 25 per page."
-          : "No captured battles in this page. Missing capture does not prove no play.",
+          : "No recorded battles in this page. A gap in the record does not mean no play.",
       table: {
         cols: [
           { label: "TIME" },
@@ -1624,7 +1629,7 @@ function buildListView(rawId, res, zone) {
         ],
         rows: (b.weeks ?? []).map((w) => [
           {
-            text: `S${w.season_id} W${Number(w.section_index) + 1}${w.is_colosseum ? " · colosseum" : ""}`,
+            text: `${seasonWeek(w.season_id, Number(w.section_index) + 1)}${w.is_colosseum ? " · Colosseum" : ""}`,
             mono: true,
             href: `${CONSOLE}/explore/week/${encTag(decTag(key))}~${w.season_id}~${w.section_index}`,
           },

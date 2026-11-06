@@ -1,18 +1,18 @@
 ---
 slug: clan-policy
 title: "Write how your clan runs"
-description: "Elixir Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Member review, Decisions, Scout and Clan settings, and the clan's activity in Discord."
+description: "Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Member review, Decisions, Scout and Clan settings, and the clan's activity in Discord."
 section: clan
 order: 6
 navTitle: "The policy"
 icon: scroll-text
-lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Elixir Clan judges anyone until there is one, and every save is a new version."
+lede: "A clan's policy is how it runs, written down by its leader and co-leaders. Nothing in Clan judges anyone until there is one, and every save is a new version."
 reviewed: "2026-10-20; How our messages sound: one voice for the drafts and the activity editor, set in Clan settings; 2026-10-13; Your own view, read by your own connection (contract 11.12.0); 2026-10-12; one sitting a member, one activity post a day, a move told before its battle names who is there; removal runs from the battle log, the removal action at an absolute day, the not-enforceable label removed; the What this policy can do today box; 2026-10-11; the activity channel edited by the clan's model: read-only lookups, stories told together or skipped with a reason, runs counted per day, a departure in Elixir's sentence, the preview shows the editor; Discord delivery: threads, forum webhooks refused, a refused line skipped alone, each post rated by a leader; contracts unchanged"
 ---
 
 # Write how your clan runs
 
-Every clan runs differently, so Elixir Clan has no rules of its own. The
+Every clan runs differently, so Clan has no rules of its own. The
 clan's **policy** says what it counts, how Elder works, how long a quiet
 member has, and which [actions](/docs/clan-actions) to raise. Until a
 leader saves one, nothing is judged: no standing, no actions, no
@@ -106,7 +106,7 @@ for, with one of:
 
 | Status | Means |
 |---|---|
-| Live | Elixir Clan acts on it now |
+| Live | Clan acts on it now |
 | Needs more evidence | it will act once the record has what is named: 10 members, a saved policy, or one finished review week |
 | Off | the policy does not ask for it |
 
@@ -175,20 +175,20 @@ Award races ([Awards and trophies](/docs/clan-awards)).
 
 **Manage ▸ Settings** holds what belongs to the whole clan, with or
 without a policy. Each row shows its current state; **Manage** opens its
-editor in a drawer. **Monthly model limit** has its own **Change** control.
+editor in a drawer. **Monthly cap** has its own **Change** control.
 Recording and visibility details expand below the rows. Closing a drawer
 does not save it:
 
-- **What Elixir Clan records in Elixir**: the kinds of facts shared
+- **What Clan records in Elixir**: the kinds of facts shared
   with Elixir, when each is shared and who sees it there. Kicks and
   leaves, promotions and demotions, awards, messages to the clan and
   where the award races stand go to everyone verified in the clan; kicks,
   leaves and the award races also to the clan's agent; a member's away
   only to the leaders.
 - **Member map**: the clan map, where members add a city or region and see
-  each other's local time. Only the clan's verified members see it, and
-  nothing of it goes to Elixir. Only the leader and co-leaders can change
-  whether the clan's social features are on; other members opening Settings
+  each other's local time. Only the clan's members with a verified player here see it, and
+  it stays out of the game record. Only the leader and co-leaders can change
+  whether the member map is on; other members opening Settings
   directly can read that status without a switch. The clan's activity
   channel is Social's own page in the rail, not a setting here ([The
   clan's activity in Discord](#the-clans-activity-in-discord)).
@@ -216,7 +216,7 @@ does not save it:
   Everything it writes is a draft a leader edits and copies into the
   game, marked where it carries a number or a name it was not given. It
   never makes or completes a decision.
-  Elixir Clan chooses the model for each use, and Settings shows which:
+  Clan chooses the model for each use, and Settings shows which:
   Claude Opus 5.5 drafts the recruiting pitch and the messages on
   Actions, and Claude Sonnet 5.5 edits the activity channel.
   When the key cannot reach that model, the use takes the other of the
@@ -232,7 +232,7 @@ does not save it:
   reaches it, the model drafts nothing more until a leader raises or
   removes the cap or the month turns; a draft that starts under the cap
   may finish a little over it. The cap stays when the key is replaced.
-  It is Elixir Clan's own stop: a spend limit on the Anthropic account
+  It is Clan's own stop: a spend limit on the Anthropic account
   is the one Anthropic keeps.
   The one use nobody reviews is the activity channel's editor, when a
   leader turns it on (below); its runs are counted apart, and the cap

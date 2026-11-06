@@ -1,7 +1,7 @@
 ---
 slug: clan-week
 title: "The week in your clan"
-description: "Elixir Clan's weekly report: which weeks it covers and when one closes, the four areas it reads (Clan Wars, donations, ranked play, battles), what it highlights and why, who came and went, and what it leaves out."
+description: "Clan's weekly report: which weeks it covers and when one closes, the four areas it reads (Clan Wars, donations, ranked play, battles), what it highlights and why, who came and went, and what it leaves out."
 section: clan
 order: 2
 navTitle: "The week"
@@ -12,7 +12,7 @@ reviewed: "2026-10-04; Clan browsing context and read clarity, contracts unchang
 
 # The week in your clan
 
-**The week** in Elixir Clan is a report on one week of the clan, read
+**The week** in Clan is a report on one week of the clan, read
 from the record. Every member sees it, verified or not, and it needs no
 policy: it is there from the clan's first closed week.
 
@@ -28,7 +28,7 @@ far**.
 
 For war totals and race-by-race progress across a season, open
 [Season](/docs/clan-season) beside The week. It includes the represented
-former members and explains partial capture separately.
+former members and explains partial reads separately.
 
 ## What it reads
 

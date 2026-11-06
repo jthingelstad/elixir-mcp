@@ -1,4 +1,4 @@
-import { Icon, browserZone, writeErrorText } from "@elixir-mcp/ui";
+import { Icon, browserZone, clockAt, writeErrorText } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { consumeLoginToken } from "../url-hygiene.js";
@@ -259,7 +259,7 @@ export function SignIn({
             : ""}
           {handoff?.started?.client || handoff?.started?.country ? ")" : ""}
           {handoff?.started?.at
-            ? ` at ${new Date(handoff.started.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+            ? ` at ${clockAt(handoff.started.at, browserZone())}`
             : ""}
           . If that was you, sign it in too. If it was not, leave it out.
         </p>
@@ -629,8 +629,8 @@ export function SignIn({
           </>
         )}
         Reports have their own off switches. See{" "}
-        <a href="/docs/privacy">Privacy</a> and <a href="/docs/email">Emails</a>
-        .
+        <a href="/docs/privacy">Privacy</a>, <a href="/docs/email">Emails</a>{" "}
+        and <a href="/docs/terms">Terms</a>.
       </p>
     </div>
   );

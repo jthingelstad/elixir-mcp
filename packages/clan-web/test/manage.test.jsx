@@ -70,19 +70,19 @@ test("Board distinguishes all four removal triage labels without describing prot
   for (const label of [
     "Protected",
     "Not currently a removal candidate",
-    "Evidence held",
+    "Waiting on the record",
     "Eligible",
   ])
     expect(screen.getByText(label, { exact: true })).toBeTruthy();
   expect(screen.getByLabelText("Removal triage").textContent).toMatch(
-    /Protected 1 · Not currently a removal candidate 1 · Evidence held 1 · Eligible 1/,
+    /Protected 1 · Not currently a removal candidate 1 · Waiting on the record 1 · Eligible 1/,
   );
-  expect(screen.getByLabelText("Elder evidence held").textContent).toMatch(
-    /Promotion 2 · Demotion 1/,
-  );
+  expect(
+    screen.getByLabelText("Elder, waiting on the record").textContent,
+  ).toMatch(/Promotion 2 · Demotion 1/);
   const groups = screen.getByRole("navigation", { name: "Board groups" });
   expect(groups.querySelector('a[href="#board-held"]').textContent).toBe(
-    "Evidence held · 1",
+    "Waiting on the record · 1",
   );
   expect(screen.getByRole("region", { name: "Clear members" })).toBeTruthy();
   expect(screen.getByText("Explanation 0")).toBeTruthy();
@@ -212,7 +212,7 @@ describe("standing", () => {
             { season_id: 135, section_index: 3, decks: 16, decks_asked: 16 },
             { season_id: 135, section_index: 4, decks: 12, decks_asked: 12 },
           ],
-          next: ["Play the war decks you are asked for."],
+          next: ["War decks count here."],
           inactivity: null,
           days_idle: 0.5,
           hold: null,
@@ -244,9 +244,7 @@ describe("standing", () => {
     expect(you.textContent).toMatch(/Rising/);
     expect(you.textContent).toMatch(/28 of 28/);
     expect(you.textContent).toMatch(/Races 135\/3 to 135\/4\./);
-    expect(
-      screen.getByText(/Play the war decks you are asked for/),
-    ).toBeTruthy();
+    expect(screen.getByText(/War decks count here/)).toBeTruthy();
     expect(screen.getByText("How it works here")).toBeTruthy();
     expect(screen.getByText(/Clan Wars 100%/)).toBeTruthy();
     expect(document.querySelector("tr[data-you='true']")).toBeTruthy();

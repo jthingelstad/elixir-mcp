@@ -57,7 +57,7 @@ export function ConnectionQuestions({ claimsKey, navigate }) {
             ) : data.player ? (
               <>
                 <p>
-                  Waiting for the first capture for{" "}
+                  Waiting for the first read of{" "}
                   <strong>
                     {data.player.name ?? <Tag tag={data.player.player_tag} />}
                   </strong>

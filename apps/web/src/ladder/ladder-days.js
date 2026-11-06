@@ -127,9 +127,9 @@ const WEEKDAY_FMT = new Intl.DateTimeFormat("en-US", {
 });
 /** "Sep 28". */
 const dayLabel = (ymd) => DAY_FMT.format(asUtc(ymd));
-/** "Mon, Sep 28". */
+/** "Mon Sep 28". */
 export const weekdayLabel = (ymd) =>
-  `${WEEKDAY_FMT.format(asUtc(ymd))}, ${dayLabel(ymd)}`;
+  `${WEEKDAY_FMT.format(asUtc(ymd))} ${dayLabel(ymd)}`;
 /** "Mon". */
 export const weekdayOf = (ymd) => WEEKDAY_FMT.format(asUtc(ymd));
 

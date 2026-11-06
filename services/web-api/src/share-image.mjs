@@ -13,6 +13,7 @@
  *  An image has no reader's clock, so its time says UTC. */
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import { DISCLAIMER } from "@elixir-mcp/contracts";
+import { whenAt } from "@elixir-mcp/ui/time";
 import { fontMetrics } from "./font-metrics.mjs";
 
 const SHARE_WIDTH = 1200;
@@ -52,7 +53,7 @@ const MODE_LABEL = {
   ladder: "Trophy Road",
   ranked: "Path of Legends",
   war: "War",
-  casual: "Friendly",
+  casual: "Casual",
   challenge: "Challenge",
   event: "Event",
   tournament: "Tournament",
@@ -83,16 +84,6 @@ const tone = (outcome) =>
   outcome === "win" ? C.win : outcome === "loss" ? C.loss : C.faint;
 const namesOf = (side) =>
   side.players.map((p) => p.name ?? p.player_tag).join(" and ") || "Unknown";
-
-const WHEN = new Intl.DateTimeFormat("en-US", {
-  timeZone: "UTC",
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-});
 
 /** The resvg module initialises once per process, however many
  *  renderers ask (a second initWasm throws). */
@@ -210,7 +201,9 @@ export function drawBattle(read, f) {
     push(text(x + 34, 57, label, { size: 17 }));
     x += w + 16;
   }
-  const when = `${WHEN.format(new Date(battle.battle_time))} UTC`;
+  // A picture outlives the week it was made in, and nobody's clock is on
+  // it: the whole date, with its year, in UTC. `now: 0` keeps the year.
+  const when = whenAt(battle.battle_time, null, { now: 0 });
   const whenW = f.regular.width(when, 17);
   if (battle.arena?.name)
     push(
@@ -490,7 +483,7 @@ function drawSide(push, f, read, side, isLeft, { towers, leak, text, fit }) {
     const sx = isLeft ? x0 + gridW + 20 : RIGHT_X - gridW - 20;
     const stats = [
       ["AVG ELIXIR", fixed(deck?.average_elixir, 2)],
-      ["4-CARD CYCLE", deck?.cycle4 ?? "—"],
+      ["CHEAPEST FOUR", deck?.cycle4 ?? "—"],
       ["LEAKED", fixed(leak, 2)],
     ];
     stats.forEach(([label, value], k) => {

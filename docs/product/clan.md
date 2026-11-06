@@ -2,6 +2,9 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
+*Its arrangement (rail, tabs, Policy's sections) is to be rewritten at step 4 of
+the redesign ([Structure](structure.md)).*
+
 ## What it is for
 
 Elixir Clan is where a clan's leaders run the clan against its own
@@ -40,8 +43,9 @@ read within the hour. [Jamie, 2026-10-12]
 Where a person lands follows the same roles. Asked whether leaders
 should land on Actions instead of Roster, Jamie answered: "If there are
 actions to take, yes. Otherwise no." A leader or co-leader with Actions
-waiting for them lands on Actions; with none, they land on the roster,
-as elders and members always do. [Jamie, 2026-10-20]
+waiting for them lands on Actions. With none, they land on Today, as elders
+and members do; Today is built at step 4, and until then that is the roster.
+[Jamie, 2026-10-20; 2026-11-05, A12]
 
 ## Principles that decide the details
 
@@ -76,8 +80,9 @@ as elders and members always do. [Jamie, 2026-10-20]
    person or role: the evidence, the rule and policy version that raised
    it, the words to send. Make the change in the game, then mark it; the
    promotion and its message go together. Clan watches the record for the
-   outcome and says whether it was confirmed. Nobody below co-leader sees
-   a removal or the clock. [Jamie, 2026-10-03, 2026-10-05]
+   outcome and says whether it was confirmed. A member sees their own
+   removal clock; nobody below co-leader sees another member's removal or
+   clock. [Jamie, 2026-10-03, 2026-10-05; 2026-11-05, Q1]
 6. **Messages start in chat.** Routine recognition and updates default to
    clan chat; awards, standings and rule changes offer a durable Inbox
    alternative. A receipt is a human record of what was sent, never

@@ -231,8 +231,8 @@ describe("the gate pages", () => {
         onRecheck={() => {}}
       />,
     );
-    expect(screen.getByText(/no clan observed/).textContent).toContain(
-      "2026-09-01",
+    expect(screen.getByText(/no clan seen/).textContent).toMatch(
+      /Tue Sep 1( 2026)?,/,
     );
     expect(screen.queryByText(/recorded clan Former clan/)).toBeNull();
     expect(

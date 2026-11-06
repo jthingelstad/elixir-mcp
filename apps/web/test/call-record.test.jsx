@@ -159,7 +159,7 @@ test("a row without a captured body still renders from the log's bounded argumen
   renderWithProviders(<CallRecord id={ID} navigate={() => {}} />);
   await waitFor(() => screen.getByRole("heading", { name: "elixir_timeline" }));
   expect(screen.getByText(/refused · daily quota/)).toBeTruthy();
-  expect(screen.getByText("Not captured for this call.")).toBeTruthy();
+  expect(screen.getByText("Not kept for this call.")).toBeTruthy();
   expect(screen.getByText(/Refused before any tool ran/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "‹ Previous call" }).disabled).toBe(
     true,

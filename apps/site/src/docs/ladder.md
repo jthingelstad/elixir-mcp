@@ -29,15 +29,15 @@ lists them apart from the budget ([Limits](/docs/limits)).
 ## A player just added
 
 A tag you have just added has nothing on record yet, so Ladder says the
-first capture is on its way, on every page, instead of an empty season or a
-read error. It holds that until both reads of the first capture are in: the
+first read is on its way, on every page, instead of an empty season or a
+read error. It holds that until both reads of the first read are in: the
 profile (usually seconds after the add) and the battle log, which brings
 roughly the last 30 battles. A player whose battle log is read and empty
 is shown as an empty season, not a wait. If Clash Royale has no player with
 that tag, Ladder says **Tag not found**, in the Console's words, and **Fix
 the tag** opens the player's Tracking page at the place to type the right
 one. A tag given at signup is just added in the same way: the new account
-opens on the player's page while the first capture comes in.
+opens on the player's page while the first read comes in.
 
 ## One mode at a time
 
@@ -80,7 +80,7 @@ the first-Monday roll, in any mode) and your player has a season before
 it on record, Ladder opens on last season and says so above the page, with
 the empty one a click away. A
 season you ask for in the address is always the one shown, even when it is
-empty, and a player whose first capture has not landed still sees it on its
+empty, and a player whose first read has not landed still sees it on its
 way, never last season.
 
 Console's recording summary links a saved profile directly to its dated
@@ -232,7 +232,7 @@ did not reach are marked "partially read"; any battles already read stay visible
   played it, its battles and its own record.
 - **Longest covered quiet stretch**: consecutive whole days before today
   with no recorded battles, only where complete comparable profile intervals
-  cover every instant of each day. Missing intervals, partial capture and the
+  cover every instant of each day. Missing intervals, partial reads and the
   time since the latest observation remain unknown and break the stretch.
 - **The calendar**: one cell a day, each mode with its own mark and
   record, and the day's battles counted in the corner. A battle after
@@ -247,7 +247,7 @@ did not reach are marked "partially read"; any battles already read stay visible
   battles; a battle opens on its own page when the record has one.
 
 The page checks [capture coverage](/docs/recording#completeness) separately.
-A successful poll or a seven-day average does not prove a whole day was captured.
+A successful read or a seven-day average does not prove a whole day was captured.
 Empty cells show unknown or incomplete capture unless coverage supports a zero;
 positive battle records remain visible even when capture is incomplete. Today
 and season-clipped days cannot establish a whole quiet day.

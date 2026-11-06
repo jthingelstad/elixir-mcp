@@ -814,14 +814,14 @@ test("@narrow Overview puts the recorded profile before optional AI and tracks i
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await readiness
     .getByRole("button", {
-      name: "Copy question: Start with your player snapshot",
+      name: "Copy question: Start with your latest profile",
     })
     .click();
   await expect(
     readiness.getByRole("status").filter({ hasText: "Copied" }),
   ).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
-    "Do not infer progress from a single snapshot",
+    "Do not infer progress from a single reading",
   );
   await accessible(page, "first-use overview");
   expect(

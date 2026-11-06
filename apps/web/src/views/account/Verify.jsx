@@ -1,5 +1,5 @@
 import { useInitialTime } from "@elixir-mcp/ui";
-import { Icon, stampTime, Tag, TagText, useClock } from "@elixir-mcp/ui";
+import { clockAt, Icon, Tag, TagText, useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useVerifyList } from "../../lib/queries.js";
@@ -31,8 +31,7 @@ function reducedMotion() {
  *  read and the battle are seconds apart, and the zone is the one the
  *  rest of the console prints (it was the browser's until 2026-09-23). */
 function clock(iso, zone) {
-  const t = stampTime(iso, zone, { seconds: true });
-  return t === "—" ? "not yet" : t;
+  return clockAt(iso, zone, { seconds: true }) || "not yet";
 }
 
 function minutesLeft(iso, now) {
@@ -48,7 +47,7 @@ function messageFor(r) {
     case "rate_limited":
       return "Too many starts in the last hour. Give it a little while and try again.";
     case "quota_exceeded":
-      return "Your tier has no free player slot for a new tag. Remove one under Tracking, or verify a player you already track.";
+      return "Your limits have no free player slot for a new tag. Remove one under Tracking, or verify a player you already track.";
     case "not_entitled":
       return "Only a person's account can hold a claim.";
     case "not_yours":
@@ -494,8 +493,8 @@ function VerifiedBurst({ name, battle, seenAfterS }) {
         <p className="verify__seen">
           Elixir saw this battle in the game&rsquo;s public log{" "}
           <strong>{seenAfterS} seconds</strong> after it was played. That is how
-          closely the record follows you: every battle, every day, with nothing
-          installed.
+          closely the record follows you: every battle it reads, every day, with
+          nothing installed.
         </p>
       )}
     </div>

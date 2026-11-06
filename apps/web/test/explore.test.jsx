@@ -108,7 +108,7 @@ test("a saved profile survives a failed read through explicit retry, without liv
   expect(screen.getByText("Lifetime battle count")).toBeTruthy();
   expect(
     screen.getByText(
-      /lifetime counters are separate from the battles Elixir captured/,
+      /lifetime counters are separate from the battles Elixir recorded/,
     ),
   ).toBeTruthy();
   expect(explore.mock.calls).toEqual([

@@ -38,7 +38,7 @@ export function CardPicker({ cards, value, onChange, current = null }) {
               role="option"
               aria-selected={isPicked}
               aria-disabled={taken}
-              title={taken ? `${c.name} — taken` : c.name}
+              title={taken ? `${c.name}, taken` : c.name}
               className={
                 "cardpick__card" +
                 (isPicked ? " cardpick__card--picked" : "") +
@@ -80,7 +80,7 @@ export function CardPicker({ cards, value, onChange, current = null }) {
           </>
         ) : (
           <span>
-            Pick a card — it becomes the collector&rsquo;s public name.
+            Pick a card. It becomes the collector&rsquo;s public name.
           </span>
         )}
       </div>

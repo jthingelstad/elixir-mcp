@@ -21,7 +21,7 @@ for (const [state, text] of [
   [{ refused_at: "2026-10-13T12:00:00Z" }, "Needs attention · Key refused"],
   [{ readable: false }, "Needs attention · Key unavailable"],
   [{ owner_leads: false }, "Not in use · Key owner no longer leads"],
-  [{ cap_reached: true }, "Paused · Monthly model limit reached"],
+  [{ cap_reached: true }, "Paused · Monthly cap reached"],
   [
     {
       purposes: { recruit: { label: "Recruit" } },
@@ -152,7 +152,9 @@ test("a leader sets the voice: the bound is said and held, the words go as typed
     ),
   ).toBeTruthy();
   expect(within(dialog).getByText(/never the facts/)).toBeTruthy();
-  expect(within(dialog).getByText(/Last set by Ada · 2026-10-20/)).toBeTruthy();
+  expect(
+    within(dialog).getByText(/Last set by Ada · Tue Oct 20( 2026)?/),
+  ).toBeTruthy();
   const save = within(dialog).getByRole("button", { name: "Save the voice" });
   expect(save.disabled).toBe(true);
   fireEvent.change(box, { target: { value: "Short and loud" } });

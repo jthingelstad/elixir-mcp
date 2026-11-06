@@ -98,7 +98,7 @@ function Clocks({ heartbeat, data, now }) {
           }}
         >
           {idle
-            ? "Polling happily with nothing to fetch — that is idle, not broken."
+            ? "Checking in with nothing to fetch. That is idle, not broken."
             : "Both clocks matter: a fresh heartbeat only says the machine is alive."}
         </span>
       </div>
@@ -254,7 +254,7 @@ function Operations({ g, staged, setStaged, reload }) {
         )}
         {staged?.ok && (
           <span className="caveat">
-            Token staged — the operator reveals it once, on their own page.
+            Token staged, the operator reveals it once, on their own page.
           </span>
         )}
         {staged?.error && (
@@ -317,7 +317,7 @@ function YourCard({ own, navigate }) {
               <strong style={{ color: "var(--gold)" }}>
                 {own.card_name ?? "not named yet"}
               </strong>{" "}
-              — its public name on every fleet page.
+              its public name on every collectors page.
             </span>
           </div>
         ) : (
@@ -441,7 +441,7 @@ export function CollectorPage({ id, navigate, me }) {
           <div className="empty__title">No collector by that name</div>
           <p className="empty__body" style={{ marginBottom: 0 }}>
             Collectors are named for a Clash Royale card. A drained one keeps
-            its name, but stops appearing in the fleet.
+            its name, but stops appearing on the collectors page.
           </p>
         </div>
       </>
@@ -510,8 +510,8 @@ export function CollectorPage({ id, navigate, me }) {
             </div>
             <div className="stats__note">
               {status_ === "active"
-                ? "the Family tier, while active; a granted tier above it stands"
-                : "the Family tier again once it is active"}
+                ? "raises your limits to Family, while active; higher limits you were given stand"
+                : "raises your limits to Family again once it is active"}
             </div>
           </div>
           <div className="stats__cell">
@@ -532,9 +532,9 @@ export function CollectorPage({ id, navigate, me }) {
         <div className="callout callout--warn" style={{ marginBottom: "14px" }}>
           <Icon name="circle-dashed" size={17} />
           <span>
-            Draining — it keeps its name and its place, and earns no tier until
-            it is active again. Bring it back with probation once the machine is
-            reachable.
+            Draining. It keeps its name and its place, and does not raise your
+            limits until it is active again. Bring it back with probation once
+            the machine is reachable.
           </span>
         </div>
       )}
@@ -576,7 +576,7 @@ export function CollectorPage({ id, navigate, me }) {
                 textWrap: "pretty",
               }}
             >
-              We show it once and never again — reveal it when you are at the
+              We show it once and never again, reveal it when you are at the
               machine.
             </span>
             <button
@@ -597,9 +597,7 @@ export function CollectorPage({ id, navigate, me }) {
         <section className="code" style={{ marginBottom: "14px" }}>
           <div className="code__head">
             <span className="label">collector token</span>
-            <span className="footnote">
-              shown once — it is gone from us now
-            </span>
+            <span className="footnote">shown once, it is gone from us now</span>
             <button
               className="btn btn--sm"
               style={{ marginLeft: "auto" }}

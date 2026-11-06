@@ -2,6 +2,8 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
+*To be rewritten at step 8 of the redesign, for links, the footer, skipped reports, reason lines and alts' milestones ([Structure](structure.md)).*
+
 ## What it is for
 
 "Keeping you up to date is part of the service, even when you do not

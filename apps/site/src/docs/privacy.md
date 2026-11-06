@@ -28,15 +28,14 @@ people it is meant for can see it.
 
 **Without an account.** One page of the record opens to anyone: a
 battle's own page, with its link and share picture, so a battle can be
-shared. The status pages ([The corpus](/data), [Recording now](/data/now)
-and their JSON) count what the recorder holds and name no player or clan,
+shared. [The status page](/data) and its JSON count what the recorder holds and name no player or clan,
 except that each collector is credited to its operator's primary player.
 Everything else needs a free account.
 
 **Your account.** Signing in keeps your email address, so the service
 can send you sign-in codes and mail about your account. A new account
 also keeps the time zone the signup browser reports, so its times read
-on your clock; change it on Profile. It also keeps
+on your clock; change it in your account's settings. It also keeps
 the records the product is made of: what you claimed and recorded, your
 agents and connected apps and the calls they make, where they connected
 from, and the mail it sent you. You can see these records on your
@@ -49,8 +48,8 @@ it.
 keeps your Discord user id and username, to sign you in and to tell your
 clan's Discord agent who you are. Discord's sign-in also tells Elixir
 your email address if it has verified one; Elixir uses it to find or
-create your account and keeps nothing else Discord sends. Disconnect on
-Profile removes both.
+create your account and keeps nothing else Discord sends. Disconnecting Discord
+in your account's settings removes both.
 
 **Mail.** Occasional product news goes out through
 [Buttondown](https://buttondown.com). The sign-in/create-account form has
@@ -96,7 +95,7 @@ Fonts are served from this site, so reading a page tells no one else
 what you read.
 
 **A clan's own AI key.** If a clan's leaders add their own Anthropic
-key, Elixir Clan sends Anthropic what it needs to draft the clan's
+key, Clan sends Anthropic what it needs to draft the clan's
 messages, including member names, and the clan's key pays for it.
 
 **Discord.** If you cross-post your timeline (or an agent's) to a
@@ -106,7 +105,7 @@ Elixir keeps the webhook sealed and never shows it whole. Turning
 cross-posting off stops new posts; lines already in the channel are
 Discord's to delete. A clan's leaders may connect two Discord channels,
 each on its own: one for the clan's Actions and one for its activity.
-Elixir Clan posts to whichever is connected, member names included.
+Clan posts to whichever is connected, member names included.
 
 **What Elixir keeps about its Discord posts.** For every message Elixir
 posts, edits or decides not to post in a Discord channel (a timeline's

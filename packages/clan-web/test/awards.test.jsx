@@ -249,12 +249,16 @@ describe("awards", () => {
       (await screen.findAllByText(/Season 136 · in progress/)).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText(/Provisional/)).toBeTruthy();
-    expect(screen.queryByText(/Season 135 · closed 2026-09-07/)).toBeNull();
+    expect(
+      screen.queryByText(/Season 135 · closed Mon Sep 7( 2026)?/),
+    ).toBeNull();
     expect(screen.queryByText("on the podium")).toBeNull();
     fireEvent.change(screen.getByRole("combobox", { name: "Season" }), {
       target: { value: "135" },
     });
-    expect(screen.getByText(/Season 135 · closed 2026-09-07/)).toBeTruthy();
+    expect(
+      screen.getByText(/Season 135 · closed Mon Sep 7( 2026)?/),
+    ).toBeTruthy();
     expect(screen.getAllByText("granted").length).toBe(1);
     fireEvent.click(
       screen.getByRole("button", { name: "Grant Clan Honour for season 135" }),

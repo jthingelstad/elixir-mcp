@@ -176,7 +176,7 @@ function OrderSwitch({ order, hrefFor, cardFloor }) {
           : "Most battles first."}{" "}
         {cardFloor
           ? `A card is listed from ${fmt(cardFloor)} battles, `
-          : "A card is listed from the tool's floor, "}
+          : "A card is listed from the lowest it can show, "}
         a player from {fmt(OPPONENT_FLOOR)}.
       </span>
     </div>

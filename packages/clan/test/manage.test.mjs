@@ -647,7 +647,7 @@ test("standing for members: evidence in a player's terms, no internals; private 
     [
       ["war", "Clan Wars", 55],
       ["donations", "Donations", 30],
-      ["ranked", "Ranked play", 15],
+      ["ranked", "Path of Legends", 15],
     ],
   );
   for (const r of s.body.rows) {

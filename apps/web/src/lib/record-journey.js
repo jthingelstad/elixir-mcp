@@ -44,10 +44,10 @@ export function recordJourney(data) {
     : notFound
       ? "Tag not found"
       : failedAt
-        ? "Capture attempt failed"
+        ? "The last read failed"
         : recorded
-          ? "Captured data available"
-          : "Capture pending";
+          ? "Recorded and ready to read"
+          : "First read pending";
   const text = !active
     ? recorded
       ? "Your retained record is available. Check recording status in Tracking."
@@ -55,10 +55,10 @@ export function recordJourney(data) {
     : notFound
       ? `We couldn't find ${p.player_tag} in Clash Royale. Correct the tag, or stop tracking it.`
       : failedAt
-        ? "A recent capture attempt failed. Saved information remains available; check again for new observations."
+        ? "A recent read failed. What was saved is still here; check again for anything new."
         : recorded
-          ? "Read what has been captured below. Gaps and unobserved time remain unknown."
-          : "Your tag is saved. The first capture usually lands within a few minutes, and roughly your last 30 battles arrive with it.";
+          ? "Read what has been recorded below. Gaps, and any time Elixir did not read, stay unknown."
+          : "Your tag is saved. The first read usually lands within a few minutes, and roughly your last 30 battles arrive with it.";
   const profile = {
     action: "View recorded profile",
     to: `${CONSOLE}/explore/profile/${tagPath(p.player_tag)}`,

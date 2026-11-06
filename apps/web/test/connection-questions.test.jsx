@@ -49,7 +49,7 @@ test("connected users can copy data-supported questions, including a recorded cl
   fireEvent.click(
     screen.getByRole("button", { name: "Copy question: Compare your decks" }),
   );
-  await screen.findByText("Copied — paste into your connected client.");
+  await screen.findByText("Copied. Paste into your connected client.");
   expect(copy.mock.calls[0][0]).toContain("#P0Y");
   expect(copy.mock.calls[0][0]).toContain("sample sizes");
   fireEvent.click(
@@ -57,7 +57,7 @@ test("connected users can copy data-supported questions, including a recorded cl
       name: "Copy question: Review your clan's war week",
     }),
   );
-  await screen.findByText("Copied — paste into your connected client.");
+  await screen.findByText("Copied. Paste into your connected client.");
   expect(copy.mock.calls[1][0]).toContain("#P0G");
   expect(copy.mock.calls[1][0]).toContain("unfinished race");
   expect(
@@ -79,7 +79,7 @@ test("profile-only history offers a snapshot, with manual copy when clipboard ac
   });
   render(<ConnectionQuestions navigate={vi.fn()} />);
   const button = await screen.findByRole("button", {
-    name: "Copy question: Start with your player snapshot",
+    name: "Copy question: Start with your latest profile",
   });
   expect(
     screen.getAllByRole("button", { name: /^Copy question:/ }),
@@ -89,9 +89,7 @@ test("profile-only history offers a snapshot, with manual copy when clipboard ac
     name: "Question to copy",
   });
   expect(manual.value).toContain("#P0Y");
-  expect(manual.value).toContain(
-    "Do not infer progress from a single snapshot",
-  );
+  expect(manual.value).toContain("Do not infer progress from a single reading");
 });
 
 test("no player links to setup; pending capture can be refreshed into questions", async () => {
@@ -112,7 +110,7 @@ test("no player links to setup; pending capture can be refreshed into questions"
     distinct_decks_7d: 0,
   });
   fireEvent.click(screen.getByRole("button", { name: "Check again" }));
-  await screen.findByText(/Waiting for the first capture for/);
+  await screen.findByText(/Waiting for the first read of/);
   expect(screen.queryByRole("button", { name: /^Copy question:/ })).toBeNull();
   respond();
   fireEvent.click(screen.getByRole("button", { name: "Check again" }));

@@ -161,7 +161,7 @@ describe("the Clan picker at the head of the rail", () => {
       />,
     );
     expect(document.querySelector(".rail__switch")).toBeNull();
-    expect(screen.getByText("Elixir Clan")).toBeTruthy();
+    expect(screen.getByText("Clan")).toBeTruthy();
   });
 
   test("narrow: the picker stays beside the folded row, which no longer repeats the clan", () => {

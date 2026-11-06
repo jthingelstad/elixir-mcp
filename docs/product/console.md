@@ -2,6 +2,10 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
+*To be rewritten at step 3 of the redesign: this purpose splits into Home for
+the day and Settings for the account, and an agent becomes a page in Settings
+at step 6 ([Structure](structure.md)). Until then it describes what runs.*
+
 ## What it is for
 
 The Console is where a person runs their account: what Elixir records

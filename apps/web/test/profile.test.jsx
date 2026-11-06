@@ -60,6 +60,8 @@ test(
     ).toBeGreaterThanOrEqual(2);
     const tz = screen.getByRole("combobox", { name: "Timezone" });
     expect(tz.value).toBe("America/Chicago");
-    expect(screen.getByText("leader", { selector: ".chip" })).toBeTruthy();
+    expect(
+      screen.getByText("Leader limits", { selector: ".chip" }),
+    ).toBeTruthy();
   },
 );

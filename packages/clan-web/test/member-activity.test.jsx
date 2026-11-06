@@ -40,7 +40,9 @@ test("member evidence retains unknowns and continues past an empty filtered page
     .mockResolvedValue({ ok: true, status: 200, data });
   renderWithProviders(<MemberActivity clan={clan} playerTag="#9QY" />);
   await screen.findByRole("heading", { name: /Test member · Activity/ });
-  expect(screen.getByText(/No recorded activity is not proof/)).toBeTruthy();
+  expect(
+    screen.getByText(/No recorded activity does not mean no play/),
+  ).toBeTruthy();
   expect(screen.getByText(/Coverage could not be read/)).toBeTruthy();
   expect(screen.getByText("S136 W4")).toBeTruthy();
   expect(

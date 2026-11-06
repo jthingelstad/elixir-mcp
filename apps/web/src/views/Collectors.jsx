@@ -83,7 +83,7 @@ export function Fleet({ navigate }) {
         <div>
           <h1 className="page__title">Collectors</h1>
           <p className="page__lede">
-            Every machine fetching for the corpus, inside one shared budget.
+            Every machine fetching for the record, inside one shared budget.
           </p>
         </div>
         {/* Raising a hand is the ONLY way a collector comes to exist, for
@@ -110,8 +110,8 @@ export function Fleet({ navigate }) {
           <div className="empty__title">You don&rsquo;t run one yet</div>
           <p className="empty__body" style={{ marginBottom: 0 }}>
             A collector is a machine that fetches for the record on a schedule.
-            While it is active it earns your account the Family tier, and it
-            wears a Clash Royale card of your choosing as its public name.
+            While it is active it raises your limits to Family, and it wears a
+            Clash Royale card of your choosing as its public name.
           </p>
         </div>
       )}
@@ -220,7 +220,7 @@ export function Fleet({ navigate }) {
       >
         Yield is the share of the last day&rsquo;s fetches that changed the
         record; share is of the last hour&rsquo;s fetches. Behind means the
-        machine has not reported inside its schedule — which is not the same as
+        machine has not reported inside its schedule, which is not the same as
         broken: a collector with nothing due is idle.
       </p>
     </>

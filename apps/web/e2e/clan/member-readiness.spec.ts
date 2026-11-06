@@ -95,7 +95,7 @@ for (const width of [390, 1280]) {
       page.getByText("Missing battles", { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByText(/No recorded activity is not proof/),
+      page.getByText(/No recorded activity does not mean no play/),
     ).toBeVisible();
     await page.getByRole("button", { name: "Older records" }).click();
     await expect(

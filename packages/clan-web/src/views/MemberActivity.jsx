@@ -27,8 +27,7 @@ export function MemberActivity({
   navigate,
   rosterSearch = "",
 }) {
-  const { zone: askedZone } = useClock();
-  const zone = askedZone ?? "UTC";
+  const { when } = useClock();
   const [pages, setPages] = useState([{ cursor: null, to: null }]);
   const current = pages.at(-1);
   const { state } = useMemberActivity(
@@ -38,14 +37,7 @@ export function MemberActivity({
     current.to,
   );
   const d = state.data;
-  const stamp = (at) =>
-    at
-      ? new Date(at).toLocaleString(undefined, {
-          timeZone: zone,
-          dateStyle: "medium",
-          timeStyle: "short",
-        })
-      : "Unknown";
+  const stamp = (at) => (at ? when(at) : "Unknown");
   const head = (
     <>
       <Link
@@ -90,13 +82,13 @@ export function MemberActivity({
       {head}
       <p className="page__lede">
         Recorded play for this clan from {stamp(d.window.from)} to{" "}
-        {stamp(d.window.to)} ({zone}). Battle detail is limited to the current
-        observed stint and battles that name this clan.
+        {stamp(d.window.to)}. Battle detail is limited to their current time in
+        the clan and battles that name this clan.
       </p>
       <div className="callout mb-4" role="note">
         <span>
-          No recorded activity is not proof of inactivity. Missing capture and
-          time after the latest profile observation remain unknown.
+          No recorded activity does not mean no play. Gaps, and the time since
+          their profile was last read, stay unknown.
         </span>
       </div>
       <dl className="grid gap-2 mb-4">
@@ -122,8 +114,8 @@ export function MemberActivity({
           <Disclosure title="How weekly contributions are counted">
             <p className="page-head__note">
               Four ISO weeks, including the current partial week, clipped to the
-              current observed stint. Battles must name this clan. Donations are
-              the highest counter observed for this clan in each week. A join
+              current time in the clan. Battles must name this clan. Donations
+              are the highest count seen for this clan in each week. A join
               inside a week makes its cumulative donation counter unknown here.
               Unknown stays unknown.
             </p>
@@ -134,7 +126,7 @@ export function MemberActivity({
                 <tr>
                   <th>ISO week</th>
                   <th>Recorded battles</th>
-                  <th>Ranked battles</th>
+                  <th>Path of Legends battles</th>
                   <th>Donations</th>
                 </tr>
               </thead>
@@ -204,14 +196,13 @@ export function MemberActivity({
         </div>
       </section>
       <section className="panel mb-4">
-        <h2 className="panel__head m-0">Capture evidence</h2>
+        <h2 className="panel__head m-0">What was read</h2>
         <div className="panel__body">
-          <Disclosure title="About capture evidence">
+          <Disclosure title="About what was read">
             <p className="page-head__note">
-              Profile-counter intervals ending in the last seven days,
-              restricted to the displayed window. These intervals do not prove
-              coverage of the whole window or of the time after the latest
-              interval.
+              Spans between two profile reads, ending in the last seven days and
+              inside the dates above. They do not show the whole of those dates
+              was read, or anything after the last span.
             </p>
           </Disclosure>
           {d.coverage.intervals.length ? (
@@ -219,9 +210,9 @@ export function MemberActivity({
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Observation interval</th>
+                    <th>Between reads</th>
                     <th>Counter increase</th>
-                    <th>Battles captured</th>
+                    <th>Battles recorded</th>
                     <th>Comparison</th>
                   </tr>
                 </thead>
@@ -273,7 +264,7 @@ export function MemberActivity({
               {d.next_cursor
                 ? "There are older records to read."
                 : "The bounded record is exhausted."}{" "}
-              Missing capture remains unknown.
+              Gaps stay unknown.
             </p>
           ) : (
             sessions.map((group, index) => (

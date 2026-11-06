@@ -264,7 +264,7 @@ for (const width of [390, 1280]) {
     await expect(
       page.getByText(/Your first player becomes your primary/),
     ).toBeVisible();
-    await expect(page.getByText(/no comprehensive clan slots/)).toBeVisible();
+    await expect(page.getByText(/no slots for every member/)).toBeVisible();
     await expect(page.getByLabel("Scope")).toHaveValue("activity");
     await expect(
       page.getByLabel("Scope").locator('option[value="comprehensive"]'),
