@@ -40,7 +40,9 @@ import {
   MIN_MEMBERS,
   audienceOf,
   awayCandidates,
+  actionLabel,
   canAct,
+  inActionOrder,
   JUDGING_TYPES,
   leaderMessage,
   goalsInSentence,
@@ -1124,6 +1126,49 @@ export function createManageService({
       return (await ledger.cards(clanTag)).filter(
         (c) => c.status === "proposed" && canAct(c, who),
       ).length;
+    },
+
+    /**
+     * Home's clan card and "Needs you": "You here" and the open Actions
+     * this person can take, top two in Actions' own order. A read with no
+     * evaluation: it raises, withdraws and numbers nothing, so opening
+     * Home never does what opening Actions may. An Action not numbered yet
+     * has no address of its own and links to the list.
+     */
+    async homeView(clanTag, who, token) {
+      let member = null;
+      try {
+        member = await this.memberView(clanTag, who, token);
+      } catch (err) {
+        if (!(err instanceof ManageError)) throw err;
+      }
+      const policy = await policyFor(clanTag);
+      const cards = await ledger.cards(clanTag);
+      const open =
+        who.verified === false
+          ? []
+          : inActionOrder(
+              cards.filter((c) => c.status === "proposed" && canAct(c, who)),
+            );
+      return {
+        clan_tag: clanTag,
+        member,
+        policy_set: policy.set,
+        min_members: MIN_MEMBERS,
+        needs_total: open.length,
+        needs: open.slice(0, 2).map((c) => ({
+          number: Number.isInteger(c.number) ? c.number : null,
+          type: c.type,
+          label: actionLabel(c),
+          subject_name: c.player_name ?? null,
+          raised_at: c.raised_at ?? null,
+          headline: c.evidence?.rationale?.headline ?? null,
+          joined_at: c.evidence?.joined_at ?? null,
+          left_at: c.evidence?.left_at ?? null,
+          days_idle: c.evidence?.days_idle ?? null,
+          away_max_days: c.evidence?.away_max_days ?? null,
+        })),
+      };
     },
 
     /**

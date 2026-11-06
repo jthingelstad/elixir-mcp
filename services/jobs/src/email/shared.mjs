@@ -1,27 +1,7 @@
 /** Helpers every builder shares. */
 import { WEEKDAY } from "./week.mjs";
 
-/** Game-mode names as the mail says them. The tool rows are keyed by the
- *  API's own mode name; the mail groups them the way a player thinks. */
-export function modeLabel(gameMode = "", type = "") {
-  const g = String(gameMode);
-  if (/^Ladder$/i.test(g)) return "Trophy Road";
-  // The timeline's mode GROUPS come through here too.
-  if (/^war$/i.test(g)) return "War";
-  if (/^casual$/i.test(g)) return "Casual";
-  if (/^other$/i.test(g)) return "Other";
-  if (/^Ranked/i.test(g) || /pathoflegend|ranked/i.test(type))
-    return "Path of Legends";
-  if (/^CW_Duel/i.test(g)) return "War · Duel";
-  if (/^CW_Battle/i.test(g) || /riverRacePvP/i.test(type)) return "War · 1v1";
-  if (/^CW_Boat|boat/i.test(g) || /boat/i.test(type)) return "War · Boat";
-  if (/friendly|trail/i.test(g) || /friendly|trail/i.test(type))
-    return "Casual";
-  if (/2v2|team/i.test(g) || /2v2/i.test(type)) return "2v2";
-  if (/tournament/i.test(g) || /tournament/i.test(type)) return "Tournament";
-  if (/challenge/i.test(g) || /challenge/i.test(type)) return "Challenge";
-  return g.replace(/_/g, " ").replace(/\s+/g, " ").trim() || "Other";
-}
+export { modeLabel, progressOf, tryTool } from "@elixir-mcp/tools/friends-week";
 
 export function weekday(iso, timezone = "UTC") {
   try {
@@ -69,37 +49,4 @@ export async function myPlayers(db, accountId) {
     relationship: r.is_primary ? "primary" : r.relationship,
     clanTag: r.last_known_clan_tag ?? null,
   }));
-}
-
-/** Tolerant tool call: a reader that refuses (no subject, nothing
- *  recorded) yields null rather than failing the whole mail. */
-export async function tryTool(callTool, ctx, name, args) {
-  try {
-    return await callTool(ctx, name, args);
-  } catch (err) {
-    if (
-      err?.code &&
-      ["not_found", "no_subject", "bad_request", "result_too_large"].includes(
-        err.code,
-      )
-    )
-      return null;
-    throw err;
-  }
-}
-
-/** The small firsts a player's week held, counted (Jamie, 2026-10-08:
- *  card unlocks and badge levels roll into the weekly mail as counts):
- *  read off the timeline's own entry for the player, so the count is the
- *  entry's (every badge level-up, every card unlocked), never a second
- *  derivation. Null when there were none. A legendary badge is not
- *  counted: it is a big first and mails when it happens
- *  (MILESTONE_MAIL_KINDS, Jamie, 2026-10-08), like an arena. */
-export function progressOf(entry) {
-  const unlocked = entry?.collection?.unlocked;
-  const cards = (unlocked?.items?.length ?? 0) + (unlocked?.more ?? 0);
-  const levels = entry?.badges?.earned ?? 0;
-  return cards || levels
-    ? { cards_unlocked: cards, badge_levels: levels }
-    : null;
 }

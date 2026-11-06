@@ -626,6 +626,15 @@ export function createHandler({
       // "You here": a member's own numbers and place in this clan.
       if (method === "GET" && rest === "/me")
         return json(200, await manage.memberView(tag, who, token));
+      // Home's clan card and "Needs you"; web-api calls it in-process.
+      if (method === "GET" && rest === "/home")
+        return json(200, {
+          ...(await manage.homeView(tag, who, token)),
+          name: clan.name ?? null,
+          role: who.role,
+          verified: who.verified !== false,
+          unlock: clan.unlock ?? null,
+        });
       // The week in the clan: every member's, any clan, any size.
       if (method === "GET" && rest === "/week") {
         const week = event.queryStringParameters?.week ?? null;

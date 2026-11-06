@@ -9,6 +9,7 @@ import {
   reconstructedLog,
   welcomesFrom,
 } from "../src/actions.mjs";
+import { ACTION_ORDER, inActionOrder } from "../src/actions.mjs";
 import { evaluate } from "../src/evaluate.mjs";
 import { member, participation, NOW, EXAMPLE_POLICY } from "./fixture.mjs";
 
@@ -193,4 +194,24 @@ test("welcome detail uses fresh career evidence, explicit return evidence, and n
   });
   assert.ok(long.length <= 120);
   assert.doesNotMatch(long, /&|-/);
+});
+
+test("Actions' order is one order: by kind, then number, unnumbered after, then oldest", () => {
+  const card = (type, number, raised_at) => ({ type, number, raised_at });
+  const order = (cards) => inActionOrder(cards).map((c) => [c.type, c.number]);
+  const [first, second] = ACTION_ORDER;
+  assert.deepEqual(
+    order([
+      card(second, 1, "2026-01-01"),
+      card(first, null, "2026-01-01"),
+      card(first, 9, "2026-01-02"),
+      card(first, 3, "2026-01-03"),
+    ]),
+    [
+      [first, 3],
+      [first, 9],
+      [first, null],
+      [second, 1],
+    ],
+  );
 });

@@ -128,6 +128,23 @@ export const useMyClans = () => {
   });
 };
 
+/** Home's reads. Under ["me"], so a change to what you track refetches them. */
+export const useHome = () =>
+  useQuery({ queryKey: ["me", "home"], queryFn: payload(api.home) });
+
+export const useHomeWeek = (mode) =>
+  useQuery({
+    queryKey: ["me", "home", "week", mode],
+    queryFn: payload(() => api.homeWeek(mode)),
+    enabled: Boolean(mode),
+  });
+
+export const useHomeFriends = () =>
+  useQuery({
+    queryKey: ["me", "home", "friends"],
+    queryFn: payload(api.homeFriends),
+  });
+
 export const useBattleActivity = (tag) =>
   useQuery({
     queryKey: keys.activity(tag),

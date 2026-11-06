@@ -260,6 +260,39 @@ export function dayAt(
   return `${p.weekday} ${p.month} ${p.day}${year}`;
 }
 
+const LONG_DAY: Record<string, string> = {
+  Sun: "Sunday",
+  Mon: "Monday",
+  Tue: "Tuesday",
+  Wed: "Wednesday",
+  Thu: "Thursday",
+  Fri: "Friday",
+  Sat: "Saturday",
+};
+const LONG_MONTH: Record<string, string> = {
+  Jan: "January",
+  Feb: "February",
+  Mar: "March",
+  Apr: "April",
+  May: "May",
+  Jun: "June",
+  Jul: "July",
+  Aug: "August",
+  Sep: "September",
+  Oct: "October",
+  Nov: "November",
+  Dec: "December",
+};
+
+/** A day as a heading: "Friday, November 6", the reader's day. "—" for no
+ *  instant. */
+export function dayHeadingAt(ts: Instant, zone?: string | null): string {
+  const p = readerParts(ts, zone);
+  if (!p) return "—";
+  const { weekday = "", month = "", day = "" } = p;
+  return `${LONG_DAY[weekday] ?? weekday}, ${LONG_MONTH[month] ?? month} ${day}`;
+}
+
 /** A date with no instant behind it ("2026-10-23", a Monday, a hold's
  *  last day) as "Fri Oct 23": read as the calendar date it names, in no
  *  zone. "—" for anything else. */

@@ -8,6 +8,7 @@ import {
   Empty,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
+import { ACTION_ORDER as ORDER } from "@elixir-mcp/clan-engine";
 import { keys, useAction, useActions, useInvalidate } from "../lib/queries.js";
 import {
   ActionCard,
@@ -19,18 +20,6 @@ import { TooFew } from "../components/TooFew.jsx";
 import { PageHead } from "../components/PageHead.jsx";
 import { trackEvent } from "../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
-
-const ORDER = [
-  "departure",
-  "removal",
-  "promotion",
-  "demotion",
-  "awards_announcement",
-  "awards_standings",
-  "rules_announcement",
-  "welcome",
-  "away",
-];
 
 const LEADERS = new Set(["leader", "coLeader"]);
 

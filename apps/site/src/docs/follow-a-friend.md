@@ -28,6 +28,10 @@ In the console:
    Open the player from the Tracking table, and under **How you track
    it** set **Relationship** to **friend**.
 
+Or from the new Home: **Friends ▸ Follow a friend** takes the tag and adds
+the player as a friend in one step. It asks for your own player first if you
+have none, and never makes the player your primary. They aren't told.
+
 Through a [connected app](/docs/connections), `elixir_track_player` takes a `relationship`, so
 "track #TAG as a friend" adds the player as a friend in one call. The
 relationship is set when the player is added: for a player already on

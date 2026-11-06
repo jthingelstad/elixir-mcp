@@ -96,6 +96,7 @@ function Across({ me, clans }) {
         {home?.name ?? "Your clan"} ›
       </Link>
       <Link to={`${CONSOLE}/account/tracking`}>Manage tracking ›</Link>
+      <Link to="/home">Try the new Home ›</Link>
     </nav>
   );
 }

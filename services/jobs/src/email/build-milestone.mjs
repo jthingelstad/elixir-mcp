@@ -8,28 +8,12 @@
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
 import { battleLinks } from "@elixir-mcp/record/battle-links";
 import { formLabel, itemText } from "@elixir-mcp/tools/activity/summary";
+import { MILESTONE_MAIL_KINDS } from "@elixir-mcp/tools/friends-week";
 import { digest, windowItems } from "./digest.mjs";
 import { myPlayers } from "./shared.mjs";
 import { whenLabel } from "./week.mjs";
 
-/** The big firsts, the only moments that mail when they happen (Jamie,
- *  2026-10-08: "Agree with recommendation"): a new arena or league, a
- *  new best trophy band, a new Evolution or Hero form, the career
- *  milestones, career wins and Collection Level steps, and a legendary
- *  badge (Jamie, 2026-10-08: "Approved: legendary badges send immediate
- *  milestone mail"). Card unlocks and badge levels (card_unlocked,
- *  badge_earned) never mail on their own: the Tuesday Arena week counts
- *  them (progressOf). Three weeks of a beta inbox held about forty
- *  milestone mails, mostly an alt's card unlocks and badge levels. */
-export const MILESTONE_MAIL_KINDS = new Set([
-  "arena_changed",
-  "ranked_promotion",
-  "best_trophies_band",
-  "card_form_unlocked",
-  "career_wins_step",
-  "collection_level_step",
-  "legendary_badge_earned",
-]);
+export { MILESTONE_MAIL_KINDS };
 
 const KINDS = MILESTONE_MAIL_KINDS;
 

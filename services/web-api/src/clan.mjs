@@ -457,7 +457,7 @@ export function createClanRequest({
     // Their only shared metadata write is an atomic, monotonic observation.
     const pureView =
       method === "GET" &&
-      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|season|me|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
+      /^\/api\/clan\/clans\/[0-9A-Za-z]{3,12}\/(?:week|season|me|home|members\/[0-9A-Za-z]{3,12}\/activity)$/.test(
         path,
       );
     const lock =

@@ -55,6 +55,13 @@ behaviour is in `apps/site/src/docs/`, not here.
   `/api` proxy (port 4319) has nothing behind it. A signed-in check against
   the real door waits for the deploy.
 
+## Home and the shell
+
+`src/home/` is Home (`/home`, `/home/timeline`, `/home/friends`), and
+`src/shell/Shell.jsx` is its top bar, bottom tabs and footer. Until step 3b of
+the redesign only Home wears that shell. Its rules are in
+`docs/product/home.md`; its reads are `services/web-api/src/routes/home.mjs`.
+
 ## The Console's sections
 
 `src/views/` holds the pages, `src/views/account/` the Account and agent

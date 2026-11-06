@@ -140,6 +140,12 @@ export const api = {
   answerFeedback: (body) => request("POST", "/api/admin/feedback", body),
   activity: (agent) => request("GET", `${home(agent)}/activity`),
   connections: (agent) => request("GET", `${home(agent)}/connections`),
+  // Home's one read (redesign step 3a): every panel of Today in one request,
+  // each answering for itself.
+  home: () => request("GET", "/api/me/home"),
+  homeWeek: (mode) =>
+    request("GET", `/api/me/home/week?mode=${encodeURIComponent(mode)}`),
+  homeFriends: () => request("GET", "/api/me/home/friends"),
   firstAnswer: (playerTag) =>
     request(
       "GET",
