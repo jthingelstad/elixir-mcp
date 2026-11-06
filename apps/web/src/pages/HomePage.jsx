@@ -1,8 +1,13 @@
 import { useLocation } from "@tanstack/react-router";
 import { PageHead, Tabs, TagText } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
-import { useHome, useHomeFriends, useTimelineNews } from "../lib/queries.js";
-import { HOME_TABS } from "../home/logic.js";
+import {
+  useHome,
+  useHomeClan,
+  useHomeFriends,
+  useTimelineNews,
+} from "../lib/queries.js";
+import { HOME_TABS, panelOf } from "../home/logic.js";
 import { NewAccount, recorded } from "../home/NewAccount.jsx";
 import { TodayError, TodayFresh, TodayPanels } from "../home/Today.jsx";
 import { HomeTimeline } from "../home/Timeline.jsx";
@@ -44,6 +49,9 @@ function TodayTab() {
   const data = query.data;
   const player = data?.first?.player ?? null;
   const ready = player && recorded(player);
+  // The head's clan name comes when the panel's read does; no read at all for
+  // a new account, whose page has no panels.
+  const clan = panelOf(useHomeClan(Boolean(ready)), "clan");
   if (query.isError || data?.first?.ok === false)
     return (
       <>
@@ -70,14 +78,16 @@ function TodayTab() {
         <NewAccount first={data.first} zoneMissing={!me?.timezone} />
       </>
     );
-  const clanName = data.clan?.ok ? data.clan.name : null;
+  const clanName = clan?.ok ? clan.name : null;
   return (
     <>
       <PageHead
         title="Today"
         sub={
           <>
-            <TagText>{player.name ?? player.player_tag}</TagText>
+            <TagText>
+              {player.nickname ?? player.name ?? player.player_tag}
+            </TagText>
             {clanName ? (
               <>
                 {" · "}
@@ -89,7 +99,7 @@ function TodayTab() {
         aside={<TodayFresh player={player} />}
       />
       <HomeTabs value="today" />
-      <TodayPanels data={data} me={me} player={player} />
+      <TodayPanels first={data.first} me={me} player={player} />
     </>
   );
 }

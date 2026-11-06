@@ -595,7 +595,7 @@ export function makeHandler({
             if (!agent) return json(404, { error: "not_found" });
             event.scopedAccount = agent;
           }
-          return route(db, event, body);
+          return route(db, event, body, context);
         },
         () => {
           timedOut = true;

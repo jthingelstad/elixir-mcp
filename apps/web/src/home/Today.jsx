@@ -18,40 +18,52 @@ import { api } from "../api.js";
 import { ladderHref } from "../ladder/ladder.js";
 import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
-import { useHomeWeek, useInvalidate } from "../lib/queries.js";
+import {
+  useHomeClan,
+  useHomeLatest,
+  useHomeWeek,
+  useInvalidate,
+} from "../lib/queries.js";
 import {
   LEADS,
   STANDING,
   lastRaceLine,
   modeWord,
   needsYou,
+  panelOf,
   weekChips,
 } from "./logic.js";
 
 const DASH = "–";
 
-/** Home › Today's panels, in the order they read. Each draws its own answer
- *  from the one read; a panel that failed says so, the rest render. */
-export function TodayPanels({ data, me, player }) {
+/** Home › Today's panels, in the order they read. Each reads for itself and
+ *  draws its own loading state; a panel that failed says so, the rest render.
+ *  Needs you comes from the clan read and takes no room until it has something
+ *  to say, so when it comes late it opens rather than jumps. */
+export function TodayPanels({ first, me, player }) {
   const clock = useClock();
-  const { rows, more } = needsYou({
-    clan: data.clan,
-    signals: me?.signals,
-    clock,
-  });
-  const unlock = data.clan?.ok ? data.clan.unlock : null;
+  const clan = panelOf(useHomeClan(), "clan");
+  const [late] = useState(clan === undefined);
+  const { rows, more } = needsYou({ clan, signals: me?.signals, clock });
+  const unlock = clan?.ok ? clan.unlock : null;
   return (
     <div className="kit-home">
-      {unlock ? <Unlock player={player} /> : null}
-      {rows.length > 0 ? <NeedsYou rows={rows} more={more} /> : null}
+      {unlock || rows.length > 0 ? (
+        <div className={`kit-home__top${late ? " kit-home__top--late" : ""}`}>
+          <div className="kit-home__top-in">
+            {unlock ? <Unlock player={player} /> : null}
+            {rows.length > 0 ? <NeedsYou rows={rows} more={more} /> : null}
+          </div>
+        </div>
+      ) : null}
       <div className="kit-home__two">
-        <YourWeek initial={data.week} player={player} />
+        <YourWeek player={player} />
         <div className="kit-home__side">
-          <ClanPanel clan={data.clan} player={player} />
-          <Latest latest={data.latest} />
+          <ClanPanel clan={clan} player={player} />
+          <Latest />
         </div>
       </div>
-      <SetupDetails first={data.first} clan={data.clan} player={player} />
+      <SetupDetails first={first} clan={clan} player={player} />
     </div>
   );
 }
@@ -92,12 +104,13 @@ function NeedsYou({ rows, more }) {
 
 const signedRecord = (r) => `${r.wins}${DASH}${r.losses}`;
 
-function YourWeek({ initial, player }) {
+function YourWeek({ player }) {
   const { when, clock } = useClock();
   const [chosen, setChosen] = useState(null);
-  const asked = useHomeWeek(chosen);
-  const week = chosen ? asked.data?.week : initial;
-  const failed = chosen ? asked.isError || week?.ok === false : !initial?.ok;
+  const initial = panelOf(useHomeWeek(null), "week");
+  const asked = panelOf(useHomeWeek(chosen, Boolean(chosen)), "week");
+  const week = chosen ? asked : initial;
+  const failed = week?.ok === false;
   const modes = week?.modes ?? initial?.modes ?? {};
   const open = chosen ?? week?.mode ?? "ladder";
   const link = ladderHref("season", { player: player.player_tag, mode: open });
@@ -111,7 +124,8 @@ function YourWeek({ initial, player }) {
       <Chips
         label="Mode"
         options={weekChips(modes)}
-        value={open}
+        // No chip lit until the week says which mode it opens on.
+        value={chosen ?? (initial === undefined ? null : open)}
         onChange={setChosen}
       />
       {failed ? (
@@ -186,7 +200,13 @@ function trophyNote(net, player, clock) {
 
 function ClanPanel({ clan, player }) {
   const invalidate = useInvalidate();
-  if (!clan?.ok)
+  if (clan === undefined)
+    return (
+      <Panel title="Your clan" pad>
+        <div className="kit-skeleton" aria-busy="true" />
+      </Panel>
+    );
+  if (!clan.ok)
     return (
       <Panel title="Your clan" pad>
         <p className="kit-week__quiet" role="alert">
@@ -196,7 +216,7 @@ function ClanPanel({ clan, player }) {
         <button
           type="button"
           className="btn btn--sm"
-          onClick={() => invalidate(["me", "home"])}
+          onClick={() => invalidate(["me", "home", "clan"])}
         >
           Try again
         </button>
@@ -292,12 +312,15 @@ function TrackClan({ clan }) {
   );
 }
 
-function Latest({ latest }) {
+function Latest() {
   const { when } = useClock();
+  const latest = panelOf(useHomeLatest(), "latest");
   const items = latest?.items ?? [];
   return (
     <Panel title="Latest" action={<Link to="/home/timeline">All of it</Link>}>
-      {!latest?.ok ? (
+      {latest === undefined ? (
+        <div className="kit-skeleton" aria-busy="true" />
+      ) : !latest.ok ? (
         <p className="kit-week__quiet" role="alert">
           The timeline could not be read just now. Try again shortly.
         </p>
@@ -359,9 +382,11 @@ function SetupDetails({ first, clan, player }) {
           right={
             tracked?.name
               ? `${tracked.name}${tracked.war_weeks ? `, ${tracked.war_weeks} race ${tracked.war_weeks === 1 ? "week" : "weeks"}` : ""}`
-              : clan?.ok && clan.state === "none"
-                ? "None right now"
-                : "Not tracked yet"
+              : clan === undefined
+                ? null
+                : clan.ok && clan.state === "none"
+                  ? "None right now"
+                  : "Not tracked yet"
           }
         />
         <Row

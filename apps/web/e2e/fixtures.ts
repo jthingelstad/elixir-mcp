@@ -107,7 +107,7 @@ export function signedIn(
   return {
     "GET /api/me": [200, ME],
     "GET /api/me/first-answer": [200, {}],
-    // Home's one read, as a new account answers it; home-fixture.ts has a full one.
+    // Home's head, as a new account answers it; home-fixture.ts has a full one.
     "GET /api/me/home": [
       200,
       {

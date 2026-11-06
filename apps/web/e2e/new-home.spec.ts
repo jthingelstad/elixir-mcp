@@ -55,7 +55,7 @@ for (const [label, width] of [
       await mockApi(
         page,
         homeApi({
-          "GET /api/me/home": [200, { ...HOME, clan: { ok: false } }],
+          "GET /api/me/home/clan": [200, { clan: { ok: false } }],
         }),
       );
       await page.goto("/home");
@@ -67,6 +67,67 @@ for (const [label, width] of [
       ).toBeVisible();
       await expect(page.getByText("23–14")).toBeVisible();
       await expect(page.locator(".kit-needs")).toHaveCount(0);
+      await noSideways(page);
+    });
+
+    test("Today: a panel's request that fails is that panel's alone", async ({
+      page,
+    }) => {
+      await mockApi(
+        page,
+        homeApi({
+          "GET /api/me/home/week": [504, { error: "timeout" }],
+          "GET /api/me/home/latest": [500, { error: "boom" }],
+        }),
+      );
+      await page.goto("/home");
+      await expect(
+        page.getByText("Your week could not be read just now."),
+      ).toBeVisible();
+      await expect(
+        page.getByText("The timeline could not be read just now."),
+      ).toBeVisible();
+      await expect(
+        page.getByText("Season 137, week 4: 2nd, 84,200 fame"),
+      ).toBeVisible();
+      await expect(page.locator(".kit-needs")).toBeVisible();
+      await noSideways(page);
+    });
+
+    test("Today: paints before a slow panel, which then fills in alone", async ({
+      page,
+    }) => {
+      // Each panel is held until its turn is released, so nothing here hangs
+      // on a clock.
+      const held = new Map<string, () => void>();
+      await mockApi(page, homeApi());
+      const hold = (path: string, body: unknown) =>
+        page.route(`**${path}`, async (route) => {
+          await new Promise<void>((go) => held.set(path, go));
+          await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify(body),
+          });
+        });
+      await hold("/api/me/home/clan", { clan: HOME.clan });
+      await hold("/api/me/home/week", { week: HOME.week });
+      await page.goto("/home");
+      await expect(
+        page.locator(".kit-head").getByText("King Thing"),
+      ).toBeVisible();
+      await expect(page.getByText("Crossed 9,400 trophies.")).toBeVisible();
+      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(2);
+      await expect(page.locator(".kit-needs")).toHaveCount(0);
+      await expect(page.getByRole("alert")).toHaveCount(0);
+      await expect.poll(() => held.size).toBe(2);
+      held.get("/api/me/home/clan")!();
+      await expect(page.locator(".kit-needs")).toBeVisible();
+      await expect(page.getByText("Ada's Clan").first()).toBeVisible();
+      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(1);
+      held.get("/api/me/home/week")!();
+      await expect(page.getByText("23–14")).toBeVisible();
+      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(0);
       await noSideways(page);
     });
 
@@ -148,7 +209,14 @@ test("Friends: a read that failed says so", async ({ page }) => {
   expect(FRIENDS.friends.length).toBe(1);
 });
 
-test("a new account gets the steps, not Today", async ({ page }) => {
+test("a new account gets the steps, not Today, and reads no panel", async ({
+  page,
+}) => {
+  const panels: string[] = [];
+  page.on("request", (req) => {
+    if (/\/api\/me\/home\/(clan|week|latest)/.test(req.url()))
+      panels.push(req.url());
+  });
   await mockApi(
     page,
     homeApi({
@@ -160,6 +228,28 @@ test("a new account gets the steps, not Today", async ({ page }) => {
     page.getByRole("heading", { name: "Welcome to Elixir" }),
   ).toBeVisible();
   await expect(page.getByLabel("Your player tag")).toBeVisible();
+  expect(panels).toEqual([]);
+});
+
+test("the head leads with your nickname, as Ladder and Friends do", async ({
+  page,
+}) => {
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me/home": [
+        200,
+        {
+          first: {
+            ...HOME.first,
+            player: { ...HOME.first.player, nickname: "Sam" },
+          },
+        },
+      ],
+    }),
+  );
+  await page.goto("/home");
+  await expect(page.locator(".kit-head").getByText("Sam")).toBeVisible();
 });
 
 test("signed out, /home is the wall and remembers where it was", async ({

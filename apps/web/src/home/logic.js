@@ -12,6 +12,12 @@ export const HOME_TABS = [
 
 export const LEADS = new Set(["leader", "coLeader"]);
 
+/** A panel's answer from its own request: what it said, or that it could not
+ *  be read, in one shape whichever of the two failed. Undefined while it is
+ *  first reading. An answer in hand outlives a refetch that fails. */
+export const panelOf = (query, key) =>
+  query.data?.[key] ?? (query.isError ? { ok: false } : undefined);
+
 const MODE_WORDS = {
   ladder: "Trophy Road",
   ranked: "Path of Legends",
