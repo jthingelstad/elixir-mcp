@@ -8255,6 +8255,12 @@ button.kit-row {
   gap: 8px;
   margin-top: 8px;
 }
+/* The Send button is a .btn, whose display beats the browser's own [hidden]
+   rule, so it stayed on screen after a note was sent. */
+.kit-help [hidden] {
+  display: none;
+}
+
 .kit-help form {
   display: flex;
   flex-direction: column;

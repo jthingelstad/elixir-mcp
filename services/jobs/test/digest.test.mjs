@@ -72,7 +72,7 @@ const GOLDEN = {
         crowns_against: 1,
         opponent: {
           tag: "#2PGQ8Y0L",
-          name: "SparkSanji",
+          name: "Sandy Lemur",
           starting_trophies: 5012,
         },
         trophy_change: 30,

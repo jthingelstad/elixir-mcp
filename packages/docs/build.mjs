@@ -16,6 +16,7 @@
 import { readFileSync, readdirSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { slugOf } from "./src/slug.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const site = path.resolve(here, "../../apps/site/src");
@@ -68,20 +69,6 @@ function sections(md) {
   }
   return out.map((s) => ({ ...s, markdown: s.markdown.trim() }));
 }
-/** GitHub-style heading slugs, the shape the code's docs pointers use
- *  (docsRef("recording", "the-games-own-last-seen")): lower-case, inline
- *  markup and quotation stripped, every other non-alphanumeric run a
- *  single hyphen, trimmed. The site's renderer (apps/site/eleventy.config.mjs)
- *  is the same on every heading without punctuation; keep H2 titles free
- *  of apostrophes and quotes and the two never disagree. */
-const slugOf = (text) =>
-  text
-    .toLowerCase()
-    .replace(/<[^>]+>/g, "")
-    .replace(/[`*_'"\u2018\u2019\u201c\u201d]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
 /** Front matter as a flat object; the body as Markdown. */
 function parse(md) {
   const m = /^---\n([\s\S]*?)\n---\n/.exec(md);

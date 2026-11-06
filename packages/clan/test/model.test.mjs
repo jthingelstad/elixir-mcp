@@ -520,13 +520,13 @@ test("model: a leader drafts an open action's Leader Message with what Elixir kn
     model: request.model,
     input: {
       title: "New Elder",
-      body: "Secretname beat Jotaro with 4,100 points.",
+      body: "Secretname beat Stoatling with 4,100 points.",
     },
   });
   const flagged = await api(h, c, "POST", path, {});
   assert.equal(flagged.status, 200, JSON.stringify(flagged.body));
   assert.match(flagged.body.warnings.join(" "), /4,100 is not in anything/);
-  assert.match(flagged.body.warnings.join(" "), /Jotaro is not a name/);
+  assert.match(flagged.body.warnings.join(" "), /Stoatling is not a name/);
   // In clan chat a promotion is lines, up to three, each its own send.
   h.anthropic.state.write = (key, request) => ({
     ok: true,

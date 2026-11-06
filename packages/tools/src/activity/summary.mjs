@@ -243,7 +243,7 @@ export function clanSummaryParts(e, timeZone = "UTC") {
   // What a capped list left out, said (Gym #303: "back:" named 3 of 12
   // returns with no +N and read as complete): the items past the cut
   // plus the ones the list itself already counted as more. "more", so it
-  // never reads as a number of the last name's (#376: "dez42 ... +1").
+  // never reads as a number of the last name's (#376: "Ember Toad ... +1").
   const rest = (list, shown) => {
     const n =
       Math.max(0, (list?.items?.length ?? 0) - shown) + (list?.more ?? 0);
@@ -331,7 +331,7 @@ export function clanSummaryParts(e, timeZone = "UTC") {
   return parts;
 }
 
-/** ", on a 3-0 win over Jotaro (5,976), +30 to 6,000" - the battle a
+/** ", on a 3-0 win over Stoatling (5,976), +30 to 6,000" - the battle a
  *  moment names (promoted_by / crossed_by), or nothing when the record did
  *  not hold the crossing. A 2v2 names the pair. */
 const rated = (o) =>

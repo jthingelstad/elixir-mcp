@@ -641,7 +641,7 @@ test("a card that names a deck never anchors over a win condition, and named_by 
 });
 
 test("secondary_win_conditions carries what the label leaves out", () => {
-  // Tyler's ranked deck: Miner anchors; Goblin Barrel (no bait unit
+  // Sam's ranked deck: Miner anchors; Goblin Barrel (no bait unit
   // beside it) and Boss Bandit are the secondaries, by tier.
   const a = classifyDeck(
     deck([

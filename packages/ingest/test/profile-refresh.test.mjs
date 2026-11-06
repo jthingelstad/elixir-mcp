@@ -2,7 +2,7 @@
  * 0101: the battle stream asks for a profile the snapshot cannot vouch
  * for, and a moment is written once.
  *
- * The shape is x.x.hari.x.x's morning of 2026-09-15: a 06:07Z profile in
+ * The shape is Tidy Gibbon's morning of 2026-09-15: a 06:07Z profile in
  * Executioner's Kitchen, the crossing at 06:46Z, a first Royal Crypt battle
  * as the LOWER side at 06:52Z (which vouches for nothing: the arena on a
  * battle is the higher side's), a trusted Royal Crypt battle at 08:11Z,
@@ -217,7 +217,7 @@ test("a profile in the old arena, then a log whose only new-arena battle was as 
           mine: 5970,
           theirs: 5976,
           opponent: "#0PP0000L",
-          name: "Jotaro",
+          name: "Stoatling",
           result: [3, 0, 30],
         }),
         ladder({
@@ -360,7 +360,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
       type: "PvP",
       opponent: {
         player_tag: "#0PP0000L",
-        name: "Jotaro",
+        name: "Stoatling",
         starting_trophies: 5976,
       },
       crowns: 3,
@@ -381,7 +381,7 @@ test("the first trusted battle in the new arena asks for the profile once; the p
   assert.equal(best[0].payload.best, 6030);
   assert.equal(best[0].payload.band, 6000);
   assert.equal(best[0].payload.crossed_by.battle_time, at("06:46:32.000"));
-  assert.equal(best[0].payload.crossed_by.opponent.name, "Jotaro");
+  assert.equal(best[0].payload.crossed_by.opponent.name, "Stoatling");
   assert.equal(best[0].timing, "exact");
 
   // Career wins 10,998 -> 11,001: three wins in the window (06:39, 06:46,
@@ -411,13 +411,13 @@ test("a ranked promotion names the last win stamped with the old league; a loss 
     });
   };
   await processResult(ctx.db, profileFor(1, at("01:00:00")));
-  // TDuck's shape: wins and losses in league 1, the promoting win at 04:34
+  // Silver Thrush's shape: wins and losses in league 1, the promoting win at 04:34
   // stamped 1, the battles after it stamped 2.
   const pol = (hhmmss, league, opponent, result, name) =>
     ranked({ at: logAt(hhmmss), league, tag: RANKER, opponent, name, result });
   const log = [
     pol("050501", 2, "#0PP0000L", [0, 1, null]),
-    pol("043450", 1, "#0PP0000U", [1, 0, 30], "XTRAXTOR"),
+    pol("043450", 1, "#0PP0000U", [1, 0, 30], "Fern Vole"),
     pol("043137", 1, "#0PP0000R", [0, 1, null]),
     pol("042240", 1, "#0PP00000", [3, 0, 30]),
   ];
@@ -442,7 +442,7 @@ test("a ranked promotion names the last win stamped with the old league; a loss 
   assert.equal(rows[0].occurred_at.toISOString(), at("04:34:50.000"));
   assert.equal(rows[0].payload.from, 1);
   assert.equal(rows[0].payload.to, 2);
-  assert.equal(rows[0].payload.promoted_by.opponent.name, "XTRAXTOR");
+  assert.equal(rows[0].payload.promoted_by.opponent.name, "Fern Vole");
   assert.equal(rows[0].payload.promoted_by.crowns, 1);
   assert.equal(rows[0].payload.promoted_by.trophy_change, 30);
   assert.equal(

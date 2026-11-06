@@ -120,3 +120,28 @@ test("a missing card-art cache keeps catalog facts readable", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Knight");
   await accessible(page, "missing art fallback");
 });
+
+test("a search that finds nothing says so, and Clear filters brings the list back", async ({
+  page,
+}) => {
+  await page.goto("/cards");
+  const all = await names(page);
+  expect(all.length).toBeGreaterThan(0);
+  const none = page.locator("[data-cards-none]");
+  await expect(none).toBeHidden();
+
+  await page
+    .getByRole("searchbox", { name: "Find a card" })
+    .fill("no card is called this");
+  await expect(
+    page.getByRole("heading", { name: "No cards match" }),
+  ).toBeVisible();
+  expect(await names(page)).toEqual([]);
+
+  await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(none).toBeHidden();
+  await expect(
+    page.getByRole("searchbox", { name: "Find a card" }),
+  ).toHaveValue("");
+  expect(await names(page)).toEqual(all);
+});

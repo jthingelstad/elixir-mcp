@@ -19,9 +19,9 @@ the docs take the three groups and step 1's words.
 - **Static pages.** Search goes to `/home?search`, which opens the sheet. Help is
   a `<dialog>` in `base.njk` that posts to `/api/feedback` with the page attached,
   the same route as the app's drawer. Signed out neither shows.
-- **404.** `assets/not-found.js` sends the bare root paths past mail carries
-  (`/account/*`, `/explore/*`, `/admin`) on under `/console`, keeping query and
-  hash; the app's map takes them the rest of the way. Everything else stays a 404.
+- **Old root paths stay dead.** `/account/*`, `/explore/*` and `/admin` at the
+  root are plain 404s, deliberately. Jamie ruled on 2026-09-28: "No subdomains,
+  no redirects" for that move.
 - **Fixtures.** Real names in `apps/web/e2e`, `apps/web/test` and
   `packages/ingest/test` are made up now.
 - **`apps/site/test/public-site.test.mjs`** walks every built page's internal links and
@@ -32,3 +32,18 @@ Words kept on purpose [engineering, 2026-11-06]: `observed` where it names a
 fields and jobs; the code value `comprehensive` on Limits.
 
 Ships in MCP 11.18.0; JSON API 3.3.0 unchanged. No migration.
+
+## Follow-up, same day (MCP 11.18.1)
+
+- **Moved sections answer to their old title too.** `movedSection` tries the slug
+  of what it was asked, so `recording` + "Daily series" forwards as
+  `recording#daily-series` does, in `elixir_docs` and `elixir://docs/`. Codex
+  found it on #695.
+- **The static Help drawer's Send stayed on screen after a send**: a `.btn`'s
+  `display` beat `[hidden]`. Found by the new browser test.
+- **Names.** Players in `fixtures/` and `packages/mail/` fixtures, and those named
+  in source comments, tool descriptions and tests, are made-up stand-ins, the same
+  stand-in for the same player. `db/migrations/`, `acceptance/`, dated notes,
+  old Updates and old contract entries keep theirs, as history or because they
+  run against live data. King Thing and POAP KINGS stay: `_data/examples.js`
+  names them as the example player and clan.

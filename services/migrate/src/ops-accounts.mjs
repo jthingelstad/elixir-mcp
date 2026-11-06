@@ -542,7 +542,7 @@ export async function accountEnrollOp(databaseUrl, spec) {
  * is @elixir-mcp/claims' addPlayer, the same act the holder's own "track"
  * click performs (quota, recording start, claim_added event), plus an
  * account_event that says it was ops that did it. Built 2026-09-20 for
- * Jamie adding Tyler's alt; the claim lands unverified exactly as a
+ * Jamie adding Sam's alt; the claim lands unverified exactly as a
  * self-added one would, and the holder can remove it the same way.
  */
 export async function accountTrackOp(databaseUrl, spec) {

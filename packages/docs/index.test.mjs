@@ -16,10 +16,11 @@ test("importing the package does not need the corpus built (the site's build imp
   const dir = await mkdtemp(path.join(tmpdir(), "elixir-docs-"));
   try {
     await mkdir(path.join(dir, "src"));
-    await copyFile(
-      new URL("./src/index.mjs", import.meta.url),
-      path.join(dir, "src/index.mjs"),
-    );
+    for (const file of ["index.mjs", "slug.mjs"])
+      await copyFile(
+        new URL(`./src/${file}`, import.meta.url),
+        path.join(dir, "src", file),
+      );
     const out = execFileSync(
       process.execPath,
       [

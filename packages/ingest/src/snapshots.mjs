@@ -21,7 +21,7 @@ import { playerEventOriginSql } from "@elixir-mcp/record/event-origin";
  * emits nothing. The baseline is the newest row by observed_at, today's
  * included: until 2026-09-15 it was the newest PRIOR day's row, and since
  * today's row is rewritten on every poll, every later poll that day
- * re-diffed against yesterday and re-emitted the same moment (Aaqib Javed
+ * re-diffed against yesterday and re-emitted the same moment (Azure Beaver
  * "promoted to Master 2" at 07:22Z and again at 16:22Z on 2026-09-14).
  */
 
@@ -580,7 +580,7 @@ export const collectionLevelStep = (level) =>
  * reported with no trophyChange at all; a loss just above it is clamped;
  * the top floor, 14,000, ends Trophy Road). So the promotion is the WIN
  * whose result first reaches the floor - checked on six crossings of
- * 6,000 on 2026-09-15, one of them (x.x.hari.x.x, 5,970 +30 against a
+ * 6,000 on 2026-09-15, one of them (Tidy Gibbon, 5,970 +30 against a
  * 5,976 opponent still in the old arena) confirmed by a profile read
  * fourteen minutes later showing the new arena at exactly 6,000. The
  * opponent's own arena is not the condition, though near a gate it is
@@ -594,7 +594,7 @@ export const collectionLevelStep = (level) =>
  * the floor: the first Trophy Road win whose result reaches it.
  *
  * RANKED. A Path of Legends battle carries leagueNumber stamped with the
- * league the player was in when it started (TDuck, 2026-09-15: the
+ * league the player was in when it started (Silver Thrush, 2026-09-15: the
  * promoting win at 04:34Z stamped 1, every battle after it stamped 2).
  * Rating is not on the battle, so the promotion is the last battle in the
  * window stamped with the league below the new one - and it must be a

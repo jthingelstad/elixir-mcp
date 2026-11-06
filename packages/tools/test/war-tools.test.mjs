@@ -1970,7 +1970,7 @@ test("6.15.0: progress_end_banked on the day-by-day, the boat-decks note, and th
     await db.query(`select player_tag from player order by player_tag limit 2`)
   ).rows.map((r) => r.player_tag);
   await db.query(
-    // ryguy67's shape from feedback #89: a week that FINISHED, 8 decks
+    // Quiet Weasel's shape from feedback #89: a week that FINISHED, 8 decks
     // used with a poll seeing 4 on war day 4 (after the day-3 finish),
     // boat_attacks 1. The poll no longer splits the week (2026-09-25).
     `insert into war_participation (clan_tag, season_id, section_index, player_tag, points, decks_used, boat_attacks)

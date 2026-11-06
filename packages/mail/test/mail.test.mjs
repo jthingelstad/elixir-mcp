@@ -426,10 +426,10 @@ test("the friends mail: a clan is a headline and at most three bullets, a month 
   // Quiet a month or more: one line, longest first, no day counts.
   assert.match(
     text,
-    /Quiet for 30 days or more: Lord of Latency[^\n]*, Lucky Red Panda[^\n]*\./,
+    /Quiet for 30 days or more: Lunar Vole[^\n]*, Maple Ibis[^\n]*\./,
   );
   assert.doesNotMatch(text, /169 days/);
-  assert.match(text, /No battle recorded this week: JaxikoLane/);
+  assert.match(text, /No battle recorded this week: Ivory Toad/);
   // The moment ends its own sentence; the mail adds no second stop.
   assert.match(
     text,
@@ -457,7 +457,7 @@ test("the Arena week counts each player's card unlocks and badge levels, and lin
   );
   const text = htmlToText(renderMail("arena_week", facts, links).html);
   assert.match(text, /King Thing[^\n]*: 1 card unlocked, 2 badge levels/);
-  assert.match(text, /thingles[^\n]*: 3 cards unlocked, 1 badge level\b/);
+  assert.match(text, /Spry Kestrel[^\n]*: 3 cards unlocked, 1 badge level\b/);
   assert.match(text, /\/home\/timeline\?utm_source=email/);
   delete facts.progress;
   assert.doesNotMatch(
@@ -767,7 +767,7 @@ test("the battle that did it opens its page, and a stored issue without the link
   );
   // The button opens the player's own season on Ladder: the season the
   // milestone happened in, so an old mail still opens that season.
-  assert.match(html, />Open Big Thing in Ladder</);
+  assert.match(html, />Open Cedar Mole in Ladder</);
   assert.match(
     html,
     /href="https:\/\/elixir\.poapkings\.com\/ladder\?player=VJG0J29QP&amp;season=136&amp;utm_source=email/,
@@ -961,7 +961,7 @@ test("actions waiting: action rows, the app's count of the rest, and one primary
   );
   const one = renderMail(
     "clan_actions_waiting",
-    { ...facts, lines: ["#41 Promote to Elder: God Bless You (new)"] },
+    { ...facts, lines: ["#41 Promote to Elder: Glad Crane (new)"] },
     links,
   ).html;
   assert.match(one, /One action waiting/);

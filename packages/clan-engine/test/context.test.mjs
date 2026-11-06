@@ -299,14 +299,14 @@ test("a timeline item's facts: flattened, capped, never a tag, an id, a link, a 
     url: "https://x.test",
     at: "2026-10-10T01:00:00Z",
     started_at: "2026-10-10T01:00:00Z",
-    best_win: { opponent: { name: "Jotaro", tag: "#J" }, crowns: 3 },
+    best_win: { opponent: { name: "Stoatling", tag: "#J" }, crowns: 3 },
     decks: [1, 2, 3, 4, 5, 6, 7],
     members: [{ name: "Ada", decks_used: 16, fame: 2900 }],
     huge: "x".repeat(500),
   });
   const text = lines.join("\n");
   assert.match(text, /^name: Ada$/m);
-  assert.match(text, /^best_win\.opponent\.name: Jotaro$/m);
+  assert.match(text, /^best_win\.opponent\.name: Stoatling$/m);
   assert.match(text, /^best_win\.crowns: 3$/m);
   assert.match(text, /^season_id: 135$/m, "a season is the moment's");
   assert.match(text, /members\.0\.decks_used: 16|members.*decks_used: 16/);
@@ -316,7 +316,7 @@ test("a timeline item's facts: flattened, capped, never a tag, an id, a link, a 
 
 test("the checks: a number or a proper name the model was not given", () => {
   const packet =
-    "MEMBER: Ada\nTrophies: 10,040\nbest_win.opponent.name: Jotaro\nseason 135 week 4";
+    "MEMBER: Ada\nTrophies: 10,040\nbest_win.opponent.name: Stoatling\nseason 135 week 4";
   assert.deepEqual(
     inventedNumbers("Ada hit 10,040 in S135 week 4!", packet),
     [],
@@ -324,7 +324,7 @@ test("the checks: a number or a proper name the model was not given", () => {
   assert.deepEqual(inventedNumbers("Ada hit 10,400!", packet), [10400]);
   assert.deepEqual(
     unknownNames(
-      "Huge week. Ada beat Jotaro on Monday in the Colosseum.",
+      "Huge week. Ada beat Stoatling on Monday in the Colosseum.",
       packet,
     ),
     [],

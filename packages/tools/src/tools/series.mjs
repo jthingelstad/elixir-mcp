@@ -159,7 +159,7 @@ function crossedReset(byTag, metrics) {
 
 /** What a weekly counter added across a series: each rise between reads,
  *  and after a drop (the reset) the new reading from zero. Last minus
- *  first read a reset as a loss (Gym #305: Vijay -169 in a week he gave
+ *  first read a reset as a loss (Gym #305: Tawny Toad -169 in a week they gave
  *  1,256). A floor: what was given after the last read before a reset
  *  is not in it. */
 function counterRise(points, k) {

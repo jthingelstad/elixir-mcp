@@ -615,7 +615,7 @@ test("the battle that did it links its page, the short id battles_query hands ou
   const OPP = "#2PGQ8Y0L";
   const id = await person("arena", TAG, "2026-09-01T00:00:00Z", null);
   await db.query(
-    `insert into player (player_tag, name) values ($1, 'SparkSanji')`,
+    `insert into player (player_tag, name) values ($1, 'Sandy Lemur')`,
     [OPP],
   );
   const BATTLE = `aad68079b0fa${"0".repeat(52)}`;
@@ -652,7 +652,7 @@ test("the battle that did it links its page, the short id battles_query hands ou
   assert.equal(r.sent, 1, JSON.stringify(r));
   const { html } = out[0];
   assert.match(html, /The battle that did it/);
-  assert.match(html, /SparkSanji/);
+  assert.match(html, /Sandy Lemur/);
   assert.match(
     html,
     /href="https:\/\/elixir\.poapkings\.com\/battle\/aad68079b0fa\?[^"]*"[^>]*>See the battle ›/,

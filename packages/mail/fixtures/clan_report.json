@@ -20,7 +20,7 @@
   "donations": 8308,
   "donations_leader": {
    "tag": "#C920YGLC2",
-   "name": "Vijay",
+   "name": "Tawny Toad",
    "n": 1195
   }
  },
@@ -47,28 +47,28 @@
    },
    {
     "tag": "#Q2R8L0PY",
-    "name": "Happy Win",
+    "name": "Hazel Finch",
     "rank": 2,
     "fame": 3678,
     "finished": false
    },
    {
     "tag": "#9YJ2QL8C",
-    "name": "Legend Royale",
+    "name": "Lively Lemur",
     "rank": 3,
     "fame": 1800,
     "finished": false
    },
    {
     "tag": "#2PQ9U0LY",
-    "name": "Les champs",
+    "name": "Lively Puffin",
     "rank": 4,
     "fame": 0,
     "finished": false
    },
    {
     "tag": "#YV0R8QG2",
-    "name": "De stichting",
+    "name": "Early Marten",
     "rank": 5,
     "fame": 0,
     "finished": false
@@ -77,31 +77,31 @@
   "raced": [
    {
     "tag": "#2LJ0PU8P",
-    "name": "dez42",
+    "name": "Ember Toad",
     "points": 2400,
     "decks": 15
    },
    {
     "tag": "#8YLUQ8JQ",
-    "name": "sikander sidhu",
+    "name": "Sage Ferret",
     "points": 2350,
     "decks": 16
    },
    {
     "tag": "#QQ2L0V2Y",
-    "name": "Sandeep",
+    "name": "Rapid Robin",
     "points": 2200,
     "decks": 13
    },
    {
     "tag": "#2G2RPVPP",
-    "name": "Aaqib Javed",
+    "name": "Azure Beaver",
     "points": 2150,
     "decks": 13
    },
    {
     "tag": "#9C8G2LYQ",
-    "name": "God Bless You",
+    "name": "Glad Crane",
     "points": 2100,
     "decks": 16
    },
@@ -219,14 +219,14 @@
   "joined": [
    {
     "tag": "#P8URQGR2U",
-    "name": "alex",
+    "name": "Bold Shrew",
     "at": "2026-09-23T22:23:00Z",
     "role": "member",
     "note": "left again inside the week"
    },
    {
     "tag": "#Y2V9G8LQ",
-    "name": "Gem",
+    "name": "Gentle Linnet",
     "at": "2026-09-23T17:38:00Z",
     "role": "member",
     "note": null
@@ -235,25 +235,25 @@
   "left": [
    {
     "tag": "#RRU9PGJQ9",
-    "name": "Brotherinpants",
+    "name": "Coral Otter",
     "at": "2026-09-26T03:13:00Z",
     "role": "member"
    },
    {
     "tag": "#20G0JGQLPL",
-    "name": "alex",
+    "name": "Bold Shrew",
     "at": "2026-09-26T03:13:00Z",
     "role": "member"
    },
    {
     "tag": "#20CLVPLG8R",
-    "name": "VVSBUDGET",
+    "name": "Teal Gecko",
     "at": "2026-09-25T22:23:00Z",
     "role": "member"
    },
    {
     "tag": "#20R8QRLYLP",
-    "name": "Chanco",
+    "name": "Crisp Marten",
     "at": "2026-09-25T15:38:00Z",
     "role": "elder"
    }
@@ -265,24 +265,24 @@
  "week_moves": {
   "top_battler": {
    "tag": "#C920YGLC2",
-   "name": "Vijay",
+   "name": "Tawny Toad",
    "battles": 355
   },
   "ranked": {
    "items": [
     {
      "tag": "#2Y9QJ8L0",
-     "name": "TDuck",
+     "name": "Silver Thrush",
      "to": "Master 3"
     },
     {
      "tag": "#2LJ0PU8P",
-     "name": "dez42",
+     "name": "Ember Toad",
      "to": "Master 3"
     },
     {
      "tag": "#RJ9RRQPVU",
-     "name": "OllieTurtle",
+     "name": "Onyx Ocelot",
      "to": "Grand Champion"
     }
    ],
@@ -296,17 +296,17 @@
    "items": [
     {
      "tag": "#8QGL2V9Y",
-     "name": "Alfablack",
+     "name": "Bold Vole",
      "best": 12504
     },
     {
      "tag": "#2C0Y9QPL",
-     "name": "Mega Goblin",
+     "name": "Misty Pelican",
      "best": 9523
     },
     {
      "tag": "#JRVV9VC0C",
-     "name": "NOBITA",
+     "name": "Oak Vole",
      "best": 9014
     }
    ],

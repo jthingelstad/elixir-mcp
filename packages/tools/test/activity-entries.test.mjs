@@ -139,7 +139,7 @@ test("a player entry is a diff of state plus the battles the record learned", as
     ),
     "13000 -> 13772 crosses a 500 band",
   );
-  assert.match(e.summary, /sikander sidhu/);
+  assert.match(e.summary, /Sage Ferret/);
   assert.match(e.summary, /13,000 → 13,621/);
   assert.match(e.summary, /new best 13,772/);
   assert.doesNotMatch(

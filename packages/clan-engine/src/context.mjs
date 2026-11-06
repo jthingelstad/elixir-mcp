@@ -284,7 +284,7 @@ function welcomeFact(w) {
 }
 
 /** A timeline item's facts as labelled lines: nested values flattened to
- *  a path ("best_win.opponent.name: Jotaro"), never a tag, an id, an
+ *  a path ("best_win.opponent.name: Stoatling"), never a tag, an id, an
  *  address or a time, at most five of a list, never fame per member. */
 export function itemFactLines(facts, { max = 40 } = {}) {
   const out = [];
@@ -799,7 +799,7 @@ const COMMON = new Set(
  * Proper names a text uses that its packet does not: a capitalised word
  * (not the first of a sentence) that appears nowhere in the packet, the
  * leader's note included, and is not the game's own vocabulary. A
- * renamed opponent ("Jotaro" written "Jotarro") or an invented one is
+ * renamed opponent ("Stoatling" written "Stoatlings") or an invented one is
  * caught; a name written in lower case is not, which the exact-name
  * check covers for the names a line must keep.
  */

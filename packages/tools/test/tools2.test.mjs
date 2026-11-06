@@ -1217,21 +1217,21 @@ test("battles_query addressing modes: battle_id alone, corpus deck_hash alone", 
 test("nicknames: private to the account, matched first in search, shown in summary and roster", async () => {
   const set = await call("elixir_nickname", {
     player_tag: OBSERVER,
-    nickname: "Tyler",
+    nickname: "Sam",
   });
   assert.equal(set.isError, false, JSON.stringify(set.body));
-  assert.equal(set.body.nickname, "Tyler");
+  assert.equal(set.body.nickname, "Sam");
 
   // Search resolves the nickname, ranked first.
-  const hit = await call("players_search", { query: "tyler" });
+  const hit = await call("players_search", { query: "sam" });
   assert.equal(hit.isError, false);
   assert.equal(hit.body.matches[0]?.player_tag, OBSERVER);
   assert.equal(hit.body.matches[0]?.source, "nickname");
-  assert.equal(hit.body.matches[0]?.nickname, "Tyler");
+  assert.equal(hit.body.matches[0]?.nickname, "Sam");
 
   // Summary carries it.
   const sum = await call("players_summary", { player_tag: OBSERVER });
-  assert.equal(sum.body.nickname, "Tyler");
+  assert.equal(sum.body.nickname, "Sam");
 
   // Another account sees NOTHING - nicknames are how YOU know someone.
   const { rows: other } = await db.query(
@@ -1271,7 +1271,7 @@ test("players_profile answers the player as a game entity, not just a name (§7.
   await db.query(
     `insert into player (player_tag, name, last_known_clan_tag, last_known_clan_role,
                         years_played, account_age_days)
-     values ($1, 'Alfablack', '#J2RGCRVG', 'coLeader', 4, 1637)
+     values ($1, 'Bold Vole', '#J2RGCRVG', 'coLeader', 4, 1637)
      on conflict (player_tag) do update set
        last_known_clan_tag = '#J2RGCRVG', last_known_clan_role = 'coLeader',
        years_played = 4, account_age_days = 1637`,
@@ -1365,7 +1365,7 @@ test("clans_roster summary answers the count without the roster", async () => {
   // Two members with different roles, or the role breakdown is 0 = 0 and the
   // size comparison is two empty lists.
   for (const [tag, name, role] of [
-    ["#2YG98VVQ", "Alfablack", "coLeader"],
+    ["#2YG98VVQ", "Bold Vole", "coLeader"],
     ["#2PP0V90Y", "Bench", "member"],
   ]) {
     await db.query(

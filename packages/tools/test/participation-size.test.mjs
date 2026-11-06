@@ -57,16 +57,16 @@ const tagOf = (i) => {
   return `#${s}`;
 };
 const NAMES = [
-  "pigsareus",
-  "Waltadr",
-  "shimmeringhost",
-  "Mega Goblin",
-  "L-Drxgo⚡",
-  "Kurd Paraw",
-  "Aaqib Javed",
-  "Ｓｈａｆｉｔｈ Ｎｉｈａｌ♥️",
-  "sikander sidhu",
-  "x.x.hari.x.x",
+  "Pale Kestrel",
+  "Teal Koala",
+  "Rustic Seal",
+  "Misty Pelican",
+  "Keen Zebu é⚡",
+  "Keen Stoat",
+  "Azure Beaver",
+  "Zesty Weasel é⚡",
+  "Sage Ferret",
+  "Tidy Gibbon",
 ];
 const CURRENT = 50;
 const FORMER = 20;
