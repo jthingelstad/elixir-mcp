@@ -1,7 +1,7 @@
 ---
 slug: clan-policy
 title: "Write how your clan runs"
-description: "Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Member review, Decisions, Scout and Clan settings, and the clan's activity in Discord."
+description: "Clan's policy: who writes it, the starting points, the tabs of the editor and what each decides, previewing a draft against the last reviews, saving a version, telling the clan, and the leaders' other pages: Review, Decided, Scout and Clan settings, and the clan's activity in Discord."
 section: clan
 order: 9
 navTitle: "Write how your clan runs"
@@ -23,7 +23,7 @@ awards.
 
 The leader and co-leaders, under **Run**, once their player
 is [verified](/docs/verify). Leaders can prepare and save a policy at any
-clan size; the small-clan roster page offers leaders **Prepare policy** alongside
+clan size; the small-clan page offers leaders **Prepare the policy** alongside
 **Open Recruit**. Operational reviews, Actions, standing and awards remain paused
 below 10 members and resume at 10. Saving below ten creates no announcement
 Action. Policy is Elixir's agreement for the clan, not a game setting.

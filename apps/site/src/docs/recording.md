@@ -7,7 +7,7 @@ order: 1
 navTitle: "What Elixir records"
 icon: radar
 lede: "What Elixir records, how often, and why an answer is never a live scrape."
-callout: ["Open it at Settings › Players & tracking and tracking", "/settings/players", "Open Players and tracking"]
+callout: ["Open it at Settings › Players & tracking", "/settings/players", "Open Players & tracking"]
 ---
 
 # Recording and coverage

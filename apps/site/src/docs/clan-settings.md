@@ -20,7 +20,7 @@ saves on its own. Only the leader and co-leaders open Run; a member who
 follows an old link to it lands on [Standing](/docs/standing), or the roster
 when the clan has no policy yet:
 
-- **What Clan records in Elixir**: the kinds of facts shared
+- **Recording and visibility**, under Clan settings: the kinds of facts shared
   with Elixir, when each is shared and who sees it there. Kicks and
   leaves, promotions and demotions, awards, messages to the clan and
   where the award races stand go to everyone verified in the clan; kicks,
@@ -65,7 +65,7 @@ when the clan has no policy yet:
   key reaches is checked with Anthropic when the key is added and again
   about once a day when a leader opens the model editor. The key and its monthly
   cap are the leaders' choice; the model is not.
-  Settings shows each use's tokens and about what it cost, and the
+  **Model & voice** shows each use's tokens and about what it cost, and the
   month's total: the tokens at Anthropic's list prices (the date is on
   the page), an estimate rather than the bill. The leader or a co-leader
   may set a monthly cap in dollars. Once the month's (UTC) estimate
@@ -79,12 +79,11 @@ when the clan has no policy yet:
   stops them too. A use whose answer never arrived (the provider may
   still have charged for it) is counted toward the cap at its estimate.
 - **How our messages sound**: the clan's voice, in its leaders' own
-  words (2026-10-20). The clan's model gets it as written both when it
+  words. The clan's model gets it as written both when it
   drafts a message on an Action and when it edits the [activity
   channel](/docs/clan-discord#the-clans-activity-in-discord). It sets the tone and the
   wording, never the facts: what a draft or a post may say, and what is
   never sent, stay as they are, and a voice never lifts a rule. At most
   400 characters in one paragraph, with no links or mentions; a longer
   one is refused, never cut. Empty means none. Only the leader and
-  co-leaders read or change it. Until 2026-10-20 the activity channel
-  kept a voice of its own; that voice became this one.
+  co-leaders read or change it.

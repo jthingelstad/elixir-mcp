@@ -8,7 +8,7 @@ navTitle: "Watch any player"
 icon: eye
 lede: "Any player with a tag can be tracked. Adding one is recording it, from the next read on, and a watched player gets a line in your Wednesday email."
 reviewed: "2026-10-01 against contract 9.17.1"
-callout: ["Open it at Settings › Players & tracking and tracking", "/settings/players", "Open Players and tracking"]
+callout: ["Open it at Settings › Players & tracking", "/settings/players", "Open Players & tracking"]
 ---
 
 # Watch any player
@@ -36,8 +36,8 @@ has the schedule and what each read reads.
 
 Every tracked player takes one of your player slots, whatever
 the relationship; **Settings › Players & tracking** shows how many you use. When
-they are full, adding another is refused until you remove one or your limits
-rises: lead a clan you track, or run a collector.
+they are full, adding another is refused until you remove one or your slots
+rise: lead a clan you track, or run a collector.
 [Roles and limits](/docs/roles#upgrades) has the numbers.
 
 ## What you see

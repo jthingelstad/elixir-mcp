@@ -67,7 +67,7 @@ The maintainer is told when a collector is enrolled and sees every one.
 
 ## Setup
 
-1. **Raise your hand** at Status > Collectors > Run a collector on
+1. **Raise your hand** at Settings › Collectors › Run a collector on
    https://elixir.poapkings.com, pick a machine name and the Clash
    Royale card your collector will wear. The card is its public name,
    so pick a favourite; a card belongs to one collector, and one that
@@ -91,7 +91,7 @@ The maintainer is told when a collector is enrolled and sees every one.
    it, because it disappears from the server the moment you claim it.
    The offer is good for **72 hours**: after that the staged token is
    discarded unclaimed. If it lapses, or you lose the token later,
-   **New token** on the same page stages a fresh one; it replaces the
+   **Replace the token** on the same page stages a fresh one; it replaces the
    token your machine holds, which stops working. Claiming is a deliberate
    click, so nothing you paste into a chat window or a link preview
    can spend it for you. Put it in a `.env` (mode 0600)
@@ -149,7 +149,7 @@ two ever disagree, do not install, and tell the maintainer.
 
 **The signed badge.** Your collector tells this server, on every call, the SHA-256 of the binary it is running and the
 fingerprint of the release key it trusts. The fleet page on
-https://elixir.poapkings.com (Status > Collectors) then marks each
+https://elixir.poapkings.com (`/console/status/collectors`) then marks each
 collector **signed** when that binary is exactly a release this server
 named for its version, **dev build** for a local build, **unverified**
 when the collector does not report its hash yet (an older release), and

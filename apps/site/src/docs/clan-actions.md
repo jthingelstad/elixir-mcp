@@ -23,7 +23,7 @@ game, and the action's log keeps what happened.
 ## Inspect a member's recorded activity
 
 Roster names, current members in the award races, Standing and Season, and
-member Actions link to **View member activity**, a page for
+member Actions link to the member's own page under Members, for
 a current member of a clan you belong to (the counts are recorded game
 data; the page lives inside Clan). It shows four weeks,
 each from Monday's reset to the next, of clan-scoped recorded battle counts and recorded donation counters, the
@@ -107,20 +107,20 @@ comes from**, its message, and **History**, the saved log and comment form.
 The buttons come last. These labels do not
 change which decisions your role may make.
 
-Actions shows one **Open** list by default. Choose **Closed** to see the most
-recent decisions from the last 30 days; older decisions remain in Decisions.
-The chosen list is kept in the address: browser Back, Forward and refresh
-restore it, and a Closed Action opened from that list links back to Closed.
-Decisions’ membership section shows recent recorded roster changes, capped
-at the newest twenty events, rather than the entire history since roster
-recording began. Earlier changes are not listed in that section.
+**Today** lists what is waiting for you. A member or elder also has a fold,
+**Closed in the last 30 days**, under it, and a closed Action opened from there
+links back to it. The leader and co-leaders have **Decided** beside Waiting
+instead: every decision, newest first. Its **Who came and went** shows recent
+recorded roster changes, capped at the newest twenty events, rather than the
+entire history since roster recording began. Earlier changes are not listed in
+that section.
 
 | Action | The choices |
 |---|---|
-| Promote, demote, remove | **Complete**, or **Decline** with a reason (not now, knows the member, evidence wrong, handled in the game, other) |
+| Promote, demote, remove | **Done**, or **Decline** with a reason (not now, knows the member, evidence wrong, handled in the game, other) |
 | Departure | **Kicked**, **Left** or **Ignore**, with an optional note |
-| Welcome | **Welcomed** or **Skip** |
-| Announcement | **Sent** or **Skip** |
+| Welcome | **Done** or **Decline** |
+| Announcement | **Done**, once the message is marked sent, or **Decline** |
 | Going to be away? | **Mark me away**, or **I'm not away** |
 
 Make the change in the game, then mark the action. For a promotion
@@ -128,7 +128,7 @@ that means promoting the member and sending the reviewed message;
 they go together, as one action. Once decided, the decision stands; an
 action someone else already decided says so.
 
-After a **Complete**, Clan watches the record: if the role change or the
+After **Done**, Clan watches the record: if the role change or the
 removal shows up within the clan's outcome window (48 hours to start),
 the log says it was confirmed; if not, it is flagged. After a
 **Decline**, the same kind for the same member waits before it can come
@@ -139,7 +139,7 @@ Every action has a log: when it was raised and by which rule and policy
 version, every comment, every draft, the decision and the outcome.
 Anyone who can see it can comment, up to 1,000 characters. A **Drafted
 by the clan's model** entry keeps what the model wrote, exactly as it
-wrote it, before anyone edited it (2026-10-20). Only the leader and
+wrote it, before anyone edited it. Only the leader and
 co-leaders see those words; an elder or a member who can see the
 action's log sees that a draft was made, not what it said. An older
 draft's entry has no words.
@@ -148,9 +148,9 @@ An award standings update has one numbered Action containing every message in
 order, in compact game copy; as-of times and coverage stay in the app for
 review. Edit and copy a part, send it in the game, then choose **Mark message N
 sent**. Copying alone records no delivery. Each receipt keeps the actual words,
-sender and time; retries preserve it. **Complete update** becomes available
-after every part is marked sent. **Skip remaining messages** closes the update
-while keeping parts already sent. A failed Elixir recording can be retried by
+sender and time; retries preserve it. **Done** becomes available
+after every part is marked sent. **Decline** closes the update, skipping the
+remaining messages and keeping parts already sent. A failed Elixir recording can be retried by
 the original sender without sending the game message again.
 
 Each part records its chosen channel and exact reviewed words. An interrupted
@@ -159,9 +159,9 @@ the game message. Mixed chat and Inbox deliveries keep their separate receipts.
 **Review later · leave open** returns to the list without completing or
 declining an Action. It does not schedule a send or change a clan decision.
 
-Verified leaders and co-leaders can open a declined Action from **Closed** or
-**Decisions** and choose **Reopen action**. It returns the same numbered Action
-to Open, keeping the original decline in its log and retaining any parts
+Verified leaders and co-leaders can open a declined Action from **Decided**
+and choose **Reopen action**. It returns the same numbered Action
+to Waiting, keeping the original decline in its log and retaining any parts
 already marked sent. Completed, withdrawn and fully delivered Actions cannot
 be reopened. Reopening keeps the original evidence and does not send a message.
 
@@ -172,7 +172,7 @@ co-leaders can send one, it has a title of up to 24 characters and a
 body of up to 180, and appears in members' Inbox, separate from chat.
 Routine messages default to **Clan chat**, where members normally talk.
 For award standings, final award announcements and important rule changes,
-choose **Durable Leader Message · Inbox** when you want members to keep it.
+choose **Leader Message** when you want members to keep it in their Inbox.
 Welcomes remain chat. Edit welcomes and removal messages (up to 200
 characters a line) before copying them into the game. Each field counts
 characters and warns about known chat-filter problems. Copying a field waits
@@ -205,12 +205,12 @@ message, welcome or removal action offers leaders and co-leaders
 clan's Anthropic key to draft a promotion, demotion, awards announcement
 or policy-change announcement, a welcome, or a chat line to use after a
 removal decision. After a leader confirms **Kicked** or **Left**, the departure
-Action can also draft a respectful departure message or farewell. An recorded
+Action can also draft a respectful departure message or farewell. A recorded
 departure alone does not say which happened; an unconfirmed or ignored
 departure has no voice draft.
 
 The model is told what Elixir records, so the words can be about this
-member and this clan rather than anyone's (2026-10-11):
+member and this clan rather than anyone's:
 
 - **The clan**: its name, its recruiting words and declared goals, its
   member count and its last few finished war weeks (place and war
@@ -262,7 +262,7 @@ rationale or inactivity numbers, a member's share of the clan's fame, or
 anything the record does not hold. A fact the record lacks is left out.
 A draft says at least what Elixir's own words say, then two to four
 facts that belong to this member, each said for what it means, one to a
-sentence (2026-10-20). It never judges a member (no score, rank or
+sentence. It never judges a member (no score, rank or
 standing) and gives no advice on how to play. A demotion thanks the
 member for what they did before and never says or hints why.
 
@@ -289,7 +289,7 @@ page keeps asking until it lands, for up to about 100 seconds.
 The clan's saved words in **Recruit** say what it is about, and **How
 our messages sound** in [Clan
 settings](/docs/clan-settings#clan-settings) says how it sounds: the
-leaders' own words, given to the model as written (2026-10-20). They set
+leaders' own words, given to the model as written. They set
 the tone and the wording, never the facts: everything above still holds,
 and a voice never lifts a rule or adds to what is sent. The clan's
 Discord activity editor reads the same voice. For a welcome or
@@ -302,7 +302,7 @@ While a draft is loading, copying and action decisions wait for it to finish.
 Review the returned words before sending and marking the action complete.
 
 When a call's outcome is unknown, that attempt counts toward the daily
-limit. Check the use log in Settings before requesting another draft;
+limit. Check the use log under **Run › Model & voice** before requesting another draft;
 Elixir does not automatically repeat it. The daily use limit is not a dollar cap.
 The use record counts attempts; an unknown result is not confirmation of
 a provider charge. Review your provider's usage record for billing.
@@ -312,15 +312,14 @@ an existing object still fails without starting another model call.
 
 ## Who sees what
 
-**Actions** lists what is waiting for you and what closed in the last
-30 days. You see the actions that are yours, by your name or by your
+**Today** lists what is waiting for you and, for a member or elder, what
+closed in the last 30 days. You see the actions that are yours, by your name or by your
 role, and no others: another's action number answers that there is no
 such action. **Nobody below co-leader ever sees a removal action or who
-is on the clock.** The leader and co-leaders also have **Decisions**,
+is on the clock.** The leader and co-leaders also have **Decided**,
 every action the clan has had with its outcome, and the holds.
 
-The leader and co-leaders open on **Actions** when they come to the clan
-while Actions are waiting for them, and on the roster when none are
+Everyone opens a clan on **Today**
 ([Finding your way](/docs/bring-your-clan#finding-your-way)).
 
 You need a verified player to decide or comment; until then you can

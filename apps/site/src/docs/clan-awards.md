@@ -39,7 +39,7 @@ different names.
 Awards follow Clan Wars seasons as the record saw them. A season is
 judged once it has **closed** (every week finished, its Colosseum week
 last or the next season begun) and Clan holds it **whole** (unique sections
-from zero through an recorded final Colosseum week, with no gaps). The first reading after that writes the
+from zero through a recorded final Colosseum week, with no gaps). The first reading after that writes the
 season's winners: the morning run, or anyone opening **Awards**. A season still being fought shows on **Awards** as
 provisional, with nothing granted. Missing evidence holds the affected award,
 not every award in the season: points need the possible contenders' counters,

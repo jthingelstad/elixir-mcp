@@ -18,13 +18,12 @@ policy: it is there from the clan's first closed week.
 
 ## Which weeks
 
-The report covers closed weeks only. A week closes at the Monday reset
+Season opens on the week still running, marked **so far**, with its counts
+as they stand and no race result yet. A week closes at the Monday reset
 (10:00 UTC), or earlier when the clan's war finished before it, and the
 **Period** picker on Season opens any of the last eight weeks; each week has
-its own address. Until a
-week has closed there is nothing to show, and the page says when the
-first one closes. On the latest week a section shows **this week so
-far**.
+its own address. For a week before Elixir followed the clan, the page says
+when the first full week it records closes.
 
 For war totals and race-by-race progress across a season, open
 the season itself in the same picker ([Season](/docs/clan-season)). It includes the represented
@@ -39,25 +38,27 @@ former members and explains partial reads separately.
 | Ranked play | Path of Legends battles, and by how many members |
 | Battles | battles played, and by how many members |
 
-Each area names the members who took part, with their number, and
-links their names to their recorded activity in the clan, and marks those
-who joined that week; Clan Wars sets apart those who played
-every deck asked. An area with nothing recorded is left out, never shown
-as zero. Trophy counts are not part of the week.
+Clan Wars names the members who took part, top five first with the rest a
+click away, each with their decks and points, links their names to their
+recorded activity in the clan, and marks those who joined that week as new.
+A closed week also counts who played every deck asked and who played part of
+them. The other three areas give the total and how many members took part.
+An area with nothing recorded is left out, never shown
+as zero. Members' trophies are not part of the week.
 
 ## What it highlights
 
-When the clan has a [policy](/docs/clan-policy), the week leads with
+When the clan has a [policy](/docs/clan-policy), the week highlights
 what the policy counts (trophy road shows as battles played). Without one, or when the policy counts nothing,
-or while the clan is under 10 members, it leads with where the clan was
+or while the clan is under 10 members, it highlights where the clan was
 busy: every area at least half the clan took part in, or else the
-busiest one. The rest of the week is folded under **Also this week**.
-The page says which of these it did.
+busiest one. The page says at the top which of these it did, and shows every
+area with something recorded either way.
 
 ## Who came and went
 
-Joins, departures, promotions and demotions in the week, from the
-roster's recent events. Elixir's roster events reach back only so far;
+Joins, departures, promotions and demotions in the week, folded under
+**Who came and went**, from the roster's recent events. Elixir's roster events reach back only so far;
 when a week starts before them, the page says from which date changes
 are shown.
 
@@ -69,6 +70,6 @@ clan's battles by when they were played, each battle once, including anyone
 who has since departed, the same number as the clan report and Your friends
 this week. Donations and war decks are for today's members. Only those who
 took part are named, so the report never lists who did nothing. Your own
-"this week" on You here and on Home reads the same window. It
+"this week" on your page in Clan and on Home reads the same window. It
 raises no actions and shows no standing; those are on
-[Actions](/docs/clan-actions) and [Standing](/docs/standing).
+[Today](/docs/clan-actions) and [Standing](/docs/standing).

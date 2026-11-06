@@ -22,10 +22,11 @@ lands.
 
 **Settings › Emails**
 ([/settings/emails](/settings/emails)),
-reached from the account menu, lays the four weekly kinds out on your week, each
-on the day it arrives in your time zone: the Clan report, Your week in
+reached from the account menu, lists the four weekly kinds under **Scheduled**, each
+with the day and time it arrives in your time zone: the Clan report, Your week in
 the Arena, Your friends this week and Collector activity. The three that come when something happens,
-Milestones, Clan actions waiting and Answers to your feedback, sit below the week. Each has a
+Milestones, Clan actions waiting and Answers to your feedback, sit below under
+**When something happens**. Each has a
 line on what it is and a switch; turn one off and it stops. A kind
 already sent to you links the last one, and the page lists the last
 few emails sent to you, with **All sent** for the rest.
@@ -40,7 +41,7 @@ actions waiting** needs a [verified](/docs/verify) player in a clan.
 
 ## From the email itself
 
-Every issue carries a link to turn that kind off, and **Manage your
+Every issue carries a link to turn that kind off, and **Manage
 emails**, which opens Settings › Emails. The turn-off link opens a page that asks first: nothing changes
 until you press **Turn it off**. Every issue also carries the standard
 one-click unsubscribe, so a mail app that shows its own unsubscribe

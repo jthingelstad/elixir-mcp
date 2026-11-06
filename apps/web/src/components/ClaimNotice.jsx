@@ -3,7 +3,7 @@ import { SETTINGS } from "../lib/settings.js";
 
 /**
  * Why the account has no primary player, where the primary is shown
- * (Tracking and the Overview's players).
+ * (Settings' Players & tracking).
  *
  * A verified tag is its owner's (Jamie, 2026-10-12, #556): when another
  * account verifies a tag, this account's primary on it ends and nothing is
@@ -22,7 +22,7 @@ export function ClaimNotice({ me, onTracking = false, className = "" }) {
     <>
       Add your player under{" "}
       <Link className="underline" to={`${SETTINGS}/players`}>
-        Tracking
+        Players &amp; tracking
       </Link>
       .
     </>
@@ -36,7 +36,7 @@ export function ClaimNotice({ me, onTracking = false, className = "" }) {
             Another account verified {tag}, so it is no longer your primary
             player, and you have none: nothing defaults to you.{" "}
             {others
-              ? "Open one of your players and make it primary, or add yours."
+              ? "Open one of your players and make it your main player, or add yours."
               : addYours}
           </>
         ) : (

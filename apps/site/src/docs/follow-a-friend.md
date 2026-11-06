@@ -8,7 +8,7 @@ navTitle: "Follow a friend"
 icon: heart
 lede: "A friend is a player you follow on purpose. Elixir records them like anyone you track, and gives them a paragraph of their own in your Wednesday email."
 reviewed: "2026-10-01 against contract 9.17.1"
-callout: ["Open it at Settings › Players & tracking and tracking", "/settings/players", "Open Players and tracking"]
+callout: ["Open it at Settings › Players & tracking", "/settings/players", "Open Players & tracking"]
 ---
 
 # Follow a friend
@@ -28,7 +28,7 @@ On the website:
    Open the player from the Players table, and under **How you track
    it** set **Relationship** to **friend**.
 
-Or from the new Home: **Friends › Follow a friend** takes the tag and adds
+Or on Home's **Friends** tab: **Follow a friend** takes the tag and adds
 the player as a friend in one step. It asks for your own player first if you
 have none, and never makes the player your primary. They aren't told.
 
