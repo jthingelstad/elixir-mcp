@@ -25,6 +25,55 @@ const clan = (over = {}) => ({
 });
 
 describe("Needs you", () => {
+  const panel = (over = {}) => ({
+    ok: true,
+    state: "member",
+    clan_tag: "#2PQRJ8LV",
+    needs: [{ type: "welcome", number: 4, subject_name: "Grace" }],
+    needs_total: 3,
+    ...over,
+  });
+
+  test("its own read says it, before the card has answered", () => {
+    const { rows, more } = needsYou({ needs: panel(), clock });
+    expect(rows.map((r) => r.title)).toEqual(["Welcome a newcomer: Grace"]);
+    expect(more.title).toBe("and 2 more in Clan › Today");
+  });
+
+  test("its own read wins over the card's copy", () => {
+    const { rows } = needsYou({
+      clan: clan({ needs: [{ type: "welcome", number: 9 }], needs_total: 1 }),
+      needs: panel({ needs: [], needs_total: 0 }),
+      clock,
+    });
+    expect(rows).toEqual([]);
+  });
+
+  test("its own read failed: the card's copy says it, so nothing goes missing", () => {
+    const { rows } = needsYou({
+      clan: clan({
+        needs: [{ type: "welcome", number: 9, subject_name: "Ada" }],
+        needs_total: 1,
+      }),
+      needs: { ok: false },
+      clock,
+    });
+    expect(rows.map((r) => r.title)).toEqual(["Welcome a newcomer: Ada"]);
+  });
+
+  test("the card failed: its own read still says it, with no policy row to guess", () => {
+    const { rows } = needsYou({ clan: { ok: false }, needs: panel(), clock });
+    expect(rows.map((r) => r.key)).toEqual(["action-welcome-4"]);
+  });
+
+  test("the policy row comes with the card, after the actions", () => {
+    const unset = clan({ policy_set: false });
+    expect(needsYou({ needs: panel(), clock }).rows).toHaveLength(1);
+    expect(
+      needsYou({ clan: unset, needs: panel(), clock }).rows.map((r) => r.key),
+    ).toEqual(["action-welcome-4", "policy"]);
+  });
+
   test("nothing needs you: no rows, so the panel is not drawn", () => {
     expect(needsYou({ clan: clan(), clock }).rows).toEqual([]);
   });

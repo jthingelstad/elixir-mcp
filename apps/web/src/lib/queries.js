@@ -140,6 +140,12 @@ export const useHomeClan = (enabled = true) =>
     enabled,
   });
 
+export const useHomeNeeds = () =>
+  useQuery({
+    queryKey: ["me", "home", "needs"],
+    queryFn: payload(api.homeNeeds),
+  });
+
 export const useHomeLatest = () =>
   useQuery({
     queryKey: ["me", "home", "latest"],

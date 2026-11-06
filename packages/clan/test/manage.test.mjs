@@ -2592,6 +2592,47 @@ test("Home's needs: a clan below ten members or with no policy needs nothing, as
   assert.equal(unset.needs_total, 0);
 });
 
+test("Home's needs on their own: the same answer as the card's, with no record read", async () => {
+  const lh = harness({ part: partClan() });
+  const lc = await leader(lh);
+  await historicalRemoval(lh);
+  await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/actions");
+  const home = (await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/home")).body;
+  assert.ok(home.needs_total >= 1);
+  const asked = lh.mcp.calls.length;
+  const needs = await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/needs");
+  assert.equal(needs.status, 200, JSON.stringify(needs.body));
+  assert.deepEqual(needs.body.needs, home.needs);
+  assert.equal(needs.body.needs_total, home.needs_total);
+  assert.equal(needs.body.unlock, home.unlock);
+  const tools = lh.mcp.calls.slice(asked).map(([name]) => name);
+  for (const slow of ["clans_participation", "clans_roster"])
+    assert.ok(!tools.includes(slow), `${slow} in ${tools}`);
+
+  // The rule for an unverified member, the gate and the door are the card's.
+  const uh = harness({
+    players: [player({ claim_status: "unverified" })],
+    part: partClan(),
+    ledger: lh.ledger,
+  });
+  const uc = await leader(uh);
+  const unverified = await api(uh, uc, "GET", "/api/clans/2PQRJ8LV/needs");
+  assert.equal(unverified.status, 200, JSON.stringify(unverified.body));
+  assert.deepEqual(unverified.body.needs, []);
+  assert.equal(unverified.body.needs_total, 0);
+  const oh = harness({
+    players: [player({ clan_tag: "#O0O", clan_name: "Other" })],
+    part: partClan(),
+  });
+  const stranger = await api(
+    oh,
+    await leader(oh),
+    "GET",
+    "/api/clans/2PQRJ8LV/needs",
+  );
+  assert.equal(stranger.status, 403, JSON.stringify(stranger.body));
+});
+
 test("Home's needs: the top two of Actions' own order, only what this person can take, and reading evaluates nothing", async () => {
   const lh = harness({ part: partClan() });
   const lc = await leader(lh);

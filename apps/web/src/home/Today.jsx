@@ -21,12 +21,14 @@ import { tagPath } from "../lib/tag-url.js";
 import {
   useHomeClan,
   useHomeLatest,
+  useHomeNeeds,
   useHomeWeek,
   useInvalidate,
 } from "../lib/queries.js";
 import {
   LEADS,
   STANDING,
+  actionsFrom,
   lastRaceLine,
   modeWord,
   needsYou,
@@ -38,14 +40,17 @@ const DASH = "–";
 
 /** Home › Today's panels, in the order they read. Each reads for itself and
  *  draws its own loading state; a panel that failed says so, the rest render.
- *  Needs you comes from the clan read and takes no room until it has something
- *  to say, so when it comes late it opens rather than jumps. */
+ *  Needs you has its own read, ahead of the card's slower one, and takes no room
+ *  until it has something to say, so when it comes late it opens rather than
+ *  jumps. */
 export function TodayPanels({ first, me, player }) {
   const clock = useClock();
   const clan = panelOf(useHomeClan(), "clan");
-  const [late] = useState(clan === undefined);
-  const { rows, more } = needsYou({ clan, signals: me?.signals, clock });
-  const unlock = clan?.ok ? clan.unlock : null;
+  const needs = panelOf(useHomeNeeds(), "needs");
+  const [late] = useState(needs === undefined);
+  const { rows, more } = needsYou({ clan, needs, signals: me?.signals, clock });
+  const actions = actionsFrom({ clan, needs });
+  const unlock = actions?.ok ? actions.unlock : null;
   return (
     <div className="kit-home">
       {unlock || rows.length > 0 ? (

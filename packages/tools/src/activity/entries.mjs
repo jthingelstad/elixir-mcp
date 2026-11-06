@@ -3259,6 +3259,42 @@ export async function buildTimeline(
   };
 }
 
+/**
+ * The newest items of the timeline `buildTimeline` serves for these subjects,
+ * at less cost where a followed player has nothing in the window: such a player
+ * adds no item, so leaving them out cannot change an item, a word or the order.
+ * `timelineNews` is the proof, the same superset skip_empty rests on, asked for
+ * one player. Costs a statement per player and saves about nine for each quiet
+ * one. Clans always build: a clan with nothing in the window is rare,
+ * and its check is not cheap.
+ *
+ * Never a narrower window, widened if it comes up short. The dedupe keeps an
+ * identical moment at its FIRST instant in the window, and a sitting's standout
+ * is judged by what the window learned, so a shorter window can tell the same
+ * moment differently from the timeline this has to match.
+ *
+ * Only `timeline` is the same: `entries` and `quiet` lack the players left out.
+ * `perf`, as buildTimeline's, also gets the checks' time and how many were.
+ */
+export async function newestItems(db, subjects, opts, limit) {
+  const { fromMs, toMs, perf = null } = opts;
+  const speaking = [];
+  for (const s of subjects) {
+    if (s.kind !== "player") speaking.push(s);
+    else if (
+      (
+        await timed(perf, "news_checks", () =>
+          timelineNews(db, [s], { fromMs, toMs }),
+        )
+      ).any
+    )
+      speaking.push(s);
+  }
+  if (perf) perf.players_left_out = subjects.length - speaking.length;
+  const built = await buildTimeline(db, speaking, opts);
+  return built.timeline.slice(0, limit);
+}
+
 const observedOf = (it) => Date.parse(it.observed_at ?? it.at);
 
 /** The instant a story sorts by: a sitting's last battle (it moved

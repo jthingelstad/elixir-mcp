@@ -34,9 +34,10 @@ the times. A tool's statement count includes its budget's `set_config`s.
 | Read | Statements, 13 tracked players, 3 clans |
 | --- | --- |
 | Head | 7 |
-| Clan | 116 (`war_history` 7, `clans_participation` 25, `clans_roster` 8 tool queries, each with budget) |
+| Needs (second pass) | about 10 (store reads through Clan's door) |
+| Clan | about 114 after the second pass, 116 here (`war_history` 7, `clans_participation` 25, `clans_roster` 8 tool queries, each with budget) |
 | Week | 95 (tool queries 34 and two direct, from 70 in five tool calls) |
-| Latest | 200 (`buildTimeline`, about 11 per tracked player) |
+| Latest | 200 (`buildTimeline`, about 11 per tracked player); second pass: 1 more per player, about 9 fewer per quiet one |
 | Friends | 159 |
 
 - `players_summary` is gone from the week. The panel drew only its `trophies`
@@ -58,7 +59,7 @@ leases would compete with the panels it is meant to be independent of, on a
 
 Each panel read logs `{"at":"home_panel","panel":...,"ms":...}`, and a failed one
 `home_panel_failed` with its `code` and `ms`. The panels are `first_answer`,
-`clan`, `week`, `latest` and `friends`. `request_id` on Clan's line for the
+`needs`, `clan`, `week`, `latest`, `latest_parts` and `friends`. `request_id` on Clan's line for the
 clan panel is now filled in: the handler passes the Lambda context to routes.
 
 ## Worth watching after the deploy

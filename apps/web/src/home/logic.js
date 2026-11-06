@@ -102,36 +102,44 @@ function actionRow(need, clan, { when }) {
   }
 }
 
+/** Who says what needs you: the panel's own read, or the card's, which carries
+ *  the same answer, when that read has failed or not answered yet. */
+export const actionsFrom = ({ clan, needs }) => (needs?.ok ? needs : clan);
+
 /**
  * "Needs you": the top two of Clan's own order, the count of the rest, then
  * the kinds with a source of their own. Empty when nothing does, and the
  * panel is not drawn.
  */
-export function needsYou({ clan, signals, clock }) {
+export function needsYou({ clan, needs, signals, clock }) {
   const rows = [];
   let more = null;
-  if (clan?.ok && clan.state === "member") {
-    for (const need of clan.needs ?? [])
-      rows.push(actionRow(need, clan, clock));
-    const rest = (clan.needs_total ?? 0) - (clan.needs?.length ?? 0);
+  const actions = actionsFrom({ clan, needs });
+  if (actions?.ok && actions.state === "member") {
+    for (const need of actions.needs ?? [])
+      rows.push(actionRow(need, actions, clock));
+    const rest = (actions.needs_total ?? 0) - (actions.needs?.length ?? 0);
     if (rest > 0)
       more = {
         title: `and ${rest} more in Clan › Today`,
-        to: clanToday(clan.clan_tag),
+        to: clanToday(actions.clan_tag),
       };
-    if (
-      LEADS.has(clan.role) &&
-      !clan.policy_set &&
-      (clan.members ?? 0) >= (clan.min_members ?? Infinity)
-    )
-      rows.push({
-        key: "policy",
-        title: `Set up how ${clan.name ?? "your clan"} works`,
-        detail: "Nothing runs in Clan until it has a policy.",
-        cta: "Start",
-        to: `/clan/${tagPath(clan.clan_tag)}/run/about`,
-      });
   }
+  // Only the card's read knows the clan's size, so this row comes with it.
+  if (
+    clan?.ok &&
+    clan.state === "member" &&
+    LEADS.has(clan.role) &&
+    !clan.policy_set &&
+    (clan.members ?? 0) >= (clan.min_members ?? Infinity)
+  )
+    rows.push({
+      key: "policy",
+      title: `Set up how ${clan.name ?? "your clan"} works`,
+      detail: "Nothing runs in Clan until it has a policy.",
+      cta: "Start",
+      to: `/clan/${tagPath(clan.clan_tag)}/run/about`,
+    });
   if ((signals?.refusals_7d ?? 0) > 0)
     rows.push({
       key: "refusals",

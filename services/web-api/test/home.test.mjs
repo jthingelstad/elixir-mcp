@@ -15,6 +15,11 @@ import { gameWeekStartMs } from "@elixir-mcp/record/form";
 import { lastGameWeek } from "@elixir-mcp/record/game-week";
 import { makeRegistry } from "@elixir-mcp/tools";
 import { buildFriendsWeek } from "@elixir-mcp/tools/friends-week";
+import {
+  buildTimeline,
+  shownAt,
+  subjectsFor,
+} from "@elixir-mcp/tools/activity/entries";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
 import { createClanRequest } from "../src/clan.mjs";
@@ -95,6 +100,7 @@ after(async () => scratch.drop());
 test("every Home route wants a signed-in person", async () => {
   for (const path of [
     "/api/me/home",
+    "/api/me/home/needs",
     "/api/me/home/clan",
     "/api/me/home/week",
     "/api/me/home/latest",
@@ -355,6 +361,9 @@ test("a failed clan panel says so and the rest of Home still renders", async () 
   const failed = await call(clanFails, id, "GET", "/api/me/home/clan");
   assert.equal(failed.statusCode, 200, failed.body);
   assert.equal(data(failed).clan.ok, false);
+  const noNeeds = await call(clanFails, id, "GET", "/api/me/home/needs");
+  assert.equal(noNeeds.statusCode, 200, noNeeds.body);
+  assert.equal(data(noNeeds).needs.ok, false);
   const week = data(await call(clanFails, id, "GET", "/api/me/home/week")).week;
   assert.equal(week.ok, true);
   assert.equal(week.record.battles, 0);
@@ -369,6 +378,150 @@ test("a failed clan panel says so and the rest of Home still renders", async () 
   assert.equal(clan.role, "leader");
   assert.equal(clan.standing, null, "a leader has no standing row");
   assert.deepEqual(clan.needs, []);
+
+  // Needs you through the same door and no record read: the same answer.
+  const needs = data(
+    await call(handler, id, "GET", "/api/me/home/needs"),
+  ).needs;
+  assert.equal(needs.ok, true);
+  assert.equal(needs.state, "member");
+  assert.equal(needs.clan_tag, CLAN);
+  assert.equal(needs.unlock, clan.unlock);
+  assert.deepEqual(needs.needs, clan.needs);
+  assert.equal(needs.needs_total, clan.needs_total);
+});
+
+test("Needs you asks nothing of a person whose clan is untracked or absent", async () => {
+  const none = await person("home-needs-none");
+  assert.equal(
+    data(await call(handler, none, "GET", "/api/me/home/needs")).needs.state,
+    "none",
+  );
+  const id = await person("home-needs-untracked");
+  await scratch.db.query(
+    `insert into claim(account_id,player_tag,relationship,is_primary)
+     values ($1,$2,'primary',true)`,
+    [id, OWN],
+  );
+  await scratch.db.query(
+    `insert into clan_membership(clan_tag,player_tag,role,joined_observed_at)
+     values ($1,$2,'leader',now()) on conflict do nothing`,
+    [CLAN, OWN],
+  );
+  const needs = data(
+    await call(handler, id, "GET", "/api/me/home/needs"),
+  ).needs;
+  assert.equal(needs.state, "untracked");
+  assert.equal(needs.needs, undefined);
+  const clan = data(await call(handler, id, "GET", "/api/me/home/clan")).clan;
+  assert.equal(clan.state, "untracked");
+  assert.equal(clan.slots.limit > 0, true, "the Track button's slots stay");
+});
+
+test("Latest is the newest five of the account's full timeline: items, words and order", async () => {
+  const id = await person("home-latest-same");
+  const { db } = scratch;
+  const H = 3_600_000;
+  const now = Date.now();
+  const iso = (ms) => new Date(ms).toISOString();
+  const tags = ["#2Y2Y2Y2", "#2Y2Y2YC", "#2Y2Y2YG", "#2Y2Y2YJ"];
+  // The third has nothing in the window.
+  const [movesUp, active, , facts] = tags;
+  for (const tag of tags) {
+    await db.query(
+      `insert into player(player_tag,name) values ($1,$2) on conflict do nothing`,
+      [tag, `Player ${tag.slice(-1)}`],
+    );
+    await db.query(
+      `insert into claim(account_id,player_tag,relationship,is_primary)
+       values ($1,$2,'friend',false)`,
+      [id, tag],
+    );
+  }
+  // The same moment twice in the week: the timeline keeps it at its first
+  // instant, five days back, which a shorter window would not know.
+  for (const hoursAgo of [120, 1])
+    await emitEvent(db, "arena_changed", {
+      tag: movesUp,
+      windowStart: iso(now - hoursAgo * H - 60_000),
+      windowEnd: iso(now - hoursAgo * H),
+      payload: { from: 54000010, to: 54000011 },
+    });
+  // A sitting, a moment, an account item and a player's fact, each newer than
+  // the last, and a player with nothing in the window.
+  for (const [p, tag] of [movesUp, active].entries())
+    for (const [i, minutes] of [30, 26, 22].entries()) {
+      const battleId = `home-latest-${p}-${i}`;
+      await db.query(
+        `insert into battle(battle_id,battle_time,type,type_class,created_at)
+         values ($1,$2,'PvP','pvp',$3)`,
+        [battleId, iso(now - minutes * 60_000), iso(now - 20 * 60_000)],
+      );
+      await db.query(
+        `insert into battle_participant(battle_id,player_tag,battle_time,side,type,type_class,crowns,trophy_change,outcome)
+         values ($1,$2,$3,0,'PvP','pvp',3,30,'win')`,
+        [battleId, tag, iso(now - minutes * 60_000)],
+      );
+    }
+  await emitEvent(db, "card_unlocked", {
+    tag: active,
+    windowStart: iso(now - 16 * 60_000),
+    windowEnd: iso(now - 15 * 60_000),
+    payload: { card_id: 26000000, name: "Knight" },
+  });
+  await db.query(
+    `insert into account_event(account_id,kind,detail,created_at)
+     values ($1,'feedback_responded','{}',$2)`,
+    [id, iso(now - 10 * 60_000)],
+  );
+  await db.query(
+    `insert into attested_fact
+       (subject_kind,player_tag,fact_type,detail,visibility,source,source_ref,occurred_at,recorded_at)
+     values ('player',$1,'personal_record','{"game":"drop","score":10}','player',
+             'drop.poapkings.com','home-latest',$2,$2)`,
+    [facts, iso(now - 5 * 60_000)],
+  );
+
+  const subjects = await subjectsFor(db, id);
+  assert.equal(subjects.length, 4);
+  const shape = (it) => ({
+    id: it.id ?? null,
+    at: shownAt(it) || null,
+    text: String(it.text ?? ""),
+  });
+  const read = (fromMs, toMs) =>
+    buildTimeline(db, subjects, {
+      fromMs,
+      toMs,
+      timezone: "UTC",
+      accountId: id,
+      interactive: true,
+    });
+  const full = await read(now - 7 * 86_400_000, now);
+  const latest = data(
+    await call(handler, id, "GET", "/api/me/home/latest"),
+  ).latest;
+  assert.equal(latest.ok, true);
+  assert.ok(full.timeline.length > 5, "the panel cuts this timeline");
+  assert.deepEqual(latest.items, full.timeline.slice(0, 5).map(shape));
+  const kinds = full.timeline.map((it) => it.kind);
+  assert.ok(kinds.some((k) => k.startsWith("account_")));
+  assert.ok(kinds.includes("personal_record"));
+  assert.ok(kinds.includes("battle_session"));
+  assert.equal(
+    full.timeline.filter((it) => it.kind === "arena_changed").length,
+    1,
+    "the repeat collapsed",
+  );
+
+  // Why Latest never reads a shorter window first: there the repeat is new,
+  // and it would lead on a moment the full timeline tells five days back.
+  const shorter = await read(now - 86_400_000, now);
+  const moved = (items) => items.find((it) => it.kind === "arena_changed");
+  assert.notEqual(
+    shownAt(moved(shorter.timeline)),
+    shownAt(moved(full.timeline)),
+  );
 });
 
 test("a visit spends one charge on the shared bucket, however many panels it reads", async () => {
@@ -387,13 +540,14 @@ test("a visit spends one charge on the shared bucket, however many panels it rea
     ).rows[0].n;
   for (const path of [
     "/api/me/home",
+    "/api/me/home/needs",
     "/api/me/home/clan",
     "/api/me/home/week",
     "/api/me/home/latest",
   ])
     assert.equal((await call(handler, id, "GET", path)).statusCode, 200, path);
   assert.equal(await charged(`mcp#${id}`), 1);
-  assert.equal(await charged(`home#${id}`), 3);
+  assert.equal(await charged(`home#${id}`), 4);
 });
 
 test("the head names this account's nickname and no one else's", async () => {
