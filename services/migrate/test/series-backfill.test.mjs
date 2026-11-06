@@ -295,6 +295,7 @@ test("race lane resolves the week from the calendar and writes the rivals and pe
     fame: 0,
     periodPoints: 0,
   }));
+  slotBand.clans[1].name = `<c2>${slotBand.clans[1].name}`;
   slotBand.clan = { ...race.clan, fame: 0, periodPoints: 0 };
   await admitted("currentriverrace", clanTag, slotBand, "2026-09-14T09:57:54Z");
   // And one the calendar cannot place: section 3 on a section-0 day.
@@ -345,6 +346,14 @@ test("race lane resolves the week from the calendar and writes the rivals and pe
     [clanTag],
   );
   assert.equal(rivals, 15, "five clans in each of the three weeks");
+  const {
+    rows: [{ marked }],
+  } = await db.query(
+    `select count(*)::int as marked from war_week_clan
+      where clan_tag = $1 and participant_name like '<c%'`,
+    [clanTag],
+  );
+  assert.equal(marked, 0, "a replay keeps the game's markup out of the record");
   assert.ok(logs > 0);
   const after = (await db.query(`select count(*)::int as n from clan_event`))
     .rows[0].n;

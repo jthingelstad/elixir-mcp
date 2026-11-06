@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Link, TagText, writeErrorText } from "@elixir-mcp/ui";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { api } from "../api.js";
@@ -15,11 +16,15 @@ import { clanStepLine } from "./logic.js";
  * read are the two that hold Today back, and the rest never do.
  */
 /** Whether a first read has landed: Today has something to say from here. */
+/** Where Ladder's and Clan's "Add your player" land: Home's first step. */
+const ADD_PLAYER_HASH = "#add-player";
+
 export const recorded = (player) =>
   hasBattleEvidence(player) || player.profile_available === true;
 
 export function NewAccount({ first, zoneMissing }) {
   const invalidate = useInvalidate();
+  const navigate = useNavigate();
   const added = Boolean(first?.player);
   const answer = useFirstAnswer(first?.player?.player_tag ?? "none", {
     enabled: added,
@@ -51,7 +56,15 @@ export function NewAccount({ first, zoneMissing }) {
               ) : null
             }
           >
-            <AddPlayer onAdded={() => invalidate()} />
+            <AddPlayer
+              onAdded={() => {
+                // The player is added, so #add-player has done its work; left
+                // on, Home would send an account with a player to Settings.
+                if (window.location.hash === ADD_PLAYER_HASH)
+                  navigate({ to: "/home", hash: "", replace: true });
+                invalidate();
+              }}
+            />
           </Step>
           <Step
             n={2}
@@ -204,9 +217,6 @@ function ZoneNotice() {
     </p>
   );
 }
-
-/** Where Ladder's and Clan's "Add your player" land: Home's first step. */
-const ADD_PLAYER_HASH = "#add-player";
 
 const TAG_WORDS =
   "That doesn't look like a player tag. Tags use only these characters: 0 2 8 9 C G J L P Q R U V Y.";
