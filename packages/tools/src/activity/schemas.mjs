@@ -46,7 +46,7 @@ export const TIMELINE_KIND_SCHEMAS = {
     // best_win say how the sitting went. 4 (2026-11-03):
     // trophy_net_by_mode, each trophy mode's own net.
     version: 4,
-    at: "the battle that crossed the newest rung this window learned (every rung's is crossings[].at); sort_at is the sitting's last battle",
+    at: "the battle that crossed the first new rung this window learned (every rung's is crossings[].at); sort_at is the sitting's last battle",
     facts: [...SITTING, "crossed", "newly", "crossings"],
     optional: ["teammate", "best_win"],
   },

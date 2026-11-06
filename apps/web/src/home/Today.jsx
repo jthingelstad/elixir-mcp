@@ -185,6 +185,7 @@ function trophyNote(net, player, clock) {
 }
 
 function ClanPanel({ clan, player }) {
+  const invalidate = useInvalidate();
   if (!clan?.ok)
     return (
       <Panel title="Your clan" pad>
@@ -192,6 +193,13 @@ function ClanPanel({ clan, player }) {
           Your clans could not be read just now. Your saved tracking is
           unchanged.
         </p>
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={() => invalidate(["me", "home"])}
+        >
+          Try again
+        </button>
       </Panel>
     );
   if (clan.state === "none")
