@@ -82,20 +82,24 @@ Composition, in order:
    Barrel with a real bait package (two or more bait units), then
    P.E.K.K.A and Mega Knight, then light bait (a Barrel with one bait unit,
    Skeleton Barrel), then the chip and bridge win conditions (Hog Rider,
-   Ram Rider, Royal Hogs, Battle Ram, Miner, Wall Breakers, Goblin
-   Drill), then the newer bridge cards (Ronin, Boss Bandit, Elite
-   Barbarians). A Golem names the deck before the Miner beside it.
+   Ram Rider, Royal Hogs, Battle Ram, Miner, Goblin Drill, Wall Breakers,
+   Minion Giant), then the newer bridge cards (Elite Barbarians, Boss Bandit,
+   Ronin), then Goblinstein, then Rocket, which names a deck only with no troop or
+   building win condition in it.
+   A Golem names the deck before the Miner beside it.
 2. **The family the anchor implies**, with three tests: a Goblin Barrel is
    *bait* only with at least one bait unit beside it (a lone barrel is
-   chip); P.E.K.K.A, Mega Knight and Ram Rider are *bridge spam* only with
+   chip); P.E.K.K.A, Mega Knight, Ram Rider, Elite Barbarians, Boss Bandit and
+   Ronin are *bridge spam* only with
    a bridge partner beside them (Bandit, Battle Ram, Royal Ghost, Royal
    Hogs, Prince, Dark Prince, Lumberjack, Golden Knight, Boss Bandit,
    Ronin, Mighty Miner…), else *control*; and Hog Rider, Royal Hogs,
-   Royal Giant, Balloon, Miner and Goblin Drill are *cycle* when the
+   Royal Giant, Balloon, Miner, Goblin Drill, Wall Breakers, Minion Giant,
+   Goblinstein and Rocket are *cycle* when the
    deck's average elixir is at or under the **cycle bound**, else their
    usual family.
 3. **A paired second win condition**, when present: Balloon beside Lava
-   Hound (LavaLoon), Sparky beside Goblin Giant, Wall Breakers beside
+   Hound (LavaLoon), Sparky beside Goblin Giant or Giant, Wall Breakers beside
    Miner (which makes it cycle), Giant beside Graveyard (which makes it
    beatdown, the community's "Giant Graveyard").
 4. **No win condition**: by cost, at or under the cycle bound *cycle*,

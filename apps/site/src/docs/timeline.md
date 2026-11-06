@@ -21,17 +21,18 @@ thing and simply know.
 An agent reads it with `elixir_timeline`. Its arguments, windows, items and
 entries are on [The timeline tool](/docs/timeline-tool).
 
-It is **synthesized when you read it**, from the record and the per-subject
-ledger. Nothing is queued, fanned out or pruned. A reader that comes back
-after a month gets a month's timeline (capped at 30 days, and at the newest
-150 items).
+It is **synthesized when you read it**, from the record and what Elixir
+keeps for each player and clan. Nothing is queued, fanned out or pruned. An
+agent that comes back after a month gets a month's timeline (capped at 30 days,
+and at the newest 150 items). Home's Timeline shows the last seven days, with
+the same cap on items, and reading it moves no pointer.
 
 ## Cross-posting to Discord
 
-**Manage sharing**, on Settings › Connections & agents and an agent's Timeline, opens
-Discord settings for your timeline or that agent's. Closing discards unsaved edits. Only the account
+Your own timeline's sharing is **Timeline to Discord**, on Settings › Connections & agents › Discord. For an agent,
+**Manage sharing** on that agent's Timeline opens the same settings in a drawer, and closing it discards unsaved edits. Only the account
 owner can save changes, on the website, never MCP or the JSON API.
-Delivery history expands in the drawer; events and evidence stay on the
+Delivery history expands there; an agent's events and evidence stay on the
 page. Connections and agent pages show whether sharing is on.
 
 - **What posts.** Every `publishable` item the timeline holds for that

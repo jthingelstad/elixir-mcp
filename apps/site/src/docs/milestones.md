@@ -1,12 +1,12 @@
 ---
 slug: milestones
 title: "Milestones"
-description: "The milestone email: whose moments it covers (your primary player and your alts), which firsts count and at what steps, why it never mails a move down or a repeat, how often it is checked, what one email holds, and its switch."
+description: "The milestone email: whose moments it covers (your primary player), which firsts count and at what steps, why it never mails a move down or a repeat, how often it is checked, what one email holds, and its switch."
 section: friends
 order: 5
 navTitle: "Milestones"
 icon: sparkles
-lede: "A short note when you or an alt reach a big first: a new arena, a promotion, a new best, a legendary badge. Never a move down, never the same moment twice."
+lede: "A short note when you reach a big first: a new arena, a promotion, a new best, a legendary badge. Never a move down, never the same moment twice."
 reviewed: "2026-10-08 for legendary badges as milestones, contract 11.5.2"
 callout: ["Open it at Settings › Emails", "/settings/emails", "Open Emails"]
 ---
@@ -19,9 +19,9 @@ first time, and it is only ever about you.
 
 ## Whose moments
 
-Your **primary player and your alts**. A friend's or a watched player's
-moments go to Wednesday's Your friends this week instead, never here. When
-an alt's moment leads, the note names the alt; your own reads "You".
+Your **primary player**. Your other players' firsts wait for Tuesday (see
+[below](#your-other-players)). A friend's or a watched player's moments go to
+Wednesday's Your friends this week instead, never here.
 
 ## What counts
 

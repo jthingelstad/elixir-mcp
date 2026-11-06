@@ -233,9 +233,9 @@ scraped enters the data layer. Use a season window to keep comparisons within th
   itself.
 - **`applied.window.season_age_days`** is how old that season is at the
   window's end. On the first days of a season the default window is thin
-  and the record says so rather than widening it: `insufficient_sample`
-  fires, and a note names `season: "previous"` as the
-  settled comparison.
+  and the record says so rather than widening it: on a running season under
+  seven days old, a note says the window is thin and names `season: "previous"`
+  as the settled comparison.
 - `battles_trends` keeps its twelve-week default and crosses rolls by
   design; every week row carries `season_month`, the season its Tuesday
   to Sunday fall in, so a chart can draw the line where `crosses` puts it.

@@ -56,7 +56,7 @@ Tournament battle. It shows the two apart, one panel each, because a Tournament
 is not a Challenge; they are never added up.
 
 The chip sticks as you move between tabs. Ladder opens on the mode you played
-most this season, ties keeping the order of the chips; with no recorded battles,
+most in the last 30 days, ties keeping the order of the chips; with no recorded battles,
 Trophy Road is the default. The mode is part of the address
 (`/ladder/decks?mode=war`), so a link to one mode stays in it.
 

@@ -71,12 +71,13 @@ description of record**; there is no fuller internal one.
   <text class="lbl" x="440" y="537" text-anchor="middle">Clash Royale API</text>
 </svg>
 
-Everything cloud-side is serverless: RDS Postgres, S3 and seven Lambdas in
+Everything cloud-side is serverless: RDS Postgres, S3 and eight Lambdas in
 one CloudFormation stack, inside a VPC with no NAT. The **web API** serves
 Home, Ladder, Clan, the JSON API and battle pages; **MCP**
 serves the MCP and OAuth doors; **collector** is the collector door;
 **scheduler** plans fetch jobs into the Postgres job ledger on every tick;
 **jobs** runs scheduled product work (mail, sweeps, Clan's morning run);
+**timeline sync** brings a cross-posted timeline or a clan's Discord activity up to date when something new lands;
 **migrate** applies migrations during a deploy and runs operator commands;
 and the **email relay**, the one function outside the VPC, carries what
 must reach the internet ([below](#the-outbound-relay)).
@@ -178,7 +179,7 @@ The VPC has no NAT. Cloud components cannot reach the internet at
 all, which is a security posture worth keeping. They reach S3 and
 nothing else, so anything bound for the internet leaves as an object in
 an **outbox** bucket: S3 notifies a queue, and a small non-VPC **relay**
-Lambda reads the object, acts on it and deletes it. The relay has four
+Lambda reads the object, acts on it and deletes it. The relay has five
 jobs, with deliberately different guarantees:
 
 - **Mail**, every email Elixir sends, over Amazon SES: retried hard and
@@ -196,8 +197,13 @@ jobs, with deliberately different guarantees:
   timeline cross-post, each to a sealed webhook: a post is claimed before
   Discord is called, and one whose outcome is unknown is never made
   again.
+- **Discord sign-in**: trading the code from linking or signing in with
+  Discord, answered through a sealed, short-lived object. The doors cannot
+  reach Discord themselves.
 
-Elixir's servers send nothing to analytics.
+The relay also asks Cloudflare's Turnstile about a sign-in mail before sending
+it, for the same reason. Elixir's servers send nothing to analytics; the one
+analytics signal in mail is a Tinylytics pixel the reader's mail client loads.
 
 ## Recording: record once, entitle many
 

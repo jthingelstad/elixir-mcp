@@ -83,7 +83,7 @@ told more than three hours late says when in words ("Yesterday").
   anyone; items only the leaders may see are never posted.
 - **Edited by the clan's own model**: with the clan's own model key
   set, a leader can have the clan's model edit the channel in the clan's
-  voice (**How our messages sound** in [Clan settings](/docs/clan-settings#clan-settings);
+  voice (**How our messages sound** in Run › Model & voice, described in [Clan settings](/docs/clan-settings#clan-settings);
   the page shows it and links there). Its posts are made without
   anyone reading them first. The model is handed a run's stories, up to
   12, each with Elixir's own words for it, and the clan (its name,
@@ -134,7 +134,7 @@ told more than three hours late says when in words ("Yesterday").
   post or skip was refused. It is one request with no lookups, so a
   real run may say more. It posts nothing and counts as one of the
   leaders' drafts for the day.
-  Without a key, the page points to **The clan's own model** in Settings.
+  Without a key, the page points to Run › **Model & voice**.
 - Connecting posts a short hello to check the webhook; it is kept
   encrypted and shown only shortened. A webhook may end in `?thread_id=`
   and a thread's id, to post into one thread; a forum channel's webhook

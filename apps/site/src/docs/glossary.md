@@ -257,19 +257,19 @@ derived from the id range because the API carries no type field.
 Dagger Duchess, ...); part of deck identity.
 
 **maxLevel vs maxLevelRarityScale**: the in-game 1 to 16 cap every recorded
-tool uses, and the API's per-rarity cap that only `live_fetch` payloads show.
+tool uses, and the API's per-rarity cap, which `cards_catalog` carries and `live_fetch` payloads show.
 
 **deck_selection**: how the deck a battle was played with was chosen:
 `collection` is the player's own deck, and `warDeckPick` a river-race duel
 deck picked from their own war decks. `draft`, `draftCompetitive`, `pick`,
 `predefined` and the like describe decks handed out or drafted for that
-battle. The recorded value appears inside `context` on full-verbosity
-`battles_query` rows.
+battle. The recorded value is on `battles_query` rows: inside `context` at full
+verbosity, at the top level on compact rows.
 
 ## Principals and the service
 
 **door**: an MCP endpoint: `/mcp` for a person, `/a/<public_id>/mcp` for an
-agent. A credential works at exactly one door.
+agent, `/i/<public_id>/mcp` for an integration. A credential works at exactly one door.
 
 **principal**: who is calling: a `person` (you, over OAuth), an `agent` (a
 runtime you own that acts for one clan), or an `integration` (a platform
