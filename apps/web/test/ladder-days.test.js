@@ -339,10 +339,10 @@ test("a battle row names its opponents and score, and links only a url the tool 
   const b = battle("2026-09-29T03:37:00Z", "ladder", "win", {
     crowns: 3,
     against: 1,
-    opp: "Lucky Red Panda",
+    opp: "Ember Fox",
     url: "https://elixir.poapkings.com/battle/0123456789ab",
   });
-  expect(battleWho(b)).toBe("Lucky Red Panda");
+  expect(battleWho(b)).toBe("Ember Fox");
   expect(battleScore(b)).toBe("won 3–1");
   expect(battlePath(b.url)).toBe("/battle/0123456789ab");
   expect(battleWho({ opponents: [{ name: "A" }, { player_tag: "#B" }] })).toBe(

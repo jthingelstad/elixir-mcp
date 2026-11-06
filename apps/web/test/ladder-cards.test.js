@@ -91,11 +91,11 @@ test("opponents read as words", () => {
   expect(cameBack(1)).toBe("One came back");
   expect(cameBack(12)).toBe("12 came back");
   expect(
-    opponentName({ player_tag: "#20V9PQLPCG", name: "Toxic_Watson" }),
-  ).toBe("Toxic_Watson");
+    opponentName({ player_tag: "#FAKE33", name: "Slate Otter" }),
+  ).toBe("Slate Otter");
   expect(
-    opponentName({ player_tag: "#20V9PQLPCG", name: null, name_known: false }),
-  ).toBe("#20V9PQLPCG");
+    opponentName({ player_tag: "#FAKE33", name: null, name_known: false }),
+  ).toBe("#FAKE33");
 });
 
 test("the order is the reader's choice: most losses only when asked", () => {

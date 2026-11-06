@@ -294,7 +294,7 @@ const BATTLES = {
         crowns: 3,
         deck_hash: "d".repeat(64),
       },
-      opponents: [{ player_tag: "#U8RYG9Y2U", name: "King Levy", crowns: 1 }],
+      opponents: [{ player_tag: "#FAKE22", name: "Copper Wren", crowns: 1 }],
     },
     {
       battle_id: "f".repeat(64),
