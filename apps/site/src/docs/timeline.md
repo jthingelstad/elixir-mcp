@@ -1,7 +1,7 @@
 ---
 slug: timeline
 title: "The timeline"
-description: "elixir_timeline: what happened to the players and clans you track since your read pointer, as items newest first (battle sessions, named moments, roster and war moments, presence) plus one summary entry per subject; who is a subject for a person and for an agent; the window and read-pointer semantics; cross-posting a timeline to Discord; what the timeline never does."
+description: "What happened to the players and clans you track, newest first: what the timeline is, where to read it, and how it reaches Discord. The elixir_timeline tool is on The timeline tool."
 section: friends
 order: 3
 navTitle: "The timeline"
@@ -17,6 +17,9 @@ direction: it tells you what happened to the subjects you track since you
 last looked, newest first like a newsfeed, so a scheduled agent can read
 one thing and decide what to consider, and so a person can read the same
 thing and simply know.
+
+An agent reads it with `elixir_timeline`. Its arguments, windows, items and
+entries are on [The timeline tool](/docs/timeline-tool).
 
 It is **synthesized when you read it**, from the record and the per-subject
 ledger. Nothing is queued, fanned out or pruned. A reader that comes back

@@ -153,7 +153,7 @@ clans they added; an agent's is the clan it represents, with the members
 inside it. Facts with their windows, never judgments: what to do about a
 member quiet six days is deliberately your agent's call, not the
 service's, and nothing on the timeline announces the time, which is
-`game_clock`'s job. The shape lives on [Timeline](/docs/timeline).
+`game_clock`'s job. The shape lives on [The timeline tool](/docs/timeline-tool#items).
 
 ## The feedback loop
 

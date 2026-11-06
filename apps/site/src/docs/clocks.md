@@ -53,7 +53,7 @@ and was noticed at 09:15 is seen at 09:15. Their `at` is when the moment
 happened, the battle's own instant where the record holds the battle that
 did it, with `at_unix` and `local` (the reader's date, time and weekday)
 beside it; a timeline item's `text` never carries a time
-([Timeline](/docs/timeline)).
+([The timeline tool](/docs/timeline-tool#items)).
 
 ## The game day
 

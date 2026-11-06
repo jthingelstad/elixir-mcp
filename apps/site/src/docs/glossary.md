@@ -207,7 +207,7 @@ the badge was earned.
 **kind**: a local enum, five of them: a series point's reading kind
 (`daily`, `pre_reset`, `season_roll`); a timeline item's kind
 (`battle_session`, `ranked_promotion` and the rest, on
-[Timeline](/docs/timeline)); a war period's kind (`war` or `training`; a
+[The timeline tool](/docs/timeline-tool#items)); a war period's kind (`war` or `training`; a
 Colosseum week is `is_colosseum`, not a kind); a badge's kind (`one_off`,
 `tiered`); an entry's kind
 (`player_activity`, `clan_activity`). `crosses[].kind` is always `season`.
