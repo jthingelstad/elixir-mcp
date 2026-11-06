@@ -1554,13 +1554,14 @@ export async function buildPlayerEntry(
  *  narrated ones) and late captures. Exported so {explain_timeline} can
  *  EXPLAIN the same statement the tool runs. */
 export function clanLearnedQuery({ tag, fromMs, toMs, basis = "observed" }) {
-  const col = basis === "occurred" ? "bp.battle_time" : "b.created_at";
+  const occurred = basis === "occurred";
+  const col = occurred ? "bp.battle_time" : "b.created_at";
   return {
     text: `select count(distinct b.battle_id) filter (where b.battle_time >= b.created_at - interval '1 day')::int as recent,
                   count(distinct b.battle_id) filter (where b.battle_time < b.created_at - interval '1 day')::int as late
              from battle b
              join battle_participant bp on bp.battle_id = b.battle_id
-            where ${col} >= ${ts(fromMs + 1)} and ${col} < ${ts(toMs + 1)}
+            where ${col} >= ${ts(occurred ? fromMs : fromMs + 1)} and ${col} < ${ts(toMs + 1)}
               and bp.clan_tag = $1`,
     values: [tag],
   };
@@ -1574,8 +1575,11 @@ export function clanMemberBattlesQuery({
   toMs,
   basis = "observed",
 }) {
-  // `learned` marks the rows this window selects: learned in it
-  // (observed), or played in it (occurred, as the record knows now).
+  // `learned` marks the rows this window narrates: learned in it
+  // (observed), or played in it (occurred, as the record knows now), never
+  // a late capture. `played` marks what an occurred read counts: played in
+  // [from, to) whenever it was learned, the clan report's own count (A13).
+  // A boat defense is not the member's battle (0171), on either basis.
   const occurred = basis === "occurred";
   return {
     text: `select bp.player_tag, bp.battle_id, b.type, b.event_tag, b.battle_time, b.created_at, bp.outcome, bp.trophy_change, bp.deck_hash,
@@ -1584,10 +1588,13 @@ export function clanMemberBattlesQuery({
                       ? `bp.battle_time >= ${ts(fromMs + 1)}`
                       : `b.created_at >= ${ts(fromMs + 1)} and b.created_at < ${ts(toMs + 1)}`
                   }
-                   and b.battle_time >= b.created_at - interval '1 day') as learned
+                   and b.battle_time >= b.created_at - interval '1 day') as learned,
+                  (bp.battle_time >= ${ts(fromMs)} and bp.battle_time < ${ts(toMs)}) as played
              from battle_participant bp
              join battle b on b.battle_id = bp.battle_id
             where bp.clan_tag = $1
+              and not (b.boat_battle_side is not null
+                       and (b.boat_battle_side = 'defender') = (bp.side = 0))
               and bp.battle_time >= ${ts(fromMs - DAY_MS)} and bp.battle_time < ${ts(toMs + 1)}${
                 occurred
                   ? ""
@@ -1650,12 +1657,15 @@ export async function buildClanEntry(
   );
   const learnedRecent = learnedRows[0]?.recent ?? 0;
   const lateCount = learnedRows[0]?.late ?? 0;
-  const { rows: allBattles } = learnedRecent
-    ? await timed(perf, "clan.member_battles", () =>
-        db.query(clanMemberBattlesQuery({ tag, fromMs, toMs, basis })),
-      )
-    : { rows: [] };
-  const memberBattles = allBattles.filter((r) => r.learned);
+  const { rows: allBattles } =
+    learnedRecent || (occurred && lateCount)
+      ? await timed(perf, "clan.member_battles", () =>
+          db.query(clanMemberBattlesQuery({ tag, fromMs, toMs, basis })),
+        )
+      : { rows: [] };
+  const memberBattles = allBattles.filter((r) =>
+    occurred ? r.played : r.learned,
+  );
   const distinctBattles = new Set();
   const byMode = {};
   const byPlayer = new Map();
@@ -1752,12 +1762,6 @@ export async function buildClanEntry(
         name: p.name ?? null,
         role: p.role_at_departure ?? null,
         at,
-        tenure_days: p.joined_observed_at
-          ? Math.floor(
-              (e.window_end.getTime() - Date.parse(p.joined_observed_at)) /
-                DAY_MS,
-            )
-          : null,
       });
     else if (e.event_type === "role_changed")
       roleChanges.push({
@@ -2882,12 +2886,21 @@ async function readFactItems(
 ) {
   const { rows } = await db.query(
     `select f.*, cl.name as clan_name, p.name as player_name,
-            ap.name as attester_name, pp.name as previous_name
+            ap.name as attester_name, pp.name as previous_name,
+            dep.role as role_at_departure
        from attested_fact f
        left join clan cl on cl.clan_tag = f.clan_tag
        left join player p on p.player_tag = f.player_tag
        left join player ap on ap.player_tag = f.attester_tag
        left join player pp on pp.player_tag = f.detail->>'previous_player_tag'
+       -- The role a departed member last held here, so a leader's word
+       -- on the departure reads like the roster's own line (redesign Q9).
+       left join lateral (
+         select cm.role from clan_membership cm
+          where f.fact_type = 'departure_classified'
+            and cm.clan_tag = f.clan_tag and cm.player_tag = f.player_tag
+          order by cm.joined_observed_at desc limit 1
+       ) dep on true
       where f.recorded_at >= ${ts(fromMs + 1)}
         and ${basis === "occurred" ? `f.occurred_at >= ${ts(fromMs + 1)} and f.occurred_at < ${ts(toMs + 1)}` : `f.recorded_at < ${ts(toMs + 1)}`}
         and ((f.subject_kind = 'clan' and f.fact_type = any($4::text[])
@@ -2935,6 +2948,9 @@ async function readFactItems(
         // lead changing hands is said with both names.
         ...(f.detail?.previous_player_tag
           ? { previous_name: f.previous_name ?? null }
+          : {}),
+        ...(f.role_at_departure
+          ? { role_at_departure: f.role_at_departure }
           : {}),
         attested_by: {
           app: FAMILY_APP_NAMES[f.source] ?? f.source,

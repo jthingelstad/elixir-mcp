@@ -931,3 +931,15 @@ test("an activity-scope clan composer leaves battle counts unknown", async () =>
     await db.query("rollback");
   }
 });
+
+test("the reports' week name is the season and which of its weeks", () => {
+  // Season 136 opens on the first Monday of September 2026, at the reset.
+  const first = lastGameWeek(new Date("2026-09-15T14:00:00Z"));
+  assert.equal(first.from.toISOString(), "2026-09-07T10:00:00.000Z");
+  assert.equal(first.season, 136);
+  assert.equal(first.war_week, 1);
+  const fourth = lastGameWeek(new Date("2026-10-05T14:00:00Z"));
+  assert.equal(fourth.from.toISOString(), "2026-09-28T10:00:00.000Z");
+  assert.equal(fourth.season, 136);
+  assert.equal(fourth.war_week, 4);
+});

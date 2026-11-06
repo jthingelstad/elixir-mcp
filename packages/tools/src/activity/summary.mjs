@@ -52,11 +52,38 @@ const who = (e) => {
 
 const record = (won, lost, drawn) =>
   [`${won}W`, `${lost}L`, drawn ? `${drawn}D` : null].filter(Boolean).join("-");
+/** A mode group as a player says it. The keys stay in `by_mode`; the
+ *  sentence uses the game's own names (redesign Q9). */
+const MODE_WORDS = {
+  ladder: "Trophy Road",
+  ranked: "Path of Legends",
+  war: "war",
+  casual: "casual",
+  event: "event",
+  other: "other",
+};
 const modes = (byMode) =>
   Object.entries(byMode ?? {})
     .sort((x, y) => y[1] - x[1])
-    .map(([m, n]) => `${n} ${m}`)
+    .map(([m, n]) => `${n} ${MODE_WORDS[m] ?? m}`)
     .join(", ");
+/** A clan role as it reads in a sentence. The stored value stays. */
+const ROLE_WORDS = {
+  member: "Member",
+  elder: "Elder",
+  coLeader: "Co-leader",
+  leader: "Leader",
+};
+const roleWord = (r) => ROLE_WORDS[r] ?? r;
+/** "1st", "2nd", "3rd", "4th": a place in a race or an award. */
+function ordinal(n) {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${{ 1: "st", 2: "nd", 3: "rd" }[n % 10] ?? "th"}`;
+}
+/** "Season 137, week 4", or "week 4" on a row with no season. */
+const seasonWeek = (seasonId, week) =>
+  seasonId ? `Season ${seasonId}, week ${week}` : `week ${week}`;
 
 export function summarizePlayer(e, timeZone = "UTC") {
   const since = sinceLabel(e.window.from, e.window.to, timeZone);
@@ -65,7 +92,7 @@ export function summarizePlayer(e, timeZone = "UTC") {
   if (b.played > 0) {
     const m = modes(b.by_mode);
     parts.push(
-      `${plural(b.played, "battle")} in ${plural(b.sessions, "session")} since ${since} (${record(b.won, b.lost, b.drawn)}${m ? `; ${m}` : ""})`,
+      `${plural(b.played, "battle")} in ${plural(b.sessions, "sitting")} since ${since} (${record(b.won, b.lost, b.drawn)}${m ? `; ${m}` : ""})`,
     );
   } else {
     parts.push(`no recorded battles since ${since}`);
@@ -84,7 +111,7 @@ export function summarizePlayer(e, timeZone = "UTC") {
   if (e.ranked?.rating) {
     const d = e.ranked.rating.to - e.ranked.rating.from;
     parts.push(
-      `ranked rating ${num(e.ranked.rating.from)} → ${num(e.ranked.rating.to)} (${d > 0 ? "+" : ""}${d})`,
+      `Path of Legends rating ${num(e.ranked.rating.from)} → ${num(e.ranked.rating.to)} (${d > 0 ? "+" : ""}${d})`,
     );
   }
   for (const n of e.notables) {
@@ -162,8 +189,8 @@ export function clanSummaryParts(e, timeZone = "UTC") {
   if (a.battles !== null)
     parts.push(
       a.members_active > a.members_total
-        ? `${plural(a.battles, "battle")} in ${plural(a.sessions, "session")} by ${a.members_active} players who were members during the window (roster now ${a.members_total}) since ${since}`
-        : `${plural(a.battles, "battle")} in ${plural(a.sessions, "session")} by ${a.members_active} of ${a.members_total} members since ${since}`,
+        ? `${plural(a.battles, "battle")} in ${plural(a.sessions, "sitting")} by ${a.members_active} players who were members during the window (roster now ${a.members_total}) since ${since}`
+        : `${plural(a.battles, "battle")} in ${plural(a.sessions, "sitting")} by ${a.members_active} of ${a.members_total} members since ${since}`,
     );
   else
     parts.push(
@@ -179,12 +206,12 @@ export function clanSummaryParts(e, timeZone = "UTC") {
       )}${list.items.length > cap || list.more ? ` +${Math.max(0, list.items.length - cap) + list.more} more` : ""}`;
   const moves = [];
   if (r.joined.items.length) moves.push(`joined: ${names(r.joined, 5)}`);
-  if (r.left.items.length) moves.push(`left: ${names(r.left, 5)}`);
+  if (r.left.items.length) moves.push(`departed: ${names(r.left, 5)}`);
   if (r.role_changes.items.length)
     moves.push(
       `roles: ${r.role_changes.items
         .slice(0, 3)
-        .map((m) => `${m.name ?? m.tag} ${m.from}→${m.to}`)
+        .map((m) => `${m.name ?? m.tag} ${m.from} → ${m.to}`)
         .join(", ")}`,
     );
   if (moves.length) parts.push(moves.join("; "));
@@ -196,7 +223,7 @@ export function clanSummaryParts(e, timeZone = "UTC") {
   if (w) {
     for (const x of w.resolved)
       parts.push(
-        `week ${x.week} finished${x.rank ? ` in place ${x.rank}` : ""}${x.fame !== null ? ` with ${num(x.fame)} fame` : ""}`,
+        `finished${x.rank ? ` ${ordinal(x.rank)}` : ""} in ${seasonWeek(x.season_id, x.week)}${x.fame !== null ? `, ${num(x.fame)} fame` : ""}`,
       );
     if (w.day_kind === "war") {
       const d = w.decks;
@@ -271,14 +298,14 @@ export function clanSummaryParts(e, timeZone = "UTC") {
       );
     if (s.ranked_promotions.items.length)
       parts.push(
-        `ranked: ${s.ranked_promotions.items
+        `Path of Legends: ${s.ranked_promotions.items
           .slice(0, 3)
           .map((m) => `${m.name ?? m.tag} → ${m.league}`)
           .join(", ")}${rest(s.ranked_promotions, 3)}`,
       );
     if (s.sessions?.items.length)
       parts.push(
-        `standout sessions: ${s.sessions.items
+        `standout sittings: ${s.sessions.items
           .slice(0, 3)
           .map(
             (m) =>
@@ -379,9 +406,13 @@ function carried(members) {
 const attester = (f) =>
   f.attested_by?.name ?? f.attested_by?.player_tag ?? f.attested_by?.app;
 const by = (f) => attester(f) ?? "A leader";
+/** A family app as the sentence names it: the product is Clan, and the
+ *  stored `attested_by.app` stays what it was. */
+const appWord = (app) => (app === "Elixir Clan" ? "Clan" : app);
 const said = (f) =>
-  `${attester(f) ?? "A leader"} said${f.attested_by?.app ? ` (in ${f.attested_by.app})` : ""}`;
-const via = (f) => (f.attested_by?.app ? ` (via ${f.attested_by.app})` : "");
+  `${attester(f) ?? "A leader"} said${f.attested_by?.app ? ` (in ${appWord(f.attested_by.app)})` : ""}`;
+const via = (f) =>
+  f.attested_by?.app ? ` (via ${appWord(f.attested_by.app)})` : "";
 
 /** A card's form as a player says it (#110): "Evolution Valkyrie",
  *  "Hero Knight". Reads a ledger payload (`name`) or an item's facts
@@ -423,7 +454,7 @@ export function itemText(it, timeZone = "UTC") {
   const member = f.name ?? f.player_tag ?? "";
   switch (it.kind) {
     case "battle_session":
-      return `${member || subj} played a session of ${plural(f.battles, "battle")} (${sitting(f)})${played(f)}${f.open ? ", still going" : ""}.`;
+      return `${member || subj} played ${plural(f.battles, "battle")}${f.battles > 1 ? " in one sitting" : ""} (${sitting(f)})${played(f)}${f.open ? ", still going" : ""}.`;
     case "session_standout": {
       const run =
         f.won_in_a_row >= 5 ? `, ${f.won_in_a_row} wins in a row` : "";
@@ -462,13 +493,13 @@ export function itemText(it, timeZone = "UTC") {
     case "card_form_unlocked":
       return `${member || subj} unlocked ${formLabel(f)}.`;
     case "member_joined":
-      return `${f.name ?? f.player_tag} joined ${subj}${f.role && f.role !== "member" ? ` as ${f.role}` : ""}.`;
+      return `${f.name ?? f.player_tag} joined ${subj}${f.role ? ` as ${roleWord(f.role)}` : ""}.`;
     // The roster sees only that a member went, never whether they left or
     // were removed (Jamie, 2026-10-10: a kick is "was removed", never
     // "left", wherever the timeline is told), so the roster's own item
     // says neither; a leader's departure_classified says which.
     case "member_left":
-      return `${f.name ?? f.player_tag} departed ${subj}${f.role_at_departure ? ` (was ${f.role_at_departure})` : ""}.`;
+      return `${f.name ?? f.player_tag} departed ${subj}${f.role_at_departure ? ` (was ${roleWord(f.role_at_departure)})` : ""}.`;
     case "member_role_changed": {
       // Rows written before 3.0.0 carry no direction; the roles say it.
       const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
@@ -477,7 +508,7 @@ export function itemText(it, timeZone = "UTC") {
         ((rank[f.role_after] ?? 0) < (rank[f.role_before] ?? 0)
           ? "demoted"
           : "promoted");
-      return `${f.name ?? f.player_tag} was ${dir} from ${f.role_before} to ${f.role_after} in ${subj}.`;
+      return `${f.name ?? f.player_tag} was ${dir} from ${roleWord(f.role_before)} to ${roleWord(f.role_after)} in ${subj}.`;
     }
     case "bracket_observed": {
       const rivals = (f.rivals ?? []).map((r) => r.name ?? r.tag).join(", ");
@@ -486,27 +517,27 @@ export function itemText(it, timeZone = "UTC") {
     case "race_finished":
       return `${subj} crossed the finish line${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}.`;
     case "week_resolved":
-      return `${subj} finished week ${(f.section_index ?? 0) + 1}${f.rank ? ` in place ${f.rank}` : ""}${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}${typeof f.trophy_change === "number" ? ` (${f.trophy_change > 0 ? "+" : ""}${f.trophy_change} war trophies)` : ""}${carried(f.members)}.`;
+      return `${subj} finished ${seasonWeek(f.season_id, (f.section_index ?? 0) + 1)}${f.is_colosseum ? " (Colosseum)" : ""}${f.rank ? ` in ${ordinal(f.rank)} place` : ""}${f.fame !== null && f.fame !== undefined ? ` with ${num(f.fame)} fame` : ""}${typeof f.trophy_change === "number" ? ` (${f.trophy_change > 0 ? "+" : ""}${f.trophy_change} war trophies)` : ""}${carried(f.members)}.`;
     case "clan_joined":
       return `${subj} joined ${f.clan_name ?? f.clan_tag}.`;
     case "clan_left":
-      return `${subj} departed ${f.clan_name ?? f.clan_tag}${f.role && f.role !== "member" ? ` (was ${f.role})` : ""}.`;
+      return `${subj} departed ${f.clan_name ?? f.clan_tag}${f.role ? ` (was ${roleWord(f.role)})` : ""}.`;
     case "quiet_crossed":
-      return `${member || subj} passed ${f.rung} recorded-quiet days${f.days_since_poll ? ` (last polled ${plural(f.days_since_poll, "day")} ago)` : ""}.`;
+      return `${member || subj} has no battle recorded in ${f.rung} days${f.days_since_poll ? ` (battle log last read ${plural(f.days_since_poll, "day")} ago)` : ""}.`;
     case "returned":
       return `${member || subj} played again after ${plural(f.after_days, "quiet day")}.`;
     // Attested facts (9.2.0): said by a person through a family app, and
     // said as theirs.
     case "departure_classified":
-      return `${said(f)} ${member} ${f.kind === "kick" ? "was removed from" : "left"} ${subj}${f.kind === "kick" ? "" : " on their own"}.`;
+      return `${said(f)} ${member} ${f.kind === "kick" ? "was removed from" : "left"} ${subj}${f.kind === "kick" ? "" : " on their own"}${f.role_at_departure ? ` (was ${roleWord(f.role_at_departure)})` : ""}.`;
     case "role_change_made": {
       const rank = { member: 0, elder: 1, coLeader: 2, leader: 3 };
       const dir =
         (rank[f.to] ?? 0) < (rank[f.from] ?? 0) ? "demoted" : "promoted";
-      return `${by(f)} ${dir} ${member} from ${f.from} to ${f.to} in ${subj}.`;
+      return `${by(f)} ${dir} ${member} from ${roleWord(f.from)} to ${roleWord(f.to)} in ${subj}.`;
     }
     case "award_granted":
-      return `${subj} gave ${member} ${f.award}${f.place ? ` (place ${f.place})` : ""} for season ${f.season_id}${via(f)}.`;
+      return `${subj} gave ${member} ${f.award}${f.place ? ` (${ordinal(f.place)} place)` : ""} for Season ${f.season_id}${via(f)}.`;
     case "member_away":
       return `${member} said they are away from ${subj}${f.until ? ` until ${dayLabel(f.until, timeZone)}` : ""}${via(f)}.`;
     case "clan_message":
@@ -520,18 +551,18 @@ export function itemText(it, timeZone = "UTC") {
         { points: "points", donations: "donations", war_decks: "war decks" }[
           f.unit
         ] ?? f.unit;
-      return `${member} stands ${f.place === 1 ? "first" : `in place ${f.place}`} in ${subj}'s ${f.award} for season ${f.season_id} with ${num(f.value)} ${unit}${f.previous_player_tag ? `, taking it from ${f.previous_name ?? f.previous_player_tag}` : ""}${via(f)}.`;
+      return `${member} stands ${f.place === 1 ? "first" : ordinal(f.place)} in ${subj}'s ${f.award} for Season ${f.season_id} with ${num(f.value)} ${unit}${f.previous_player_tag ? `, taking it from ${f.previous_name ?? f.previous_player_tag}` : ""}${via(f)}.`;
     }
     // A verified tag is its owner's (#556): the tag and why, never the
     // account that verified it.
     case "account_claim_ended":
       if (f.count > 1)
-        return `your account: ${f.count} of your players were verified by other accounts, so they are no longer yours on Elixir.`;
+        return `Your account: ${f.count} of your players were verified by other accounts, so they are no longer yours on Elixir.`;
       return f.was_primary
-        ? `your account: another account verified ${f.player_tag}, so it is no longer your primary player, and you have none until you make one of your players primary. If that player is yours, tell us through the feedback form.`
-        : `your account: another account verified ${f.player_tag}, so it is no longer your alt. If that player is yours, tell us through the feedback form.`;
+        ? `Your account: another account verified ${f.player_tag}, so it is no longer your primary player, and you have none until you make one of your players primary. If that player is yours, tell us through the feedback form.`
+        : `Your account: another account verified ${f.player_tag}, so it is no longer your alt. If that player is yours, tell us through the feedback form.`;
     case "account_claim_refused":
-      return `your account: ${f.player_tag}, the player tag you signed up with, is verified by another account, so it was not added. If that player is yours, tell us through the feedback form.`;
+      return `Your account: ${f.player_tag}, the player tag you signed up with, is verified by another account, so it was not added. If that player is yours, tell us through the feedback form.`;
     // An answer to feedback (#536 stage 2): the item by its message,
     // the answer by its status. needs_info is a question, not an answer.
     case "account_feedback_responded": {
@@ -542,9 +573,9 @@ export function itemText(it, timeZone = "UTC") {
         ? `your feedback “${lead.length > 60 ? `${lead.slice(0, 59).trimEnd()}…` : lead}”`
         : "your feedback";
       if (f.status === "needs_info")
-        return `your account: Elixir asked a question about ${what}${it.revision > 1 ? " again" : ""}.`;
+        return `Your account: Elixir asked a question about ${what}${it.revision > 1 ? " again" : ""}.`;
       const status = FEEDBACK_STATUS_WORDS[f.status] ?? f.status;
-      return `your account: ${what} was answered${it.revision > 1 ? " again" : ""}${status ? ` (${status}${f.shipped_in ? `, shipped in ${f.shipped_in}` : ""})` : ""}.`;
+      return `Your account: ${what} was answered${it.revision > 1 ? " again" : ""}${status ? ` (${status}${f.shipped_in ? `, shipped in ${f.shipped_in}` : ""})` : ""}.`;
     }
     default:
       if (it.kind.startsWith("account_")) {
@@ -571,11 +602,11 @@ export function itemText(it, timeZone = "UTC") {
         // said once, with the apps they were.
         const apps = f.apps?.length ? f.apps.join(", ") : "";
         if (f.count > 1)
-          return `your account: ${what}, ${f.count} at once${apps ? ` (${apps})` : ""}.`;
+          return `Your account: ${what}, ${f.count} at once${apps ? ` (${apps})` : ""}.`;
         const named = [apps, detail ? `${detail}${auto}` : ""]
           .filter(Boolean)
           .join(", ");
-        return `your account: ${what}${named ? ` (${named})` : ""}.`;
+        return `Your account: ${what}${named ? ` (${named})` : ""}.`;
       }
       return `${subj}: ${it.kind.replaceAll("_", " ")}.`;
   }

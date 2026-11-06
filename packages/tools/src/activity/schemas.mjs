@@ -200,7 +200,9 @@ export const TIMELINE_KIND_SCHEMAS = {
         ],
         optional: Object.entries(t.detail)
           .filter(([, f]) => f.optional)
-          .map(([k]) => k),
+          .map(([k]) => k)
+          // Read from the membership beside the fact (11.16.0), not attested.
+          .concat(kind === "departure_classified" ? ["role_at_departure"] : []),
       },
     ]),
   ),

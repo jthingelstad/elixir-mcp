@@ -93,14 +93,14 @@ export const GROUPS = [
     key: "promotion",
     title: "Promotion",
     advanced: true,
-    why: "Sustained, never a snapshot: a member is in the promotable set on several weekly reviews before an action is suggested. One missed review is tolerated; two in a row start the count again.",
+    why: "Sustained, never a snapshot: a member is in line for promotion on several weekly reviews before an action is suggested. One missed review is tolerated; two in a row start the count again.",
     when: RANKING,
   },
   {
     key: "demotion",
     title: "Demotion",
     advanced: true,
-    why: "Sustained evidence, never a small rank movement, with two reasons: missing the minimums, or being outranked when a higher-ranked member takes the seat.",
+    why: "Sustained evidence, never a small rank movement, with two reasons: missing the minimums, or another member taking the seat.",
     when: RANKING,
   },
   {
@@ -192,7 +192,7 @@ export const TABS = [
 export const RETIRED_FIELDS = ["goal_war", "goal_climbing", "goal_donations"];
 
 const weightWhy =
-  "Weights are relative: 60, 20 and 20 mean three fifths, one fifth and one fifth of the Elder score. Zero leaves the category out of it.";
+  "Weights are relative: 60, 20 and 20 mean three fifths, one fifth and one fifth of the Elder order. Zero leaves the category out of it.";
 
 /** @type {Record<string, {group:string,label:string,unit:string,type:"integer"|"number"|"boolean"|"enum",min?:number,max?:number,options?:Array<{value:string,label:string}>,default:any,why:string,when?:Array<Record<string, any>>}>} */
 export const FIELDS = {
@@ -242,7 +242,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "Track war decks for this clan's minimums and Elder score.",
+    why: "Track war decks for this clan's minimums and Elder order.",
   },
   war_window_weeks: {
     group: "war",
@@ -261,7 +261,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "Track ranked battles for this clan's minimums and Elder score.",
+    why: "Track Path of Legends battles for this clan's minimums and Elder order.",
   },
   ranked_window_weeks: {
     group: "ranked",
@@ -280,7 +280,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "Track donations for this clan's minimums and Elder score.",
+    why: "Track donations for this clan's minimums and Elder order.",
   },
   donations_window_weeks: {
     group: "donations",
@@ -299,7 +299,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: false,
-    why: "Track trophies for this clan's minimums and Elder score.",
+    why: "Track trophies for this clan's minimums and Elder order.",
   },
 
   // ---- minimums ---------------------------------------------------------
@@ -464,7 +464,7 @@ export const FIELDS = {
     min: 0,
     max: 1,
     default: 0.3,
-    why: "Growth stops here; past it, the lowest-ranked Elder is outranked. The target is the midpoint. 1 sets no upper limit.",
+    why: "Growth stops here; past it, another member takes the seat of the last Elder in order. The target is the midpoint. 1 sets no upper limit.",
     when: RANKING,
   },
   worthiness_percentile: {
@@ -488,7 +488,7 @@ export const FIELDS = {
     min: 1,
     max: 8,
     default: 3,
-    why: "In the promotable set on this many weekly reviews before an action is suggested.",
+    why: "In line for promotion on this many weekly reviews before an action is suggested.",
     when: RANKING,
   },
   swap_margin: {
@@ -515,13 +515,13 @@ export const FIELDS = {
   },
   demote_outranked_weeks: {
     group: "demotion",
-    label: "Outranked: reviews",
+    label: "Another member takes the seat: reviews",
     unit: "reviews",
     type: "integer",
     min: 1,
     max: 8,
     default: 3,
-    why: "An Elder outside the upper share while a higher-ranked member takes the seat. Matching the promotion count lets the swap land together.",
+    why: "An Elder outside the upper share when another member takes the seat. Matching the promotion count lets the swap land together.",
     when: RANKING,
   },
 
@@ -710,7 +710,7 @@ export const FIELDS = {
     unit: "on/off",
     type: "boolean",
     default: true,
-    why: "Who holds Elder, who is rising, who is slipping, each with their own evidence in a player's terms. Nobody below co-leader ever sees a removal action or who is on a clock.",
+    why: "Who holds Elder, whose promotion is building, whose demotion is building, each with their own evidence in a player's terms. Nobody below co-leader ever sees a removal action or who is on a clock.",
     when: RANKING,
   },
 };
@@ -736,7 +736,7 @@ export function countedCategories(policy) {
 }
 
 /**
- * The Elder score's weights, normalized to sum to 1, over the counted
+ * The Elder order's weights, normalized to sum to 1, over the counted
  * categories with a weight above zero; empty when Elder is chosen by hand.
  */
 export function elderWeights(policy) {

@@ -72,6 +72,7 @@ function harness({
   part,
   policy = EXAMPLE_POLICY,
   seasonCalendar = null,
+  weekBattlesFor = null,
   ledger = policy
     ? ledgerWithPolicy(createMemoryLedger(), "#2PQRJ8LV", policy)
     : createMemoryLedger(),
@@ -87,6 +88,7 @@ function harness({
     mcp,
     now,
     seasonCalendar,
+    weekBattlesFor,
     activityFor: async (_tag, tags) =>
       new Map(
         (activity.part?.members ?? [])
@@ -1730,6 +1732,58 @@ test("week: the latest closed week for any member, everyone who took part named,
   assert.equal(bad.status, 400);
   // Opening it raised no action.
   assert.deepEqual(await h.ledger.cards("#2PQRJ8LV"), []);
+});
+
+test("week: battles come from the record's own count for this clan; a failed read leaves the area out", async () => {
+  const asked = [];
+  const h = harness({
+    players: [
+      player({ player_tag: "#8QCV", name: "Sleepy", clan_role: "member" }),
+    ],
+    part: partClan(),
+    weekBattlesFor: async (tag, windows) => {
+      asked.push({ tag, windows });
+      return windows.map((w) => ({
+        ...w,
+        battles: 5,
+        active: 2,
+        ranked: 1,
+        ranked_active: 1,
+        members: [
+          { player_tag: "#8QCV", name: "Sleepy", battles: 3, ranked: 1 },
+          { player_tag: "#9GONE", name: "Departed", battles: 2, ranked: 0 },
+        ],
+      }));
+    },
+  });
+  const cookies = await leader(h);
+  const r = await api(h, cookies, "GET", "/api/clans/2PQRJ8LV/week");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(asked[0].tag, "#2PQRJ8LV");
+  const battles = r.body.areas.find((a) => a.key === "battles");
+  assert.equal(battles.total, 5, JSON.stringify(battles));
+  assert.ok(battles.participants.some((p) => p.player_tag === "#9GONE"));
+  // The week's own clock: Monday's reset to the next.
+  assert.equal(r.body.week.reset_from.slice(11, 16), "10:00");
+  assert.equal(r.body.week.reset_to.slice(11, 16), "10:00");
+
+  const failing = harness({
+    players: [
+      player({ player_tag: "#8QCV", name: "Sleepy", clan_role: "member" }),
+    ],
+    part: partClan(),
+    weekBattlesFor: async () => {
+      throw new Error("read failed");
+    },
+  });
+  const again = await api(
+    failing,
+    await leader(failing),
+    "GET",
+    "/api/clans/2PQRJ8LV/week",
+  );
+  assert.equal(again.status, 200, JSON.stringify(again.body));
+  assert.ok(!again.body.areas.some((a) => a.key === "battles"));
 });
 
 test("week: with no policy, or below 10 members, the busiest areas are highlighted", async () => {

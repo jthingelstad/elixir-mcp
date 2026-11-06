@@ -454,7 +454,7 @@ export function Policy({ clan }) {
             {draft.minimums_rule === "any" ? "any one" : "all"} of the enabled
             thresholds above zero. They affect Elder eligibility and inactivity
             grace; with no thresholds set, everyone meets them. Each category’s
-            score window is separate.
+            window for the Elder order is separate.
           </p>
           <p className="m-0">
             Removal suggestions are{" "}

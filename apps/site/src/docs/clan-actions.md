@@ -24,11 +24,11 @@ game, and the action's log keeps what happened.
 Roster names, current members in Award races, Standing and The week, and
 member Actions link to **View member activity**, a page for
 a current member of a clan you belong to (the counts are recorded game
-data; the page lives inside Clan). It shows four ISO weeks
-of clan-scoped recorded battle counts and observed donation counters, the
+data; the page lives inside Clan). It shows four weeks,
+each from Monday's reset to the next, of clan-scoped recorded battle counts and observed donation counters, the
 recorded war weeks' deck usage and points, and paged battles grouped into
-recorded sessions. Each battle opens its full detail page. ISO
-weeks and war weeks stay distinct; decks are never assigned to war days.
+recorded sessions. Each battle opens its full detail page. Weekly
+contributions and war weeks stay distinct; decks are never assigned to war days.
 Battle modes use the same names as the battle detail page; an unrecognized
 mode retains its recorded name. Roster search is kept when opening activity,
 returning to the roster or refreshing the page.

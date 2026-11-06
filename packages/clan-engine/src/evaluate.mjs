@@ -2,13 +2,13 @@
  * verdicts = evaluate(record, policy, now, decisions)
  *
  * A pure function of a SAVED policy: the caller never evaluates a clan
- * whose leaders have not set one. "In the promotable set on three weekly
+ * whose leaders have not set one. "In line for promotion on three weekly
  * reviews" is computed by replaying the band at each past weekly boundary
  * from the record. Nothing is stored between runs except decisions and
  * holds, which are inputs.
  *
  * Weekly boundaries follow what the clan counts: when Clan Wars weighs in
- * the Elder score, the instants the record saw each war week finish (the
+ * the Elder order, the instants the record saw each war week finish (the
  * game's own Monday reset, observed); otherwise the ends of whole ISO
  * weeks. The current instant is judged separately for the removal clock
  * and the standing a leader sees today.
@@ -529,7 +529,7 @@ function withdrawReason(type, m) {
   if (type === "promotion") {
     if (m.role !== "member") return "The role changed.";
     if (m.judgment.promotion !== "ready") return "The evidence is held.";
-    return "No longer in the promotable set on sustained reviews.";
+    return "No longer in line for promotion on sustained reviews.";
   }
   if (m.role !== "elder") return "The role changed.";
   if (m.judgment.demotion !== "ready") return "The evidence is held.";

@@ -54,8 +54,8 @@ draws no band.
 By participation, each category the clan counts gets a weight, and the
 weights are relative (60, 20 and 20 are three fifths, one fifth and one
 fifth). Each member who took part is placed against the others in each
-category, and the weighted places make one score. Leaders and
-co-leaders are never ranked. Time in the clan is a gate and a
+category, and the weighted places make one order, the Elder order.
+Leaders and co-leaders are never in it. Time in the clan is a gate and a
 tiebreak, never a way to earn Elder on its own.
 
 ## The Elder band
@@ -64,13 +64,14 @@ The band is how many Elders the clan wants, as a share of the roster: a
 lower and an upper share, with the target between them. It is a limit
 on drift, not a quota: nobody is promoted to fill it. A member can be
 promoted when they meet the minimums, have been in the clan long enough,
-score at or above the clan's floor, and rank inside the target.
+sit at or above the clan's floor, and come inside the target in the Elder
+order.
 
-An Elder who ranks below the band's upper line is outranked. A member
-above them who scores higher by at least the clan's margin can take
-their place; on a closer call, the one longer in the clan does. An
-Elder can be demoted for two reasons: missing the minimums, or being
-outranked.
+An Elder past the band's upper line can lose the seat. A member ahead
+of them in the Elder order by at least the clan's margin can take their
+place; on a closer call, the one longer in the clan does. An Elder can
+be demoted for two reasons: missing the minimums, or another member
+taking the seat.
 
 ## A change has to hold
 

@@ -128,9 +128,9 @@ export async function buildCollector({ db, account, week, now = new Date() }) {
     },
     by_endpoint: byEndpoint.map((r) => [endpointLabel(r.endpoint), r.n]),
     tier,
-    fleet_note: `${newFacts.toLocaleString("en-US")} new facts entered the record through your collectors this week (battles, membership events, moved snapshots, changed cards).`,
+    fleet_note: `${newFacts.toLocaleString("en-US")} new facts entered the record through your collectors this week (battles, membership events, moved player readings, changed cards).`,
     coverage:
-      "Counted from the collector ledger: every fetch your collectors submitted from Saturday 00:00 UTC to the next Saturday 00:00 UTC. The edge filter share is what the collectors read and dropped as already recorded.",
+      "Counted from every fetch your collectors submitted from Saturday 00:00 UTC to the next Saturday 00:00 UTC. The edge filter share is what the collectors read and dropped as already recorded.",
   };
 }
 

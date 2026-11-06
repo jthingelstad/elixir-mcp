@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reportWeeks, weeklyReport } from "../src/week.mjs";
+import { reportWeeks, weekBattleWindows, weeklyReport } from "../src/week.mjs";
 import { validate } from "../src/policy.mjs";
 import { member, participation, NOW, EXAMPLE_POLICY } from "./fixture.mjs";
 
@@ -284,5 +284,91 @@ test("the report says when Elixir began reading the clan's roster", () => {
   assert.equal(
     weeklyReport(p, { now: NOW }).recorded_from,
     "2026-09-08T08:00:00.000Z",
+  );
+});
+
+// ---- Battles on the reset's clock (A13) -------------------------------------
+
+const clanWeek = (battles, ranked = 0) => ({
+  battles,
+  active: 2,
+  ranked,
+  ranked_active: ranked ? 1 : 0,
+  members: [
+    { player_tag: "#A", name: "A", battles: battles - 1, ranked },
+    { player_tag: "#GONE", name: "Gone", battles: 1, ranked: 0 },
+  ],
+});
+
+test("battles come from the clan's own count, departed members named, and donations stay on the participation answer", () => {
+  const p = participation([member("#A"), member("#B")]);
+  const iso = weeklyReport(p, { now: NOW }).week.iso_week;
+  const r = weeklyReport(p, {
+    now: NOW,
+    clanBattles: { [iso]: clanWeek(30, 4) },
+  });
+  const battles = r.areas.find((a) => a.key === "battles");
+  assert.equal(battles.total, 30);
+  assert.deepEqual(
+    battles.participants.map((x) => x.player_tag),
+    ["#A", "#GONE"],
+  );
+  assert.equal(r.areas.find((a) => a.key === "ranked").total, 4);
+  assert.ok(r.areas.find((a) => a.key === "donations").total > 0);
+});
+
+test("a failed battle read leaves its areas out, never another clock's number", () => {
+  const p = participation([member("#A")]);
+  const r = weeklyReport(p, { now: NOW, clanBattles: null });
+  const keys = r.areas.map((a) => a.key);
+  assert.ok(!keys.includes("battles"));
+  assert.ok(!keys.includes("ranked"));
+  assert.ok(keys.includes("donations"));
+});
+
+test("a week's bounds are Monday's reset: the report says them, and the windows match", () => {
+  const p = participation([member("#A")]);
+  const r = weeklyReport(p, { now: NOW });
+  assert.equal(
+    Date.parse(r.week.reset_from) - Date.parse(r.week.from),
+    10 * 3600_000,
+  );
+  assert.equal(
+    Date.parse(r.week.reset_to) - Date.parse(r.week.to),
+    10 * 3600_000,
+  );
+  const [closed, running] = weekBattleWindows(p, { now: NOW });
+  assert.equal(closed.iso_week, r.week.iso_week);
+  assert.equal(closed.from, r.week.reset_from);
+  assert.equal(closed.to, r.week.reset_to);
+  assert.equal(running.iso_week, r.so_far.iso_week);
+});
+
+test("before Monday's reset the running week is still last week", () => {
+  const p = participation([member("#A")]);
+  const r = weeklyReport(p, { now: at("2026-09-14T05:00:00Z") });
+  assert.equal(r.week.iso_week, "2026-W36");
+  assert.equal(r.so_far.iso_week, "2026-W37");
+  assert.equal(r.so_far.from, r.week.to);
+  const after = weeklyReport(p, { now: at("2026-09-14T10:00:00Z") });
+  assert.equal(after.week.iso_week, "2026-W37");
+});
+
+test("a move at Monday 09:00 belongs to the week that closes at 10:00", () => {
+  const p = participation([member("#A")]);
+  const ev = (type, at, detail) => ({ type, at, detail });
+  const r = weeklyReport(p, {
+    now: at("2026-09-15T00:00:00Z"),
+    roster: {
+      recent_events: [
+        ev("member_joined", "2026-08-01T00:00:00Z", { player_tag: "#OLD" }),
+        ev("member_left", "2026-09-14T09:00:00Z", { player_tag: "#X" }),
+      ],
+    },
+  });
+  assert.equal(r.week.iso_week, "2026-W37");
+  assert.deepEqual(
+    r.membership.departed.map((d) => d.player_tag),
+    ["#X"],
   );
 });

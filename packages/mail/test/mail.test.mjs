@@ -230,13 +230,13 @@ test("a clan report subject says the war place and the churn", () => {
   const { subject, preheader } = renderMail("clan_report", facts, links);
   assert.equal(
     subject,
-    "POAP KINGS, Sep 21 – 28: 1st in war, 4 departed, 2 joined",
+    "POAP KINGS, Season 136, week 3: 1st in war, 4 departed, 2 joined",
   );
   assert.match(preheader, /^10,305 fame, over the line on war day 3\./);
   // Older stored facts use neutral departure words too.
   assert.equal(
     renderMail("clan_report", stored("clan_report-2026-09"), links).subject,
-    "POAP KINGS, Sep 7 – 14: 1st in war, 3 departed, 3 joined",
+    "POAP KINGS, Season 136, week 1: 1st in war, 3 departed, 3 joined",
   );
 });
 
@@ -256,12 +256,15 @@ test("a clan report names each day in its reader's zone; an issue stored with a 
       text: "9 battles in one {{day:2026-09-09T03:00:00Z}} sitting",
     },
   ];
-  const utc = renderMail("clan_report", facts, links).html;
+  const sent = Date.parse("2026-09-14T00:00:00Z");
+  const utc = renderMail("clan_report", facts, { ...links, now: sent }).html;
   const chicago = renderMail("clan_report", facts, {
     ...links,
+    now: sent,
     timezone: "America/Chicago",
   }).html;
-  assert.match(utc, />Wed 3:00 am\.</);
+  // The member pages' format: a reader with no zone is told it is UTC.
+  assert.match(utc, />Wed 3:00 am UTC\.</);
   assert.match(utc, /one Wed sitting/);
   assert.match(chicago, />Tue 10:00 pm\.</);
   assert.match(chicago, /one Tue sitting/);
@@ -274,8 +277,11 @@ test("a clan report names each day in its reader's zone; an issue stored with a 
     readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
   );
   assert.match(
-    renderMail("clan_report", now, { ...links, timezone: "America/Chicago" })
-      .html,
+    renderMail("clan_report", now, {
+      ...links,
+      now: Date.parse("2026-09-29T00:00:00Z"),
+      timezone: "America/Chicago",
+    }).html,
     /over the line Sun 4:38 am/,
   );
 });
@@ -881,11 +887,10 @@ test("each collector is its card, with what it is doing now", () => {
     state: "silent",
     since: "2026-09-26T21:40:00Z",
   };
-  const { subject, preheader, html } = renderMail(
-    "collector_activity",
-    facts,
-    links,
-  );
+  const { subject, preheader, html } = renderMail("collector_activity", facts, {
+    ...links,
+    now: Date.parse("2026-10-20T00:00:00Z"),
+  });
   assert.equal(
     subject,
     "Your collectors, Sep 19 – 25: 4 running, 1 silent, 1 stopped",
@@ -895,7 +900,7 @@ test("each collector is its card, with what it is doing now", () => {
       html.includes(`/assets/cards/${x.card_id}.png`),
       `${x.name}'s art`,
     );
-  assert.match(html, /silent since Sep 26, 9:40 pm/);
+  assert.match(html, /silent since Sat Sep 26, 9:40 pm UTC/);
   assert.match(html, /stopped on purpose, last checked in on Sep 17/);
   assert.match(preheader, /Royal Hogs has been silent since Sep 26\./);
   assert.match(html, /href="[^"]*\/console\/status\/collectors/);
@@ -986,7 +991,7 @@ test("collector upgrade notices escape release text and distinguish unknown hist
     },
   };
   const rendered = renderMail("collector_activity", facts, links);
-  assert.match(rendered.subject, /TEST.*historical replay/);
+  assert.match(rendered.subject, /^\[Test replay\] /);
   assert.match(rendered.html, /historical observation was not recorded/);
   assert.match(rendered.html, /&lt;script&gt;/);
   assert.doesNotMatch(rendered.html, /<script>/);
@@ -1109,4 +1114,45 @@ test("unavailable comprehensive activity does not invent a scope restriction, an
   assert.doesNotMatch(out.preheader, /at this clan’s scope/);
   assert.match(htmlToText(out.html), /departed again the same day/);
   assert.doesNotMatch(htmlToText(out.html), /left again/);
+});
+
+test("mail names time and weeks as the member pages do, and says Clan and Casual", () => {
+  const clan = JSON.parse(
+    readFileSync(path.join(fixtures, "clan_report.json"), "utf8"),
+  );
+  clan.membership.left = [
+    { tag: "#A", name: "Gone", role: "member", at: "2026-09-25T03:00:00Z" },
+  ];
+  const { html } = renderMail("clan_report", clan, {
+    ...links,
+    now: Date.parse("2026-09-29T00:00:00Z"),
+    timezone: "America/Chicago",
+  });
+  assert.match(html, /departed POAP KINGS \(was Member\)/);
+  assert.match(html, />Thu 10:00 pm\.</);
+  // The tenure line is gone (Q9), even from an issue stored with one.
+  clan.membership.left[0].tenure_days = 40;
+  assert.doesNotMatch(
+    renderMail("clan_report", clan, links).html,
+    /Here 40 days/,
+  );
+  // A week with no season week keeps its dates.
+  clan.week.war_week = null;
+  assert.match(
+    renderMail("clan_report", clan, links).subject,
+    /^POAP KINGS, Sep 21 – 28: /,
+  );
+  const actions = renderMail(
+    "clan_actions_waiting",
+    {
+      clan: { tag: "#A", name: "Example" },
+      app: "Elixir Clan",
+      subject: "One action is waiting",
+      lines: ["Promote Ann to Elder (new)"],
+      link: "https://elixir.poapkings.com/clan",
+    },
+    links,
+  ).html;
+  assert.match(actions, /Clan sends this each morning when something new/);
+  assert.doesNotMatch(actions, /Elixir Clan sends|morning run/);
 });

@@ -71,3 +71,38 @@ test("member week counters exclude other clans, other players and pre-stint hist
     await scratch.drop();
   }
 });
+
+test("a member's week counts battles from Monday's reset to the next, on battle_time", async () => {
+  const scratch = await scratchDb("clan_member_activity_reset");
+  try {
+    const db = scratch.db;
+    await ensureSeason(db, "2026-09");
+    await db.query("insert into player (player_tag) values ('#9QY')");
+    await db.query("insert into clan (clan_tag) values ('#PYL')");
+    await db.query(`insert into battle (battle_id,battle_time,type,type_class) values
+      ('before-reset','2026-09-28T09:59:00Z','pathOfLegend','pvp'),
+      ('at-reset','2026-09-28T10:00:00Z','pathOfLegend','pvp'),
+      ('last-morning','2026-10-05T09:59:00Z','pathOfLegend','pvp'),
+      ('next-week','2026-10-05T10:00:00Z','pathOfLegend','pvp')`);
+    await db.query(`insert into battle_participant(battle_id,player_tag,clan_tag,side,outcome,battle_time,type,type_class)
+      select battle_id,'#9QY','#PYL',0,'win',battle_time,type,type_class from battle`);
+    const rows = await memberActivityWeeks(
+      db,
+      "#PYL",
+      "#9QY",
+      [
+        {
+          iso_week: "2026-W40",
+          from: "2026-09-28T00:00:00Z",
+          to: "2026-10-05T00:00:00Z",
+        },
+      ],
+      "2026-09-01T00:00:00Z",
+      "2026-10-20T00:00:00Z",
+    );
+    assert.equal(rows[0].battles, 2, "at-reset and last-morning, nothing else");
+    assert.equal(rows[0].ranked_battles, 2);
+  } finally {
+    await scratch.drop();
+  }
+});

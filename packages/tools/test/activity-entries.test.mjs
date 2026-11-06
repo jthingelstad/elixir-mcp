@@ -183,7 +183,7 @@ test("battles the record learned in the window are counted; late captures set as
   assert.ok(e.presence.last_battle_at, "presence knows the last battle");
   assert.match(
     e.summary,
-    new RegExp(`${e.battles.played} battles in \\d+ sessions since`),
+    new RegExp(`${e.battles.played} battles in \\d+ sittings since`),
   );
 
   // Late is the battle's own capture delay, not its distance from the
@@ -237,7 +237,7 @@ test("a clan entry names roster moves from the ledger, war state, presence and s
   assert.equal(e.roster.left.items.length, 1);
   assert.equal(e.roster.left.items[0].tag, gone.tag);
   assert.equal(e.roster.left.items[0].name, gone.name, "the leaver is named");
-  assert.equal(e.roster.left.items[0].tenure_days, 1);
+  assert.equal(e.roster.left.items[0].tenure_days, undefined);
   assert.ok(e.activity.battles > 0, "battles played while in the clan");
   assert.equal(e.activity.basis, "recorded");
   // The war section is the calendar's week at the window's end (#166);
@@ -256,7 +256,7 @@ test("a clan entry names roster moves from the ledger, war state, presence and s
   assert.match(e.summary, /joined: Newcomer/);
   assert.match(
     e.summary,
-    new RegExp(`left: ${gone.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
+    new RegExp(`departed: ${gone.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
   );
   assert.doesNotMatch(
     JSON.stringify(e),

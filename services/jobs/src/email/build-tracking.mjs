@@ -46,6 +46,9 @@ export async function buildTracking({ db, account, week, season }) {
     fromMs,
     toMs,
     timezone: tz,
+    // The week as it was played (A13): a clan's battles here match its
+    // report and Clan's week. Moments keep their own late-capture rule.
+    basis: "occurred",
     accountId: account.accountId,
     // The mail goes to the person's own address, nowhere else.
     interactive: true,
@@ -168,7 +171,12 @@ export async function buildTracking({ db, account, week, season }) {
     };
   });
   return {
-    week: { label: week.label, key: week.key, season },
+    week: {
+      label: week.label,
+      key: week.key,
+      season,
+      war_week: week.war_week ?? null,
+    },
     primary: primary
       ? { ...one(primary), ...(cards.get(primary.subject_tag) ?? {}) }
       : null,
@@ -182,8 +190,25 @@ export async function buildTracking({ db, account, week, season }) {
       days: q.days_quiet,
     })),
     preheader: primary ? primary.summary : undefined,
-    coverage: `${subjects.length} subjects tracked; ${quiet.length ? `${quiet.length} with nothing recorded this week (read days since poll before calling the silence theirs)` : "every tracked player was polled inside the week"}.`,
+    coverage: followingCoverage(subjects, entries),
   };
+}
+
+/** Who the reader follows and how many of them show no battle this week:
+ *  people, so never the reader, their alts or a clan. A gap is unknown. */
+function followingCoverage(subjects, entries) {
+  const followed = subjects.filter(
+    (s) => s.kind === "player" && !["primary", "alt"].includes(s.relationship),
+  );
+  const gap = "A gap means unknown. It does not mean they didn’t play.";
+  if (!followed.length) return gap;
+  const played = new Set(
+    entries.filter((e) => e.battles?.played > 0).map((e) => e.subject_tag),
+  );
+  const silent = followed.filter((s) => !played.has(s.tag)).length;
+  const people = `You follow ${followed.length} ${followed.length === 1 ? "person" : "people"}.`;
+  if (!silent) return `${people} Each has a battle recorded this week.`;
+  return `${people} ${silent} ${silent === 1 ? "has" : "have"} no battle recorded this week. ${gap}`;
 }
 
 /** One person's week the way the card draws it: a record per mode

@@ -50,6 +50,7 @@ import {
   CATEGORY_LABELS,
   memberWeeks,
   weeklyReport,
+  weekBattleWindows,
   seasonReport,
   welcomesFrom,
   welcomeContext,
@@ -189,6 +190,8 @@ export function createManageService({
   ledger,
   mcp,
   activityFor = null,
+  /** One clan's battles per window, the record's clanWeekBattles (A13). */
+  weekBattlesFor = null,
   now = () => Date.now(),
   seasonCalendar = null,
   /** Where Elixir Clan's app is, for the links in its email */
@@ -1056,11 +1059,28 @@ export function createManageService({
       const policy = await policyFor(clanTag);
       const members = part.members.length;
       const active = policy.set && members >= MIN_MEMBERS;
+      // Battles from the clan's own count on the reset's clock (A13). A
+      // failed read leaves those areas out, never another clock's number.
+      let clanBattles;
+      if (weekBattlesFor) {
+        try {
+          const windows = weekBattleWindows(part, { now: new Date(t), week });
+          clanBattles = Object.fromEntries(
+            (await weekBattlesFor(clanTag, windows)).map((w) => [
+              w.iso_week,
+              w,
+            ]),
+          );
+        } catch {
+          clanBattles = null;
+        }
+      }
       const report = weeklyReport(part, {
         roster,
         policy: active ? policy.values : null,
         now: new Date(t),
         week,
+        clanBattles,
       });
       if (!report) throw new ManageError(404, "no_week");
       return {

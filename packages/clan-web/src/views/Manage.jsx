@@ -29,6 +29,12 @@ const TITLES = {
   model: "Clan settings",
 };
 
+/** A demotion's reason as a leader reads it; the stored value stays. */
+const DEMOTION_WORDS = {
+  abandoned: "missed the minimums",
+  outranked: "another member takes the seat",
+};
+
 const BUCKET_LABEL = {
   actionable: "Actionable",
   building: "Building",
@@ -386,7 +392,8 @@ function elderCell(m) {
     if (m.demotion.state !== "none")
       return (
         <span className="chip chip--warn">
-          {m.demotion.reason ?? "slipping"} · {m.demotion.weeks} wk
+          {DEMOTION_WORDS[m.demotion.reason] ?? "demotion building"} ·{" "}
+          {m.demotion.weeks} wk
         </span>
       );
     return <span className="chip chip--ok">holding</span>;

@@ -14,8 +14,8 @@ import { CLAN, clanPath } from "../lib/base.js";
 
 const STATUS = {
   holding: ["Holding Elder", "chip--ok"],
-  slipping: ["Slipping", "chip--warn"],
-  rising: ["Rising", "chip--info"],
+  slipping: ["Slipping: demotion building", "chip--warn"],
+  rising: ["Rising: promotion building", "chip--info"],
   participating: ["Participating", "chip--mute"],
   quiet: ["Quiet", "chip--mute"],
 };

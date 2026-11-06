@@ -10,12 +10,13 @@ export function modeLabel(gameMode = "", type = "") {
   if (/^war$/i.test(g)) return "War";
   if (/^casual$/i.test(g)) return "Casual";
   if (/^other$/i.test(g)) return "Other";
-  if (/^Ranked/i.test(g) || /pathoflegend|ranked/i.test(type)) return "Ranked";
+  if (/^Ranked/i.test(g) || /pathoflegend|ranked/i.test(type))
+    return "Path of Legends";
   if (/^CW_Duel/i.test(g)) return "War · Duel";
   if (/^CW_Battle/i.test(g) || /riverRacePvP/i.test(type)) return "War · 1v1";
   if (/^CW_Boat|boat/i.test(g) || /boat/i.test(type)) return "War · Boat";
   if (/friendly|trail/i.test(g) || /friendly|trail/i.test(type))
-    return "Friendly";
+    return "Casual";
   if (/2v2|team/i.test(g) || /2v2/i.test(type)) return "2v2";
   if (/tournament/i.test(g) || /tournament/i.test(type)) return "Tournament";
   if (/challenge/i.test(g) || /challenge/i.test(type)) return "Challenge";

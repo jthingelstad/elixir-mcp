@@ -4,6 +4,7 @@
  *  Wednesday's mail agree. The period key is the ISO week of the
  *  Monday the week started on. */
 import { gameWeekStartMs } from "@elixir-mcp/record/form";
+import { seasonFromDate } from "@elixir-mcp/record/war-clock";
 
 const DAY = 86_400_000;
 
@@ -13,7 +14,17 @@ export function lastGameWeek(now = new Date()) {
   const monday = gameWeekStartMs(now.getTime());
   const to = new Date(monday);
   const from = new Date(monday - 7 * DAY);
-  return { from, to, key: isoWeekKey(from), label: rangeLabel(from, to) };
+  // The name a subject uses: the season the week fell in, and which of its
+  // weeks this is ("Season 137, week 4"). The war week, on the same clock.
+  const { seasonId, seasonStartMs } = seasonFromDate(from.getTime());
+  return {
+    from,
+    to,
+    key: isoWeekKey(from),
+    label: rangeLabel(from, to),
+    season: seasonId,
+    war_week: Math.floor((from.getTime() - seasonStartMs) / (7 * DAY)) + 1,
+  };
 }
 
 /** The collector week: Saturday 00:00Z to Saturday 00:00Z (Jamie,

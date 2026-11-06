@@ -114,13 +114,13 @@ test("two answers inside a minute are two items, each with its words, owner-only
   assert.equal(a.publishable, false);
   assert.equal(
     a.text,
-    "your account: your feedback “The rank looked off” was answered (done, shipped in 11.10.1).",
+    "Your account: your feedback “The rank looked off” was answered (done, shipped in 11.10.1).",
   );
   assert.equal(b.facts.status, "needs_info");
   assert.equal(b.facts.shipped_in, null);
   assert.equal(
     b.text,
-    "your account: Elixir asked a question about your feedback “The deck name is wrong”.",
+    "Your account: Elixir asked a question about your feedback “The deck name is wrong”.",
   );
   // The other account kinds still fold a burst (#376): unchanged.
   for (let i = 0; i < 3; i++)
@@ -171,7 +171,7 @@ test("a revised answer is the same story at a higher revision; each revision tel
   assert.equal(both[0].facts.shipped_in, "11.12.0");
   assert.equal(
     both[0].text,
-    "your account: your feedback “War decks look short” was answered again (done, shipped in 11.12.0).",
+    "Your account: your feedback “War decks look short” was answered again (done, shipped in 11.12.0).",
   );
 });
 
