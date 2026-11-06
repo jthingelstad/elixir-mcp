@@ -39,6 +39,16 @@ export function agoSeconds(s: number | null | undefined): string {
   return `${Math.round(s / 86400)}d ago`;
 }
 
+/** The same age in the words a member reads on a freshness chip: "15 min
+ *  ago", "2 hr ago", "3 days ago". */
+export function agoPlain(s: number | null | undefined): string {
+  if (s == null || Number.isNaN(s)) return "never";
+  if (s < 60) return "just now";
+  if (s < 5400) return `${Math.round(s / 60)} min ago`;
+  if (s < 172800) return `${Math.round(s / 3600)} hr ago`;
+  return `${Math.round(s / 86400)} days ago`;
+}
+
 /** Coarse relative time from a timestamp. */
 export function ago(
   ts: string | number | Date | null | undefined,

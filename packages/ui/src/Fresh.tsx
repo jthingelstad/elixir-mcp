@@ -1,5 +1,6 @@
 import { useInitialTime } from "./InitialTime.tsx";
-import { agoSeconds, freshCls, secsSince } from "./time.ts";
+import type { ReactNode } from "react";
+import { agoPlain, agoSeconds, freshCls, secsSince } from "./time.ts";
 import { useClock } from "./Zone.tsx";
 
 /** How current a number is, the way Elixir says it: "4m ago" in a
@@ -31,5 +32,43 @@ export function Fresh({
       {label ? `${label} ` : ""}
       {agoSeconds(age)}
     </span>
+  );
+}
+
+/**
+ * The folded freshness chip: "Battle log read 15 min ago", and under it the
+ * plain explanation of what that means for the numbers on the page. A
+ * native `details`, so it opens with a key and needs no script. The dot is
+ * the age, as in `Fresh`; never read is said, not left blank.
+ */
+export function FreshChip({
+  ts,
+  seconds,
+  label = "Battle log read",
+  children,
+  className,
+}: {
+  ts?: string | number | Date | null;
+  seconds?: number | null;
+  label?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const [now] = useInitialTime();
+  const { when } = useClock();
+  const age = seconds ?? secsSince(ts, now);
+  const state =
+    age == null ? "never" : age < 900 ? "live" : age < 86400 ? "stale" : "old";
+  return (
+    <details
+      className={["kit-fresh", `kit-fresh--${state}`, className]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <summary title={ts ? when(ts) : undefined}>
+        {age == null ? `${label}: never` : `${label} ${agoPlain(age)}`}
+      </summary>
+      <div className="kit-fresh__pop">{children}</div>
+    </details>
   );
 }
