@@ -1016,16 +1016,17 @@ function clan(f, c) {
       ? `${c.rows(moves.slice(0, MOVES_CAP))}${extra > 0 ? c.small(`And ${n(extra)} more on ${c.link(c.clanDoor(tag), "the clan’s page")}.`) : ""}`
       : c.small("No joins, departures or role changes.")
   }`;
-  // Members only (A19): the Monday report reaches people outside the clan, and
-  // nobody below co-leader sees a count, so a member reads the date of the
-  // last battle and anyone else reads no line. An issue stored before the date
-  // was kept has only its count, and says nothing for a date it cannot name.
-  const quietNames = c.isMember(tag)
+  // Verified members only (A19): the Monday report reaches people outside the
+  // clan, and nobody below co-leader sees a count, so a verified member reads
+  // the date of the last battle and anyone else reads no line. An issue stored
+  // before the date was kept has only its count, and says nothing for a date it
+  // cannot name.
+  const quietNames = c.readsClanFacts(tag)
     ? (f.presence?.quiet ?? [])
         .filter((r) => r.last_battle)
         .map((r) => `${esc(r.name)}, last battle ${esc(c.date(r.last_battle))}`)
     : [];
-  const backNames = c.isMember(tag)
+  const backNames = c.readsClanFacts(tag)
     ? (f.presence?.returned ?? []).map((r) => esc(r.name))
     : [];
   const quiet =

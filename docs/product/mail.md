@@ -73,8 +73,8 @@ never mailed; an agent's feedback is answered to the agent. [Jamie,
 12. **Firsts as they happen are the main player's.** An alt's wait for
     Tuesday's mail; with that mail off, the timeline has them. [Jamie,
     2026-11-05]
-13. **Gone quiet is the clan's own.** Only members read it, as a last battle's
-    date, never a count. [Jamie, 2026-11-05]
+13. **Gone quiet is the clan's own.** Only verified members read it, as a last
+    battle's date, never a count. [Jamie, 2026-11-05, 2026-11-06]
 
 ## What it never does
 
