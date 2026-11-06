@@ -408,6 +408,29 @@ function runningWeek(participation, now) {
   return closesAt(participation, week) <= t ? null : { index, week };
 }
 
+/** The ISO row whose Monday-reset window holds `now`, whether or not a race
+ *  has closed it early, with that window. Display only: Standing and policy
+ *  stay on the ISO weeks of `clans_participation` (docs/DECISIONS.md). */
+export function resetWeekAt(participation, now = new Date()) {
+  const t = now.getTime();
+  const index = (participation.weeks ?? []).findIndex((w) => {
+    const { from, to } = resetBounds(w);
+    return from <= t && t < to;
+  });
+  if (index < 0) return null;
+  const week = participation.weeks[index];
+  const { from, to } = resetBounds(week);
+  return {
+    index,
+    week,
+    window: {
+      iso_week: week.iso_week,
+      from: new Date(from).toISOString(),
+      to: new Date(to).toISOString(),
+    },
+  };
+}
+
 /** The week still running: each area's total and how many took part. */
 function thisWeekSoFar(participation, now, clanBattles, roster, policy) {
   const running = runningWeek(participation, now);

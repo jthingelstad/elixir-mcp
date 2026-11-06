@@ -51,6 +51,7 @@ import {
   elderWeights,
   CATEGORY_LABELS,
   memberWeeks,
+  resetWeekAt,
   weeklyReport,
   weekBattleWindows,
   seasonReport,
@@ -1012,7 +1013,20 @@ export function createManageService({
       const part = await fetchParticipation(mcp, token, clanTag);
       await noteSize(clanTag, part.members.length, t);
       const roster = await fetchRoster(mcp, token, clanTag);
-      const you = memberWeeks(part, who.player_tag, roster, new Date(t));
+      // This week on the reset's clock, the same count as The week. A failed
+      // read leaves battles unknown. `evaluate` below never sees it.
+      let clanBattles;
+      const running = weekBattlesFor ? resetWeekAt(part, new Date(t)) : null;
+      if (running) {
+        try {
+          [clanBattles] = await weekBattlesFor(clanTag, [running.window]);
+        } catch {
+          clanBattles = null;
+        }
+      }
+      const you = memberWeeks(part, who.player_tag, roster, new Date(t), {
+        clanBattles,
+      });
       if (!you) throw new ManageError(404, "not_on_roster");
       const policy = await policyFor(clanTag);
       const members = part.members.length;

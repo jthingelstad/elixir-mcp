@@ -153,17 +153,17 @@ describe("actions", () => {
         />
       </ZoneProvider>,
     );
-    const row = screen.getByText("Rests on").parentElement;
+    const row = screen.getByText("What this comes from").parentElement;
     expect(row.textContent).toMatch(
-      /^Rests onLast recorded battle Sun Aug 23( 2026)?, 3:00 pm, Path of Legends; joined Fri May 15( 2026)?; battle count rose by 1 between Thu May 14( 2026)?, 3:00 pm and Sun Aug 23( 2026)?, 3:00 pm, not since \(last read Sat Sep 12( 2026)?, 3:00 pm\) \(record\)$/,
+      /Last recorded battle Sun Aug 23( 2026)?, 3:00 pm, Path of Legends; joined Fri May 15( 2026)?; battle count rose by 1 between Thu May 14( 2026)?, 3:00 pm and Sun Aug 23( 2026)?, 3:00 pm, not since \(last read Sat Sep 12( 2026)?, 3:00 pm\)/,
     );
     expect(row.querySelectorAll("time")).toHaveLength(5);
     expect(row.textContent).not.toContain("Ranked1v1");
     expect(
-      screen.getByText(
+      screen.getAllByText(
         "Modes the battle log does not carry are not seen, so the leader weighs it.",
-      ),
-    ).toBeTruthy();
+      ).length,
+    ).toBe(2);
     cleanup();
     // A removal raised before the row existed still says what it cannot see.
     renderWithProviders(
@@ -174,7 +174,7 @@ describe("actions", () => {
         action={removal}
       />,
     );
-    expect(screen.getByText(REMOVAL_UNSEEN)).toBeTruthy();
+    expect(screen.getAllByText(REMOVAL_UNSEEN).length).toBeGreaterThan(0);
     expect(screen.queryByText("Rests on")).toBeNull();
     cleanup();
     // A promotion never carries it.
@@ -242,7 +242,7 @@ describe("actions", () => {
     expect(
       screen.getAllByText("20 battle-free days: at risk at 5, an action at 8."),
     ).toHaveLength(1);
-    expect(screen.getByText(/History · 1 entry/)).toBeTruthy();
+    expect(screen.getByText(/History, 1 entry/)).toBeTruthy();
     expect(screen.getByText(/^Sat Sep 12( 2026)?, 3:00 pm$/)).toBeTruthy();
     expect(decide).not.toHaveBeenCalled();
   });
@@ -289,7 +289,7 @@ describe("actions", () => {
       screen.queryByRole("button", { name: "Draft in our voice" }),
     ).toBeNull();
     expect(screen.queryByRole("button", { name: "Reopen action" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Decline" }));
     fireEvent.change(screen.getByLabelText("Why decline"), {
       target: { value: "evidence_wrong" },
@@ -371,23 +371,21 @@ describe("actions", () => {
         who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
       />,
     );
-    expect(await screen.findByText(/History · 1 entry/)).toBeTruthy();
+    expect(await screen.findByText(/History, 1 entry/)).toBeTruthy();
     expect(
       screen.getByRole("heading", {
         level: 2,
-        name: "Remove from the clan",
+        name: /^Remove from the clan/,
       }),
     ).toBeTruthy();
-    fireEvent.click(screen.getByText(/History · 1 entry/));
+    fireEvent.click(screen.getByText(/History, 1 entry/));
     expect(screen.getByText("‹ Today")).toBeTruthy();
     expect(
       screen.getByText(
         /Earlier: declined \w+ Sep [12]( 2026)? \(knows the member\)/,
       ),
     ).toBeTruthy();
-    expect(
-      screen.getByText(/policy v1: at_risk_days, confirm_days/),
-    ).toBeTruthy();
+    expect(screen.getByText("policy v1")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Comment"), {
       target: { value: "Messaged them first." },
     });
@@ -438,7 +436,7 @@ describe("actions", () => {
     );
     await waitFor(() =>
       expect(
-        screen.getByText(/The recorded activity clock is 6 days/),
+        screen.getByText(/6 days since your last recorded battle/),
       ).toBeTruthy(),
     );
     fireEvent.click(screen.getByRole("link", { name: "Mark me away" }));
@@ -927,7 +925,7 @@ describe("clan leader messages", () => {
         who={{ player_tag: "#20QQL8CCRU", role: "leader" }}
       />,
     );
-    await waitFor(() => expect(screen.getByText("The clan")).toBeTruthy());
+    await screen.findByLabelText("Title");
     // What is shared with Elixir is what the leader sent, as edited.
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Our rules" },

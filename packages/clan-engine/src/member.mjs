@@ -7,7 +7,7 @@
  * Pure: the participation answer, a roster and a tag in; one member out.
  */
 
-import { warDaysAsked as daysAsked } from "./week.mjs";
+import { resetWeekAt, warDaysAsked as daysAsked } from "./week.mjs";
 
 const DAY_MS = 86400_000;
 
@@ -16,6 +16,10 @@ const DAY_MS = 86400_000;
  * @param {string} tag the member's player tag
  * @param {object} [roster] the clans_roster answer (trophies, role events)
  * @param {Date} [now]
+ * @param {object|null} [opts.clanBattles] this clan's battles in the running
+ *   reset window (clanWeekBattles); null when the read failed, so battles are
+ *   unknown rather than another clock's number. Left undefined, battles fall
+ *   back to the participation columns.
  * @returns {object|null} null when the tag is not on the clan's roster
  */
 export function memberWeeks(
@@ -23,6 +27,7 @@ export function memberWeeks(
   tag,
   roster = null,
   now = new Date(),
+  { clanBattles } = {},
 ) {
   const m = participation.members.find((x) => x.player_tag === tag);
   if (!m) return null;
@@ -35,6 +40,33 @@ export function memberWeeks(
     ranked_battles: m.ranked_battles?.[i] ?? null,
     donations: m.donations?.[i] ?? null,
   }));
+  // "This week" is The week's: Monday reset to Monday reset (A13). `weeks`
+  // keep their ISO rows, the ones minimums and policy judge.
+  const running = resetWeekAt(participation, now);
+  const thisWeek = running
+    ? (() => {
+        const row = iso[running.index];
+        const mine = clanBattles?.members?.find((x) => x.player_tag === tag);
+        return {
+          ...row,
+          complete: false,
+          reset_from: running.window.from,
+          reset_to: running.window.to,
+          battles:
+            clanBattles === undefined
+              ? row.battles
+              : clanBattles === null
+                ? null
+                : (mine?.battles ?? 0),
+          ranked_battles:
+            clanBattles === undefined
+              ? row.ranked_battles
+              : clanBattles === null
+                ? null
+                : (mine?.ranked ?? 0),
+        };
+      })()
+    : null;
   const war = participation.war_weeks.map((w, i) => {
     const decks = m.war_decks?.[i];
     const days = daysAsked(w);
@@ -66,7 +98,7 @@ export function memberWeeks(
     player_tag: m.player_tag,
     name: m.name ?? r?.name ?? null,
     role: m.role ?? r?.role ?? "member",
-    this_week: iso.find((w) => !w.complete) ?? null,
+    this_week: thisWeek,
     this_war_week: war.find((w) => w.open) ?? null,
     weeks: iso,
     war_weeks: war,

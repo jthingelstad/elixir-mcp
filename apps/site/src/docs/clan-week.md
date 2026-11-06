@@ -68,6 +68,7 @@ donations and the race close line up. Battles and ranked play count this
 clan's battles by when they were played, each battle once, including anyone
 who has since departed, the same number as the clan report and Your friends
 this week. Donations and war decks are for today's members. Only those who
-took part are named, so the report never lists who did nothing. It
+took part are named, so the report never lists who did nothing. Your own
+"this week" on You here and on Home reads the same window. It
 raises no actions and shows no standing; those are on
 [Actions](/docs/clan-actions) and [Standing](/docs/standing).

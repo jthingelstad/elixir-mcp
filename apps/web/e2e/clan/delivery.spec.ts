@@ -185,7 +185,7 @@ for (const size of ["wide", "@narrow"])
       ).toBeVisible();
       await page.getByRole("button", { name: "Done", exact: true }).click();
       await expect(
-        page.getByRole("article").getByText("Done", { exact: true }),
+        page.getByRole("main").locator(".chip", { hasText: /^Done$/ }),
       ).toBeVisible();
       await page.reload();
       await expect(

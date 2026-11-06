@@ -123,7 +123,7 @@ export function needsYou({ clan, signals, clock }) {
         title: `Set up how ${clan.name ?? "your clan"} works`,
         detail: "Nothing runs in Clan until it has a policy.",
         cta: "Start",
-        to: `/clan/${tagPath(clan.clan_tag)}/manage/policy`,
+        to: `/clan/${tagPath(clan.clan_tag)}/run/about`,
       });
   }
   if ((signals?.refusals_7d ?? 0) > 0)

@@ -152,7 +152,7 @@ for (const size of ["wide", "@narrow"])
       ).toBeDisabled();
       await page
         .locator("summary")
-        .filter({ hasText: /^History · 2 entries/ })
+        .filter({ hasText: /^History, 2 entries/ })
         .click();
       await expect(
         page.getByText("Waited for context.", { exact: true }),

@@ -652,6 +652,10 @@ test.describe("signed in", () => {
       "type",
       "password",
     );
+    // The old Settings anchors land on the section they named, which moved.
+    await page.goto("/clan/2PQRJ8LV/manage/settings#settings-voice");
+    await expect(page).toHaveURL(/\/run\/model-voice#settings-voice$/);
+    await expect(page.locator("#settings-voice")).toBeInViewport();
     // The model's old address lands on the page.
     await page.goto("/clan/2PQRJ8LV/manage/model");
     await expect(page).toHaveURL(/\/run\/model-voice$/);
@@ -849,11 +853,11 @@ test.describe("signed in", () => {
     await row.click();
     await expect(page).toHaveURL(/\/actions\/37$/);
     await expect(
-      page.getByRole("heading", { name: "Remove from the clan · Sleepy" }),
+      page.getByRole("heading", { name: "Remove from the clan: Sleepy" }),
     ).toBeVisible();
     await page
       .locator("summary")
-      .filter({ hasText: /^History · 2 entries/ })
+      .filter({ hasText: /^History, 2 entries/ })
       .click();
     await expect(page.getByText("I messaged them yesterday.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
@@ -867,7 +871,7 @@ test.describe("signed in", () => {
     // The address works on its own, sent to someone.
     await page.goto("/clan/2PQRJ8LV/actions/37");
     await expect(
-      page.getByRole("heading", { name: "Remove from the clan · Sleepy" }),
+      page.getByRole("heading", { name: "Remove from the clan: Sleepy" }),
     ).toBeVisible();
     await page.getByRole("link", { name: "‹ Today" }).click();
     await expect(page).toHaveURL(/\/today$/);
@@ -989,7 +993,7 @@ test.describe("signed in", () => {
   }) => {
     await page.goto("/clan/2PQRJ8LV/members");
     await expect(clanTab(page, /^Today/)).toHaveAccessibleName(
-      /^Today ?, 2 waiting for you$/,
+      /^Today 2 waiting for you$/,
     );
     for (const name of ["Members", "Season", "Awards", "Run"])
       await expect(clanTab(page, name)).toBeAttached();

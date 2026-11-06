@@ -101,8 +101,9 @@ a week past the join.
 
 ## Deciding one
 
-Open an Action to read its evidence and message beside **Decision**.
-**History** expands its saved log and comment form. These labels do not
+Open an Action to read its reason and numbers, then its folds: **What this
+comes from**, its message, and **History**, the saved log and comment form.
+The buttons come last. These labels do not
 change which decisions your role may make.
 
 Actions shows one **Open** list by default. Choose **Closed** to see the most
