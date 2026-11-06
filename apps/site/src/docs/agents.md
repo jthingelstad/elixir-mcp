@@ -238,7 +238,7 @@ read is by when the record **learned** them, so nothing learned late is
 skipped, and an item that happened before `from` says `late: true`
 ([Two kinds of window](/docs/timeline-tool#two-kinds-of-window)).
 
-The item and entry shapes are on [Timeline](/docs/timeline), with the
+The item and entry shapes are on [The timeline tool](/docs/timeline-tool#items), with the
 `facts` keys each `kind` carries and its version (a `battle_session` has
 `battles`, `won`, `lost`, `by_mode`, `trophy_net` and
 `trophy_net_peak` (the session's Trophy Road net), `trophy_net_by_mode`;

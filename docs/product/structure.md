@@ -2,7 +2,8 @@
 
 *Ratified by Jamie, 2026-11-05: "Approved: all 55 Elixir detail design
 questions as recommended; build steps 1-3 in elixir-mcp, then stop for my
-review". Steps 4 to 8 are ruled on but not yet approved to build.*
+review"; and 2026-11-06: "Approved: build Elixir redesign steps 4-8 in
+elixir-mcp". All eight steps shipped by 2026-11-06.*
 
 This is the redesign's record: how Elixir is arranged, the twelve
 decisions, and every answer from the detail design. The design boards were

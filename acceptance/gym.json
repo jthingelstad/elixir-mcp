@@ -11248,11 +11248,12 @@
   },
   {
     "id": "273.1",
+    "note": "the tool reference moved to its own doc page, timeline-tool, on 2026-11-06; the page timeline points there",
     "feedback": 273,
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "timeline"
+      "page": "timeline-tool"
     },
     "request_id": "c86d55c2-90e0-44d9-9fca-75d2e200e912",
     "assert": [
@@ -11266,11 +11267,12 @@
   },
   {
     "id": "273.2",
+    "note": "the tool reference moved to its own doc page, timeline-tool, on 2026-11-06; the page timeline points there",
     "feedback": 273,
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "timeline"
+      "page": "timeline-tool"
     },
     "request_id": "c86d55c2-90e0-44d9-9fca-75d2e200e912",
     "assert": [
@@ -11297,12 +11299,13 @@
   },
   {
     "id": "273.4",
+    "note": "the tool reference moved to its own doc page, timeline-tool, on 2026-11-06; the page timeline points there",
     "feedback": 273,
     "control": true,
     "stability": "live",
     "tool": "elixir_docs",
     "args": {
-      "page": "timeline"
+      "page": "timeline-tool"
     },
     "request_id": "c86d55c2-90e0-44d9-9fca-75d2e200e912",
     "assert": [
