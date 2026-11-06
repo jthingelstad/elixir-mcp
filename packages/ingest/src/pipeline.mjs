@@ -13,6 +13,7 @@
  */
 
 import { gunzipSync } from "node:zlib";
+import { cleanPayloadNames } from "./names.mjs";
 import {
   validateResultMessage,
   normalizeTag,
@@ -548,7 +549,7 @@ function decodeAndAdmit(msg) {
     rawText = gunzipSync(Buffer.from(msg.body_gzip_b64, "base64"), {
       maxOutputLength: MAX_DECOMPRESSED_BYTES,
     }).toString("utf8");
-    payload = JSON.parse(rawText);
+    payload = cleanPayloadNames(JSON.parse(rawText));
   } catch (err) {
     // zlib aborts at the bound with ERR_BUFFER_TOO_LARGE — a deliberate,
     // observable rejection, not an allocation.
