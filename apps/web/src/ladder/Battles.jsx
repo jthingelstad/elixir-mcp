@@ -1,6 +1,6 @@
 import { Empty, Icon, Link, Panel, useClock } from "@elixir-mcp/ui";
 import { useMemo, useState } from "react";
-import { clockTime, fmt, modeWords, readModes } from "./ladder.js";
+import { OTHER, clockTime, fmt, modeWords, readModes } from "./ladder.js";
 import {
   battleDays,
   battlePath,
@@ -22,50 +22,74 @@ const SITTINGS_SHOWN = 5;
  * The Battles tab: every battle in this chip's mode, by day and by sitting, each
  * opening on its own page. A war battle is listed like any other: Ladder shows a
  * person's battles one by one, and war by the week is the clan war's rule, which
- * the line above holds. Other reads Challenge and Tournament apart and lists them
- * in time order; a row names its own kind, and no tally crosses into a rate.
+ * the line above holds. Other is Challenge and Tournament, each a game of its
+ * own: its own read, days and sittings, so no count or record crosses the two.
  */
 export function Battles({ player, mode, modeReady, season, startsAt }) {
+  return (
+    <>
+      {readModes(mode).map((group) => (
+        <ModeBattles
+          key={group}
+          player={player}
+          group={group}
+          titled={mode === OTHER.key}
+          modeReady={modeReady}
+          season={season}
+          startsAt={startsAt}
+        />
+      ))}
+      {mode === OTHER.key ? <SittingFoot mode={mode} /> : null}
+    </>
+  );
+}
+
+function SittingFoot({ mode }) {
+  return (
+    <p className="footnote">
+      A sitting is a run of battles with no gap longer than 30 minutes. Open one
+      to see each battle; a battle with a page opens on it, with both decks, and
+      you can share why it mattered to you.
+      {mode === "war"
+        ? " War battles are listed one by one, like any other. Decks and points above are the clan war week."
+        : ""}
+      {mode === OTHER.key
+        ? " A Tournament is not a Challenge, so the two are never added up."
+        : ""}
+    </p>
+  );
+}
+
+/** One mode's days. `titled` heads them with the mode, where a chip holds two. */
+function ModeBattles({ player, group, titled, modeReady, season, startsAt }) {
   const { zone, when } = useClock();
-  const groups = readModes(mode);
-  const base = {
-    player_tag: player.player_tag,
-    season: season.arg,
-    verbosity: "compact",
-    limit: 40,
-  };
-  const first = useBattleSweep(
-    { ...base, mode: groups[0] },
+  const sweep = useBattleSweep(
+    {
+      player_tag: player.player_tag,
+      season: season.arg,
+      verbosity: "compact",
+      limit: 40,
+      mode: group,
+    },
     { enabled: modeReady },
   );
-  const second = useBattleSweep(
-    { ...base, mode: groups[1] },
-    { enabled: modeReady && groups.length > 1 },
-  );
-  const sweeps = groups.length > 1 ? [first, second] : [first];
-  const firstRows = first.data?.battles;
-  const secondRows = groups.length > 1 ? second.data?.battles : undefined;
-  const battles = useMemo(
-    () =>
-      [...(firstRows ?? []), ...(secondRows ?? [])].sort(
-        (a, b) => Date.parse(b.battle_time) - Date.parse(a.battle_time),
-      ),
-    [firstRows, secondRows],
-  );
-  const days = useMemo(() => battleDays(battles, zone), [battles, zone]);
+  const battles = sweep.data?.battles;
+  const days = useMemo(() => battleDays(battles ?? [], zone), [battles, zone]);
   const [older, setOlder] = useState(false);
-  const failed = sweeps.find((s) => s.isError);
-  if (!modeReady || sweeps.some((s) => s.isPending))
-    return <Loading what="the season's battles" />;
-  if (failed) return <ReadError error={failed.error} what="your battles" />;
+  const words = modeWords(group);
+  const title = titled ? <h2 className="ladder-group">{words}</h2> : null;
+  if (!modeReady || sweep.isPending)
+    return <Loading what={`the season's ${words} battles`} />;
+  if (sweep.isError)
+    return <ReadError error={sweep.error} what={`your ${words} battles`} />;
   if (!days.length)
     return (
       <Empty
         titleAs="h2"
         title={
           season.current
-            ? `No ${modeWords(mode)} battles recorded this season yet`
-            : `No ${modeWords(mode)} battles recorded in ${season.name}`
+            ? `No ${words} battles recorded this season yet`
+            : `No ${words} battles recorded in ${season.name}`
         }
       >
         {season.current
@@ -74,21 +98,28 @@ export function Battles({ player, mode, modeReady, season, startsAt }) {
       </Empty>
     );
   const shown = older ? days : days.slice(0, DAYS_SHOWN);
-  const capped = sweeps.find((s) => s.data?.capped);
   return (
     <>
-      {capped ? (
+      {title}
+      {sweep.data?.capped ? (
         <div className="callout callout--info" role="status">
           <Icon name="info" size={17} />
           <span>
-            This page reads the newest {fmt(capped.data.battles.length)} of{" "}
-            {fmt(capped.data.total)} battles, so anything older is not listed
-            here. It is not a claim that there were none.
+            This page reads the newest {fmt(sweep.data.battles.length)} of{" "}
+            {fmt(sweep.data.total)} {titled ? `${words} ` : ""}battles, so
+            anything older is not listed here. It is not a claim that there were
+            none.
           </span>
         </div>
       ) : null}
       {shown.map((day) => (
-        <Day key={day.ymd} day={day} past={!season.current} zone={zone} />
+        <Day
+          key={day.ymd}
+          day={day}
+          past={!season.current}
+          zone={zone}
+          titleAs={titled ? "h3" : "h2"}
+        />
       ))}
       {days.length > DAYS_SHOWN ? (
         <div>
@@ -102,24 +133,18 @@ export function Battles({ player, mode, modeReady, season, startsAt }) {
           </button>
         </div>
       ) : null}
-      <p className="footnote">
-        A sitting is a run of battles with no gap longer than 30 minutes. Open
-        one to see each battle; a battle with a page opens on it, with both
-        decks, and you can share why it mattered to you.
-        {mode === "war"
-          ? " War battles are listed one by one, like any other. Decks and points above are the clan war week."
-          : ""}
-      </p>
+      {titled ? null : <SittingFoot mode={group} />}
     </>
   );
 }
 
-function Day({ day, past, zone }) {
+function Day({ day, past, zone, titleAs }) {
   const [all, setAll] = useState(false);
   const sittings = all ? day.sittings : day.sittings.slice(0, SITTINGS_SHOWN);
   return (
     <Panel
       title={day.label}
+      titleAs={titleAs}
       action={<span className="ladder-aside">{tallyLine(day)}</span>}
     >
       {sittings.map((s, i) => (

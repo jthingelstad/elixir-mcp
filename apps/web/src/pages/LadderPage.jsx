@@ -4,8 +4,8 @@ import {
   MODES,
   OTHER,
   capturePending,
-  ladderHref,
   ladderPlayers,
+  scopeHref,
   ladderSlug,
   pickMode,
   pickPlayer,
@@ -59,8 +59,20 @@ export function LadderPage() {
   );
   // No session answer yet says nothing about whose players there are.
   if (!player) return me ? <NoPlayers /> : null;
-  // Nothing captured yet: say so, calmly, on every page (Pending.jsx).
-  if (capturePending(summary)) return <Pending player={player} />;
+  const slug = ladderSlug(pathname);
+  const hrefFor = (over) => scopeHref(slug, search ?? {}, over);
+  // Nothing captured yet: say so, calmly, on every page (Pending.jsx), with the
+  // player control still in reach, so a new or mistyped tag strands nobody.
+  if (capturePending(summary))
+    return (
+      <Pending
+        key={player.player_tag}
+        player={player}
+        players={players}
+        hrefFor={hrefFor}
+        navigate={navigate}
+      />
+    );
 
   const seasons = listed.data
     ? recordedSeasons(listed.data.applied)
@@ -75,7 +87,6 @@ export function LadderPage() {
         ? null
         : undefined,
   });
-  const slug = ladderSlug(pathname);
   const modeAsked =
     search?.mode === OTHER.key || MODES.some((m) => m.key === search?.mode);
   const mode = pickMode(search?.mode, summary.data?.last_30_days?.modes);
@@ -87,6 +98,7 @@ export function LadderPage() {
     <ScopedPage
       slug={slug}
       search={search ?? {}}
+      hrefFor={hrefFor}
       navigate={navigate}
       scope={scope}
       season={season}
@@ -104,6 +116,7 @@ export function LadderPage() {
 function ScopedPage({
   slug,
   search,
+  hrefFor,
   navigate,
   scope,
   season,
@@ -117,19 +130,6 @@ function ScopedPage({
   const read = useToolRead("battles_performance", scope, {
     enabled: season.ready,
   });
-  const hrefFor = ({ slug: to = slug, ...over } = {}) => {
-    const keep = {
-      player: search.player,
-      mode: search.mode,
-      season: search.season,
-      order: search.order,
-      ...over,
-    };
-    return ladderHref(to, {
-      ...keep,
-      player: keep.player ?? undefined,
-    });
-  };
   const ctx = {
     player,
     mode,

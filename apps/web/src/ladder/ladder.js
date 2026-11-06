@@ -115,6 +115,19 @@ export function ladderHref(slug, { player, mode, season, order } = {}) {
   return qs ? `${path}?${qs}` : path;
 }
 
+/** An address from this page's, with what changes: whose season, which game,
+ *  which season and the order stay unless `over` names them. */
+export function scopeHref(slug, search, { slug: to = slug, ...over } = {}) {
+  const keep = {
+    player: search.player,
+    mode: search.mode,
+    season: search.season,
+    order: search.order,
+    ...over,
+  };
+  return ladderHref(to, { ...keep, player: keep.player ?? undefined });
+}
+
 /* --------------------------------------------------------- the season
    Ladder reads one season at a time (2026-10-08), named in the address
    (`?season=136`) so a link, a reload or a mail lands on the season it

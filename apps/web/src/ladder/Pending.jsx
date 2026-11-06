@@ -6,6 +6,7 @@ import { useInvalidate } from "../lib/queries.js";
 import { recordJourney } from "../lib/record-journey.js";
 import { tagPath } from "../lib/tag-url.js";
 import { captureLanded, playerName } from "./ladder.js";
+import { PlayerPick } from "./ScopeBar.jsx";
 
 /**
  * The first capture is on its way (2026-10-08). A player just added has
@@ -18,7 +19,7 @@ import { captureLanded, playerName } from "./ladder.js";
  * the capture has landed (captureLanded: the profile and a battle-log
  * read) it refreshes the Ladder reads once.
  */
-export function Pending({ player }) {
+export function Pending({ player, players, hrefFor, navigate }) {
   const tag = player.player_tag;
   const { data, error } = useFirstAnswer(tag, { playerTag: tag });
   const invalidate = useInvalidate();
@@ -40,6 +41,16 @@ export function Pending({ player }) {
         title="Ladder"
         sub="Your season, read back"
       />
+      <div className="ladder-scope">
+        <div className="ladder-scope__picks">
+          <PlayerPick
+            player={player}
+            players={players}
+            hrefFor={hrefFor}
+            navigate={navigate}
+          />
+        </div>
+      </div>
       {journey?.notFound ? (
         <Empty
           title="Tag not found"
