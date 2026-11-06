@@ -12,7 +12,7 @@ export const REFUSALS = {
     body: "Clan signs people in. An agent or integration credential cannot open the personal clan dashboard.",
     action: "Sign in to Elixir as yourself.",
     link: [ELIXIR_LINKS.connectionsDocs, "Users, agents and integrations"],
-    retry: "/console/signin",
+    retry: "/signin",
   },
   no_primary_player: {
     title: "Add your player in Elixir",
@@ -26,7 +26,7 @@ export const REFUSALS = {
     body: "The latest recorded profiles for your own players show no clan. These are observations, not a live check.",
     action:
       "If that is still accurate, join a clan in the game. Otherwise wait for a fresh profile and clan roster, then check again.",
-    link: [ELIXIR_LINKS.overview, "Your Elixir account"],
+    link: [ELIXIR_LINKS.elixirHome, "Your Elixir account"],
   },
   membership_unknown: {
     title: "Waiting for your clan record",

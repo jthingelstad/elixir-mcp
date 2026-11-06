@@ -3,7 +3,6 @@ import { cleanup, screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Tracking } from "../src/views/account/Tracking.jsx";
 import { TrackedRecord } from "../src/views/account/TrackedRecord.jsx";
-import { Overview } from "../src/views/account/Overview.jsx";
 import { keys } from "../src/lib/queries.js";
 
 const me = { claims: [], recordings: [], entitlements: {}, role: "member" };
@@ -16,7 +15,6 @@ const clan = {
 const views = [
   ["Tracking", Tracking, {}],
   ["clan record", TrackedRecord, { tag: "2PQRJ8LV" }],
-  ["Overview", Overview, {}],
 ];
 
 afterEach(() => {

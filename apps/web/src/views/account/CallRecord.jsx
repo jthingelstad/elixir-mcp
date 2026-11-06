@@ -213,7 +213,7 @@ export function CallRecord({ id, navigate }) {
   const connection =
     call.token_name ??
     call.client_name ??
-    (call.surface === "web" ? "Console" : call.surface);
+    (call.surface === "web" ? "Elixir website" : call.surface);
 
   return (
     <>

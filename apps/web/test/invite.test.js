@@ -59,7 +59,7 @@ test("the message names the clan, is hedged about the battle log, and says unoff
 });
 
 test("the invite link is the canonical signup, with no referral or tracking parameter", () => {
-  expect(SIGNUP_URL).toBe("https://elixir.poapkings.com/console/signin?signup");
+  expect(SIGNUP_URL).toBe("https://elixir.poapkings.com/signin?signup");
   const url = new URL(SIGNUP_URL);
   expect([...url.searchParams.keys()]).toEqual(["signup"]);
 });

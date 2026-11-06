@@ -16,7 +16,7 @@ export function AccountPage() {
       me={me}
       refresh={refresh}
       navigate={navigate}
-      page={activePage ?? "overview"}
+      page={activePage}
       sub={here.sub}
       itemId={itemId}
       recordId={recordId}

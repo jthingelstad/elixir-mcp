@@ -20,7 +20,7 @@
  *
  * That carve-out used to take the ROUTE BRIDGE down with it, and the bridge is
  * how this SPA reports anything after its first document. A magic link lands on
- * /signin and the app pushStates to /account/overview without a reload, so a
+ * /signin and the app pushStates to /home without a reload, so a
  * session that entered the console the ordinary way reported NOT ONE page —
  * every screen the 2026-09-09 console redesign added was invisible for exactly
  * the people who use it most. The two jobs are now separate: the embed records
@@ -31,6 +31,13 @@ import { analyticsLocation as clanLocation } from "@elixir-mcp/clan-web/analytic
 import { CONSOLE, appPath } from "./lib/console.js";
 
 const SITE_ID = "Yzx8dUUvUPn9AEJpTMeU";
+
+/** The sign-in page, at its address or the old one the redirect still serves
+ *  (a magic link in archived mail lands on that one first). */
+const isSignIn = (pathname) =>
+  pathname === "/signin" ||
+  pathname.startsWith("/signin/") ||
+  (appPath(pathname) ?? "").startsWith("/signin");
 
 /**
  * A record of one call or one sent email: /account/activity/c/<request_id>,
@@ -62,7 +69,7 @@ export function loadTinylytics() {
   // we deliberately do not keep, and every hit after this one is a beacon
   // built from the ROUTE (analyticsLocation), never from the raw URL.
   const app = appPath(window.location.pathname) ?? "";
-  if (app.startsWith("/signin")) return;
+  if (isSignIn(window.location.pathname)) return;
   // A roster search is the reader's free text. Report its route through
   // the sanitized bridge, including direct loads, never the raw query.
   const clanSearch =
@@ -112,9 +119,9 @@ export function analyticsLocation(
   // Segments are read on the app path and the page is reported under the
   // prefix. The app only runs under /console; any other path is read as
   // it stands.
+  if (isSignIn(pathname)) return null;
   const app = appPath(pathname);
   const base = app === null ? "" : CONSOLE;
-  if (app?.startsWith("/signin")) return null;
   let segments = (app ?? pathname).split("/").filter(Boolean);
   // An agent's console is a place, /agent/<public_id>/... (2026-09-23):
   // which agent is never reported, only the kind of page (email.md: a

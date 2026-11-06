@@ -10,7 +10,7 @@ import { useState } from "react";
 import { usePublicStatus } from "../lib/queries.js";
 import { CONSOLE } from "../lib/console.js";
 
-/** Data ▸ Status (Jamie, 2026-09-06): the operational dashboard,
+/** The service page at /data/service (Jamie, 2026-09-06): the operational dashboard,
  *  mobile-first, behind sign-in since 2026-09-09 (the public health
  *  views are /data/now and /api/public/status). Collectors and roughly an hour of system health, refreshed
  *  every 60s. Health is derived from data, never vibes.
@@ -426,6 +426,14 @@ export function Status() {
           </span>
         }
       />
+
+      <p className="footnote">
+        <Link to={`${CONSOLE}/status/collectors`}>Collectors</Link>
+        {" · "}
+        <Link to={`${CONSOLE}/status/efficiency`}>Efficiency</Link>
+        {" · "}
+        <Link to={`${CONSOLE}/data/dashboard`}>Charts</Link>
+      </p>
 
       <BudgetGauge budget={data.budget} />
       <QueueGauge queue={data.queue} now={now} />

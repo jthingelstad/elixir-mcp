@@ -10,7 +10,7 @@ const ERRORS = {
  *  Console's sign-in honours `return_to` for /clan paths (signedInPath). */
 function signupHref(here) {
   const to = here.startsWith("/clan") ? here : "/clan";
-  return `/console/signin?signup&return_to=${encodeURIComponent(to)}`;
+  return `/signin?signup&return_to=${encodeURIComponent(to)}`;
 }
 
 /** Signed out. The two prerequisites are stated here, before the button,
@@ -71,7 +71,7 @@ export function Landing({ error, here = "/clan" }) {
       </Panel>
       <a
         className="btn btn--primary"
-        href="/console/signin"
+        href="/signin"
         data-tinylytics-event="clan.signin_started"
         data-tinylytics-event-value="landing"
       >

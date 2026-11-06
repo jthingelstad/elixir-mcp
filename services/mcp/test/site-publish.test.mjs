@@ -43,7 +43,6 @@ test("publish: only Vite's content-hashed chunks are immutable (#73)", () => {
       // The site's own assets keep one name and are busted by ?v=, which
       // the edge's cache key ignores: they must revalidate.
       "assets/site.css",
-      "assets/chrome-menu.js",
       "assets/rail-anchors.js",
       "assets/updates-filter.js",
       "assets/fonts/Clash_Regular.otf",

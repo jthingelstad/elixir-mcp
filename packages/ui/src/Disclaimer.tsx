@@ -1,8 +1,13 @@
 /** The Supercell fan-content note, on every page of every surface, in
  *  the same words. */
-export function Disclaimer() {
+export function Disclaimer({
+  as: Tag = "footer",
+}: {
+  /** "div" inside a footer of the page's own: landmarks do not nest. */
+  as?: "footer" | "div";
+}) {
   return (
-    <footer className="disclaimer">
+    <Tag className="disclaimer">
       <span className="disclaimer__tag">UNOFFICIAL</span>
       <span className="disclaimer__text">
         This material is unofficial and is not endorsed by Supercell. For more
@@ -13,6 +18,6 @@ export function Disclaimer() {
         .
       </span>
       <span className="disclaimer__family">a POAP KINGS product</span>
-    </footer>
+    </Tag>
   );
 }

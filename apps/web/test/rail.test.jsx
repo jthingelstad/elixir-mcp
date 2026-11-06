@@ -19,11 +19,11 @@ import {
   configure,
 } from "@testing-library/react";
 import {
-  ACCOUNT_RAIL,
   ADMIN_RAIL,
   App,
-  RAIL,
+  EXPLORE_RAIL,
   RAIL_FOOT,
+  SETTINGS_RAIL,
   DOC_LINKS,
   agentRail,
   legalRoute,
@@ -70,11 +70,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Every destination the rails offer, as [railKey, sub, path]: yours and
- *  its foot, an agent's console (2026-09-23), Admin's and Account
- *  settings (2026-09-29), which all obey the same rules. */
+/** Every destination the rails offer, as [railKey, sub, path]: Settings and
+ *  its foot, Explore, an agent's pages and Admin's, which all obey the same
+ *  rules. */
 const AGENT_RAIL = agentRail("abcd1234");
-const RAILS = [RAIL, AGENT_RAIL, ADMIN_RAIL, ACCOUNT_RAIL];
+const RAILS = [EXPLORE_RAIL, AGENT_RAIL, ADMIN_RAIL, SETTINGS_RAIL];
 const destinations = [
   ...RAILS.flat(),
   { key: RAIL_FOOT.key, to: RAIL_FOOT.history },
@@ -140,7 +140,7 @@ test("no two items at the same level share a label", () => {
     const tops = rail.map((r) => r.label);
     expect(new Set(tops).size, "two sections share a label").toBe(tops.length);
   }
-  expect(RAIL.map((r) => r.label)).not.toContain(RAIL_FOOT.label);
+  expect(SETTINGS_RAIL.map((r) => r.label)).not.toContain(RAIL_FOOT.label);
   for (const row of RAILS.flat()) {
     const subs = (row.subs ?? []).map(([, label]) => label);
     expect(
@@ -150,35 +150,25 @@ test("no two items at the same level share a label", () => {
   }
 });
 
-test("Timeline sits between Overview and Explore, in the ungrouped top", () => {
-  // Jamie, 2026-09-23: the timeline is a place of its own, not
-  // Activity's first view, and the unread dot moved with it.
-  const top = RAIL.slice(
-    0,
-    RAIL.findIndex((r) => r.group),
-  );
-  expect(top.map((r) => r.key)).toEqual(["overview", "timeline", "explore"]);
-  expect(railPosition("/console/account/timeline")).toEqual({
-    key: "timeline",
-  });
-});
-
-test("your console: eight items in three groups, feedback at the foot", () => {
-  // The ConsoleRail board's proposed column (2026-09-29).
-  expect(RAIL.map((r) => r.label)).toEqual([
-    "Overview",
-    "Timeline",
-    "Explore",
+test("Settings: your account, your record, access, collectors, feedback", () => {
+  expect(SETTINGS_RAIL.map((r) => r.label)).toEqual([
+    "Profile",
+    "Emails from Elixir",
+    "Sign-in and devices",
+    "Sign-ins",
     "Tracking",
     "Verify",
     "Connections",
     "Usage",
-    "Status",
+    "Collectors",
+    "Efficiency",
+    "Your feedback",
   ]);
-  expect(RAIL.filter((r) => r.group).map((r) => r.group)).toEqual([
+  expect(SETTINGS_RAIL.filter((r) => r.group).map((r) => r.group)).toEqual([
     "Your record",
     "Access",
-    "Service",
+    "Collectors",
+    "Feedback",
   ]);
   // The foot opens the feedback sheet in place; what you have filed is
   // read at its history address, which the sheet links.
@@ -189,6 +179,17 @@ test("your console: eight items in three groups, feedback at the foot", () => {
   expect(RAIL_FOOT.to).toBeUndefined();
 });
 
+test("Explore is its own rail, and a page says which rail it wears", () => {
+  expect(EXPLORE_RAIL[0].to).toBe("/console/explore");
+  expect(railPosition("/console/explore/player/2ABC").rail).toBe("explore");
+  expect(railPosition("/console/data/dashboard")).toMatchObject({
+    rail: "explore",
+    key: "charts",
+  });
+  expect(railPosition("/console/account/usage").rail).toBe("settings");
+  expect(railPosition("/console/admin/emails").rail).toBe("admin");
+});
+
 test("where the rest went: every old address resolves, marked where it lives now", () => {
   const at = (p) => railPosition(p);
   // Activity's three logs.
@@ -197,31 +198,31 @@ test("where the rest went: every old address resolves, marked where it lives now
     sub: "requests",
   });
   expect(at("/console/account/activity/emails")).toMatchObject({
-    rail: "account",
+    rail: "settings",
     key: "emails",
     sub: "emails",
   });
   expect(at("/console/account/activity/e/x")).toMatchObject({
-    rail: "account",
+    rail: "settings",
     key: "emails",
     doc: "activity:email",
   });
   expect(at("/console/account/activity/events")).toMatchObject({
-    rail: "account",
+    rail: "settings",
     key: "signins",
     sub: "events",
   });
   // Profile and its pages are Account settings.
   expect(at("/console/account/profile")).toMatchObject({
-    rail: "account",
+    rail: "settings",
     key: "profile",
   });
   expect(at("/console/account/profile/email")).toMatchObject({
-    rail: "account",
+    rail: "settings",
     key: "emails",
   });
   expect(at("/console/account/profile/devices")).toMatchObject({
-    rail: "account",
+    rail: "settings",
     key: "devices",
   });
   // Agents are Connections; Admin is its own console.
@@ -255,19 +256,14 @@ test("the switcher: you, your agents, and Admin for an admin", () => {
   expect(
     railConsoles(me).map((c) => [c.group, c.label, c.detail, c.to]),
   ).toEqual([
-    ["You", "Your console", "King Thing · owner", "/console/account/overview"],
+    ["You", "Your account", "King Thing · owner", "/console/account/profile"],
     [
       "Your agents",
       "POAP KINGS",
       "agent · f43c60e8f5bd",
       "/console/agent/f43c60e8f5bd/overview",
     ],
-    [
-      "Operate",
-      "Admin console",
-      "every account · owner",
-      "/console/admin/requests",
-    ],
+    ["Operate", "Admin", "every account · owner", "/console/admin/requests"],
   ]);
   expect(railConsoles({ ...me, is_admin: false }).map((c) => c.key)).toEqual([
     "me",
@@ -298,10 +294,10 @@ test(
   "wide: the rail is a list, with no disclosure to open",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/console/account/overview");
+    window.history.pushState({}, "", "/console/account/profile");
     render(<App />);
     await waitFor(() =>
-      expect(screen.getByRole("navigation", { name: "Console sections" })),
+      expect(screen.getByRole("navigation", { name: "Settings sections" })),
     );
     // Scoped to the rail: the top bar has its own expandable button now
     // (the narrow menu), which is a different control on a different
@@ -330,7 +326,7 @@ test(
     window.history.pushState({}, "", "/console/account/usage");
     render(<App />);
     const nav = await waitFor(() =>
-      screen.getByRole("navigation", { name: "Console sections" }),
+      screen.getByRole("navigation", { name: "Settings sections" }),
     );
     const rail = nav.closest(".rail");
     // A button, not a link away: the page stays under the sheet.
@@ -345,7 +341,7 @@ test(
       return d;
     });
     expect(sheet.getAttribute("aria-label")).toBe("Send feedback");
-    expect(sheet.textContent).toContain("About the Console.");
+    expect(sheet.textContent).toContain("About Elixir.");
     expect(window.location.pathname).toBe("/console/account/usage");
     // What you have filed is still a click away.
     expect(
@@ -368,7 +364,7 @@ test(
       addEventListener: () => {},
       removeEventListener: () => {},
     }));
-    window.history.pushState({}, "", "/console/account/overview");
+    window.history.pushState({}, "", "/console/account/profile");
     render(<App />);
 
     // Closed, it names the section and hides the list — and it is a
@@ -379,9 +375,9 @@ test(
       return el;
     });
     const toggle = within(rail).getByRole("button", { expanded: false });
-    expect(toggle.textContent).toContain("Overview");
+    expect(toggle.textContent).toContain("Profile");
     expect(
-      screen.queryByRole("navigation", { name: "Console sections" }),
+      screen.queryByRole("navigation", { name: "Settings sections" }),
     ).toBeNull();
 
     const main = document.querySelector("main");
@@ -391,7 +387,7 @@ test(
 
     toggle.click();
     await waitFor(() =>
-      expect(screen.getByRole("navigation", { name: "Console sections" })),
+      expect(screen.getByRole("navigation", { name: "Settings sections" })),
     );
   },
 );

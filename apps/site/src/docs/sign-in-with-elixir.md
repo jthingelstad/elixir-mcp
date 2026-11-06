@@ -6,8 +6,8 @@ section: build
 order: 2
 navTitle: "Sign in with Elixir"
 icon: log-in
-lede: "Elixir's family apps sign you in with your Elixir account, and create one if you are new: no consent page, and one grant you can see and end in the console. Other apps can ask too, for less, and you approve each one."
-console: ["Your connected apps", "/console/account/connections", "Console ▸ Connections"]
+lede: "Elixir's family apps sign you in with your Elixir account, and create one if you are new: no consent page, and one grant you can see and end in Settings. Other apps can ask too, for less, and you approve each one."
+console: ["Your connected apps", "/console/account/connections", "Settings ▸ Connections"]
 reviewed: "2026-10-12 against contract 11.11.3"
 ---
 
@@ -52,7 +52,7 @@ and the code, and your free Elixir account opens once the code is
 proved, never before, exactly as signing up on the website does: an
 ordinary member account, with the **Send me Elixir product news** box
 checked unless you untick it, and the welcome email. The page asks for
-no player tag; add yours in Console ▸ Tracking. An address whose account
+no player tag; add yours in Settings ▸ Tracking. An address whose account
 was denied or disabled does not reopen here either.
 
 **Any other app.** Signed in already, the page reads **Connect** and the
@@ -71,7 +71,7 @@ shared browser signed in as somebody else.
 
 ## Ending a grant
 
-**Console ▸ Connections ▸ Clients** lists every app connected to your
+**Settings ▸ Connections ▸ Clients** lists every app connected to your
 account; **Disconnect** ends one at once, and its capabilities can be
 narrowed there. A grant lasts 90 days at most; within it, the app holds
 an access token for an hour at a time and renews it with a refresh token that changes on every

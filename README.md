@@ -7,7 +7,7 @@ timelines, no battle archive beyond a rotating log of about 30 battles, no
 per-season history. Elixir MCP records those observations continuously and
 keeps them. It records the players and clans its accounts track and the
 members of the clans it tracks. The record is served on one origin: the
-Console, Ladder and Elixir Clan in the browser, an authenticated remote MCP
+Home, Ladder and Elixir Clan in the browser, an authenticated remote MCP
 server for agents, and a versioned JSON API.
 
 - Web: <https://elixir.poapkings.com>
@@ -26,7 +26,7 @@ An npm workspaces monorepo.
 | Path | What it holds |
 | --- | --- |
 | `apps/site` | The static half of the site (Eleventy): home, docs, updates, and the machine-readable surfaces |
-| `apps/web` | The application half (React): the Console, Ladder (`src/ladder`) and the shell Elixir Clan's views run in |
+| `apps/web` | The application half (React): Home (`src/home`), Settings and Explore, Ladder (`src/ladder`) and the shell Elixir Clan's views run in |
 | `services/` | The Lambdas, each only its door (entry, handler, routes): `collector`, `email-relay`, `jobs`, `mcp`, `migrate`, `scheduler`, `timeline-sync`, `web-api` |
 | `packages/` | What more than one Lambda or app runs, imported by name: `auth`, `claims`, `client`, `clan`, `clan-engine`, `clan-state`, `clan-web` (Elixir Clan), `collector-door` (the collectors' config, lease and submit), `contracts` (the tool and API contract), `design`, `docs`, `ingest`, `ledger`, `mail`, `outbox`, `record`, `syndication` (the timeline cross-posted to Discord), `tools` (the tool registry), `ui` |
 | `acceptance/` | The read-only acceptance suite run against the live service |
@@ -36,7 +36,7 @@ An npm workspaces monorepo.
 | `docs/` | Engineering invariants, the decision ledger, how production is operated, and one note per change |
 
 For contributors: [AGENTS.md](AGENTS.md) holds the golden rules and points to
-each area's own guide (Console, Ladder, Clan, tools, site, infra);
+each area's own guide (the web app, Ladder, Clan, tools, site, infra);
 [docs/ENGINEERING.md](docs/ENGINEERING.md) the build invariants,
 [docs/DECISIONS.md](docs/DECISIONS.md) the ratified decisions and
 [docs/OPERATIONS.md](docs/OPERATIONS.md) how production is operated.

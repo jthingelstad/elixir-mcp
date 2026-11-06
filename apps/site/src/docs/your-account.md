@@ -7,19 +7,19 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
-console: ["Your profile and limits", "/console/account/profile", "Account settings ▸ Profile"]
+console: ["Your profile and limits", "/console/account/profile", "Settings ▸ Profile"]
 reviewed: "2026-10-13 against contract 11.12.0"
 ---
 
 # Your account
 
-Everything in Elixir hangs off one account: the console, Ladder, Elixir
+Everything in Elixir hangs off one account: Home, Ladder, Elixir
 Clan, the emails and the AI apps you connect all act as the same person. The
 account is an email address, the players you track and a few settings.
 There is no password.
 
-The first Console page includes your current sign-in state. Your browser keeps
-that state fresh as you use the Console. If a page cannot check your session,
+The first page you open includes your current sign-in state. Your browser keeps
+that state fresh as you use Elixir. If a page cannot check your session,
 it says Elixir did not answer so you can retry.
 
 The public pages (home, docs, cards) never ask the server who you are. When
@@ -35,7 +35,7 @@ shows **Sign in**.
 ## Create your account
 
 Anyone can create a free ordinary member account at
-[/console/signin?signup](/console/signin?signup). Enter your email and verify
+[/signin?signup](/signin?signup). Enter your email and verify
 the code or link we send. The account opens after verification, not when you
 submit an address. Repeated submissions do not create extra accounts.
 Existing denied or disabled accounts do not reopen through signup, and no
@@ -46,7 +46,7 @@ does not. A malformed tag is refused on the form before any email is sent,
 and an empty field is fine. The tag is kept with the request and applied
 only after you verify: a new account tracks it as its primary player and
 opens on that player's page. An account opened without one opens on
-[Console ▸ Tracking](/console/account/tracking) with the tag field ready,
+[Settings ▸ Tracking](/console/account/tracking) with the tag field ready,
 and so does one whose tag another account has
 [verified](/docs/verify#a-verified-player-is-yours-alone): that player is
 not added, and Tracking says why.
@@ -57,11 +57,11 @@ You can also create your account where an app sends you to sign in with
 Elixir, as Elixir Drop does: enter your email, then the code, and the
 account opens the same way, after verification and as an ordinary member,
 with the same product-news box. That page asks for no player tag; add
-yours in [Console ▸ Tracking](/console/account/tracking). An account
+yours in [Settings ▸ Tracking](/console/account/tracking). An account
 opened there reads in UTC until you set a zone in Profile. See
 [Sign in with Elixir](/docs/sign-in-with-elixir).
 
-Then add your player in [Console ▸ Tracking](/console/account/tracking) if
+Then add your player in [Settings ▸ Tracking](/console/account/tracking) if
 you have not, read your recorded play in [Ladder](/ladder), or follow
 [Bring your clan](/docs/bring-your-clan).
 A collector is not required to join. Running one is open to any account
@@ -76,7 +76,7 @@ still arrive; reports have separate controls. See [Privacy](/docs/privacy) and
 
 ## Signing in
 
-Sign in at [/console/signin](/console/signin) with your email. Elixir
+Sign in at [/signin](/signin) with your email. Elixir
 sends a link and a six-digit code; either one signs you in, each can be
 used once, and both expire after 15 minutes. A code allows five tries.
 The link signs in the device you open it on, and the page that asked
@@ -114,7 +114,7 @@ A connected Discord also tells your clan's Discord agent who you are,
 so it never has to ask ([Agents](/docs/agents#knowing-which-human-is-asking)).
 
 A sign-in lasts **thirty days from its last use and ninety days at
-most**. **Account settings ▸ Sign-in and devices** (Account settings is in
+most**. **Settings ▸ Sign-in and devices** (Account settings is in
 the account menu on the top bar) lists every session that can act
 as you, with a sign-out for each and **Sign out everywhere else**, which
 keeps the one you are using. Your agents and connected apps are not
@@ -124,17 +124,14 @@ On the smallest screens, the top bar shows the Elixir logo as the home link
 so the product and account controls keep their room. Your full account name
 wraps inside its menu. The same controls remain available by keyboard.
 
-On the Console overview, **Recording active** folds completed setup into
-**Setup details**. Incomplete setup and recording problems stay visible.
-Recent activity comes before the tracking lists; **Your record** links to
-your season, your clan and tracking. **Invite clanmates** expands the
-messages and copy controls.
+On Home, **Setup details** holds completed setup. Incomplete setup and
+recording problems stay visible under **Needs you**.
 
 ## Your players
 
 The players on your account each say who they are to you:
 
-| Relationship | Means | Shows in the console as |
+| Relationship | Means | Shows in Tracking as |
 |---|---|---|
 | primary | you: what every tool means when no player is named | you |
 | alt | also you, under another tag | alt |
@@ -150,24 +147,24 @@ Clan go by. A player another account has verified cannot be your
 primary or an alt; you can still follow it as a friend or watch it. If
 another account verifies a player that was your primary or an alt, it
 leaves your account, your timeline says so, and an ended primary leaves
-you with none: Tracking and the Overview say so until you make another
+you with none: Tracking and Home say so until you make another
 player primary or add yours. Friends and watched players are covered in
 [Follow a friend](/docs/follow-a-friend) and
 [Watch any player](/docs/watch-a-player).
 
-Players are added under **Console ▸ Tracking**, and tracking a player is
+Players are added under **Settings ▸ Tracking**, and tracking a player is
 recording it: see [What Elixir records](/docs/recording).
 
 ## Your time zone
 
-**Account settings ▸ Profile ▸ Timezone** sets the times the console
+**Settings ▸ Profile ▸ Timezone** sets the times Elixir
 shows, how a date in a question from a connected app resolves, the local
 times in tool responses and the days and times your emails name. Storage
 stays in UTC; only the reading changes. A new account starts on the time
 zone of the browser that asked for its sign-up email, whichever device
 opens the link; if that browser gives none, or gives UTC, the account
 starts at UTC. Signing in never changes a zone you already have: only
-Profile does. An account with no zone reads in UTC, and the Console and
+Profile does. An account with no zone reads in UTC, and Home and
 Ladder say so and offer your browser's zone in one click. A battle's page
 reads on your account's clock when you are signed in, and on your
 browser's when you are not.
@@ -175,7 +172,7 @@ browser's when you are not.
 ## Your limits
 
 Your limits set how many players and clans you can record and how many
-tool calls you can make a day; **Account settings ▸ Profile** shows each limit
+tool calls you can make a day; **Settings ▸ Profile** shows each limit
 beside what you use. Leader and Family are earned in the game and read every
 time you use Elixir: Leader while one of your verified players leads or
 co-leads a clan you track, Family while a collector you run is active. There
@@ -186,7 +183,7 @@ track stays. Partner is granted by hand. The tiers and their numbers are on
 ## Feedback
 
 Every part of Elixir takes feedback, and all of it lands in one place:
-**Send feedback** at the foot of the Console's, Ladder's and Elixir
+**Send feedback** at the foot of Settings', Ladder's and Elixir
 Clan's rail (a sheet over the page you are on), **Report this** beside an Clan action, Standing and
 the award races, **Something wrong on this page?** on every docs page,
 and **Send feedback about this email** in every email's footer. Each
@@ -196,7 +193,7 @@ you think. Sending feedback needs you signed in; without an account,
 write to [admin@poapkings.com](mailto:admin@poapkings.com).
 
 Every item is answered, by Elixir's maintainer, sometimes with help
-from AI agents. **Console ▸ Feedback** (in the account menu, and linked
+from AI agents. **Settings ▸ Your feedback** (in Settings, and linked
 from the sheet) lists what you have sent
 with its state and the maintainer's answer, and an item's own page
 shows the whole thread: answer an answer with **Reply** and the two
@@ -223,7 +220,7 @@ primary player.
 ## Removing the account
 
 There is no delete button. Write to admin@poapkings.com, or send it as
-feedback from the console, and the removal is carried out in one
+feedback from the website, and the removal is carried out in one
 reviewed step. Removing the account deletes the account:
 
 - **your address**, and every way to sign in as you, a connected

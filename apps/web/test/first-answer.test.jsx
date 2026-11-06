@@ -126,23 +126,14 @@ test(
     // The router scrolls a hash's element into view; jsdom has no
     // scrolling.
     Element.prototype.scrollIntoView ??= () => {};
-    window.history.pushState({}, "", "/console/account/overview");
+    window.history.pushState(
+      {},
+      "",
+      "/console/account/tracking#add-player-tag",
+    );
     render(<App />);
 
-    // Overview reports and sends you to Tracking; it no longer carries the
-    // field itself, because nothing on Overview can be got wrong.
-    expect(await screen.findByText("Your account is open")).toBeTruthy();
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Add your player",
-        exact: true,
-      }),
-    );
-    await waitFor(() =>
-      expect(window.location.pathname).toBe("/console/account/tracking"),
-    );
     // On the field it came for, ready to type in.
-    expect(window.location.hash).toBe("#add-player-tag");
     const input = await waitFor(() => {
       const el = document.getElementById("add-player-tag");
       expect(document.activeElement).toBe(el);
@@ -171,31 +162,23 @@ test(
 );
 
 test(
-  "no player: Overview says so and offers one action, and asks nothing",
+  "no player: Home gives the steps, starting with your tag, and asks nothing",
   { timeout: 20000 },
   async () => {
     global.fetch = vi.fn(async (path) => {
       const data =
         path === "/api/me"
           ? { authenticated: true, role: "member", claims: [], recordings: [] }
-          : path === "/api/me/first-answer"
-            ? { player: null, connection }
+          : path === "/api/me/home"
+            ? { first: { ok: true, player: null, connection } }
             : { clans: [] };
       return { ok: true, text: async () => JSON.stringify(data) };
     });
-    const navigate = vi.fn();
-    window.history.pushState({}, "", "/console/account/overview");
+    window.history.pushState({}, "", "/home");
     render(<App />);
-    expect(
-      await screen.findByText("No players yet. Nothing here defaults to you."),
-    ).toBeTruthy();
-    expect(
-      await screen.findByText("Start with your player tag in Tracking."),
-    ).toBeTruthy();
-    expect(screen.queryByText(/\d of 6/)).toBeNull();
-    expect(screen.getByText("nothing here defaults to you")).toBeTruthy();
+    expect(await screen.findByText("Welcome to Elixir")).toBeTruthy();
+    expect(await screen.findByText("Add your player")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
-    expect(navigate).not.toHaveBeenCalled();
   },
 );
 

@@ -1,6 +1,5 @@
 import { Link, Panel, PageHead, Table } from "@elixir-mcp/ui";
 import { usePublicEfficiency } from "../lib/queries.js";
-import { CONSOLE } from "../lib/console.js";
 
 /**
  * Service ▸ Status ▸ Efficiency — what the battlelog schedule costs and
@@ -81,7 +80,7 @@ export function Efficiency() {
       <PageHead
         crumb={
           <div className="page__crumb">
-            <Link to={`${CONSOLE}/status/service`}>‹ Status</Link>
+            <Link to="/data/service">‹ Status</Link>
           </div>
         }
         title="Efficiency"

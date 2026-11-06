@@ -403,13 +403,13 @@ for (const size of ["wide", "@narrow"])
         path: `/tmp/elixir-${role}-map-${size.replace("@", "")}.png`,
         fullPage: true,
       });
-      await page.goto("/console/account/timeline");
+      await page.goto("/home/timeline");
       await expect(
         page.getByRole("heading", { name: "Timeline", exact: true }),
       ).toBeVisible();
       await expect(
         page
-          .locator(".timeline-list__text")
+          .locator(".kit-tl .kit-row__title")
           .getByText("Ada played recorded games.", { exact: true }),
       ).toBeVisible();
       await expect(

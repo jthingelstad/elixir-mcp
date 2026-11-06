@@ -105,7 +105,10 @@ function TimelineTab() {
 
 function DiscordLine({ status }) {
   return (
-    <Link to={`${CONSOLE}/account/timeline`} className="kit-tiny">
+    <Link
+      to={`${CONSOLE}/account/connections#timeline-discord`}
+      className="kit-tiny"
+    >
       Discord sharing{status?.enabled ? " on" : ""} · Manage
     </Link>
   );

@@ -63,7 +63,7 @@ export function Tracking({ me, refresh, navigate, hash }) {
   const [clanErr, setClanErr] = useState("");
   const [now] = useInitialTime();
   // A new account that gave no tag at signup lands here
-  // (#add-player-tag), and so do Overview's and Ladder's "Add your
+  // (#add-player-tag), and so do Home's and Ladder's "Add your
   // player": the field it came to fill is ready to type in. `hash` is the
   // router's: an in-app move renders this page before the address bar
   // has the new hash, so the window's read alone missed every one of

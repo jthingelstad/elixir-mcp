@@ -75,10 +75,10 @@ for (const width of [390, 1280]) {
         },
       }),
     );
-    await page.goto("/console/account/timeline");
+    await page.goto("/home/timeline");
     await page.getByRole("button", { name: "View games", exact: true }).click();
-    const panel = page.getByRole("region", { name: "Timeline evidence" });
-    await expect(panel).toBeFocused();
+    const panel = page.locator(".kit-tl__evidence");
+    await expect(panel).toBeVisible();
     await expect(panel).toContainText("Whether every game was read is unknown");
     await expect(panel).toContainText("still open");
     await expect(
@@ -111,7 +111,9 @@ for (const width of [390, 1280]) {
       fullPage: true,
     });
     changed = true;
-    await panel.getByRole("button", { name: "Close evidence" }).click();
+    await page
+      .getByRole("button", { name: "Close games", exact: true })
+      .click();
     await expect(
       page.getByRole("button", { name: "View games", exact: true }),
     ).toBeFocused();
@@ -193,12 +195,12 @@ for (const status of ["unknown", "proved"]) {
         },
       }),
     );
-    await page.goto("/console/account/timeline");
+    await page.goto("/home/timeline");
     await page
       .getByRole("button", { name: "View crossing", exact: true })
       .click();
-    const panel = page.getByRole("region", { name: "Timeline evidence" });
-    await expect(panel).toBeFocused();
+    const panel = page.locator(".kit-tl__evidence");
+    await expect(panel).toBeVisible();
     if (status === "unknown") {
       await expect(panel).toContainText("Elixir read the change");
       await expect(panel.getByRole("link")).toHaveCount(0);
@@ -208,7 +210,9 @@ for (const status of ["unknown", "proved"]) {
       );
       await expect(panel.getByRole("link")).toContainText("ladder · win");
     }
-    await panel.getByRole("button", { name: "Close evidence" }).click();
+    await page
+      .getByRole("button", { name: "Close crossing", exact: true })
+      .click();
     await expect(
       page.getByRole("button", { name: "View crossing", exact: true }),
     ).toBeFocused();
@@ -219,7 +223,7 @@ for (const [summaryCount, evidenceCount] of [
   [15, 10],
   [32, 20],
 ] as const) {
-  test(`milestone evidence explains ${summaryCount}/${evidenceCount} games and restores the original row`, async ({
+  test(`milestone evidence explains ${summaryCount}/${evidenceCount} games and closes back to its row`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -280,27 +284,18 @@ for (const [summaryCount, evidenceCount] of [
         },
       }),
     );
-    await page.goto("/console/account/timeline");
-    const scroll = page.locator(".timeline-list");
-    await expect(
-      page
-        .locator(".timeline-list__subject")
-        .getByText("Example Player 12", { exact: true }),
-    ).toBeVisible();
+    await page.goto("/home/timeline");
+    const row = page.locator(".kit-tl", { hasText: "Example Player 12" });
+    await expect(row).toBeVisible();
     expect(
-      await scroll.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
     ).toBe(true);
-    const row = page
-      .locator(".timeline-list__subject")
-      .getByText("Example Player 12", { exact: true })
-      .locator("../..");
-    const trigger = row.getByRole("button", {
-      name: "View games",
-      exact: true,
-    });
+    const trigger = row.locator(".kit-tl__more");
     await trigger.click();
-    const panel = page.getByRole("region", { name: "Timeline evidence" });
-    await expect(panel).toBeFocused();
+    const panel = page.locator(".kit-tl__evidence");
+    await expect(panel).toBeVisible();
     await expect(panel).toContainText(
       `The summary covers ${summaryCount} games`,
     );
@@ -314,12 +309,10 @@ for (const [summaryCount, evidenceCount] of [
       0,
     );
     await panel.getByRole("link").last().scrollIntoViewIfNeeded();
-    await panel.getByRole("button", { name: "Close evidence" }).click();
+    await trigger.click();
     await expect(panel).toHaveCount(0);
     await expect(trigger).toBeFocused();
     await expect(trigger).toBeInViewport();
-    const rect = await trigger.boundingBox();
-    expect(Math.abs(rect!.y + rect!.height / 2 - 450)).toBeLessThan(150);
     await page.screenshot({
       path: `/tmp/elixir-evidence-scope-${summaryCount}-desktop.png`,
       fullPage: false,

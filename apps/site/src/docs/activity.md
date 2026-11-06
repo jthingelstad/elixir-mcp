@@ -7,14 +7,13 @@ order: 7
 navTitle: "Coverage"
 icon: calendar-days
 lede: "Recorded battles stay visible. Empty days need complete capture before they can mean quiet."
-console: ["See yours on the Overview", "/console/account", "Console ▸ Overview"]
+console: ["See your players", "/console/account/tracking", "Settings ▸ Tracking"]
 ---
 
 # Battle activity: a year of days
 
-The first thing on **Console ▸ Overview** is your battle activity, with a
-chip per tracked player to switch between them; each player's own record
-under **Tracking** carries the same graphic beside its capture details:
+Each player's own record under **Tracking** carries your battle activity
+beside its capture details:
 a year of days, one cell per UTC day coloured by how the day went and
 shaded by how much was played, drawn from the battles already in the
 record; nothing is read from the game to draw it.

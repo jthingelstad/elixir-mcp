@@ -100,10 +100,7 @@ async function sound(page: Page) {
   ).toEqual([]);
 }
 for (const suffix of ["", " @narrow"]) {
-  for (const path of [
-    "/console/account",
-    "/console/account/tracking/20JJJ2CCRU",
-  ]) {
+  for (const path of ["/console/account/tracking/20JJJ2CCRU"]) {
     for (const capture of cases) {
       test(`year ${path} ${capture.name} stays truthful across UTC year boundary${suffix}`, async ({
         page,

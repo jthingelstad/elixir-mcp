@@ -4,8 +4,6 @@ import { EmailRecord } from "./account/EmailRecord.jsx";
 import { EmailPage } from "./account/EmailPage.jsx";
 import { DevicesPage } from "./account/DevicesPage.jsx";
 
-import { Overview } from "./account/Overview.jsx";
-import { Timeline } from "./account/Timeline.jsx";
 import { Tracking } from "./account/Tracking.jsx";
 import { TrackedRecord } from "./account/TrackedRecord.jsx";
 import { Profile } from "./account/Profile.jsx";
@@ -28,7 +26,6 @@ export function Dashboard({
   hash,
 }) {
   if (me === null) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
-  if (page === "timeline") return <Timeline />;
   if (page === "activity")
     return itemId === "c" ? (
       <CallRecord id={recordId} navigate={navigate} />
@@ -75,5 +72,5 @@ export function Dashboard({
     ) : (
       <Feedback navigate={navigate} search={search} />
     );
-  return <Overview me={me} navigate={navigate} />;
+  return null;
 }

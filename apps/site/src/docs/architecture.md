@@ -73,7 +73,7 @@ description of record**; there is no fuller internal one.
 
 Everything cloud-side is serverless: RDS Postgres, S3 and seven Lambdas in
 one CloudFormation stack, inside a VPC with no NAT. The **web API** serves
-the Console, Ladder, Elixir Clan, the JSON API and battle pages; **MCP**
+Home, Ladder, Elixir Clan, the JSON API and battle pages; **MCP**
 serves the MCP and OAuth doors; **collector** is the collector door;
 **scheduler** plans fetch jobs into the Postgres job ledger on every tick;
 **jobs** runs scheduled product work (mail, sweeps, Clan's morning run);
@@ -160,7 +160,7 @@ service's, and nothing on the timeline announces the time, which is
 Feedback is a first-class product surface, not a mailbox. Agents file
 it mid-session with `elixir_send_feedback` (attributed to the account that
 connected: yours on your own connection, the agent's on an agent's);
-people file it from the Console, Ladder, Elixir Clan, the docs and an
+people file it from Settings, Ladder, Elixir Clan, the docs and an
 email's footer, and integrations over the JSON API. It is one record
 for all of Elixir, each item tagged with the part of Elixir it is about
 and what it points at (a call, an email, a clan action). Every item gets a maintainer response, sometimes written with help from AI agents —
@@ -264,7 +264,7 @@ Profiles are read once a day, because the record keeps one snapshot per
 game day, and once after a session: a battle log that delivered battles
 asks for the profile unless one was read in the last eight hours. The
 one time-critical profile read, the pre-reset capture of the weekly
-donation counter, is forced separately. The console's signed-in
+donation counter, is forced separately. The signed-in
 [Efficiency](/console/status/efficiency) page shows what the schedule costs
 and what it loses, per day. Clan rosters follow the clan's own day — every 15
 minutes while members of a tracked clan are in the game, coasting to
@@ -284,8 +284,8 @@ compares the lifetime battle counter against what was recorded over each
 observation interval and says so when they disagree, and the public
 health views report how many of the last day's polls found the log had
 already rolled: `capture_audit_24h` in `/api/public/status`, with no
-sign-in, and [Recording now](/data/now) for the live strip. The console's
-[Status](/console/status/service) page shows the same to a signed-in account. When you need the state of play right
+sign-in, and [Recording now](/data/now) for the live strip. The signed-in
+[service](/data/service) page shows the same to a signed-in account. When you need the state of play right
 now rather than the recorded history, `live: true` spends your live
 allowance on a fresh read instead of waiting for the schedule;
 `live_fetch` returns a raw read and stores nothing.
@@ -343,7 +343,7 @@ archive, content-addressed and queryable with SQL over S3. Site visits
 are counted anonymously with Tinylytics; see [Privacy](/docs/privacy).
 
 The web API assembles feature-specific route modules behind shared session
-resolution. The account application separates overview, agents, connections,
+resolution. The account application separates Home, agents, connections,
 usage and feedback pages. The migration Lambda dispatches operational commands
 to separate modules; ordered migrations still run only through its deploy path.
 The shared metadata contract is checked when an envelope is built and after a

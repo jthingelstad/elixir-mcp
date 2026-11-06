@@ -105,9 +105,9 @@ export function Profile({ me, refresh, navigate }) {
         </div>
         <Disclosure title="Time zone details">
           <p className="page-head__note m-0">
-            Your zone sets console times, how a date in a question resolves,
-            local times in tool responses and the days your mail names. Storage
-            stays UTC.
+            Your zone sets the times on your pages, how a date in a question
+            resolves, local times in tool responses and the days your mail
+            names. Storage stays UTC.
           </p>
         </Disclosure>
       </Panel>
@@ -125,7 +125,7 @@ export function Profile({ me, refresh, navigate }) {
         />
         <SubpageLink
           navigate={navigate}
-          to={`${CONSOLE}/account/timeline`}
+          to={`${CONSOLE}/account/connections#timeline-discord`}
           icon="bell"
           title="Timeline to Discord"
           note={<TimelineDiscordState />}

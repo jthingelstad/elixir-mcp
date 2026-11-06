@@ -247,7 +247,7 @@ test("a leader with Actions waiting comes back from sign-in to Actions", async (
     )
     .toBe("/clan/2PQRJ8LV");
   await page.getByRole("link", { name: "Sign in with Elixir" }).click();
-  await expect(page).toHaveURL(/\/console\/signin$/);
+  await expect(page).toHaveURL(/\/signin$/);
   await page.getByLabel("Email").fill("ada@example.com");
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await page.getByLabel("6-digit code").fill("123456");

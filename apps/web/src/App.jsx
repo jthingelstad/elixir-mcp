@@ -1,20 +1,12 @@
 import {
   InitialTimeProvider,
-  Chrome as ChromeBar,
-  Disclaimer,
   ErrorBoundary,
-  FAMILY_DOCS,
   FeedbackSheet,
-  FAMILY_PRODUCTS,
-  FAMILY_SIGN_IN,
   Icon,
+  Link,
   NavigateProvider,
-  initialsOf,
   Rail as RailList,
   ZoneProvider,
-  isPlainClick,
-  onOrigin,
-  writeErrorText,
 } from "@elixir-mcp/ui";
 import {
   useEffect,
@@ -61,48 +53,32 @@ import {
   ladderLegal,
   ladderTitle,
 } from "./ladder/ladder.js";
-import { AppShell } from "./shell/Shell.jsx";
+import { HOME, SERVICE_STATUS, SIGN_IN, movedTo } from "./lib/moved.js";
+import { AppShell, ShellFrame } from "./shell/Shell.jsx";
 import { LadderInvite } from "./ladder/Invite.jsx";
 import { LadderRail } from "./ladder/LadderRail.jsx";
 import { SignIn } from "./views/SignIn.jsx";
 import { takeLoginToken } from "./url-hygiene.js";
-import { tagPath } from "./lib/tag-url.js";
-import { forgetSession, rememberSession } from "./lib/session-hint.js";
 
 /**
- * Shell + rail (design handoff 2026-09-09). The three-tier top nav is
- * gone: sections live in a 256px rail down the left, because the console
- * grew past what a horizontal row can hold without truncating or hiding
- * things behind a menu.
+ * The route table and the rails. The shell itself, the same top bar, phone
+ * tabs and footer on every page (redesign step 3b, 2026-11-06), is
+ * shell/Shell.jsx; this file puts pages in it.
  *
- * Two rules shape everything here.
+ * The RAIL CARRIES STRUCTURE, NEVER USER CONTENT. Sections and sub-pages,
+ * never the name of a player or a clan: the rail must not grow when the data
+ * does. A count of the reader's own things is the one exception, because it
+ * is a number and not a list.
  *
- * The TOP BAR'S SHAPE NEVER VARIES BY SESSION (canvas 2026-09-29). It is
- * the kit's Chrome, the same bar the Eleventy build draws, and its
- * account slot is one fixed width signed in or not. This app fills the
- * slot from the session it already holds (`useMe`): empty while it asks,
- * "Sign in" signed out, the person and the account menu signed in. The
- * static half cannot know the session, so it always shows "Sign in", and
- * the sign-in page below sends a reader who is already signed in on to
- * their console. Nothing on the bar is swapped after load; when the old
- * bar swapped "Sign in" for "Account" it read as a glitch.
- *
- * The RAIL CARRIES STRUCTURE, NEVER USER CONTENT. Sections and
- * sub-pages, never the name of a player or a clan: the rail must not
- * grow when the data does. A count of the reader's own things is the one
- * exception, because it is a number and not a list.
- *
- * This app is the site's DYNAMIC half (2026-09-07 split), and since
- * 2026-09-28 it lives under /console (CONSOLE): the root is the site's.
- * Home, docs, updates (each one its own page) are real documents built
- * by apps/site and served from the same hostname; they are reached with
- * plain hrefs (STATIC_LINKS below), which are full page loads on
- * purpose. Anything the app does not recognise leaves for the static
- * home rather than rendering an empty main.
+ * This app is the site's DYNAMIC half (2026-09-07 split): Home, Ladder, Clan,
+ * Settings pages and Explore. The root is the site's. Docs, updates and the
+ * public pages are real documents built by apps/site and served from the same
+ * hostname; they are reached with plain hrefs (STATIC_LINKS below), which are
+ * full page loads on purpose.
  */
 
 /** Paths owned by the static site. The edge router in infra/template.yaml
- *  sends everything outside /console to a document; a test pins these to
+ *  sends everything outside the app's paths to a document; a test pins these to
  *  pages apps/site builds, because a link to a page it does not build is
  *  a dead link. */
 export const STATIC_LINKS = {
@@ -126,8 +102,6 @@ export const SECTIONS = {
     label: "Account",
     authed: true,
     pages: [
-      { slug: "overview", label: "Overview" },
-      { slug: "timeline", label: "Timeline" },
       { slug: "tracking", label: "Tracking" },
       { slug: "verify", label: "Verify" },
       { slug: "activity", label: "Activity" },
@@ -143,7 +117,6 @@ export const SECTIONS = {
     label: "Status",
     authed: true,
     pages: [
-      { slug: "service", label: "Status" },
       { slug: "collectors", label: "Collectors" },
       { slug: "efficiency", label: "Efficiency" },
     ],
@@ -167,10 +140,10 @@ export const SECTIONS = {
       { slug: "service-tokens", label: "Service tokens", ownerOnly: true },
     ],
   },
-  // An agent's console (2026-09-23): the pages that make sense for an agent, scoped
+  // An agent's own pages (2026-09-23): the pages that make sense for an agent, scoped
   // to one you own, at /console/agent/<public_id>/<page>. Verify,
   // Profile and Admin are a person's; Explore and Status are the same for
-  // everyone and stay in your console. `scoped` marks the id segment
+  // everyone and stay yours. `scoped` marks the id segment
   // before the page.
   agent: {
     label: "Agent",
@@ -197,50 +170,38 @@ export const SECTIONS = {
 };
 
 /**
- * The rails (canvas 2026-09-29, ConsoleRail). Your console is nine items
- * in three groups, with no sub-items open by default; who you are and
- * your account's own pages left the rail for the top bar's account menu,
- * and Admin is a console of its own in the switcher. Where the rest went:
+ * The rails. Every address still resolves; only where the rail marks it moved
+ * (railPosition below). `subs` render only while their item is current, and no
+ * two items the reader can see at once share a label.
  *
- *   Profile, Email, Devices   the account menu › Account settings
- *   Activity › MCP requests   Usage, under the meters
- *   Activity › Emails         Emails from Elixir › All sent (the item
- *                             opens the switches; the log sits under it)
- *   Activity › Account events Account settings › Sign-ins
- *   Connections › Agents      the switcher, and Connections
- *   Admin                     its own console in the switcher
- *
- * Every address still resolves; only where the rail marks it moved
- * (railPosition below). `subs` render only while their item is current,
- * and no two items the reader can see at once share a label.
+ * Settings is one rail for the account's own pages, reached from the avatar's
+ * menu; the pages keep their addresses until step 6. Explore has its own,
+ * reached from Search. Agents and Admin stay in the switcher at Settings' head.
  */
-export const RAIL = [
+export const SETTINGS_RAIL = [
   {
-    key: "overview",
-    label: "Overview",
-    icon: "layout-dashboard",
-    to: `${CONSOLE}/account/overview`,
-  },
-  // What happened to what you track, the same items your connections
-  // read with elixir_timeline. Its own item beside Overview since
-  // 2026-09-23 (Jamie); it was Activity's first view until then.
-  {
-    key: "timeline",
-    label: "Timeline",
-    icon: "bell",
-    to: `${CONSOLE}/account/timeline`,
+    key: "profile",
+    label: "Profile",
+    icon: "user-round",
+    to: `${CONSOLE}/account/profile`,
   },
   {
-    key: "explore",
-    label: "Explore",
-    icon: "search",
-    to: `${CONSOLE}/explore`,
-    subs: [
-      ["players", "Players", `${CONSOLE}/explore/players`],
-      ["clans", "Clans & wars", `${CONSOLE}/explore/clans`],
-      ["meta", "Decks", `${CONSOLE}/explore/meta`],
-      ["weeks", "War weeks", `${CONSOLE}/explore/weeks`],
-    ],
+    key: "emails",
+    label: "Emails from Elixir",
+    icon: "mail",
+    to: `${CONSOLE}/account/profile/email`,
+  },
+  {
+    key: "devices",
+    label: "Sign-in and devices",
+    icon: "key-round",
+    to: `${CONSOLE}/account/profile/devices`,
+  },
+  {
+    key: "signins",
+    label: "Sign-ins",
+    icon: "history",
+    to: `${CONSOLE}/account/activity/events`,
   },
   {
     group: "Your record",
@@ -270,19 +231,63 @@ export const RAIL = [
     to: `${CONSOLE}/account/usage`,
   },
   {
-    group: "Service",
-    key: "status",
-    label: "Status",
+    group: "Collectors",
+    key: "collectors",
+    label: "Collectors",
+    icon: "server",
+    to: `${CONSOLE}/status/collectors`,
+  },
+  {
+    key: "efficiency",
+    label: "Efficiency",
     icon: "heart-pulse",
-    to: `${CONSOLE}/status/service`,
-    subs: [
-      ["collectors", "Collectors", `${CONSOLE}/status/collectors`],
-      ["efficiency", "Efficiency", `${CONSOLE}/status/efficiency`],
-    ],
+    to: `${CONSOLE}/status/efficiency`,
+  },
+  // What you have filed, and its answers. The foot's sheet files a new one.
+  {
+    group: "Feedback",
+    key: "feedback",
+    label: "Your feedback",
+    icon: "message-square",
+    to: `${CONSOLE}/account/feedback`,
   },
 ];
 
-/** The foot of your console's rail: feedback is always one click away,
+/** Explore, where Search leads until the search sheet exists. */
+export const EXPLORE_RAIL = [
+  {
+    key: "lookup",
+    label: "Look up",
+    icon: "search",
+    to: `${CONSOLE}/explore`,
+  },
+  {
+    key: "players",
+    label: "Players",
+    icon: "user-round",
+    to: `${CONSOLE}/explore/players`,
+  },
+  {
+    key: "clans",
+    label: "Clans & wars",
+    icon: "users",
+    to: `${CONSOLE}/explore/clans`,
+  },
+  {
+    key: "meta",
+    label: "Decks",
+    icon: "layout-grid",
+    to: `${CONSOLE}/explore/meta`,
+  },
+  {
+    key: "weeks",
+    label: "War weeks",
+    icon: "calendar-days",
+    to: `${CONSOLE}/explore/weeks`,
+  },
+];
+
+/** The foot of Settings' and Explore's rails: feedback is always one click away,
  *  and every item is answered. It opens the kit's sheet in place, as
  *  Ladder's and Clan's do (2026-10-20), with the page you are on riding
  *  along; `history` is where what you have filed is read, linked from
@@ -294,7 +299,7 @@ export const RAIL_FOOT = {
   history: `${CONSOLE}/account/feedback`,
 };
 
-/** The Admin console's rail: bare labels again, because nothing else is
+/** Admin's rail: bare labels again, because nothing else is
  *  on screen beside them. Collectors and Service tokens are the owner's. */
 export const ADMIN_RAIL = [
   {
@@ -383,42 +388,11 @@ export const ADMIN_RAIL = [
   },
 ];
 
-/** Account settings, reached from the top bar's account menu: a rail of
- *  its own with the way back to the console above it (ConsoleEmails
- *  board). Sign-ins is the account log that was Activity › Account
- *  events. */
-export const ACCOUNT_RAIL = [
-  {
-    key: "profile",
-    label: "Profile",
-    icon: "user-round",
-    to: `${CONSOLE}/account/profile`,
-  },
-  {
-    key: "emails",
-    label: "Emails from Elixir",
-    icon: "mail",
-    to: `${CONSOLE}/account/profile/email`,
-  },
-  {
-    key: "devices",
-    label: "Sign-in and devices",
-    icon: "key-round",
-    to: `${CONSOLE}/account/profile/devices`,
-  },
-  {
-    key: "signins",
-    label: "Sign-ins",
-    icon: "history",
-    to: `${CONSOLE}/account/activity/events`,
-  },
-];
-
 const AGENT_ID = /^[a-z0-9]{8,16}$/;
 
-/** The rail of an agent's console: yours, reshaped to what an agent is.
+/** The rail of an agent's pages: yours, reshaped to what an agent is.
  *  Same keys as yours where the page is the same page, so the docs strip
- *  and the rail tests read both consoles one way. */
+ *  and the rail tests read both one way. */
 export function agentRail(id) {
   const at = (page) => `${CONSOLE}/agent/${id}/${page}`;
   return [
@@ -503,37 +477,48 @@ export function railPosition(path) {
   // to, but the strip at its foot is the record's own, because "how do I
   // read this" is a different question from "what is this section".
   if (section === "explore") {
+    const explore = { rail: "explore", doc: "explore" };
     const kinds = ["players", "clans", "meta", "weeks"];
-    if (kinds.includes(page)) return { key: "explore", sub: page };
+    if (kinds.includes(page)) return { ...explore, key: page };
     if (page === "player" && rest)
-      return { key: "explore", doc: "explore:player" };
-    if (page && rest) return { key: "explore", doc: "explore:record" };
-    return { key: "explore" };
+      return { ...explore, key: "players", doc: "explore:player" };
+    if (page === "clan" && rest)
+      return { ...explore, key: "clans", doc: "explore:record" };
+    if (page === "week" && rest)
+      return { ...explore, key: "weeks", doc: "explore:record" };
+    if (page && rest)
+      return { ...explore, key: "lookup", doc: "explore:record" };
+    return { ...explore, key: "lookup" };
   }
-  if (section === "status")
+  if (section === "status" && ["collectors", "efficiency"].includes(page))
     return {
-      key: "status",
-      sub: ["collectors", "efficiency"].includes(page) ? page : undefined,
-      // A record and the raise form both read the operators guide.
-      ...(page === "collectors" && rest ? { doc: "status:collector" } : {}),
+      rail: "settings",
+      key: page,
+      doc:
+        page === "efficiency"
+          ? "status:efficiency"
+          : rest
+            ? // A record and the raise form both read the operators guide.
+              "status:collector"
+            : "status:collectors",
     };
-  // Admin is a console of its own: its rail's items are its pages.
+  // Admin's rail's items are its pages.
   if (section === "admin") {
     const key = page ?? "requests";
     return { rail: "admin", key, doc: `admin:${key}` };
   }
   // The in-app charts are the corpus in detail, reached from the site's
-  // /data page. They sit under Explore in the rail rather than nowhere:
-  // losing the whole navigation on one route is worse than putting a
-  // page under the nearest section that is honestly about reading the
-  // record.
-  if (section === "data" && page === "dashboard") return { key: "explore" };
+  // /data page and the service page. They sit under Explore's rail with no
+  // item marked: losing the whole navigation on one route is worse.
+  if (section === "data" && page === "dashboard")
+    return { rail: "explore", key: "charts", doc: "explore" };
   if (section === "account") {
+    const settings = { rail: "settings" };
     // Activity's three logs went three ways. MCP requests, and a call
     // record (/activity/c/<request_id>), sit under Usage; Emails, and an
-    // email record (/activity/e/<send_id>), are Account settings ›
-    // Emails from Elixir; Account events are Account settings ›
-    // Sign-ins. `sub` still names the log, for the page that draws it.
+    // email record (/activity/e/<send_id>), under Emails from Elixir;
+    // Account events are Sign-ins. `sub` still names the log, for the page
+    // that draws it.
     if (page === "activity") {
       const log =
         rest === "c"
@@ -543,62 +528,54 @@ export function railPosition(path) {
             : (rest ?? "requests");
       if (log === "emails")
         return {
-          rail: "account",
+          ...settings,
           key: "emails",
           sub: "emails",
           doc: rest === "e" ? "activity:email" : "activity:emails",
         };
       if (log === "events")
         return {
-          rail: "account",
+          ...settings,
           key: "signins",
           sub: "events",
           doc: "activity:events",
         };
       return {
+        ...settings,
         key: "usage",
         sub: "requests",
         doc: rest === "c" ? "activity:call" : "activity:requests",
       };
     }
-    // Profile and its two pages are Account settings.
     if (page === "profile") {
       if (rest === "email")
-        return { rail: "account", key: "emails", doc: "profile:email" };
+        return { ...settings, key: "emails", doc: "profile:email" };
       if (rest === "devices")
-        return { rail: "account", key: "devices", doc: "profile:devices" };
-      return { rail: "account", key: "profile", doc: "profile:profile" };
+        return { ...settings, key: "devices", doc: "profile:devices" };
+      return { ...settings, key: "profile", doc: "profile:profile" };
     }
     if (page === "connections")
-      return { key: "connections", doc: "connections:clients" };
+      return { ...settings, key: "connections", doc: "connections:clients" };
     // The agent list is addressable in its own right, but it belongs to
     // Connections in the rail: an agent IS a connection.
     if (page === "agents")
-      return { key: "connections", doc: "connections:agents" };
+      return { ...settings, key: "connections", doc: "connections:agents" };
     // /account/tracking/<tag> is a record of a tracked thing, which
     // belongs to Tracking rather than being a section of its own.
     if (page === "tracking" && rest)
-      return { key: "tracking", doc: "tracking:record" };
-    return { key: page ?? "overview" };
+      return { ...settings, key: "tracking", doc: "tracking:record" };
+    return { ...settings, key: page };
   }
   return {};
 }
 
 /**
- * One doc map for the whole console, keyed by rail item or `item:sub`.
- * Every console page has an entry — the strip is only consistent if
+ * One doc map for every page with a rail, keyed by rail item or `item:sub`.
+ * Every such page has an entry — the strip is only consistent if
  * nothing falls through to a generic index link, which is exactly what
  * it replaced.
  */
 export const DOC_LINKS = {
-  overview: [
-    "Getting started",
-    [
-      ["Quickstart", "/docs/quickstart"],
-      ["Tiers & roles", "/docs/roles"],
-      ["How recording works", "/docs/recording"],
-    ],
-  ],
   explore: [
     "Reading the record",
     [
@@ -952,44 +929,22 @@ export const DOC_LINKS = {
   ],
 };
 
-/** Structural redirects: a bare section to its first page, a partial
- *  record path to the lookup. The old addresses at the root are not
- *  aliased (Jamie, 2026-09-28: nobody was using them yet). */
-const REDIRECTS = {
-  [CONSOLE]: `${CONSOLE}/account/overview`,
-  [`${CONSOLE}/`]: `${CONSOLE}/account/overview`,
-  [`${CONSOLE}/account`]: `${CONSOLE}/account/overview`,
-  [`${CONSOLE}/admin`]: `${CONSOLE}/admin/requests`,
-  [`${CONSOLE}/explore/player`]: `${CONSOLE}/explore`,
-  [`${CONSOLE}/explore/clan`]: `${CONSOLE}/explore`,
-  [`${CONSOLE}/status`]: `${CONSOLE}/status/service`,
-  // The bare Activity path WAS the timeline until the timeline became
-  // its own rail item (2026-09-23), so a link to it still means that.
-  [`${CONSOLE}/account/activity`]: `${CONSOLE}/account/timeline`,
-};
-
 /** A battle's public page (2026-10-01): /battle/<short id>, a 12 to 64
  *  character hex prefix of the battle id. */
 const BATTLE_PATH = /^\/battle\/[0-9a-f]{12,64}$/;
 
-/** Guard restored/bookmarked routes: a stale path to a removed section
- *  must fall back to a known-good route, never an empty main. Anything
- *  this app does not own (every path outside /console among them)
- *  returns null, and the caller leaves for the static home with a real
- *  navigation. */
-/** Which place the bar marks as the one you are in, from the route: the
- *  Console, or Ladder under /ladder. A battle's public page is in no
- *  place (2026-10-02): it is public and reads signed out, so the bar's
- *  places are plain links there and the narrow button says Menu. */
+/** Which place the bar marks as the one you are in, from the route. A battle's
+ *  public page is in no place, nor are Settings' pages: the bar's Search tab
+ *  stands for Explore. */
 export function barArea(path) {
-  if (BATTLE_PATH.test(path)) return undefined;
+  if (isHome(path)) return "home";
   if (isLadder(path)) return "ladder";
-  return "console";
+  if (isClan(path)) return "clan";
+  const section = (appPath(path) ?? "").split("/")[1];
+  return section === "explore" || section === "data" ? "search" : undefined;
 }
 
-/** Home, at its new address (redesign step 3a). Reachable, not yet the
- *  landing; no public page links here. */
-const HOME_PATHS = new Set(["/home", "/home/timeline", "/home/friends"]);
+const HOME_PATHS = new Set([HOME, `${HOME}/timeline`, `${HOME}/friends`]);
 const isHome = (path) => HOME_PATHS.has(path.replace(/(.)\/$/, "$1"));
 
 const isClan = (path) =>
@@ -997,23 +952,25 @@ const isClan = (path) =>
   path === "/clan/" ||
   /^\/clan\/[A-Za-z0-9/_-]+$/.test(path);
 
+/** Guard restored and bookmarked routes: a stale path to a removed page falls
+ *  back to a known-good route. An address the app has never had returns null,
+ *  and the root route says "Nothing at this address". */
 export function legalRoute(path) {
   if (isClan(path)) return path;
   if (isHome(path)) return path;
-  // A battle's public page is the app's too, outside the Console.
+  if (path === SIGN_IN || path === SERVICE_STATUS) return path;
+  // A battle's public page is the app's too.
   if (BATTLE_PATH.test(path)) return path;
-  // Ladder is a section of its own beside the Console (2026-09-28), and
-  // resolves its own paths.
+  // Ladder resolves its own paths.
   if (isLadder(path)) return ladderLegal(path);
   const app = appPath(path);
   if (app === null) return null;
   const [, section, page] = app.split("/");
-  if (app === "/signin") return path;
   const sec = SECTIONS[section];
   if (!sec) return null;
   // Explore's records are addressable, so it resolves its own paths.
   if (section === "explore") return path;
-  // An agent's console: a public id, then one of its pages. Whether the
+  // An agent's pages: a public id, then one of its pages. Whether the
   // agent is yours is the server's answer (a 404 the page says), not a
   // routing question.
   if (sec.scoped) {
@@ -1022,8 +979,9 @@ export function legalRoute(path) {
     if (sec.pages.some((p) => p.slug === agentPage)) return path;
     return `${CONSOLE}/${section}/${id}/${sec.pages[0].slug}`;
   }
-  if (sec.pages.length === 0) return `${CONSOLE}/${section}`;
   if (sec.pages.some((p) => p.slug === page)) return path;
+  if (section === "account") return HOME;
+  if (section === "status") return SERVICE_STATUS;
   return `${CONSOLE}/${section}/${sec.pages[0].slug}`;
 }
 
@@ -1050,6 +1008,8 @@ const prettify = (seg) =>
         .replace(/^./, (c) => c.toUpperCase());
 
 export function titleFor(section, sec, path) {
+  if (path === SIGN_IN) return `Sign in - ${SITE}`;
+  if (path === SERVICE_STATUS) return `Status - ${SITE}`;
   if (isHome(path)) {
     const tab = path.split("/")[2];
     const name =
@@ -1066,7 +1026,6 @@ export function titleFor(section, sec, path) {
   }
   const parts = (appPath(path) ?? "").split("/").filter(Boolean);
   if (parts.length === 0) return SITE;
-  if (parts[0] === "signin") return `Sign in - ${SITE}`;
   if (!sec) return SITE;
   if (sec.scoped) {
     const known = sec.pages.find((p) => p.slug === parts[2])?.label;
@@ -1126,126 +1085,9 @@ function useNarrow() {
   return narrow;
 }
 
-/** The top bar: the kit's Chrome. We are the Console, so that place is
- *  green and routes in-app; the other places are bare paths on this
- *  origin, full page loads into their own apps. The Console button is a
- *  place, not a state: signed out it lands on the sign-in wall, which is
- *  the honest answer. */
-const PRODUCTS = FAMILY_PRODUCTS.map((p) => ({ ...p, href: onOrigin(p.href) }));
-const DOCS = { ...FAMILY_DOCS, href: onOrigin(FAMILY_DOCS.href) };
-const SIGN_IN = { ...FAMILY_SIGN_IN, href: onOrigin(FAMILY_SIGN_IN.href) };
-
-/** The account slot, from the session this app holds. `undefined` while
- *  the session is unknown (pending, or Elixir did not answer): the empty
- *  slot, never a guess. `null` signed out: "Sign in". Signed in: who you
- *  are, your players, the account's own pages, and the way out. */
-export function consoleAccount(me, unreachable, signOut) {
-  if (me === null || unreachable) return undefined;
-  if (!me.authenticated) return null;
-  const claims = me.claims ?? [];
-  const primary = claims.find((c) => c.is_primary);
-  return {
-    name: primary?.nickname ?? primary?.name ?? me.email ?? "Your account",
-    email: me.email ?? undefined,
-    detail: [me.role, me.timezone].filter(Boolean).join(" · ") || undefined,
-    // Your players are you: the primary and its alts. A friend or a
-    // player you watch is tracked, not yours, and stays on Tracking.
-    players: claims
-      .filter((c) => c.is_primary || c.relationship === "alt")
-      .map((c) => ({
-        key: c.player_tag,
-        name: c.nickname ?? c.name ?? c.player_tag,
-        tag: c.player_tag,
-        primary: c.is_primary === true,
-        href: `${CONSOLE}/explore/player/${tagPath(c.player_tag)}`,
-      })),
-    playersFoot: {
-      label: "Add or verify a player",
-      href: `${CONSOLE}/account/verify`,
-    },
-    links: [
-      {
-        key: "settings",
-        icon: "user-round",
-        label: "Account settings",
-        hint: "profile, email, devices",
-        href: `${CONSOLE}/account/profile`,
-      },
-      {
-        key: "emails",
-        icon: "mail",
-        label: "Emails from Elixir",
-        href: `${CONSOLE}/account/profile/email`,
-      },
-      {
-        key: "feedback",
-        icon: "message-square",
-        label: "Feedback",
-        hint: "every item is answered",
-        href: `${CONSOLE}/account/feedback`,
-      },
-    ],
-    signOut,
-  };
-}
-
-function Chrome({ navigate, me, unreachable, current }) {
-  // The static half's first paint reads this (lib/session-hint.js). An
-  // unreachable session is not an answer, so it changes nothing.
-  useEffect(() => {
-    if (!unreachable) rememberSession(me);
-  }, [me, unreachable]);
-  // A sign-out that did not take says so in the menu, where the button
-  // is, instead of leaving for the home page still signed in (review
-  // 2026-09-27 §7.5).
-  const [signOutFailed, setSignOutFailed] = useState(null);
-  const inApp = (to) => (e) => {
-    if (!isPlainClick(e)) return;
-    e.preventDefault();
-    navigate(to);
-  };
-  // Console and Ladder are this app: their links route in it rather
-  // than reloading the page.
-  const IN_APP = {
-    console: CONSOLE,
-    ladder: LADDER,
-    ...(me?.features?.clan_internal === true ? { clan: "/clan" } : {}),
-  };
-  const products = PRODUCTS.map((p) =>
-    IN_APP[p.key]
-      ? { ...p, href: IN_APP[p.key], onClick: inApp(IN_APP[p.key]) }
-      : p,
-  );
-  const account = consoleAccount(me, unreachable, {
-    label: "Sign out",
-    note: "Ends this browser's Elixir session. Drop manages its own sign-in.",
-    error: signOutFailed,
-    onClick: async () => {
-      setSignOutFailed(null);
-      const r = await api.signOut();
-      if (!r.ok)
-        return setSignOutFailed(
-          `Not signed out. ${writeErrorText({ status: r.status, transport: r.error, data: r.data })}`,
-        );
-      forgetSession();
-      window.location.assign(STATIC_LINKS.home);
-    },
-  });
-  return (
-    <ChromeBar
-      home={STATIC_LINKS.home}
-      products={products}
-      docs={DOCS}
-      current={current}
-      account={account}
-      signIn={{ ...SIGN_IN, onClick: inApp(SIGN_IN.href) }}
-    />
-  );
-}
-
-/** The consoles the rail head switches between (ConsoleRail board): you,
- *  each agent you own, and Admin for an admin. Each is a place with its
- *  own address, never a mode the app remembers. */
+/** What the rail head switches between: you, each agent you own, and Admin
+ *  for an admin. Each is a place with its own address, never a mode the app
+ *  remembers. */
 export function railConsoles(me, openAgent = null) {
   const primary = (me?.claims ?? []).find((c) => c.is_primary);
   const name = primary?.nickname ?? primary?.name ?? me?.email ?? undefined;
@@ -1254,11 +1096,11 @@ export function railConsoles(me, openAgent = null) {
       key: "me",
       group: "You",
       icon: "gauge",
-      label: "Your console",
+      label: "Your account",
       detail: [name, me?.role].filter(Boolean).join(" · ") || undefined,
-      to: `${CONSOLE}/account/overview`,
+      to: `${CONSOLE}/account/profile`,
     },
-    // A removed agent (0215) is left out unless it is the console open now.
+    // A removed agent (0215) is left out unless it is the one open now.
     ...(me?.agents ?? [])
       .filter((a) => !a.removed_at || a.public_id === openAgent)
       .map((a) => ({
@@ -1275,7 +1117,7 @@ export function railConsoles(me, openAgent = null) {
             key: "admin",
             group: "Operate",
             icon: "shield",
-            label: "Admin console",
+            label: "Admin",
             detail: ["every account", me.role].filter(Boolean).join(" · "),
             to: `${CONSOLE}/admin/requests`,
           },
@@ -1284,24 +1126,23 @@ export function railConsoles(me, openAgent = null) {
   ];
 }
 
-/** The rail: the kit's, fed the rail this place belongs to (yours, an
- *  agent's, Admin's, or Account settings), filtered by who is looking,
- *  with the reader's counts and the two dots attached by key. Who you
- *  are and the way out are the bar's account menu (canvas 2026-09-29),
- *  never the rail's. */
+/** The rail: the kit's, fed the rail this place belongs to (Settings, Explore,
+ *  an agent's or Admin's), filtered by who is looking, with the reader's counts
+ *  and the two dots attached by key. Who you are and the way out are the bar's
+ *  account menu, never the rail's. */
 function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
-  const [signOutFailed, setSignOutFailed] = useState(null);
   const [feedback, setFeedback] = useState(false);
   const invalidate = useInvalidate();
   const consoles = railConsoles(me, here.scope);
-  const settings = here.rail === "account";
+  const admin = here.rail === "admin";
+  const explore = here.rail === "explore";
   const rail = here.scope
     ? agentRail(here.scope)
-    : here.rail === "admin"
+    : admin
       ? ADMIN_RAIL.filter((r) => !r.ownerOnly || me?.is_owner)
-      : settings
-        ? ACCOUNT_RAIL
-        : RAIL;
+      : explore
+        ? EXPLORE_RAIL
+        : SETTINGS_RAIL;
   const items = rail.map((row) => ({
     key: row.key,
     label: row.label,
@@ -1312,76 +1153,44 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
     dot: dots[row.key] ?? null,
     subs: (row.subs ?? []).map(([slug, label, to]) => ({ slug, label, to })),
   }));
-  const account = here.scope ?? (here.rail === "admin" ? "admin" : "me");
+  const account = here.scope ?? (admin ? "admin" : "me");
   const current = consoles.find((c) => c.key === account) ?? consoles[0];
-  const you = consoles[0];
 
-  if (settings) {
-    const primary = (me?.claims ?? []).find((c) => c.is_primary);
-    return (
-      <RailList
-        label="Account sections"
-        items={items}
-        current={here.key}
-        navigate={navigate}
-        narrow={narrow}
-        title="Your account"
-        subtitle="Your account"
-        back={{ label: "Console", to: you.to }}
-        accounts={[
-          {
-            key: "account",
-            initials: initialsOf(
-              primary?.nickname ?? primary?.name ?? me?.email ?? "You",
-            ),
-            label: "Your account",
-            detail: you.detail,
-            to: `${CONSOLE}/account/profile`,
-          },
-        ]}
-        account="account"
-        foot={{
-          label: "Sign out of Elixir",
-          icon: "log-out",
-          error: signOutFailed,
-          onClick: async () => {
-            setSignOutFailed(null);
-            const r = await api.signOut();
-            if (!r.ok)
-              return setSignOutFailed(
-                `Not signed out. ${writeErrorText({ status: r.status, transport: r.error, data: r.data })}`,
-              );
-            forgetSession();
-            window.location.assign(STATIC_LINKS.home);
-          },
-        }}
-      />
-    );
-  }
-
-  // Feedback is filed as you, from your own console (2026-09-23): an
-  // agent's console and Admin have no foot.
-  const files = !here.scope && here.rail !== "admin";
+  // Feedback is filed as you, from your own pages (2026-09-23): an agent's
+  // pages and Admin have no foot.
+  const files = !here.scope && !admin;
+  const name = here.scope
+    ? "Agent"
+    : admin
+      ? "Admin"
+      : explore
+        ? "Explore"
+        : "Settings";
   return (
     <>
       <RailList
-        label={
-          here.scope
-            ? "Agent console sections"
-            : here.rail === "admin"
-              ? "Admin console sections"
-              : "Console sections"
-        }
+        label={`${name} sections`}
         items={items}
         current={here.key}
         sub={here.sub}
         navigate={navigate}
         narrow={narrow}
-        title="Console"
-        subtitle={here.scope ? (agent?.name ?? current.label) : current.label}
-        accounts={consoles}
+        title={name}
+        subtitle={
+          explore
+            ? undefined
+            : here.scope
+              ? (agent?.name ?? current.label)
+              : current.label
+        }
+        // Explore reads the same for everyone, so it has no one to switch to.
+        accounts={explore ? undefined : consoles}
         account={account}
-        manage={{ label: "Manage agents…", to: `${CONSOLE}/account/agents` }}
+        manage={
+          explore
+            ? undefined
+            : { label: "Manage agents…", to: `${CONSOLE}/account/agents` }
+        }
         foot={
           files
             ? {
@@ -1396,7 +1205,7 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
         <FeedbackSheet
           area="console"
           categories={FEEDBACK_CATEGORIES}
-          about="About the Console. The page you are on rides along."
+          about="About Elixir. The page you are on rides along."
           context={{ page: here.key, ...(here.sub ? { sub: here.sub } : {}) }}
           send={async (body) => {
             const r = await api.sendFeedback(body);
@@ -1413,7 +1222,7 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
   );
 }
 
-/** The foot of every console page: one slot, one shape, one map. An
+/** The foot of every page with a rail: one slot, one shape, one map. An
  *  ad-hoc "learn more" in a different place on each screen is what this
  *  replaced, so a page with no entry is a bug rather than a fallback. */
 function DocsStrip({ here }) {
@@ -1469,12 +1278,13 @@ const signedInPath = (path) => {
     )
       return false;
     return (
-      /^\/(account|admin|agent|explore)(\/|$)/.test(
+      /^\/(account|admin|agent|explore|status)(\/|$)/.test(
         appPath(url.pathname) ?? "",
       ) ||
       isLadder(url.pathname) ||
       isClan(url.pathname) ||
       isHome(url.pathname) ||
+      url.pathname === SERVICE_STATUS ||
       BATTLE_PATH.test(url.pathname)
     );
   } catch {
@@ -1491,21 +1301,6 @@ export function rememberAfterSignIn(path) {
     }
   }
 }
-/**
- * Where a person lands when the proof that just signed them in also
- * opened their account (the sign-in answer's `new_account`), with no
- * remembered destination of their own: the player the signup form named
- * opens on its Tracking record, as a Tracking add does (capture pending,
- * or "Tag not found" with the fix); with no tag given, Tracking with the
- * tag field focused. Anyone else lands where they always did.
- */
-export function newAccountLanding(newAccount) {
-  if (!newAccount) return null;
-  if (newAccount.player_tag)
-    return `${CONSOLE}/account/tracking/${tagPath(newAccount.player_tag)}`;
-  return `${CONSOLE}/account/tracking#add-player-tag`;
-}
-
 export function takeAfterSignIn() {
   let path = null;
   try {
@@ -1533,7 +1328,7 @@ export function SignInWall({ navigate }) {
   // The protected URL is already saved above. Replace its wall so
   // completing proof does not leave a second automatic return in
   // history (notably an email's ?report=1 feedback redirect).
-  const signIn = () => navigate(`${CONSOLE}/signin`, { replace: true });
+  const signIn = () => navigate(SIGN_IN, { replace: true });
   // Ladder says what it is first: a visitor may not know yet.
   if (isLadder(pathname))
     return <LadderInvite returnTo={here} onSignIn={signIn} />;
@@ -1545,11 +1340,61 @@ export function SignInWall({ navigate }) {
           This part of Elixir shows your recorded history. Verify your email to
           create an account or sign in.
         </p>
-        <button className="btn mt-2" onClick={signIn}>
+        <button className="btn btn--primary mt-2" onClick={signIn}>
           Sign in
         </button>
       </div>
     </div>
+  );
+}
+
+/** A signed-in person on a page for Elixir's staff: not a sign-in problem, and
+ *  it does not say whether the page holds anything. The gate is the server's. */
+export function StaffOnly() {
+  return (
+    <div className="panel mx-auto mt-12 max-w-[420px]">
+      <div className="panel__body text-center">
+        <h1 className="page__title mb-2">
+          This page is for Elixir&rsquo;s staff
+        </h1>
+        <p className="text-[13px] text-ink-faint">
+          You&rsquo;re signed in, and your account is fine. Your own pages are
+          on Home.
+        </p>
+        <Link to={HOME} className="btn btn--primary mt-2">
+          Go to Home
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/** An address the app has never had. Its own shell, because the root route
+ *  renders this in place of everything under it. */
+function MissingPage() {
+  const navigate = useNav();
+  const { me, unreachable } = useMe();
+  useEffect(() => {
+    document.title = `Nothing at this address - ${SITE}`;
+  }, []);
+  return (
+    <ZoneProvider zone={me?.timezone}>
+      <NavigateProvider navigate={navigate}>
+        <AppShell me={unreachable ? null : me} unreachable={unreachable}>
+          <div className="panel mx-auto mt-12 max-w-[420px]">
+            <div className="panel__body text-center">
+              <h1 className="page__title mb-2">Nothing at this address</h1>
+              <p className="text-[13px] text-ink-faint">
+                It may have moved, or it was never a page.
+              </p>
+              <Link to={HOME} className="btn btn--primary mt-2">
+                Go to Home
+              </Link>
+            </div>
+          </div>
+        </AppShell>
+      </NavigateProvider>
+    </ZoneProvider>
   );
 }
 
@@ -1579,36 +1424,45 @@ function Unavailable({ onRetry, busy }) {
 }
 
 /**
- * The route tree. The root's beforeLoad is the old route guard as a
- * real one: a path this app does not own leaves for the static site
- * (Back never bounces between the halves because the entry is
- * replaced), and a partial path is REDIRECTED - the address bar
- * changes with it, which the render-only REDIRECTS never did, so a link
- * to /console/status credits /console/status/service in the report.
+ * The route tree. The root's beforeLoad is the old route guard as a real one:
+ * an address the app has never had is "Nothing at this address", and a moved
+ * or partial one is REDIRECTED (lib/moved.js, the one map), so the address bar
+ * changes with it and the query and fragment ride along.
  *
- * Sections are split by route: Admin, Explore, Status and the Account
- * pages each arrive as their own chunk, so the sign-in wall does not
- * carry the admin console with it.
+ * Sections are split by route: Admin, Explore, Status and the Account pages
+ * each arrive as their own chunk, so the sign-in wall does not carry Admin
+ * with it.
  */
+/** What the distribution routes to this app; the rest is the static site. */
+const APP_PATHS =
+  /^\/(home|signin|console|ladder|clan|battle|data\/service)(\/|$)/;
+
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {
     const path = location.pathname;
-    const owned = legalRoute(REDIRECTS[path] ?? path);
+    const owned = legalRoute(movedTo(path) ?? path);
     if (owned === null) {
-      if (typeof window !== "undefined")
-        window.location.replace(STATIC_LINKS.home);
+      // CloudFront only sends this app's own paths here, so anything else
+      // got here by a link inside the page and is a site document: load it.
+      if (typeof window !== "undefined" && !APP_PATHS.test(path))
+        window.location.replace(path);
       throw notFound();
     }
     if (owned !== path)
-      throw redirect({ to: owned, search: location.search, replace: true });
+      throw redirect({
+        to: owned,
+        search: location.search,
+        ...(location.hash ? { hash: location.hash } : {}),
+        replace: true,
+      });
   },
   component: Shell,
-  notFoundComponent: () => null,
+  notFoundComponent: MissingPage,
 });
 
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: `${CONSOLE}/signin`,
+  path: SIGN_IN,
   component: function SignInPage() {
     const navigate = useNav();
     const { me, refresh } = useMe();
@@ -1616,7 +1470,7 @@ const signInRoute = createRoute({
     const [completing, setCompleting] = useContext(SignInProgress);
     // The static site's bar always says "Sign in" (it cannot know the
     // session), so a reader who is signed in arrives here too: send them
-    // on to their console. Not when a login link brought a token: that is
+    // on to Home. Not when a login link brought a token: that is
     // a sign-in (or a device hand-off) to finish, signed in or not.
     const location = useLocation();
     const destination = new URLSearchParams(location.searchStr).get(
@@ -1626,30 +1480,18 @@ const signInRoute = createRoute({
       rememberAfterSignIn(destination);
     const token = typeof window === "undefined" ? null : takeLoginToken();
     const forward = me?.authenticated === true && !token && !completing;
-    // Back from Discord with a new account (#531): its first landing,
-    // as an emailed proof's would be.
-    const discordNew =
-      new URLSearchParams(location.searchStr).get("discord") === "new";
     useEffect(() => {
-      if (forward)
-        navigate(
-          takeAfterSignIn() ??
-            (discordNew ? newAccountLanding({ player_tag: null }) : null) ??
-            `${CONSOLE}/account/overview`,
-          { replace: true },
-        );
-    }, [forward, navigate, discordNew]);
+      if (forward) navigate(takeAfterSignIn() ?? HOME, { replace: true });
+    }, [forward, navigate]);
     if (forward || (me === null && !token)) return null;
     return (
       <SignIn
         search={location.searchStr}
         discordLogin={me?.features?.discord_login === true}
-        onAuthed={async (newAccount) => {
+        onAuthed={async () => {
           setCompleting(true);
-          const next =
-            takeAfterSignIn() ??
-            newAccountLanding(newAccount) ??
-            `${CONSOLE}/account/overview`;
+          // A new account's first sign-in lands on Home's first steps too.
+          const next = takeAfterSignIn() ?? HOME;
           try {
             // A new login can be a different person. Remove the previous
             // account's private data before any next-account view mounts.
@@ -1703,6 +1545,16 @@ const statusRoute = createRoute({
   ),
 });
 
+/** The service detail: signed in only, linked from the public /data. */
+const serviceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: SERVICE_STATUS,
+  component: lazyRouteComponent(
+    () => import("./pages/StatusPage.jsx"),
+    "StatusPage",
+  ),
+});
+
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: `${CONSOLE}/admin/{-$page}/{-$itemId}`,
@@ -1721,8 +1573,7 @@ const battleRoute = createRoute({
   ),
 });
 
-/** Ladder: a section of Elixir beside the Console, its own rail in the
- *  same shell. Signed in only, like the Console. */
+/** Ladder: its own rail in the shell. Signed in only. */
 const ladderRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: `${LADDER}/{-$page}`,
@@ -1754,12 +1605,13 @@ export const routeTree = rootRoute.addChildren([
   agentRoute,
   exploreRoute,
   statusRoute,
+  serviceRoute,
   adminRoute,
   dataRoute,
   battleRoute,
   ladderRoute,
   createClanRoutes(rootRoute, {
-    SharedChrome: SharedClanChrome,
+    Frame: ClanFrame,
     rememberAfterSignIn,
   }),
 ]);
@@ -1779,6 +1631,15 @@ export function useHere() {
       section: "ladder",
       sec: LADDER_SECTION,
       here: ladderHere(pathname),
+      search: search ?? {},
+    };
+  if (pathname === SERVICE_STATUS)
+    return {
+      path: pathname,
+      section: "status",
+      sec: SECTIONS.status,
+      activePage: "service",
+      here: {},
       search: search ?? {},
     };
   // Segments are read on the app path (the prefix off); `path` stays the
@@ -1902,20 +1763,25 @@ export function useMe() {
   };
 }
 
-function SharedClanChrome({ navigate }) {
+/** Clan's rail and pages in the shell, with its own session query beside this
+ *  one for the bar. */
+function ClanFrame({ children }) {
   const { me, unreachable } = useMe();
   return (
-    <Chrome
-      navigate={navigate}
-      me={me}
+    <ShellFrame
+      me={unreachable ? null : me}
       unreachable={unreachable}
-      current="clan"
-    />
+      area="clan"
+    >
+      {children}
+    </ShellFrame>
   );
 }
 
 function Shell() {
   const { pathname } = useLocation();
+  // Nothing at this address brings its own shell (MissingPage).
+  if (legalRoute(movedTo(pathname) ?? pathname) === null) return <Outlet />;
   if (isHome(pathname)) return <HomeOutlet />;
   return isClan(pathname) ? <SharedClanOutlet /> : <ConsoleShell />;
 }
@@ -2003,8 +1869,8 @@ function ConsoleShell() {
     counts.tracking = String(subject.signals.tracking);
   if (here.scope && subject?.signals?.feedback > 0)
     counts.feedback = String(subject.signals.feedback);
-  /** The two dots the design puts on the rail: unread on Timeline while
-   *  the feed holds news since this console last showed it (its own
+  /** The two dots the design puts on the rail: unread on an agent's Timeline
+   *  while the feed holds news since those pages last showed it (its own
    *  place, never a connection's read pointer: Jamie, 2026-10-20), and
    *  an alert on Connections while a credential that no longer works is
    *  still being presented — the one thing on this rail that wants you
@@ -2025,26 +1891,19 @@ function ConsoleShell() {
 
   const needsAuth = sec?.authed && !authed && me !== null && !unreachable;
   const showUnavailable = sec?.authed && !authed && unreachable;
-  const showRail =
-    authed &&
-    !needsAuth &&
-    effectivePath !== `${CONSOLE}/signin` &&
-    Boolean(here.key);
+  const showRail = authed && !needsAuth && Boolean(here.key);
 
-  // Every time the console prints is on the account's clock: the zone
+  // Every time a page prints is on the account's clock: the zone
   // set on Profile, or UTC when none is (Jamie, 2026-09-23). A new
   // account opens on its signup browser's zone (Jamie, 2026-10-08).
   return (
     <ZoneProvider zone={me?.timezone}>
       <NavigateProvider navigate={navigate}>
-        <div className="shell">
-          <Chrome
-            navigate={navigate}
-            me={me}
-            unreachable={unreachable}
-            current={barArea(effectivePath)}
-          />
-
+        <ShellFrame
+          me={unreachable ? null : me}
+          unreachable={unreachable}
+          area={barArea(effectivePath)}
+        >
           <div
             className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
           >
@@ -2088,9 +1947,7 @@ function ConsoleShell() {
               </div>
             </main>
           </div>
-
-          <Disclaimer />
-        </div>
+        </ShellFrame>
       </NavigateProvider>
     </ZoneProvider>
   );

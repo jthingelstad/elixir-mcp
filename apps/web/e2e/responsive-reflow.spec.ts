@@ -48,7 +48,7 @@ async function accessible(page: Page, include?: string) {
 }
 
 for (const state of ["signed in", "signed out", "checking"] as const) {
-  test(`@narrow shared chrome and account controls fit while ${state}`, async ({
+  test(`@narrow the shared bar and account controls fit while ${state}`, async ({
     page,
   }) => {
     // Ten widths, each with an axe pass: about 6 s here, past the 30 s
@@ -74,9 +74,10 @@ for (const state of ["signed in", "signed out", "checking"] as const) {
     page.on("pageerror", (error) => errors.push(error.message));
     for (const width of widths) {
       await page.setViewportSize({ width, height: 860 });
-      await page.goto("/console/signin");
-      await page.locator(".chrome__home").waitFor();
+      await page.goto("/signin");
+      await page.locator(".kit-top__brand").waitFor();
       if (state === "signed in") {
+        // Signed in, /signin goes on to Home.
         const account = page.getByRole("button", {
           name: `Account: ${longName}`,
         });
@@ -87,82 +88,46 @@ for (const state of ["signed in", "signed out", "checking"] as const) {
         await expect(page.locator(".account-menu__name")).toHaveText(longName);
         await inBounds(
           page,
-          ".chrome__inner, .chrome__home, .chrome__menu, .chrome__account, #account-menu, .account-menu__head, .account-menu__name",
+          ".kit-top__row, .kit-top__brand, .kit-top__account, #account-menu, .account-menu__head, .account-menu__name",
         );
-        await accessible(page, ".chrome");
+        await accessible(page, ".kit-top");
         await page.keyboard.press("Escape");
         await expect(account).toBeFocused();
         await expect(page.locator("#account-menu")).toHaveCount(0);
+        if (width <= 760) {
+          const tabs = page.locator(".kit-bottom a");
+          await expect(tabs).toHaveCount(4);
+          for (const box of await tabs.evaluateAll((all) =>
+            all.map((a) => a.getBoundingClientRect().toJSON()),
+          ))
+            expect(box.height).toBeGreaterThanOrEqual(44);
+        }
       } else if (state === "signed out") {
         await expect(
-          page
-            .locator(".chrome__account")
-            .getByRole("link", { name: "Sign in" }),
+          page.locator(".kit-top").getByRole("link", { name: "Sign in" }),
         ).toBeVisible();
       }
-      const slot = await page.locator(".chrome__account").boundingBox();
-      expect(slot?.width).toBe(width <= 900 ? 96 : 196);
-      if (width <= 900) {
-        const menu = page.getByRole("button", { name: "Product: Console" });
-        await expect(menu).toBeVisible();
-        const label = page.locator(".chrome__menu-label");
-        expect(
-          await label.evaluate((node) => node.scrollWidth <= node.clientWidth),
-        ).toBe(true);
-        expect((await menu.boundingBox())?.height).toBeGreaterThanOrEqual(44);
-        await menu.focus();
-        await page.keyboard.press("Enter");
-        await expect(page.locator("#chrome-sheet")).toHaveAttribute(
-          "data-open",
-          "true",
-        );
-        await expect(
-          page.locator("#chrome-sheet").getByRole("link", { name: "Docs" }),
-        ).toBeVisible();
-        await accessible(page, ".chrome");
-        await page.keyboard.press("Escape");
-        await expect(menu).toBeFocused();
-      }
-      await inBounds(
-        page,
-        ".chrome__inner, .chrome__home, .chrome__menu, .chrome__account",
-      );
+      await inBounds(page, ".kit-top__row, .kit-top__brand, .kit-top__account");
     }
     finish();
     expect(errors).toEqual([]);
   });
 }
 
-test("@narrow the static docs chrome keeps its home and sign-in controls inside the screen", async ({
+test("@narrow the static docs bar keeps its home and sign-in controls inside the screen", async ({
   page,
 }) => {
   for (const width of widths) {
     await page.setViewportSize({ width, height: 860 });
     await page.goto("/docs/");
     await expect(
-      page
-        .getByRole("banner")
-        .getByRole("link", { name: "Elixir home", exact: true }),
+      page.getByRole("banner").locator(".kit-top__brand:visible"),
     ).toBeVisible();
     await expect(
-      page.locator(".chrome__account").getByRole("link", { name: "Sign in" }),
+      page.locator(".kit-top").getByRole("link", { name: "Sign in" }),
     ).toBeVisible();
-    await inBounds(
-      page,
-      ".chrome__inner, .chrome__home, .chrome__menu, .chrome__account",
-    );
-    if (width <= 900) {
-      const menu = page.getByRole("button", { name: "Product: Docs" });
-      await menu.focus();
-      await page.keyboard.press("Enter");
-      await expect(page.locator("#chrome-sheet")).toHaveAttribute(
-        "data-open",
-        "true",
-      );
-      await accessible(page, ".chrome");
-      await page.keyboard.press("Escape");
-      await expect(menu).toBeFocused();
-    }
+    await inBounds(page, ".kit-top__row, .kit-top__brand");
+    await accessible(page, ".kit-top");
   }
 });
 
@@ -238,7 +203,7 @@ for (const gutter of [0, 15]) {
         expect(await page.title()).toContain("Elixir");
         await inBounds(
           page,
-          ".chrome__inner, .chrome__account, .battle__score, .battle__who, .battle-deck, .battle-deck .panel__body, .deck-grid, .card-art",
+          ".kit-top__row, .battle__score, .battle__who, .battle-deck, .battle-deck .panel__body, .deck-grid, .card-art",
         );
         const spill = await page
           .locator(".battle-deck .deck-grid")

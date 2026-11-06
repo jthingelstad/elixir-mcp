@@ -2,21 +2,15 @@ import manifest from "./family.json" with { type: "json" };
 import type { IconName } from "./Icon.tsx";
 
 /**
- * The family, as the top bar knows it. ONE list, so the Eleventy build,
- * the Console and every vertical draw the same bar: the logo and
- * wordmark home, the products on the left, Docs and the game on the
- * right, the account slot at the end (2026-09-29 canvas).
+ * The family, as the top bar knows it. ONE list, so the Eleventy build and the
+ * app draw the same bar, tabs and footer.
  *
- * The list is family.json beside this file, the product manifest: this
- * module reads it for the React kit, and apps/site reads the same file
- * through its `familyBar` data file, so base.njk loops over it instead
- * of copying it. Adding a product is one edit there. A test in
- * apps/site pins both readers to that one file, and packages/mail tags
- * a link into any product it names.
- *
- * The bar holds places, not pages: the static site's own pages (Home,
- * Data, Examples, Updates, Support) are the site's sub-nav and footer,
- * which apps/site keeps beside its templates.
+ * The list is family.json beside this file, the product manifest: this module
+ * reads it for the React shell (apps/web/src/shell/Shell.jsx), and apps/site
+ * reads the same file through its `familyBar` data file, so base.njk loops
+ * over it instead of copying it. Adding a product is one edit there. A test in
+ * apps/site pins both readers to that one file, and packages/mail tags a link
+ * into any product it names.
  */
 
 /** The wordmark beside the logo. The family is "Elixir"; the products
@@ -31,7 +25,7 @@ export const FAMILY_ORIGIN: string = manifest.origin;
 export const FAMILY_LOGO: string = manifest.logo;
 
 export interface FamilyProduct {
-  /** The manifest's name for it: what an app passes as Chrome's `current`. */
+  /** The manifest's name for it. */
   key: string;
   label: string;
   href: string;
@@ -61,22 +55,21 @@ export const FAMILY_PRODUCTS: ReadonlyArray<FamilyProduct> =
     ...(p.game ? { game: true, action: p.action, about: p.about } : {}),
   }));
 
-/** Docs: a top-level item of its own, on the right before the game. */
-export const FAMILY_DOCS: FamilyProduct = {
-  key: manifest.docs.key,
-  label: manifest.docs.label,
-  href: `${FAMILY_ORIGIN}${manifest.docs.path}`,
-  icon: manifest.docs.icon as IconName,
+/** Where the bar's words lead, on this origin. */
+export const FAMILY_PLACES = {
+  signIn: manifest.signIn,
+  createAccount: manifest.createAccount,
+  settings: manifest.account.path,
+  search: manifest.search,
+  help: manifest.help,
 };
 
-/** The signed-out account slot: where "Sign in" leads. The Console's
- *  sign-in page, which forwards a reader who is already signed in to
- *  their console. */
-export const FAMILY_SIGN_IN: { label: string; href: string; icon: IconName } = {
-  label: manifest.signIn.label,
-  href: `${FAMILY_ORIGIN}${manifest.signIn.path}`,
-  icon: manifest.signIn.icon as IconName,
-};
+/** The bar's places for somebody signed out. */
+export const FAMILY_SIGNED_OUT: { key: string; label: string; path: string }[] =
+  manifest.signedOut;
+
+/** The footer's links, in order, on every surface. */
+export const FAMILY_FOOT: { label: string; path: string }[] = manifest.foot;
 
 /** One recorded battle's public page, shown to somebody with no record
  *  yet so they can see what Elixir keeps before signing up: the home
@@ -89,15 +82,8 @@ export const FAMILY_SAMPLE_BATTLE: { label: string; path: string } = {
   path: manifest.sampleBattle.path,
 };
 
-/** What the game button says to a screen reader: what it is, and that it
- *  leaves for another host in a new window. */
-export function gameLabel(p: FamilyProduct): string {
-  const host = new URL(p.href).host;
-  return `${p.action ?? p.label}, ${p.about ?? "a game"} (opens ${host} in a new window)`;
-}
-
 /** A family href with the origin taken off, for a surface that is on the
- *  family origin already (the Console, the static site). */
+ *  family origin already (the app, the static site). */
 export function onOrigin(href: string): string {
   return href.startsWith(`${FAMILY_ORIGIN}/`)
     ? href.slice(FAMILY_ORIGIN.length)

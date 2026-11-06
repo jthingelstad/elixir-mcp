@@ -7,7 +7,7 @@ order: 1
 navTitle: "Connect an agent"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
-console: ["Manage your clients", "/console/account/connections", "Console ▸ Connections"]
+console: ["Manage your clients", "/console/account/connections", "Settings ▸ Connections"]
 reviewed: "2026-10-12 against contract 11.11.3 and JSON API 3.2.0"
 ---
 
@@ -138,45 +138,45 @@ a dedicated project for clan work with only the agent connector enabled.
 Each connection has its own URL, so a credential presented at the wrong one is
 refused rather than quietly answering about the wrong subject.
 
-## Where things are in the console
+## Where things are
 
-The rail groups the console into what you are reading, what we record for
-you, who can call on your behalf, and how the service is running. The
-switcher at the top moves between you and each agent you own, whose console
-is the same pages scoped to it (below). On a wide screen the rail stays in
-view as a page scrolls. On a phone it folds into one row above the page,
-and while it is closed a mark on that row says something waits on another
-page, such as an unread timeline; a count, such as the players you track,
-is not one.
+The top bar holds **Home**, **Ladder** and **Clan**, with the same three as
+tabs at the foot of a phone. **Settings**, in the account menu, holds what we
+record for you and who can call on your behalf. The switcher at the top of its
+rail moves between you and each agent you own, whose pages are the same pages
+scoped to it (below). On a wide screen a rail stays in view as a page scrolls;
+on a phone it folds into one row above the page.
 
 | Page | What it does |
 |---|---|
-| Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; how many of your slots are in use; once your primary's clan is on record, [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates) |
-| Timeline | what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`. Viewing it clears its dot and marks what is new since your last visit; it never changes what your connections have read ([its own place](#the-console-keeps-its-own-place-in-the-timeline)) |
+| Home | what needs you, your week, your clan and the latest, with Timeline and Friends as its tabs; a new account gets its steps until the first read lands. Timeline shows what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`. Viewing it marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
 | Explore | the same read tools in a browser (players, clans and wars, decks, war weeks); the one write is nicknames |
-| Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
-| Your record → Verify | prove that you control a player by playing one battle with a deck Elixir names |
-| Access → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its console; and **New agent** |
-| Access → Usage | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, the Console's and Ladder's own reads counted apart (they spend no daily quota), and **MCP requests**, every call with its `request_id` |
-| Service → Status | recording health, budget gauge, missed battles; under it **Collectors** (the fleet, your own collectors, the one-time token reveal) and **Efficiency** (what the battle-log schedule costs and loses) |
-| Send feedback | a sheet over the page you are on: write what you think, and the page rides along. The sheet links **Feedback** (also in the account menu): what you filed and what the maintainer answered |
+| [Service](/data/service) | recording health, budget gauge, missed battles, linked from Status and data, and signed in |
+| Send feedback | a sheet over the page you are on: write what you think, and the page rides along. The sheet links **Your feedback**, in Settings: what you filed and what the maintainer answered |
 
-**Account settings**, in the account menu at the top, has its own rail:
+**Settings**, in the account menu at the top, has its own rail:
 
 | Page | What it does |
 |---|---|
-| Profile | your address, the timezone your date windows use and the console prints every time in (a new account starts on its signup browser's; UTC when it has none), slot meters, your tier and what earns the next one, and today's quota |
+| Profile | your address, the timezone your date windows use and Elixir prints every time in (a new account starts on its signup browser's; UTC when it has none), slot meters, your tier and what earns the next one, and today's quota |
 | Emails from Elixir | a switch for each email, and **All sent**, the emails Elixir sent you |
 | Sign-in and devices | every session that can still act as you, this one marked |
 | Sign-ins | your account events |
+| Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
+| Your record → Verify | prove that you control a player by playing one battle with a deck Elixir names |
+| Access → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its pages; **New agent**; Discord sharing for your timeline; and the question to try once your agent can answer |
+| Access → Usage | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, your own website reads counted apart (they spend no daily quota), and **MCP requests**, every call with its `request_id` |
+| Collectors → Collectors | the fleet, your own collectors, the one-time token reveal |
+| Collectors → Efficiency | what the battle-log schedule costs and loses |
+| Your feedback | what you filed and what the maintainer answered |
 
-An **agent's console** (the account selector, or Open on its row) has its own
+An **agent's pages** (the switcher, or Open on its row) has its own
 rail:
 
 | Page | What it does |
 |---|---|
 | Overview | its clan, its key and when it was first used, its last successful call, where it connects from, anything refusing it, and the address to connect it at |
-| Timeline | its timeline, newest first, the items it reads with `elixir_timeline`; viewing it here clears its dot and never moves its pointer |
+| Timeline | its timeline, newest first, the items it reads with `elixir_timeline`; viewing it here never moves its pointer |
 | Its record → Tracking | the clans and players it tracks, and which clan it acts for |
 | Its record → Activity | its calls with `request_id`, and its account events |
 | Its record → Usage | its calls as a share of your budget, which it spends |
@@ -184,12 +184,12 @@ rail:
 | Access → Settings | its name, what its key may do, the key itself (issue, revoke, suspend), removing a suspended agent from view, and who it answers for |
 | Access → Feedback | what it has filed and what the maintainer answered; new feedback is filed as you |
 
-### The Console keeps its own place in the timeline
+### Home keeps its own place in the timeline
 
-Console ▸ Timeline has a place of its own in the
+Home ▸ Timeline has a place of its own in the
 [timeline](/docs/timeline), apart from every read pointer. Showing the
 page moves it to the end of the window the page showed; it never moves
-back. The rail's Timeline dot shows while the recorder has admitted
+back. The count on Home's Timeline tab shows while the recorder has admitted
 something for one of your subjects since that place. The page marks each
 item the record learned since the place it opened from (by `observed_at`)
 **New**, and draws a **New since your last visit** rule under the last of
@@ -197,7 +197,7 @@ them. A first visit has no place yet and marks nothing new.
 
 The two never move each other. Viewing the page leaves your read pointer,
 every `reader`'s and `meta.timeline_pending` where they were, and an
-agent's `mark_read` never clears the Console's dot. On an agent's console
+agent's `mark_read` never clears that count. On an agent's pages
 the place is the agent's, moved when you view its Timeline, and still not
 its pointer.
 

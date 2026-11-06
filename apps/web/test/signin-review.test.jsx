@@ -78,7 +78,7 @@ test(
   "a transport failure on /api/me is 'Elixir didn't answer', retried once, never the sign-in wall",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/console/account/overview");
+    window.history.pushState({}, "", "/home");
     let calls = 0;
     const err = new TypeError("Failed to fetch");
     global.fetch = mockFetch({
@@ -105,7 +105,7 @@ test(
   { timeout: 20000 },
   async () => {
     vi.useFakeTimers(FAKE_TIMERS);
-    window.history.pushState({}, "", "/console/account/overview");
+    window.history.pushState({}, "", "/home");
     let answers = 0;
     global.fetch = mockFetch({
       "GET /api/me": () => {
@@ -361,9 +361,7 @@ test("a magic link is redeemed ONCE, however many times the page re-renders whil
     "GET /api/me/battle-activity/20JJJ2CCRU": [200, {}],
   });
   render(<FreshApp />);
-  await waitFor(() =>
-    expect(window.location.pathname).toBe("/console/account/overview"),
-  );
+  await waitFor(() => expect(window.location.pathname).toBe("/home"));
   // Let any straggling re-render fire its effect, then count.
   await new Promise((r) => setTimeout(r, 200));
   expect(redeems).toBe(1);

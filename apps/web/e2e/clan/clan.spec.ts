@@ -158,7 +158,7 @@ test("a signed-out Clan deep link uses the common sign-in and comes back to its 
     )
     .toBe("/clan/2PQRJ8LV/actions");
   await page.getByRole("link", { name: "Sign in with Elixir" }).click();
-  await expect(page).toHaveURL(/\/console\/signin$/);
+  await expect(page).toHaveURL(/\/signin$/);
   expect(
     await page.evaluate(() => localStorage.getItem("elixir.after_sign_in")),
   ).toBe("/clan/2PQRJ8LV/actions");
@@ -185,14 +185,14 @@ test("a Clan landing uses the common sign-in without a separate OAuth login", as
   await page.goto("/clan");
   await expect(
     page.getByRole("link", { name: "Sign in with Elixir" }),
-  ).toHaveAttribute("href", "/console/signin");
+  ).toHaveAttribute("href", "/signin");
   // A new account comes back to Clan.
   for (const signup of await page
     .getByRole("link", { name: "Create your account" })
     .all())
     await expect(signup).toHaveAttribute(
       "href",
-      "/console/signin?signup&return_to=%2Fclan",
+      "/signin?signup&return_to=%2Fclan",
     );
   expect(calls.filter((path) => path.startsWith("/api/clan/auth/"))).toEqual(
     [],
@@ -1115,7 +1115,7 @@ test.describe("signed in", () => {
   });
 });
 
-test("one application and account survive Console and Clan navigation at phone, tablet and desktop sizes", async ({
+test("one application and account survive Home and Clan navigation at phone, tablet and desktop sizes", async ({
   page,
 }) => {
   const requests: {
@@ -1133,26 +1133,15 @@ test("one application and account survive Console and Clan navigation at phone, 
   });
   await mockApi(page, signedIn());
   await page.emulateMedia({ reducedMotion: "reduce" });
-  // From one product to another through the shared chrome. At 900px and
-  // below it folds the places into the sheet behind the "Product: …"
-  // button (components.css), so the width says which to use. Never ask
-  // whether the bar's link is visible yet: that check does not wait, and
-  // a header still drawing sent the desktop pass to the narrow button,
-  // which is never drawn there (CI, 2026-10-21).
-  const switchTo = async (from: string, to: string, width: number) => {
-    if (width > 900)
-      return page
-        .locator("header")
-        .getByRole("link", { name: to, exact: true })
-        .click();
-    await page
-      .getByRole("button", { name: `Product: ${from}`, exact: true })
-      .click();
-    await page
-      .locator("#chrome-sheet")
+  // From one place to another through the shared shell. At 760px and below
+  // the places are the phone's tabs (components.css), so the width says
+  // which to use. Never ask whether the bar's link is visible yet: that
+  // check does not wait (CI, 2026-10-21).
+  const switchTo = async (to: string, width: number) =>
+    page
+      .locator(width > 760 ? "header" : ".kit-bottom")
       .getByRole("link", { name: to, exact: true })
       .click();
-  };
   for (const viewport of [
     { width: 390, height: 844 },
     { width: 844, height: 390 },
@@ -1160,12 +1149,12 @@ test("one application and account survive Console and Clan navigation at phone, 
     { width: 1280, height: 900 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto("/console/account/overview");
+    await page.goto("/home");
     await page.evaluate(() => {
       (window as Window & { applicationMarker?: string }).applicationMarker =
         "same-app";
     });
-    await switchTo("Console", "Clan", viewport.width);
+    await switchTo("Clan", viewport.width);
     // The chooser, then the clan's landing: Actions, for this leader
     // with two waiting.
     await expect(page).toHaveURL(/\/clan\/(clans|2PQRJ8LV\/actions)$/);
@@ -1188,8 +1177,8 @@ test("one application and account survive Console and Clan navigation at phone, 
       "no sideways scroll",
     ).toBe(false);
     await accessible(page, `shared clan ${viewport.width}x${viewport.height}`);
-    await switchTo("Clan", "Console", viewport.width);
-    await expect(page).toHaveURL(/\/console\/account\/overview$/);
+    await switchTo("Home", viewport.width);
+    await expect(page).toHaveURL(/\/home$/);
     expect(
       await page.evaluate(
         () =>
@@ -1207,7 +1196,7 @@ test("one application and account survive Console and Clan navigation at phone, 
   expect(selects.every((r) => r.client === "web")).toBe(true);
 });
 
-test("before cutover Clan links leave the Console for the legacy document", async ({
+test("before cutover Clan links leave Home for the legacy document", async ({
   page,
 }) => {
   await mockApi(
@@ -1222,7 +1211,7 @@ test("before cutover Clan links leave the Console for the legacy document", asyn
       body: "<html><body><h1>Legacy Clan door</h1></body></html>",
     }),
   );
-  await page.goto("/console/account/overview");
+  await page.goto("/home");
   await page
     .locator("header")
     .getByRole("link", { name: "Clan", exact: true })
@@ -1247,7 +1236,7 @@ test("already signed-in return links also use the legacy Clan door before cutove
       body: "<html><body><h1>Legacy Clan return</h1></body></html>",
     }),
   );
-  await page.goto("/console/signin?return_to=/clan");
+  await page.goto("/signin?return_to=/clan");
   await expect(
     page.getByRole("heading", { name: "Legacy Clan return" }),
   ).toBeVisible();

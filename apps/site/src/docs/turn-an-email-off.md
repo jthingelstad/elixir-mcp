@@ -7,7 +7,7 @@ order: 5
 navTitle: "Turn an email off"
 icon: bell-off
 lede: "Every kind of email is one switch, all on to start. Turn one off from Emails from Elixir or from the link at the foot of any issue, and turn it back on the same way."
-console: ["Your email switches", "/console/account/profile/email", "Account settings ▸ Emails from Elixir"]
+console: ["Your email switches", "/console/account/profile/email", "Settings ▸ Emails from Elixir"]
 reviewed: "2026-10-08 against contract 11.3.0"
 ---
 
@@ -20,7 +20,7 @@ lands.
 
 ## The switches
 
-**Account settings ▸ Emails from Elixir**
+**Settings ▸ Emails from Elixir**
 ([/console/account/profile/email](/console/account/profile/email)),
 reached from the account menu, lays the four weekly kinds out on your week, each
 on the day it arrives in your time zone: the Clan report, Your week in
@@ -47,7 +47,7 @@ one-click unsubscribe, so a mail app that shows its own unsubscribe
 button turns the kind off in one step, with no page.
 
 Either way it can be turned back on from Emails from Elixir. Every change
-is kept in your account's log (**Account settings ▸ Sign-ins**), saying
+is kept in your account's log (**Settings ▸ Sign-ins**), saying
 whether it came from the page or from a link.
 
 ## One player or one clan

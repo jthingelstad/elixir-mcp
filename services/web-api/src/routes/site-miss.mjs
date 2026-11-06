@@ -20,7 +20,7 @@ export const FALLBACK_PAGE = `<!doctype html>
 <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="robots" content="noindex" /><title>Page not found - Elixir</title></head>
 <body>
 <h1>Nothing at this address</h1>
-<p>Elixir has no page here. <a href="/">Elixir home</a> · <a href="/docs">Docs</a> · <a href="/console">Console</a></p>
+<p>Elixir has no page here. <a href="/home">Home</a> · <a href="/docs">Docs</a></p>
 <p><small>${DISCLAIMER}</small></p>
 </body>
 </html>

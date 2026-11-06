@@ -107,6 +107,22 @@ export function signedIn(
   return {
     "GET /api/me": [200, ME],
     "GET /api/me/first-answer": [200, {}],
+    // Home's one read, as a new account answers it; home-fixture.ts has a full one.
+    "GET /api/me/home": [
+      200,
+      {
+        first: {
+          ok: true,
+          player: null,
+          clan: null,
+          connection: { active_connections: 0, last_data_read_at: null },
+        },
+      },
+    ],
+    "GET /api/me/timeline/discord": [
+      200,
+      { enabled: false, webhook: null, delivery: null },
+    ],
     "GET /api/me/usage": [
       200,
       {

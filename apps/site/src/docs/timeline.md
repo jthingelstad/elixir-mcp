@@ -7,7 +7,7 @@ order: 8
 navTitle: "Timeline"
 icon: bell
 lede: "What happened to the players and clans you track, newest first, written so a person can read it and an agent can act on it."
-console: ["Your timeline", "/console/account/timeline", "Console ▸ Timeline"]
+console: ["Your timeline", "/home/timeline", "Home ▸ Timeline"]
 ---
 
 # The timeline
@@ -273,8 +273,7 @@ clock time in prose: `game_clock` is the schedule.
 
 ### Recorded evidence
 
-The Console's **View games** and **View crossing** open a read-only evidence
-panel. Sessions list exact canonical games in play order (time, then game
+**View games** and **View crossing** open the read-only evidence in place. Sessions list exact canonical games in play order (time, then game
 ID), 25 per page, with links to their existing public battle pages. These
 are the games of the sitting the item counts, from its first battle through
 its last, which can reach before the read window: a standout's evidence is
@@ -330,7 +329,7 @@ canonical facts to authorized MCP agents as to people.
 Evidence is limited to the reader's visible timeline subjects. Private
 attested facts keep their membership and role checks and carry no game
 links. References point at canonical history; no battle payload or extra
-history copy is stored. The Console's seven-day view is a read window, not
+history copy is stored. Home's seven-day view is a read window, not
 a retention limit. This panel does not create an
 Action, draft a message, send a notification, or grant an award.
 
@@ -440,9 +439,9 @@ entry: a clan's silence is the clan's activity.
 
 ## Cross-posting to Discord
 
-Console ▸ Timeline's **Manage sharing** opens Discord settings for your
-timeline or an agent's. Closing discards unsaved edits. Only the account
-owner can save changes, through the Console, never MCP or the JSON API.
+**Manage sharing**, on Settings ▸ Connections and an agent's Timeline, opens
+Discord settings for your timeline or that agent's. Closing discards unsaved edits. Only the account
+owner can save changes, on the website, never MCP or the JSON API.
 Delivery history expands in the drawer; events and evidence stay on the
 page. Profile and agent pages show whether sharing is on.
 
@@ -511,7 +510,7 @@ channels tells it twice.
   (`member_left`, `member_role_changed`) stays beside it, raw.
 - **It never assumes what the reader is for.** The same items serve a
   clan-management routine, a highlights bot, a recruiter watching churn, a
-  war-only agent, and a person reading the console. Each reads the sections
+  war-only agent, and a person reading the website. Each reads the sections
   it cares about.
 - **It never changes for the mail.** The mail chooses what to say from
   it: the milestone email sends only the big firsts (a legendary badge

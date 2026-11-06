@@ -408,7 +408,7 @@ function AccountSwitcher({
   return (
     <RailSwitcher
       id="rail-accounts"
-      title={`${here.label}: switch console`}
+      title={`${here.label}: switch account`}
       face={<ConsoleName a={here} />}
       choices={accounts.map((a) => ({
         key: a.key,

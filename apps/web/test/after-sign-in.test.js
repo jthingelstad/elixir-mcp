@@ -1,14 +1,10 @@
 import { test, expect, beforeEach } from "vitest";
-import {
-  newAccountLanding,
-  rememberAfterSignIn,
-  takeAfterSignIn,
-} from "../src/App.jsx";
+import { rememberAfterSignIn, takeAfterSignIn } from "../src/App.jsx";
 
 /**
  * A signed-out deep link (the mail footer's link to an email's record,
  * or to feedback about it) lands where it pointed once the person has
- * signed in, not on Overview. Console paths only; read once.
+ * signed in, not on Home. Elixir's own pages only; read once.
  */
 beforeEach(() => {
   window.localStorage.clear();
@@ -103,16 +99,4 @@ test("Clan action links survive the common sign-in; external and look-alike path
     rememberAfterSignIn(path);
     expect(takeAfterSignIn()).toBeNull();
   }
-});
-
-test("a new account lands on the player it gave, or on Tracking's tag field", () => {
-  expect(newAccountLanding({ player_tag: "#2PYQ8GJ0" })).toBe(
-    "/console/account/tracking/2PYQ8GJ0",
-  );
-  expect(newAccountLanding({ player_tag: null })).toBe(
-    "/console/account/tracking#add-player-tag",
-  );
-  // Not a new account: the usual landing.
-  expect(newAccountLanding(null)).toBeNull();
-  expect(newAccountLanding(undefined)).toBeNull();
 });

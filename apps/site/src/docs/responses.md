@@ -98,7 +98,7 @@ rate limit is the exception: each agent has its own hour (see
 
 **`request_id`** — the id of the call that produced this response. Quote it when
 reporting an answer that looks wrong and we can find the exact row. Your own
-call history, with these ids, is under **Usage ▸ MCP requests** in the console.
+call history, with these ids, is under **Settings ▸ Usage ▸ MCP requests**.
 
 **`contract_version`** — the tool contract this response was produced under. If
 it differs from what you cached, re-read `tools/list`; `elixir_changelog(since)`

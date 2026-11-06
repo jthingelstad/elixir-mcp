@@ -186,7 +186,7 @@ describe("the gate pages", () => {
     );
     expect(
       screen.getByRole("link", { name: "Sign in again" }).getAttribute("href"),
-    ).toBe("/console/signin");
+    ).toBe("/signin");
     cleanup();
     renderWithProviders(
       <Refused reason="no_clan" me={me} onRecheck={() => {}} />,
@@ -254,13 +254,13 @@ describe("the landing page", () => {
     expect(signups).toHaveLength(2);
     for (const link of signups)
       expect(link.getAttribute("href")).toBe(
-        "/console/signin?signup&return_to=%2Fclan",
+        "/signin?signup&return_to=%2Fclan",
       );
     expect(
       screen
         .getByRole("link", { name: "Sign in with Elixir" })
         .getAttribute("href"),
-    ).toBe("/console/signin");
+    ).toBe("/signin");
     expect(
       screen.getByText(
         "Your Elixir sign-in opens your recorded history and clan tools.",

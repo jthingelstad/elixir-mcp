@@ -95,18 +95,9 @@ test(
   "a player claim and first captured snapshot become a usable first question",
   { timeout: 20000 },
   async () => {
-    // Overview reports; Tracking manages. The empty state's one action
-    // is the way across, and the field lives on the other side of it.
-    open("/console/account/overview");
-    expect(
-      await screen.findByRole("link", { name: /Go to Tracking/ }),
-    ).toBeTruthy();
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Add your player",
-        exact: true,
-      }),
-    );
+    // Home's first step and Tracking offer the same field; this journey
+    // uses Tracking, which manages what you track from then on.
+    open("/console/account/tracking");
     const input = await screen.findByLabelText("Player tag");
     fireEvent.change(input, { target: { value: "#P0Y" } });
     fireEvent.click(input.parentElement.querySelector("button"));
@@ -122,9 +113,10 @@ test(
     await scratch.db.query(
       "insert into player_snapshot_daily (player_tag,snapshot_date,snapshot_kind,observed_at,profile_observed_at) values ('#P0Y',current_date,'daily',now(),now())",
     );
-    // Back on Overview, readiness has moved on its own: the snapshot is
-    // the evidence, and the line says when it was taken.
-    fireEvent.click(screen.getByRole("link", { name: /Overview/ }));
+    // On the record, readiness has moved on its own: the snapshot is the
+    // evidence, and the line says when it was taken.
+    cleanup();
+    open("/console/account/tracking/P0Y");
     await screen.findByText(/^read /);
     // Consent is fixture setup on the scratch DB; the UI consumes the real
     // connection and readiness responses after returning from OAuth.
@@ -235,9 +227,9 @@ test(
     // you leave the agent's console it is no longer offered (#441 review).
     const rail = () => document.querySelector(".rail");
     fireEvent.click(rail().querySelector(".rail__switch-head"));
-    fireEvent.click(within(rail()).getByRole("link", { name: /Your console/ }));
+    fireEvent.click(within(rail()).getByRole("link", { name: /Your account/ }));
     await waitFor(() =>
-      expect(window.location.pathname).toBe("/console/account/overview"),
+      expect(window.location.pathname).toBe("/console/account/profile"),
     );
     const head = rail().querySelector("button.rail__switch-head");
     if (head) fireEvent.click(head);

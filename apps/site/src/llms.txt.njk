@@ -6,7 +6,7 @@ eleventyExcludeFromCollections: true
 
 > {{ site.name }} records Clash Royale history the official game API does not keep - battles, progression, clan rosters, and war - and serves it to your own AI agent through an authenticated remote MCP server at {{ site.mcpUrl }}. The official API answers only "what is true right now": a rotating ~30-battle log, no trophy timeline, no season history. This service keeps the record.
 
-Sign in with an email address at {{ site.url }}/console/signin; that creates your account. All recorded GAME data is readable by every account, the same posture as the game's public API. ACCOUNT data is private to its owner. Roles never gate what you can read: they set how much the service records for you and how many calls per day your agent gets.
+Sign in with an email address at {{ site.url }}/signin; that creates your account. All recorded GAME data is readable by every account, the same posture as the game's public API. ACCOUNT data is private to its owner. Roles never gate what you can read: they set how much the service records for you and how many calls per day your agent gets.
 {% if stats.ok %}
 Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | number }} battles, {{ stats.totals.players_recording | number }} recorded players and {{ stats.totals.clans_recording | number }} recorded clans (plus {{ stats.totals.players | number }} players seen only as opponents or teammates), captured by {{ stats.totals.collectors_active }} collectors, oldest battle {{ stats.totals.oldest_battle | day }}. These figures are baked at build time; {{ site.url }}/api/public/stats is live.
 {% endif %}
@@ -45,7 +45,7 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 {% endfor %}{% endfor %}
 ## Interactive pages (JavaScript application, not in this index)
 - {{ site.url }}/console/data/dashboard: full-history charts over the public stats endpoint
-- {{ site.url }}/console/signin, /console/account, /console/explore, /console/status: require a session
+- {{ site.url }}/signin, /home, /console/account, /console/explore, /data/service: require a session
 - {{ site.url }}/ladder: Ladder, one of your players' season read back; requires a session
 - {{ site.url }}/clan: Elixir Clan, on the same Elixir account and session
 - {{ site.url }}/battle/<short id>: one recorded battle, public; its JSON is {{ site.url }}/api/public/battles/<id>

@@ -14,7 +14,7 @@ reviewed: "2026-10-12 the collector week is Saturday to Saturday, and one a day 
 
 Elixir sends seven kinds of email. All seven start **on by default** for an active
 person account, and all seven are **a switch on your account page**
-([Account settings ▸ Emails from Elixir](/console/account/profile/email)), with a *turn off* link in every
+([Settings ▸ Emails from Elixir](/console/account/profile/email)), with a *turn off* link in every
 issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
@@ -68,7 +68,7 @@ each answer to your feedback on its own.
 | Wednesday | **Your friends this week** | How everyone you follow played: a card each for your friends and the busiest players you watch (their battles in each mode, a moment or two, then their cards unlocked and badge levels as a count, the deck they played most), with you in a line and each of your clans as a headline and at most three of the week's facts, the rest counted with a link to the clan. Anyone quiet for 30 days or more is named once, in one line. It is the [timeline](/docs/timeline) for the week, rendered: the email chooses what to say, and the timeline keeps everything. |
 | Sunday | **Collector activity** | Only if you run an [Elixir Collector](/docs/operators): each collector by its card, its full reported version and the dashboard’s security status (signed, dev build, unverified or mismatch), whether it is checking in, silent or stopped, its fetches this week and how many of them added new facts to the record; how much the edge filter saved, and your tier: an active collector holds the [Family tier](/docs/roles#upgrades). One mail per account, every collector you run pooled. Covers Saturday 00:00 UTC to the next Saturday 00:00 UTC, the week that closed the night before ([above](#the-week)). |
 | Mornings | **Clan actions waiting** | From [Clan](/clan), each morning, when something new in your clan is yours to do (promote, welcome, answer a departure, say whether you are away), with everything waiting for you and a link to act. Only if you can act on it, only to the account that verified the player, and at most one a day per clan. Clan writes the words and Elixir sends them, so the app needs no address to mail you. |
-| When answered | **Answers to your feedback** | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed, from anywhere in Elixir (the Console, Ladder, Clan, an email's footer, the docs), and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. It is written from the answer's item on your [timeline](/docs/timeline) (`account_feedback_responded`), so the email and the timeline say the same thing. One mail per answer, however many come in a day; an answer is mailed after ten quiet minutes, so a correction made straight away is one mail. Getting the email does not count as reading the answer: opening the item does. An agent's feedback is answered to the agent, never mailed. |
+| When answered | **Answers to your feedback** | When Elixir's maintainer answers [feedback](/docs/your-account#feedback) you filed, from anywhere in Elixir (Settings, Ladder, Clan, an email's footer, the docs), and you have not read the answer yet: what you wrote, the answer, its status and the version it shipped in, with a link to the item. It is written from the answer's item on your [timeline](/docs/timeline) (`account_feedback_responded`), so the email and the timeline say the same thing. One mail per answer, however many come in a day; an answer is mailed after ten quiet minutes, so a correction made straight away is one mail. Getting the email does not count as reading the answer: opening the item does. An agent's feedback is answered to the agent, never mailed. |
 | As it happens | **Milestones** | Congratulations when you or an alt reach a big first: a new arena, a new league in Path of Legends, a new personal-best trophy band, an Evolution or Hero form unlocked, a legendary badge, or a career milestone (every 1,000 career wins, and each Collection Level step). A new arena or league comes with the battle that did it and a link to [that battle's page](/docs/battles#a-battles-page); a form comes as its art. Its button opens Ladder on the season the moment happened in. Cards unlocked and badge levels never send one on their own: Tuesday's Arena email counts them. Checked hourly; everything new since the last note rides together. |
 
 For Arena's featured deck, equal mode counts use alphabetical mode-group
@@ -130,7 +130,7 @@ even for a full clan: it links the roster rather than printing it.
 ## Turning one off
 
 Each kind has its own switch on [Emails from Elixir](/console/account/profile/email)
-(Account settings ▸ Emails from Elixir). Each scheduled kind shows its local
+(Settings ▸ Emails from Elixir). Each scheduled kind shows its local
 day and time beside its switch. Event-driven kinds follow below, then the
 latest sent records. **Every email** turns them all off, or all back on. Every issue's
 footer has a
@@ -173,7 +173,7 @@ kind and issue), so the site's own counts can say which mail brought
 people to which page. There is no redirector: a link goes where it
 says, and the *turn off* link carries no tag. The footer's links to the
 email's own record and to feedback about it carry the email's id,
-because they open one of your own records; the console counts those
+because they open one of your own records; the website counts those
 pages as "an email record", never which one. [Privacy](/docs/privacy)
 covers the rest.
 

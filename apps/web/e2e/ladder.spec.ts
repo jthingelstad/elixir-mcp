@@ -61,7 +61,7 @@ test.describe("Ladder signed out", () => {
       page.getByRole("link", { name: "Create your account" }),
     ).toHaveAttribute(
       "href",
-      "/console/signin?signup&return_to=%2Fladder%2Fdecks%3Fmode%3Dranked",
+      "/signin?signup&return_to=%2Fladder%2Fdecks%3Fmode%3Dranked",
     );
     await expect(
       page.getByRole("link", { name: "How Ladder works" }),
@@ -133,14 +133,16 @@ test.describe("Ladder signed in", () => {
     );
     await expect(page.locator(".freshness")).toContainText("battle log read");
 
-    // The bar marks Ladder as the place you are in, not the Console.
-    const places = page.getByRole("navigation", { name: "Products" });
+    // The bar marks Ladder as the place you are in, not Home.
+    const places = page
+      .getByRole("banner")
+      .getByRole("navigation", { name: "Main" });
     await expect(places.getByRole("link", { name: "Ladder" })).toHaveAttribute(
       "aria-current",
       "page",
     );
     await expect(
-      places.getByRole("link", { name: "Console" }),
+      places.getByRole("link", { name: "Home" }),
     ).not.toHaveAttribute("aria-current", "page");
 
     // The rail: Ladder's own, the player at its head, Season current.

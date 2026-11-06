@@ -95,7 +95,7 @@ for (const width of [390, 1280]) {
         ],
       }),
     );
-    await page.goto("/console/account/timeline");
+    await page.goto("/console/account/connections");
     await page
       .getByRole("button", { name: "Manage sharing", exact: true })
       .click();
@@ -162,13 +162,11 @@ test("@narrow a timeline event keeps its reading width when evidence and the New
       ],
     }),
   );
-  await page.goto("/console/account/timeline");
-  const sentence = page.locator(".timeline-list__text");
-  const controls = page.locator(".timeline-list__actions");
-  await expect(
-    controls.getByRole("button", { name: "View games" }),
-  ).toBeVisible();
-  await expect(controls.getByText("New", { exact: true })).toBeVisible();
+  await page.goto("/home/timeline");
+  const sentence = page.locator(".kit-tl .kit-row__title");
+  const controls = page.locator(".kit-tl__more");
+  await expect(controls).toHaveText("View games");
+  await expect(page.locator(".kit-newmark")).toContainText("New since");
   const textBox = await sentence.boundingBox();
   const controlsBox = await controls.boundingBox();
   expect(textBox!.width).toBeGreaterThan(320);

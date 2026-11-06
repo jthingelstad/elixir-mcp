@@ -1,8 +1,8 @@
 # Home
 
 *Rewritten from the Console's brief at step 3 of the redesign, under the
-rulings in [Structure](structure.md). Home lives at `/home`. Until step 3b it is
-reachable but not the landing page, and Overview offers the way in.*
+rulings in [Structure](structure.md). Home lives at `/home` and, since step 3b,
+is where signing in lands and where `/console` goes.*
 
 ## What it is for
 

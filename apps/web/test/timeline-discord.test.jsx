@@ -1,5 +1,5 @@
 /**
- * Account › Timeline › Cross-post to Discord (Jamie, 2026-10-10): off, it
+ * Settings › Connections › Cross-post to Discord (Jamie, 2026-10-10): off, it
  * asks for a webhook; on, it shows the webhook shortened and lets the
  * owner change it or turn it off; Discord saying the webhook is gone
  * turns it off and the page says why.
@@ -13,6 +13,7 @@ import {
   cleanup,
   fireEvent,
   configure,
+  within,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
 
@@ -87,7 +88,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 async function open() {
-  window.history.pushState({}, "", "/console/account/timeline");
+  window.history.pushState({}, "", "/console/account/connections");
   render(<App />);
   const manage = await screen.findByRole("button", { name: "Manage sharing" });
   expect(
@@ -167,9 +168,11 @@ test(
       disabled_at: "2026-10-10T16:00:00Z",
     };
     await open();
-    expect(screen.getByRole("alert").textContent).toMatch(
-      /webhook no longer exists/,
-    );
+    expect(
+      within(
+        screen.getByRole("region", { name: "Cross-post to Discord" }),
+      ).getByRole("alert").textContent,
+    ).toMatch(/webhook no longer exists/);
     // A new webhook is asked for, not the dead one turned back on.
     expect(
       screen.getByRole("textbox", { name: "Discord webhook URL" }),

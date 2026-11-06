@@ -78,7 +78,7 @@ export function You({ me }) {
           </Row>
           <Row label="Elixir account">
             {me.principal?.subject?.name ?? "person"} on the personal door ·{" "}
-            <Link to={ELIXIR_LINKS.overview}>open Elixir</Link>
+            <Link to={ELIXIR_LINKS.elixirHome}>open Elixir</Link>
           </Row>
           <Row label="Capabilities">
             <code>{me.scope || "cr:read"}</code>

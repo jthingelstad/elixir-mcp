@@ -7,7 +7,9 @@ official API is current-state only) and serves it on one origin,
 | Path | What | Code |
 | --- | --- | --- |
 | `/`, `/docs`, `/updates` | the site and the public docs | `apps/site` (Eleventy) |
-| `/console` | the Console: your record, account, agents, admin | `apps/web` |
+| `/home` | Home: your day, timeline and friends; where signing in lands | `apps/web/src/home` |
+| `/signin`, `/data/service` | signing in, and the signed-in service page | `apps/web` |
+| `/console` | what is not yet moved, Settings, Explore, agents, Admin; the word is retired from what a reader sees, and `apps/web/src/lib/moved.js` redirects what moved | `apps/web` |
 | `/ladder` | Ladder: your season, read back | `apps/web/src/ladder` |
 | `/clan`, `/api/clan` | Elixir Clan: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a battle's public page | `services/web-api` |
@@ -62,7 +64,7 @@ not a feature to preserve.
 
 | Area | Guide |
 | --- | --- |
-| Console and the shared web shell | `apps/web/AGENTS.md` |
+| Home, Settings, Explore and the shared web shell | `apps/web/AGENTS.md` |
 | Ladder | `apps/web/src/ladder/AGENTS.md` |
 | Elixir Clan | `packages/clan/AGENTS.md` (engine, state and views: their own short guides) |
 | MCP tools and the JSON API operations | `packages/tools/AGENTS.md` |

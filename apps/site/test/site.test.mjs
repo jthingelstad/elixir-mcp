@@ -403,20 +403,27 @@ test(
         assert.equal(route(`${page}/`), doc(page), `${page}/ differs`);
     }
 
-    // The Console owns its prefix, and nothing else: the app resolves
+    // Elixir's pages under /console: the prefix, and nothing else: the app resolves
     // its own paths under it. A document the site built under /console
     // could never be reached.
     for (const uri of [
       "/console",
       "/console/",
       "/console/signin",
-      "/console/account/overview",
+      "/console/account/profile",
       "/console/explore/player/%2320JJJ2CCRU",
       "/console/data/dashboard",
     ])
       assertNativeApp(uri);
     assert.ok(!existsSync(path.join(out, "console")));
     assert.equal(route("/consoles"), "/consoles/index.html");
+
+    // Sign in and the service page are the app's, alone: /data stays a
+    // document, and its sibling pages with it.
+    for (const uri of ["/signin", "/data/service"]) assertNativeApp(uri);
+    assert.ok(!existsSync(path.join(out, "signin")));
+    assert.ok(!existsSync(path.join(out, "data/service")));
+    assert.equal(route("/data"), doc("/data"));
 
     // Ladder uses native rendering for its prefix alone.
     for (const uri of ["/ladder", "/ladder/", "/ladder/days", "/ladder/decks"])
@@ -451,7 +458,7 @@ test(
     // The Console's old addresses at the root are not aliased (Jamie,
     // 2026-09-28): each is a site document the site does not build, so
     // the edge answers it with a miss, never the app shell.
-    for (const old of ["/account/overview", "/signin", "/explore", "/admin"]) {
+    for (const old of ["/account/overview", "/explore", "/admin"]) {
       const target = route(old);
       assert.equal(target, doc(old));
       assert.ok(!existsSync(path.join(out, target)), `${old} resolves`);
@@ -473,17 +480,17 @@ test(
         .matchAll(/"([^"]+)"/g),
     ].map((m) => m[1]);
     assert.ok(links.length > 0, "STATIC_LINKS was found");
-    const { FAMILY_DOCS, FAMILY_ORIGIN, FAMILY_PRODUCTS } = await import(
-      path.join(repoRoot, "packages/ui/src/family.ts")
-    );
-    const { default: siteNav } = await import(
-      path.join(repoRoot, "apps/site/src/_data/siteNav.js")
-    );
+    const {
+      FAMILY_FOOT,
+      FAMILY_PLACES,
+      FAMILY_ORIGIN,
+      FAMILY_PRODUCTS,
+      FAMILY_SIGNED_OUT,
+    } = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
     const siteLinks = [
-      ...siteNav.pages.map((p) => p.path),
-      ...siteNav.footer.elixir.links.map((l) => l.path),
-      ...siteNav.footer.policy.links.map((l) => l.path),
-      FAMILY_DOCS.href.slice(FAMILY_ORIGIN.length),
+      ...FAMILY_SIGNED_OUT.map((p) => p.path),
+      ...FAMILY_FOOT.map((l) => l.path),
+      FAMILY_PLACES.help.path,
     ];
     for (const link of [...links, ...siteLinks]) {
       assert.ok(
@@ -491,10 +498,17 @@ test(
         `the app or the site links to ${link}, which the site does not build`,
       );
     }
-    // The Console's own button is the app, on this origin.
-    const product = FAMILY_PRODUCTS.find((p) => p.key === "console");
-    assert.equal(product.href, `${FAMILY_ORIGIN}/console`);
-    assertNativeApp("/console");
+    // Home's button is the app, on this origin; so is everything the bar
+    // links for someone signed in.
+    const product = FAMILY_PRODUCTS.find((p) => p.key === "home");
+    assert.equal(product.href, `${FAMILY_ORIGIN}/home`);
+    for (const uri of [
+      "/home",
+      FAMILY_PLACES.signIn.path,
+      FAMILY_PLACES.search.path,
+      FAMILY_PLACES.settings,
+    ])
+      assertNativeApp(uri);
   },
 );
 
@@ -531,7 +545,7 @@ test(
 
 test("the bar has one source: the kit's product manifest", async () => {
   // packages/ui/src/family.json is the family's product manifest. The
-  // kit's family.ts reads it for the React Chrome (the console, Clan),
+  // kit's family.ts reads it for the React shell (apps/web/src/shell/Shell.jsx),
   // and _data/familyBar.js hands it to base.njk, which loops over it.
   // Both must read the file itself, never a copy: base.njk used to
   // hand-mirror family.ts, and a copy is how two bars drift into two.
@@ -569,218 +583,158 @@ test("the bar has one source: the kit's product manifest", async () => {
       ...(p.game ? { game: true, action: p.action, about: p.about } : {}),
     });
   }
-  assert.equal(kit.FAMILY_DOCS.href, `${manifest.origin}${manifest.docs.path}`);
-  assert.equal(
-    kit.FAMILY_SIGN_IN.href,
-    `${manifest.origin}${manifest.signIn.path}`,
-  );
+  assert.equal(kit.FAMILY_PLACES.signIn, manifest.signIn);
+  assert.equal(kit.FAMILY_SIGNED_OUT, manifest.signedOut);
+  assert.equal(kit.FAMILY_FOOT, manifest.foot);
 
   // And the template keeps nothing of its own: no label, key, path or
-  // href from the manifest, and no page of the site's own row, is
-  // spelled out in it. (The logo's home link is "/" in its own right, so
-  // the Home page's path is not a tell.)
-  const { default: siteNav } = await import(
-    path.join(repoRoot, "apps/site/src/_data/siteNav.js")
-  );
+  // href from the manifest is spelled out in it. (The logo's home link is
+  // "/" in its own right, so the Home page's path is not a tell.)
   const njk = readFileSync(
     path.join(repoRoot, "apps/site/src/_includes/base.njk"),
     "utf8",
   );
   const spelled = [
     `>${manifest.wordmark}<`,
-    ...[...manifest.products, manifest.docs, manifest.signIn].flatMap((p) => [
+    ...[
+      ...manifest.products,
+      manifest.signIn,
+      manifest.createAccount,
+      manifest.search,
+      manifest.help,
+    ].flatMap((p) => [
       `>${p.label}<`,
       ...(p.key ? [`"${p.key}"`] : []),
       ...(p.action ? [`>${p.action}<`] : []),
       `"${p.path ?? p.href}"`,
       `"${p.icon}"`,
     ]),
-    ...siteNav.pages.flatMap((t) => [
-      `>${t.label}<`,
-      `"${t.key}"`,
-      ...(t.path === "/" ? [] : [`"${t.path}"`]),
-    ]),
-    `>${siteNav.tagline}<`,
+    ...[...manifest.signedOut, ...manifest.foot]
+      .filter((t) => t.path !== "/" && t.path !== "/support")
+      .flatMap((t) => [`>${t.label}<`, `"${t.path}"`]),
   ];
   for (const s of spelled)
     assert.ok(!njk.includes(s), `base.njk hand-writes ${s} again`);
 });
 
 test(
-  "the static bar is the kit's bar: logo, places, Docs, the game, Sign in",
+  "the static bar is the app's bar: both faces, read from the manifest",
   { skip },
   async () => {
-    // What base.njk renders from the manifest, built, against what the
-    // kit's Chrome draws from it (packages/ui/test/chrome.test.tsx pins
-    // the kit to the same shape): the same links in the same order, or
-    // the two bars have drifted into two bars. A document is on this
-    // origin, inside no product, and signed out.
+    // What base.njk renders from the manifest, built, against the same
+    // manifest the app's Shell draws from (apps/web/test/shell.test.jsx pins
+    // the app to the same words): the same links in the same order, or the
+    // two bars have drifted into two bars.
     const kit = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
     const { JSDOM } = await import("jsdom");
     const site = new JSDOM(read("index.html")).window.document;
-    /** The bar's links, each as what a reader and a crawler get. */
-    const links = (sel) =>
-      [...site.querySelectorAll(sel)].map((a) => ({
-        text: a.textContent.trim().replace(/\s+/g, " "),
-        href: a.getAttribute("href"),
-        target: a.getAttribute("target"),
-        label: a.getAttribute("aria-label"),
-        current: a.getAttribute("aria-current"),
-        glyphs: a.querySelectorAll("svg").length,
-      }));
-    const link = (text, href, more = {}) => ({
-      text,
-      href,
-      target: null,
-      label: null,
-      current: null,
-      glyphs: 1,
-      ...more,
-    });
-    const places = kit.FAMILY_PRODUCTS.filter((p) => !p.game).map((p) =>
-      link(p.label, kit.onOrigin(p.href)),
-    );
-    const docs = link(
-      kit.FAMILY_DOCS.label,
-      kit.onOrigin(kit.FAMILY_DOCS.href),
-    );
-    const games = kit.FAMILY_PRODUCTS.filter((p) => p.game).map((p) =>
-      link(p.action, p.href, {
-        target: "_blank",
-        label: kit.gameLabel(p),
-        glyphs: 2,
-      }),
-    );
-    const signIn = link(
-      kit.FAMILY_SIGN_IN.label,
-      kit.onOrigin(kit.FAMILY_SIGN_IN.href),
-    );
-
-    assert.deepEqual(links(".chrome__home"), [
-      link(kit.FAMILY_WORDMARK, "/", {
-        label: `${kit.FAMILY_WORDMARK} home`,
-        glyphs: 0,
-      }),
+    const hrefs = (sel) =>
+      [...site.querySelectorAll(sel)].map((a) => [
+        a.textContent.trim().replace(/\s+/g, " "),
+        a.getAttribute("href"),
+      ]);
+    const places = kit.FAMILY_PRODUCTS.filter((p) => !p.game).map((p) => [
+      p.label,
+      kit.onOrigin(p.href),
     ]);
-    assert.equal(
-      site.querySelector(".chrome__logo").getAttribute("src").split("?")[0],
-      kit.FAMILY_LOGO,
+    // Signed out: the public places, Sign in, Create account.
+    assert.deepEqual(
+      hrefs('.kit-top__out[data-session-face="out"] a'),
+      kit.FAMILY_SIGNED_OUT.map((p) => [p.label, p.path]),
     );
-    assert.deepEqual(links(".chrome__nav a"), places);
-    assert.deepEqual(links(".chrome__end a"), [
-      docs,
-      ...games,
-      signIn,
-      // The other face of the account slot: its name is drawn by CSS from
-      // the session hint, so its markup carries none.
-      link("", "/console", { label: "Your account", glyphs: 0 }),
+    assert.equal(
+      site
+        .querySelector('.kit-top__link[data-session-face="out"]')
+        .getAttribute("href"),
+      kit.FAMILY_PLACES.signIn.path,
+    );
+    assert.equal(
+      site
+        .querySelector('.btn--primary[data-session-face="out"]')
+        .getAttribute("href"),
+      kit.FAMILY_PLACES.createAccount.path,
+    );
+    // Signed in: the places, search, help, the game, the account.
+    assert.deepEqual(hrefs('.kit-top__nav[data-session-face="in"] a'), places);
+    assert.equal(
+      site
+        .querySelector('.kit-top__search[data-session-face="in"]')
+        .getAttribute("href"),
+      kit.FAMILY_PLACES.search.path,
+    );
+    assert.equal(
+      site
+        .querySelector('.kit-top__icon[data-session-face="in"]')
+        .getAttribute("aria-label"),
+      kit.FAMILY_PLACES.help.label,
+    );
+    const drop = site.querySelector('.kit-top__drop[data-session-face="in"]');
+    assert.equal(drop.getAttribute("target"), "_blank");
+    assert.match(drop.getAttribute("rel"), /noopener/);
+    assert.equal(
+      site
+        .querySelector('.kit-top__avatar[data-session-face="in"]')
+        .getAttribute("href"),
+      kit.FAMILY_PLACES.settings,
+    );
+    // The phone's tabs are the signed-in face only, and are the app's four.
+    assert.deepEqual(hrefs('nav.kit-bottom[data-session-face="in"] a'), [
+      ...places,
+      [kit.FAMILY_PLACES.search.label, kit.FAMILY_PLACES.search.path],
     ]);
-    assert.deepEqual(links("#chrome-sheet a"), [...places, docs, ...games]);
-    for (const a of site.querySelectorAll('.chrome a[target="_blank"]'))
-      assert.equal(a.getAttribute("rel"), "noopener");
-    // The same blocks, in the same order, as the kit's.
-    assert.deepEqual(
-      [...site.querySelector(".chrome__inner").children].map((el) =>
-        el.getAttribute("class"),
-      ),
-      [
-        "chrome__home",
-        "chrome__rule",
-        "chrome__nav",
-        "chrome__menu",
-        "chrome__end",
-      ],
-    );
-    // Inside nothing, the narrow button says Menu.
-    assert.equal(
-      site.querySelector(".chrome__menu").getAttribute("aria-label"),
-      "Menu",
-    );
-
-    // A doc lights Docs, on the bar and in the sheet, and nothing else;
-    // its narrow button names Docs, as the kit's does.
-    const docsPage = new JSDOM(read("docs/index.html")).window.document;
-    assert.deepEqual(
-      [
-        ...docsPage.querySelectorAll('.chrome__inner [aria-current="page"]'),
-      ].map((a) => a.getAttribute("href")),
-      ["/docs"],
-    );
-    assert.deepEqual(
-      [...docsPage.querySelectorAll('#chrome-sheet [aria-current="page"]')].map(
-        (a) => a.getAttribute("href"),
-      ),
-      ["/docs"],
-    );
-    assert.equal(
-      docsPage.querySelector(".chrome__menu").getAttribute("aria-label"),
-      `Product: ${kit.FAMILY_DOCS.label}`,
-    );
+    // The logo, on both faces.
+    for (const img of site.querySelectorAll(".kit-top__brand img"))
+      assert.equal(img.getAttribute("src").split("?")[0], kit.FAMILY_LOGO);
   },
 );
 
 test(
-  "the site's own pages are a row under the bar, lit by the page, and a footer",
+  "the signed-out places light up by the page, and the footer is on every page",
   { skip },
   async () => {
-    const { default: siteNav } = await import(
-      path.join(repoRoot, "apps/site/src/_data/siteNav.js")
-    );
+    const kit = await import(path.join(repoRoot, "packages/ui/src/family.ts"));
     const { JSDOM } = await import("jsdom");
-    for (const [page, key] of [
-      ["index.html", "home"],
-      ["cards/index.html", "cards"],
-      ["cards/26000000/index.html", "cards"],
-      ["data/index.html", "data"],
-      ["updates/index.html", "updates"],
-      ["support/index.html", "support"],
+    for (const [page, want] of [
+      ["index.html", "/"],
+      ["cards/index.html", "/cards"],
+      ["cards/26000000/index.html", "/cards"],
+      ["updates/index.html", "/updates"],
+      ["docs/index.html", "/docs"],
+      ["data/index.html", null],
+      ["support/index.html", null],
     ]) {
       const doc = new JSDOM(read(page)).window.document;
-      const row = doc.querySelector('nav.sitenav[aria-label="Site"]');
       assert.deepEqual(
-        [...row.querySelectorAll("a")].map((a) => [
-          a.textContent,
-          a.getAttribute("href"),
-        ]),
-        siteNav.pages.map((p) => [p.label, p.path]),
-        page,
-      );
-      assert.deepEqual(
-        [...row.querySelectorAll('[aria-current="page"]')].map((a) =>
-          a.getAttribute("href"),
+        [...doc.querySelectorAll('.kit-top__out [aria-current="page"]')].map(
+          (a) => a.getAttribute("href"),
         ),
-        [siteNav.pages.find((p) => p.key === key).path],
-        `${page} lights ${key}`,
+        want ? [want] : [],
+        `${page} lights ${want}`,
       );
-      // No page of the site's is on the bar: the bar holds places.
-      assert.equal(doc.querySelectorAll(".chrome__tab").length, 0);
     }
-    // A doc has Docs lit on the bar and the docs' own rail instead.
-    assert.equal(
-      new JSDOM(read("docs/index.html")).window.document.querySelector(
-        ".sitenav",
-      ),
-      null,
-    );
-    // The footer, on every page: the places, the site, the policies, and
-    // Supercell's note. Family is on no menu (Jamie, 2026-09-29), and its
-    // pages are still built.
     for (const page of ["index.html", "docs/index.html", "family/index.html"]) {
       const doc = new JSDOM(read(page)).window.document;
-      const foot = doc.querySelector("footer.sitefoot");
+      const foot = doc.querySelector("footer.kit-foot");
       assert.ok(foot, `${page} has the footer`);
-      assert.match(foot.textContent, /not endorsed by Supercell/);
+      assert.match(
+        foot.textContent.replace(/\s+/g, " "),
+        /This material is unofficial and is not endorsed by Supercell\. For more information see Supercell’s Fan Content Policy: www\.supercell\.com\/fan-content-policy\./,
+      );
       const hrefs = [...foot.querySelectorAll("a")].map((a) =>
         a.getAttribute("href"),
       );
-      for (const want of ["/console", "/ladder", "/clan", "/docs/privacy"])
-        assert.ok(hrefs.includes(want), `${page} footer links ${want}`);
-      assert.ok(!hrefs.some((h) => h.startsWith("/family")), page);
+      for (const l of kit.FAMILY_FOOT)
+        assert.ok(hrefs.includes(l.path), `${page} footer links ${l.path}`);
+      // Family is on no menu (Jamie, 2026-09-29), and its pages are built.
       assert.ok(
-        ![...doc.querySelectorAll(".chrome a, .sitenav a")].some((a) =>
-          a.getAttribute("href").startsWith("/family"),
-        ),
+        ![
+          ...doc.querySelectorAll(".kit-top a, .kit-foot a, .kit-bottom a"),
+        ].some((a) => a.getAttribute("href").startsWith("/family")),
         `${page} links Family from a menu`,
+      );
+      assert.doesNotMatch(
+        doc.querySelector(".kit-top").textContent + foot.textContent,
+        /Console/,
       );
     }
   },
@@ -1008,16 +962,17 @@ test("signup is one email door, and it is in the app", { skip }, () => {
 
   // Every call to action goes to the one door, deep-linked to the
   // asking half of it.
-  const TARGET = 'href="/console/signin?signup"';
+  const TARGET = 'href="/signin?signup"';
   for (const page of ["index.html", "examples/play/index.html"]) {
     assert.ok(read(page).includes(TARGET), `${page} has no way to ask`);
   }
-  // Two on the home page: the hero and the panel that explains the gate.
-  assert.equal(home.split(TARGET).length - 1, 2);
+  // Three on the home page: the bar, the hero, and the panel that explains
+  // the gate.
+  assert.equal(home.split(TARGET).length - 1, 3);
 
-  // /console/signin is the app's, and the app is what answers there;
-  // the edge sends the whole prefix to it (the router test above).
-  assert.ok(!existsSync(path.join(out, "console/signin/index.html")));
+  // /signin is the app's, and the app is what answers there (the router
+  // test above).
+  assert.ok(!existsSync(path.join(out, "signin/index.html")));
 });
 
 // --------------------------------------------------------------- #25
@@ -1240,63 +1195,16 @@ test(
 
     // Both faces are in the markup; the sign-up calls are the signed-out one.
     const doc = new JSDOM(html).window.document;
-    for (const a of doc.querySelectorAll('a[href="/console/signin?signup"]'))
+    for (const a of doc.querySelectorAll('a[href="/signin?signup"]'))
       assert.ok(
         a.closest('[data-session-face="out"]'),
         "a sign-up call shows to someone signed in",
       );
-    assert.ok(doc.querySelector('.chrome__signin[data-session-face="out"]'));
-    assert.ok(doc.querySelector('.chrome__me[data-session-face="in"]'));
+    assert.ok(doc.querySelector('.kit-top__link[data-session-face="out"]'));
+    assert.ok(doc.querySelector('.kit-top__avatar[data-session-face="in"]'));
+    assert.ok(doc.querySelector('.kit-bottom[data-session-face="in"]'));
     const css = read("assets/site.css");
     assert.match(css, /data-session-face/);
-  },
-);
-
-test(
-  "the narrow menu opens and closes, and the account slot stays on the bar",
-  { skip },
-  async () => {
-    // The static half's menu is hand-written JavaScript, so it gets the
-    // same exercise the app's React one does. At narrow width the places,
-    // Docs and the game fold behind one button; the account slot is never
-    // in there.
-    const { JSDOM } = await import("jsdom");
-    const dom = new JSDOM(read("index.html"), { runScripts: "outside-only" });
-    const { window } = dom;
-    const script = readFileSync(
-      path.join(repoRoot, "apps/site/src/assets/chrome-menu.js"),
-      "utf8",
-    );
-    window.eval(script);
-
-    const button = window.document.querySelector("[data-chrome-menu]");
-    const sheet = window.document.getElementById("chrome-sheet");
-    assert.ok(button && sheet, "the narrow menu is not in the markup");
-    assert.equal(sheet.dataset.open, "false");
-    // Present with JavaScript off too: a crawler and a reader without it
-    // both still find every destination.
-    assert.deepEqual(
-      [...sheet.querySelectorAll("a")].map((a) => a.getAttribute("href")),
-      ["/console", "/ladder", "/clan", "/docs", "https://drop.poapkings.com/"],
-    );
-    assert.ok(!/Sign in/.test(sheet.textContent), "Sign in is in the menu");
-
-    button.dispatchEvent(new window.Event("click", { bubbles: true }));
-    assert.equal(sheet.dataset.open, "true");
-    assert.equal(button.getAttribute("aria-expanded"), "true");
-
-    // Escape, and a tap on the page behind it, both close it. A sheet you
-    // can only dismiss by finding the same small button again is a trap.
-    window.document.dispatchEvent(
-      new window.KeyboardEvent("keydown", { key: "Escape" }),
-    );
-    assert.equal(sheet.dataset.open, "false");
-
-    button.dispatchEvent(new window.Event("click", { bubbles: true }));
-    window.document.body.dispatchEvent(
-      new window.Event("click", { bubbles: true }),
-    );
-    assert.equal(sheet.dataset.open, "false");
   },
 );
 
@@ -1551,12 +1459,12 @@ test(
     const tiles = [...doc.querySelectorAll(".home-tile")];
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__product").textContent),
-      ["Console", "Ladder", "Clan", "Friends", "Emails", "Your AI"],
+      ["Home", "Ladder", "Clan", "Friends", "Emails", "Your AI"],
     );
     assert.deepEqual(
       tiles.map((t) => t.querySelector(".home-tile__cta").getAttribute("href")),
       [
-        "/console/account/tracking",
+        "/home",
         "/ladder",
         "/docs/bring-your-clan",
         "/docs/follow-a-friend",
@@ -1619,7 +1527,7 @@ test(
     const html = read("404.html");
     assert.match(html, /<title>Page not found - Elixir<\/title>/);
     assert.match(html, /<meta name="robots" content="noindex"/);
-    for (const href of ['href="/"', 'href="/docs"', 'href="/console"'])
+    for (const href of ['href="/"', 'href="/docs"', 'href="/home"'])
       assert.ok(html.includes(href), `404 lacks ${href}`);
     assert.match(html, /not endorsed by Supercell/);
     assert.ok(!read("sitemap.xml").includes("404"));
