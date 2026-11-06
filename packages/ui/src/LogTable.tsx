@@ -1,5 +1,7 @@
 import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { Link } from "./Link.tsx";
+import { PageHead } from "./PageHead.tsx";
+import { Table } from "./Table.tsx";
 import { TagText } from "./Tag.tsx";
 
 /**
@@ -99,6 +101,9 @@ export function LogTable({
   loading = false,
   /** The read failed: this text instead of `empty`. */
   error = null,
+  /** Admin's pages stay as they are (2026-11-05): the old head, and a
+   *  table that scrolls sideways inside its box on a phone. */
+  admin = false,
 }: {
   title: ReactNode;
   note?: ReactNode;
@@ -120,6 +125,7 @@ export function LogTable({
   initialFilters?: Record<string, string> | null;
   loading?: boolean;
   error?: ReactNode;
+  admin?: boolean;
 }) {
   const [picked, setPicked] = useState<Record<string, string>>(
     () => initialFilters ?? {},
@@ -151,14 +157,23 @@ export function LogTable({
 
   return (
     <>
-      <div className="mb-[18px] flex flex-wrap items-end gap-[14px]">
-        <div>
-          {crumb && <div className="page__crumb">{crumb}</div>}
-          <h1 className="page__title">{title}</h1>
-          {note && <p className="page__lede">{note}</p>}
+      {admin ? (
+        <div className="mb-[18px] flex flex-wrap items-end gap-[14px]">
+          <div>
+            {crumb && <div className="page__crumb">{crumb}</div>}
+            <h1 className="page__title">{title}</h1>
+            {note && <p className="page__lede">{note}</p>}
+          </div>
+          {actions && <div className="ml-auto">{actions}</div>}
         </div>
-        {actions && <div className="ml-auto">{actions}</div>}
-      </div>
+      ) : (
+        <PageHead
+          title={title}
+          sub={note}
+          aside={actions}
+          crumb={crumb ? <div className="page__crumb">{crumb}</div> : null}
+        />
+      )}
       {above}
 
       {filters.length > 0 && rows.length > 0 && (
@@ -215,92 +230,68 @@ export function LogTable({
               ))}
             </ol>
           ) : (
-            <div className="table__scroll" tabIndex={0}>
-              <table className="table" style={{ minWidth: `${minWidth}px` }}>
-                <thead>
-                  <tr>
-                    {cols.map(([label, align]) => (
-                      <th
-                        key={label}
-                        className={align === "right" ? "text-right" : undefined}
-                      >
-                        {label === label.toUpperCase()
-                          ? label.charAt(0) +
-                            label
-                              .slice(1)
-                              .toLowerCase()
-                              .replace(/\b(mcp|api|ip|id|cpu|url)\b/g, (word) =>
-                                word.toUpperCase(),
-                              )
-                          : label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {window.map((row, i) => (
-                    <tr key={at * PAGE + i}>
-                      {cols.map(([label, align], c) => {
-                        const cell = cellOf(row[c]);
-                        const tone = cell.tone ?? tones[cell.text];
-                        const mono = monoCols.includes(c);
-                        return (
-                          <td
-                            key={label}
-                            title={cell.title}
-                            className={[
-                              align === "right"
-                                ? "table__td--num text-right"
-                                : "",
-                              mono ? "mono" : "",
-                              wrapCols.includes(c) ? "table__td--wrap" : "",
-                              mono || align === "right" ? "font-mono" : "",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                            style={cell.ink ? { color: cell.ink } : undefined}
-                          >
-                            {cell.action ? (
-                              <button
-                                className="btn btn--sm"
-                                onClick={cell.action}
-                              >
-                                {cell.text}
-                              </button>
-                            ) : cell.href ? (
-                              <Link
-                                to={cell.href}
-                                {...(/^https?:/.test(cell.href)
-                                  ? {
-                                      target: "_blank",
-                                      rel: "noopener noreferrer",
-                                    }
-                                  : {})}
-                              >
-                                <TagText>{cell.text}</TagText>
-                              </Link>
-                            ) : tone ? (
-                              <span
-                                className="inline-flex items-center gap-[7px]"
-                                style={{ color: `var(--${tone})` }}
-                              >
-                                <span
-                                  className="chip__dot"
-                                  style={{ background: `var(--${tone})` }}
-                                />
-                                <TagText>{cell.text}</TagText>
-                              </span>
-                            ) : (
-                              <TagText>{cell.text}</TagText>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table<LogRow>
+              phone={admin ? "scroll" : "cards"}
+              minWidth={minWidth}
+              rows={window}
+              rowKey={(_row, i) => at * PAGE + i}
+              columns={cols.map(([label, align], c) => ({
+                key: label,
+                head:
+                  label === label.toUpperCase()
+                    ? label.charAt(0) +
+                      label
+                        .slice(1)
+                        .toLowerCase()
+                        .replace(/\b(mcp|api|ip|id|cpu|url)\b/g, (word) =>
+                          word.toUpperCase(),
+                        )
+                    : label,
+                num: align === "right",
+                wrap: wrapCols.includes(c),
+                ...(monoCols.includes(c)
+                  ? { className: "mono font-mono" }
+                  : null),
+                cellProps: (row) => {
+                  const cell = cellOf(row[c]);
+                  return {
+                    ...(cell.title ? { title: cell.title } : null),
+                    ...(cell.ink ? { style: { color: cell.ink } } : null),
+                  };
+                },
+                cell: (row) => {
+                  const cell = cellOf(row[c]);
+                  const tone = cell.tone ?? tones[cell.text];
+                  return cell.action ? (
+                    <button className="btn btn--sm" onClick={cell.action}>
+                      {cell.text}
+                    </button>
+                  ) : cell.href ? (
+                    <Link
+                      to={cell.href}
+                      {...(/^https?:/.test(cell.href)
+                        ? { target: "_blank", rel: "noopener noreferrer" }
+                        : {})}
+                    >
+                      <TagText>{cell.text}</TagText>
+                    </Link>
+                  ) : tone ? (
+                    <span
+                      className="inline-flex items-center gap-[7px]"
+                      style={{ color: `var(--${tone})` }}
+                    >
+                      <span
+                        className="chip__dot"
+                        style={{ background: `var(--${tone})` }}
+                      />
+                      <TagText>{cell.text}</TagText>
+                    </span>
+                  ) : (
+                    <TagText>{cell.text}</TagText>
+                  );
+                },
+              }))}
+            />
           )}
 
           {footnote && (
