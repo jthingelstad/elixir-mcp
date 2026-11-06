@@ -93,7 +93,7 @@ for (const width of [390, 1280]) {
       await expect(page).toHaveTitle(/Elixir/);
       const editor = page.getByLabel("Chat message", { exact: true });
       await expect(editor).toHaveValue(action.copy!);
-      await expect(page.getByText(/confirmed by a leader/)).toBeVisible();
+      await expect(page.getByText(/A leader confirmed/).first()).toBeVisible();
       // A farewell takes the leader's note beside the tone.
       await expect(page.getByLabel("What should it say?")).toBeVisible();
       await page.getByRole("button", { name: "Draft in our voice" }).click();

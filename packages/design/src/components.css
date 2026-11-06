@@ -6300,15 +6300,6 @@ a.card-art:hover .card-art__img {
   color: var(--accent-bright);
   font-size: 12px;
 }
-.action-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  gap: 36px;
-}
-.action-workspace__decision {
-  border-left: 1px solid var(--line-soft);
-  padding-left: 28px;
-}
 @media (max-width: 900px) {
   .page__title {
     font-size: 24px;
@@ -6340,15 +6331,28 @@ a.card-art:hover .card-art__img {
   .timeline-list__time {
     grid-column: 1 / -1;
   }
-  .action-workspace {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
-  }
-  .action-workspace__decision {
-    border-left: 0;
-    border-top: 1px solid var(--line-soft);
-    padding: 20px 0 0;
-  }
+}
+
+/* One action, the board's one column: folds, then the buttons. */
+.disclosure.action-fold {
+  border-block: 0;
+  border-top: 1px solid var(--line-row);
+  padding-inline: 20px;
+}
+.action-decline {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line-row);
+}
+.clan-decide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line-row);
 }
 
 .permission-details {

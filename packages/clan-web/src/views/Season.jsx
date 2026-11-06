@@ -227,7 +227,7 @@ function Membership({ m }) {
 }
 
 const WEEK_NOTE =
-  "Numbers are for today's members: someone who has departed is not counted here, though All of Season counts them. Only those who took part are named. Battles count every recorded battle a member played this week, including for another clan.";
+  "Battles and Path of Legends are this clan's recorded battles, including members who have since departed. Donations and war decks are for today's members: someone who has departed is not counted there, though All of Season counts them. Only those who took part are named.";
 
 /** The areas other than the race: donations, then ranked play and battles. */
 function OtherAreas({ areas }) {

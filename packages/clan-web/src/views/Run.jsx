@@ -218,8 +218,14 @@ function Elsewhere({ clan, slug, navigate }) {
           title="Model & voice"
           lede="Your Anthropic account pays for model use. Review message drafts before sending; optional Discord activity editing can post without review. Each setting saves on its own."
         />
-        <Model clan={clan} />
-        <section className="panel" aria-label="How our messages sound">
+        <div id="settings-model" className="grid gap-4">
+          <Model clan={clan} />
+        </div>
+        <section
+          id="settings-voice"
+          className="panel"
+          aria-label="How our messages sound"
+        >
           <div className="panel__body">
             <VoiceSetting clan={clan} />
           </div>
@@ -256,6 +262,34 @@ function Elsewhere({ clan, slug, navigate }) {
   );
 }
 
+/** The old Settings page's anchors, still in links people kept. Those two
+ *  sections are on Model & voice now, so the address goes there and the page
+ *  jumps once what loads above them has settled. */
+const OLD_ANCHORS = new Set(["#settings-model", "#settings-voice"]);
+const SETTLE_MS = 1500;
+
+function useOldSettingsAnchor({ slug, base, navigate }) {
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!OLD_ANCHORS.has(hash)) return undefined;
+    if (slug === "settings") {
+      navigate?.(`${base}/model-voice${hash}`, { replace: true });
+      return undefined;
+    }
+    if (slug !== "model-voice") return undefined;
+    const jump = () => document.getElementById(hash.slice(1))?.scrollIntoView();
+    jump();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const watch = new ResizeObserver(jump);
+    watch.observe(document.body);
+    const stop = setTimeout(() => watch.disconnect(), SETTLE_MS);
+    return () => {
+      clearTimeout(stop);
+      watch.disconnect();
+    };
+  }, [slug, base, navigate]);
+}
+
 /**
  * Run: how the clan is run, for the leader and co-leaders. On a wide screen
  * the list stands beside the section and `/run` opens About; on a phone `/run`
@@ -272,6 +306,7 @@ export function Run({ clan, section, navigate }) {
   useEffect(() => {
     if (section && !titleOf(section)) navigate?.(base, { replace: true });
   }, [section, base, navigate]);
+  useOldSettingsAnchor({ slug, base, navigate });
   const failed = e.policy.isError;
   const readError =
     e.policy.error?.status === 403

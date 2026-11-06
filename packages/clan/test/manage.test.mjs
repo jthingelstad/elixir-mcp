@@ -1642,6 +1642,48 @@ test("leader messages: saving a policy tells the clan how it runs, and a newer v
 
 // ---- "You here": a member's own page (round 4) -------------------------------
 
+test("you here: this week reads the reset's clock, and what the clan's policy makes of the numbers is unchanged by it", async () => {
+  const make = (weekBattlesFor) =>
+    harness({
+      players: [
+        player({ player_tag: "#8QCV", name: "Sleepy", clan_role: "member" }),
+      ],
+      part: partClan(),
+      weekBattlesFor,
+    });
+  const read = async (h) =>
+    (await api(h, await leader(h), "GET", "/api/clans/2PQRJ8LV/me")).body;
+  const asked = [];
+  const counted = await read(
+    make(async (tag, windows) => {
+      asked.push(...windows);
+      return windows.map((w) => ({
+        ...w,
+        // A number no policy would pass or fail the same way as the columns.
+        members: [{ player_tag: "#8QCV", battles: 999, ranked: 999 }],
+      }));
+    }),
+  );
+  assert.equal(asked.length, 1, "one window, the running one");
+  assert.equal(asked[0].from.slice(11, 16), "10:00");
+  assert.equal(counted.you.this_week.battles, 999);
+  assert.equal(counted.you.this_week.ranked_battles, 999);
+
+  const failed = await read(
+    make(async () => {
+      throw new Error("record down");
+    }),
+  );
+  assert.equal(failed.you.this_week.battles, null);
+
+  // The pin: evaluations do not move, whatever this week's read says.
+  const plain = await read(make(null));
+  assert.deepEqual(counted.clan, plain.clan);
+  assert.deepEqual(failed.clan, plain.clan);
+  assert.deepEqual(counted.you.weeks, plain.you.weeks);
+  assert.ok(plain.clan, "the policy is active, so there is a verdict to pin");
+});
+
 test("you here: your own numbers week by week and what your clan makes of them, nothing about anyone else", async () => {
   const h = harness({
     players: [

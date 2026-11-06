@@ -69,7 +69,7 @@ for (const size of ["wide", "@narrow"]) {
     await mockApi(page, responses);
     await page.goto("/clan/2PQRJ8LV/actions/37");
     await expect(
-      page.getByRole("heading", { name: "Welcome a newcomer", exact: true }),
+      page.getByRole("heading", { name: /^Welcome a newcomer/ }),
     ).toBeVisible();
     const editor = page.getByLabel("Chat message", { exact: true });
     await editor.fill("Welcome aboard, Newcomer!");
@@ -103,7 +103,7 @@ for (const size of ["wide", "@narrow"]) {
     });
     await page.getByRole("button", { name: "Done", exact: true }).click();
     await expect(
-      page.getByRole("article").getByText("Done", { exact: true }),
+      page.getByRole("main").locator(".chip", { hasText: /^Done$/ }),
     ).toBeVisible();
     expect(decisions).toEqual([
       {

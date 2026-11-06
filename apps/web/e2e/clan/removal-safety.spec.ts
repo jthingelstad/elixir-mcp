@@ -151,7 +151,7 @@ for (const size of ["wide", "@narrow"])
     await expect(page.getByLabel("Chat message")).toHaveCount(0);
     await page
       .locator("summary")
-      .filter({ hasText: /^History · 2 entries/ })
+      .filter({ hasText: /^History, 2 entries/ })
       .click();
     await expect(page.getByText(/^Sun Oct 4( 2026)?, 4:20 am$/)).toBeVisible();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -302,7 +302,7 @@ for (const size of ["wide", "@narrow"])
     ).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Done", exact: true }),
-    ).toBeDisabled();
+    ).toHaveCount(0);
     await expect(page.getByText(/Saved rationale at the time/)).toBeVisible();
     await page.goto("/clan/2PQRJ8LV/actions/45");
     await expect(page.getByRole("alert")).toContainText(

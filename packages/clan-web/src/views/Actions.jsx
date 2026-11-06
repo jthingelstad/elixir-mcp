@@ -3,6 +3,7 @@ import { keys, useAction, useInvalidate } from "../lib/queries.js";
 import { ActionCard, STATUS, TypeIcon } from "../components/ActionCard.jsx";
 import { TooFew } from "../components/TooFew.jsx";
 import { PageHead } from "../components/PageHead.jsx";
+import { ReportThis } from "../components/ReportThis.jsx";
 import { trackEvent } from "../analytics.js";
 import { CLAN, clanPath } from "../lib/base.js";
 
@@ -229,28 +230,64 @@ export function ActionDetail({ clan, who, number, navigate }) {
   const list = `${clanPath(clan.clan_tag)}/today`;
   const a = state.data?.action;
   const head = (
-    <PageHead
-      title={
-        a
-          ? `${a.label}${a.player_name ? ` · ${a.player_name}` : ""}`
-          : `Action #${number}`
-      }
-    >
-      <div className="flex flex-wrap items-center gap-3">
-        <a
-          href={list}
-          onClick={(e) => {
-            if (!navigate) return;
-            e.preventDefault();
-            navigate(list);
-          }}
-        >
-          ‹ Today
-        </a>
-        <span className="mono text-ink-faint">#{number}</span>
-        <CopyLink path={actionPath(clan, number)} />
-      </div>
-    </PageHead>
+    <>
+      <a
+        className="mb-2 inline-block"
+        href={list}
+        onClick={(e) => {
+          if (!navigate) return;
+          e.preventDefault();
+          navigate(list);
+        }}
+      >
+        ‹ Today
+      </a>
+      <PageHead
+        title={
+          a
+            ? `${a.label}${a.player_name ? `: ${a.player_name}` : ""}`
+            : `Action #${number}`
+        }
+        lede={
+          a
+            ? [
+                `Action #${number}`,
+                clan.name,
+                a.raised_at ? `suggested ${ago(a.raised_at)}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            : null
+        }
+        fresh={
+          <div className="flex flex-wrap items-center gap-3">
+            {a ? (
+              <span
+                className={`chip ${a.status === "proposed" ? "" : (STATUS[a.status]?.[1] ?? "")}`.trim()}
+              >
+                {a.status === "proposed"
+                  ? "Open"
+                  : (STATUS[a.status]?.[0] ?? a.status)}
+              </span>
+            ) : null}
+            <CopyLink path={actionPath(clan, number)} />
+            {a ? (
+              <ReportThis
+                about={`This action: ${a.label}${a.player_tag ? `, ${a.player_name ?? a.player_tag}` : ""}. Its evidence and the policy behind it ride along.`}
+                refs={[
+                  { kind: "clan_action", ref: String(a.card_id) },
+                  { kind: "clan", ref: clan.clan_tag },
+                  ...(a.player_tag
+                    ? [{ kind: "player", ref: a.player_tag }]
+                    : []),
+                ]}
+                context={{ action_type: a.type, status: a.status }}
+              />
+            ) : null}
+          </div>
+        }
+      />
+    </>
   );
   if (state.error === "no_action")
     return (

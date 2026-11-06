@@ -237,11 +237,11 @@ for (const size of ["wide", "@narrow"])
       );
       await page.goto("/clan/2PQRJ8LV/actions/41");
       await expect(
-        page.getByRole("heading", { name: /Welcome · Sunny Kettle/ }),
+        page.getByRole("heading", { name: /Welcome: Sunny Kettle/ }),
       ).toBeVisible();
       await page
         .locator("summary")
-        .filter({ hasText: /^History · 2 entries/ })
+        .filter({ hasText: /^History, 2 entries/ })
         .click();
       await expect(
         page.getByText("Drafted by the clan's model", { exact: true }),

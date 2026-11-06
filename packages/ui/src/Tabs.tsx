@@ -106,9 +106,7 @@ export function Tabs({
         const body = (
           <>
             {t.label}
-            {t.count && t.countLabel ? (
-              <span className="sr-only">, </span>
-            ) : null}
+            {t.count && t.countLabel ? " " : null}
             {t.count ? (
               <em className="kit-tabs__count">
                 {t.count}

@@ -138,7 +138,7 @@ describe("Tabs", () => {
         items={[{ key: "a", label: "Today", count: 2, countLabel: "waiting" }]}
       />,
     );
-    expect(screen.getByRole("tab").textContent).toBe("Today, 2 waiting");
+    expect(screen.getByRole("tab").textContent).toBe("Today 2 waiting");
   });
 });
 

@@ -30,16 +30,15 @@ import { untilWritten } from "../lib/pending.js";
 import { trackEvent } from "../analytics.js";
 import { clanPath, memberPath } from "../lib/base.js";
 import { MemberSheet } from "./MemberSheet.jsx";
-import { ReportThis } from "./ReportThis.jsx";
 import { RoleChip } from "./RoleChip.jsx";
 
 /**
  * One action (Jamie, 2026-09-25): what Elixir Clan suggests someone in the
  * clan do, assigned to them or open to their role, completed or declined.
- * It is drawn on the action's own page (`/clan/<TAG>/actions/<number>`),
- * with its log open: what raised it, who took it and how, what the record
- * confirmed, and anyone's comments, open or closed. The log is where the
- * people it is for work it out.
+ * It is drawn on the action's own page (`/clan/<TAG>/actions/<number>`) as
+ * the board has it, one column: the reason and its numbers, then folds for
+ * what it comes from, the message and the log, then the buttons. One action,
+ * one decision: Done or Decline, nothing else closes it.
  */
 
 const LEADER_TYPES = new Set(["promotion", "demotion", "removal"]);
@@ -906,10 +905,9 @@ export function ActionLog({ action, clan, onChanged }) {
                 ))}
               </ul>
             ) : null}
-            {e.kind === "raised" && e.detail?.clauses?.length ? (
+            {e.kind === "raised" && e.detail?.policy_version != null ? (
               <div className="page-head__note">
-                policy v{e.detail.policy_version ?? "?"}:{" "}
-                {e.detail.clauses.join(", ")}
+                policy v{e.detail.policy_version}
               </div>
             ) : null}
             {e.kind === "raised" && e.detail?.prior?.length ? (
@@ -948,6 +946,173 @@ export function ActionLog({ action, clan, onChanged }) {
       {error ? <div className="field-error">{error}</div> : null}
     </div>
   );
+}
+
+/** Under each button row, what the buttons do when it is not plain. */
+const DECIDE_HINT = {
+  departure: "A departure is not declined. Whichever you choose closes it.",
+  away: "Mark me away opens your Away page, where you say when you will be back.",
+  awards_standings:
+    "Done opens once every message is marked sent. Decline skips the remaining messages.",
+  awards_announcement: "Done opens once the message is marked sent.",
+  rules_announcement: "Done opens once the message is marked sent.",
+};
+
+/** The message fold's name, by what the action sends. */
+function messageTitle(action, grouped) {
+  if (action.type === "departure") return "Farewell for clan chat";
+  if (action.type === "awards_standings" && grouped)
+    return "Messages for the clan";
+  if (
+    ["awards_standings", "awards_announcement", "rules_announcement"].includes(
+      action.type,
+    )
+  )
+    return "Message for the clan";
+  return "Message for clan chat";
+}
+
+/** What an action stands on, for its fold: the policy clauses it was raised
+ *  under, the record it rests on, what the record cannot see, and who sees
+ *  it. Only what the action carries; nothing here is inferred. */
+function whatItComesFrom({ action, raised, restsOn, zone }) {
+  const lines = [];
+  if (raised?.detail?.policy_version != null)
+    lines.push(`Raised under policy v${raised.detail.policy_version}.`);
+  if (restsOn) lines.push(<RestsOn key="rests" fact={restsOn} zone={zone} />);
+  if (action.evidence?.as_of)
+    lines.push(
+      <Fresh key="fresh" label="Evidence as of" ts={action.evidence.as_of} />,
+    );
+  if (action.type === "removal") {
+    lines.push(REMOVAL_UNSEEN);
+    lines.push("Only the leader and co-leaders see this action.");
+  }
+  if (action.audience?.kind === "member")
+    lines.push("Only you see this action.");
+  return lines;
+}
+
+/** A closed action's line: who closed it, when, and what the record said. */
+function closedLine(action, zone) {
+  if (action.status === "withdrawn")
+    return `Withdrawn${action.withdrawn_at ? ` ${dayAt(action.withdrawn_at, zone)}` : ""}. ${action.withdraw_reason ?? ""}`.trim();
+  const who = action.decided_by_name ?? action.decided_by ?? "";
+  const when = action.decided_at ? dayAt(action.decided_at, zone) : "";
+  const by = [who, when].filter(Boolean).join(", ");
+  if (action.type === "departure" && action.outcome?.classification) {
+    const said = {
+      member_kicked: "A leader confirmed Kicked.",
+      member_left: "A leader confirmed Left.",
+      ignored: "A leader marked this departure Ignore.",
+    }[action.outcome.classification];
+    if (said) return `${said} ${by}${by ? "." : ""}`.trim();
+  }
+  const word = STATUS[action.status]?.[0] ?? action.status;
+  const why = action.decline_reason
+    ? `: ${(DECLINE_WORDS[action.decline_reason] ?? action.decline_reason.replaceAll("_", " ")).toLowerCase()}`
+    : "";
+  const line = `${word}${by ? ` by ${by}` : ""}${why}.`;
+  if (action.outcome?.verified_at) return `${line} Confirmed by the record.`;
+  if (action.outcome?.flagged_at)
+    return `${line} Flagged: no matching change in the record.`;
+  return action.status === "declined" && LEADER_TYPES.has(action.type)
+    ? `${line} It can come back after the waiting period.`
+    : line;
+}
+
+/** Why this action exists, in one short paragraph. */
+function Reason({ action, zone, grouped, departureCopy }) {
+  const ev = action.evidence ?? {};
+  return (
+    <>
+      {action.type === "departure" ? (
+        <div>
+          Departed {ago(ev.left_at)} ({dayAt(ev.left_at, zone)})
+          {ev.removal_state && ev.removal_state !== "none"
+            ? `, was ${ev.removal_state.replaceAll("_", " ")} on the clock`
+            : ""}
+          {ev.days_idle != null
+            ? `, ${Math.round(ev.days_idle)} ${noun(Math.round(ev.days_idle), "day")} since their last battle`
+            : ""}
+          {ev.tenure_days != null
+            ? `, in the clan ${ev.tenure_days} ${noun(ev.tenure_days, "day")}`
+            : ""}
+          {departureCopy
+            ? `. A leader confirmed ${action.outcome?.classification === "member_kicked" ? "Kicked" : "Left"}.`
+            : action.outcome?.classification === "ignored"
+              ? ". A leader marked this departure Ignore."
+              : ". A leave and a kick look the same on the roster, so confirm which and the clan's history will say so."}
+        </div>
+      ) : action.type === "welcome" ? (
+        <div>
+          Joined {ago(ev.joined_at)}. Welcome them in clan chat, then mark it
+          done.
+        </div>
+      ) : action.type === "away" ? (
+        <div>
+          {Math.floor(ev.days_idle ?? 0)}{" "}
+          {noun(Math.floor(ev.days_idle ?? 0), "day")} since your last recorded
+          battle. Mark yourself away
+          {ev.away_max_days
+            ? `, for up to ${ev.away_max_days} ${noun(ev.away_max_days, "day")}`
+            : ""}
+          . Keeps you off the removal list while it&rsquo;s on. The days keep
+          counting.
+        </div>
+      ) : action.type === "awards_announcement" ? (
+        <div>
+          Season {ev.season_id} is closed and its awards are granted. Tell the
+          clan in chat or by Leader Message, then mark it done. This message
+          covers the recipients listed below. An award granted later can have
+          its own announcement.
+          {ev.parts > 1
+            ? ` Message ${ev.part} of ${ev.parts}; send every part to name all recipients.`
+            : ""}
+        </div>
+      ) : action.type === "awards_standings" ? (
+        <div>
+          {ev.scope === "current"
+            ? `Season ${ev.season_id} so far: provisional standings.`
+            : `Season ${ev.season_id}, week ${ev.section_index + 1} is recorded as closed. Share provisional standings through that week.`}
+          {ev.as_of ? ` As of ${ev.as_of}.` : ""} These are not final grants;
+          incomplete evidence withholds places.
+          {grouped
+            ? " Send each message in order and mark each one when it is out. Copying alone does not record delivery."
+            : ev.parts > 1
+              ? ` Message ${ev.part} of ${ev.parts}; send every part.`
+              : ""}
+        </div>
+      ) : action.type === "rules_announcement" ? (
+        <div>
+          {ev.changes?.length
+            ? `Policy version ${ev.version} changed: ${ev.changes.join(", ")}.`
+            : `Policy version ${ev.version}: the clan's first.`}{" "}
+          Tell the clan in chat or by Leader Message, then mark it done.
+        </div>
+      ) : (
+        <div>
+          {action.type === "removal"
+            ? "Saved rationale at the time this Action was raised: "
+            : ""}
+          {ev.rationale?.headline}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** The quieter second line under the reason. */
+function ReasonMore({ action, open }) {
+  const line =
+    action.type === "removal"
+      ? REMOVAL_UNSEEN
+      : action.type === "departure" && open
+        ? 'Kicked reads "was removed" everywhere. Left and Ignore read "departed"; Ignore records nothing about why.'
+        : action.type === "away"
+          ? "This does not mean you did not play: modes the battle log does not carry are not seen."
+          : null;
+  return line ? <p className="page-head__note m-0">{line}</p> : null;
 }
 
 /** One action, open or closed, with its buttons and its log. */
@@ -991,7 +1156,6 @@ function BoundActionCard({
     action.type === "removal" && action.removal_safety?.status === "held";
   const departureCopy =
     action.type === "departure" && action.status === "done" && !!action.copy;
-  const mine = action.audience?.kind === "member";
   const ev = action.evidence ?? {};
   const delivery = useDeliveryDraft(action, clan, who);
   // The words as the person edits them, sent with a completion so what
@@ -1138,557 +1302,428 @@ function BoundActionCard({
       setBusy(false);
     }
   };
-  const id = `action-${action.card_id}`;
+  const shownFacts = (ev.facts ?? []).filter((f) => f.key !== "rests_on");
+  const restsOn = (ev.facts ?? []).find((f) => f.key === "rests_on");
+  const raised = (action.log ?? []).find((e) => e.kind === "raised");
+  const comes = whatItComesFrom({ action, raised, restsOn, zone });
+  const hasMessage =
+    grouped ||
+    (!contextInvalid &&
+      !removalHeld &&
+      ((open && delivery.draft) ||
+        (action.copy && !delivery.draft && (open || departureCopy))));
+  const canDecide = open && action.can_act;
+  const inGame =
+    open && (action.type === "promotion" || action.type === "demotion");
+  const logCount = (action.log ?? []).length;
   return (
-    <Panel
-      as="article"
-      className="overflow-hidden"
-      data-action={action.card_id}
-      aria-labelledby={id}
-    >
-      <div className="flex flex-wrap items-center gap-3 border-b border-line-soft px-5 py-4">
-        <TypeIcon type={action.type} big />
-        <div className="grid min-w-0 grow gap-0.5">
-          <h2 id={id} className="m-0 text-[17px] font-semibold">
-            {action.label}
-          </h2>
-          <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-dim">
-            {mine ? (
-              <span>
-                <span className="yours">★</span> You
-              </span>
-            ) : !action.player_tag ? (
-              <span>The clan</span>
-            ) : (
+    <Panel as="article" data-action={action.card_id} aria-label={action.label}>
+      {!open ? (
+        <div className="notice m-5 mb-0" role="status">
+          <span>{closedLine(action, zone)}</span>
+          {action.can_reopen && !removalHeld ? (
+            <button
+              type="button"
+              className="btn"
+              disabled={busy}
+              onClick={reopen}
+            >
+              {busy ? "Reopening…" : "Reopen action"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="grid gap-4 p-5">
+        {removalHeld ? (
+          <div className="callout callout--warn flex-col gap-2" role="alert">
+            <strong>This removal no longer qualifies.</strong>
+            <p className="m-0">{action.removal_safety.reason}</p>
+            {action.removal_safety.latest_activity_interval ? (
+              <p className="m-0">
+                The profile&rsquo;s battle count rose by{" "}
+                {
+                  action.removal_safety.latest_activity_interval
+                    .counter_increase
+                }{" "}
+                between{" "}
+                <time
+                  dateTime={
+                    action.removal_safety.latest_activity_interval.observed_from
+                  }
+                >
+                  {whenAt(
+                    action.removal_safety.latest_activity_interval
+                      .observed_from,
+                    zone,
+                  )}
+                </time>{" "}
+                and{" "}
+                <time
+                  dateTime={
+                    action.removal_safety.latest_activity_interval.observed_to
+                  }
+                >
+                  {whenAt(
+                    action.removal_safety.latest_activity_interval.observed_to,
+                    zone,
+                  )}
+                </time>
+                .
+              </p>
+            ) : null}
+            <p className="m-0">
+              Checked{" "}
+              <time dateTime={action.removal_safety.checked_at}>
+                {whenAt(action.removal_safety.checked_at, zone)}
+              </time>
+              . Removal copy, drafting and completion are withheld. The saved
+              evidence and log below are historical.
+              {open && action.can_act
+                ? " Leadership may still explicitly decline this open Action."
+                : " This Action is closed; its decisions and audit remain recorded."}
+            </p>
+          </div>
+        ) : null}
+        <div className="grid gap-1.5">
+          <div className="text-[16px] leading-[1.6] text-ink">
+            <Reason
+              action={action}
+              zone={zone}
+              grouped={grouped}
+              departureCopy={departureCopy}
+            />
+          </div>
+          <ReasonMore action={action} open={open} />
+        </div>
+        {LEADER_TYPES.has(action.type) && shownFacts.length ? (
+          <div className="grid">
+            {shownFacts.map((f) => (
+              <div
+                key={f.key}
+                className="flex flex-wrap gap-x-4 gap-y-0.5 border-b border-line-row py-2 last:border-b-0"
+              >
+                <span className="w-[110px] shrink-0 text-[12.5px] text-ink-faint">
+                  {f.label}
+                </span>
+                <span className="grow text-[13.5px] text-ink-body">
+                  {f.value}{" "}
+                  <span className="page-head__note">
+                    ({f.window}
+                    {f.fidelity !== "daily" ? `, ${f.fidelity}` : ""})
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {action.player_tag ? (
+          <div className="flex flex-wrap items-center gap-2 text-[13px]">
+            <Link to={memberPath(clan.clan_tag, action.player_tag)}>
+              {action.player_name
+                ? `Open ${action.player_name}'s page`
+                : "Open their page"}
+            </Link>
+            <span className="tag">{action.player_tag}</span>
+            {action.role_at_raise ? (
+              <RoleChip
+                role={action.role_at_raise}
+                label={ROLE[action.role_at_raise] ?? action.role_at_raise}
+              />
+            ) : null}
+          </div>
+        ) : null}
+        {contextInvalid ? (
+          <div className="callout callout--warn" role="alert">
+            The action&rsquo;s context changed. Older words are withheld. Reload
+            the action before drafting or sending.
+            <button type="button" className="btn btn--sm" onClick={onChanged}>
+              Reload action
+            </button>
+          </div>
+        ) : null}
+        {!open && action.sent ? <SentWords receipt={action.sent} /> : null}
+      </div>
+      {comes.length ? (
+        <Disclosure title="What this comes from" className="action-fold">
+          <div className="grid gap-1.5 text-[13.5px] text-ink-body">
+            {comes.map((line, i) => (
+              <p className="m-0" key={i}>
+                {line}
+              </p>
+            ))}
+          </div>
+        </Disclosure>
+      ) : null}
+      {hasMessage ? (
+        <Disclosure
+          title={messageTitle(action, grouped)}
+          className="action-fold"
+          open={!declining && action.type !== "demotion"}
+        >
+          <div className="grid gap-3">
+            {inGame ? (
+              <p className="page-head__note m-0">
+                In the game:{" "}
+                {action.type === "promotion" ? "promote" : "demote"}{" "}
+                {action.player_name ?? <Tag tag={action.player_tag} />}, send
+                the reviewed message, then mark it done. They go together.
+              </p>
+            ) : null}
+            {!contextInvalid &&
+            !removalHeld &&
+            action.copy &&
+            !delivery.draft &&
+            (open || departureCopy) ? (
+              (["welcome", "removal"].includes(action.type) &&
+                action.can_act !== false) ||
+              (departureCopy && action.can_draft) ? (
+                <ChatMessage
+                  kind={action.type}
+                  value={lines}
+                  onChange={setLines}
+                  onDraft={onDraft}
+                  onBusy={setDrafting}
+                  disabled={deciding}
+                />
+              ) : (
+                <CopyLine text={action.copy} />
+              )
+            ) : null}
+            {open && delivery.draft ? (
               <>
-                <b className="text-ink">
-                  {action.player_name ?? <Tag tag={action.player_tag} />}
-                </b>
-                <span className="tag">{action.player_tag}</span>
-                {action.role_at_raise ? (
-                  <RoleChip
-                    role={action.role_at_raise}
-                    label={ROLE[action.role_at_raise] ?? action.role_at_raise}
-                  />
+                <a
+                  className="btn w-fit"
+                  href={`${clanPath(clan.clan_tag)}/today`}
+                  onClick={(e) => {
+                    if (!navigate || e.metaKey || e.ctrlKey || e.shiftKey)
+                      return;
+                    e.preventDefault();
+                    navigate(`${clanPath(clan.clan_tag)}/today`);
+                  }}
+                >
+                  Review later · leave open
+                </a>
+                {grouped && ev.messages.length > 1 ? (
+                  <p className="page-head__note m-0">
+                    Each part has its own delivery choice. For a Leader Message,
+                    wait until the game allows another. Sent receipts stay saved
+                    while you wait.
+                  </p>
                 ) : null}
               </>
-            )}
-          </div>
-        </div>
-        {open ? (
-          ev.as_of ? (
-            <Fresh label="evidence as of" ts={ev.as_of} />
-          ) : (
-            <span className="chip chip--warn">
-              suggested {ago(action.raised_at)}
-            </span>
-          )
-        ) : (
-          <span className={`chip ${STATUS[action.status]?.[1] ?? ""}`.trim()}>
-            {STATUS[action.status]?.[0] ?? action.status}
-          </span>
-        )}
-      </div>
-      <div className="action-workspace">
-        <div className="grid content-start gap-4 py-[18px]">
-          <div className="flex flex-wrap items-center gap-3">
-            {action.player_tag ? (
-              <Link to={memberPath(clan.clan_tag, action.player_tag)}>
-                View member activity
-              </Link>
             ) : null}
-            {/* The action on screen rides along, so the maintainer reads
-              the evidence the person saw (2026-10-08). */}
-            <span className="ml-auto">
-              <ReportThis
-                about={`This action: ${action.label}${action.player_tag ? `, ${action.player_name ?? action.player_tag}` : ""}. Its evidence and the policy behind it ride along.`}
-                refs={[
-                  { kind: "clan_action", ref: String(action.card_id) },
-                  { kind: "clan", ref: clan.clan_tag },
-                  ...(action.player_tag
-                    ? [{ kind: "player", ref: action.player_tag }]
-                    : []),
-                ]}
-                context={{ action_type: action.type, status: action.status }}
-              />
-            </span>
-          </div>
-          {removalHeld ? (
-            <div className="callout callout--warn flex-col gap-2" role="alert">
-              <strong>This removal no longer qualifies.</strong>
-              <p className="m-0">{action.removal_safety.reason}</p>
-              {action.removal_safety.latest_activity_interval ? (
-                <p className="m-0">
-                  The profile&rsquo;s battle count rose by{" "}
-                  {
-                    action.removal_safety.latest_activity_interval
-                      .counter_increase
-                  }{" "}
-                  between{" "}
-                  <time
-                    dateTime={
-                      action.removal_safety.latest_activity_interval
-                        .observed_from
-                    }
-                  >
-                    {whenAt(
-                      action.removal_safety.latest_activity_interval
-                        .observed_from,
-                      zone,
-                    )}
-                  </time>{" "}
-                  and{" "}
-                  <time
-                    dateTime={
-                      action.removal_safety.latest_activity_interval.observed_to
-                    }
-                  >
-                    {whenAt(
-                      action.removal_safety.latest_activity_interval
-                        .observed_to,
-                      zone,
-                    )}
-                  </time>
-                  .
-                </p>
-              ) : null}
-              <p className="m-0">
-                Checked{" "}
-                <time dateTime={action.removal_safety.checked_at}>
-                  {whenAt(action.removal_safety.checked_at, zone)}
-                </time>
-                . Removal copy, drafting and completion are withheld. The saved
-                evidence and log below are historical.
-                {open && action.can_act
-                  ? " Leadership may still explicitly decline this open Action."
-                  : " This Action is closed; its decisions and audit remain recorded."}
-              </p>
-            </div>
-          ) : null}
-          <div className="text-[14.5px] leading-[1.6] text-ink-body">
-            {action.type === "departure" ? (
-              <div>
-                Departed {ago(ev.left_at)} ({dayAt(ev.left_at, zone)})
-                {ev.removal_state && ev.removal_state !== "none"
-                  ? ` · was ${ev.removal_state.replaceAll("_", " ")} on the clock`
-                  : ""}
-                {ev.days_idle != null
-                  ? ` · ${Math.round(ev.days_idle)} ${noun(Math.round(ev.days_idle), "day")} since their last battle`
-                  : ""}
-                {ev.tenure_days != null
-                  ? ` · recorded tenure ${ev.tenure_days} ${noun(ev.tenure_days, "day")}`
-                  : ""}
-                {departureCopy
-                  ? `. A leader confirmed ${action.outcome?.classification === "member_kicked" ? "Kicked" : "Left"}.`
-                  : action.outcome?.classification === "ignored"
-                    ? ". A leader marked this departure Ignore."
-                    : ". A leave and a kick look the same in the roster observation; confirm which so the clan's history knows."}
+            {grouped ? (
+              <div className="grid gap-4">
+                {ev.messages.map((m) => (
+                  <UpdateMessage
+                    key={`${action.card_id}-${m.part}`}
+                    message={m}
+                    who={who}
+                    action={action}
+                    clan={clan}
+                    onChanged={onChanged}
+                  />
+                ))}
               </div>
-            ) : action.type === "welcome" ? (
-              <div>
-                Joined {ago(ev.joined_at)}. Welcome them in clan chat, then mark
-                it done.
-              </div>
-            ) : action.type === "away" ? (
-              <div>
-                The recorded activity clock is {Math.floor(ev.days_idle ?? 0)}{" "}
-                days. This does not establish no play across every battle mode.
-                Going to be away? Mark it to shield removal eligibility while
-                active
-                {ev.away_max_days
-                  ? ` (up to ${ev.away_max_days} ${noun(ev.away_max_days, "day")})`
-                  : ""}
-                .
-              </div>
-            ) : action.type === "awards_announcement" ? (
-              <div>
-                Season {ev.season_id} is closed and its awards are granted. Tell
-                the clan in chat or by Leader Message, then mark it done. This
-                message covers the recipients listed below. An award granted
-                later can have its own announcement.
-                {ev.parts > 1
-                  ? ` Message ${ev.part} of ${ev.parts}; send every part to name all recipients.`
-                  : ""}
-              </div>
-            ) : action.type === "awards_standings" ? (
-              <div>
-                {ev.scope === "current"
-                  ? `Season ${ev.season_id} so far: provisional standings.`
-                  : `Season ${ev.season_id}, week ${ev.section_index + 1} is recorded as closed. Share provisional standings through that week.`}
-                {ev.as_of ? ` As of ${ev.as_of}.` : ""} These are not final
-                grants; incomplete evidence withholds places.
-                {grouped
-                  ? " Send each message in order and mark each one when it is out. Copying alone does not record delivery."
-                  : ev.parts > 1
-                    ? ` Message ${ev.part} of ${ev.parts}; send every part.`
-                    : ""}
-              </div>
-            ) : action.type === "rules_announcement" ? (
-              <div>
-                {ev.changes?.length
-                  ? `Policy version ${ev.version} changed: ${ev.changes.join(", ")}.`
-                  : `Policy version ${ev.version}: the clan's first.`}{" "}
-                Tell the clan in chat or by Leader Message, then mark it done.
-              </div>
-            ) : (
-              <div>
-                {action.type === "removal"
-                  ? "Saved rationale at the time this Action was raised: "
-                  : ""}
-                {ev.rationale?.headline}
-              </div>
-            )}
-          </div>
-          {open &&
-          (action.type === "promotion" || action.type === "demotion") ? (
-            <div className="rounded-control bg-panel-raised px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-ink-body">
-              <b className="text-ink">In the game:</b>{" "}
-              {action.type === "promotion" ? "promote" : "demote"}{" "}
-              {action.player_name ?? <Tag tag={action.player_tag} />}, send the
-              reviewed message, then mark it done. They go together.
-            </div>
-          ) : null}
-          {LEADER_TYPES.has(action.type) && ev.facts?.length ? (
-            <div className="grid">
-              {ev.facts.map((f) => (
-                <div
-                  key={f.key}
-                  className="flex flex-wrap gap-x-4 gap-y-0.5 border-b border-line-row py-2 last:border-b-0"
-                >
-                  <span className="w-[110px] shrink-0 text-[12.5px] text-ink-faint">
-                    {f.label}
-                  </span>
-                  <span className="grow text-[13.5px] text-ink-body">
-                    {f.key === "rests_on" ? (
-                      <RestsOn fact={f} zone={zone} />
-                    ) : (
-                      f.value
-                    )}{" "}
-                    <span className="page-head__note">
-                      ({f.window}
-                      {f.fidelity !== "daily" ? `, ${f.fidelity}` : ""})
-                    </span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-          {action.type === "removal" ? (
-            <p className="m-0 text-[13.5px] leading-[1.5] text-ink-body">
-              {REMOVAL_UNSEEN}
-            </p>
-          ) : null}
-          {contextInvalid ? (
-            <div className="callout callout--warn" role="alert">
-              The action&rsquo;s context changed. Older words are withheld.
-              Reload the action before drafting or sending.
-              <button type="button" className="btn btn--sm" onClick={onChanged}>
-                Reload action
-              </button>
-            </div>
-          ) : null}
-          {!contextInvalid &&
-          !removalHeld &&
-          action.copy &&
-          !delivery.draft &&
-          (open || departureCopy) ? (
-            (["welcome", "removal"].includes(action.type) &&
-              action.can_act !== false) ||
-            (departureCopy && action.can_draft) ? (
-              <ChatMessage
-                kind={action.type}
-                value={lines}
-                onChange={setLines}
+            ) : !contextInvalid && delivery.draft && open ? (
+              <DeliveryComposer
+                draft={delivery.draft}
+                onChange={delivery.change}
                 onDraft={onDraft}
                 onBusy={setDrafting}
-                disabled={deciding}
+                disabled={busy || action.can_act === false}
               />
-            ) : (
-              <CopyLine text={action.copy} />
-            )
-          ) : null}
-          {open && delivery.draft ? (
+            ) : null}
+          </div>
+        </Disclosure>
+      ) : null}
+      <Disclosure
+        title={`History, ${logCount} ${noun(logCount, "entry", "entries")}`}
+        className="action-fold"
+      >
+        <ActionLog action={action} clan={clan} onChanged={onChanged} />
+      </Disclosure>
+      {error ? (
+        <div className="callout callout--warn m-5" role="alert">
+          <span>{error}</span>
+        </div>
+      ) : null}
+      {canDecide && declining ? (
+        <form
+          id={`decline-${action.card_id}`}
+          className="action-decline"
+          onSubmit={(e) => {
+            e.preventDefault();
+            decide("declined");
+          }}
+        >
+          <div className="grid gap-1">
+            <label className="grid gap-1">
+              <span className="field-label">Why decline</span>
+              <select
+                className="select"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              >
+                {(reasons ?? []).map((r) => (
+                  <option key={r} value={r}>
+                    {DECLINE_WORDS[r] ?? r.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="page-head__note">
+              Required on a promotion, demotion or removal. A declined one waits
+              before it comes back.
+            </span>
+          </div>
+          <label className="grid gap-1">
+            <span className="field-label">A note for the log (optional)</span>
+            <input
+              className="input"
+              value={note}
+              maxLength={280}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </label>
+        </form>
+      ) : null}
+      {canDecide ? (
+        <div className="clan-decide">
+          {action.type === "departure" ? (
+            <>
+              <NoteInput
+                value={note}
+                onChange={setNote}
+                placeholder="Why, for the log (optional)"
+              />
+              <button
+                type="button"
+                className="btn btn--danger"
+                disabled={busy}
+                onClick={() => decide("done", { classification: "kick" })}
+              >
+                Kicked
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={busy}
+                onClick={() => decide("done", { classification: "leave" })}
+              >
+                Left
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={() => decide("done", { classification: "ignore" })}
+              >
+                Ignore
+              </button>
+            </>
+          ) : action.type === "away" ? (
             <>
               <a
-                className="btn w-fit"
-                href={`${clanPath(clan.clan_tag)}/today`}
+                className="btn btn--primary"
+                href={`${clanPath(clan.clan_tag)}/members/away`}
                 onClick={(e) => {
-                  if (!navigate || e.metaKey || e.ctrlKey || e.shiftKey) return;
                   e.preventDefault();
-                  navigate(`${clanPath(clan.clan_tag)}/today`);
+                  navigate?.(`${clanPath(clan.clan_tag)}/members/away`);
                 }}
               >
-                Review later · leave open
+                Mark me away
               </a>
-              {grouped && ev.messages.length > 1 ? (
-                <p className="page-head__note m-0">
-                  Each part has its own delivery choice. For a Leader Message,
-                  wait until the game allows another. Sent receipts stay saved
-                  while you wait.
-                </p>
-              ) : null}
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={() => decide("declined")}
+              >
+                I&rsquo;m not away
+              </button>
             </>
+          ) : declining ? (
+            <>
+              <button
+                type="submit"
+                form={`decline-${action.card_id}`}
+                className="btn btn--danger"
+                disabled={busy}
+              >
+                Decline
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setDeclining(false)}
+              >
+                Back
+              </button>
+            </>
+          ) : (
+            <>
+              {removalHeld ? null : (
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  disabled={
+                    busy ||
+                    (grouped
+                      ? !allSent
+                      : !delivery.valid || action.can_complete === false)
+                  }
+                  onClick={() => decide("done")}
+                >
+                  Done
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={() =>
+                  LEADER_TYPES.has(action.type)
+                    ? setDeclining(true)
+                    : decide("declined")
+                }
+              >
+                Decline
+              </button>
+            </>
+          )}
+          {LEADER_TYPES.has(action.type) && !declining ? (
+            <button
+              type="button"
+              className="btn--text ml-auto"
+              aria-expanded={sheet}
+              onClick={() => setSheet((v) => !v)}
+            >
+              Notes and hold
+            </button>
           ) : null}
-          {grouped ? (
-            <div className="grid gap-4">
-              {ev.messages.map((m) => (
-                <UpdateMessage
-                  key={`${action.card_id}-${m.part}`}
-                  message={m}
-                  who={who}
-                  action={action}
-                  clan={clan}
-                  onChanged={onChanged}
-                />
-              ))}
-            </div>
-          ) : !contextInvalid && delivery.draft && open ? (
-            <DeliveryComposer
-              draft={delivery.draft}
-              onChange={delivery.change}
-              onDraft={onDraft}
-              onBusy={setDrafting}
-              disabled={busy || action.can_act === false}
-            />
-          ) : null}
-          {!open && action.sent ? <SentWords receipt={action.sent} /> : null}
-          {!open ? (
-            <div className="page-head__note">
-              {action.status === "withdrawn"
-                ? `${action.withdraw_reason ?? "Withdrawn"} · ${action.withdrawn_at ? dayAt(action.withdrawn_at, zone) : ""}`
-                : `${action.decided_by_name ?? action.decided_by ?? ""} · ${action.decided_at ? dayAt(action.decided_at, zone) : ""}`}
-              {action.outcome?.verified_at
-                ? action.type === "departure"
-                  ? " · confirmed by a leader"
-                  : " · confirmed by the record"
-                : ""}
-              {action.outcome?.flagged_at ? " · no change seen" : ""}
-            </div>
+          {DECIDE_HINT[action.type] ? (
+            <span className="page-head__note basis-full">
+              {DECIDE_HINT[action.type]}
+            </span>
           ) : null}
         </div>
-        <aside className="action-workspace__decision clan-decide">
-          <h3 className="text-[20px] font-semibold mb-4">Decision</h3>
-          {(open && action.can_act) || action.can_reopen || sheet || error ? (
-            <div className="grid gap-3 py-3.5">
-              {action.can_reopen && !removalHeld ? (
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={busy}
-                    onClick={reopen}
-                  >
-                    {busy ? "Reopening…" : "Reopen action"}
-                  </button>
-                  <span className="page-head__note">
-                    Return it to Open. The decline and any sent parts stay in
-                    its log.
-                  </span>
-                </div>
-              ) : null}
-              {open && action.can_act ? (
-                action.type === "departure" ? (
-                  <div className="flex flex-wrap gap-2">
-                    <NoteInput
-                      value={note}
-                      onChange={setNote}
-                      placeholder="why, for the log (optional)"
-                    />
-                    <button
-                      type="button"
-                      className="btn btn--danger"
-                      disabled={busy}
-                      onClick={() => decide("done", { classification: "kick" })}
-                    >
-                      Kicked
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--primary"
-                      disabled={busy}
-                      onClick={() =>
-                        decide("done", { classification: "leave" })
-                      }
-                    >
-                      Left
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--quiet"
-                      disabled={busy}
-                      onClick={() =>
-                        decide("done", { classification: "ignore" })
-                      }
-                    >
-                      Ignore
-                    </button>
-                  </div>
-                ) : action.type === "away" ? (
-                  <div className="flex flex-wrap gap-2">
-                    <a
-                      className="btn btn--primary"
-                      href={`${clanPath(clan.clan_tag)}/members/away`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        navigate?.(`${clanPath(clan.clan_tag)}/members/away`);
-                      }}
-                    >
-                      Mark me away
-                    </a>
-                    <button
-                      type="button"
-                      className="btn"
-                      disabled={busy}
-                      onClick={() => decide("declined")}
-                    >
-                      I&rsquo;m not away
-                    </button>
-                  </div>
-                ) : action.type === "awards_standings" ||
-                  action.type === "awards_announcement" ||
-                  action.type === "rules_announcement" ? (
-                  <div className="flex flex-wrap gap-2">
-                    <NoteInput value={note} onChange={setNote} />
-                    <button
-                      type="button"
-                      className="btn btn--primary"
-                      disabled={busy || (grouped ? !allSent : !delivery.valid)}
-                      onClick={() => decide("done")}
-                    >
-                      Done
-                    </button>
-                    <button
-                      type="button"
-                      className="btn"
-                      disabled={busy}
-                      onClick={() => decide("declined")}
-                    >
-                      Decline
-                    </button>
-                  </div>
-                ) : action.type === "welcome" ? (
-                  <div className="flex flex-wrap gap-2">
-                    <NoteInput value={note} onChange={setNote} />
-                    <button
-                      type="button"
-                      className="btn btn--primary"
-                      disabled={busy}
-                      onClick={() => decide("done")}
-                    >
-                      Done
-                    </button>
-                    <button
-                      type="button"
-                      className="btn"
-                      disabled={busy}
-                      onClick={() => decide("declined")}
-                    >
-                      Decline
-                    </button>
-                  </div>
-                ) : !declining ? (
-                  <div className="flex flex-wrap gap-2">
-                    <NoteInput value={note} onChange={setNote} />
-                    <button
-                      type="button"
-                      className="btn btn--primary"
-                      disabled={
-                        busy ||
-                        action.can_complete === false ||
-                        removalHeld ||
-                        !delivery.valid
-                      }
-                      onClick={() => decide("done")}
-                    >
-                      Done
-                    </button>
-                    <button
-                      type="button"
-                      className="btn"
-                      disabled={busy}
-                      onClick={() => setDeclining(true)}
-                    >
-                      Decline
-                      <Icon name="chevron-down" size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--quiet"
-                      onClick={() => setSheet((v) => !v)}
-                    >
-                      Notes & hold
-                    </button>
-                  </div>
-                ) : (
-                  <form
-                    className="flex flex-wrap items-center gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      decide("declined");
-                    }}
-                  >
-                    <select
-                      className="select"
-                      aria-label="Why decline"
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                    >
-                      {(reasons ?? []).map((r) => (
-                        <option key={r} value={r}>
-                          {DECLINE_WORDS[r] ?? r.replaceAll("_", " ")}
-                        </option>
-                      ))}
-                    </select>
-                    <NoteInput value={note} onChange={setNote} />
-                    <button
-                      type="submit"
-                      className="btn btn--danger"
-                      disabled={busy}
-                    >
-                      Decline
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--quiet"
-                      onClick={() => setDeclining(false)}
-                    >
-                      Back
-                    </button>
-                  </form>
-                )
-              ) : null}
-              {sheet ? (
-                <MemberSheet
-                  clanTag={clan.clan_tag}
-                  member={{
-                    player_tag: action.player_tag,
-                    name: action.player_name,
-                    role: action.role_at_raise,
-                    hold: null,
-                  }}
-                  role={who.role}
-                  onChange={onChanged}
-                />
-              ) : null}
-              {error ? (
-                <div className="callout callout--warn" role="alert">
-                  <span>{error}</span>
-                </div>
-              ) : null}
-              {open && action.can_act && LEADER_TYPES.has(action.type) ? (
-                <span className="text-[12.5px] text-ink-faint">
-                  One action, one decision.
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-          <Disclosure
-            title={`History · ${(action.log ?? []).length} ${noun((action.log ?? []).length, "entry", "entries")}`}
-          >
-            <ActionLog action={action} clan={clan} onChanged={onChanged} />
-          </Disclosure>
-        </aside>
-      </div>
+      ) : null}
+      {sheet ? (
+        <div className="p-5 pt-0">
+          <MemberSheet
+            clanTag={clan.clan_tag}
+            member={{
+              player_tag: action.player_tag,
+              name: action.player_name,
+              role: action.role_at_raise,
+              hold: null,
+            }}
+            role={who.role}
+            onChange={onChanged}
+          />
+        </div>
+      ) : null}
     </Panel>
   );
 }
