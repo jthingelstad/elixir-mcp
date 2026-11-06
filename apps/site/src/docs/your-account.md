@@ -44,12 +44,11 @@ privileged role is granted.
 The signup form has an optional **Your player tag** field; plain sign-in
 does not. A malformed tag is refused on the form before any email is sent,
 and an empty field is fine. The tag is kept with the request and applied
-only after you verify: a new account tracks it as its primary player and
-opens on that player's page. An account opened without one opens on
-[Settings › Players & tracking](/settings/players) with the tag field ready,
-and so does one whose tag another account has
-[verified](/docs/verify#a-verified-player-is-yours-alone): that player is
-not added, and Players says why.
+only after you verify, when a new account tracks it as its primary player.
+A new account opens on [Home](/home), whose first steps start with adding
+your player when it has none. A tag another account has
+[verified](/docs/verify#a-verified-player-is-yours-alone) is not added, and
+[Players & tracking](/settings/players) says why.
 A tag sent while signing in to an account that already exists is ignored.
 Signup and sign-in share the same email limits.
 
@@ -99,7 +98,7 @@ Discord account once it is connected to your Elixir account. Connect it
 on **Profile** (**Connect Discord**); Discord asks you to allow Elixir to
 know who you are, and the account it shows is the one linked. One Discord
 account per Elixir account, and one Elixir account per Discord account;
-**Disconnect** on Profile removes it.
+**Disconnect** under **Settings › Connections & agents** removes it.
 
 With no Discord connected yet, **Continue with Discord** uses the email
 address Discord has verified: it signs you in to the Elixir account with
@@ -133,13 +132,14 @@ The players on your account each say who they are to you:
 
 | Relationship | Means | Shows in Players as |
 |---|---|---|
-| primary | you: what every tool means when no player is named | you |
-| alt | also you, under another tag | alt |
-| friend | someone you follow on purpose | friend |
-| watching | anyone else you added | watching |
+| primary | you: what every tool means when no player is named | Your main player |
+| alt | also you, under another tag | Also you |
+| friend | someone you follow on purpose | under Friends |
+| watching | anyone else you added | under Watching |
 
-Your first player is your primary. **Make primary** on another player's
-page moves it there, and the old primary becomes watching. Your primary
+Your first player is your primary, which the pages call your main player.
+**Make main player** on another player's page moves it there, and the old
+primary becomes watching. Your primary
 cannot be removed while you track other players: make another one
 primary first. Your primary and your alts are the players you can
 [prove are yours](/docs/verify), and the ones your milestone emails and
@@ -147,8 +147,8 @@ Clan go by. A player another account has verified cannot be your
 primary or an alt; you can still follow it as a friend or watch it. If
 another account verifies a player that was your primary or an alt, it
 leaves your account, your timeline says so, and an ended primary leaves
-you with none: Players and Home say so until you make another
-player primary or add yours. Friends and watched players are covered in
+you with none: Players says so until you make another player your main
+player or add yours. Friends and watched players are covered in
 [Follow a friend](/docs/follow-a-friend) and
 [Watch any player](/docs/watch-a-player).
 
@@ -157,7 +157,7 @@ recording it: see [What Elixir records](/docs/recording).
 
 ## Your time zone
 
-**Settings › Profile › Timezone** sets the times Elixir
+**Settings › Profile › Time zone** sets the times Elixir
 shows, how a date in a question from a connected app resolves, the local
 times in tool responses and the days and times your emails name. Storage
 stays in UTC; only the reading changes. A new account starts on the time
@@ -172,8 +172,8 @@ browser's when you are not.
 ## Your limits
 
 Your limits set how many players and clans you can record and how many
-tool calls you can make a day; **Settings › Profile** shows each limit
-beside what you use. Leader and Family are earned in the game and read every
+tool calls you can make a day; **Settings › Usage and limits** shows each
+limit beside what you use. Leader and Family are earned in the game and read every
 time you use Elixir: Leader while one of your verified players leads or
 co-leads a clan you track, Family while a collector you run is active. There
 is nothing to ask for, and a tier goes when its ground goes; what you already
@@ -183,10 +183,12 @@ track stays. Partner is granted by hand. The tiers and their numbers are on
 ## Feedback
 
 Every part of Elixir takes feedback, and all of it lands in one place:
-**Send feedback** at the foot of Settings', Ladder's and Elixir
-Clan's rail (a sheet over the page you are on), **Report this** beside an Clan action, Standing and
-the award races, **Something wrong on this page?** on every docs page,
-and **Send feedback about this email** in every email's footer. Each
+**Help** on the top bar, on any page once you are signed in; **Send
+feedback** at the foot of Clan's pages and on Settings' Feedback page; **Send
+feedback about Ladder** at the foot of Ladder's Season tab; **Report this**
+beside a Clan action, Standing and the award races; **Something wrong on this
+page?** on every docs page; and **Send feedback** in every product email's
+footer. Each
 note carries where it was written and what it is about (the page, the
 player, the clan action, the call or the email), so you write only what
 you think. Sending feedback needs you signed in; without an account,
@@ -194,7 +196,7 @@ write to [admin@poapkings.com](mailto:admin@poapkings.com).
 
 Every item is answered, by Elixir's maintainer, sometimes with help
 from AI agents. **Settings › Feedback** (linked
-from Help as well) lists what you have sent
+from Help) lists what you have sent
 with its state and the maintainer's answer, and an item's own page
 shows the whole thread: answer an answer with **Reply** and the two
 stay linked. Each answer is an item on your [timeline](/docs/timeline),

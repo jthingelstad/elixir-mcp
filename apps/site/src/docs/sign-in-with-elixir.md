@@ -8,7 +8,7 @@ navTitle: "Sign in with Elixir"
 icon: log-in
 lede: "Elixir's family apps sign you in with your Elixir account, and create one if you are new: no consent page, and one grant you can see and end in Settings. Other apps can ask too, for less, and you approve each one."
 reviewed: "2026-10-12 against contract 11.11.3"
-callout: ["Open it at Settings › Connections & agents and agents", "/settings/connections", "Open Connections and agents"]
+callout: ["Open it at Settings › Connections & agents", "/settings/connections", "Open Connections & agents"]
 ---
 
 # Sign in with Elixir

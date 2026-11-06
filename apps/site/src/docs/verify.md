@@ -28,7 +28,7 @@ the challenge.
 1. Pick the player, under **Settings › Players & tracking › Verify**. The page lists your
    primary player and your alts, the claims that are yours to prove; a
    friend or a player you merely watch is theirs. Players are added under
-   Tracking, as always; Verify only proves them.
+   Players & tracking; Verify only proves them.
 2. Elixir names eight cards and shows them the way the game lays a deck
    out: two rows of four. The eight are **your own deck**: the one you
    played most in your last ten recorded Trophy Road battles, with two
