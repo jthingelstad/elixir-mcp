@@ -250,6 +250,7 @@ test("4.0.0: no retired name survives in a declaration, a note, a docs pointer o
     /\bbattleCount\b|\bthreeCrownWins\b|\bcollectionLevel\b/,
     /lifetime\.as_of\b/,
     /segment was omitted|omitted answers the corpus/,
+    /\btenure_days\b/, // 11.16.0: a clan entry's roster.left[]; Clan's own evidence keeps it, outside these sources
   ];
   const declared = JSON.stringify(declarations);
   const docsDir = path.join(here, "../../../apps/site/src/docs");

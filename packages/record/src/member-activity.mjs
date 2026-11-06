@@ -1,8 +1,8 @@
 import { typesForModeGroup } from "@elixir-mcp/contracts";
 import { notBoatDefense } from "./boat-defense-sql.mjs";
 
-/** A week's battles run Monday reset to Monday reset (A13), the clock its
- *  donations and race close already keep. `weeks` name Monday midnight. */
+/** A member's week runs Monday reset to Monday reset (A13), battles and
+ *  donations both. `weeks` name Monday midnight. */
 const RESET = "interval '10 hours'";
 
 /** Clan-scoped counters for the member drill-down. A current member's
@@ -30,13 +30,13 @@ export async function memberActivityWeeks(
         where bp.player_tag=$1 and bp.clan_tag=$2 and bp.type=any($6::text[])
           and bp.battle_time >= greatest(w."from" + ${RESET},$4::timestamptz)
           and bp.battle_time < least(w."to" + ${RESET},$5::timestamptz)) as ranked_battles,
-       case when $4::timestamptz > w."from" then null else (select max(s.donations)::int from player_snapshot_daily s
+       case when $4::timestamptz > w."from" + ${RESET} then null else (select max(s.donations)::int from player_snapshot_daily s
         where s.player_tag=$1 and s.clan_tag=$2
           and s.snapshot_kind in ('daily','pre_reset')
-          and s.observed_at >= greatest(w."from",$4::timestamptz)
-          and s.observed_at < least(w."to",$5::timestamptz)
+          and s.observed_at >= greatest(w."from" + ${RESET},$4::timestamptz)
+          and s.observed_at < least(w."to" + ${RESET},$5::timestamptz)
           and s.snapshot_date::timestamp >= w."from"
-          and s.snapshot_date::timestamp < least(w."to",$5::timestamptz)) end as donations
+          and s.snapshot_date::timestamp < least(w."to" + ${RESET},$5::timestamptz)) end as donations
      from weeks w order by w."from"`,
     [
       playerTag,

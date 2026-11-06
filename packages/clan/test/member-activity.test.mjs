@@ -248,3 +248,105 @@ test("a same-day rejoin withholds cumulative counters and omits earlier weeks", 
     "a later unversioned counter cannot enter a fixed earlier page window",
   );
 });
+
+test("a member's weeks run reset to reset, so every battle listed falls in a week it totals", async () => {
+  const joined = "2026-09-28T05:00:00.000Z";
+  const battleAt = "2026-09-28T06:00:00.000Z";
+  const asked = [];
+  const bodies = (joinedAt) => ({
+    clans_roster: { clan_tag: clan, members: [member] },
+    clans_participation: {
+      clan_tag: clan,
+      weeks: [
+        {
+          iso_week: "2026-W39",
+          from: "2026-09-21T00:00:00Z",
+          to: "2026-09-28T00:00:00Z",
+          covers: { to: "2026-09-28T00:00:00Z" },
+        },
+        {
+          iso_week: "2026-W40",
+          from: "2026-09-28T00:00:00Z",
+          to: "2026-10-05T00:00:00Z",
+          partial: true,
+          covers: { to: "2026-10-04T04:00:00Z" },
+        },
+      ],
+      members: [{ ...member, joined_observed_at: joinedAt }],
+      meta: { as_of: "2026-10-04T04:00:00Z" },
+    },
+    battles_query: {
+      battles: [
+        {
+          battle_id: "morning",
+          battle_time: battleAt,
+          me: { clan_tag: clan, outcome: "win", crowns: 1 },
+          opponents: [{ crowns: 0 }],
+        },
+        {
+          battle_id: "before-the-window",
+          battle_time: "2026-09-21T05:00:00.000Z",
+          me: { clan_tag: clan, outcome: "win", crowns: 1 },
+          opponents: [{ crowns: 0 }],
+        },
+      ],
+    },
+    elixir_coverage: { observation_intervals: [] },
+  });
+  const read = (joinedAt) =>
+    createMemberActivity({
+      now,
+      mcp: {
+        callTool: async (_t, name) => ({
+          ok: true,
+          status: 200,
+          body: bodies(joinedAt)[name],
+        }),
+      },
+      weeklyCounts: async (_c, _p, weeks, from) => {
+        asked.push(from);
+        return weeks.map((w) => ({
+          iso_week: w.iso_week,
+          battles: 1,
+          ranked_battles: 0,
+          donations: 5,
+        }));
+      },
+    })(clan, "token", tag);
+
+  // Joined Monday before the reset: the morning belongs to the week closing.
+  const r = await read(joined);
+  assert.equal(asked[0], joined);
+  assert.deepEqual(
+    r.weeks.map((w) => [w.iso_week, w.from, w.to, w.partial, w.donations]),
+    [
+      ["2026-W39", joined, "2026-09-28T10:00:00.000Z", true, null],
+      [
+        "2026-W40",
+        "2026-09-28T10:00:00.000Z",
+        "2026-10-04T04:00:00.000Z",
+        true,
+        5,
+      ],
+    ],
+  );
+  assert.deepEqual(
+    r.battles.map((b) => b.battle_id),
+    ["morning"],
+  );
+  const holding = r.weeks.filter((w) => w.from <= battleAt && battleAt < w.to);
+  assert.deepEqual(
+    holding.map((w) => w.iso_week),
+    ["2026-W39"],
+  );
+
+  // Here all along: the window opens at the first week's reset, not midnight.
+  const whole = await read("2026-08-01T00:00:00Z");
+  assert.equal(whole.window.from, "2026-09-21T10:00:00.000Z");
+  assert.equal(whole.weeks[0].partial, false);
+  assert.equal(whole.weeks[0].to, "2026-09-28T10:00:00.000Z");
+  assert.ok(
+    !whole.battles.some((b) => b.battle_id === "before-the-window"),
+    "a Monday morning before the first reset is in no week, so it is not listed",
+  );
+});

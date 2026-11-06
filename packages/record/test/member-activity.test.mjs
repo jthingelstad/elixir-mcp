@@ -102,6 +102,26 @@ test("a member's week counts battles from Monday's reset to the next, on battle_
     );
     assert.equal(rows[0].battles, 2, "at-reset and last-morning, nothing else");
     assert.equal(rows[0].ranked_battles, 2);
+    // Donations on the same clock: a read before the reset is the week closing.
+    await db.query(`insert into player_snapshot_daily(player_tag,snapshot_date,snapshot_kind,clan_tag,donations,observed_at)
+      values ('#9QY','2026-09-28','pre_reset','#PYL',80,'2026-09-28T09:00:00Z'),
+        ('#9QY','2026-09-30','daily','#PYL',12,'2026-09-30T12:00:00Z')`);
+    const donated = await memberActivityWeeks(
+      db,
+      "#PYL",
+      "#9QY",
+      [
+        {
+          iso_week: "2026-W40",
+          from: "2026-09-28T00:00:00Z",
+          to: "2026-10-05T00:00:00Z",
+        },
+      ],
+      "2026-09-28T05:00:00Z",
+      "2026-10-20T00:00:00Z",
+    );
+    assert.equal(donated[0].donations, 12);
+    assert.equal(donated[0].battles, 2);
   } finally {
     await scratch.drop();
   }
