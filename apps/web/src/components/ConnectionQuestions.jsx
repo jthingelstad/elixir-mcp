@@ -4,7 +4,7 @@ import {
   QuestionSuggestions,
   starterQuestions,
 } from "./QuestionSuggestions.jsx";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 
 export function ConnectionQuestions({ claimsKey, navigate }) {
   const { data, loading, error, refresh } = useFirstAnswer(claimsKey, {
@@ -76,7 +76,7 @@ export function ConnectionQuestions({ claimsKey, navigate }) {
                 </p>
                 <button
                   className="btn"
-                  onClick={() => navigate(`${CONSOLE}/account/tracking`)}
+                  onClick={() => navigate(`${SETTINGS}/players`)}
                 >
                   Add your player
                 </button>

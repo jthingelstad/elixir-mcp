@@ -116,7 +116,12 @@ export function verifySite({ outDir, designCss }) {
     const rel = clean.replace(/^\//, "");
     if (rel === "") return files.has("index.html");
     if (path.basename(rel).includes(".")) return files.has(rel);
-    if (rel === "console" || rel.startsWith("console/"))
+    if (
+      rel === "console" ||
+      rel.startsWith("console/") ||
+      rel === "settings" ||
+      rel.startsWith("settings/")
+    )
       return files.has("app.html");
     return files.has(path.join(rel, "index.html"));
   }

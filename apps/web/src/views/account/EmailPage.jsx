@@ -1,15 +1,8 @@
 import { useWrite } from "@elixir-mcp/client";
-import {
-  Disclosure,
-  Icon,
-  Link,
-  useClock,
-  WriteError,
-  PageHead,
-} from "@elixir-mcp/ui";
+import { Icon, Link, useClock, WriteError, PageHead } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
 import { keys, useEmailPrefs } from "../../lib/queries.js";
-import { CONSOLE } from "../../lib/console.js";
+import { SETTINGS } from "../../lib/settings.js";
 
 /** What each email is, in a line, and the one condition worth saying
  *  under it. The names are the API's (KIND_LABELS); the product chip
@@ -32,7 +25,7 @@ const ABOUT = {
     note: "only if you run one",
   },
   milestone: {
-    what: "Big firsts in your players’ records.",
+    what: "Big firsts in your main player's record.",
   },
   clan_actions_waiting: {
     what: "Actions in your clan waiting for your decision.",
@@ -107,11 +100,20 @@ export function EmailPage() {
     k.last_send_id ? (
       <Link
         className="mail-pref__last"
-        to={`${CONSOLE}/account/activity/e/${k.last_send_id}`}
+        to={`${SETTINGS}/emails/${k.last_send_id}`}
       >
         The last one ›
       </Link>
     ) : null;
+  const when_ = (k) => {
+    const note = ABOUT[k.kind]?.note;
+    if (k.sends)
+      return `${k.sends.weekday}s, ${k.sends.time} ${k.sends.zone}${note ? ` · ${note}` : ""}`;
+    if (k.kind === "milestone") return "Checked hourly";
+    if (k.kind === "clan_actions_waiting")
+      return `Each morning, when something waits · ${note}`;
+    return "When answered";
+  };
   const row = (k) => (
     <li key={k.kind} className="mail-pref__row">
       <div className="mail-pref__body">
@@ -119,20 +121,9 @@ export function EmailPage() {
           {k.label} <Source product={k.product} />
         </h3>
         <p className="mail-pref__what">{ABOUT[k.kind]?.what}</p>
-        {ABOUT[k.kind]?.note ? (
-          <p className="mail-pref__note">{ABOUT[k.kind].note}</p>
-        ) : null}
         {latest(k)}
       </div>
-      <span className="mail-pref__when">
-        {k.sends
-          ? `${k.sends.weekday} · ${k.sends.time} ${k.sends.zone}`
-          : k.kind === "milestone"
-            ? "Checked hourly"
-            : k.kind === "clan_actions_waiting"
-              ? "After the morning review"
-              : "When answered"}
-      </span>
+      <span className="mail-pref__when">{when_(k)}</span>
       <Switch
         on={k.enabled}
         label={`${k.label} email`}
@@ -143,11 +134,8 @@ export function EmailPage() {
   );
   return (
     <div className="mailprefs">
-      <div className="page__crumb">
-        <Link to={`${CONSOLE}/account/profile`}>‹ Profile</Link>
-      </div>
       <PageHead
-        title="Emails from Elixir"
+        title="Emails"
         sub="Choose what arrives in your inbox."
         aside={
           kinds.length > 0 ? (
@@ -173,7 +161,8 @@ export function EmailPage() {
       {query.isError ? (
         <div className="callout callout--warn" role="alert">
           <span>
-            Email settings could not be read.{" "}
+            <strong>Email settings could not be read.</strong> Your choices are
+            unchanged.{" "}
             <button
               type="button"
               className="btn--text"
@@ -189,7 +178,7 @@ export function EmailPage() {
           Scheduled
         </h2>
         {isLoading ? (
-          <p className="page__lede">Loading…</p>
+          <p className="page__lede">Reading your email choices.</p>
         ) : (
           <ul className="mail-pref__list">{weekly.map(row)}</ul>
         )}
@@ -200,19 +189,28 @@ export function EmailPage() {
         </h2>
         <ul className="mail-pref__list">{happens.map(row)}</ul>
       </section>
+      <section className="mail-pref" aria-labelledby="also-email">
+        <h2 id="also-email" className="section-title">
+          Also
+        </h2>
+        <p className="page-head__note m-0">
+          Product news: sent through our newsletter service. Every issue has its
+          own unsubscribe link.
+        </p>
+      </section>
       <section className="mail-pref" aria-labelledby="sent-to-you">
         <div className="flex items-center justify-between gap-3">
           <h2 id="sent-to-you" className="section-title">
             Sent to you
           </h2>
-          <Link to={`${CONSOLE}/account/activity/emails`}>All sent ›</Link>
+          <Link to={`${SETTINGS}/emails/sent`}>All sent ›</Link>
         </div>
         {data?.recent?.length > 0 ? (
           data.recent.slice(0, 4).map((r) => (
             <Link
               key={r.send_id}
               className="mailsent"
-              to={`${CONSOLE}/account/activity/e/${r.send_id}`}
+              to={`${SETTINGS}/emails/${r.send_id}`}
             >
               <span className="mailsent__day">{whenDay(r.sent_at)}</span>
               <Source product={product.get(r.kind)} />
@@ -224,15 +222,13 @@ export function EmailPage() {
           <p className="page-head__note">Nothing sent yet.</p>
         )}
       </section>
-      <Disclosure title="About email delivery">
-        <p className="page-head__note m-0">
-          Each switch also appears at the foot of its email. Scheduled mail
-          sends at most once per kind and subject a day; milestones and feedback
-          answers arrive as events happen. Switching mail off leaves recording
-          unchanged. Sent records open the email as it was sent; sign-in codes
-          are service mail and are not listed here.
-        </p>
-      </Disclosure>
+      <p className="st-foot">
+        Each switch also appears at the foot of its email. Scheduled mail sends
+        at most once per kind and subject a day. Milestones and feedback answers
+        arrive as events happen. Switching mail off leaves recording unchanged.
+        Sent records open the email as it was sent. Sign-in codes always come,
+        and are not listed here.
+      </p>
     </div>
   );
 }

@@ -99,6 +99,29 @@ export function loadTinylytics() {
  *  site's settings in Tinylytics. */
 const EMBED_SRC = "https://tinylytics.app/js/script.js";
 
+/** The pages under a Settings place that are pages, not records. */
+const SETTINGS_PAGES = new Set([
+  "verify",
+  "sent",
+  "requests",
+  "discord",
+  "new",
+]);
+
+/**
+ * Settings reports the kind of page, never which record: a page of your own
+ * records (a player, an email, a call, a note, an agent) has no id on it.
+ */
+function settingsLocation(pathname, origin) {
+  const [, , first, second, third] = pathname.split("/");
+  let path = first ? `/settings/${first}` : "/settings";
+  if (first === "agents") {
+    if (third) path += `/${third}`;
+  } else if (SETTINGS_PAGES.has(second)) path += `/${second}`;
+  else if (third === "verify") path += "/verify";
+  return { path, url: new URL(path, origin).toString() };
+}
+
 /**
  * The embed records one hit at document load; its own pushState counting is
  * switched off (data-spa="false", above). Bridge route changes to the collector as virtual page hits
@@ -116,6 +139,8 @@ export function analyticsLocation(
 ) {
   if (pathname === "/clan" || pathname.startsWith("/clan/"))
     return clanLocation(pathname, origin);
+  if (pathname === "/settings" || pathname.startsWith("/settings/"))
+    return settingsLocation(pathname, origin);
   // Segments are read on the app path and the page is reported under the
   // prefix. The app only runs under /console; any other path is read as
   // it stands.

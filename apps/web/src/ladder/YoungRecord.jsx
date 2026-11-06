@@ -1,6 +1,6 @@
 import { useInitialTime, Panel } from "@elixir-mcp/ui";
 import { Link, noun } from "@elixir-mcp/ui";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { useMyClans } from "../lib/queries.js";
 import { youngRecord } from "./ladder.js";
 
@@ -8,7 +8,7 @@ const STEPS = {
   verify: {
     text: "Verify your player: one battle proves it is yours. Clan asks for it before you act as an Elder or above.",
     action: "Verify your player",
-    to: `${CONSOLE}/account/verify`,
+    to: `${SETTINGS}/players/verify`,
   },
   clan: {
     text: "Your player is verified and your clan is recorded, so Clan can show your clan and what your game role can do there.",

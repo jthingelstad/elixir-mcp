@@ -8,10 +8,10 @@ import {
   useMyGateways,
 } from "../lib/queries.js";
 import { CardPicker } from "../components/CardPicker.jsx";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 
 /**
- * Status ▸ Collectors ▸ Run a collector — raising a hand, on a page of
+ * Settings ▸ Collectors ▸ Run a collector: raising a hand, on a page of
  * its own (Jamie, 2026-09-11: it sat on top of the fleet list, and a
  * form is not a thing to read past on the way to a table).
  *
@@ -43,14 +43,14 @@ export function RaiseCollector({ navigate }) {
       <PageHead
         crumb={
           <div className="page__crumb">
-            <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
+            <Link to={`${SETTINGS}/collectors`}>‹ Collectors</Link>
           </div>
         }
         title={runsOne ? "Run another collector" : "Run a collector"}
         sub={
           runsOne
-            ? "Every collector you run is yours; one active collector already raises your limits to Family. Name the new machine, pick its card, and raise your hand again."
-            : "A collector is a machine that fetches for the record on a schedule. While it is active, it raises your limits to Family, and nothing else."
+            ? "Every collector you run is yours. One active collector already raises your limits to Family. Name the new machine, pick its card, and raise your hand again."
+            : "A collector is a machine that fetches for the record on a schedule. While it is active, it raises your limits to Family."
         }
       />
 
@@ -65,7 +65,7 @@ export function RaiseCollector({ navigate }) {
             style={{ width: "100%", maxWidth: "24rem", padding: "9px 12px" }}
           />
           <p className="footnote" style={{ margin: "10px 0 0" }}>
-            Private, seen by you and the owner, nobody else. Call it what the
+            Private: seen by you and the owner, nobody else. Call it what the
             box is actually called.
           </p>
         </div>
@@ -76,8 +76,9 @@ export function RaiseCollector({ navigate }) {
           <div style={{ padding: "14px 16px" }}>
             <CardPicker cards={cards} value={card} onChange={setCard} />
             <p className="footnote" style={{ margin: "10px 0 0" }}>
-              Public: the card is the collector&rsquo;s name on every collectors
-              page. Pick a favourite; one that is dimmed is already another
+              Public: the card is the collector&rsquo;s name on every list. Its
+              status and fetch counts are public, credited to your main player.
+              Pick a favourite. One that is dimmed is already another
               collector&rsquo;s.
             </p>
           </div>
@@ -101,11 +102,11 @@ export function RaiseCollector({ navigate }) {
             setBusy(false);
             if (r.ok) {
               navigate(
-                `${CONSOLE}/status/collectors/${encodeURIComponent(r.data.card ?? name.trim())}`,
+                `${SETTINGS}/collectors/${encodeURIComponent(r.data.card ?? name.trim())}`,
               );
               return;
             }
-            setNote(r.data?.message ?? "Could not send that.");
+            setNote(r.data?.message ?? "Could not change that.");
             // The catalog may have moved: a refusal means somebody took
             // the card since it was drawn.
             loadCards();
@@ -119,7 +120,7 @@ export function RaiseCollector({ navigate }) {
         </a>
         <span className="footnote">
           {note ||
-            "Approved at once: its token waits on its own page, to reveal once."}
+            "Approved at once. Its token waits on its own page, to reveal once."}
         </span>
       </div>
     </>

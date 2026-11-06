@@ -20,7 +20,7 @@ const OWN_VIEW_REFUSALS = {
   ],
   not_verified_member: [
     "None of your verified players is a current member of this clan.",
-    "Your own Clan view needs a player of yours you have verified in Elixir (Console, Verify) who is in this clan now; an unverified claim reads nothing here. elixir_my_players lists your players and which are verified.",
+    "Your own Clan view needs a player of yours you have verified in Elixir (Settings, Players & tracking, Verify) who is in this clan now; an unverified claim reads nothing here. elixir_my_players lists your players and which are verified.",
   ],
 };
 

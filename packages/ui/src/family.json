@@ -45,7 +45,7 @@
   },
   "account": {
     "label": "Your account",
-    "path": "/console/account/profile"
+    "path": "/settings/profile"
   },
   "sampleBattle": {
     "label": "See a recorded battle",

@@ -9,7 +9,8 @@ official API is current-state only) and serves it on one origin,
 | `/`, `/docs`, `/updates` | the site and the public docs | `apps/site` (Eleventy) |
 | `/home` | Home: your day, timeline and friends; where signing in lands | `apps/web/src/home` |
 | `/signin`, `/data/service` | signing in, and the signed-in service page | `apps/web` |
-| `/console` | what is not yet moved, Settings, Explore, agents, Admin; the word is retired from what a reader sees, and `apps/web/src/lib/moved.js` redirects what moved | `apps/web` |
+| `/settings` | Settings: your account and agents, with its left rail | `apps/web` |
+| `/console` | what is not yet moved: Explore, collectors, Admin; the word is retired from what a reader sees, and `apps/web/src/lib/moved.js` redirects what moved | `apps/web` |
 | `/ladder` | Ladder: your season, read back | `apps/web/src/ladder` |
 | `/clan`, `/api/clan` | Elixir Clan: running a clan on its policy | `packages/clan*` |
 | `/battle/<id>` | a battle's public page | `services/web-api` |

@@ -290,7 +290,7 @@ test("linking needs the session that asked, and one Discord per account", async 
   });
   assert.equal(
     moved.headers.location,
-    "/console/account/profile?discord=expired",
+    "/settings/connections/discord?discord=expired",
   );
 
   // The member's Discord user is already someone's.
@@ -301,7 +301,7 @@ test("linking needs the session that asked, and one Discord per account", async 
   });
   assert.equal(
     taken.headers.location,
-    "/console/account/profile?discord=taken",
+    "/settings/connections/discord?discord=taken",
   );
 
   const linked = await roundTrip({
@@ -311,7 +311,7 @@ test("linking needs the session that asked, and one Discord per account", async 
   });
   assert.equal(
     linked.headers.location,
-    "/console/account/profile?discord=linked",
+    "/settings/connections/discord?discord=linked",
   );
   assert.equal(sent.at(-1).intent, "link");
   const me = JSON.parse(

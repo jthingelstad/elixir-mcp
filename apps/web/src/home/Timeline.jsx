@@ -8,7 +8,7 @@ import {
   TagText,
   useClock,
 } from "@elixir-mcp/ui";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { useMyTimeline, useTimelineEvidence } from "../lib/queries.js";
 import {
   TimelineEvidence,
@@ -58,7 +58,7 @@ export function HomeTimeline() {
       <Empty
         title="Nothing in the last seven days"
         action={
-          <Link to={`${CONSOLE}/account/tracking`} className="btn btn--sm">
+          <Link to={`${SETTINGS}/players`} className="btn btn--sm">
             Choose who you track
           </Link>
         }

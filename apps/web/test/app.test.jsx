@@ -153,7 +153,7 @@ test(
   async () => {
     // The table moved off Overview with the 2026-09-09 split: Overview
     // reports these, Tracking is where they can be changed.
-    window.history.pushState({}, "", "/console/account/tracking");
+    window.history.pushState({}, "", "/settings/players");
     global.fetch = mockFetch({
       "GET /api/me": [
         200,
@@ -230,23 +230,21 @@ test(
       ],
     });
     render(<App />);
-    // The list: what is tracked, how it relates to you, and how fresh it
-    // is. One table over players and clans — a player and a clan are both
-    // something you track.
-    expect(await screen.findByText("#20JJJ2CCRU")).toBeTruthy();
+    // The list: what is tracked, how it relates to you, and how fresh it is.
+    await screen.findByText(/Your main player/);
     // In the page; the bar's account button says the name too.
     expect(
       within(document.querySelector("main")).getByText("Jamie"),
     ).toBeTruthy();
-    expect(screen.getByText("you")).toBeTruthy();
     expect(screen.getAllByText("Manage").length).toBeGreaterThan(0);
     // The controls are NOT in the row: a row with four controls in it is a
     // form pretending to be a list.
     expect(screen.queryByRole("switch")).toBeNull();
-    // Both kinds can be added, from the same page.
-    expect(screen.getAllByRole("button", { name: "Track" })).toHaveLength(2);
+    // Each kind is added on its own tab of the same page.
+    expect(screen.getByRole("button", { name: "Track" })).toBeTruthy();
     expect(screen.getByLabelText("Player tag")).toBeTruthy();
-    expect(screen.getByLabelText("Clan tag")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Clans" }));
+    expect(await screen.findByLabelText("Clan tag")).toBeTruthy();
   },
 );
 
@@ -257,7 +255,7 @@ test(
     window.history.pushState(
       {},
       "",
-      `/console/account/tracking/${encodeURIComponent("#20JJJ2CCRU")}`,
+      `/settings/players/${encodeURIComponent("#20JJJ2CCRU")}`,
     );
     global.fetch = mockFetch({
       "GET /api/me": [
@@ -287,35 +285,30 @@ test(
       "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
     });
     render(<App />);
-    await screen.findByRole("switch", { name: "Notifications" });
+    await screen.findByRole("switch", { name: "On your timeline" });
     expect(
-      screen.getByText(/controls inclusion in Your friends this week/),
+      screen.getByText(/whether they appear in Your friends this week/),
     ).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "Email settings" }).getAttribute("href"),
-    ).toBe("/console/account/profile/email");
+    ).toBe("/settings/emails");
     expect(
       within(document.querySelector("main")).getByText("Jamie"),
     ).toBeTruthy();
-    expect(screen.getByText("active")).toBeTruthy();
-    // The consequence sits beside the control, and the control asks once
-    // before it writes (2026-10-08): a stray click stopped a recording.
-    const stop = screen.getByRole("button", { name: "Stop tracking" });
-    expect(
-      screen.getByText(
-        "History stays for at least a year after the last person stops tracking.",
-      ),
-    ).toBeTruthy();
+    expect(screen.getByText("Recording", { selector: ".chip" })).toBeTruthy();
+    // The control asks once before it writes (2026-10-08): a stray click
+    // stopped a recording. What it costs is in the question.
     const writes = () =>
       global.fetch.mock.calls.filter(([, init]) => init?.method === "POST");
-    fireEvent.click(stop);
-    const ask = screen.getByRole("group", {
-      name: "Stop tracking #20JJJ2CCRU?",
-    });
-    expect(within(ask).getByText("#20JJJ2CCRU")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Stop tracking" }));
+    const ask = document.querySelector("dialog.kit-confirm");
+    expect(ask.textContent).toContain("Stop tracking Jamie?");
+    expect(ask.textContent).toContain("History stays");
     expect(writes()).toEqual([]);
-    fireEvent.click(within(ask).getByRole("button", { name: "Cancel" }));
-    expect(screen.getByRole("button", { name: "Stop tracking" })).toBeTruthy();
+    fireEvent.click(
+      within(ask).getByRole("button", { name: "Cancel", hidden: true }),
+    );
+    expect(document.querySelector("dialog.kit-confirm")).toBeNull();
     expect(writes()).toEqual([]);
   },
 );
@@ -329,7 +322,7 @@ test(
   "a tag the game did not find is an error with the fix beside it",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/console/account/tracking/2PP0V90Y");
+    window.history.pushState({}, "", "/settings/players/2PP0V90Y");
     const posts = [];
     let claims = [
       {
@@ -402,10 +395,11 @@ test(
     expect(within(alert).getByText("Tag not found")).toBeTruthy();
     expect(alert.textContent).toContain("so nothing is being recorded");
     // Never "active", never a healthy poll, for a tag the game does not know.
-    expect(screen.getByText("tag not found")).toBeTruthy();
-    expect(screen.queryByText("active")).toBeNull();
+    expect(
+      screen.getByText("Tag not found", { selector: ".chip" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("Recording", { selector: ".chip" })).toBeNull();
     expect(screen.getByText(/the game does not know this tag/)).toBeTruthy();
-    expect(screen.queryByText(/recording active/)).toBeNull();
     // The fix is in the callout: the right tag in this one's place.
     const input = within(alert).getByLabelText("Correct tag");
     fireEvent.change(input, { target: { value: "2PP0V90Y" } });
@@ -420,6 +414,14 @@ test(
     fireEvent.click(
       within(alert).getByRole("button", { name: "Track this tag instead" }),
     );
+    // A correction stops the old tag, so it asks first.
+    expect(posts).toEqual([]);
+    fireEvent.click(
+      within(document.querySelector("dialog.kit-confirm")).getByRole("button", {
+        name: "Track this tag instead",
+        hidden: true,
+      }),
+    );
     await waitFor(() => expect(posts).toHaveLength(2));
     // Added first, as the primary, so the typo can be stopped.
     expect(posts).toEqual([
@@ -427,9 +429,7 @@ test(
       { player_tag: "#2PP0V90Y", action: "remove" },
     ]);
     await waitFor(() =>
-      expect(window.location.pathname).toBe(
-        "/console/account/tracking/2PYQ8GJ0",
-      ),
+      expect(window.location.pathname).toBe("/settings/players/2PYQ8GJ0"),
     );
   },
 );
@@ -587,12 +587,13 @@ test(
     await waitFor(() =>
       expect(window.location.pathname).toBe("/home/timeline"),
     );
-    // Activity's own pages keep their addresses.
+    // Activity's own pages moved to Usage in Settings.
     cleanup();
     window.history.pushState({}, "", "/console/account/activity/requests");
     render(<App />);
-    await waitFor(() => expect(document.querySelector(".page")).toBeTruthy());
-    expect(window.location.pathname).toBe("/console/account/activity/requests");
+    await waitFor(() =>
+      expect(window.location.pathname).toBe("/settings/usage/requests"),
+    );
   },
 );
 
@@ -616,6 +617,7 @@ test("every app section in the route table has a route under /console, and nothi
     "data/service",
     "home/{-$tab}",
     "ladder/{-$page}",
+    "settings/$",
     "signin",
   ]);
   const segments = all.filter((s) => s[0] === "console");
@@ -807,7 +809,7 @@ test(
   },
 );
 
-describe("an agent's console (2026-09-23)", () => {
+describe("an agent's pages in Settings", () => {
   const PERSON = {
     authenticated: true,
     kind: "person",
@@ -863,45 +865,48 @@ describe("an agent's console (2026-09-23)", () => {
     quiet: [],
   });
 
+  const PRINCIPALS = {
+    agents: [
+      {
+        account_id: 7,
+        public_id: "abcd1234",
+        name: "poap-bot",
+        status: "approved",
+        clans: [{ clan_tag: "#J2RGCRVG", name: "POAP KINGS" }],
+        tokens: [],
+      },
+    ],
+  };
+
   test(
-    "the rail head switches consoles, and each reads only its own account",
+    "the switcher is gone: an agent is a page with five tabs, and each reads only its own account",
     { timeout: 20000 },
     async () => {
       const fetch = mockFetch({
         "GET /api/me": [200, PERSON],
+        "GET /api/me/principals": [200, PRINCIPALS],
         "GET /api/me/timeline": [200, timeline("Yours.")],
         "GET /api/agent/abcd1234": [200, AGENT],
         "GET /api/agent/abcd1234/timeline": [200, timeline("The agent's.")],
       });
       global.fetch = fetch;
-      window.history.pushState({}, "", "/console/account/profile");
+      window.history.pushState({}, "", "/settings/agents/abcd1234/overview");
       render(<App />);
-      // Your console: the head names you, and offers the agent.
-      // (The rail's head, not the bar's account button beside it.)
-      const head = await waitFor(() =>
-        within(document.querySelector(".rail")).getByRole("button", {
-          name: /Jamie/,
-        }),
-      );
-      fireEvent.click(head);
-      fireEvent.click(await screen.findByRole("link", { name: /poap-bot/ }));
-      await waitFor(() =>
-        expect(window.location.pathname).toBe(
-          "/console/agent/abcd1234/overview",
-        ),
-      );
-      // On the agent's console the head names the agent, tinted, and its
-      // rail has no person's pages.
-      const agentHead = await screen.findByRole("button", { name: /poap-bot/ });
+      const tabs = await screen.findByRole("tablist", { name: "This agent" });
       expect(
-        agentHead.closest(".rail__switch").getAttribute("data-scoped"),
-      ).toBe("true");
-      const rail = document.querySelector(".rail");
-      expect(rail.textContent).toContain("Settings");
-      expect(rail.textContent).not.toContain("Verify");
-      expect(rail.textContent).not.toContain("Collections");
+        within(tabs)
+          .getAllByRole("tab")
+          .map((t) => t.textContent),
+      ).toEqual([
+        "Overview",
+        "What it reads",
+        "Usage",
+        "Connections",
+        "Settings",
+      ]);
+      expect(document.querySelector(".rail__switch")).toBeNull();
       // Its Timeline reads the agent's route and never yours.
-      fireEvent.click(screen.getByRole("link", { name: /^Timeline/ }));
+      fireEvent.click(screen.getByRole("link", { name: "Open its timeline" }));
       await screen.findByText("The agent's.");
       const paths = fetch.mock.calls.map(([p]) => p);
       expect(paths).toContain("/api/agent/abcd1234/timeline");
@@ -919,6 +924,7 @@ describe("an agent's console (2026-09-23)", () => {
       const posts = [];
       global.fetch = mockFetch({
         "GET /api/me": [200, PERSON],
+        "GET /api/me/principals": [200, PRINCIPALS],
         "GET /api/agent/abcd1234": [
           200,
           {
@@ -964,12 +970,10 @@ describe("an agent's console (2026-09-23)", () => {
           return [200, { ok: true }];
         },
       });
-      window.history.pushState({}, "", "/console/agent/abcd1234/tracking");
+      window.history.pushState({}, "", "/settings/agents/abcd1234/reads");
       render(<App />);
       await screen.findByText("Rivals");
-      expect(screen.getByText("acts for")).toBeTruthy();
       expect(screen.getByText("Rival Star")).toBeTruthy();
-      expect(screen.getByText(/the clan only 2 of 3/)).toBeTruthy();
       // The clan it acts for offers no removal; the rival can take its place.
       expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(2);
       fireEvent.click(
@@ -987,9 +991,10 @@ describe("an agent's console (2026-09-23)", () => {
     async () => {
       global.fetch = mockFetch({
         "GET /api/me": [200, PERSON],
+        "GET /api/me/principals": [200, PRINCIPALS],
         "GET /api/agent/zzzz9999": [404, { error: "not_found" }],
       });
-      window.history.pushState({}, "", "/console/agent/zzzz9999/timeline");
+      window.history.pushState({}, "", "/settings/agents/zzzz9999/timeline");
       render(<App />);
       expect(
         await screen.findByText(/No agent here on your account/),

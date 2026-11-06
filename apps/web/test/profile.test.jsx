@@ -51,14 +51,12 @@ test(
   "the page names the address and the profile shows it with the timezone",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/console/account/profile");
+    window.history.pushState({}, "", "/settings/profile");
     render(<App />);
     await waitFor(() => screen.getByRole("heading", { name: "Profile" }));
     expect(screen.getAllByText("jamie@example.com").length).toBeGreaterThan(0);
-    const tz = screen.getByRole("combobox", { name: "Timezone" });
+    const tz = screen.getByRole("combobox", { name: "Time zone" });
     expect(tz.value).toBe("America/Chicago");
-    expect(
-      screen.getByText("Leader limits", { selector: ".chip" }),
-    ).toBeTruthy();
+    expect(screen.getByText(/Leader limits/)).toBeTruthy();
   },
 );

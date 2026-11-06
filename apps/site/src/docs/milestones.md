@@ -7,7 +7,7 @@ order: 4
 navTitle: "Milestones"
 icon: sparkles
 lede: "A short note when you or an alt reach a big first: a new arena, a promotion, a new best, a legendary badge. Never a move down, never the same moment twice."
-console: ["Your email switches", "/console/account/profile/email", "Settings ▸ Emails from Elixir"]
+console: ["Your email switches", "/settings/emails", "Settings ▸ Emails"]
 reviewed: "2026-10-08 for legendary badges as milestones, contract 11.5.2"
 ---
 
@@ -73,7 +73,7 @@ that player's season on [Ladder](/docs/ladder).
 ## Turning it off
 
 **Milestones** is one switch on
-[Settings ▸ Emails from Elixir](/console/account/profile/email), and every milestone
+[Settings ▸ Emails](/settings/emails), and every milestone
 email has a link to turn it off. The switch is for all your players at
 once. [Turn an email off](/docs/turn-an-email-off) has the rest, and
 [Email](/docs/email) every other kind.

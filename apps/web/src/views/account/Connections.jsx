@@ -1,20 +1,25 @@
 import { useWrite } from "@elixir-mcp/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Fresh,
-  Icon,
-  Link,
-  useClock,
-  WriteError,
-  useFlash,
-  Panel,
+  ConfirmAction,
   Empty,
+  ErrorState,
+  Fresh,
+  Link,
   PageHead,
-  Table,
+  Panel,
+  Row,
+  Rows,
+  WriteError,
+  useClock,
+  useFlash,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api.js";
+import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
+import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
 import {
+  keys,
   rootFor,
   scopedKey,
   useConnections,
@@ -22,61 +27,209 @@ import {
   useMyPrincipals,
 } from "../../lib/queries.js";
 import { useScope } from "../../lib/scope.js";
-import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
-import { ClanRefs } from "../../components/ClanRefs.jsx";
-import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
-import { CONSOLE } from "../../lib/console.js";
+import { SETTINGS } from "../../lib/settings.js";
 import { NewAgent } from "./Agents.jsx";
-import { TimelineDiscord } from "./TimelineDiscord.jsx";
+import { TimelineDiscordState } from "./TimelineDiscord.jsx";
+import { Facts } from "./parts.jsx";
 
 /**
- * Connections — everything that can call Elixir with your authority.
- *
- * One typed table, not two. An OAuth client you consented to and an
- * agent holding its own key are different mechanisms with the same
- * consequence: they read your record and they spend your daily budget.
- * Splitting them across two screens meant the question "what can reach
- * my data" had two answers and neither was complete.
- *
- * Each row says which DOOR it uses (/mcp is you; /a/<id>/mcp is an
- * agent) and whether it acts AS YOU or FOR A CLAN, because those are the
- * two things that decide what a caller sees.
+ * Connections & agents: the apps and agents that can act with your
+ * authority. Apps you connected act as you; an agent acts for a clan with
+ * its own key. An agent's own Connections tab is the same list of clients,
+ * without the agents, the questions or a new key.
  *
  * The headline failure gets a callout of its own: a credential that no
- * longer works but is still being presented. It reads nothing, but it
- * will keep trying until somebody stops it, and nothing else on the
- * account would ever mention it.
+ * longer works but is still being presented. It reads nothing, but it will
+ * keep trying until somebody stops it, and nothing else on the account
+ * would ever mention it.
  */
-export function Connections({ me, navigate }) {
+const from = (u) =>
+  u?.ip ? `from ${u.ip}${u.country ? ` (${u.country})` : ""}` : null;
+
+function Refusal({ r, onDismiss }) {
+  const key = r.kind === "service_token";
+  return (
+    <div className="callout callout--warn">
+      <span>
+        <strong>
+          {key
+            ? "An old key is still trying to connect."
+            : "A client you disconnected may still be running."}
+        </strong>{" "}
+        {r.attempts} refused {r.attempts === 1 ? "attempt" : "attempts"}
+        {r.ip ? (
+          <>
+            {" from "}
+            <span className="mono">{r.ip}</span>
+            {r.country ? ` (${r.country})` : ""}
+          </>
+        ) : null}
+        {r.last_seen ? (
+          <>
+            , last <Fresh ts={r.last_seen} />
+          </>
+        ) : null}
+        .{" "}
+        {key
+          ? "A revoked or suspended agent key is still being presented: it reads nothing, and keeps trying until whatever holds it is stopped or re-keyed."
+          : "It reads nothing, and keeps trying until it is stopped."}
+      </span>
+      {/* Dismissing is per row, one credential, one source, one day: it says
+          "I have seen today's", and one still happening tomorrow says so
+          again. */}
+      <button
+        type="button"
+        className="btn btn--sm"
+        title="It returns if it is presented again another day."
+        onClick={onDismiss}
+      >
+        Dismiss
+      </button>
+    </div>
+  );
+}
+
+function ClientRow({ client: c, scope, disconnect, onSaved, acts }) {
   const { whenDay } = useClock();
-  // On an agent's console (2026-09-23) this page is the agent's: the
-  // clients connected AS it, the refusals of its key, and its own door.
-  // Yours lists your clients and one row per agent you own, each opening
-  // its console.
+  const name = c.client_name ?? "A client";
+  const place = from(c.usage);
+  return (
+    <Row
+      title={
+        <>
+          {name} <span className="hint">{acts}</span>
+        </>
+      }
+      detail={
+        <>
+          Connected {whenDay(c.created_at)}
+          {place ? ` ${place}` : " from an address not seen"}.{" "}
+          {c.usage?.at ? (
+            <>
+              Last call <Fresh ts={c.usage.at} />.{" "}
+              {(c.usage.calls_7d ?? 0).toLocaleString()} calls, 7 days.
+            </>
+          ) : (
+            "No calls."
+          )}
+        </>
+      }
+      right={
+        <span className="st-row-actions">
+          <CapabilityEditor
+            name={name}
+            scope={c.scope ?? "cr:read"}
+            onSave={async (next) => {
+              const r = await api.setConnectionScope(c.family_id, next, scope);
+              if (r.ok) onSaved();
+              return r;
+            }}
+          />
+          <ConfirmAction
+            label="Disconnect"
+            title={`Disconnect ${name}?`}
+            body="It stops reading your record at once. Anything still running keeps trying, and is refused. You can connect it again at any time."
+            confirm="Disconnect"
+            run={() => disconnect.run(c.family_id)}
+          />
+        </span>
+      }
+    />
+  );
+}
+
+function AgentRow({ agent: a }) {
+  const { whenDay } = useClock();
+  const clan = (a.clans ?? [])[0];
+  const key = (a.tokens ?? []).find((k) => !k.revoked_at);
+  const active = a.status === "approved";
+  return (
+    <Row
+      title={
+        <>
+          {a.name ?? a.public_id}{" "}
+          <span className={active ? "chip chip--ok" : "chip chip--warn"}>
+            {active ? "Active" : "Suspended"}
+          </span>
+        </>
+      }
+      detail={
+        <>
+          {clan ? `Acts for ${clan.name ?? clan.clan_tag}.` : "Acts as you."}{" "}
+          {a.last_call_at ? (
+            <>
+              Last call <Fresh ts={a.last_call_at} />.
+            </>
+          ) : (
+            "No calls yet."
+          )}{" "}
+          {(a.calls_7d ?? 0).toLocaleString()} calls, 7 days.
+          {key?.created_at ? ` Key made ${whenDay(key.created_at)}.` : ""}
+        </>
+      }
+      right="Open ›"
+      href={`${SETTINGS}/agents/${a.public_id}/overview`}
+    />
+  );
+}
+
+function DiscordPanel({ me }) {
+  return (
+    <Panel
+      title="Discord"
+      titleAs="h2"
+      action={
+        <Link className="btn btn--sm" to={`${SETTINGS}/connections/discord`}>
+          Manage Discord
+        </Link>
+      }
+    >
+      <Facts
+        rows={[
+          me?.features?.discord_login || me?.discord
+            ? [
+                "Your Discord",
+                me?.discord
+                  ? `Connected as ${me.discord.username}`
+                  : "Not connected.",
+              ]
+            : null,
+          ["Timeline to Discord", <TimelineDiscordState key="state" />],
+        ]}
+      />
+    </Panel>
+  );
+}
+
+export function Connections({ me, navigate }) {
   const scope = useScope();
-  const conns = useConnections().data;
-  const connections = conns?.connections ?? null;
+  const read = useConnections();
+  const conns = read.data;
   const refusals = conns?.refusals ?? [];
-  const principals = useMyPrincipals().data?.agents ?? null;
-  const agents = scope ? [] : principals;
+  const clients = conns?.connections ?? [];
+  const principals = useMyPrincipals();
+  const everyAgent = scope ? [] : (principals.data?.agents ?? []);
+  const agents = everyAgent.filter((a) => !a.removed_at);
+  const removed = everyAgent.filter((a) => a.removed_at);
   const [copied, flash] = useFlash();
+  const [adding, setAdding] = useState(false);
 
   const invalidate = useInvalidate();
-  // A dismissed refusal also clears the rail's alert dot, which reads
-  // the console's `me`: invalidate both.
+  // A dismissed refusal also clears the rail's alert dot, which reads the
+  // account's `me`: invalidate both.
   const load = () => {
     invalidate(scopedKey(scope, "connections"));
     invalidate(rootFor(scope));
   };
-  // Disconnecting is a security write: a refusal is said above the list,
-  // which refetches only after one that took.
   const disconnect = useWrite(
     (familyId) => api.revokeConnection(familyId, scope),
     { invalidate: () => load() },
   );
-  // Dismissing is optimistic - the row goes as you click - and the
-  // read is refetched afterwards either way, so a failed dismissal
-  // brings the row back rather than leaving a lie on screen.
+  const restore = useWrite(api.setPrincipalRemoved, {
+    invalidate: [keys.me],
+  });
+  // Dismissing is optimistic, and the read is refetched afterwards either
+  // way, so a failed dismissal brings the row back.
   const queryClient = useQueryClient();
   const dismiss = useMutation({
     mutationFn: (body) => api.dismissRefusal(body, scope),
@@ -97,407 +250,226 @@ export function Connections({ me, navigate }) {
     onSettled: load,
   });
 
-  // The door this console's account connects at.
   const door = scope ? `/a/${scope}/mcp` : "/mcp";
   const url = `https://elixir.poapkings.com${door}`;
-  const clients = connections ?? [];
-  // Each agent you own is one row: a client connected as it is listed on
-  // its console, not here.
-  const keyed = agents ?? [];
-  const [showInactive, setShowInactive] = useState(false);
-  const [addingAgent, setAddingAgent] = useState(false);
-  const inactive = keyed.filter((a) => a.status !== "approved");
-  const active = keyed.filter((a) => a.status === "approved");
-  const total = clients.length + active.length;
-  const visibleAgents = showInactive ? keyed : active;
+  const copy = (
+    <button
+      type="button"
+      className="btn btn--sm"
+      onClick={() => {
+        navigator.clipboard?.writeText(url);
+        flash();
+      }}
+    >
+      {copied ? "Copied" : scope ? "Copy its address" : "Copy /mcp address"}
+    </button>
+  );
 
-  return (
+  if (read.isError && !conns)
+    return (
+      <ErrorState
+        title="Your connections could not be read just now"
+        onRetry={read.refetch}
+        busy={read.isFetching}
+      >
+        Nothing has changed. Try again in a moment.
+      </ErrorState>
+    );
+
+  const empty = conns && clients.length === 0 && (
+    <Empty
+      title="Nothing connected yet"
+      titleAs="h2"
+      action={
+        <span className="st-actions">
+          {copy}
+          {scope ? null : (
+            <a className="btn btn--sm" href="/docs/quickstart">
+              Quickstart
+            </a>
+          )}
+        </span>
+      }
+    >
+      Add <span className="mono break-all">{url}</span> as a remote MCP server
+      in your client.
+      {scope
+        ? null
+        : " The sign-in uses the same email as this account, and what it may do is yours to set on the consent screen."}
+    </Empty>
+  );
+
+  const callouts = (
     <>
-      <PageHead
-        title="Connections"
-        sub={
-          scope
-            ? "Every client connected as this agent. All of it spends your daily budget."
-            : "Manage the clients and agents that can act with your authority."
-        }
-      />
-
-      {refusals.map((r, i) => (
-        <div
-          key={i}
-          className="callout callout--warn"
-          style={{ marginBottom: "14px", alignItems: "center" }}
-        >
-          <Icon name="circle-dashed" size={17} />
-          <span>
-            <span className="mono">{r.reason}</span> · {r.attempts}{" "}
-            {r.attempts === 1 ? "refused attempt" : "refused attempts"}
-            {r.ip ? (
-              <>
-                {" from "}
-                <span className="mono">{r.ip}</span>
-                {r.country ? ` (${r.country})` : ""}
-              </>
-            ) : null}
-            {r.last_seen ? (
-              <>
-                {", last "}
-                <Fresh ts={r.last_seen} />
-              </>
-            ) : null}
-            .{" "}
-            {r.kind === "service_token"
-              ? "A revoked or suspended agent key, or a service token, is still being presented: it reads nothing, and keeps trying until whatever holds it is stopped or re-keyed."
-              : "Usually a client you disconnected that is still running: it reads nothing, and keeps trying until it is stopped."}
-          </span>
-          {/* An alert you cannot acknowledge teaches you to ignore
-              alerts. Dismissing is per row, one credential, one source,
-              one day, so it says "I have seen today's", and a refusal
-              that is still happening tomorrow says so again. */}
-          <button
-            type="button"
-            className="link"
-            style={{ marginLeft: "auto", flex: "none", fontSize: "13px" }}
-            title="Dismiss. It returns if the credential is presented again another day."
-            onClick={() => dismiss.mutate({ refusal_id: r.refusal_id })}
-          >
-            Dismiss
-          </button>
-        </div>
+      {refusals.map((r) => (
+        <Refusal
+          key={r.refusal_id}
+          r={r}
+          onDismiss={() => dismiss.mutate({ refusal_id: r.refusal_id })}
+        />
       ))}
-      {refusals.length > 1 && (
-        <p style={{ margin: "-6px 0 14px", fontSize: "13px" }}>
+      {refusals.length > 1 ? (
+        <p className="m-0">
           <button
             type="button"
-            className="link"
+            className="btn btn--sm"
             onClick={() => dismiss.mutate({ all: true })}
           >
             Dismiss all {refusals.length}
-          </button>
+          </button>{" "}
+          <span className="hint">
+            Each returns if it is presented again another day.
+          </span>
         </p>
-      )}
+      ) : null}
+      <WriteError error={disconnect.error} className="field-error" />
+    </>
+  );
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          flexWrap: "wrap",
-          padding: "0 0 13px",
-        }}
-      >
-        <span style={{ fontSize: "14px", fontWeight: 600 }}>
-          {total} active connection{total === 1 ? "" : "s"}
-        </span>
-        {inactive.length ? (
+  if (scope)
+    return (
+      <div className="st-page">
+        {callouts}
+        <div className="st-group">
+          <p className="m-0">
+            Every client connected as this agent. All of it spends your daily
+            budget.
+          </p>
+          {clients.length ? copy : null}
+        </div>
+        {clients.length ? (
+          <Panel title="Connected" titleAs="h2">
+            <Rows>
+              {clients.map((c) => (
+                <ClientRow
+                  key={c.family_id}
+                  client={c}
+                  scope={scope}
+                  disconnect={disconnect}
+                  onSaved={load}
+                  acts="For a clan"
+                />
+              ))}
+            </Rows>
+          </Panel>
+        ) : (
+          empty
+        )}
+      </div>
+    );
+
+  return (
+    <div className="st-page">
+      <PageHead
+        title="Connections & agents"
+        sub="The apps and agents that can act with your authority."
+        aside={clients.length ? copy : null}
+      />
+      {callouts}
+      {conns && clients.length === 0 ? (
+        empty
+      ) : (
+        <Panel
+          title="Apps you connected"
+          titleAs="h2"
+          action={<span className="hint">{clients.length} active</span>}
+        >
+          <Rows>
+            {clients.map((c) => (
+              <ClientRow
+                key={c.family_id}
+                client={c}
+                scope={null}
+                disconnect={disconnect}
+                onSaved={load}
+                acts="As you"
+              />
+            ))}
+          </Rows>
+        </Panel>
+      )}
+      <ConnectionQuestions
+        claimsKey={(me?.claims ?? [])
+          .map((c) => `${c.player_tag}:${c.is_primary}`)
+          .join(",")}
+        navigate={navigate}
+      />
+      <Panel
+        title="Your agents"
+        titleAs="h2"
+        action={
           <button
             type="button"
-            className="btn btn--quiet"
-            aria-pressed={showInactive}
-            onClick={() => setShowInactive(!showInactive)}
+            className="btn btn--sm"
+            aria-expanded={adding}
+            onClick={() => setAdding(!adding)}
           >
-            {showInactive ? "Hide" : "Show"} inactive agents ({inactive.length})
-          </button>
-        ) : null}
-        {!scope && (
-          <button
-            className="btn"
-            style={{ marginLeft: "auto" }}
-            aria-expanded={addingAgent}
-            onClick={() => setAddingAgent(!addingAgent)}
-          >
-            <Icon name="plus" size={16} />
             New agent
           </button>
-        )}
-        <button
-          className={"btn btn--primary" + (scope ? " ml-auto" : "")}
-          onClick={() => {
-            navigator.clipboard?.writeText(url);
-            flash();
-          }}
-        >
-          {copied ? "Copied" : `Copy ${scope ? "its" : "/mcp"} URL`}
-        </button>
-      </div>
-
-      {addingAgent && !scope ? (
-        <Panel aria-label="New agent">
-          <NewAgent />
-        </Panel>
-      ) : null}
-
-      {connections !== null && total === 0 && keyed.length === 0 ? (
-        <Empty
-          title="Nothing connected yet"
-          action={
-            <a className="btn" href="/docs/quickstart">
-              Quickstart <Icon name="arrow-right" size={15} />
-            </a>
-          }
-        >
-          Add <span className="mono">{url}</span> as a remote MCP server in your
-          client. The sign-in uses the same email as this account, and what it
-          may do is yours to set on the consent screen.
-        </Empty>
-      ) : (
-        <>
-          <WriteError error={disconnect.error} className="field-error mb-2" />
-          <Table
-            minWidth={760}
-            columns={[
-              { head: "Caller", cell: (r) => r.caller },
-              { head: "Acts", cell: (r) => r.acts },
-              { head: "May do", wrap: true, cell: (r) => r.may },
-              { head: "Last call", cell: (r) => r.last },
-              { head: "7D", num: true, cell: (r) => r.calls },
-              { head: "", className: "text-right", cell: (r) => r.open },
-            ]}
-            rowKey={(r) => r.key}
-            rows={[
-              ...clients.map((c) => {
-                const agent = scope
-                  ? { kind: "agent", public_id: scope }
-                  : c.principal;
-                return {
-                  key: c.family_id,
-                  caller: (
-                    <>
-                      <span
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "9px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: "var(--accent-bright)",
-                            display: "flex",
-                          }}
-                        >
-                          <Icon name="plug" size={16} />
-                        </span>
-                        <span style={{ fontWeight: 600, fontSize: "14px" }}>
-                          {c.client_name ?? "client"}
-                        </span>
-                      </span>
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: "12px",
-                          color: "var(--ink-faint)",
-                          marginTop: "3px",
-                        }}
-                      >
-                        connected {whenDay(c.created_at)}
-                        {c.usage?.ip ? ` · ${c.usage.ip}` : ""}
-                        {c.usage?.country ? ` (${c.usage.country})` : ""}
-                      </span>
-                    </>
-                  ),
-                  acts: (
-                    <>
-                      <span
-                        className="btn btn--sm"
-                        style={{ cursor: "default" }}
-                      >
-                        {agent ? "for a clan" : "as you"}
-                      </span>
-                      <span
-                        className="mono"
-                        style={{
-                          display: "block",
-                          color: "var(--ink-faint)",
-                          marginTop: "4px",
-                        }}
-                      >
-                        {agent
-                          ? `/${agent.kind === "agent" ? "a" : "i"}/${agent.public_id}/mcp`
-                          : "/mcp"}
-                      </span>
-                    </>
-                  ),
-                  may: (
-                    <>
-                      <CapabilityEditor
-                        scope={c.scope ?? "cr:read"}
-                        onSave={async (next) => {
-                          const r = await api.setConnectionScope(
-                            c.family_id,
-                            next,
-                            scope,
-                          );
-                          if (r.ok) load();
-                          return r;
-                        }}
-                      />
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: "12px",
-                          color: "var(--ink-faint)",
-                        }}
-                      >
-                        granted at sign-in
-                      </span>
-                    </>
-                  ),
-                  last: (
-                    <>
-                      {/* When it last CALLED, not when it last collected a
-                          token: a client that refreshes on a timer looks
-                          busy by the second measure and may have done
-                          nothing for weeks. */}
-                      {/* Only a real call: the token-refresh fallback showed
-                          "7m ago" beside 0 calls (console walk 2). */}
-                      {c.usage?.at ? <Fresh ts={c.usage.at} /> : "no calls"}
-                    </>
-                  ),
-                  calls: c.usage?.calls_7d ?? 0,
-                  open: (
-                    <button
-                      className="btn btn--sm"
-                      disabled={disconnect.busy}
-                      onClick={() => disconnect.run(c.family_id)}
-                    >
-                      Disconnect
-                    </button>
-                  ),
-                };
-              }),
-              ...visibleAgents.map((a) => ({
-                key: a.account_id ?? a.public_id,
-                caller: (
-                  <>
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "9px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          color:
-                            a.status === "approved"
-                              ? "var(--accent-bright)"
-                              : "var(--warn)",
-                          display: "flex",
-                        }}
-                      >
-                        <Icon name="shield-check" size={16} />
-                      </span>
-                      <Link
-                        style={{ fontWeight: 600, fontSize: "14px" }}
-                        to={`${CONSOLE}/agent/${a.public_id}/overview`}
-                      >
-                        {a.name ?? a.public_id}
-                      </Link>
-                    </span>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: "12px",
-                        color:
-                          a.status === "approved"
-                            ? "var(--ink-faint)"
-                            : "var(--warn)",
-                        marginTop: "3px",
-                      }}
-                    >
-                      {a.status === "approved"
-                        ? "agent · its own key"
-                        : "suspended · key reads as invalid"}
-                    </span>
-                  </>
-                ),
-                acts: (
-                  <>
-                    <span className="btn btn--sm" style={{ cursor: "default" }}>
-                      {(a.clans ?? []).length > 0 ? "for a clan" : "as you"}
-                    </span>
-                    <span
-                      className="mono"
-                      style={{
-                        display: "block",
-                        color: "var(--ink-faint)",
-                        marginTop: "4px",
-                      }}
-                    >
-                      /a/{a.public_id}/mcp
-                    </span>
-                  </>
-                ),
-                may: (
-                  <>
-                    <ClanRefs
-                      clans={a.clans}
-                      navigate={navigate}
-                      empty="your record"
-                    />
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: "12px",
-                        color: "var(--ink-faint)",
-                      }}
-                    >
-                      set on the agent
-                    </span>
-                  </>
-                ),
-                last: <Fresh ts={a.last_call_at} />,
-                calls: a.calls_7d ?? 0,
-                open: (
-                  <button
-                    className="btn btn--sm"
-                    onClick={() =>
-                      navigate(`${CONSOLE}/agent/${a.public_id}/overview`)
-                    }
-                  >
-                    Open
-                  </button>
-                ),
-              })),
-            ]}
-          />
-        </>
-      )}
-
-      <p
-        className="footnote"
-        style={{ margin: "14px 2px 0", maxWidth: "78ch" }}
+        }
       >
-        A client signed in as you sees your players, your clans and your feed.
-        An agent sees what its own key allows and, if it is a clan&rsquo;s
-        agent, that clan, which is what makes the two different.
-      </p>
-
-      {/* The timeline cross-post stays one page for now; an agent's is on its
-          own timeline. */}
-      {!scope && (
-        <section
-          id="timeline-discord"
-          className="mt-6 flex flex-wrap items-center justify-between gap-3"
-        >
-          <h2 className="m-0 text-[15px]">Timeline to Discord</h2>
-          <TimelineDiscord />
-        </section>
-      )}
-
-      {/* The first-answer questions are about YOU; an agent's console
-          has no person to ask them about. */}
-      {!scope && (
-        <div style={{ marginTop: "24px" }}>
-          <ConnectionQuestions
-            claimsKey={(me?.claims ?? [])
-              .map((c) => `${c.player_tag}:${c.is_primary}`)
-              .join(",")}
-            navigate={navigate}
+        <p className="panel__body m-0 text-ink-faint">
+          An agent acts for a clan rather than for you, with its own key and its
+          own news feed. What it does never lands in your history. It spends
+          your daily calls.
+        </p>
+        {adding ? (
+          <NewAgent
+            limit={me?.entitlements?.agents?.limit}
+            onClose={() => setAdding(false)}
           />
-        </div>
-      )}
-    </>
+        ) : null}
+        {principals.data && agents.length === 0 ? (
+          <p className="panel__body m-0 text-ink-faint">
+            No agents yet. An agent is for a clan you already record. It answers
+            your clanmates without any of them signing in.
+          </p>
+        ) : (
+          <Rows>
+            {agents.map((a) => (
+              <AgentRow key={a.account_id ?? a.public_id} agent={a} />
+            ))}
+          </Rows>
+        )}
+        {removed.length > 0 ? (
+          <details className="panel__body">
+            <summary>Removed agents ({removed.length})</summary>
+            <p className="text-ink-faint">
+              Suspended and out of view. It keeps its address and everything it
+              has learned.
+            </p>
+            <WriteError error={restore.error} className="field-error" />
+            <Rows>
+              {removed.map((a) => (
+                <Row
+                  key={a.account_id}
+                  title={
+                    <Link to={`${SETTINGS}/agents/${a.public_id}/settings`}>
+                      {a.name ?? a.public_id}
+                    </Link>
+                  }
+                  right={
+                    <button
+                      type="button"
+                      className="btn btn--sm"
+                      disabled={restore.busy}
+                      onClick={() => restore.run(a.account_id, false)}
+                    >
+                      Restore
+                    </button>
+                  }
+                />
+              ))}
+            </Rows>
+          </details>
+        ) : null}
+      </Panel>
+      <DiscordPanel me={me} />
+      <p className="st-foot">
+        A client signed in as you sees your players, your clans and your news.
+        An agent sees what its own key allows and, if it is a clan&rsquo;s
+        agent, that clan.
+      </p>
+    </div>
   );
 }

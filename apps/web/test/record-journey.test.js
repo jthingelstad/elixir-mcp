@@ -88,7 +88,7 @@ test("a 404 on the profile, before anything was captured, says the tag was not f
   expect(j.state).toBe("Tag not found");
   expect(j.notFound).toBe(true);
   expect(j.text).toContain("We couldn't find #P0Y in Clash Royale");
-  expect(j.to).toBe("/console/account/tracking/P0Y");
+  expect(j.to).toBe("/settings/players/P0Y");
   // Any other failure is only a failed attempt; so is a 404 on a player
   // the record already holds, or on the battle log alone.
   expect(

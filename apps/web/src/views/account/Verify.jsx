@@ -1,11 +1,13 @@
 import { useInitialTime, Panel, PageHead } from "@elixir-mcp/ui";
-import { clockAt, Icon, Tag, TagText, useClock } from "@elixir-mcp/ui";
+import { clockAt, Icon, Link, Tag, TagText, useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
 import { keys, useInvalidate, useVerifyList } from "../../lib/queries.js";
 import { DeckGrid } from "../../components/DeckGrid.jsx";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
-import { CONSOLE } from "../../lib/console.js";
+import { SETTINGS } from "../../lib/settings.js";
+import { tagFromPath } from "../../lib/tag-url.js";
+import { Crumb } from "./parts.jsx";
 
 /**
  * Verify — prove that this account controls a player.
@@ -29,7 +31,7 @@ function reducedMotion() {
 
 /** A moment of the proof on the account's clock, to the second: the
  *  read and the battle are seconds apart, and the zone is the one the
- *  rest of the console prints (it was the browser's until 2026-09-23). */
+ *  rest of Elixir prints (it was the browser's until 2026-09-23). */
 function clock(iso, zone) {
   return clockAt(iso, zone, { seconds: true }) || "not yet";
 }
@@ -47,13 +49,13 @@ function messageFor(r) {
     case "rate_limited":
       return "Too many starts in the last hour. Give it a little while and try again.";
     case "quota_exceeded":
-      return "Your limits have no free player slot for a new tag. Remove one under Tracking, or verify a player you already track.";
+      return "Your limits have no free place for a new tag. Stop tracking one under Players & tracking, or verify a player you already track.";
     case "not_entitled":
       return "Only a person's account can hold a claim.";
     case "not_yours":
-      return "Only your primary player or an alt can be verified. Change the relationship under Tracking if this player is yours.";
+      return "Only your main player or another of yours can be verified. Change the relationship on their page if this player is yours.";
     case "not_tracked":
-      return "Add the player under Tracking first, as yours or an alt, then verify it here.";
+      return "Add the player under Players & tracking first, as yours, then verify it here.";
     case "invalid_tag":
       return "That does not look like a player tag. Tags look like #2PP0V90Y.";
     case "timeout":
@@ -64,7 +66,7 @@ function messageFor(r) {
   }
 }
 
-export function Verify({ refresh, navigate }) {
+export function Verify({ refresh, navigate, tag = null }) {
   const { zone } = useClock();
   // The list is a read; the challenge below is a live protocol and
   // keeps its own state.
@@ -80,6 +82,11 @@ export function Verify({ refresh, navigate }) {
 
   const load = () => invalidate(keys.verifyList);
   const listErr = listQuery.error ? messageFor(listQuery.error) : "";
+
+  // A player's own Verify (`/settings/players/<tag>/verify`) opens on its
+  // challenge, once: Back returns to the picker, and it does not start over.
+  const asked = useRef(false);
+  const wanted = tag ? tagFromPath(tag) : null;
 
   // Refreshing the page resumes the open challenge.
   useEffect(() => {
@@ -154,8 +161,21 @@ export function Verify({ refresh, navigate }) {
     startRef.current = start;
   });
 
+  // Starting is a challenge read, not a change to the record; a player who is
+  // not yours, or is already verified, stays on the list and says so.
+  useEffect(() => {
+    if (!wanted || !list || asked.current || challenge) return;
+    if (list.players.some((p) => p.challenge)) return;
+    asked.current = true;
+    const player = list.players.find((p) => p.player_tag === wanted);
+    if (player?.eligible === false || !player)
+      setErr(messageFor({ error: player ? "not_yours" : "not_tracked" }));
+    else if (player.status !== "verified") startRef.current?.(wanted);
+  }, [wanted, list, challenge]);
+
   const header = (
     <PageHead
+      crumb={<Crumb to={`${SETTINGS}/players`}>Players &amp; tracking</Crumb>}
       title="Verify"
       sub={
         <>
@@ -164,7 +184,13 @@ export function Verify({ refresh, navigate }) {
           battle log.
         </>
       }
-    />
+    >
+      <p className="st-note">
+        Verifying lets you act as your clan&rsquo;s Elder, Co-leader or Leader
+        here. Without it you read Clan and act as a member, whatever your role
+        in the game.
+      </p>
+    </PageHead>
   );
 
   if (challenge && challenge.state === "expired")
@@ -174,9 +200,9 @@ export function Verify({ refresh, navigate }) {
         <Panel>
           <div className="panel__body">
             <p className="verify__lead">
-              That challenge timed out after an hour. No harm done: start again
-              today and you get the same eight cards, so a deck you built still
-              counts.
+              <strong>That challenge timed out after an hour.</strong> No harm
+              done. Start again today and you get the same eight cards, so a
+              deck you built still counts.
             </p>
             <div className="verify__actions">
               <button
@@ -253,7 +279,7 @@ export function Verify({ refresh, navigate }) {
                 <span>
                   {verified ? (
                     <>
-                      <strong>Verified</strong> · the proof:{" "}
+                      <strong>Verified.</strong> The proof:{" "}
                       <TagText>
                         {resultLine(challenge.last_battle, zone)}
                       </TagText>
@@ -261,15 +287,15 @@ export function Verify({ refresh, navigate }) {
                   ) : challenge.last_battle ? (
                     <>
                       <strong>{challenge.matched}</strong> of {challenge.of} in
-                      that deck ·{" "}
+                      that deck. Not this one yet.{" "}
                       <TagText>
                         {resultLine(challenge.last_battle, zone)}
                       </TagText>
                     </>
                   ) : (
-                    <>No battle since you started</>
-                  )}
-                  {" · "}log read {clock(challenge.read_at, zone)}
+                    <>No battle since you started.</>
+                  )}{" "}
+                  Battle log read {clock(challenge.read_at, zone)}
                 </span>
               </div>
               {!verified && (
@@ -285,7 +311,7 @@ export function Verify({ refresh, navigate }) {
               {!verified && !challenge.live_capped && (
                 <p className="verify__hint">
                   A finished battle reaches the game's log within about a
-                  minute. Keep this page open; it checks every 15 seconds, and
+                  minute. Keep this page open: it checks every 15 seconds, and
                   the challenge stays open for an hour.
                 </p>
               )}
@@ -329,9 +355,9 @@ export function Verify({ refresh, navigate }) {
                 <button
                   type="button"
                   className="btn btn--quiet"
-                  onClick={() => navigate?.(`${CONSOLE}/account/tracking`)}
+                  onClick={() => navigate?.(`${SETTINGS}/players`)}
                 >
-                  Go to Tracking
+                  Players &amp; tracking
                 </button>
               </div>
             </div>
@@ -353,7 +379,7 @@ export function Verify({ refresh, navigate }) {
 
   // The picker: only the players that are yours to prove (you and your
   // alts). Friends and watched players are theirs; adding a player at all
-  // is Tracking's job, so this page has one.
+  // is Players & tracking's job, so this page has one.
   const players = (list?.players ?? []).filter((p) => p.eligible !== false);
   return (
     <>
@@ -379,8 +405,12 @@ export function Verify({ refresh, navigate }) {
             <p style={{ color: "var(--ink-faint)" }}>Loading…</p>
           ) : players.length === 0 ? (
             <p className="verify__lead">
-              Nothing to verify yet. Add your player, or an alt, under Tracking
-              first; then it appears here.
+              <strong>Nothing to verify yet.</strong> Add your player, or
+              another of yours, under Players &amp; tracking. Then it appears
+              here.{" "}
+              <Link to={`${SETTINGS}/players#add-player-tag`}>
+                Add your player
+              </Link>
             </p>
           ) : (
             <ul className="verify__list">
@@ -391,7 +421,7 @@ export function Verify({ refresh, navigate }) {
                     {p.status === "verified" && <VerifiedMark />}{" "}
                     <span className="mono">{p.player_tag}</span>
                     <span className="chip chip--tier">
-                      {p.is_primary ? "you" : (p.relationship ?? "watching")}
+                      {p.is_primary ? "Your main player" : "Also you"}
                     </span>
                   </span>
                   {p.status === "verified" ? (
@@ -474,8 +504,9 @@ function VerifiedBurst({ name, battle, seenAfterS }) {
         Verified
       </div>
       <p className="verify__lead">
-        <strong>{name}</strong> is yours. Every agent that asks about you can
-        now be told so.
+        <strong>{name}</strong> is yours. You can now act as your clan&rsquo;s
+        Elder, Co-leader or Leader here, and every agent that asks about you can
+        be told so.
       </p>
       {battle && (
         <p className="verify__result">
@@ -485,9 +516,7 @@ function VerifiedBurst({ name, battle, seenAfterS }) {
       {seenAfterS != null && (
         <p className="verify__seen">
           Elixir saw this battle in the game&rsquo;s public log{" "}
-          <strong>{seenAfterS} seconds</strong> after it was played. That is how
-          closely the record follows you: every battle it reads, every day, with
-          nothing installed.
+          <strong>{seenAfterS} seconds</strong> after it was played.
         </p>
       )}
     </div>

@@ -112,7 +112,7 @@ export function createHandler({
 
   /**
    * The notice after sign-in: where an unverified player's in-game role
-   * (Elder and up) waits for Elixir → Verify. `acknowledged` once the
+   * (Elder and up) waits for Settings → Players → Verify. `acknowledged` once the
    * person has said so for this very list in this session; a new one
    * (another clan, another role) is shown again.
    */

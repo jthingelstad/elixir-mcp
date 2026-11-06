@@ -44,10 +44,10 @@ consumes from Elixir is the JSON API and integrations brief.
 | --- | --- |
 | [The record](record.md) | what Elixir records, for whom, provenance and uncertainty, what is kept |
 | [Accounts and privacy](accounts.md) | the person, their players, verification, what leaves Elixir and to whom |
-| [MCP and agents](agents.md) | the tool surface and what a person's agent may do with the record (its console to be rewritten at step 6, see Structure) |
+| [MCP and agents](agents.md) | the tool surface and what a person's agent may do with the record (an agent is a page in Settings since step 6, see Structure) |
 | [Structure](structure.md) | the 2026-11-05 redesign: how Elixir is arranged, the twelve decisions, every answer and its build step |
 | [Home](home.md) | a person's day: Today, Timeline, Friends, and the first steps of a new account |
-| [Console](console.md) | tracking, settings and the account's machinery, called Settings since step 3b (paths move at step 6, see Structure) |
+| [Console](console.md) | tracking, settings and the account's machinery, called Settings since step 3b, at `/settings` since step 6 (see Structure) |
 | [Timeline](timeline.md) | what a story is, the newsfeed, delivery to Discord, who narrates |
 | [Mail](mail.md) | each kind, who gets it, what it may say (to be rewritten at step 8, see Structure) |
 | [Ladder](ladder.md) | a mirror of a person's own play (its arrangement to be rewritten at step 5, see Structure) |

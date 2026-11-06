@@ -24,7 +24,7 @@ import { json } from "../http.mjs";
 /** How long the callback waits for the relay's reply: under the door's
  *  30 s, with room for the database work after it. */
 const REPLY_WAIT_MS = 12_000;
-const PROFILE = "/console/account/profile";
+const PROFILE = "/settings/connections/discord";
 const SIGNIN = "/signin";
 
 const redirect = (location, cookies = []) => ({

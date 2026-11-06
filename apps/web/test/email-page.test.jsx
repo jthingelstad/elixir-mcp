@@ -93,11 +93,9 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 async function open() {
-  window.history.pushState({}, "", "/console/account/profile/email");
+  window.history.pushState({}, "", "/settings/emails");
   render(<App />);
-  await waitFor(() =>
-    screen.getByRole("heading", { name: "Emails from Elixir" }),
-  );
+  await waitFor(() => screen.getByRole("heading", { name: "Emails" }));
   await waitFor(() => screen.getByText("Clan report"));
 }
 
@@ -108,7 +106,7 @@ test(
     await open();
     const week = screen.getByRole("region", { name: "Scheduled" });
     // The send time is the account's, from the API.
-    expect(within(week).getByText("Monday · 9:00 am Central")).toBeTruthy();
+    expect(within(week).getByText(/Mondays, 9:00 am Central/)).toBeTruthy();
     const clan = screen.getByRole("switch", { name: "Clan report email" });
     expect(clan.getAttribute("aria-checked")).toBe("true");
     expect(
@@ -129,7 +127,7 @@ test(
     // The last one sent opens its record.
     const last = within(week).getByRole("link", { name: "The last one ›" });
     expect(last.getAttribute("href")).toBe(
-      "/console/account/activity/e/3f2a9c1b-0000-4000-8000-000000000001",
+      "/settings/emails/3f2a9c1b-0000-4000-8000-000000000001",
     );
   },
 );
@@ -182,7 +180,7 @@ test(
       name: /Trophy Road 4–6, war 3–3/,
     });
     expect(row.getAttribute("href")).toBe(
-      "/console/account/activity/e/3f2a9c1b-0000-4000-8000-000000000001",
+      "/settings/emails/3f2a9c1b-0000-4000-8000-000000000001",
     );
     // Tuesday 14:00 UTC is Tuesday morning in Chicago.
     expect(within(row).getByText("Tue Sep 29")).toBeTruthy();
@@ -191,6 +189,6 @@ test(
       within(sent)
         .getByRole("link", { name: "All sent ›" })
         .getAttribute("href"),
-    ).toBe("/console/account/activity/emails");
+    ).toBe("/settings/emails/sent");
   },
 );

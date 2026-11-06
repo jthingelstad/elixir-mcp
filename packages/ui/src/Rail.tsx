@@ -61,27 +61,6 @@ function waiting(
   };
 }
 
-/** One account the rail can be the console of: the person, one of their
- *  agents, or an operating console such as Admin. `to` is where choosing
- *  it goes, because a console is a PLACE with its own address, never a
- *  mode the app remembers. */
-export interface RailAccount {
-  key: string;
-  label: string;
-  /** The second line: whose it is and the role ("King Thing · owner",
-   *  "agent · f43c60e8f5bd", "every account · owner"). */
-  detail?: string;
-  /** A mono aside, appended to the second line. */
-  aside?: string;
-  /** The glyph in the head's tile; `initials` draws an avatar instead. */
-  icon?: string;
-  initials?: string;
-  /** A heading in the open list above this entry ("You", "Your agents",
-   *  "Operate"); repeated headings are drawn once. */
-  group?: string;
-  to: string;
-}
-
 /** The line at the rail's foot: a place ("Send feedback") or an action
  *  ("Sign out of Elixir"). An action is a button, never a link, because
  *  signing out is not a destination: a `/signout` href once landed on
@@ -131,14 +110,6 @@ export interface RailFoot {
  * current sub-page's label. `back` is a link above the head (a settings
  * rail's way back to its console); `foot` is the line at the bottom.
  *
- * `accounts` turns the head into the CONSOLE SWITCHER (2026-09-23,
- * redrawn 2026-09-29): the console belongs to one of them (`account`
- * names which), and the head shows that one, with the others a click
- * away. The first is the person; any other (an agent, Admin) tints the
- * head while it is current, and the narrow row is tinted and names it
- * too, so whose console a phone is showing never has to be guessed.
- * With one account the head is the same tile with nothing to open.
- *
  * `head` replaces the head outright, for a section whose rail belongs to
  * something other than an account: Ladder's is the player whose season
  * it reads, Clan's the clan you are in (a RailSwitcher, Jamie
@@ -155,9 +126,6 @@ export function Rail({
   aside,
   subtitle,
   label = "Sections",
-  accounts,
-  account,
-  manage,
   head,
   back,
   foot,
@@ -171,12 +139,7 @@ export function Rail({
   aside?: ReactNode;
   subtitle?: ReactNode;
   label?: string;
-  accounts?: RailAccount[];
-  /** The key of the account this console belongs to. */
-  account?: string;
-  /** The last line of the switcher: where accounts are managed. */
-  manage?: { label: string; to: string };
-  /** A head of the section's own, in place of the title or switcher. */
+  /** A head of the section's own, in place of the title. */
   head?: ReactNode;
   back?: { label: string; to: string };
   foot?: RailFoot;
@@ -250,26 +213,10 @@ export function Rail({
 
   const subLabel = (active?.subs ?? []).find((s) => s.slug === sub)?.label;
   const shown = !narrow || open;
-  const here =
-    accounts && accounts.length > 0
-      ? (accounts.find((a) => a.key === account) ?? accounts[0])
-      : undefined;
-  const scoped = Boolean(here && accounts && here.key !== accounts[0]?.key);
-
   const top = head ? (
     narrow ? null : (
       head
     )
-  ) : accounts && accounts.length > 0 ? (
-    <AccountSwitcher
-      accounts={accounts}
-      current={account}
-      manage={manage}
-      navigate={(to) => {
-        setOpen(false);
-        navigate(to);
-      }}
-    />
   ) : narrow ? null : (
     <div className="mb-[6px] flex h-10 items-center gap-[9px] border-0 border-b border-solid border-line-soft px-[11px]">
       <span className="truncate text-[13.5px] font-semibold" title={title}>
@@ -335,7 +282,6 @@ export function Rail({
           type="button"
           className="rail__toggle"
           aria-expanded={open}
-          data-scoped={scoped}
           onClick={() => setOpen(!open)}
         >
           {active && <Icon name={active.icon} size={17} />}
@@ -363,64 +309,6 @@ export function Rail({
           list flows above the page as it always has. */}
       {narrow ? body : <div className="rail__pin">{body}</div>}
     </aside>
-  );
-}
-
-/** The tile and two lines that name a console, in the head and the list. */
-function ConsoleName({ a }: { a: RailAccount }) {
-  const line2 = [a.detail, a.aside].filter(Boolean).join(" · ");
-  return (
-    <>
-      <span className="rail__switch-mark" aria-hidden="true">
-        {a.initials ? (
-          <span className="chrome__avatar">{a.initials}</span>
-        ) : (
-          <Icon name={a.icon ?? "gauge"} size={17} />
-        )}
-      </span>
-      <span className="flex min-w-0 flex-col">
-        <span className="truncate text-[13.5px] font-semibold text-ink">
-          {a.label}
-        </span>
-        {line2 && (
-          <span className="truncate text-[12px] text-ink-faint">{line2}</span>
-        )}
-      </span>
-    </>
-  );
-}
-
-/** The console switcher: the accounts as a RailSwitcher. The first is
- *  the person; any other tints the head while it is current. */
-function AccountSwitcher({
-  accounts,
-  current,
-  manage,
-  navigate,
-}: {
-  accounts: RailAccount[];
-  current?: string | undefined;
-  manage?: { label: string; to: string } | undefined;
-  navigate: (to: string) => void;
-}) {
-  const person = accounts[0] as RailAccount;
-  const here = accounts.find((a) => a.key === current) ?? person;
-  return (
-    <RailSwitcher
-      id="rail-accounts"
-      title={`${here.label}: switch account`}
-      face={<ConsoleName a={here} />}
-      choices={accounts.map((a) => ({
-        key: a.key,
-        to: a.to,
-        group: a.group,
-        body: <ConsoleName a={a} />,
-      }))}
-      current={here.key}
-      manage={manage}
-      navigate={navigate}
-      scoped={here.key !== person.key}
-    />
   );
 }
 

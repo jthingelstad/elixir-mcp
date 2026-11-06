@@ -1,12 +1,13 @@
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { CONSOLE } from "./console.js";
+import { SETTINGS } from "./settings.js";
 import { tagPath } from "./tag-url.js";
 
 /** A saved tag, capture attempts and retained facts are independent evidence.
  * Nothing here treats a successful poll or an empty count as full coverage. */
 export function recordJourney(data) {
   const p = data?.player;
-  const tracking = `${CONSOLE}/account/tracking`;
+  const tracking = `${SETTINGS}/players`;
   if (!p)
     return {
       state: "Add your player",

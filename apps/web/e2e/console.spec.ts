@@ -34,7 +34,7 @@ test.describe("signed out", () => {
     page,
   }) => {
     await mockApi(page, { "GET /api/me": [200, SIGNED_OUT] });
-    await page.goto("/console/account/profile");
+    await page.goto("/settings/profile");
     await expect(
       page.getByRole("heading", { name: "Sign in first" }),
     ).toBeVisible();
@@ -147,14 +147,14 @@ test.describe("signed out", () => {
         Object.entries(signedIn()).filter(([k]) => k !== "GET /api/me"),
       ),
     });
-    await page.goto("/console/account/usage");
+    await page.goto("/settings/usage");
     await page.getByRole("link", { name: "Sign in" }).first().click();
     await expect(page).toHaveURL(/\/signin$/);
     await page.getByLabel("Email").fill("jamie@example.com");
     await page.getByRole("button", { name: "Send sign-in email" }).click();
     await page.getByLabel("6-digit code").fill("123456");
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/console\/account\/usage$/);
+    await expect(page).toHaveURL(/\/settings\/usage$/);
   });
 });
 
@@ -177,28 +177,28 @@ test.describe("signed in", () => {
     ).toHaveAttribute("href", /\/ladder/);
     await accessible(page, "account menu");
     await menu.getByRole("link", { name: /Settings/ }).click();
-    await expect(page).toHaveURL(/\/console\/account\/profile$/);
+    await expect(page).toHaveURL(/\/settings\/profile$/);
     await expect(menu).toHaveCount(0);
   });
 
   test("the rail: counts, and every section renders its chunk", async ({
     page,
   }) => {
-    await page.goto("/console/account/profile");
+    await page.goto("/settings/profile");
     const rail = page.locator(".rail");
     await expect(rail).toBeVisible();
     // Counts are the reader's own things.
-    await expect(rail.getByRole("link", { name: /Tracking/ })).toContainText(
+    await expect(rail.getByRole("link", { name: /Players/ })).toContainText(
       "1",
     );
     await accessible(page, "settings");
 
     // Every section is its own lazy chunk: each must arrive and render.
     const sections: [string, RegExp, string][] = [
-      ["Tracking", /\/console\/account\/tracking$/, "Tracking"],
-      ["Verify", /\/console\/account\/verify$/, "Verify"],
-      ["Usage", /\/console\/account\/usage$/, "Usage"],
-      ["Connections", /\/console\/account\/connections$/, "Connections"],
+      ["Players", /\/settings\/players$/, "Players"],
+      ["Emails", /\/settings\/emails$/, "Emails"],
+      ["Usage", /\/settings\/usage$/, "Usage"],
+      ["Connections", /\/settings\/connections$/, "Connections"],
     ];
     for (const [label, url, heading] of sections) {
       await rail
@@ -235,38 +235,29 @@ test.describe("signed in", () => {
     // visit, with no place yet, marks nothing new.
     await expect(session).not.toContainText("Unread by connections");
     await expect(page.locator(".kit-newmark")).toHaveCount(0);
-    // Send feedback is the foot (2026-10-20): it opens the sheet over
-    // the page you are on, and the sheet links what you have filed.
+    // Help opens over the page you are on, and links what you have filed.
     await page.goto("/console/explore");
-    await rail
-      .getByRole("button", { name: "Send feedback", exact: true })
-      .click();
-    const sheet = page.getByRole("dialog", { name: "Send feedback" });
-    await expect(sheet).toBeVisible();
-    await expect(sheet).toContainText("About Elixir.");
+    await page.getByRole("button", { name: "Help for this page" }).click();
+    const help = page.getByRole("dialog");
+    await expect(help).toBeVisible();
+    await expect(help.getByLabel("Something wrong, or missing?")).toBeVisible();
     await expect(page).toHaveURL(/\/console\/explore$/);
-    await accessible(page, "feedback sheet");
-    await sheet
-      .getByRole("link", { name: "Your feedback and its answers ›" })
-      .click();
-    await expect(page).toHaveURL(/\/console\/account\/feedback$/);
+    await accessible(page, "help drawer");
+    await help.getByRole("link", { name: /feedback/i }).click();
+    await expect(page).toHaveURL(/\/settings\/feedback$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Feedback",
     );
     await rendered(page);
 
-    // The current item is marked, on the pages Status used to hold.
-    await rail.getByRole("link", { name: "Efficiency" }).click();
-    await expect(page).toHaveURL(/\/console\/status\/efficiency$/);
-    await expect(
-      rail.getByRole("link", { name: "Efficiency" }),
-    ).toHaveAttribute("aria-current", "page");
-
     // The MCP request log left the rail for Usage (canvas 2026-09-29):
     // one link from the page, and Usage stays lit while you read it.
     await rail.getByRole("link", { name: /^Usage/ }).click();
-    await page.getByRole("link", { name: /MCP requests/ }).click();
-    await expect(page).toHaveURL(/\/console\/account\/activity\/requests$/);
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: "Requests", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/settings\/usage\/requests$/);
     await expect(rail.getByRole("link", { name: /^Usage/ })).toHaveAttribute(
       "aria-current",
       "page",
@@ -275,9 +266,25 @@ test.describe("signed in", () => {
     await accessible(page, "requests log");
   });
 
-  test("the switcher at Settings' head: your account, your agents and Admin, grouped", async ({
+  test("Settings has one rail and no switcher; an agent is a page with five tabs", async ({
     page,
   }) => {
+    const agent = {
+      account_id: "00000000-0000-4000-8000-000000000002",
+      kind: "agent",
+      public_id: "abc12345",
+      role: "member",
+      status: "approved",
+      name: "poap-bot",
+      created_at: "2026-09-01T00:00:00Z",
+      calls_7d: 0,
+      last_call_at: null,
+      timeline_pending: 0,
+      clans: [],
+      last_seen: null,
+      refusals_7d: [],
+      tokens: [],
+    };
     await mockApi(page, {
       ...signedIn(),
       "GET /api/me": [
@@ -288,40 +295,41 @@ test.describe("signed in", () => {
           agents: [{ public_id: "abc12345", name: "poap-bot", role: "member" }],
         },
       ],
+      "GET /api/me/principals": [200, { agents: [agent], addable_clans: [] }],
       "GET /api/agent/abc12345": [
         200,
         { ...ME, kind: "agent", name: "poap-bot", email: null, claims: [] },
       ],
     });
-    await page.goto("/console/account/profile");
-    const rail = page.locator(".rail");
-    const head = rail.locator("button.rail__switch-head");
-    await expect(head).toContainText("Your account");
-    await head.click();
-    const list = page.locator("#rail-accounts");
-    await expect(list.locator(".rail__switch-group")).toHaveText([
-      "You",
-      "Your agents",
-      "Operate",
-    ]);
-    await expect(
-      list.locator('.rail__switch-item[aria-current="true"]'),
-    ).toContainText("Your account");
-    await accessible(page, "console switcher");
-    await list.getByRole("link", { name: /poap-bot/ }).click();
-    await expect(page).toHaveURL(/\/console\/agent\/abc12345\//);
-    await expect(
-      page.getByRole("navigation", { name: "Agent sections" }),
-    ).toBeVisible();
-
-    // Back at Settings: its rail, its item lit, and the switcher's way home.
-    await page.goto("/console/account/profile");
-    const account = page.getByRole("navigation", { name: "Settings sections" });
-    await expect(account).toBeVisible();
-    await expect(
-      account.getByRole("link", { name: /Profile/ }),
-    ).toHaveAttribute("aria-current", "page");
+    await page.goto("/settings/profile");
+    const rail = page.getByRole("navigation", { name: "Settings sections" });
+    await expect(rail).toBeVisible();
+    await expect(rail.getByRole("link", { name: /Profile/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(page.locator(".rail button.rail__switch-head")).toHaveCount(0);
     await accessible(page, "settings rail");
+
+    await rail.getByRole("link", { name: /Connections/ }).click();
+    await page
+      .getByRole("link", { name: /poap-bot/ })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/settings\/agents\/abc12345/);
+    const tabs = page.getByRole("tablist");
+    for (const name of [
+      "Overview",
+      "What it reads",
+      "Usage",
+      "Connections",
+      "Settings",
+    ])
+      await expect(tabs.getByRole("tab", { name })).toBeVisible();
+    await expect(
+      rail.getByRole("link", { name: /Connections/ }),
+    ).toHaveAttribute("aria-current", "page");
+    await accessible(page, "agent page");
   });
 
   test("opening the Timeline clears its count and rules off what is new since the last visit; an empty week says so", async ({
@@ -516,15 +524,15 @@ test.describe("signed in", () => {
         return [200, { ok: true }];
       },
     });
-    await page.goto("/console/account/tracking");
+    await page.goto("/settings/players");
     await expect(
-      page.locator(".rail").getByRole("link", { name: /Tracking/ }),
+      page.locator(".rail").getByRole("link", { name: /Players/ }),
     ).toContainText("1");
     await page.getByPlaceholder("#2PYQ8GJ0").fill("#VJQV8G8RL");
     await page.getByRole("button", { name: "Track" }).first().click();
     // The claim invalidates ["me"]: the rail's count follows without a reload.
     await expect(
-      page.locator(".rail").getByRole("link", { name: /Tracking/ }),
+      page.locator(".rail").getByRole("link", { name: /Players/ }),
     ).toContainText("2");
   });
 
@@ -582,15 +590,21 @@ test.describe("signed in", () => {
       ],
       "POST /api/me/principals/rotate": () => answer,
     });
-    await page.goto(`/console/agent/${PUBLIC_ID}/overview`);
+    await page.goto(`/settings/agents/${PUBLIC_ID}/overview`);
     await expect(page.getByText("No live key.")).toBeVisible();
 
-    await page.goto(`/console/agent/${PUBLIC_ID}/settings`);
+    await page.goto(`/settings/agents/${PUBLIC_ID}/settings`);
     const issue = page.getByRole("button", { name: "Issue a new key" });
     await expect(issue).toBeEnabled();
 
     // Refused: the name moved to another agent since the revoke.
+    const confirmIssue = () =>
+      page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Issue a new key" })
+        .click();
     await issue.click();
+    await confirmIssue();
     await expect(page.getByRole("alert")).toContainText(
       "Another of your agents is now called clan-bot",
     );
@@ -600,7 +614,7 @@ test.describe("signed in", () => {
 
     // Issued: the key is handed over once.
     answer = [200, { ok: true, token: "svt_fixture_not_a_real_key" }];
-    await issue.click();
+    await confirmIssue();
     await expect(page.getByText("Copy this key now.")).toBeVisible();
     await expect(page.getByText("svt_fixture_not_a_real_key")).toBeVisible();
     await expect(page.getByRole("alert")).toHaveCount(0);
@@ -609,17 +623,20 @@ test.describe("signed in", () => {
   test("the rail stays in view down a long page, its foot in reach", async ({
     page,
   }) => {
-    await page.goto("/console/account/connections");
+    await page.goto("/settings/connections");
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Connections",
     );
-    await railStaysInView(page);
+    await railStaysInView(
+      page,
+      page.locator(".rail").getByRole("link", { name: "Feedback" }),
+    );
   });
 
   test("@narrow the folded rail names where you are; a count is not a mark", async ({
     page,
   }) => {
-    await page.goto("/console/account/usage");
+    await page.goto("/settings/usage");
     const toggle = page.locator(".rail__toggle");
     await expect(toggle).toContainText("Usage");
     // Tracking's count is what you track, not something waiting.
@@ -634,7 +651,7 @@ test.describe("signed in", () => {
   test("@narrow the rail is a disclosure above the content, naming where you are", async ({
     page,
   }) => {
-    await page.goto("/console/account/usage");
+    await page.goto("/settings/usage");
     const toggle = page.locator(".rail__toggle");
     await expect(toggle).toBeVisible();
     await expect(toggle).toContainText("Usage");
@@ -647,9 +664,9 @@ test.describe("signed in", () => {
     ).toBeVisible();
     await page
       .getByRole("navigation", { name: "Settings sections" })
-      .getByRole("link", { name: /^Tracking/ })
+      .getByRole("link", { name: /^Players/ })
       .click();
-    await expect(page).toHaveURL(/\/console\/account\/tracking$/);
+    await expect(page).toHaveURL(/\/settings\/players$/);
     // Following a link closes it.
     await expect(
       page.getByRole("navigation", { name: "Settings sections" }),
@@ -666,8 +683,9 @@ test.describe("signed in", () => {
       "aria-current",
       "page",
     );
-    for (const name of ["Ladder", "Clan", "Search"])
+    for (const name of ["Ladder", "Clan"])
       await expect(tabs.getByRole("link", { name })).toBeVisible();
+    await expect(tabs.getByRole("button", { name: /Search/ })).toBeVisible();
     // The bar's own places are the tabs here; the account stays on the bar.
     await expect(page.locator(".kit-top__nav")).toBeHidden();
     await expect(
@@ -771,7 +789,7 @@ test("@narrow a player's record page leads with the recorded profile, and Connec
       ],
     }),
   );
-  await page.goto("/console/account/tracking/20JJJ2CCRU");
+  await page.goto("/settings/players/20JJJ2CCRU");
   const readiness = page.getByRole("region", {
     name: "Your recording",
   });
@@ -779,7 +797,7 @@ test("@narrow a player's record page leads with the recorded profile, and Connec
     readiness.getByRole("link", { name: /View recorded profile/ }),
   ).toHaveAttribute("href", "/console/explore/profile/20JJJ2CCRU");
   await accessible(page, "first-use record page");
-  await page.goto("/console/account/connections");
+  await page.goto("/settings/connections");
   const questions = page.getByRole("region", { name: "Try asking…" });
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await questions

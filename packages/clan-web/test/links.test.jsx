@@ -25,13 +25,13 @@ const refused = (reason, navigate) =>
     </NavigateProvider>,
   );
 
-test("a Console link is followed in the app", () => {
+test("a Settings link is followed in the app", () => {
   const navigate = vi.fn();
   refused("no_primary_player", navigate);
-  const link = screen.getByRole("link", { name: "Elixir → Tracking ›" });
-  expect(link.getAttribute("href")).toBe("/console/account/tracking");
+  const link = screen.getByRole("link", { name: "Settings → Players ›" });
+  expect(link.getAttribute("href")).toBe("/settings/players");
   fireEvent.click(link);
-  expect(navigate).toHaveBeenCalledWith("/console/account/tracking");
+  expect(navigate).toHaveBeenCalledWith("/settings/players");
 });
 
 test("a docs link is a page load: the docs are site documents", () => {

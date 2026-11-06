@@ -9,8 +9,9 @@ import { test, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { CallRecord } from "../src/views/account/CallRecord.jsx";
-import { Activity } from "../src/views/Activity.jsx";
-import { railPosition, DOC_LINKS } from "../src/App.jsx";
+import { Requests } from "../src/views/account/Logs.jsx";
+import { DOC_LINKS } from "../src/shell/doc-links.js";
+import { settingsHere } from "../src/lib/settings.js";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const PREV = "22222222-2222-4222-8222-222222222222";
@@ -101,7 +102,7 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
   expect(screen.getByText("9 queries")).toBeTruthy();
   expect(screen.getByText("no live fetch")).toBeTruthy();
   expect(screen.getByText("37.1 KB")).toBeTruthy();
-  expect(screen.getByText("41 / 500")).toBeTruthy();
+  expect(screen.getByText("459 left")).toBeTruthy();
   expect(screen.getByText("discord-bot")).toBeTruthy();
   expect(screen.getByText("US")).toBeTruthy();
   expect(screen.getByText(/on behalf of discord:42/)).toBeTruthy();
@@ -125,9 +126,9 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
 
   // Previous and next by the same connection.
   fireEvent.click(screen.getByRole("button", { name: "‹ Previous call" }));
-  expect(navigate).toHaveBeenCalledWith(`/console/account/activity/c/${PREV}`);
+  expect(navigate).toHaveBeenCalledWith(`/settings/usage/requests/${PREV}`);
   fireEvent.click(screen.getByRole("button", { name: "Next call ›" }));
-  expect(navigate).toHaveBeenCalledWith(`/console/account/activity/c/${NEXT}`);
+  expect(navigate).toHaveBeenCalledWith(`/settings/usage/requests/${NEXT}`);
 
   // Feedback, carrying the call as a FIELD. It used to arrive as
   // ?context=request_id:<id> and be pasted into the message, where
@@ -135,7 +136,7 @@ test("the record: tool, metrics strip, folded meta, cut arrays, neighbours, feed
   // queue links to this record and an agent can attach one too.
   fireEvent.click(screen.getByText("Report this call"));
   expect(navigate).toHaveBeenCalledWith(
-    `/console/account/feedback?request_id=${encodeURIComponent(ID)}`,
+    `/settings/feedback?request_id=${encodeURIComponent(ID)}`,
   );
   expect(screen.getByText(/kept 90 days/)).toBeTruthy();
 });
@@ -158,8 +159,8 @@ test("a row without a captured body still renders from the log's bounded argumen
   });
   renderWithProviders(<CallRecord id={ID} navigate={() => {}} />);
   await waitFor(() => screen.getByRole("heading", { name: "elixir_timeline" }));
-  expect(screen.getByText(/refused · daily quota/)).toBeTruthy();
-  expect(screen.getByText("Not kept for this call.")).toBeTruthy();
+  expect(screen.getByText("Refused: daily budget")).toBeTruthy();
+  expect(screen.getByText("Not captured for this call.")).toBeTruthy();
   expect(screen.getByText(/Refused before any tool ran/)).toBeTruthy();
   expect(screen.getByRole("button", { name: "‹ Previous call" }).disabled).toBe(
     true,
@@ -170,10 +171,10 @@ test("an id that is not in the reader's log says so, with the way back", async (
   stub({ error: "not_found" }, 404);
   renderWithProviders(<CallRecord id={ID} navigate={() => {}} />);
   await waitFor(() => screen.getByText("That call is not in your log"));
-  expect(screen.getByText("‹ MCP requests")).toBeTruthy();
+  expect(screen.getByText("‹ Requests")).toBeTruthy();
 });
 
-test("the Activity log links each request id to its record", async () => {
+test("the Requests log links each call to its record", async () => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => {
@@ -196,21 +197,16 @@ test("the Activity log links each request id to its record", async () => {
       };
     }),
   );
-  const navigate = vi.fn();
-  renderWithProviders(<Activity sub="requests" navigate={navigate} />);
-  await waitFor(() => screen.getByText(ID.slice(0, 8)));
-  fireEvent.click(screen.getByText(ID.slice(0, 8)));
-  expect(navigate).toHaveBeenCalledWith(`/console/account/activity/c/${ID}`);
+  renderWithProviders(<Requests search="" />);
+  const link = await screen.findByRole("link", { name: /war_current/ });
+  expect(link.getAttribute("href")).toBe(`/settings/usage/requests/${ID}`);
 });
 
-test("the record belongs to Usage in the rail and has its own docs strip", () => {
-  // MCP requests moved under Usage's meters (canvas 2026-09-29).
-  const at = railPosition(`/console/account/activity/c/${ID}`);
-  expect(at).toEqual({
-    rail: "settings",
+test("the record belongs to Usage in the rail and has its own read more", () => {
+  expect(settingsHere(`/settings/usage/requests/${ID}`)).toEqual({
     key: "usage",
-    sub: "requests",
-    doc: "activity:call",
+    page: "call",
+    id: ID,
   });
   expect(DOC_LINKS["activity:call"]).toBeTruthy();
 });

@@ -7,7 +7,7 @@ order: 1
 navTitle: "Connect an agent"
 icon: plug
 lede: "Clients that act as you: OAuth grants, capabilities and disconnecting."
-console: ["Manage your clients", "/console/account/connections", "Settings ▸ Connections"]
+console: ["Manage your clients", "/settings/connections", "Settings ▸ Connections"]
 reviewed: "2026-10-12 against contract 11.11.3 and JSON API 3.2.0"
 ---
 
@@ -142,47 +142,45 @@ refused rather than quietly answering about the wrong subject.
 
 The top bar holds **Home**, **Ladder** and **Clan**, with the same three as
 tabs at the foot of a phone. **Settings**, in the account menu, holds what we
-record for you and who can call on your behalf. The switcher at the top of its
-rail moves between you and each agent you own, whose pages are the same pages
-scoped to it (below). On a wide screen a rail stays in view as a page scrolls;
+record for you and who can call on your behalf, and each agent you own has a
+page of its own there (below). On a wide screen a rail stays in view as a page scrolls;
 on a phone it folds into one row above the page.
 
 | Page | What it does |
 |---|---|
 | Home | what needs you, your week, your clan and the latest, with Timeline and Friends as its tabs; a new account gets its steps until the first read lands. Timeline shows what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`. Viewing it marks what is new since your last visit; it never changes what your connections have read ([its own place](#home-keeps-its-own-place-in-the-timeline)) |
-| Explore | the same read tools in a browser (players, clans and wars, decks, war weeks); the one write is nicknames |
+| Search | the magnifier on the top bar: your players and clans as you type, a tag finds anyone on record, and **Follow this tag** asks before it follows |
+| Explore | the same read tools in a browser (players, clans and wars, decks, war weeks), at `/console/explore`; the one write is nicknames |
 | [Service](/data/service) | recording health, budget gauge, missed battles, linked from Status and data, and signed in |
-| Send feedback | a sheet over the page you are on: write what you think, and the page rides along. The sheet links **Your feedback**, in Settings: what you filed and what the maintainer answered |
+| Help | the question mark on the top bar: what the page you are on is for, a link to read more, and **Send feedback**, which carries the page along. **Feedback**, in Settings, keeps what you filed and what the maintainer answered |
 
 **Settings**, in the account menu at the top, has its own rail:
 
 | Page | What it does |
 |---|---|
 | Profile | your address, the timezone your date windows use and Elixir prints every time in (a new account starts on its signup browser's; UTC when it has none), slot meters, your tier and what earns the next one, and today's quota |
-| Emails from Elixir | a switch for each email, and **All sent**, the emails Elixir sent you |
-| Sign-in and devices | every session that can still act as you, this one marked |
-| Sign-ins | your account events |
-| Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
-| Your record → Verify | prove that you control a player by playing one battle with a deck Elixir names |
-| Access → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its pages; **New agent**; Discord sharing for your timeline; and the question to try once your agent can answer |
-| Access → Usage | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, your own website reads counted apart (they spend no daily quota), and **MCP requests**, every call with its `request_id` |
-| Collectors → Collectors | the fleet, your own collectors, the one-time token reveal |
-| Collectors → Efficiency | what the battle-log schedule costs and loses |
-| Your feedback | what you filed and what the maintainer answered |
+| Emails | a switch for each email, and **All sent**, the emails Elixir sent you |
+| Players & tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
+| Players & tracking → Verify | prove that you control a player by playing one battle with a deck Elixir names |
+| Connections & agents | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its pages; **New agent**; Discord sharing for your timeline; and the question to try once your agent can answer |
+| Usage and limits | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, your own website reads counted apart (they spend no daily quota), and **MCP requests**, every call with its `request_id` |
+| Sign-ins & devices | every session that can still act as you, this one marked, and your account events |
+| Feedback | what you filed and what the maintainer answered |
 
-An **agent's pages** (the switcher, or Open on its row) has its own
-rail:
+An **agent's page** (Open on its row) has five tabs:
 
 | Page | What it does |
 |---|---|
 | Overview | its clan, its key and when it was first used, its last successful call, where it connects from, anything refusing it, and the address to connect it at |
-| Timeline | its timeline, newest first, the items it reads with `elixir_timeline`; viewing it here never moves its pointer |
-| Its record → Tracking | the clans and players it tracks, and which clan it acts for |
-| Its record → Activity | its calls with `request_id`, and its account events |
-| Its record → Usage | its calls as a share of your budget, which it spends |
-| Access → Connections | the clients connected as it, what each may do, and refusals of its key |
-| Access → Settings | its name, what its key may do, the key itself (issue, revoke, suspend), removing a suspended agent from view, and who it answers for |
-| Access → Feedback | what it has filed and what the maintainer answered; new feedback is filed as you |
+| What it reads | the clans and players it tracks, and which clan it acts for |
+| Usage | its calls as a share of your budget, which it spends, its calls with `request_id`, and its account events |
+| Connections | the clients connected as it, what each may do, and refusals of its key |
+| Settings | its name, what its key may do, the key itself (issue, revoke, suspend), removing a suspended agent from view, and who it answers for |
+
+Overview links its **Timeline** (newest first, the items it reads with
+`elixir_timeline`; viewing it there never moves its pointer) and its
+**Feedback** (what it has filed and what the maintainer answered; new feedback
+is filed as you).
 
 ### Home keeps its own place in the timeline
 

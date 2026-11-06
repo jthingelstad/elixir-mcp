@@ -2,7 +2,7 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
-*Where an agent lives (a console you switch into) is to be rewritten at step 6 of the redesign ([Structure](structure.md)).*
+*An agent lives on a page in Settings since step 6 of the redesign ([Structure](structure.md)): five tabs, nothing to switch into.*
 
 ## What it is for
 

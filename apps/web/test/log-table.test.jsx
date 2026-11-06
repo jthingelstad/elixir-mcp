@@ -19,7 +19,6 @@ import {
   within,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
-import { Activity } from "../src/views/Activity.jsx";
 import { Timeline } from "../src/views/account/Timeline.jsx";
 import { Admin } from "../src/views/Admin.jsx";
 
@@ -74,38 +73,6 @@ const PAGES = [
         timeline_more: 0,
         entries: [],
         quiet: [],
-      },
-    },
-  ],
-  [
-    "Activity ▸ MCP requests",
-    () => <Activity sub="requests" navigate={() => {}} />,
-    {
-      "me/requests": {
-        requests: [
-          {
-            created_at: "2026-09-09T18:44:02Z",
-            tool: "war_current",
-            token_name: "Claude Desktop",
-            duration_ms: 84,
-            request_id: "abcdef123456",
-          },
-        ],
-      },
-    },
-  ],
-  [
-    "Activity ▸ Account events",
-    () => <Activity sub="events" navigate={() => {}} />,
-    {
-      "me/activity": {
-        events: [
-          {
-            created_at: "2026-09-09T09:12:00Z",
-            kind: "claim_added",
-            detail: { player_tag: "#L2QUVYY9" },
-          },
-        ],
       },
     },
   ],

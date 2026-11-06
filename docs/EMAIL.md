@@ -148,10 +148,10 @@ Every report carries the coverage caveat; the numbers are honest only
 with the note.
 
 Links go to the paths that serve the page: the console under `/console`
-(`/console/explore/player/<tag>`, `/console/explore/clan/<tag>`,
-`/console/account/...`), Ladder at `/ladder?player=<tag>`, battles at
+(`/console/explore/player/<tag>`, `/console/explore/clan/<tag>`), Settings
+under `/settings`, Ladder at `/ladder?player=<tag>`, battles at
 `/battle/<short id>`, cards at `/cards/<id>`. The manage link is
-`/console/account/profile/email`. A bulk mail never carries a magic link.
+`/settings/emails`. A bulk mail never carries a magic link.
 
 ### Schedule and plumbing
 
@@ -373,7 +373,7 @@ lead to a family app.
   enqueue; a failed write logs and sends anyway.
 - Web: `GET /api/me/email/sends` and `/api/me/email/sends/<id>` (own sends
   only; the pixel stripped, so the console never counts as an open). The
-  record is at `/console/account/activity/e/<id>` in a sandboxed no-script
+  record is at `/settings/emails/<id>` in a sandboxed no-script
   frame, with "Report a problem with this email" filing feedback with
   an `email` ref (`feedback_ref`, 0204; `feedback.send_id` is still
   written for one release).

@@ -13,7 +13,7 @@ const clan = {
   recording_status: "active",
 };
 const views = [
-  ["Tracking", Tracking, {}],
+  ["Tracking", Tracking, { search: "?view=clans" }],
   ["clan record", TrackedRecord, { tag: "2PQRJ8LV" }],
 ];
 

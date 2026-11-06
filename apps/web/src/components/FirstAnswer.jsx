@@ -1,7 +1,7 @@
 import { Icon, Link, TagText, ago, useClock } from "@elixir-mcp/ui";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { nextPoll, useFirstAnswer } from "../hooks/useFirstAnswer.js";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { recordJourney } from "../lib/record-journey.js";
 
 const n = (v) => (Number.isFinite(v) ? v.toLocaleString() : "unknown");
@@ -36,7 +36,7 @@ function readiness(data, notFound = false) {
       showAction: Boolean(
         p?.recording_status && p.recording_status !== "active",
       ),
-      to: `${CONSOLE}/account/tracking`,
+      to: `${SETTINGS}/players`,
     },
     {
       label: "We have a profile for them",
@@ -49,7 +49,7 @@ function readiness(data, notFound = false) {
           ? "no profile read yet"
           : "add your player to start recording",
       action: p ? "Check recording" : null,
-      to: `${CONSOLE}/account/tracking`,
+      to: `${SETTINGS}/players`,
     },
     {
       label: "Battles on record",
@@ -64,7 +64,7 @@ function readiness(data, notFound = false) {
               ? "No battles recorded in the last 30 days · some may not have been read"
               : "recent battle counts unavailable",
       action: p ? "Check recording" : null,
-      to: `${CONSOLE}/account/tracking`,
+      to: `${SETTINGS}/players`,
     },
     // Clan's role powers wait for Verify (VISION priority 1), so it sits
     // with the record's own steps, before anything optional.
@@ -79,7 +79,7 @@ function readiness(data, notFound = false) {
           ? "not verified · one battle proves the player is yours"
           : "add your player first",
       action: p ? "Verify your player" : null,
-      to: `${CONSOLE}/account/verify`,
+      to: `${SETTINGS}/players/verify`,
     },
   ].filter(Boolean);
 }

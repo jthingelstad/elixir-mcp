@@ -42,7 +42,7 @@ for (const width of [390, 1280]) {
           },
         }),
       );
-      await page.goto("/signin?signup&return_to=/console/account/tracking");
+      await page.goto("/signin?signup&return_to=/settings/players");
       const choice = page.getByRole("checkbox", {
         name: "Send me Elixir product news",
       });
@@ -91,7 +91,7 @@ for (const width of [390, 1280]) {
       );
       await page.getByLabel("6-digit code").fill("123456");
       await page.getByRole("button", { name: "Sign in", exact: true }).click();
-      await expect(page).toHaveURL(/\/console\/account\/tracking$/);
+      await expect(page).toHaveURL(/\/settings\/players$/);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth - innerWidth,

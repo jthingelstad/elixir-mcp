@@ -39,7 +39,7 @@ test("public signup verifies email and returns to the requested Console step", a
       },
     }),
   );
-  await page.goto("/signin?signup&return_to=/console/account/tracking");
+  await page.goto("/signin?signup&return_to=/settings/players");
   await expect(
     page.getByRole("heading", { name: "Create your Elixir account" }),
   ).toBeVisible();
@@ -56,9 +56,9 @@ test("public signup verifies email and returns to the requested Console step", a
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   // A remembered return_to still wins over the new account's landing.
-  await expect(page).toHaveURL(/\/console\/account\/tracking$/);
+  await expect(page).toHaveURL(/\/settings\/players$/);
   await expect(
-    page.getByRole("heading", { name: "Tracking", exact: true }),
+    page.getByRole("heading", { name: "Players & tracking", exact: true }),
   ).toBeVisible();
   expect(sends).toBe(1);
   const results = await new AxeBuilder({ page })
@@ -248,38 +248,38 @@ for (const width of [390, 1280]) {
     await expect(page.getByLabel("Your player tag")).toBeVisible();
     // Tracking keeps its own address for the field, ready to type in
     // (2026-10-20).
-    await page.goto("/console/account/tracking#add-player-tag");
-    await expect(page.getByLabel("Player tag")).toBeFocused();
+    await page.goto("/settings/players#add-player-tag");
+    await expect(
+      page.getByRole("textbox", { name: "Player tag", exact: true }),
+    ).toBeFocused();
     await expect(
       page.getByText(/open your profile: the tag starting with #/),
     ).toBeVisible();
-    await expect(page.getByLabel("Player tag")).toHaveAttribute(
-      "aria-describedby",
-      "add-player-tag-hint",
-    );
     await expect(
-      page.getByText(/Your first player becomes your primary/),
+      page.getByRole("textbox", { name: "Player tag", exact: true }),
+    ).toHaveAttribute("aria-describedby", "add-player-tag-hint");
+    await expect(
+      page.getByText(/Your first player becomes your main player/),
     ).toBeVisible();
-    await expect(page.getByText(/no slots for every member/)).toBeVisible();
-    await expect(page.getByLabel("Scope")).toHaveValue("activity");
+    await page.getByRole("tab", { name: "Clans", exact: true }).click();
     await expect(
-      page.getByLabel("Scope").locator('option[value="comprehensive"]'),
-    ).toBeDisabled();
+      page.getByText(/one clan like this, and none with every member/),
+    ).toBeVisible();
+    await expect(page.getByLabel("What to record")).toHaveValue("activity");
     await expect(
-      page.getByRole("main").getByRole("link", { name: "Verify", exact: true }),
-    ).toHaveAttribute("href", "/console/account/verify");
+      page
+        .getByLabel("What to record")
+        .locator('option[value="comprehensive"]'),
+      // An element inside a label is judged as the label's control, here the
+      // select, by toBeDisabled; the option's own property is what counts.
+    ).toHaveJSProperty("disabled", true);
     await page.goto("/ladder");
     await page.getByRole("link", { name: "Add your player" }).click();
-    await expect(page).toHaveURL(
-      /\/console\/account\/tracking#add-player-tag$/,
-    );
+    await expect(page).toHaveURL(/\/settings\/players#add-player-tag$/);
     await page.goto("/clan");
     await expect(
       page.getByRole("heading", { name: "Add your player in Elixir" }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Elixir → Tracking ›" }),
-    ).toHaveAttribute("href", "/console/account/tracking");
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - innerWidth,
@@ -293,5 +293,7 @@ for (const width of [390, 1280]) {
         ["serious", "critical"].includes(v.impact ?? ""),
       ),
     ).toEqual([]);
+    await page.getByRole("link", { name: "Settings → Players ›" }).click();
+    await expect(page).toHaveURL(/\/settings\/players$/);
   });
 }

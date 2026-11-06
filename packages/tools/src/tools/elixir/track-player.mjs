@@ -67,7 +67,7 @@ export const elixir_track_player = {
         throw new ToolFailure(
           "bad_request",
           `${tag} is your primary player and you track others, so it cannot be removed yet.`,
-          "Make another of your players your primary first (the console's Players page, or elixir_track_player with relationship 'primary'), then remove this one.",
+          "Make another of your players your primary first (Settings, Players & tracking, or elixir_track_player with relationship 'primary'), then remove this one.",
         );
       return {
         player_tag: tag,
@@ -145,7 +145,7 @@ export const elixir_track_player = {
           ? "This account has no player of its own yet, so a tool that defaults to you has nobody to mean: add yours with relationship primary."
           : null,
         first.requested
-          ? "A first read of this profile is on its way; if Clash Royale has no player with this tag, the Console's capture status says so within minutes."
+          ? "A first read of this profile is on its way; if Clash Royale has no player with this tag, the player's page in Settings says so within minutes."
           : null,
         r.clanFollowed
           ? `Your primary player's clan ${r.clanFollowed} is now followed at activity scope (roster, members coming and going, river races). Stop tracking it with elixir_track_clan action remove and it is not followed again.`

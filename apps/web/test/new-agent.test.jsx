@@ -26,10 +26,10 @@ test("New agent opens its form in place, and the page stays where it is", async 
     <Connections me={{ authenticated: true }} navigate={navigate} />,
   );
   const button = await screen.findByRole("button", { name: "New agent" });
-  expect(screen.queryByRole("region", { name: "New agent" })).toBeNull();
+  expect(screen.queryByLabelText("Name")).toBeNull();
   fireEvent.click(button);
   expect(button.getAttribute("aria-expanded")).toBe("true");
-  expect(screen.getByRole("region", { name: "New agent" })).toBeTruthy();
-  await screen.findByPlaceholderText("agent name");
+  await screen.findByLabelText("Name");
+  expect(screen.getByRole("button", { name: "Create agent" })).toBeTruthy();
   expect(navigate).not.toHaveBeenCalled();
 });

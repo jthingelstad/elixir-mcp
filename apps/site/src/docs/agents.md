@@ -7,7 +7,7 @@ order: 2
 navTitle: "Your agents"
 icon: bot
 lede: "A runtime that acts for one clan, with its own door, key, identity map and feed."
-console: ["Create and manage agents", "/console/account/agents", "Settings ▸ Connections"]
+console: ["Create and manage agents", "/settings/connections", "Settings ▸ Connections"]
 ---
 
 # Building an agent
@@ -22,15 +22,13 @@ do never shows up as its. If you have not read
 
 **Connections → New agent → Create agent**, or `POST /api/me/agents` with a session.
 
-Every agent you own has **its own pages**: the switcher at the top of the
-Settings rail moves between you and each of your agents, and an
-agent's pages are the same pages scoped to it, at
-`/console/agent/<public_id>/…`: its Overview (key, last call, what is refusing it,
-the address to connect it at), its Timeline, its MCP requests and account
-events, its share of your budget, the clients connected as it, its Settings
-and the feedback it has filed. Pages that belong to a person (Verify,
-Profile) are not there; Explore and Status are the same for
-everyone and stay in yours. An agent spends your budget and your recording
+Every agent you own has **its own page**, opened from its row in **Settings ▸
+Connections & agents**, at `/settings/agents/<public_id>`. It has five tabs:
+**Overview** (key, last call, what is refusing it, the address to connect it
+at, and links to its Timeline and the feedback it has filed), **What it reads**
+(the clans and players it tracks), **Usage** (its share of your budget, its MCP
+requests and account events), **Connections** (the clients connected as it) and
+**Settings**. Pages that belong to a person (Verify, Profile) are not there. An agent spends your budget and your recording
 slots, so your own Usage still counts it. New feedback is always filed as
 you.
 
@@ -286,7 +284,7 @@ permission count expands to show its grants and the edit control.
 | Rotate | its pages → Settings → Issue a new key, or `POST /api/me/principals/rotate` | one transaction: every live key revoked, a new one issued with the same name and scope. `public_id` (the URL), identities and its timeline read pointers survive. |
 | Revoke | its pages → Settings → Revoke key | the key stops immediately; nothing to restore. Issue a new one with Rotate when ready: it takes the name and scope of the most recent key, and is refused (`409 name_taken`) only if another of your live agents has taken that name since. |
 | Suspend / Resume | its pages → Settings | `status: disabled`; the same key reads as invalid until resumed. Its players and clans leave your slots and stop recording unless someone else tracks them. Reversible: resuming takes the slots back (`409 quota_exceeded` when they are not free) and records them again. |
-| Remove / Restore | a suspended agent's pages → Settings | takes it out of the agent switcher and the Agents table into a folded **Removed agents** list on the Agents page. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own console. Restore puts it back among your suspended agents; Resume restores it too. |
+| Remove / Restore | a suspended agent's pages → Settings | takes it out of the Agents table into a folded **Removed agents** list on the Agents page. Nothing is deleted: it stays suspended, keeps its address, keys and history, and still opens at its own console. Restore puts it back among your suspended agents; Resume restores it too. |
 | Rename | its pages → Settings | changes the name; must stay unique among your live agents |
 | Delete | – | there is no delete. Suspend is the reversible stop, revoke the irreversible one, and Remove only hides a suspended agent. |
 

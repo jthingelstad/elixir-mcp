@@ -7,7 +7,7 @@ order: 30
 navTitle: "Roles and tiers"
 icon: shield-check
 lede: "What each tier records for you — never what you may read."
-console: ["Your tier", "/console/account/profile", "Settings ▸ Profile"]
+console: ["Your tier", "/settings/profile", "Settings ▸ Profile"]
 reviewed: "2026-10-12 tiers are earned in the game, the collector points economy retired; a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup"
 ---
 
@@ -99,8 +99,8 @@ allowance — **and your recording slots**: what your agents track is counted
 with what you track, once per player or clan, however many of you track it.
 Its own role is capped at yours, and at `leader`: an admin's agent is not an
 admin, and an agent's role follows your tier as it is read now (member while
-you are a member, leader otherwise), so an agent never sits above its owner. Each agent has its own pages,
-chosen with the switcher at the top of the Settings rail.
+you are a member, leader otherwise), so an agent never sits above its owner. Each agent has its own page,
+opened from its row in Settings ▸ Connections & agents.
 
 That separation is the point. An agent that borrowed your identity would answer
 "who am I" with *your* player tag, which is not what a clan's Discord bot should

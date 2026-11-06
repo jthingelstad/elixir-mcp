@@ -14,7 +14,7 @@ reviewed: "2026-10-12 the collector week is Saturday to Saturday, and one a day 
 
 Elixir sends seven kinds of email. All seven start **on by default** for an active
 person account, and all seven are **a switch on your account page**
-([Settings ▸ Emails from Elixir](/console/account/profile/email)), with a *turn off* link in every
+([Settings ▸ Emails](/settings/emails)), with a *turn off* link in every
 issue and one-click unsubscribe in mail clients that support it. Sign-in codes and account notices are service mail and arrive
 whatever you choose here.
 
@@ -129,8 +129,8 @@ even for a full clan: it links the roster rather than printing it.
 
 ## Turning one off
 
-Each kind has its own switch on [Emails from Elixir](/console/account/profile/email)
-(Settings ▸ Emails from Elixir). Each scheduled kind shows its local
+Each kind has its own switch on [Emails](/settings/emails)
+(Settings ▸ Emails). Each scheduled kind shows its local
 day and time beside its switch. Event-driven kinds follow below, then the
 latest sent records. **Every email** turns them all off, or all back on. Every issue's
 footer has a
@@ -147,8 +147,8 @@ and **Send feedback about this email** in the same footer
 opens the feedback form with that email attached, one click from your
 inbox. Back leaves that automatically opened form; Forward returns with the
 email attached. Closing the form sends nothing.
-**All sent** on Emails from Elixir
-([/console/account/activity/emails](/console/account/activity/emails)) lists
+**All sent** on Emails
+([/settings/emails/sent](/settings/emails/sent)) lists
 every product email sent to your account, newest first; open one to see the
 mail as it went out. A report
 about an email carries the mail itself, so nobody has to describe it,

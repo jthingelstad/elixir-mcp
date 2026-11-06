@@ -77,7 +77,7 @@ credential, its `detail` pointing here and to the OpenAPI document. The
 codes and statuses are listed under
 [Limits and errors](/docs/integrations#limits-and-errors). Honor
 `Retry-After`, and quote the `request_id` when you
-[report a problem](/console/account/feedback).
+[report a problem](/settings/feedback).
 
 ## Versions
 

@@ -1,8 +1,8 @@
 # 2026-11-06 — The flip, redesign step 3b
 
 One bar on every page, Home as the landing, and the word Console out of what a
-reader sees. Clan and Ladder keep their rails; Settings' paths stay under
-`/console` until step 6; mail keeps its words until step 8.
+reader sees. Clan and Ladder keep their rails; Settings' paths stayed under
+`/console` until step 6 ([settings and search](2026-11-06-settings-and-search.md)); mail keeps its words until step 8.
 
 **One map.** `apps/web/src/lib/moved.js` holds every path that moved, read by the
 root route's `beforeLoad` and pinned by `apps/web/test/moved.test.js`. Query and
@@ -32,8 +32,9 @@ disclosure.
 
 **Choices with no ruling** `[engineering, 2026-11-05]`:
 
-- Discord sharing's home until step 6 is Settings, Connections
-  (`#timeline-discord`); Home's Timeline links to it.
+- Discord sharing's home until step 6 was Settings, Connections
+  (`#timeline-discord`); Home's Timeline linked to it. Step 6 gave it
+  `/settings/connections/discord`.
 - "Your feedback" joins the Settings rail; the static avatar opens Settings.
 - A new account lands on `/home`, not Tracking; Home's steps lead there.
 - The front page's Console tile is called Home and its button opens `/home`: the
@@ -42,7 +43,6 @@ disclosure.
 - A missing address under an app prefix answers 200 from the server, as it did;
   the page says missing. A real 404 needs the server to know the route table.
 
-**Left for later.** `packages/tools` and MCP strings still say Console in a few
-refusals ("Console, Verify"): changing tool output takes a contract patch and no
-tool changed here. `area: "console"` in feedback stays as a stored value; it reads
+**Left for later.** `packages/tools` and MCP strings said Console in a few
+refusals ("Console, Verify"); contract 11.17.1 retired them at step 6. `area: "console"` in feedback stays as a stored value; it reads
 as Elixir everywhere it shows.

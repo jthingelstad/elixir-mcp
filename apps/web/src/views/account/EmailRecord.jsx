@@ -2,7 +2,7 @@ import { Icon, Link, useClock, Empty } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { MailFrame } from "../../components/MailFrame.jsx";
 import { useEmailRecord } from "../../lib/queries.js";
-import { CONSOLE } from "../../lib/console.js";
+import { SETTINGS } from "../../lib/settings.js";
 
 /**
  * One sent email: the mail as it went out, and the way to say something
@@ -31,12 +31,9 @@ export function EmailRecord({ id, navigate, search }) {
   const [report] = useState(() => wantsReport(search));
   useEffect(() => {
     if (report && id)
-      navigate(
-        `${CONSOLE}/account/feedback?send_id=${encodeURIComponent(id)}`,
-        {
-          replace: true,
-        },
-      );
+      navigate(`${SETTINGS}/feedback?send_id=${encodeURIComponent(id)}`, {
+        replace: true,
+      });
   }, [report, id, navigate]);
   // The envelope, because 404 is an answer this page reads.
   const record = useEmailRecord(id);
@@ -45,7 +42,7 @@ export function EmailRecord({ id, navigate, search }) {
 
   const back = (
     <div className="page__crumb">
-      <Link to={`${CONSOLE}/account/activity/emails`}>‹ Emails</Link>
+      <Link to={`${SETTINGS}/emails/sent`}>‹ Sent to you</Link>
     </div>
   );
 
@@ -57,7 +54,7 @@ export function EmailRecord({ id, navigate, search }) {
       <>
         {back}
         <Empty title="This email could not be read">
-          Elixir did not answer just now; try again in a moment.
+          Elixir did not answer just now. Try again in a moment.
         </Empty>
       </>
     );
@@ -88,8 +85,8 @@ export function EmailRecord({ id, navigate, search }) {
       <p className="record__sub">
         <span className="mono">{when(send.sent_at)}</span>
         {send.period ? ` · ${send.period}` : ""} ·{" "}
-        <span className="mono" title="The id printed in the mail's footer">
-          {send.send_id}
+        <span className="mono" title={send.send_id}>
+          Mail {send.send_id.slice(0, 8)}
         </span>
       </p>
 
@@ -98,13 +95,13 @@ export function EmailRecord({ id, navigate, search }) {
             way a call is: the queue links straight back to this record. */}
         <Link
           className="btn btn--sm"
-          to={`${CONSOLE}/account/feedback?send_id=${encodeURIComponent(send.send_id)}`}
+          to={`${SETTINGS}/feedback?send_id=${encodeURIComponent(send.send_id)}`}
         >
           <Icon name="message-square" size={15} />
           Report a problem with this email
         </Link>
-        <Link className="btn btn--sm" to={`${CONSOLE}/account/profile/email`}>
-          Emails from Elixir
+        <Link className="btn btn--sm" to={`${SETTINGS}/emails`}>
+          Emails
         </Link>
       </div>
 
@@ -120,7 +117,7 @@ export function EmailRecord({ id, navigate, search }) {
         >
           {rec.archive_error
             ? "Try again in a moment. The send itself is on record above."
-            : "Emails sent before 2026-09-19 have a row here but no body; everything since is kept as it was sent."}
+            : "Emails sent before September 19, 2026 have a row here but no body. Everything since is kept as it was sent."}
         </Empty>
       )}
 

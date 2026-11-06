@@ -51,6 +51,7 @@ function route(pathname) {
   if (key === "/clan" || key.startsWith("/clan/")) return "/app.html";
   if (key === "/ladder" || key.startsWith("/ladder/")) return "/app.html";
   if (key === "/home" || key.startsWith("/home/")) return "/app.html";
+  if (key === "/settings" || key.startsWith("/settings/")) return "/app.html";
   if (key === "/signin" || key === "/data/service") return "/app.html";
   return `${key}/index.html`;
 }

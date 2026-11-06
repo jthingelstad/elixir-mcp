@@ -7,7 +7,7 @@ order: 7
 navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."
-console: ["Your budget and what spent it", "/console/account/usage", "Settings ▸ Usage"]
+console: ["Your budget and what spent it", "/settings/usage", "Settings ▸ Usage"]
 reviewed: "2026-10-12 collector credits and bonus slots retired, the upgrade request removed; 2026-10-08 against contract 11.5.1 and JSON API 3.1.0"
 ---
 

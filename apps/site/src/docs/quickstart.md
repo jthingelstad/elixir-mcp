@@ -31,14 +31,14 @@ before any email is sent; leave the field empty to add your player later.
 Nothing happens with the tag until you verify the email: then the new
 account tracks it as your primary, and you land on that player's page with
 the first read on its way (or **Tag not found** there, with the place to
-fix it). An account opened without a tag lands on Tracking with the tag
+fix it). An account opened without a tag lands on Settings ▸ Players with the tag
 field ready. A tag given while signing in to an account that already exists
 is ignored; that account keeps its players.
 
 ## 2. Track your player
 
 If you gave your tag at signup, this step is done: skip to the first read
-below. Otherwise open [Settings ▸ Tracking](/console/account/tracking) and add
+below. Otherwise open [Settings ▸ Players](/settings/players) and add
 your Clash Royale player tag. Your first player is your **primary**, which is what every tool
 means when you omit `player_tag`. Tracking **is** recording: Elixir reads
 your profile straight away and your battle log at the scheduler's next tick,
@@ -58,10 +58,10 @@ type the right tag there and Elixir tracks it instead (as your primary, if
 the wrong one was), or stop tracking the wrong one. Email verification opens your Elixir account; [player
 verification](/docs/verify) separately proves ownership for the features that
 require it. An ordinary member account includes activity clan recording, not
-recording every member as well. Tracking shows the available slots.
+recording every member as well. Settings ▸ Players shows the available slots.
 
 Read your personal season in [Ladder](/ladder). Adding a tag opens
-your player's Tracking record. **Player tag saved** means
+your player's record in Settings ▸ Players. **Player tag saved** means
 the tag is on your account, not that a profile has arrived or ownership has
 been proved. This page checks saved data every few seconds for the first
 minutes after you add a tag, then about once a minute while recording is
@@ -72,7 +72,7 @@ showing an empty season.
 
 **Home** lists what is done and what is next: the tag
 saved, a profile, battles on record, then **Player verified (needed to act
-in Clan)**, which links to [Verify](/console/account/verify): one battle
+in Clan)**, which links to [Verify](/settings/players/verify): one battle
 with a deck Elixir names proves the player is yours, and Clan needs
 it before you can act in your game role. Clan war history and AI clients
 follow as optional lines.
@@ -90,7 +90,7 @@ profile interval names its bounds and recorded and expected counts; other time
 remains unknown, even after a successful read. Error receipts have bounded
 retention, so missing error metadata does not mean a read succeeded.
 Paused or stopped recording still links to the information already saved.
-Check Tracking for status rather than treating an empty window as proof that
+Check Settings ▸ Players for status rather than treating an empty window as proof that
 you did not play.
 
 If you want clan war history, follow [Bring your clan](/docs/bring-your-clan).
@@ -186,7 +186,7 @@ try it and it does, or does not, `elixir_send_feedback` is the place to say so.
 **Optional: ask through an AI client.**
 
 **Home** shows what is recorded for your primary so far,
-links to your next step in Tracking or Ladder, and offers an optional first
+links to your next step in Settings or Ladder, and offers an optional first
 question matched to that record. A profile is enough to start. Active client
 connections and successful data reads in the last seven days are reported
 separately: authorizing a connection alone does not confirm a data read.

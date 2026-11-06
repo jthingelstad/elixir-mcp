@@ -4,7 +4,7 @@
  * reply as the Markdown they were written in.
  */
 import { test, expect, vi, beforeEach, afterEach } from "vitest";
-import { screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
+import { screen, cleanup, fireEvent } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { Feedback, FeedbackItem } from "../src/views/account/Feedback.jsx";
 
@@ -77,40 +77,40 @@ test("email feedback reads the committed route search before the address bar cat
   window.history.replaceState({}, "", "/");
 });
 
-test("the list is a table: one line per note, id links to the record", async () => {
-  const navigate = vi.fn();
-  renderWithProviders(<Feedback navigate={navigate} />);
-  await waitFor(() => screen.getByText("fb_14"));
-  const table = screen.getByRole("table");
-  expect(table.textContent).toContain(
+test("the list: one line per note, each opening its record", async () => {
+  renderWithProviders(<Feedback />);
+  const row = await screen.findByRole("link", { name: /Deck names in/ });
+  expect(row.textContent).toContain(
     "Deck names in `players_timeline` don't match what I see in game.",
   );
-  // The rest of the note stays on the record, not in the cell.
-  expect(table.textContent).not.toContain("Two cases");
-  expect(table.textContent).toContain("replied");
-  screen.getByText("fb_14").click();
-  expect(navigate).toHaveBeenCalledWith("/console/account/feedback/14");
+  // The rest of the note stays on the record, not in the line.
+  expect(row.textContent).not.toContain("Two cases");
+  expect(row.getAttribute("href")).toBe("/settings/feedback/14");
 });
 
 test("the record renders the note and the reply as Markdown, safely", async () => {
-  renderWithProviders(<FeedbackItem id="14" navigate={() => {}} />);
-  await waitFor(() => screen.getByText("fb_14"));
-  const items = document.querySelectorAll(".md li");
+  renderWithProviders(<FeedbackItem id="14" />);
+  await screen.findByRole("heading", { level: 1 });
+  const items = document.querySelectorAll(".st-note-body li");
   expect(items.length).toBe(2);
-  expect(document.querySelector(".md strong")?.textContent).toBe("Hog 2.6");
-  expect(document.querySelector(".md code")?.textContent).toBe(
+  expect(document.querySelector(".st-note-body strong")?.textContent).toBe(
+    "Hog 2.6",
+  );
+  expect(document.querySelector(".st-note-body code")?.textContent).toBe(
     "players_timeline",
   );
   // Raw HTML is text, and a javascript: link is not a link.
-  expect(document.querySelector(".md script")).toBeNull();
+  expect(document.querySelector(".st-note-body script")).toBeNull();
   expect(document.body.textContent).toContain("<script>");
-  expect(document.querySelector('.md a[href^="javascript"]')).toBeNull();
+  expect(
+    document.querySelector('.st-note-body a[href^="javascript"]'),
+  ).toBeNull();
   expect(document.body.textContent).toContain("It lands with");
 });
 
 test("the record names its area, what it points at and its thread", async () => {
-  renderWithProviders(<FeedbackItem id="14" navigate={() => {}} />);
-  await waitFor(() => screen.getByText("fb_14"));
+  renderWithProviders(<FeedbackItem id="14" />);
+  await screen.findByText("call 0e6c1f7a");
   expect(document.body.textContent).toContain("Ladder");
   expect(screen.getByText("call 0e6c1f7a")).toBeTruthy();
   expect(document.body.textContent).toContain("Player #20JJJ2CCRU");
@@ -125,10 +125,10 @@ test("the record names its area, what it points at and its thread", async () => 
 });
 
 test("a reply to an answer follows it, in the same area", async () => {
-  renderWithProviders(<FeedbackItem id="14" navigate={() => {}} />);
-  await waitFor(() => screen.getByText("fb_14"));
+  renderWithProviders(<FeedbackItem id="14" />);
+  await screen.findByText("call 0e6c1f7a");
   fireEvent.click(screen.getByRole("button", { name: /Reply/ }));
-  fireEvent.change(screen.getByLabelText("Message"), {
+  fireEvent.change(await screen.findByLabelText("Your answer"), {
     target: { value: "Still wrong on Hog 2.6." },
   });
   fireEvent.click(screen.getByRole("button", { name: "Send" }));

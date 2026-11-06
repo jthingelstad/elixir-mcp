@@ -190,10 +190,12 @@ export function signedIn(
 /** Wide, the rail stays in view as a long page scrolls (2026-10-20): its
  *  contents stick to the top of the window, so the foot is in reach at
  *  the bottom of the page as at the top. */
-export async function railStaysInView(page: Page) {
-  const foot = page
+export async function railStaysInView(
+  page: Page,
+  foot = page
     .locator(".rail")
-    .getByRole("button", { name: "Send feedback", exact: true });
+    .getByRole("button", { name: "Send feedback", exact: true }),
+) {
   await expect(foot).toBeInViewport();
   await page.evaluate(() =>
     window.scrollTo(0, document.documentElement.scrollHeight),

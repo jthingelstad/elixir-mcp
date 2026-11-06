@@ -15,27 +15,27 @@ import {
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { ladderHref } from "../ladder/ladder.js";
 import { forgetSession, rememberSession } from "../lib/session-hint.js";
+import { HelpDrawer } from "./HelpDrawer.jsx";
+import { SearchSheet } from "./SearchSheet.jsx";
 
 /**
  * The shell on every page of the app: the top bar, the avatar's menu, the
- * phone's tabs and the footer. The words and addresses are the kit's manifest
- * (packages/ui/src/family.json), the list apps/site draws the same bar from.
- *
- * Search and Help are plain links until the search sheet and help drawer
- * exist: Search opens Explore and Help opens the docs.
+ * phone's tabs, the footer, the search sheet and the help drawer. The words and
+ * addresses are the kit's manifest (packages/ui/src/family.json), the list
+ * apps/site draws the same bar from. That static bar's Search and Help stay
+ * links: a page with no app under it has no sheet to open.
  */
 const product = (key) => FAMILY_PRODUCTS.find((p) => p.key === key);
 const PLACES = {
   home: onOrigin(product("home").href),
   ladder: onOrigin(product("ladder").href),
   clan: onOrigin(product("clan").href),
-  search: FAMILY_PLACES.search.path,
-  help: FAMILY_PLACES.help.path,
   signIn: FAMILY_PLACES.signIn.path,
   createAccount: FAMILY_PLACES.createAccount.path,
-  verify: `${CONSOLE}/account/verify`,
+  verify: `${SETTINGS}/players/verify`,
   settings: FAMILY_PLACES.settings,
   admin: `${CONSOLE}/admin`,
 };
@@ -204,7 +204,7 @@ function Avatar({ me }) {
 
 /** The top bar. `me` is the session, null while it has not answered and for
  *  an address nobody has signed in to see. */
-function TopBar({ me, area }) {
+function TopBar({ me, area, open }) {
   const signedIn = me?.authenticated === true;
   // Not answered yet, or no answer: the bar claims neither state.
   if (me === null || me === undefined)
@@ -248,18 +248,25 @@ function TopBar({ me, area }) {
             </Link>
           ))}
         </nav>
-        <Link to={PLACES.search} className="kit-top__search">
+        <button
+          type="button"
+          className="kit-top__search"
+          aria-haspopup="dialog"
+          onClick={() => open("search")}
+        >
           <Icon name={FAMILY_PLACES.search.icon} size={18} />
           <span>{FAMILY_PLACES.search.prompt}</span>
-        </Link>
+        </button>
         <span className="kit-top__gap" />
-        <a
-          href={PLACES.help}
+        <button
+          type="button"
           className="kit-top__icon"
           aria-label={FAMILY_PLACES.help.label}
+          aria-haspopup="dialog"
+          onClick={() => open("help")}
         >
           <Icon name={FAMILY_PLACES.help.icon} size={18} />
-        </a>
+        </button>
         <a
           href={DROP}
           target="_blank"
@@ -277,15 +284,28 @@ function TopBar({ me, area }) {
 }
 
 /** The phone's tabs, under the page. Signed in only. */
-function BottomTabs({ area }) {
+function BottomTabs({ area, open }) {
   return (
     <nav className="kit-bottom" aria-label="Main, phone">
-      {TABS.map((t) => (
-        <Link key={t.key} to={PLACES[t.key]} {...here(t.key, area)}>
-          <Icon name={t.icon} size={18} />
-          <span>{t.label}</span>
-        </Link>
-      ))}
+      {TABS.map((t) =>
+        t.key === "search" ? (
+          <button
+            key={t.key}
+            type="button"
+            aria-haspopup="dialog"
+            {...here(t.key, area)}
+            onClick={() => open("search")}
+          >
+            <Icon name={t.icon} size={18} />
+            <span>{t.label}</span>
+          </button>
+        ) : (
+          <Link key={t.key} to={PLACES[t.key]} {...here(t.key, area)}>
+            <Icon name={t.icon} size={18} />
+            <span>{t.label}</span>
+          </Link>
+        ),
+      )}
     </nav>
   );
 }
@@ -323,12 +343,20 @@ export function ShellFrame({ me, unreachable = false, area, children }) {
     if (!unreachable) rememberSession(me);
   }, [me, unreachable]);
   const signedIn = me?.authenticated === true;
+  // One sheet at a time, and mounted only when asked for: nothing is read
+  // for search until someone opens it.
+  const [sheet, setSheet] = useState(null);
+  const close = () => setSheet(null);
   return (
     <div className={`kit-shell${signedIn ? " kit-shell--in" : ""}`}>
-      <TopBar me={me} area={area} />
+      <TopBar me={me} area={area} open={setSheet} />
       {children}
       <SiteFoot />
-      {signedIn ? <BottomTabs area={area} /> : null}
+      {signedIn ? <BottomTabs area={area} open={setSheet} /> : null}
+      {signedIn && sheet === "search" ? (
+        <SearchSheet me={me} onClose={close} />
+      ) : null}
+      {signedIn && sheet === "help" ? <HelpDrawer onClose={close} /> : null}
     </div>
   );
 }

@@ -457,7 +457,7 @@ export function RefusedPage() {
 }
 
 /** The notice after sign-in: an unverified player's Elder, Co-leader or
- *  Leader role waits for Elixir → Verify. "I understand" goes on. */
+ *  Leader role waits for Settings → Players → Verify. "I understand" goes on. */
 export function VerifyPage() {
   const { me, setMe } = useSession();
   const navigate = useNav();
@@ -481,11 +481,11 @@ export function VerifyPage() {
 }
 
 /** Clan's own feedback pages retired into Elixir's one system
- *  (2026-10-08): an old address goes to the person's feedback in the
- *  Console, and the maintainer's lane to the one queue. */
+ *  (2026-10-08): an old address goes to the person's feedback in
+ *  Settings, and the maintainer's lane to the one queue. */
 export function FeedbackPage() {
   useEffect(() => {
-    window.location.replace("/console/account/feedback");
+    window.location.replace("/settings/feedback");
   }, []);
   return null;
 }
@@ -559,6 +559,9 @@ export function ClanShell({
   // Where a signed-in person belongs, whatever address they arrived at.
   useEffect(() => {
     if (!me) return;
+    // A link out of Clan (Settings, Home): the address changes before this
+    // shell unmounts, and sending it back here would undo the click.
+    if (path !== CLAN && !path.startsWith(`${CLAN}/`)) return;
     if (!me.signed_in) {
       rememberAfterSignIn(path + window.location.search);
       return;

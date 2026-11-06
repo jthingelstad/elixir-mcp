@@ -10,7 +10,6 @@ import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import {
   ActivityGraph,
   level,
-  shareBin,
   weeks,
 } from "../src/components/ActivityGraph.jsx";
 
@@ -61,13 +60,6 @@ function fixture() {
 }
 
 test("level scales to the player's own busiest day", () => {
-  // The win share in tenths; undecided days (all draws, or a row the
-  // nightly job has not rebuilt with tallies) have none.
-  expect(shareBin({ wins: 4, losses: 1 })).toBe(8);
-  expect(shareBin({ wins: 1, losses: 2 })).toBe(3);
-  expect(shareBin({ wins: 0, losses: 3 })).toBe(0);
-  expect(shareBin({ wins: 0, losses: 0 })).toBe(null);
-  expect(shareBin({ battles: 3 })).toBe(null);
   expect(level(0, 10)).toBe(0);
   expect(level(1, 10)).toBe(1);
   expect(level(5, 10)).toBe(2);
@@ -86,18 +78,18 @@ test("weeks pads the first column to Monday", () => {
   expect(cols[0][2].day).toBe("2026-09-09");
 });
 
-test("positive battles keep their hue, empty days need whole-day reads, and a tap writes the evidence caption", () => {
+test("one hue by battle count, empty days need whole-day reads, and a tap writes the evidence caption", () => {
   render(<ActivityGraph data={fixture()} />);
   const notRecorded = screen.getByRole("button", {
     name: /^Sun Sep 6 2026: unknown · no battles recorded$/,
   });
   expect(notRecorded.className).toContain("activity__cell--none");
   const busy = screen.getByRole("button", {
-    name: /^Tue Sep 8 2026: 6 battles recorded · 4 wins, 1 loss, 1 draw · the whole day was read$/,
+    name: /^Tue Sep 8 2026: 6 battles recorded · the whole day was read$/,
   });
   expect(busy.className).toContain("activity__cell--l4");
-  // 4 of 5 decided: the 80% hue bin.
-  expect(busy.className).toContain("activity__cell--hue activity__cell--w8");
+  // Won and lost stay in the two-week list: the cell is the count alone.
+  expect(busy.className).not.toContain("--hue");
   const quiet = screen.getByRole("button", {
     name: /^Thu Sep 10 2026: 0 battles · read in full$/,
   });
@@ -115,34 +107,27 @@ test("positive battles keep their hue, empty days need whole-day reads, and a ta
     name: /^Thu May 14 2026: 3 battles recorded · unknown$/,
   });
   expect(stray.className).toContain("activity__cell--l2");
-  // A bare count (no tallies yet) keeps the accent ramp.
-  expect(stray.className).not.toContain("activity__cell--hue");
   expect(
     screen.getByRole("button", {
       name: /^Fri May 15 2026: unknown · no battles recorded$/,
     }).className,
   ).toContain("activity__cell--none");
-  // All draws: volume, but no share, so no hue - and no "0 wins, 0 losses"
-  // is not what it says; it says what happened.
-  const partial = screen.getByRole("button", {
-    name: /^Sat Sep 12 2026: 2 battles recorded · 0 wins, 0 losses, 2 draws · part of the day was read$/,
-  });
-  expect(partial.className).not.toContain("activity__cell--hue");
-  expect(screen.getByText(/tracked since \w+ Sep [23]( 2026)?/)).toBeTruthy();
+  expect(
+    screen.getByRole("button", {
+      name: /^Sat Sep 12 2026: 2 battles recorded · part of the day was read$/,
+    }),
+  ).toBeTruthy();
+  expect(screen.getByText(/Tracked since \w+ Sep [23]( 2026)?/)).toBeTruthy();
   fireEvent.click(busy);
   expect(
     screen.getByText(
-      "Tue Sep 8 2026: 6 battles recorded · 4 wins, 1 loss, 1 draw · the whole day was read",
+      "Tue Sep 8 2026: 6 battles recorded · the whole day was read",
     ).className,
   ).toBe("activity__caption");
-  // The legend runs losses to wins, then fewer to more.
-  expect(screen.getByText("losses")).toBeTruthy();
-  expect(screen.getByText("wins")).toBeTruthy();
-  expect(screen.getByText("fewer")).toBeTruthy();
-  // The legend swatch and the list both name it.
-  expect(
-    screen.getAllByText("not read in full, or unknown").length,
-  ).toBeGreaterThan(0);
+  // The legend runs fewer to more; win share is not on it.
+  expect(screen.queryByText("losses")).toBeNull();
+  expect(screen.getByText("Fewer")).toBeTruthy();
+  expect(screen.getByText("Unknown")).toBeTruthy();
   // No rhythm tile: nothing renders as an img.
   expect(screen.queryAllByRole("img").length).toBe(0);
 });

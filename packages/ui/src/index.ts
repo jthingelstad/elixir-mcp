@@ -70,7 +70,6 @@ export { splitTags, Tag, TagText } from "./Tag.tsx";
 export {
   Rail,
   RailSwitcher,
-  type RailAccount,
   type RailChoice,
   type RailDot,
   type RailItem,
@@ -111,4 +110,5 @@ export { noun } from "./noun.ts";
 
 export { InitialTimeProvider, useInitialTime } from "./InitialTime.tsx";
 
+export { ConfirmAction } from "./ConfirmAction.tsx";
 export { DetailSheet, Setting, Disclosure } from "./DetailSheet.tsx";

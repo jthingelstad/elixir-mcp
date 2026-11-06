@@ -100,7 +100,7 @@ async function sound(page: Page) {
   ).toEqual([]);
 }
 for (const suffix of ["", " @narrow"]) {
-  for (const path of ["/console/account/tracking/20JJJ2CCRU"]) {
+  for (const path of ["/settings/players/20JJJ2CCRU"]) {
     for (const capture of cases) {
       test(`year ${path} ${capture.name} stays truthful across UTC year boundary${suffix}`, async ({
         page,
@@ -125,7 +125,7 @@ for (const suffix of ["", " @narrow"]) {
         );
         await page.goto(path);
         const graph = page.getByRole("group", {
-          name: "Battles per UTC day over the last year",
+          name: "Battles per day over the last year",
         });
         await expect(graph.getByRole("button")).toHaveCount(365);
         await expect(
@@ -142,11 +142,9 @@ for (const suffix of ["", " @narrow"]) {
         if (capture.positive) {
           await expect(positive).toHaveAttribute(
             "aria-label",
-            /2 battles recorded · 1 win, 1 loss/,
+            /2 battles recorded · /,
           );
-          await expect(positive).toHaveClass(
-            /activity__cell--l4.*activity__cell--w5/,
-          );
+          await expect(positive).toHaveClass(/activity__cell--l4/);
           await positive.click();
           await expect(page.locator(".activity__caption")).toContainText(
             "2 battles recorded",
@@ -161,10 +159,10 @@ for (const suffix of ["", " @narrow"]) {
         await page
           .getByText("The last two weeks as a list", { exact: true })
           .click();
-        const recent = page.locator(".activity__table tbody tr");
+        const recent = page.locator(".activity__table li");
         await expect(recent).toHaveCount(14);
         await expect(recent.first()).toContainText("Jan 1 2025");
-        await expect(recent.first()).toContainText("unknown");
+        await expect(recent.first()).toContainText(/unknown/i);
         await sound(page);
         await page.reload();
         await expect(quiet).toHaveAttribute(

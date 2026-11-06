@@ -38,10 +38,10 @@ export function VerifyNotice({ me, onAcknowledge }) {
         <span>
           Until {many ? "they are" : "it is"} verified you read what a member
           reads, and nothing here is done in your player&rsquo;s name: no away
-          notice, no comments, no place on the clan map. Open Elixir → Verify:
-          Elixir names eight cards, you play one battle with them, and the claim
-          is verified. It usually takes under a minute; sign in here again
-          afterwards.
+          notice, no comments, no place on the clan map. Open Settings → Players
+          → Verify: Elixir names eight cards, you play one battle with them, and
+          the claim is verified. It usually takes under a minute; sign in here
+          again afterwards.
         </span>
       </div>
       <div className="flex flex-wrap gap-2.5">

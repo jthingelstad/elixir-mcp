@@ -15,7 +15,7 @@ import { OAUTH_SCOPE_DETAILS, OAUTH_SCOPES } from "@elixir-mcp/contracts";
  * reaches here, or the checkboxes would show nothing and read as "can do
  * nothing" for a key that can do everything.
  */
-export function CapabilityEditor({ scope, onSave, disabled = false }) {
+export function CapabilityEditor({ scope, onSave, disabled = false, name }) {
   const current = scope.split(" ").filter(Boolean);
   const [editing, setEditing] = useState(false);
   const [chosen, setChosen] = useState(current);
@@ -51,6 +51,7 @@ export function CapabilityEditor({ scope, onSave, disabled = false }) {
 
   return (
     <div>
+      {name ? <div className="section-title">What {name} may do</div> : null}
       {OAUTH_SCOPE_DETAILS.filter(
         // A non-standard capability (account:email) can be taken back
         // here but never handed to a client that did not ask for it.
@@ -72,17 +73,19 @@ export function CapabilityEditor({ scope, onSave, disabled = false }) {
           </div>
         </label>
       ))}
-      {error && (
-        <div style={{ color: "var(--warn)", fontSize: "12.5px" }}>{error}</div>
-      )}
+      <p className="hint">
+        The first one is always on. Granted at sign-in, changed here.
+      </p>
+      {error && <p className="field-error">{error}</p>}
       <button
+        className="btn btn--sm"
         disabled={saving}
         onClick={async () => {
           setSaving(true);
           const r = await onSave(chosen.join(" "));
           setSaving(false);
           if (!r.ok) {
-            setError(r.data?.hint ?? "Could not change capabilities.");
+            setError(r.data?.hint ?? "Could not change that.");
             return;
           }
           setEditing(false);
@@ -90,7 +93,11 @@ export function CapabilityEditor({ scope, onSave, disabled = false }) {
       >
         {saving ? "Saving…" : "Save"}
       </button>{" "}
-      <button className="btn--text" onClick={() => setEditing(false)}>
+      <button
+        className="btn--text"
+        type="button"
+        onClick={() => setEditing(false)}
+      >
         Cancel
       </button>
     </div>

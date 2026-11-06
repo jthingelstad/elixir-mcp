@@ -7,7 +7,7 @@ order: 7
 navTitle: "Coverage"
 icon: calendar-days
 lede: "Recorded battles stay visible. Empty days need complete capture before they can mean quiet."
-console: ["See your players", "/console/account/tracking", "Settings ▸ Tracking"]
+console: ["See your players", "/settings/players", "Settings ▸ Players"]
 ---
 
 # Battle activity: a year of days

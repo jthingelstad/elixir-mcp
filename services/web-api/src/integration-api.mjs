@@ -173,7 +173,7 @@ function personRoute(db, account, method, path, query, body, deps = {}) {
       throw new ApiError(
         400,
         "bad_request",
-        "relationship must be alt, friend or watching (the primary is chosen in the console).",
+        "relationship must be alt, friend or watching (the primary is chosen in Settings).",
       );
     return {
       operation: "me.players.add",

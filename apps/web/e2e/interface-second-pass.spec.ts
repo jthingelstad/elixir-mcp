@@ -29,7 +29,7 @@ for (const width of [390, 820, 1280]) {
         },
       }),
     );
-    await page.goto("/console/account/profile/email");
+    await page.goto("/settings/emails");
     const scheduled = page.getByRole("region", {
       name: "Scheduled",
       exact: true,
@@ -41,7 +41,7 @@ for (const width of [390, 820, 1280]) {
         .getByRole("switch"),
     ).toHaveCount(3);
     await expect(
-      scheduled.getByText("Monday · 9:00 am Central", { exact: true }),
+      scheduled.getByText(/^Mondays, 9:00 am Central/),
     ).toBeVisible();
     await expect(page.getByRole("switch")).toHaveCount(8);
     await page

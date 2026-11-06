@@ -1,0 +1,379 @@
+/**
+ * The Read more links in the help drawer: one map, keyed the way
+ * shell/help.js names a page. A page with a help entry names its own key here.
+ */
+export const DOC_LINKS = {
+  "home:today": [
+    "Today",
+    [
+      ["Get started with Elixir", "/docs/quickstart"],
+      ["Recording and coverage", "/docs/recording"],
+      ["Roles and quotas", "/docs/roles"],
+    ],
+  ],
+  "home:friends": [
+    "Friends",
+    [
+      ["Follow a friend", "/docs/follow-a-friend"],
+      ["Roles and quotas", "/docs/roles"],
+    ],
+  ],
+  clan: [
+    "Clan",
+    [
+      ["Clan actions", "/docs/clan-actions"],
+      ["Roles and quotas", "/docs/roles"],
+    ],
+  ],
+  explore: [
+    "Reading the record",
+    [
+      ["Methodology", "/docs/methodology"],
+      ["Tool reference", "/docs/tools"],
+      ["Responses", "/docs/responses"],
+    ],
+  ],
+  // A record page names the tool that produced it; its strip points at
+  // how to read what came back.
+  "explore:player": [
+    "Player records",
+    [
+      ["players_summary", "/docs/tools/players#players_summary"],
+      ["Methodology", "/docs/methodology"],
+    ],
+  ],
+  "explore:record": [
+    "Reading a record",
+    [
+      ["Responses", "/docs/responses"],
+      ["Coverage", "/docs/responses#coverage-and-result-limits"],
+      ["Methodology", "/docs/methodology"],
+    ],
+  ],
+  tracking: [
+    "What we record for you",
+    [
+      ["How recording works", "/docs/recording"],
+      ["Scopes", "/docs/recording#scope-what-is-actually-polled"],
+      ["Tiers & slots", "/docs/roles"],
+    ],
+  ],
+  verify: [
+    "Proving a claim",
+    [
+      ["Verify", "/docs/verify"],
+      [
+        "Claims and relationships",
+        "/docs/recording#relationships-primary-nicknames",
+      ],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  // The record of one tracked thing: the page with the notify switch on
+  // it links to what a notification is.
+  "tracking:record": [
+    "What we record for you",
+    [
+      ["How recording works", "/docs/recording"],
+      ["Battle activity", "/docs/activity"],
+      ["Timeline", "/docs/timeline"],
+    ],
+  ],
+  timeline: [
+    "Timeline",
+    [
+      ["The timeline", "/docs/timeline"],
+      ["elixir_timeline", "/docs/tools/timeline#elixir_timeline"],
+    ],
+  ],
+  "activity:requests": [
+    "The MCP surface",
+    [
+      ["Protocol", "/docs/protocol"],
+      ["Limits", "/docs/limits"],
+      ["Responses", "/docs/responses"],
+    ],
+  ],
+  // The record of one call: what the request and response mean, and
+  // how long the body is kept.
+  "activity:call": [
+    "One call",
+    [
+      ["Response envelope", "/docs/responses#the-fields"],
+      ["Retention", "/docs/limits#retention-windows"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "activity:emails": [
+    "The emails Elixir sends",
+    [
+      ["Email", "/docs/email"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  // The record of one sent email: what it is, and what is counted.
+  "activity:email": [
+    "One email",
+    [
+      ["Email", "/docs/email"],
+      ["What the mail counts", "/docs/email#what-the-mail-counts"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "activity:events": [
+    "Your account log",
+    [
+      ["Privacy", "/docs/privacy"],
+      ["Tiers & roles", "/docs/roles"],
+    ],
+  ],
+  usage: [
+    "Budgets",
+    [
+      ["Limits", "/docs/limits"],
+      ["Live fetch", "/docs/tools/live"],
+      ["Run a collector", "/docs/operators"],
+    ],
+  ],
+  "agent:overview": [
+    "Your agent",
+    [
+      ["Agents", "/docs/agents"],
+      ["Tiers & roles", "/docs/roles"],
+      ["The timeline", "/docs/timeline"],
+    ],
+  ],
+  "agent:tracking": [
+    "What an agent tracks",
+    [
+      ["What an agent tracks", "/docs/agents#what-an-agent-tracks"],
+      ["How recording works", "/docs/recording"],
+      ["Tiers & slots", "/docs/roles"],
+    ],
+  ],
+  "agent:settings": [
+    "Running an agent",
+    [
+      ["Agents", "/docs/agents"],
+      ["Connections", "/docs/connections"],
+      ["Limits", "/docs/limits"],
+    ],
+  ],
+  "agent:connections": [
+    "Connecting as an agent",
+    [
+      ["Agents", "/docs/agents"],
+      ["Connections", "/docs/connections"],
+    ],
+  ],
+  "connections:clients": [
+    "Connections",
+    [
+      ["Connections", "/docs/connections"],
+      ["Protocol & auth", "/docs/protocol"],
+      ["Scopes", "/docs/protocol#scopes"],
+    ],
+  ],
+  "connections:agents": [
+    "Agents",
+    [
+      ["Agents", "/docs/agents"],
+      ["Key lifecycle", "/docs/agents#key-lifecycle"],
+      ["Identity map", "/docs/agents#knowing-which-human-is-asking"],
+    ],
+  ],
+  profile: [
+    "Your account",
+    [
+      ["Tiers & roles", "/docs/roles"],
+      ["Limits", "/docs/limits"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "profile:profile": [
+    "Your account",
+    [
+      ["Tiers & roles", "/docs/roles"],
+      ["Limits", "/docs/limits"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "profile:email": [
+    "The emails Elixir sends",
+    [
+      ["Email", "/docs/email"],
+      ["What the mail counts", "/docs/email#what-the-mail-counts"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "profile:devices": [
+    "Your sessions",
+    [
+      ["Connections", "/docs/connections"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  feedback: [
+    "Feedback",
+    [
+      ["About the project", "/docs/about"],
+      ["elixir_send_feedback", "/docs/tools/help#elixir_send_feedback"],
+    ],
+  ],
+  "status:collectors": [
+    "Collectors",
+    [
+      ["Operators guide", "/docs/operators"],
+      ["Architecture", "/docs/architecture#collectors-in-depth"],
+    ],
+  ],
+  // The session clock's cost and loss, per day (2026-09-19).
+  "status:efficiency": [
+    "Efficiency",
+    [
+      [
+        "How often a subject is fetched",
+        "/docs/recording#how-often-a-subject-is-fetched",
+      ],
+      ["Completeness", "/docs/recording#completeness"],
+      [
+        "Architecture",
+        "/docs/architecture#scheduling-how-often-a-player-is-fetched-and-why",
+      ],
+    ],
+  ],
+  // One collector's record: the page an operator reads while running one.
+  "status:collector": [
+    "Running a collector",
+    [
+      ["Operators guide", "/docs/operators"],
+      ["How collectors get work", "/docs/architecture#collectors-in-depth"],
+      ["Budgets", "/docs/limits"],
+    ],
+  ],
+  status: [
+    "How the service runs",
+    [
+      ["Architecture", "/docs/architecture"],
+      ["Collectors", "/docs/operators"],
+      ["Limits", "/docs/limits"],
+    ],
+  ],
+  "admin:requests": [
+    "Admission",
+    [
+      ["Tiers & roles", "/docs/roles"],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "admin:accounts": [
+    "Accounts & tiers",
+    [
+      ["Tiers & roles", "/docs/roles"],
+      ["Limits", "/docs/limits"],
+    ],
+  ],
+  "admin:collectors": [
+    "Collector fleet",
+    [
+      ["Operators guide", "/docs/operators"],
+      ["Architecture", "/docs/architecture#collectors-in-depth"],
+      ["How collectors get work", "/docs/architecture#collectors-in-depth"],
+    ],
+  ],
+  "admin:connections": [
+    "Connections",
+    [
+      ["Connections", "/docs/connections"],
+      ["Protocol & auth", "/docs/protocol"],
+      ["Tiers & roles", "/docs/roles"],
+    ],
+  ],
+  "admin:service-tokens": [
+    "Service keys",
+    [
+      ["Connections", "/docs/connections"],
+      ["Protocol & auth", "/docs/protocol"],
+    ],
+  ],
+  "admin:integrations": [
+    "Integrations",
+    [
+      ["Integrations", "/docs/integrations"],
+      ["Integration API", "/docs/integrations#provisioning-and-administration"],
+    ],
+  ],
+  "admin:pulse": [
+    "What is counted",
+    [
+      ["Privacy", "/docs/privacy"],
+      ["What the mail counts", "/docs/email#what-the-mail-counts"],
+    ],
+  ],
+  "admin:feedback": ["Feedback queue", [["About the project", "/docs/about"]]],
+  "admin:emails": [
+    "What we send",
+    [
+      ["Email", "/docs/email"],
+      ["What the mail counts", "/docs/email#what-the-mail-counts"],
+    ],
+  ],
+  "admin:discord": [
+    "What Elixir posts to Discord",
+    [
+      ["Timeline cross-post", "/docs/timeline#cross-posting-to-discord"],
+      ["Actions in Discord", "/docs/clan-actions#actions-in-the-clans-discord"],
+      [
+        "The clan's activity",
+        "/docs/clan-policy#the-clans-activity-in-discord",
+      ],
+      ["Privacy", "/docs/privacy"],
+    ],
+  ],
+  "admin:usage": [
+    "Usage across accounts",
+    [
+      ["Limits", "/docs/limits"],
+      ["Architecture", "/docs/architecture"],
+    ],
+  ],
+  "admin:cards": [
+    "The archetype vocabulary",
+    [
+      ["Deck archetypes", "/docs/archetypes"],
+      ["Cards", "/docs/cards"],
+    ],
+  ],
+  // Ladder's pages: the section's own page first, then the tool each
+  // page reads.
+  "ladder:season": [
+    "Ladder",
+    [
+      ["Ladder", "/docs/ladder"],
+      ["battles_performance", "/docs/tools/battles#battles_performance"],
+      ["players_summary", "/docs/tools/players#players_summary"],
+    ],
+  ],
+  "ladder:battles": [
+    "Ladder",
+    [
+      ["Battles", "/docs/ladder#battles"],
+      ["battles_query", "/docs/tools/battles#battles_query"],
+    ],
+  ],
+  "ladder:decks": [
+    "Ladder",
+    [
+      ["Decks", "/docs/ladder#decks"],
+      ["battles_decks", "/docs/tools/battles#battles_decks"],
+    ],
+  ],
+  "ladder:cards": [
+    "Ladder",
+    [
+      ["Cards", "/docs/ladder#cards"],
+      ["battles_cards", "/docs/tools/battles#battles_cards"],
+      ["battles_opponents", "/docs/tools/battles#battles_opponents"],
+    ],
+  ],
+};

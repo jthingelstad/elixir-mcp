@@ -7,6 +7,7 @@ import {
   signatureCounts,
 } from "../components/ReleaseSignature.jsx";
 import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 
 /**
  * Service ▸ Status ▸ Collectors — the whole fleet, and one machine.
@@ -84,7 +85,7 @@ export function Fleet({ navigate }) {
               <button
                 className="btn btn--primary"
                 style={{ marginLeft: "auto" }}
-                onClick={() => navigate(`${CONSOLE}/status/collectors/new`)}
+                onClick={() => navigate(`${SETTINGS}/collectors/new`)}
               >
                 <Icon name="plus" size={16} />
                 {runsOne ? "Run another" : "Run a collector"}

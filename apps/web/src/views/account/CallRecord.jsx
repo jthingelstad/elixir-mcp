@@ -1,8 +1,8 @@
 import { Icon, Link, useClock, noun, Empty, ErrorState } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useCallRecord } from "../../lib/queries.js";
-import { useConsolePath } from "../../lib/scope.js";
-import { CONSOLE } from "../../lib/console.js";
+import { useScopedPath } from "../../lib/scope.js";
+import { SETTINGS } from "../../lib/settings.js";
 
 /**
  * One tool call: the request as sent, the response as received, and
@@ -117,7 +117,7 @@ function JsonSection({ label, note, value, folded = [] }) {
           className="footnote"
           style={{ margin: 0, padding: "14px 16px", color: "var(--ink-faint)" }}
         >
-          Not kept for this call.
+          Not captured for this call.
         </p>
       ) : (
         <JsonTree
@@ -149,26 +149,28 @@ function Cell({ label, value, note, tone }) {
   );
 }
 
-/** What kind of outcome this row records, in the console's tones. */
+const WHOSE = { person: "a person", agent: "an agent" };
+
+/** What kind of outcome this row records, in the page's tones. */
 function outcomeOf(call) {
   if (call.rpc_error_code != null) {
     const name =
       {
-        "-32029": "daily quota",
+        "-32029": "daily budget",
         "-32601": "not available to this connection",
         "-32602": "unknown tool",
-        "-32003": "missing capability",
-      }[String(call.rpc_error_code)] ?? "refused";
-    return { text: `refused · ${name}`, tone: "bad" };
+        "-32003": "missing permission",
+      }[String(call.rpc_error_code)] ?? "";
+    return { text: name ? `Refused: ${name}` : "Refused", tone: "bad" };
   }
   if (call.error_code) return { text: call.error_code, tone: "bad" };
-  if (call.truncated) return { text: "ok · truncated", tone: "warn" };
-  return { text: "ok", tone: "ok" };
+  if (call.truncated) return { text: "OK, truncated", tone: "warn" };
+  return { text: "OK", tone: "ok" };
 }
 
 export function CallRecord({ id, navigate }) {
   // The record's own links stay in the console it was opened from.
-  const path = useConsolePath();
+  const path = useScopedPath();
   const { when } = useClock();
   // The envelope, because 403 and 404 are answers this page reads.
   const record = useCallRecord(id);
@@ -177,9 +179,7 @@ export function CallRecord({ id, navigate }) {
 
   const back = (
     <div className="page__crumb">
-      <Link to={path(`${CONSOLE}/account/activity/requests`)}>
-        ‹ MCP requests
-      </Link>
+      <Link to={path(`${SETTINGS}/usage/requests`)}>‹ Requests</Link>
     </div>
   );
 
@@ -192,7 +192,7 @@ export function CallRecord({ id, navigate }) {
       <>
         {back}
         <ErrorState title="This call could not be read">
-          Elixir did not answer just now; try again in a moment.
+          Elixir did not answer just now. Try again in a moment.
         </ErrorState>
       </>
     );
@@ -202,7 +202,8 @@ export function CallRecord({ id, navigate }) {
         {back}
         <Empty title="That call is not in your log">
           The log holds calls made by your own connections and by the agents you
-          own. An id from somewhere else opens nothing here.
+          own. The request and response are kept 90 days. A record of the call
+          stays. An id from somewhere else opens nothing here.
         </Empty>
       </>
     );
@@ -232,19 +233,21 @@ export function CallRecord({ id, navigate }) {
       </div>
       <p className="record__sub">
         <span className="mono">{when(call.created_at)}</span> · {connection}
-        {call.principal_kind ? ` · ${call.principal_kind}` : ""}
+        {call.principal_kind
+          ? ` · ${WHOSE[call.principal_kind] ?? call.principal_kind}`
+          : ""}
         {call.on_behalf_of ? ` · on behalf of ${call.on_behalf_of}` : ""}
       </p>
 
       <div className="stats" style={{ marginBottom: "14px" }}>
         <Cell
-          label="DURATION"
+          label="Duration"
           value={ms(call.duration_ms)}
           note="end to end"
           tone={call.duration_ms > 300 ? "warn" : undefined}
         />
         <Cell
-          label="DATABASE"
+          label="Database"
           value={ms(call.db_ms)}
           note={
             call.db_queries == null
@@ -253,28 +256,28 @@ export function CallRecord({ id, navigate }) {
           }
         />
         <Cell
-          label="LIVE WAIT"
+          label="Live wait"
           value={call.live_wait_ms == null ? "—" : ms(call.live_wait_ms)}
           note={call.live_wait_ms == null ? "no live fetch" : "on a collector"}
         />
         <Cell
-          label="PREPARING THE ANSWER"
+          label="Preparing the answer"
           value={ms(call.serialize_ms)}
           note="the body's own cost"
         />
         <Cell
-          label="RESULT"
+          label="Result"
           value={bytes(call.result_bytes)}
           note={call.truncated ? "truncated on the wire" : "as sent"}
           tone={call.truncated ? "warn" : undefined}
         />
         <Cell
-          label="STARTING UP"
+          label="Starting up"
           value={call.cold_start == null ? "—" : call.cold_start ? "yes" : "no"}
           note="the first call after a quiet spell"
         />
         <Cell
-          label="ERROR"
+          label="Error"
           value={
             call.rpc_error_code != null
               ? String(call.rpc_error_code)
@@ -286,16 +289,18 @@ export function CallRecord({ id, navigate }) {
           }
         />
         <Cell
-          label="QUOTA AFTER"
+          label="Budget after"
           value={
             quota
-              ? `${quota.count ?? quota.used ?? "?"} / ${quota.max ?? "∞"}`
+              ? quota.max != null
+                ? `${Math.max(0, quota.max - (quota.count ?? quota.used ?? 0)).toLocaleString()} left`
+                : "No ceiling"
               : "—"
           }
-          note={quota ? "calls today" : "not in this body"}
+          note={quota ? "calls today" : "not in this answer"}
         />
-        <Cell label="CLIENT" value={call.client_name ?? "—"} />
-        <Cell label="COUNTRY" value={call.viewer_country ?? "—"} />
+        <Cell label="Client" value={call.client_name ?? "—"} />
+        <Cell label="Country" value={call.viewer_country ?? "—"} />
       </div>
 
       <div
@@ -315,9 +320,7 @@ export function CallRecord({ id, navigate }) {
           }
           onClick={() =>
             rec.prev &&
-            navigate(
-              path(`${CONSOLE}/account/activity/c/${rec.prev.request_id}`),
-            )
+            navigate(path(`${SETTINGS}/usage/requests/${rec.prev.request_id}`))
           }
         >
           ‹ Previous call
@@ -330,9 +333,7 @@ export function CallRecord({ id, navigate }) {
           }
           onClick={() =>
             rec.next &&
-            navigate(
-              path(`${CONSOLE}/account/activity/c/${rec.next.request_id}`),
-            )
+            navigate(path(`${SETTINGS}/usage/requests/${rec.next.request_id}`))
           }
         >
           Next call ›
@@ -346,7 +347,7 @@ export function CallRecord({ id, navigate }) {
         <Link
           className="btn btn--sm"
           style={{ marginLeft: "auto" }}
-          to={`${CONSOLE}/account/feedback?request_id=${encodeURIComponent(call.request_id)}`}
+          to={`${SETTINGS}/feedback?request_id=${encodeURIComponent(call.request_id)}`}
         >
           <Icon name="message-square" size={15} />
           Report this call
@@ -355,7 +356,7 @@ export function CallRecord({ id, navigate }) {
 
       <JsonSection
         label="request"
-        note="the arguments as sent; secrets never recorded"
+        note="The arguments as sent. Secrets are never recorded."
         value={
           rec.request ??
           (call.args ? { tool: call.tool, arguments: call.args } : null)
@@ -373,15 +374,14 @@ export function CallRecord({ id, navigate }) {
       />
 
       <p className="footnote" style={{ margin: "0 2px", maxWidth: "78ch" }}>
-        <span className="mono">{call.request_id}</span>
-        {" — "}
+        <span className="mono">{call.request_id}</span>.{" "}
         {call.captured
           ? rec.capture_error
             ? "The request and response were kept, but could not be read back just now."
             : `Kept ${when(rec.captured_at)}. The request and response are kept 90 days. A record of the call stays.`
           : call.rpc_error_code != null
-            ? "Refused before any tool ran, so there is no body to show; the arguments above are the bounded copy from the log."
-            : "The request and response were not kept for this call (keeping them was off, the write failed, or it is older than 90 days); the arguments above are the bounded copy from the log."}
+            ? "Refused before any tool ran, so there is no body to show. The arguments above are the bounded copy from the log."
+            : "The request and response were not kept for this call (keeping them was off, the write failed, or it is older than 90 days). The arguments above are the bounded copy from the log."}
       </p>
     </>
   );

@@ -1,6 +1,6 @@
-/** Every link into Elixir, in one place. The app paths (under
- *  /console since 2026-09-28) are the ones Elixir's own docs front-matter
- *  names (`console:` on recording.md and verify.md).
+/** Every link into Elixir, in one place. The app paths are the ones
+ *  Elixir's own docs front-matter names (`console:` on recording.md and
+ *  verify.md).
  *
  *  Same-origin paths (2026-10-20): Clan is served on Elixir's one
  *  origin, so a link into the app stays on whichever origin the page
@@ -10,14 +10,15 @@
  *  browser view; nothing outside the page reads these. */
 export const ELIXIR_LINKS = {
   home: "/",
-  tracking: "/console/account/tracking",
-  verify: "/console/account/verify",
+  tracking: "/settings/players",
+  verify: "/settings/players/verify",
   elixirHome: "/home",
-  connections: "/console/account/connections",
+  connections: "/settings/connections",
   verifyDocs: "/docs/verify",
   connectionsDocs: "/docs/connections",
 };
 
 /** True for a link the app routes (Home, the account's pages), false for a site
  *  document (the docs), which is a page load. */
-export const inApp = (href) => href.startsWith("/console/") || href === "/home";
+export const inApp = (href) =>
+  href.startsWith("/settings/") || href === "/home";
