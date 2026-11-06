@@ -2501,6 +2501,51 @@ test("actions: a drafted entry keeps the model's words for leaders and co-leader
   }
 });
 
+test("Home's needs: a clan below ten members or with no policy needs nothing, as Clan's own count says", async () => {
+  const lh = harness({ part: partClan() });
+  const lc = await leader(lh);
+  await historicalRemoval(lh);
+  const open = (await api(lh, lc, "GET", "/api/clans/2PQRJ8LV/home")).body;
+  assert.ok(open.needs_total >= 1);
+
+  const small = harness({ part: smallClan(8), ledger: lh.ledger });
+  small.clock.t = lh.clock.t + 1000;
+  const sc = await leader(small);
+  // The evaluation notes the size, refuses, and moves no card.
+  await assert.rejects(
+    small.manage.evaluateClan({
+      clanTag: "#2PQRJ8LV",
+      token: "token",
+      who: { player_tag: king.player_tag, role: "leader", verified: true },
+      force: true,
+    }),
+    { code: "too_few_members" },
+  );
+  assert.equal((await lh.ledger.clanSize("#2PQRJ8LV")).members, 8);
+  const home = (await api(small, sc, "GET", "/api/clans/2PQRJ8LV/home")).body;
+  assert.equal(home.needs_total, 0);
+  assert.deepEqual(home.needs, []);
+  assert.ok(
+    (await lh.ledger.cards("#2PQRJ8LV")).some((c) => c.status === "proposed"),
+    "still proposed: the gate is what hides it",
+  );
+
+  const none = harness({ part: partClan(), policy: null });
+  const nc = await leader(none);
+  await none.ledger.putCard("#2PQRJ8LV", {
+    card_id: "no-policy",
+    clan_tag: "#2PQRJ8LV",
+    player_tag: idle.player_tag,
+    player_name: idle.name,
+    type: "removal",
+    status: "proposed",
+    evidence: {},
+  });
+  const unset = (await api(none, nc, "GET", "/api/clans/2PQRJ8LV/home")).body;
+  assert.equal(unset.policy_set, false);
+  assert.equal(unset.needs_total, 0);
+});
+
 test("Home's needs: the top two of Actions' own order, only what this person can take, and reading evaluates nothing", async () => {
   const lh = harness({ part: partClan() });
   const lc = await leader(lh);

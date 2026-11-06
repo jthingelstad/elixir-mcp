@@ -391,6 +391,18 @@ export function createManageService({
 
   /** The clan's saved policy, or the starting values with `set: false`
    *  (a draft for the editor, never something to judge by). */
+  /** The open Actions this person can take, and none for a clan with no
+   *  policy or below MIN_MEMBERS: an evaluation stops before moving cards
+   *  for a clan that small, so they stay proposed while Clan refuses them. */
+  async function openActionsFor(clanTag, who) {
+    if (!(await policyFor(clanTag)).set) return [];
+    const size = await ledger.clanSize(clanTag);
+    if (size && size.members < MIN_MEMBERS) return [];
+    return (await ledger.cards(clanTag)).filter(
+      (c) => c.status === "proposed" && canAct(c, who),
+    );
+  }
+
   async function policyFor(clanTag) {
     const current = await ledger.currentPolicy(clanTag);
     if (current)
@@ -1120,12 +1132,7 @@ export function createManageService({
     /** Open actions this person may take, for the rail's count: a ledger
      *  read, no evaluation. */
     async openActionCount(clanTag, who) {
-      if (!(await policyFor(clanTag)).set) return 0;
-      const size = await ledger.clanSize(clanTag);
-      if (size && size.members < MIN_MEMBERS) return 0;
-      return (await ledger.cards(clanTag)).filter(
-        (c) => c.status === "proposed" && canAct(c, who),
-      ).length;
+      return (await openActionsFor(clanTag, who)).length;
     },
 
     /**
@@ -1143,13 +1150,10 @@ export function createManageService({
         if (!(err instanceof ManageError)) throw err;
       }
       const policy = await policyFor(clanTag);
-      const cards = await ledger.cards(clanTag);
       const open =
         who.verified === false
           ? []
-          : inActionOrder(
-              cards.filter((c) => c.status === "proposed" && canAct(c, who)),
-            );
+          : inActionOrder(await openActionsFor(clanTag, who));
       return {
         clan_tag: clanTag,
         member,

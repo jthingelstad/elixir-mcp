@@ -54,8 +54,7 @@ export function barAccount(me, signOut) {
     .map((c) => ({
       key: c.player_tag,
       name: c.nickname ?? c.name ?? c.player_tag,
-      tag: c.player_tag,
-      primary: c.is_primary === true,
+      note: c.is_primary === true ? "Your main player" : "Also you",
       href: ladderHref("season", { player: c.player_tag }),
     }));
   const add = {

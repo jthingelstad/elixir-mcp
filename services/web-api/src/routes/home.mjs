@@ -305,7 +305,8 @@ const person = (p) => ({
   battles: p.battles ?? 0,
   wins: p.wins ?? 0,
   losses: p.losses ?? 0,
-  by_family: p.by_family ?? [],
+  // The record, whether or not the builder got as far as this person's deck.
+  by_family: p.mode_records ?? [],
   moments: p.moments ?? [],
   deck: p.deck ?? null,
   line: p.line ?? null,

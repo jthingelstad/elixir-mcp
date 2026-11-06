@@ -6,6 +6,12 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
+import {
+  seedDeck,
+  seedPlayedDeck,
+} from "../../../packages/tools/test/deck-rows.mjs";
+import { lastGameWeek } from "@elixir-mcp/record/game-week";
+import { buildFriendsWeek } from "@elixir-mcp/tools/friends-week";
 import { createSession } from "@elixir-mcp/auth";
 import { makeHandler } from "../src/handler.mjs";
 import { createClanRequest } from "../src/clan.mjs";
@@ -196,6 +202,127 @@ test("Friends: nobody played, the same week as the mail's, both lists honest", a
     body.quiet.map((q) => [q.tag, q.relationship]),
     [[FRIEND, "friend"]],
   );
+});
+
+// A friend who played last game week: one Trophy Road win, one war loss.
+const DECK = [
+  [26000007, "Witch"],
+  [26000021, "Hog Rider"],
+  [26000000, "Knight"],
+  [26000010, "Skeletons"],
+  [28000011, "The Log"],
+  [26000014, "Musketeer"],
+  [27000000, "Cannon"],
+  [28000001, "Arrows"],
+].map(([id, name]) => ({ id, name, level: 14 }));
+const TOWER = [{ id: 159000000, name: "Tower Princess" }];
+let seeded = 0;
+async function played(tag, id) {
+  const { db } = scratch;
+  const at = new Date(lastGameWeek(new Date()).from.getTime() + 3600_000);
+  const stamp = at.toISOString();
+  await db.query(
+    "insert into player(player_tag,name) values ($1,'Friend') on conflict do nothing",
+    [tag],
+  );
+  for (const [type, outcome] of [
+    ["PvP", "win"],
+    ["riverRacePvP", "loss"],
+  ]) {
+    const battle = `home-${++seeded}`;
+    const hash = await seedDeck(db, {
+      battle_time: stamp,
+      cards: DECK,
+      supportCards: TOWER,
+    });
+    await db.query(
+      "insert into battle (battle_id,battle_time,created_at,type,type_class,game_mode_name,event_tag) values ($1,$2,$2,$3,'pvp',$4,null)",
+      [battle, stamp, type, "Ladder"],
+    );
+    await db.query(
+      `insert into battle_participant (battle_id,player_tag,side,outcome,battle_time,crowns,deck_hash,type,type_class,deck_avg_level,opp_deck_avg_level)
+       values ($1,$2,0,$3,$4,0,$5,$6,'pvp',14,13)`,
+      [battle, tag, outcome, stamp, hash, type],
+    );
+    await seedPlayedDeck(db, {
+      battle_id: battle,
+      player_tag: tag,
+      battle_time: stamp,
+      cards: DECK,
+      supportCards: TOWER,
+    });
+  }
+  await call(handler, id, "POST", "/api/claims", {
+    player_tag: tag,
+    relationship: "friend",
+  });
+}
+const RECORD = [
+  { mode: "ladder", battles: 1, wins: 1, losses: 0 },
+  { mode: "war", battles: 1, wins: 0, losses: 1 },
+];
+const byMode = (rows) => [...rows].sort((a, b) => a.mode.localeCompare(b.mode));
+
+test("Friends: past the request's deadline a friend keeps their record and loses only the deck", async () => {
+  const id = await person("home-deadline");
+  await call(handler, id, "POST", "/api/claims", {
+    player_tag: OWN,
+    make_primary: true,
+  });
+  await played("#2YG98VV0", id);
+  const r = await handler({
+    path: "/api/me/home/friends",
+    method: "GET",
+    headers: {
+      cookie: `__Host-elixir_session=${sessions.get(id)}`,
+      "x-elixir-client": "web",
+      "cloudfront-viewer-address": "8.8.4.4:443",
+    },
+    softDeadlineAt: 1,
+  });
+  assert.equal(r.statusCode, 200, r.body);
+  const [friend] = data(r).friends;
+  assert.equal(friend.deck, null);
+  assert.deepEqual(byMode(friend.by_family), RECORD);
+});
+
+test("Friends: past the ten-card cap a friend keeps their record and loses only the deck", async () => {
+  const id = await person("home-cap");
+  await call(handler, id, "POST", "/api/claims", {
+    player_tag: OWN,
+    make_primary: true,
+  });
+  const tags = Array.from(
+    { length: 11 },
+    (_, n) => `#PYLQGR${"029CGJLPQRU"[n]}Y`,
+  );
+  for (const tag of tags) await played(tag, id);
+  const r = await call(handler, id, "GET", "/api/me/home/friends");
+  assert.equal(r.statusCode, 200, r.body);
+  const { friends } = data(r);
+  assert.equal(friends.length, 11);
+  for (const f of friends) assert.deepEqual(byMode(f.by_family), RECORD);
+  assert.equal(friends.filter((f) => f.deck).length, 10);
+});
+
+test("the mail's mark of a card stays the builder's: past the deadline no by_family, so it draws a line", async () => {
+  const id = await person("home-mail");
+  await call(handler, id, "POST", "/api/claims", {
+    player_tag: OWN,
+    make_primary: true,
+  });
+  await played("#2YG98VV2", id);
+  const week = lastGameWeek(new Date());
+  const facts = await buildFriendsWeek({
+    db: scratch.db,
+    account: { accountId: id, timezone: "UTC", kind: "person" },
+    week,
+    season: week.season,
+    callTool: async () => null,
+    within: () => false,
+  });
+  assert.equal(facts.friends[0].by_family, undefined);
+  assert.deepEqual(byMode(facts.friends[0].mode_records), RECORD);
 });
 
 test("a failed clan panel says so and the rest of Home still renders", async () => {

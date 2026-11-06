@@ -10,7 +10,11 @@
  *  own door uses, and optionally `within()`: while it answers true more
  *  people are drawn as cards. The mail has minutes and passes none. A page
  *  has a request's deadline, and past it the rest keep their counts and lose
- *  only the card's deck (Home, 2026-11-05). */
+ *  only the card's deck (Home, 2026-11-05).
+ *
+ *  `by_family` marks a drawn card, and the mail draws a line for anyone
+ *  without it. `mode_records` is everyone's record per mode, read with the
+ *  timeline, so the cap or a deadline never takes it. */
 import { buildTimeline, subjectsFor } from "./activity/entries.mjs";
 import { clanSummaryParts, itemText } from "./activity/summary.mjs";
 
@@ -160,6 +164,7 @@ export async function buildFriendsWeek({
     accountId: account.accountId,
     // The mail goes to the person's own address, nowhere else.
     interactive: true,
+    modeRecords: true,
     // Moments only, chosen BEFORE the timeline's cap (review 2026-09-27
     // §6.8): the cap is spent on what the mail can say, and attested
     // facts (an away is never mail, DECISIONS) never enter the mail path.
@@ -204,6 +209,7 @@ export async function buildFriendsWeek({
         }
       : null,
     modes: modesText(e.battles.by_mode),
+    mode_records: e.battles.mode_records,
     moments: momentsFor(e.subject_tag),
     progress: progressOf(e),
   });
@@ -261,6 +267,7 @@ export async function buildFriendsWeek({
         battles: e.battles.played,
         wins: e.battles.won,
         losses: e.battles.lost,
+        mode_records: e.battles.mode_records,
         delta:
           e.trophies?.from != null && e.trophies?.to != null
             ? e.trophies.to - e.trophies.from
