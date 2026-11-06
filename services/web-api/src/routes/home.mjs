@@ -4,7 +4,7 @@ import { deckIdentities } from "@elixir-mcp/tools/shared";
 import { makeInvoker } from "@elixir-mcp/tools/invoker";
 import { HOURLY_RATE_LIMIT } from "@elixir-mcp/tools/quota";
 import {
-  buildTimeline,
+  newestItems,
   shownAt,
   subjectsFor,
 } from "@elixir-mcp/tools/activity/entries";
@@ -18,9 +18,9 @@ import { homeClan, myClans } from "./clans.mjs";
 
 /** Home's reads: the app's own internal API, not a JSON API version. The
  *  page paints from `/api/me/home` (who you are, new account or not) and each
- *  slow panel then asks for itself (`/clan`, `/week`, `/latest`), so one slow
- *  or failed panel never holds up or takes down the others (2026-11-06: as one
- *  request they ran in series to 18 s, and a 504 lost the whole page).
+ *  slow panel then asks for itself (`/needs`, `/clan`, `/week`, `/latest`), so
+ *  one slow or failed panel never holds up or takes down the others (2026-11-06:
+ *  as one request they ran in series to 18 s, and a 504 lost the whole page).
  *
  *  Inside a request reads still run one after another. A request holds one
  *  client (docs/ENGINEERING.md: one client, one query at a time), a pool is
@@ -264,7 +264,10 @@ async function readLastRace(read, clanTag) {
 
 /** Clan's own read, called in-process as its door calls it: the same gate,
  *  role checks and closed reader, with the person this request authenticated. */
-async function readClanView(clan, { db, account, event, clanTag, requestId }) {
+async function readClanView(
+  clan,
+  { db, account, event, clanTag, requestId, read = "home" },
+) {
   const res = await clan({
     db,
     account,
@@ -272,7 +275,7 @@ async function readClanView(clan, { db, account, event, clanTag, requestId }) {
     event: {
       ...event,
       method: "GET",
-      path: `/api/clan/clans/${clanTag.replace(/^#/, "")}/home`,
+      path: `/api/clan/clans/${clanTag.replace(/^#/, "")}/${read}`,
       body: undefined,
       queryStringParameters: {},
     },
@@ -284,17 +287,25 @@ async function readClanView(clan, { db, account, event, clanTag, requestId }) {
   throw Object.assign(new Error("clan read failed"), { code: "clan_read" });
 }
 
+/** Whether this account tracks the clan, all a tracked clan's reads need of
+ *  `myClans`, which also counts its members and pools its slots. */
+async function tracksClan(db, accountId, clanTag) {
+  const { rows } = await db.query(
+    "select 1 from account_clan where account_id = $1 and clan_tag = $2",
+    [accountId, clanTag],
+  );
+  return rows.length > 0;
+}
+
 async function readClanPanel({ db, account, event, read, clan, requestId }) {
-  const clans = await myClans(db, account);
-  const home = clans.home_clan;
+  const home = await homeClan(db, account.accountId);
   if (!home) return { state: "none" };
-  const tracked = clans.clans.find((c) => c.clan_tag === home.clan_tag);
-  if (!tracked)
+  if (!(await tracksClan(db, account.accountId, home.clan_tag)))
     return {
       state: "untracked",
       clan_tag: home.clan_tag,
       name: home.name ?? null,
-      slots: clans.slots.activity,
+      slots: (await myClans(db, account)).slots.activity,
     };
   const lastRace = await readLastRace(read, home.clan_tag);
   const view = clan
@@ -310,7 +321,7 @@ async function readClanPanel({ db, account, event, read, clan, requestId }) {
     return {
       state: "tracked",
       clan_tag: home.clan_tag,
-      name: home.name ?? tracked.name ?? null,
+      name: home.name ?? null,
       last_race: lastRace,
       needs: [],
       needs_total: 0,
@@ -321,18 +332,57 @@ async function readClanPanel({ db, account, event, read, clan, requestId }) {
   };
 }
 
+/** Needs you and the unlock notice: Clan's store reads through the same door,
+ *  gate and role checks as the card, and none of the card's record reads. */
+async function readNeedsPanel({ db, account, event, clan, requestId }) {
+  const home = await homeClan(db, account.accountId);
+  if (!home) return { state: "none" };
+  const tracked = await tracksClan(db, account.accountId, home.clan_tag);
+  const view =
+    tracked && clan
+      ? await readClanView(clan, {
+          db,
+          account,
+          event,
+          clanTag: home.clan_tag,
+          requestId,
+          read: "needs",
+        })
+      : null;
+  if (!view) return { state: tracked ? "tracked" : "untracked" };
+  return {
+    state: "member",
+    clan_tag: view.clan_tag,
+    unlock: view.unlock ?? null,
+    needs: view.needs ?? [],
+    needs_total: view.needs_total ?? 0,
+  };
+}
+
 async function readLatest(db, account) {
   const now = Date.now();
   const subjects = await subjectsFor(db, account.accountId);
-  const built = await buildTimeline(db, subjects, {
-    fromMs: now - 7 * 86_400_000,
-    toMs: now,
-    timezone: account.timezone ?? "UTC",
-    accountId: account.accountId,
-    interactive: true,
-  });
+  const perf = {};
+  const newest = await newestItems(
+    db,
+    subjects,
+    {
+      fromMs: now - 7 * 86_400_000,
+      toMs: now,
+      timezone: account.timezone ?? "UTC",
+      accountId: account.accountId,
+      interactive: true,
+      perf,
+    },
+    LATEST,
+  );
+  // Where this panel's time goes: a builder's name beside its ms, and how many
+  // quiet players it skipped, so the next change to it can be chosen from these.
+  console.info(
+    JSON.stringify({ at: "home_panel", panel: "latest_parts", parts: perf }),
+  );
   return {
-    items: (built.timeline ?? []).slice(0, LATEST).map((it) => ({
+    items: newest.map((it) => ({
       id: it.id ?? null,
       at: shownAt(it) || null,
       text: String(it.text ?? ""),
@@ -348,8 +398,8 @@ async function rate(db, account) {
   });
 }
 
-/** Three panels a visit, so the head's limit in visits stays what it was. */
-const PANEL_RATE_LIMIT = 3 * HOURLY_RATE_LIMIT;
+/** Four panels a visit, so the head's limit in visits stays what it was. */
+const PANEL_RATE_LIMIT = 4 * HOURLY_RATE_LIMIT;
 
 /** A panel's charge: its own bucket, so one visit still spends one charge on
  *  the bucket /mcp and Explore share, while these reads, which cost the most,
@@ -405,7 +455,26 @@ export function homeRoutes({ resolveAccount, exploreRegistry, clan }) {
       return json(200, { first });
     },
 
-    // The clan card, its name in the head, and Needs you.
+    // Needs you and the unlock notice, which the top of Home settles on.
+    "GET /api/me/home/needs": async (db, event, _body, context) => {
+      const account = await resolveAccount(db, event);
+      if (!account) return json(401, { error: "unauthenticated" });
+      if (!(await panelRate(db, account)))
+        return json(429, { error: "rate_limited" });
+      const needs = await panel("needs", () =>
+        readNeedsPanel({
+          db,
+          account,
+          event,
+          clan,
+          requestId: context?.requestId ?? null,
+        }),
+      );
+      return json(200, { needs });
+    },
+
+    // The clan card and its name in the head. It still carries Needs you, for
+    // when that panel's own read fails.
     "GET /api/me/home/clan": async (db, event, _body, context) => {
       const account = await resolveAccount(db, event);
       if (!account) return json(401, { error: "unauthenticated" });

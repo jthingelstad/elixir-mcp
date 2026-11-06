@@ -204,6 +204,7 @@ export const homeApi = (overrides: Parameters<typeof signedIn>[0] = {}) =>
     "GET /api/me": [200, ME],
     "GET /api/me/home": [200, { first: HOME.first }],
     "GET /api/me/home/clan": [200, { clan: HOME.clan }],
+    "GET /api/me/home/needs": [200, { needs: HOME.clan }],
     "GET /api/me/home/week": [200, { week: HOME.week }],
     "GET /api/me/home/latest": [200, { latest: HOME.latest }],
     "GET /api/me/home/friends": [200, FRIENDS],

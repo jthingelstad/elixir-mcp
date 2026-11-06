@@ -1213,15 +1213,26 @@ export function createManageService({
         if (!(err instanceof ManageError)) throw err;
       }
       const policy = await policyFor(clanTag);
+      return {
+        member,
+        policy_set: policy.set,
+        min_members: MIN_MEMBERS,
+        ...(await this.needsView(clanTag, who)),
+      };
+    },
+
+    /**
+     * Home's "Needs you" on its own: the store's reads and nothing from the
+     * record, so the top of Home need not wait on a participation read.
+     * Raises, withdraws and numbers nothing, as `homeView`.
+     */
+    async needsView(clanTag, who) {
       const open =
         who.verified === false
           ? []
           : inActionOrder(await openActionsFor(clanTag, who));
       return {
         clan_tag: clanTag,
-        member,
-        policy_set: policy.set,
-        min_members: MIN_MEMBERS,
         needs_total: open.length,
         needs: open.slice(0, 2).map((c) => ({
           number: Number.isInteger(c.number) ? c.number : null,

@@ -635,6 +635,12 @@ export function createHandler({
           verified: who.verified !== false,
           unlock: clan.unlock ?? null,
         });
+      // "Needs you" alone, so it need not wait for the card's record reads.
+      if (method === "GET" && rest === "/needs")
+        return json(200, {
+          ...(await manage.needsView(tag, who)),
+          unlock: clan.unlock ?? null,
+        });
       // The week in the clan: every member's, any clan, any size.
       if (method === "GET" && rest === "/week") {
         const week = event.queryStringParameters?.week ?? null;

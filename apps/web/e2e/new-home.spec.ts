@@ -56,6 +56,7 @@ for (const [label, width] of [
         page,
         homeApi({
           "GET /api/me/home/clan": [200, { clan: { ok: false } }],
+          "GET /api/me/home/needs": [200, { needs: { ok: false } }],
         }),
       );
       await page.goto("/home");
@@ -67,6 +68,73 @@ for (const [label, width] of [
       ).toBeVisible();
       await expect(page.getByText("23–14")).toBeVisible();
       await expect(page.locator(".kit-needs")).toHaveCount(0);
+      await noSideways(page);
+    });
+
+    test("Today: the card failing leaves Needs you, and its read failing leaves the card's copy", async ({
+      page,
+    }) => {
+      await mockApi(
+        page,
+        homeApi({ "GET /api/me/home/clan": [200, { clan: { ok: false } }] }),
+      );
+      await page.goto("/home");
+      await expect(
+        page.getByText("Your clans could not be read just now."),
+      ).toBeVisible();
+      await expect(page.locator(".kit-needs")).toContainText(
+        "and 3 more in Clan › Today",
+      );
+
+      await mockApi(
+        page,
+        homeApi({ "GET /api/me/home/needs": [500, { error: "boom" }] }),
+      );
+      await page.reload();
+      await expect(
+        page.getByText("Season 137, week 4: 2nd, 84,200 fame"),
+      ).toBeVisible();
+      await expect(page.locator(".kit-needs")).toContainText(
+        "and 3 more in Clan › Today",
+      );
+      await expect(page.getByRole("alert")).toHaveCount(0);
+    });
+
+    test("Today: Needs you settles while the clan card is still reading", async ({
+      page,
+    }) => {
+      const held: Array<() => void> = [];
+      await mockApi(page, homeApi());
+      await page.route("**/api/me/home/clan", async (route) => {
+        await new Promise<void>((go) => held.push(go));
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ clan: HOME.clan }),
+        });
+      });
+      await page.goto("/home");
+      await expect(page.locator(".kit-needs")).toContainText(
+        "and 3 more in Clan › Today",
+      );
+      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(1);
+      // Once it has finished opening, the card answering moves nothing below.
+      await page
+        .locator(".kit-home__top")
+        .evaluate((el) =>
+          Promise.all(
+            el.getAnimations({ subtree: true }).map((a) => a.finished),
+          ),
+        );
+      const top = await page.locator(".kit-home__two").boundingBox();
+      await expect.poll(() => held.length).toBe(1);
+      held[0]!();
+      await expect(
+        page.getByText("Season 137, week 4: 2nd, 84,200 fame"),
+      ).toBeVisible();
+      expect((await page.locator(".kit-home__two").boundingBox())?.y).toBe(
+        top?.y,
+      );
       await noSideways(page);
     });
 
@@ -111,6 +179,7 @@ for (const [label, width] of [
           });
         });
       await hold("/api/me/home/clan", { clan: HOME.clan });
+      await hold("/api/me/home/needs", { needs: HOME.clan });
       await hold("/api/me/home/week", { week: HOME.week });
       await page.goto("/home");
       await expect(
@@ -120,9 +189,11 @@ for (const [label, width] of [
       await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(2);
       await expect(page.locator(".kit-needs")).toHaveCount(0);
       await expect(page.getByRole("alert")).toHaveCount(0);
-      await expect.poll(() => held.size).toBe(2);
-      held.get("/api/me/home/clan")!();
+      await expect.poll(() => held.size).toBe(3);
+      held.get("/api/me/home/needs")!();
       await expect(page.locator(".kit-needs")).toBeVisible();
+      await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(2);
+      held.get("/api/me/home/clan")!();
       await expect(page.getByText("Ada's Clan").first()).toBeVisible();
       await expect(page.locator('.kit-home [aria-busy="true"]')).toHaveCount(1);
       held.get("/api/me/home/week")!();

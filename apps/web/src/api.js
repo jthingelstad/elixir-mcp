@@ -143,6 +143,7 @@ export const api = {
   // Home's head, what the page paints from; each slow panel reads for itself.
   home: () => request("GET", "/api/me/home"),
   homeClan: () => request("GET", "/api/me/home/clan"),
+  homeNeeds: () => request("GET", "/api/me/home/needs"),
   homeLatest: () => request("GET", "/api/me/home/latest"),
   homeWeek: (mode) =>
     request(
