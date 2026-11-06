@@ -1,4 +1,4 @@
-import { Link } from "@elixir-mcp/ui";
+import { Link, Panel, PageHead, Table } from "@elixir-mcp/ui";
 import { usePublicEfficiency } from "../lib/queries.js";
 import { CONSOLE } from "../lib/console.js";
 
@@ -16,32 +16,45 @@ import { CONSOLE } from "../lib/console.js";
 const n = (v) => (v == null ? "—" : Number(v).toLocaleString());
 const pct = (a, b) => (b > 0 ? `${Math.round((a / b) * 1000) / 10}%` : "—");
 
-function Row({ d, today = false }) {
-  const captured = d.battles_captured ?? 0;
-  const lost = d.lost_battles;
-  return (
-    <tr>
-      <td className="mono">
+/** One day's row; `today` is the day still counting. */
+const DAY_COLUMNS = [
+  {
+    head: "DAY (UTC)",
+    className: "mono",
+    cell: (d) => (
+      <>
         {d.day}
-        {today && <span className="text-ink-faint"> so far</span>}
-      </td>
-      <td className="td--num">{n(d.battlelog_polls)}</td>
-      <td className="td--num">{pct(d.nothing_new_polls, d.battlelog_polls)}</td>
-      <td className="td--num">{n(captured)}</td>
-      <td className="td--num">{n(d.gaps)}</td>
-      <td className="td--num">
-        {lost == null ? (
-          <span className="text-ink-faint">tomorrow</span>
-        ) : (
-          n(lost)
-        )}
-      </td>
-      <td className="td--num">
-        {lost == null ? "—" : pct(lost, lost + captured)}
-      </td>
-    </tr>
-  );
-}
+        {d.today && <span className="text-ink-faint"> so far</span>}
+      </>
+    ),
+  },
+  { head: "Reads", num: true, cell: (d) => n(d.battlelog_polls) },
+  {
+    head: "Nothing new",
+    num: true,
+    cell: (d) => pct(d.nothing_new_polls, d.battlelog_polls),
+  },
+  { head: "Recorded", num: true, cell: (d) => n(d.battles_captured ?? 0) },
+  { head: "Gaps", num: true, cell: (d) => n(d.gaps) },
+  {
+    head: "Lost",
+    num: true,
+    cell: (d) =>
+      d.lost_battles == null ? (
+        <span className="text-ink-faint">tomorrow</span>
+      ) : (
+        n(d.lost_battles)
+      ),
+  },
+  {
+    head: "LOST %",
+    num: true,
+    cell: (d) =>
+      d.lost_battles == null
+        ? "—"
+        : pct(d.lost_battles, d.lost_battles + (d.battles_captured ?? 0)),
+  },
+];
 
 export function Efficiency() {
   const query = usePublicEfficiency();
@@ -65,34 +78,41 @@ export function Efficiency() {
 
   return (
     <>
-      <div className="page__crumb">
-        <Link to={`${CONSOLE}/status/service`}>‹ Status</Link>
-      </div>
-      <h1 className="page__title">Efficiency</h1>
-      <p className="page__lede">
-        What the battle-log schedule costs, and what it loses. Battles lost are
-        measured against the game&rsquo;s own lifetime battle counter, nightly.
-      </p>
+      <PageHead
+        crumb={
+          <div className="page__crumb">
+            <Link to={`${CONSOLE}/status/service`}>‹ Status</Link>
+          </div>
+        }
+        title="Efficiency"
+        sub={
+          <>
+            What the battle-log schedule costs, and what it loses. Battles lost
+            are measured against the game&rsquo;s own lifetime battle counter,
+            nightly.
+          </>
+        }
+      />
 
-      <section className="panel mb-4">
-        <div className="panel__head">
-          <span>The session clock</span>
+      <Panel
+        title="The session clock"
+        titleAs="div"
+        action={
           <span className="mono ml-auto font-normal">
             since {rule.since ?? "—"}
           </span>
-        </div>
+        }
+        className="mb-4"
+      >
         <div className="panel__body">
           While a player is playing, their battle log is read every{" "}
           {rule.followup_minutes ?? 30} minutes. After a read that found nothing
           new the wait doubles, and never passes {rule.ceiling_minutes ?? 120}{" "}
           minutes. Profiles are read once a day and once after a session.
         </div>
-      </section>
+      </Panel>
 
-      <section className="panel mb-4">
-        <div className="panel__head">
-          <span>Last seven closed days</span>
-        </div>
+      <Panel title="Last seven closed days" titleAs="div" className="mb-4">
         <div className="stats">
           <div className="stats__cell">
             <div className="label">battle-log reads</div>
@@ -132,29 +152,15 @@ export function Efficiency() {
           intervals that had no gap setting the floor for modes the log never
           shows.
         </div>
-      </section>
+      </Panel>
 
-      <div className="table__scroll" tabIndex={0}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>DAY (UTC)</th>
-              <th className="td--num">Reads</th>
-              <th className="td--num">Nothing new</th>
-              <th className="td--num">Recorded</th>
-              <th className="td--num">Gaps</th>
-              <th className="td--num">Lost</th>
-              <th className="td--num">LOST %</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.today && <Row d={data.today} today />}
-            {days.map((d) => (
-              <Row key={d.day} d={d} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={DAY_COLUMNS}
+        rows={[
+          ...(data.today ? [{ ...data.today, today: true }] : []),
+          ...days,
+        ]}
+      />
       {days.length === 0 && (
         <p className="footnote">
           The first closed day lands the morning after this page shipped.

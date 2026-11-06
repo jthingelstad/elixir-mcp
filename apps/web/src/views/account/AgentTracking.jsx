@@ -1,4 +1,4 @@
-import { Tag, TagText } from "@elixir-mcp/ui";
+import { Tag, TagText, Panel, PageHead, Table } from "@elixir-mcp/ui";
 import { scopeLabel } from "../../lib/words.js";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -63,94 +63,98 @@ export function AgentTracking({ agent }) {
 
   return (
     <>
-      <div className="mb-[18px]">
-        <h1 className="page__title">Tracking</h1>
-        <p className="page__lede">
-          What this agent tracks: the clan it acts for, any other clan it
-          watches, and the players it follows. Tracked means recorded, in your
-          slots: you and your agents share them, and a player or clan counts
-          once however many of you track it.
-        </p>
-      </div>
+      <PageHead
+        title="Tracking"
+        sub={
+          <>
+            What this agent tracks: the clan it acts for, any other clan it
+            watches, and the players it follows. Tracked means recorded, in your
+            slots: you and your agents share them, and a player or clan counts
+            once however many of you track it.
+          </>
+        }
+      />
 
-      <section className="panel mb-[14px]">
-        <div className="panel__head">
-          <span className="panel-title">Clans</span>
+      <Panel
+        title="Clans"
+        titleAs="div"
+        action={
           <span className="ml-auto text-[12px] text-ink-faint">
             your slots: the clan only {of(pool.activity_clans)} · the clan and
             every member {of(pool.comprehensive_clans)}
           </span>
-        </div>
-        <div className="table__scroll" tabIndex={0}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Clan</th>
-                <th>Scope</th>
-                <th>On its timeline</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(clans ?? []).map((c) => (
-                <tr key={c.clan_tag}>
-                  <td>
-                    <span className="font-semibold">
-                      {c.name ?? <Tag tag={c.clan_tag} />}
-                    </span>{" "}
-                    <span className="mono text-ink-faint">{c.clan_tag}</span>
-                    {c.is_primary && (
-                      <span className="chip chip--ok ml-2">acts for</span>
-                    )}
-                  </td>
-                  <td>{c.scope}</td>
-                  <td>
+        }
+        className="mb-[14px]"
+      >
+        <Table
+          columns={[
+            {
+              head: "Clan",
+              cell: (c) => (
+                <>
+                  <span className="font-semibold">
+                    {c.name ?? <Tag tag={c.clan_tag} />}
+                  </span>{" "}
+                  <span className="mono text-ink-faint">{c.clan_tag}</span>
+                  {c.is_primary && (
+                    <span className="chip chip--ok ml-2">acts for</span>
+                  )}
+                </>
+              ),
+            },
+            { head: "Scope", cell: (c) => c.scope },
+            {
+              head: "On its timeline",
+              cell: (c) => (
+                <button
+                  className="btn btn--sm"
+                  aria-label={`Timeline ${c.notify ? "on" : "off"} for ${c.name ?? c.clan_tag}`}
+                  onClick={() =>
+                    clanAction({
+                      clan_tag: c.clan_tag,
+                      action: c.notify ? "notify_off" : "notify_on",
+                    })
+                  }
+                >
+                  {c.notify ? "on" : "off"}
+                </button>
+              ),
+            },
+            {
+              head: "",
+              className: "text-right",
+              cell: (c) =>
+                !c.is_primary && (
+                  <span className="inline-flex gap-2">
                     <button
                       className="btn btn--sm"
-                      aria-label={`Timeline ${c.notify ? "on" : "off"} for ${c.name ?? c.clan_tag}`}
                       onClick={() =>
                         clanAction({
                           clan_tag: c.clan_tag,
-                          action: c.notify ? "notify_off" : "notify_on",
+                          action: "primary",
                         })
                       }
                     >
-                      {c.notify ? "on" : "off"}
+                      Make it the clan it acts for
                     </button>
-                  </td>
-                  <td className="text-right">
-                    {!c.is_primary && (
-                      <span className="inline-flex gap-2">
-                        <button
-                          className="btn btn--sm"
-                          onClick={() =>
-                            clanAction({
-                              clan_tag: c.clan_tag,
-                              action: "primary",
-                            })
-                          }
-                        >
-                          Make it the clan it acts for
-                        </button>
-                        <button
-                          className="btn btn--sm"
-                          onClick={() =>
-                            clanAction({
-                              clan_tag: c.clan_tag,
-                              action: "remove",
-                            })
-                          }
-                        >
-                          Remove
-                        </button>
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    <button
+                      className="btn btn--sm"
+                      onClick={() =>
+                        clanAction({
+                          clan_tag: c.clan_tag,
+                          action: "remove",
+                        })
+                      }
+                    >
+                      Remove
+                    </button>
+                  </span>
+                ),
+            },
+          ]}
+          rows={clans ?? []}
+          rowKey={(c) => c.clan_tag}
+        />
         <form
           className="panel__body flex flex-wrap gap-2"
           onSubmit={async (ev) => {
@@ -189,73 +193,74 @@ export function AgentTracking({ agent }) {
             Track a clan
           </button>
         </form>
-      </section>
+      </Panel>
 
-      <section className="panel">
-        <div className="panel__head">
-          <span className="panel-title">Players</span>
+      <Panel
+        title="Players"
+        titleAs="div"
+        action={
           <span className="ml-auto text-[12px] text-ink-faint">
             your slots: {of(pool.player_slots)}
           </span>
-        </div>
+        }
+      >
         {players.length === 0 ? (
           <div className="panel__body text-ink-faint">
             It follows no player of its own. Its clan&rsquo;s members are on its
             timeline already.
           </div>
         ) : (
-          <div className="table__scroll" tabIndex={0}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>On its timeline</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {players.map((p) => (
-                  <tr key={p.player_tag}>
-                    <td>
-                      <span className="font-semibold">
-                        {p.name ?? <Tag tag={p.player_tag} />}
-                      </span>{" "}
-                      <span className="mono text-ink-faint">
-                        {p.player_tag}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn--sm"
-                        aria-label={`Timeline ${p.notify ? "on" : "off"} for ${p.name ?? p.player_tag}`}
-                        onClick={() =>
-                          playerAction({
-                            player_tag: p.player_tag,
-                            action: p.notify ? "notify_off" : "notify_on",
-                          })
-                        }
-                      >
-                        {p.notify ? "on" : "off"}
-                      </button>
-                    </td>
-                    <td className="text-right">
-                      <button
-                        className="btn btn--sm"
-                        onClick={() =>
-                          playerAction({
-                            player_tag: p.player_tag,
-                            action: "remove",
-                          })
-                        }
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={[
+              {
+                head: "Player",
+                cell: (p) => (
+                  <>
+                    <span className="font-semibold">
+                      {p.name ?? <Tag tag={p.player_tag} />}
+                    </span>{" "}
+                    <span className="mono text-ink-faint">{p.player_tag}</span>
+                  </>
+                ),
+              },
+              {
+                head: "On its timeline",
+                cell: (p) => (
+                  <button
+                    className="btn btn--sm"
+                    aria-label={`Timeline ${p.notify ? "on" : "off"} for ${p.name ?? p.player_tag}`}
+                    onClick={() =>
+                      playerAction({
+                        player_tag: p.player_tag,
+                        action: p.notify ? "notify_off" : "notify_on",
+                      })
+                    }
+                  >
+                    {p.notify ? "on" : "off"}
+                  </button>
+                ),
+              },
+              {
+                head: "",
+                className: "text-right",
+                cell: (p) => (
+                  <button
+                    className="btn btn--sm"
+                    onClick={() =>
+                      playerAction({
+                        player_tag: p.player_tag,
+                        action: "remove",
+                      })
+                    }
+                  >
+                    Remove
+                  </button>
+                ),
+              },
+            ]}
+            rows={players}
+            rowKey={(p) => p.player_tag}
+          />
         )}
         <form
           className="panel__body flex flex-wrap gap-2"
@@ -280,7 +285,7 @@ export function AgentTracking({ agent }) {
             Track a player
           </button>
         </form>
-      </section>
+      </Panel>
       {err && (
         <p className="field-error mt-3">
           <TagText>{err}</TagText>

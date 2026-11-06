@@ -1,4 +1,4 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import { useInitialTime, Panel, PageHead, Empty } from "@elixir-mcp/ui";
 import { useWrite } from "@elixir-mcp/client";
 import {
   ago,
@@ -146,14 +146,11 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
         {crumb}
         <ClanReadStatus query={clansQuery} />
         {clansQuery.isSuccess && (
-          <div className="empty">
-            <div className="empty__title">You are not tracking that</div>
-            <p className="empty__body" style={{ marginBottom: 0 }}>
-              <span className="mono">{wanted}</span> is not on your account. If
-              you removed it, history stays for at least a year after the last
-              person stops tracking. Look it up in Explore.
-            </p>
-          </div>
+          <Empty title="You are not tracking that">
+            <span className="mono">{wanted}</span> is not on your account. If
+            you removed it, history stays for at least a year after the last
+            person stops tracking. Look it up in Explore.
+          </Empty>
         )}
       </>
     );
@@ -171,23 +168,17 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
     <>
       {crumb}
       {isClan && <ClanReadStatus query={clansQuery} />}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "14px",
-          flexWrap: "wrap",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <h1 className="page__title">
+      <PageHead
+        title={
+          <>
             {name}
             {!isClan && claim?.status === "verified" && (
               <VerifiedMark size={20} />
             )}
-          </h1>
-          <p className="page__lede">
+          </>
+        }
+        sub={
+          <>
             <Link
               className="mono"
               to={`${CONSOLE}/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`}
@@ -202,21 +193,23 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                 : ""}
               {!isClan && claim.is_primary ? " · your primary" : ""}
             </span>
-          </p>
-        </div>
-        <button
-          className="btn"
-          style={{ marginLeft: "auto" }}
-          onClick={() =>
-            navigate(
-              `${CONSOLE}/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`,
-            )
-          }
-        >
-          <Icon name="search" size={16} />
-          Open in Explore
-        </button>
-      </div>
+          </>
+        }
+        aside={
+          <button
+            className="btn"
+            style={{ marginLeft: "auto" }}
+            onClick={() =>
+              navigate(
+                `${CONSOLE}/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`,
+              )
+            }
+          >
+            <Icon name="search" size={16} />
+            Open in Explore
+          </button>
+        }
+      />
 
       {!isClan && (
         <FirstAnswer
@@ -249,8 +242,11 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
       {!isClan && claim.is_primary && <HomeClanOffer className="mb-[18px]" />}
 
       <div style={{ display: "flex", gap: "18px", flexWrap: "wrap" }}>
-        <section className="panel" style={{ flex: "1 1 340px" }}>
-          <div className="panel__head">How you track it</div>
+        <Panel
+          title="How you track it"
+          titleAs="div"
+          style={{ flex: "1 1 340px" }}
+        >
           <div
             style={{
               padding: "16px",
@@ -405,10 +401,9 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
               onDone={() => navigate(`${CONSOLE}/account/tracking`)}
             />
           </div>
-        </section>
+        </Panel>
 
-        <section className="panel" style={{ flex: "1 1 300px" }}>
-          <div className="panel__head">Recording</div>
+        <Panel title="Recording" titleAs="div" style={{ flex: "1 1 300px" }}>
           <dl
             style={{
               padding: "16px",
@@ -478,12 +473,15 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
               {whenDay(isClan ? clan.created_at : rec?.created_at)}
             </dd>
           </dl>
-        </section>
+        </Panel>
       </div>
 
       {!isClan && (
-        <section className="panel" style={{ marginTop: "18px" }}>
-          <div className="panel__head">Battle activity</div>
+        <Panel
+          title="Battle activity"
+          titleAs="div"
+          style={{ marginTop: "18px" }}
+        >
           <ActivityGraph
             data={activity}
             error={activityQuery.error}
@@ -496,7 +494,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
             unknown; recorded battles still show.{" "}
             <a href="/docs/activity">How this is drawn</a>
           </p>
-        </section>
+        </Panel>
       )}
     </>
   );

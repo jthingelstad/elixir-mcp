@@ -1,4 +1,4 @@
-import { noun, useClock } from "@elixir-mcp/ui";
+import { noun, useClock, Table } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -274,35 +274,35 @@ export function ActivityGraph({ data, error, onRetry }) {
 
       <details className="activity__table">
         <summary>The last two weeks as a list</summary>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>UTC day</th>
-              <th>Battles</th>
-              <th>Won / lost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recent.map((d) => (
-              <tr key={d.day}>
-                <td>{dayLabel(d.day)}</td>
-                <td className="table__td--wrap">
+        <Table
+          columns={[
+            { head: "UTC day", cell: (d) => dayLabel(d.day) },
+            {
+              head: "Battles",
+              wrap: true,
+              cell: (d) => (
+                <>
                   {d.battles > 0 || d.coverage === "complete"
                     ? d.battles
                     : "unknown"}
                   <span className="block text-xs text-ink-faint">
                     {evidenceLabel(d)}
                   </span>
-                </td>
-                <td className="mono">
-                  {d.wins !== undefined && d.battles > 0
-                    ? `${d.wins} / ${d.losses}`
-                    : ""}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+            {
+              head: "Won / lost",
+              className: "mono",
+              cell: (d) =>
+                d.wins !== undefined && d.battles > 0
+                  ? `${d.wins} / ${d.losses}`
+                  : "",
+            },
+          ]}
+          rows={recent}
+          rowKey={(d) => d.day}
+        />
       </details>
     </div>
   );

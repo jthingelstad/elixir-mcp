@@ -182,14 +182,10 @@ for (const size of ["wide", "@narrow"])
         true,
       );
     else {
-      expect(await table.evaluate((e) => e.scrollWidth > e.clientWidth)).toBe(
+      // A phone reads rows as blocks: the table never scrolls sideways.
+      expect(await table.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(
         true,
       );
-      await table.focus();
-      await page.keyboard.press("ArrowRight");
-      await expect
-        .poll(() => table.evaluate((e) => e.scrollLeft))
-        .toBeGreaterThan(0);
     }
     for (const label of [
       "Protected",

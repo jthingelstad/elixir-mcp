@@ -1,4 +1,4 @@
-import { CardArt, Link, noun, Tag } from "@elixir-mcp/ui";
+import { CardArt, Link, noun, Tag, Panel, Empty, Table } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { CONSOLE } from "../lib/console.js";
 import {
@@ -111,18 +111,20 @@ export function Cards({
       ) : mine.isError ? (
         <ReadError error={mine.error} what="your cards" />
       ) : !played ? (
-        <div className="empty">
-          <h2 className="empty__title">
-            No {label} battles {when}
-          </h2>
-          <p className="empty__body">
-            {season.current
-              ? "Elixir has recorded none in this mode since the season began,"
-              : `Elixir recorded none in this mode in ${season.name},`}{" "}
-            so there are no cards to read back. Another mode&apos;s tab may hold
-            your season.
-          </p>
-        </div>
+        <Empty
+          title={
+            <>
+              No {label} battles {when}
+            </>
+          }
+          titleAs="h2"
+        >
+          {season.current
+            ? "Elixir has recorded none in this mode since the season began,"
+            : `Elixir recorded none in this mode in ${season.name},`}{" "}
+          so there are no cards to read back. Another mode&apos;s tab may hold
+          your season.
+        </Empty>
       ) : (
         <>
           <YourCards body={mine.data} />
@@ -231,45 +233,33 @@ function YourCards({ body }) {
   const { shown, toggle } = useShown(rows);
   const floor = body?.applied?.min_battles;
   return (
-    <section className="panel" aria-labelledby={id}>
-      <div className="panel__head">
-        <h2 id={id} className="ladder-panel-title">
+    <Panel
+      title={
+        <>
           Your cards · {fmt(rows.length)} {rows.length === 1 ? "row" : "rows"},{" "}
           {fmt(distinctCards(rows))}{" "}
           {distinctCards(rows) === 1 ? "card" : "cards"}
-        </h2>
-      </div>
+        </>
+      }
+      titleId={id}
+      aria-labelledby={id}
+    >
       {rows.length ? (
-        <div className="table__scroll" tabIndex={0}>
-          <table className="table ladder-cards">
-            <thead>
-              <tr>
-                <th scope="col">Card</th>
-                <th scope="col" className="ladder-table__num">
-                  Battles
-                </th>
-                <th scope="col">Record</th>
-                <th scope="col" className="ladder-table__num">
-                  Won
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((r) => (
-                <tr key={r.key}>
-                  <td>
-                    <CardCell row={r} />
-                  </td>
-                  <td className="ladder-table__num">{fmt(r.battles)}</td>
-                  <td>
-                    <Record wins={r.wins} losses={r.losses} />
-                  </td>
-                  <td className="ladder-table__num">{pct(r.rate)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={[
+            { head: "Card", cell: (r) => <CardCell row={r} /> },
+            { head: "Battles", num: true, cell: (r) => fmt(r.battles) },
+            {
+              head: "Record",
+              cell: (r) => <Record wins={r.wins} losses={r.losses} />,
+            },
+            { head: "Won", num: true, cell: (r) => pct(r.rate) },
+          ]}
+          rows={shown}
+          rowKey={(r) => r.key}
+          phone="fit"
+          className="ladder-cards"
+        />
       ) : (
         <div className="panel__body">
           <p className="text-ink-faint">
@@ -286,7 +276,7 @@ function YourCards({ body }) {
           ? ` Cards in fewer than ${fmt(floor)} ${noun(floor, "battle")} are left out.`
           : ""}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -297,11 +287,10 @@ function TheirCards({ read, opponents, mode, order }) {
   const battles = modeBattles(read.data, mode);
   const floor = read.data?.applied?.min_battles;
   return (
-    <section className="panel" aria-labelledby={id}>
-      <div className="panel__head">
-        <h2 id={id} className="ladder-panel-title">
-          Across the table from you
-        </h2>
+    <Panel
+      title="Across the table from you"
+      titleId={id}
+      action={
         <span className="text-[12.5px] text-ink-faint">
           {[
             battles != null
@@ -314,7 +303,9 @@ function TheirCards({ read, opponents, mode, order }) {
             .filter(Boolean)
             .join(" · ")}
         </span>
-      </div>
+      }
+      aria-labelledby={id}
+    >
       {read.isPending ? (
         <div className="panel__body">
           <Loading what="the cards you faced" />
@@ -324,36 +315,21 @@ function TheirCards({ read, opponents, mode, order }) {
           <ReadError error={read.error} what="the cards you faced" />
         </div>
       ) : rows.length ? (
-        <div className="table__scroll" tabIndex={0}>
-          <table className="table ladder-cards">
-            <thead>
-              <tr>
-                <th scope="col">Their card</th>
-                <th scope="col" className="ladder-table__num">
-                  Faced
-                </th>
-                <th scope="col">Your record</th>
-                <th scope="col" className="ladder-table__num">
-                  Level gap
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((r) => (
-                <tr key={r.key}>
-                  <td>
-                    <CardCell row={r} />
-                  </td>
-                  <td className="ladder-table__num">{fmt(r.battles)}</td>
-                  <td>
-                    <Record wins={r.wins} losses={r.losses} />
-                  </td>
-                  <td className="ladder-table__num">{gapText(r.gap)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={[
+            { head: "Their card", cell: (r) => <CardCell row={r} /> },
+            { head: "Faced", num: true, cell: (r) => fmt(r.battles) },
+            {
+              head: "Your record",
+              cell: (r) => <Record wins={r.wins} losses={r.losses} />,
+            },
+            { head: "Level gap", num: true, cell: (r) => gapText(r.gap) },
+          ]}
+          rows={shown}
+          rowKey={(r) => r.key}
+          phone="fit"
+          className="ladder-cards"
+        />
       ) : (
         <div className="panel__body">
           <p className="text-ink-faint">
@@ -372,7 +348,7 @@ function TheirCards({ read, opponents, mode, order }) {
           ? ` Cards met in fewer than ${fmt(floor)} ${noun(floor, "battle")} are left out.`
           : ""}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -383,12 +359,7 @@ function Opponents({ read, label, when, order }) {
   const repeats = body?.opponents ?? [];
   const more = Number(body?.matching_opponents ?? 0) - repeats.length;
   return (
-    <section className="panel" aria-labelledby={id}>
-      <div className="panel__head">
-        <h2 id={id} className="ladder-panel-title">
-          Opponents
-        </h2>
-      </div>
+    <Panel title="Opponents" titleId={id} aria-labelledby={id}>
       <div className="panel__body">
         {read.isPending ? (
           <Loading what="your opponents" />
@@ -435,6 +406,6 @@ function Opponents({ read, label, when, order }) {
           </>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }

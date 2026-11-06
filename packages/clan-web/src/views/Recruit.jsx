@@ -1,4 +1,12 @@
-import { Disclosure, Fresh, Icon, noun, useClock } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  Fresh,
+  Icon,
+  noun,
+  useClock,
+  Panel,
+  PageHead,
+} from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { manageApi } from "../api.js";
 import { useRecruit } from "../lib/queries.js";
@@ -64,7 +72,7 @@ export function Recruit({ clan, navigate }) {
 
   return (
     <div className="grid gap-5">
-      <h1 className="page__title">Recruit</h1>
+      <PageHead title="Recruit" />
       <div className="recruit-facts" role="group" aria-label="Recruiting facts">
         <span>
           {f?.members ?? "?"} {noun(f?.members, "member")}
@@ -106,7 +114,7 @@ export function Recruit({ clan, navigate }) {
           title={`The pitch · ${d.pitch_version ? `v${d.pitch_version}` : "not written yet"}`}
           open={d.pitch_version === 0}
         >
-          <section className="panel">
+          <Panel>
             <div
               className="panel__head"
               style={{ gap: "8px", flexWrap: "wrap" }}
@@ -139,7 +147,7 @@ export function Recruit({ clan, navigate }) {
                 <div className="page-head__note">{d.pitch.looking_for}</div>
               </div>
             )}
-          </section>
+          </Panel>
         </Disclosure>
         {d.can_edit ? (
           <button
@@ -152,7 +160,7 @@ export function Recruit({ clan, navigate }) {
         ) : null}
       </div>
       <Disclosure title="Clan facts">
-        <section className="panel">
+        <Panel>
           <div className="panel__head" style={{ gap: "8px", flexWrap: "wrap" }}>
             <span>Today, from the game</span>
             {d.can_edit ? (
@@ -215,7 +223,7 @@ export function Recruit({ clan, navigate }) {
               </>
             ) : null}
           </div>
-        </section>
+        </Panel>
       </Disclosure>
     </div>
   );
@@ -389,10 +397,7 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
     setResult(r.data);
   };
   return (
-    <div className="panel">
-      <div className="panel__head">
-        <span>Draft with the clan&rsquo;s model</span>
-      </div>
+    <Panel as="div" title="Draft with the clan’s model" titleAs="div">
       <div className="panel__body grid gap-2">
         <div className="flex flex-wrap gap-2">
           <input
@@ -447,7 +452,7 @@ function DraftWithModel({ clan, model, navigate, current, onDraft }) {
           </div>
         ) : null}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -484,16 +489,18 @@ function PitchEditor({ clan, view, navigate, onDone }) {
   };
   return (
     <div style={{ display: "grid", gap: "14px", maxWidth: "720px" }}>
-      <div className="page-head">
-        <h1 className="page__title">The pitch</h1>
-        <span className="page-head__note">
-          Your words; the numbers come from the game. Every save is a new
-          version.
-          {view.pitch_version === 0 && view.suggested
-            ? " This first draft comes from what the clan is for: make it yours."
-            : ""}
-        </span>
-      </div>
+      <PageHead
+        title="The pitch"
+        sub={
+          <>
+            Your words; the numbers come from the game. Every save is a new
+            version.
+            {view.pitch_version === 0 && view.suggested
+              ? " This first draft comes from what the clan is for: make it yours."
+              : ""}
+          </>
+        }
+      />
       {view.model ? (
         <DraftWithModel
           clan={clan}

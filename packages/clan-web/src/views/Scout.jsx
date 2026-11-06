@@ -1,4 +1,4 @@
-import { noun, Tag, useClock } from "@elixir-mcp/ui";
+import { noun, Tag, useClock, Panel } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { trackEvent } from "../analytics.js";
@@ -105,7 +105,7 @@ export function Scout({ clan }) {
         </div>
       ) : null}
       {p ? (
-        <div className="panel">
+        <Panel as="div">
           <div className="panel__head">
             {p.name ?? <Tag tag={r.player_tag} />}{" "}
             <span className="tag">{r.player_tag}</span>
@@ -153,13 +153,14 @@ export function Scout({ clan }) {
                 : ""}
             </span>
           </div>
-        </div>
+        </Panel>
       ) : null}
       {r && !r.pending ? (
-        <div className="panel">
-          <div className="panel__head">
-            {a ? "Against this clan's policy, today" : "Recent battles"}
-          </div>
+        <Panel
+          as="div"
+          title={a ? "Against this clan's policy, today" : "Recent battles"}
+          titleAs="div"
+        >
           <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
             {!a ? (
               <div className="page-head__note">
@@ -222,7 +223,7 @@ export function Scout({ clan }) {
               <div className="page-head__note">{a.tenure_note}</div>
             ) : null}
           </div>
-        </div>
+        </Panel>
       ) : null}
     </div>
   );

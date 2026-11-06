@@ -1,3 +1,4 @@
+import { Panel, PageHead, Table } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../api.js";
 import { keys, useAdminIntegrations, useInvalidate } from "../lib/queries.js";
@@ -64,7 +65,7 @@ export function Integrations() {
         </p>
       )}
       {token && (
-        <div className="panel">
+        <Panel as="div">
           <div className="panel__body">
             <strong>Copy this key now. It is shown once.</strong>
             <p>
@@ -74,15 +75,17 @@ export function Integrations() {
               Dismiss key
             </button>
           </div>
-        </div>
+        </Panel>
       )}
-      <div style={{ marginBottom: "18px" }}>
-        <h1 className="page__title">Integrations</h1>
-        <p className="page__lede">
-          Service keys held by other products. Each one pulls what it needs over
-          /api/v1; nothing is pushed to them.
-        </p>
-      </div>
+      <PageHead
+        title="Integrations"
+        sub={
+          <>
+            Service keys held by other products. Each one pulls what it needs
+            over /api/v1; nothing is pushed to them.
+          </>
+        }
+      />
       <section style={{ marginBottom: "16px" }}>
         <div
           style={{
@@ -94,90 +97,94 @@ export function Integrations() {
         >
           <span style={{ fontSize: "14px", fontWeight: 600 }}>Held by</span>
         </div>
-        <div className="table__scroll" tabIndex={0}>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Calls today</th>
-                <th>Refreshes today</th>
-                <th>Key last used</th>
-                <th>Manage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((i) => (
-                <tr key={i.public_id}>
-                  <td>{i.name}</td>
-                  <td>{i.status === "approved" ? "Active" : "Suspended"}</td>
-                  <td>
-                    {i.calls_today} / {i.daily_limit}
-                  </td>
-                  <td>
-                    {i.refreshes_today} / {i.refresh_limit}
-                  </td>
-                  <td>
-                    {i.tokens
-                      .filter((t) => !t.revoked_at)
-                      .map((t) => t.last_used_at ?? "Never")
-                      .join(", ") || "Revoked"}
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn--quiet"
-                      disabled={busy}
-                      onClick={() => {
-                        setSelected(i.public_id);
-                        setForm({
-                          ...defaults,
-                          ...i,
-                        });
-                        setToken(null);
-                      }}
-                    >
-                      Configure
-                    </button>{" "}
-                    <button
-                      className="btn btn--quiet"
-                      disabled={busy}
-                      onClick={() => act({ action: "rotate", id: i.public_id })}
-                    >
-                      Rotate key
-                    </button>{" "}
-                    <button
-                      className="btn btn--quiet"
-                      disabled={busy}
-                      onClick={() => act({ action: "revoke", id: i.public_id })}
-                    >
-                      Revoke key
-                    </button>{" "}
-                    <button
-                      className="btn btn--quiet"
-                      disabled={busy}
-                      onClick={() =>
-                        act({
-                          action:
-                            i.status === "approved" ? "suspend" : "resume",
-                          id: i.public_id,
-                        })
-                      }
-                    >
-                      {i.status === "approved" ? "Suspend" : "Resume"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={[
+            { head: "Name", cell: (i) => i.name },
+            {
+              head: "Status",
+              cell: (i) => (i.status === "approved" ? "Active" : "Suspended"),
+            },
+            {
+              head: "Calls today",
+              cell: (i) => (
+                <>
+                  {i.calls_today} / {i.daily_limit}
+                </>
+              ),
+            },
+            {
+              head: "Refreshes today",
+              cell: (i) => (
+                <>
+                  {i.refreshes_today} / {i.refresh_limit}
+                </>
+              ),
+            },
+            {
+              head: "Key last used",
+              cell: (i) =>
+                i.tokens
+                  .filter((t) => !t.revoked_at)
+                  .map((t) => t.last_used_at ?? "Never")
+                  .join(", ") || "Revoked",
+            },
+            {
+              head: "Manage",
+              cell: (i) => (
+                <>
+                  <button
+                    className="btn btn--quiet"
+                    disabled={busy}
+                    onClick={() => {
+                      setSelected(i.public_id);
+                      setForm({
+                        ...defaults,
+                        ...i,
+                      });
+                      setToken(null);
+                    }}
+                  >
+                    Configure
+                  </button>{" "}
+                  <button
+                    className="btn btn--quiet"
+                    disabled={busy}
+                    onClick={() => act({ action: "rotate", id: i.public_id })}
+                  >
+                    Rotate key
+                  </button>{" "}
+                  <button
+                    className="btn btn--quiet"
+                    disabled={busy}
+                    onClick={() => act({ action: "revoke", id: i.public_id })}
+                  >
+                    Revoke key
+                  </button>{" "}
+                  <button
+                    className="btn btn--quiet"
+                    disabled={busy}
+                    onClick={() =>
+                      act({
+                        action: i.status === "approved" ? "suspend" : "resume",
+                        id: i.public_id,
+                      })
+                    }
+                  >
+                    {i.status === "approved" ? "Suspend" : "Resume"}
+                  </button>
+                </>
+              ),
+            },
+          ]}
+          rows={items}
+          rowKey={(i) => i.public_id}
+        />
       </section>
-      <section className="panel" style={{ marginBottom: "16px" }}>
-        <div className="panel__head">
-          <span className="panel-title">
-            {selected ? "Configure integration" : "Create integration"}
-          </span>
-        </div>
+      <Panel
+        title={selected ? "Configure integration" : "Create integration"}
+        titleAs="div"
+        style={{ marginBottom: "16px" }}
+      >
         <form
           className="panel__body"
           style={{ display: "grid", gap: "12px", maxWidth: "760px" }}
@@ -276,7 +283,7 @@ export function Integrations() {
             </button>
           )}
         </form>
-      </section>
+      </Panel>
     </>
   );
 }

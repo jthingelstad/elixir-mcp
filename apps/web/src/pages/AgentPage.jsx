@@ -1,4 +1,4 @@
-import { Link } from "@elixir-mcp/ui";
+import { Link, Panel } from "@elixir-mcp/ui";
 import { Activity } from "../views/Activity.jsx";
 import { AgentRecord } from "../views/account/Agents.jsx";
 import { AgentTracking } from "../views/account/AgentTracking.jsx";
@@ -49,14 +49,14 @@ function AgentConsole({ agentId, page, sub, itemId, recordId, navigate }) {
   // (console audit M1).
   if (!res.data.ok)
     return (
-      <div className="panel">
+      <Panel as="div">
         <div className="panel__body">
           {res.data.status === 404 || res.data.status === 403
             ? "No agent here on your account. "
             : "Elixir could not read this agent just now; try again in a moment. "}
           <Link to={`${CONSOLE}/account/agents`}>All agents ›</Link>
         </div>
-      </div>
+      </Panel>
     );
   const agent = res.data.data;
   if (page === "timeline") return <Timeline />;

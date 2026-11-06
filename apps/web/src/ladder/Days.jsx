@@ -1,4 +1,4 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import { useInitialTime, Panel } from "@elixir-mcp/ui";
 import { Icon, Link, useClock, noun } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import {
@@ -239,27 +239,30 @@ function Calendar({ cal, name, season, running = true, lead = null }) {
   const focus = seen.some(([key]) => key === lead) ? lead : null;
   const present = leadFirst(seen, focus, ([key]) => key);
   return (
-    <section className="panel" aria-labelledby="ladder-cal">
-      <div className="panel__head">
-        <h2 id="ladder-cal" className="ladder-panel-title">
-          {name[0].toUpperCase() + name.slice(1)}, day by day
-        </h2>
-        {present.map(([key, label]) => (
-          <span
-            key={key}
-            className={`ladder-key${emphasis(key, focus, "ladder-key")}`}
-          >
+    <Panel
+      title={<>{name[0].toUpperCase() + name.slice(1)}, day by day</>}
+      titleId="ladder-cal"
+      action={
+        <>
+          {present.map(([key, label]) => (
             <span
-              className={`mode-chip__dot mode-chip__dot--${key}`}
-              aria-hidden="true"
-            />
-            {label}
+              key={key}
+              className={`ladder-key${emphasis(key, focus, "ladder-key")}`}
+            >
+              <span
+                className={`mode-chip__dot mode-chip__dot--${key}`}
+                aria-hidden="true"
+              />
+              {label}
+            </span>
+          ))}
+          <span className="ladder-key text-ink-faint">
+            deeper shade, more battles
           </span>
-        ))}
-        <span className="ladder-key text-ink-faint">
-          deeper shade, more battles
-        </span>
-      </div>
+        </>
+      }
+      aria-labelledby="ladder-cal"
+    >
       <div className="panel__body">
         <div className="ladder-cal__weekdays" aria-hidden="true">
           {WEEKDAYS.map((d) => (
@@ -284,7 +287,7 @@ function Calendar({ cal, name, season, running = true, lead = null }) {
         {running ? "ends" : "ended"} {when(season.ends_at)}. Battles after
         midnight count on the next day.
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -349,15 +352,16 @@ function Nights({ battles, floor, zone, when = "this season" }) {
   const nights = nightsOf(battles, zone);
   const shown = all ? nights : nights.slice(0, NIGHTS_SHOWN);
   return (
-    <section className="panel" aria-labelledby="ladder-nights">
-      <div className="panel__head">
-        <h2 id="ladder-nights" className="ladder-panel-title">
-          Nights
-        </h2>
+    <Panel
+      title="Nights"
+      titleId="ladder-nights"
+      action={
         <span className="text-[12.5px] text-ink-faint">
           {fmt(nights.length)} {when}, newest first
         </span>
-      </div>
+      }
+      aria-labelledby="ladder-nights"
+    >
       {nights.length === 0 ? (
         <div className="panel__body">
           <p className="text-ink-faint">
@@ -390,7 +394,7 @@ function Nights({ battles, floor, zone, when = "this season" }) {
         A night is a run of battles with no gap longer than 30 minutes. Open one
         to see each battle; a battle with a page opens on it, with both decks.
       </div>
-    </section>
+    </Panel>
   );
 }
 

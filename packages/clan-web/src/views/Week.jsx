@@ -1,5 +1,5 @@
 import { MemberLink } from "../components/MemberLink.jsx";
-import { Fresh, Tag, TagText, monthDayAt } from "@elixir-mcp/ui";
+import { Fresh, Tag, TagText, monthDayAt, Panel } from "@elixir-mcp/ui";
 import { CATEGORY_LABELS } from "@elixir-mcp/clan-engine";
 import { useWeek } from "../lib/queries.js";
 import { CLAN, clanPath } from "../lib/base.js";
@@ -117,7 +117,7 @@ function Area({ a, clan, navigate }) {
   const race = raceName(a.war);
   const note = a.war ? warLine(a.war) : "";
   return (
-    <section className="panel" aria-labelledby={`week-${a.key}`}>
+    <Panel aria-labelledby={`week-${a.key}`}>
       <div className="panel__head">
         <h2 id={`week-${a.key}`} className="m-0 grow text-[14px] font-semibold">
           {a.label}
@@ -161,7 +161,7 @@ function Area({ a, clan, navigate }) {
           name={`${a.label}: who took part`}
         />
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -250,7 +250,7 @@ function Membership({ m }) {
     ],
   ].filter(([, names]) => names.length);
   return (
-    <section className="panel" aria-labelledby="week-membership">
+    <Panel aria-labelledby="week-membership">
       <div className="panel__head">
         <h2 id="week-membership" className="m-0 grow text-[14px] font-semibold">
           Who came and went
@@ -283,7 +283,7 @@ function Membership({ m }) {
           ; earlier changes are not shown.
         </div>
       ) : null}
-    </section>
+    </Panel>
   );
 }
 
@@ -292,7 +292,7 @@ function Membership({ m }) {
  *  Monday reset that closes it), so the two never read as one week. */
 function SoFar({ s, recordedFrom }) {
   return (
-    <section className="panel" aria-labelledby="week-so-far">
+    <Panel aria-labelledby="week-so-far">
       <div className="panel__head">
         <h2 id="week-so-far" className="m-0 grow text-[14px] font-semibold">
           This week so far
@@ -318,7 +318,7 @@ function SoFar({ s, recordedFrom }) {
           </span>
         ))}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -330,7 +330,7 @@ function Unrecorded({ d }) {
   const before = after(d.recorded_from, d.week.from);
   const closes = before ? firstFullWeekCloses(d.recorded_from) : null;
   return (
-    <section className="panel" aria-labelledby="week-unrecorded">
+    <Panel aria-labelledby="week-unrecorded">
       <div className="panel__head">
         <h2 id="week-unrecorded" className="m-0 grow text-[14px] font-semibold">
           {before ? "Before Elixir followed this clan" : "Nothing recorded"}
@@ -343,7 +343,7 @@ function Unrecorded({ d }) {
             ? "Nothing the clan counts was recorded this week."
             : "No member took part in anything Elixir recorded this week."}
       </p>
-    </section>
+    </Panel>
   );
 }
 

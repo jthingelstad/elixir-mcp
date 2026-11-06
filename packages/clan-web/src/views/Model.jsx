@@ -1,4 +1,4 @@
-import { Disclosure, ago, useClock } from "@elixir-mcp/ui";
+import { Disclosure, ago, useClock, Panel, Table } from "@elixir-mcp/ui";
 import { modelName } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
@@ -202,16 +202,18 @@ export function Model({ clan }) {
       ) : null}
 
       {d.set ? (
-        <section className="panel">
-          <div className="panel__head flex-wrap gap-2">
-            <span>The clan&rsquo;s key</span>
+        <Panel
+          title="The clan’s key"
+          titleAs="div"
+          action={
             <span
               className={`chip ${d.usable ? "chip--ok" : "chip--warn"}`}
               role="status"
             >
               {d.usable ? "in use" : "not in use"}
             </span>
-          </div>
+          }
+        >
           <div className="panel__body fields">
             <span className="label">Key</span>
             <span>
@@ -354,7 +356,7 @@ export function Model({ clan }) {
               Remove the key
             </button>
           </div>
-        </section>
+        </Panel>
       ) : null}
 
       <form className="grid gap-2" onSubmit={saveKey}>
@@ -398,39 +400,37 @@ export function Model({ clan }) {
       {d.uses.recent.length ? (
         <section>
           <div className="label mb-2">Recent uses</div>
-          <div tabIndex={0} className="table__scroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>When</th>
-                  <th>By</th>
-                  <th>For</th>
-                  <th>Model</th>
-                  <th>Tokens</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.uses.recent.map((u) => (
-                  <tr key={`${u.at}-${u.by}`}>
-                    <td>{ago(u.at)}</td>
-                    <td>{u.by_name ?? u.by}</td>
-                    <td>
-                      {d.purposes[u.purpose]?.label ?? u.purpose}
-                      {u.preview ? " (preview)" : ""}
-                      {u.ok ? "" : ` (failed${u.code ? `: ${u.code}` : ""})`}
-                    </td>
-                    <td>{u.model ? modelName(u.model) : "—"}</td>
-                    <td>
-                      {n(u.input_tokens)} in · {n(u.output_tokens)} out
-                      {u.spend_usd != null
-                        ? ` · about ${usd(u.spend_usd)}`
-                        : ""}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={[
+              { head: "When", cell: (u) => ago(u.at) },
+              { head: "By", cell: (u) => u.by_name ?? u.by },
+              {
+                head: "For",
+                cell: (u) => (
+                  <>
+                    {d.purposes[u.purpose]?.label ?? u.purpose}
+                    {u.preview ? " (preview)" : ""}
+                    {u.ok ? "" : ` (failed${u.code ? `: ${u.code}` : ""})`}
+                  </>
+                ),
+              },
+              {
+                head: "Model",
+                cell: (u) => (u.model ? modelName(u.model) : "—"),
+              },
+              {
+                head: "Tokens",
+                cell: (u) => (
+                  <>
+                    {n(u.input_tokens)} in · {n(u.output_tokens)} out
+                    {u.spend_usd != null ? ` · about ${usd(u.spend_usd)}` : ""}
+                  </>
+                ),
+              },
+            ]}
+            rows={d.uses.recent}
+            rowKey={(u) => `${u.at}-${u.by}`}
+          />
           <p className="page-head__note">Kept {d.keep_days} days.</p>
         </section>
       ) : null}

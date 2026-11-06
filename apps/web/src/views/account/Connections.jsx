@@ -6,6 +6,10 @@ import {
   useClock,
   WriteError,
   useFlash,
+  Panel,
+  Empty,
+  PageHead,
+  Table,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -108,14 +112,14 @@ export function Connections({ me, navigate }) {
 
   return (
     <>
-      <div style={{ marginBottom: "18px" }}>
-        <h1 className="page__title">Connections</h1>
-        <p className="page__lede">
-          {scope
+      <PageHead
+        title="Connections"
+        sub={
+          scope
             ? "Every client connected as this agent. All of it spends your daily budget."
-            : "Manage the clients and agents that can act with your authority."}
-        </p>
-      </div>
+            : "Manage the clients and agents that can act with your authority."
+        }
+      />
 
       {refusals.map((r, i) => (
         <div
@@ -217,46 +221,47 @@ export function Connections({ me, navigate }) {
       </div>
 
       {addingAgent && !scope ? (
-        <section className="panel" aria-label="New agent">
+        <Panel aria-label="New agent">
           <NewAgent />
-        </section>
+        </Panel>
       ) : null}
 
       {connections !== null && total === 0 && keyed.length === 0 ? (
-        <div className="empty">
-          <div className="empty__title">Nothing connected yet</div>
-          <p className="empty__body">
-            Add <span className="mono">{url}</span> as a remote MCP server in
-            your client. The sign-in uses the same email as this account, and
-            what it may do is yours to set on the consent screen.
-          </p>
-          <a className="btn" href="/docs/quickstart">
-            Quickstart <Icon name="arrow-right" size={15} />
-          </a>
-        </div>
+        <Empty
+          title="Nothing connected yet"
+          action={
+            <a className="btn" href="/docs/quickstart">
+              Quickstart <Icon name="arrow-right" size={15} />
+            </a>
+          }
+        >
+          Add <span className="mono">{url}</span> as a remote MCP server in your
+          client. The sign-in uses the same email as this account, and what it
+          may do is yours to set on the consent screen.
+        </Empty>
       ) : (
-        <div className="table__scroll" tabIndex={0}>
+        <>
           <WriteError error={disconnect.error} className="field-error mb-2" />
-          <table className="table" style={{ minWidth: "760px" }}>
-            <thead>
-              <tr>
-                <th>Caller</th>
-                <th>Acts</th>
-                <th>May do</th>
-                <th>Last call</th>
-                <th style={{ textAlign: "right" }}>7D</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {clients.map((c) => {
-                // On an agent's console every client acts as the agent.
+          <Table
+            minWidth={760}
+            columns={[
+              { head: "Caller", cell: (r) => r.caller },
+              { head: "Acts", cell: (r) => r.acts },
+              { head: "May do", wrap: true, cell: (r) => r.may },
+              { head: "Last call", cell: (r) => r.last },
+              { head: "7D", num: true, cell: (r) => r.calls },
+              { head: "", className: "text-right", cell: (r) => r.open },
+            ]}
+            rowKey={(r) => r.key}
+            rows={[
+              ...clients.map((c) => {
                 const agent = scope
                   ? { kind: "agent", public_id: scope }
                   : c.principal;
-                return (
-                  <tr key={c.family_id}>
-                    <td>
+                return {
+                  key: c.family_id,
+                  caller: (
+                    <>
                       <span
                         style={{
                           display: "flex",
@@ -288,8 +293,10 @@ export function Connections({ me, navigate }) {
                         {c.usage?.ip ? ` · ${c.usage.ip}` : ""}
                         {c.usage?.country ? ` (${c.usage.country})` : ""}
                       </span>
-                    </td>
-                    <td>
+                    </>
+                  ),
+                  acts: (
+                    <>
                       <span
                         className="btn btn--sm"
                         style={{ cursor: "default" }}
@@ -308,8 +315,10 @@ export function Connections({ me, navigate }) {
                           ? `/${agent.kind === "agent" ? "a" : "i"}/${agent.public_id}/mcp`
                           : "/mcp"}
                       </span>
-                    </td>
-                    <td style={{ whiteSpace: "normal" }}>
+                    </>
+                  ),
+                  may: (
+                    <>
                       <CapabilityEditor
                         scope={c.scope ?? "cr:read"}
                         onSave={async (next) => {
@@ -331,8 +340,10 @@ export function Connections({ me, navigate }) {
                       >
                         granted at sign-in
                       </span>
-                    </td>
-                    <td>
+                    </>
+                  ),
+                  last: (
+                    <>
                       {/* When it last CALLED, not when it last collected a
                           token: a client that refreshes on a timer looks
                           busy by the second measure and may have done
@@ -340,30 +351,24 @@ export function Connections({ me, navigate }) {
                       {/* Only a real call: the token-refresh fallback showed
                           "7m ago" beside 0 calls (console walk 2). */}
                       {c.usage?.at ? <Fresh ts={c.usage.at} /> : "no calls"}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: "right",
-                        fontFamily: "var(--font-mono)",
-                      }}
+                    </>
+                  ),
+                  calls: c.usage?.calls_7d ?? 0,
+                  open: (
+                    <button
+                      className="btn btn--sm"
+                      disabled={disconnect.busy}
+                      onClick={() => disconnect.run(c.family_id)}
                     >
-                      {c.usage?.calls_7d ?? 0}
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <button
-                        className="btn btn--sm"
-                        disabled={disconnect.busy}
-                        onClick={() => disconnect.run(c.family_id)}
-                      >
-                        Disconnect
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {visibleAgents.map((a) => (
-                <tr key={a.account_id ?? a.public_id}>
-                  <td>
+                      Disconnect
+                    </button>
+                  ),
+                };
+              }),
+              ...visibleAgents.map((a) => ({
+                key: a.account_id ?? a.public_id,
+                caller: (
+                  <>
                     <span
                       style={{
                         display: "flex",
@@ -404,8 +409,10 @@ export function Connections({ me, navigate }) {
                         ? "agent · its own key"
                         : "suspended · key reads as invalid"}
                     </span>
-                  </td>
-                  <td>
+                  </>
+                ),
+                acts: (
+                  <>
                     <span className="btn btn--sm" style={{ cursor: "default" }}>
                       {(a.clans ?? []).length > 0 ? "for a clan" : "as you"}
                     </span>
@@ -419,8 +426,10 @@ export function Connections({ me, navigate }) {
                     >
                       /a/{a.public_id}/mcp
                     </span>
-                  </td>
-                  <td style={{ whiteSpace: "normal" }}>
+                  </>
+                ),
+                may: (
+                  <>
                     <ClanRefs
                       clans={a.clans}
                       navigate={navigate}
@@ -435,33 +444,24 @@ export function Connections({ me, navigate }) {
                     >
                       set on the agent
                     </span>
-                  </td>
-                  <td>
-                    <Fresh ts={a.last_call_at} />
-                  </td>
-                  <td
-                    style={{
-                      textAlign: "right",
-                      fontFamily: "var(--font-mono)",
-                    }}
+                  </>
+                ),
+                last: <Fresh ts={a.last_call_at} />,
+                calls: a.calls_7d ?? 0,
+                open: (
+                  <button
+                    className="btn btn--sm"
+                    onClick={() =>
+                      navigate(`${CONSOLE}/agent/${a.public_id}/overview`)
+                    }
                   >
-                    {a.calls_7d ?? 0}
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <button
-                      className="btn btn--sm"
-                      onClick={() =>
-                        navigate(`${CONSOLE}/agent/${a.public_id}/overview`)
-                      }
-                    >
-                      Open
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    Open
+                  </button>
+                ),
+              })),
+            ]}
+          />
+        </>
       )}
 
       <p

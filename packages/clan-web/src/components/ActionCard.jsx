@@ -12,6 +12,7 @@ import {
   useFlash,
   whenAt,
   dayAt,
+  Panel,
 } from "@elixir-mcp/ui";
 import {
   CHAT_MAX,
@@ -1132,8 +1133,9 @@ function BoundActionCard({
   };
   const id = `action-${action.card_id}`;
   return (
-    <article
-      className="panel overflow-hidden"
+    <Panel
+      as="article"
+      className="overflow-hidden"
       data-action={action.card_id}
       aria-labelledby={id}
     >
@@ -1681,7 +1683,7 @@ function BoundActionCard({
           </Disclosure>
         </aside>
       </div>
-    </article>
+    </Panel>
   );
 }
 

@@ -1,4 +1,4 @@
-import { noun, useClock } from "@elixir-mcp/ui";
+import { noun, useClock, Panel } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import {
   FORM_MIN_BATTLES,
@@ -69,7 +69,7 @@ export function WeekForm({ player, mode }) {
  *  included. Drawn only when that deck came after others and both
  *  sides reach the minimum. */
 export function DeckForm({ player, mode, season }) {
-  const { zone } = useClock();
+  const { when, zone } = useClock();
   const base = { player_tag: player.player_tag, season: season.arg, mode };
   // The Decks page's own read of this mode's season (the same key), so
   // moving between the two pages reads it once.
@@ -356,15 +356,17 @@ function FormPanel({
   const id = useId();
   const rows = given ?? formRows(a, b);
   return (
-    <section className="panel ladder-form" aria-labelledby={id}>
-      <div className="panel__head">
-        <h2 id={id} className="ladder-panel-title">
-          {title}
-        </h2>
+    <Panel
+      title={title}
+      titleId={id}
+      action={
         <span className="text-[12.5px] font-normal text-ink-faint">
           {aside}
         </span>
-      </div>
+      }
+      className="ladder-form"
+      aria-labelledby={id}
+    >
       <div className="panel__body">
         {lede ? <p className="ladder-form__lede">{lede}</p> : null}
         {children ?? (
@@ -407,6 +409,6 @@ function FormPanel({
         )}
       </div>
       {foot ? <div className="panel__foot">{foot}</div> : null}
-    </section>
+    </Panel>
   );
 }

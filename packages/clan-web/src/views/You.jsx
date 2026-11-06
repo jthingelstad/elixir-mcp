@@ -1,4 +1,4 @@
-import { ago, Link, Tag } from "@elixir-mcp/ui";
+import { ago, Link, Tag, Panel, PageHead } from "@elixir-mcp/ui";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
 import { CLAN } from "../lib/base.js";
@@ -16,13 +16,13 @@ function Row({ label, children }) {
 export function You({ me }) {
   return (
     <div style={{ maxWidth: "640px" }}>
-      <div className="page-head">
-        <h1 className="page__title">You</h1>
-        <span className="page-head__note">
-          Read from Elixir at sign-in. Clan holds no profile of its own.
-        </span>
-      </div>
-      <div className="panel">
+      <PageHead
+        title="You"
+        sub={
+          <>Read from Elixir at sign-in. Clan holds no profile of its own.</>
+        }
+      />
+      <Panel as="div">
         <div className="panel__body fields" style={{ rowGap: "10px" }}>
           <Row label="Players">
             {(me.identities ?? []).length === 0 ? (
@@ -98,7 +98,7 @@ export function You({ me }) {
           <Link to={ELIXIR_LINKS.connections}>Connections</Link> (where this
           sign-in can be revoked).
         </div>
-      </div>
+      </Panel>
     </div>
   );
 }

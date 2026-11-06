@@ -1,4 +1,11 @@
-import { Icon, Link, secsSince, useClock } from "@elixir-mcp/ui";
+import {
+  Icon,
+  Link,
+  secsSince,
+  useClock,
+  Panel,
+  PageHead,
+} from "@elixir-mcp/ui";
 import { useState } from "react";
 import { usePublicStatus } from "../lib/queries.js";
 import { CONSOLE } from "../lib/console.js";
@@ -263,14 +270,17 @@ function BudgetGauge({ budget }) {
       : null;
 
   return (
-    <section className="panel mb-[14px]">
-      <div className="panel__head">
-        <span>Shared request budget</span>
+    <Panel
+      title="Shared request budget"
+      titleAs="div"
+      action={
         <span className="mono ml-auto font-normal">
           {used.toLocaleString()} of {cap.toLocaleString()} in 24 hours ·{" "}
           {Math.round(pct)}%
         </span>
-      </div>
+      }
+      className="mb-[14px]"
+    >
       <div className="panel__body">
         {/* The fill is always --accent: a meter that changes colour has
             stopped being a measurement and become a status chip. */}
@@ -293,7 +303,7 @@ function BudgetGauge({ budget }) {
         background share, after {Math.round((budget.live_reserve ?? 0) * 100)}%
         kept for live lookups.
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -321,14 +331,17 @@ function QueueGauge({ queue, now }) {
     ["done this hour", queue.done_hour, "admitted and recorded"],
   ];
   return (
-    <section className="panel" style={{ marginBottom: "14px" }}>
-      <div className="panel__head">
-        <span>Work waiting</span>
+    <Panel
+      title="Work waiting"
+      titleAs="div"
+      action={
         <span className="mono" style={{ marginLeft: "auto", fontWeight: 400 }}>
           next tick{" "}
           {nextIn == null ? "—" : nextIn === 0 ? "now" : `in ${nextIn}s`}
         </span>
-      </div>
+      }
+      style={{ marginBottom: "14px" }}
+    >
       <div className="stats" style={{ border: 0, borderRadius: 0 }}>
         {cells.map(([label, value, note]) => (
           <div className="stats__cell" key={label}>
@@ -343,7 +356,7 @@ function QueueGauge({ queue, now }) {
         next one, every {queue.tick_minutes} minutes. The next run can plan{" "}
         {(queue.next_tick_capacity ?? 0).toLocaleString()}.
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -384,52 +397,43 @@ export function Status() {
 
   return (
     <>
-      <div
-        style={{
-          marginBottom: "18px",
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "14px",
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <h1 className="page__title">Status</h1>
-          <p className="page__lede">
-            The service, not your account. Everyone sees the same numbers.
-          </p>
-        </div>
-        <span
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            flexWrap: "wrap",
-          }}
-        >
-          <span className="mono" style={{ color: "var(--ink-faint)" }}>
-            as of {when(data.as_of)}
-          </span>
-          <button
-            className="btn btn--sm"
-            aria-pressed={auto}
-            onClick={() => setAuto((v) => !v)}
+      <PageHead
+        title="Status"
+        sub="The service, not your account. Everyone sees the same numbers."
+        aside={
+          <span
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
           >
-            {auto ? "auto-refresh on" : "auto-refresh off"}
-          </button>
-          <button className="btn btn--sm" onClick={load}>
-            Refresh
-          </button>
-        </span>
-      </div>
+            <span className="mono" style={{ color: "var(--ink-faint)" }}>
+              as of {when(data.as_of)}
+            </span>
+            <button
+              className="btn btn--sm"
+              aria-pressed={auto}
+              onClick={() => setAuto((v) => !v)}
+            >
+              {auto ? "auto-refresh on" : "auto-refresh off"}
+            </button>
+            <button className="btn btn--sm" onClick={load}>
+              Refresh
+            </button>
+          </span>
+        }
+      />
 
       <BudgetGauge budget={data.budget} />
       <QueueGauge queue={data.queue} now={now} />
 
-      <section className="panel" style={{ marginBottom: "14px" }}>
-        <div className="panel__head">
-          <span>Recording</span>
+      <Panel
+        title="Recording"
+        titleAs="div"
+        action={
           <span
             className={"chip " + (h.ok ? "chip--ok" : "chip--bad")}
             style={{ marginLeft: "auto" }}
@@ -437,7 +441,9 @@ export function Status() {
             <span className="chip__dot" />
             {h.ok ? "recording" : "attention"}
           </span>
-        </div>
+        }
+        style={{ marginBottom: "14px" }}
+      >
         <div className="stats" style={{ border: 0, borderRadius: 0 }}>
           <div className="stats__cell">
             <div className="label">last admission</div>
@@ -480,7 +486,7 @@ export function Status() {
             </div>
           )}
         </div>
-      </section>
+      </Panel>
 
       <Link
         className="panel"
@@ -520,14 +526,17 @@ export function Status() {
         </span>
       </Link>
 
-      <section className="panel" style={{ marginTop: "20px" }}>
-        <div className="panel__head">
-          <span className="panel-title">Reads, last hour</span>
+      <Panel
+        title="Reads, last hour"
+        titleAs="div"
+        action={
           <span className="caveat">
             5-minute buckets · {sumFetches(data.capture_5m).toLocaleString()}{" "}
             fetches, last bucket in progress
           </span>
-        </div>
+        }
+        style={{ marginTop: "20px" }}
+      >
         <CaptureChart
           buckets={data.capture_5m}
           series={series}
@@ -541,16 +550,19 @@ export function Status() {
           Hover for the per-collector split; a red tick marks rejected payloads.
           Quiet stretches are normal.
         </div>
-      </section>
+      </Panel>
 
-      <section className="panel" style={{ marginTop: "20px" }}>
-        <div className="panel__head">
-          <span className="panel-title">Reads, last 24 hours</span>
+      <Panel
+        title="Reads, last 24 hours"
+        titleAs="div"
+        action={
           <span className="caveat">
             hourly buckets · {sumFetches(data.capture_24h).toLocaleString()}{" "}
             fetches, current hour in progress
           </span>
-        </div>
+        }
+        style={{ marginTop: "20px" }}
+      >
         <CaptureChart
           buckets={data.capture_24h}
           series={series}
@@ -560,7 +572,7 @@ export function Status() {
           ariaLabel="fetches per hour over the last 24 hours, stacked by collector"
         />
         <ChartLegend series={series} />
-      </section>
+      </Panel>
     </>
   );
 }

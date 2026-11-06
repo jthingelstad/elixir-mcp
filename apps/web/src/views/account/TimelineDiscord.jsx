@@ -6,6 +6,7 @@ import {
   Fresh,
   WriteError,
   useClock,
+  Panel,
 } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
 import { scopedKey, useTimelineDiscord } from "../../lib/queries.js";
@@ -122,13 +123,13 @@ function TimelineSharingEditor({ scope, query, save, onClose }) {
 
   return (
     <DetailSheet title="Timeline sharing" onClose={onClose}>
-      <section className="panel" aria-labelledby="timeline-discord-title">
-        <div className="panel__head">
-          <span className="panel-title" id="timeline-discord-title">
-            Cross-post to Discord
-          </span>
-          <span className="hint">{s.enabled ? "on" : "off"}</span>
-        </div>
+      <Panel
+        title="Cross-post to Discord"
+        titleAs="div"
+        titleId="timeline-discord-title"
+        action={<span className="hint">{s.enabled ? "on" : "off"}</span>}
+        aria-labelledby="timeline-discord-title"
+      >
         <div className="panel__body space-y-3">
           <p>
             {scope
@@ -306,7 +307,7 @@ function TimelineSharingEditor({ scope, query, save, onClose }) {
             onRate={(body) => api.rateTimelineDiscord(body, scope)}
           />
         </div>
-      </section>
+      </Panel>
     </DetailSheet>
   );
 }

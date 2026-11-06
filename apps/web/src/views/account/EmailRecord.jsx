@@ -1,4 +1,4 @@
-import { Icon, Link, useClock } from "@elixir-mcp/ui";
+import { Icon, Link, useClock, Empty } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { MailFrame } from "../../components/MailFrame.jsx";
 import { useEmailRecord } from "../../lib/queries.js";
@@ -56,25 +56,19 @@ export function EmailRecord({ id, navigate, search }) {
     return (
       <>
         {back}
-        <div className="empty">
-          <div className="empty__title">This email could not be read</div>
-          <p className="empty__body mb-0">
-            Elixir did not answer just now; try again in a moment.
-          </p>
-        </div>
+        <Empty title="This email could not be read">
+          Elixir did not answer just now; try again in a moment.
+        </Empty>
       </>
     );
   if (!rec?.send)
     return (
       <>
         {back}
-        <div className="empty">
-          <div className="empty__title">That email is not one of yours</div>
-          <p className="empty__body mb-0">
-            This page opens the emails sent to your own account. An id from
-            someone else's footer opens nothing here.
-          </p>
-        </div>
+        <Empty title="That email is not one of yours">
+          This page opens the emails sent to your own account. An id from
+          someone else's footer opens nothing here.
+        </Empty>
       </>
     );
 
@@ -117,18 +111,17 @@ export function EmailRecord({ id, navigate, search }) {
       {rec.html ? (
         <MailFrame html={rec.html} />
       ) : (
-        <div className="empty">
-          <div className="empty__title">
-            {rec.archive_error
+        <Empty
+          title={
+            rec.archive_error
               ? "The email was kept but could not be read back just now"
-              : "The email itself was not kept"}
-          </div>
-          <p className="empty__body mb-0">
-            {rec.archive_error
-              ? "Try again in a moment. The send itself is on record above."
-              : "Emails sent before 2026-09-19 have a row here but no body; everything since is kept as it was sent."}
-          </p>
-        </div>
+              : "The email itself was not kept"
+          }
+        >
+          {rec.archive_error
+            ? "Try again in a moment. The send itself is on record above."
+            : "Emails sent before 2026-09-19 have a row here but no body; everything since is kept as it was sent."}
+        </Empty>
       )}
 
       <p className="footnote mt-3 max-w-[78ch]">

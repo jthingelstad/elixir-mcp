@@ -1,4 +1,11 @@
-import { CardArt, DeckGrid, useClock } from "@elixir-mcp/ui";
+import {
+  CardArt,
+  DeckGrid,
+  useClock,
+  Panel,
+  Table,
+  Empty,
+} from "@elixir-mcp/ui";
 import { useId, useState } from "react";
 import { askedMode, fmt, leadFirst, pct, shortDay, signed } from "./ladder.js";
 import { groupLabel } from "./ladder-days.js";
@@ -100,24 +107,18 @@ export function Decks({ player, season, seasonPicker, search }) {
       ) : all.isError ? (
         <ReadError error={all.error} what="the season's decks" />
       ) : count === 0 ? (
-        <div className="empty">
-          {season.current ? (
-            <>
-              <h2 className="empty__title">No decks this season yet</h2>
-              <p className="empty__body">
-                Elixir has recorded no battle with a deck since the season
-                began. The page fills from the next battle log it reads.
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="empty__title">No decks in {season.name}</h2>
-              <p className="empty__body">
-                Elixir recorded no battle with a deck in {season.name}.
-              </p>
-            </>
-          )}
-        </div>
+        <Empty
+          titleAs="h2"
+          title={
+            season.current
+              ? "No decks this season yet"
+              : `No decks in ${season.name}`
+          }
+        >
+          {season.current
+            ? "Elixir has recorded no battle with a deck since the season began. The page fills from the next battle log it reads."
+            : `Elixir recorded no battle with a deck in ${season.name}.`}
+        </Empty>
       ) : (
         <>
           {order.length > 1 ? (
@@ -166,13 +167,9 @@ function ModeDecks({ mode, read, base, zone }) {
 
   return (
     <>
-      <section
-        id={`decks-${mode}`}
-        className="panel scroll-mt-4"
-        aria-labelledby={id}
-      >
-        <div className="panel__head">
-          <h2 id={id} className="ladder-panel-title">
+      <Panel
+        title={
+          <>
             {label}
             {w && Number(w.battles ?? 0) > 0 ? (
               <>
@@ -181,12 +178,19 @@ function ModeDecks({ mode, read, base, zone }) {
                 <Record wins={w.wins} losses={w.losses} draws={w.draws} />
               </>
             ) : null}
-          </h2>
+          </>
+        }
+        titleId={id}
+        action={
           <span className="text-[12.5px] text-ink-faint">
             {fmt(decks.length)} {decks.length === 1 ? "deck" : "decks"}, played
             most first
           </span>
-        </div>
+        }
+        id={`decks-${mode}`}
+        className="scroll-mt-4"
+        aria-labelledby={id}
+      >
         {read?.isPending ? (
           <div className="panel__body">
             <Loading what={`the ${label} decks`} />
@@ -230,7 +234,7 @@ function ModeDecks({ mode, read, base, zone }) {
             played most of {fmt(read.data.total_decks)}.
           </div>
         ) : null}
-      </section>
+      </Panel>
       {swaps.map((s) => (
         <SwapPanel key={s.key} swap={s} mode={mode} zone={zone} />
       ))}
@@ -335,15 +339,21 @@ function SwapPanel({ swap, mode, zone }) {
     </div>
   );
   return (
-    <section className="panel ladder-swap" aria-labelledby={id}>
-      <div className="panel__head">
-        <h2 id={id} className="ladder-panel-title">
+    <Panel
+      title={
+        <>
           The {kind === "form" ? "form" : kind} swap on {on}
-        </h2>
+        </>
+      }
+      titleId={id}
+      action={
         <span className="text-[12.5px] text-ink-faint">
           {groupLabel(mode)} only
         </span>
-      </div>
+      }
+      className="ladder-swap"
+      aria-labelledby={id}
+    >
       <div className="panel__body ladder-swap__body">
         {side(
           before.row,
@@ -373,7 +383,7 @@ function SwapPanel({ swap, mode, zone }) {
         reads back what happened after the change; it does not say the change
         caused it.
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -398,7 +408,7 @@ function OtherDecks({ modes, byMode, all, lead }) {
   };
   const keyed = rows.map((r) => ({ r, id: anchor(r.mode) }));
   return (
-    <section className="panel" aria-labelledby={id}>
+    <Panel aria-labelledby={id}>
       {modes
         .filter((m) => !anchored.has(m))
         .map((m) => (
@@ -424,77 +434,81 @@ function OtherDecks({ modes, byMode, all, lead }) {
             </div>
           ))}
           {rows.length ? (
-            <div className="table__scroll" tabIndex={0}>
-              <table className="table ladder-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Deck</th>
-                    <th scope="col">Mode</th>
-                    <th scope="col" className="ladder-table__num">
-                      Battles
-                    </th>
-                    <th scope="col">Record</th>
-                    <th scope="col">Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {keyed.map(({ r, id: at }) => (
-                    <tr
-                      key={r.key}
-                      id={at}
-                      className={at ? "scroll-mt-4" : undefined}
-                    >
-                      <td className="ladder-table__deck">{r.label}</td>
-                      <td className="ladder-table__mode">
-                        <span className="ladder-key">
-                          {r.mode ? (
-                            <span
-                              className={`mode-chip__dot mode-chip__dot--${r.mode}`}
-                              aria-hidden="true"
-                            />
-                          ) : null}
-                          {r.modeLabel}
-                        </span>
-                      </td>
-                      <td className="ladder-table__num">
-                        {fmt(r.battles)}
-                        {/* A phone has no column head: the count names
-                            its unit there. */}
-                        <span className="ladder-table__unit">
-                          {" "}
-                          {r.duel
-                            ? r.battles === 1
-                              ? "round"
-                              : "rounds"
-                            : r.battles === 1
-                              ? "battle"
-                              : "battles"}
-                        </span>
-                      </td>
-                      <td className="ladder-table__record">
-                        <Record
-                          wins={r.wins}
-                          losses={r.losses}
-                          draws={r.draws}
+            <Table
+              columns={[
+                {
+                  head: "Deck",
+                  className: "ladder-table__deck",
+                  cell: ({ r }) => r.label,
+                },
+                {
+                  head: "Mode",
+                  className: "ladder-table__mode",
+                  cell: ({ r }) => (
+                    <span className="ladder-key">
+                      {r.mode ? (
+                        <span
+                          className={`mode-chip__dot mode-chip__dot--${r.mode}`}
+                          aria-hidden="true"
                         />
-                      </td>
-                      <td className="ladder-table__notes">
-                        {[
-                          r.forms,
-                          r.gap,
-                          r.duel ? "duel rounds" : null,
-                          r.sameAs
-                            ? `same cards as a ${groupLabel(r.sameAs)} deck`
-                            : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      ) : null}
+                      {r.modeLabel}
+                    </span>
+                  ),
+                },
+                {
+                  head: "Battles",
+                  num: true,
+                  cell: ({ r }) => (
+                    <>
+                      {fmt(r.battles)}
+                      {/* A phone has no column head: the count names
+                            its unit there. */}
+                      <span className="ladder-table__unit">
+                        {" "}
+                        {r.duel
+                          ? r.battles === 1
+                            ? "round"
+                            : "rounds"
+                          : r.battles === 1
+                            ? "battle"
+                            : "battles"}
+                      </span>
+                    </>
+                  ),
+                },
+                {
+                  head: "Record",
+                  className: "ladder-table__record",
+                  cell: ({ r }) => (
+                    <Record wins={r.wins} losses={r.losses} draws={r.draws} />
+                  ),
+                },
+                {
+                  head: "Notes",
+                  className: "ladder-table__notes",
+                  cell: ({ r }) =>
+                    [
+                      r.forms,
+                      r.gap,
+                      r.duel ? "duel rounds" : null,
+                      r.sameAs
+                        ? `same cards as a ${groupLabel(r.sameAs)} deck`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · "),
+                },
+              ]}
+              rows={keyed}
+              rowKey={({ r }) => r.key}
+              rowProps={({ id: at }) => ({
+                id: at,
+                className: at ? "scroll-mt-4" : undefined,
+              })}
+              phone="fit"
+              className="ladder-table"
+            />
           ) : null}
         </>
       )}
@@ -503,6 +517,6 @@ function OtherDecks({ modes, byMode, all, lead }) {
         or lost on its own crowns; a duel has no single deck, so it is outside
         the other rows.
       </div>
-    </section>
+    </Panel>
   );
 }

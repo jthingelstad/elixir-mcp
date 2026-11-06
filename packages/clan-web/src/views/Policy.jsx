@@ -1,4 +1,12 @@
-import { Disclosure, noun, Tag, useClock } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  noun,
+  Tag,
+  useClock,
+  Panel,
+  Table,
+  Tabs,
+} from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, usePolicy } from "../lib/queries.js";
@@ -229,62 +237,62 @@ export function Policy({ clan }) {
         </Disclosure>
       ) : null}
 
-      <div className="segmented flex-wrap" role="tablist" aria-label="Policy">
-        {tabs.map((t) => {
+      <Tabs
+        wrap
+        label="Policy"
+        value={current.key}
+        onSelect={setTab}
+        items={tabs.map((t) => {
           const state = stateOf(t);
           const edited = fieldsOf(t).some((k) => changed.includes(k));
           const wrong = fieldsOf(t).some((k) => errors[k]);
-          return (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              id={`tab-${t.key}`}
-              aria-label={[
-                t.title,
-                state,
-                edited ? "changed" : null,
-                wrong ? "needs a fix" : null,
-              ]
-                .filter(Boolean)
-                .join(", ")}
-              aria-selected={t.key === current.key}
-              aria-controls="policy-panel"
-              onClick={() => setTab(t.key)}
-            >
-              {state === "on" || state === "off" ? (
-                <span
-                  aria-hidden="true"
-                  className={`mr-1.5 inline-block size-2 rounded-full ${state === "on" ? "bg-[var(--ok)]" : "border border-[var(--ink-faint)]"}`}
-                />
-              ) : null}
-              {t.title}
-              {state && state !== "on" && state !== "off" ? (
-                <span className="text-[var(--ink-faint)]"> · {state}</span>
-              ) : null}
-              {wrong ? (
-                <span aria-hidden="true" className="ml-1 text-[var(--bad)]">
-                  !
-                </span>
-              ) : edited ? (
-                <span aria-hidden="true" className="ml-1 text-[var(--accent)]">
-                  •
-                </span>
-              ) : null}
-            </button>
-          );
+          return {
+            key: t.key,
+            id: `tab-${t.key}`,
+            controls: "policy-panel",
+            ariaLabel: [
+              t.title,
+              state,
+              edited ? "changed" : null,
+              wrong ? "needs a fix" : null,
+            ]
+              .filter(Boolean)
+              .join(", "),
+            label: (
+              <>
+                {state === "on" || state === "off" ? (
+                  <span
+                    aria-hidden="true"
+                    className={`mr-1.5 inline-block size-2 rounded-full ${state === "on" ? "bg-[var(--ok)]" : "border border-[var(--ink-faint)]"}`}
+                  />
+                ) : null}
+                {t.title}
+                {state && state !== "on" && state !== "off" ? (
+                  <span className="text-[var(--ink-faint)]"> · {state}</span>
+                ) : null}
+                {wrong ? (
+                  <span aria-hidden="true" className="ml-1 text-[var(--bad)]">
+                    !
+                  </span>
+                ) : edited ? (
+                  <span
+                    aria-hidden="true"
+                    className="ml-1 text-[var(--accent)]"
+                  >
+                    •
+                  </span>
+                ) : null}
+              </>
+            ),
+          };
         })}
-      </div>
+      />
 
-      <section
-        className="panel"
-        role="tabpanel"
-        id="policy-panel"
-        aria-labelledby={`tab-${current.key}`}
-      >
-        <div className="panel__head flex-wrap gap-2">
-          <span>{current.title}</span>
-          {current.switch ? (
+      <Panel
+        title={current.title}
+        titleAs="div"
+        action={
+          current.switch ? (
             <label className="ml-auto inline-flex items-center gap-2 whitespace-nowrap">
               <input
                 type="checkbox"
@@ -296,8 +304,13 @@ export function Policy({ clan }) {
               />
               <span>{view.fields[current.switch].label}</span>
             </label>
-          ) : null}
-        </div>
+          ) : null
+        }
+
+        role="tabpanel"
+        id="policy-panel"
+        aria-labelledby={`tab-${current.key}`}
+      >
         <div className="panel__body grid gap-5">
           {current.key === "about" ? (
             <>
@@ -413,7 +426,7 @@ export function Policy({ clan }) {
             );
           })()}
         </div>
-      </section>
+      </Panel>
 
       <Disclosure title="Draft agreement">
         <div className="panel__body grid gap-2">
@@ -459,7 +472,7 @@ export function Policy({ clan }) {
         </div>
       </Disclosure>
       {view.can_edit ? (
-        <div className="panel">
+        <Panel as="div">
           <div className="panel__body grid gap-2.5">
             <div className="page-head__note">
               {!view.set
@@ -508,7 +521,7 @@ export function Policy({ clan }) {
             </p>
             {preview && !conflict ? <Preview preview={preview} /> : null}
           </div>
-        </div>
+        </Panel>
       ) : null}
 
       {view.versions.length ? (
@@ -702,28 +715,25 @@ function Preview({ preview }) {
           : `No policy yet. Under the draft, the Elder band is ${bandText(preview.draft.band)}.`}
       </div>
       {moved.length ? (
-        <div tabIndex={0} className="table__scroll">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Member</th>
-                <th>{preview.current ? "Current policy" : "Today"}</th>
-                <th>Draft</th>
-              </tr>
-            </thead>
-            <tbody>
-              {moved.map((r) => (
-                <tr key={r.tag}>
-                  <td>
-                    {r.name} <span className="tag">{r.tag}</span>
-                  </td>
-                  <td>{r.current}</td>
-                  <td>{r.draft}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={[
+            {
+              head: "Member",
+              cell: (r) => (
+                <>
+                  {r.name} <span className="tag">{r.tag}</span>
+                </>
+              ),
+            },
+            {
+              head: preview.current ? "Current policy" : "Today",
+              cell: (r) => r.current,
+            },
+            { head: "Draft", cell: (r) => r.draft },
+          ]}
+          rows={moved}
+          rowKey={(r) => r.tag}
+        />
       ) : (
         <p className="page__lede">
           Nobody&rsquo;s verdict changes over the last reviews.
@@ -737,7 +747,7 @@ function Preview({ preview }) {
  *  more evidence (and what), or off. */
 function CanDo({ lines }) {
   return (
-    <section className="panel" aria-labelledby="policy-can-do">
+    <Panel aria-labelledby="policy-can-do">
       <h2 id="policy-can-do" className="panel__head m-0">
         What this policy can do today
       </h2>
@@ -755,6 +765,6 @@ function CanDo({ lines }) {
           ))}
         </ul>
       </div>
-    </section>
+    </Panel>
   );
 }

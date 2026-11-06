@@ -1,5 +1,13 @@
-import { Fresh, ago, Tag, useClock } from "@elixir-mcp/ui";
-import { Fragment, useState } from "react";
+import {
+  Fresh,
+  ago,
+  Tag,
+  useClock,
+  Empty,
+  PageHead,
+  Table,
+} from "@elixir-mcp/ui";
+import { useState } from "react";
 import { useHistory, useManage } from "../lib/queries.js";
 import { MemberSheet } from "../components/MemberSheet.jsx";
 import { ActionLog, CopyLine } from "../components/ActionCard.jsx";
@@ -50,24 +58,28 @@ export function Manage({ clan, tab, navigate, who }) {
     return null;
   }
   const head = (
-    <div className="page-head" style={{ alignItems: "center" }}>
-      <h1 className="page__title">{TITLES[tab] ?? "Manage"}</h1>
-      <span className="chip">
-        <span className="yours">★</span>{" "}
-        {clan.acting_as_name ?? <Tag tag={clan.acting_as} />}
-        <span style={{ color: "var(--ink-faint)" }}>·</span>
-        <RoleChip role={clan.role} label={clan.role_label} />
-        <span style={{ color: "var(--ink-faint)" }}>·</span>
-        {clan.name ?? <Tag tag={clan.clan_tag} />}
-      </span>
-      {state.data ? (
-        <Fresh
-          label="as of"
-          seconds={state.data.freshness_seconds}
-          ts={state.data.as_of}
-        />
-      ) : null}
-    </div>
+    <PageHead
+      title={TITLES[tab] ?? "Manage"}
+      aside={
+        <>
+          <span className="chip">
+            <span className="yours">★</span>{" "}
+            {clan.acting_as_name ?? <Tag tag={clan.acting_as} />}
+            <span style={{ color: "var(--ink-faint)" }}>·</span>
+            <RoleChip role={clan.role} label={clan.role_label} />
+            <span style={{ color: "var(--ink-faint)" }}>·</span>
+            {clan.name ?? <Tag tag={clan.clan_tag} />}
+          </span>
+          {state.data ? (
+            <Fresh
+              label="as of"
+              seconds={state.data.freshness_seconds}
+              ts={state.data.as_of}
+            />
+          ) : null}
+        </>
+      }
+    />
   );
   // The rail carries the sections now (2026-09-12); nothing to repeat here.
   const tabs = null;
@@ -125,22 +137,19 @@ export function Manage({ clan, tab, navigate, who }) {
     return (
       <>
         {head}
-        <div className="empty">
-          <div className="empty__title">No policy yet</div>
-          <p className="empty__body">
-            Nothing in clan management runs until a leader or co-leader sets
-            this clan&rsquo;s policy.{" "}
-            <a
-              href={`${clanPath(clan.clan_tag)}/manage/policy`}
-              onClick={(e) => {
-                e.preventDefault();
-                navigate(`${clanPath(clan.clan_tag)}/manage/policy`);
-              }}
-            >
-              Set up the policy
-            </a>
-          </p>
-        </div>
+        <Empty title="No policy yet">
+          Nothing in clan management runs until a leader or co-leader sets this
+          clan&rsquo;s policy.{" "}
+          <a
+            href={`${clanPath(clan.clan_tag)}/manage/policy`}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`${clanPath(clan.clan_tag)}/manage/policy`);
+            }}
+          >
+            Set up the policy
+          </a>
+        </Empty>
       </>
     );
   if (state.error)
@@ -267,95 +276,82 @@ export function Manage({ clan, tab, navigate, who }) {
             <h2 id={`board-${bucket}-title`} className="label mb-2">
               {BUCKET_LABEL[bucket]} · {rows.length}
             </h2>
-            <div
-              tabIndex={0}
-              role="region"
-              aria-label={`${BUCKET_LABEL[bucket]} members`}
-              className="table__scroll"
-            >
-              <table className="table table-fixed min-w-[760px]">
-                <thead>
-                  <tr>
-                    <th className="w-1/5">Member</th>
-                    <th className="w-[14%]">Role</th>
-                    {d.policy?.ranks_elder ? (
-                      <th className="w-[14%]">Elder</th>
-                    ) : null}
-                    {d.policy?.removal ? (
-                      <th className="w-[18%]">Removal</th>
-                    ) : null}
-                    <th className="w-[17%]">Evidence</th>
-                    <th>Judgment</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((m) => (
-                    <Fragment key={m.player_tag}>
-                      <tr
-                        data-you={
-                          m.player_tag === who.player_tag ? "true" : undefined
+            <Table
+              region={`${BUCKET_LABEL[bucket]} members`}
+              columns={[
+                {
+                  head: "Member",
+                  wrap: true,
+                  headClassName: "w-1/5",
+                  cell: (m) => (
+                    <>
+                      <button
+                        type="button"
+                        className="btn--text"
+                        aria-expanded={open === m.player_tag}
+                        onClick={() =>
+                          setOpen(open === m.player_tag ? null : m.player_tag)
                         }
                       >
-                        <td className="table__td--wrap">
-                          <button
-                            type="button"
-                            className="btn--text"
-                            aria-expanded={open === m.player_tag}
-                            onClick={() =>
-                              setOpen(
-                                open === m.player_tag ? null : m.player_tag,
-                              )
-                            }
-                          >
-                            {m.name ?? <Tag tag={m.player_tag} />}
-                          </button>{" "}
-                          <span className="tag block">{m.player_tag}</span>
-                          {m.hold?.active !== false && m.hold ? (
-                            <span
-                              className="chip chip--info"
-                              style={{ marginLeft: "6px" }}
-                              title={m.hold.note ?? undefined}
-                            >
-                              {m.hold.kind === "away" ? "away" : "hold"}
-                              {m.hold.until
-                                ? ` · ${calendar(m.hold.until)}`
-                                : ""}
-                            </span>
-                          ) : null}
-                        </td>
-                        <td>
-                          <RoleChip role={m.role} label={m.role} />
-                        </td>
-                        {d.policy?.ranks_elder ? (
-                          <td className="table__td--wrap">{elderCell(m)}</td>
-                        ) : null}
-                        {d.policy?.removal ? (
-                          <td className="table__td--wrap">{removalCell(m)}</td>
-                        ) : null}
-                        <td className="table__td--wrap">
-                          {m.phrase || <span className="nil">—</span>}
-                        </td>
-                        <td className="table__td--wrap">{judgmentCell(m)}</td>
-                      </tr>
-                      {open === m.player_tag ? (
-                        <tr>
-                          <td
-                            className="table__td--wrap"
-                            colSpan={
-                              4 +
-                              Number(Boolean(d.policy?.ranks_elder)) +
-                              Number(Boolean(d.policy?.removal))
-                            }
-                          >
-                            {sheet(m)}
-                          </td>
-                        </tr>
+                        {m.name ?? <Tag tag={m.player_tag} />}
+                      </button>{" "}
+                      <span className="tag block">{m.player_tag}</span>
+                      {m.hold?.active !== false && m.hold ? (
+                        <span
+                          className="chip chip--info"
+                          style={{ marginLeft: "6px" }}
+                          title={m.hold.note ?? undefined}
+                        >
+                          {m.hold.kind === "away" ? "away" : "hold"}
+                          {m.hold.until ? ` · ${calendar(m.hold.until)}` : ""}
+                        </span>
                       ) : null}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    </>
+                  ),
+                },
+                {
+                  head: "Role",
+                  headClassName: "w-[14%]",
+                  cell: (m) => <RoleChip role={m.role} label={m.role} />,
+                },
+                ...(d.policy?.ranks_elder
+                  ? [
+                      {
+                        head: "Elder",
+                        wrap: true,
+                        headClassName: "w-[14%]",
+                        cell: (m) => elderCell(m),
+                      },
+                    ]
+                  : []),
+                ...(d.policy?.removal
+                  ? [
+                      {
+                        head: "Removal",
+                        wrap: true,
+                        headClassName: "w-[18%]",
+                        cell: (m) => removalCell(m),
+                      },
+                    ]
+                  : []),
+                {
+                  head: "Evidence",
+                  wrap: true,
+                  headClassName: "w-[17%]",
+                  cell: (m) => m.phrase || <span className="nil">—</span>,
+                },
+                { head: "Judgment", wrap: true, cell: (m) => judgmentCell(m) },
+              ]}
+              rows={rows}
+              rowKey={(m) => m.player_tag}
+              rowProps={(m) => ({
+                "data-you":
+                  m.player_tag === who.player_tag ? "true" : undefined,
+              })}
+              rowAfter={(m) => (open === m.player_tag ? sheet(m) : null)}
+              className="table-fixed"
+              minWidth={760}
+            />
           </section>
         );
       })}
@@ -499,176 +495,172 @@ function History({ clan, navigate }) {
           No join, leave or role change in the recent roster-event window.
         </p>
       ) : (
-        <div
-          tabIndex={0}
-          className="table__scroll"
-          style={{ marginBottom: "22px" }}
-        >
-          <table className="table">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Member</th>
-                <th>What</th>
-                <th>What the record says</th>
-                <th>In-game</th>
-              </tr>
-            </thead>
-            <tbody>
-              {timeline.map((e) => (
-                <tr key={`${e.type}-${e.player_tag}-${e.at}`}>
-                  <td>{whenDay(e.at)}</td>
-                  <td>
-                    {e.name ?? <Tag tag={e.player_tag} />}{" "}
-                    <span className="tag">{e.player_tag}</span>
-                  </td>
-                  <td>
-                    {EVENT_LABEL[e.type] ?? e.type}
-                    {e.type === "role_changed" && e.role_after
-                      ? `: ${e.role_before ?? "?"} → ${e.role_after}`
-                      : ""}
-                  </td>
-                  <td>
-                    {e.type !== "member_left" ? (
-                      <span className="nil">—</span>
-                    ) : e.classification ? (
-                      <span
-                        className={`chip ${e.classification === "member_kicked" ? "chip--warn" : "chip--ok"}`}
-                      >
-                        {CLASS_LABEL[e.classification]}
-                      </span>
-                    ) : (
-                      <span className="chip chip--info">
-                        unanswered (Actions)
-                      </span>
-                    )}
-                    {e.note ? (
-                      <div className="page-head__note mt-1 whitespace-normal">
-                        {e.note}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td style={{ whiteSpace: "normal", minWidth: "260px" }}>
-                    {e.copy ? (
-                      <CopyLine text={e.copy} />
-                    ) : (
-                      <span className="nil">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={[
+            { head: "When", cell: (e) => whenDay(e.at) },
+            {
+              head: "Member",
+              cell: (e) => (
+                <>
+                  {e.name ?? <Tag tag={e.player_tag} />}{" "}
+                  <span className="tag">{e.player_tag}</span>
+                </>
+              ),
+            },
+            {
+              head: "What",
+              cell: (e) => (
+                <>
+                  {EVENT_LABEL[e.type] ?? e.type}
+                  {e.type === "role_changed" && e.role_after
+                    ? `: ${e.role_before ?? "?"} → ${e.role_after}`
+                    : ""}
+                </>
+              ),
+            },
+            {
+              head: "What the record says",
+              cell: (e) => (
+                <>
+                  {e.type !== "member_left" ? (
+                    <span className="nil">—</span>
+                  ) : e.classification ? (
+                    <span
+                      className={`chip ${e.classification === "member_kicked" ? "chip--warn" : "chip--ok"}`}
+                    >
+                      {CLASS_LABEL[e.classification]}
+                    </span>
+                  ) : (
+                    <span className="chip chip--info">
+                      unanswered (Actions)
+                    </span>
+                  )}
+                  {e.note ? (
+                    <div className="page-head__note mt-1 whitespace-normal">
+                      {e.note}
+                    </div>
+                  ) : null}
+                </>
+              ),
+            },
+            {
+              head: "In-game",
+              wrap: true,
+              cellProps: () => ({ style: { minWidth: "260px" } }),
+              cell: (e) =>
+                e.copy ? (
+                  <CopyLine text={e.copy} />
+                ) : (
+                  <span className="nil">—</span>
+                ),
+            },
+          ]}
+          rows={timeline}
+          rowKey={(e) => `${e.type}-${e.player_tag}-${e.at}`}
+        />
       )}
       <div className="label" style={{ margin: "0 0 8px" }}>
         Actions
       </div>
-      <div tabIndex={0} className="table__scroll">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Raised</th>
-              <th>Member</th>
-              <th>Action</th>
-              <th>Outcome</th>
-              <th>Decided by</th>
-              <th>Detail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.cards.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="nil">
-                  No action taken yet.
-                </td>
-              </tr>
-            ) : (
-              data.cards.map((c) => (
-                <tr key={c.card_id}>
-                  <td className="mono">
-                    {Number.isInteger(c.number) &&
-                    c.audience?.kind !== "member" ? (
-                      <a
-                        href={`${clanPath(clan.clan_tag)}/actions/${c.number}`}
-                        onClick={(e) => {
-                          if (!navigate) return;
-                          e.preventDefault();
-                          navigate(
-                            `${clanPath(clan.clan_tag)}/actions/${c.number}`,
-                          );
-                        }}
-                      >
-                        #{c.number}
-                      </a>
-                    ) : Number.isInteger(c.number) ? (
-                      `#${c.number}`
-                    ) : null}
-                  </td>
-                  <td>{whenDay(c.raised_at)}</td>
-                  <td>
-                    {c.player_name ?? <Tag tag={c.player_tag} />}{" "}
-                    <span className="tag">{c.player_tag}</span>
-                  </td>
-                  <td>{c.label}</td>
-                  <td>
-                    <span
-                      className={`chip ${c.status === "done" ? "chip--ok" : c.status === "declined" ? "chip--warn" : ""}`}
-                    >
-                      {c.status === "done" ? "completed" : c.status}
-                    </span>
-                    {c.outcome?.verified_at ? (
-                      <span
-                        className="chip chip--ok"
-                        style={{ marginLeft: "6px" }}
-                      >
-                        {c.outcome.delay_hours != null
-                          ? `confirmed ${Math.round(c.outcome.delay_hours)} h after completion`
-                          : "verified"}
-                      </span>
-                    ) : null}
-                    {c.outcome?.flagged_at ? (
-                      <span
-                        className="chip chip--bad"
-                        style={{ marginLeft: "6px" }}
-                      >
-                        no change seen
-                      </span>
-                    ) : null}
-                  </td>
-                  <td>
-                    {c.decided_by ? (
-                      <>
-                        {c.decided_by_name ?? ""}{" "}
-                        <span className="tag">{c.decided_by}</span>
-                      </>
-                    ) : (
-                      <span className="nil">—</span>
-                    )}
-                    {c.decided_at ? ` · ${whenDay(c.decided_at)}` : ""}
-                  </td>
-                  <td style={{ whiteSpace: "normal" }}>
-                    {c.decline_reason
-                      ? c.decline_reason.replaceAll("_", " ")
-                      : ""}
-                    {c.decision_note ? ` · ${c.decision_note}` : ""}
-                    {c.withdraw_reason ?? ""}
-                    <details className="mt-1">
-                      <summary className="page-head__note cursor-pointer">
-                        Log · {(c.log ?? []).length}
-                      </summary>
-                      <div className="mt-2 min-w-[320px]">
-                        <ActionLog action={c} clan={clan} />
-                      </div>
-                    </details>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          {
+            head: "#",
+            className: "mono",
+            cell: (c) =>
+              Number.isInteger(c.number) && c.audience?.kind !== "member" ? (
+                <a
+                  href={`${clanPath(clan.clan_tag)}/actions/${c.number}`}
+                  onClick={(e) => {
+                    if (!navigate) return;
+                    e.preventDefault();
+                    navigate(`${clanPath(clan.clan_tag)}/actions/${c.number}`);
+                  }}
+                >
+                  #{c.number}
+                </a>
+              ) : Number.isInteger(c.number) ? (
+                `#${c.number}`
+              ) : null,
+          },
+          { head: "Raised", cell: (c) => whenDay(c.raised_at) },
+          {
+            head: "Member",
+            cell: (c) => (
+              <>
+                {c.player_name ?? <Tag tag={c.player_tag} />}{" "}
+                <span className="tag">{c.player_tag}</span>
+              </>
+            ),
+          },
+          { head: "Action", cell: (c) => c.label },
+          {
+            head: "Outcome",
+            cell: (c) => (
+              <>
+                <span
+                  className={`chip ${c.status === "done" ? "chip--ok" : c.status === "declined" ? "chip--warn" : ""}`}
+                >
+                  {c.status === "done" ? "completed" : c.status}
+                </span>
+                {c.outcome?.verified_at ? (
+                  <span className="chip chip--ok" style={{ marginLeft: "6px" }}>
+                    {c.outcome.delay_hours != null
+                      ? `confirmed ${Math.round(c.outcome.delay_hours)} h after completion`
+                      : "verified"}
+                  </span>
+                ) : null}
+                {c.outcome?.flagged_at ? (
+                  <span
+                    className="chip chip--bad"
+                    style={{ marginLeft: "6px" }}
+                  >
+                    no change seen
+                  </span>
+                ) : null}
+              </>
+            ),
+          },
+          {
+            head: "Decided by",
+            cell: (c) => (
+              <>
+                {c.decided_by ? (
+                  <>
+                    {c.decided_by_name ?? ""}{" "}
+                    <span className="tag">{c.decided_by}</span>
+                  </>
+                ) : (
+                  <span className="nil">—</span>
+                )}
+                {c.decided_at ? ` · ${whenDay(c.decided_at)}` : ""}
+              </>
+            ),
+          },
+          {
+            head: "Detail",
+            wrap: true,
+            cell: (c) => (
+              <>
+                {c.decline_reason ? c.decline_reason.replaceAll("_", " ") : ""}
+                {c.decision_note ? ` · ${c.decision_note}` : ""}
+                {c.withdraw_reason ?? ""}
+                <details className="mt-1">
+                  <summary className="page-head__note cursor-pointer">
+                    Log · {(c.log ?? []).length}
+                  </summary>
+                  <div className="mt-2 min-w-[320px]">
+                    <ActionLog action={c} clan={clan} />
+                  </div>
+                </details>
+              </>
+            ),
+          },
+        ]}
+        rows={data.cards}
+        rowKey={(c) => c.card_id}
+        empty={"No action taken yet."}
+      />
       {data.holds.length ? (
         <>
           <div className="label" style={{ margin: "18px 0 8px" }}>

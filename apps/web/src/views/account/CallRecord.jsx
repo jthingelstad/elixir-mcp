@@ -1,4 +1,4 @@
-import { Icon, Link, useClock, noun } from "@elixir-mcp/ui";
+import { Icon, Link, useClock, noun, Empty, ErrorState } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useCallRecord } from "../../lib/queries.js";
 import { useConsolePath } from "../../lib/scope.js";
@@ -191,25 +191,19 @@ export function CallRecord({ id, navigate }) {
     return (
       <>
         {back}
-        <div className="empty">
-          <div className="empty__title">This call could not be read</div>
-          <p className="empty__body" style={{ marginBottom: 0 }}>
-            Elixir did not answer just now; try again in a moment.
-          </p>
-        </div>
+        <ErrorState title="This call could not be read">
+          Elixir did not answer just now; try again in a moment.
+        </ErrorState>
       </>
     );
   if (!rec?.call)
     return (
       <>
         {back}
-        <div className="empty">
-          <div className="empty__title">That call is not in your log</div>
-          <p className="empty__body" style={{ marginBottom: 0 }}>
-            The log holds calls made by your own connections and by the agents
-            you own. An id from somewhere else opens nothing here.
-          </p>
-        </div>
+        <Empty title="That call is not in your log">
+          The log holds calls made by your own connections and by the agents you
+          own. An id from somewhere else opens nothing here.
+        </Empty>
       </>
     );
 

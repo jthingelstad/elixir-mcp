@@ -1,5 +1,15 @@
 import { useWrite } from "@elixir-mcp/client";
-import { Fresh, Link, WriteError, noun, useFlash } from "@elixir-mcp/ui";
+import {
+  Fresh,
+  Link,
+  WriteError,
+  noun,
+  useFlash,
+  Panel,
+  PageHead,
+  Table,
+  Empty,
+} from "@elixir-mcp/ui";
 import { limitsLabel } from "../../lib/words.js";
 import { useEffect, useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
@@ -71,12 +81,12 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
 
   if (missed)
     return (
-      <div className="panel">
+      <Panel as="div">
         <div className="panel__body">
           No agent here on your account.{" "}
           <Link to={`${CONSOLE}/account/agents`}>All agents ›</Link>
         </div>
-      </div>
+      </Panel>
     );
   if (!agent) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
 
@@ -100,42 +110,34 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "14px",
-          flexWrap: "wrap",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <h1 className="page__title">{name}</h1>
-          <p className="page__lede">
-            {(agent.clans ?? []).length > 0 ? (
-              <>
-                Acts for <ClanRefs clans={agent.clans} navigate={navigate} />.
-                An agent&rsquo;s name is its key&rsquo;s name, and it calls at
-                its own door.
-              </>
-            ) : (
-              <>
-                Acts as you. An agent&rsquo;s name is its key&rsquo;s name, and
-                it calls at its own door.
-              </>
-            )}
-          </p>
-        </div>
-        <span
-          className={"chip " + (suspended ? "chip--warn" : "chip--ok")}
-          style={{ marginLeft: "auto" }}
-        >
-          <span className="chip__dot" />
-          {removed ? "removed" : suspended ? "suspended" : "active"}
-        </span>
-      </div>
+      <PageHead
+        title={name}
+        sub={
+          (agent.clans ?? []).length > 0 ? (
+            <>
+              Acts for <ClanRefs clans={agent.clans} navigate={navigate} />. An
+              agent&rsquo;s name is its key&rsquo;s name, and it calls at its
+              own door.
+            </>
+          ) : (
+            <>
+              Acts as you. An agent&rsquo;s name is its key&rsquo;s name, and it
+              calls at its own door.
+            </>
+          )
+        }
+        aside={
+          <span
+            className={"chip " + (suspended ? "chip--warn" : "chip--ok")}
+            style={{ marginLeft: "auto" }}
+          >
+            <span className="chip__dot" />
+            {removed ? "removed" : suspended ? "suspended" : "active"}
+          </span>
+        }
+      />
 
-      <section className="panel" style={{ marginBottom: "16px" }}>
+      <Panel style={{ marginBottom: "16px" }}>
         <dl className="fields">
           {part === "settings" && (
             <>
@@ -523,7 +525,7 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
             </div>
           </div>
         )}
-      </section>
+      </Panel>
 
       {/* Rows of data are not a panel: the head is a row above the
           table, and the explanation sits under it as a footnote. */}
@@ -546,47 +548,45 @@ export function AgentRecord({ publicId, part = "overview", navigate }) {
             </span>
           </div>
           {identities?.length === 0 && (
-            <div className="empty">
-              <p className="empty__body" style={{ marginBottom: 0 }}>
-                Nobody mapped yet. An agent builds this itself with
-                elixir_identify, the first time somebody asks it about
-                themselves.
-              </p>
-            </div>
+            <Empty>
+              Nobody mapped yet. An agent builds this itself with
+              elixir_identify, the first time somebody asks it about themselves.
+            </Empty>
           )}
           <WriteError error={unmap.error} className="field-error px-4" />
           {identities?.length > 0 && (
-            <div className="table__scroll" tabIndex={0}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Their id</th>
-                    <th>Player</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {identities.map((m) => (
-                    <tr key={m.external_id}>
-                      <td className="mono">{m.external_id}</td>
-                      <td>
-                        {m.name ? `${m.name} ` : ""}
-                        <span className="mono">{m.player_tag}</span>
-                      </td>
-                      <td>
-                        <button
-                          className="btn--text"
-                          disabled={unmap.busy}
-                          onClick={() => unmap.run(id, m.external_id)}
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              columns={[
+                {
+                  head: "Their id",
+                  className: "mono",
+                  cell: (m) => m.external_id,
+                },
+                {
+                  head: "Player",
+                  cell: (m) => (
+                    <>
+                      {m.name ? `${m.name} ` : ""}
+                      <span className="mono">{m.player_tag}</span>
+                    </>
+                  ),
+                },
+                {
+                  head: "",
+                  cell: (m) => (
+                    <button
+                      className="btn--text"
+                      disabled={unmap.busy}
+                      onClick={() => unmap.run(id, m.external_id)}
+                    >
+                      Remove
+                    </button>
+                  ),
+                },
+              ]}
+              rows={identities}
+              rowKey={(m) => m.external_id}
+            />
           )}
         </section>
       )}
@@ -713,19 +713,18 @@ export function Agents({ navigate }) {
 
   return (
     <>
-      <div style={{ marginBottom: "18px" }}>
-        <h1 className="page__title">Agents</h1>
-        <p className="page__lede">
-          An agent calls at its own door with its own key, for you or for a
-          clan. Its name is its key&rsquo;s name.
-        </p>
-      </div>
+      <PageHead
+        title="Agents"
+        sub={
+          <>
+            An agent calls at its own door with its own key, for you or for a
+            clan. Its name is its key&rsquo;s name.
+          </>
+        }
+      />
       <div className="cols">
         <div className="cols__main">
-          <section className="panel">
-            <div className="panel__head">
-              <span className="panel-title">Your agents</span>
-            </div>
+          <Panel title="Your agents" titleAs="div">
             <div className="panel__body">
               <p
                 style={{
@@ -744,92 +743,84 @@ export function Agents({ navigate }) {
 
             {principals && agents.length === 0 && (
               <div className="panel__body">
-                <div className="empty">
-                  <p className="empty__body" style={{ marginBottom: 0 }}>
-                    No agents yet. An agent is for a clan you already record —
-                    it answers your clanmates without any of them signing in.
-                  </p>
-                </div>
+                <Empty>
+                  No agents yet. An agent is for a clan you already record — it
+                  answers your clanmates without any of them signing in.
+                </Empty>
               </div>
             )}
             {shown.length > 0 && (
-              <div className="table__scroll" tabIndex={0}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Agent</th>
-                      <th>Clan</th>
-                      <th>Limits</th>
-                      <th>Last active</th>
-                      {/* An agent spends the OWNER's daily calls, and the
-                        owner's own usage view cannot see them -- it filters
-                        to the owner's account_id and an agent has its own.
-                        Without this column a budget can be exhausted by
-                        something you have no way to look at. */}
-                      <th>Calls 7d</th>
-                      <th>Status</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shown.map((a) => {
+              <Table
+                columns={[
+                  { head: "Agent", cell: (a) => a.name ?? a.public_id },
+                  {
+                    head: "Clan",
+                    cell: (a) => (
+                      <ClanRefs clans={a.clans} navigate={navigate} />
+                    ),
+                  },
+                  { head: "Limits", cell: (a) => limitsLabel(a.role) },
+                  {
+                    head: "Last active",
+                    cell: (a) => {
                       const live = (a.tokens ?? []).filter(
                         (k) => !k.revoked_at,
                       );
                       return (
-                        <tr key={a.account_id}>
-                          <td>{a.name ?? a.public_id}</td>
-                          <td>
-                            <ClanRefs clans={a.clans} navigate={navigate} />
-                          </td>
-                          <td>{limitsLabel(a.role)}</td>
-                          <td>
-                            {/* The ACCOUNT's last call, not the key's. Reading
+                        <>
+                          {/* The ACCOUNT's last call, not the key's. Reading
                               last_used_at made a years-old agent report
                               "never" the moment its key was rotated. */}
-                            {a.last_call_at ? (
-                              <Fresh ts={a.last_call_at} />
-                            ) : (
-                              <span style={{ color: "var(--ink-faint)" }}>
-                                never
-                              </span>
+                          {a.last_call_at ? (
+                            <Fresh ts={a.last_call_at} />
+                          ) : (
+                            <span style={{ color: "var(--ink-faint)" }}>
+                              never
+                            </span>
+                          )}
+                          {live[0] &&
+                            !live[0].last_used_at &&
+                            a.last_call_at && (
+                              <div
+                                style={{
+                                  fontSize: "11px",
+                                  color: "var(--warn)",
+                                }}
+                              >
+                                new key unused
+                              </div>
                             )}
-                            {live[0] &&
-                              !live[0].last_used_at &&
-                              a.last_call_at && (
-                                <div
-                                  style={{
-                                    fontSize: "11px",
-                                    color: "var(--warn)",
-                                  }}
-                                >
-                                  new key unused
-                                </div>
-                              )}
-                          </td>
-                          <td>{a.calls_7d ?? 0}</td>
-                          <td>
-                            {a.status === "approved" ? (
-                              "active"
-                            ) : (
-                              <span style={{ color: "var(--bad)" }}>
-                                suspended
-                              </span>
-                            )}
-                          </td>
-                          <td>
-                            <Link
-                              to={`${CONSOLE}/agent/${a.public_id}/overview`}
-                            >
-                              Open ›
-                            </Link>
-                          </td>
-                        </tr>
+                        </>
                       );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                    },
+                  },
+                  /* An agent spends the OWNER's daily calls, and the
+                        owner's own usage view cannot see them -- it filters
+                        to the owner's account_id and an agent has its own.
+                        Without this column a budget can be exhausted by
+                        something you have no way to look at. */
+                  { head: "Calls 7d", num: true, cell: (a) => a.calls_7d ?? 0 },
+                  {
+                    head: "Status",
+                    cell: (a) =>
+                      a.status === "approved" ? (
+                        "active"
+                      ) : (
+                        <span style={{ color: "var(--bad)" }}>suspended</span>
+                      ),
+                  },
+                  {
+                    head: "",
+                    cell: (a) => (
+                      <Link to={`${CONSOLE}/agent/${a.public_id}/overview`}>
+                        Open ›
+                      </Link>
+                    ),
+                  },
+                ]}
+                rows={shown}
+                rowKey={(a) => a.account_id}
+              />
             )}
 
             {/* Removed agents (0215): kept, never deleted, and listed only
@@ -854,7 +845,7 @@ export function Agents({ navigate }) {
             )}
 
             <NewAgent />
-          </section>
+          </Panel>
         </div>
       </div>
     </>
@@ -875,12 +866,12 @@ export function AgentMoved({ id, navigate }) {
   }, [agent, navigate]);
   if (principals.isFetched && !agent)
     return (
-      <div className="panel">
+      <Panel as="div">
         <div className="panel__body">
           No agent here on your account.{" "}
           <Link to={`${CONSOLE}/account/agents`}>All agents ›</Link>
         </div>
-      </div>
+      </Panel>
     );
   return <p className="text-ink-faint">Opening its console…</p>;
 }

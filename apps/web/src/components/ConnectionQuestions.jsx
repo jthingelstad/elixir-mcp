@@ -1,4 +1,4 @@
-import { Tag } from "@elixir-mcp/ui";
+import { Tag, Panel } from "@elixir-mcp/ui";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
 import {
   QuestionSuggestions,
@@ -12,18 +12,17 @@ export function ConnectionQuestions({ claimsKey, navigate }) {
   });
   const questions = data ? starterQuestions(data) : [];
   return (
-    <section
-      className="panel first-answer"
-      aria-labelledby="connection-questions-title"
-    >
-      <div className="panel__head">
-        <h2 className="panel-title" id="connection-questions-title">
-          Try asking…
-        </h2>
+    <Panel
+      title="Try asking…"
+      titleId="connection-questions-title"
+      action={
         <button className="btn--text" onClick={refresh} disabled={loading}>
           Check again
         </button>
-      </div>
+      }
+      className="first-answer"
+      aria-labelledby="connection-questions-title"
+    >
       <div className="panel__body">
         {loading && (
           <p role="status">Finding questions for your recorded data…</p>
@@ -86,6 +85,6 @@ export function ConnectionQuestions({ claimsKey, navigate }) {
           </>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }

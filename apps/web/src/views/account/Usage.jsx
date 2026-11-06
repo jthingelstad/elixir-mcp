@@ -1,4 +1,4 @@
-import { Icon, Link, useClock, noun } from "@elixir-mcp/ui";
+import { Icon, Link, useClock, noun, Panel, PageHead } from "@elixir-mcp/ui";
 import { useUsage } from "../../lib/queries.js";
 import { useConsolePath, useScope } from "../../lib/scope.js";
 import { quotaReading } from "../../lib/quota.js";
@@ -20,10 +20,7 @@ import { CONSOLE } from "../../lib/console.js";
 
 function QuotaCard({ title, line }) {
   return (
-    <section
-      className="panel"
-      style={{ flex: "1 1 300px", padding: "16px 18px" }}
-    >
+    <Panel style={{ flex: "1 1 300px", padding: "16px 18px" }}>
       <div
         style={{
           display: "flex",
@@ -43,7 +40,7 @@ function QuotaCard({ title, line }) {
       <div className="meter" style={{ height: "10px" }}>
         <div className="meter__fill" style={{ width: `${line.pct}%` }} />
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -97,10 +94,10 @@ export function Usage() {
 
   return (
     <>
-      <div style={{ marginBottom: "18px" }}>
-        <h1 className="page__title">Usage</h1>
-        <p className="page__lede">
-          {scoped ? (
+      <PageHead
+        title="Usage"
+        sub={
+          scoped ? (
             <>
               This agent spends your daily budget: it made{" "}
               {(usage.today_calls ?? 0).toLocaleString()} of the{" "}
@@ -115,9 +112,9 @@ export function Usage() {
               {usage.web_calls_today > 0 &&
                 ` The Console and Ladder also read ${usage.web_calls_today.toLocaleString()} ${noun(usage.web_calls_today, "time")} for you today; your own reads on Elixir's website are not counted against the budget.`}
             </>
-          )}
-        </p>
-      </div>
+          )
+        }
+      />
 
       <div
         style={{
@@ -154,9 +151,10 @@ export function Usage() {
         <span className="ml-auto text-[13px] text-ink-link">Open ›</span>
       </Link>
 
-      <section className="panel" style={{ marginBottom: "14px" }}>
-        <div className="panel__head">
-          <span className="panel-title">Calls per day</span>
+      <Panel
+        title="Calls per day"
+        titleAs="div"
+        action={
           <span
             style={{
               marginLeft: "auto",
@@ -166,7 +164,9 @@ export function Usage() {
           >
             14 UTC days · today still filling
           </span>
-        </div>
+        }
+        style={{ marginBottom: "14px" }}
+      >
         <div
           style={{
             padding: "18px 16px 6px",
@@ -208,16 +208,19 @@ export function Usage() {
           <span>{days[0].day.slice(5)}</span>
           <span>today</span>
         </div>
-      </section>
+      </Panel>
 
       <div style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
-        <section className="panel" style={{ flex: "1 1 320px" }}>
-          <div className="panel__head">
-            <span className="panel-title">By connection</span>
+        <Panel
+          title="By connection"
+          titleAs="div"
+          action={
             <span className="caveat" style={{ marginLeft: "auto" }}>
               7 days
             </span>
-          </div>
+          }
+          style={{ flex: "1 1 320px" }}
+        >
           <div style={{ padding: "6px 0" }}>
             {callers.length === 0 && (
               <p
@@ -296,15 +299,18 @@ export function Usage() {
               </div>
             ))}
           </div>
-        </section>
+        </Panel>
 
-        <section className="panel" style={{ flex: "1 1 280px" }}>
-          <div className="panel__head">
-            <span className="panel-title">Busiest tools</span>
+        <Panel
+          title="Busiest tools"
+          titleAs="div"
+          action={
             <span className="caveat" style={{ marginLeft: "auto" }}>
               7 days
             </span>
-          </div>
+          }
+          style={{ flex: "1 1 280px" }}
+        >
           <div style={{ padding: "6px 0" }}>
             {tools.length === 0 && (
               <p
@@ -347,7 +353,7 @@ export function Usage() {
               </div>
             ))}
           </div>
-        </section>
+        </Panel>
       </div>
     </>
   );

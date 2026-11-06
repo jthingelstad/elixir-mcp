@@ -1,5 +1,5 @@
 import { useWrite } from "@elixir-mcp/client";
-import { ago, Link, WriteError } from "@elixir-mcp/ui";
+import { ago, Link, WriteError, Panel, PageHead } from "@elixir-mcp/ui";
 import { api } from "../../api.js";
 import { keys, useSessions } from "../../lib/queries.js";
 import { CONSOLE } from "../../lib/console.js";
@@ -36,11 +36,11 @@ export function DevicesPage() {
       <div className="page__crumb">
         <Link to={`${CONSOLE}/account/profile`}>‹ Profile</Link>
       </div>
-      <div className="mb-[18px]">
-        <h1 className="page__title">Devices</h1>
-        <p className="page__lede">Browsers and devices currently signed in.</p>
-      </div>
-      <section className="panel" style={{ marginBottom: "14px" }}>
+      <PageHead
+        title="Devices"
+        sub="Browsers and devices currently signed in."
+      />
+      <Panel style={{ marginBottom: "14px" }}>
         <div className="panel__head" style={{ flexWrap: "wrap" }}>
           <span className="panel-title">Signed in</span>
           <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
@@ -119,7 +119,7 @@ export function DevicesPage() {
           Signing out here ends that device&rsquo;s session at once; agents and
           connected clients are separate and live under Connections.
         </p>
-      </section>
+      </Panel>
     </>
   );
 }

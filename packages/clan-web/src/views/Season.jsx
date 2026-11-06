@@ -1,4 +1,4 @@
-import { Fresh, Link, monthDayAt } from "@elixir-mcp/ui";
+import { Fresh, Link, monthDayAt, Panel, Table } from "@elixir-mcp/ui";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
 import { useSeason } from "../lib/queries.js";
 import { CLAN, clanPath } from "../lib/base.js";
@@ -119,7 +119,7 @@ export function Season({ clan, season, navigate }) {
           hint="Each player counted once"
         />
       </Tiles>
-      <section className="panel">
+      <Panel>
         <div className="panel__head">
           <h2 id="season-races" className="m-0 grow text-[14px] font-semibold">
             Race by race
@@ -128,60 +128,47 @@ export function Season({ clan, season, navigate }) {
             {c.recorded_sections} of {c.expected_sections} races recorded
           </span>
         </div>
-        <div
-          className="table__scroll"
-          tabIndex={0}
-          role="region"
-          aria-labelledby="season-races"
-        >
-          <table className="table">
-            <caption className="sr-only">
-              Recorded war decks, war points and contributors in chronological
-              race order
-            </caption>
-            <thead>
-              <tr>
-                {["Race", "State", "Decks", "Points", "Players"].map((name) => (
-                  <th
-                    key={name}
-                    scope="col"
-                    className="px-3 py-2 font-semibold"
-                  >
-                    {name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {s.races.map((r) => (
-                <tr key={r.section_index} className="border-t border-line-row">
-                  <th scope="row" className="px-3 py-3 font-normal">
-                    {r.section_index + 1}
+        <Table
+          labelledBy="season-races"
+          caption="Recorded war decks, war points and contributors in chronological race order"
+          rowKey={(r) => r.section_index}
+          rows={s.races}
+          columns={[
+            {
+              head: "Race",
+              rowHeader: true,
+              cell: (r) => (
+                <>
+                  {r.section_index + 1}
+                  <span className="block text-[12px] text-ink-faint">
+                    {date(r.from)}
+                  </span>
+                  {r.is_colosseum ? (
                     <span className="block text-[12px] text-ink-faint">
-                      {date(r.from)}
+                      Colosseum
                     </span>
-                    {r.is_colosseum ? (
-                      <span className="block text-[12px] text-ink-faint">
-                        Colosseum
-                      </span>
-                    ) : null}
-                  </th>
-                  <td className="px-3 py-3">
-                    {STATUS[r.state]}
-                    {r.counters_unknown ? (
-                      <span className="block text-[12px] text-ink-faint">
-                        Partial readings
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-3 font-mono">{n(r.decks)}</td>
-                  <td className="px-3 py-3 font-mono">{n(r.points)}</td>
-                  <td className="px-3 py-3 font-mono">{n(r.contributors)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  ) : null}
+                </>
+              ),
+            },
+            {
+              head: "State",
+              cell: (r) => (
+                <>
+                  {STATUS[r.state]}
+                  {r.counters_unknown ? (
+                    <span className="block text-[12px] text-ink-faint">
+                      Partial readings
+                    </span>
+                  ) : null}
+                </>
+              ),
+            },
+            { head: "Decks", num: true, cell: (r) => n(r.decks) },
+            { head: "Points", num: true, cell: (r) => n(r.points) },
+            { head: "Players", num: true, cell: (r) => n(r.contributors) },
+          ]}
+        />
         <div className="panel__foot grid gap-2">
           <p className="m-0">
             Readings from {c.current_members} current and {c.former_members}{" "}
@@ -215,7 +202,7 @@ export function Season({ clan, season, navigate }) {
             member was read in full.
           </p>
         </div>
-      </section>
+      </Panel>
     </>
   );
 }

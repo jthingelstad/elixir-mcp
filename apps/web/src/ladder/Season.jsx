@@ -1,4 +1,12 @@
-import { DeckGrid, Icon, Link, useClock, noun } from "@elixir-mcp/ui";
+import {
+  DeckGrid,
+  Icon,
+  Link,
+  useClock,
+  noun,
+  Panel,
+  Empty,
+} from "@elixir-mcp/ui";
 import {
   LADDER_PAGES,
   deckModes,
@@ -177,20 +185,22 @@ function SeasonBody({
           <DeckForm player={player} mode={mode} season={season} />
         </>
       ) : (
-        <div className="empty">
-          <h2 className="empty__title">
-            No {modeLabel(mode)} battles{" "}
-            {running ? "this season" : `in ${seasonName}`}
-          </h2>
-          <p className="empty__body">
-            {running
-              ? `Elixir has recorded none in this mode since the season began${
-                  startsAt ? ` on ${when(startsAt)}` : ""
-                }.`
-              : `Elixir recorded none in this mode in ${seasonName}.`}{" "}
-            Each mode keeps its own record; the others are a tab away.
-          </p>
-        </div>
+        <Empty
+          title={
+            <>
+              No {modeLabel(mode)} battles{" "}
+              {running ? "this season" : `in ${seasonName}`}
+            </>
+          }
+          titleAs="h2"
+        >
+          {running
+            ? `Elixir has recorded none in this mode since the season began${
+                startsAt ? ` on ${when(startsAt)}` : ""
+              }.`
+            : `Elixir recorded none in this mode in ${seasonName}.`}{" "}
+          Each mode keeps its own record; the others are a tab away.
+        </Empty>
       )}
 
       <div className="ladder-split">
@@ -217,20 +227,24 @@ function WeekByWeek({ mode, weeks }) {
   const trophies = mode === "ladder" || mode === "ranked";
   const bars = weeks.data ? weekBars(weeks.data.weekly, { net: trophies }) : [];
   return (
-    <section className="panel ladder-span-3" aria-labelledby="ladder-weeks">
-      <div className="panel__head">
-        <h2 id="ladder-weeks" className="ladder-panel-title">
-          Week by week
-        </h2>
-        <span className="ladder-key">
-          <span className="ladder-key__swatch ladder-key__swatch--win" />
-          wins
-        </span>
-        <span className="ladder-key">
-          <span className="ladder-key__swatch ladder-key__swatch--loss" />
-          losses
-        </span>
-      </div>
+    <Panel
+      title="Week by week"
+      titleId="ladder-weeks"
+      action={
+        <>
+          <span className="ladder-key">
+            <span className="ladder-key__swatch ladder-key__swatch--win" />
+            wins
+          </span>
+          <span className="ladder-key">
+            <span className="ladder-key__swatch ladder-key__swatch--loss" />
+            losses
+          </span>
+        </>
+      }
+      className="ladder-span-3"
+      aria-labelledby="ladder-weeks"
+    >
       <div className="panel__body">
         {weeks.isPending ? (
           <Loading what="the weeks" />
@@ -257,7 +271,7 @@ function WeekByWeek({ mode, weeks }) {
         Partial weeks compare by win rate, never by count.
         {trophies ? " Signed numbers are net trophies." : ""}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -333,18 +347,16 @@ function TopDeck({ summary, search, zone, wide }) {
   const deck = summary.data?.top_deck ?? null;
   const decksPage = LADDER_PAGES.some((p) => p.slug === "decks");
   return (
-    <section
-      className={`panel ${wide ? "ladder-span-5" : "ladder-span-2"} ladder-deck`}
-      aria-labelledby="ladder-top-deck"
-    >
-      <div className="panel__head">
-        <h2 id="ladder-top-deck" className="ladder-panel-title">
-          Most-played deck
-        </h2>
+    <Panel
+      className={`${wide ? "ladder-span-5" : "ladder-span-2"} ladder-deck`}
+      titleId="ladder-top-deck"
+      title="Most-played deck"
+      action={
         <span className="text-[12.5px] font-normal text-ink-faint">
           last 30 days
         </span>
-      </div>
+      }
+    >
       <div className="panel__body ladder-deck__body">
         {summary.isPending ? (
           <Loading what="your decks" />
@@ -413,7 +425,7 @@ function TopDeck({ summary, search, zone, wide }) {
           </>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -422,15 +434,11 @@ function TopDeck({ summary, search, zone, wide }) {
  *  to the season's own decks instead. */
 function SeasonDecks({ search, name, wide }) {
   return (
-    <section
-      className={`panel ${wide ? "ladder-span-5" : "ladder-span-2"} ladder-deck`}
-      aria-labelledby="ladder-season-decks"
+    <Panel
+      className={`${wide ? "ladder-span-5" : "ladder-span-2"} ladder-deck`}
+      titleId="ladder-season-decks"
+      title="Decks"
     >
-      <div className="panel__head">
-        <h2 id="ladder-season-decks" className="ladder-panel-title">
-          Decks
-        </h2>
-      </div>
       <div className="panel__body ladder-deck__body">
         <p className="text-ink-faint">
           Every deck you played in {name}, each in the mode it was played in.
@@ -446,6 +454,6 @@ function SeasonDecks({ search, name, wide }) {
           The decks of {name} ›
         </Link>
       </div>
-    </section>
+    </Panel>
   );
 }

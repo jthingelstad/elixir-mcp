@@ -1,4 +1,4 @@
-import { useInitialTime, useClock } from "@elixir-mcp/ui";
+import { useInitialTime, useClock, Panel, PageHead } from "@elixir-mcp/ui";
 import { Link, noun, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
@@ -43,13 +43,15 @@ export function Away({ me }) {
   };
   return (
     <div style={{ maxWidth: "640px" }}>
-      <div className="page-head">
-        <h1 className="page__title">Away</h1>
-        <span className="page-head__note">
-          {clan.name ?? <Tag tag={clan.clan_tag} />} · as{" "}
-          {clan.player_name ?? <Tag tag={clan.player_tag} />}
-        </span>
-      </div>
+      <PageHead
+        title="Away"
+        sub={
+          <>
+            {clan.name ?? <Tag tag={clan.clan_tag} />} · as{" "}
+            {clan.player_name ?? <Tag tag={clan.player_tag} />}
+          </>
+        }
+      />
       <p className="page__lede" style={{ margin: "0 0 16px" }}>
         Tell your leaders when you will be back. An active notice shields
         removal eligibility; elapsed time keeps counting.
@@ -58,14 +60,15 @@ export function Away({ me }) {
           : " This clan's policy does not offer it; tell a leader instead."}
       </p>
       {hold ? (
-        <div className="panel">
-          <div className="panel__head">
-            <span>
-              {hold.kind === "away"
-                ? "You are marked away"
-                : "A leader has you on hold"}
-            </span>
-          </div>
+        <Panel
+          as="div"
+          title={
+            hold.kind === "away"
+              ? "You are marked away"
+              : "A leader has you on hold"
+          }
+          titleAs="div"
+        >
           <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
             <div>
               {hold.until ? `Until ${calendar(hold.until)}` : "Open-ended"}
@@ -92,7 +95,7 @@ export function Away({ me }) {
               </button>
             ) : null}
           </div>
-        </div>
+        </Panel>
       ) : state.allowed && state.verified === false ? (
         <div className="callout callout--info">
           <span>
@@ -103,8 +106,11 @@ export function Away({ me }) {
           </span>
         </div>
       ) : state.allowed ? (
-        <form
-          className="panel"
+        <Panel
+          as="form"
+          title="Mark yourself away"
+          titleAs="div"
+
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
@@ -122,9 +128,6 @@ export function Away({ me }) {
             load();
           }}
         >
-          <div className="panel__head">
-            <span>Mark yourself away</span>
-          </div>
           <div className="panel__body" style={{ display: "grid", gap: "10px" }}>
             <label className="field-label" htmlFor="away-until">
               Back on
@@ -162,7 +165,7 @@ export function Away({ me }) {
               Mark me away
             </button>
           </div>
-        </form>
+        </Panel>
       ) : null}
     </div>
   );
