@@ -52,12 +52,23 @@ const MAIL_STAYS = [
   "/console/explore/clan/%23Q8G0LVPY",
   "/console/explore/week/2026-W40",
   "/console/status/collectors",
+  "/settings/collectors",
+  "/settings/emails/s1",
+  "/settings/feedback/7",
   "/clan/J2RGCRVG/actions/12",
   "/ladder",
   "/ladder/decks",
   "/ladder/cards",
   "/settings/emails",
   "/settings/players",
+  "/home/timeline",
+  "/home/friends",
+  "/signin",
+  "/console/explore/week/J2RGCRVG~136~2",
+  "/clan/J2RGCRVG/today",
+  "/clan/J2RGCRVG/season",
+  "/clan/J2RGCRVG/members",
+  "/clan/J2RGCRVG/members/2PQRJ8LV",
 ];
 
 // An agent's old console, page by page, with what each became.
@@ -125,6 +136,9 @@ describe("the map of moved addresses", () => {
   test("the public fleet stays at Status; your own is Settings'", () => {
     for (const path of [
       "/console/status/collectors",
+      "/settings/collectors",
+      "/settings/emails/s1",
+      "/settings/feedback/7",
       "/console/status/collectors/Knight",
       "/console/status/efficiency",
     ])

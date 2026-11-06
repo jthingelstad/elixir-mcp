@@ -5,8 +5,11 @@
  *  deck with its art, who you met more than once, and your other
  *  players' climbs; each comes from a tool's own answer. Since
  *  2026-10-08 it also counts the week's card unlocks and badge levels
- *  (progress), which no longer mail on their own. */
+ *  (progress), which no longer mail on their own. An alt's firsts wait for
+ *  this mail (D12): one line each under the alt, the alt drawn even with no
+ *  battle, and told once (`_moments`, written when it sends). */
 import { accountCtx, callTool } from "./ctx.mjs";
+import { heldAltFirsts } from "./build-milestone.mjs";
 import { featuredDeck } from "@elixir-mcp/tools/friends-week";
 import { MODE_GROUPS } from "@elixir-mcp/contracts";
 import { buildPlayerEntry } from "@elixir-mcp/tools/activity/entries";
@@ -42,6 +45,9 @@ export async function buildArena({ db, account, week, season }) {
   });
   const w = perf?.window ?? null;
   const altRows = [];
+  const held = await heldAltFirsts(db, { account, alts, fromMs, toMs });
+  const firstsOf = (tag) =>
+    held.filter((x) => x.tag === tag).map(({ text, at }) => ({ text, at }));
   // Card unlocks and badge levels, counted per player: the milestone
   // mail no longer sends them on their own (Jamie, 2026-10-08).
   const progress = [];
@@ -65,7 +71,20 @@ export async function buildArena({ db, account, week, season }) {
     });
     const ag = progressOf(ae);
     if (ag) progress.push({ tag: a.tag, name: a.name, ...ag });
-    if (!aw || !aw.battles) continue;
+    if (!aw || !aw.battles) {
+      if (firstsOf(a.tag).length)
+        altRows.push({
+          tag: a.tag,
+          name: a.name,
+          battles: 0,
+          wins: 0,
+          losses: 0,
+          by_family: [],
+          trophies: null,
+          firsts: firstsOf(a.tag),
+        });
+      continue;
+    }
     altRows.push({
       tag: a.tag,
       name: a.name,
@@ -79,6 +98,7 @@ export async function buildArena({ db, account, week, season }) {
           ? { from: ae.trophies.from, to: ae.trophies.to }
           : null,
       modes: groupModes(am),
+      ...(firstsOf(a.tag).length ? { firsts: firstsOf(a.tag) } : {}),
     });
   }
   if ((!w || !w.battles) && altRows.length === 0) return null;
@@ -228,6 +248,7 @@ export async function buildArena({ db, account, week, season }) {
     },
     alts: altRows,
     progress,
+    _moments: held.map((x) => x.moment),
   };
 }
 

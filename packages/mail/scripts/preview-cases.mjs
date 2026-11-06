@@ -250,20 +250,31 @@ export function mailPreviewCases() {
   cases.push(
     product("clan_actions_waiting-one", "clan_actions_waiting", {
       ...actions,
-      subject: "One action waiting for you in POAP KINGS",
-      lines: ["#41 Welcome: RiverFox (new)"],
+      subject: "Welcome: RiverFox (POAP KINGS)",
+      lines: [
+        {
+          title: "Welcome: RiverFox",
+          reason:
+            "Joined {{when:2026-09-25T15:04:00.000Z}}. Welcome them in clan chat, then mark it done.",
+          number: 41,
+          new: true,
+        },
+      ],
     }),
   );
   cases.push(
     product("clan_actions_waiting-many", "clan_actions_waiting", {
       ...actions,
-      subject: "15 actions waiting for you in POAP KINGS",
+      subject:
+        "15 actions in POAP KINGS: remove Example player 0, remove Example player 1, and 13 more",
       lines: [
-        ...Array.from(
-          { length: 10 },
-          (_, i) =>
-            `#${60 - i} Review membership: Example player ${i}${i < 2 ? " (new)" : ""}`,
-        ),
+        ...Array.from({ length: 10 }, (_, i) => ({
+          title: `Remove from the clan: Example player ${i}`,
+          reason:
+            "12 days without a battle. This clan counts a member at risk at 5 and acts at 8.",
+          number: 60 - i,
+          new: i < 2,
+        })),
         "And 5 more.",
       ],
     }),
@@ -302,7 +313,7 @@ export function mailPreviewCases() {
       relay(`owner_notify-${notify_kind}`, {
         kind: "owner_notify",
         notify_kind: notify_kind === "generic" ? undefined : notify_kind,
-        note: "An example service notice. The linked Console page carries the current details.",
+        note: "An example service notice. The linked page carries the current details.",
         detail:
           notify_kind === "gateway_silent"
             ? {

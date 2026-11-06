@@ -275,7 +275,7 @@ test("door to mail: baseline, concurrent duplicate heartbeats, retries, preferen
       manage: "https://example.com/manage",
     });
     assert.match(mail.html, /Mismatch:/);
-    assert.match(mail.html, /not remote attestation/);
+    assert.match(mail.html, /does not prove the build is genuine/);
   } finally {
     await other.end();
     await s.drop();

@@ -7,5 +7,5 @@
   "filed_at": "2026-10-06T19:12:00.000Z",
   "response": "Good catch. The deck section was reading a different window from the battle record.\n\nFixed: the deck and battle sections now use the same game week.",
   "shipped_in": "11.3.0",
-  "link": "https://elixir.poapkings.com/console/account/feedback/412"
+  "link": "https://elixir.poapkings.com/settings/feedback/412"
 }

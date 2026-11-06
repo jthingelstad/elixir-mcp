@@ -174,8 +174,11 @@ battle performance. The war section appears only when a war week
 completed. Battle counts stay unknown at activity scope, including older stored facts
 that filled those counts with zero; neither the body nor the inbox preview
 claims a zero-battle week. Roster departures say "departed" until a leader
-classifies them. Composed once per clan, sent to every person account tracking
-that clan. Since 2026-10-08 an account made after 0205 tracks its primary
+classifies them, and the classified word goes only to the clan's own readers.
+Composed once per clan, sent to every person account tracking
+that clan; `nothingHappened` skips the issue for everyone (D9, A20), never when
+a read failed. Links and the You line and Gone quiet are per reader, at render,
+from `reader.mjs` (`mine`, `member_clans`, `clanmates`), never in the facts. Since 2026-10-08 an account made after 0205 tracks its primary
 player's clan automatically at activity scope when a slot is free
 (`followPrimaryClan` in packages/claims), which is what makes the welcome
 mail's "Monday: your clan's week" true for a new member. Days are carried as instants (`membership[].at`,
@@ -216,12 +219,15 @@ one clan's report read-only beside the stored issue for that week.
 primary and each alt, sectioned by mode family. Who you battled, how the
 week went, the deck used most. The headline is per mode family, never one
 win rate pooled across modes (`docs/DECISIONS.md`, mode discipline).
-Skipped when zero battles across all the account's own tags.
+Skipped when zero battles across all the account's own tags and no alt's
+first is waiting. An alt's firsts (`heldAltFirsts`, same moments and journal as
+milestones) sit under the alt, which is drawn even with no battle, and are
+journalled when the mail sends, so each is told once (D12).
 
 **Cards and badges** (`progress`, 2026-10-08): per own tag, the week's
 card unlocks and badge level-ups as counts, read off the timeline
 entry (`collection.unlocked`, `badges.earned`; `progressOf` in
-`shared.mjs`), with a link to the Console timeline. These are the small
+`shared.mjs`), with a link to the timeline on Home. These are the small
 firsts the milestone mail no longer sends; a legendary badge mails as a
 milestone and is not counted (an issue stored before then may carry
 `legendary_badges`, and renders it); a week with none has no section. Every alt's entry is read
@@ -365,14 +371,14 @@ lead to a family app.
 ## Send ids and the record
 
 - `email_send.send_id` is the row's identity, minted in `deliver` before
-  the render so the footer carries it ("This email is <id>"); the relay
+  the render so the footer carries it ("Mail <first 6>", the whole id in the link); the relay
   logs one `mail_sent <kind> <send_id> <issue_key> <ses message id>` line
   per product send, never the recipient.
 - The rendered mail is archived under
   `mail/sent/dt=<day>/send_id=<id>.json.gz` (`archive.mjs`) before the
   enqueue; a failed write logs and sends anyway.
 - Web: `GET /api/me/email/sends` and `/api/me/email/sends/<id>` (own sends
-  only; the pixel stripped, so the console never counts as an open). The
+  only; the pixel stripped, so reading a record never counts as an open). The
   record is at `/settings/emails/<id>` in a sandboxed no-script
   frame, with "Report a problem with this email" filing feedback with
   an `email` ref (`feedback_ref`, 0204; `feedback.send_id` is still

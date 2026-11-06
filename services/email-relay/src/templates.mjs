@@ -31,7 +31,7 @@ import {
 } from "@elixir-mcp/mail";
 
 const SITE = "https://elixir.poapkings.com";
-const SIGNIN_BASE = `${SITE}/console/signin`;
+const SIGNIN_BASE = `${SITE}/signin`;
 
 const esc = (value) =>
   String(value ?? "")
@@ -76,7 +76,7 @@ export function renderEmail(msg) {
   }
   if (msg.kind === "login") {
     // A fragment never leaves the browser; a query string reaches the
-    // CDN's access logs and stays there (#129). The console reads it.
+    // CDN's access logs and stays there (#129). The sign-in page reads it.
     const link = msg.token ? `${SIGNIN_BASE}#login_token=${msg.token}` : null;
     const consent = msg.client_name
       ? `You’re signing in to ${msg.client_name} with Elixir.\n\n`
@@ -120,12 +120,12 @@ export function renderEmail(msg) {
       subject: "Your Elixir account is ready",
       text:
         `You're in.\n\n` +
-        `Keep your Clash Royale history in one place: Console, Ladder and Clan.\n\n` +
-        `Add your player in Console ▸ Tracking to start your record. If a player is already on your account, its recording stays in place.\n` +
-        `The first capture usually lands within a few minutes, with roughly your last 30 battles.\n` +
-        `Open ${SITE}/console/account/tracking to get started.\n\n` +
+        `Keep your Clash Royale history in one place: Home, Ladder and Clan, on one account.\n\n` +
+        `Add your player on Home to start your record. If a player is already on your account, its recording stays in place.\n` +
+        `The first read usually lands within a few minutes, with roughly your last 30 battles.\n` +
+        `Open ${SITE}/home to get started.\n\n` +
         `What comes next\n\n` +
-        `Monday: your clan's week. The river race, who joined and departed. Elixir follows your player's clan for you as soon as it sees it.\n` +
+        `Monday: your clan's week. The river race, who joined and departed. Elixir follows your player's clan for you when it can.\n` +
         `Tuesday: your week in the Arena. Your record by mode, your decks, and who you battled.\n` +
         `Wednesday: your friends. Follow anyone with a player tag, and hear how they played.\n` +
         `Your own agent: connect it to ${SITE}/mcp and ask what the game can't answer.\n\n` +
@@ -137,20 +137,20 @@ export function renderEmail(msg) {
         title: "You’re in.",
         subtitle: "Your Elixir account is ready",
         preheader:
-          "You’re in. Start your record in Console, read it in Ladder and open Clan with the same account.",
+          "You’re in. Add your player on Home to start your record, then read it in Ladder and Clan.",
         body: [
           p(
-            "Keep your Clash Royale history in one place: Console, Ladder and Clan.",
+            "Keep your Clash Royale history in one place: Home, Ladder and Clan, on one account.",
           ),
           p(
-            "Add your player in Console ▸ Tracking to start your record. If a player is already on your account, its recording stays in place. The first capture usually lands within a few minutes, with roughly your last 30 battles.",
+            "Add your player on Home to start your record. If a player is already on your account, its recording stays in place. The first read usually lands within a few minutes, with roughly your last 30 battles.",
           ),
-          button(`${SITE}/console/account/tracking`, "Start your record"),
+          button(`${SITE}/home`, "Start your record"),
           h2("What comes next"),
           rows([
             {
               title: "Monday: your clan&rsquo;s week",
-              text: "The river race, who joined and departed. Elixir follows your player&rsquo;s clan for you as soon as it sees it.",
+              text: "The river race, who joined and departed. Elixir follows your player&rsquo;s clan for you when it can.",
             },
             {
               title: "Tuesday: your week in the Arena",
@@ -243,7 +243,7 @@ export function renderEmail(msg) {
                    .join("")}
                </table>`
             : "",
-          button(link, "Open the console"),
+          button(link, "Open Admin"),
         ].join(""),
       }),
     };

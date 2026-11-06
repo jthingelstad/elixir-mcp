@@ -92,7 +92,7 @@ test("feedback answers: one mail per settled, unread answer to a person; a revis
     assert.equal(sent[0].kind, "feedback_answer");
     assert.match(sent[0].subject, /^Answered: “The rank looked off”$/);
     assert.match(sent[0].text, /Fixed: it reads the live board now\./);
-    assert.match(sent[0].html, new RegExp(`/console/account/feedback/${due}`));
+    assert.match(sent[0].html, new RegExp(`/settings/feedback/${due}`));
     assert.ok(sent[0].unsubscribe.url, "a bulk kind, one-click off");
     const { rows } = await db.query(
       `select feedback_id, response_mailed_at is not distinct from responded_at as handled

@@ -5,8 +5,9 @@
  *  race's standings and every member's points; clans_roster the size.
  *  The roster itself is a link (the board, EmailClan, 2026-10-01): a
  *  member-by-member table put a 50-member clan's mail past the size
- *  Gmail clips at, and the console already draws it. */
+ *  Gmail clips at, and the clan’s pages already draw it. */
 import { badgeLabel } from "@elixir-mcp/record/badge-names";
+import { removedFromClan } from "@elixir-mcp/record/attested-facts";
 import {
   clanActivityWeeks,
   clanRosterAt,
@@ -15,6 +16,48 @@ import { WAR_DECKS_PER_DAY, warDaysAsked } from "@elixir-mcp/record/war-clock";
 import { buildClanEntry } from "@elixir-mcp/tools/activity/entries";
 import { accountCtx, callTool } from "./ctx.mjs";
 import { tryTool } from "./shared.mjs";
+
+/** Whether a clan's week has nothing to tell: no race with fame (a race counts
+ *  as something, A20), no comings or goings, no recorded battle, no moves,
+ *  badges or presence, no donation. */
+export function nothingHappened(f) {
+  const m = f.membership;
+  const moves = f.week_moves;
+  return (
+    !(f.war?.present && f.war.fame > 0) &&
+    !m.joined.length &&
+    !m.left.length &&
+    !m.roles.length &&
+    !m.more &&
+    !f.headline.battles &&
+    !f.headline.donations &&
+    !f.badges.length &&
+    !f.presence.quiet.length &&
+    !f.presence.returned.length &&
+    !moves?.top_battler &&
+    !moves?.ranked?.items?.length &&
+    !moves?.arena?.items?.length &&
+    !moves?.bests?.items?.length
+  );
+}
+
+/** Each player's last recorded battle: a member reads the date, not a count
+ *  (Q2). */
+async function lastBattlesOf(db, tags) {
+  if (!tags.length) return new Map();
+  const { rows } = await db.query(
+    `select player_tag, max(battle_time) as last_battle
+       from battle_participant where player_tag = any($1::text[])
+      group by player_tag`,
+    [tags],
+  );
+  return new Map(
+    rows.map((r) => [
+      r.player_tag,
+      r.last_battle ? new Date(r.last_battle).toISOString() : null,
+    ]),
+  );
+}
 
 /** The facts are the same for every reader:
  *  `account` only shapes the ctx the tools are called with, the scope is
@@ -181,9 +224,19 @@ export async function buildClan({ db, account, clanTag, week, season }) {
         badge: badgeLabel(n),
       })),
     )
+    // Two levels of one badge are one line (the board's badge row).
+    .filter(
+      (b, i, all) =>
+        all.findIndex((x) => x.name === b.name && x.badge === b.badge) === i,
+    )
     .slice(0, 8);
+  const removed = await removedFromClan(db, clanTag, fromMs, toMs);
+  const lastBattles = await lastBattlesOf(
+    db,
+    items(entry.presence?.quiet_crossed).map((q) => q.tag),
+  );
 
-  return {
+  const facts = {
     week: {
       label: week.label,
       key: week.key,
@@ -233,6 +286,8 @@ export async function buildClan({ db, account, clanTag, week, season }) {
         name: m.name ?? m.tag,
         at: m.at ?? null,
         role: m.role,
+        // A leader said so: the render tells it to the clan's own readers.
+        ...(removed.has(m.tag) ? { removed: true } : {}),
       })),
       more: (r.joined?.more ?? 0) + (r.left?.more ?? 0),
       roles: (r.role_changes?.items ?? r.role_changes ?? []).map((m) => ({
@@ -253,6 +308,7 @@ export async function buildClan({ db, account, clanTag, week, season }) {
       ).map((q) => ({
         name: q.name ?? q.tag,
         days: q.days ?? q.rung ?? q.days_quiet,
+        last_battle: lastBattles.get(q.tag) ?? null,
       })),
       returned: (
         entry.presence?.returned?.items ??
@@ -266,8 +322,13 @@ export async function buildClan({ db, account, clanTag, week, season }) {
       scope === "comprehensive"
         ? null
         : "This clan’s battles are not recorded, only its roster and races.",
-    coverage: `Counted from what Elixir recorded for ${entry.name ?? roster?.name ?? clanTag}, Monday to Monday at the river race’s reset. The roster was read ${roster?.meta?.freshness_seconds != null ? minutesWords(roster.meta.freshness_seconds) : "shortly"} before this mail was written.`,
+    coverage: `Counted from what Elixir recorded for ${entry.name ?? roster?.name ?? clanTag}, Monday to Monday at the river race’s reset. The roster was read ${roster?.meta?.freshness_seconds != null ? minutesWords(roster.meta.freshness_seconds) : "shortly"} before this mail was written.${scope === "comprehensive" ? "" : " Roster and war only: member battles are not recorded for this clan."}`,
   };
+  // D9, A20: a silent clan skips, for every reader alike. A read that failed
+  // still sends with the gap noted: a report that hides a gap lies.
+  const readClean =
+    Boolean(roster) && Boolean(wars) && (!closed || Boolean(exact));
+  return readClean && nothingHappened(facts) ? null : facts;
 }
 
 const minutesWords = (seconds) => {

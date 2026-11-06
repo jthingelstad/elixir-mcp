@@ -51,6 +51,37 @@ const plain = (v) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/** A line is plain words, or an action as Clan says it (3.4.0): its title, an
+ *  optional reason, an optional number the row links by, and whether it is new.
+ *  The render builds the row's link from the number and the clan, so no URL
+ *  crosses here but the message's own. */
+function checkLine(line, i, k) {
+  const inLimit = (s) => s && s.length <= LINE_MAX;
+  if (line && typeof line === "object") {
+    const title = plain(line.title);
+    if (!inLimit(title))
+      throw bad(
+        `messages[${i}].lines[${k}].title is 1 to ${LINE_MAX} characters.`,
+      );
+    const reason = plain(line.reason);
+    if (reason.length > LINE_MAX)
+      throw bad(
+        `messages[${i}].lines[${k}].reason is at most ${LINE_MAX} characters.`,
+      );
+    if (line.number != null && !Number.isInteger(line.number))
+      throw bad(`messages[${i}].lines[${k}].number is an integer.`);
+    return {
+      title,
+      ...(reason ? { reason } : {}),
+      ...(line.number != null ? { number: line.number } : {}),
+      new: line.new === true,
+    };
+  }
+  const text = plain(line);
+  if (!inLimit(text)) throw bad(`each line is 1 to ${LINE_MAX} characters.`);
+  return text;
+}
+
 /** One message as the app sent it, checked; anything off is refused. */
 function checkMessage(m, i) {
   if (!m || typeof m !== "object")
@@ -61,9 +92,7 @@ function checkMessage(m, i) {
     throw bad(`messages[${i}].subject is 1 to ${SUBJECT_MAX} characters.`);
   if (!Array.isArray(m.lines) || !m.lines.length || m.lines.length > MAX_LINES)
     throw bad(`messages[${i}].lines is 1 to ${MAX_LINES} lines.`);
-  const lines = m.lines.map(plain);
-  if (lines.some((l) => !l || l.length > LINE_MAX))
-    throw bad(`each line is 1 to ${LINE_MAX} characters.`);
+  const lines = m.lines.map((l, k) => checkLine(l, i, k));
   let link;
   try {
     link = new URL(String(m.link ?? ""));

@@ -56,6 +56,13 @@ reads back to the last check that went through, up to a week, so a first
 can be late but is not lost. Moments come from the record as it is
 polled, usually within the hour of the battle.
 
+## Your other players
+
+Milestones as they happen are your main player's. A first on another of your
+players waits for [Your week in the Arena](/docs/email#the-week) on Tuesday,
+one line under that player, once. With Tuesday's mail off, it stays on your
+[timeline](/docs/timeline).
+
 ## What one email holds
 
 The biggest moments lead, up to four of them: a new arena, a promotion,

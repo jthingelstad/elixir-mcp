@@ -181,16 +181,12 @@ test("deliver: the send has its own id, in the footer, in the queue message, in 
   const msg = enqueued[0];
   assert.equal(msg.send_id, r.send_id);
   assert.equal(msg.issue_key, "milestone/2026-09-19/acct");
-  // The footer carries the id and its console link; the pixel names
+  // The footer carries the short id and links the whole one; the pixel names
   // the mail by period, which is what was throwing before (period was
   // not defined: every product send failed from the 09-18 pixel deploy
   // until this test existed).
-  assert.ok(
-    msg.html.includes(`/console/account/activity/e/${r.send_id}?report=1`),
-  );
-  assert.ok(
-    msg.html.includes("/console/account/activity/emails?utm_source=email"),
-  );
+  assert.ok(msg.html.includes(`/settings/emails/${r.send_id}?report=1`));
+  assert.ok(msg.html.includes(`>Mail ${r.send_id.slice(0, 6)}<`));
   assert.ok(msg.html.includes("path=%2Fmail%2Fmilestone%2F2026-09-19"));
   assert.ok(msg.html.includes("Guards Mastery"));
   assert.equal(

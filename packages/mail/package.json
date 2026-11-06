@@ -10,7 +10,8 @@
     "./archive": "./src/archive.mjs",
     "./deliver": "./src/deliver.mjs",
     "./ledger": "./src/ledger.mjs",
-    "./clan-mail": "./src/clan-mail.mjs"
+    "./clan-mail": "./src/clan-mail.mjs",
+    "./paths": "./src/paths.mjs"
   },
   "scripts": {
     "test": "node --test"

@@ -279,7 +279,7 @@ export function cardRationale(type, v, policy, verdicts) {
     const r = v.removal;
     const slots = verdicts?.roster?.open_slots ?? verdicts?.band?.open_slots;
     return {
-      headline: `${Math.floor(r.days_idle ?? 0)} days without a battle: at risk at ${r.at_risk_days}, an action at ${r.removal_day}${r.grace_days ? ` (${r.grace_days} grace days for meeting the minimums with ${slots} open slots)` : ""}.`,
+      headline: `${Math.floor(r.days_idle ?? 0)} days without a battle. This clan counts a member at risk at ${r.at_risk_days} and acts at ${r.removal_day}${r.grace_days ? ` (${r.grace_days} grace days for meeting the minimums with ${slots} open slots)` : ""}.`,
       clauses: [
         "at_risk_days",
         "confirm_days",
@@ -291,7 +291,7 @@ export function cardRationale(type, v, policy, verdicts) {
   if (type === "promotion") {
     const s = v.standing;
     return {
-      headline: `In line for promotion on ${v.promotion.weeks} weekly reviews (needs ${policy.promote_qualifying_weeks}); Elders hold ${band.current_elders} of a ${band.floor}-${band.ceil} band, target ${band.target}.`,
+      headline: `In line for promotion on ${v.promotion.weeks} weekly reviews (needs ${policy.promote_qualifying_weeks}). Elders hold ${band.current_elders} places, and your clan aims for ${band.target}.`,
       clauses: [
         "promote_qualifying_weeks",
         "worthiness_percentile",

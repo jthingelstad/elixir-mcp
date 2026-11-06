@@ -214,7 +214,7 @@ test("manage: a leader opens Manage; one participation read, cards raised, cache
   assert.equal(removal[0].status, "proposed");
   assert.match(
     removal[0].evidence.rationale.headline,
-    /^20 days without a battle: at risk at 5, an action at 8\./,
+    /^20 days without a battle\. This clan counts a member at risk at 5 and acts at 8\./,
   );
   assert.ok(removal[0].evidence.facts.find((f) => f.key === "last_battle"));
   assert.equal(

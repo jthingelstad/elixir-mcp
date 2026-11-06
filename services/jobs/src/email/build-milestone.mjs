@@ -1,6 +1,6 @@
-/** milestone: congratulations for a FIRST on the recipient's own tags
- *  (primary and alts), from the same named moments the timeline
- *  serves. Firsts, never downs: each moment's identity (the arena, the
+/** milestone: congratulations for a FIRST on the recipient's main player,
+ *  from the same named moments the timeline serves. An alt's firsts wait for
+ *  Tuesday's Arena week (D12): `heldAltFirsts`, the same moments and journal. Firsts, never downs: each moment's identity (the arena, the
  *  league, the band, the step, the form) mails once per account and
  *  subject, ever (email_milestone), so a season's re-climb of an arena
  *  already celebrated is silent and a higher one is news. Bundled:
@@ -182,7 +182,7 @@ function card(kind, f, subject, at, tz) {
 
 export async function buildMilestone({ db, account, fromMs, toMs }) {
   const players = (await myPlayers(db, account.accountId)).filter(
-    (p) => p.relationship === "primary" || p.relationship === "alt",
+    (p) => p.relationship === "primary",
   );
   if (players.length === 0) return null;
   const tz = account.timezone;
@@ -270,6 +270,45 @@ export async function buildMilestone({ db, account, fromMs, toMs }) {
       key: m.key,
     })),
   };
+}
+
+/** An alt's firsts in the window not told yet, for Tuesday's mail: the row
+ *  names the player, so each sentence starts at the verb. The journal is
+ *  written when Tuesday tells them (runPerAccount), so each is told once. */
+export async function heldAltFirsts(db, { account, alts, fromMs, toMs }) {
+  if (!alts.length) return [];
+  const tz = account.timezone;
+  const found = await windowItems(db, {
+    subjects: alts,
+    fromMs,
+    toMs,
+    timezone: tz,
+    kinds: KINDS,
+    keyOf: momentKey,
+  });
+  if (!found.length) return [];
+  const { rows: seen } = await db.query(
+    `select subject_tag, kind, moment_key from email_milestone where account_id = $1`,
+    [account.accountId],
+  );
+  const { news } = digest(found, {
+    told: new Set(
+      seen.map((r) => `${r.subject_tag}|${r.kind}|${r.moment_key}`),
+    ),
+    order: (a, b) => a.at.localeCompare(b.at),
+    fold: (n) => n,
+  });
+  return news.map((m) => {
+    const said = card(m.kind, m.facts, m.subject, m.at, tz).headline;
+    return {
+      tag: m.subject.tag,
+      text: said.startsWith(`${m.subject.name} `)
+        ? said.slice(m.subject.name.length + 1)
+        : said,
+      at: m.at,
+      moment: { subject_tag: m.subject.tag, kind: m.kind, key: m.key },
+    };
+  });
 }
 
 export async function recordMilestones(db, accountId, moments) {

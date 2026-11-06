@@ -139,7 +139,7 @@ test("four Trophy Road losses and two Events losses with one deck keep separate 
   assert.equal(facts.primary.deck.cards.length, 8);
   const rendered = renderMail("arena_week", facts, {
     unsubscribe: "https://elixir.poapkings.com/api/email/unsubscribe?t=fixture",
-    manage: "https://elixir.poapkings.com/console/account/profile/email",
+    manage: "https://elixir.poapkings.com/settings/emails",
     period: week.key,
   });
   const text = htmlToText(rendered.html);
@@ -288,7 +288,7 @@ test("the week's win rate sits beside the previous four game weeks', in the feat
     renderMail("arena_week", facts, {
       unsubscribe:
         "https://elixir.poapkings.com/api/email/unsubscribe?t=fixture",
-      manage: "https://elixir.poapkings.com/console/account/profile/email",
+      manage: "https://elixir.poapkings.com/settings/emails",
       period: week.key,
     }).html,
   );
@@ -310,7 +310,7 @@ test("a week under the minimum has no form, and the mail no line", async () => {
     renderMail("arena_week", facts, {
       unsubscribe:
         "https://elixir.poapkings.com/api/email/unsubscribe?t=fixture",
-      manage: "https://elixir.poapkings.com/console/account/profile/email",
+      manage: "https://elixir.poapkings.com/settings/emails",
       period: week.key,
     }).html,
   );

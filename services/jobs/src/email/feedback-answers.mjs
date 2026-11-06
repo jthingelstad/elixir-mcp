@@ -19,9 +19,9 @@
 import pg from "pg";
 import { upsertIssue } from "@elixir-mcp/mail/ledger";
 import { deliver } from "@elixir-mcp/mail/deliver";
+import { MAIL_PATHS } from "@elixir-mcp/mail/paths";
 import { accountWindowItems, digest } from "./digest.mjs";
 
-const SITE = "https://elixir.poapkings.com";
 const SETTLE_MINUTES = 10;
 const ANSWER_KIND = "account_feedback_responded";
 
@@ -61,7 +61,7 @@ const mailFacts = (f) => ({
   response: f.response,
   answered_at: f.answered_at,
   shipped_in: f.shipped_in ?? null,
-  link: `${SITE}/console/account/feedback/${f.feedback_id}`,
+  link: MAIL_PATHS.feedback(f.feedback_id),
 });
 
 export async function runFeedbackAnswers({

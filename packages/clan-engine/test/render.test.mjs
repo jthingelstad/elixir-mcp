@@ -262,7 +262,7 @@ test("rationales name the policy clauses that fired", () => {
   const r = cardRationale("removal", m, policy, v);
   assert.equal(
     r.headline,
-    "20 days without a battle: at risk at 5, an action at 8.",
+    "20 days without a battle. This clan counts a member at risk at 5 and acts at 8.",
   );
   assert.deepEqual(r.clauses, ["at_risk_days", "confirm_days"]);
 });

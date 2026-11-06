@@ -2,9 +2,10 @@
  *  product kinds. Every kind sits in the one mail shell (shell.mjs), the
  *  same one the relay's sign-in code and welcome use: the logo and the
  *  wordmark, a product label, one quiet panel, and the
- *  footer that carries the turn-off link, the send id, the sponsor line
- *  and the disclaimer. Tables and inline styles only; names are links
- *  into Explore; the coverage note comes last. Dark only, by decision
+ *  footer that carries the turn-off link, the short mail id, the sponsor
+ *  line and the disclaimer. Tables and inline styles only; a name opens the
+ *  page that is this reader's door to it (make); the coverage note comes
+ *  last. Dark only, by decision
  *  (Jamie, 2026-09-18, from the gallery). Each renderer hands the shell
  *  the same preheader it returns, so the inbox preview and the record of
  *  the send are one string. */
@@ -22,6 +23,7 @@ import {
 } from "./shell.mjs";
 import { monthDayAt, seasonWeek, whenAt } from "@elixir-mcp/ui/time";
 import { cardImg, cardTiles, deckStrip, cardFormLabel } from "./cards.mjs";
+import { MAIL_PATHS } from "./paths.mjs";
 
 /** The week a subject names: "Season 137, week 4". An issue stored before
  *  2026-11-05 knows no week of its season, and keeps its dates. */
@@ -94,8 +96,9 @@ const n = (v) => (v == null ? "—" : Number(v).toLocaleString("en-US"));
 const signed = (v) =>
   v == null ? "—" : v > 0 ? `+${n(v)}` : v < 0 ? `−${n(-v)}` : "0";
 const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
-// Browse record pages: /explore/player/<tag without #> (apps/web
-// views/Explore.jsx, tagPath). Names in mail are always these links.
+// Record pages: /console/explore/player/<tag without #> (apps/web
+// views/Explore.jsx, tagPath). A name in mail opens one of these unless the
+// reader has a better door to it (make: playerDoor, clanDoor).
 const tagPath = (tag) =>
   encodeURIComponent(String(tag ?? "").replace(/^#/, ""));
 const playerUrl = (tag) => `${SITE}/console/explore/player/${tagPath(tag)}`;
@@ -107,25 +110,25 @@ const clanUrl = (tag) => `${SITE}/console/explore/clan/${tagPath(tag)}`;
 // opened after the roll still shows that season, not the new one.
 const ladderUrl = (tag, page = "", season = null) =>
   `${SITE}/ladder${page ? `/${page}` : ""}?player=${tagPath(tag)}${season != null ? `&season=${encodeURIComponent(season)}` : ""}`;
+// Clan's own pages (packages/clan-web, routes.jsx): the tag without its #.
+const clanPageUrl = (tag, page) => `${SITE}/clan/${tagPath(tag)}/${page}`;
+const clanMemberUrl = (clanTag, tag) =>
+  clanPageUrl(clanTag, `members/${tagPath(tag)}`);
 // A clan's river race week in the console (apps/web views/Explore.jsx):
 // /explore/week/<tag>~<season>~<section index>, the week counted from 0.
 const raceWeekUrl = (tag, season, week) =>
   `${SITE}/console/explore/week/${tagPath(tag)}~${encodeURIComponent(season)}~${Number(week) - 1}`;
-// The console's record of one sent email (apps/web views/account/
-// EmailRecord.jsx) and its list (views/Activity.jsx, Emails). The
-// footer links the record by its id, and with ?report=1 the record
-// opens straight into feedback with the email attached (Jamie,
-// 2026-09-19: "something not right? send feedback", one click). The
-// send id is a product identifier, not a tracking one (ENGINEERING,
-// "Product identifiers versus measurement"), so these links are tagged
-// like every other link into the site; the console reports the record
-// page to analytics as its kind, never which record.
-const SENT_MAIL_LIST_URL = `${SITE}/console/account/activity/emails`;
+// The footer links a sent mail's record by its id, and Send feedback opens
+// feedback with the mail attached (Jamie, 2026-09-19: "something not right?
+// send feedback", one click). The send id is a product identifier, not a
+// tracking one (ENGINEERING, "Product identifiers versus measurement"), so
+// these links are tagged like every other link into the site; the page
+// reports itself to analytics as its kind, never which record.
 // The same line to everyone, in every product email (Jamie, 2026-09-19,
 // the settled policy): free, sponsor-supported, sponsorship buys nothing.
 const SUPPORT_URL = `${SITE}/support`;
 const sentMailUrl = (sendId, { report = false } = {}) =>
-  `${SITE}/console/account/activity/e/${encodeURIComponent(sendId)}${report ? "?report=1" : ""}`;
+  report ? MAIL_PATHS.report(sendId) : MAIL_PATHS.record(sendId);
 
 /** Links into the site carry the campaign tag Tinylytics reads
  *  (utm_source=email, utm_medium=<kind>, utm_campaign=<kind>-<period>),
@@ -161,10 +164,33 @@ function weekdayIn(iso, timezone = "UTC") {
 
 function make(
   campaign = null,
-  { pixel = true, timezone = "UTC", mine = [], now = Date.now() } = {},
+  {
+    pixel = true,
+    timezone = "UTC",
+    mine = [],
+    memberClans = [],
+    clanmates = {},
+    season = null,
+    now = Date.now(),
+  } = {},
 ) {
   // The reader's own players: the clan report marks their rows "you".
   const isMine = (tag) => mine.includes(tag);
+  // One door per name, chosen per reader (structure, Mail links; A22, Q4): the
+  // facts are the same for everyone a report goes to, so the choice is made
+  // here and never stored. A render with no reader context (a page's preview,
+  // an old send's replay) falls through to the record pages, which open for
+  // anyone signed in.
+  const isMember = (clanTag) => memberClans.includes(clanTag);
+  const playerDoor = (tag) => {
+    if (isMine(tag)) return ladderUrl(tag, "", season);
+    const shared = clanmates[tag];
+    return shared ? clanMemberUrl(shared, tag) : playerUrl(tag);
+  };
+  const clanDoor = (tag) =>
+    isMember(tag) ? clanPageUrl(tag, "season") : clanUrl(tag);
+  const rosterDoor = (tag) =>
+    isMember(tag) ? clanPageUrl(tag, "members") : clanUrl(tag);
   // The member pages' one clock (packages/ui/time), so a mail and the
   // page it links to name a moment the same way: "Sat 8:42 pm" within a
   // week, "Fri Oct 23, 5:07 pm" older.
@@ -182,9 +208,9 @@ function make(
     );
   const T = (url) => tagLink(url, campaign);
   const P = (tag, name) =>
-    `<a href="${T(playerUrl(tag))}" title="${esc(tag)}" style="color:${M.link};text-decoration:none;font-weight:600;">${esc(name)}</a>`;
-  const K = (tag, name) =>
-    `<a href="${T(clanUrl(tag))}" title="${esc(tag)}" style="color:${M.link};text-decoration:none;font-weight:600;">${esc(name)}</a>`;
+    `<a href="${T(playerDoor(tag))}" title="${esc(tag)}" style="color:${M.link};text-decoration:none;font-weight:600;">${esc(name)}</a>`;
+  const K = (tag, name, url = clanDoor(tag)) =>
+    `<a href="${T(url)}" title="${esc(tag)}" style="color:${M.link};text-decoration:none;font-weight:600;">${esc(name)}</a>`;
   const delta = (v) =>
     v == null
       ? `<span style="color:${C.faint}">—</span>`
@@ -249,7 +275,6 @@ function make(
     subtitle,
     preheader,
     body,
-    turnOff,
     why = null,
     source = null,
     links,
@@ -268,14 +293,12 @@ function make(
       manage: {
         url: T(links.manage),
         unsubscribe: links.unsubscribe,
-        turnOff,
       },
       send: id
         ? {
             id,
             record: T(sentMailUrl(id)),
             report: T(sentMailUrl(id, { report: true })),
-            list: T(SENT_MAIL_LIST_URL),
           }
         : null,
       support: T(SUPPORT_URL),
@@ -308,6 +331,9 @@ function make(
     dayTime,
     date,
     isMine,
+    isMember,
+    clanDoor,
+    rosterDoor,
   };
 }
 
@@ -357,9 +383,9 @@ function progressText(p) {
     .join(", ");
 }
 
-// A reader's own timeline in the Console (apps/web, account/timeline):
-// every moment, newest first, the small ones the mail only counts.
-const timelineUrl = () => `${SITE}/console/account/timeline`;
+// A reader's own timeline on Home: every moment, newest first, the small
+// ones the mail only counts.
+const timelineUrl = () => `${SITE}/home/timeline`;
 
 /** A mode family's name in a subject line: proper names keep their
  *  capitals, the rest read as words ("Trophy Road 4–6, war 3–3"). */
@@ -405,6 +431,10 @@ function formSentence(form) {
   return `${FAMILY_LABEL[form.mode] ?? form.mode} win rate ${now}% this week (${battles(a.decided_battles)}), ${way} ${then}% over the previous four weeks (${battles(b.decided_battles)}).`;
 }
 
+/** Under this many battles in a week, a person's main or most played deck is
+ *  not drawn (about 5, by the boards). */
+const DECK_MIN_BATTLES = 5;
+
 function arena(f, c) {
   const pr = f.primary;
   const t = pr.totals;
@@ -439,9 +469,18 @@ function arena(f, c) {
       )
     : "";
   const notes = (pr.modes ?? []).filter((m) => m.note);
-  const deck = pr.deck
-    ? `${c.h2(`Your ${FAMILY_LABEL[pr.deck.family] ?? "main"} deck`)}${deckBox(pr.deck, c)}${c.small(`More decks in ${c.link(ladderUrl(pr.tag, "decks", f.week?.season), "Ladder › Decks")}.`)}`
-    : "";
+  // A week under a handful of battles has no main deck to speak of; where the
+  // decks are stays said.
+  const decksLink = c.link(
+    ladderUrl(pr.tag, "decks", f.week?.season),
+    "Ladder › Decks",
+  );
+  const deck =
+    pr.deck && (t.battles ?? 0) >= DECK_MIN_BATTLES
+      ? `${c.h2(`Your ${FAMILY_LABEL[pr.deck.family] ?? "main"} deck`)}${deckBox(pr.deck, c)}${c.small(`More decks in ${decksLink}.`)}`
+      : t.battles
+        ? c.small(`Your decks are in ${decksLink}.`)
+        : "";
   const o = pr.opponents;
   const again = o.again ?? [];
   // Who came round more than once (up to three named, the rest
@@ -462,13 +501,23 @@ function arena(f, c) {
         { size: 14 },
       )}`
     : c.small("No head-to-head battles recorded this week.");
+  // Each alt's week, and under it the firsts that waited for this mail (D12).
+  // A held first with no battle is still a row: the first is the news.
   const alts = f.alts.length
     ? `${c.h2("Your other players")}${c.rows(
         f.alts.map((a) => {
           const families = a.by_family ?? [];
+          const firsts = (a.firsts ?? []).map(
+            (x) =>
+              `<div style="margin-top:2px;">${esc(capFirst(clause(x.text)))}${x.at ? `, ${esc(c.dayTime({ at: x.at }))}` : ""}.</div>`,
+          );
           return {
             title: c.P(a.tag, a.name),
-            text: `${n(a.battles)} battle${a.battles === 1 ? "" : "s"}${families.length ? ` · ${families.map((m) => `${esc(FAMILY_LABEL[m.mode] ?? m.mode)} ${recHtml(m.wins, m.losses)}`).join(" · ")}` : ` · ${recHtml(a.wins, a.losses)}`}`,
+            text: `${
+              a.battles
+                ? `${n(a.battles)} battle${a.battles === 1 ? "" : "s"}${families.length ? ` · ${families.map((m) => `${esc(FAMILY_LABEL[m.mode] ?? m.mode)} ${recHtml(m.wins, m.losses)}`).join(" · ")}` : ` · ${recHtml(a.wins, a.losses)}`}`
+                : ""
+            }${firsts.join("")}`,
             right: a.trophies
               ? `<div style="font-family:${MONO};font-size:13px;color:${M.muted};">${n(a.trophies.from)} → ${n(a.trophies.to)}</div><div style="font-family:${FONT};font-size:11.5px;color:${M.faint};">trophies</div>`
               : null,
@@ -506,7 +555,8 @@ function arena(f, c) {
     : t.battles
       ? rec(t)
       : weekName(f.week);
-  const preheader = `${f.week.label}: ${n(t.battles)} battle${t.battles === 1 ? "" : "s"}${tr ? `, ${signed(trDelta)} trophies` : ""}${f.alts.length ? `; ${f.alts.map((a) => `${a.name} ${n(a.battles)}`).join(", ")}` : ""}.`;
+  const playedAlts = f.alts.filter((a) => a.battles);
+  const preheader = `${f.week.label}: ${n(t.battles)} battle${t.battles === 1 ? "" : "s"}${tr ? `, ${signed(trDelta)} trophies` : ""}${playedAlts.length ? `; ${playedAlts.map((a) => `${a.name} ${n(a.battles)}`).join(", ")}` : ""}.`;
   return {
     subject: `Your week in the Arena: ${subjectRecords}`,
     preheader,
@@ -517,7 +567,6 @@ function arena(f, c) {
         subtitle: `${esc(f.week.label)} · Season ${f.week.season} · ${c.P(pr.tag, pr.name)}${altNames.length ? `, with ${altNames.join(" and ")}` : ""}`,
         preheader,
         body,
-        turnOff: "the Arena week",
         links,
       }),
   };
@@ -559,7 +608,7 @@ function personCard(x, c) {
     ...(x.moments ?? []).slice(0, 2).map((m) => esc(clause(m.text))),
     ...(progressText(x.progress) ? [esc(progressText(x.progress))] : []),
   ];
-  const d = x.deck;
+  const d = (x.battles ?? 0) >= DECK_MIN_BATTLES ? x.deck : null;
   const deck = d
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;border-top:1px solid ${M.row};"><tr>
         <td style="padding-top:10px;font-family:${FONT};font-size:13.5px;color:${M.ink};"><span style="font-size:13px;font-weight:600;color:${M.faint};">Most played</span>&nbsp; <strong>${esc(d.label ?? "Their deck")}</strong></td>
@@ -589,7 +638,7 @@ function clanBlock(k, c) {
   if (k.headline == null) return esc(k.line ?? "");
   const more = k.more
     ? c.small(
-        `${c.link(clanUrl(k.tag), `${n(k.more)} more`)} on the clan’s record.`,
+        `${c.link(c.clanDoor(k.tag), `${n(k.more)} more`)} on the clan’s page.`,
         "margin-top:2px;",
       )
     : "";
@@ -649,13 +698,15 @@ function tracking(f, c) {
         : c.P(q.tag, q.name),
     );
   const deckNote = "A deck’s count is battles with exactly those eight cards.";
-  const hasDeck = [...friendsPlayed, ...watchCards].some((x) => x.deck);
+  const hasDeck = [...friendsPlayed, ...watchCards].some(
+    (x) => x.deck && (x.battles ?? 0) >= DECK_MIN_BATTLES,
+  );
   const quiet = [
     recentQuiet.length
       ? `No battle recorded this week: ${recentQuiet.join(", ")}.`
       : "",
     longQuiet.length
-      ? `Quiet for ${LONG_QUIET_DAYS}+ days: ${longQuiet.map((q) => c.P(q.tag, q.name)).join(", ")}.`
+      ? `Quiet for ${LONG_QUIET_DAYS} days or more: ${longQuiet.map((q) => c.P(q.tag, q.name)).join(", ")}.`
       : "",
   ].filter(Boolean);
   const quietHtml =
@@ -688,8 +739,8 @@ function tracking(f, c) {
   const total = people.reduce((s, x) => s + (x.battles ?? 0), 0);
   const body = `${friends}${watching}${quietHtml}
     ${around.length ? `${c.h2("Around you")}${c.rows(around)}` : ""}
-    ${c.button("Follow a friend", `${SITE}/console/account/tracking`)}
-    ${c.small(`Anyone with a player tag can be followed. Everyone you follow: <a href="${c.T(`${SITE}/console/account/tracking`)}" style="color:${M.link};">Console › Tracking</a>.`)}
+    ${c.button("Follow a friend", `${SITE}/home/friends`)}
+    ${c.small(`Anyone with a player tag can be followed. Everyone you follow: <a href="${c.T(MAIL_PATHS.players)}" style="color:${M.link};">Settings › Players</a>.`)}
     ${c.cov(esc(f.coverage))}`;
   const lead = people
     .slice(0, 4)
@@ -713,7 +764,6 @@ function tracking(f, c) {
         subtitle: `${esc(f.week.label)} · Season ${f.week.season} · ${people.length ? `${people.length} ${people.length === 1 ? "person" : "people"} you follow played ${n(total)} battle${total === 1 ? "" : "s"}` : "a quiet week"}`,
         preheader,
         body,
-        turnOff: "Your friends this week",
         links,
       }),
   };
@@ -816,6 +866,39 @@ function activityBefore(f) {
     : ` ${k === 4 ? "The four weeks before" : `The ${k} recorded weeks before`} averaged ${n(avg("battles"))} battles a week, by ${n(avg("active"))} members.`;
 }
 
+/** A badge once, however many of its levels the week told (2026-11-06). The
+ *  builder folds them; an issue stored before then renders folded too. */
+const uniqueBadges = (badges) => {
+  const seen = new Map();
+  for (const b of badges) seen.set(`${b.name}|${b.badge}`, b);
+  return [...seen.values()];
+};
+
+/** Decks a race day allows each member; `war_days` counts its war days. */
+const WAR_DECKS_PER_DAY = 4;
+
+/** The reader's own line under the tiles (D11): one per player of theirs who
+ *  used at least one war deck, so a reader who did not race sees none. "of N"
+ *  is said only of a race that closed; the report describes a closed race, and
+ *  a race with no recorded war days says only what was used. */
+function youLine(f, war, c) {
+  if (!war) return "";
+  const days = f.trend?.war?.this_week?.war_days;
+  const of =
+    Number.isInteger(days) && days > 0
+      ? ` of ${n(days * WAR_DECKS_PER_DAY)}`
+      : "";
+  const lines = (war.raced ?? [])
+    .filter((m) => c.isMine(m.tag) && m.decks >= 1)
+    .map(
+      (m) =>
+        `You, ${c.P(m.tag, m.name)}: ${n(m.decks)}${of} war deck${m.decks === 1 && !of ? "" : "s"}, ${n(m.points)} points.`,
+    );
+  return lines
+    .map((l) => c.p(l, { size: 14, extra: "margin:12px 0 0;" }))
+    .join("");
+}
+
 function clan(f, c) {
   const war = f.war?.present ? f.war : null;
   const h =
@@ -825,7 +908,7 @@ function clan(f, c) {
   const tag = f.clan.tag;
   const unknownActivity =
     f.clan.scope === "activity"
-      ? "Battle activity is not recorded at this clan’s scope."
+      ? "This clan’s battles are not recorded, only its roster and races."
       : "Battle activity is unavailable for this report.";
   const finishedAt = war?.finished_at ? c.dayTime({ at: war.finished_at }) : "";
   const tiles = war
@@ -909,7 +992,9 @@ function clan(f, c) {
     ...f.membership.left.map((m) => ({
       at: m.at ?? "",
       mark: M.loss,
-      title: `${c.P(m.tag, m.name)} departed ${esc(f.clan.name)}${roleWords(m.role) ? ` (was ${roleWords(m.role)})` : ""}`,
+      // "was removed" only once a leader says so, and that word is the clan's
+      // (a clan-visibility fact): anyone else reads the roster's own line.
+      title: `${c.P(m.tag, m.name)} ${m.removed && c.isMember(tag) ? "was removed from" : "departed"} ${esc(f.clan.name)}${roleWords(m.role) ? ` (was ${roleWords(m.role)})` : ""}`,
       text: `${esc(c.dayTime(m))}.`,
     })),
     ...f.membership.roles.map((m) => ({
@@ -923,22 +1008,24 @@ function clan(f, c) {
   const extra = moves.length - MOVES_CAP + (f.membership.more ?? 0);
   const comings = `${c.h2("Comings and goings", f.clan.members != null ? `${n(f.clan.members)} members at the end` : "")}${
     moves.length
-      ? `${c.rows(moves.slice(0, MOVES_CAP))}${extra > 0 ? c.small(`And ${n(extra)} more in the console.`) : ""}`
+      ? `${c.rows(moves.slice(0, MOVES_CAP))}${extra > 0 ? c.small(`And ${n(extra)} more on ${c.link(c.clanDoor(tag), "the clan’s page")}.`) : ""}`
       : c.small("No joins, departures or role changes.")
   }`;
-  const quietBits = [];
-  if (f.presence?.quiet?.length)
-    quietBits.push(
-      f.presence.quiet
-        .map((r) => `${esc(r.name)}, ${n(r.days)} days`)
-        .join(" · "),
-    );
-  const back = f.presence?.returned?.length
-    ? `Back: ${f.presence.returned.map((r) => `${esc(r.name)} after ${n(r.days)} days`).join(", ")}.`
-    : "";
+  // Members only (A19): the Monday report reaches people outside the clan, and
+  // nobody below co-leader sees a count, so a member reads the date of the
+  // last battle and anyone else reads no line. An issue stored before the date
+  // was kept has only its count, and says nothing for a date it cannot name.
+  const quietNames = c.isMember(tag)
+    ? (f.presence?.quiet ?? [])
+        .filter((r) => r.last_battle)
+        .map((r) => `${esc(r.name)}, last battle ${esc(c.date(r.last_battle))}`)
+    : [];
+  const backNames = c.isMember(tag)
+    ? (f.presence?.returned ?? []).map((r) => esc(r.name))
+    : [];
   const quiet =
-    quietBits.length || back
-      ? `${c.h2("Gone quiet", "no battle recorded")}${quietBits.length ? c.p(quietBits.join(""), { size: 14 }) : ""}${back ? c.small(back) : ""}`
+    quietNames.length || backNames.length
+      ? `${c.h2("Gone quiet", "no battle recorded")}${quietNames.length ? c.p(quietNames.join(" · "), { size: 14 }) : ""}${backNames.length ? c.small(`Back: ${backNames.join(", ")}.`) : ""}`
       : "";
   // The clan's week: the board's rows, from the structured moves when the
   // issue has them; an issue stored before 2026-10-01 has its standouts.
@@ -980,7 +1067,9 @@ function clan(f, c) {
     f.badges?.length
       ? {
           title: "Badges",
-          text: `${f.badges.map((b) => `${esc(b.name)}, ${esc(b.badge)}`).join(" · ")}.`,
+          text: `${uniqueBadges(f.badges)
+            .map((b) => `${esc(b.name)}, ${esc(b.badge)}`)
+            .join(" · ")}.`,
           mark: M.link,
         }
       : null,
@@ -1008,16 +1097,17 @@ function clan(f, c) {
       ? `${c.h2("The clan’s week")}${c.rows(weekRows)}${oldStandouts}`
       : "";
   const roster = c.box(
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};">The roster, member by member: role, trophies, last battle and donations.</td><td align="right" style="padding-left:10px;font-family:${FONT};font-size:13.5px;white-space:nowrap;"><a href="${c.T(clanUrl(tag))}" style="color:${M.link};text-decoration:none;font-weight:600;">Open the roster ›</a></td></tr></table>`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="font-family:${FONT};font-size:14px;line-height:1.5;color:${M.muted};">The roster, member by member: role, trophies, last battle and donations.</td><td align="right" style="padding-left:10px;font-family:${FONT};font-size:13.5px;white-space:nowrap;"><a href="${c.T(c.rosterDoor(tag))}" style="color:${M.link};text-decoration:none;font-weight:600;">Open the roster ›</a></td></tr></table>`,
     { mt: 18 },
   );
   const body = `
     ${c.tiles(tiles)}
+    ${youLine(f, war, c)}
     ${h.battles == null ? c.small(unknownActivity) : ""}
     ${race}${whoRaced}${trendBlock(f, c)}${comings}${quiet}${theWeek}
     ${f.roster_note ? c.small(esc(f.roster_note)) : ""}
     ${roster}
-    ${c.button(`Open ${f.clan.name} in the console`, clanUrl(tag))}
+    ${c.button(`Open ${f.clan.name}`, c.clanDoor(tag))}
     ${c.cov(esc(f.coverage))}`;
   const warBit = war?.rank ? `${ordinal(war.rank)} in war, ` : "";
   const activityLine =
@@ -1034,10 +1124,9 @@ function clan(f, c) {
       c.shell({
         kind: "clan_report",
         title: `${esc(f.clan.name)} this week`,
-        subtitle: `${esc(f.week.label)} · Season ${war?.season ?? f.week.season}${(war?.week ?? f.week.war_week) != null ? `, river race week ${war?.week ?? f.week.war_week}` : ""} · <a href="${c.T(clanUrl(tag))}" style="font-family:${MONO};color:${M.faint};text-decoration:none;">${esc(tag)}</a>`,
+        subtitle: `${esc(f.week.label)} · Season ${war?.season ?? f.week.season}${(war?.week ?? f.week.war_week) != null ? `, river race week ${war?.week ?? f.week.war_week}` : ""} · <a href="${c.T(c.clanDoor(tag))}" style="font-family:${MONO};color:${M.faint};text-decoration:none;">${esc(tag)}</a>`,
         preheader,
         body,
-        turnOff: "the clan report",
         links,
       }),
   };
@@ -1071,13 +1160,13 @@ function collectorUpgrade(f, c) {
     ${c.p(`Your collector <strong>${esc(f.name)}</strong> reported an upgrade from <strong>${esc(f.from_version)}</strong> to <strong>${esc(f.to_version)}</strong>.`)}
     ${c.small(`Seen ${esc(c.dayTime({ at: f.observed_at }))}.`)}
     ${c.h2("Security status")}${c.p(esc(collectorSecurity(f.signature_state)))}
-    ${c.small("This uses the same self-reported version and binary hash as the collectors page. It is not remote attestation.")}
-    ${c.h2("Why this release")}${c.p(esc(release?.reason ?? "No upgrade reason was recorded. Elixir saw the installed version change; it cannot confirm whether this host updated automatically or was changed by its operator."))}
+    ${c.small("This uses the same self-reported version and binary hash as the collectors page. It does not prove the build is genuine.")}
+    ${c.h2("Why this release")}${c.p(esc(release?.reason ?? "No upgrade reason was recorded. Elixir saw the installed version change; it cannot tell whether this host updated by itself or its operator changed it."))}
     ${release?.reason ? c.small("The reason above was supplied by the maintainer when naming this release; the installation mechanism on this host was not reported.") : ""}
     ${c.h2(release?.source_url?.includes("/compare/") ? "Changes between these releases" : "Target release changes")}${release?.changes ? c.p(esc(release.changes).replaceAll("\n", "<br>")) : c.p("Release notes were not recorded for this version.")}
     ${release?.release_url ? c.p(c.link(release.release_url, "Read the published release notes")) : ""}
     ${release?.source_url && release.source_url !== release.release_url ? c.p(c.link(release.source_url, "Read the source changes")) : ""}
-    ${c.button("Open your collectors", `${SITE}/console/status/collectors`)}`;
+    ${c.button("Open your collectors", MAIL_PATHS.collectors)}`;
   return {
     subject,
     preheader,
@@ -1089,8 +1178,7 @@ function collectorUpgrade(f, c) {
         preheader,
         body,
         source: { product: "Collectors", when: f.test ? "Test" : "Upgrade" },
-        why: "You get this when Elixir observes one of your collectors upgrade. This shares your collector email preference.",
-        turnOff: "collector emails",
+        why: "You get this when Elixir sees one of your collectors upgrade. This shares your collector email preference.",
         links,
       }),
   };
@@ -1161,21 +1249,21 @@ function collector(f, c) {
   const tierLine = !tier
     ? null
     : tier.granted
-      ? `your tier is ${esc(tier.role)}, granted, which already sits above Family`
+      ? `your limits are ${esc(tier.role)}, granted, which already sits above Family`
       : tier.family_earned
-        ? "your active collector earns your account the Family tier"
-        : "a collector earns the Family tier while it is active, and none of yours is active right now";
+        ? "your active collector raises your limits to Family"
+        : "an active collector raises your limits to Family, and none of yours is active right now";
   const firstStopped = list.find((x) => stateOf(x) === "draining");
   const firstSilent = list.find((x) => stateOf(x) === "silent");
   const body = `
-    ${c.p(`<strong style="color:${M.ink};">${n(t.fetches)} fetches</strong> this week${t.of_fleet != null ? ` · ${pct(t.of_fleet)} of the fleet’s fetches` : ""}.`)}
-    ${t.saved_share != null ? c.small(`${pct(t.saved_share)} of what your collectors read was filtered at the edge as already recorded.`) : ""}
+    ${c.p(`<strong style="color:${M.ink};">${n(t.fetches)} fetches</strong> this week${t.of_fleet != null ? ` · ${pct(t.of_fleet)} of all collectors’ fetches` : ""}.`)}
+    ${t.saved_share != null ? c.small(`${pct(t.saved_share)} of what your collectors read was blocked before it reached Elixir, as already recorded.`) : ""}
     ${rowsHtml}
-    ${c.small("More collectors add resilience, not more Clash Royale budget: the whole fleet shares one rate limit.")}
-    ${c.small("Security status uses the collectors page’s self-reported version and binary hash; it is not remote attestation. A signed build can still be behind the current release.")}
-    ${tierLine ? `${c.h2("Your tier")}${c.p(`${tierLine[0].toUpperCase()}${tierLine.slice(1)}.`, "margin:0;")}` : ""}
+    ${c.small("More collectors add resilience, not more Clash Royale budget: all collectors share one rate limit.")}
+    ${c.small("Security status uses the self-reported version and binary hash; it does not prove the build is genuine. A signed build can still be behind the current release.")}
+    ${tierLine ? `${c.h2("Your limits")}${c.p(`${tierLine[0].toUpperCase()}${tierLine.slice(1)}.`, "margin:0;")}` : ""}
     ${f.fleet_note ? c.small(esc(f.fleet_note)) : ""}
-    ${c.button("Open your collectors", `${SITE}/console/status/collectors`)}
+    ${c.button("Open your collectors", MAIL_PATHS.collectors)}
     ${c.cov(esc(f.coverage))}`;
   const preheader = [
     firstSilent
@@ -1185,7 +1273,7 @@ function collector(f, c) {
       ? `${firstStopped.name} is stopped${firstStopped.since ? `, last checked in on ${c.date(firstStopped.since)}` : ""}.`
       : null,
     tier && !tier.granted && tier.family_earned
-      ? "Your active collector earns the Family tier."
+      ? "Your active collector raises your limits to Family."
       : null,
   ]
     .filter(Boolean)
@@ -1200,7 +1288,6 @@ function collector(f, c) {
         subtitle: `${esc(f.week.label)} · ${k} enrolled: ${esc(tally.replace("running", "checking in"))}`,
         preheader,
         body,
-        turnOff: "Your collectors",
         links,
       }),
   };
@@ -1218,15 +1305,13 @@ function milestone(f, c) {
   // The one clock, in the reader's zone; an issue stored before
   // 2026-10-01 has only its label.
   const when = (m) => (m.instant ? c.dayTime({ at: m.instant }) : (m.at ?? ""));
-  const whose = (s) =>
-    `${c.P(s.tag, s.name)}${s.relationship === "alt" ? ", one of your players" : ""}`;
   const oneSubject = ms.every((m) => m.subject.tag === first.subject.tag);
   const allCards = cards.length === ms.length;
   const words = ["", "one", "two", "three", "four"];
   const title =
     allCards && cards.length > 1
       ? oneSubject
-        ? `${first.subject.relationship === "alt" ? esc(first.subject.name) : "You"} unlocked ${words[cards.length] ?? cards.length} cards`
+        ? `You unlocked ${words[cards.length] ?? cards.length} cards`
         : `${cards.length} cards unlocked`
       : esc(first.headline);
   const big = (m) => {
@@ -1312,10 +1397,9 @@ function milestone(f, c) {
       c.shell({
         kind: "milestone",
         title,
-        subtitle: `${esc(when(first))} · ${oneSubject ? whose(first.subject) : `${esc(f.account.name)}’s players`}`,
+        subtitle: `${esc(when(first))} · ${oneSubject ? c.P(first.subject.tag, first.subject.name) : "Your players"}`,
         preheader,
         body,
-        turnOff: "milestones",
         links,
       }),
   };
@@ -1330,25 +1414,52 @@ function milestone(f, c) {
  */
 function clanActions(f, c) {
   const clan = f.clan?.name ?? f.clan?.tag ?? "your clan";
-  // The app's lines are one action each, newest first, new ones marked
-  // "(new)", and past ten a last line counting the rest.
+  const tag = f.clan.tag;
+  const today = clanPageUrl(tag, "today");
+  // The app's lines are one action each, newest first, and past ten a last
+  // line counting the rest. A line that is a string came from a Clan of
+  // before 2026-11-06, new ones marked "(new)": it draws with no reason.
   const more = /^And (\d+) more\.$/;
-  const actions = f.lines.filter((l) => !more.test(l));
-  const rest = Number(f.lines.find((l) => more.test(l))?.match(more)[1] ?? 0);
+  const lines = f.lines.map((l) =>
+    typeof l === "string"
+      ? { title: l.replace(/ \(new\)$/, ""), new: / \(new\)$/.test(l), raw: l }
+      : l,
+  );
+  const actions = lines.filter((l) => !more.test(l.raw ?? ""));
+  const rest = Number(
+    lines.find((l) => more.test(l.raw ?? ""))?.raw.match(more)[1] ?? 0,
+  );
   const total = actions.length + rest;
+  const reasonOf = (l) =>
+    String(l.reason ?? "").replace(/\{\{when:([^}]+)\}\}/g, (_, at) =>
+      c.dayTime({ at }),
+    );
+  const titleOf = (l) => {
+    const words = esc(l.title);
+    return Number.isInteger(l.number)
+      ? c.link(
+          clanPageUrl(tag, `actions/${l.number}`),
+          words,
+          "font-weight:600;",
+        )
+      : words;
+  };
   const body = `${c.rows(
-    actions.map((line) => ({
-      title: `${esc(line.replace(/ \(new\)$/, ""))}${/ \(new\)$/.test(line) ? ` <span style="font-size:12px;font-weight:600;color:${M.link};">· New</span>` : ""}`,
+    actions.map((l) => ({
+      title: `${titleOf(l)}${l.new ? ` <span style="font-size:12px;font-weight:600;color:${M.link};">· New</span>` : ""}`,
+      text: l.reason ? esc(reasonOf(l)) : "",
     })),
   )}
-    ${rest ? c.small(`And ${n(rest)} more on the Actions page.`) : ""}
-    ${c.small("Review each action in Clan before making a decision.")}
-    ${c.button("Open Actions in Clan", f.link)}
+    ${rest ? c.small(`And ${n(rest)} more in ${c.link(today, "Clan › Today")}.`) : ""}
+    ${c.button("Review in Clan", f.link)}
     ${c.cov(`Clan sends this each morning when something new is yours to decide. Only people who can act on these actions get it.`)}`;
-  const preheader = actions
-    .slice(0, 3)
-    .map((l) => l.replace(/ \(new\)$/, ""))
-    .join(" · ");
+  const preheader =
+    actions.length === 1 && actions[0].reason
+      ? reasonOf(actions[0])
+      : actions
+          .slice(0, 4)
+          .map((l) => l.title)
+          .join(" · ");
   return {
     subject: f.subject,
     preheader: preheader || f.subject,
@@ -1356,10 +1467,9 @@ function clanActions(f, c) {
       c.shell({
         kind: "clan_actions_waiting",
         title: `${total === 1 ? "One action" : `${n(total)} actions`} waiting`,
-        subtitle: `${c.K(f.clan.tag, clan)}`,
+        subtitle: `${c.K(tag, clan, today)}`,
         preheader: preheader || f.subject,
         body,
-        turnOff: "Actions waiting",
         links,
       }),
   };
@@ -1375,7 +1485,7 @@ function clanActions(f, c) {
 const FEEDBACK_AREA_LABEL = {
   mcp: "MCP",
   api: "the JSON API",
-  console: "the Console",
+  console: "the app",
   ladder: "Ladder",
   clan: "Clan",
   mail: "an email",
@@ -1383,7 +1493,7 @@ const FEEDBACK_AREA_LABEL = {
   recorder: "the recorder",
 };
 const FEEDBACK_STATUS_LABEL = {
-  seen: "Read",
+  seen: "Seen",
   planned: "Planned",
   needs_info: "A question for you",
   done: "Done",
@@ -1427,7 +1537,6 @@ function feedbackAnswer(f, c) {
         subtitle: `About ${esc(where)} · filed ${esc(c.date(f.filed_at))}`,
         preheader,
         body,
-        turnOff: "answers to your feedback",
         links,
       }),
   };
@@ -1465,6 +1574,12 @@ export function renderMail(kind, facts, links) {
       pixel: links.pixel !== false,
       timezone: links.timezone ?? "UTC",
       mine: Array.isArray(links.mine) ? links.mine : [],
+      memberClans: Array.isArray(links.member_clans) ? links.member_clans : [],
+      clanmates: links.clanmates ?? {},
+      // The season the mail describes: an own player's Ladder link opens it,
+      // not the one running when the link is clicked (2026-10-08).
+      season:
+        facts?.week?.season ?? facts?.war?.season ?? facts?.season ?? null,
       ...(links.now === undefined ? {} : { now: Number(links.now) }),
     }),
   );

@@ -16,7 +16,8 @@ import {
   milestoneFromMs,
   milestonePeriodKey,
 } from "../src/email/index.mjs";
-import { buildClan } from "../src/email/build-clan.mjs";
+import { buildClan, nothingHappened } from "../src/email/build-clan.mjs";
+import { readerDoors } from "../src/email/reader.mjs";
 import { clanReportPreview } from "../src/email/clan-preview.mjs";
 import { lastGameWeek } from "../src/email/week.mjs";
 
@@ -233,6 +234,52 @@ test("a clan report is the clan's, not its first tracker's: the same facts under
   assert.equal(joined.when, undefined);
 });
 
+test("a silent clan's week has nothing to tell; a race, a departure or a battle does (D9, A20)", () => {
+  const silent = {
+    war: { present: false },
+    membership: { joined: [], left: [], roles: [], more: 0 },
+    headline: { battles: 0, donations: 0 },
+    badges: [],
+    presence: { quiet: [], returned: [] },
+    week_moves: {
+      top_battler: null,
+      ranked: { items: [] },
+      arena: { items: [] },
+      bests: { items: [] },
+    },
+  };
+  assert.equal(nothingHappened(silent), true);
+  // Roster and war only: battles are unknown, not none, and still nothing.
+  assert.equal(
+    nothingHappened({ ...silent, headline: { battles: null, donations: 0 } }),
+    true,
+  );
+  for (const news of [
+    { war: { present: true, fame: 1 } },
+    { membership: { ...silent.membership, left: [{ tag: "#X" }] } },
+    { headline: { battles: 3, donations: 0 } },
+    { badges: [{ name: "x" }] },
+    { presence: { quiet: [{ name: "x" }], returned: [] } },
+  ])
+    assert.equal(nothingHappened({ ...silent, ...news }), false);
+});
+
+test("a reader's doors: their players, the clans they are in today, who else is there", async () => {
+  const doors = await readerDoors(db, acct.old);
+  assert.ok(doors.tags.includes(OLD_TAG));
+  const { rows } = await db.query(
+    `select clan_tag from clan_membership
+      where player_tag = $1 and left_observed_at is null`,
+    [OLD_TAG],
+  );
+  assert.deepEqual(
+    [...doors.memberClans].sort(),
+    rows.map((r) => r.clan_tag).sort(),
+  );
+  for (const clan of Object.values(doors.clanmates))
+    assert.ok(doors.memberClans.includes(clan));
+});
+
 // Last: the account it adds would be one more recipient for the tests above.
 test("a moment from a day the milestone job failed is mailed by the next run that works (#130)", async () => {
   const TAG = "#9GGQ9QQ9";
@@ -408,7 +455,7 @@ test("an unlock-only week sends no milestone mail and Tuesday's Arena week count
   const tuesday = await send("arena_week", "2026-10-13T14:00:00Z");
   assert.equal(tuesday.r.sent, 1, JSON.stringify(tuesday.r));
   assert.match(tuesday.out[0].html, /3 cards unlocked, 2 badge levels/);
-  assert.match(tuesday.out[0].html, /\/console\/account\/timeline\?/);
+  assert.match(tuesday.out[0].html, /\/home\/timeline\?/);
 });
 
 test("a legendary badge mails when it happens and is not counted on Tuesday; a badge level only counts (Jamie, 2026-10-08)", async () => {
@@ -649,11 +696,13 @@ test("rollover mail binds closed-race identity and uses the covered season befor
     assert.equal(result.failed, 0, JSON.stringify(result));
     return { result, out };
   };
+  // Before the boundary the covered week is the one before, and nothing
+  // happened in either clan that week: no mail (D9).
   const before = await run("2026-10-05T09:59:59.999Z");
-  assert.equal(before.out.length, 2);
-  assert.ok(before.out.every((m) => /Sep 21 – 28 · Season 136/.test(m.html)));
+  assert.equal(before.out.length, 0);
   const boundary = await run("2026-10-05T10:00:00Z");
-  assert.equal(boundary.out.length, 2);
+  // The clan that raced mails; the one with no race and no news skips (A20).
+  assert.equal(boundary.out.length, 1);
   assert.ok(
     boundary.out.every((m) => /Sep 28 – Oct 5 · Season 136/.test(m.html)),
   );
@@ -666,7 +715,7 @@ test("rollover mail binds closed-race identity and uses the covered season befor
   ).rows;
   assert.ok(facts.every((r) => r.facts.week.season === 136));
   const again = await run("2026-10-05T14:00:00Z");
-  assert.equal(again.result.already_sent, 2);
+  assert.equal(again.result.already_sent, 1);
   assert.equal(again.result.composed, 0);
   assert.equal(again.out.length, 0);
   assert.deepEqual(

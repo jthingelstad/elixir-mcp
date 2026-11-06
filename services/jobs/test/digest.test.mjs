@@ -11,7 +11,9 @@ import { scratchDb } from "../../../packages/ingest/test/helpers.mjs";
 import { answerFeedback } from "../../../packages/feedback/src/feedback.mjs";
 import {
   buildMilestone,
+  heldAltFirsts,
   momentKey,
+  recordMilestones,
   MILESTONE_MAIL_KINDS,
 } from "../src/email/build-milestone.mjs";
 import { digest, toldKey, windowItems } from "../src/email/digest.mjs";
@@ -93,11 +95,6 @@ const GOLDEN = {
   ],
   also: [
     {
-      tag: "#8LQ2PJ0C",
-      name: "Alt Two",
-      text: "passed 1,000 career wins",
-    },
-    {
       tag: "#2QYQ9V0P",
       name: "Primary One",
       text: "passed 3,000 career wins",
@@ -130,11 +127,6 @@ const GOLDEN = {
       key: "badge:BeatingDeathBadge",
     },
     {
-      subject_tag: "#8LQ2PJ0C",
-      kind: "career_wins_step",
-      key: "wins:1000",
-    },
-    {
       subject_tag: "#2QYQ9V0P",
       kind: "career_wins_step",
       key: "wins:3000",
@@ -147,12 +139,40 @@ const GOLDEN = {
   ],
 };
 
-test("milestone through the composer says exactly what it said before", async () => {
+test("milestone through the composer tells the main player's firsts, an alt's left for Tuesday (D12)", async () => {
   const s = await scratchDb("digest_milestone");
   try {
     const account = await milestoneFixture(s.db);
     const facts = await buildMilestone({ db: s.db, account, ...WINDOW });
     assert.deepEqual(JSON.parse(JSON.stringify(facts)), GOLDEN);
+  } finally {
+    await s.drop();
+  }
+});
+
+test("an alt's firsts wait for Tuesday, and are told once", async () => {
+  const s = await scratchDb("digest_alt_firsts");
+  try {
+    const account = await milestoneFixture(s.db);
+    const alts = (await myPlayers(s.db, account.accountId)).filter(
+      (p) => p.relationship === "alt",
+    );
+    const held = await heldAltFirsts(s.db, { account, alts, ...WINDOW });
+    assert.deepEqual(
+      held.map((x) => [x.tag, x.text]),
+      [[ALT, "passed 1,000 career wins"]],
+      "the told one (2,000) is not news; the row already names the player",
+    );
+    assert.deepEqual(held[0].moment, {
+      subject_tag: ALT,
+      kind: "career_wins_step",
+      key: "wins:1000",
+    });
+    await recordMilestones(s.db, account.accountId, [held[0].moment]);
+    assert.deepEqual(
+      await heldAltFirsts(s.db, { account, alts, ...WINDOW }),
+      [],
+    );
   } finally {
     await s.drop();
   }
@@ -288,7 +308,7 @@ const GOLDEN_ANSWERS = {
       "Answered: “The rank looked off on Ladder. It said Master 2 while the g…”",
     facts: {
       area: "ladder",
-      link: "https://elixir.poapkings.com/console/account/feedback/9001",
+      link: "https://elixir.poapkings.com/settings/feedback/9001",
       status: "done",
       message:
         "The rank looked off on Ladder. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It said Master 2 while the game said Master 3. It sa",
@@ -306,7 +326,7 @@ const GOLDEN_ANSWERS = {
     subject: "A question about: “Could elixir_timeline say which deck won?”",
     facts: {
       area: "mcp",
-      link: "https://elixir.poapkings.com/console/account/feedback/9002",
+      link: "https://elixir.poapkings.com/settings/feedback/9002",
       status: "needs_info",
       message: "Could elixir_timeline say which deck won?",
       category: "general",

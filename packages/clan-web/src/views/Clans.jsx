@@ -9,7 +9,7 @@ import { ELIXIR_LINKS } from "../lib/links.js";
  * it is verified, so its card says so; unverified players are also listed
  * with a Verify link.
  */
-export function Clans({ me, notYours, onSelect, selecting }) {
+export function Clans({ me, onSelect, selecting }) {
   const [picking, setPicking] = useState(null);
   const unverified = (me.identities ?? []).filter(
     (i) =>
@@ -27,15 +27,6 @@ export function Clans({ me, notYours, onSelect, selecting }) {
           </>
         }
       />
-      {notYours ? (
-        <div className="callout mb-4" role="note">
-          <span>
-            You don&rsquo;t have a player in <Tag tag={`#${notYours}`} />. Its{" "}
-            <Link to={`/console/explore/clan/${notYours}`}>record</Link> is open
-            to anyone signed in.
-          </span>
-        </div>
-      ) : null}
       <div className="grid gap-3">
         {me.clans.map((c) => {
           const current = me.selected?.clan_tag === c.clan_tag;

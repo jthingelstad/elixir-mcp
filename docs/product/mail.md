@@ -2,8 +2,6 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
-*To be rewritten at step 8 of the redesign, for links, the footer, skipped reports, reason lines and alts' milestones ([Structure](structure.md)).*
-
 ## What it is for
 
 "Keeping you up to date is part of the service, even when you do not
@@ -62,6 +60,21 @@ never mailed; an agent's feedback is answered to the agent. [Jamie,
    page (sharing is forwarding). [Jamie, 2026-09-18, 2026-09-19]
 8. **Trends compare recorded weeks only.** A week the record lacks is
    left out, never a zero. [Jamie, 2026-10-08]
+9. **One door per name, chosen per reader.** Own player to Ladder, clanmate
+   to the Clan member page (a friend who is a clanmate included), anyone else
+   to the record; a clan the reader is in to Clan, Season. The facts stay one
+   for every reader; the choice is in the links. [Jamie, 2026-11-05]
+10. **A quiet clan sends no report.** Nothing happened, nothing mailed; a race
+    counts as something, and a failed read still sends with the gap noted.
+    [Jamie, 2026-11-05]
+11. **An action in mail says why it waits.** A reason line for people who can
+    already see the action, a subject that leads with it, and its number stays
+    in Discord. [Jamie, 2026-11-05]
+12. **Firsts as they happen are the main player's.** An alt's wait for
+    Tuesday's mail; with that mail off, the timeline has them. [Jamie,
+    2026-11-05]
+13. **Gone quiet is the clan's own.** Only members read it, as a last battle's
+    date, never a count. [Jamie, 2026-11-05]
 
 ## What it never does
 

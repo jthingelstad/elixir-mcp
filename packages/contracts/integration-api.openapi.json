@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Elixir JSON API",
-    "version": "3.3.0",
+    "version": "3.4.0",
     "description": "The versioned JSON API, Elixir's public product beside MCP. Two kinds of caller: an integration by its integration_api key, and a person by an OAuth grant whose audience is https://elixir.poapkings.com/api/v1. An MCP token is refused here, and a token for this API is refused at MCP. Each operation names the callers it admits (x-principals; none named means integration); one both may call names the integration's permission in x-integration-permission. Supplied tags are unverified. Attested facts (2.2.0) are what a person did in a clan through a family app, or what a family app's own game produced for a player: kept apart from the game record, which only collectors write, and labelled with who attested them. Integrations do not enroll players or clans for recording; people manage their own tracked record. This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: www.supercell.com/fan-content-policy."
   },
   "servers": [
@@ -2171,10 +2171,37 @@
                   "minItems": 1,
                   "maxItems": 12,
                   "items": {
-                    "type": "string",
-                    "maxLength": 160
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 160
+                      },
+                      {
+                        "type": "object",
+                        "required": ["title"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "title": {
+                            "type": "string",
+                            "maxLength": 160
+                          },
+                          "reason": {
+                            "type": "string",
+                            "maxLength": 160,
+                            "description": "Why it is waiting, in plain words. {{when:<instant>}} is named in the reader's own zone."
+                          },
+                          "number": {
+                            "type": "integer",
+                            "description": "The action's number in the app: the row links to it."
+                          },
+                          "new": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    ]
                   },
-                  "description": "Plain lines; Elixir renders and escapes them."
+                  "description": "Plain lines, or (3.4.0) actions with a reason; Elixir renders and escapes them."
                 },
                 "link": {
                   "type": "string",

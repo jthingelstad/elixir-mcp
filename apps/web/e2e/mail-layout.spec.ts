@@ -25,8 +25,7 @@ for (const viewport of [
         : renderMail(kind, facts, {
             unsubscribe:
               "https://elixir.poapkings.com/api/email/unsubscribe?t=preview",
-            manage:
-              "https://elixir.poapkings.com/console/account/profile/email",
+            manage: "https://elixir.poapkings.com/settings/emails",
             send_id: "00000000-0000-4000-8000-000000000000",
             pixel: false,
           });
@@ -47,10 +46,10 @@ for (const viewport of [
       expect(overflow, `${name} at ${viewport.width}px`).toEqual([]);
       if (!message) {
         await expect(
-          page.getByRole("link", { name: /Turn off/ }),
+          page.getByRole("link", { name: "Turn off this mail", exact: true }),
         ).toHaveAttribute("href", /unsubscribe\?t=preview$/);
         await expect(
-          page.getByRole("link", { name: "Email record", exact: true }),
+          page.getByRole("link", { name: "Mail 000000", exact: true }),
         ).toHaveAttribute("href", /00000000-0000-4000-8000-000000000000/);
       }
     }

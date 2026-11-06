@@ -88,7 +88,7 @@ export const MAIL_SOURCE = {
   feedback_answer: { product: "Account", when: "Feedback" },
   login: { product: "Account", when: "Sign in" },
   welcome: { product: "Account", when: "Welcome" },
-  owner_notify: { product: "Console", when: "Notice" },
+  owner_notify: { product: "Admin", when: "Notice" },
 };
 
 /** When each weekly kind is sent: the EventBridge crons in
@@ -170,7 +170,7 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
   const on = t ? `on ${t.weekday}s at ${t.time} ${t.zone}` : "";
   switch (kind) {
     case "clan_report":
-      return `You get this ${on}, for each clan you track.`;
+      return `You get this ${on}, for each clan you track where something happened that week.`;
     case "arena_week":
       return `You get this ${on}, in a week you or one of your players battled.`;
     case "collector_activity":
@@ -178,11 +178,11 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
     case "tracking_report":
       return `You get this ${on}.`;
     case "milestone":
-      return "You get this when you or one of your players reaches something. Elixir checks every hour.";
+      return "You get this when your main player reaches a big first. Elixir checks every hour. Your other players’ firsts come in Tuesday’s mail.";
     case "clan_actions_waiting":
       return "You get this when an action in your clan waits for your decision.";
     case "feedback_answer":
-      return "You get this when Elixir's maintainer answers feedback you filed and you have not read the answer yet.";
+      return "You get this when Elixir’s maintainer answers feedback you filed and you have not read the answer yet.";
     case "login":
       return "You get this because someone asked to sign in to Elixir with this address.";
     case "welcome":
@@ -193,6 +193,10 @@ function whyLine(kind, timezone = "UTC", now = new Date()) {
       return "You get this because it is on for your Elixir account.";
   }
 }
+
+/** The short id a footer shows: a person can quote it, and the link carries
+ *  the whole id. */
+const shortMailId = (id) => String(id ?? "").slice(0, 6);
 
 // The footer's hrefs are Elixir's own URLs (the manage page, the signed
 // one-click link, the send's record), printed as built.
@@ -209,10 +213,11 @@ const footLink = (href, text, extra = "") =>
  *    returns as `preheader`. Its span's style starts `display:none`,
  *    which is how htmlToText drops it from the text part.
  *  - why: the footer's first line; defaults to whyLine(kind, timezone).
- *  - manage: {url, unsubscribe, turnOff} on a bulk kind: the manage page
- *    and the one-click turn-off, already tagged as the caller wants.
- *    Transactional mail has none, and never an unsubscribe.
- *  - send: {id, record, report, list} when the send has an id.
+ *  - manage: {url, unsubscribe} on a bulk kind: the manage page and the
+ *    one-click turn-off, already tagged as the caller wants. Transactional
+ *    mail has none, and never an unsubscribe.
+ *  - send: {id, record, report} when the send has an id. The footer shows
+ *    the first six characters; the link carries the whole id.
  *  - support: the sponsor line's link.
  *  - pixel: the open pixel's tag, or "".
  */
@@ -260,9 +265,21 @@ export function mailShell({
   </td></tr>
   <tr><td style="padding:20px 20px 0;font-family:${FONT};font-size:12px;line-height:1.6;color:${M.faint};overflow-wrap:anywhere;">
     <p style="margin:0 0 8px;">${esc(why ?? whyLine(kind, timezone))}</p>
-    ${manage ? `<p style="margin:0 0 8px;">${footLink(manage.url, "Manage your emails")} · ${footLink(manage.unsubscribe, `Turn off ${esc(manage.turnOff)}`)}</p>` : ""}
-    ${send ? `<p style="margin:0 0 8px;">${footLink(send.record, "Email record")} · ${footLink(send.report, "Send feedback about this email")} · ${footLink(send.list, "Every email sent to you")}</p><p style="margin:0 0 12px;font-size:11px;word-break:break-all;">This email is ${footLink(send.record, esc(send.id), `font-family:${MONO};font-size:11px;`)}</p>` : ""}
-    <p style="margin:0 0 8px;">Elixir is free and sponsor-supported; sponsorship changes nothing about your account. ${footLink(support, "Support Elixir")}</p>
+    ${
+      manage || send
+        ? `<p style="margin:0 0 8px;">${[
+            manage ? footLink(manage.unsubscribe, "Turn off this mail") : null,
+            manage ? footLink(manage.url, "Manage emails") : null,
+            send ? footLink(send.report, "Send feedback") : null,
+            send
+              ? footLink(send.record, `Mail ${esc(shortMailId(send.id))}`)
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}</p>`
+        : ""
+    }
+    <p style="margin:0 0 8px;">Free and sponsor-supported. ${footLink(support, "Support Elixir")}</p>
     <p style="margin:0;font-size:11.5px;">${esc(DISCLAIMER)}</p>
   </td></tr>
 </table></td></tr></table>${pixel}</body></html>`;

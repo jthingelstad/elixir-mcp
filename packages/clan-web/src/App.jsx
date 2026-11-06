@@ -187,16 +187,8 @@ export function LandingPage() {
 
 export function ClansPage() {
   const { me, select, selecting } = useSession();
-  const { searchStr } = useLocation();
   if (!me?.ok) return null;
-  return (
-    <Clans
-      me={me}
-      onSelect={select}
-      selecting={selecting}
-      notYours={new URLSearchParams(searchStr).get("not_yours")}
-    />
-  );
+  return <Clans me={me} onSelect={select} selecting={selecting} />;
 }
 
 /** One redirect the session has to answer, once it can. */
@@ -548,7 +540,7 @@ export function ClanShell({
   Frame = PlainFrame,
   rememberAfterSignIn = () => {},
 }) {
-  const { pathname: path } = useLocation();
+  const { pathname: path, searchStr } = useLocation();
   // The path under the prefix: "/" is the landing, "/you" your page.
   const app = appPath(path) ?? "";
   const navigate = useNav();
@@ -597,10 +589,11 @@ export function ClanShell({
       if (me.selected) navigate(landingPath(me), { replace: true });
       else if (app !== "/") navigate(CLAN, { replace: true });
     } else if (isClanSegment(segment) && !atClan) {
-      // A clan that is not theirs: the chooser says so, and offers its record.
+      // A clan that is not theirs: its record, which is open to anyone signed
+      // in (a link in mail lands here for a clan the reader has left).
       navigate(
         tagOf(segment)
-          ? `${CLAN}/clans?not_yours=${tagOf(segment).slice(1)}`
+          ? `/console/explore/clan/${tagOf(segment).slice(1)}`
           : `${CLAN}/clans`,
         { replace: true },
       );
@@ -640,7 +633,10 @@ export function ClanShell({
             <RoleConfirming />
             <ErrorBoundary key={path}>
               {me && !me.signed_in && app !== "/" ? (
-                <Landing error={me.expired ? "session_expired" : null} />
+                <Landing
+                  error={me.expired ? "session_expired" : null}
+                  here={path + searchStr}
+                />
               ) : null}
               {me?.signed_in && me.unavailable ? (
                 <div
