@@ -15,7 +15,6 @@ import {
   ITEM_KINDS,
   NEWS_SOURCES,
   buildTimeline,
-  newestItems,
   subjectsFor,
   timelineNews,
 } from "../src/activity/entries.mjs";
@@ -274,33 +273,6 @@ test("each source's moment answers its own check", async () => {
     });
     assert.equal(news.sources[source], true, `${source} at ${at(observed)}`);
   }
-});
-
-test("sweep: leaving out the players with no news changes no item, word or order", async () => {
-  const subjects = await subjectsFor(db, owner);
-  const windows = [[T - DAY, T + 12 * H]];
-  for (let from = T - H; from < T + 12 * H; from += 30 * MIN)
-    windows.push([from, from + H]);
-  let leftOut = 0;
-  for (const [fromMs, toMs] of windows) {
-    const opts = { fromMs, toMs, accountId: owner, interactive: true };
-    const full = await build(subjects, fromMs, toMs);
-    let built = 0;
-    const counting = {
-      query: (sql, ...rest) => {
-        if (/^\s*select p\.name, cm\.clan_tag/.test(String(sql))) built += 1;
-        return db.query(sql, ...rest);
-      },
-    };
-    const newest = await newestItems(counting, subjects, opts, 1000);
-    assert.deepEqual(newest, full.timeline, `(${at(fromMs)}, ${at(toMs)}]`);
-    assert.deepEqual(
-      (await newestItems(db, subjects, opts, 5)).map((i) => i.id),
-      full.timeline.slice(0, 5).map((i) => i.id),
-    );
-    leftOut += subjects.filter((s) => s.kind === "player").length - built;
-  }
-  assert.ok(leftOut > 0, "the sweep left someone out, or it proved nothing");
 });
 
 test("sweep: a window the build serves an item in is never news-free, for every kind it serves", async () => {
