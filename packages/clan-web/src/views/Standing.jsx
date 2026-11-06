@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Disclosure, Fresh, Spark, useClock } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  Fresh,
+  Spark,
+  useClock,
+  Panel,
+  Empty,
+  Table,
+} from "@elixir-mcp/ui";
 import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
 import { TooFew } from "../components/TooFew.jsx";
@@ -79,7 +87,7 @@ function Group({ status, rows, you, war, clan, navigate }) {
     : rows.filter((r, i) => i < s.shown || r.player_tag === you);
   const id = `standing-${status}`;
   return (
-    <section className="panel overflow-hidden" aria-labelledby={id}>
+    <Panel className="overflow-hidden" aria-labelledby={id}>
       <div className={`panel__head ${s.bar}`}>
         <h2 id={id} className="m-0 text-[14px] font-semibold">
           {s.label}
@@ -90,54 +98,68 @@ function Group({ status, rows, you, war, clan, navigate }) {
         </span>
       </div>
       {shown.length ? (
-        <div tabIndex={0} className="table__scroll">
-          <table className="table">
-            <tbody>
-              {shown.map((r) => {
+        <Table
+          columns={[
+            {
+              head: "",
+              className: "whitespace-nowrap",
+              cell: (r) => {
                 const mine = r.player_tag === you;
                 return (
-                  <tr
-                    key={r.player_tag}
-                    data-you={mine ? "true" : undefined}
-                    className={mine ? "bg-panel-raised" : undefined}
-                  >
-                    <td className="whitespace-nowrap">
-                      {mine ? <span className="yours">★ </span> : null}
-                      <span
-                        className={mine ? "font-semibold" : "font-medium"}
-                        title={r.player_tag}
+                  <>
+                    {mine ? <span className="yours">★ </span> : null}
+                    <span
+                      className={mine ? "font-semibold" : "font-medium"}
+                      title={r.player_tag}
+                    >
+                      <MemberLink
+                        clanTag={clan.clan_tag}
+                        playerTag={r.player_tag}
+                        navigate={navigate}
                       >
-                        <MemberLink
-                          clanTag={clan.clan_tag}
-                          playerTag={r.player_tag}
-                          navigate={navigate}
-                        >
-                          {r.name}
-                        </MemberLink>
-                      </span>
-                      {mine ? (
-                        <span className="chip chip--info ml-2">you</span>
-                      ) : null}
-                    </td>
-                    {war ? (
-                      <td className="w-px">
-                        <Spark
-                          label={`${r.name}'s war decks`}
-                          points={points(r.war)}
-                        />
-                      </td>
+                        {r.name}
+                      </MemberLink>
+                    </span>
+                    {mine ? (
+                      <span className="chip chip--info ml-2">you</span>
                     ) : null}
-                    <td className="whitespace-normal text-right text-[12.5px] text-ink-dim">
-                      {r.evidence || (
-                        <span className="nil">nothing recorded</span>
-                      )}
-                    </td>
-                  </tr>
+                  </>
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
+              },
+            },
+            ...(war
+              ? [
+                  {
+                    head: "",
+                    className: "w-px",
+                    cell: (r) => (
+                      <Spark
+                        label={`${r.name}'s war decks`}
+                        points={points(r.war)}
+                      />
+                    ),
+                  },
+                ]
+              : []),
+            {
+              head: "",
+              className:
+                "whitespace-normal text-right text-[12.5px] text-ink-dim",
+              cell: (r) =>
+                r.evidence || <span className="nil">nothing recorded</span>,
+            },
+          ]}
+          rows={shown}
+          rowKey={(r) => r.player_tag}
+          rowProps={(r) => {
+            const mine = r.player_tag === you;
+            return {
+              "data-you": mine ? "true" : undefined,
+              className: mine ? "bg-panel-raised" : undefined,
+            };
+          }}
+          noHead
+        />
       ) : null}
       {long ? (
         <div className="panel__foot">
@@ -151,7 +173,7 @@ function Group({ status, rows, you, war, clan, navigate }) {
           </button>
         </div>
       ) : null}
-    </section>
+    </Panel>
   );
 }
 
@@ -161,7 +183,7 @@ function Group({ status, rows, you, war, clan, navigate }) {
 function How({ d, clan, who, navigate }) {
   const policy = `${clanPath(clan.clan_tag)}/manage/policy`;
   return (
-    <section className="panel" aria-labelledby="standing-how">
+    <Panel aria-labelledby="standing-how">
       <div className="panel__head">
         <h2 id="standing-how" className="m-0 grow text-[14px] font-semibold">
           How it works here
@@ -229,7 +251,7 @@ function How({ d, clan, who, navigate }) {
           </a>
         </div>
       ) : null}
-    </section>
+    </Panel>
   );
 }
 
@@ -242,7 +264,7 @@ function You({ you, who }) {
   const asked = war.reduce((n, p) => n + p.of, 0);
   const s = you.status ? STATUS[you.status] : null;
   return (
-    <section className="panel" aria-labelledby="standing-you">
+    <Panel aria-labelledby="standing-you">
       <div className="panel__head">
         <h2 id="standing-you" className="m-0 grow text-[14px] font-semibold">
           You
@@ -300,7 +322,7 @@ function You({ you, who }) {
             : `Races ${war[0].label} to ${war[war.length - 1].label}.`}
         </div>
       ) : null}
-    </section>
+    </Panel>
   );
 }
 
@@ -376,12 +398,9 @@ export function Standing({ clan, who, navigate }) {
     return (
       <>
         {head}
-        <div className="empty">
-          <div className="empty__title">No policy yet</div>
-          <p className="empty__body">
-            This clan&rsquo;s leaders have not set up how the clan runs here.
-          </p>
-        </div>
+        <Empty title="No policy yet">
+          This clan&rsquo;s leaders have not set up how the clan runs here.
+        </Empty>
       </>
     );
   if (state.error)

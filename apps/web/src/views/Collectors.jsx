@@ -1,4 +1,4 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import { useInitialTime, PageHead, Table, Empty } from "@elixir-mcp/ui";
 import { agoExact, Icon, Link, secsSince } from "@elixir-mcp/ui";
 import { useMyGateways, usePublicStatus } from "../lib/queries.js";
 import {
@@ -71,149 +71,132 @@ export function Fleet({ navigate }) {
       <div className="page__crumb">
         <Link to={`${CONSOLE}/status/service`}>‹ Status</Link>
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "14px",
-          flexWrap: "wrap",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <h1 className="page__title">Collectors</h1>
-          <p className="page__lede">
-            Every machine fetching for the record, inside one shared budget.
-          </p>
-        </div>
-        {/* Raising a hand is the ONLY way a collector comes to exist, for
+      <PageHead
+        title="Collectors"
+        sub="Every machine fetching for the record, inside one shared budget."
+        aside={
+          <>
+            {/* Raising a hand is the ONLY way a collector comes to exist, for
             anyone, any number of times (Jamie, 2026-09-11): it lives on
             its own page, and this is the door to it. Once you run one the
             door only changes its word. */}
-        {mine !== null && (
-          <button
-            className="btn btn--primary"
-            style={{ marginLeft: "auto" }}
-            onClick={() => navigate(`${CONSOLE}/status/collectors/new`)}
-          >
-            <Icon name="plus" size={16} />
-            {runsOne ? "Run another" : "Run a collector"}
-          </button>
-        )}
-      </div>
+            {mine !== null && (
+              <button
+                className="btn btn--primary"
+                style={{ marginLeft: "auto" }}
+                onClick={() => navigate(`${CONSOLE}/status/collectors/new`)}
+              >
+                <Icon name="plus" size={16} />
+                {runsOne ? "Run another" : "Run a collector"}
+              </button>
+            )}
+          </>
+        }
+      />
 
       {mine !== null && !runsOne && (
-        <div
-          className="empty"
+        <Empty
+          title={<>You don&rsquo;t run one yet</>}
           style={{ maxWidth: "70ch", marginBottom: "18px" }}
         >
-          <div className="empty__title">You don&rsquo;t run one yet</div>
-          <p className="empty__body" style={{ marginBottom: 0 }}>
-            A collector is a machine that fetches for the record on a schedule.
-            While it is active it raises your limits to Family, and it wears a
-            Clash Royale card of your choosing as its public name.
-          </p>
-        </div>
+          A collector is a machine that fetches for the record on a schedule.
+          While it is active it raises your limits to Family, and it wears a
+          Clash Royale card of your choosing as its public name.
+        </Empty>
       )}
 
       <ReleaseKeyCard counts={signatureCounts(fleet)} />
 
-      <div className="table__scroll" tabIndex={0}>
-        <table className="table" style={{ minWidth: "640px" }}>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Run by</th>
-              <th style={{ textAlign: "right" }}>Yield</th>
-              <th>Last fetch</th>
-              <th style={{ textAlign: "right" }}>Share</th>
-              <th>Version</th>
-              <th>State</th>
-            </tr>
-          </thead>
-          <tbody>
-            {fleet.map((c) => (
-              <tr key={c.name}>
-                <td>
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    {c.card_icon && (
-                      <img
-                        src={c.card_icon}
-                        alt=""
-                        style={{ height: "22px", borderRadius: "3px" }}
-                      />
-                    )}
-                    {/* Ownership is the one thing gold marks in a table:
+      <Table
+        columns={[
+          {
+            head: "Name",
+            cell: (c) => (
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                {c.card_icon && (
+                  <img
+                    src={c.card_icon}
+                    alt=""
+                    style={{ height: "22px", borderRadius: "3px" }}
+                  />
+                )}
+                {/* Ownership is the one thing gold marks in a table:
                         the name of the one that is yours, with a quiet word
                         beside it — never a tinted row. */}
-                    <Link
-                      style={{
-                        fontWeight: 600,
-                        color: mineIds.has(c.name) ? "var(--gold)" : undefined,
-                      }}
-                      to={`${CONSOLE}/status/collectors/${encodeURIComponent(c.name)}`}
-                    >
-                      {c.name}
-                    </Link>
-                    {c.signature && (
-                      <SignatureBadge state={c.signature} iconOnly />
-                    )}
-                    {mineIds.has(c.name) && (
-                      <span
-                        style={{
-                          color: "var(--ink-faint)",
-                          fontSize: "11.5px",
-                        }}
-                      >
-                        yours
-                      </span>
-                    )}
+                <Link
+                  style={{
+                    fontWeight: 600,
+                    color: mineIds.has(c.name) ? "var(--gold)" : undefined,
+                  }}
+                  to={`${CONSOLE}/status/collectors/${encodeURIComponent(c.name)}`}
+                >
+                  {c.name}
+                </Link>
+                {c.signature && <SignatureBadge state={c.signature} iconOnly />}
+                {mineIds.has(c.name) && (
+                  <span
+                    style={{
+                      color: "var(--ink-faint)",
+                      fontSize: "11.5px",
+                    }}
+                  >
+                    yours
                   </span>
-                </td>
-                <td>{c.operator ?? "—"}</td>
-                <td
-                  style={{ textAlign: "right", fontFamily: "var(--font-mono)" }}
-                  title="share of the last day's fetches that changed the record"
-                >
-                  {typeof c.yield_24h === "number"
-                    ? `${Math.round(c.yield_24h * 100)}%`
-                    : "—"}
-                </td>
-                <td
-                  style={{ fontFamily: "var(--font-mono)" }}
-                  title="as of when this page loaded"
-                >
-                  {agoExact(c.last_success_at, now)}
-                </td>
-                <td
-                  style={{ textAlign: "right", fontFamily: "var(--font-mono)" }}
-                >
-                  {todays > 0
-                    ? `${Math.round(((c.fetches_1h ?? 0) / todays) * 100)}%`
-                    : "—"}
-                </td>
-                <td title="the client version it last reported">
-                  <span className="version-cell">
-                    <span className="mono">{c.version ?? "—"}</span>
-                    {/* A hub from before 0184 sends no state: no badge
+                )}
+              </span>
+            ),
+          },
+          { head: "Run by", cell: (c) => c.operator ?? "—" },
+          {
+            head: "Yield",
+            num: true,
+            cellProps: () => ({
+              title: "share of the last day's fetches that changed the record",
+            }),
+            cell: (c) =>
+              typeof c.yield_24h === "number"
+                ? `${Math.round(c.yield_24h * 100)}%`
+                : "—",
+          },
+          {
+            head: "Last fetch",
+            cellProps: () => ({ title: "as of when this page loaded" }),
+            cell: (c) => agoExact(c.last_success_at, now),
+          },
+          {
+            head: "Share",
+            num: true,
+            cell: (c) =>
+              todays > 0
+                ? `${Math.round(((c.fetches_1h ?? 0) / todays) * 100)}%`
+                : "—",
+          },
+          {
+            head: "Version",
+            cellProps: () => ({
+              title: "the client version it last reported",
+            }),
+            cell: (c) => (
+              <span className="version-cell">
+                <span className="mono">{c.version ?? "—"}</span>
+                {/* A hub from before 0184 sends no state: no badge
                         rather than a wrong one. */}
-                    {c.signature && <SignatureBadge state={c.signature} />}
-                  </span>
-                </td>
-                <td>
-                  <StateChip collector={c} now={now} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                {c.signature && <SignatureBadge state={c.signature} />}
+              </span>
+            ),
+          },
+          { head: "State", cell: (c) => <StateChip collector={c} now={now} /> },
+        ]}
+        rows={fleet}
+        rowKey={(c) => c.name}
+        minWidth={640}
+      />
       <p
         className="footnote"
         style={{ margin: "12px 2px 0", maxWidth: "78ch" }}

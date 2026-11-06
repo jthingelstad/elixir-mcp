@@ -1,4 +1,4 @@
-import { Tag, TagText } from "@elixir-mcp/ui";
+import { PageHead as KitHead, Stat, Stats, Tag, TagText } from "@elixir-mcp/ui";
 import { CLAN, clanPath } from "../lib/base.js";
 
 /**
@@ -32,9 +32,12 @@ export function PageHead({
   // landing, Actions for a leader with Actions waiting.
   const home = `${clanPath(clan.clan_tag)}/roster`;
   return (
-    <div className="flex flex-wrap items-end gap-x-6 gap-y-3 mb-[22px]">
-      <div className="grow basis-[420px] min-w-0 grid gap-2">
-        {breadcrumb ? (
+    <KitHead
+      title={<TagText>{title}</TagText>}
+      sub={lede}
+      aside={fresh}
+      crumb={
+        breadcrumb ? (
           <nav
             aria-label="Breadcrumb"
             className="page__crumb m-0 flex flex-wrap items-center gap-2 text-ink-faint"
@@ -75,46 +78,25 @@ export function PageHead({
               </span>
             )}
           </nav>
-        ) : null}
-        <h1 className="page__title">
-          <TagText>{title}</TagText>
-        </h1>
-        {lede ? <p className="page__lede m-0">{lede}</p> : null}
-        {children}
-      </div>
-      {fresh ?? null}
-    </div>
+        ) : null
+      }
+    >
+      {children}
+    </KitHead>
   );
 }
-
-const TONE = { ok: "text-ok", warn: "text-warn", bad: "text-bad" };
 
 /** One number with its label, the canvas's tile: a count the record
  *  returned, never a derived score. `of` is the whole it is out of. */
 export function Tile({ label, value, of, hint, tone }) {
-  return (
-    <div className="grid content-start gap-1.5">
-      <span className="label">{label}</span>
-      <span
-        className={`font-mono text-[26px] font-semibold leading-[1.15] ${TONE[tone] ?? "text-ink"}`}
-      >
-        {value}
-        {of ? (
-          <span className="text-[14px] font-normal text-ink-faint"> {of}</span>
-        ) : null}
-      </span>
-      {hint ? (
-        <span className="text-[12.5px] text-ink-faint">{hint}</span>
-      ) : null}
-    </div>
-  );
+  return <Stat label={label} value={value} of={of} note={hint} tone={tone} />;
 }
 
 /** The row of tiles under a page's head. */
 export function Tiles({ children, label }) {
   return (
-    <div className="fact-strip" role="group" aria-label={label}>
+    <Stats className="fact-strip" label={label}>
       {children}
-    </div>
+    </Stats>
   );
 }

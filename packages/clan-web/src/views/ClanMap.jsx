@@ -1,4 +1,4 @@
-import { Tag } from "@elixir-mcp/ui";
+import { Tag, Panel, PageHead } from "@elixir-mcp/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -76,12 +76,10 @@ export function ClanMap({ clan }) {
 function Page({ clan, children }) {
   return (
     <div className="grid gap-4">
-      <div className="page-head">
-        <h1 className="page__title">Clan map</h1>
-        <span className="page-head__note">
-          {clan.name ?? <Tag tag={clan.clan_tag} />}
-        </span>
-      </div>
+      <PageHead
+        title="Clan map"
+        sub={<>{clan.name ?? <Tag tag={clan.clan_tag} />}</>}
+      />
       {children}
     </div>
   );
@@ -195,7 +193,7 @@ function People({ entries, now }) {
       </p>
     );
   return (
-    <div className="panel">
+    <Panel as="div">
       <div className="panel__body grid gap-3">
         {byCountry.map(([country, people]) => (
           <div key={country} className="grid gap-1">
@@ -218,7 +216,7 @@ function People({ entries, now }) {
           </div>
         ))}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -236,7 +234,7 @@ function YourPlace({ clan }) {
   if (data === undefined) return null;
   if (place && !editing)
     return (
-      <div className="panel">
+      <Panel as="div">
         <div className="panel__body flex flex-wrap items-center gap-3">
           <span>
             You&rsquo;re on the map at <strong>{placeLabel(place)}</strong>
@@ -260,7 +258,7 @@ function YourPlace({ clan }) {
             Remove me
           </button>
         </div>
-      </div>
+      </Panel>
     );
   return (
     <PlacePicker
@@ -298,8 +296,11 @@ function PlacePicker({ initial, onCancel, onSaved }) {
   );
   const needsRegion = Boolean(data?.regions.length);
   return (
-    <form
-      className="panel"
+    <Panel
+      as="form"
+      title={initial ? "Change your place" : "Add yourself to the map"}
+      titleAs="div"
+
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
@@ -314,9 +315,6 @@ function PlacePicker({ initial, onCancel, onSaved }) {
         onSaved(r.data.place);
       }}
     >
-      <div className="panel__head">
-        <span>{initial ? "Change your place" : "Add yourself to the map"}</span>
-      </div>
       <div className="panel__body grid gap-2">
         <p className="page-head__note m-0">
           A city or just a region, from the list. It shows in every clan
@@ -403,6 +401,6 @@ function PlacePicker({ initial, onCancel, onSaved }) {
           ) : null}
         </div>
       </div>
-    </form>
+    </Panel>
   );
 }

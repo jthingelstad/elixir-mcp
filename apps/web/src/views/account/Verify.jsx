@@ -1,4 +1,4 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import { useInitialTime, Panel, PageHead } from "@elixir-mcp/ui";
 import { clockAt, Icon, Tag, TagText, useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api.js";
@@ -155,21 +155,23 @@ export function Verify({ refresh, navigate }) {
   });
 
   const header = (
-    <div>
-      <h1 className="page__title">Verify</h1>
-      <p className="page__lede">
-        Prove that you control a player by playing one battle with a deck we
-        name. Nothing to install, nothing to share: we only read your public
-        battle log.
-      </p>
-    </div>
+    <PageHead
+      title="Verify"
+      sub={
+        <>
+          Prove that you control a player by playing one battle with a deck we
+          name. Nothing to install, nothing to share: we only read your public
+          battle log.
+        </>
+      }
+    />
   );
 
   if (challenge && challenge.state === "expired")
     return (
       <>
         {header}
-        <section className="panel">
+        <Panel>
           <div className="panel__body">
             <p className="verify__lead">
               That challenge timed out after an hour. No harm done: start again
@@ -199,7 +201,7 @@ export function Verify({ refresh, navigate }) {
               </p>
             )}
           </div>
-        </section>
+        </Panel>
       </>
     );
 
@@ -230,10 +232,7 @@ export function Verify({ refresh, navigate }) {
           )}
         </div>
         <div className="verify__panels">
-          <section className="panel">
-            <div className="panel__head">
-              <h2>Play one battle with this deck</h2>
-            </div>
+          <Panel title="Play one battle with this deck">
             <div className="panel__body">
               <p className="verify__lead">
                 {challenge.target_source === "most_played"
@@ -244,11 +243,8 @@ export function Verify({ refresh, navigate }) {
               </p>
               <DeckGrid cards={challenge.target} label="The deck to play" />
             </div>
-          </section>
-          <section className="panel">
-            <div className="panel__head">
-              <h2>Your latest battle</h2>
-            </div>
+          </Panel>
+          <Panel title="Your latest battle">
             <div className="panel__body">
               <div className="verify__live" role="status">
                 {challenge.live_pending && (
@@ -303,10 +299,10 @@ export function Verify({ refresh, navigate }) {
                 </p>
               )}
             </div>
-          </section>
+          </Panel>
         </div>
         {verified ? (
-          <section className="panel verify__done">
+          <Panel className="verify__done">
             <div className="panel__body">
               <VerifiedBurst
                 name={challenge.name ?? <Tag tag={challenge.player_tag} />}
@@ -339,7 +335,7 @@ export function Verify({ refresh, navigate }) {
                 </button>
               </div>
             </div>
-          </section>
+          </Panel>
         ) : (
           <div className="verify__actions">
             <button
@@ -363,7 +359,7 @@ export function Verify({ refresh, navigate }) {
     <>
       {header}
       {collecting && (
-        <section className="panel">
+        <Panel>
           <div className="panel__body">
             <div className="verify__live" role="status">
               <span className="verify__dot" aria-hidden="true" />
@@ -375,12 +371,9 @@ export function Verify({ refresh, navigate }) {
               </span>
             </div>
           </div>
-        </section>
+        </Panel>
       )}
-      <section className="panel">
-        <div className="panel__head">
-          <h2>Your players</h2>
-        </div>
+      <Panel title="Your players">
         <div className="panel__body">
           {list === null ? (
             <p style={{ color: "var(--ink-faint)" }}>Loading…</p>
@@ -420,7 +413,7 @@ export function Verify({ refresh, navigate }) {
             </ul>
           )}
         </div>
-      </section>
+      </Panel>
       {(err || listErr) && (
         <p className="verify__error" role="alert">
           <TagText>{err || listErr}</TagText>

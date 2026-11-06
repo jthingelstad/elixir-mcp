@@ -1,4 +1,4 @@
-import { Icon, Link } from "@elixir-mcp/ui";
+import { Icon, Link, Panel, PageHead } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../api.js";
 import {
@@ -40,20 +40,21 @@ export function RaiseCollector({ navigate }) {
 
   return (
     <>
-      <div className="page__crumb">
-        <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
-      </div>
-      <h1 className="page__title">
-        {runsOne ? "Run another collector" : "Run a collector"}
-      </h1>
-      <p className="page__lede" style={{ maxWidth: "64ch" }}>
-        {runsOne
-          ? "Every collector you run is yours; one active collector already raises your limits to Family. Name the new machine, pick its card, and raise your hand again."
-          : "A collector is a machine that fetches for the record on a schedule. While it is active, it raises your limits to Family, and nothing else."}
-      </p>
+      <PageHead
+        crumb={
+          <div className="page__crumb">
+            <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
+          </div>
+        }
+        title={runsOne ? "Run another collector" : "Run a collector"}
+        sub={
+          runsOne
+            ? "Every collector you run is yours; one active collector already raises your limits to Family. Name the new machine, pick its card, and raise your hand again."
+            : "A collector is a machine that fetches for the record on a schedule. While it is active, it raises your limits to Family, and nothing else."
+        }
+      />
 
-      <section className="panel" style={{ marginBottom: "14px" }}>
-        <div className="panel__head">The machine</div>
+      <Panel title="The machine" titleAs="div" style={{ marginBottom: "14px" }}>
         <div style={{ padding: "14px 16px" }}>
           <input
             className="input"
@@ -68,11 +69,10 @@ export function RaiseCollector({ navigate }) {
             box is actually called.
           </p>
         </div>
-      </section>
+      </Panel>
 
       {cards.length > 0 && (
-        <section className="panel" style={{ marginBottom: "14px" }}>
-          <div className="panel__head">Its card</div>
+        <Panel title="Its card" titleAs="div" style={{ marginBottom: "14px" }}>
           <div style={{ padding: "14px 16px" }}>
             <CardPicker cards={cards} value={card} onChange={setCard} />
             <p className="footnote" style={{ margin: "10px 0 0" }}>
@@ -81,7 +81,7 @@ export function RaiseCollector({ navigate }) {
               collector&rsquo;s.
             </p>
           </div>
-        </section>
+        </Panel>
       )}
 
       <div

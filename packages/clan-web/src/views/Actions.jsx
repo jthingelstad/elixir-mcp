@@ -1,4 +1,12 @@
-import { Fresh, Icon, ago, TagText, useFlash } from "@elixir-mcp/ui";
+import {
+  Fresh,
+  Icon,
+  ago,
+  TagText,
+  useFlash,
+  Panel,
+  Empty,
+} from "@elixir-mcp/ui";
 import { useState } from "react";
 import { keys, useAction, useActions, useInvalidate } from "../lib/queries.js";
 import {
@@ -53,13 +61,10 @@ function Refused({ state, query, head }) {
     return (
       <>
         {head}
-        <div className="empty">
-          <div className="empty__title">No policy yet</div>
-          <p className="empty__body">
-            Actions start when this clan&rsquo;s leaders set up how the clan
-            runs here.
-          </p>
-        </div>
+        <Empty title="No policy yet">
+          Actions start when this clan&rsquo;s leaders set up how the clan runs
+          here.
+        </Empty>
       </>
     );
   return (
@@ -151,7 +156,7 @@ function ActionRow({ action, clan, navigate, scope }) {
 /** A list of actions in its own panel: its name, its count, its lines. */
 function ActionList({ id, title, tone, actions, clan, navigate, foot, scope }) {
   return (
-    <section className="panel overflow-hidden" aria-labelledby={id}>
+    <Panel className="overflow-hidden" aria-labelledby={id}>
       <div className="panel__head">
         <h2 id={id} className="m-0 grow text-[14px] font-semibold">
           {title}
@@ -172,7 +177,7 @@ function ActionList({ id, title, tone, actions, clan, navigate, foot, scope }) {
       {foot ? (
         <div className="panel__foot text-[12.5px] text-ink-faint">{foot}</div>
       ) : null}
-    </section>
+    </Panel>
   );
 }
 
@@ -327,13 +332,10 @@ export function Actions({ clan, who, navigate, scope: routeScope }) {
         ) : null}
         {scope === "open" &&
           (open.length === 0 ? (
-            <div className="empty">
-              <div className="empty__title">Nothing waiting for you</div>
-              <p className="empty__body">
-                An action appears here when the clan&rsquo;s policy suggests
-                something you can do: for you alone, or for anyone in your role.
-              </p>
-            </div>
+            <Empty title="Nothing waiting for you">
+              An action appears here when the clan&rsquo;s policy suggests
+              something you can do: for you alone, or for anyone in your role.
+            </Empty>
           ) : (
             <ActionList
               id="actions-waiting"
@@ -456,13 +458,10 @@ export function ActionDetail({ clan, who, number, navigate, scope }) {
     return (
       <>
         {head}
-        <div className="empty">
-          <div className="empty__title">No action #{number} here</div>
-          <p className="empty__body">
-            It is not one of this clan&rsquo;s actions, or it is for someone
-            else to take.
-          </p>
-        </div>
+        <Empty title={<>No action #{number} here</>}>
+          It is not one of this clan&rsquo;s actions, or it is for someone else
+          to take.
+        </Empty>
       </>
     );
   if (state.forbidden)

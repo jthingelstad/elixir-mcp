@@ -1,4 +1,4 @@
-import { Link } from "@elixir-mcp/ui";
+import { Link, Panel } from "@elixir-mcp/ui";
 import { ELIXIR_LINKS } from "../lib/links.js";
 
 const ERRORS = {
@@ -37,10 +37,12 @@ export function Landing({ error, here = "/clan" }) {
           </span>
         </div>
       ) : null}
-      <div className="panel" style={{ margin: "24px 0" }}>
-        <div className="panel__head">
-          Before you sign in, you need two things
-        </div>
+      <Panel
+        as="div"
+        title="Before you sign in, you need two things"
+        titleAs="div"
+        style={{ margin: "24px 0" }}
+      >
         <div className="panel__body" style={{ display: "grid", gap: "14px" }}>
           <div>
             <div style={{ fontWeight: 600 }}>1. An Elixir account</div>
@@ -66,7 +68,7 @@ export function Landing({ error, here = "/clan" }) {
         <div className="panel__foot">
           Your Elixir sign-in opens your recorded history and clan tools.
         </div>
-      </div>
+      </Panel>
       <a
         className="btn btn--primary"
         href="/console/signin"

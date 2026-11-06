@@ -1,4 +1,12 @@
-import { Disclosure, Link, useClock, MODE_LABEL, Tag } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  Link,
+  useClock,
+  MODE_LABEL,
+  Tag,
+  Panel,
+  Table,
+} from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useMemberActivity } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
@@ -108,8 +116,7 @@ export function MemberActivity({
           <dd className="m-0">{stamp(d.as_of)}</dd>
         </div>
       </dl>
-      <section className="panel mb-4">
-        <h2 className="panel__head m-0">Weekly contributions</h2>
+      <Panel title="Weekly contributions" titleAs="div" className="mb-4">
         <div className="panel__body">
           <Disclosure title="How weekly contributions are counted">
             <p className="page-head__note">
@@ -120,38 +127,42 @@ export function MemberActivity({
               Unknown stays unknown.
             </p>
           </Disclosure>
-          <div className="table__scroll" tabIndex={0}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>ISO week</th>
-                  <th>Recorded battles</th>
-                  <th>Path of Legends battles</th>
-                  <th>Donations</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.weeks.map((w) => (
-                  <tr key={w.iso_week}>
-                    <td>
-                      {w.iso_week}
-                      {w.partial ? " · partial" : ""}
-                      <div className="page-head__note">
-                        {stamp(w.from)} – {stamp(w.to)}
-                      </div>
-                    </td>
-                    <td>{number(w.battles)}</td>
-                    <td>{number(w.ranked_battles)}</td>
-                    <td>{number(w.donations)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={[
+              {
+                head: "ISO week",
+                cell: (w) => (
+                  <>
+                    {w.iso_week}
+                    {w.partial ? " · partial" : ""}
+                    <div className="page-head__note">
+                      {stamp(w.from)} – {stamp(w.to)}
+                    </div>
+                  </>
+                ),
+              },
+              {
+                head: "Recorded battles",
+                num: true,
+                cell: (w) => number(w.battles),
+              },
+              {
+                head: "Path of Legends battles",
+                num: true,
+                cell: (w) => number(w.ranked_battles),
+              },
+              {
+                head: "Donations",
+                num: true,
+                cell: (w) => number(w.donations),
+              },
+            ]}
+            rows={d.weeks}
+            rowKey={(w) => w.iso_week}
+          />
         </div>
-      </section>
-      <section className="panel mb-4">
-        <h2 className="panel__head m-0">War usage</h2>
+      </Panel>
+      <Panel title="War usage" titleAs="div" className="mb-4">
         <div className="panel__body">
           <Disclosure title="About war usage">
             <p className="page-head__note">
@@ -162,41 +173,34 @@ export function MemberActivity({
             </p>
           </Disclosure>
           {d.war_weeks.length ? (
-            <div className="table__scroll" tabIndex={0}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>War week</th>
-                    <th>Decks used</th>
-                    <th>Points</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.war_weeks.map((w) => (
-                    <tr key={`${w.season_id}-${w.section_index}`}>
-                      <td>
-                        S{w.season_id} W{w.section_index + 1}
-                        {w.attribution_unknown ? " · attribution unknown" : ""}
-                        {w.is_colosseum
-                          ? " · Colosseum"
-                          : w.finished_early
-                            ? " · clan finished early"
-                            : ""}
-                      </td>
-                      <td>{number(w.decks)}</td>
-                      <td>{number(w.points)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              columns={[
+                {
+                  head: "War week",
+                  cell: (w) => (
+                    <>
+                      S{w.season_id} W{w.section_index + 1}
+                      {w.attribution_unknown ? " · attribution unknown" : ""}
+                      {w.is_colosseum
+                        ? " · Colosseum"
+                        : w.finished_early
+                          ? " · clan finished early"
+                          : ""}
+                    </>
+                  ),
+                },
+                { head: "Decks used", num: true, cell: (w) => number(w.decks) },
+                { head: "Points", num: true, cell: (w) => number(w.points) },
+              ]}
+              rows={d.war_weeks}
+              rowKey={(w) => `${w.season_id}-${w.section_index}`}
+            />
           ) : (
             <p>No war week recorded in this window.</p>
           )}
         </div>
-      </section>
-      <section className="panel mb-4">
-        <h2 className="panel__head m-0">What was read</h2>
+      </Panel>
+      <Panel title="What was read" titleAs="div" className="mb-4">
         <div className="panel__body">
           <Disclosure title="About what was read">
             <p className="page-head__note">
@@ -206,36 +210,39 @@ export function MemberActivity({
             </p>
           </Disclosure>
           {d.coverage.intervals.length ? (
-            <div className="table__scroll" tabIndex={0}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Between reads</th>
-                    <th>Counter increase</th>
-                    <th>Battles recorded</th>
-                    <th>Comparison</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.coverage.intervals.map((i) => (
-                    <tr key={i.to}>
-                      <td>
-                        {stamp(i.from)} – {stamp(i.to)}
-                      </td>
-                      <td>{number(i.expected_battles)}</td>
-                      <td>{number(i.captured_battles)}</td>
-                      <td>
-                        {i.complete === true
-                          ? "Matches counter"
-                          : i.complete === false
-                            ? "Missing battles"
-                            : "Not comparable"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              columns={[
+                {
+                  head: "Between reads",
+                  cell: (i) => (
+                    <>
+                      {stamp(i.from)} – {stamp(i.to)}
+                    </>
+                  ),
+                },
+                {
+                  head: "Counter increase",
+                  num: true,
+                  cell: (i) => number(i.expected_battles),
+                },
+                {
+                  head: "Battles recorded",
+                  num: true,
+                  cell: (i) => number(i.captured_battles),
+                },
+                {
+                  head: "Comparison",
+                  cell: (i) =>
+                    i.complete === true
+                      ? "Matches counter"
+                      : i.complete === false
+                        ? "Missing battles"
+                        : "Not comparable",
+                },
+              ]}
+              rows={d.coverage.intervals}
+              rowKey={(i) => i.to}
+            />
           ) : (
             <p>
               {d.coverage.available
@@ -244,8 +251,8 @@ export function MemberActivity({
             </p>
           )}
         </div>
-      </section>
-      <section className="panel">
+      </Panel>
+      <Panel>
         <h2 className="panel__head m-0">
           Recorded sessions · page {pages.length}
         </h2>
@@ -273,41 +280,42 @@ export function MemberActivity({
                   Recorded group {index + 1} · {stamp(group.at(-1).battle_time)}{" "}
                   – {stamp(group[0].battle_time)}
                 </h3>
-                <div className="table__scroll" tabIndex={0}>
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Battle</th>
-                        <th>Mode</th>
-                        <th>Result</th>
-                        <th>Crowns</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.map((b) => (
-                        <tr key={b.battle_id}>
-                          <td>
-                            {b.url ? (
-                              <a href={b.url}>{stamp(b.battle_time)}</a>
-                            ) : (
-                              stamp(b.battle_time)
-                            )}
-                          </td>
-                          <td title={b.game_mode?.name ?? undefined}>
-                            {MODE_LABEL[b.mode_group] ??
-                              b.game_mode?.name ??
-                              b.mode_group ??
-                              "Unknown"}
-                          </td>
-                          <td>{b.outcome ?? "Unknown"}</td>
-                          <td>
-                            {number(b.crowns)} – {number(b.opponent_crowns)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table
+                  columns={[
+                    {
+                      head: "Battle",
+                      cell: (b) =>
+                        b.url ? (
+                          <a href={b.url}>{stamp(b.battle_time)}</a>
+                        ) : (
+                          stamp(b.battle_time)
+                        ),
+                    },
+                    {
+                      head: "Mode",
+                      cellProps: (b) => ({
+                        title: b.game_mode?.name ?? undefined,
+                      }),
+                      cell: (b) =>
+                        MODE_LABEL[b.mode_group] ??
+                        b.game_mode?.name ??
+                        b.mode_group ??
+                        "Unknown",
+                    },
+                    { head: "Result", cell: (b) => b.outcome ?? "Unknown" },
+                    {
+                      head: "Crowns",
+                      num: true,
+                      cell: (b) => (
+                        <>
+                          {number(b.crowns)} – {number(b.opponent_crowns)}
+                        </>
+                      ),
+                    },
+                  ]}
+                  rows={group}
+                  rowKey={(b) => b.battle_id}
+                />
               </div>
             ))
           )}
@@ -337,7 +345,7 @@ export function MemberActivity({
             ) : null}
           </div>
         </div>
-      </section>
+      </Panel>
     </>
   );
 }

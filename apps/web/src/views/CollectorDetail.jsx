@@ -1,4 +1,4 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import { useInitialTime, Panel, PageHead, Empty } from "@elixir-mcp/ui";
 import { useWrite } from "@elixir-mcp/client";
 import {
   ago,
@@ -46,8 +46,7 @@ function Clocks({ heartbeat, data, now }) {
   // the fleet uses to call a collector "behind".
   const idle = beat != null && beat < 600 && fresh != null && fresh > 600;
   return (
-    <section className="panel" style={{ marginBottom: "14px" }}>
-      <div className="panel__head">Two clocks</div>
+    <Panel title="Two clocks" titleAs="div" style={{ marginBottom: "14px" }}>
       <div
         style={{
           padding: "14px 16px",
@@ -102,7 +101,7 @@ function Clocks({ heartbeat, data, now }) {
             : "Both clocks matter: a fresh heartbeat only says the machine is alive."}
         </span>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -114,16 +113,19 @@ function Hours({ daily }) {
   const max = Math.max(...rows.map((d) => d.fetches), 1);
   if (rows.length === 0) return null;
   return (
-    <section className="panel" style={{ marginBottom: "14px" }}>
-      <div className="panel__head">
-        <span>Fetches per day</span>
+    <Panel
+      title="Fetches per day"
+      titleAs="div"
+      action={
         <span
           className="footnote"
           style={{ marginLeft: "auto", fontWeight: 400 }}
         >
           last {rows.length} {noun(rows.length, "day")} · UTC
         </span>
-      </div>
+      }
+      style={{ marginBottom: "14px" }}
+    >
       <div
         style={{
           padding: "18px 16px",
@@ -147,7 +149,7 @@ function Hours({ daily }) {
           />
         ))}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -184,13 +186,16 @@ function Operations({ g, staged, setStaged, reload }) {
   }[next];
 
   return (
-    <section className="panel" style={{ marginBottom: "14px" }}>
-      <div className="panel__head">
-        <span className="panel-title">Operations</span>
+    <Panel
+      title="Operations"
+      titleAs="div"
+      action={
         <span className="caveat" style={{ marginLeft: "auto" }}>
           admin
         </span>
-      </div>
+      }
+      style={{ marginBottom: "14px" }}
+    >
       <dl className="fields" style={{ margin: 0 }}>
         <dt>machine</dt>
         <dd className="mono">{g.name}</dd>
@@ -264,7 +269,7 @@ function Operations({ g, staged, setStaged, reload }) {
         )}
         <WriteError error={lifecycle.error} className="field-error m-0" />
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -283,9 +288,10 @@ function YourCard({ own, navigate }) {
   const [note, setNote] = useState("");
   const invalidate = useInvalidate();
   return (
-    <section className="panel" style={{ marginBottom: "14px" }}>
-      <div className="panel__head">
-        <span>Your card</span>
+    <Panel
+      title="Your card"
+      titleAs="div"
+      action={
         <button
           className="btn btn--sm"
           style={{ marginLeft: "auto" }}
@@ -293,7 +299,9 @@ function YourCard({ own, navigate }) {
         >
           {open ? "Keep it" : "Change"}
         </button>
-      </div>
+      }
+      style={{ marginBottom: "14px" }}
+    >
       <div style={{ padding: "12px 16px" }}>
         {!open ? (
           <div
@@ -358,7 +366,7 @@ function YourCard({ own, navigate }) {
           </>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -374,8 +382,7 @@ function NewToken({ own }) {
   const [error, setError] = useState("");
   const invalidate = useInvalidate();
   return (
-    <section className="panel mb-[14px]">
-      <div className="panel__head">New token</div>
+    <Panel title="New token" titleAs="div" className="mb-[14px]">
       <div className="panel__body flex flex-wrap items-center gap-3">
         <span className="footnote m-0 max-w-[52ch]">
           {sure
@@ -400,7 +407,7 @@ function NewToken({ own }) {
         </button>
         {error && <span className="field-error m-0">{error}</span>}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -437,13 +444,10 @@ export function CollectorPage({ id, navigate, me }) {
         <div className="page__crumb">
           <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
         </div>
-        <div className="empty">
-          <div className="empty__title">No collector by that name</div>
-          <p className="empty__body" style={{ marginBottom: 0 }}>
-            Collectors are named for a Clash Royale card. A drained one keeps
-            its name, but stops appearing on the collectors page.
-          </p>
-        </div>
+        <Empty title="No collector by that name">
+          Collectors are named for a Clash Royale card. A drained one keeps its
+          name, but stops appearing on the collectors page.
+        </Empty>
       </>
     );
 
@@ -460,18 +464,10 @@ export function CollectorPage({ id, navigate, me }) {
       <div className="page__crumb">
         <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "14px",
-          flexWrap: "wrap",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <h1 className="page__title">{name}</h1>
-          <p className="page__lede">
+      <PageHead
+        title={name}
+        sub={
+          <>
             {own ? "Yours" : `Run by ${pub?.operator ?? "an operator"}`}
             {own ? ` · ${own.name}` : ""}
             {detail?.gateway?.last_seen_sha
@@ -483,14 +479,16 @@ export function CollectorPage({ id, navigate, me }) {
                 <SignatureBadge state={pub.signature} />
               </>
             )}
-          </p>
-        </div>
-        <span className={`chip chip--${tone}`} style={{ marginLeft: "auto" }}>
-          <span className="chip__dot" />
-          {status_ !== "active" ? status_ : behind ? "behind" : "healthy"} ·
-          last {ago(pub?.last_success_at ?? own?.last_success_at, now)}
-        </span>
-      </div>
+          </>
+        }
+        aside={
+          <span className={`chip chip--${tone}`} style={{ marginLeft: "auto" }}>
+            <span className="chip__dot" />
+            {status_ !== "active" ? status_ : behind ? "behind" : "healthy"} ·
+            last {ago(pub?.last_success_at ?? own?.last_success_at, now)}
+          </span>
+        }
+      />
 
       {admin && (
         <Operations
@@ -546,19 +544,20 @@ export function CollectorPage({ id, navigate, me }) {
       />
 
       {own?.provision_ready && !revealed && (
-        <section
-          className="panel"
-          style={{ marginBottom: "14px", borderColor: "var(--line-strong)" }}
-        >
-          <div className="panel__head">
-            <span>Collector token</span>
+        <Panel
+          title="Collector token"
+          titleAs="div"
+          action={
             <span
               className="footnote"
               style={{ marginLeft: "auto", fontWeight: 400 }}
             >
               staged, waiting for you
             </span>
-          </div>
+          }
+
+          style={{ marginBottom: "14px", borderColor: "var(--line-strong)" }}
+        >
           <div
             style={{
               padding: "14px 16px",
@@ -590,7 +589,7 @@ export function CollectorPage({ id, navigate, me }) {
               Reveal once
             </button>
           </div>
-        </section>
+        </Panel>
       )}
 
       {revealed && (
@@ -623,8 +622,7 @@ export function CollectorPage({ id, navigate, me }) {
 
       {own ? (
         detail?.endpoints_7d?.length > 0 && (
-          <section className="panel">
-            <div className="panel__head">What it fetched</div>
+          <Panel title="What it fetched" titleAs="div">
             <div style={{ padding: "6px 0" }}>
               {detail.endpoints_7d.map((e) => {
                 const top = Math.max(
@@ -681,15 +679,15 @@ export function CollectorPage({ id, navigate, me }) {
               Seven days. The server chooses what each collector fetches; a
               collector never picks its own targets.
             </div>
-          </section>
+          </Panel>
         )
       ) : (
-        <section className="panel">
+        <Panel>
           <div className="panel__body" style={{ color: "var(--ink-dim)" }}>
             Health and share are public. Endpoint mix, errors and the machine
             label belong to the operator.
           </div>
-        </section>
+        </Panel>
       )}
     </>
   );

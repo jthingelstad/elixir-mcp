@@ -1,4 +1,13 @@
-import { Disclosure, Fresh, ago, Tag, TagText, useClock } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  Fresh,
+  ago,
+  Tag,
+  TagText,
+  useClock,
+  Panel,
+  Table,
+} from "@elixir-mcp/ui";
 import { useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { useAwards } from "../lib/queries.js";
@@ -360,7 +369,7 @@ function AwardPanel({
       ? (row.place_tied ?? shared.get(position(row)) > 1)
       : (row.tied ?? shared.get(position(row)) > 1);
   return (
-    <div className="panel">
+    <Panel as="div">
       <div className="panel__head" style={{ gap: "8px", flexWrap: "wrap" }}>
         <span>
           {season.closed && grants.length ? grants[0].name : award.name}
@@ -598,66 +607,79 @@ function AwardPanel({
                 : "Nobody in the race yet."}
           </p>
         ) : (
-          <div tabIndex={0} className="table__scroll">
-            <table className="table">
-              <tbody>
-                {rows.map((r) => {
+          <Table
+            columns={[
+              {
+                head: "",
+                cellProps: () => ({
+                  style: { width: "2.5em", color: "var(--ink-faint)" },
+                }),
+                cell: (r) =>
+                  award.state === "held"
+                    ? "—"
+                    : award.kind === "perfect_attendance"
+                      ? "✓"
+                      : position(r) == null
+                        ? "—"
+                        : `${position(r)}${sharesPlace(r) ? "=" : ""}`,
+              },
+              {
+                head: "",
+                cell: (r) => {
                   const grant = grants.find(
                     (g) => g.player_tag === r.player_tag,
                   );
                   return (
-                    <tr key={r.player_tag}>
-                      <td style={{ width: "2.5em", color: "var(--ink-faint)" }}>
-                        {award.state === "held"
-                          ? "—"
-                          : award.kind === "perfect_attendance"
-                            ? "✓"
-                            : position(r) == null
-                              ? "—"
-                              : `${position(r)}${sharesPlace(r) ? "=" : ""}`}
-                      </td>
-                      <td>
-                        <strong>
-                          <MemberLink
-                            clanTag={clan.clan_tag}
-                            playerTag={r.player_tag}
-                            navigate={navigate}
-                            current={candidates.some(
-                              (member) => member.player_tag === r.player_tag,
-                            )}
-                          >
-                            {r.name ?? <Tag tag={r.player_tag} />}
-                          </MemberLink>
-                        </strong>{" "}
-                        <span className="tag">{r.player_tag}</span>
-                        {season.closed && grant ? (
-                          <span
-                            className="chip chip--ok"
-                            style={{ marginLeft: "6px" }}
-                          >
-                            granted
-                          </span>
-                        ) : null}
-                      </td>
-                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                        <span>{metric(award, r)}</span>
-                        {award.kind === "perfect_attendance" ? (
-                          <span className="block page-head__note">
-                            {Number.isFinite(r.donations)
-                              ? `${r.donations.toLocaleString()} donated`
-                              : "Donations unknown"}
-                          </span>
-                        ) : null}
-                      </td>
-                    </tr>
+                    <>
+                      <strong>
+                        <MemberLink
+                          clanTag={clan.clan_tag}
+                          playerTag={r.player_tag}
+                          navigate={navigate}
+                          current={candidates.some(
+                            (member) => member.player_tag === r.player_tag,
+                          )}
+                        >
+                          {r.name ?? <Tag tag={r.player_tag} />}
+                        </MemberLink>
+                      </strong>{" "}
+                      <span className="tag">{r.player_tag}</span>
+                      {season.closed && grant ? (
+                        <span
+                          className="chip chip--ok"
+                          style={{ marginLeft: "6px" }}
+                        >
+                          granted
+                        </span>
+                      ) : null}
+                    </>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+              {
+                head: "",
+                num: true,
+                cell: (r) => (
+                  <>
+                    <span>{metric(award, r)}</span>
+                    {award.kind === "perfect_attendance" ? (
+                      <span className="block page-head__note">
+                        {Number.isFinite(r.donations)
+                          ? `${r.donations.toLocaleString()} donated`
+                          : "Donations unknown"}
+                      </span>
+                    ) : null}
+                  </>
+                ),
+              },
+            ]}
+            rows={rows}
+            rowKey={(r) => r.player_tag}
+            noHead
+          />
         )}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -703,7 +725,7 @@ function OlderGrants({ grants, awardById }) {
         Earlier seasons, no longer in the record&rsquo;s window
       </div>
       {seasons.map((sid) => (
-        <div key={sid} className="panel" style={{ marginBottom: "10px" }}>
+        <Panel as="div" key={sid} style={{ marginBottom: "10px" }}>
           <div className="panel__head">Season {sid}</div>
           <div className="panel__body">
             <ul style={{ margin: 0, paddingLeft: "18px" }}>
@@ -720,7 +742,7 @@ function OlderGrants({ grants, awardById }) {
                 ))}
             </ul>
           </div>
-        </div>
+        </Panel>
       ))}
     </section>
   );
@@ -799,7 +821,7 @@ function AwardsConfig({ clan, view, onDone }) {
       {draft.awards.map((a, i) => {
         const k = kinds[a.kind];
         return (
-          <section key={i} className="panel">
+          <Panel key={i}>
             <div
               className="panel__head"
               style={{ gap: "8px", flexWrap: "wrap" }}
@@ -934,7 +956,7 @@ function AwardsConfig({ clan, view, onDone }) {
                 remove this award
               </button>
             </div>
-          </section>
+          </Panel>
         );
       })}
       {err("awards")}

@@ -319,11 +319,12 @@ test.describe("Ladder signed in", () => {
       }),
     );
     await page.goto("/ladder");
-    await expect(
-      page.getByRole("region", {
-        name: "Before and since Royal Hogs bridge spam",
-      }),
-    ).toBeVisible();
+    const change = page.getByRole("region", {
+      name: "Before and since Royal Hogs bridge spam",
+    });
+    await expect(change).toBeVisible();
+    // The deck's first battle is a date, not whatever `when` means globally.
+    await expect(change).toContainText(/Its first battle was \w{3} /);
     await expect
       .poll(() =>
         calls.some(
@@ -851,7 +852,7 @@ test.describe("Ladder days played", () => {
       }),
     ).toBeVisible();
 
-    const keys = page.locator("#ladder-cal ~ .ladder-key");
+    const keys = page.locator("#ladder-cal ~ .kit-panel__action .ladder-key");
     await expect(keys.first()).toHaveText("War");
     await expect(keys.first()).toHaveClass(/ladder-key--lead/);
     await expect(keys.filter({ hasText: "Trophy Road" }).first()).toHaveClass(

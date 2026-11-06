@@ -1,4 +1,11 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import {
+  useInitialTime,
+  Panel,
+  PageHead,
+  Table,
+  Empty,
+  Chips,
+} from "@elixir-mcp/ui";
 import { ago, Icon, Link, secsSince, Tag, TagText } from "@elixir-mcp/ui";
 import { scopeLabel } from "../../lib/words.js";
 import { useEffect, useRef, useState } from "react";
@@ -129,52 +136,42 @@ export function Tracking({ me, refresh, navigate, hash }) {
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: "16px",
-          flexWrap: "wrap",
-          marginBottom: "18px",
-        }}
-      >
-        <div>
-          <h1 className="page__title">Tracking</h1>
-          <p className="page__lede">
-            Manage the players and clans Elixir records for you.
-          </p>
-        </div>
-        <div
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            gap: "8px",
-            flexWrap: "wrap",
-          }}
-        >
-          {chips.map(([label, slot]) => (
-            <span
-              className="btn btn--sm"
-              key={label}
-              style={{ cursor: "default" }}
-            >
-              {label}{" "}
+      <PageHead
+        title="Tracking"
+        sub="Manage the players and clans Elixir records for you."
+        aside={
+          <div
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              gap: "8px",
+              flexWrap: "wrap",
+            }}
+          >
+            {chips.map(([label, slot]) => (
               <span
-                className={
-                  "meter__value" +
-                  (slot.limit != null &&
-                  slot.limit > 0 &&
-                  slot.used >= slot.limit
-                    ? " meter__value--full"
-                    : "")
-                }
+                className="btn btn--sm"
+                key={label}
+                style={{ cursor: "default" }}
               >
-                {slot.used}/{slot.limit ?? "∞"}
+                {label}{" "}
+                <span
+                  className={
+                    "meter__value" +
+                    (slot.limit != null &&
+                    slot.limit > 0 &&
+                    slot.used >= slot.limit
+                      ? " meter__value--full"
+                      : "")
+                  }
+                >
+                  {slot.used}/{slot.limit ?? "∞"}
+                </span>
               </span>
-            </span>
-          ))}
-        </div>
-      </div>
+            ))}
+          </div>
+        }
+      />
 
       <ClaimNotice me={me} onTracking className="mb-4" />
 
@@ -187,157 +184,125 @@ export function Tracking({ me, refresh, navigate, hash }) {
           padding: "0 0 13px",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            background: "var(--ground-sunken)",
-            border: "1px solid var(--line)",
-            borderRadius: "var(--r-control)",
-            padding: "3px",
-            gap: "2px",
-          }}
-        >
-          {[
-            ["all", "All"],
-            ["players", "Players"],
-            ["clans", "Clans"],
-          ].map(([key, label]) => (
-            <button
-              key={key}
-              className={
-                "btn btn--sm" + (filter === key ? " btn--selected" : "")
-              }
-              style={
-                filter === key
-                  ? undefined
-                  : { background: "transparent", border: 0 }
-              }
-              aria-pressed={filter === key}
-              onClick={() => setFilter(key)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <Chips
+          label="Filter"
+          options={[
+            { key: "all", label: "All" },
+            { key: "players", label: "Players" },
+            { key: "clans", label: "Clans" },
+          ]}
+          value={filter}
+          onChange={setFilter}
+        />
       </div>
 
       <ClanReadStatus query={clansQuery} />
 
       {rows.length === 0 ? (
         (clansQuery.isSuccess || filter === "players") && (
-          <div className="empty">
-            <div className="empty__title">
-              {filter === "players"
+          <Empty
+            title={
+              filter === "players"
                 ? "No players tracked"
                 : filter === "clans"
                   ? "No clans tracked"
-                  : "Nothing tracked yet"}
-            </div>
-            <p className="empty__body" style={{ marginBottom: 0 }}>
-              {filter === "clans"
-                ? "Track a clan below, or add your player to see their clan."
-                : "Add the player you play as below. Nothing here defaults to you, and recording starts on the next read."}
-            </p>
-          </div>
+                  : "Nothing tracked yet"
+            }
+          >
+            {filter === "clans"
+              ? "Track a clan below, or add your player to see their clan."
+              : "Add the player you play as below. Nothing here defaults to you, and recording starts on the next read."}
+          </Empty>
         )
       ) : (
-        <div className="table__scroll" tabIndex={0}>
-          <table className="table" style={{ minWidth: "640px" }}>
-            <thead>
-              <tr>
-                <th>Tracked</th>
-                <th>Relationship</th>
-                <th>Freshness</th>
-                <th style={{ textAlign: "right" }}>24H</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.key}>
-                  <td>
+        <Table
+          columns={[
+            {
+              head: "Tracked",
+              cell: (r) => (
+                <>
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    {/* The kind glyph tells a player from a clan under the
+                          "All" filter; gold on the ones that are yours, because
+                          ownership is a mark and a word, never a tinted row. */}
                     <span
                       style={{
                         display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
+                        color: r.primary
+                          ? "var(--gold)"
+                          : "var(--ink-quiet-icon)",
                       }}
+                      title={r.kind === "clan" ? "clan" : "player"}
                     >
-                      {/* The kind glyph tells a player from a clan under the
-                          "All" filter; gold on the ones that are yours, because
-                          ownership is a mark and a word, never a tinted row. */}
-                      <span
-                        style={{
-                          display: "flex",
-                          color: r.primary
-                            ? "var(--gold)"
-                            : "var(--ink-quiet-icon)",
-                        }}
-                        title={r.kind === "clan" ? "clan" : "player"}
-                      >
-                        <Icon
-                          name={r.kind === "clan" ? "shield" : "user-round"}
-                          size={16}
-                        />
-                      </span>
-                      <Link
-                        style={{ fontWeight: 600, fontSize: "14px" }}
-                        to={`${CONSOLE}/account/tracking/${tagPath(r.tag)}`}
-                      >
-                        {r.name}
-                      </Link>
-                      {r.verified && <VerifiedMark />}
+                      <Icon
+                        name={r.kind === "clan" ? "shield" : "user-round"}
+                        size={16}
+                      />
                     </span>
                     <Link
-                      className="mono"
-                      style={{ display: "inline-block", marginTop: "3px" }}
-                      to={`${CONSOLE}/explore/${r.kind === "clan" ? "clan" : "player"}/${tagPath(r.tag)}`}
+                      style={{ fontWeight: 600, fontSize: "14px" }}
+                      to={`${CONSOLE}/account/tracking/${tagPath(r.tag)}`}
                     >
-                      {r.tag}
+                      {r.name}
                     </Link>
-                  </td>
-                  <td>{r.rel}</td>
-                  <td>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "7px",
-                        color: `var(--${r.fresh.tone})`,
-                      }}
-                    >
-                      <span
-                        className="chip__dot"
-                        style={{ background: `var(--${r.fresh.tone})` }}
-                      />
-                      {r.fresh.text}
-                    </span>
-                  </td>
-                  <td
-                    style={{
-                      textAlign: "right",
-                      fontFamily: "var(--font-mono)",
-                    }}
+                    {r.verified && <VerifiedMark />}
+                  </span>
+                  <Link
+                    className="mono"
+                    style={{ display: "inline-block", marginTop: "3px" }}
+                    to={`${CONSOLE}/explore/${r.kind === "clan" ? "clan" : "player"}/${tagPath(r.tag)}`}
                   >
-                    {r.day ?? "—"}
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <button
-                      className="btn btn--sm"
-                      onClick={() =>
-                        navigate(
-                          `${CONSOLE}/account/tracking/${tagPath(r.tag)}`,
-                        )
-                      }
-                    >
-                      Manage
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    {r.tag}
+                  </Link>
+                </>
+              ),
+            },
+            { head: "Relationship", cell: (r) => r.rel },
+            {
+              head: "Freshness",
+              cell: (r) => (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "7px",
+                    color: `var(--${r.fresh.tone})`,
+                  }}
+                >
+                  <span
+                    className="chip__dot"
+                    style={{ background: `var(--${r.fresh.tone})` }}
+                  />
+                  {r.fresh.text}
+                </span>
+              ),
+            },
+            { head: "24H", num: true, cell: (r) => r.day ?? "—" },
+            {
+              head: "",
+              className: "text-right",
+              cell: (r) => (
+                <button
+                  className="btn btn--sm"
+                  onClick={() =>
+                    navigate(`${CONSOLE}/account/tracking/${tagPath(r.tag)}`)
+                  }
+                >
+                  Manage
+                </button>
+              ),
+            },
+          ]}
+          rows={rows}
+          rowKey={(r) => r.key}
+          minWidth={640}
+        />
       )}
 
       <HomeClanOffer className="mt-[18px]" />
@@ -350,8 +315,11 @@ export function Tracking({ me, refresh, navigate, hash }) {
           marginTop: "24px",
         }}
       >
-        <section className="panel" style={{ flex: "1 1 300px" }}>
-          <div className="panel__head">Track a player</div>
+        <Panel
+          title="Track a player"
+          titleAs="div"
+          style={{ flex: "1 1 300px" }}
+        >
           <div
             className="panel__body"
             style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
@@ -459,10 +427,9 @@ export function Tracking({ me, refresh, navigate, hash }) {
             </Link>
             .
           </div>
-        </section>
+        </Panel>
 
-        <section className="panel" style={{ flex: "1 1 300px" }}>
-          <div className="panel__head">Track a clan</div>
+        <Panel title="Track a clan" titleAs="div" style={{ flex: "1 1 300px" }}>
           <div
             className="panel__body"
             style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
@@ -520,7 +487,7 @@ export function Tracking({ me, refresh, navigate, hash }) {
               ? " Your account can record a clan only, with no slots for every member."
               : ""}
           </div>
-        </section>
+        </Panel>
       </div>
 
       {(clans?.clans ?? []).some(

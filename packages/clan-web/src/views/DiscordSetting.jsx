@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DiscordDeliveries, useClock } from "@elixir-mcp/ui";
+import { DiscordDeliveries, useClock, Panel } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useDiscord, useInvalidate } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
@@ -102,16 +102,18 @@ export function DiscordSetting({ clan }) {
       </p>
 
       {d.set ? (
-        <section className="panel">
-          <div className="panel__head flex-wrap gap-2">
-            <span>The clan&rsquo;s Discord</span>
+        <Panel
+          title="The clan’s Discord"
+          titleAs="div"
+          action={
             <span
               className={`chip ${d.refused_at || !d.readable ? "chip--warn" : "chip--ok"}`}
               role="status"
             >
               {d.refused_at || !d.readable ? "not posting" : "posting"}
             </span>
-          </div>
+          }
+        >
           <div className="panel__body fields">
             <span className="label">Webhook</span>
             <span>
@@ -216,7 +218,7 @@ export function DiscordSetting({ clan }) {
               Stop posting
             </button>
           </div>
-        </section>
+        </Panel>
       ) : null}
 
       <form className="grid gap-2" onSubmit={save}>

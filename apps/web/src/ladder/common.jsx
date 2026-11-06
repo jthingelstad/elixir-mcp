@@ -1,4 +1,12 @@
-import { Disclosure, Fresh, Icon, Link } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  Empty,
+  Fresh,
+  Icon,
+  Link,
+  PageHead,
+  Stat,
+} from "@elixir-mcp/ui";
 import { useId } from "react";
 import { MODES, fmt, playerName } from "./ladder.js";
 import { ZoneOffer } from "../components/ZoneOffer.jsx";
@@ -52,8 +60,9 @@ function LadderHeadRow({
   seasonPicker,
 }) {
   return (
-    <div className="page-head ladder-head">
-      <div className="min-w-0 flex-auto">
+    <PageHead
+      className="ladder-head"
+      crumb={
         <p className="page__crumb ladder-crumb">
           <span>Ladder</span>
           <span aria-hidden="true">›</span>
@@ -61,14 +70,20 @@ function LadderHeadRow({
           <span aria-hidden="true">›</span>
           <span className="text-ink-dim">{page}</span>
         </p>
-        <h1 className="page__title">{title}</h1>
-        {lede ? <p className="page__lede">{lede}</p> : null}
-      </div>
-      <div className="ladder-head__side">
-        {seasonPicker ? <SeasonSwitch {...seasonPicker} /> : null}
-        {observedAt ? <Fresh ts={observedAt} label="battle log read" /> : null}
-      </div>
-    </div>
+      }
+      title={title}
+      sub={lede}
+      aside={
+        seasonPicker || observedAt ? (
+          <div className="ladder-head__side">
+            {seasonPicker ? <SeasonSwitch {...seasonPicker} /> : null}
+            {observedAt ? (
+              <Fresh ts={observedAt} label="battle log read" />
+            ) : null}
+          </div>
+        ) : null
+      }
+    />
   );
 }
 
@@ -168,15 +183,13 @@ export function Record({ wins, losses, draws = 0 }) {
 
 export function Tile({ label, children, small = false, sub = null }) {
   return (
-    <div className="ladder-tile">
-      <span className="ladder-tile__label">{label}</span>
-      <span
-        className={`ladder-tile__value${small ? " ladder-tile__value--sm" : ""}`}
-      >
-        {children}
-      </span>
-      {sub ? <span className="ladder-tile__sub">{sub}</span> : null}
-    </div>
+    <Stat
+      className="ladder-tile"
+      label={label}
+      value={children}
+      small={small}
+      note={sub || undefined}
+    />
   );
 }
 
@@ -205,16 +218,19 @@ export function ReadError({ error, what = "this" }) {
  *  and a season belongs to a player. Tracking is where one is added. */
 export function NoPlayers() {
   return (
-    <div className="empty mt-6">
-      <h1 className="empty__title">No player of yours yet</h1>
-      <p className="empty__body">
-        Ladder reads back the season of a player you play as. Add the player you
-        play as on Tracking; the record starts with the next battle log Elixir
-        reads.
-      </p>
-      <Link className="btn btn--sm" to="/console/account/tracking">
-        Go to Tracking
-      </Link>
-    </div>
+    <Empty
+      title="No player of yours yet"
+      titleAs="h1"
+      action={
+        <Link className="btn btn--sm" to="/console/account/tracking">
+          Go to Tracking
+        </Link>
+      }
+      className="mt-6"
+    >
+      Ladder reads back the season of a player you play as. Add the player you
+      play as on Tracking; the record starts with the next battle log Elixir
+      reads.
+    </Empty>
   );
 }

@@ -1,4 +1,4 @@
-import { Tag } from "@elixir-mcp/ui";
+import { Tag, Panel, Empty, PageHead, Table } from "@elixir-mcp/ui";
 import { useTrophies } from "../lib/queries.js";
 import { TooFew } from "../components/TooFew.jsx";
 
@@ -14,12 +14,10 @@ const place = (rank) =>
 export function Trophies({ clan, who }) {
   const { state, query } = useTrophies(clan.clan_tag);
   const head = (
-    <div className="page-head items-center">
-      <h1 className="page__title">Award history</h1>
-      <span className="page-head__note">
-        {clan.name ?? <Tag tag={clan.clan_tag} />}
-      </span>
-    </div>
+    <PageHead
+      title="Award history"
+      sub={<>{clan.name ?? <Tag tag={clan.clan_tag} />}</>}
+    />
   );
   if (state.forbidden)
     return (
@@ -45,12 +43,9 @@ export function Trophies({ clan, who }) {
     return (
       <>
         {head}
-        <div className="empty">
-          <div className="empty__title">No policy yet</div>
-          <p className="empty__body">
-            This clan&rsquo;s leaders have not set up how the clan runs here.
-          </p>
-        </div>
+        <Empty title="No policy yet">
+          This clan&rsquo;s leaders have not set up how the clan runs here.
+        </Empty>
       </>
     );
   if (state.error)
@@ -75,19 +70,16 @@ export function Trophies({ clan, who }) {
     return (
       <>
         {head}
-        <div className="empty">
-          <div className="empty__title">No awards yet</div>
-          <p className="empty__body">
-            This clan does not run any awards here yet.
-          </p>
-        </div>
+        <Empty title="No awards yet">
+          This clan does not run any awards here yet.
+        </Empty>
       </>
     );
   return (
     <>
       {head}
       {d.yours.length ? (
-        <section className="panel mb-[18px]">
+        <Panel className="mb-[18px]">
           <div className="panel__head">
             <span className="yours">★</span> Yours
           </div>
@@ -101,20 +93,19 @@ export function Trophies({ clan, who }) {
               </li>
             ))}
           </ul>
-        </section>
+        </Panel>
       ) : null}
       {d.awards.length ? (
         <section className="mb-[18px]">
           <div className="label mb-2">What this clan awards</div>
           <div className="grid gap-2">
             {d.awards.map((a) => (
-              <div key={a.id} className="panel">
-                <div className="panel__head">{a.name}</div>
+              <Panel as="div" title={a.name} titleAs="div" key={a.id}>
                 <div className="panel__body grid gap-1">
                   {a.description ? <div>{a.description}</div> : null}
                   <div className="page-head__note">{a.rule}</div>
                 </div>
-              </div>
+              </Panel>
             ))}
           </div>
         </section>
@@ -122,30 +113,30 @@ export function Trophies({ clan, who }) {
       {d.seasons.map((s) => (
         <section key={s.season_id} className="mb-[18px]">
           <div className="label mb-2">Season {s.season_id}</div>
-          <div tabIndex={0} className="table__scroll">
-            <table className="table">
-              <tbody>
-                {s.grants.map((g) => (
-                  <tr
-                    key={`${g.award_id}-${g.player_tag}`}
-                    data-you={
-                      g.player_tag === who?.player_tag ? "true" : undefined
-                    }
-                  >
-                    <td>{names.get(g.award_id) ?? g.name}</td>
-                    <td>{g.manual ? "" : place(g.rank)}</td>
-                    <td>
-                      {g.player_tag === who?.player_tag ? (
-                        <span className="yours">★ </span>
-                      ) : null}
-                      {g.player_name ?? <Tag tag={g.player_tag} />}{" "}
-                      <span className="tag">{g.player_tag}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={[
+              { head: "", cell: (g) => names.get(g.award_id) ?? g.name },
+              { head: "", cell: (g) => (g.manual ? "" : place(g.rank)) },
+              {
+                head: "",
+                cell: (g) => (
+                  <>
+                    {g.player_tag === who?.player_tag ? (
+                      <span className="yours">★ </span>
+                    ) : null}
+                    {g.player_name ?? <Tag tag={g.player_tag} />}{" "}
+                    <span className="tag">{g.player_tag}</span>
+                  </>
+                ),
+              },
+            ]}
+            rows={s.grants}
+            rowKey={(g) => `${g.award_id}-${g.player_tag}`}
+            rowProps={(g) => ({
+              "data-you": g.player_tag === who?.player_tag ? "true" : undefined,
+            })}
+            noHead
+          />
         </section>
       ))}
     </>

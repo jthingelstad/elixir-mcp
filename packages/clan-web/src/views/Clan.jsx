@@ -1,4 +1,4 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import { useInitialTime, Panel, Empty } from "@elixir-mcp/ui";
 import {
   Fresh,
   Icon,
@@ -8,6 +8,7 @@ import {
   useClock,
   noun,
   Tag,
+  Table,
 } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { useRoster } from "../lib/queries.js";
@@ -69,105 +70,97 @@ export function RosterTable({
     .map((m) => m.trophies)
     .filter((t) => t !== null && t !== undefined);
   return (
-    <div tabIndex={0} className="table__scroll">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Member</th>
-            <th>Role</th>
-            <th className="text-right">Trophies</th>
-            <th className="text-right">Donations this week</th>
-            <th>Last seen in game</th>
-            <th>Last recorded battle</th>
-          </tr>
-        </thead>
-        {groups.map(([role, rows]) => (
-          <tbody key={role}>
-            {rows.map((m) => (
-              <tr
-                key={m.player_tag}
-                data-you={m.you ? "true" : undefined}
-                className={m.you ? "bg-panel-raised" : undefined}
+    <Table
+      groups={groups.map(([role, rows]) => ({ key: role, rows }))}
+      rowKey={(m) => m.player_tag}
+      rowProps={(m) => ({
+        "data-you": m.you ? "true" : undefined,
+        className: m.you ? "bg-panel-raised" : undefined,
+      })}
+      columns={[
+        {
+          head: "Member",
+          cellProps: (m) => ({ title: m.player_tag }),
+          cell: (m) => (
+            <span className="inline-flex items-center gap-2">
+              <span
+                className={
+                  m.you ? "font-semibold text-ink" : "font-medium text-ink"
+                }
               >
-                <td title={m.player_tag}>
-                  <span className="inline-flex items-center gap-2">
-                    <span
-                      className={
-                        m.you
-                          ? "font-semibold text-ink"
-                          : "font-medium text-ink"
-                      }
-                    >
-                      {clanTag ? (
-                        <Link
-                          to={
-                            memberPath(clanTag, m.player_tag) +
-                            (search
-                              ? `?${new URLSearchParams({ find: search })}`
-                              : "")
-                          }
-                          navigate={navigate}
-                        >
-                          {m.name ?? <Tag tag={m.player_tag} />}
-                        </Link>
-                      ) : (
-                        (m.name ?? <Tag tag={m.player_tag} />)
-                      )}
-                    </span>
-                    {m.you ? (
-                      <span className="chip chip--info px-2 py-0 text-[11px]">
-                        you
-                      </span>
-                    ) : null}
-                  </span>
-                </td>
-                <td>
-                  <span className="text-ink-dim">{m.role_label ?? m.role}</span>
-                </td>
-                <td className="text-right font-mono">{num(m.trophies)}</td>
-                <td className="text-right font-mono">
-                  {num(m.donations_this_week)}
-                </td>
-                <td title={m.last_seen_in_game ?? undefined}>
-                  {m.last_seen_in_game ? (
-                    ago(m.last_seen_in_game, at)
-                  ) : (
-                    <span className="nil">—</span>
-                  )}
-                </td>
-                <td title={m.last_recorded_battle ?? undefined}>
-                  {m.last_recorded_battle ? (
-                    ago(m.last_recorded_battle, at)
-                  ) : (
-                    <span className="nil">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        ))}
-        {hidden.length ? (
-          <tbody>
-            <tr>
-              <td colSpan={6}>
-                <button
-                  type="button"
-                  className="btn btn--sm btn--quiet"
-                  onClick={onMore}
-                >
-                  <Icon name="chevron-down" size={14} />
-                  {hidden.length} more{" "}
-                  {hidden.length === 1 ? "member" : "members"}
-                  {floor.length
-                    ? `, down to ${num(Math.min(...floor))} trophies`
-                    : ""}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        ) : null}
-      </table>
-    </div>
+                {clanTag ? (
+                  <Link
+                    to={
+                      memberPath(clanTag, m.player_tag) +
+                      (search
+                        ? `?${new URLSearchParams({ find: search })}`
+                        : "")
+                    }
+                    navigate={navigate}
+                  >
+                    {m.name ?? <Tag tag={m.player_tag} />}
+                  </Link>
+                ) : (
+                  (m.name ?? <Tag tag={m.player_tag} />)
+                )}
+              </span>
+              {m.you ? (
+                <span className="chip chip--info px-2 py-0 text-[11px]">
+                  you
+                </span>
+              ) : null}
+            </span>
+          ),
+        },
+        {
+          head: "Role",
+          cell: (m) => (
+            <span className="text-ink-dim">{m.role_label ?? m.role}</span>
+          ),
+        },
+        { head: "Trophies", num: true, cell: (m) => num(m.trophies) },
+        {
+          head: "Donations this week",
+          num: true,
+          cell: (m) => num(m.donations_this_week),
+        },
+        {
+          head: "Last seen in game",
+          cellProps: (m) => ({ title: m.last_seen_in_game ?? undefined }),
+          cell: (m) =>
+            m.last_seen_in_game ? (
+              ago(m.last_seen_in_game, at)
+            ) : (
+              <span className="nil">—</span>
+            ),
+        },
+        {
+          head: "Last recorded battle",
+          cellProps: (m) => ({ title: m.last_recorded_battle ?? undefined }),
+          cell: (m) =>
+            m.last_recorded_battle ? (
+              ago(m.last_recorded_battle, at)
+            ) : (
+              <span className="nil">—</span>
+            ),
+        },
+      ]}
+      foot={
+        hidden.length ? (
+          <button
+            type="button"
+            className="btn btn--sm btn--quiet"
+            onClick={onMore}
+          >
+            <Icon name="chevron-down" size={14} />
+            {hidden.length} more {hidden.length === 1 ? "member" : "members"}
+            {floor.length
+              ? `, down to ${num(Math.min(...floor))} trophies`
+              : ""}
+          </button>
+        ) : null
+      }
+    />
   );
 }
 
@@ -297,7 +290,7 @@ function Comings({ roster, clan, history, navigate }) {
     (e) => e.type !== "week_resolved" || e.rank !== null,
   );
   return (
-    <section className="panel" aria-labelledby="clan-comings">
+    <Panel aria-labelledby="clan-comings">
       <div className="panel__head">
         <h2 id="clan-comings" className="m-0 grow text-[14px] font-semibold">
           Comings and goings
@@ -338,7 +331,7 @@ function Comings({ roster, clan, history, navigate }) {
           </p>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -390,21 +383,23 @@ export function Clan({ me, clan, navigate, search, path = null }) {
           </span>
         </div>
       ) : roster?.not_recorded ? (
-        <div className="empty">
-          <div className="empty__title">
-            Elixir is not recording {clan.name ?? <Tag tag={roster.clan_tag} />}{" "}
-            yet
-          </div>
-          <p className="empty__body">
-            Your player is in this clan, but the clan itself is not on
-            Elixir&rsquo;s record, so there is no roster to read. Add it under
-            Elixir → Tracking (clans), and the roster arrives with the first
-            read.
-          </p>
-          <Link className="btn btn--primary" to={ELIXIR_LINKS.tracking}>
-            Elixir → Tracking ›
-          </Link>
-        </div>
+        <Empty
+          title={
+            <>
+              Elixir is not recording{" "}
+              {clan.name ?? <Tag tag={roster.clan_tag} />} yet
+            </>
+          }
+          action={
+            <Link className="btn btn--primary" to={ELIXIR_LINKS.tracking}>
+              Elixir → Tracking ›
+            </Link>
+          }
+        >
+          Your player is in this clan, but the clan itself is not on
+          Elixir&rsquo;s record, so there is no roster to read. Add it under
+          Elixir → Tracking (clans), and the roster arrives with the first read.
+        </Empty>
       ) : roster ? (
         <>
           <ClanTiles roster={roster} />
@@ -419,7 +414,7 @@ export function Clan({ me, clan, navigate, search, path = null }) {
             </div>
           ) : null}
           <div className="grid gap-6 items-start">
-            <section className="panel min-w-0" aria-labelledby="clan-roster">
+            <Panel className="min-w-0" aria-labelledby="clan-roster">
               <div className="panel__head">
                 <h2 id="clan-roster" className="sr-only">
                   Roster
@@ -451,13 +446,10 @@ export function Clan({ me, clan, navigate, search, path = null }) {
               </div>
               <div className="px-1.5 pb-1.5">
                 {members.length === 0 ? (
-                  <div className="empty">
-                    <div className="empty__title">No members on the record</div>
-                    <p className="empty__body">
-                      Elixir knows the clan but has not carried a member for it
-                      yet. That resolves on its next roster read.
-                    </p>
-                  </div>
+                  <Empty title="No members on the record">
+                    Elixir knows the clan but has not carried a member for it
+                    yet. That resolves on its next roster read.
+                  </Empty>
                 ) : q && found.length === 0 ? (
                   <p className="page-head__note px-3 py-4">
                     Nobody on the roster matches &ldquo;{find.trim()}&rdquo;.
@@ -490,7 +482,7 @@ export function Clan({ me, clan, navigate, search, path = null }) {
                   {state.loading ? "Reading…" : "Check again"}
                 </button>
               </div>
-            </section>
+            </Panel>
             <details className="disclosure">
               <summary>Recent changes and recruiting</summary>
               <div className="disclosure__body grid gap-4 min-w-0">

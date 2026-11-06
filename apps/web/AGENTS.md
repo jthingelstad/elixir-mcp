@@ -30,6 +30,10 @@ behaviour is in `apps/site/src/docs/`, not here.
   `src/family.json`) and `packages/client` (the `{ ok, status, data }`
   envelope, `createClient()`, the query client and its one retry rule).
   What a view needs that the kit lacks is a kit addition.
+- **New pages use the kit's parts:** `PageHead`, `Tabs`, `Chips`, `Panel` and
+  `Rows`, `Table`, `Empty` and `ErrorState`, `Stats`, `FreshChip`, all in
+  `@elixir-mcp/ui`. Never a hand-written `<table>`: at phone width no table
+  scrolls sideways. See `docs/notes/2026-11-05-the-kit.md`.
 - **Time:** a member page says when through `useClock` (`when`, `whenDay`,
   `calendar`, `clock`), the one format, in the account's zone (Admin keeps
   `stamp`); day-bucketed charts stay UTC and say

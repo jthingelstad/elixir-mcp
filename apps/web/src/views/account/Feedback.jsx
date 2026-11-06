@@ -1,4 +1,4 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import { useInitialTime, Panel, Empty } from "@elixir-mcp/ui";
 import { FEEDBACK_CATEGORIES } from "@elixir-mcp/contracts";
 import { ago, Icon, Link, LogTable, Markdown, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
@@ -112,13 +112,10 @@ export function FeedbackItem({ id, navigate }) {
   const invalidate = useInvalidate();
   if (query.isError)
     return (
-      <div className="empty">
-        <div className="empty__title">No feedback item #{id}</div>
-        <p className="empty__body" style={{ marginBottom: 0 }}>
-          Nothing by that number on your account.{" "}
-          <Link to={path(`${CONSOLE}/account/feedback`)}>All feedback ›</Link>
-        </p>
-      </div>
+      <Empty title={<>No feedback item #{id}</>}>
+        Nothing by that number on your account.{" "}
+        <Link to={path(`${CONSOLE}/account/feedback`)}>All feedback ›</Link>
+      </Empty>
     );
   if (!item) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
   const itemPath = (n) => path(`${CONSOLE}/account/feedback/${n}`);
@@ -346,9 +343,10 @@ function Compose({
   const [failed, setFailed] = useState("");
   const path = useConsolePath();
   return (
-    <section className="panel" style={{ marginBottom: "18px" }}>
-      <div className="panel__head">
-        <span className="panel-title">{title}</span>
+    <Panel
+      title={title}
+      titleAs="div"
+      action={
         <button
           type="button"
           className="btn btn--sm"
@@ -357,7 +355,9 @@ function Compose({
         >
           Close
         </button>
-      </div>
+      }
+      style={{ marginBottom: "18px" }}
+    >
       <div
         className="panel__body"
         style={{ display: "flex", flexDirection: "column", gap: "10px" }}
@@ -454,7 +454,7 @@ function Compose({
           </>
         )}
       </div>
-    </section>
+    </Panel>
   );
 }
 

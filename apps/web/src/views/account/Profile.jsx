@@ -1,4 +1,12 @@
-import { Disclosure, Icon, Link, useClock } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  Icon,
+  Link,
+  useClock,
+  Panel,
+  PageHead,
+  Table,
+} from "@elixir-mcp/ui";
 import { limitsLabel } from "../../lib/words.js";
 import { useState } from "react";
 import { api } from "../../api.js";
@@ -33,17 +41,12 @@ export function Profile({ me, refresh, navigate }) {
 
   return (
     <>
-      <div style={{ marginBottom: "18px" }}>
-        <h1 className="page__title">Profile</h1>
-        <p className="page__lede">
-          Your account, preferences and recording limits.
-        </p>
-      </div>
+      <PageHead
+        title="Profile"
+        sub="Your account, preferences and recording limits."
+      />
 
-      <section className="panel" style={{ marginBottom: "14px" }}>
-        <div className="panel__head">
-          <span className="panel-title">Account</span>
-        </div>
+      <Panel title="Account" titleAs="div" style={{ marginBottom: "14px" }}>
         <div style={{ padding: "4px 0" }}>
           <Field
             label="Email"
@@ -107,12 +110,12 @@ export function Profile({ me, refresh, navigate }) {
             stays UTC.
           </p>
         </Disclosure>
-      </section>
+      </Panel>
 
       {/* Email and Devices are their own pages (Jamie, 2026-09-19):
           each is a subject, and the profile is who you are and what
           your tier gives you. */}
-      <section className="panel mb-[14px]">
+      <Panel className="mb-[14px]">
         <SubpageLink
           navigate={navigate}
           to={`${CONSOLE}/account/profile/email`}
@@ -134,11 +137,11 @@ export function Profile({ me, refresh, navigate }) {
           title="Devices"
           note="Signed-in browsers and devices"
         />
-      </section>
+      </Panel>
 
       <TierPanel me={me} entitlements={e} usage={usage} />
 
-      <section className="panel" style={{ marginBottom: "14px" }}>
+      <Panel style={{ marginBottom: "14px" }}>
         <div className="panel__head" style={{ flexWrap: "wrap" }}>
           <span className="panel-title">Your quota</span>
           {quota && (
@@ -198,11 +201,12 @@ export function Profile({ me, refresh, navigate }) {
             Operators guide <Icon name="arrow-right" size={15} />
           </span>
         </a>
-      </section>
+      </Panel>
 
-      <a
+      <Panel
+        as="a"
         href="/docs/roles"
-        className="panel"
+
         style={{
           display: "flex",
           alignItems: "center",
@@ -229,7 +233,7 @@ export function Profile({ me, refresh, navigate }) {
         >
           Docs ▸ Limits <Icon name="arrow-right" size={15} />
         </span>
-      </a>
+      </Panel>
     </>
   );
 }
@@ -398,41 +402,35 @@ function TierLimits({ me, entitlements: e, usage }) {
     ["Agents", undefined, e.agents?.limit],
   ];
   return (
-    <div className="table__scroll" tabIndex={0}>
-      <table className="table" style={{ minWidth: "380px" }}>
-        <thead>
-          <tr>
-            <th>What</th>
-            <th style={{ textAlign: "right" }}>Using</th>
-            <th style={{ textAlign: "right" }}>
-              {limitsLabel(me?.role)} allow
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([label, used, limit]) => (
-            <tr key={label}>
-              <td>{label}</td>
-              <td
-                className="mono"
-                style={{
-                  textAlign: "right",
-                  color:
-                    limit != null && limit !== 0 && used >= limit
-                      ? "var(--warn)"
-                      : undefined,
-                }}
-              >
-                {used == null ? "—" : fmt(used)}
-              </td>
-              <td className="mono" style={{ textAlign: "right" }}>
-                {cap(limit)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      columns={[
+        { head: "What", cell: ([label]) => label },
+        {
+          head: "Using",
+          num: true,
+          className: "mono",
+          cellProps: ([, used, limit]) => ({
+            style: {
+              color:
+                limit != null && limit !== 0 && used >= limit
+                  ? "var(--warn)"
+                  : undefined,
+            },
+          }),
+          cell: ([, used]) => (used == null ? "—" : fmt(used)),
+        },
+        {
+          head: <>{limitsLabel(me?.role)} allow</>,
+          num: true,
+          className: "mono",
+          cell: ([, , limit]) => cap(limit),
+        },
+      ]}
+      rows={rows}
+      rowKey={([label]) => label}
+      phone="fit"
+      minWidth={380}
+    />
   );
 }
 
@@ -462,7 +460,7 @@ const NEXT_TIER = {
 function TierPanel({ me, entitlements: e, usage }) {
   const next = NEXT_TIER[me?.role] ?? [];
   return (
-    <section className="panel" style={{ marginBottom: "14px" }}>
+    <Panel style={{ marginBottom: "14px" }}>
       <div className="panel__head" style={{ flexWrap: "wrap" }}>
         <span className="panel-title">Your limits</span>
         {/* The one place gold is a badge: it names what is yours. */}
@@ -490,6 +488,6 @@ function TierPanel({ me, entitlements: e, usage }) {
         Your limits set what Elixir records for you, your daily budgets, and how
         many agents you can have, never what you can read.
       </div>
-    </section>
+    </Panel>
   );
 }

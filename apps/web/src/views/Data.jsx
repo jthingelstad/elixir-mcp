@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useClock } from "@elixir-mcp/ui";
+import { useClock, Panel, PageHead } from "@elixir-mcp/ui";
 import { usePublicStats } from "../lib/queries.js";
 
 /** Eight weeks. Long enough to see a trend, short enough that a daily bar is
@@ -127,13 +127,15 @@ export function Data() {
 
   return (
     <>
-      <div style={{ marginBottom: "18px" }}>
-        <h1 className="page__title">The record, day by day</h1>
-        <p className="page__lede">
-          The whole recorded series, day by day. The totals and the shape of it
-          are on <a href="/data">the status and data page</a>.
-        </p>
-      </div>
+      <PageHead
+        title="The record, day by day"
+        sub={
+          <>
+            The whole recorded series, day by day. The totals and the shape of
+            it are on <a href="/data">the status and data page</a>.
+          </>
+        }
+      />
       {err && <p className="field-error">{err}</p>}
 
       {t && (
@@ -168,22 +170,26 @@ export function Data() {
       )}
 
       {stats && (
-        <section className="panel">
-          <div className="panel__head">
-            <span className="panel-title">Over time</span>
-            <span className="caveat">last 8 weeks</span>
-            <span className="caveat">daily · UTC</span>
-            <span
-              className="mono"
-              style={{
-                marginLeft: "auto",
-                fontSize: "11px",
-                color: "var(--ink-faint)",
-              }}
-            >
-              as of {calendar(t?.newest_battle)}
-            </span>
-          </div>
+        <Panel
+          title="Over time"
+          titleAs="div"
+          action={
+            <>
+              <span className="caveat">last 8 weeks</span>
+              <span className="caveat">daily · UTC</span>
+              <span
+                className="mono"
+                style={{
+                  marginLeft: "auto",
+                  fontSize: "11px",
+                  color: "var(--ink-faint)",
+                }}
+              >
+                as of {calendar(t?.newest_battle)}
+              </span>
+            </>
+          }
+        >
           <div onMouseLeave={() => setHover(null)}>
             <Chart
               label="battles recorded / day"
@@ -214,7 +220,7 @@ export function Data() {
             record keeps what it records while someone tracks it, and for a year
             after.
           </div>
-        </section>
+        </Panel>
       )}
     </>
   );

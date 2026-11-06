@@ -1,4 +1,4 @@
-import { FAMILY_SAMPLE_BATTLE, Icon } from "@elixir-mcp/ui";
+import { FAMILY_SAMPLE_BATTLE, Icon, Panel } from "@elixir-mcp/ui";
 import { LADDER_PAGES, MODES } from "./ladder.js";
 
 /** What each Ladder page reads back, in the docs' words
@@ -43,7 +43,7 @@ export function LadderInvite({ returnTo, onSignIn }) {
       </p>
       <ul className="mt-5 grid gap-3 p-0">
         {LADDER_PAGES.map((p) => (
-          <li key={p.slug} className="panel flex items-start gap-3 p-4">
+          <Panel as="li" key={p.slug} className="flex items-start gap-3 p-4">
             <Icon name={p.icon} size={18} />
             <span>
               <strong>{p.label}</strong>
@@ -51,7 +51,7 @@ export function LadderInvite({ returnTo, onSignIn }) {
                 {ABOUT[p.slug]}
               </span>
             </span>
-          </li>
+          </Panel>
         ))}
       </ul>
       <div className="mt-6 flex flex-wrap items-center gap-3">

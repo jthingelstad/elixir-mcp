@@ -1,4 +1,12 @@
-import { Fresh, Icon, noun, Tag, monthDayAt } from "@elixir-mcp/ui";
+import {
+  Fresh,
+  Icon,
+  noun,
+  Tag,
+  monthDayAt,
+  Panel,
+  Table,
+} from "@elixir-mcp/ui";
 import { useMemberView } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
@@ -216,8 +224,9 @@ export function YouHere({ clan, navigate }) {
       {head}
 
       {d.open_actions ? (
-        <a
-          className="panel flex items-center gap-3 px-4 py-3.5 mb-[22px] text-ink no-underline hover:bg-panel-raised"
+        <Panel
+          as="a"
+          className="flex items-center gap-3 px-4 py-3.5 mb-[22px] text-ink no-underline hover:bg-panel-raised"
           href={`${base}/actions`}
           onClick={go(`${base}/actions`)}
         >
@@ -231,7 +240,7 @@ export function YouHere({ clan, navigate }) {
           <span aria-hidden="true" className="text-ink-faint">
             ›
           </span>
-        </a>
+        </Panel>
       ) : null}
 
       <h2 className="label mt-0 mb-2.5">This week so far</h2>
@@ -268,7 +277,7 @@ export function YouHere({ clan, navigate }) {
 
       <div className="grid gap-4 items-start wide:grid-cols-3">
         <div className="grid gap-4 min-w-0 wide:col-span-2">
-          <section className="panel" aria-labelledby="you-doing">
+          <Panel aria-labelledby="you-doing">
             <Head id="you-doing" title="How you are doing here">
               {s ? <span className={`chip ${s[1]}`}>{s[0]}</span> : null}
             </Head>
@@ -379,10 +388,10 @@ export function YouHere({ clan, navigate }) {
                 </a>
               </div>
             ) : null}
-          </section>
+          </Panel>
 
           {races.length ? (
-            <section className="panel" aria-labelledby="you-war">
+            <Panel aria-labelledby="you-war">
               <Head
                 id="you-war"
                 title={
@@ -401,83 +410,84 @@ export function YouHere({ clan, navigate }) {
                   </p>
                 ) : null}
               </div>
-              <div tabIndex={0} className="table__scroll">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Race</th>
-                      <th>Decks played</th>
-                      <th>Points</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...races].reverse().map((w) => (
-                      <tr key={race(w)}>
-                        <td>
-                          {race(w)}
-                          {w.is_colosseum ? " · Colosseum" : ""}
-                          {w.open ? " (so far)" : ""}
-                        </td>
-                        <td>
-                          {n(w.decks)}
-                          {w.decks_asked != null ? ` of ${w.decks_asked}` : ""}
-                        </td>
-                        <td>{n(w.points)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+              <Table
+                columns={[
+                  {
+                    head: "Race",
+                    cell: (w) => (
+                      <>
+                        {race(w)}
+                        {w.is_colosseum ? " · Colosseum" : ""}
+                        {w.open ? " (so far)" : ""}
+                      </>
+                    ),
+                  },
+                  {
+                    head: "Decks played",
+                    num: true,
+                    cell: (w) => (
+                      <>
+                        {n(w.decks)}
+                        {w.decks_asked != null ? ` of ${w.decks_asked}` : ""}
+                      </>
+                    ),
+                  },
+                  { head: "Points", num: true, cell: (w) => n(w.points) },
+                ]}
+                rows={[...races].reverse()}
+                rowKey={(w) => race(w)}
+              />
+            </Panel>
           ) : null}
 
-          <section className="panel" aria-labelledby="you-weeks">
+          <Panel aria-labelledby="you-weeks">
             <Head id="you-weeks" title="Week by week" />
             <p className="page-head__note px-4">
               Battle counts are what Elixir recorded, not all play. No recorded
               battles does not mean no play. Weeks before roster recording began
               do not establish membership in this clan.
             </p>
-            <div tabIndex={0} className="table__scroll">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Week</th>
-                    <th>Recorded battles</th>
-                    <th>Recorded ranked battles</th>
-                    <th>Donations</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {weeks.map((w) => (
-                    <tr key={w.from}>
-                      <td>
-                        {w.complete
-                          ? `Week of ${date(w.from)}`
-                          : "This week, so far"}
-                        {Date.parse(w.from) <
-                        Date.parse(y.time_here.recording_since) ? (
-                          <span className="block page-head__note">
-                            {Date.parse(w.to) <=
-                            Date.parse(y.time_here.recording_since)
-                              ? "Before roster recording"
-                              : "Roster recording began during this week"}
-                          </span>
-                        ) : null}
-                      </td>
-                      <td>{n(w.battles)}</td>
-                      <td>{n(w.ranked_battles)}</td>
-                      <td>{n(w.donations)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+            <Table
+              columns={[
+                {
+                  head: "Week",
+                  cell: (w) => (
+                    <>
+                      {w.complete
+                        ? `Week of ${date(w.from)}`
+                        : "This week, so far"}
+                      {Date.parse(w.from) <
+                      Date.parse(y.time_here.recording_since) ? (
+                        <span className="block page-head__note">
+                          {Date.parse(w.to) <=
+                          Date.parse(y.time_here.recording_since)
+                            ? "Before roster recording"
+                            : "Roster recording began during this week"}
+                        </span>
+                      ) : null}
+                    </>
+                  ),
+                },
+                {
+                  head: "Recorded battles",
+                  num: true,
+                  cell: (w) => n(w.battles),
+                },
+                {
+                  head: "Recorded ranked battles",
+                  num: true,
+                  cell: (w) => n(w.ranked_battles),
+                },
+                { head: "Donations", num: true, cell: (w) => n(w.donations) },
+              ]}
+              rows={weeks}
+              rowKey={(w) => w.from}
+            />
+          </Panel>
         </div>
 
         <div className="grid gap-4 min-w-0">
-          <section className="panel" aria-labelledby="you-time">
+          <Panel aria-labelledby="you-time">
             <Head id="you-time" title="Your time here" />
             <div className="panel__body grid gap-2">
               <p className="m-0">
@@ -494,10 +504,10 @@ export function YouHere({ clan, navigate }) {
                   </p>
                 ))}
             </div>
-          </section>
+          </Panel>
 
           {d.trophies.length ? (
-            <section className="panel" aria-labelledby="you-trophies">
+            <Panel aria-labelledby="you-trophies">
               <Head id="you-trophies" title="Your trophies here" />
               <ul className="m-0 p-0 list-none">
                 {d.trophies.map((g) => (
@@ -518,7 +528,7 @@ export function YouHere({ clan, navigate }) {
                   </li>
                 ))}
               </ul>
-            </section>
+            </Panel>
           ) : null}
         </div>
       </div>

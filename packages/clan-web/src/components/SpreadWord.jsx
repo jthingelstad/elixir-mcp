@@ -1,3 +1,4 @@
+import { Panel } from "@elixir-mcp/ui";
 import { inviteCopy } from "@elixir-mcp/clan-engine";
 import { CopyLine } from "./ActionCard.jsx";
 import { CLAN, clanPath } from "../lib/base.js";
@@ -50,7 +51,7 @@ export function SpreadWord({ me, clan, roster, navigate }) {
 
   if (state === "small")
     return (
-      <div className="panel">
+      <Panel as="div">
         <div className="panel__head">
           Clan management starts at {MIN_MEMBERS} members
         </div>
@@ -77,13 +78,12 @@ export function SpreadWord({ me, clan, roster, navigate }) {
             </>
           ) : null}
         </div>
-      </div>
+      </Panel>
     );
 
   if (state === "setup")
     return (
-      <div className="panel">
-        <div className="panel__head">Set up how the clan runs</div>
+      <Panel as="div" title="Set up how the clan runs" titleAs="div">
         <div className="panel__body grid gap-2">
           <p className="m-0">
             Nothing in clan management runs until a leader saves a policy. Start
@@ -103,12 +103,11 @@ export function SpreadWord({ me, clan, roster, navigate }) {
             Set up the policy
           </a>
         </div>
-      </div>
+      </Panel>
     );
   if (state === "invite")
     return (
-      <div className="panel">
-        <div className="panel__head">Invite your leaders</div>
+      <Panel as="div" title="Invite your leaders" titleAs="div">
         <div className="panel__body grid gap-2">
           <p className="m-0">
             Your clan&rsquo;s leaders have not set it up here yet. When a leader
@@ -128,12 +127,12 @@ export function SpreadWord({ me, clan, roster, navigate }) {
           <div className="label">The link, for Discord or a message</div>
           <CopyLine text={link} event="clan.invite_copied" value="link" />
         </div>
-      </div>
+      </Panel>
     );
 
   if (state === "active")
     return (
-      <section className="panel" aria-labelledby="spread-word">
+      <Panel aria-labelledby="spread-word">
         <div className="panel__head">
           <h2 id="spread-word" className="m-0 text-[14px] font-semibold">
             Spread the word
@@ -168,7 +167,7 @@ export function SpreadWord({ me, clan, roster, navigate }) {
             Recruit writes the pitch ›
           </a>
         </div>
-      </section>
+      </Panel>
     );
   return null;
 }

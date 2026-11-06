@@ -1,4 +1,4 @@
-import { Tag, useClock } from "@elixir-mcp/ui";
+import { Tag, useClock, Panel } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import {
@@ -44,7 +44,7 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
   };
 
   return (
-    <div className="panel" style={{ marginTop: "12px" }}>
+    <Panel as="div" style={{ marginTop: "12px" }}>
       <div className="panel__head">
         <span className="yours">
           {member.name ?? <Tag tag={member.player_tag} />}
@@ -241,6 +241,6 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
           </div>
         ) : null}
       </div>
-    </div>
+    </Panel>
   );
 }

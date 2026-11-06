@@ -1,5 +1,12 @@
 import { useWrite } from "@elixir-mcp/client";
-import { Disclosure, Icon, Link, useClock, WriteError } from "@elixir-mcp/ui";
+import {
+  Disclosure,
+  Icon,
+  Link,
+  useClock,
+  WriteError,
+  PageHead,
+} from "@elixir-mcp/ui";
 import { api } from "../../api.js";
 import { keys, useEmailPrefs } from "../../lib/queries.js";
 import { CONSOLE } from "../../lib/console.js";
@@ -139,28 +146,29 @@ export function EmailPage() {
       <div className="page__crumb">
         <Link to={`${CONSOLE}/account/profile`}>‹ Profile</Link>
       </div>
-      <div className="mailprefs__head">
-        <div className="mailprefs__intro">
-          <h1 className="page__title">Emails from Elixir</h1>
-          <p className="page__lede">Choose what arrives in your inbox.</p>
-        </div>
-        {kinds.length > 0 ? (
-          <div className="mailall">
-            <span className="mailall__label">
-              <span className="mailall__name">Every email</span>
-              <span className="mailall__note">
-                {onCount} of {kinds.length} on
+      <PageHead
+        title="Emails from Elixir"
+        sub="Choose what arrives in your inbox."
+        aside={
+          kinds.length > 0 ? (
+            <div className="mailall">
+              <span className="mailall__label">
+                <span className="mailall__name">Every email</span>
+                <span className="mailall__note">
+                  {onCount} of {kinds.length} on
+                </span>
               </span>
-            </span>
-            <Switch
-              on={allOn}
-              label="Every email"
-              disabled={pref.busy}
-              onFlip={(on) => flip("all", on)}
-            />
-          </div>
-        ) : null}
-      </div>
+              <Switch
+                on={allOn}
+                label="Every email"
+                disabled={pref.busy}
+                onFlip={(on) => flip("all", on)}
+              />
+            </div>
+          ) : null
+        }
+        className="mailprefs__head"
+      />
       <WriteError error={pref.error} className="field-error mb-3" />
       {query.isError ? (
         <div className="callout callout--warn" role="alert">

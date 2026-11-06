@@ -1,6 +1,6 @@
 import { ELIXIR_LINKS, inApp } from "../lib/links.js";
 import { CLAN } from "../lib/base.js";
-import { Link, useClock, Tag } from "@elixir-mcp/ui";
+import { Link, useClock, Tag, Empty } from "@elixir-mcp/ui";
 
 /**
  * One page per gate refusal, in gate order. Each says exactly what to do
@@ -42,13 +42,17 @@ export function Refused({ reason, me, onRecheck, checking }) {
   const page = REFUSALS[reason];
   if (!page) {
     return (
-      <div className="empty" style={{ margin: "40px auto 0" }}>
-        <div className="empty__title">Nothing to refuse</div>
-        <p className="empty__body">There is no such gate page.</p>
-        <a className="btn" href={CLAN}>
-          Home
-        </a>
-      </div>
+      <Empty
+        title="Nothing to refuse"
+        action={
+          <a className="btn" href={CLAN}>
+            Home
+          </a>
+        }
+        style={{ margin: "40px auto 0" }}
+      >
+        There is no such gate page.
+      </Empty>
     );
   }
   const who = me?.primary?.name ?? me?.principal?.subject?.name;

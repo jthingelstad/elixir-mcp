@@ -2,7 +2,7 @@ import {
   COLLECTOR_RELEASE_KEYS,
   COLLECTOR_RELEASE_SIGNER,
 } from "@elixir-mcp/contracts";
-import { Icon } from "@elixir-mcp/ui";
+import { Icon, Panel } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import {
   fingerprintOf,
@@ -150,7 +150,7 @@ function KeyArt({ keyEntry }) {
  */
 export function ReleaseKeyCard({ counts }) {
   return (
-    <section className="release-key panel">
+    <Panel className="release-key">
       {COLLECTOR_RELEASE_KEYS.map((key) => (
         <div className="release-key__art" key={key.line}>
           <KeyArt keyEntry={key} />
@@ -188,7 +188,7 @@ export function ReleaseKeyCard({ counts }) {
           <a href="/docs/operators#how-updates-reach-you">check it yourself</a>
         </p>
       </div>
-    </section>
+    </Panel>
   );
 }
 

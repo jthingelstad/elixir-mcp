@@ -1,4 +1,4 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import { useInitialTime, Panel } from "@elixir-mcp/ui";
 import { Link, noun } from "@elixir-mcp/ui";
 import { CONSOLE } from "../lib/console.js";
 import { useMyClans } from "../lib/queries.js";
@@ -52,23 +52,21 @@ export function YoungRecord({ player, summary, className = "" }) {
   if (!young) return null;
   const step = STEPS[young.step];
   return (
-    <section
-      className={`panel ${className}`.trim()}
-      aria-labelledby="ladder-young-record"
+    <Panel
+      className={className}
+      titleId="ladder-young-record"
+      title={
+        young.days === 0
+          ? "Your record is less than a day old"
+          : `Your record is ${young.days} ${noun(young.days, "day")} old`
+      }
     >
-      <div className="panel__head">
-        <h2 id="ladder-young-record" className="ladder-panel-title">
-          {young.days === 0
-            ? "Your record is less than a day old"
-            : `Your record is ${young.days} ${noun(young.days, "day")} old`}
-        </h2>
-      </div>
       <div className="panel__body grid gap-2.5">
         <p className="m-0 text-[13.5px] text-ink-body">{step.text}</p>
         <Link className="btn btn--sm justify-self-start" to={step.to}>
           {step.action} ›
         </Link>
       </div>
-    </section>
+    </Panel>
   );
 }

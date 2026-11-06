@@ -1,4 +1,4 @@
-import { Link, Tag } from "@elixir-mcp/ui";
+import { Link, Tag, Panel, PageHead } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { ELIXIR_LINKS } from "../lib/links.js";
@@ -18,21 +18,24 @@ export function Clans({ me, onSelect, selecting }) {
   );
   return (
     <div style={{ maxWidth: "640px" }}>
-      <div className="page-head">
-        <h1 className="page__title">Your clans</h1>
-        <span className="page-head__note">
-          Every clan you hold a player in. Pick one to work in; it is
-          remembered.
-        </span>
-      </div>
+      <PageHead
+        title="Your clans"
+        sub={
+          <>
+            Every clan you hold a player in. Pick one to work in; it is
+            remembered.
+          </>
+        }
+      />
       <div style={{ display: "grid", gap: "12px" }}>
         {me.clans.map((c) => {
           const current = me.selected?.clan_tag === c.clan_tag;
           return (
-            <button
+            <Panel
+              as="button"
               type="button"
               key={c.clan_tag}
-              className="panel"
+
               data-clan={c.clan_tag}
               aria-current={current ? "true" : undefined}
               disabled={selecting}
@@ -100,13 +103,17 @@ export function Clans({ me, onSelect, selecting }) {
                   ) : null}
                 </div>
               </div>
-            </button>
+            </Panel>
           );
         })}
       </div>
       {unverified.length > 0 ? (
-        <div className="panel" style={{ marginTop: "20px", opacity: 0.85 }}>
-          <div className="panel__head">Unverified players</div>
+        <Panel
+          as="div"
+          title="Unverified players"
+          titleAs="div"
+          style={{ marginTop: "20px", opacity: 0.85 }}
+        >
           <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
             {unverified.map((i) => (
               <div
@@ -141,7 +148,7 @@ export function Clans({ me, onSelect, selecting }) {
             Co-leader&rsquo;s or Leader&rsquo;s tools wait until it is verified,
             which is one battle with a deck Elixir names.
           </div>
-        </div>
+        </Panel>
       ) : null}
     </div>
   );

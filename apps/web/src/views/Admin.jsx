@@ -171,6 +171,7 @@ function AdminCards() {
   return (
     <>
       <LogTable
+        admin
         crumb="Admin"
         title="Cards"
         note={
@@ -223,6 +224,7 @@ function AdminEmails() {
   ]);
   return (
     <LogTable
+      admin
       crumb="Admin"
       title="Emails sent"
       note="Every product email queued for any account, newest first. Open one to read it as it was sent."
@@ -330,6 +332,7 @@ function AdminDiscord() {
   return (
     <>
       <LogTable
+        admin
         crumb="Admin"
         title="Discord"
         note="What Elixir posted to Discord for every timeline and clan, and how it fared: Discord's answers, the one read of each post a day later, and the ratings of the people who can see the channel. Elixir never sees the channels themselves."
@@ -402,6 +405,7 @@ function AdminDiscord() {
       </section>
       <section className="mt-[18px]">
         <LogTable
+          admin
           title="Where to look"
           note="Each timeline and clan that posted in the window, the most refused, lost and deleted first. Open one for its posts whole."
           cols={[
@@ -523,6 +527,7 @@ function AdminDiscordDetail({ id }) {
   return (
     <>
       <LogTable
+        admin
         crumb={<Link to={`${CONSOLE}/admin/discord`}>‹ Discord</Link>}
         title={<TagText text={who} />}
         note={
@@ -561,6 +566,7 @@ function AdminDiscordDetail({ id }) {
       {data?.clan_tag && (
         <section className="mt-[18px]">
           <LogTable
+            admin
             title="Model runs"
             note="The clan's model as its activity channel's editor, the last 20 runs. Every post the checks refused is here with its reason and its text."
             cols={[
@@ -663,6 +669,7 @@ function AdminRequests() {
 
   return (
     <LogTable
+      admin
       crumb="Admin"
       title="Access requests"
       note="Granted by hand, oldest first."
@@ -720,6 +727,7 @@ function AdminAccounts() {
 
   return (
     <LogTable
+      admin
       crumb="Admin"
       title="Accounts"
       note="Everyone with a door. Tiers set what we record and the daily call budget — never read access."
@@ -765,6 +773,7 @@ function AdminUsage() {
 
   return (
     <LogTable
+      admin
       crumb="Admin"
       title="Usage across accounts"
       note="Seven days. The shared fetch budget is on Status."
@@ -802,6 +811,7 @@ function AdminPulse() {
   return (
     <>
       <LogTable
+        admin
         crumb="Admin"
         title="Beta pulse"
         note="People who signed up each ISO week (UTC), and how far they got: a count and its share of that week's signups. Counts only; Accounts is where an account is named."
@@ -1164,6 +1174,7 @@ function AdminConnections() {
 
   return (
     <LogTable
+      admin
       crumb="Admin"
       title="Connections"
       note="Every live OAuth connection, whoever holds it. Revoking one ends it on its next call and lands on that account's own event log."
@@ -1243,6 +1254,7 @@ function AdminFeedback() {
 
   return (
     <LogTable
+      admin
       crumb="Admin"
       title="Feedback queue"
       note="Every door files here: MCP, the JSON API, the Console, Ladder, Elixir Clan, the docs and the email footer."
@@ -1426,6 +1438,7 @@ function AdminCollectors() {
 
   return (
     <LogTable
+      admin
       crumb="Admin"
       title="Collector fleet"
       note="Enrollment is open: a raised hand starts on probation with its token staged, and its first admitted fetch makes it active. Open one to drain or revoke it."

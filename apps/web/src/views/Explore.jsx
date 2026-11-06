@@ -13,6 +13,9 @@ import {
   WriteError,
   noun,
   useFlash,
+  Panel,
+  PageHead,
+  Table,
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { usePublicStats } from "../lib/queries.js";
@@ -437,173 +440,190 @@ function Lookup({ me, navigate, browse }) {
 
   return (
     <>
-      <div style={{ maxWidth: "620px", padding: "8px 0" }}>
-        <h1 className="page__title">{browse?.title ?? "Explore"}</h1>
-        <p className="page__lede">
-          {browse
+      <PageHead
+        title={browse?.title ?? "Explore"}
+        sub={
+          browse
             ? `${browse.lede} ${browse.hint}`
-            : "Paste any tag to land on the record we hold for it, a player, a clan, a deck hash or a war week, or type a name or one of your nicknames. When your agent says something surprising, this is where you go and check."}
-        </p>
-        <form
-          style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            resolve(q);
-          }}
-        >
-          <input
-            className="mono"
-            aria-label="Look up a record"
-            placeholder={browse?.placeholder ?? "#2PYQ8GJ0"}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            style={{
-              flex: "1 1 240px",
-              padding: "11px 12px",
-              fontSize: "14px",
-            }}
-          />
-          <button
-            className="btn"
-            disabled={busy}
-            style={{ padding: "11px 18px" }}
-          >
-            {busy ? "Looking…" : "Look up"}
-          </button>
-        </form>
-        {tryChips.length > 0 && (
-          <div
-            className="mono"
-            style={{
-              display: "flex",
-              gap: "8px",
-              marginTop: "10px",
-              flexWrap: "wrap",
-              color: "var(--ink-faint)",
-              fontSize: "11.5px",
-            }}
-          >
-            <span>try:</span>
-            {tryChips.map((t) => (
+            : "Paste any tag to land on the record we hold for it, a player, a clan, a deck hash or a war week, or type a name or one of your nicknames. When your agent says something surprising, this is where you go and check."
+        }
+        aside={
+          <>
+            <form
+              style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                resolve(q);
+              }}
+            >
+              <input
+                className="mono"
+                aria-label="Look up a record"
+                placeholder={browse?.placeholder ?? "#2PYQ8GJ0"}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                style={{
+                  flex: "1 1 240px",
+                  padding: "11px 12px",
+                  fontSize: "14px",
+                }}
+              />
               <button
-                type="button"
-                className="link"
-                key={t.label}
-                onClick={() => resolve(t.q)}
+                className="btn"
+                disabled={busy}
+                style={{ padding: "11px 18px" }}
               >
-                {t.label}
+                {busy ? "Looking…" : "Look up"}
               </button>
-            ))}
-          </div>
-        )}
-        {matches && (
-          <div
-            className="panel"
-            style={{ marginTop: "18px", overflow: "hidden" }}
-          >
-            <div className="panel__head">
-              <span className="panel-title">
-                {matches.found.length}{" "}
-                {matches.found.length === 1
-                  ? "player matches"
-                  : "players match"}
-              </span>
-              <span
+            </form>
+            {tryChips.length > 0 && (
+              <div
                 className="mono"
                 style={{
-                  marginLeft: "auto",
-                  fontSize: "11px",
-                  color: "var(--ink-faint)",
-                }}
-              >
-                &ldquo;{matches.query}&rdquo;
-              </span>
-            </div>
-            {matches.found.map((m) => (
-              <Link
-                key={m.player_tag}
-                to={`${CONSOLE}/explore/player/${encTag(m.player_tag)}`}
-                onClick={restartTrail}
-                style={{
                   display: "flex",
-                  gap: "10px",
-                  padding: "10px 16px",
-                  borderTop: "1px solid var(--line-soft)",
-                  fontSize: "12.5px",
-                  color: "var(--ink)",
+                  gap: "8px",
+                  marginTop: "10px",
                   flexWrap: "wrap",
-                  alignItems: "center",
+                  color: "var(--ink-faint)",
+                  fontSize: "11.5px",
                 }}
               >
-                <span style={{ fontWeight: 600 }}>{m.name ?? "—"}</span>
-                {m.nickname && (
-                  <span className="tag-chip">&ldquo;{m.nickname}&rdquo;</span>
-                )}
-                <span className="tag">{m.player_tag}</span>
-                <span className="kind-chip">{m.source}</span>
-                {m.clan_tag && (
+                <span>try:</span>
+                {tryChips.map((t) => (
+                  <button
+                    type="button"
+                    className="link"
+                    key={t.label}
+                    onClick={() => resolve(t.q)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {matches && (
+              <Panel
+                as="div"
+                title={
+                  <>
+                    {matches.found.length}{" "}
+                    {matches.found.length === 1
+                      ? "player matches"
+                      : "players match"}
+                  </>
+                }
+                titleAs="div"
+                action={
                   <span
+                    className="mono"
                     style={{
                       marginLeft: "auto",
                       fontSize: "11px",
                       color: "var(--ink-faint)",
                     }}
                   >
-                    {m.clan_name ? `${m.clan_name} ` : ""}
-                    <span className="mono">{m.clan_tag}</span>
+                    &ldquo;{matches.query}&rdquo;
                   </span>
-                )}
-              </Link>
-            ))}
-          </div>
-        )}
-        {failure && (
-          <div className="empty" style={{ textAlign: "left" }}>
-            <div className="empty__title">That lookup could not run</div>
-            <div className="empty__body" style={{ textAlign: "left" }}>
-              <TagText>{failure}</TagText>
-            </div>
-          </div>
-        )}
-        {miss && !failure && (
-          <div
-            className="empty"
-            style={{
-              marginTop: "18px",
-              textAlign: "left",
-              padding: "14px 16px",
-            }}
-          >
-            <div
-              style={{ display: "flex", gap: "10px", alignItems: "baseline" }}
-            >
-              <span className="tag">{miss}</span>
-              <span
-                className="mono"
+                }
+
+                style={{ marginTop: "18px", overflow: "hidden" }}
+              >
+                {matches.found.map((m) => (
+                  <Link
+                    key={m.player_tag}
+                    to={`${CONSOLE}/explore/player/${encTag(m.player_tag)}`}
+                    onClick={restartTrail}
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      padding: "10px 16px",
+                      borderTop: "1px solid var(--line-soft)",
+                      fontSize: "12.5px",
+                      color: "var(--ink)",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{m.name ?? "—"}</span>
+                    {m.nickname && (
+                      <span className="tag-chip">
+                        &ldquo;{m.nickname}&rdquo;
+                      </span>
+                    )}
+                    <span className="tag">{m.player_tag}</span>
+                    <span className="kind-chip">{m.source}</span>
+                    {m.clan_tag && (
+                      <span
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: "11px",
+                          color: "var(--ink-faint)",
+                        }}
+                      >
+                        {m.clan_name ? `${m.clan_name} ` : ""}
+                        <span className="mono">{m.clan_tag}</span>
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </Panel>
+            )}
+            {failure && (
+              <div className="empty" style={{ textAlign: "left" }}>
+                <div className="empty__title">That lookup could not run</div>
+                <div className="empty__body" style={{ textAlign: "left" }}>
+                  <TagText>{failure}</TagText>
+                </div>
+              </div>
+            )}
+            {miss && !failure && (
+              <div
+                className="empty"
                 style={{
-                  color: "var(--bad)",
-                  fontWeight: 600,
-                  fontSize: "11.5px",
+                  marginTop: "18px",
+                  textAlign: "left",
+                  padding: "14px 16px",
                 }}
               >
-                no records
-              </span>
-            </div>
-            <div className="empty__body" style={{ textAlign: "left" }}>
-              Nothing in the record matches that tag or name. Elixir records the
-              players and clans someone added, and the game&rsquo;s
-              leaderboards; it does not crawl the whole game. Add it from{" "}
-              <Link to={`${CONSOLE}/account/tracking`}>Account ▸ Tracking</Link>{" "}
-              and recording starts on the next read.
-            </div>
-          </div>
-        )}
-      </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    alignItems: "baseline",
+                  }}
+                >
+                  <span className="tag">{miss}</span>
+                  <span
+                    className="mono"
+                    style={{
+                      color: "var(--bad)",
+                      fontWeight: 600,
+                      fontSize: "11.5px",
+                    }}
+                  >
+                    no records
+                  </span>
+                </div>
+                <div className="empty__body" style={{ textAlign: "left" }}>
+                  Nothing in the record matches that tag or name. Elixir records
+                  the players and clans someone added, and the game&rsquo;s
+                  leaderboards; it does not crawl the whole game. Add it from{" "}
+                  <Link to={`${CONSOLE}/account/tracking`}>
+                    Account ▸ Tracking
+                  </Link>{" "}
+                  and recording starts on the next read.
+                </div>
+              </div>
+            )}
+          </>
+        }
+      />
 
       <div className="cols" style={{ marginTop: "28px" }}>
-        <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
-          <div className="panel__head">
-            <span className="panel-title">Recent lookups</span>
+        <Panel
+          title="Recent lookups"
+          titleAs="div"
+          action={
             <span
               className="mono"
               style={{
@@ -614,7 +634,9 @@ function Lookup({ me, navigate, browse }) {
             >
               this browser only
             </span>
-          </div>
+          }
+          style={{ flex: "1 1 340px", minWidth: 0 }}
+        >
           {recents.length === 0 && (
             <div className="panel__body" style={{ color: "var(--ink-faint)" }}>
               Nothing yet.
@@ -641,11 +663,12 @@ function Lookup({ me, navigate, browse }) {
               <span className="kind-chip">{r.kind}</span>
             </Link>
           ))}
-        </section>
+        </Panel>
 
-        <section className="panel" style={{ flex: "1 1 340px", minWidth: 0 }}>
-          <div className="panel__head">
-            <span className="panel-title">What the record holds</span>
+        <Panel
+          title="What the record holds"
+          titleAs="div"
+          action={
             <Link
               to={`${CONSOLE}/data/dashboard`}
               className="mono"
@@ -653,7 +676,9 @@ function Lookup({ me, navigate, browse }) {
             >
               Data ›
             </Link>
-          </div>
+          }
+          style={{ flex: "1 1 340px", minWidth: 0 }}
+        >
           <div className="panel__body">
             {corpus && (
               <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
@@ -677,7 +702,7 @@ function Lookup({ me, navigate, browse }) {
             Explore is a coverage check, not a report. Your agent is the
             analyst.
           </div>
-        </section>
+        </Panel>
       </div>
     </>
   );
@@ -699,53 +724,42 @@ function saveTrail(t) {
 /** A record's table: plain rows, and a reference cell is a Link. */
 function RecordTable({ table }) {
   return (
-    <div className="table__scroll" tabIndex={0}>
-      <table className="table" style={{ minWidth: "640px" }}>
-        <thead>
-          <tr>
-            {table.cols.map((c) => (
-              <th key={c.label} className={c.num ? "num" : undefined}>
-                {c.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {table.rows.map((row, i) => (
-            <tr key={i}>
-              {row.map((cell, j) => (
-                <td key={j} className={table.cols[j].num ? "num" : undefined}>
-                  {cell.href ? (
-                    <Link
-                      className={cell.mono ? "tag" : undefined}
-                      to={cell.href}
-                      style={cell.style}
-                    >
-                      <TagText>{cell.text}</TagText>
-                    </Link>
-                  ) : (
-                    <span
-                      className={
-                        cell.outcome
-                          ? `outcome outcome--${cell.outcome}`
-                          : cell.mono
-                            ? "tag"
-                            : cell.nil
-                              ? "nil"
-                              : undefined
-                      }
-                      style={cell.style}
-                    >
-                      <TagText>{cell.text}</TagText>
-                    </span>
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table
+      minWidth={640}
+      columns={table.cols.map((c, j) => ({
+        key: c.label,
+        head: c.label,
+        num: c.num,
+        cell: (row) => {
+          const cell = row[j];
+          return cell.href ? (
+            <Link
+              className={cell.mono ? "tag" : undefined}
+              to={cell.href}
+              style={cell.style}
+            >
+              <TagText>{cell.text}</TagText>
+            </Link>
+          ) : (
+            <span
+              className={
+                cell.outcome
+                  ? `outcome outcome--${cell.outcome}`
+                  : cell.mono
+                    ? "tag"
+                    : cell.nil
+                      ? "nil"
+                      : undefined
+              }
+              style={cell.style}
+            >
+              <TagText>{cell.text}</TagText>
+            </span>
+          );
+        },
+      }))}
+      rows={table.rows}
+    />
   );
 }
 
@@ -899,9 +913,10 @@ function RecordPage({ me, kind, rawId, search }) {
 
       {view.fields && (
         <div className="cols">
-          <section className="panel" style={{ flex: "1 1 380px", minWidth: 0 }}>
-            <div className="panel__head">
-              <span className="panel-title">Fields</span>
+          <Panel
+            title="Fields"
+            titleAs="div"
+            action={
               <span
                 className="mono"
                 style={{
@@ -912,7 +927,9 @@ function RecordPage({ me, kind, rawId, search }) {
               >
                 references are links
               </span>
-            </div>
+            }
+            style={{ flex: "1 1 380px", minWidth: 0 }}
+          >
             <dl className="fields" style={{ margin: 0 }}>
               {view.fields.map((f) => (
                 <span key={f.label} style={{ display: "contents" }}>
@@ -940,16 +957,15 @@ function RecordPage({ me, kind, rawId, search }) {
               />
             )}
             {view.note && <div className="panel__note">{view.note}</div>}
-          </section>
+          </Panel>
 
           {view.tiles?.length > 0 && (
-            <section
-              className="panel"
+            <Panel
+              title="What we have"
+              titleAs="div"
+
               style={{ flex: "1 1 280px", minWidth: 0 }}
             >
-              <div className="panel__head">
-                <span className="panel-title">What we have</span>
-              </div>
               <div className="tiles">
                 {view.tiles.map((t) =>
                   t.href ? (
@@ -986,7 +1002,7 @@ function RecordPage({ me, kind, rawId, search }) {
                   ),
                 )}
               </div>
-            </section>
+            </Panel>
           )}
         </div>
       )}

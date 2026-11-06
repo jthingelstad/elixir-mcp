@@ -5,6 +5,7 @@ import {
   Disclosure,
   Setting,
   useClock,
+  Panel,
 } from "@elixir-mcp/ui";
 import { manageApi } from "../api.js";
 import { keys, useActivityDiscord, useInvalidate } from "../lib/queries.js";
@@ -606,7 +607,7 @@ function EditorPreview({ preview, disabled }) {
           {result.posts
             .filter((p) => !p.told_in)
             .map((p) => (
-              <li key={p.key} className="panel">
+              <Panel as="li" key={p.key}>
                 <div className="panel__body grid gap-1">
                   {p.post ? (
                     <>
@@ -642,7 +643,7 @@ function EditorPreview({ preview, disabled }) {
                     </>
                   )}
                 </div>
-              </li>
+              </Panel>
             ))}
         </ol>
       ) : null}
