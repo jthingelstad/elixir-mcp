@@ -6,7 +6,7 @@ section: friends
 order: 2
 navTitle: "Watch any player"
 icon: eye
-lede: "Any player with a tag can be tracked. Adding one is recording it, from the next poll on, and a watched player gets a line in your Wednesday email."
+lede: "Any player with a tag can be tracked. Adding one is recording it, from the next read on, and a watched player gets a line in your Wednesday email."
 console: ["Track a player", "/console/account/tracking", "Console ▸ Tracking"]
 reviewed: "2026-10-01 against contract 9.17.1"
 ---
@@ -24,21 +24,21 @@ starts with (your first player is your primary), and the only one an
 **Track**. Through a [connected app](/docs/connections), `elixir_track_player`
 with the tag; with no `relationship` it watches.
 
-Tracked means recorded. Capture starts on the next poll and carries on
+Tracked means recorded. Recording starts on the next read and carries on
 until you remove the player: the battle log about every 30 minutes
 while they are playing, backing off to two hours when they are not,
 and the profile daily and after a session. If someone else already
 tracks the player you share the record they built, so its history can
 start before the day you added it. [What Elixir records](/docs/recording)
-has the schedule and what each poll reads.
+has the schedule and what each read reads.
 
 ## Slots
 
-Every tracked player takes one of your tier's player slots, whatever
+Every tracked player takes one of your player slots, whatever
 the relationship; **Console ▸ Tracking** shows how many you use. When
-they are full, adding another is refused until you remove one or your tier
+they are full, adding another is refused until you remove one or your limits
 rises: lead a clan you track, or run a collector.
-[Roles and tiers](/docs/roles#upgrades) has the numbers.
+[Roles and limits](/docs/roles#upgrades) has the numbers.
 
 ## What you see
 

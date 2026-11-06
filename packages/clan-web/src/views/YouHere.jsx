@@ -1,4 +1,4 @@
-import { Fresh, Icon, noun, Tag } from "@elixir-mcp/ui";
+import { Fresh, Icon, noun, Tag, monthDayAt } from "@elixir-mcp/ui";
 import { useMemberView } from "../lib/queries.js";
 import { RoleChip } from "../components/RoleChip.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
@@ -29,14 +29,7 @@ const WORDS = ["", "one", "two", "three", "four", "five"];
 const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
 /** A date as the canvas writes it ("Sep 21"). Weeks and races turn on
  *  UTC boundaries, so the day is read in UTC, as The week reads it. */
-const date = (ts) =>
-  ts
-    ? new Date(ts).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        timeZone: "UTC",
-      })
-    : "";
+const date = (ts) => monthDayAt(ts, "UTC");
 const race = (w) => `${w.season_id}/${w.section_index}`;
 const ordinal = (k) =>
   k === 1 ? "1st" : k === 2 ? "2nd" : k === 3 ? "3rd" : `${k}th`;
@@ -256,7 +249,7 @@ export function YouHere({ clan, navigate }) {
           />
         ) : null}
         <Tile
-          label="Ranked battles"
+          label="Path of Legends battles"
           value={n(y.this_week?.ranked_battles)}
           hint={counted("ranked") === false ? "Not counted here" : undefined}
         />
@@ -441,9 +434,9 @@ export function YouHere({ clan, navigate }) {
           <section className="panel" aria-labelledby="you-weeks">
             <Head id="you-weeks" title="Week by week" />
             <p className="page-head__note px-4">
-              Battle counts are recorded captures, not proof of all play. Zero
-              recorded battles does not prove inactivity. Weeks before roster
-              recording began do not establish membership in this clan.
+              Battle counts are what Elixir recorded, not all play. No recorded
+              battles does not mean no play. Weeks before roster recording began
+              do not establish membership in this clan.
             </p>
             <div tabIndex={0} className="table__scroll">
               <table className="table">

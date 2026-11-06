@@ -132,16 +132,16 @@ for (const suffix of ["", " @narrow"]) {
         });
         await expect(graph.getByRole("button")).toHaveCount(365);
         await expect(
-          graph.getByRole("button", { name: /29 Feb 2024/ }),
+          graph.getByRole("button", { name: /Feb 29 2024/ }),
         ).toHaveCount(1);
-        const quiet = graph.getByRole("button", { name: /30 Dec 2024/ });
+        const quiet = graph.getByRole("button", { name: /Dec 30 2024/ });
         await expect(quiet).toHaveAttribute(
           "aria-label",
           capture.quiet
-            ? /0 battles · covered quiet day/
-            : /capture (unknown|incomplete).*no battles recorded/,
+            ? /0 battles · read in full/
+            : /(unknown|part of the day was read).*no battles recorded/,
         );
-        const positive = graph.getByRole("button", { name: /31 Dec 2024/ });
+        const positive = graph.getByRole("button", { name: /Dec 31 2024/ });
         if (capture.positive) {
           await expect(positive).toHaveAttribute(
             "aria-label",
@@ -156,23 +156,23 @@ for (const suffix of ["", " @narrow"]) {
           );
         }
         await expect(
-          graph.getByRole("button", { name: /1 Jan 2025/ }),
+          graph.getByRole("button", { name: /Jan 1 2025/ }),
         ).toHaveAttribute(
           "aria-label",
-          /capture (unknown|incomplete).*no battles recorded/,
+          /(unknown|part of the day was read).*no battles recorded/,
         );
         await page
           .getByText("The last two weeks as a list", { exact: true })
           .click();
         const recent = page.locator(".activity__table tbody tr");
         await expect(recent).toHaveCount(14);
-        await expect(recent.first()).toContainText("2025-01-01");
+        await expect(recent.first()).toContainText("Jan 1 2025");
         await expect(recent.first()).toContainText("unknown");
         await sound(page);
         await page.reload();
         await expect(quiet).toHaveAttribute(
           "aria-label",
-          capture.quiet ? /covered quiet day/ : /capture (unknown|incomplete)/,
+          capture.quiet ? /read in full/ : /(unknown|part of the day was read)/,
         );
         expect(errors).toEqual([]);
         expect(writes).toEqual([]);
@@ -191,12 +191,12 @@ for (const suffix of ["", " @narrow"]) {
         }),
       );
       await page.goto(path);
-      await expect(page.getByText(/Capture is unknown/)).toBeVisible();
+      await expect(page.getByText(/What was read is unknown/)).toBeVisible();
       await expect(page.locator(".activity__year")).toHaveCount(0);
       failed = false;
       await page.getByRole("button", { name: "Retry activity read" }).click();
       await expect(
-        page.getByRole("button", { name: /31 Dec 2024: 2 battles recorded/ }),
+        page.getByRole("button", { name: /Dec 31 2024: 2 battles recorded/ }),
       ).toBeVisible();
       await sound(page);
     });
@@ -215,7 +215,7 @@ for (const suffix of ["", " @narrow"]) {
       await page.clock.install({ time: new Date(asOf) });
       await page.goto(path);
       const positive = page.getByRole("button", {
-        name: /31 Dec 2024: 2 battles recorded/,
+        name: /Dec 31 2024: 2 battles recorded/,
       });
       await expect(positive).toBeVisible();
       failed = true;

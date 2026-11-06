@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<
       <div className="panel my-6">
         <h2 className="mt-0">This section failed to render.</h2>
         <p className="text-ink-faint">
-          The rest of the site still works — use the navigation above. If you
+          The rest of the site still works. Use the navigation above. If you
           can, send this text with a note about what you were doing:
         </p>
         <pre className="overflow-x-auto rounded-chip bg-ground-sunken p-3 text-[13px] whitespace-pre-wrap">

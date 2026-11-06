@@ -55,33 +55,6 @@ const WEEK = [
   "Sunday",
 ];
 
-/** Parts of an instant in the account's zone; a zone this browser does
- *  not know reads as UTC rather than failing the page. */
-function partsIn(zone, at, opts) {
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone: zone || "UTC",
-      ...opts,
-    }).formatToParts(at);
-  } catch {
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone: "UTC",
-      ...opts,
-    }).formatToParts(at);
-  }
-}
-const part = (parts, type) => parts.find((p) => p.type === type)?.value ?? "";
-
-/** "Tue Sep 29": a send's day where the reader is. */
-function sentDay(ts, zone) {
-  const p = partsIn(zone, new Date(ts), {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-  return `${part(p, "weekday")} ${part(p, "month")} ${part(p, "day")}`;
-}
-
 function Source({ product }) {
   if (!product) return null;
   return (
@@ -108,7 +81,7 @@ function Switch({ on, label, disabled = false, onFlip }) {
 
 /** One row per email: current switch, actual local schedule and sent record. */
 export function EmailPage() {
-  const { zone } = useClock();
+  const { whenDay } = useClock();
   const query = useEmailPrefs();
   const { data, isLoading } = query;
   const kinds = data?.kinds ?? [];
@@ -233,7 +206,7 @@ export function EmailPage() {
               className="mailsent"
               to={`${CONSOLE}/account/activity/e/${r.send_id}`}
             >
-              <span className="mailsent__day">{sentDay(r.sent_at, zone)}</span>
+              <span className="mailsent__day">{whenDay(r.sent_at)}</span>
               <Source product={product.get(r.kind)} />
               <span className="mailsent__subject">{r.subject ?? r.label}</span>
               <Icon name="chevron-right" size={15} />

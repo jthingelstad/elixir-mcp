@@ -113,7 +113,7 @@ export function Efficiency() {
             </div>
           </div>
           <div className="stats__cell">
-            <div className="label">battles captured</div>
+            <div className="label">battles recorded</div>
             <div className="stats__value">{n(weekCaptured)}</div>
             <div className="stats__note">new to the record</div>
           </div>
@@ -129,8 +129,8 @@ export function Efficiency() {
           A battle is lost when a sitting rolls past the API&rsquo;s 30-entry
           log before it is read. The count is the lifetime counter&rsquo;s move
           over each profile interval, less what the record holds inside it, with
-          intervals that had no capture gap setting the floor for modes the log
-          never shows.
+          intervals that had no gap setting the floor for modes the log never
+          shows.
         </div>
       </section>
 
@@ -141,7 +141,7 @@ export function Efficiency() {
               <th>DAY (UTC)</th>
               <th className="td--num">Reads</th>
               <th className="td--num">Nothing new</th>
-              <th className="td--num">Captured</th>
+              <th className="td--num">Recorded</th>
               <th className="td--num">Gaps</th>
               <th className="td--num">Lost</th>
               <th className="td--num">LOST %</th>

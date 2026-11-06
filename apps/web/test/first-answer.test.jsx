@@ -162,10 +162,10 @@ test(
     render(<App />);
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "Copy question: Start with your player snapshot",
+        name: "Copy question: Start with your latest profile",
       }),
     );
-    await screen.findByText("Copied — paste into your connected client.");
+    await screen.findByText("Copied. Paste into your connected client.");
     expect(copy.mock.calls[0][0]).toContain(player.player_tag);
   },
 );
@@ -187,7 +187,7 @@ test(
     window.history.pushState({}, "", "/console/account/overview");
     render(<App />);
     expect(
-      await screen.findByText("No players yet — nothing here defaults to you."),
+      await screen.findByText("No players yet. Nothing here defaults to you."),
     ).toBeTruthy();
     expect(
       await screen.findByText("Start with your player tag in Tracking."),
@@ -208,10 +208,10 @@ test("readiness names what each line is waiting for, not just that it is not don
       .getByRole("link", { name: /Check recording status/ })
       .getAttribute("href"),
   ).toBe("/console/account/tracking/2PP0V90Y");
-  expect(screen.getByText("no profile snapshot available yet")).toBeTruthy();
+  expect(screen.getByText("no profile read yet")).toBeTruthy();
   expect(
     screen.getByText(
-      "No battles captured in the last 30 days · capture may be incomplete",
+      "No battles recorded in the last 30 days · some may not have been read",
     ),
   ).toBeTruthy();
   expect(
@@ -245,7 +245,7 @@ test("readiness carries the window on every number it shows", async () => {
     screen.getByText("1,284 in the last 30 days · 38 in the last 7"),
   ).toBeTruthy();
   expect(screen.getByText("POAP KINGS · 27 war weeks")).toBeTruthy();
-  expect(screen.getByText("snapshot 4m ago")).toBeTruthy();
+  expect(screen.getByText("read 4m ago")).toBeTruthy();
 });
 
 test("an active connection without a recent read is not the same as no connection", async () => {
@@ -265,9 +265,7 @@ test("a browser-only profile opens the saved profile while AI and clan setup sta
     name: /Browse recorded battles|View recorded profile/,
   });
   expect(screen.getByText("Clan war history (optional)")).toBeTruthy();
-  expect(
-    screen.getByText("snapshot recorded · observation time unavailable"),
-  ).toBeTruthy();
+  expect(screen.getByText("read, at a time Elixir did not keep")).toBeTruthy();
   expect(screen.queryByText("snapshot never")).toBeNull();
   expect(screen.getByText("AI client connection (optional)")).toBeTruthy();
   fireEvent.click(screen.getByText("AI clients (optional)"));
@@ -421,7 +419,7 @@ test("a failed readiness request explains itself and can retry", async () => {
 test("waiting capture can be worked around, then refreshes into a profile-only question", async () => {
   const navigate = vi.fn();
   render(<ConnectionQuestions claimsKey="a" navigate={navigate} />);
-  await screen.findByText(/Waiting for the first capture/);
+  await screen.findByText(/Waiting for the first read/);
   expect(screen.queryByRole("button", { name: /Copy question/ })).toBeNull();
   respond({
     ...player,
@@ -429,7 +427,7 @@ test("waiting capture can be worked around, then refreshes into a profile-only q
     profile_observed_at: "2026-09-08T20:00:00Z",
   });
   fireEvent.click(screen.getByRole("button", { name: "Check again" }));
-  await screen.findByText("Start with your player snapshot");
+  await screen.findByText("Start with your latest profile");
   expect(screen.getAllByRole("button", { name: /Copy question/ })).toHaveLength(
     1,
   );
@@ -466,9 +464,9 @@ test("questions follow observed samples", async () => {
       name: "Copy question: Review your recorded battles",
     }),
   );
-  await screen.findByText("Copied — paste into your connected client.");
+  await screen.findByText("Copied. Paste into your connected client.");
   expect(copy.mock.calls[0][0]).toContain("#2PP0V90Y");
-  expect(copy.mock.calls[0][0]).toContain("coverage");
+  expect(copy.mock.calls[0][0]).toContain("how much of this was recorded");
   expect(copy.mock.calls[0][0]).toContain("last 7 days");
   expect(global.fetch).toHaveBeenCalledTimes(1); // copying does not record fake use
 });
@@ -499,7 +497,7 @@ test("older retained battles are useful history, not a pending first capture", a
   await screen.findByRole("button", {
     name: "Copy question: Review your retained history",
   });
-  expect(screen.queryByText(/Waiting for the first capture/)).toBeNull();
+  expect(screen.queryByText(/Waiting for the first read/)).toBeNull();
 });
 
 test("changing primary discards old suggestions even when the earlier request arrives late", async () => {
@@ -522,7 +520,7 @@ test("changing primary discards old suggestions even when the earlier request ar
     text: async () => JSON.stringify({ player, connection }),
   });
   await waitFor(() =>
-    expect(screen.queryByText(/Waiting for the first capture/)).toBeNull(),
+    expect(screen.queryByText(/Waiting for the first read/)).toBeNull(),
   );
 });
 
@@ -549,13 +547,13 @@ test("Overview links incomplete steps and offers a supported first question with
   ).toBe("/docs/quickstart");
   fireEvent.click(
     screen.getByRole("button", {
-      name: "Copy question: Start with your player snapshot",
+      name: "Copy question: Start with your latest profile",
     }),
   );
-  await screen.findByText("Copied — paste into your connected client.");
+  await screen.findByText("Copied. Paste into your connected client.");
   expect(copy.mock.calls[0][0]).toContain(player.player_tag);
   expect(copy.mock.calls[0][0]).toContain(
-    "Do not infer progress from a single snapshot",
+    "Do not infer progress from a single reading",
   );
   expect(
     screen.getByText(/a connection alone does not confirm a data read/),
@@ -657,7 +655,7 @@ test("overview folds healthy recording but keeps capture failure and partial cov
     />,
   );
   expect(container.querySelector("details.recording-summary")).toBeNull();
-  expect(screen.getByText("Capture attempt failed")).toBeTruthy();
+  expect(screen.getByText("The last read failed")).toBeTruthy();
   rerender(
     <FirstAnswer
       summarize

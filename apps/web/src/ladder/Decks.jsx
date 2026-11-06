@@ -1,14 +1,6 @@
 import { CardArt, DeckGrid, useClock } from "@elixir-mcp/ui";
 import { useId, useState } from "react";
-import {
-  askedMode,
-  fmt,
-  leadFirst,
-  longDay,
-  pct,
-  shortDay,
-  signed,
-} from "./ladder.js";
+import { askedMode, fmt, leadFirst, pct, shortDay, signed } from "./ladder.js";
 import { groupLabel } from "./ladder-days.js";
 import {
   GRID_MODES,
@@ -311,7 +303,8 @@ const kindWord = (kind, n) => KIND[kind][n === 1 ? 0 : 1];
 function SwapPanel({ swap, mode, zone }) {
   const id = useId();
   const { before, after, unchanged, kind } = swap;
-  const on = longDay(swap.at, zone).replace(/^[A-Za-z]+, /, "");
+  const { whenDay } = useClock();
+  const on = whenDay(swap.at);
   const side = (deck, when, cards, caption) => (
     <div className="ladder-swap__side">
       <p className="ladder-swap__when">{when}</p>

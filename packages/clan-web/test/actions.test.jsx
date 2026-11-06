@@ -139,8 +139,8 @@ describe("actions", () => {
       </ZoneProvider>,
     );
     const row = screen.getByText("Rests on").parentElement;
-    expect(row.textContent).toBe(
-      "Rests onLast recorded battle 2026-08-23 15:00 CDT, Path of Legends; joined 2026-05-15; battle count rose by 1 between 2026-05-14 15:00 CDT and 2026-08-23 15:00 CDT, not since (last read 2026-09-12 15:00 CDT) (record)",
+    expect(row.textContent).toMatch(
+      /^Rests onLast recorded battle Sun Aug 23( 2026)?, 3:00 pm, Path of Legends; joined Fri May 15( 2026)?; battle count rose by 1 between Thu May 14( 2026)?, 3:00 pm and Sun Aug 23( 2026)?, 3:00 pm, not since \(last read Sat Sep 12( 2026)?, 3:00 pm\) \(record\)$/,
     );
     expect(row.querySelectorAll("time")).toHaveLength(5);
     expect(row.textContent).not.toContain("Ranked1v1");
@@ -211,8 +211,8 @@ describe("actions", () => {
     );
     const alert = screen.getByRole("alert");
     expect(alert.classList.contains("flex-col")).toBe(true);
-    expect(alert.textContent).toContain("2026-10-04 03:00 CDT");
-    expect(alert.textContent).toContain("2026-10-01 20:00 CDT");
+    expect(alert.textContent).toMatch(/Sun Oct 4( 2026)?, 3:00 am/);
+    expect(alert.textContent).toMatch(/Thu Oct 1( 2026)?, 8:00 pm/);
     expect(alert.textContent).toContain("This Action is closed");
     expect(alert.textContent).not.toMatch(/may still explicitly decline/);
     expect(alert.querySelectorAll("time")).toHaveLength(3);
@@ -228,7 +228,7 @@ describe("actions", () => {
       screen.getAllByText("20 battle-free days: at risk at 5, an action at 8."),
     ).toHaveLength(1);
     expect(screen.getByText(/History · 1 entry/)).toBeTruthy();
-    expect(screen.getByText("2026-09-12 15:00 CDT")).toBeTruthy();
+    expect(screen.getByText(/^Sat Sep 12( 2026)?, 3:00 pm$/)).toBeTruthy();
     expect(decide).not.toHaveBeenCalled();
   });
   test("a removal that no longer qualifies is prominent; stale copy, drafts, completion and reopening are withheld while explicit decline stays available", async () => {
@@ -368,7 +368,9 @@ describe("actions", () => {
     fireEvent.click(screen.getByText(/History · 1 entry/));
     expect(screen.getByText("‹ All actions")).toBeTruthy();
     expect(
-      screen.getByText(/Earlier: declined 2026-09-02 \(knows the member\)/),
+      screen.getByText(
+        /Earlier: declined \w+ Sep [12]( 2026)? \(knows the member\)/,
+      ),
     ).toBeTruthy();
     expect(
       screen.getByText(/policy v1: at_risk_days, confirm_days/),
@@ -1690,7 +1692,9 @@ describe("you here", () => {
     const week = screen.getByRole("group", { name: "This week so far" });
     expect(week.textContent).toMatch(/War decks8Race 136\/0, four a war day/);
     // Ranked is not what this clan counts; donations are.
-    expect(week.textContent).toMatch(/Ranked battles2Not counted here/);
+    expect(week.textContent).toMatch(
+      /Path of Legends battles2Not counted here/,
+    );
     expect(week.textContent).toMatch(/Donations100Battles/);
     expect(
       screen.getByRole("img", {

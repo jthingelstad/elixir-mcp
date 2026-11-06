@@ -13,6 +13,7 @@
  * on a page pools across modes: Trophy Road and Path of Legends match
  * by different rules, and war draws opponents from the racing clans.
  */
+import { clockAt, monthDayAt, zoneShort } from "@elixir-mcp/ui";
 import { tagPath } from "../lib/tag-url.js";
 
 export const LADDER = "/ladder";
@@ -351,60 +352,17 @@ export function captureLanded(player) {
 export const playerName = (p) => p?.nickname ?? p?.name ?? p?.player_tag ?? "";
 
 /* ---------------------------------------------------------------- time
-   Ladder writes dates as prose ("Monday, October 5 at 5:00 am"), where
-   the console's tables write stamps. Same rule: the account's zone,
-   always, and a zone the browser does not know reads as UTC rather than
-   failing the page. */
+   The one format lives in the kit (`whenAt`, `useClock`); these names are
+   the pieces Ladder's ranges and night rows use. */
 
-function parts(ts, zone, opts) {
-  const d = new Date(ts);
-  if (ts == null || Number.isNaN(d.getTime())) return null;
-  const make = (timeZone) =>
-    new Intl.DateTimeFormat("en-US", { ...opts, timeZone }).formatToParts(d);
-  let list;
-  try {
-    list = make(zone || "UTC");
-  } catch {
-    list = make("UTC");
-  }
-  return Object.fromEntries(list.map(({ type, value }) => [type, value]));
-}
-
-/** "Monday, October 5". */
-export function longDay(ts, zone) {
-  const p = parts(ts, zone, { weekday: "long", month: "long", day: "numeric" });
-  return p ? `${p.weekday}, ${p.month} ${p.day}` : "";
-}
-
-/** "Sep 18". */
-export function shortDay(ts, zone) {
-  const p = parts(ts, zone, { month: "short", day: "numeric" });
-  return p ? `${p.month} ${p.day}` : "";
-}
-
-/** "5:00 am". */
-export function clockTime(ts, zone) {
-  const p = parts(ts, zone, {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-  return p ? `${p.hour}:${p.minute} ${String(p.dayPeriod).toLowerCase()}` : "";
-}
-
-/** The zone's short name at an instant, "CDT" or "UTC", so a time Ladder
- *  prints says whose clock it is, as the battle page's does. */
-export function zoneShort(ts, zone) {
-  const p = parts(ts, zone, { timeZoneName: "short" });
-  return p?.timeZoneName ?? "";
-}
+export { clockAt as clockTime, monthDayAt as shortDay, zoneShort };
 
 /** A date-only string ("2026-09-07", an ISO week's Monday) as "Sep 7",
  *  read as the calendar date it names rather than an instant. */
 export function dateLabel(ymd) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd ?? ""));
   if (!m) return "";
-  return shortDay(`${m[1]}-${m[2]}-${m[3]}T12:00:00Z`, "UTC");
+  return monthDayAt(`${m[1]}-${m[2]}-${m[3]}T12:00:00Z`, "UTC");
 }
 
 /** "September" from a season's month, "2026-09". */

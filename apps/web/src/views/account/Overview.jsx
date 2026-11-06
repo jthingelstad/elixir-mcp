@@ -1,15 +1,16 @@
-import { useInitialTime } from "@elixir-mcp/ui";
 import {
   Icon,
   Link,
   ago,
   secsSince,
-  stampTime,
+  whenAt,
+  useInitialTime,
   Tag,
   useClock,
   noun,
 } from "@elixir-mcp/ui";
 import { VerifiedMark } from "../../components/VerifiedMark.jsx";
+import { limitsLabel } from "../../lib/words.js";
 import { useState } from "react";
 import { useBattleActivity, useMyClans, useUsage } from "../../lib/queries.js";
 import { tagPath } from "../../lib/tag-url.js";
@@ -67,7 +68,7 @@ function LivePill({ me }) {
     return (
       <span className="chip chip--ok whitespace-nowrap">
         <span className="chip__dot" />
-        live · last read {stampTime(rec.freshest_poll, zone)}
+        live · last read {whenAt(rec.freshest_poll, zone, { now })}
       </span>
     );
   return (
@@ -184,7 +185,7 @@ function usePrimaryNote(primary) {
   const n = (a.days ?? []).slice(-28).reduce((sum, d) => sum + d.battles, 0);
   return n > 0
     ? `${n.toLocaleString()} battle${n === 1 ? "" : "s"} in the last 28 days`
-    : "capture may be incomplete";
+    : "some battles may not have been read";
 }
 
 function Players({ me, navigate }) {
@@ -204,7 +205,7 @@ function Players({ me, navigate }) {
       {players.length === 0 ? (
         <div className="empty m-4">
           <p className="empty__body">
-            No players yet — nothing here defaults to you.
+            No players yet. Nothing here defaults to you.
           </p>
           {/* Onto the field it came for, focused, as a new account's
               first landing does (#add-player-tag). */}
@@ -339,7 +340,7 @@ function Today({ role }) {
         </h2>
         <span className="text-[12.5px] text-ink-faint">
           {q.calls.limit == null
-            ? `No daily cap${role ? ` on the ${role} tier` : ""}`
+            ? `No daily cap${role ? ` on ${limitsLabel(role)}` : ""}`
             : `${q.calls.label} for the day`}{" "}
           · {whose}the count {q.resets}
         </span>

@@ -1,4 +1,4 @@
-import { useInitialTime } from "@elixir-mcp/ui";
+import { useInitialTime, useClock } from "@elixir-mcp/ui";
 import { Link, noun, Tag } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
@@ -15,6 +15,7 @@ import { ELIXIR_LINKS } from "../lib/links.js";
  * member's to move.
  */
 export function Away({ me }) {
+  const { calendar } = useClock();
   const clan = me?.selected ?? null;
   const [until, setUntil] = useState("");
   const [note, setNote] = useState("");
@@ -67,7 +68,7 @@ export function Away({ me }) {
           </div>
           <div className="panel__body" style={{ display: "grid", gap: "8px" }}>
             <div>
-              {hold.until ? `Until ${hold.until.slice(0, 10)}` : "Open-ended"}
+              {hold.until ? `Until ${calendar(hold.until)}` : "Open-ended"}
               {hold.note ? ` · ${hold.note}` : ""}
               {hold.kind !== "away"
                 ? ` · set by ${hold.by_name ?? hold.by}`

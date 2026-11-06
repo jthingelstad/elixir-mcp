@@ -36,34 +36,6 @@ import { PlayerBattleShare } from "./PlayerBattleShare.jsx";
 const num = (n) => (typeof n === "number" ? n.toLocaleString("en-US") : "—");
 const fixed = (n, d) => (typeof n === "number" ? n.toFixed(d) : "—");
 
-/** A battle's time as a person says it: "Sat, Sep 26, 10:55 PM CDT".
- *  A zone this browser does not know reads as UTC. */
-function say(ts, zone, parts) {
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return "—";
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      ...parts,
-      timeZone: zone || "UTC",
-    }).format(d);
-  } catch {
-    return new Intl.DateTimeFormat("en-US", {
-      ...parts,
-      timeZone: "UTC",
-    }).format(d);
-  }
-}
-const FULL = {
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZoneName: "short",
-};
-const CLOCK = { hour: "numeric", minute: "2-digit" };
-const DAY = { month: "short", day: "numeric", year: "numeric" };
-
 /** A link Elixir hands out is absolute; inside the app it is a path, so
  *  a click on another battle stays in the page. */
 const pathOf = (url) => String(url ?? "").replace(/^https?:\/\/[^/]+/, "");
@@ -268,7 +240,7 @@ function BattleView({ read, me }) {
   const signedIn = me?.authenticated === true;
   const signedOut = me?.authenticated === false;
   const mode = MODE_LABEL[battle.mode_group] ?? battle.game_mode?.name ?? null;
-  const when = say(battle.battle_time, clock.zone, FULL);
+  const when = clock.when(battle.battle_time);
   const [l, r] = sides;
   const g = games?.[game] ?? null;
   // A duel reads game by game: its decks, towers and leak are the
@@ -358,8 +330,8 @@ function BattleView({ read, me }) {
       )}
 
       <div className="battle__grid battle__grid--three">
-        <Meetings read={read} zone={clock.zone} />
-        <Sitting read={read} zone={clock.zone} />
+        <Meetings read={read} />
+        <Sitting read={read} />
         <Share
           battle={battle}
           sides={sides}
@@ -612,7 +584,7 @@ function DeckPanel({ player, outcome, deck, narrow }) {
                   <dd>{fixed(deck.average_elixir, 2)}</dd>
                 </div>
                 <div>
-                  <dt>4-card cycle</dt>
+                  <dt>Cost of the four cheapest cards</dt>
                   <dd>{deck.cycle4 ?? "—"}</dd>
                 </div>
                 <div>
@@ -752,7 +724,11 @@ function SideBySide({ battle, sides }) {
       fixed(l.deck?.average_elixir, 2),
       fixed(r.deck?.average_elixir, 2),
     ],
-    ["4-card cycle", l.deck?.cycle4 ?? "—", r.deck?.cycle4 ?? "—"],
+    [
+      "Cost of the four cheapest cards",
+      l.deck?.cycle4 ?? "—",
+      r.deck?.cycle4 ?? "—",
+    ],
     ["Tower troop", troop(l), troop(r)],
     [
       "Tower hitpoints left",
@@ -849,7 +825,8 @@ function Row({ row, current, when, who, sub }) {
 /** Every recorded meeting of the two, newest first; shown once they have
  *  met more than this once. A tally only when every meeting was one
  *  mode: modes are different games and are never pooled. */
-function Meetings({ read, zone }) {
+function Meetings({ read }) {
+  const { whenDay, clock } = useClock();
   const rows = read.meetings ?? [];
   if (rows.length < 2) return null;
   const [l, r] = read.sides;
@@ -879,11 +856,8 @@ function Meetings({ read, zone }) {
               key={x.url ?? x.battle_time}
               row={x}
               current={x.url === read.battle.url}
-              when={say(x.battle_time, zone, {
-                month: "short",
-                day: "numeric",
-              })}
-              who={say(x.battle_time, zone, { weekday: "short", ...CLOCK })}
+              when={whenDay(x.battle_time)}
+              who={clock(x.battle_time)}
             />
           ))}
         </ul>
@@ -894,7 +868,8 @@ function Meetings({ read, zone }) {
 
 /** The left player's sitting: the battles around this one, chained by
  *  gaps under half an hour, newest first. */
-function Sitting({ read, zone }) {
+function Sitting({ read }) {
+  const { whenDay, clock } = useClock();
   const rows = read.sitting ?? [];
   if (rows.length < 2) return null;
   const who = nameOf(read.sides[0].players[0]);
@@ -904,9 +879,7 @@ function Sitting({ read, zone }) {
         <span className="battle-deck__head">
           <TagText>{who}</TagText>’s session
         </span>
-        <span className="battle__note">
-          {say(rows[0].battle_time, zone, DAY)}
-        </span>
+        <span className="battle__note">{whenDay(rows[0].battle_time)}</span>
       </div>
       <div className="panel__body">
         <ul className="battle-rows">
@@ -915,7 +888,7 @@ function Sitting({ read, zone }) {
               key={x.url ?? x.battle_time}
               row={x}
               current={x.url === read.battle.url}
-              when={say(x.battle_time, zone, CLOCK)}
+              when={clock(x.battle_time)}
               who={x.opponent ?? "Unknown"}
               sub={MODE_LABEL[x.mode_group] ?? null}
             />
@@ -985,7 +958,7 @@ function Invite() {
       <div className="panel__body battle-ended">
         <span className="battle-deck__label">Your battles, on the record</span>
         <p>
-          Elixir keeps every battle you play and reads it back: your record by
+          Elixir keeps every battle it records and reads it back: your record by
           mode, your decks, a short email each week.
         </p>
         <div className="share-actions">

@@ -125,7 +125,7 @@ test(
     // Back on Overview, readiness has moved on its own: the snapshot is
     // the evidence, and the line says when it was taken.
     fireEvent.click(screen.getByRole("link", { name: /Overview/ }));
-    await screen.findByText(/^snapshot /);
+    await screen.findByText(/^read /);
     // Consent is fixture setup on the scratch DB; the UI consumes the real
     // connection and readiness responses after returning from OAuth.
     await scratch.db.query(
@@ -148,10 +148,10 @@ test(
     });
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "Copy question: Start with your player snapshot",
+        name: "Copy question: Start with your latest profile",
       }),
     );
-    await screen.findByText("Copied — paste into your connected client.");
+    await screen.findByText("Copied. Paste into your connected client.");
     expect(copy.mock.calls[0][0]).toContain("#P0Y");
     expect(
       (

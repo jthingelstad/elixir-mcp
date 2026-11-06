@@ -2,6 +2,8 @@
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
+*Its arrangement is to be rewritten at step 5 of the redesign ([Structure](structure.md)).*
+
 ## What it is for
 
 The game forgets; Ladder reads a person's own season back from the

@@ -429,7 +429,7 @@ test.describe("signed in", () => {
     await expect(comings).toContainText(
       "Finished 1st in the Colosseum, race 135/4 with 10,305 fame",
     );
-    await expect(comings).toContainText("09-05 17:13 CDT");
+    await expect(comings).toContainText(/Sat Sep 5( 2026)?, 5:13 pm/);
     await expect(comings).not.toContainText(/kick|\bleft\b/i);
     await page.getByRole("searchbox", { name: "Find a member" }).fill("ze");
     const roster = page.getByRole("region", { name: "Roster" });
@@ -770,18 +770,22 @@ test.describe("signed in", () => {
     );
     await page.goto("/clan/2PQRJ8LV/manage/settings");
     await page
-      .getByRole("button", { name: "Change Monthly model limit", exact: true })
+      .getByRole("button", { name: "Change Monthly cap", exact: true })
       .click();
     await expect(
       page.getByText(
         /6 uses · 5,088 tokens in, 404 out · about \$0\.01 of the \$5\.00 cap/,
       ),
     ).toBeVisible();
-    await expect(page.getByLabel("Monthly cap")).toHaveValue("5");
+    await expect(
+      page.getByRole("spinbutton", { name: "Monthly cap" }),
+    ).toHaveValue("5");
     await expect(
       page.getByRole("button", { name: "Remove cap" }),
     ).toBeVisible();
-    await expect(page.getByText("With Anthropic, 2026-10-10")).toBeVisible();
+    await expect(
+      page.getByText(/^With Anthropic, Sat Oct 10( 2026)?$/),
+    ).toBeVisible();
     await expect(
       page.getByText("Recruiting pitch: Claude Opus 5.5"),
     ).toBeVisible();

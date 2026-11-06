@@ -14,7 +14,7 @@ const MODE_LABEL = {
   ladder: "Trophy Road",
   ranked: "Path of Legends",
   war: "War",
-  casual: "Friendly",
+  casual: "Casual",
   challenge: "Challenge",
   event: "Event",
   tournament: "Tournament",

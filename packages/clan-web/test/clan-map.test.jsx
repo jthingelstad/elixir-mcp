@@ -142,6 +142,6 @@ describe("clan map", () => {
       data: { place: null },
     });
     renderWithProviders(<ClanMap clan={clan} />);
-    await screen.findByText(/turned its social features off/);
+    await screen.findByText(/turned the member map off/);
   });
 });

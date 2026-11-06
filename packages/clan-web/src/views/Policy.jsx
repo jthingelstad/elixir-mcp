@@ -1,4 +1,4 @@
-import { Disclosure, noun, Tag } from "@elixir-mcp/ui";
+import { Disclosure, noun, Tag, useClock } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, usePolicy } from "../lib/queries.js";
@@ -33,6 +33,7 @@ const switchesOf = (tab) =>
  * bar, the preview and the versions sit below whichever tab is open.
  */
 export function Policy({ clan }) {
+  const { whenDay } = useClock();
   const [draft, setDraft] = useState(null);
   const [tab, setTab] = useState("about");
   const [errors, setErrors] = useState({});
@@ -207,7 +208,7 @@ export function Policy({ clan }) {
       ) : null}
       {view.set ? (
         <p className="page-head__note m-0">
-          {`Version ${view.current.version}, saved ${view.current.saved_at?.slice(0, 10)} by ${view.current.saved_by_name ?? view.current.saved_by}.`}{" "}
+          {`Version ${view.current.version}, saved ${whenDay(view.current.saved_at)} by ${view.current.saved_by_name ?? view.current.saved_by}.`}{" "}
           Every save is a new version; nothing is edited in place. Each action
           says which version raised it.
         </p>
@@ -666,7 +667,7 @@ function Preview({ preview }) {
     if (m.demotion !== "none") return `demotion ${m.demotion}`;
     if (m.removal !== "none") {
       if (m.removal_triage?.status === "protected") return "removal protected";
-      if (m.removal_judgment === "held") return "removal evidence held";
+      if (m.removal_judgment === "held") return "removal waiting on the record";
       return `removal ${m.removal.replace("_", " ")}`;
     }
     return "—";

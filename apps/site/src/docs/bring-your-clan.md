@@ -1,18 +1,18 @@
 ---
 slug: bring-your-clan
 title: "Bring your clan"
-description: "Getting your clan onto Elixir Clan: what you need before you sign in, inviting your clanmates, how your role here follows your role in the game once your player is verified, when a clan appears, the 10-member threshold, and what happens before the leaders write a policy."
+description: "Getting your clan onto Clan: what you need before you sign in, inviting your clanmates, how your role here follows your role in the game once your player is verified, when a clan appears, the 10-member threshold, and what happens before the leaders write a policy."
 section: clan
 order: 1
 navTitle: "Bring your clan"
 icon: users
-lede: "Elixir Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
+lede: "Clan is where a clan's leaders run the clan against its own record. Sign in with your Elixir account and you are in your clan, as the role you hold in the game."
 reviewed: "2026-10-20; the clan you are in heads the rail, and you switch clans there; a leader or co-leader with Actions waiting lands on Actions, and the roster has its own address; 2026-10-13; your own connection reads your own view (contract 11.12.0); 2026-10-12; one clan at a time by design; a leader's change waits for a roster read within the hour; 2026-10-08 for Bring your clanmates, contracts unchanged"
 ---
 
 # Bring your clan
 
-[Elixir Clan](/clan) is the part of Elixir for being in a clan: the
+[Clan](/clan) is the part of Elixir for being in a clan: the
 roster as the record sees it, a weekly report, and, once the leaders
 have written how the clan runs, standing, actions and awards. It never
 acts in the game and never decides for anyone; the leaders do. Every
@@ -59,7 +59,7 @@ the clan's week in Monday's email. Elixir is free.
 
 The link is Elixir's plain signup address, the same for everyone: no
 invite code, nothing in it that says who sent it, and nothing records
-who copied or shared a line. Inside Elixir Clan, a clan with a policy
+who copied or shared a line. Inside Clan, a clan with a policy
 also has **Spread the word** with the clan's own lines.
 
 ## Your role here
@@ -93,7 +93,7 @@ standing, Actions and awards, and nothing is pooled across clans. If
 your players are in different clans (a clan family's main and its
 feeders, say), Clan asks which one to work in and remembers it; switch
 at any time from the top of the rail. A family is how Elixir *records* clans:
-the Family tier's several comprehensive watches ([Roles](/docs/roles)).
+the several every-member clan slots Family limits give ([Roles](/docs/roles)).
 Clan does not know which clans make up a family, only which clans your
 own players are in.
 
@@ -125,7 +125,7 @@ Below it, the rail lists Clan's pages:
   by; and **Away**, when the clan lets members mark themselves away.
 - **Send feedback**, at the foot of the rail, and **Report this** beside
   an action, Standing and the award races: both file into Elixir's one
-  feedback record, about Elixir Clan and the thing on screen, and the
+  feedback record, about Clan and the thing on screen, and the
   answer comes to your [feedback](/docs/your-account#feedback) and your
   inbox.
 
@@ -148,8 +148,8 @@ clan for you at activity scope once your player's profile shows it, when
 you have a clan slot free ([Your player's
 clan](/docs/recording#your-players-clan)). If your clan is not recorded
 yet, Clan says so and sends you to **Console ▸ Tracking** to track the
-clan; the roster arrives with Elixir's first poll of it. A clan recorded with
-its members' battle logs ([comprehensive](/docs/recording)) gives
+clan; the roster arrives with Elixir's first read of it. A clan recorded with
+its members' battle logs ([the clan and every member](/docs/recording)) gives
 fuller battle numbers than one recorded at activity scope, and Clan
 holds back a judgment the record cannot support rather than guess.
 
@@ -181,7 +181,7 @@ inactivity clock, no awards. Every member can still read the roster,
 Members are shown a line to send the leaders, for clan chat or a
 message, and the leaders are shown where to start.
 
-**Your clan record** labels weekly battle counts as recorded captures. Zero recorded
+**Your clan record** labels weekly battle counts as recorded battles. Zero recorded
 battles does not prove inactivity. Weeks before roster recording began are
 marked; their counts do not establish membership or complete observation.
 

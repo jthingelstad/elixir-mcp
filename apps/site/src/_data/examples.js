@@ -12,9 +12,9 @@
  * provenance in the prose rather than a citation chip - so the page
  * shows what a connected client would actually show.
  *
- * Naming follows Jamie's rule: King Thing is the example player, his
- * tracked friends stand in for other players, POAP KINGS for every
- * clan, and any POAP KINGS member may be named.
+ * Naming: King Thing is the example player and POAP KINGS the example
+ * clan. Friends and members are renamed (Jamie, 2026-11-05); the numbers
+ * are the ones that came back.
  *
  * "What it reads" names the recorded data behind the answer, and "To
  * set this up" the steps - so a reader can tell what is a promise from
@@ -83,7 +83,7 @@ export default [
         title: "Follow your friends",
         lede: "The people you play with, tracked because you asked — what they are on, how much they are playing, and what changed since you last looked.",
         reads: [
-          "Profiles and daily snapshots for the players you track",
+          "Profiles and daily readings for the players you track",
           "Their recorded decks and results",
           "Your timeline, which says what happened since you last looked",
         ],
@@ -93,11 +93,11 @@ export default [
           lines: [
             {
               role: "user",
-              text: "What has Levi been up to? He said he was climbing.",
+              text: "What has Alex been up to? He said he was climbing.",
             },
             {
               role: "agent",
-              text: "He is at the ceiling. **King Levy is sitting at 14,000 trophies**, the Trophy Road cap, and has been there in every weekly snapshot since mid-August — so there is nowhere left to climb on Ladder. What he *has* been doing:\n\n- **72 battles in the last four weeks** (4,254 → 4,326 lifetime), a steady 15–30 a week.\n- Donations are up: 453, 319, 354 and 403 on the last four weekly counters.\n- Since August 16 he is on one deck almost exclusively — **Witch / Mini P.E.K.K.A / Elite Barbarians / Dart Goblin / Skeleton Barrel** — 36–28 (56%) with it.\n\nHis best league season on record is 5,316 from May 2022, so if he says climbing he means Path of Legends, not trophies.",
+              text: "He is at the ceiling. **Alex is sitting at 14,000 trophies**, the Trophy Road cap, and has been there in every weekly reading since mid-August — so there is nowhere left to climb on Ladder. What he *has* been doing:\n\n- **72 battles in the last four weeks** (4,254 → 4,326 lifetime), a steady 15–30 a week.\n- Donations are up: 453, 319, 354 and 403 on the last four weekly counters.\n- Since August 16 he is on one deck almost exclusively — **Witch / Mini P.E.K.K.A / Elite Barbarians / Dart Goblin / Skeleton Barrel** — 36–28 (56%) with it.\n\nHis best league season on record is 5,316 from May 2022, so if he says climbing he means Path of Legends, not trophies.",
             },
             {
               role: "user",
@@ -157,14 +157,14 @@ export default [
           "This week's race roster, which the game seeds from that date",
           "Each member's recorded battles over the last 30 days",
         ],
-        setup: ["Track your clan, comprehensive", "Read about scopes"],
+        setup: ["Track your clan and every member", "Read about scopes"],
         script: {
           tool: "clans_roster · war_current · clans_standings",
           lines: [
             { role: "user", text: "Who has gone quiet in POAP KINGS?" },
             {
               role: "agent",
-              text: "Three members have not been seen in the game for a while — by Clash Royale's own last-seen date, not by whether we happened to record them:\n\n- **pax** — last seen August 29\n- **Th15_Guy** — last seen August 31\n- **Ditaka** — last seen September 3\n\nAll three are still on the roster, and the game left them out of this week's race roster, which is what it does with anyone it has not seen since before the race started. Nothing here says why. pax was one of the more active members before that — 158 recorded battles in the last 30 days — so this reads like a break rather than a fade. A friendly check-in is the move, not a kick.\n\nThe newest arrivals are settling in fast: **NOBITA** joined September 4 and already has 309 donations this week, and **Brotherinpants** joined on the 8th. The roster stands at 49 of 50.",
+              text: "Three members have not been seen in the game for a while — by Clash Royale's own last-seen date, not by whether we happened to record them:\n\n- **Mika** — last seen August 29\n- **Noor** — last seen August 31\n- **Sol** — last seen September 3\n\nAll three are still on the roster, and the game left them out of this week's race roster, which is what it does with anyone it has not seen since before the race started. Nothing here says why. Mika was one of the more active members before that — 158 recorded battles in the last 30 days — so this reads like a break rather than a fade. A friendly check-in is the move, not a kick.\n\nThe newest arrivals are settling in fast: **Ines** joined September 4 and already has 309 donations this week, and **Theo** joined on the 8th. The roster stands at 49 of 50.",
             },
           ],
         },
@@ -216,7 +216,7 @@ export default [
             },
             {
               role: "agent",
-              text: "Here is a draft you can paste:\n\n> **POAP KINGS — Season 135 wrap**\n>\n> Colosseum week: **1st of 5, 38,700 fame, +100 clan trophies.** That closes out a perfect season — five races, five firsts, every regular week finished early.\n>\n> Ladder form over the last 30 days (recorded battles, 10+ decided): clan median win rate **52.8%** across 48 ranked members. Top of the table: **sniperhendo 70%** (78–34), **1spaceO2 65%**, **Kurd Paraw 62%**. Volume award goes to **Vijay** with 1,334 recorded battles.\n>\n> Welcome to **NOBITA** and **Brotherinpants**. Season 136 opened this morning against De stichting, Legend Royale, Happy Win and Les champs — the first time we have met any of them.\n\nWant it shorter, or with every member's points listed?",
+              text: "Here is a draft you can paste:\n\n> **POAP KINGS — Season 135 wrap**\n>\n> Colosseum week: **1st of 5, 38,700 fame, +100 clan trophies.** That closes out a perfect season — five races, five firsts, every regular week finished early.\n>\n> Ladder form over the last 30 days (recorded battles, 10+ decided): clan median win rate **52.8%** across 48 ranked members. Top of the table: **Kai 70%** (78–34), **Dana 65%**, **Omar 62%**. Volume award goes to **Tomas** with 1,334 recorded battles.\n>\n> Welcome to **Ines** and **Theo**. Season 136 opened this morning against De stichting, Legend Royale, Happy Win and Les champs — the first time we have met any of them.\n\nWant it shorter, or with every member's points listed?",
             },
           ],
         },

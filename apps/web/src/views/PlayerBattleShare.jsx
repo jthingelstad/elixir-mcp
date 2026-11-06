@@ -18,7 +18,7 @@ export function PlayerBattleShare({ url, players }) {
     )
   )
     return null;
-  const title = `${players} — Clash Royale battle`;
+  const title = `${players}: Clash Royale battle`;
   const words = context.trim();
   const text = words ? `Why this mattered to me\n${words}\n\n${title}` : title;
   const message = `${text}\n${url}`;

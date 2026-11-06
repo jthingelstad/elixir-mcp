@@ -305,7 +305,7 @@ test("next steps tell a member the one or two things that would move them", () =
     donationsClan,
   );
   assert.deepEqual(low, [
-    "Donate every week: the average over 4 weeks counts, not one big week.",
+    "Donations count here: the average over 4 weeks, not one big week.",
   ]);
   assert.deepEqual(
     nextSteps(d.members[0], { ...donationsClan, elder_mode: "manual" }),

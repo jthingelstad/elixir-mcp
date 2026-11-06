@@ -1,9 +1,8 @@
+import { useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import { keys, useInvalidate, useVoice } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
-
-const day = (ts) => (ts ? ts.slice(0, 10) : "");
 
 /**
  * How our messages sound (2026-10-20): the clan's one voice, in its
@@ -14,6 +13,7 @@ const day = (ts) => (ts ? ts.slice(0, 10) : "");
  * rule: it sets the tone and the wording, never the facts.
  */
 export function VoiceSetting({ clan }) {
+  const { whenDay } = useClock();
   const { state } = useVoice(clan.clan_tag);
   const invalidate = useInvalidate();
   const [draft, setDraft] = useState(null);
@@ -30,7 +30,7 @@ export function VoiceSetting({ clan }) {
   if (state.error)
     return (
       <p className="field-error m-0" role="alert">
-        Elixir Clan did not answer. Try again in a minute.
+        Clan did not answer. Try again in a minute.
       </p>
     );
   const d = state.data;
@@ -45,7 +45,7 @@ export function VoiceSetting({ clan }) {
     setBusy(false);
     if (!r.ok) {
       setMessage(
-        r.data?.message ?? "Elixir Clan did not answer. Try again in a minute.",
+        r.data?.message ?? "Clan did not answer. Try again in a minute.",
       );
       return;
     }
@@ -91,7 +91,7 @@ export function VoiceSetting({ clan }) {
       </div>
       {d.set_by_name ? (
         <p className="page-head__note m-0">
-          Last set by {d.set_by_name} · {day(d.set_at)}
+          Last set by {d.set_by_name} · {whenDay(d.set_at)}
         </p>
       ) : null}
       {message ? (

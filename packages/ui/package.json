@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./family.json": "./src/family.json"
+    "./family.json": "./src/family.json",
+    "./time": "./src/time.ts"
   },
   "scripts": {
     "test": "vitest run"

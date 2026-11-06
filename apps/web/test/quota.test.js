@@ -15,7 +15,7 @@ test("a limit reads as used-of-limit with a percentage and a full mark", () => {
   expect(q.calls.full).toBe(false);
   expect(q.fetches.full).toBe(true);
   expect(q.fetches.pct).toBe(100);
-  expect(q.resets).toMatch(/^resets 00:00Z · \d+h \d{2}m$/);
+  expect(q.resets).toMatch(/^resets \w{3} 12:00 am UTC · \d+h \d{2}m$/);
 });
 
 test("an unlimited ceiling is infinity, never full", () => {

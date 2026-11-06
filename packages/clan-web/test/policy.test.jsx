@@ -152,7 +152,9 @@ describe("policy: tabs along the top", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Preview the last reviews" }),
     );
-    expect(await screen.findByText("removal evidence held")).toBeTruthy();
+    expect(
+      await screen.findByText("removal waiting on the record"),
+    ).toBeTruthy();
     expect(screen.getByText("remove")).toBeTruthy();
   });
   test("the Inactivity tab has no enforceability label, and the saved policy says removal is live", async () => {

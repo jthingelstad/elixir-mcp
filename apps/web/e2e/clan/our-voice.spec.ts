@@ -130,7 +130,7 @@ for (const size of ["wide", "@narrow"]) {
     await expect(dialog.getByText(/^51\/400\./)).toBeVisible();
     await dialog.getByRole("button", { name: "Save the voice" }).click();
     await expect(
-      dialog.getByText("Last set by Ada · 2026-10-20"),
+      dialog.getByText(/^Last set by Ada · Tue Oct 20( 2026)?$/),
     ).toBeVisible();
     expect(writes).toEqual([
       { voice: "Warm and short; cheer the wins, keep goodbyes kind." },

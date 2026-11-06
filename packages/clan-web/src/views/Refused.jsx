@@ -9,7 +9,7 @@ import { Link, useClock, Tag } from "@elixir-mcp/ui";
 export const REFUSALS = {
   not_a_person: {
     title: "That was an agent's connection, not yours",
-    body: "Elixir Clan signs people in. An agent or integration credential cannot open the personal clan dashboard.",
+    body: "Clan signs people in. An agent or integration credential cannot open the personal clan dashboard.",
     action: "Sign in to Elixir as yourself.",
     link: [ELIXIR_LINKS.connectionsDocs, "Users, agents and integrations"],
     retry: "/console/signin",
@@ -30,15 +30,15 @@ export const REFUSALS = {
   },
   membership_unknown: {
     title: "Waiting for your clan record",
-    body: "Elixir has not confirmed your players' clan membership yet. Missing profile or roster observations do not mean you are outside a clan.",
+    body: "Elixir has not confirmed your players' clan membership yet. A gap in your profile or roster reads does not mean you are outside a clan.",
     action:
-      "Check recording under Tracking, then check again after your profile and clan roster have been observed.",
+      "Check recording under Tracking, then check again after your profile and clan roster have been read.",
     link: [ELIXIR_LINKS.tracking, "Elixir → Tracking"],
   },
 };
 
 export function Refused({ reason, me, onRecheck, checking }) {
-  const { stamp } = useClock();
+  const { when } = useClock();
   const page = REFUSALS[reason];
   if (!page) {
     return (
@@ -82,7 +82,7 @@ export function Refused({ reason, me, onRecheck, checking }) {
                 ? "verified"
                 : (p.claim_status ?? "unverified")}
               {p.membership_capture?.state === "none"
-                ? ` · no clan observed ${stamp(p.membership_capture.observed_at, { year: true })}`
+                ? ` · no clan seen ${when(p.membership_capture.observed_at)}`
                 : p.clan_tag
                   ? ` · recorded clan ${p.clan_name ?? p.clan_tag} · clan record pending`
                   : " · clan record pending"}

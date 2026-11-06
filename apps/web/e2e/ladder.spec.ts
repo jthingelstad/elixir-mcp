@@ -129,7 +129,7 @@ test.describe("Ladder signed in", () => {
     await expect(page).toHaveTitle("Season - Ladder - Elixir");
     // Times are prose in the account's zone: 10:00Z is 5:00 am Central.
     await expect(page.locator(".page__lede")).toContainText(
-      "The season ends Monday, October 5 at 5:00 am CDT.",
+      "The season ends Mon Oct 5, 5:00 am.",
     );
     await expect(page.locator(".freshness")).toContainText("battle log read");
 
@@ -256,9 +256,7 @@ test.describe("Ladder signed in", () => {
     await expect(rows.nth(2)).toContainText("Net trophies");
     await expect(rows.nth(2).locator("td").nth(0)).toContainText("+58");
     await expect(rows.nth(2).locator("td").nth(1)).toContainText("−10");
-    await expect(week).toContainText(
-      "this one began Monday, September 28 at 5:00 am CDT",
-    );
+    await expect(week).toContainText("this one began Mon 5:00 am");
     await expect(week).toContainText("at least 10 battles");
 
     // The week is UTC on the policy grid: Monday 10:00Z, the four before.
@@ -565,11 +563,11 @@ test.describe("Ladder signed in", () => {
       );
       await page.goto(`/ladder${page_}`);
       await expect(
-        page.getByRole("heading", { name: "Your first capture is on its way" }),
+        page.getByRole("heading", { name: "Your first read is on its way" }),
       ).toBeVisible();
       await expect(page.getByRole("alert")).toHaveCount(0);
       await expect(
-        page.getByRole("link", { name: "Capture status ›" }),
+        page.getByRole("link", { name: "Reading status ›" }),
       ).toHaveAttribute("href", "/console/account/tracking/20JJJ2CCRU");
       await accessible(page, `ladder pending ${page_}`);
     });
@@ -685,7 +683,7 @@ test.describe("Ladder days played", () => {
       tiles.nth(2).getByRole("img", { name: "13 won, 12 lost" }),
     ).toBeVisible();
     await expect(tiles.nth(3)).toContainText("Unknown");
-    await expect(tiles.nth(3)).toContainText("No fully covered quiet days");
+    await expect(tiles.nth(3)).toContainText("None the record fully covers");
 
     // Monday the 7th to Sunday, October 4, each day its own cell.
     const days = page.locator(".ladder-cal > li:not(.ladder-day--blank)");
@@ -703,10 +701,10 @@ test.describe("Ladder days played", () => {
     // three attacks and nothing more.
     await expect(days.nth(17).locator(".ladder-day__n")).toHaveText("3");
     await expect(days.nth(22)).toHaveAttribute("aria-current", "date");
-    await expect(days.nth(22)).toContainText("today · capture incomplete");
+    await expect(days.nth(22)).toContainText("today, still being read");
     await expect(days.nth(23)).toContainText("to come");
     await expect(page.locator(".panel__foot").first()).toContainText(
-      "The season runs Monday, September 7 at 5:00 am CDT to Monday, October 5 at 5:00 am CDT.",
+      "The season began Mon Sep 7, 5:00 am and ends Mon 5:00 am.",
     );
 
     // Nights, newest first: Monday's two events then three on Trophy
@@ -714,8 +712,8 @@ test.describe("Ladder days played", () => {
     const nights = page.locator(".ladder-night");
     await expect(nights).toHaveCount(5);
     const night = nights.first();
-    await expect(night).toContainText("Mon, Sep 28");
-    await expect(night).toContainText("10:37 – 11:09 pm CDT");
+    await expect(night).toContainText("Mon Sep 28");
+    await expect(night).toContainText("10:37 – 11:09 pm");
     await expect(night).toContainText("2 event battles");
     await expect(night).toContainText("then 3 on Trophy Road");
     await expect(night).toContainText("Ended on the 12,500 floor");
@@ -795,7 +793,7 @@ test.describe("Ladder days played", () => {
     // The fixture's fifty-fifth battle, a war loss on the 26th, has no url.
     const night = page
       .locator(".ladder-night")
-      .filter({ hasText: "Sat, Sep 26" });
+      .filter({ hasText: "Sat Sep 26" });
     await night.getByRole("button").click();
     await expect(night.locator("span.battle-row")).toHaveCount(1);
     await expect(night.locator("a.battle-row")).toHaveCount(3);
@@ -942,7 +940,7 @@ test.describe("Ladder decks", () => {
     // evolutions moved, one put down before the other was picked up.
     const swap = page.locator(".ladder-swap");
     await expect(swap.getByRole("heading")).toHaveText(
-      "The evolution swap on September 20",
+      "The evolution swap on Sun Sep 20",
     );
     await expect(swap).toContainText("Trophy Road only");
     const sides = swap.locator(".ladder-swap__side");
@@ -1295,7 +1293,7 @@ test.describe("Ladder seasons", () => {
       page.getByRole("heading", { level: 1, name: "Season 135" }),
     ).toBeVisible();
     await expect(page.locator(".page__lede")).toContainText(
-      "The season ran Monday, August 3 at 5:00 am CDT to Monday, September 7 at 5:00 am CDT.",
+      "The season began Mon Aug 3, 5:00 am and ended Mon Sep 7, 5:00 am.",
     );
     // The last 30 days are not that season: its decks are a link away.
     await expect(
@@ -1443,10 +1441,10 @@ test.describe("Ladder this season vs last", () => {
     // Fairness and its limits, said plainly.
     const foot = panel.locator(".panel__foot");
     await expect(foot).toContainText(
-      "Season 135 to the same point is its first 24 days and 11 hours, to Thursday, August 27 at 4:00 pm CDT: as far into it, to the hour, as this season is now. All of Season 135 ran 35 days.",
+      "Season 135 to the same point is its first 24 days and 11 hours, to Thu Aug 27, 4:00 pm: as far into it, to the hour, as this season is now. All of Season 135 ran 35 days.",
     );
     await expect(foot).toContainText(
-      "Elixir's record of you begins Wednesday, August 19, partway through Season 135, so not all of that season is on record.",
+      "Elixir's record of you begins Wed Aug 19, partway through Season 135, so not all of that season is on record.",
     );
     await expect(foot).toContainText(
       "In Season 136 you stood on an arena floor, where a loss costs no trophies.",
@@ -1601,7 +1599,7 @@ test.describe("Ladder this season vs last", () => {
       "54%52 battles",
     ]);
     await expect(panel.locator(".panel__foot")).toContainText(
-      "Season 135 to the same point is its first 24 days and 11 hours, to Thursday, August 27 at 4:00 pm CDT: as far into it, to the hour, as this season is now. It has fewer than 10 decided Trophy Road battles, so it is not shown. All of Season 135 ran 35 days.",
+      "Season 135 to the same point is its first 24 days and 11 hours, to Thu Aug 27, 4:00 pm: as far into it, to the hour, as this season is now. It has fewer than 10 decided Trophy Road battles, so it is not shown. All of Season 135 ran 35 days.",
     );
     // No decks read for a side that is not shown.
     expect(
@@ -1710,7 +1708,7 @@ test.describe("Ladder this season vs last", () => {
       "Season 135 ran 35 days and Season 134 ran 28 days; each is read whole.",
     );
     await expect(foot).toContainText(
-      "Elixir's record of you begins Thursday, July 9, partway through Season 134",
+      "Elixir's record of you begins Thu Jul 9, partway through Season 134",
     );
     await expect(foot).not.toContainText("arena floor");
     await expect(panel).not.toContainText("so far");

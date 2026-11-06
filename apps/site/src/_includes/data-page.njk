@@ -12,7 +12,7 @@ navActive: data
   matter says which one is current.
 -#}
 {%- set pages = [
-  { url: "/data", label: "Corpus totals", key: "totals", icon: "chart-column" },
+  { url: "/data", label: "Totals", key: "totals", icon: "chart-column" },
   { url: "/data/growth", label: "Retained history", key: "growth", icon: "trending-up" },
   { url: "/data/collect", label: "What we collect", key: "collect", icon: "radar" },
   { url: "/data/now", label: "Recording now", key: "now", icon: "radio" },
@@ -26,7 +26,7 @@ navActive: data
       <span class="siterail__head-meta">{{ pages.length }}<span class="siterail__head-chevron">{% icon "chevron-down", 17 %}</span></span>
     </button>
     <nav class="siterail__list" id="data-rail" aria-label="Data">
-      <div class="rail__group">The corpus</div>
+      <div class="rail__group">The record</div>
       {%- for p in pages %}
       <a class="rail__item{% if p.key == dataNav %} rail__item--on{% endif %}"
          {% if p.key == dataNav %}aria-current="page"{% endif %}

@@ -1,4 +1,4 @@
-import { Disclosure, ago } from "@elixir-mcp/ui";
+import { Disclosure, ago, useClock } from "@elixir-mcp/ui";
 import { modelName } from "@elixir-mcp/clan-engine";
 import { useEffect, useRef, useState } from "react";
 import { manageApi } from "../api.js";
@@ -6,7 +6,6 @@ import { useModel } from "../lib/queries.js";
 import { trackEvent } from "../analytics.js";
 import { CLAN } from "../lib/base.js";
 
-const day = (ts) => (ts ? ts.slice(0, 10) : "");
 const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
 /** Dollars a leader can read: cents, or the first figures of a fraction. */
 function usd(x) {
@@ -58,14 +57,15 @@ function ModelUses({ uses }) {
         </span>
       ))}
       <span className="page-head__note">
-        Elixir Clan chooses the model for each use. The key and its monthly cap
-        are yours.
+        Clan chooses the model for each use. The key and its monthly cap are
+        yours.
       </span>
     </span>
   );
 }
 
 export function Model({ clan }) {
+  const { whenDay } = useClock();
   const { state, load } = useModel(clan.clan_tag);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -101,7 +101,7 @@ export function Model({ clan }) {
   if (state.error)
     return (
       <div className="callout callout--warn" role="alert">
-        <span>Elixir Clan did not answer. Try again in a minute.</span>
+        <span>Clan did not answer. Try again in a minute.</span>
       </div>
     );
   const d = state.data;
@@ -163,10 +163,10 @@ export function Model({ clan }) {
       </p>
       <Disclosure title="What the model receives and how its output is used">
         <p className="page__lede m-0">
-          Elixir Clan pays for no model. With your clan&rsquo;s own Anthropic
-          key, a model drafts the recruiting pitch in Recruit and messages on
-          Actions: welcomes, promotions, demotions, awards, policy announcements
-          and a chat line after a removal decision. It never decides what should
+          Clan pays for no model. With your clan&rsquo;s own Anthropic key, a
+          model drafts the recruiting pitch in Recruit and messages on Actions:
+          welcomes, promotions, demotions, awards, policy announcements and a
+          chat line after a removal decision. It never decides what should
           happen to a member. It is told what Elixir records: the clan (its
           name, its own words, what it is for, its members and last war weeks),
           the Action&rsquo;s own evidence and the member it is about, by name,
@@ -219,17 +219,17 @@ export function Model({ clan }) {
             </span>
             <span className="label">Added by</span>
             <span>
-              {d.set_by_name ?? d.set_by} · {day(d.set_at)}
+              {d.set_by_name ?? d.set_by} · {whenDay(d.set_at)}
             </span>
             <span className="label">Models</span>
             <ModelUses uses={uses} />
             <span className="label">Key checked</span>
             <span>
               {d.models_refreshed_at
-                ? `With Anthropic, ${day(d.models_refreshed_at)}`
+                ? `With Anthropic, ${whenDay(d.models_refreshed_at)}`
                 : "With Anthropic, when the key was added"}
               {d.models_refresh_error
-                ? ` · the check on ${day(d.models_refresh_error.at)} failed; it is tried again a day later`
+                ? ` · the check on ${whenDay(d.models_refresh_error.at)} failed; it is tried again a day later`
                 : ""}
             </span>
             <span className="label">Today</span>
@@ -315,7 +315,7 @@ export function Model({ clan }) {
           {uses.some((u) => !u.model) && !d.refused_at ? (
             <div className="callout callout--warn m-3" role="status">
               <span>
-                This key does not reach the model Elixir Clan uses for{" "}
+                This key does not reach the model Clan uses for{" "}
                 {uses
                   .filter((u) => !u.model)
                   .map((u) => u.label)
@@ -328,8 +328,8 @@ export function Model({ clan }) {
           {d.refused_at ? (
             <div className="callout callout--warn m-3" role="alert">
               <span>
-                Anthropic stopped accepting this key on {day(d.refused_at)}. Add
-                it again, or a new one, below.
+                Anthropic stopped accepting this key on {whenDay(d.refused_at)}.
+                Add it again, or a new one, below.
               </span>
             </div>
           ) : !d.readable ? (

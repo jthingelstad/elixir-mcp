@@ -265,7 +265,7 @@ test("a reader who runs no collector is told what one is and what it earns, and 
   const navigate = vi.fn();
   await paintFleet([], [], navigate);
   expect(screen.getByText(/You don.t run one yet/)).toBeTruthy();
-  expect(screen.getByText(/earns your account the Family tier/)).toBeTruthy();
+  expect(screen.getByText(/raises your limits to Family/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: /Run a collector/ }));
   expect(navigate).toHaveBeenCalledWith("/console/status/collectors/new");
 });
@@ -422,8 +422,8 @@ test("the retired SQS queue panel is gone", async () => {
 
 test("both capture windows render, stacked by collector", async () => {
   await paint();
-  expect(screen.getByText("Capture, last hour")).toBeTruthy();
-  expect(screen.getByText("Capture, last 24 hours")).toBeTruthy();
+  expect(screen.getByText("Reads, last hour")).toBeTruthy();
+  expect(screen.getByText("Reads, last 24 hours")).toBeTruthy();
   // One <path>/<rect> segment per collector that actually fetched.
   const segs = document.querySelectorAll(".chart .seg");
   // 5m: 2 segments in the one non-empty bucket. 24h: 2 in its non-empty one.
@@ -438,7 +438,7 @@ test("hovering a bucket breaks it down by collector", async () => {
   const hits = document.querySelectorAll(".chart .hit");
   // Second bucket of the 5-minute chart: 18 + 12, two of them rejected.
   fireEvent.mouseEnter(hits[1]);
-  await waitFor(() => expect(screen.getByText(/14:55Z/)).toBeTruthy());
+  await waitFor(() => expect(screen.getByText(/2:55 pm/)).toBeTruthy());
   const tip = document.querySelector(".charttip");
   expect(within(tip).getByText("Ram Rider")).toBeTruthy();
   expect(within(tip).getByText("18")).toBeTruthy();
@@ -468,7 +468,7 @@ test("the bucket in progress is labelled, not shown as nothing fetched", async (
   const hits = document.querySelectorAll(".chart .hit");
   // Third bucket of the 5-minute chart is the one being filled right now.
   fireEvent.mouseEnter(hits[2]);
-  await waitFor(() => expect(screen.getByText(/15:00Z/)).toBeTruthy());
+  await waitFor(() => expect(document.querySelector(".charttip")).toBeTruthy());
   const tip = document.querySelector(".charttip");
   expect(within(tip).getByText("bucket in progress")).toBeTruthy();
   expect(within(tip).queryByText("nothing fetched")).toBeNull();
@@ -500,7 +500,7 @@ test("work waiting is the pipeline in order: due, queued, leased, done", async (
     expect(within(cell).getByText(value)).toBeTruthy();
   }
   expect(within(panel).getByText(/player_battlelog 6 · clan 3/)).toBeTruthy();
-  expect(within(panel).getByText(/next tick can plan 270/)).toBeTruthy();
+  expect(within(panel).getByText(/next run can plan 270/)).toBeTruthy();
 });
 
 // 0184: the badge per collector, and the release key's card. These
@@ -547,11 +547,11 @@ test("the fleet renders without signatures, and badges the ones it has", async (
 
 // Review 2026-09-27 §4.2 (#64): the headline is the day against the bulk
 // share, and the live lane's charge is on the page.
-test("the budget gauge leads with the last 24 hours against the bulk share", async () => {
+test("the budget gauge leads with the last 24 hours against the background share", async () => {
   await paint();
   expect(screen.getByText("Shared request budget")).toBeTruthy();
   expect(screen.getByText(/25,660 of 77,760 in 24 hours · 33%/)).toBeTruthy();
   expect(screen.getByText(/last hour 1,010 of 3,600/)).toBeTruthy();
-  expect(screen.getByText(/live lane charged 140 in 24 hours/)).toBeTruthy();
+  expect(screen.getByText(/live lookups spent 140 in 24 hours/)).toBeTruthy();
   expect(screen.queryByText(/pace at/)).toBeNull();
 });

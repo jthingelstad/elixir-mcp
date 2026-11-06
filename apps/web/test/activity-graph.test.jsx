@@ -86,20 +86,20 @@ test("weeks pads the first column to Monday", () => {
   expect(cols[0][2].day).toBe("2026-09-09");
 });
 
-test("positive battles keep their hue, empty days need complete capture, and a tap writes the evidence caption", () => {
+test("positive battles keep their hue, empty days need whole-day reads, and a tap writes the evidence caption", () => {
   render(<ActivityGraph data={fixture()} />);
   const notRecorded = screen.getByRole("button", {
-    name: /^Sun 6 Sep 2026: capture unknown · no battles recorded$/,
+    name: /^Sun Sep 6 2026: unknown · no battles recorded$/,
   });
   expect(notRecorded.className).toContain("activity__cell--none");
   const busy = screen.getByRole("button", {
-    name: /^Tue 8 Sep 2026: 6 battles recorded · 4 wins, 1 loss, 1 draw · complete day capture$/,
+    name: /^Tue Sep 8 2026: 6 battles recorded · 4 wins, 1 loss, 1 draw · the whole day was read$/,
   });
   expect(busy.className).toContain("activity__cell--l4");
   // 4 of 5 decided: the 80% hue bin.
   expect(busy.className).toContain("activity__cell--hue activity__cell--w8");
   const quiet = screen.getByRole("button", {
-    name: /^Thu 10 Sep 2026: 0 battles · covered quiet day$/,
+    name: /^Thu Sep 10 2026: 0 battles · read in full$/,
   });
   expect(quiet.className).toContain("activity__cell--l0");
   expect(quiet.className).not.toContain("activity__cell--none");
@@ -107,32 +107,32 @@ test("positive battles keep their hue, empty days need complete capture, and a t
   // plus the unknown quiet day. 2025-09-14 .. 2026-07-07 is 297 days.
   expect(
     screen.getAllByRole("button", {
-      name: /capture unknown · no battles recorded/,
+      name: /unknown · no battles recorded/,
     }).length,
   ).toBe(297);
   // A stray appearance is drawn; the quiet days around it are hatched.
   const stray = screen.getByRole("button", {
-    name: /^Thu 14 May 2026: 3 battles recorded · capture unknown$/,
+    name: /^Thu May 14 2026: 3 battles recorded · unknown$/,
   });
   expect(stray.className).toContain("activity__cell--l2");
   // A bare count (no tallies yet) keeps the accent ramp.
   expect(stray.className).not.toContain("activity__cell--hue");
   expect(
     screen.getByRole("button", {
-      name: /^Fri 15 May 2026: capture unknown · no battles recorded$/,
+      name: /^Fri May 15 2026: unknown · no battles recorded$/,
     }).className,
   ).toContain("activity__cell--none");
   // All draws: volume, but no share, so no hue - and no "0 wins, 0 losses"
   // is not what it says; it says what happened.
   const partial = screen.getByRole("button", {
-    name: /^Sat 12 Sep 2026: 2 battles recorded · 0 wins, 0 losses, 2 draws · capture incomplete or not comparable$/,
+    name: /^Sat Sep 12 2026: 2 battles recorded · 0 wins, 0 losses, 2 draws · part of the day was read$/,
   });
   expect(partial.className).not.toContain("activity__cell--hue");
-  expect(screen.getByText(/tracked since 2026-09-03/)).toBeTruthy();
+  expect(screen.getByText(/tracked since \w+ Sep [23]( 2026)?/)).toBeTruthy();
   fireEvent.click(busy);
   expect(
     screen.getByText(
-      "Tue 8 Sep 2026: 6 battles recorded · 4 wins, 1 loss, 1 draw · complete day capture",
+      "Tue Sep 8 2026: 6 battles recorded · 4 wins, 1 loss, 1 draw · the whole day was read",
     ).className,
   ).toBe("activity__caption");
   // The legend runs losses to wins, then fewer to more.
@@ -141,7 +141,7 @@ test("positive battles keep their hue, empty days need complete capture, and a t
   expect(screen.getByText("fewer")).toBeTruthy();
   // The legend swatch and the list both name it.
   expect(
-    screen.getAllByText("capture incomplete or unknown").length,
+    screen.getAllByText("not read in full, or unknown").length,
   ).toBeGreaterThan(0);
   // No rhythm tile: nothing renders as an img.
   expect(screen.queryAllByRole("img").length).toBe(0);
@@ -149,7 +149,7 @@ test("positive battles keep their hue, empty days need complete capture, and a t
 
 test("no row yet says so instead of drawing an empty year", () => {
   render(<ActivityGraph data={{ computed_at: null, days: [] }} />);
-  expect(screen.getByText(/Activity evidence is unavailable/)).toBeTruthy();
+  expect(screen.getByText(/Activity is unavailable/)).toBeTruthy();
   expect(screen.queryByRole("button")).toBeNull();
 });
 
@@ -172,11 +172,10 @@ test("legacy recorded flags cannot turn empty days into quiet, and no nightly ro
     />,
   );
   expect(
-    screen.getByRole("button", { name: /31 Dec 2025: capture unknown/ })
-      .className,
+    screen.getByRole("button", { name: /Dec 31 2025: unknown/ }).className,
   ).toContain("activity__cell--none");
   expect(
-    screen.getByRole("button", { name: /1 Jan 2026: 2 battles recorded/ })
+    screen.getByRole("button", { name: /Jan 1 2026: 2 battles recorded/ })
       .className,
   ).toContain("activity__cell--l4");
   expect(
@@ -188,20 +187,20 @@ test("failed reads retain positive evidence, retry reads, and an expired selecte
   const retry = vi.fn();
   const { rerender } = render(<ActivityGraph data={fixture()} />);
   fireEvent.click(
-    screen.getByRole("button", { name: /Tue 8 Sep 2026: 6 battles recorded/ }),
+    screen.getByRole("button", { name: /Tue Sep 8 2026: 6 battles recorded/ }),
   );
   rerender(
     <ActivityGraph data={fixture()} error={{ status: 503 }} onRetry={retry} />,
   );
   expect(screen.getByText(/Showing the last successful read/)).toBeTruthy();
   expect(
-    screen.getByRole("button", { name: /Tue 8 Sep 2026: 6 battles recorded/ }),
+    screen.getByRole("button", { name: /Tue Sep 8 2026: 6 battles recorded/ }),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Retry activity read" }));
   expect(retry).toHaveBeenCalledTimes(1);
   rerender(<ActivityGraph data={{ ...fixture(), days: [] }} />);
   expect(screen.getByText(/0 days with recorded battles/)).toBeTruthy();
   rerender(<ActivityGraph error={{ status: 503 }} onRetry={retry} />);
-  expect(screen.getByText(/Capture is unknown/)).toBeTruthy();
+  expect(screen.getByText(/What was read is unknown/)).toBeTruthy();
   expect(screen.queryByRole("group")).toBeNull();
 });

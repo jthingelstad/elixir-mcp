@@ -56,9 +56,8 @@ export function SpreadWord({ me, clan, roster, navigate }) {
         </div>
         <div className="panel__body grid gap-2">
           <p className="m-0">
-            This clan has {members}. Until it has {MIN_MEMBERS}, Elixir Clan is
-            your clan&rsquo;s statistics; Recruit writes the words to help it
-            grow.
+            This clan has {members}. Until it has {MIN_MEMBERS}, Clan is your
+            clan&rsquo;s statistics; Recruit writes the words to help it grow.
           </p>
           <a href={`${base}/recruit`} onClick={go(`${base}/recruit`)}>
             Open Recruit ›

@@ -1,5 +1,14 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { stamp, stampDay, stampTime } from "./time.ts";
+import {
+  calendarDay,
+  clockAt,
+  dayAt,
+  stamp,
+  stampDay,
+  stampTime,
+  whenAt,
+} from "./time.ts";
+import { useInitialTime } from "./InitialTime.tsx";
 
 /** The reader's timezone, set once where the app knows the account and
  *  read by every view that prints a time. Null (no provider, or an
@@ -20,12 +29,22 @@ export function ZoneProvider({
 }
 
 /** The clock vocabulary bound to the reader's zone, so a view says
- *  `stamp(r.created_at)` and cannot forget whose clock it is. */
+ *  `when(r.created_at)` and cannot forget whose clock it is. `when`,
+ *  `whenDay` and `calendar` read "now" once for the visit, so a server
+ *  render and its hydration agree. `stamp`, `day` and `time` are the wall
+ *  clock staff pages keep; member pages use the words. */
 export function useClock() {
   const zone = useContext(ZoneContext);
+  const [now] = useInitialTime();
   return useMemo(
     () => ({
       zone,
+      now,
+      when: (ts: Parameters<typeof whenAt>[0]) => whenAt(ts, zone, { now }),
+      whenDay: (ts: Parameters<typeof dayAt>[0]) => dayAt(ts, zone, { now }),
+      calendar: (ymd: Parameters<typeof calendarDay>[0]) =>
+        calendarDay(ymd, { now }),
+      clock: (ts: Parameters<typeof clockAt>[0]) => clockAt(ts, zone),
       stamp: (
         ts: Parameters<typeof stamp>[0],
         opts?: Parameters<typeof stamp>[2],
@@ -36,6 +55,6 @@ export function useClock() {
         opts?: Parameters<typeof stampTime>[2],
       ) => stampTime(ts, zone, opts),
     }),
-    [zone],
+    [zone, now],
   );
 }

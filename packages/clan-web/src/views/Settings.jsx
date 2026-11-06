@@ -68,7 +68,7 @@ export function Settings({ clan }) {
                   : d.owner_leads === false
                     ? "Not in use · Key owner no longer leads"
                     : d.cap_reached
-                      ? "Paused · Monthly model limit reached"
+                      ? "Paused · Monthly cap reached"
                       : !d.usable
                         ? "Not in use · Open for details"
                         : Object.keys(d.purposes ?? {}).some(
@@ -83,7 +83,7 @@ export function Settings({ clan }) {
           <Model clan={clan} />
         </Setting>
         <Setting
-          title="Monthly model limit"
+          title="Monthly cap"
           action="Change"
           description={reading(
             model,

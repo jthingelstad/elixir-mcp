@@ -69,7 +69,7 @@ const cases = [
     clan: null,
     action: "Check recording status",
     to: "/console/account/tracking/20JJJ2CCRU",
-    state: "Capture pending",
+    state: "First read pending",
   },
   {
     name: "profile without captured battles",
@@ -77,7 +77,7 @@ const cases = [
     clan: null,
     action: "View recorded profile",
     to: "/console/explore/profile/20JJJ2CCRU",
-    state: "Captured data available",
+    state: "Recorded and ready to read",
   },
   {
     name: "stopped with older retained history",
@@ -97,7 +97,7 @@ const cases = [
     clan: null,
     action: "Browse recorded battles",
     to: "/console/explore/list/battles:20JJJ2CCRU",
-    state: "Captured data available",
+    state: "Recorded and ready to read",
   },
   {
     name: "failed attempt with retained profile",
@@ -115,7 +115,7 @@ const cases = [
     clan: null,
     action: "View recorded profile",
     to: "/console/explore/profile/20JJJ2CCRU",
-    state: "Capture attempt failed",
+    state: "The last read failed",
   },
   {
     name: "profile not found before any capture",
@@ -151,7 +151,7 @@ const cases = [
     clan: null,
     action: "Browse recorded battles",
     to: "/console/explore/list/battles:20JJJ2CCRU",
-    state: "Captured data available",
+    state: "Recorded and ready to read",
   },
   {
     name: "paused empty record",
@@ -220,7 +220,7 @@ for (const width of [390, 1280]) {
     await page.goto("/console/account/tracking/20JJJ2CCRU");
     await expect(
       page.getByRole("region", { name: "Your recording" }),
-    ).toContainText("Capture pending");
+    ).toContainText("First read pending");
     expect(adds).toBe(1);
   });
   test(`retained battles retry, paginate, Back and reload at ${width}px`, async ({
@@ -536,7 +536,7 @@ for (const width of [390, 1280]) {
     await expect(page).toHaveURL(/\/console\/account\/tracking\/20JJJ2CCRU$/);
     const recording = page.getByRole("region", { name: "Your recording" });
     await expect(recording).toContainText("Player tag saved");
-    await expect(recording).toContainText("Capture pending");
+    await expect(recording).toContainText("First read pending");
     await expect(
       page.getByText("Adding is temporarily unavailable."),
     ).toHaveCount(0);
@@ -575,7 +575,7 @@ for (const width of [390, 1280]) {
       .click();
     await expect(page).toHaveURL(/\/docs\/recording$/);
     await page.goBack();
-    await expect(recording).toContainText("Captured data available");
+    await expect(recording).toContainText("Recorded and ready to read");
     await page.goto("/console/account/feedback");
     // The page's own compose; the rail's foot opens the sheet.
     await page
@@ -589,14 +589,14 @@ for (const width of [390, 1280]) {
     await expect(page.getByText("Feedback interrupted.")).toBeVisible();
     await expect(message).toHaveValue("Fixture: help with my new record");
     await page.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(page.getByText(/^Received — thank you\./)).toBeVisible();
+    await expect(page.getByText(/^Received, thank you\./)).toBeVisible();
     await expect(page.getByRole("link", { name: "fb_9" })).toHaveAttribute(
       "href",
       "/console/account/feedback/9",
     );
     expect(feedbackSends).toBe(2);
     await page.goBack();
-    await expect(recording).toContainText("Captured data available");
+    await expect(recording).toContainText("Recorded and ready to read");
     await page.getByRole("button", { name: /^Account:/ }).click();
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
     await expect(page.getByText(/Not signed out\./)).toBeVisible();

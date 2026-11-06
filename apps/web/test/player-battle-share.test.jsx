@@ -36,7 +36,7 @@ test("context leads the explicit message, with only the canonical battle link", 
   open();
   const message = screen.getByLabelText("Message preview").value;
   expect(message).toBe(
-    `Why this mattered to me\nMy first close win after returning.\n\nPlayer against Opponent — Clash Royale battle\n${URL}`,
+    `Why this mattered to me\nMy first close win after returning.\n\nPlayer against Opponent: Clash Royale battle\n${URL}`,
   );
   expect(message).not.toContain("private");
   fireEvent.click(screen.getByRole("button", { name: "Copy message" }));
@@ -61,7 +61,7 @@ test("back preserves exact words, cancel clears them, blank context adds no inve
   );
   fireEvent.click(screen.getByRole("button", { name: "Preview message" }));
   expect(screen.getByLabelText("Message preview").value).toBe(
-    `Player against Opponent — Clash Royale battle\n${URL}`,
+    `Player against Opponent: Clash Royale battle\n${URL}`,
   );
 });
 
@@ -121,8 +121,8 @@ test("native share cancellation keeps the preview and a later share includes exp
   fireEvent.click(screen.getByRole("button", { name: "Share message" }));
   expect(await screen.findByText("Shared.")).toBeTruthy();
   expect(share.mock.calls[1][0]).toEqual({
-    title: "Player against Opponent — Clash Royale battle",
-    text: "Why this mattered to me\nThis was my comeback.\n\nPlayer against Opponent — Clash Royale battle",
+    title: "Player against Opponent: Clash Royale battle",
+    text: "Why this mattered to me\nThis was my comeback.\n\nPlayer against Opponent: Clash Royale battle",
     url: URL,
   });
   expect(copy).not.toHaveBeenCalled();

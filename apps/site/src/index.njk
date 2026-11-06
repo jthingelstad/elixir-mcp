@@ -1,7 +1,7 @@
 ---
 layout: base.njk
 title: "Your Clash Royale, on the record"
-description: "Elixir keeps every Clash Royale battle, clan week and river race you play, and reads it back: on your Ladder, inside your clan, in a short weekly email, or to your own AI agent over MCP. The card catalog is public."
+description: "Elixir keeps every Clash Royale battle, clan week and river race it records, and reads it back: on your Ladder, inside your clan, in a short weekly email, or to your own AI agent over MCP. The card catalog is public."
 permalink: /index.html
 canonical: /
 navActive: home
@@ -55,7 +55,7 @@ navActive: home
       <ul class="home-tile__sample" aria-label="Your first steps in Console">
         <li class="home-tile__row">Create your account with an email</li>
         <li class="home-tile__row">Add your player under Tracking</li>
-        <li class="home-tile__caption">History starts with the first poll; an agent is optional</li>
+        <li class="home-tile__caption">History starts with the first read; an agent is optional</li>
       </ul>
       <a class="home-tile__cta" href="/console/account/tracking">Start in Console ›</a>
     </article>
@@ -172,8 +172,8 @@ navActive: home
 <section class="home-band" aria-labelledby="home-corpus">
   <div class="home-band__head">
     <h2 class="home-band__title home-band__title--plain" id="home-corpus">What it is reading</h2>
-    <span class="home-band__note">the whole record, at the last deploy</span>
-    <a class="text-[14px]" href="/data">The corpus ›</a>
+    <span class="home-band__note">the whole record, when this page was published</span>
+    <a class="text-[14px]" href="/data">The record ›</a>
   </div>
   {#- The one place a number is gold on the home page: a brand moment
       on the marketing half, not a reading in the console. Baked at
@@ -187,12 +187,12 @@ navActive: home
     <div class="stats__cell">
       <div class="label">players</div>
       <div class="stats__value stats__value--brand">{% if t %}{{ t.players_recording | number }}{% else %}—{% endif %}</div>
-      <div class="stats__note">recorded{% if t %} · {{ t.players | number }} observed{% endif %}</div>
+      <div class="stats__note">recorded{% if t %} · {{ t.players | number }} seen in a battle{% endif %}</div>
     </div>
     <div class="stats__cell">
       <div class="label">clans</div>
       <div class="stats__value stats__value--brand">{% if t %}{{ t.clans_recording | number }}{% else %}—{% endif %}</div>
-      <div class="stats__note">recorded{% if t %} · {{ t.clans | number }} observed{% endif %}</div>
+      <div class="stats__note">recorded{% if t %} · {{ t.clans | number }} seen in a battle{% endif %}</div>
     </div>
     <div class="stats__cell">
       <div class="label">war weeks</div>

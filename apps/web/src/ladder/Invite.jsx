@@ -39,7 +39,7 @@ export function LadderInvite({ returnTo, onSignIn }) {
       </p>
       <p className="page__lede">
         {MODES.map((m) => m.label).join(", ")}: each mode is its own game, so
-        each has its own tab, and nothing pools across them.
+        each is its own view, and nothing pools across them.
       </p>
       <ul className="mt-5 grid gap-3 p-0">
         {LADDER_PAGES.map((p) => (

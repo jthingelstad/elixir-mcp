@@ -1,4 +1,4 @@
-import { Tag } from "@elixir-mcp/ui";
+import { Tag, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { manageApi } from "../api.js";
 import {
@@ -16,6 +16,7 @@ import { trackEvent } from "../analytics.js";
  * protection from removal while active, without resetting the clock.
  */
 export function MemberSheet({ clanTag, member, role, onChange }) {
+  const { whenDay, calendar } = useClock();
   const isLeader = role === "leader" || role === "coLeader";
   const notes = useMemberNotes(clanTag, member.player_tag).data ?? null;
   const [text, setText] = useState("");
@@ -69,7 +70,7 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
                 <li key={`${g.season_id}-${g.award_id}`}>
                   <strong>{g.name}</strong>
                   {g.rank > 1 ? ` #${g.rank}` : ""} · season {g.season_id}
-                  {g.note ? ` — ${g.note}` : ""}
+                  {g.note ? `: ${g.note}` : ""}
                 </li>
               ))}
             </ul>
@@ -100,7 +101,7 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
                   {n.text}{" "}
                   <span className="page-head__note">
                     · {n.author_name ?? <Tag tag={n.author_tag} />} ·{" "}
-                    {n.created_at.slice(0, 10)}
+                    {whenDay(n.created_at)}
                   </span>{" "}
                   <button
                     type="button"
@@ -166,7 +167,7 @@ export function MemberSheet({ clanTag, member, role, onChange }) {
               <p className="page__lede" style={{ margin: "0 0 8px" }}>
                 On hold{" "}
                 {member.hold.until
-                  ? `until ${member.hold.until.slice(0, 10)}`
+                  ? `until ${calendar(member.hold.until)}`
                   : "until cleared"}
                 {member.hold.note ? ` · ${member.hold.note}` : ""}. The removal
                 recommendation is shielded while this hold is active. Held time

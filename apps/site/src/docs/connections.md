@@ -43,7 +43,7 @@ connection almost everybody wants.
 
 ### Signing in to other Elixir products with this account
 
-Elixir Clan, at `/clan`, is part of Elixir: it uses the same account and
+Clan, at `/clan`, is part of Elixir: it uses the same account and
 the same sign-in, so there is nothing to connect. Elixir Drop signs you in
 **with Elixir**, and creates your Elixir account if you are new. As one of
 Elixir's own apps it shows no consent page: signed in here already, you go
@@ -62,12 +62,12 @@ outside the family, which includes every MCP client and agent. See
 
 On **Connections**, **Try asking…** offers questions based on your
 recorded data. Copy one and paste it into the AI client you connected. A profile
-can support a snapshot summary; battle history can support a review, deck
+can support a summary of one reading; battle history can support a review, deck
 comparisons or two-week comparisons. A clan-war question appears when a clan you
 added has a recorded war week. You can view the full question before copying it.
 
 These are curated starting points. They ask your client to check freshness,
-sample sizes and missing data. If capture has not arrived yet, the panel explains
+sample sizes and missing data. If the first read has not arrived yet, the panel explains
 what to do next and refreshes while open. Copying a question does not call the
 MCP service or count as an answered question.
 
@@ -85,7 +85,7 @@ player list, and everything it did would be recorded as something you did. An
 agent has no personal players to leak, because it has no self — its subject is
 the clan.
 
-You can create an agent for **any clan you already record**, at any tier. It is
+You can create an agent for **any clan you already record**, at any limits. It is
 not a paid feature. It spends your daily call and live-fetch budgets and your
 recording slots, and its own role is capped at yours (and at `leader`) — an
 admin's agent is not an admin, and when your role changes, the agent's is
@@ -151,14 +151,14 @@ is not one.
 
 | Page | What it does |
 |---|---|
-| Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; your tier's slot usage; once your primary's clan is on record, [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates) |
+| Overview | whether your agent can answer about you yet, and what each unfinished line is waiting for; your players and clans in brief; how many of your slots are in use; once your primary's clan is on record, [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates) |
 | Timeline | what happened to the players and clans you track over the last seven days, newest first: the same items your connections read with `elixir_timeline`. Viewing it clears its dot and marks what is new since your last visit; it never changes what your connections have read ([its own place](#the-console-keeps-its-own-place-in-the-timeline)) |
 | Explore | the same read tools in a browser (players, clans and wars, decks, war weeks); the one write is nicknames |
 | Your record → Tracking | your players (relationship, nickname, notify) and your clans (scope, notify), and where you change them; your agent can also start tracking someone and set a nickname with its tools |
 | Your record → Verify | prove that you control a player by playing one battle with a deck Elixir names |
 | Access → Connections | every OAuth client you consented, its last call, address and country, calls this week, refused credentials; controls to change capabilities or disconnect; one row per agent you own, opening its console; and **New agent** |
 | Access → Usage | today's call and live-fetch meters, fourteen days of calls, who and which tools spent them with agents broken out, the Console's and Ladder's own reads counted apart (they spend no daily quota), and **MCP requests**, every call with its `request_id` |
-| Service → Status | recording health, budget gauge, capture gaps; under it **Collectors** (the fleet, your own collectors, the one-time token reveal) and **Efficiency** (what the battle-log schedule costs and loses) |
+| Service → Status | recording health, budget gauge, missed battles; under it **Collectors** (the fleet, your own collectors, the one-time token reveal) and **Efficiency** (what the battle-log schedule costs and loses) |
 | Send feedback | a sheet over the page you are on: write what you think, and the page rides along. The sheet links **Feedback** (also in the account menu): what you filed and what the maintainer answered |
 
 **Account settings**, in the account menu at the top, has its own rail:

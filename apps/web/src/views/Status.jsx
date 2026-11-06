@@ -55,9 +55,9 @@ function bucketInstant(hhmm, asOf) {
 
 function CaptureChart({ buckets, series, labelEvery, ariaLabel, unit, asOf }) {
   const [at, setAt] = useState(null);
-  const { time } = useClock();
-  const axis = (b) => time(bucketInstant(b.bucket, asOf), { bare: true });
-  const when = (b) => time(bucketInstant(b.bucket, asOf));
+  const { clock } = useClock();
+  const axis = (b) => clock(bucketInstant(b.bucket, asOf));
+  const when = (b) => clock(bucketInstant(b.bucket, asOf));
   const n = buckets.length || 1;
   const W = 680;
   const BASE = 72;
@@ -259,7 +259,7 @@ function BudgetGauge({ budget }) {
       : null;
   const live =
     typeof budget.charged_24h?.live === "number"
-      ? `live lane charged ${budget.charged_24h.live.toLocaleString()} in 24 hours`
+      ? `live lookups spent ${budget.charged_24h.live.toLocaleString()} in 24 hours`
       : null;
 
   return (
@@ -288,10 +288,10 @@ function BudgetGauge({ budget }) {
         </p>
       </div>
       <div className="panel__foot">
-        One budget for the whole fleet, and the live lane spends it too. More
-        collectors are resilience, never more quota. The day's capacity is the
-        bulk share, after the {Math.round((budget.live_reserve ?? 0) * 100)}%
-        live reserve.
+        One budget for every collector, and live lookups spend it too. More
+        collectors add resilience, never more quota. The day's capacity is the
+        background share, after {Math.round((budget.live_reserve ?? 0) * 100)}%
+        kept for live lookups.
       </div>
     </section>
   );
@@ -339,8 +339,8 @@ function QueueGauge({ queue, now }) {
         ))}
       </div>
       <div className="panel__foot">
-        Tracked players and clans become due between ticks and are planned at
-        the next one, every {queue.tick_minutes} minutes. The next tick can plan{" "}
+        Tracked players and clans become due between runs and are planned at the
+        next one, every {queue.tick_minutes} minutes. The next run can plan{" "}
         {(queue.next_tick_capacity ?? 0).toLocaleString()}.
       </div>
     </section>
@@ -348,7 +348,7 @@ function QueueGauge({ queue, now }) {
 }
 
 export function Status() {
-  const { time } = useClock();
+  const { when } = useClock();
   // Off by default and visible either way. It used to poll every 60s with
   // nothing on screen saying so, which is the worst of both: a tab left open
   // polled forever, and a reader had no way to know whether what they were
@@ -409,7 +409,7 @@ export function Status() {
           }}
         >
           <span className="mono" style={{ color: "var(--ink-faint)" }}>
-            as of {time(data.as_of, { seconds: true })}
+            as of {when(data.as_of)}
           </span>
           <button
             className="btn btn--sm"
@@ -469,13 +469,13 @@ export function Status() {
           </div>
           {h.capture_audit_24h && (
             <div className="stats__cell">
-              <div className="label">capture gaps</div>
+              <div className="label">missed battles</div>
               <div className="stats__value">
                 {h.capture_audit_24h.gaps.toLocaleString()}
               </div>
               <div className="stats__note">
-                of {h.capture_audit_24h.polls.toLocaleString()} polls, 24h — the
-                battle log had already rolled
+                of {h.capture_audit_24h.polls.toLocaleString()} reads, 24h, the
+                battle log had already moved on
               </div>
             </div>
           )}
@@ -522,7 +522,7 @@ export function Status() {
 
       <section className="panel" style={{ marginTop: "20px" }}>
         <div className="panel__head">
-          <span className="panel-title">Capture, last hour</span>
+          <span className="panel-title">Reads, last hour</span>
           <span className="caveat">
             5-minute buckets · {sumFetches(data.capture_5m).toLocaleString()}{" "}
             fetches, last bucket in progress
@@ -545,7 +545,7 @@ export function Status() {
 
       <section className="panel" style={{ marginTop: "20px" }}>
         <div className="panel__head">
-          <span className="panel-title">Capture, last 24 hours</span>
+          <span className="panel-title">Reads, last 24 hours</span>
           <span className="caveat">
             hourly buckets · {sumFetches(data.capture_24h).toLocaleString()}{" "}
             fetches, current hour in progress

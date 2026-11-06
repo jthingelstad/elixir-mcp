@@ -295,7 +295,11 @@ test(
     // The consequence sits beside the control, and the control asks once
     // before it writes (2026-10-08): a stray click stopped a recording.
     const stop = screen.getByRole("button", { name: "Stop tracking" });
-    expect(screen.getByText("History already recorded is kept.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "History stays for at least a year after the last person stops tracking.",
+      ),
+    ).toBeTruthy();
     const writes = () =>
       global.fetch.mock.calls.filter(([, init]) => init?.method === "POST");
     fireEvent.click(stop);
@@ -592,7 +596,7 @@ test(
     // The primary's year is drawn first, without a click.
     expect(
       await screen.findByRole("button", {
-        name: /^Sat 12 Sep 2026: 4 battles recorded · complete day capture$/,
+        name: /^Sat Sep 12 2026: 4 battles recorded · the whole day was read$/,
       }),
     ).toBeTruthy();
     expect(screen.getByText("Battle activity")).toBeTruthy();
@@ -603,7 +607,7 @@ test(
     // the primary's positive count or inheriting its completeness flags.
     expect(
       await screen.findByRole("button", {
-        name: /Sat 12 Sep 2026: capture unknown/,
+        name: /Sat Sep 12 2026: unknown/,
       }),
     ).toBeTruthy();
     expect(
@@ -741,13 +745,17 @@ test(
     global.fetch = signedIn("America/Chicago");
     render(<App />);
     // The evening before, in Chicago, and named as Chicago's clock.
-    expect(await screen.findByText("09-12 21:30 CDT")).toBeTruthy();
+    expect(
+      await screen.findByText(/^Sat Sep 12( 2026)?, 9:30 pm$/),
+    ).toBeTruthy();
 
     cleanup();
     window.history.pushState({}, "", "/console/account/timeline");
     global.fetch = signedIn(null);
     render(<App />);
-    expect(await screen.findByText("09-13 02:30Z")).toBeTruthy();
+    expect(
+      await screen.findByText(/^Sun Sep 13( 2026)?, 2:30 am UTC$/),
+    ).toBeTruthy();
   },
 );
 
@@ -1060,7 +1068,7 @@ describe("an agent's console (2026-09-23)", () => {
       await screen.findByText("Rivals");
       expect(screen.getByText("acts for")).toBeTruthy();
       expect(screen.getByText("Rival Star")).toBeTruthy();
-      expect(screen.getByText(/activity 2 of 3/)).toBeTruthy();
+      expect(screen.getByText(/the clan only 2 of 3/)).toBeTruthy();
       // The clan it acts for offers no removal; the rival can take its place.
       expect(screen.getAllByRole("button", { name: "Remove" })).toHaveLength(2);
       fireEvent.click(

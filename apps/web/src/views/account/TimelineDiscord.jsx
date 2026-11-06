@@ -90,7 +90,7 @@ export function TimelineDiscord() {
 /** Draft and feedback belong to this mount. The parent keeps the mutation
  * observer, so reopening cannot repeat an update that is still in flight. */
 function TimelineSharingEditor({ scope, query, save, onClose }) {
-  const { stamp } = useClock();
+  const { when } = useClock();
   const [editing, setEditing] = useState(false);
   const [url, setUrl] = useState("");
   const [said, setSaid] = useState("");
@@ -142,8 +142,8 @@ function TimelineSharingEditor({ scope, query, save, onClose }) {
             <div className="callout callout--warn" role="alert">
               <span>
                 Discord says the webhook no longer exists, so cross-posting
-                turned off {s.disabled_at ? stamp(s.disabled_at) : ""}. Add a
-                new webhook to turn it back on.
+                turned off {s.disabled_at ? when(s.disabled_at) : ""}. Add a new
+                webhook to turn it back on.
               </span>
             </div>
           ) : null}
@@ -175,7 +175,7 @@ function TimelineSharingEditor({ scope, query, save, onClose }) {
           ) : null}
           {s.enabled && !gone && !forum ? (
             <p>
-              On since {stamp(s.enabled_at)}, posting to{" "}
+              On since {when(s.enabled_at)}, posting to{" "}
               <span className="mono break-all">{s.webhook}</span>.
               {s.delivery?.state === "ok" ? (
                 <>
@@ -195,10 +195,10 @@ function TimelineSharingEditor({ scope, query, save, onClose }) {
               <span>
                 {s.clan_channels.map((c) => c.name ?? c.clan_tag).join(", ")}{" "}
                 {s.clan_channels.length > 1 ? "post" : "posts"} the clan&rsquo;s
-                activity to a Discord channel of its own (Elixir Clan). Those
-                lines are in your timeline too, so they are posted here as well:
-                a server that carries both channels shows them twice. Nothing
-                here is filtered.
+                activity to a Discord channel of its own (Clan). Those lines are
+                in your timeline too, so they are posted here as well: a server
+                that carries both channels shows them twice. Nothing here is
+                filtered.
               </span>
             </div>
           ) : null}

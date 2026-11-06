@@ -91,22 +91,24 @@ for (const suffix of ["", " @narrow"]) {
       await expect(days.nth(3).locator(".ladder-day__n")).toHaveText("4");
       const empty = days.nth(6); // Sep 13, a closed whole day without a captured battle.
       if (capture.quiet) {
-        await expect(empty).toContainText("no recorded battles · covered day");
+        await expect(empty).toContainText(
+          "no recorded battles, and the record covers the day",
+        );
         await expect(empty.locator(".ladder-day__n")).toHaveText("0");
         await expect(page.locator(".ladder-tile").last()).toContainText(
           "2 days",
         );
       } else {
-        await expect(empty).toContainText(/capture unknown|capture incomplete/);
+        await expect(empty).toContainText(/unknown|partly read/);
         await expect(empty.locator(".ladder-day__n")).toHaveCount(0);
         await expect(page.locator(".ladder-tile").last()).toContainText(
           "Unknown",
         );
       }
-      await expect(days.nth(22)).toContainText("today · capture incomplete");
+      await expect(days.nth(22)).toContainText("today, still being read");
       await page.reload();
       await expect(empty).toContainText(
-        capture.quiet ? "covered day" : /capture unknown|capture incomplete/,
+        capture.quiet ? "the record covers the day" : /unknown|partly read/,
       );
       await soundPage(page);
       expect(errors).toEqual([]);
@@ -149,7 +151,7 @@ for (const suffix of ["", " @narrow"]) {
           .getByRole("link", { name: /Manage|Actions|Policy/ }),
       ).toHaveCount(0);
       if (knownAbsence) {
-        await expect(page.getByText(/no clan observed/)).toContainText("09-01");
+        await expect(page.getByText(/no clan seen/)).toContainText("Sep 1");
         await expect(page.getByText(/If that is still accurate/)).toBeVisible();
       } else {
         await expect(page.getByText(/join a clan in the game/i)).toHaveCount(0);

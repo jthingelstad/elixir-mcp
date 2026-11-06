@@ -117,7 +117,7 @@ function JsonSection({ label, note, value, folded = [] }) {
           className="footnote"
           style={{ margin: 0, padding: "14px 16px", color: "var(--ink-faint)" }}
         >
-          Not captured for this call.
+          Not kept for this call.
         </p>
       ) : (
         <JsonTree
@@ -169,8 +169,7 @@ function outcomeOf(call) {
 export function CallRecord({ id, navigate }) {
   // The record's own links stay in the console it was opened from.
   const path = useConsolePath();
-  const { stamp } = useClock();
-  const when = (ts) => stamp(ts, { year: true, seconds: true });
+  const { when } = useClock();
   // The envelope, because 403 and 404 are answers this page reads.
   const record = useCallRecord(id);
   const status = record.data?.status ?? (record.isError ? 0 : null);
@@ -265,7 +264,7 @@ export function CallRecord({ id, navigate }) {
           note={call.live_wait_ms == null ? "no live fetch" : "on a collector"}
         />
         <Cell
-          label="SERIALIZE"
+          label="PREPARING THE ANSWER"
           value={ms(call.serialize_ms)}
           note="the body's own cost"
         />
@@ -276,9 +275,9 @@ export function CallRecord({ id, navigate }) {
           tone={call.truncated ? "warn" : undefined}
         />
         <Cell
-          label="COLD START"
+          label="STARTING UP"
           value={call.cold_start == null ? "—" : call.cold_start ? "yes" : "no"}
-          note="first call of a sandbox"
+          note="the first call after a quiet spell"
         />
         <Cell
           label="ERROR"
@@ -384,11 +383,11 @@ export function CallRecord({ id, navigate }) {
         {" — "}
         {call.captured
           ? rec.capture_error
-            ? "The body was captured but could not be read back just now."
-            : `Captured ${when(rec.captured_at)}; the request and response are kept 90 days.`
+            ? "The request and response were kept, but could not be read back just now."
+            : `Kept ${when(rec.captured_at)}. The request and response are kept 90 days. A record of the call stays.`
           : call.rpc_error_code != null
             ? "Refused before any tool ran, so there is no body to show; the arguments above are the bounded copy from the log."
-            : "No body was captured for this call (capture was off, the write failed, or it is older than 90 days); the arguments above are the bounded copy from the log."}
+            : "The request and response were not kept for this call (keeping them was off, the write failed, or it is older than 90 days); the arguments above are the bounded copy from the log."}
       </p>
     </>
   );

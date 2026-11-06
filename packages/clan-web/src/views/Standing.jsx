@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Disclosure, Fresh, Spark } from "@elixir-mcp/ui";
+import { Disclosure, Fresh, Spark, useClock } from "@elixir-mcp/ui";
 import { useStanding } from "../lib/queries.js";
 import { clanPath } from "../lib/base.js";
 import { TooFew } from "../components/TooFew.jsx";
@@ -236,6 +236,7 @@ function How({ d, clan, who, navigate }) {
 /** Your own line: your group (or your role, when the policy does not band
  *  you), your war decks per race, the evidence and what would move it. */
 function You({ you, who }) {
+  const { calendar } = useClock();
   const war = points(you.war);
   const played = war.reduce((n, p) => n + (p.value ?? 0), 0);
   const asked = war.reduce((n, p) => n + p.of, 0);
@@ -288,7 +289,7 @@ function You({ you, who }) {
         {you.hold ? (
           <div className="notice">
             A leader has you on hold
-            {you.hold.until ? ` until ${you.hold.until.slice(0, 10)}` : ""}.
+            {you.hold.until ? ` until ${calendar(you.hold.until)}` : ""}.
           </div>
         ) : null}
       </div>

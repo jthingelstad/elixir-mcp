@@ -79,7 +79,7 @@ for (const width of [390, 1280]) {
     await page.getByRole("button", { name: "View games", exact: true }).click();
     const panel = page.getByRole("region", { name: "Timeline evidence" });
     await expect(panel).toBeFocused();
-    await expect(panel).toContainText("Capture completeness is unknown");
+    await expect(panel).toContainText("Whether every game was read is unknown");
     await expect(panel).toContainText("still open");
     await expect(
       panel.getByRole("link", { name: /Open recorded game/ }),
@@ -200,7 +200,7 @@ for (const status of ["unknown", "proved"]) {
     const panel = page.getByRole("region", { name: "Timeline evidence" });
     await expect(panel).toBeFocused();
     if (status === "unknown") {
-      await expect(panel).toContainText("The change was observed");
+      await expect(panel).toContainText("Elixir read the change");
       await expect(panel.getByRole("link")).toHaveCount(0);
     } else {
       await expect(panel).toContainText(

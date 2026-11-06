@@ -93,7 +93,7 @@ describe("the clan's model", () => {
     await waitFor(() => expect(input.value).toBe(""));
   });
 
-  test("Elixir Clan chooses the model for each use: shown, never picked", async () => {
+  test("Clan chooses the model for each use: shown, never picked", async () => {
     vi.spyOn(manageApi, "model").mockResolvedValue({
       ok: true,
       status: 200,
@@ -118,7 +118,7 @@ describe("the clan's model", () => {
     expect(
       screen.getByText("Discord activity: Claude Sonnet 5.5"),
     ).toBeTruthy();
-    expect(screen.getByText(/Elixir Clan chooses the model/)).toBeTruthy();
+    expect(screen.getByText(/Clan chooses the model/)).toBeTruthy();
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(manageApi.chooseModel).toBeUndefined();
   });
@@ -142,7 +142,9 @@ describe("the clan's model", () => {
     renderWithProviders(<Model clan={leaderClan} />);
     expect(await screen.findByText("sk-ant-…WXYZ")).toBeTruthy();
     await waitFor(() => expect(refresh).toHaveBeenCalledWith("#2PQRJ8LV"));
-    expect(await screen.findByText("With Anthropic, 2026-10-08")).toBeTruthy();
+    expect(
+      await screen.findByText(/^With Anthropic, Thu Oct 8( 2026)?$/),
+    ).toBeTruthy();
     expect(read).toHaveBeenCalledTimes(2);
     expect(refresh).toHaveBeenCalledTimes(1);
   });
@@ -185,7 +187,7 @@ describe("the clan's model", () => {
       await screen.findByText("Recruiting pitch: not reachable with this key"),
     ).toBeTruthy();
     expect(
-      screen.getByText(/does not reach the model Elixir Clan uses for/),
+      screen.getByText(/does not reach the model Clan uses for/),
     ).toBeTruthy();
   });
 

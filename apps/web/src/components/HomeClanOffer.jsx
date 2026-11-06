@@ -62,11 +62,11 @@ export function HomeClanOffer({ className = "" }) {
         </button>
         <span className="mt-[5px] block text-[13px] text-ink-dim">
           {full
-            ? "Your activity clan slot is in use, so Elixir did not follow it for you. Stop tracking that clan first, or keep the one you chose. "
+            ? "Your clan slot for recording the clan only is in use, so Elixir did not follow it for you. Stop tracking that clan first, or keep the one you chose. "
             : ""}
-          Activity follows the clan itself — its roster, its members coming and
-          going, and its river races. Comprehensive also records every
-          member&rsquo;s battles, which is what builds the clan a full history.
+          The clan only: its roster, its members coming and going, and its river
+          races. The clan and every member also records every member&rsquo;s
+          battles, which is what builds the clan a full history.
         </span>
         {err && <p className="field-error">{err}</p>}
       </span>

@@ -24,13 +24,13 @@ giving you a dashboard where you can explore what happened. Your primary,
 alt, friend and watching relationships organize the players you follow.
 
 The Clash Royale API only answers "what is true right now" — your last
-~30 battles, your current trophies. Elixir polls continuously,
-stores every battle once (no matter how many members observed it),
-derives daily snapshots, war records, and timeline moments from the stream, and
+~30 battles, your current trophies. Elixir reads continuously,
+stores every battle once (no matter how many members saw it),
+derives daily readings, war records, and timeline moments from the stream, and
 makes the record available on [Ladder](/ladder), in [Clan](/clan), and in
 [emails](/docs/email) about your play and the people you follow. Keeping you
 up to date is part of the service, even when you do not open the website.
-Add your player and the first capture usually lands within a few minutes,
+Add your player and the first read usually lands within a few minutes,
 with roughly those last 30 battles; everything after is recorded as it
 happens, and your player's clan is followed for you.
 

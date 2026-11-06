@@ -341,7 +341,7 @@ for (const size of ["wide", "@narrow"])
       ).toBeVisible();
       await page.getByRole("link", { name: "Ben", exact: true }).click();
       await expect(
-        page.getByText(/No recorded activity is not proof/),
+        page.getByText(/No recorded activity does not mean no play/),
       ).toBeVisible();
       await expect(
         page.getByText(/No clan battles recorded on this page/),
@@ -384,7 +384,7 @@ for (const size of ["wide", "@narrow"])
         page.getByText("Before roster recording", { exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByText(/Zero recorded battles does not prove inactivity/),
+        page.getByText(/No recorded battles does not mean no play/),
       ).toBeVisible();
       await page.goto(`${base}/map`);
       await expect(
@@ -626,7 +626,7 @@ for (const size of ["wide", "@narrow"])
         ),
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: /Turn social features/ }),
+        page.getByRole("button", { name: /Turn the member map/ }),
       ).toHaveCount(0);
       await page.getByRole("button", { name: "Close", exact: true }).click();
       await page
@@ -702,7 +702,7 @@ for (const size of ["wide", "@narrow"])
         .click();
       await expect(
         page.getByRole("button", {
-          name: "Turn social features off",
+          name: "Turn the member map off",
           exact: true,
         }),
       ).toBeEnabled();

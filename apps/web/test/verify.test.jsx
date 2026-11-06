@@ -257,7 +257,7 @@ test(
     const target = screen.getByRole("list", { name: "The deck to play" });
     expect(target.querySelectorAll(".deck__slot--matched").length).toBe(3);
     expect(screen.getByRole("status").textContent).toMatch(
-      /log read \d\d:\d\d:\d\d/,
+      /log read \d+:\d\d:\d\d [ap]m/,
     );
 
     await act(async () => {

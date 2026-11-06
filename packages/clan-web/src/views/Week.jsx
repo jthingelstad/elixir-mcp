@@ -1,5 +1,5 @@
 import { MemberLink } from "../components/MemberLink.jsx";
-import { Fresh, Tag, TagText } from "@elixir-mcp/ui";
+import { Fresh, Tag, TagText, monthDayAt } from "@elixir-mcp/ui";
 import { CATEGORY_LABELS } from "@elixir-mcp/clan-engine";
 import { useWeek } from "../lib/queries.js";
 import { CLAN, clanPath } from "../lib/base.js";
@@ -12,14 +12,7 @@ const ROLE = {
   leader: "Leader",
 };
 const n = (x) => (x === null || x === undefined ? "—" : x.toLocaleString());
-const date = (ts) =>
-  ts
-    ? new Date(ts).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        timeZone: "UTC",
-      })
-    : "";
+const date = (ts) => monthDayAt(ts, "UTC");
 const plural = (k, one, many = `${one}s`) => `${n(k)} ${k === 1 ? one : many}`;
 const DAY_MS = 86_400_000;
 const after = (a, b) => Date.parse(a ?? "") > Date.parse(b ?? "");
@@ -52,13 +45,13 @@ function summary(a) {
   if (a.key === "war") {
     const parts = [plural(a.total, "deck"), "played"];
     if (a.points !== null && a.points !== undefined)
-      parts.push(`· ${n(a.points)} points`);
+      parts.push(`· ${n(a.points)} war points`);
     return parts.join(" ");
   }
   if (a.key === "donations")
     return `${plural(a.total, "card")} donated by ${plural(took, "member")}`;
   if (a.key === "ranked")
-    return `${plural(a.total, "ranked battle")} by ${plural(took, "member")}`;
+    return `${plural(a.total, "Path of Legends battle")} by ${plural(took, "member")}`;
   return `${plural(a.total, "battle")} by ${plural(took, "member")}`;
 }
 

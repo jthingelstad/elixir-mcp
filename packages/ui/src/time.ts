@@ -166,6 +166,149 @@ export function stampTime(
   return `${w.hm}${seconds ? `:${w.s}` : ""}${bare ? "" : w.suffix}`;
 }
 
+const WEEK_MS = 7 * 86_400_000;
+
+type WhenOptions = { now?: number };
+
+/** The parts of an instant on a reader's clock. `named` says the reader
+ *  has a zone of their own; without one (no zone set, or one this browser
+ *  does not know) the parts are UTC and the caller says so. */
+function readerParts(ts: Instant, zone: string | null | undefined) {
+  if (ts == null || ts === "") return null;
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return null;
+  const read = (timeZone: string) => {
+    const p: Record<string, string> = {};
+    for (const { type, value } of new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).formatToParts(d))
+      p[type] = value;
+    return {
+      weekday: p.weekday,
+      month: p.month,
+      day: p.day,
+      year: p.year,
+      clock: `${p.hour}:${p.minute} ${String(p.dayPeriod).toLowerCase()}`,
+    };
+  };
+  if (zone) {
+    try {
+      return { ...read(zone), named: zone !== "UTC" && zone !== "Etc/UTC" };
+    } catch {
+      // Unknown to this browser: fall through to UTC.
+    }
+  }
+  return { ...read("UTC"), named: false };
+}
+
+/** The year a date is read against, on the same clock as the date. */
+function yearOf(now: number, zone: string | null | undefined): string {
+  return readerParts(now, zone)?.year ?? "";
+}
+
+/** How a member page says when something happened, the one format
+ *  (Jamie, 2026-11-05): "Sat 8:42 pm" within a week either side of now,
+ *  "Fri Oct 23, 5:07 pm" older, and "Fri Oct 23 2025, 5:07 pm" in another
+ *  year. In the reader's zone; a reader with no zone reads UTC and the
+ *  time says "UTC", because it is not their clock. "—" for no instant.
+ *  Pass `now` from `useClock`/`useInitialTime` in a render. */
+export function whenAt(
+  ts: Instant,
+  zone?: string | null,
+  { now = Date.now() }: WhenOptions = {},
+): string {
+  const p = readerParts(ts, zone);
+  if (!p) return "—";
+  const tail = `${p.clock}${p.named ? "" : " UTC"}`;
+  if (Math.abs(now - new Date(ts as string).getTime()) < WEEK_MS)
+    return `${p.weekday} ${tail}`;
+  const year = p.year === yearOf(now, zone) ? "" : ` ${p.year}`;
+  return `${p.weekday} ${p.month} ${p.day}${year}, ${tail}`;
+}
+
+/** The day of an instant with no clock: "Fri Oct 23", with the year when
+ *  it is another year. The reader's day, which near midnight is not the
+ *  UTC day. "—" for no instant. */
+export function dayAt(
+  ts: Instant,
+  zone?: string | null,
+  { now = Date.now() }: WhenOptions = {},
+): string {
+  // A bare date names a day, not an instant, so no zone can move it.
+  const bare = typeof ts === "string" && /^\d{4}-\d{2}-\d{2}$/.test(ts);
+  const on = bare ? "UTC" : zone;
+  const p = readerParts(bare ? `${ts}T12:00:00Z` : ts, on);
+  if (!p) return "—";
+  const year = p.year === yearOf(now, on) ? "" : ` ${p.year}`;
+  return `${p.weekday} ${p.month} ${p.day}${year}`;
+}
+
+/** A date with no instant behind it ("2026-10-23", a Monday, a hold's
+ *  last day) as "Fri Oct 23": read as the calendar date it names, in no
+ *  zone. "—" for anything else. */
+export function calendarDay(
+  ymd: string | null | undefined,
+  { now = Date.now() }: WhenOptions = {},
+): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ymd ?? ""));
+  if (!m) return "—";
+  return dayAt(`${m[1]}-${m[2]}-${m[3]}T12:00:00Z`, "UTC", { now });
+}
+
+/** Just the time of day, "8:42 pm". The caller says which day and whose
+ *  clock. Empty for no instant. */
+export function clockAt(
+  ts: Instant,
+  zone?: string | null,
+  { seconds = false }: { seconds?: boolean } = {},
+): string {
+  const p = readerParts(ts, zone);
+  if (!p) return "";
+  if (!seconds) return p.clock;
+  const s = String(new Date(ts as string).getUTCSeconds()).padStart(2, "0");
+  return p.clock.replace(/ (am|pm)$/, `:${s} $1`);
+}
+
+/** The short name of the reader's zone at an instant, "CDT" or "UTC". */
+export function zoneShort(ts: Instant, zone?: string | null): string {
+  if (ts == null || ts === "") return "";
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "";
+  const read = (timeZone: string) =>
+    new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "short" })
+      .formatToParts(d)
+      .find((p) => p.type === "timeZoneName")?.value ?? "";
+  try {
+    return read(zone || "UTC");
+  } catch {
+    return read("UTC");
+  }
+}
+
+/** A month and day with nothing around it, "Sep 18", for a range or a
+ *  chart axis in the reader's zone. Empty for no instant. */
+export function monthDayAt(ts: Instant, zone?: string | null): string {
+  const p = readerParts(ts, zone);
+  return p ? `${p.month} ${p.day}` : "";
+}
+
+/** "Season 137, week 4". A member page never writes "S137 W4". */
+export function seasonWeek(
+  season: number | string,
+  week?: number | string | null,
+): string {
+  return week == null || week === ""
+    ? `Season ${season}`
+    : `Season ${season}, week ${week}`;
+}
+
 /** The browser's own IANA zone ("America/Chicago"), or null when it
  *  will not say. The battle page's clock when nobody is signed in; the
  *  zone a signup sends, which a NEW account opens on (Jamie,

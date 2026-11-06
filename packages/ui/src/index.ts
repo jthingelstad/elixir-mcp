@@ -82,6 +82,13 @@ export {
   stamp,
   stampDay,
   stampTime,
+  whenAt,
+  dayAt,
+  calendarDay,
+  clockAt,
+  monthDayAt,
+  zoneShort,
+  seasonWeek,
 } from "./time.ts";
 export {
   WriteError,

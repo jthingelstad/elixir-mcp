@@ -169,7 +169,7 @@ test("clans lead with yours; today's calls say the cap and when the count resets
   expect(today.textContent).toContain("2,551 tool calls today");
   expect(today.textContent).not.toContain("MCP");
   expect(today.textContent).toMatch(
-    /No daily cap on the owner tier · the count resets /,
+    /No daily cap on Owner limits · the count resets /,
   );
   expect(
     within(today).getByRole("link", { name: "Usage ›" }).getAttribute("href"),

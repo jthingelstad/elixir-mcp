@@ -61,7 +61,7 @@ const AREA_LABEL = {
   api: "JSON API",
   console: "Console",
   ladder: "Ladder",
-  clan: "Elixir Clan",
+  clan: "Clan",
   mail: "Email",
   docs: "Docs",
   recorder: "Recorder",
@@ -103,7 +103,7 @@ function Shipped({ version }) {
 }
 
 export function FeedbackItem({ id, navigate }) {
-  const { day } = useClock();
+  const { whenDay } = useClock();
   const path = useConsolePath();
   const scoped = Boolean(useScope());
   const query = useMyFeedbackItem(id);
@@ -160,7 +160,7 @@ export function FeedbackItem({ id, navigate }) {
         <span className={`chip ${statusChip(item.status)}`}>{item.status}</span>
         <span style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
           {AREA_LABEL[item.area] ?? item.area} ·{" "}
-          {item.category?.replaceAll("_", " ")} · {day(item.created_at)}
+          {item.category?.replaceAll("_", " ")} · {whenDay(item.created_at)}
         </span>
         <Shipped version={item.shipped_in} navigate={navigate} />
       </div>
@@ -241,13 +241,13 @@ export function FeedbackItem({ id, navigate }) {
         >
           <div className="label" style={{ marginBottom: "8px" }}>
             Maintainer
-            {item.responded_at ? ` · ${day(item.responded_at)}` : ""}
+            {item.responded_at ? ` · ${whenDay(item.responded_at)}` : ""}
           </div>
           <Markdown text={item.response} />
         </section>
       ) : (
         <p style={{ fontSize: "13.5px", color: "var(--ink-faint)", margin: 0 }}>
-          No reply yet. You cannot edit a filed note — send another if something
+          No reply yet. You cannot edit a filed note. Send another if something
           changed.
         </p>
       )}
@@ -365,7 +365,7 @@ function Compose({
         {sent !== null ? (
           <div className="notice">
             <span>
-              Received — thank you.
+              Received, thank you.
               {sent && (
                 <>
                   {" "}
@@ -459,7 +459,7 @@ function Compose({
 }
 
 export function Feedback({ search } = {}) {
-  const { day, stamp } = useClock();
+  const { when, whenDay } = useClock();
   const path = useConsolePath();
   // An agent's console lists what the AGENT filed (it files with
   // elixir_send_feedback). New feedback is always filed as you, from your
@@ -491,7 +491,7 @@ export function Feedback({ search } = {}) {
     },
     {
       text: ago(f.created_at, now),
-      title: stamp(f.created_at, { year: true }),
+      title: when(f.created_at),
     },
     AREA_LABEL[f.area] ?? f.area ?? "",
     (f.category ?? "general").replaceAll("_", " "),
@@ -502,7 +502,7 @@ export function Feedback({ search } = {}) {
     f.response
       ? {
           text: "replied",
-          title: f.responded_at ? `replied ${day(f.responded_at)}` : "",
+          title: f.responded_at ? `replied ${whenDay(f.responded_at)}` : "",
         }
       : "—",
   ]);
@@ -519,7 +519,7 @@ export function Feedback({ search } = {}) {
       note={
         scoped
           ? "What this agent has told us, and what we did about it. New feedback is filed as you, from your own console."
-          : "What you have told us, and what we did about it. Every item gets a response; nothing is actioned invisibly."
+          : "What you have told us, and what we did about it. Every item gets a response. The answer appears here, and by email if that's on."
       }
       actions={
         scoped ? null : (
@@ -562,7 +562,7 @@ export function Feedback({ search } = {}) {
       empty={
         scoped
           ? "Nothing filed by this agent yet. It files with elixir_send_feedback."
-          : "Nothing filed yet — your agent can file too, with elixir_send_feedback."
+          : "Nothing filed yet. Your agent can file too, with elixir_send_feedback."
       }
       footnote="Open an item to read the whole note and the maintainer's reply. A filed note cannot be edited; send another if something changed."
     />

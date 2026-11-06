@@ -1,4 +1,4 @@
-import { Fresh, ago, Tag } from "@elixir-mcp/ui";
+import { Fresh, ago, Tag, useClock } from "@elixir-mcp/ui";
 import { Fragment, useState } from "react";
 import { useHistory, useManage } from "../lib/queries.js";
 import { MemberSheet } from "../components/MemberSheet.jsx";
@@ -24,18 +24,19 @@ const TITLES = {
 const BUCKET_LABEL = {
   actionable: "Actionable",
   building: "Building",
-  held: "Evidence held",
+  held: "Waiting on the record",
   clear: "Clear",
 };
 const REMOVAL_LABEL = {
   protected: "Protected",
   not_candidate: "Not currently a removal candidate",
-  evidence_held: "Evidence held",
+  evidence_held: "Waiting on the record",
   eligible: "Eligible",
 };
 
 /** Manage: leader and co-leader only (the API refuses everyone else). */
 export function Manage({ clan, tab, navigate, who }) {
+  const { whenDay, calendar } = useClock();
   const [open, setOpen] = useState(null); // member sheet
   // The judged board, read for every tab but the ones that read their
   // own thing.
@@ -167,12 +168,12 @@ export function Manage({ clan, tab, navigate, who }) {
   const d = state.data;
   const evidenceLine = (
     <p className="page-head__note" style={{ margin: "0 0 14px" }}>
-      Judged {ago(d.evaluated_at)} under policy v{d.policy_version}
+      Worked out {ago(d.evaluated_at)} under policy v{d.policy_version}
       {d.boundaries.length
-        ? ` over ${d.boundaries.length} weekly reviews (last ${d.boundaries.at(-1).slice(0, 10)})`
+        ? ` over ${d.boundaries.length} weekly reviews (last ${whenDay(d.boundaries.at(-1))})`
         : " with no closed weekly review on record yet"}
       {d.recording_active_since
-        ? ` · recording since ${d.recording_active_since.slice(0, 10)}`
+        ? ` · recording since ${whenDay(d.recording_active_since)}`
         : ""}
       {" · "}
       <button
@@ -210,8 +211,11 @@ export function Manage({ clan, tab, navigate, who }) {
       {evidenceLine}
       <BandLine band={d.band} roster={d.roster} />
       {d.policy?.ranks_elder ? (
-        <p className="page-head__note" aria-label="Elder evidence held">
-          Elder evidence held: Promotion{" "}
+        <p
+          className="page-head__note"
+          aria-label="Elder, waiting on the record"
+        >
+          Elder, waiting on the record: Promotion{" "}
           {
             d.board.filter((m) =>
               ["held", "unknown"].includes(m.judgment.promotion),
@@ -314,7 +318,7 @@ export function Manage({ clan, tab, navigate, who }) {
                             >
                               {m.hold.kind === "away" ? "away" : "hold"}
                               {m.hold.until
-                                ? ` · ${m.hold.until.slice(0, 10)}`
+                                ? ` · ${calendar(m.hold.until)}`
                                 : ""}
                             </span>
                           ) : null}
@@ -465,6 +469,7 @@ const CLASS_LABEL = {
 };
 
 function History({ clan, navigate }) {
+  const { whenDay, calendar } = useClock();
   const { data, isError } = useHistory(clan.clan_tag);
   if (isError)
     return (
@@ -481,7 +486,7 @@ function History({ clan, navigate }) {
       <div className="label" style={{ margin: "0 0 8px" }}>
         Recent membership changes
         {data.timeline_since
-          ? ` · roster recording since ${data.timeline_since.slice(0, 10)}`
+          ? ` · roster recording since ${whenDay(data.timeline_since)}`
           : ""}
       </div>
       <p className="page-head__note">
@@ -505,14 +510,14 @@ function History({ clan, navigate }) {
                 <th>When</th>
                 <th>Member</th>
                 <th>What</th>
-                <th>Says the ledger</th>
+                <th>What the record says</th>
                 <th>In-game</th>
               </tr>
             </thead>
             <tbody>
               {timeline.map((e) => (
                 <tr key={`${e.type}-${e.player_tag}-${e.at}`}>
-                  <td>{e.at.slice(0, 10)}</td>
+                  <td>{whenDay(e.at)}</td>
                   <td>
                     {e.name ?? <Tag tag={e.player_tag} />}{" "}
                     <span className="tag">{e.player_tag}</span>
@@ -601,7 +606,7 @@ function History({ clan, navigate }) {
                       `#${c.number}`
                     ) : null}
                   </td>
-                  <td>{c.raised_at.slice(0, 10)}</td>
+                  <td>{whenDay(c.raised_at)}</td>
                   <td>
                     {c.player_name ?? <Tag tag={c.player_tag} />}{" "}
                     <span className="tag">{c.player_tag}</span>
@@ -641,7 +646,7 @@ function History({ clan, navigate }) {
                     ) : (
                       <span className="nil">—</span>
                     )}
-                    {c.decided_at ? ` · ${c.decided_at.slice(0, 10)}` : ""}
+                    {c.decided_at ? ` · ${whenDay(c.decided_at)}` : ""}
                   </td>
                   <td style={{ whiteSpace: "normal" }}>
                     {c.decline_reason
@@ -675,8 +680,8 @@ function History({ clan, navigate }) {
                 {h.player_name ?? ""}{" "}
                 <span className="tag">{h.player_tag}</span>{" "}
                 {h.kind === "away" ? "away " : ""}
-                {h.until ? `until ${h.until.slice(0, 10)}` : "open-ended"} · set
-                by {h.by_name ?? h.by} on {h.set_at.slice(0, 10)}
+                {h.until ? `until ${calendar(h.until)}` : "open-ended"} · set by{" "}
+                {h.by_name ?? h.by} on {whenDay(h.set_at)}
                 {h.note ? ` · ${h.note}` : ""}
               </li>
             ))}

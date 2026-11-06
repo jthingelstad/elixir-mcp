@@ -30,8 +30,9 @@ behaviour is in `apps/site/src/docs/`, not here.
   `src/family.json`) and `packages/client` (the `{ ok, status, data }`
   envelope, `createClient()`, the query client and its one retry rule).
   What a view needs that the kit lacks is a kit addition.
-- **Time:** stamps go through the kit's `stamp`/`useClock`, in the
-  account's zone and named by zone; day-bucketed charts stay UTC and say
+- **Time:** a member page says when through `useClock` (`when`, `whenDay`,
+  `calendar`, `clock`), the one format, in the account's zone (Admin keeps
+  `stamp`); day-bucketed charts stay UTC and say
   so. Render stays pure: read the clock once per visit
   (`useState(() => new Date())`), never `new Date()` in render.
 - **Analytics:** `src/analytics.js` is the Tinylytics bridge. Counts per

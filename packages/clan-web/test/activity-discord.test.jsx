@@ -203,9 +203,7 @@ describe("the clan's activity in Discord", () => {
       ),
     ).toBeTruthy();
     expect(
-      screen.getByText(
-        /Edited by Claude Sonnet 5\.5, the model Elixir Clan uses/,
-      ),
+      screen.getByText(/Edited by Claude Sonnet 5\.5, the model Clan uses/),
     ).toBeTruthy();
     // No second copy of the voice here: no box, no save, a link to the
     // one setting.

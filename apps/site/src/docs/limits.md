@@ -93,7 +93,7 @@ if the quota store is unreachable, active accounts keep working.
 
 | Data | Kept |
 |---|---|
-| Recorded game history, snapshots, war | indefinitely |
+| Recorded game history, daily readings, war | while someone tracks it, and for at least a year after the last person stops |
 | Raw API payloads | archived to S3 at admission; latest per subject stays hot |
 | Call log rows | indefinitely: the tool, when, which credential and client, the country it came from, and how the call went; the address (`viewer_ip`) cleared after 30 days; arguments cleared after 90 days |
 | Credential refusal counts | 30 days |

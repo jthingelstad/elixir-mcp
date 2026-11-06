@@ -32,10 +32,12 @@ export function StopTracking({ tag, run, busy, error, onDone, className }) {
         >
           Stop tracking
         </button>
-        {/* The consequence beside the control: this stops new capture
+        {/* The consequence beside the control: this stops new reads
             and takes nothing away. */}
         <span className="footnote">
-          {error ? writeErrorText(error) : "History already recorded is kept."}
+          {error
+            ? writeErrorText(error)
+            : "History stays for at least a year after the last person stops tracking."}
         </span>
       </span>
     );
@@ -67,7 +69,9 @@ export function StopTracking({ tag, run, busy, error, onDone, className }) {
       >
         Cancel
       </button>
-      <span className="footnote">History already recorded is kept.</span>
+      <span className="footnote">
+        History stays for at least a year after the last person stops tracking.
+      </span>
     </span>
   );
 }

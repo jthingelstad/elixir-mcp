@@ -6,8 +6,8 @@ section: start
 order: 3
 navTitle: "Your account"
 icon: user-round
-lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your tier, and it shows nobody your address."
-console: ["Your profile and tier", "/console/account/profile", "Account settings ▸ Profile"]
+lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
+console: ["Your profile and limits", "/console/account/profile", "Account settings ▸ Profile"]
 reviewed: "2026-10-13 against contract 11.12.0"
 ---
 
@@ -146,7 +146,7 @@ page moves it there, and the old primary becomes watching. Your primary
 cannot be removed while you track other players: make another one
 primary first. Your primary and your alts are the players you can
 [prove are yours](/docs/verify), and the ones your milestone emails and
-Elixir Clan go by. A player another account has verified cannot be your
+Clan go by. A player another account has verified cannot be your
 primary or an alt; you can still follow it as a friend or watch it. If
 another account verifies a player that was your primary or an alt, it
 leaves your account, your timeline says so, and an ended primary leaves
@@ -172,22 +172,22 @@ Ladder say so and offer your browser's zone in one click. A battle's page
 reads on your account's clock when you are signed in, and on your
 browser's when you are not.
 
-## Your tier
+## Your limits
 
-Your tier sets how many players and clans you can record and how many
+Your limits set how many players and clans you can record and how many
 tool calls you can make a day; **Account settings ▸ Profile** shows each limit
 beside what you use. Leader and Family are earned in the game and read every
 time you use Elixir: Leader while one of your verified players leads or
 co-leads a clan you track, Family while a collector you run is active. There
 is nothing to ask for, and a tier goes when its ground goes; what you already
 track stays. Partner is granted by hand. The tiers and their numbers are on
-[Roles and tiers](/docs/roles#upgrades).
+[Roles and limits](/docs/roles#upgrades).
 
 ## Feedback
 
 Every part of Elixir takes feedback, and all of it lands in one place:
 **Send feedback** at the foot of the Console's, Ladder's and Elixir
-Clan's rail (a sheet over the page you are on), **Report this** beside an Elixir Clan action, Standing and
+Clan's rail (a sheet over the page you are on), **Report this** beside an Clan action, Standing and
 the award races, **Something wrong on this page?** on every docs page,
 and **Send feedback about this email** in every email's footer. Each
 note carries where it was written and what it is about (the page, the
@@ -211,7 +211,7 @@ agent's: it is answered on the agent's page and timeline, never mailed.
 Your email address is never shown anywhere public. The players on your
 account, what each one is to you and the nicknames you give them are
 yours: what you connect to Elixir as yourself reads them, and nobody
-else does. So is your own view in Elixir Clan (your standing line and
+else does. So is your own view in Clan (your standing line and
 the Actions waiting for you): your own connection reads it, for a
 player you have verified, and no agent or integration does
 ([Your own view](/docs/clan-policy#your-own-view)). The game record
@@ -232,7 +232,7 @@ reviewed step. Removing the account deletes the account:
 - **your nicknames** for players;
 - **your agents**, their keys and the identities they map;
 - **your connections**: sessions, apps you allowed, a timeline
-  cross-post's Discord webhook, and the clan Elixir Clan remembers you
+  cross-post's Discord webhook, and the clan Clan remembers you
   working in;
 - **your mail**: what was sent to you, your email switches, and what the
   cross-post told and posted;

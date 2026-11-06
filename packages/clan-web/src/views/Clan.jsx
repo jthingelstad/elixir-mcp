@@ -264,7 +264,7 @@ const COMING = {
  *  first, from the roster's own events. A departure is "departed",
  *  never a kick or a leave. */
 function Comings({ roster, clan, history, navigate }) {
-  const { stamp } = useClock();
+  const { when } = useClock();
   const base = clanPath(clan.clan_tag);
   // History is the leaders' (the rail's Manage group); everyone else
   // reads the same comings and goings week by week.
@@ -322,7 +322,7 @@ function Comings({ roster, clan, history, navigate }) {
                   {line(e)}
                 </span>
                 <span className="shrink-0 text-[12.5px] text-ink-faint">
-                  {stamp(e.at)}
+                  {when(e.at)}
                 </span>
               </div>
             );
@@ -332,7 +332,7 @@ function Comings({ roster, clan, history, navigate }) {
             Nobody has joined or departed since Elixir began recording the
             roster
             {roster.events_recorded_since
-              ? ` (${stamp(roster.events_recorded_since)})`
+              ? ` (${when(roster.events_recorded_since)})`
               : ""}
             .
           </p>
@@ -399,7 +399,7 @@ export function Clan({ me, clan, navigate, search, path = null }) {
             Your player is in this clan, but the clan itself is not on
             Elixir&rsquo;s record, so there is no roster to read. Add it under
             Elixir → Tracking (clans), and the roster arrives with the first
-            poll.
+            read.
           </p>
           <Link className="btn btn--primary" to={ELIXIR_LINKS.tracking}>
             Elixir → Tracking ›
@@ -455,7 +455,7 @@ export function Clan({ me, clan, navigate, search, path = null }) {
                     <div className="empty__title">No members on the record</div>
                     <p className="empty__body">
                       Elixir knows the clan but has not carried a member for it
-                      yet. That resolves on its next roster poll.
+                      yet. That resolves on its next roster read.
                     </p>
                   </div>
                 ) : q && found.length === 0 ? (

@@ -34,8 +34,9 @@ export function LadderHead({
       <Disclosure title="About this record">
         <p>
           Each mode is its own game and keeps its own record. Ladder reads the
-          recorded battles, without pooling modes or rating players. Counts and
-          capture gaps are shown with the figures they affect.
+          recorded battles, without pooling modes or rating players. Counts, and
+          anything Elixir could not read, are shown with the figures they
+          affect.
         </p>
       </Disclosure>
     </>

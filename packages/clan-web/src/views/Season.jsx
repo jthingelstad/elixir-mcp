@@ -1,15 +1,10 @@
-import { Fresh, Link } from "@elixir-mcp/ui";
+import { Fresh, Link, monthDayAt } from "@elixir-mcp/ui";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
 import { useSeason } from "../lib/queries.js";
 import { CLAN, clanPath } from "../lib/base.js";
 
 const n = (v) => (v == null ? "—" : v.toLocaleString());
-const date = (v) =>
-  new Date(v).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
+const date = (v) => monthDayAt(v, "UTC");
 const STATUS = {
   open: "So far",
   closed: "Closed",
@@ -114,7 +109,7 @@ export function Season({ clan, season, navigate }) {
           hint="Known weekly counters"
         />
         <Tile
-          label="Recorded period points"
+          label="Recorded war points"
           value={n(s.points)}
           hint="Member contributions"
         />
@@ -141,8 +136,8 @@ export function Season({ clan, season, navigate }) {
         >
           <table className="table">
             <caption className="sr-only">
-              Recorded war decks, period points and contributors in
-              chronological race order
+              Recorded war decks, war points and contributors in chronological
+              race order
             </caption>
             <thead>
               <tr>
@@ -195,7 +190,7 @@ export function Season({ clan, season, navigate }) {
           {c.missing_sections ? (
             <p className="m-0">
               {c.missing_sections} race
-              {c.missing_sections === 1 ? " has" : "s have"} no capture yet.
+              {c.missing_sections === 1 ? " has" : "s have"} no reading yet.
             </p>
           ) : null}
           {c.before_window ? (
@@ -216,8 +211,8 @@ export function Season({ clan, season, navigate }) {
           ) : null}
           <p className="m-0">
             These are the members represented by this read, not proof of every
-            contribution to the clan. A recorded race alone does not prove
-            complete member capture.
+            contribution to the clan. A recorded race alone does not mean every
+            member was read in full.
           </p>
         </div>
       </section>
