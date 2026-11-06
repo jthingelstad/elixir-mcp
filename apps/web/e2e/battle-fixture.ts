@@ -39,7 +39,7 @@ export const BATTLE = {
       players: [
         {
           player_tag: "#JYRQ8U92C",
-          name: "sikander sidhu",
+          name: "Birch Lantern",
           clan_tag: "#J2RGCRVG",
           clan_name: null,
           starting_trophies: 13591,
@@ -121,7 +121,7 @@ export const BATTLE = {
       players: [
         {
           player_tag: "#20GVLYJV9P",
-          name: "Silent_Hobbit",
+          name: "Harbor Moth",
           clan_tag: null,
           clan_name: null,
           starting_trophies: 13591,
@@ -212,7 +212,7 @@ export const BATTLE = {
       battle_time: "2026-09-03T14:11:39.000Z",
       mode_group: "ladder",
       duel: false,
-      opponent: "Silent_Hobbit",
+      opponent: "Harbor Moth",
       crowns: 2,
       crowns_against: 1,
       outcome: "win",
@@ -222,7 +222,7 @@ export const BATTLE = {
       battle_time: "2026-09-03T14:07:46.000Z",
       mode_group: "ladder",
       duel: false,
-      opponent: "fiiko",
+      opponent: "Pine Comet",
       crowns: 0,
       crowns_against: 3,
       outcome: "loss",
@@ -264,7 +264,7 @@ export const DUEL = {
       players: [
         {
           player_tag: "#JYRQ8U92C",
-          name: "sikander sidhu",
+          name: "Birch Lantern",
           clan_tag: "#J2RGCRVG",
           clan_name: null,
           starting_trophies: 13592,

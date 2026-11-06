@@ -441,7 +441,7 @@ const DAYS: [day: string, start: string, played: Played[]][] = [
     ],
   ],
 ];
-const OPPONENTS = ["Lucky Red Panda", "Chanco", "JaxikoLane", "Ditaka"];
+const OPPONENTS = ["Ember Fox", "Quill Rider", "Moss Runner", "Tidewater"];
 
 function seasonBattles() {
   const out: Record<string, unknown>[] = [];
