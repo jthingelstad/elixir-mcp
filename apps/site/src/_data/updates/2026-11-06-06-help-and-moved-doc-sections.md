@@ -4,4 +4,4 @@ On a static page, Help's Send button goes away once your note is sent, so it no 
 
 An agent that asks the manual for a moved section by its old title now gets the section from its new page, as asking by its old slug already did.
 
-MCP 11.18.1.
+MCP 11.18.1, JSON API 3.3.0 unchanged.
