@@ -2,6 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
 import { chargedRejectionSql } from "../src/admission.mjs";
+import { payloadHash } from "../src/hash.mjs";
 import { processResult } from "../src/pipeline.mjs";
 import { fixture, fixtureMeta, scratchDb, trackClans } from "./helpers.mjs";
 
@@ -440,6 +441,34 @@ test("player profile message projects the v0 identity refresh", async () => {
     [meta["player/profile.json"].entity_key],
   );
   assert.equal(rows[0].name, profile.name);
+});
+
+test("a name loses its markup, and the receipt's hash still names what the game sent", async () => {
+  const tag = meta["player/profile.json"].entity_key;
+  const sent = await fixture("player/profile.json");
+  sent.name = `<c2>${sent.name}`;
+  const hash = payloadHash(sent);
+  const result = await processResult(
+    ctx.db,
+    message({
+      endpoint: "player",
+      entityKey: tag,
+      payload: sent,
+      fetchedAt: "2026-09-03T15:50:00Z",
+    }),
+  );
+  assert.equal(result.outcome, "admitted");
+  const { rows } = await ctx.db.query(
+    `select (select name from player where player_tag = $1) as name,
+            (select count(*)::int from api_receipt where entity_key = $1 and payload_hash = $2) as receipts`,
+    [tag, hash],
+  );
+  assert.equal(rows[0].name, sent.name.slice("<c2>".length));
+  assert.equal(
+    rows[0].receipts,
+    1,
+    "a replay verifies the archive against this",
+  );
 });
 
 test("gateway lifecycle at ingest: heartbeat/success stamped; revoked and unknown refused", async () => {

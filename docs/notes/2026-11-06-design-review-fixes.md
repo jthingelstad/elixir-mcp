@@ -14,7 +14,8 @@ subsets we ship, so a name the display font lacks still draws.
 
 **Names.** The game lets a player put colour markup in a name (`<c5>`, `<\c>`, a
 spaced `< c2>`). `packages/ingest/src/names.mjs` strips it from `name` fields when a
-payload is admitted, leaving the raw archive as received. Migration 0234 cleans
+payload is admitted, leaving the raw archive as received. The receipt's hash names what the game sent,
+because a replay verifies the archive against it, and a replay cleans names too. Migration 0234 cleans
 what is stored. A name that is only markup keeps the original rather than going blank. The rule
 is documented in cr-agent-api-docs.
 

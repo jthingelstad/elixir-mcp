@@ -302,6 +302,37 @@ test("a new account gets the steps, not Today, and reads no panel", async ({
   expect(panels).toEqual([]);
 });
 
+test("adding your player from Ladder's or Clan's link stays on Home's steps", async ({
+  page,
+}) => {
+  let added = false;
+  await mockApi(
+    page,
+    homeApi({
+      "GET /api/me/home": () => [
+        200,
+        {
+          first: {
+            ok: true,
+            player: added
+              ? { player_tag: "#2PYQ8GJ0", name: "New Player" }
+              : null,
+          },
+        },
+      ],
+      "POST /api/claims": () => {
+        added = true;
+        return [200, { ok: true }];
+      },
+    }),
+  );
+  await page.goto("/home#add-player");
+  await page.getByLabel("Your player tag").fill("#2PYQ8GJ0");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByText("your main player.")).toBeVisible();
+  await expect(page).toHaveURL(/\/home$/);
+});
+
 test("the head leads with your nickname, as Ladder and Friends do", async ({
   page,
 }) => {

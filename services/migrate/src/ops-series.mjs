@@ -7,6 +7,7 @@
 
 import pg from "pg";
 import { payloadHash } from "@elixir-mcp/ingest/hash";
+import { cleanPayloadNames } from "@elixir-mcp/ingest/names";
 
 /**
  * {series_status: {hours?: 1}} - read-only: the series tables' row
@@ -368,9 +369,12 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
             if (attempt === 0 && !fresh.has(r.payload_hash))
               tally.cache_hits += 1;
             const observedAt = r.fetched_at.toISOString();
+            // The archive holds what the game sent; names enter the record
+            // clean, as at ingest. A copy, because one body serves many receipts.
+            const named = cleanPayloadNames(structuredClone(payload));
             if (lane === "clan") {
               const out = await projectClanSeries(db, {
-                payload,
+                payload: named,
                 observedAt,
                 receiptId: r.receipt_id,
                 moments: false,
@@ -379,13 +383,13 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
             } else if (lane === "player") {
               const out = await projectProfileSeries(db, {
                 playerTag: r.entity_key,
-                payload,
+                payload: named,
                 observedAt,
               });
               rows += out.facts;
             } else if (lane === "race") {
               const week = raceSeasonFor({
-                payload,
+                payload: named,
                 fetchedAt: observedAt,
               });
               if (!week || !payload?.clan?.tag) {
@@ -393,7 +397,7 @@ export async function seriesBackfill(databaseUrl, spec = {}, deps = {}) {
                 continue;
               }
               const out = await projectRaceSeries(db, {
-                payload,
+                payload: named,
                 fetchedAt: observedAt,
                 ...week,
               });

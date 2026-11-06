@@ -544,12 +544,17 @@ async function recordFetchError(db, msg) {
 function decodeAndAdmit(msg) {
   let payload;
   let rawText;
+  let sentHash;
   let tooLarge = false;
   try {
     rawText = gunzipSync(Buffer.from(msg.body_gzip_b64, "base64"), {
       maxOutputLength: MAX_DECOMPRESSED_BYTES,
     }).toString("utf8");
-    payload = cleanPayloadNames(JSON.parse(rawText));
+    const sent = JSON.parse(rawText);
+    // The hash names what the game sent, which is what the archive keeps and
+    // a replay verifies. Only what is projected loses its markup.
+    sentHash = payloadHash(sent);
+    payload = cleanPayloadNames(sent);
   } catch (err) {
     // zlib aborts at the bound with ERR_BUFFER_TOO_LARGE — a deliberate,
     // observable rejection, not an allocation.
@@ -566,7 +571,15 @@ function decodeAndAdmit(msg) {
           errors: [tooLarge ? "body:too_large" : "body:unparseable"],
         }
       : admit(endpoint, payload, entityKey);
-  return { payload, rawText, tooLarge, endpoint, entityKey, admission };
+  return {
+    payload,
+    rawText,
+    sentHash,
+    tooLarge,
+    endpoint,
+    entityKey,
+    admission,
+  };
 }
 
 /** How long a fetch-only result is kept for its caller's next ask. The
@@ -712,12 +725,19 @@ async function processRecordedResult(db, rawMessage, msg, deps, t0) {
   }
 
   let t = mark("gateway_ms", t0);
-  const { payload, rawText, tooLarge, endpoint, entityKey, admission } =
-    decodeAndAdmit(msg);
+  const {
+    payload,
+    rawText,
+    sentHash,
+    tooLarge,
+    endpoint,
+    entityKey,
+    admission,
+  } = decodeAndAdmit(msg);
   const hash =
     payload === undefined
       ? payloadHash(tooLarge ? msg.body_gzip_b64 : (rawText ?? ""))
-      : payloadHash(payload);
+      : sentHash;
   t = mark("parse_admit_ms", t);
 
   await db.query("begin");
