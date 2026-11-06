@@ -169,6 +169,7 @@ function make(
     timezone = "UTC",
     mine = [],
     memberClans = [],
+    verifiedClans = [],
     clanmates = {},
     season = null,
     now = Date.now(),
@@ -182,6 +183,9 @@ function make(
   // an old send's replay) falls through to the record pages, which open for
   // anyone signed in.
   const isMember = (clanTag) => memberClans.includes(clanTag);
+  // A clan-visible fact needs more than a door: a verified claim, as the
+  // record's own reader asks (reader.mjs). No answer means no fact.
+  const readsClanFacts = (clanTag) => verifiedClans.includes(clanTag);
   const playerDoor = (tag) => {
     if (isMine(tag)) return ladderUrl(tag, "", season);
     const shared = clanmates[tag];
@@ -332,6 +336,7 @@ function make(
     date,
     isMine,
     isMember,
+    readsClanFacts,
     clanDoor,
     rosterDoor,
   };
@@ -994,7 +999,7 @@ function clan(f, c) {
       mark: M.loss,
       // "was removed" only once a leader says so, and that word is the clan's
       // (a clan-visibility fact): anyone else reads the roster's own line.
-      title: `${c.P(m.tag, m.name)} ${m.removed && c.isMember(tag) ? "was removed from" : "departed"} ${esc(f.clan.name)}${roleWords(m.role) ? ` (was ${roleWords(m.role)})` : ""}`,
+      title: `${c.P(m.tag, m.name)} ${m.removed && c.readsClanFacts(tag) ? "was removed from" : "departed"} ${esc(f.clan.name)}${roleWords(m.role) ? ` (was ${roleWords(m.role)})` : ""}`,
       text: `${esc(c.dayTime(m))}.`,
     })),
     ...f.membership.roles.map((m) => ({
@@ -1575,6 +1580,9 @@ export function renderMail(kind, facts, links) {
       timezone: links.timezone ?? "UTC",
       mine: Array.isArray(links.mine) ? links.mine : [],
       memberClans: Array.isArray(links.member_clans) ? links.member_clans : [],
+      verifiedClans: Array.isArray(links.verified_clans)
+        ? links.verified_clans
+        : [],
       clanmates: links.clanmates ?? {},
       // The season the mail describes: an own player's Ladder link opens it,
       // not the one running when the link is clicked (2026-10-08).

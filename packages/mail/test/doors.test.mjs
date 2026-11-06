@@ -106,12 +106,20 @@ test("the You line shows a player of yours with a deck used, and no reader else"
   );
 });
 
-test("was removed is said to the clan's own readers, departed to everyone else", () => {
+test("was removed is said to a verified member of the clan, departed to everyone else", () => {
   const facts = load("clan_report");
   facts.membership.left[0].removed = true;
   const said = (extra) =>
     htmlToText(renderMail("clan_report", facts, { ...links, ...extra }).html);
-  assert.match(said({ member_clans: [facts.clan.tag] }), /was removed from/);
+  const tag = facts.clan.tag;
+  assert.match(
+    said({ member_clans: [tag], verified_clans: [tag] }),
+    /was removed from/,
+  );
+  // An unverified claim opens the clan's door and reads no clan-visible fact.
+  const unverified = said({ member_clans: [tag] });
+  assert.doesNotMatch(unverified, /was removed from/);
+  assert.match(unverified, /departed/);
   assert.doesNotMatch(said({}), /was removed from/);
 });
 

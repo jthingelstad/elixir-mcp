@@ -178,7 +178,7 @@ classifies them, and the classified word goes only to the clan's own readers.
 Composed once per clan, sent to every person account tracking
 that clan; `nothingHappened` skips the issue for everyone (D9, A20), never when
 a read failed. Links and the You line and Gone quiet are per reader, at render,
-from `reader.mjs` (`mine`, `member_clans`, `clanmates`), never in the facts. Since 2026-10-08 an account made after 0205 tracks its primary
+from `reader.mjs` (`mine`, `member_clans`, `verified_clans`, `clanmates`), never in the facts. Since 2026-10-08 an account made after 0205 tracks its primary
 player's clan automatically at activity scope when a slot is free
 (`followPrimaryClan` in packages/claims), which is what makes the welcome
 mail's "Monday: your clan's week" true for a new member. Days are carried as instants (`membership[].at`,
