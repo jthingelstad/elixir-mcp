@@ -121,6 +121,43 @@ function FrameHead({ slug, player, clanName, mode, season, applied }) {
   );
 }
 
+/** Whose season: a list with several players, a name and a tag with one. The
+ *  scope bar's, and Pending's, where nothing else on the page can change it. */
+export function PlayerPick({ player, players, hrefFor, navigate }) {
+  const id = useId();
+  if (players.length < 2)
+    return (
+      <span className="ladder-scope__one">
+        {playerName(player)}{" "}
+        <span className="mono ladder-scope__tag">{player.player_tag}</span>
+      </span>
+    );
+  return (
+    <>
+      <label className="sr-only" htmlFor={id}>
+        Player
+      </label>
+      <select
+        id={id}
+        className="ladder-scope__select"
+        value={player.player_tag}
+        onChange={(e) => {
+          const next = players.find((p) => p.player_tag === e.target.value);
+          navigate(
+            hrefFor({ player: next?.is_primary ? null : e.target.value }),
+          );
+        }}
+      >
+        {players.map((p) => (
+          <option key={p.player_tag} value={p.player_tag}>
+            {playerName(p)}, {p.is_primary ? "your main player" : "also you"}
+          </option>
+        ))}
+      </select>
+    </>
+  );
+}
+
 /** Whose season, which season, which game, and how fresh. Each choice is an
  *  address: a link, a reload or a mail keeps it. A friend is never in the list. */
 function ScopeBar({
@@ -135,7 +172,6 @@ function ScopeBar({
   navigate,
 }) {
   const { when } = useClock();
-  const playerId = useId();
   const seasonId = useId();
   const listed = seasons ?? [];
   const options = listed.some((s) => s.key === season.key)
@@ -144,40 +180,12 @@ function ScopeBar({
   return (
     <div className="ladder-scope">
       <div className="ladder-scope__picks">
-        {players.length > 1 ? (
-          <>
-            <label className="sr-only" htmlFor={playerId}>
-              Player
-            </label>
-            <select
-              id={playerId}
-              className="ladder-scope__select"
-              value={player.player_tag}
-              onChange={(e) => {
-                const next = players.find(
-                  (p) => p.player_tag === e.target.value,
-                );
-                navigate(
-                  hrefFor({
-                    player: next?.is_primary ? null : e.target.value,
-                  }),
-                );
-              }}
-            >
-              {players.map((p) => (
-                <option key={p.player_tag} value={p.player_tag}>
-                  {playerName(p)},{" "}
-                  {p.is_primary ? "your main player" : "also you"}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : (
-          <span className="ladder-scope__one">
-            {playerName(player)}{" "}
-            <span className="mono ladder-scope__tag">{player.player_tag}</span>
-          </span>
-        )}
+        <PlayerPick
+          player={player}
+          players={players}
+          hrefFor={hrefFor}
+          navigate={navigate}
+        />
         <label className="sr-only" htmlFor={seasonId}>
           Season
         </label>

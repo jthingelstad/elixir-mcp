@@ -16,7 +16,11 @@ Reads, so nobody re-derives them:
   no calendar to mark.
 - Decks is one `battles_decks` read for the mode and one per deck for its art, so
   a chip costs its deck count. Duel rounds are their own panel on War.
-- Other is two reads, Challenge and Tournament, and two panels. Never pooled.
+- Other is two reads, Challenge and Tournament, and two panels. Never pooled. On
+  Battles each has its own days and sittings: merging the reads before
+  `battleDays()` pooled the day's and the sitting's record.
+- Pending draws `PlayerPick` too. The bar is the only switcher now, so a page
+  without it would strand a person on a new or 404 tag.
 - The War line is `war_current` plus `war_history`. A refused read draws no line.
 
 Choices tagged [engineering, 2026-11-05]:

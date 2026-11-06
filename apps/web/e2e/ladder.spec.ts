@@ -480,6 +480,121 @@ test.describe("Ladder signed in", () => {
     ).toBeVisible();
   });
 
+  for (const [state, attempts, words] of [
+    ["on its way", [], "Second Thing\u2019s first battles are on their way"],
+    [
+      "not found",
+      [
+        {
+          endpoint: "player",
+          last_failed_at: "2026-09-29T20:00:00Z",
+          last_failed_status: 404,
+        },
+      ],
+      "Tag not found",
+    ],
+  ] as const) {
+    test(`a selected player ${state} keeps the player list, and switching back reads the other`, async ({
+      page,
+    }) => {
+      const base = explore();
+      await mockApi(
+        page,
+        signedIn({
+          "GET /api/me": [200, { ...ME, claims: [...ME.claims, ALT] }],
+          "GET /api/me/first-answer": [
+            200,
+            {
+              as_of: "2026-09-29T21:00:00Z",
+              player: {
+                player_tag: ALT.player_tag,
+                name: ALT.name,
+                profile_available: false,
+                battles_7d: 0,
+                battles_30d: 0,
+                capture_attempts: attempts,
+              },
+              clan: null,
+              connection: { active_connections: 0 },
+            },
+          ],
+          "POST /api/explore": (route) => {
+            const { tool, args } = route.request().postDataJSON() as ToolCall;
+            if (args.player_tag !== ALT.player_tag) return base(route);
+            return [
+              200,
+              {
+                tool,
+                is_error: true,
+                body: {
+                  error: {
+                    code: "not_recorded",
+                    class: "input",
+                    message: "Not recorded yet.",
+                  },
+                },
+              },
+            ];
+          },
+        }),
+      );
+      await page.goto("/ladder/decks?player=9PQ2R8L&mode=war");
+      await expect(page.getByRole("heading", { name: words })).toBeVisible();
+      const select = page.getByLabel("Player", { exact: true });
+      await expect(select).toHaveValue("#9PQ2R8L");
+      await accessible(page, `ladder pending ${state}`);
+
+      // The way out keeps the page and the mode, and the main needs no name.
+      await select.selectOption("#20JJJ2CCRU");
+      await expect(page).toHaveURL(/\/ladder\/decks\?mode=war$/);
+      await expect(
+        page.getByRole("heading", { level: 1, name: "Decks" }),
+      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: words })).toHaveCount(0);
+    });
+  }
+
+  test("@narrow a pending player's list is 44px and nothing scrolls sideways", async ({
+    page,
+  }) => {
+    const base = explore();
+    await mockApi(
+      page,
+      signedIn({
+        "GET /api/me": [200, { ...ME, claims: [...ME.claims, ALT] }],
+        "GET /api/me/first-answer": [
+          200,
+          {
+            player: { player_tag: ALT.player_tag, name: ALT.name },
+            clan: null,
+          },
+        ],
+        "POST /api/explore": (route) => {
+          const { tool, args } = route.request().postDataJSON() as ToolCall;
+          if (args.player_tag !== ALT.player_tag) return base(route);
+          return [
+            200,
+            {
+              tool,
+              is_error: true,
+              body: { error: { code: "not_recorded", message: "Not yet." } },
+            },
+          ];
+        },
+      }),
+    );
+    await page.goto("/ladder?player=9PQ2R8L");
+    const select = page.getByLabel("Player", { exact: true });
+    await expect(select).toBeVisible();
+    expect((await select.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(
+      44,
+    );
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
   test("with no player of your own, Ladder says so and offers the way in", async ({
     page,
   }) => {
@@ -904,6 +1019,93 @@ test.describe("Ladder scope, moved pages and the other chips", () => {
     await page.goto("/ladder");
     await expect(page.locator(".ladder-tile").first()).toBeVisible();
     await expect(line).toHaveCount(0);
+  });
+
+  test("Other's Battles keeps Challenge and Tournament apart: no day or sitting pools them", async ({
+    page,
+  }) => {
+    await page.clock.setFixedTime(new Date("2026-09-29T21:00:00Z"));
+    const row = (id: string, mode: string, at: string, win: boolean) => ({
+      battle_id: id.repeat(64),
+      url: null,
+      battle_time: at,
+      type: mode === "challenge" ? "challenge" : "tournament",
+      game_mode: { id: 72000006, name: "Challenge" },
+      mode_group: mode,
+      me: { outcome: win ? "win" : "loss", crowns: win ? 2 : 0 },
+      teammates: [],
+      opponents: [
+        {
+          player_tag: "#2PQ8RV0L",
+          name: "A Rival",
+          name_known: true,
+          crowns: win ? 0 : 1,
+        },
+      ],
+    });
+    // Ten minutes apart on one evening: as one list, one day and one sitting.
+    const rows: Record<string, unknown[]> = {
+      challenge: [row("a", "challenge", "2026-09-28T23:00:00.000Z", true)],
+      tournament: [row("b", "tournament", "2026-09-28T23:10:00.000Z", false)],
+    };
+    const calls: ToolCall[] = [];
+    const base = explore(calls, {
+      otherModes: { challenge: tally(1, 1, 0), tournament: tally(1, 0, 0) },
+    });
+    await mockApi(
+      page,
+      signedIn({
+        "POST /api/explore": (route) => {
+          const { tool, args } = route.request().postDataJSON() as ToolCall;
+          const mine = rows[String(args.mode)];
+          if (tool !== "battles_query" || !mine) return base(route);
+          calls.push({ tool, args });
+          return [
+            200,
+            {
+              tool,
+              is_error: false,
+              body: {
+                player_tag: args.player_tag,
+                applied: { limit: args.limit, verbosity: "compact" },
+                battles: mine,
+                total_count: mine.length,
+                next_cursor: null,
+              },
+            },
+          ];
+        },
+      }),
+    );
+    await page.goto("/ladder/battles?mode=other");
+
+    const main = page.getByRole("main");
+    await expect(
+      main.getByRole("heading", { level: 2, name: "Challenge" }),
+    ).toBeVisible();
+    await expect(
+      main.getByRole("heading", { level: 2, name: "Tournament" }),
+    ).toBeVisible();
+    // The same day twice, each with its own mode's count and record.
+    const days = main.locator("section").filter({
+      has: page.getByRole("heading", { name: "Mon Sep 28" }),
+    });
+    await expect(days).toHaveCount(2);
+    await expect(days.nth(0).locator(".ladder-aside")).toHaveText(
+      "1 battle · 1–0",
+    );
+    await expect(days.nth(1).locator(".ladder-aside")).toHaveText(
+      "1 battle · 0–1",
+    );
+    await expect(page.locator(".ladder-sit")).toHaveCount(2);
+    await expect(main).not.toContainText("2 battles");
+    await expect(main).toContainText("the two are never added up");
+    expect(
+      calls
+        .filter((c) => c.tool === "battles_query" && c.args.mode)
+        .map((c) => c.args.mode),
+    ).toEqual(expect.arrayContaining(["challenge", "tournament"]));
+    await accessible(page, "ladder other battles");
   });
 
   test("Other appears only with a Challenge or Tournament battle, and never pools the two", async ({

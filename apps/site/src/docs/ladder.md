@@ -38,7 +38,8 @@ is shown as an empty season, not a wait. If Clash Royale has no player with
 that tag, Ladder says **Tag not found**, in Tracking's words, and **Fix
 the tag** opens the player's Tracking page at the place to type the right
 one. A tag given at signup is just added in the same way: the new account
-opens on the player's page while the first read comes in.
+opens on the player's page while the first read comes in. The player list stays
+at the top of both, so you can switch back to a player already on record.
 
 ## One mode at a time
 
@@ -263,7 +264,9 @@ sitting that crosses midnight splits, so a day's panel matches its day on the
 calendar. A sitting shows its times, its record and, on Trophy Road, the
 trophies you started and ended on. Open it for its battles; a battle opens on its
 own page when the record has one. The page reads this mode's battles only, and
-shows seven days until you ask for older ones.
+shows seven days until you ask for older ones. On **Other**, Challenge and
+Tournament each have their own days and sittings, so no count or record crosses
+the two.
 
 War battles are listed like any other, each on the day you played it: Ladder
 shows your battles one by one. Elixir shows war by the week where it is about
