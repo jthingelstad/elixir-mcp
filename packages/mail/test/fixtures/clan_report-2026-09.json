@@ -122,32 +122,32 @@
  "presence": {
   "quiet": [
    {
-    "name": "sniperhendo",
+    "name": "Sage Zebu",
     "days": 7
    }
   ],
   "returned": [
    {
-    "name": "pokemon",
+    "name": "Pale Vole",
     "days": 10
    },
    {
-    "name": "round hamster",
+    "name": "Quiet Ocelot",
     "days": 7
    }
   ]
  },
  "badges": [
   {
-   "name": "bonus",
+   "name": "Copper Koala",
    "badge": "Mastery: Miner"
   },
   {
-   "name": "Sandeep",
+   "name": "Rapid Robin",
    "badge": "Mastery: Fire Spirit Hut"
   },
   {
-   "name": "sikander sidhu",
+   "name": "Sage Ferret",
    "badge": "Mastery: Ice Wizard"
   }
  ],
