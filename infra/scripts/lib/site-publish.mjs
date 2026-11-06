@@ -29,7 +29,7 @@
  * number at a time.
  *
  * Only a name that changes with its content can be immutable. The
- * site's own assets (site.css, chrome-menu.js, card art, fonts) keep one
+ * site's own assets (site.css, session-hint.js, card art, fonts) keep one
  * name and are busted by `?v=<hash>`, and CachingOptimized leaves the
  * query string out of the edge's cache key: marked immutable, a browser
  * could keep the old bytes under the new `?v=` for a year. They

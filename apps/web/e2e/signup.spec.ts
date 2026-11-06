@@ -39,7 +39,7 @@ test("public signup verifies email and returns to the requested Console step", a
       },
     }),
   );
-  await page.goto("/console/signin?signup&return_to=/console/account/tracking");
+  await page.goto("/signin?signup&return_to=/console/account/tracking");
   await expect(
     page.getByRole("heading", { name: "Create your Elixir account" }),
   ).toBeVisible();
@@ -71,7 +71,7 @@ test("public signup verifies email and returns to the requested Console step", a
   ).toEqual([]);
 });
 
-test("a new account with no tag lands on Tracking with the tag field focused", async ({
+test("a new account with no tag lands on Home with the first step open", async ({
   page,
 }) => {
   let authed = false,
@@ -98,7 +98,7 @@ test("a new account with no tag lands on Tracking with the tag field focused", a
       },
     }),
   );
-  await page.goto("/console/signin");
+  await page.goto("/signin");
   await expect(page.getByLabel("Your player tag (optional)")).toHaveCount(0);
   await page.getByRole("button", { name: "Create an account" }).click();
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
@@ -109,8 +109,8 @@ test("a new account with no tag lands on Tracking with the tag field focused", a
   expect(sentTag).toBeUndefined();
   await page.getByLabel("6-digit code").fill("123456");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/console\/account\/tracking#add-player-tag$/);
-  await expect(page.getByLabel("Player tag")).toBeFocused();
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByLabel("Your player tag")).toBeVisible();
 });
 
 test("@narrow invitation entry and signup fit phone and desktop without changing the layout", async ({
@@ -120,7 +120,7 @@ test("@narrow invitation entry and signup fit phone and desktop without changing
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    for (const name of ["Console", "Ladder", "Clan"])
+    for (const name of ["Home", "Ladder", "Clan"])
       await expect(
         page
           .locator(".home-tile__product")
@@ -179,7 +179,7 @@ test("a failed email request stays editable and a failed code request remains re
         ? [503, { error: "unavailable" }]
         : [400, { error: "invalid_or_expired" }],
   });
-  await page.goto("/console/signin?signup");
+  await page.goto("/signin?signup");
   await page.getByLabel("Email", { exact: true }).fill("new@example.com");
   await page.getByRole("button", { name: "Send sign-in email" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
@@ -240,19 +240,15 @@ for (const width of [390, 1280]) {
         ],
       }),
     );
-    await page.goto("/console/account/overview");
-    await expect(page.getByText("AI clients (optional)")).toBeVisible();
-    await expect(page.getByText("Clan war history (optional)")).toBeVisible();
+    // Home's first steps: the optional ones say so.
+    await page.goto("/home");
     await expect(
-      page.getByRole("link", { name: "Connect your client ›" }),
-    ).not.toBeVisible();
-    await page
-      .getByRole("button", { name: "Add your player", exact: true })
-      .click();
-    // Onto the field it came for, ready to type in (2026-10-20).
-    await expect(page).toHaveURL(
-      /\/console\/account\/tracking#add-player-tag$/,
-    );
+      page.getByRole("heading", { name: /^Connect an AI/ }),
+    ).toContainText("Optional");
+    await expect(page.getByLabel("Your player tag")).toBeVisible();
+    // Tracking keeps its own address for the field, ready to type in
+    // (2026-10-20).
+    await page.goto("/console/account/tracking#add-player-tag");
     await expect(page.getByLabel("Player tag")).toBeFocused();
     await expect(
       page.getByText(/open your profile: the tag starting with #/),

@@ -35,152 +35,79 @@
     <link rel="alternate" type="application/feed+json" title="{{ site.name }} updates" href="{{ site.url }}/feed.json" />
   </head>
   <body>
-    <div class="shell">
-      {#- The top bar: the kit's Chrome (packages/ui/src/Chrome.tsx), the
-          same markup and classes, read from ONE list, the kit's product
-          manifest (packages/ui/src/family.json, here as `familyBar`).
-          This template loops over it and holds no product, label or link
-          of its own; a test pins that, and pins this bar to the kit's.
+    <div class="kit-shell">
+      {#- The top bar: the app's (apps/web/src/shell/Shell.jsx), the same classes
+          and the same words, read from ONE list, the kit's manifest
+          (packages/ui/src/family.json, here as `familyBar`). This template
+          loops over it and holds no product, label or link of its own; a test
+          pins that, and pins this bar to the app's.
 
-          THE BAR'S SHAPE NEVER VARIES BY SESSION: the account slot is a
-          fixed width everywhere. An app fills it from the session it
-          already holds; this build cannot know the session, so both faces
-          are in the markup and session-hint.js, a blocking script in the
-          head, chooses one before the first paint. Nothing here is
-          swapped after load. (It once showed "Sign in" and swapped it to
-          "Account" when /api/me answered, and the bar read as a glitch.)
-
-          A page names `navActive`: the manifest's docs key lights Docs on the bar; any
-          other key lights its item in the site's row below. -#}
-      <header class="chrome">
-        <div class="chrome__inner">
-          <a class="chrome__home" href="/" aria-label="{{ familyBar.wordmark }} home">
-            <img class="chrome__logo" src="{{ familyBar.logo | asset }}" alt="" />
-            <span class="wordmark">{{ familyBar.wordmark }}</span>
+          This build cannot know the session, so both faces are in the markup
+          and session-hint.js, a blocking script in the head, chooses one
+          before the first paint. Nothing here is swapped after load. The name
+          comes from the hint, and the email is never here. -#}
+      <header class="kit-top">
+        <div class="kit-top__row">
+          {%- set homePlace = familyBar.products[0] %}
+          <a class="kit-top__brand" data-session-face="out" href="/" aria-label="{{ familyBar.wordmark }} home">
+            <img src="{{ familyBar.logo | asset }}" alt="" width="28" height="28" />
+            <span>{{ familyBar.wordmark }}</span>
           </a>
-          <span class="chrome__rule" aria-hidden="true"></span>
-          {#- The places. A document is inside none of them, so none is
-              current here; the Console marks Console, Clan marks Clan.
-              Glyphs are the Lucide icons the manifest names, drawn the
-              way the kit's Icon draws them (the chromeIcon shortcode). -#}
-          <nav class="chrome__nav" aria-label="Products">
+          <a class="kit-top__brand" data-session-face="in" href="{{ homePlace.path }}" aria-label="{{ familyBar.wordmark }}, go to {{ homePlace.label }}">
+            <img src="{{ familyBar.logo | asset }}" alt="" width="28" height="28" />
+            <span>{{ familyBar.wordmark }}</span>
+          </a>
+          <nav class="kit-top__out" data-session-face="out" aria-label="Main">
+            {%- for place in familyBar.signedOut %}
+            <a href="{{ place.path }}"{% if navActive == place.key %} aria-current="page"{% endif %}>{{ place.label }}</a>
+            {%- endfor %}
+          </nav>
+          <nav class="kit-top__nav" data-session-face="in" aria-label="Main">
             {%- for product in familyBar.products %}{% if not product.game %}
-            <a class="chrome__product" href="{{ product.path }}">
-              {% chromeIcon product.icon, 17 %}
-              <span class="chrome__product-label">{{ product.label }}</span>
-            </a>
+            <a href="{{ product.path }}">{{ product.label }}</a>
             {%- endif %}{% endfor %}
           </nav>
-          {#- Narrow: one button, where you are (Docs, on a docs page) or
-              "Menu", opening the sheet below. Which width is showing is a
-              media query's decision, never this template's. -#}
-          {%- if navActive == familyBar.docs.key %}
-          <button type="button" class="chrome__menu" aria-label="Product: {{ familyBar.docs.label }}" aria-expanded="false" aria-controls="chrome-sheet" data-here="true" data-chrome-menu>
-            {% chromeIcon familyBar.docs.icon, 17 %}
-            <span class="chrome__menu-label">{{ familyBar.docs.label }}</span>
-            {% chromeIcon "chevron-down", 16 %}
-          </button>
-          {%- else %}
-          <button type="button" class="chrome__menu" aria-label="Menu" aria-expanded="false" aria-controls="chrome-sheet" data-chrome-menu>
-            <span data-menu-open>{% chromeIcon "menu", 20 %}</span><span data-menu-close hidden>{% chromeIcon "x", 20 %}</span>
-            <span class="chrome__menu-label">Menu</span>
-          </button>
-          {%- endif %}
-          <div class="chrome__end">
-            <a class="chrome__docs" href="{{ familyBar.docs.path }}"{% if navActive == familyBar.docs.key %} aria-current="page"{% endif %}>
-              {% chromeIcon familyBar.docs.icon, 17 %}
-              <span class="chrome__docs-label">{{ familyBar.docs.label }}</span>
-            </a>
-            {%- for product in familyBar.products %}{% if product.game %}
-            <a class="chrome__play" href="{{ product.href }}" target="_blank" rel="noopener" aria-label="{{ product.action }}, {{ product.about }} (opens {{ product.href | host }} in a new window)">
-              {% chromeIcon product.icon, 17 %}
-              <span class="chrome__play-label">{{ product.action }}</span>
-              {% chromeIcon "arrow-up-right", 14 %}
-            </a>
-            {%- endif %}{% endfor %}
-            <span class="chrome__rule" aria-hidden="true"></span>
-            <div class="chrome__account">
-              <a class="chrome__signin" data-session-face="out" href="{{ familyBar.signIn.path }}">
-                {% chromeIcon familyBar.signIn.icon, 16 %}
-                <span>{{ familyBar.signIn.label }}</span>
-              </a>
-              <a class="chrome__me" data-session-face="in" href="{{ familyBar.account.path }}" aria-label="{{ familyBar.account.label }}">
-                <span class="chrome__avatar chrome__avatar--hint" aria-hidden="true"></span>
-                <span class="chrome__me-name chrome__me-name--hint"></span>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <nav class="chrome__sheet" id="chrome-sheet" aria-label="{{ familyBar.wordmark }} menu" data-open="false">
-          {%- for product in familyBar.products %}{% if not product.game %}
-          <a class="chrome__sheet-item" href="{{ product.path }}">
-            {% chromeIcon product.icon, 17 %}
-            <span class="chrome__sheet-item-label">{{ product.label }}</span>
+          <a class="kit-top__search" data-session-face="in" href="{{ familyBar.search.path }}">
+            {% chromeIcon familyBar.search.icon, 18 %}
+            <span>{{ familyBar.search.prompt }}</span>
           </a>
-          {%- endif %}{% endfor %}
-          <a class="chrome__sheet-item" href="{{ familyBar.docs.path }}"{% if navActive == familyBar.docs.key %} aria-current="page"{% endif %}>
-            {% chromeIcon familyBar.docs.icon, 17 %}
-            <span class="chrome__sheet-item-label">{{ familyBar.docs.label }}</span>
+          <span class="kit-top__gap"></span>
+          <a class="kit-top__link" data-session-face="out" href="{{ familyBar.signIn.path }}">{{ familyBar.signIn.label }}</a>
+          <a class="btn btn--sm btn--primary" data-session-face="out" href="{{ familyBar.createAccount.path }}">{{ familyBar.createAccount.label }}</a>
+          <a class="kit-top__icon" data-session-face="in" href="{{ familyBar.help.path }}" aria-label="{{ familyBar.help.label }}">
+            {% chromeIcon familyBar.help.icon, 18 %}
           </a>
           {%- for product in familyBar.products %}{% if product.game %}
-          <a class="chrome__play" href="{{ product.href }}" target="_blank" rel="noopener" aria-label="{{ product.action }}, {{ product.about }} (opens {{ product.href | host }} in a new window)">
-            {% chromeIcon product.icon, 17 %}
-            <span class="chrome__play-label">{{ product.action }}</span>
-            {% chromeIcon "arrow-up-right", 14 %}
+          <a class="kit-top__drop" data-session-face="in" href="{{ product.href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ product.action }}, {{ product.about }}, opens in a new window">
+            {% chromeIcon product.icon, 18 %}
+            {{ product.action }}
           </a>
           {%- endif %}{% endfor %}
-        </nav>
+          <a class="kit-top__avatar" data-session-face="in" href="{{ familyBar.account.path }}">
+            <span class="sr-only">{{ familyBar.account.label }}: </span>
+            <span class="chrome__avatar chrome__avatar--hint" aria-hidden="true"></span>
+            <span class="kit-top__name chrome__me-name--hint"></span>
+          </a>
+        </div>
       </header>
-
-      {#- The site's own pages (_data/siteNav.js), under the bar. Not on
-          a docs page: there Docs is lit on the bar and the docs carry
-          their own rail. -#}
-      {%- if navActive != familyBar.docs.key %}
-      <nav class="sitenav" aria-label="Site">
-        {%- for item in siteNav.pages %}
-        <a href="{{ item.path }}"{% if navActive == item.key %} aria-current="page"{% endif %}>{{ item.label }}</a>
-        {%- endfor %}
-      </nav>
-      {%- endif %}
 
       <main class="wrap{% if prose %} wrap--prose{% endif %}">
         {{ content | safe }}
       </main>
 
-      <footer class="sitefoot">
-        <nav class="sitefoot__cols" aria-label="Footer">
-          <div class="sitefoot__brand">
-            <a class="sitefoot__home" href="/" aria-label="{{ familyBar.wordmark }} home">
-              <img src="{{ familyBar.logo | asset }}" alt="" />
-              <span class="wordmark">{{ familyBar.wordmark }}</span>
-            </a>
-            <span class="sitefoot__tagline">{{ siteNav.tagline }}</span>
-          </div>
-          {%- set foot = siteNav.footer %}
-          <div class="sitefoot__col">
-            <span class="sitefoot__head">{{ foot.elixir.label }}</span>
-            {%- for link in foot.elixir.links %}
-            <a href="{{ link.path }}">{{ link.label }}</a>
-            {%- endfor %}
-          </div>
-          <div class="sitefoot__col">
-            <span class="sitefoot__head">{{ foot.places.label }}</span>
-            {%- for product in familyBar.products %}
-            {%- if product.external %}
-            <a href="{{ product.href }}" target="_blank" rel="noopener" aria-label="{{ product.label }} (opens {{ product.href | host }} in a new window)">{{ product.label }}</a>
-            {%- else %}
-            <a href="{{ product.path }}">{{ product.label }}</a>
-            {%- endif %}
-            {%- endfor %}
-          </div>
-          <div class="sitefoot__col">
-            <span class="sitefoot__head">{{ foot.policy.label }}</span>
-            {%- for link in foot.policy.links %}
-            <a href="{{ link.path }}">{{ link.label }}</a>
-            {%- endfor %}
-          </div>
+      <footer class="kit-foot">
+        <nav aria-label="{{ familyBar.wordmark }}" class="kit-foot__links">
+          {%- for link in familyBar.foot %}
+          <a href="{{ link.path }}">{{ link.label }}</a>
+          {%- endfor %}
+          {%- for product in familyBar.products %}{% if product.game %}
+          <a href="{{ product.href }}" target="_blank" rel="noopener noreferrer">{{ product.action }}</a>
+          {%- endif %}{% endfor %}
         </nav>
+        <p class="kit-foot__support">
+          {{ familyBar.wordmark }} is free and sponsor-supported.
+          <a href="/support">Support {{ familyBar.wordmark }}</a>
+        </p>
         <div class="disclaimer">
           <span class="disclaimer__tag">UNOFFICIAL</span>
           <span class="disclaimer__text">
@@ -191,6 +118,20 @@
           <span class="disclaimer__family">{{ site.family }}</span>
         </div>
       </footer>
+
+      {#- The phone's tabs, signed in only, as the app draws them. -#}
+      <nav class="kit-bottom" data-session-face="in" aria-label="Main, phone">
+        {%- for product in familyBar.products %}{% if not product.game %}
+        <a href="{{ product.path }}">
+          {% chromeIcon product.icon, 18 %}
+          <span>{{ product.label }}</span>
+        </a>
+        {%- endif %}{% endfor %}
+        <a href="{{ familyBar.search.path }}">
+          {% chromeIcon familyBar.search.icon, 18 %}
+          <span>{{ familyBar.search.label }}</span>
+        </a>
+      </nav>
     </div>
     {#- Tinylytics: a static page is a real document load, so the embed
         records the hit by itself. No pushState bridge is needed here -
@@ -198,9 +139,6 @@
         The one tag Tinylytics uses for every site: the site rides in
         data-site and the URL takes no parameters (hits, countries and
         events are the site's Tinylytics settings). -#}
-    {#- The narrow menu. External file, never inline: the CSP forbids
-        inline script and a test pins that. -#}
-    <script defer src="{{ "/assets/chrome-menu.js" | asset }}"></script>
     <script defer src="https://tinylytics.app/js/script.js" data-site="{{ site.tinylyticsId }}"></script>
   </body>
 </html>

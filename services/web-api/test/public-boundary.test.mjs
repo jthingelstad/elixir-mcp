@@ -180,7 +180,7 @@ test("the doors by prefix refuse with no credential", async () => {
     );
   const login = await call("GET", "/api/clan/auth/login");
   assert.equal(login.statusCode, 303);
-  assert.match(login.headers.location, /^\/console\/signin/);
+  assert.match(login.headers.location, /^\/signin/);
 });
 
 test("public stats carry only counts of what the recorder holds", async () => {

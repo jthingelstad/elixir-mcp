@@ -1,10 +1,12 @@
-# Console
+# Console (what becomes Settings)
 
 *Ratified by Jamie, 2026-10-12, in the sitting that drafted it.*
 
-*The day has moved out: Home's half is [Home](home.md) (redesign step 3). What
-is left here becomes Settings, and an agent a page in it, at step 6
-([Structure](structure.md)). Until then it describes what runs.*
+*The day has moved out: Home's half is [Home](home.md) (redesign step 3). The
+word Console is gone from what a reader sees since step 3b, and the pages here are
+called Settings, reached from the account menu, though their paths stay under
+`/console` until step 6, when an agent also becomes a page in Settings
+([Structure](structure.md)). The quotes below keep the word as it was said.*
 
 ## What it is for
 

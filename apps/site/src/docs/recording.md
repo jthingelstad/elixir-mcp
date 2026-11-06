@@ -7,7 +7,7 @@ order: 5
 navTitle: "What Elixir records"
 icon: radar
 lede: "What Elixir captures, how often, and why an answer is never a live scrape."
-console: ["Your tracked players and clans, and their freshness", "/console/account/tracking", "Console ▸ Tracking"]
+console: ["Your tracked players and clans, and their freshness", "/console/account/tracking", "Settings ▸ Tracking"]
 ---
 
 # Recording and coverage
@@ -50,7 +50,7 @@ free and outside your quota, as [Verify](/docs/verify) does. So the first
 capture usually lands within a few minutes, and the first battle-log read
 brings roughly the last 30 battles with it (the game keeps no more; from
 there the record builds forward). If Clash Royale answers that it has no
-player with that tag (its "Player not found"), the Console says so as an
+player with that tag (its "Player not found"), Tracking says so as an
 error on the player's page within seconds of the add (it checks every few
 seconds for the first minutes), and never shows that tag as recording or
 freshly polled: check the tag, which is on the player's profile in the game
@@ -71,7 +71,7 @@ is still recorded, and its first read comes with the scheduler's next round.
 
 Slots are the only gate; see [Limits](/docs/limits).
 
-If your clans cannot be read, Overview and Tracking say so and offer
+If your clans cannot be read, Home and Tracking say so and offer
 **Try again**. A failed read does not mean that you stopped tracking a clan;
 any previously read clans stay available. Trying again reads your saved
 tracking without adding a clan or forcing a game fetch. An empty list is
@@ -220,7 +220,7 @@ Why 30 minutes and two hours: a battle is about three minutes, and the
 API's battle log holds your last 30, so a sitting fills it in about 90
 minutes. Read inside a third of that and a session cannot roll past the
 recorder; read at least every two hours and a sitting that starts the
-moment after a read still fits. The console's signed-in
+moment after a read still fits. The signed-in
 [Efficiency](/console/status/efficiency) page measures what is still lost,
 per day, against the game's own lifetime battle counter.
 
@@ -433,7 +433,7 @@ and nothing is dropped:
 
 The eight-week read of a 50-member clan with 20 departures answers in
 under 40,000 characters at either verbosity. The JSON API's
-`GET /clans/{tag}/participation` and the console serve the same rows as
+`GET /clans/{tag}/participation` and the website serve the same rows as
 objects with the two fields above, and have no cap.
 
 To replay a clan's rules at a past finish, take the population from

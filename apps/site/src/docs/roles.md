@@ -7,7 +7,7 @@ order: 30
 navTitle: "Roles and tiers"
 icon: shield-check
 lede: "What each tier records for you — never what you may read."
-console: ["Your tier", "/console/account/profile", "Account settings ▸ Profile"]
+console: ["Your tier", "/console/account/profile", "Settings ▸ Profile"]
 reviewed: "2026-10-12 tiers are earned in the game, the collector points economy retired; a family is recorded, Clan is one clan at a time; 2026-10-06 for public member signup"
 ---
 
@@ -39,7 +39,7 @@ their agents, a member's away only to the clan's leaders.
 | Agents | 3 | 5 | 10 | 25 | unlimited | unlimited |
 
 Tool calls are what your agents and connected apps spend at the MCP door.
-Your own reads on Elixir's website, the Console and Ladder, never count
+Your own reads on Elixir's website, Explore and Ladder, never count
 against them; they share only the hourly limit ([Limits](/docs/limits)).
 
 Member, Leader and Family are **earned in the game**, and checked every
@@ -69,7 +69,7 @@ Community-scale slots and budgets — and an expectation: partners run a
 collector. At this scale you should be adding capacity to the fleet, not
 only consuming it.
 
-**admin** — runs the Admin console day-to-day: answers feedback,
+**admin** — runs Admin day-to-day: answers feedback,
 provisions platform integrations, revokes connections, and grants or
 removes partner. Unlimited quotas, exempt from every cap.
 
@@ -99,8 +99,8 @@ allowance — **and your recording slots**: what your agents track is counted
 with what you track, once per player or clan, however many of you track it.
 Its own role is capped at yours, and at `leader`: an admin's agent is not an
 admin, and an agent's role follows your tier as it is read now (member while
-you are a member, leader otherwise), so an agent never sits above its owner. Each agent has its own console,
-chosen at the top of the console's menu.
+you are a member, leader otherwise), so an agent never sits above its owner. Each agent has its own pages,
+chosen with the switcher at the top of the Settings rail.
 
 That separation is the point. An agent that borrowed your identity would answer
 "who am I" with *your* player tag, which is not what a clan's Discord bot should
@@ -184,7 +184,7 @@ ask through feedback.
 
 - Quotas reset at midnight UTC. Recorded-data reads are only bounded by
   the daily tool-call budget — never by tier — and your own reads on the
-  Console and Ladder are not bounded by it at all.
+  Explore and Ladder are not bounded by it at all.
 - Feedback has no limit of its own. Sent from the website it costs
   nothing; sent by your agent it is one tool call like any other.
   Telling us what's wrong should always be close to free.

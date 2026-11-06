@@ -726,13 +726,13 @@ export function accountRoutes({
                     'svc:' || (select st.name from service_token st
                                where st.token_id = m.token_id) end,
                   m.client_name,
-                  case when m.surface = 'web' then 'Console' end,
+                  case when m.surface = 'web' then 'Website' end,
                   'unnamed client') as name,
                 case when m.account_id <> $1 then 'agent'
                      when m.token_id is not null then 'service token'
-                     when m.surface = 'web' then 'console'
+                     when m.surface = 'web' then 'website'
                      else 'client' end as kind,
-                -- An agent's row opens its console (2026-09-23).
+                -- An agent's row opens its pages (2026-09-23).
                 max((select a.public_id from account a
                       where a.account_id = m.account_id
                         and m.account_id <> $1)) as public_id,

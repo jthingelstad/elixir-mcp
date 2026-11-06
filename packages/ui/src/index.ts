@@ -19,16 +19,15 @@ export {
   type ChromeAccountLink,
   type ChromePlayer,
 } from "./AccountMenu.tsx";
-export { Chrome, type ChromeProduct } from "./Chrome.tsx";
 export {
-  FAMILY_DOCS,
   FAMILY_LOGO,
   FAMILY_ORIGIN,
   FAMILY_PRODUCTS,
   FAMILY_SAMPLE_BATTLE,
-  FAMILY_SIGN_IN,
+  FAMILY_FOOT,
+  FAMILY_PLACES,
+  FAMILY_SIGNED_OUT,
   FAMILY_WORDMARK,
-  gameLabel,
   onOrigin,
   type FamilyProduct,
 } from "./family.ts";

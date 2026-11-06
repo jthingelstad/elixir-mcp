@@ -1,13 +1,13 @@
 ---
 slug: follow-a-friend
 title: "Follow a friend"
-description: "Mark a player you track as a friend: how to add one in the console or through a connected app, what a friend gets that a watched player does not (a card of their own, first, in Wednesday's Your friends this week, a name in your connection's opening), nicknames, the notifications switch, and stopping."
+description: "Mark a player you track as a friend: how to add one on the website or through a connected app, what a friend gets that a watched player does not (a card of their own, first, in Wednesday's Your friends this week, a name in your connection's opening), nicknames, the notifications switch, and stopping."
 section: friends
 order: 1
 navTitle: "Follow a friend"
 icon: heart
 lede: "A friend is a player you follow on purpose. Elixir records them like anyone you track, and gives them a paragraph of their own in your Wednesday email."
-console: ["Your tracked players", "/console/account/tracking", "Console ▸ Tracking"]
+console: ["Your tracked players", "/console/account/tracking", "Settings ▸ Tracking"]
 reviewed: "2026-10-01 against contract 9.17.1"
 ---
 
@@ -20,9 +20,9 @@ player. What changes is how Elixir reads them back to you.
 
 ## Adding a friend
 
-In the console:
+On the website:
 
-1. **Console ▸ Tracking ▸ Track a player**: enter the tag and press
+1. **Settings ▸ Tracking ▸ Track a player**: enter the tag and press
    **Track**. Added means recorded; recording starts on the next read.
 2. A new player starts as **watching** (your first is your primary).
    Open the player from the Tracking table, and under **How you track
@@ -35,7 +35,7 @@ have none, and never makes the player your primary. They aren't told.
 Through a [connected app](/docs/connections), `elixir_track_player` takes a `relationship`, so
 "track #TAG as a friend" adds the player as a friend in one call. The
 relationship is set when the player is added: for a player already on
-your account, change it in the console. An [agent](/docs/agents) you own
+your account, change it under Tracking. An [agent](/docs/agents) you own
 tracks players as watching only.
 
 A friend takes one of your player slots, the same as a watched
@@ -78,7 +78,7 @@ stays when you stop tracking the player, and an empty one clears it.
 Each tracked player has a **Notifications** switch, on from the start;
 a connected app can flip it with `elixir_track_player` and `action:
 "notify_off"` or `"notify_on"`. With it on, the player is a subject of your timeline, which your connected apps
-and the console read. With it off, the player leaves your timeline and
+and Home read. With it off, the player leaves your timeline and
 Wednesday's Your friends this week too, while recording carries on.
 
 ## Stopping

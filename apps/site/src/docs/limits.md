@@ -7,7 +7,7 @@ order: 7
 navTitle: "Limits"
 icon: gauge
 lede: "Calls per hour, calls per day, live fetches, and what a tier changes."
-console: ["Your budget and what spent it", "/console/account/usage", "Console ▸ Usage"]
+console: ["Your budget and what spent it", "/console/account/usage", "Settings ▸ Usage"]
 reviewed: "2026-10-12 collector credits and bonus slots retired, the upgrade request removed; 2026-10-08 against contract 11.5.1 and JSON API 3.1.0"
 ---
 
@@ -29,9 +29,9 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Limit | Applies to | Bucket | Max | Refusal |
 |---|---|---|---|---|
 | MCP calls per hour | every credential on the door, keyed by the **principal** that made the call: a person or an integration its own account, and each agent its own bucket at its owner's tier rate, so one busy agent cannot refuse its owner or its sibling agents (the daily quotas below stay the owner's). Counts `tools/call`, `resources/read`, `prompts/get` and any method the door does not serve; connecting is not counted: notifications, `initialize`, `ping` and the `*/list` methods are authenticated and answered without spending the hour | `mcp#<principal>`, or `mcp#token#<key>` for a key with its own ceiling | 300 (per-token override possible) | HTTP 429 in the standard error envelope, `error.code` `quota_exceeded`, naming the ceiling that applied, with `meta.request_id` and a `Retry-After` giving the seconds left in the hourly window |
-| Explorer calls per hour | your own reads on the website: the Console's Explore page and Ladder | the signed-in person's bucket above, shared with your own MCP clients | 300 | HTTP 429 `{"error":"rate_limited"}` |
+| Explorer calls per hour | your own reads on the website: the Explore page and Ladder | the signed-in person's bucket above, shared with your own MCP clients | 300 | HTTP 429 `{"error":"rate_limited"}` |
 | Tool calls per day | every `tools/call`, billed before the tool runs (a failed call still counts) | `mcpday#<account>` | role `mcp_calls_per_day` (the tier read now) or the account override; owner/admin unlimited | JSON-RPC `-32029` over HTTP 200: "Daily tool-call quota reached (N per day). It resets at midnight UTC." No `meta.quota` on this reply. |
-| Explorer calls per day | the Console's Explore page and Ladder | none: your own reads on Elixir's website spend no daily tool-call quota, and neither do Elixir Clan's reads or `/api/v1` | no daily ceiling; each read is still in the call log, and Usage counts the Console's and Ladder's reads apart from the budget | never refused for the day; the hourly bucket above still applies |
+| Explorer calls per day | the Explore page and Ladder | none: your own reads on Elixir's website spend no daily tool-call quota, and neither do Elixir Clan's reads or `/api/v1` | no daily ceiling; each read is still in the call log, and Usage counts your website reads apart from the budget | never refused for the day; the hourly bucket above still applies |
 | Live fetches per day | `live_fetch`, and `live: true` on {{ tools.liveFlagNames }}; every agent shares its owner's lane | `liveday#<account>` | role `live_fetches_per_day` or the account override; owner/admin unlimited | tool error `quota_exceeded`: "Live-fetch quota reached (N/day for the <role> tier, shared with your owner's other agents)." |
 | Live fetches, fleet-wide | every new live read (the live lane, a JSON API profile refresh, a card first seen in a deck) | the one global bucket the scheduler plans from | one token per new live read, from the same bucket scheduled collection spends; it accrues at the fleet's rate (1 request per second by default), settles at each scheduler tick, and banks at most 300 seconds' worth | nothing is queued and nothing is charged against your own quota: `live_status` `pending` with `retry_after_s` at the next scheduler tick and a note saying the budget had no room; on `/api/v1` HTTP 429 `rate_limited` with `Retry-After` |
 | Player slots | `elixir_track_player`, `POST /api/claims` | live count across you and your active agents | 50 (member to partner); override `max_player_recordings`. A tier lost leaves what you track in place; only the next add is refused | MCP: `quota_exceeded` "Tracked players are capped at N for the <role> tier." Web: HTTP 429 same message |
@@ -39,10 +39,10 @@ refusal looks like. The per-tier numbers are on [Roles](/docs/roles).
 | Clan slots, comprehensive | same | same | 0 / 1 / 3 / 5 | same wording with `comprehensive` |
 | Agents | `POST /api/me/agents` | live count of active agents | 3 / 5 / 10 / 25 | HTTP 400 `{"error":"not_entitled","reason":"agent_limit","limit":N,"role":"…"}` |
 | OAuth client registration | `POST /oauth/register` | `dcr#<ip>`, `dcr#global` | 20 per hour per address; 5,000 per day in total | HTTP 429 `{"error":"temporarily_unavailable"}` |
-| Sign-in emails (OAuth) | `/oauth/authorize` step one | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email; both shared with the console's sign-in | the page says the limit was reached; no mail is sent |
-| Sign-in emails (console) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email; both shared with the OAuth sign-in | HTTP 200 with `limited: true` and a message saying the limit was reached; no mail is sent |
+| Sign-in emails (OAuth) | `/oauth/authorize` step one | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email; both shared with the website's sign-in | the page says the limit was reached; no mail is sent |
+| Sign-in emails (website) | `POST /api/auth` | `auth#<ip>`, `auth#<email hash>` | 10 per hour per address; 5 per hour per email; both shared with the OAuth sign-in | HTTP 200 with `limited: true` and a message saying the limit was reached; no mail is sent |
 | Sign-in email check | both sign-in emails above, by their page's Cloudflare Turnstile token | per token | one token serves one email address for five minutes and three emails | none yet: the check is recorded and every email is sent |
-| Sign-in code attempts | code verification | per pending code | 5, then the code is dead | HTTP 400 `{"error":"invalid_or_expired","reason":"attempts_exhausted"}` (console); the OAuth page says "Too many attempts on that code" |
+| Sign-in code attempts | code verification | per pending code | 5, then the code is dead | HTTP 400 `{"error":"invalid_or_expired","reason":"attempts_exhausted"}` (website); the OAuth page says "Too many attempts on that code" |
 | Legacy access requests | `POST /api/request-access` | `reqaccess#<ip>` | 5 per hour | HTTP 429 `{"error":"rate_limited"}` |
 | Verification starts | `POST /api/me/verify` | `verify#<account>`, `verify-tag#<tag>` | 5 per hour per account; 5 per hour per tag | HTTP 429 `{"error":"rate_limited","message":"At most 5 verification starts an hour."}` |
 | Verification live reads | an open challenge's battle-log checks | `verify-read#<tag>`, the current clock hour and the 23 before it | 120, whoever's challenges asked; removing and adding the player again does not reset it | none: the challenge stays open and the check waits for the player's regular recording |
@@ -84,7 +84,7 @@ agents' share broken out.
 ## What is deliberately unlimited
 
 Reads of recorded game data are bounded only by the daily call quota, never by
-tier or by subject. Your own reads on Elixir's website, the Console and
+tier or by subject. Your own reads on Elixir's website, Explore and
 Ladder, are not bounded by the daily quota either: only the hourly limit
 applies to them. Feedback has no limit of its own. The daily counter fails open:
 if the quota store is unreachable, active accounts keep working.
@@ -98,9 +98,9 @@ if the quota store is unreachable, active accounts keep working.
 | Call log rows | indefinitely: the tool, when, which credential and client, the country it came from, and how the call went; the address (`viewer_ip`) cleared after 30 days; arguments cleared after 90 days |
 | Credential refusal counts | 30 days |
 | Timeline game-moment ledger | indefinitely; a timeline read covers at most 30 days |
-| Captured request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the console stops offering them on the same clock) |
+| Captured request and response bodies of tool calls | 90 days (S3 lifecycle expiry; the website stops offering them on the same clock) |
 | OAuth tokens | 90 days past expiry (grant life is 90 days) |
-| Console sessions | 90 days absolute, 30 days sliding; the address a session was last used from cleared 30 days after that use; rows purged 30 days after expiry |
+| Website sessions | 90 days absolute, 30 days sliding; the address a session was last used from cleared 30 days after that use; rows purged 30 days after expiry |
 | Sign-in codes | 15 minutes live; rows purged 30 days after expiry |
 | Rate-limit counters | 7 days |
 | Integration usage rows | 90 days |

@@ -29,12 +29,12 @@ navActive: home
       email, or to your own AI.
     </p>
     <div class="flex flex-wrap items-center gap-3">
-      <a class="btn btn--primary btn--lg" data-session-face="out" href="/console/signin?signup">Create your account</a>
-      <a class="btn btn--primary btn--lg" data-session-face="in" href="{{ familyBar.account.path }}">Open Elixir</a>
+      <a class="btn btn--primary btn--lg" data-session-face="out" href="/signin?signup">Create your account</a>
+      <a class="btn btn--primary btn--lg" data-session-face="in" href="{{ familyBar.products[0].path }}">Open Elixir</a>
       <a class="btn btn--text" href="{{ familyBar.sampleBattle.path }}">{{ familyBar.sampleBattle.label }}</a>
     </div>
     <p class="footnote m-0" data-session-face="out">
-      Free signup. Verify your email, then add your player in Console.
+      Free signup. Verify your email, then add your player on Home.
     </p>
   </div>
   <div class="home-art">
@@ -49,15 +49,15 @@ navActive: home
   </div>
   <div class="grid gap-5 wide:grid-cols-3">
     <article class="home-tile">
-      <span class="home-tile__head"><span class="home-tile__icon">{% icon "user-round", 18 %}</span><span class="home-tile__product">Console</span></span>
+      <span class="home-tile__head"><span class="home-tile__icon">{% icon "user-round", 18 %}</span><span class="home-tile__product">Home</span></span>
       <h3 class="home-tile__question">Start your record here</h3>
       <p class="home-tile__text">Add your player, alts and friends. Choose what to record, manage your emails and connect an agent if you want one.</p>
-      <ul class="home-tile__sample" aria-label="Your first steps in Console">
+      <ul class="home-tile__sample" aria-label="Your first steps on Home">
         <li class="home-tile__row">Create your account with an email</li>
         <li class="home-tile__row">Add your player under Tracking</li>
         <li class="home-tile__caption">History starts with the first read; an agent is optional</li>
       </ul>
-      <a class="home-tile__cta" href="/console/account/tracking">Start in Console ›</a>
+      <a class="home-tile__cta" href="/home">Start on Home ›</a>
     </article>
 
     <article class="home-tile">
@@ -69,7 +69,7 @@ navActive: home
         <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--ranked"></span>Path of Legends</li>
         <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--war"></span>War</li>
         <li class="home-tile__row"><span class="mode-chip__dot mode-chip__dot--event"></span>Events</li>
-        <li class="home-tile__caption">Add your player in Console, then read the recorded battles here</li>
+        <li class="home-tile__caption">Add your player on Home, then read the recorded battles here</li>
       </ul>
       <a class="home-tile__cta" href="/ladder">Open Ladder ›</a>
     </article>
@@ -211,11 +211,11 @@ navActive: home
     <div class="flex min-w-0 flex-auto flex-col gap-1">
       <h2 class="panel-title m-0" id="home-request">Create your account</h2>
       <p class="footnote m-0">
-        Free signup. Verify your email, then add your player in Console ▸ Tracking.
+        Free signup. Verify your email, then add your player on Home.
         Running a collector is optional and open to anyone; recording has limits.
       </p>
     </div>
-    <a class="btn btn--primary" href="/console/signin?signup">Create your account</a>
+    <a class="btn btn--primary" href="/signin?signup">Create your account</a>
   </div>
 </section>
 </div>

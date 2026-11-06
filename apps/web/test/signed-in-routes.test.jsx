@@ -106,11 +106,13 @@ for (const route of routes) {
       ).toBeGreaterThan(0);
       // Either the view coped, or the boundary caught it and said so. What must
       // not happen is an empty main with no explanation.
-      const main = document.querySelector("main");
-      expect(
-        (main?.textContent ?? "").trim().length,
-        `blank main with no error shown on ${route}`,
-      ).toBeGreaterThan(0);
+      // A redirected or lazy page settles after the bar is up.
+      await waitFor(() =>
+        expect(
+          (document.querySelector("main")?.textContent ?? "").trim().length,
+          `blank main with no error shown on ${route}`,
+        ).toBeGreaterThan(0),
+      );
     },
   );
 }

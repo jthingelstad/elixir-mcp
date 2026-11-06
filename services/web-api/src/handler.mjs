@@ -473,7 +473,7 @@ export function makeHandler({
                   return {
                     statusCode: 303,
                     headers: {
-                      location: "/console/signin?return_to=%2Fclan",
+                      location: "/signin?return_to=%2Fclan",
                       "cache-control": "no-store",
                     },
                     body: "",

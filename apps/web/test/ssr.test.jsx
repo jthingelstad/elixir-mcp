@@ -6,7 +6,7 @@ test("signed-out deep links and redirect roots render complete documents without
   const me = { ok: true, status: 200, data: { authenticated: false } };
   for (const [url, expected] of [
     ["/ladder", "Your season, read back"],
-    ["/console/account/overview", "Sign in first"],
+    ["/console/account/profile", "Sign in first"],
     ["/console", "Sign in first"],
   ]) {
     const html = await renderApp({ url, me });
@@ -29,7 +29,7 @@ test("concurrent server renders never share session query data", async () => {
   const [one, two] = await Promise.all(
     ["FictionalAlpha", "FictionalBeta"].map((name) =>
       renderApp({
-        url: "/console/account/overview",
+        url: "/console/account/profile",
         me: {
           ok: true,
           status: 200,

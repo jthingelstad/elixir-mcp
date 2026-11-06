@@ -27,6 +27,7 @@ import { ClanRefs } from "../../components/ClanRefs.jsx";
 import { ConnectionQuestions } from "../../components/ConnectionQuestions.jsx";
 import { CONSOLE } from "../../lib/console.js";
 import { NewAgent } from "./Agents.jsx";
+import { TimelineDiscord } from "./TimelineDiscord.jsx";
 
 /**
  * Connections — everything that can call Elixir with your authority.
@@ -472,6 +473,18 @@ export function Connections({ me, navigate }) {
         An agent sees what its own key allows and, if it is a clan&rsquo;s
         agent, that clan, which is what makes the two different.
       </p>
+
+      {/* The timeline cross-post stays one page for now; an agent's is on its
+          own timeline. */}
+      {!scope && (
+        <section
+          id="timeline-discord"
+          className="mt-6 flex flex-wrap items-center justify-between gap-3"
+        >
+          <h2 className="m-0 text-[15px]">Timeline to Discord</h2>
+          <TimelineDiscord />
+        </section>
+      )}
 
       {/* The first-answer questions are about YOU; an agent's console
           has no person to ask them about. */}

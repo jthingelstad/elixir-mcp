@@ -102,15 +102,14 @@ export async function runSmoke({
     "the corpus page carries live totals",
     /battles/.test(corpus) && /[0-9],[0-9]{3}/.test(corpus),
   );
-  // Home leads with the exchange rather than a counter, and the tabs
-  // collapse behind one button on a phone — with the product buttons never in it.
+  // Home leads with the exchange rather than a counter, and the page wears
+  // the one bar, its phone tabs and the footer's disclaimer.
   check("home leads with the transcript", /data-transcript/.test(home));
   check(
-    "the narrow menu is on the bar, and the product buttons are not in it",
-    /chrome__menu/.test(home) &&
-      !/chrome__product/.test(
-        home.slice(home.indexOf('id="chrome-sheet"')) || "x",
-      ),
+    "the page wears the top bar, the phone tabs and the footer",
+    /class="kit-top"/.test(home) &&
+      /class="kit-bottom"/.test(home) &&
+      /class="kit-foot"/.test(home),
   );
 
   // Browser security headers (#25). Checked on a real response because
@@ -212,7 +211,7 @@ export async function runSmoke({
 
   // The app shell is the privileged surface: it must carry the headers
   // too, and load no third-party script.
-  const appShell = await fetch(`${mcpBase}/console/account/overview`);
+  const appShell = await fetch(`${mcpBase}/home`);
   check(
     "app shell carries CSP",
     (appShell.headers.get("content-security-policy") ?? "").includes(
@@ -250,7 +249,7 @@ export async function runSmoke({
     /<title>Tools - Elixir<\/title>/.test(docsHtml),
   );
 
-  const appRoute = await fetch(`${mcpBase}/console/account/overview`);
+  const appRoute = await fetch(`${mcpBase}/home`);
   const appHtml = appRoute.ok ? await appRoute.text() : "";
   check(
     "an app route gets rendered HTML and a session bootstrap",
@@ -304,7 +303,7 @@ export async function runSmoke({
 
   // App deep links reach native rendering, which replaces the removed
   // error mapping was actually there for.
-  const deep = await fetch(`${mcpBase}/console/account/overview`);
+  const deep = await fetch(`${mcpBase}/home`);
   const deepHtml = deep.ok ? await deep.text() : "";
   check(
     "app deep link renders the signed-out page",

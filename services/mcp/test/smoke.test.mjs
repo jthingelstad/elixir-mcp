@@ -23,7 +23,7 @@ const SITE_HEADERS = {
   "permissions-policy": "camera=(), microphone=()",
   "strict-transport-security": "max-age=31536000; includeSubDomains",
 };
-const HOME = `<html><body><header><a class="chrome__product" href="/console">Console</a><button class="chrome__menu">Menu</button></header><div id="chrome-sheet"><a href="/docs">Docs</a></div><main><section data-transcript>...</section></main></body></html>`;
+const HOME = `<html><body><header class="kit-top"><a href="/home">Home</a></header><main><section data-transcript>...</section></main><footer class="kit-foot"></footer><nav class="kit-bottom"></nav></body></html>`;
 const APP = `<html><body><div id="root"><p>Sign in first</p></div><script type="application/json" id="elixir-bootstrap">{}</script></body></html>`;
 const APP_CSP =
   "default-src 'self'; script-src 'self' https://tinylytics.app https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; frame-ancestors 'none'";
@@ -65,8 +65,7 @@ function healthy() {
       text("<form>", { "content-security-policy": CONSENT_CSP }),
     "/api/public/status": cached(),
     "/api/public/cards": cached(),
-    "/console/account/overview": () =>
-      text(APP, { "content-security-policy": APP_CSP }),
+    "/home": () => text(APP, { "content-security-policy": APP_CSP }),
     "/docs/tools": () =>
       text(
         "<title>Tools - Elixir</title><main>players_profile live_fetch</main>",
@@ -167,7 +166,7 @@ test("smoke: each regression fails the check written for it", async () => {
       [
         "home is a real document",
         "home leads with the transcript",
-        "the narrow menu is on the bar, and the product buttons are not in it",
+        "the page wears the top bar, the phone tabs and the footer",
       ],
     ],
     [
@@ -198,7 +197,7 @@ test("smoke: each regression fails the check written for it", async () => {
     [
       "a third-party script on the app shell",
       {
-        "/console/account/overview": () => ({
+        "/home": () => ({
           status: 200,
           body: APP,
           headers: {

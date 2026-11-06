@@ -838,7 +838,7 @@ function AdminPulse() {
             {PULSE_STEPS.map(
               ([, label, title]) => `${label}: ${title.toLowerCase()}`,
             ).join("; ")}
-            . BACK WK 1 and 2: a sign-in or a call of their own (Console,
+            . BACK WK 1 and 2: a sign-in or a call of their own (the website,
             Ladder, MCP or API) on a day 1-7 or 8-14 days after the signup day,
             both days on the account&rsquo;s own time zone (UTC when it has
             none), from the sign-in events and call log Elixir already keeps. A
@@ -1200,7 +1200,7 @@ function AdminConnections() {
 const FEEDBACK_AREA_LABEL = {
   mcp: "MCP",
   api: "JSON API",
-  console: "Console",
+  console: "Elixir",
   ladder: "Ladder",
   clan: "Elixir Clan",
   mail: "Email",
@@ -1257,7 +1257,7 @@ function AdminFeedback() {
       admin
       crumb="Admin"
       title="Feedback queue"
-      note="Every door files here: MCP, the JSON API, the Console, Ladder, Elixir Clan, the docs and the email footer."
+      note="Every door files here: MCP, the JSON API, Elixir's pages, Ladder, Elixir Clan, the docs and the email footer."
       loading={query.isPending}
       error={query.isError ? "The queue could not be read just now." : null}
       above={

@@ -9,7 +9,7 @@
  * TypeScript, but it can read the JSON underneath it. Handed over as it
  * is, not reshaped: a product on the family origin is a `path`, which is
  * what this site links (it IS that origin); one elsewhere is an `href`.
- * The site's own pages are not in it: they are _data/siteNav.js.
+ * The signed-out places, the footer and the bar's search and help are in it too.
  */
 import manifest from "@elixir-mcp/ui/family.json" with { type: "json" };
 

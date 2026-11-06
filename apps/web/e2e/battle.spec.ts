@@ -40,9 +40,7 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
   await expect(page).toHaveTitle(`${left} and ${right} - Battle - Elixir`);
   // Public and signed out: no place on the bar is the one you are in.
   await expect(
-    page
-      .getByRole("navigation", { name: "Products" })
-      .locator("[aria-current]"),
+    page.getByRole("navigation", { name: "Main" }).locator("[aria-current]"),
   ).toHaveCount(0);
   // Left is the player, right the opponent, each with a deck to copy.
   const decks = page.getByRole("region", { name: /’s deck$/ });
@@ -72,7 +70,7 @@ test("signed out: both decks, the score, how it ended, and the way in", async ({
     page.getByRole("link", { name: "Create your account" }),
   ).toHaveAttribute(
     "href",
-    `/console/signin?signup&return_to=${encodeURIComponent(`/battle/${BATTLE.battle.short_id}`)}`,
+    `/signin?signup&return_to=${encodeURIComponent(`/battle/${BATTLE.battle.short_id}`)}`,
   );
   await expect(page.getByText(BATTLE.battle.id)).toBeVisible();
   await expect(page.locator(".rail")).toHaveCount(0);
@@ -164,9 +162,7 @@ test("@narrow on a phone with room both decks still sit side by side", async ({
   expect(Math.abs((a?.y ?? 0) - (b?.y ?? 0))).toBeLessThan(2);
   const width = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(width).toBeLessThanOrEqual(440);
-  // A battle's page is in no place: the bar's one button says Menu, and
-  // no place in its sheet is lit (2026-10-02).
-  await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
-  await expect(page.locator("#chrome-sheet [aria-current]")).toHaveCount(0);
+  // A battle's page is in no place: nothing on the bar is lit (2026-10-02).
+  await expect(page.locator(".kit-top [aria-current]")).toHaveCount(0);
   await accessible(page, "battle, narrow");
 });

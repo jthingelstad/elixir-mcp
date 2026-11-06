@@ -1,7 +1,7 @@
-# apps/web: the Console and the shared web shell
+# apps/web: the signed-in app and the shared shell
 
 The React application behind every path a session or a live read draws:
-the Console (`/console`), Ladder (`/ladder`, guide in `src/ladder/`), Elixir
+Home (`/home`), the pages still under `/console`, Ladder (`/ladder`, guide in `src/ladder/`), Elixir
 Clan (`/clan`, views from `packages/clan-web`) and the public battle page
 (`/battle/<id>`). The root `AGENTS.md` golden rules apply; product
 behaviour is in `apps/site/src/docs/`, not here.
@@ -17,8 +17,8 @@ behaviour is in `apps/site/src/docs/`, not here.
 - **Paths carry their prefix.** Every Console path is written with
   `CONSOLE` (`src/lib/console.js`) and every Ladder path with `LADDER`, not
   a router basepath, because the kit's `Link` renders `to` verbatim.
-- **One build serves three surfaces.** CloudFront routes `/console`,
-  `/ladder`, `/clan` and their descendants to the web/API Web Function for
+- **One build serves three surfaces.** CloudFront routes `/home`, `/signin`,
+  `/data/service`, `/console`, `/ladder`, `/clan` and their descendants to the web/API Web Function for
   session-aware server rendering; every other path is a site document
   (`apps/site`). Site tests evaluate the static router and pin the
   explicit native app behaviors. `node infra/scripts/build-site.mjs` builds both halves
@@ -40,7 +40,7 @@ behaviour is in `apps/site/src/docs/`, not here.
   so. Render stays pure: read the clock once per visit
   (`useState(() => new Date())`), never `new Date()` in render.
 - **Analytics:** `src/analytics.js` is the Tinylytics bridge. Counts per
-  page, never per account; a record page reports as its kind; `/console/signin`
+  page, never per account; a record page reports as its kind; `/signin`
   loads no analytics. The embed (`/js/script.js`, site in `data-site`) counts
   the document; its own History counting is switched off with `data-spa="false"`
   so the bridge counts each view after it once.
@@ -58,16 +58,19 @@ behaviour is in `apps/site/src/docs/`, not here.
 ## Home and the shell
 
 `src/home/` is Home (`/home`, `/home/timeline`, `/home/friends`), and
-`src/shell/Shell.jsx` is its top bar, bottom tabs and footer. Until step 3b of
-the redesign only Home wears that shell. Its rules are in
+`src/shell/Shell.jsx` is the top bar, bottom tabs and footer every page wears.
+`src/lib/moved.js` is the one map of old paths to new ones, read by the root
+route; every path that moves goes there. Home's rules are in
 `docs/product/home.md`; its reads are `services/web-api/src/routes/home.mjs`.
 
 ## The Console's sections
 
-`src/views/` holds the pages, `src/views/account/` the Account and agent
-pages; the rail and route table are in `App.jsx`. Sections: Dashboard,
-Explore (players, clans, decks, weeks, record pages), Account (profile,
-emails, tracking, timeline, usage, connections, agents, devices, verify,
-feedback), an agent's own console (`/console/agent/<public_id>/…`), Status
-(collectors, efficiency), Data, and Admin. Admin pages are gated on the
-server; the client only hides them.
+The word Console is retired from what a reader sees; the `/console/` paths stay
+until later steps move them. `src/views/` holds the pages, `src/views/account/`
+the Settings and agent pages; the rails and route table are in `App.jsx`.
+Sections: Explore (players, clans, decks, weeks, record pages), Settings
+(profile, emails, tracking, usage, connections, agents, devices, verify,
+feedback), an agent's own pages (`/console/agent/<public_id>/…`), the service
+page (`/data/service`, with collectors and efficiency under
+`/console/status/`), and Admin. Admin pages are gated on the server; the client
+only hides them.

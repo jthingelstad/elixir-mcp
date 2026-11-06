@@ -66,7 +66,8 @@ test("the app owns /console and disowns everything else", async () => {
   // /data is the site's corpus page; under the prefix the paths no
   // longer collide, so the bare section is the app's own first page.
   expect(legalRoute("/console/data")).toBe("/console/data/dashboard");
-  expect(legalRoute("/console/signin")).toBe("/console/signin");
+  expect(legalRoute("/signin")).toBe("/signin");
+  expect(legalRoute("/data/service")).toBe("/data/service");
   expect(legalRoute("/console/explore/player/%2320JJJ2CCRU")).toBe(
     "/console/explore/player/%2320JJJ2CCRU",
   );
@@ -80,7 +81,6 @@ test("the app owns /console and disowns everything else", async () => {
   for (const path of [
     "/",
     "/bogus",
-    "/signin",
     "/account/overview",
     "/explore/player/%2320JJJ2CCRU",
     "/data/dashboard",
@@ -121,9 +121,15 @@ test(
         return [200, { authenticated: true }];
       },
     });
-    render(<App />);
     // Signed out, the bar's account slot is "Sign in", routed in-app.
-    fireEvent.click(await screen.findByRole("link", { name: "Sign in" }));
+    window.history.pushState({}, "", "/home");
+    render(<App />);
+    await screen.findByText("Sign in first");
+    fireEvent.click(
+      within(document.querySelector(".kit-top")).getByRole("link", {
+        name: "Sign in",
+      }),
+    );
     fireEvent.change(await screen.findByLabelText(/Email/), {
       target: { value: "j@x.com" },
     });
@@ -455,7 +461,7 @@ test(
       screen
         .getByRole("link", { name: "Create your account" })
         .getAttribute("href"),
-    ).toBe("/console/signin?signup&return_to=%2Fladder%2Fcards");
+    ).toBe("/signin?signup&return_to=%2Fladder%2Fcards");
     expect(
       screen
         .getByRole("link", { name: "How Ladder works" })
@@ -473,7 +479,9 @@ test("the tab title names the page, most specific part first", async () => {
     return titleFor(section, SECTIONS[section], path);
   };
   expect(t("/")).toBe("Elixir");
-  expect(t("/console/status/service")).toBe("Status - Elixir");
+  expect(titleFor(undefined, undefined, "/data/service")).toBe(
+    "Status - Elixir",
+  );
   expect(t("/console/data/dashboard")).toBe("Charts - Data - Elixir");
   expect(t("/console/admin/collectors")).toBe("Collectors - Admin - Elixir");
   expect(t("/console/status/collectors")).toBe("Collectors - Status - Elixir");
@@ -483,7 +491,7 @@ test("the tab title names the page, most specific part first", async () => {
     "#20JJJ2CCRU - Explore - Elixir",
   );
   // Every surface wears the site's own name, never "Elixir MCP".
-  expect(t("/console/signin")).toBe("Sign in - Elixir");
+  expect(titleFor(undefined, undefined, "/signin")).toBe("Sign in - Elixir");
   expect(t("/clan")).toBe("Clan - Elixir");
   expect(t("/clan/you")).toBe("You - Clan - Elixir");
   expect(t("/clan/J2RGCRVG")).toBe("Clan - Elixir");
@@ -530,95 +538,6 @@ test("an empty body is still a success", async () => {
 });
 
 test(
-  "the Overview opens on the battle-activity graphic, with a chip per tracked player and a link to the record",
-  { timeout: 20000 },
-  async () => {
-    window.history.pushState({}, "", "/console/account");
-    const days = [];
-    const end = Date.parse("2026-09-13T00:00:00Z");
-    for (let i = 364; i >= 0; i -= 1) {
-      const day = new Date(end - i * 86_400_000).toISOString().slice(0, 10);
-      days.push({
-        day,
-        battles: day === "2026-09-12" ? 4 : 0,
-        coverage:
-          day >= "2026-09-03" && day < "2026-09-13" ? "complete" : "unknown",
-        status: day >= "2026-09-03" ? "recorded" : "not_recorded",
-      });
-    }
-    const activity = {
-      player_tag: "#20JJJ2CCRU",
-      as_of: "2026-09-13T05:30:00Z",
-      computed_at: "2026-09-13T05:30:00Z",
-      window_days: 365,
-      half_life_days: 28,
-      rhythm: new Array(168).fill(0),
-      rhythm_battles: 4,
-      days,
-    };
-    global.fetch = mockFetch({
-      "GET /api/me": [
-        200,
-        {
-          authenticated: true,
-          is_owner: false,
-          claims: [
-            { player_tag: "#20JJJ2CCRU", is_primary: true, name: "Jamie" },
-            {
-              player_tag: "#VJG0J29QP",
-              is_primary: false,
-              name: "Big Thing",
-              relationship: "alt",
-            },
-          ],
-          recordings: [],
-        },
-      ],
-      "GET /api/me/clans": [200, { clans: [], home_clan: null, slots: {} }],
-      "GET /api/me/first-answer": [200, { suggestions: [] }],
-      "GET /api/me/battle-activity/20JJJ2CCRU": [200, activity],
-      "GET /api/me/battle-activity/VJG0J29QP": [
-        200,
-        {
-          ...activity,
-          player_tag: "#VJG0J29QP",
-          computed_at: null,
-          days: days.map((d) => ({
-            ...d,
-            battles: 0,
-            coverage: "unknown",
-            status: "not_recorded",
-          })),
-        },
-      ],
-    });
-    render(<App />);
-    // The primary's year is drawn first, without a click.
-    expect(
-      await screen.findByRole("button", {
-        name: /^Sat Sep 12 2026: 4 battles recorded · the whole day was read$/,
-      }),
-    ).toBeTruthy();
-    expect(screen.getByText("Battle activity")).toBeTruthy();
-    const alt = screen.getByRole("button", { name: "Big Thing" });
-    expect(alt.getAttribute("aria-pressed")).toBe("false");
-    fireEvent.click(alt);
-    // The alt has no nightly row: its unknown evidence renders without leaking
-    // the primary's positive count or inheriting its completeness flags.
-    expect(
-      await screen.findByRole("button", {
-        name: /Sat Sep 12 2026: unknown/,
-      }),
-    ).toBeTruthy();
-    expect(
-      screen.queryByRole("button", { name: /4 battles recorded/ }),
-    ).toBeNull();
-    expect(alt.getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByText("Record ›")).toBeTruthy();
-  },
-);
-
-test(
   "a partial path is redirected and the ADDRESS BAR follows it",
   { timeout: 20000 },
   async () => {
@@ -630,25 +549,19 @@ test(
       "GET /api/me": [200, { authenticated: false }],
     });
     render(<App />);
-    await waitFor(() =>
-      expect(window.location.pathname).toBe("/console/status/service"),
-    );
-    // The bare Console is Overview, with or without the trailing slash.
+    await waitFor(() => expect(window.location.pathname).toBe("/data/service"));
+    // The bare old address is Home, with or without the trailing slash.
     for (const bare of ["/console", "/console/"]) {
       cleanup();
       window.history.pushState({}, "", bare);
       render(<App />);
-      await waitFor(() =>
-        expect(window.location.pathname).toBe("/console/account/overview"),
-      );
+      await waitFor(() => expect(window.location.pathname).toBe("/home"));
     }
     // A partial path lands on the section's first page the same way.
     cleanup();
     window.history.pushState({}, "", "/console/account");
     render(<App />);
-    await waitFor(() =>
-      expect(window.location.pathname).toBe("/console/account/overview"),
-    );
+    await waitFor(() => expect(window.location.pathname).toBe("/home"));
     // And the query string rides along.
     cleanup();
     window.history.pushState({}, "", "/console/admin?x=1");
@@ -672,7 +585,7 @@ test(
     });
     render(<App />);
     await waitFor(() =>
-      expect(window.location.pathname).toBe("/console/account/timeline"),
+      expect(window.location.pathname).toBe("/home/timeline"),
     );
     // Activity's own pages keep their addresses.
     cleanup();
@@ -693,10 +606,17 @@ test("every app section in the route table has a route under /console, and nothi
   const all = routeTree.children
     .filter((r) => r.path)
     .map((r) => r.path.split("/").filter(Boolean));
-  expect(all.filter((s) => s[0] !== "console")).toEqual([
-    ["home", "{-$tab}"],
-    ["battle", "$ref"],
-    ["ladder", "{-$page}"],
+  expect(
+    all
+      .filter((s) => s[0] !== "console")
+      .map((s) => s.join("/"))
+      .sort(),
+  ).toEqual([
+    "battle/$ref",
+    "data/service",
+    "home/{-$tab}",
+    "ladder/{-$page}",
+    "signin",
   ]);
   const segments = all.filter((s) => s[0] === "console");
   // Explicit, not a router basepath: the kit's Link renders `to` as the
@@ -705,8 +625,7 @@ test("every app section in the route table has a route under /console, and nothi
   const routed = new Set(segments.map((s) => s[1]));
   for (const section of Object.keys(SECTIONS))
     expect(routed.has(section), `${section} has no route`).toBe(true);
-  expect(routed.has("signin")).toBe(true);
-  expect(routed.size).toBe(Object.keys(SECTIONS).length + 1);
+  expect(routed.size).toBe(Object.keys(SECTIONS).length);
 });
 
 test(
@@ -775,7 +694,7 @@ test(
       text,
       facts: {},
     });
-    window.history.pushState({}, "", "/console/account/timeline");
+    window.history.pushState({}, "", "/home/timeline");
     global.fetch = mockFetch({
       "GET /api/me": [200, { authenticated: true, claims: [], recordings: [] }],
       "GET /api/me/timeline": [
@@ -794,13 +713,11 @@ test(
     });
     render(<App />);
     await screen.findByText("The newer session.");
-    const texts = [...document.querySelectorAll(".timeline-list__text")].map(
+    const texts = [...document.querySelectorAll(".kit-tl .kit-row__title")].map(
       (tr) => tr.textContent,
     );
     expect(texts).toEqual(["The newer session.", "The older session."]);
-    expect(
-      screen.getByText(/the 2 newest are shown, and 7 more this week are not/),
-    ).toBeTruthy();
+    expect(screen.getByText(/the 2 newest are shown, and 7 more/)).toBeTruthy();
   },
 );
 
@@ -868,12 +785,11 @@ test(
         return [200, { seen_to: TO }];
       },
     });
-    window.history.pushState({}, "", "/console/account/timeline");
+    window.history.pushState({}, "", "/home/timeline");
     render(<App />);
     await screen.findByText("Learned since.");
     await waitFor(() => expect(posts).toEqual([{ to: TO }]));
-    // The rail's dot clears once the console's own place has moved: the
-    // write refetches the console's `me`.
+    // The write refetches `me`, which carries the unread count.
     await waitFor(() =>
       expect(
         global.fetch.mock.calls.filter(
@@ -881,27 +797,15 @@ test(
         ).length,
       ).toBeGreaterThanOrEqual(2),
     );
-    await waitFor(() =>
-      expect(
-        within(document.querySelector(".rail")).queryByRole("img", {
-          name: "Unread notifications",
-        }),
-      ).toBeNull(),
+    // One rule, under the last new row.
+    expect(document.querySelectorAll(".kit-newmark").length).toBe(1);
+    const page = document.querySelector(".kit-home").textContent;
+    expect(page.indexOf("Learned since.")).toBeLessThan(
+      page.indexOf("Seen before."),
     );
-    // One rule, under the last new row; the row above it says New.
-    const list = [...document.querySelector(".timeline-list").children];
-    expect(list.map((li) => li.className)).toEqual([
-      "timeline-list__row",
-      "timeline-list__divider",
-      "timeline-list__row",
-      "timeline-list__row",
-    ]);
-    expect(list[1].textContent).toContain("New since your last visit");
-    expect(list[0].textContent).toContain("New");
-    expect(list[2].textContent).not.toContain("New");
     // The place this visit opened from holds: the rule stays put after
     // the write moved it.
-    expect(document.querySelectorAll(".timeline-list__divider").length).toBe(1);
+    expect(document.querySelectorAll(".kit-newmark").length).toBe(1);
     expect(document.body.textContent).not.toContain("Unread by connections");
   },
 );
@@ -973,9 +877,8 @@ describe("an agent's console (2026-09-23)", () => {
         "GET /api/agent/abcd1234/timeline": [200, timeline("The agent's.")],
       });
       global.fetch = fetch;
-      window.history.pushState({}, "", "/console/account/timeline");
+      window.history.pushState({}, "", "/console/account/profile");
       render(<App />);
-      await screen.findByText("Yours.");
       // Your console: the head names you, and offers the agent.
       // (The rail's head, not the bar's account button beside it.)
       const head = await waitFor(() =>
@@ -1007,8 +910,8 @@ describe("an agent's console (2026-09-23)", () => {
       expect(paths).toContain("/api/agent/abcd1234/timeline");
       expect(
         paths.filter((p) => p === "/api/me/timeline").length,
-        "yours was read once, on your console",
-      ).toBe(1);
+        "yours is not read on the agent's pages",
+      ).toBe(0);
     },
   );
 

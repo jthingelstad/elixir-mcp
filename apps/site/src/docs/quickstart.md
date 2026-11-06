@@ -20,7 +20,7 @@ to do next and what the current record can show.
 ## 1. Get an account
 
 Anyone can create a free ordinary member account at
-[/console/signin?signup](/console/signin?signup). Enter your email, then verify
+[/signin?signup](/signin?signup). Enter your email, then verify
 the six-digit code or one-click link (15 minutes, five code attempts).
 Signing in and creating an account use the same form. No invitation or
 collector is required. Restricted accounts stay restricted.
@@ -38,7 +38,7 @@ is ignored; that account keeps its players.
 ## 2. Track your player
 
 If you gave your tag at signup, this step is done: skip to the first read
-below. Otherwise open [Console ▸ Tracking](/console/account/tracking) and add
+below. Otherwise open [Settings ▸ Tracking](/console/account/tracking) and add
 your Clash Royale player tag. Your first player is your **primary**, which is what every tool
 means when you omit `player_tag`. Tracking **is** recording: Elixir reads
 your profile straight away and your battle log at the scheduler's next tick,
@@ -70,7 +70,7 @@ first read usually lands within a few minutes; until both your profile and
 your battle log have been read, Ladder says it is on its way rather than
 showing an empty season.
 
-**Account → Overview** lists what is done and what is next: the tag
+**Home** lists what is done and what is next: the tag
 saved, a profile, battles on record, then **Player verified (needed to act
 in Clan)**, which links to [Verify](/console/account/verify): one battle
 with a deck Elixir names proves the player is yours, and Clan needs
@@ -103,7 +103,7 @@ your hand approves it); it does not multiply the shared fetch budget.
 **Optional:** connect a client if you want an AI agent to ask Elixir about your
 record. You can do this while recording is pending, or keep using Ladder and Clan
 in your browser. A connection authorizes access; it does not prove that a
-successful data read has happened. Console reports data reads within
+successful data read has happened. Connections reports data reads within
 the last seven days separately from active connections.
 
 The endpoint is the same for every client:
@@ -185,7 +185,7 @@ try it and it does, or does not, `elixir_send_feedback` is the place to say so.
 
 **Optional: ask through an AI client.**
 
-**Account → Overview** shows what is recorded for your primary so far,
+**Home** shows what is recorded for your primary so far,
 links to your next step in Tracking or Ladder, and offers an optional first
 question matched to that record. A profile is enough to start. Active client
 connections and successful data reads in the last seven days are reported

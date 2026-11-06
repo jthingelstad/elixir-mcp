@@ -2,7 +2,6 @@ import { Icon, browserZone, clockAt, writeErrorText } from "@elixir-mcp/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { consumeLoginToken } from "../url-hygiene.js";
-import { CONSOLE } from "../lib/console.js";
 import { useTurnstile } from "../turnstile.js";
 import { discordOutcome, discordStartHref } from "../discord.js";
 
@@ -372,7 +371,7 @@ export function SignIn({
             color: "var(--ink-body)",
           }}
         >
-          Meanwhile, <a href={`${CONSOLE}/data/dashboard`}>the data page</a> and{" "}
+          Meanwhile, <a href="/data">Status and data</a> and{" "}
           <a href="/docs">the docs</a> need no account.
         </div>
       </div>

@@ -25,7 +25,7 @@ import { json } from "../http.mjs";
  *  30 s, with room for the database work after it. */
 const REPLY_WAIT_MS = 12_000;
 const PROFILE = "/console/account/profile";
-const SIGNIN = "/console/signin";
+const SIGNIN = "/signin";
 
 const redirect = (location, cookies = []) => ({
   statusCode: 303,

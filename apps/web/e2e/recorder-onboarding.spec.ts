@@ -351,17 +351,61 @@ for (const width of [390, 1280]) {
           },
         }),
       );
-      await page.goto("/console/account/overview");
+      // With no player there is no record page yet: Home's first step is the
+      // answer. Every other state reads on that player's record page.
+      if (!state.player) {
+        await page.goto("/home");
+        await expect(
+          page.getByRole("heading", { name: state.state }),
+        ).toBeVisible();
+        await expect(page.getByLabel("Your player tag")).toBeVisible();
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth - innerWidth,
+          ),
+        ).toBeLessThanOrEqual(0);
+        await page.goto("/console/account/tracking#add-player-tag");
+        await expect(page.getByLabel("Player tag")).toBeFocused();
+        if (state.clan) {
+          await page.goto("/console/explore/week/2PQRJ8LV~120~1");
+          await expect(
+            page.getByRole("heading", { name: "Season 120, week 2" }),
+          ).toBeVisible();
+          await expect(page.locator("main")).toContainText("3456");
+          expect(calls.at(-1)).toEqual({
+            tool: "war_history",
+            args: { clan_tag: clan.clan_tag, season_id: 120, section_index: 1 },
+          });
+        }
+        expect(writes).toEqual([]);
+        expect(errors).toEqual([]);
+        return;
+      }
+      const home = "/console/account/tracking/20JJJ2CCRU";
+      await page.goto(home);
       const recording = page.getByRole("region", { name: "Your recording" });
       await expect(recording).toContainText(state.state);
-      await expect(recording.getByText("AI clients (optional)")).toBeVisible();
       await expect(
         recording.getByRole("link", { name: "Connect your client ›" }),
       ).not.toBeVisible();
+      // On its own record page a bad tag is corrected in place.
+      if (state.action === "Fix the tag") {
+        await expect(page.getByLabel(/tag/i).first()).toBeVisible();
+        expect(writes).toEqual([]);
+        expect(errors).toEqual([]);
+        return;
+      }
       const next = recording.getByRole("link", {
         name: `${state.action} ›`,
         exact: true,
       });
+      // Nothing links a page to itself: on this page the action is the page.
+      if (state.to === home) {
+        await expect(next).toHaveCount(0);
+        expect(writes).toEqual([]);
+        expect(errors).toEqual([]);
+        return;
+      }
       await expect(next).toHaveAttribute("href", state.to);
       if (state.name === "partial capture")
         await expect(recording).toContainText(
@@ -380,20 +424,6 @@ for (const width of [390, 1280]) {
           () => document.documentElement.scrollWidth - innerWidth,
         ),
       ).toBeLessThanOrEqual(0);
-      if (state.clan) {
-        await recording
-          .getByRole("link", { name: "View recorded war week ›" })
-          .click();
-        await expect(
-          page.getByRole("heading", { name: "Season 120, week 2" }),
-        ).toBeVisible();
-        await expect(page.locator("main")).toContainText("3456");
-        expect(calls.at(-1)).toEqual({
-          tool: "war_history",
-          args: { clan_tag: clan.clan_tag, season_id: 120, section_index: 1 },
-        });
-        await page.goBack();
-      }
       await next.click();
       await expect(page).toHaveURL(new RegExp(`${state.to}$`));
       if (state.action === "View recorded profile") {
@@ -414,10 +444,7 @@ for (const width of [390, 1280]) {
           verbosity: "compact",
           include_total: true,
         });
-      } else if (state.player)
-        await expect(
-          page.getByRole("region", { name: "Your recording" }),
-        ).toContainText(state.state);
+      }
       await page.goBack();
       await expect(recording).toContainText(state.state);
       await page.reload();

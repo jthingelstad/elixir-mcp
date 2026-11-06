@@ -199,7 +199,7 @@ forces the email step (a shared browser). A client that asks for
 `account:email` from an account with no address on file is sent the code way
 regardless, because that is where the address is recorded. Consent by code
 signs the browser in to the site as well, so the next consent, and the
-console, do not ask again. Nothing about the grant differs between the two
+website, do not ask again. Nothing about the grant differs between the two
 paths.
 
 For an agent door (`/a/<public_id>/mcp`), only the agent's owner may consent,
@@ -580,12 +580,12 @@ in its hint.
   participant tags, and the battle class; the same battle seen from two
   logs is one row.
 - **`request_id`**: a UUID minted before the tool runs and stamped into
-  `meta`; the same id appears under Usage ▸ MCP requests in the console.
+  `meta`; the same id appears under Settings ▸ Usage ▸ MCP requests.
 
 ## Feedback and the changelog, over the wire
 
 Feedback is one record for all of Elixir: an item filed here, over the
-JSON API (`POST /api/v1/feedback`), from the Console, Ladder, Elixir Clan,
+JSON API (`POST /api/v1/feedback`), from Settings, Ladder, Elixir Clan,
 the docs or an email's footer lands in the same queue, is answered there,
 and is listed by `elixir_my_feedback` wherever it was filed.
 

@@ -69,7 +69,7 @@ export function Fleet({ navigate }) {
   return (
     <>
       <div className="page__crumb">
-        <Link to={`${CONSOLE}/status/service`}>‹ Status</Link>
+        <Link to="/data/service">‹ Status</Link>
       </div>
       <PageHead
         title="Collectors"

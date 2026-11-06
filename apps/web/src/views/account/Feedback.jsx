@@ -59,7 +59,7 @@ function firstLine(text, max = 72) {
 const AREA_LABEL = {
   mcp: "MCP",
   api: "JSON API",
-  console: "Console",
+  console: "Elixir",
   ladder: "Ladder",
   clan: "Clan",
   mail: "Email",
@@ -518,7 +518,7 @@ export function Feedback({ search } = {}) {
       title="Feedback"
       note={
         scoped
-          ? "What this agent has told us, and what we did about it. New feedback is filed as you, from your own console."
+          ? "What this agent has told us, and what we did about it. New feedback is filed as you, from your own account."
           : "What you have told us, and what we did about it. Every item gets a response. The answer appears here, and by email if that's on."
       }
       actions={

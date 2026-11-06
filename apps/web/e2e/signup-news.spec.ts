@@ -42,9 +42,7 @@ for (const width of [390, 1280]) {
           },
         }),
       );
-      await page.goto(
-        "/console/signin?signup&return_to=/console/account/tracking",
-      );
+      await page.goto("/signin?signup&return_to=/console/account/tracking");
       const choice = page.getByRole("checkbox", {
         name: "Send me Elixir product news",
       });

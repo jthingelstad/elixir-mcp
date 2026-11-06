@@ -462,8 +462,18 @@ export function Rail({ me, path, navigate, narrow, select, selecting }) {
   );
 }
 
+/** Outside the app's shell (a test), the page and the disclaimer. */
+function PlainFrame({ children }) {
+  return (
+    <div className="shell">
+      {children}
+      <Disclaimer />
+    </div>
+  );
+}
+
 export function ClanShell({
-  SharedChrome = null,
+  Frame = PlainFrame,
   rememberAfterSignIn = () => {},
 }) {
   const { pathname: path } = useLocation();
@@ -537,8 +547,7 @@ export function ClanShell({
     <SessionContext.Provider
       value={{ me, checking, refresh, setMe, select, selecting }}
     >
-      <div className="shell">
-        <SharedChrome navigate={navigate} />
+      <Frame>
         <div
           className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
         >
@@ -593,8 +602,7 @@ export function ClanShell({
             </div>
           </main>
         </div>
-        <Disclaimer />
-      </div>
+      </Frame>
     </SessionContext.Provider>
   );
 }

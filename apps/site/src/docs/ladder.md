@@ -15,8 +15,8 @@ console: ["Open Ladder", "/ladder", "Ladder ▸ Season"]
 The game forgets: its battle log holds roughly your last 30 battles. Elixir keeps
 every battle it records, and **Ladder**, at `/ladder`, reads that record
 back to you as a season: what you played, in which mode, and how it went.
-It sits beside the Console, signed in like the Console, with its own
-menu down the left.
+It sits beside Home, signed in like Home, with its own menu down the
+left.
 
 Ladder is a mirror, not a coach. It shows what happened and leaves the
 conclusion to you: no verdict, no pace, no advice, and no number the tools
@@ -34,7 +34,7 @@ read error. It holds that until both reads of the first read are in: the
 profile (usually seconds after the add) and the battle log, which brings
 roughly the last 30 battles. A player whose battle log is read and empty
 is shown as an empty season, not a wait. If Clash Royale has no player with
-that tag, Ladder says **Tag not found**, in the Console's words, and **Fix
+that tag, Ladder says **Tag not found**, in Tracking's words, and **Fix
 the tag** opens the player's Tracking page at the place to type the right
 one. A tag given at signup is just added in the same way: the new account
 opens on the player's page while the first read comes in.
@@ -83,7 +83,7 @@ season you ask for in the address is always the one shown, even when it is
 empty, and a player whose first read has not landed still sees it on its
 way, never last season.
 
-Console's recording summary links a saved profile directly to its dated
+A player's record under Tracking links a saved profile directly to its dated
 profile view, and retained battles directly to the battle browser,
 including older seasons. It does not use an empty current season as proof
 that those records are missing.
@@ -216,7 +216,7 @@ yours.
 
 Below the season, once your primary player's clan is on record, the page
 offers [Bring your clanmates](/docs/bring-your-clan#bring-your-clanmates):
-words to invite your clan, the same panel as on Console ▸ Overview.
+words to invite your clan, the same panel as on Home.
 
 ## Days played
 

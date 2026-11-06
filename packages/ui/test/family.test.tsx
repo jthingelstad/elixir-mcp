@@ -1,11 +1,6 @@
 import { test, expect, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import {
-  FAMILY_DOCS,
-  FAMILY_PRODUCTS,
-  FAMILY_SIGN_IN,
-  Icon,
-} from "../src/index.ts";
+import { FAMILY_PLACES, FAMILY_PRODUCTS, Icon } from "../src/index.ts";
 
 afterEach(cleanup);
 
@@ -15,7 +10,11 @@ afterEach(cleanup);
 // button would lose its glyph without a word.
 test("every icon the manifest names is one the kit's Icon draws", () => {
   expect(FAMILY_PRODUCTS.length).toBeGreaterThan(0);
-  for (const p of [...FAMILY_PRODUCTS, FAMILY_DOCS, FAMILY_SIGN_IN]) {
+  for (const p of [
+    ...FAMILY_PRODUCTS,
+    FAMILY_PLACES.search,
+    FAMILY_PLACES.help,
+  ]) {
     const { container } = render(<Icon name={p.icon} size={17} />);
     expect(
       container.querySelector("svg"),
@@ -26,10 +25,10 @@ test("every icon the manifest names is one the kit's Icon draws", () => {
 });
 
 // The places are on the left and the game is the candy button on the
-// right (canvas 2026-09-29): Console, Ladder, Clan, then Drop.
+// right: Home, Ladder, Clan, then Drop.
 test("the manifest's places, in order, and the one game", () => {
   expect(FAMILY_PRODUCTS.filter((p) => !p.game).map((p) => p.key)).toEqual([
-    "console",
+    "home",
     "ladder",
     "clan",
   ]);

@@ -3,7 +3,7 @@
 The Eleventy build behind every content path on `elixir.poapkings.com`:
 home, `/docs/*`, `/updates`, `/data`, `/cards`, `/examples`, `/support`,
 and the machine-readable surfaces (`llms.txt`, `llms-full.txt`,
-`tools.json`, `sitemap.xml`, `feed.xml`). Paths under `/console`,
+`tools.json`, `sitemap.xml`, `feed.xml`). Paths under `/home`, `/signin`, `/data/service`, `/console`,
 `/ladder` and `/clan` are the React app (`apps/web`).
 
 ## The docs are the product description

@@ -21,7 +21,7 @@ const ABOUT = {
  * address asked for, so a new account lands back on it.
  */
 export function LadderInvite({ returnTo, onSignIn }) {
-  const signup = `/console/signin?signup&return_to=${encodeURIComponent(returnTo)}`;
+  const signup = `/signin?signup&return_to=${encodeURIComponent(returnTo)}`;
   return (
     <section
       className="mx-auto mt-8 max-w-[640px]"

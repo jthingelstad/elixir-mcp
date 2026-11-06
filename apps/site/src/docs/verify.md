@@ -7,7 +7,7 @@ order: 4
 navTitle: "Prove a player is yours"
 icon: shield-check
 lede: "Play one battle with a deck we name, and the claim on your player becomes a fact rather than a promise."
-console: ["Verify a player you have added", "/console/account/verify", "Console ▸ Verify"]
+console: ["Verify a player you have added", "/console/account/verify", "Settings ▸ Verify"]
 reviewed: "2026-10-12 against contract 11.11.4"
 ---
 
@@ -25,7 +25,7 @@ Only you can decide which eight cards your player takes into a battle,
 and the game's battle log records exactly that for every match. That is
 the challenge.
 
-1. Pick the player, under **Console ▸ Verify**. The page lists your
+1. Pick the player, under **Settings ▸ Verify**. The page lists your
    primary player and your alts, the claims that are yours to prove; a
    friend or a player you merely watch is theirs. Players are added under
    Tracking, as always; Verify only proves them.
@@ -83,7 +83,7 @@ feature: nothing here uses their account system.
 A tag has one verified owner, and verifying protects it: no other account
 can claim that player as itself. Once you verify a player, another
 account that tries to add it as its primary or an alt (or as its first
-player, which is its primary) is refused, on the console, through an
+player, which is its primary) is refused, on the website, through an
 agent and through the JSON API alike, with the answer this page gives:
 another account has verified this player; if that player is yours, sign
 in to the account that verified it, or tell us through the feedback form.

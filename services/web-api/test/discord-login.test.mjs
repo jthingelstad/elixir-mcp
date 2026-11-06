@@ -135,7 +135,7 @@ test("unconfigured, both ways in say so and nothing is started", async () => {
   const res = await unconfigured(
     event({ path: "/api/auth/discord/start", query: { intent: "signin" } }),
   );
-  assert.equal(res.headers.location, "/console/signin?discord=unavailable");
+  assert.equal(res.headers.location, "/signin?discord=unavailable");
   const me = JSON.parse((await unconfigured(event({ path: "/api/me" }))).body);
   assert.equal(me.features.discord_login, false);
 });
@@ -151,7 +151,7 @@ test("a new verified address opens an account, linked, with the form's choices",
       verified: true,
     },
   });
-  assert.equal(res.headers.location, "/console/signin?discord=new");
+  assert.equal(res.headers.location, "/signin?discord=new");
   assert.equal(sent.at(-1).intent, "signin");
   const session = res.cookies.find((c) =>
     c.startsWith("__Host-elixir_session="),
@@ -181,7 +181,7 @@ test("a new verified address opens an account, linked, with the form's choices",
       verified: false,
     },
   });
-  assert.equal(again.headers.location, "/console/signin?discord=signed_in");
+  assert.equal(again.headers.location, "/signin?discord=signed_in");
 });
 
 test("a verified address reaches its existing account and links it", async () => {
@@ -194,7 +194,7 @@ test("a verified address reaches its existing account and links it", async () =>
       verified: true,
     },
   });
-  assert.equal(res.headers.location, "/console/signin?discord=signed_in");
+  assert.equal(res.headers.location, "/signin?discord=signed_in");
   const { rows } = await db.query(
     `select d.username from account_discord d join account a using (account_id)
       where a.email_hash = $1`,
@@ -213,7 +213,7 @@ test("a verified address reaches its existing account and links it", async () =>
       verified: true,
     },
   });
-  assert.equal(other.headers.location, "/console/signin?discord=other");
+  assert.equal(other.headers.location, "/signin?discord=other");
   assert.equal(
     other.cookies.some((c) => c.startsWith("__Host-elixir_session=")),
     false,
@@ -230,7 +230,7 @@ test("no verified address and no link is sent to email sign-in", async () => {
       verified: false,
     },
   });
-  assert.equal(res.headers.location, "/console/signin?discord=no_email");
+  assert.equal(res.headers.location, "/signin?discord=no_email");
   const { rows } = await db.query(
     `select 1 from account where email_hash = $1`,
     [emailHash("x@example.com")],
@@ -251,7 +251,7 @@ test("a callback in another browser, or replayed, does nothing", async () => {
       cookie: "__Host-elixir_discord=someone-else",
     }),
   );
-  assert.equal(res.headers.location, "/console/signin?discord=expired");
+  assert.equal(res.headers.location, "/signin?discord=expired");
   assert.equal(sent.length, before, "no code went to the relay");
 });
 
@@ -269,7 +269,7 @@ test("Cancel on Discord's page comes back as cancelled", async () => {
       cookie: pair(start.cookies[0]),
     }),
   );
-  assert.equal(res.headers.location, "/console/signin?discord=cancelled");
+  assert.equal(res.headers.location, "/signin?discord=cancelled");
 });
 
 test("linking needs the session that asked, and one Discord per account", async () => {
@@ -277,7 +277,7 @@ test("linking needs the session that asked, and one Discord per account", async 
   const out = await handler(
     event({ path: "/api/auth/discord/start", query: { intent: "link" } }),
   );
-  assert.match(out.headers.location, /^\/console\/signin\?return_to=/);
+  assert.match(out.headers.location, /^\/signin\?return_to=/);
 
   const session = await signInByEmail(TAKEN);
   // Back in another session of the same account: refused.
@@ -336,5 +336,5 @@ test("linking needs the session that asked, and one Discord per account", async 
 
 test("Discord refusing the code is a plain failure", async () => {
   const res = await roundTrip({ intent: "signin", user: null });
-  assert.equal(res.headers.location, "/console/signin?discord=failed");
+  assert.equal(res.headers.location, "/signin?discord=failed");
 });

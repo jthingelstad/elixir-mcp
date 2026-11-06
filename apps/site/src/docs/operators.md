@@ -7,7 +7,7 @@ order: 4
 navTitle: "Run a collector"
 icon: server
 lede: "Volunteer a machine that fetches for the shared record, and what it earns you."
-console: ["Your collector", "/console/status/collectors", "Console ▸ Collectors"]
+console: ["Your collector", "/console/status/collectors", "Settings ▸ Collectors"]
 ---
 
 # Running a collector
@@ -83,7 +83,7 @@ The maintainer is told when a collector is enrolled and sees every one.
    else, which is why you can safely call it whatever your box is
    actually called. Your **primary claimed player name and tag are
    public** in the fleet listing (`/api/public/status`, which needs no
-   sign-in, and the console's Collectors page): collectors are credited
+   sign-in, and the Collectors page in Settings): collectors are credited
    to the player who runs them, so running one attaches your CR identity
    to it. Your email address and IP are never published.
 2. Raising your hand approves it: you land on the collector's own page,

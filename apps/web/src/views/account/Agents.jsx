@@ -873,5 +873,5 @@ export function AgentMoved({ id, navigate }) {
         </div>
       </Panel>
     );
-  return <p className="text-ink-faint">Opening its console…</p>;
+  return <p className="text-ink-faint">Opening its pages…</p>;
 }

@@ -173,11 +173,13 @@ test("signed out, /home is the wall and remembers where it was", async ({
   ).toBe("/home/friends");
 });
 
-test("the Overview page offers the new Home; the landing stays put", async ({
+test("the old Overview address lands on Home, with no offer to try it", async ({
   page,
 }) => {
   await mockApi(page, homeApi());
   await page.goto("/console/account/overview");
-  const link = page.getByRole("link", { name: /Try the new Home/ });
-  await expect(link).toHaveAttribute("href", "/home");
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(
+    page.getByRole("link", { name: /Try the new Home/ }),
+  ).toHaveCount(0);
 });

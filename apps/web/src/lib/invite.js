@@ -13,7 +13,7 @@ import { CHAT_MAX, chatSafe } from "@elixir-mcp/clan-engine/chat";
  * valued by channel), as Clan's copy buttons are.
  */
 export const SITE = "elixir.poapkings.com";
-export const SIGNUP_URL = `https://${SITE}/console/signin?signup`;
+export const SIGNUP_URL = `https://${SITE}/signin?signup`;
 
 /** The aggregate event a copy or share sends, and its bounded values. */
 export const INVITE_EVENT = "console.invite_copied";

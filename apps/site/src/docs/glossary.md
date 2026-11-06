@@ -278,7 +278,7 @@ using the REST API with its own key). See
 
 **budget account** — whose daily quotas a call spends. An agent spends its
 owner's call budget and live lane; an integration spends its own. A person's
-own reads on the Console and Ladder spend no daily call budget. The
+own reads on Explore and Ladder spend no daily call budget. The
 hourly rate limit is not a budget: it belongs to the principal, so each agent
 has its own hour, and a person's website reads share theirs.
 

@@ -4,10 +4,10 @@
   "logo": "/assets/elixir-logo-96.webp",
   "products": [
     {
-      "key": "console",
-      "label": "Console",
-      "path": "/console",
-      "icon": "gauge"
+      "key": "home",
+      "label": "Home",
+      "path": "/home",
+      "icon": "house"
     },
     {
       "key": "ladder",
@@ -15,7 +15,12 @@
       "path": "/ladder",
       "icon": "chart-line"
     },
-    { "key": "clan", "label": "Clan", "path": "/clan", "icon": "users" },
+    {
+      "key": "clan",
+      "label": "Clan",
+      "path": "/clan",
+      "icon": "users"
+    },
     {
       "key": "drop",
       "label": "Drop",
@@ -35,15 +40,82 @@
   },
   "signIn": {
     "label": "Sign in",
-    "path": "/console/signin",
+    "path": "/signin",
     "icon": "key-round"
   },
   "account": {
     "label": "Your account",
-    "path": "/console"
+    "path": "/console/account/profile"
   },
   "sampleBattle": {
     "label": "See a recorded battle",
     "path": "/battle/69dcc4e93f15"
-  }
+  },
+  "createAccount": {
+    "label": "Create account",
+    "path": "/signin?signup"
+  },
+  "signedOut": [
+    {
+      "key": "home",
+      "label": "Home",
+      "path": "/"
+    },
+    {
+      "key": "cards",
+      "label": "Cards",
+      "path": "/cards"
+    },
+    {
+      "key": "docs",
+      "label": "Docs",
+      "path": "/docs"
+    },
+    {
+      "key": "updates",
+      "label": "Updates",
+      "path": "/updates"
+    }
+  ],
+  "search": {
+    "label": "Search",
+    "prompt": "Search players, clans, cards, help",
+    "path": "/console/explore",
+    "icon": "search"
+  },
+  "help": {
+    "label": "Help for this page",
+    "path": "/docs",
+    "icon": "circle-help"
+  },
+  "foot": [
+    {
+      "label": "Cards",
+      "path": "/cards"
+    },
+    {
+      "label": "Docs",
+      "path": "/docs"
+    },
+    {
+      "label": "Updates",
+      "path": "/updates"
+    },
+    {
+      "label": "Status and data",
+      "path": "/data"
+    },
+    {
+      "label": "Support Elixir",
+      "path": "/support"
+    },
+    {
+      "label": "Privacy",
+      "path": "/docs/privacy"
+    },
+    {
+      "label": "Terms",
+      "path": "/docs/terms"
+    }
+  ]
 }
