@@ -7,7 +7,7 @@ order: 1
 navTitle: "Follow a friend"
 icon: heart
 lede: "A friend is a player you follow on purpose. Elixir records them like anyone you track, and gives them a paragraph of their own in your Wednesday email."
-console: ["Your tracked players", "/console/account/tracking", "Settings ▸ Tracking"]
+console: ["Your tracked players", "/settings/players", "Settings ▸ Players"]
 reviewed: "2026-10-01 against contract 9.17.1"
 ---
 
@@ -22,10 +22,10 @@ player. What changes is how Elixir reads them back to you.
 
 On the website:
 
-1. **Settings ▸ Tracking ▸ Track a player**: enter the tag and press
+1. **Settings ▸ Players ▸ Track a player**: enter the tag and press
    **Track**. Added means recorded; recording starts on the next read.
 2. A new player starts as **watching** (your first is your primary).
-   Open the player from the Tracking table, and under **How you track
+   Open the player from the Players table, and under **How you track
    it** set **Relationship** to **friend**.
 
 Or from the new Home: **Friends ▸ Follow a friend** takes the tag and adds
@@ -37,7 +37,7 @@ player of its own until you name one with `relationship: "primary"`.
 Through a [connected app](/docs/connections), `elixir_track_player` takes a `relationship`, so
 "track #TAG as a friend" adds the player as a friend in one call. The
 relationship is set when the player is added: for a player already on
-your account, change it under Tracking. An [agent](/docs/agents) you own
+your account, change it under Settings ▸ Players. An [agent](/docs/agents) you own
 tracks players as watching only.
 
 A friend takes one of your player slots, the same as a watched

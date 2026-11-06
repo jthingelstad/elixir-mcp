@@ -19,7 +19,7 @@
  * as a member whatever its in-game role. Once a tag is verified no other
  * account holds it as a primary or alt (Jamie, 2026-10-12, #556), so a
  * verified player has one claimant here. What an Elder, Co-leader or Leader does here
- * waits for Elixir → Verify; `unlock` names the unverified player that
+ * waits for Settings → Players → Verify; `unlock` names the unverified player that
  * would bring more, so the app can say so. Nothing stored here decides a
  * role. Reads only: `initialize` (`GET /api/v1/me`, which carries the
  * players too), and `elixir_my_players` only from a door that does not.

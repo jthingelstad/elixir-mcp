@@ -412,7 +412,7 @@ function consentCapabilities(scope, { kind, ticked = null } = {}) {
                `<li><label><input type="checkbox" name="grant" value="${esc(d.scope)}"${on.has(d.scope) ? " checked" : ""}> ${line(d)}</label>${WITHOUT[d.scope] ? `<br><small>Unticked, it will not be able to ${esc(WITHOUT[d.scope])}.</small>` : ""}</li>`,
            )
            .join("")}</ul>
-         <p>You can change these later on the Connections page of your console.</p>`)
+         <p>You can change these later under Settings, Connections &amp; agents.</p>`)
   );
 }
 
@@ -669,7 +669,7 @@ export function makeOauthRoutes({
       `<h1>Before you connect ${esc(v.client.clientName)}</h1>
        <p>You unticked ${missing.length === 1 ? "a capability" : "capabilities"} it would normally have. Without ${missing.length === 1 ? "it" : "them"}, this connection will not be able to:</p>
        <ul>${missing.map((s) => `<li>${esc(WITHOUT[s] ?? s)}</li>`).join("")}</ul>
-       <p>When it tries, Elixir will refuse and name the capability; you can grant it later on the Connections page of your console.</p>
+       <p>When it tries, Elixir will refuse and name the capability; you can grant it later under Settings, Connections &amp; agents.</p>
        <form method="post" action="/oauth/authorize">
          <input type="hidden" name="step" value="${esc(form.step)}">${hiddenAuthFields(form)}
          ${form.email !== undefined ? `<input type="hidden" name="email" value="${esc(form.email)}">` : ""}

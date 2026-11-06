@@ -34,7 +34,7 @@ test("an ended primary names the tag, says there is none, and points at the play
   );
   expect(
     screen.getByRole("link", { name: "Feedback" }).getAttribute("href"),
-  ).toBe("/console/account/feedback");
+  ).toBe("/settings/feedback");
 });
 
 test("with no players left, it says to add one, on Tracking without a link to itself", () => {
@@ -61,7 +61,7 @@ test("a signup tag verified elsewhere says it was not added, with a link to Trac
   );
   expect(
     screen.getByRole("link", { name: "Tracking" }).getAttribute("href"),
-  ).toBe("/console/account/tracking");
+  ).toBe("/settings/players");
 });
 
 test("nothing to say, nothing shown", () => {

@@ -31,14 +31,14 @@ for (const width of [390, 1280]) {
       });
     });
     try {
-      await page.goto("/console/account/tracking");
+      await page.goto("/settings/players?view=clans");
       await expect(page.getByText("Checking your clans…")).toBeVisible();
       await expect(page.getByText("Nothing tracked yet")).toHaveCount(0);
       release();
       await expect(
-        page.getByRole("link", { name: clan.name, exact: true }),
+        page.getByRole("main").getByText(clan.name, { exact: true }),
       ).toBeVisible();
-      await page.getByRole("button", { name: "Players", exact: true }).click();
+      await page.getByRole("tab", { name: "Players", exact: true }).click();
       await expect(
         page.getByText("No players tracked", { exact: true }),
       ).toBeVisible();
@@ -79,16 +79,16 @@ for (const width of [390, 1280]) {
               : [200, { clans: [clan], home_clan: null }],
         }),
       );
-      await page.goto("/console/account/tracking");
+      await page.goto("/settings/players");
       await expect(page.getByRole("alert")).toContainText(
         "Your clans could not be read",
       );
       await expect(page.getByText("Nothing tracked yet")).toHaveCount(0);
       if (players)
         await expect(
-          page.getByRole("link", { name: ME.claims[0]!.name, exact: true }),
+          page.getByRole("main").getByText(ME.claims[0]!.name, { exact: true }),
         ).toBeVisible();
-      await page.getByRole("button", { name: "Clans", exact: true }).click();
+      await page.getByRole("tab", { name: "Clans", exact: true }).click();
       await expect(page.getByRole("alert")).toBeVisible();
       expect(
         await page.evaluate(
@@ -109,7 +109,7 @@ for (const width of [390, 1280]) {
         .focus();
       await page.keyboard.press("Enter");
       await expect(
-        page.getByRole("link", { name: clan.name, exact: true }),
+        page.getByRole("main").getByText(clan.name, { exact: true }),
       ).toBeVisible();
       await expect(page.getByRole("alert")).toHaveCount(0);
       expect(
@@ -152,12 +152,14 @@ for (const width of [390, 1280]) {
             : [200, { clans: [clan], home_clan: null }],
       }),
     );
-    await page.goto("/console/account/tracking/2PQRJ8LV");
+    await page.goto("/settings/players/2PQRJ8LV");
     await expect(page.getByRole("alert")).toContainText(
       "Your clans could not be read",
     );
     await expect(page.getByText("You are not tracking that")).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "‹ Tracking" })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "‹ Players & tracking" }),
+    ).toBeVisible();
     failed = false;
     await page.getByRole("button", { name: "Try again", exact: true }).click();
     await expect(

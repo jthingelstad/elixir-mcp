@@ -45,6 +45,8 @@ export type LogCol = [label: string, align: "left" | "right"];
 export interface LogFilter {
   key: string;
   label: string;
+  /** What the select reads with nothing picked; "Label: any" otherwise. */
+  any?: string;
   col: number;
 }
 
@@ -186,7 +188,7 @@ export function LogTable({
               value={picked[f.key] ?? ""}
               onChange={(e) => choose(f.key, e.target.value)}
             >
-              <option value="">{f.label}: any</option>
+              <option value="">{f.any ?? `${f.label}: any`}</option>
               {optionsFor(rows, f.col).map((o) => (
                 <option key={o} value={o}>
                   {o}

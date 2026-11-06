@@ -1,3 +1,4 @@
+import { SETTINGS } from "../lib/settings.js";
 import { Empty, Icon, Link, PageHead, Stat, useClock } from "@elixir-mcp/ui";
 import { fmt, warLine } from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
@@ -154,7 +155,7 @@ export function NoPlayers() {
         action={
           <Link
             className="btn btn--sm"
-            to="/console/account/tracking#add-player-tag"
+            to={`${SETTINGS}/players#add-player-tag`}
           >
             Add your player
           </Link>

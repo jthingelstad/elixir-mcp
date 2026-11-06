@@ -1,5 +1,5 @@
 /**
- * Settings › Connections › Cross-post to Discord (Jamie, 2026-10-10): off, it
+ * Settings › Connections & agents › Discord (Jamie, 2026-10-10): off, it
  * asks for a webhook; on, it shows the webhook shortened and lets the
  * owner change it or turn it off; Discord saying the webhook is gone
  * turns it off and the page says why.
@@ -13,9 +13,10 @@ import {
   cleanup,
   fireEvent,
   configure,
-  within,
 } from "@testing-library/react";
 import { App } from "../src/App.jsx";
+import { TimelineDiscord } from "../src/views/account/TimelineDiscord.jsx";
+import { renderWithProviders } from "./helpers.jsx";
 
 // This file renders the whole App, routes and all, from a cold module
 // graph. Testing Library's 1 s default wait reads a slow first paint on a
@@ -88,15 +89,22 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 async function open() {
-  window.history.pushState({}, "", "/console/account/connections");
+  window.history.pushState({}, "", "/settings/connections/discord");
   render(<App />);
+  await screen.findByRole("heading", { name: "Timeline to Discord" });
+  expect(puts).toEqual([]);
+}
+
+/** The agent's timeline keeps its sharing behind a door, in a sheet. */
+async function openSheet() {
+  renderWithProviders(<TimelineDiscord />);
   const manage = await screen.findByRole("button", { name: "Manage sharing" });
   expect(
     screen.queryByRole("textbox", { name: "Discord webhook URL" }),
   ).toBeNull();
   expect(puts).toEqual([]);
   fireEvent.click(manage);
-  await screen.findByRole("region", { name: "Cross-post to Discord" });
+  await screen.findByRole("button", { name: "Close", exact: true });
 }
 
 test(
@@ -168,11 +176,9 @@ test(
       disabled_at: "2026-10-10T16:00:00Z",
     };
     await open();
-    expect(
-      within(
-        screen.getByRole("region", { name: "Cross-post to Discord" }),
-      ).getByRole("alert").textContent,
-    ).toMatch(/webhook no longer exists/);
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /webhook no longer exists/,
+    );
     // A new webhook is asked for, not the dead one turned back on.
     expect(
       screen.getByRole("textbox", { name: "Discord webhook URL" }),
@@ -238,7 +244,7 @@ test(
 for (const close of ["Close", "Escape"])
   test(`closing sharing with ${close} discards an unsaved webhook`, async () => {
     setting = ON;
-    await open();
+    await openSheet();
     fireEvent.click(screen.getByRole("button", { name: "Change webhook" }));
     fireEvent.change(screen.getByLabelText("Discord webhook URL"), {
       target: {
@@ -272,7 +278,7 @@ test("a refused response arriving after close cannot restore the old editor or i
         finish = resolve;
       }),
   );
-  await open();
+  await openSheet();
   fireEvent.click(screen.getByRole("button", { name: "Change webhook" }));
   fireEvent.change(screen.getByLabelText("Discord webhook URL"), {
     target: { value: "https://discord.com/api/webhooks/1234/fixture-unsaved" },

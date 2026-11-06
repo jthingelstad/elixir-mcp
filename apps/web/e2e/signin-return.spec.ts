@@ -24,7 +24,7 @@ const paths = [
   {
     name: "email feedback",
     from: email,
-    to: `/console/account/feedback?send_id=${sendId}`,
+    to: `/settings/feedback?send_id=${sendId}`,
   },
 ];
 
@@ -180,7 +180,7 @@ for (const width of [390, 1280]) {
         }
         await arrived(page, path.to);
         expect(new URL(page.url()).hash).toBe("");
-        await page.goto("/console/account/profile");
+        await page.goto("/settings/profile");
         await page.goBack();
         await arrived(page, path.to);
         await page.reload();

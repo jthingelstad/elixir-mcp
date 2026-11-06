@@ -65,7 +65,7 @@ export const elixir_track_clan = {
           r.error === "last_clan"
             ? "This is the only clan this agent acts for."
             : "This is the clan this agent acts for.",
-          "An agent keeps the clan it acts for. Its owner can make another of its clans the one it acts for from the agent's console, and then remove this one.",
+          "An agent keeps the clan it acts for. Its owner can make another of its clans the one it acts for from the agent's page in Settings, and then remove this one.",
         );
       return {
         clan_tag: tag,

@@ -956,7 +956,7 @@ test("activity log + recording cap: events accrue; the cap refuses politely", as
     event({ path: "/api/claims", cookie, body: { player_tag: "#PLC220" } }),
   );
   assert.equal(refused.statusCode, 429);
-  assert.match(parse(refused).message, /capped at 1/);
+  assert.match(parse(refused).message, /tracking 1 players, the most/);
   await db.query(
     `update account set max_player_recordings = null where email_hash = $1`,
     [emailHash(NEWCOMER)],

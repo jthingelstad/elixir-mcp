@@ -547,7 +547,8 @@ test("an unlinked Discord id is told the person can link it", async () => {
       onBehalfOf: "discord:998877665544332211",
     }),
     (err) =>
-      err.code === "no_subject" && /\/console\/account\/profile/.test(err.hint),
+      err.code === "no_subject" &&
+      /\/settings\/connections\/discord/.test(err.hint),
   );
   // Another surface's id says nothing about Discord.
   await assert.rejects(

@@ -1,5 +1,5 @@
 import { Icon, Link, Tag } from "@elixir-mcp/ui";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 
 /**
  * Why the account has no primary player, where the primary is shown
@@ -21,7 +21,7 @@ export function ClaimNotice({ me, onTracking = false, className = "" }) {
   ) : (
     <>
       Add your player under{" "}
-      <Link className="underline" to={`${CONSOLE}/account/tracking`}>
+      <Link className="underline" to={`${SETTINGS}/players`}>
         Tracking
       </Link>
       .
@@ -47,7 +47,7 @@ export function ClaimNotice({ me, onTracking = false, className = "" }) {
         )}{" "}
         If that player is yours, sign in to the account that verified it, or
         tell us through{" "}
-        <Link className="underline" to={`${CONSOLE}/account/feedback`}>
+        <Link className="underline" to={`${SETTINGS}/feedback`}>
           Feedback
         </Link>
         .

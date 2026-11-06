@@ -1,616 +1,636 @@
 import { useWrite } from "@elixir-mcp/client";
 import {
+  ConfirmAction,
+  Empty,
   Fresh,
   Link,
-  WriteError,
-  noun,
-  useFlash,
-  Panel,
   PageHead,
-  Table,
-  Empty,
+  Panel,
+  Row,
+  Rows,
+  Tabs,
+  WriteError,
+  useFlash,
 } from "@elixir-mcp/ui";
-import { limitsLabel } from "../../lib/words.js";
-import { useEffect, useState } from "react";
 import { STANDARD_OAUTH_SCOPES } from "@elixir-mcp/contracts";
+import { useEffect, useState } from "react";
 
+import { api } from "../../api.js";
 import { CapabilityEditor } from "../../components/CapabilityEditor.jsx";
 import { ClanRefs } from "../../components/ClanRefs.jsx";
-import { api } from "../../api.js";
 import {
   keys,
   useInvalidate,
   useMyPrincipals,
   usePrincipalIdentities,
 } from "../../lib/queries.js";
-import { useConsolePath } from "../../lib/scope.js";
-import { CONSOLE } from "../../lib/console.js";
+import { AGENT_TABS, SETTINGS } from "../../lib/settings.js";
 import { TimelineDiscordState } from "./TimelineDiscord.jsx";
+import { Crumb, Facts, Note } from "./parts.jsx";
 
-/**
- * An agent, on its own console (2026-09-23): `part` is the page. Overview
- * is how it is doing (its clan, its key, its last call, what is refusing
- * it, the address to connect it at); Settings is what you change (its
- * name, what its key may do, the key itself, who it answers for). Its
- * timeline, calls, usage and connections are the console's own pages,
- * the same views yours are, so none of them is repeated here.
- */
-export function AgentRecord({ publicId, part = "overview", navigate }) {
-  const principals = useMyPrincipals();
-  const path = useConsolePath();
-  const agent =
-    (principals.data?.agents ?? []).find((a) => a.public_id === publicId) ??
-    null;
-  const id = agent?.account_id ?? null;
-  const missed = principals.isFetched && !agent;
-  // Only once the agent is known to be yours, and only where it is shown.
-  const identities =
-    usePrincipalIdentities(part === "settings" ? id : null).data?.identities ??
-    null;
-  const [minted, setMinted] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [renaming, setRenaming] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  const [renameError, setRenameError] = useState(null);
-  const [copied, flash] = useFlash();
+const STATUS = (agent) =>
+  agent.removed_at
+    ? ["Removed", "chip chip--warn"]
+    : agent.status !== "approved"
+      ? ["Suspended", "chip chip--warn"]
+      : ["Active", "chip chip--ok"];
 
-  const invalidate = useInvalidate();
-  const load = () => invalidate(keys.principals);
-  // The security writes: a refusal says so beside the button, and the
-  // record refetches only after one that took.
-  const revoke = useWrite(api.revokePrincipalToken, {
-    invalidate: [keys.principals],
-  });
-  // The rail's console switcher reads the session (`keys.me`), not this
-  // list: a write that changes which agents it shows, or their names,
-  // refetches the session, and with it everything under it.
-  const status = useWrite(api.setPrincipalStatus, {
-    invalidate: [keys.me],
-  });
-  const removal = useWrite(api.setPrincipalRemoved, {
-    invalidate: [keys.me],
-  });
-  const unmap = useWrite(api.removePrincipalIdentity, {
-    invalidate: [keys.principals],
-  });
-  // Issuing a key works after a revoke too (#130); a name another agent
-  // took since is the one refusal, and it says so beside the button.
-  const rotate = useWrite(api.rotatePrincipalToken, {
-    invalidate: [keys.principals],
-  });
-
-  if (missed)
-    return (
-      <Panel as="div">
-        <div className="panel__body">
-          No agent here on your account.{" "}
-          <Link to={`${CONSOLE}/account/agents`}>All agents ›</Link>
-        </div>
-      </Panel>
-    );
-  if (!agent) return <p style={{ color: "var(--ink-faint)" }}>Loading…</p>;
-
-  const live = (agent.tokens ?? []).filter((k) => !k.revoked_at);
-  const suspended = agent.status !== "approved";
-  const removed = Boolean(agent.removed_at);
-  const name = agent.name ?? agent.public_id;
-  // The agent's own door. One hostname serves the site and the MCP endpoint,
-  // so the origin this console is served from IS the origin to connect to —
-  // deriving it beats a constant that would be wrong in local development.
-  const connectUrl = agent.public_id
-    ? `${window.location.origin}/a/${agent.public_id}/mcp`
-    : null;
-  // A key that has never been used is the signature of the failure this page
-  // could not show: the runtime is still presenting the PREVIOUS key, gets a
-  // 401, and 401s never reach mcp_call_audit -- they are refused before a
-  // tool runs. So the agent does not look broken, it looks quiet, and the
-  // only visible difference is that the current key has no first use.
-  const key = live[0] ?? null;
-  const keyNeverUsed = Boolean(key && !key.last_used_at);
-
+/** Nothing here on your account: said once, for a page and a tab alike. */
+export function NoAgent() {
   return (
-    <>
-      <PageHead
-        title={name}
-        sub={
-          (agent.clans ?? []).length > 0 ? (
-            <>
-              Acts for <ClanRefs clans={agent.clans} navigate={navigate} />. An
-              agent&rsquo;s name is its key&rsquo;s name, and it calls at its
-              own door.
-            </>
-          ) : (
-            <>
-              Acts as you. An agent&rsquo;s name is its key&rsquo;s name, and it
-              calls at its own door.
-            </>
-          )
-        }
-        aside={
-          <span
-            className={"chip " + (suspended ? "chip--warn" : "chip--ok")}
-            style={{ marginLeft: "auto" }}
-          >
-            <span className="chip__dot" />
-            {removed ? "removed" : suspended ? "suspended" : "active"}
-          </span>
-        }
-      />
-
-      <Panel style={{ marginBottom: "16px" }}>
-        <dl className="fields">
-          {part === "settings" && (
-            <>
-              <dt>Name</dt>
-              <dd>
-                {renaming ? (
-                  <form
-                    style={{
-                      display: "flex",
-                      gap: "6px",
-                      alignItems: "center",
-                    }}
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      setRenameError(null);
-                      setBusy(true);
-                      const r = await api.renamePrincipal(id, draftName);
-                      setBusy(false);
-                      if (r.ok) {
-                        setRenaming(false);
-                        invalidate(keys.me);
-                        return;
-                      }
-                      // Say which refusal this actually is. Every non-duplicate
-                      // failure used to render as a validation complaint, so a
-                      // perfectly valid name came back "lower-case letters,
-                      // numbers and hyphens" and no input could ever fix it.
-                      setRenameError(
-                        {
-                          name_taken:
-                            "You already have an agent with that name.",
-                          invalid_name:
-                            "Lower-case letters, numbers and hyphens, 2 to 41 characters.",
-                          no_live_key:
-                            "This agent has no live key, and an agent's name is its key's name. Issue a new key first, then rename it.",
-                          not_found: "This agent is no longer available.",
-                        }[r.data?.error] ?? "Could not rename this agent.",
-                      );
-                    }}
-                  >
-                    <input
-                      value={draftName}
-                      autoFocus
-                      onChange={(e) => setDraftName(e.target.value)}
-                      required
-                    />
-                    <button className="btn btn--quiet" disabled={busy}>
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      className="btn--text"
-                      onClick={() => {
-                        setRenaming(false);
-                        setRenameError(null);
-                      }}
-                    >
-                      cancel
-                    </button>
-                  </form>
-                ) : (
-                  <>
-                    {name}{" "}
-                    <button
-                      className="btn--text"
-                      onClick={() => {
-                        setDraftName(live[0]?.name ?? "");
-                        setRenaming(true);
-                      }}
-                    >
-                      rename
-                    </button>
-                  </>
-                )}
-                {renameError && (
-                  <div style={{ fontSize: "12px", color: "var(--warn)" }}>
-                    {renameError}
-                  </div>
-                )}
-              </dd>
-            </>
-          )}
-          {part === "overview" && (
-            <>
-              <dt>Clan</dt>
-              <dd>
-                <ClanRefs clans={agent.clans} navigate={navigate} />
-              </dd>
-              <dt>Slug</dt>
-              <dd className="mono">{agent.public_id ?? "—"}</dd>
-              <dt>Key issued</dt>
-              <dd>
-                {key ? (
-                  <>
-                    {key.created_at ? <Fresh ts={key.created_at} /> : "—"}
-                    {" · "}
-                    {key.last_used_at ? (
-                      <>
-                        {/* The API carries last_used_at only; this read
-                            "first used" over it (console audit M5). */}
-                        last used <Fresh ts={key.last_used_at} />
-                      </>
-                    ) : (
-                      "never used"
-                    )}
-                  </>
-                ) : (
-                  <span style={{ color: "var(--ink-faint)" }}>no live key</span>
-                )}
-              </dd>
-              <dt>Last successful call</dt>
-              <dd>
-                {agent.last_call_at ? (
-                  <Fresh ts={agent.last_call_at} />
-                ) : (
-                  <span style={{ color: "var(--ink-faint)" }}>never</span>
-                )}
-                {keyNeverUsed && (
-                  <div
-                    className="callout callout--warn"
-                    style={{ marginTop: "8px", whiteSpace: "normal" }}
-                  >
-                    <span>
-                      The current key has never been used
-                      {key.created_at ? " since it was issued " : " "}
-                      {key.created_at ? <Fresh ts={key.created_at} /> : null}.
-                      If something was running before, it is still presenting
-                      the old key and being refused. A refused call never
-                      reaches this page, so it looks quiet rather than broken. A
-                      quiet agent and a broken one look the same here.
-                    </span>
-                  </div>
-                )}
-              </dd>
-              <dt>Connects from</dt>
-              <dd>
-                {agent.last_seen?.ip ? (
-                  <>
-                    <span className="mono">{agent.last_seen.ip}</span>
-                    {agent.last_seen.country
-                      ? ` · ${agent.last_seen.country}`
-                      : ""}
-                    {agent.last_seen.client
-                      ? ` · ${agent.last_seen.client}`
-                      : ""}
-                  </>
-                ) : (
-                  <span style={{ color: "var(--ink-faint)" }}>
-                    not seen since addresses were recorded
-                  </span>
-                )}
-              </dd>
-              <dt>Calls (7 days)</dt>
-              <dd>
-                {agent.calls_7d ?? 0}{" "}
-                <span className="hint">
-                  charged to your daily budget, not the agent&rsquo;s
-                </span>
-              </dd>
-              <dt>Subjects with news</dt>
-              <dd>
-                {agent.timeline_pending ?? 0}{" "}
-                <span className="hint">since its read pointer</span>
-              </dd>
-            </>
-          )}
-          {part === "settings" && (
-            <>
-              <dt>Timeline to Discord</dt>
-              <dd>
-                <TimelineDiscordState agent={publicId} />{" "}
-                <Link to={`${CONSOLE}/agent/${publicId}/timeline`}>
-                  change on its timeline ›
-                </Link>
-              </dd>
-            </>
-          )}
-        </dl>
-        {part === "overview" && agent.refusals_7d?.length > 0 && (
-          <div
-            className="panel__body"
-            style={{ color: "var(--warn)", fontSize: "12.5px" }}
-          >
-            <strong>
-              Refused attempts in the last 7 days. Something is still presenting
-              a credential for this agent.
-            </strong>
-            {agent.refusals_7d.map((r, i) => (
-              <div key={i} style={{ marginTop: "4px" }}>
-                <span className="mono">{r.reason}</span> · {r.attempts}{" "}
-                {r.attempts === 1 ? "attempt" : "attempts"}
-                {r.ip ? (
-                  <>
-                    {" from "}
-                    <span className="mono">{r.ip}</span>
-                    {r.country ? ` (${r.country})` : ""}
-                  </>
-                ) : null}
-                {r.last_seen ? (
-                  <>
-                    {", last "}
-                    <Fresh ts={r.last_seen} />
-                  </>
-                ) : null}
-              </div>
-            ))}
-            <div style={{ marginTop: "6px", color: "var(--ink-faint)" }}>
-              A revoked key that is still being used means a runtime somewhere
-              was never given the new one.
-            </div>
-          </div>
-        )}
-        {part === "overview" && !key && (
-          <div
-            className="panel__body"
-            style={{ color: "var(--warn)", fontSize: "12.5px" }}
-          >
-            <strong>No live key.</strong> This agent cannot authenticate until
-            you issue one. Its identity, its clan and everything it has learned
-            are untouched. A new key picks up where the old one left off.
-          </div>
-        )}
-        {part === "overview" && connectUrl && (
-          <div className="panel__body">
-            <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
-              <strong>Connect this agent</strong>: add this as a remote MCP
-              server in the client that runs it. Its key is refused at the
-              personal URL, and so is another agent&rsquo;s key here.
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                alignItems: "center",
-                padding: "10px 12px",
-                background: "var(--ground-sunken)",
-                border: "1px solid var(--line)",
-                borderRadius: "var(--r-control)",
-              }}
-            >
-              <code style={{ flex: 1, wordBreak: "break-all" }}>
-                {connectUrl}
-              </code>
-              <button
-                className="btn--text"
-                onClick={() => {
-                  navigator.clipboard?.writeText(connectUrl);
-                  flash();
-                }}
-              >
-                {copied ? "copied" : "copy"}
-              </button>
-            </div>
-          </div>
-        )}
-        {part === "settings" && key && (
-          <div className="panel__body">
-            <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
-              <strong>What this key may do</strong>: capabilities of the
-              agent&rsquo;s service key. An agent connected over OAuth instead
-              carries its own grant, editable on{" "}
-              <Link to={path(`${CONSOLE}/account/connections`)}>
-                Connections
-              </Link>
-              .
-            </p>
-            <CapabilityEditor
-              // A null scope means EVERY capability: that is what keys minted
-              // before scopes existed still hold, so it must be resolved
-              // before it reaches the checkboxes or a key that can do
-              // everything would render as one that can do nothing.
-              scope={key.scope ?? STANDARD_OAUTH_SCOPES.join(" ")}
-              onSave={async (scope) => {
-                const r = await api.setPrincipalScope(id, scope);
-                if (r.ok) load();
-                return r;
-              }}
-            />
-          </div>
-        )}
-        {part === "settings" && (
-          <div className="panel__actions">
-            <button
-              className="btn btn--quiet"
-              disabled={busy || rotate.busy}
-              onClick={async () => {
-                revoke.reset();
-                status.reset();
-                const r = await rotate.run(id);
-                if (r.ok) setMinted(r.data.token);
-              }}
-            >
-              Issue a new key
-            </button>
-            <button
-              className="btn btn--danger"
-              disabled={busy || revoke.busy || !key}
-              onClick={async () => {
-                // The emergency path — a key that leaked. Confirmed because it
-                // is the one action here with no way back: unlike suspending,
-                // resuming does not restore it, and unlike rotating, nothing is
-                // handed to you to put in its place.
-                if (
-                  !window.confirm(
-                    "Revoke this key? The agent stops working immediately, and there is no replacement until you issue a new one.",
-                  )
-                )
-                  return;
-                status.reset();
-                rotate.reset();
-                await revoke.run(key.token_id);
-              }}
-            >
-              Revoke key
-            </button>
-            <button
-              className="btn btn--quiet"
-              disabled={busy || status.busy}
-              onClick={() => {
-                revoke.reset();
-                rotate.reset();
-                removal.reset();
-                status.run(id, suspended ? "approved" : "disabled");
-              }}
-            >
-              {suspended ? "Resume" : "Suspend"}
-            </button>
-            {/* Out of view, never deleted (0215): a suspended agent leaves
-                the rail and the Agents table for its Removed list. */}
-            {suspended && (
-              <button
-                className="btn btn--quiet"
-                disabled={busy || removal.busy}
-                onClick={() => {
-                  revoke.reset();
-                  rotate.reset();
-                  status.reset();
-                  removal.run(id, !removed);
-                }}
-              >
-                {removed ? "Restore" : "Remove"}
-              </button>
-            )}
-            <span style={{ fontSize: "12px", color: "var(--ink-faint)" }}>
-              Suspend is reversible. The same key comes back. Revoke is not.
-              {/* Only active agents count against your slots (2026-10-10). */}
-              {suspended
-                ? " Suspended, its players and clans take none of your slots and record only if someone else tracks them; resuming needs the slots back."
-                : " Suspending frees the slots its players and clans take, and stops recording the ones only it tracks."}
-              {suspended &&
-                (removed
-                  ? " Removed: kept, out of view; Restore puts it back among your agents."
-                  : " Remove takes a suspended agent out of view; nothing is deleted.")}
-            </span>
-            <WriteError
-              error={
-                rotate.error ?? revoke.error ?? status.error ?? removal.error
-              }
-            />
-          </div>
-        )}
-        {minted && (
-          <div className="panel__body">
-            <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
-              <strong>Copy this key now.</strong> It is shown once and never
-              again. Only its hash is stored. The previous key stopped working
-              the moment this one was issued.
-            </p>
-            <code style={{ wordBreak: "break-all" }}>{minted}</code>
-            <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
-              <button
-                type="button"
-                className="btn btn--sm btn--primary"
-                onClick={() => navigator.clipboard?.writeText(minted)}
-              >
-                Copy
-              </button>
-              <button
-                type="button"
-                className="btn btn--sm"
-                onClick={() => setMinted(null)}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        )}
-      </Panel>
-
-      {/* Rows of data are not a panel: the head is a row above the
-          table, and the explanation sits under it as a footnote. */}
-      {part === "settings" && (
-        <section style={{ marginBottom: "16px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: "10px",
-              flexWrap: "wrap",
-              padding: "0 0 13px",
-            }}
-          >
-            <span style={{ fontSize: "14px", fontWeight: 600 }}>
-              Who it answers for
-            </span>
-            <span className="footnote">
-              an id on its own surface, mapped to a player
-            </span>
-          </div>
-          {identities?.length === 0 && (
-            <Empty>
-              Nobody mapped yet. An agent builds this itself with
-              elixir_identify, the first time somebody asks it about themselves.
-            </Empty>
-          )}
-          <WriteError error={unmap.error} className="field-error px-4" />
-          {identities?.length > 0 && (
-            <Table
-              columns={[
-                {
-                  head: "Their id",
-                  className: "mono",
-                  cell: (m) => m.external_id,
-                },
-                {
-                  head: "Player",
-                  cell: (m) => (
-                    <>
-                      {m.name ? `${m.name} ` : ""}
-                      <span className="mono">{m.player_tag}</span>
-                    </>
-                  ),
-                },
-                {
-                  head: "",
-                  cell: (m) => (
-                    <button
-                      className="btn--text"
-                      disabled={unmap.busy}
-                      onClick={() => unmap.run(id, m.external_id)}
-                    >
-                      Remove
-                    </button>
-                  ),
-                },
-              ]}
-              rows={identities}
-              rowKey={(m) => m.external_id}
-            />
-          )}
-        </section>
-      )}
-    </>
+    <Empty
+      title="No agent here on your account"
+      titleAs="h1"
+      action={
+        <Link className="btn" to={`${SETTINGS}/connections`}>
+          Connections &amp; agents
+        </Link>
+      }
+    />
   );
 }
 
 /**
- * Making an agent: where the person is, on Connections and on the agent
- * list alike, so it never costs them their place. The key is shown here,
- * once, with the address it goes with.
+ * An agent's page in Settings: its name and state over five tabs. The
+ * switcher that made each agent a console of its own is gone, so an agent
+ * is a record you open, with the same views yours are behind its tabs.
  */
-export function NewAgent() {
+export function AgentFrame({ publicId, tab, navigate, children }) {
+  const principals = useMyPrincipals();
+  const agent =
+    (principals.data?.agents ?? []).find((a) => a.public_id === publicId) ??
+    null;
+  if (principals.isFetched && !agent) return <NoAgent />;
+  if (!agent)
+    return (
+      <p className="text-ink-faint" role="status">
+        Reading this agent.
+      </p>
+    );
+  const [word, chip] = STATUS(agent);
+  return (
+    <div className="st-page">
+      <Crumb to={`${SETTINGS}/connections`}>Connections &amp; agents</Crumb>
+      <PageHead
+        title={
+          <>
+            {agent.name ?? agent.public_id} <span className={chip}>{word}</span>
+          </>
+        }
+        sub={
+          <>
+            {(agent.clans ?? []).length > 0 ? (
+              <>
+                Acts for <ClanRefs clans={agent.clans} />.
+              </>
+            ) : (
+              "Acts as you."
+            )}{" "}
+            An agent&rsquo;s name is its key&rsquo;s name, and it calls at its
+            own door.
+          </>
+        }
+      />
+      <Tabs
+        label="This agent"
+        value={tab}
+        wrap
+        items={AGENT_TABS.map((t) => ({
+          key: t.slug,
+          label: t.label,
+          href: `${SETTINGS}/agents/${publicId}/${t.slug}`,
+        }))}
+        onSelect={(key) => navigate?.(`${SETTINGS}/agents/${publicId}/${key}`)}
+      />
+      {children(agent)}
+    </div>
+  );
+}
+
+function liveKey(agent) {
+  return (agent.tokens ?? []).find((k) => !k.revoked_at) ?? null;
+}
+
+/** Shown once; the hash is all that is kept. */
+function KeyOnce({ title, note, token, url, onDone }) {
+  const [copied, flash] = useFlash();
+  return (
+    <div className="st-inset" role="status">
+      <p className="m-0">
+        <strong>{title}</strong> {note}
+      </p>
+      <code className="st-code">{token}</code>
+      {url ? (
+        <>
+          <p className="m-0">Its address</p>
+          <code className="st-code">{url}</code>
+        </>
+      ) : null}
+      <div className="st-actions">
+        <button
+          type="button"
+          className="btn btn--sm btn--primary"
+          onClick={() => {
+            navigator.clipboard?.writeText(token);
+            flash();
+          }}
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
+        <button type="button" className="btn btn--sm" onClick={onDone}>
+          Done
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const useRotate = () =>
+  useWrite(api.rotatePrincipalToken, { invalidate: [keys.principals] });
+
+const ISSUE = {
+  title: "Issue a new key?",
+  body: "The previous key stops working the moment this one is issued. The new one is shown once.",
+  confirm: "Issue a new key",
+};
+
+function IssueKey({ agent, onMinted, className }) {
+  const rotate = useRotate();
+  return (
+    <ConfirmAction
+      {...ISSUE}
+      label="Issue a new key"
+      className={className}
+      run={() => rotate.run(agent.account_id)}
+      onDone={(r) => {
+        if (r?.ok) onMinted(r.data.token);
+      }}
+    />
+  );
+}
+
+/** Overview: how the agent is doing, what is refusing it, and where to
+ *  connect it. */
+export function AgentOverview({ agent, feedbackCount }) {
+  const [minted, setMinted] = useState(null);
+  const [copied, flash] = useFlash();
+  const key = liveKey(agent);
+  // A refused call never reaches the log, so a runtime still presenting the
+  // previous key looks quiet rather than broken. The only visible difference
+  // is that the current key has no first use.
+  const neverUsed = Boolean(key && !key.last_used_at);
+  const url = `${window.location.origin}/a/${agent.public_id}/mcp`;
+  const seen = agent.last_seen;
+  const base = `${SETTINGS}/agents/${agent.public_id}`;
+  return (
+    <>
+      {(agent.refusals_7d ?? []).map((r, i) => (
+        <div key={i} className="callout callout--warn">
+          <span>
+            <strong>
+              Refused attempts in the last 7 days: something is still presenting
+              a credential for this agent.
+            </strong>{" "}
+            {r.attempts} {r.attempts === 1 ? "attempt" : "attempts"}
+            {r.ip ? (
+              <>
+                {" from "}
+                <span className="mono">{r.ip}</span>
+                {r.country ? ` (${r.country})` : ""}
+              </>
+            ) : null}
+            {r.last_seen ? (
+              <>
+                , last <Fresh ts={r.last_seen} />
+              </>
+            ) : null}
+            . A revoked key still in use means a runtime somewhere is holding
+            it. It reads nothing.
+          </span>
+        </div>
+      ))}
+      {neverUsed ? (
+        <div className="callout callout--warn">
+          <span>
+            The current key has never been used since it was issued{" "}
+            {key.created_at ? <Fresh ts={key.created_at} /> : null}. If
+            something was running before, it is still presenting the old key and
+            being refused. A refused call never reaches this page, so a quiet
+            agent and a broken one look the same here.
+          </span>
+        </div>
+      ) : null}
+      {!key ? (
+        <div className="callout callout--warn">
+          <span>
+            <strong>No live key.</strong> This agent cannot sign in until you
+            issue one. Its identity, its clan and everything it has learned are
+            untouched. A new key picks up where the old one left off.
+          </span>
+          <IssueKey agent={agent} onMinted={setMinted} />
+        </div>
+      ) : null}
+      {minted ? (
+        <KeyOnce
+          title="A new key."
+          note="Copy this key now. It is shown once and never again: only its hash is stored. The previous key stopped working the moment this one was issued."
+          token={minted}
+          onDone={() => setMinted(null)}
+        />
+      ) : null}
+      <Panel title="This agent" titleAs="h2">
+        <Facts
+          rows={[
+            [
+              "Clan",
+              <ClanRefs key="c" clans={agent.clans} empty="Your record" />,
+            ],
+            ["Name", agent.name ?? agent.public_id],
+            [
+              "Key",
+              key ? (
+                <>
+                  {key.created_at ? (
+                    <>
+                      Made <Fresh ts={key.created_at} />.
+                    </>
+                  ) : null}{" "}
+                  {key.last_used_at ? (
+                    <>
+                      Last used <Fresh ts={key.last_used_at} />.
+                    </>
+                  ) : (
+                    "Never used."
+                  )}
+                </>
+              ) : (
+                "No live key"
+              ),
+            ],
+            [
+              "Last successful call",
+              agent.last_call_at ? (
+                <Fresh key="value" ts={agent.last_call_at} />
+              ) : (
+                "Never"
+              ),
+            ],
+            seen?.ip
+              ? [
+                  "Connects from",
+                  [seen.ip, seen.country, seen.client]
+                    .filter(Boolean)
+                    .join(", "),
+                ]
+              : null,
+            [
+              "Calls, 7 days",
+              <>
+                {(agent.calls_7d ?? 0).toLocaleString()}
+                <Note>
+                  Charged to your daily budget, not the agent&rsquo;s.
+                </Note>
+              </>,
+            ],
+            [
+              "News it hasn't read",
+              <>
+                {agent.timeline_pending ?? 0} subjects
+                <Note>
+                  Its own place, moved by its own reads. Your looking does not
+                  move it.
+                </Note>
+                <Link to={`${base}/timeline`}>Open its timeline</Link>
+              </>,
+            ],
+            [
+              "Feedback it has sent",
+              <>
+                {feedbackCount != null ? `${feedbackCount} items. ` : ""}
+                <Link to={`${base}/feedback`}>Open its feedback</Link>
+              </>,
+            ],
+          ]}
+        />
+      </Panel>
+      <Panel title="Connect this agent" titleAs="h2">
+        <div className="panel__body st-group">
+          <p className="m-0 w-full">
+            Add this as a remote MCP server in the client that runs it. Its key
+            is refused at any other address.
+          </p>
+          <code className="st-code">{url}</code>
+          <button
+            type="button"
+            className="btn btn--sm"
+            onClick={() => {
+              navigator.clipboard?.writeText(url);
+              flash();
+            }}
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      </Panel>
+    </>
+  );
+}
+
+const RENAME_REFUSED = {
+  name_taken: "You already have an agent with that name.",
+  invalid_name: "Lower-case letters, numbers and hyphens, 2 to 41 characters.",
+  no_live_key:
+    "This agent has no live key, and an agent's name is its key's name. Issue a new key first, then rename it.",
+  not_found: "This agent is no longer available.",
+};
+
+function Rename({ agent, hasKey }) {
+  const [draft, setDraft] = useState(agent.name ?? "");
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState(null);
+  const invalidate = useInvalidate();
+  return (
+    <form
+      className="st-form"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setSaid(null);
+        setBusy(true);
+        const r = await api.renamePrincipal(agent.account_id, draft);
+        setBusy(false);
+        if (r.ok) {
+          invalidate(keys.me);
+          invalidate(keys.principals);
+          return;
+        }
+        setSaid(
+          RENAME_REFUSED[r.data?.error] ?? "Could not rename this agent.",
+        );
+      }}
+    >
+      <label>
+        Name
+        <input
+          value={draft}
+          disabled={!hasKey}
+          onChange={(e) => setDraft(e.target.value)}
+          required
+        />
+      </label>
+      <button className="btn btn--sm" disabled={busy || !hasKey}>
+        Save
+      </button>
+      <Note>
+        {hasKey
+          ? "Lower-case letters, numbers and hyphens, 2 to 41 characters."
+          : RENAME_REFUSED.no_live_key}
+      </Note>
+      {said ? (
+        <p className="field-error w-full" role="alert">
+          {said}
+        </p>
+      ) : null}
+    </form>
+  );
+}
+
+/** Settings: what you change, the reversible things before the rest. */
+export function AgentSettings({ agent }) {
+  const id = agent.account_id;
+  const name = agent.name ?? agent.public_id;
+  const key = liveKey(agent);
+  const suspended = agent.status !== "approved";
+  const removed = Boolean(agent.removed_at);
+  const [minted, setMinted] = useState(null);
+  const identities = usePrincipalIdentities(id).data?.identities ?? null;
+  const invalidate = useInvalidate();
+  const write = { invalidate: [keys.principals] };
+  const revoke = useWrite(api.revokePrincipalToken, write);
+  // The session carries the agents' count and names, so a change to which
+  // are live refetches it and everything under it.
+  const status = useWrite(api.setPrincipalStatus, { invalidate: [keys.me] });
+  const removal = useWrite(api.setPrincipalRemoved, { invalidate: [keys.me] });
+  const unmap = useWrite(api.removePrincipalIdentity, write);
+  const base = `${SETTINGS}/agents/${agent.public_id}`;
+  const failed = status.error ?? removal.error ?? null;
+
+  return (
+    <>
+      {removed ? (
+        <div className="callout callout--warn">
+          <span>
+            Removed. Kept and out of view, listed under Removed agents on
+            Connections &amp; agents.
+          </span>
+          <button
+            type="button"
+            className="btn btn--sm"
+            disabled={removal.busy}
+            onClick={() => removal.run(id, false)}
+          >
+            Restore
+          </button>
+        </div>
+      ) : suspended ? (
+        <div className="callout callout--warn">
+          <span>Suspended. Its key reads as invalid until you resume it.</span>
+          <button
+            type="button"
+            className="btn btn--sm"
+            disabled={status.busy}
+            onClick={() => status.run(id, "approved")}
+          >
+            Resume
+          </button>
+        </div>
+      ) : null}
+      <Panel title="This agent" titleAs="h2">
+        <div className="panel__body">
+          <Rename agent={agent} hasKey={Boolean(key)} />
+        </div>
+        <Facts
+          rows={[
+            [
+              "Timeline to Discord",
+              <>
+                <TimelineDiscordState agent={agent.public_id} />{" "}
+                <Link to={`${base}/timeline`}>
+                  Set it up on this agent&rsquo;s timeline
+                </Link>
+              </>,
+            ],
+          ]}
+        />
+      </Panel>
+      <Panel title="Key" titleAs="h2">
+        <div className="panel__body st-page">
+          <p className="m-0">
+            {key ? (
+              removed ? (
+                "Kept. Reads as invalid."
+              ) : suspended ? (
+                <>
+                  Made <Fresh ts={key.created_at} />. Reads as invalid while
+                  suspended.
+                </>
+              ) : (
+                <>
+                  Made <Fresh ts={key.created_at} />.{" "}
+                  {key.last_used_at ? (
+                    <>
+                      Last used <Fresh ts={key.last_used_at} />.
+                    </>
+                  ) : (
+                    "Never used."
+                  )}
+                </>
+              )
+            ) : (
+              "No live key."
+            )}
+          </p>
+          <div className="st-actions">
+            <IssueKey agent={agent} onMinted={setMinted} />
+            <ConfirmAction
+              label="Revoke key"
+              className="btn btn--sm btn--danger"
+              disabled={!key}
+              title="Revoke this key?"
+              body="The agent stops working immediately, and there is no replacement until you issue a new one."
+              confirm="Revoke key"
+              run={() => revoke.run(key.token_id)}
+            />
+          </div>
+          {minted ? (
+            <KeyOnce
+              title="A new key."
+              note="Copy this key now. It is shown once and never again: only its hash is stored. The previous key stopped working the moment this one was issued."
+              token={minted}
+              onDone={() => setMinted(null)}
+            />
+          ) : null}
+          {key ? (
+            <div>
+              <div className="section-title">What this key may do</div>
+              <CapabilityEditor
+                // A null scope means EVERY capability: that is what keys minted
+                // before scopes existed still hold, so it is resolved here or
+                // a key that can do everything would read as one that can do
+                // nothing.
+                scope={key.scope ?? STANDARD_OAUTH_SCOPES.join(" ")}
+                onSave={async (scope) => {
+                  const r = await api.setPrincipalScope(id, scope);
+                  if (r.ok) invalidate(keys.principals);
+                  return r;
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
+      </Panel>
+      <Panel title="Suspend or remove" titleAs="h2">
+        <div className="panel__body st-page">
+          <div className="st-actions">
+            {!suspended ? (
+              <ConfirmAction
+                label="Suspend"
+                title={`Suspend ${name}?`}
+                body="Its key reads as invalid until you resume. Suspending frees the places its players and clans take, and stops recording the ones only it tracks. Resuming needs the places back."
+                confirm="Suspend"
+                run={() => status.run(id, "disabled")}
+              />
+            ) : !removed ? (
+              // A suspended agent's Remove takes nothing away: it keeps the
+              // agent, out of view, and Restore brings it back.
+              <button
+                type="button"
+                className="btn btn--sm"
+                disabled={removal.busy}
+                onClick={() => removal.run(id, true)}
+              >
+                Remove
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn--sm"
+                disabled={removal.busy}
+                onClick={() => removal.run(id, false)}
+              >
+                Restore
+              </button>
+            )}
+          </div>
+          <p className="st-foot m-0">
+            {removed
+              ? "Removed: kept, out of view. Restore puts it back among your agents, still suspended."
+              : suspended
+                ? "Suspend is reversible: the same key comes back. Revoke is not. Suspended, its players and clans take none of your places and record only if someone else tracks them. Resuming needs the places back. Remove takes a suspended agent out of view, and nothing is deleted."
+                : "Suspend is reversible: the same key comes back. Revoke is not. Suspending frees the places its players and clans take, and stops recording the ones only it tracks."}
+          </p>
+          <WriteError error={failed} />
+        </div>
+      </Panel>
+      <Panel title="Who it answers for" titleAs="h2">
+        <p className="panel__body m-0 text-ink-faint">
+          An id on its own surface, mapped to a player.
+        </p>
+        {identities?.length === 0 ? (
+          <p className="panel__body m-0 text-ink-faint">
+            Nobody mapped yet. An agent builds this itself with elixir_identify,
+            the first time somebody asks it about themselves.
+          </p>
+        ) : (
+          <Rows>
+            {(identities ?? []).map((m) => (
+              <Row
+                key={m.external_id}
+                title={<span className="mono">{m.external_id}</span>}
+                detail={`${m.name ? `${m.name} ` : ""}${m.player_tag}`}
+                right={
+                  <ConfirmAction
+                    label="Remove"
+                    title="Remove this person from what it answers for?"
+                    body={`${m.external_id} is no longer mapped to ${m.name ?? m.player_tag}. The agent asks again the next time they ask about themselves.`}
+                    confirm="Remove"
+                    run={() => unmap.run(id, m.external_id)}
+                  />
+                }
+              />
+            ))}
+          </Rows>
+        )}
+      </Panel>
+    </>
+  );
+}
+
+const CREATE_REFUSED = (data) =>
+  data?.error === "clan_not_added"
+    ? "Add that clan to your account first. An agent can only act for a clan you already record."
+    : data?.error === "name_taken"
+      ? "You already have an agent with that name."
+      : data?.error === "invalid_name"
+        ? "Lower-case letters, numbers and hyphens, 2 to 41 characters."
+        : data?.reason === "agent_limit"
+          ? `You can have ${data.limit} agents. Stop running one, or raise the limit: run a collector.`
+          : "Could not create that agent.";
+
+/**
+ * Making an agent: in place on Connections & agents, so it never costs the
+ * person their place. The key is shown here, once, with the address it goes
+ * with.
+ */
+export function NewAgent({ limit = null, onClose }) {
   const { data: principals = null } = useMyPrincipals();
   const [form, setForm] = useState({ name: "", clan_tag: "" });
   const [minted, setMinted] = useState(null);
   const [error, setError] = useState(null);
-
   const invalidate = useInvalidate();
-  // A new agent is a new principal AND a change to the session's
-  // connections count.
-  const load = () => invalidate();
-
   const clans = principals?.addable_clans ?? [];
+  const used = (principals?.agents ?? []).filter(
+    (a) => a.status === "approved",
+  ).length;
 
   async function create(e) {
     e.preventDefault();
@@ -620,258 +640,125 @@ export function NewAgent() {
       clan_tag: form.clan_tag || clans[0]?.clan_tag,
     });
     if (!res.ok) {
-      setError(
-        res.data?.error === "clan_not_added"
-          ? "Add that clan to your account first. An agent can only act for a clan you already record."
-          : res.data?.error === "name_taken"
-            ? "You already have an agent with that name."
-            : res.data?.error === "invalid_name"
-              ? "Lowercase letters, numbers and hyphens."
-              : res.data?.reason === "agent_limit"
-                ? `${limitsLabel(res.data.role)} allow ${res.data.limit} ${noun(res.data.limit, "agent")}. Revoke one you no longer run; leading a clan you track (Leader) or running a collector (Family) raises your limits.`
-                : "Could not create that agent.",
-      );
+      setError(CREATE_REFUSED(res.data));
       return;
     }
-    // Shown once, never stored, and never fetchable again. The URL rides with
-    // it because they are used together and this is the only moment the key
-    // exists — sending someone back to the detail page for half of it is how a
-    // key ends up in a note somewhere.
-    setMinted({ token: res.data.token, publicId: res.data.agent?.public_id });
+    // The address rides with the key: they are used together, and this is
+    // the only moment the key exists.
+    setMinted({
+      token: res.data.token,
+      name: form.name,
+      publicId: res.data.agent?.public_id,
+    });
     setForm({ name: "", clan_tag: "" });
-    load();
+    invalidate();
   }
 
-  return (
-    <>
-      {minted && (
-        <div className="panel__body">
-          <p style={{ fontSize: "12.5px", margin: "0 0 6px" }}>
-            <strong>Copy this key now.</strong> It is shown once and never
-            again. Only its hash is stored.
-          </p>
-          <code style={{ wordBreak: "break-all" }}>{minted.token}</code>
-          {minted.publicId && (
-            <>
-              <p style={{ fontSize: "12.5px", margin: "10px 0 6px" }}>
-                Connect it at this URL, its own door, not the personal one:
-              </p>
-              <code style={{ wordBreak: "break-all" }}>
-                {`${window.location.origin}/a/${minted.publicId}/mcp`}
-              </code>
-            </>
-          )}
-        </div>
-      )}
-
+  if (minted)
+    return (
       <div className="panel__body">
-        {clans.length === 0 ? (
-          <p style={{ fontSize: "12.5px", color: "var(--ink-faint)" }}>
-            Add a clan on your Overview first. An agent needs a clan to act for.
-          </p>
-        ) : (
-          <form
-            onSubmit={create}
-            style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}
-          >
-            <input
-              placeholder="agent name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-            />
-            <select
-              value={form.clan_tag}
-              onChange={(e) => setForm({ ...form, clan_tag: e.target.value })}
-            >
-              {clans.map((c) => (
-                <option key={c.clan_tag} value={c.clan_tag}>
-                  {/* The name is what a leader recognises; the tag
-                      disambiguates two clans with one name. */}
-                  {c.name ? `${c.name} (${c.clan_tag})` : c.clan_tag}
-                </option>
-              ))}
-            </select>
-            <button type="submit">Create agent</button>
-          </form>
-        )}
-        {error && (
-          <p style={{ fontSize: "12.5px", color: "var(--warn)" }}>{error}</p>
-        )}
+        <KeyOnce
+          title={`${minted.name} is ready.`}
+          note="Copy this key now. It is shown once and never again: only its hash is stored."
+          token={minted.token}
+          url={
+            minted.publicId
+              ? `${window.location.origin}/a/${minted.publicId}/mcp`
+              : null
+          }
+          onDone={() => {
+            setMinted(null);
+            onClose?.();
+          }}
+        />
       </div>
-    </>
-  );
-}
+    );
 
-export function Agents({ navigate }) {
-  const { data: principals = null } = useMyPrincipals();
+  // The clan list comes with the read, so the form waits for it.
+  if (!principals)
+    return (
+      <p className="panel__body m-0 text-ink-faint" role="status">
+        Reading your clans.
+      </p>
+    );
 
-  // A removed agent (0215) is folded below the table, not in it.
-  const agents = principals?.agents ?? [];
-  const shown = agents.filter((a) => !a.removed_at);
-  const removedAgents = agents.filter((a) => a.removed_at);
+  if (clans.length === 0)
+    return (
+      <div className="panel__body">
+        <Empty
+          title="Add a clan first"
+          titleAs="h3"
+          action={
+            <Link className="btn" to={`${SETTINGS}/players?view=clans`}>
+              Track a clan
+            </Link>
+          }
+        >
+          An agent needs a clan to act for, and you are not tracking one.
+        </Empty>
+      </div>
+    );
 
   return (
-    <>
-      <PageHead
-        title="Agents"
-        sub={
-          <>
-            An agent calls at its own door with its own key, for you or for a
-            clan. Its name is its key&rsquo;s name.
-          </>
-        }
-      />
-      <div className="cols">
-        <div className="cols__main">
-          <Panel title="Your agents" titleAs="div">
-            <div className="panel__body">
-              <p
-                style={{
-                  fontSize: "12.5px",
-                  color: "var(--ink-faint)",
-                  marginTop: 0,
-                }}
-              >
-                An agent acts for a clan rather than for you. It has its own
-                identity, its own key and its own event feed, so what it does
-                never lands in your history, and what you do never shows up as
-                its. It spends your daily calls, and you can make one for any
-                clan you already record.
-              </p>
-            </div>
-
-            {principals && agents.length === 0 && (
-              <div className="panel__body">
-                <Empty>
-                  No agents yet. An agent is for a clan you already record — it
-                  answers your clanmates without any of them signing in.
-                </Empty>
-              </div>
-            )}
-            {shown.length > 0 && (
-              <Table
-                columns={[
-                  { head: "Agent", cell: (a) => a.name ?? a.public_id },
-                  {
-                    head: "Clan",
-                    cell: (a) => (
-                      <ClanRefs clans={a.clans} navigate={navigate} />
-                    ),
-                  },
-                  { head: "Limits", cell: (a) => limitsLabel(a.role) },
-                  {
-                    head: "Last active",
-                    cell: (a) => {
-                      const live = (a.tokens ?? []).filter(
-                        (k) => !k.revoked_at,
-                      );
-                      return (
-                        <>
-                          {/* The ACCOUNT's last call, not the key's. Reading
-                              last_used_at made a years-old agent report
-                              "never" the moment its key was rotated. */}
-                          {a.last_call_at ? (
-                            <Fresh ts={a.last_call_at} />
-                          ) : (
-                            <span style={{ color: "var(--ink-faint)" }}>
-                              never
-                            </span>
-                          )}
-                          {live[0] &&
-                            !live[0].last_used_at &&
-                            a.last_call_at && (
-                              <div
-                                style={{
-                                  fontSize: "11px",
-                                  color: "var(--warn)",
-                                }}
-                              >
-                                new key unused
-                              </div>
-                            )}
-                        </>
-                      );
-                    },
-                  },
-                  /* An agent spends the OWNER's daily calls, and the
-                        owner's own usage view cannot see them -- it filters
-                        to the owner's account_id and an agent has its own.
-                        Without this column a budget can be exhausted by
-                        something you have no way to look at. */
-                  { head: "Calls 7d", num: true, cell: (a) => a.calls_7d ?? 0 },
-                  {
-                    head: "Status",
-                    cell: (a) =>
-                      a.status === "approved" ? (
-                        "active"
-                      ) : (
-                        <span style={{ color: "var(--bad)" }}>suspended</span>
-                      ),
-                  },
-                  {
-                    head: "",
-                    cell: (a) => (
-                      <Link to={`${CONSOLE}/agent/${a.public_id}/overview`}>
-                        Open ›
-                      </Link>
-                    ),
-                  },
-                ]}
-                rows={shown}
-                rowKey={(a) => a.account_id}
-              />
-            )}
-
-            {/* Removed agents (0215): kept, never deleted, and listed only
-                here, folded, so they are seen when looked for. */}
-            {removedAgents.length > 0 && (
-              <details className="panel__body">
-                <summary>Removed agents ({removedAgents.length})</summary>
-                <p className="text-ink-faint">
-                  Suspended and out of view. Each keeps its address, its key and
-                  its history; open one to restore it.
-                </p>
-                <ul>
-                  {removedAgents.map((a) => (
-                    <li key={a.account_id}>
-                      <Link to={`${CONSOLE}/agent/${a.public_id}/settings`}>
-                        {a.name ?? a.public_id}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
-
-            <NewAgent />
-          </Panel>
-        </div>
-      </div>
-    </>
+    <form className="panel__body st-form" onSubmit={create}>
+      <label>
+        Name
+        <input
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          required
+        />
+      </label>
+      <label>
+        Clan it acts for
+        <select
+          value={form.clan_tag}
+          onChange={(e) => setForm({ ...form, clan_tag: e.target.value })}
+        >
+          {clans.map((c) => (
+            <option key={c.clan_tag} value={c.clan_tag}>
+              {c.name ? `${c.name} (${c.clan_tag})` : c.clan_tag}
+            </option>
+          ))}
+        </select>
+      </label>
+      <span className="st-actions">
+        <button type="submit" className="btn btn--sm">
+          Create agent
+        </button>
+        <button type="button" className="btn btn--sm" onClick={onClose}>
+          Cancel
+        </button>
+      </span>
+      <Note>
+        Lower-case letters, numbers and hyphens, 2 to 41 characters. It spends
+        your daily calls, and you can make one for any clan you already record.
+        {limit != null ? ` ${used} of ${limit} agents used.` : ""}
+      </Note>
+      {error ? (
+        <p className="field-error w-full" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </form>
   );
 }
 
 /**
- * `/account/agents/<account_id>`, the agent page before each agent had a
- * console of its own (2026-09-23): a bookmark to it opens the agent's
- * console, whose address is its public id.
+ * `/settings/agents/<account_id>`, from an old bookmark to the agent page
+ * before an agent's address was its public id: it opens the agent.
  */
 export function AgentMoved({ id, navigate }) {
   const principals = useMyPrincipals();
   const agent =
     (principals.data?.agents ?? []).find((a) => a.account_id === id) ?? null;
   useEffect(() => {
-    if (agent) navigate(`${CONSOLE}/agent/${agent.public_id}/overview`);
+    if (agent) navigate(`${SETTINGS}/agents/${agent.public_id}/overview`);
   }, [agent, navigate]);
-  if (principals.isFetched && !agent)
-    return (
-      <Panel as="div">
-        <div className="panel__body">
-          No agent here on your account.{" "}
-          <Link to={`${CONSOLE}/account/agents`}>All agents ›</Link>
-        </div>
-      </Panel>
-    );
-  return <p className="text-ink-faint">Opening its pages…</p>;
+  if (principals.isFetched && !agent) return <NoAgent />;
+  return (
+    <p className="text-ink-faint" role="status">
+      Reading this agent.
+    </p>
+  );
 }

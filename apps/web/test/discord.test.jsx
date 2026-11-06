@@ -8,6 +8,7 @@ import {
   render,
   screen,
   cleanup,
+  within,
   configure,
   fireEvent,
   waitFor,
@@ -94,7 +95,11 @@ test(
   { timeout: 20000 },
   async () => {
     me = { ...ME, discord: null };
-    window.history.pushState({}, "", "/console/account/profile?discord=taken");
+    window.history.pushState(
+      {},
+      "",
+      "/settings/connections/discord?discord=taken",
+    );
     const { unmount } = render(<App />);
     const connect = await screen.findByText("Connect Discord");
     expect(connect.getAttribute("href")).toBe(
@@ -110,9 +115,17 @@ test(
       ...ME,
       discord: { username: "jamie", linked_at: "2026-10-24T12:00:00Z" },
     };
-    window.history.pushState({}, "", "/console/account/profile");
+    window.history.pushState({}, "", "/settings/connections/discord");
     render(<App />);
-    fireEvent.click(await screen.findByText("Disconnect"));
+    fireEvent.click(await screen.findByRole("button", { name: "Disconnect" }));
+    // A mis-click cannot unlink: only the question's own button writes.
+    expect(calls.some((c) => c.path === "/api/me/discord/unlink")).toBe(false);
+    fireEvent.click(
+      within(document.querySelector("dialog.kit-confirm")).getByRole("button", {
+        name: "Disconnect",
+        hidden: true,
+      }),
+    );
     await waitFor(() =>
       expect(
         calls.some(
@@ -120,9 +133,6 @@ test(
         ),
       ).toBe(true),
     );
-    expect(
-      screen.getByText("Email link, a six-digit code, or Discord"),
-    ).toBeTruthy();
   },
 );
 
@@ -131,9 +141,9 @@ test(
   { timeout: 20000 },
   async () => {
     me = { ...ME, features: { discord_login: false }, discord: null };
-    window.history.pushState({}, "", "/console/account/profile");
+    window.history.pushState({}, "", "/settings/connections/discord");
     render(<App />);
-    await screen.findByRole("heading", { name: "Profile" });
+    await screen.findAllByText(/Discord/);
     expect(screen.queryByText("Connect Discord")).toBe(null);
   },
 );

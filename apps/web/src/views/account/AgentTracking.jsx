@@ -1,13 +1,13 @@
-import { Tag, TagText, Panel, PageHead, Table } from "@elixir-mcp/ui";
-import { scopeLabel } from "../../lib/words.js";
+import { ConfirmAction, Panel, Row, Rows, Tag, TagText } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { api } from "../../api.js";
 import { useInvalidate, useMyClans } from "../../lib/queries.js";
 import { useScope } from "../../lib/scope.js";
+import { scopeLabel } from "../../lib/words.js";
 
 const TAG_OK = /^#?[0289PYLQGRJCUVOo]{3,12}$/;
 
-/** "3 of 5", or just the count when the tier has no ceiling. */
+/** "3 of 5", or just the count when the limits have no ceiling. */
 const of = (slot) =>
   slot
     ? slot.limit == null
@@ -16,15 +16,15 @@ const of = (slot) =>
     : "";
 
 /**
- * What an agent tracks, on its own console (2026-09-23; Jamie: "there is no
- * way to add a randomly tracked account to an agent but there should be.
+ * What an agent tracks: its What it reads tab (2026-09-23; Jamie: "there is
+ * no way to add a randomly tracked account to an agent but there should be.
  * Or a clan agent may be asked to track a competitive clan").
  *
  * The clan it ACTS FOR is marked and cannot be removed; any other of its
  * clans can be made that one instead, which is how an agent is re-pointed.
  * Its players are watched, never "me". Everything here spends the person's
- * recording slots, one pool across them and their agents, so the counts are
- * the pool's.
+ * places, one pool across them and their agents, so the counts are the
+ * pool's.
  */
 export function AgentTracking({ agent }) {
   const scope = useScope();
@@ -51,145 +51,138 @@ export function AgentTracking({ agent }) {
               : "That did not work."),
       );
     invalidate();
-    return r.ok;
+    return r;
   };
   const playerAction = async (body) => {
     setErr("");
     const r = await api.agentPlayerAction(body, scope);
     if (!r.ok) setErr(r.data?.message ?? "That did not work.");
     invalidate();
-    return r.ok;
+    return r;
   };
 
   return (
     <>
-      <PageHead
-        title="Tracking"
-        sub={
-          <>
-            What this agent tracks: the clan it acts for, any other clan it
-            watches, and the players it follows. Tracked means recorded, in your
-            slots: you and your agents share them, and a player or clan counts
-            once however many of you track it.
-          </>
-        }
-      />
-
+      <p className="m-0">
+        What this agent tracks: the clan it acts for, any other clan it watches,
+        and the players it follows. Tracked means recorded, in your places: you
+        and your agents share them, and a player or clan counts once however
+        many of you track it.
+      </p>
       <Panel
         title="Clans"
-        titleAs="div"
+        titleAs="h2"
         action={
-          <span className="ml-auto text-[12px] text-ink-faint">
-            your slots: the clan only {of(pool.activity_clans)} · the clan and
-            every member {of(pool.comprehensive_clans)}
+          <span className="hint">
+            Your places: the clan only {of(pool.activity_clans)}, every member{" "}
+            {of(pool.comprehensive_clans)}
           </span>
         }
-        className="mb-[14px]"
       >
-        <Table
-          columns={[
-            {
-              head: "Clan",
-              cell: (c) => (
-                <>
-                  <span className="font-semibold">
-                    {c.name ?? <Tag tag={c.clan_tag} />}
-                  </span>{" "}
-                  <span className="mono text-ink-faint">{c.clan_tag}</span>
-                  {c.is_primary && (
-                    <span className="chip chip--ok ml-2">acts for</span>
-                  )}
-                </>
-              ),
-            },
-            { head: "Scope", cell: (c) => c.scope },
-            {
-              head: "On its timeline",
-              cell: (c) => (
-                <button
-                  className="btn btn--sm"
-                  aria-label={`Timeline ${c.notify ? "on" : "off"} for ${c.name ?? c.clan_tag}`}
-                  onClick={() =>
-                    clanAction({
-                      clan_tag: c.clan_tag,
-                      action: c.notify ? "notify_off" : "notify_on",
-                    })
-                  }
-                >
-                  {c.notify ? "on" : "off"}
-                </button>
-              ),
-            },
-            {
-              head: "",
-              className: "text-right",
-              cell: (c) =>
-                !c.is_primary && (
-                  <span className="inline-flex gap-2">
+        <Rows>
+          {(clans ?? []).map((c) => {
+            const name = c.name ?? c.clan_tag;
+            return (
+              <Row
+                key={c.clan_tag}
+                title={
+                  <>
+                    {c.name ?? <Tag tag={c.clan_tag} />}{" "}
+                    {c.is_primary ? (
+                      <span className="chip chip--ok">Acts for</span>
+                    ) : null}
+                  </>
+                }
+                detail={scopeLabel(c.scope)}
+                right={
+                  <span className="st-row-actions">
                     <button
+                      type="button"
                       className="btn btn--sm"
+                      aria-pressed={Boolean(c.notify)}
+                      aria-label={`On its timeline: ${c.notify ? "on" : "off"}, for ${name}`}
                       onClick={() =>
                         clanAction({
                           clan_tag: c.clan_tag,
-                          action: "primary",
+                          action: c.notify ? "notify_off" : "notify_on",
                         })
                       }
                     >
-                      Make it the clan it acts for
+                      {c.notify ? "On its timeline" : "Off its timeline"}
                     </button>
-                    <button
-                      className="btn btn--sm"
-                      onClick={() =>
-                        clanAction({
-                          clan_tag: c.clan_tag,
-                          action: "remove",
-                        })
-                      }
-                    >
-                      Remove
-                    </button>
+                    {c.is_primary ? null : (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn--sm"
+                          onClick={() =>
+                            clanAction({
+                              clan_tag: c.clan_tag,
+                              action: "primary",
+                            })
+                          }
+                        >
+                          Make it the clan it acts for
+                        </button>
+                        <ConfirmAction
+                          label="Remove"
+                          title={`Remove ${name} from this agent?`}
+                          body="The agent stops following it. If only this agent tracks it, recording stops. History stays for at least a year after the last person stops tracking."
+                          confirm="Remove"
+                          run={() =>
+                            clanAction({
+                              clan_tag: c.clan_tag,
+                              action: "remove",
+                            })
+                          }
+                        />
+                      </>
+                    )}
                   </span>
-                ),
-            },
-          ]}
-          rows={clans ?? []}
-          rowKey={(c) => c.clan_tag}
-        />
+                }
+              />
+            );
+          })}
+        </Rows>
         <form
-          className="panel__body flex flex-wrap gap-2"
+          className="panel__body st-form"
           onSubmit={async (ev) => {
             ev.preventDefault();
             if (!TAG_OK.test(clanTag.trim())) {
               setErr("That doesn't look like a CR tag.");
               return;
             }
-            if (
-              await clanAction({
-                action: "add",
-                clan_tag: clanTag.trim(),
-                scope: clanScope,
-              })
-            )
-              setClanTag("");
+            const r = await clanAction({
+              action: "add",
+              clan_tag: clanTag.trim(),
+              scope: clanScope,
+            });
+            if (r.ok) setClanTag("");
           }}
         >
-          <input
-            className="mono flex-[1_1_8rem]"
-            aria-label="Clan tag"
-            placeholder="#CLANTAG"
-            value={clanTag}
-            onChange={(ev) => setClanTag(ev.target.value)}
-          />
-          <select
-            className="select w-auto"
-            aria-label="Scope"
-            value={clanScope}
-            onChange={(ev) => setClanScope(ev.target.value)}
-          >
-            <option value="activity">{scopeLabel("activity")}</option>
-            <option value="comprehensive">{scopeLabel("comprehensive")}</option>
-          </select>
-          <button className="btn" type="submit">
+          <label>
+            Clan tag
+            <input
+              className="mono"
+              placeholder="#CLANTAG"
+              value={clanTag}
+              onChange={(ev) => setClanTag(ev.target.value)}
+            />
+          </label>
+          <label>
+            What to record
+            <select
+              className="select"
+              value={clanScope}
+              onChange={(ev) => setClanScope(ev.target.value)}
+            >
+              <option value="activity">{scopeLabel("activity")}</option>
+              <option value="comprehensive">
+                {scopeLabel("comprehensive")}
+              </option>
+            </select>
+          </label>
+          <button className="btn btn--sm" type="submit">
             Track a clan
           </button>
         </form>
@@ -197,100 +190,93 @@ export function AgentTracking({ agent }) {
 
       <Panel
         title="Players"
-        titleAs="div"
+        titleAs="h2"
         action={
-          <span className="ml-auto text-[12px] text-ink-faint">
-            your slots: {of(pool.player_slots)}
+          <span className="hint">
+            Your places: players {of(pool.player_slots)}
           </span>
         }
       >
         {players.length === 0 ? (
-          <div className="panel__body text-ink-faint">
+          <p className="panel__body m-0 text-ink-faint">
             It follows no player of its own. Its clan&rsquo;s members are on its
             timeline already.
-          </div>
+          </p>
         ) : (
-          <Table
-            columns={[
-              {
-                head: "Player",
-                cell: (p) => (
-                  <>
-                    <span className="font-semibold">
-                      {p.name ?? <Tag tag={p.player_tag} />}
-                    </span>{" "}
-                    <span className="mono text-ink-faint">{p.player_tag}</span>
-                  </>
-                ),
-              },
-              {
-                head: "On its timeline",
-                cell: (p) => (
-                  <button
-                    className="btn btn--sm"
-                    aria-label={`Timeline ${p.notify ? "on" : "off"} for ${p.name ?? p.player_tag}`}
-                    onClick={() =>
-                      playerAction({
-                        player_tag: p.player_tag,
-                        action: p.notify ? "notify_off" : "notify_on",
-                      })
-                    }
-                  >
-                    {p.notify ? "on" : "off"}
-                  </button>
-                ),
-              },
-              {
-                head: "",
-                className: "text-right",
-                cell: (p) => (
-                  <button
-                    className="btn btn--sm"
-                    onClick={() =>
-                      playerAction({
-                        player_tag: p.player_tag,
-                        action: "remove",
-                      })
-                    }
-                  >
-                    Remove
-                  </button>
-                ),
-              },
-            ]}
-            rows={players}
-            rowKey={(p) => p.player_tag}
-          />
+          <Rows>
+            {players.map((p) => {
+              const name = p.name ?? p.player_tag;
+              return (
+                <Row
+                  key={p.player_tag}
+                  title={p.name ?? <Tag tag={p.player_tag} />}
+                  detail={p.name ? <Tag tag={p.player_tag} /> : null}
+                  right={
+                    <span className="st-row-actions">
+                      <button
+                        type="button"
+                        className="btn btn--sm"
+                        aria-pressed={Boolean(p.notify)}
+                        aria-label={`On its timeline: ${p.notify ? "on" : "off"}, for ${name}`}
+                        onClick={() =>
+                          playerAction({
+                            player_tag: p.player_tag,
+                            action: p.notify ? "notify_off" : "notify_on",
+                          })
+                        }
+                      >
+                        {p.notify ? "On its timeline" : "Off its timeline"}
+                      </button>
+                      <ConfirmAction
+                        label="Remove"
+                        title={`Remove ${name} from this agent?`}
+                        body="The agent stops following them. If only this agent tracks them, recording stops. History stays for at least a year after the last person stops tracking."
+                        confirm="Remove"
+                        run={() =>
+                          playerAction({
+                            player_tag: p.player_tag,
+                            action: "remove",
+                          })
+                        }
+                      />
+                    </span>
+                  }
+                />
+              );
+            })}
+          </Rows>
         )}
         <form
-          className="panel__body flex flex-wrap gap-2"
+          className="panel__body st-form"
           onSubmit={async (ev) => {
             ev.preventDefault();
             if (!TAG_OK.test(playerTag.trim())) {
               setErr("That doesn't look like a CR tag.");
               return;
             }
-            if (await playerAction({ player_tag: playerTag.trim() }))
-              setPlayerTag("");
+            const r = await playerAction({ player_tag: playerTag.trim() });
+            if (r.ok) setPlayerTag("");
           }}
         >
-          <input
-            className="mono flex-[1_1_10rem]"
-            aria-label="Player tag"
-            placeholder="#2PYQ8GJ0"
-            value={playerTag}
-            onChange={(ev) => setPlayerTag(ev.target.value)}
-          />
-          <button className="btn" type="submit">
+          <label>
+            Player tag
+            <input
+              className="mono"
+              placeholder="#2PYQ8GJ0"
+              value={playerTag}
+              onChange={(ev) => setPlayerTag(ev.target.value)}
+            />
+          </label>
+          <button className="btn btn--sm" type="submit">
             Track a player
           </button>
         </form>
       </Panel>
-      {err && (
-        <p className="field-error mt-3">
+      {err ? (
+        <p className="field-error" role="alert">
           <TagText>{err}</TagText>
         </p>
-      )}
+      ) : null}
     </>
   );
 }

@@ -204,7 +204,7 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
           400,
           page({
             title: "This link has expired",
-            lead: `Sign in and use <a href="${SITE}/console/account/profile/email">your email page</a> to change which emails you get.`,
+            lead: `Sign in and use <a href="${SITE}/settings/emails">your email page</a> to change which emails you get.`,
           }),
         );
       if (isRetiredEmailKind(c.kind))
@@ -220,7 +220,7 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
         200,
         page({
           title: `Turn off ${labelOf(c.kind)}?`,
-          lead: `One click and Elixir stops sending you ${labelOf(c.kind)}. You can turn it back on any time from <a href="${SITE}/console/account/profile/email">your email page</a>.`,
+          lead: `One click and Elixir stops sending you ${labelOf(c.kind)}. You can turn it back on any time from <a href="${SITE}/settings/emails">your email page</a>.`,
           form: `<form method="post" action="/api/email/unsubscribe?t=${t}"><button type="submit">Turn it off</button></form>`,
         }),
       );
@@ -232,7 +232,7 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
           400,
           page({
             title: "This link has expired",
-            lead: `Sign in and use <a href="${SITE}/console/account/profile/email">your email page</a>.`,
+            lead: `Sign in and use <a href="${SITE}/settings/emails">your email page</a>.`,
           }),
         );
       if (c.kind !== "all" && !isProductEmailKind(c.kind))
@@ -273,7 +273,7 @@ export function emailRoutes({ resolveAccount, secret, archive = null }) {
         200,
         page({
           title: `${labelOf(c.kind)}: off`,
-          lead: `Done. Elixir will not send you ${labelOf(c.kind)} again unless you turn it back on from <a href="${SITE}/console/account/profile/email">your email page</a>.`,
+          lead: `Done. Elixir will not send you ${labelOf(c.kind)} again unless you turn it back on from <a href="${SITE}/settings/emails">your email page</a>.`,
         }),
       );
     },

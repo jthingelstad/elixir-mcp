@@ -105,7 +105,7 @@ navActive: docs
             {%- for n in next %} <a href="{{ n | pageUrl }}">{{ n.data.navTitle or n.data.title }} ›</a>{% if not loop.last %}<span aria-hidden="true"> · </span>{% endif %}{% endfor %}
           </span>
           {%- endif %}
-          <a class="docs__wrong" href="/console/account/feedback?context={{ ('Docs: /docs/' + slug) | urlencode }}">{% icon "message-square", 14 %}Something wrong on this page?</a>
+          <a class="docs__wrong" href="/settings/feedback?context={{ ('Docs: /docs/' + slug) | urlencode }}">{% icon "message-square", 14 %}Something wrong on this page?</a>
         </div>
         {%- endif %}
       </article>

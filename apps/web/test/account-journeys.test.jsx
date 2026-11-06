@@ -86,6 +86,18 @@ async function clickReady(name) {
   await waitFor(() => expect(button.disabled).toBe(false));
   fireEvent.click(button);
 }
+/** The named button in the open question: a mis-click only ever gets here. */
+async function confirmIt(name) {
+  const dialog = await waitFor(() => {
+    const d = document.querySelector("dialog.kit-confirm");
+    expect(d).toBeTruthy();
+    return d;
+  });
+  fireEvent.click(within(dialog).getByRole("button", { name, hidden: true }));
+  await waitFor(() =>
+    expect(document.querySelector("dialog.kit-confirm")).toBeNull(),
+  );
+}
 function open(path) {
   window.history.pushState({}, "", path);
   render(<App />);
@@ -97,10 +109,10 @@ test(
   async () => {
     // Home's first step and Tracking offer the same field; this journey
     // uses Tracking, which manages what you track from then on.
-    open("/console/account/tracking");
+    open("/settings/players");
     const input = await screen.findByLabelText("Player tag");
     fireEvent.change(input, { target: { value: "#P0Y" } });
-    fireEvent.click(input.parentElement.querySelector("button"));
+    fireEvent.click(input.closest("form").querySelector("button"));
     await screen.findByText("#P0Y");
     expect(
       (
@@ -116,7 +128,7 @@ test(
     // On the record, readiness has moved on its own: the snapshot is the
     // evidence, and the line says when it was taken.
     cleanup();
-    open("/console/account/tracking/P0Y");
+    open("/settings/players/P0Y");
     await screen.findByText(/^read /);
     // Consent is fixture setup on the scratch DB; the UI consumes the real
     // connection and readiness responses after returning from OAuth.
@@ -165,18 +177,22 @@ test(
       "insert into account_clan (account_id,clan_tag,scope) values ($1,'#P0G','comprehensive')",
       [accountId],
     );
-    open("/console/account/agents");
-    fireEvent.change(await screen.findByPlaceholderText("agent name"), {
+    open("/settings/connections");
+    fireEvent.click(await screen.findByRole("button", { name: "New agent" }));
+    fireEvent.change(await screen.findByLabelText("Name"), {
       target: { value: "journey-agent" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Create agent" }));
-    await screen.findByText("Copy this key now.");
-    // Open is the agent's own console, at its public id (2026-09-23).
-    fireEvent.click(await screen.findByText("Open ›"));
-    await screen.findByText("Subjects with news");
+    await screen.findByText(/Copy this key now\./);
+    // New agent opened in place, and the key is shown there, once.
+    expect(window.location.pathname).toBe("/settings/connections");
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    // Open is the agent's page in Settings, at its public id.
+    fireEvent.click(await screen.findByRole("link", { name: /journey-agent/ }));
+    await screen.findByText("News it hasn't read");
     const publicId = window.location.pathname.split("/")[3];
     expect(window.location.pathname).toBe(
-      `/console/agent/${publicId}/overview`,
+      `/settings/agents/${publicId}/overview`,
     );
     const {
       rows: [agent],
@@ -189,9 +205,10 @@ test(
       owned_by_account_id: agent.owned_by_account_id,
     }).toEqual({ kind: "agent", owned_by_account_id: accountId });
     const agentId = agent.account_id;
-    // What you change is its Settings, one rail item away.
-    fireEvent.click(screen.getByRole("link", { name: /^Settings/ }));
+    // What you change is its Settings, one tab away.
+    fireEvent.click(screen.getByRole("tab", { name: "Settings" }));
     await clickReady("Issue a new key");
+    await confirmIt("Issue a new key");
     await waitFor(async () => {
       const {
         rows: [keys],
@@ -202,6 +219,7 @@ test(
       expect(keys).toEqual({ total: 2, live: 1 });
     });
     await clickReady("Suspend");
+    await confirmIt("Suspend");
     await screen.findByRole("button", { name: "Resume", exact: true });
     expect(
       (
@@ -212,9 +230,9 @@ test(
       ).rows[0].status,
     ).toBe("disabled");
     // A suspended agent can be removed from view (0215): out of the
-    // Agents table into its folded Removed list, deleting nothing.
+    // Agents list into its folded Removed list, deleting nothing.
     await clickReady("Remove");
-    await screen.findByRole("button", { name: "Restore", exact: true });
+    await screen.findAllByRole("button", { name: "Restore", exact: true });
     const removedAt = async () =>
       (
         await scratch.db.query(
@@ -223,30 +241,22 @@ test(
         )
       ).rows[0].removed_at;
     expect(await removedAt()).not.toBeNull();
-    // The switcher reads the session, which the removal refetched: once
-    // you leave the agent's console it is no longer offered (#441 review).
-    const rail = () => document.querySelector(".rail");
-    fireEvent.click(rail().querySelector(".rail__switch-head"));
-    fireEvent.click(within(rail()).getByRole("link", { name: /Your account/ }));
-    await waitFor(() =>
-      expect(window.location.pathname).toBe("/console/account/profile"),
-    );
-    const head = rail().querySelector("button.rail__switch-head");
-    if (head) fireEvent.click(head);
-    await waitFor(() =>
-      expect(
-        within(rail()).queryByRole("link", { name: /journey-agent/ }),
-      ).toBeNull(),
-    );
     cleanup();
-    open("/console/account/agents");
+    open("/settings/connections");
     await screen.findByText("Removed agents (1)");
     expect(screen.queryByText("Open ›")).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "journey-agent" }));
-    // Resuming a removed agent restores it too.
+    // Restore brings it back among the agents, still suspended.
+    await waitFor(() =>
+      expect(window.location.pathname).toBe(
+        `/settings/agents/${publicId}/settings`,
+      ),
+    );
+    const restore = await screen.findAllByRole("button", { name: "Restore" });
+    fireEvent.click(restore[0]);
+    await waitFor(async () => expect(await removedAt()).toBeNull());
     await clickReady("Resume");
     await screen.findByRole("button", { name: "Suspend", exact: true });
-    expect(await removedAt()).toBeNull();
     expect(
       (
         await scratch.db.query(
@@ -312,13 +322,13 @@ test(
       [accountId],
     );
 
-    open("/console/account/connections");
+    open("/settings/connections");
     // It starts read-only, showing exactly what the client was granted. The
     // page names scopes in more than one place, so assert on the row itself.
     // Other journeys in this file leave their own connections behind, so every
     // query is scoped to THIS row rather than the whole page.
     const rowFor = async (client) =>
-      (await screen.findByText(client)).closest("tr");
+      (await screen.findByText(client)).closest(".kit-row");
     let row = await rowFor("Claude");
     await waitFor(() => expect(row.textContent).toContain("cr:read"));
     expect(row.textContent).not.toContain("feedback:write");

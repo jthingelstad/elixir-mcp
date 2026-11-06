@@ -326,9 +326,9 @@ function QueueGauge({ queue, now }) {
         ? by.map(([e, n]) => `${e} ${n}`).join(" · ")
         : "nothing due",
     ],
-    ["queued", queue.queued, "waiting for a collector to lease it"],
-    ["being fetched", queue.leased, "leased, result not back yet"],
-    ["done this hour", queue.done_hour, "admitted and recorded"],
+    ["queued", queue.queued, "waiting for a collector to take it"],
+    ["being fetched", queue.leased, "taken, result not back yet"],
+    ["done this hour", queue.done_hour, "recorded"],
   ];
   return (
     <Panel
@@ -454,7 +454,7 @@ export function Status() {
       >
         <div className="stats" style={{ border: 0, borderRadius: 0 }}>
           <div className="stats__cell">
-            <div className="label">last admission</div>
+            <div className="label">Last recorded</div>
             <div className="stats__value">
               {h.last_admission_seconds != null
                 ? `${Math.round(h.last_admission_seconds / 60)}m`
@@ -470,7 +470,7 @@ export function Status() {
             <div className="stats__note">in the last hour</div>
           </div>
           <div className="stats__cell">
-            <div className="label">dead letters</div>
+            <div className="label">Stuck</div>
             <div
               className="stats__value"
               style={h.dlq_messages ? { color: "var(--bad)" } : undefined}

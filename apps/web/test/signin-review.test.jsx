@@ -20,12 +20,13 @@ import {
   fireEvent,
   waitFor,
   cleanup,
+  within,
   configure,
 } from "@testing-library/react";
 import { renderWithProviders } from "./helpers.jsx";
 import { App } from "../src/App.jsx";
 import { SignIn } from "../src/views/SignIn.jsx";
-import { DevicesPage } from "../src/views/account/DevicesPage.jsx";
+import { SignIns } from "../src/views/account/SignIns.jsx";
 
 // This file renders the whole App, routes and all, from a cold module
 // graph. Testing Library's 1 s default wait reads a slow first paint on a
@@ -247,7 +248,7 @@ test("a link opened from the same address just signs in", async () => {
   expect(screen.queryByText("Also sign in where you started?")).toBeNull();
 });
 
-test("Profile → Devices lists every device, marks this one, and signs the others out", async () => {
+test("Sign-ins & devices lists every device, marks this one, and signs the others out", async () => {
   const revoked = [];
   let sessions = [
     {
@@ -281,14 +282,23 @@ test("Profile → Devices lists every device, marks this one, and signs the othe
       return [200, { ok: true, revoked: 1 }];
     },
   });
-  renderWithProviders(<DevicesPage navigate={vi.fn()} />);
+  renderWithProviders(<SignIns />);
   expect(await screen.findByText("Safari on iPhone")).toBeTruthy();
-  expect(screen.getByText("this device")).toBeTruthy();
-  expect(screen.getByText(/198\.51\.100\.77 · CA/)).toBeTruthy();
+  expect(screen.getByText("This device")).toBeTruthy();
+  expect(screen.getByText(/198\.51\.100\.77, CA/)).toBeTruthy();
   // This device has no per-row sign-out; the bar's account menu does that.
   expect(screen.getAllByRole("button", { name: "Sign out" })).toHaveLength(1);
   fireEvent.click(
     screen.getByRole("button", { name: "Sign out everywhere else" }),
+  );
+  // A mis-click ends nothing: the question comes first, and Cancel keeps it.
+  expect(revoked).toEqual([]);
+  const dialog = document.querySelector("dialog.kit-confirm");
+  fireEvent.click(
+    within(dialog).getByRole("button", {
+      name: "Sign out everywhere else",
+      hidden: true,
+    }),
   );
   await waitFor(() =>
     expect(screen.queryByText("Safari on iPhone")).toBeNull(),
@@ -318,13 +328,19 @@ test("a refused sign-out says so and leaves the device listed", async () => {
       { error: "forbidden", message: "This session cannot sign others out." },
     ],
   });
-  renderWithProviders(<DevicesPage navigate={vi.fn()} />);
+  renderWithProviders(<SignIns />);
   expect(await screen.findByText("Safari on iPhone")).toBeTruthy();
   const before = reads;
   fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
-  expect((await screen.findByRole("alert")).textContent).toBe(
-    "This session cannot sign others out.",
+  fireEvent.click(
+    within(document.querySelector("dialog.kit-confirm")).getByRole("button", {
+      name: "Sign out",
+      hidden: true,
+    }),
   );
+  expect(
+    await screen.findByText("This session cannot sign others out."),
+  ).toBeTruthy();
   expect(screen.getByText("Safari on iPhone")).toBeTruthy();
   // Nothing changed, so nothing is refetched over the refusal.
   expect(reads).toBe(before);

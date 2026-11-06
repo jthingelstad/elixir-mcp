@@ -1,7 +1,7 @@
 import { Link, PageHead, TagText, Empty } from "@elixir-mcp/ui";
 import { useEffect, useRef } from "react";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { useInvalidate } from "../lib/queries.js";
 import { recordJourney } from "../lib/record-journey.js";
 import { tagPath } from "../lib/tag-url.js";
@@ -32,7 +32,7 @@ export function Pending({ player, players, hrefFor, navigate }) {
     invalidate(["me", "ladder"]);
   }, [landed, invalidate]);
   const journey = data ? recordJourney(data) : null;
-  const status = `${CONSOLE}/account/tracking/${tagPath(tag)}`;
+  const status = `${SETTINGS}/players/${tagPath(tag)}`;
   const name = playerName(player);
   return (
     <div className="ladder-page">

@@ -77,9 +77,9 @@ async function open(page: Page) {
       },
     }),
   );
-  await page.goto("/console/account/profile/email");
+  await page.goto("/settings/emails");
   await expect(
-    page.getByRole("heading", { name: "Emails from Elixir" }),
+    page.getByRole("heading", { name: "Emails", exact: true }),
   ).toBeVisible();
   return puts;
 }
@@ -115,7 +115,7 @@ test("scheduled and event-driven mail, with a switch that writes", async ({
     .getByRole("link", { name: /Trophy Road 4–6/ })
     .click();
   await expect(page).toHaveURL(
-    /\/console\/account\/activity\/e\/3f2a9c1b-0000-4000-8000-000000000001$/,
+    /\/settings\/emails\/3f2a9c1b-0000-4000-8000-000000000001$/,
   );
 });
 

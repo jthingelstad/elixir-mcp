@@ -23,7 +23,7 @@ import { TimelineDiscord } from "./TimelineDiscord.jsx";
  * drawn from the place as it stood when the page opened, so it holds
  * still while the place moves underneath it.
  */
-export function Timeline() {
+export function Timeline({ crumb = null } = {}) {
   const { when } = useClock();
   const timelineQuery = useMyTimeline();
   const timeline = timelineQuery.data ?? null;
@@ -101,9 +101,10 @@ export function Timeline() {
       loading={timelineQuery.isPending}
       error={
         timelineQuery.isError
-          ? "The timeline could not be read just now; try again shortly."
+          ? "The timeline could not be read just now. Try again shortly."
           : null
       }
+      crumb={crumb}
       title="Timeline"
       note="The last seven days, newest first."
       actions={<TimelineDiscord />}

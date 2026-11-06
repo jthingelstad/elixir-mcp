@@ -60,7 +60,7 @@ const cases = [
     player: null,
     clan: null,
     action: "Go to Tracking",
-    to: "/console/account/tracking",
+    to: "/settings/players",
     state: "Add your player",
   },
   {
@@ -68,7 +68,7 @@ const cases = [
     player,
     clan: null,
     action: "Check recording status",
-    to: "/console/account/tracking/20JJJ2CCRU",
+    to: "/settings/players/20JJJ2CCRU",
     state: "First read pending",
   },
   {
@@ -132,7 +132,7 @@ const cases = [
     clan: null,
     action: "Fix the tag",
     // Lands on the inline fix on the player's page (2026-10-08).
-    to: "/console/account/tracking/20JJJ2CCRU#fix-tag",
+    to: "/settings/players/20JJJ2CCRU#fix-tag",
     state: "Tag not found",
   },
   {
@@ -158,7 +158,7 @@ const cases = [
     player: { ...player, recording_status: "paused" },
     clan: null,
     action: "Check recording status",
-    to: "/console/account/tracking/20JJJ2CCRU",
+    to: "/settings/players/20JJJ2CCRU",
     state: "Recording paused",
   },
   {
@@ -166,7 +166,7 @@ const cases = [
     player: null,
     clan,
     action: "Go to Tracking",
-    to: "/console/account/tracking",
+    to: "/settings/players",
     state: "Add your player",
   },
 ];
@@ -203,7 +203,7 @@ for (const width of [390, 1280]) {
         "GET /api/me/clans": [200, { clans: [], home_clan: null }],
       }),
     );
-    await page.goto("/console/account/tracking");
+    await page.goto("/settings/players");
     await page
       .getByRole("textbox", { name: "Player tag", exact: true })
       .fill(player.player_tag);
@@ -212,12 +212,14 @@ for (const width of [390, 1280]) {
       .first()
       .click();
     await expect(
-      page.getByText(/Your tag was saved, but Tracking could not refresh/),
+      page.getByText(
+        /Your tag was saved, but Players & tracking could not refresh/,
+      ),
     ).toBeVisible();
     await expect(page.getByText("You are not tracking that")).toHaveCount(0);
     failRefresh = false;
     await page.reload();
-    await page.goto("/console/account/tracking/20JJJ2CCRU");
+    await page.goto("/settings/players/20JJJ2CCRU");
     await expect(
       page.getByRole("region", { name: "Your recording" }),
     ).toContainText("First read pending");
@@ -364,8 +366,10 @@ for (const width of [390, 1280]) {
             () => document.documentElement.scrollWidth - innerWidth,
           ),
         ).toBeLessThanOrEqual(0);
-        await page.goto("/console/account/tracking#add-player-tag");
-        await expect(page.getByLabel("Player tag")).toBeFocused();
+        await page.goto("/settings/players#add-player-tag");
+        await expect(
+          page.getByRole("textbox", { name: "Player tag", exact: true }),
+        ).toBeFocused();
         if (state.clan) {
           await page.goto("/console/explore/week/2PQRJ8LV~120~1");
           await expect(
@@ -381,7 +385,7 @@ for (const width of [390, 1280]) {
         expect(errors).toEqual([]);
         return;
       }
-      const home = "/console/account/tracking/20JJJ2CCRU";
+      const home = "/settings/players/20JJJ2CCRU";
       await page.goto(home);
       const recording = page.getByRole("region", { name: "Your recording" });
       await expect(recording).toContainText(state.state);
@@ -545,7 +549,7 @@ for (const width of [390, 1280]) {
         },
       }),
     );
-    await page.goto("/console/account/tracking");
+    await page.goto("/settings/players");
     await page
       .getByRole("textbox", { name: "Player tag", exact: true })
       .fill("20jjj2ccru");
@@ -560,7 +564,7 @@ for (const width of [390, 1280]) {
       .getByRole("button", { name: "Track", exact: true })
       .first()
       .click();
-    await expect(page).toHaveURL(/\/console\/account\/tracking\/20JJJ2CCRU$/);
+    await expect(page).toHaveURL(/\/settings\/players\/20JJJ2CCRU$/);
     const recording = page.getByRole("region", { name: "Your recording" });
     await expect(recording).toContainText("Player tag saved");
     await expect(recording).toContainText("First read pending");
@@ -597,19 +601,24 @@ for (const width of [390, 1280]) {
     ).toBeVisible();
     expect(adds).toBe(2);
     expect(selectedReads).toBeGreaterThan(0);
+    await page.getByRole("button", { name: "Help for this page" }).click();
     await page
+      .getByRole("dialog")
       .getByRole("link", { name: "How recording works", exact: true })
       .click();
     await expect(page).toHaveURL(/\/docs\/recording$/);
     await page.goBack();
     await expect(recording).toContainText("Recorded and ready to read");
-    await page.goto("/console/account/feedback");
-    // The page's own compose; the rail's foot opens the sheet.
+    await page.goto("/settings/feedback");
+    // The page's own compose.
     await page
       .getByRole("main")
       .getByRole("button", { name: "Send feedback", exact: true })
       .click();
-    const message = page.getByRole("textbox", { name: "Message", exact: true });
+    const message = page.getByRole("textbox", {
+      name: "What you want to say",
+      exact: true,
+    });
     await message.focus();
     await page.keyboard.type("Fixture: help with my new record");
     await page.getByRole("button", { name: "Send", exact: true }).click();
@@ -619,7 +628,7 @@ for (const width of [390, 1280]) {
     await expect(page.getByText(/^Received, thank you\./)).toBeVisible();
     await expect(page.getByRole("link", { name: "fb_9" })).toHaveAttribute(
       "href",
-      "/console/account/feedback/9",
+      "/settings/feedback/9",
     );
     expect(feedbackSends).toBe(2);
     await page.goBack();

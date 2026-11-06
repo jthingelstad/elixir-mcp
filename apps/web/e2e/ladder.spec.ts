@@ -205,10 +205,12 @@ test.describe("Ladder signed in", () => {
       page.getByText("without pooling modes or rating players"),
     ).toBeVisible();
 
-    // The docs strip names Ladder's own page.
+    // Help names Ladder's own page.
+    await page.getByRole("button", { name: "Help for this page" }).click();
     await expect(
-      page.locator(".page__docs").getByRole("link", { name: "Ladder" }),
+      page.getByRole("dialog").getByRole("link", { name: "Ladder" }),
     ).toHaveAttribute("href", "/docs/ladder");
+    await page.keyboard.press("Escape");
 
     // Every read went through the bridge, as the reader's player. Each read
     // with a mode names one; only the scope bar's read has none.
@@ -611,7 +613,7 @@ test.describe("Ladder signed in", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Add your player" }),
-    ).toHaveAttribute("href", "/console/account/tracking#add-player-tag");
+    ).toHaveAttribute("href", "/settings/players#add-player-tag");
     await accessible(page, "ladder no players");
   });
 

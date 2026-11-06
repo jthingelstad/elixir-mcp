@@ -129,15 +129,18 @@ export function accountRoutes({
     // 'add': added = recorded (Jamie, 2026-09-05). Slots count what
     // you've ADDED (your claims); the MCP door runs the same function.
     // relationship "friend" is Home's Follow: never the primary, and never
-    // with make_primary. Any other relationship is not this route's to take
-    // on an add yet (the add form's "Add as" is step 6).
-    const follow = body.relationship === "friend";
-    if (follow && body.make_primary === true)
+    // with make_primary. "alt" and "watching" are the add form's Add as.
+    const asked = body.relationship ?? null;
+    if (asked && !["friend", "alt", "watching"].includes(asked))
       return json(400, { error: "bad_relationship" });
+    if (asked && body.make_primary === true)
+      return json(400, { error: "bad_relationship" });
+    const follow = asked === "friend";
     const r = await addPlayer(db, account, {
       tag,
-      makePrimary: !follow && body.make_primary === true,
+      makePrimary: !asked && body.make_primary === true,
       follow,
+      relationship: follow ? null : asked,
       via: "web",
     });
     if (!r.ok && r.error === "no_own_player")
@@ -148,7 +151,7 @@ export function accountRoutes({
     if (!r.ok && r.error === "quota_exceeded") {
       return json(429, {
         error: "quota_exceeded",
-        message: `Added players are capped at ${r.limit} for the ${r.role} tier. Remove one, or raise your tier: lead a clan you track (Leader) or run a collector (Family).`,
+        message: `You're tracking ${r.limit} players, the most this account allows. Stop tracking one.`,
       });
     }
     if (!r.ok && r.error === "not_entitled")

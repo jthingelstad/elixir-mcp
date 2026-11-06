@@ -108,7 +108,7 @@ test("renders the record's age and Verify for an unverified player", async () =>
     screen
       .getByRole("link", { name: "Verify your player ›" })
       .getAttribute("href"),
-  ).toBe("/console/account/verify");
+  ).toBe("/settings/players/verify");
 });
 
 test("renders Open Clan for a verified player whose clan is recorded", async () => {

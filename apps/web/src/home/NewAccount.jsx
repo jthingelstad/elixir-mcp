@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, TagText, writeErrorText } from "@elixir-mcp/ui";
 import { hasBattleEvidence } from "@elixir-mcp/record/capture-state";
 import { api } from "../api.js";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
 import { recordJourney } from "../lib/record-journey.js";
 import { useFirstAnswer } from "../hooks/useFirstAnswer.js";
@@ -98,7 +98,7 @@ export function NewAccount({ first, zoneMissing }) {
             Play one battle with a deck Elixir gives you, win or lose. Elixir
             then knows this player is yours, and you can act as Elder, Co-leader
             or Leader in your clan.{" "}
-            <Link to={`${CONSOLE}/account/verify`}>Prove it</Link>
+            <Link to={`${SETTINGS}/players/verify`}>Prove it</Link>
           </Step>
           <Step
             n={5}
@@ -124,9 +124,7 @@ export function NewAccount({ first, zoneMissing }) {
               <b>Wednesday</b> the people you follow
             </li>
           </ul>
-          <Link to={`${CONSOLE}/account/profile/email`}>
-            Choose which ones you get
-          </Link>
+          <Link to={`${SETTINGS}/emails`}>Choose which ones you get</Link>
         </aside>
       </div>
     </div>
@@ -184,7 +182,7 @@ function ZoneNotice() {
         Use Central time
       </button>
       <span>
-        or <Link to={`${CONSOLE}/account/profile`}>choose on Profile</Link>
+        or <Link to={`${SETTINGS}/profile`}>choose on Profile</Link>
       </span>
       {err ? <span role="alert">{err}</span> : null}
     </p>
@@ -259,7 +257,7 @@ function FirstRead({ player, journey, onCheck, busy, onStopped }) {
         </p>
         <div className="kit-form__row">
           <Link
-            to={`${CONSOLE}/account/tracking/${tagPath(player.player_tag)}`}
+            to={`${SETTINGS}/players/${tagPath(player.player_tag)}`}
             className="btn btn--sm"
           >
             Fix the tag

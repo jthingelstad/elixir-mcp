@@ -273,7 +273,7 @@ test("an unverified Leader: the notice first, then the clan as a member with the
   // was production's address, whatever origin the page was on.
   const origin = new URL(page.url()).origin;
   await page.getByRole("link", { name: "Verify Ada" }).click();
-  await expect(page).toHaveURL(`${origin}/console/account/verify`);
+  await expect(page).toHaveURL(`${origin}/settings/players/verify`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Verify");
 });
 
@@ -486,7 +486,7 @@ test.describe("signed in", () => {
     await expect(sheet.getByRole("status")).toContainText("Received");
     await expect(
       sheet.getByRole("link", { name: "Read it as fb_41" }),
-    ).toHaveAttribute("href", "/console/account/feedback/41");
+    ).toHaveAttribute("href", "/settings/feedback/41");
     await accessible(page, "report this");
     await sheet.getByRole("button", { name: "Close" }).click();
     await expect(sheet).toHaveCount(0);

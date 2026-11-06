@@ -25,7 +25,7 @@ test("an account with no zone is told its times are UTC and offered the browser'
     .spyOn(api, "setTimezone")
     .mockResolvedValue({ ok: true, status: 200, data: { ok: true } });
   renderWithProviders(<ZoneOffer />);
-  expect(screen.getByText(/Times here are in UTC/)).toBeTruthy();
+  expect(screen.getByText(/Your times on Elixir read UTC/)).toBeTruthy();
   expect(save).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Use Central time" }));
   await waitFor(() => expect(save).toHaveBeenCalledWith("America/Chicago"));
@@ -38,10 +38,10 @@ test("nothing to offer: the account has a zone, or the browser is on UTC", () =>
       <ZoneOffer />
     </ZoneProvider>,
   );
-  expect(screen.queryByText(/Times here are in UTC/)).toBeNull();
+  expect(screen.queryByText(/Your times on Elixir read UTC/)).toBeNull();
   cleanup();
   vi.restoreAllMocks();
   browserIn("UTC");
   renderWithProviders(<ZoneOffer />);
-  expect(screen.queryByText(/Times here are in UTC/)).toBeNull();
+  expect(screen.queryByText(/Your times on Elixir read UTC/)).toBeNull();
 });

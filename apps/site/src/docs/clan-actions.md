@@ -390,7 +390,7 @@ clan is read, when something new became yours to do: everything waiting
 for you, newest first, and a link straight to it. It goes only to the
 account that verified the player, only while that player is in the
 clan, and at most once a day per clan. Turn it off on
-[Profile ▸ Email](/console/account/profile/email)
+[Settings ▸ Emails](/settings/emails)
 ([Turn an email off](/docs/turn-an-email-off)).
 
 ## Actions in the clan's Discord

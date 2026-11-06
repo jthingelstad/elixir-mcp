@@ -16,7 +16,7 @@ import {
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { ladderHref } from "../ladder/ladder.js";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { tagPath } from "../lib/tag-url.js";
 import { useHomeWeek, useInvalidate } from "../lib/queries.js";
 import {
@@ -63,7 +63,7 @@ function Unlock({ player }) {
         Elixir has {player.name} as yours but hasn&rsquo;t confirmed it. Prove
         it with one battle to act as your clan&rsquo;s Leader here.
       </span>
-      <Link to={`${CONSOLE}/account/verify`}>Verify {player.name}</Link>
+      <Link to={`${SETTINGS}/players/verify`}>Verify {player.name}</Link>
     </p>
   );
 }
@@ -340,7 +340,7 @@ function SetupDetails({ first, clan, player }) {
                 "Verified"
               )
             ) : (
-              <Link to={`${CONSOLE}/account/verify`}>
+              <Link to={`${SETTINGS}/players/verify`}>
                 Not yet. One battle proves it.
               </Link>
             )
@@ -360,7 +360,7 @@ function SetupDetails({ first, clan, player }) {
           title="Connected AI"
           right={
             (conn?.active_connections ?? 0) > 0 ? (
-              <Link to={`${CONSOLE}/account/connections`}>
+              <Link to={`${SETTINGS}/connections`}>
                 {conn.active_connections}{" "}
                 {conn.active_connections === 1 ? "connection" : "connections"}
               </Link>

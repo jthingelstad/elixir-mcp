@@ -1,5 +1,3 @@
-import { whenAt } from "@elixir-mcp/ui";
-
 /**
  * ONE reading of the daily quota, for both pages that show it.
  *
@@ -33,9 +31,9 @@ export function quotaReading(usage, zone) {
   };
 }
 
-/** "resets 00:00Z · 5h 16m" — the day boundary the limiter uses is UTC
+/** "Resets at 7:00 pm, in 5h 16m": the day boundary the limiter uses is UTC
  *  midnight, whatever the account's display timezone; the account's zone
- *  only says when that is on the reader's clock ("resets 19:00 CDT"). */
+ *  only says when that is on the reader's clock. */
 function resetsLine(zone, now = new Date()) {
   const next = new Date(
     Date.UTC(
@@ -50,5 +48,12 @@ function resetsLine(zone, now = new Date()) {
   const mins = Math.max(0, Math.round((next - now) / 60000));
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  return `resets ${whenAt(next, zone, { now: now.getTime() })} · ${h}h ${String(m).padStart(2, "0")}m`;
+  const at = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: zone || "UTC",
+  })
+    .format(next)
+    .toLowerCase();
+  return `Resets at ${at}, in ${h}h ${m}m`;
 }

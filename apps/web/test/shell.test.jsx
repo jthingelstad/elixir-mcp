@@ -108,21 +108,18 @@ describe("the bar on a page", () => {
         ["Clan", "/clan"],
       ]);
       const bar = document.querySelector(".kit-top");
-      expect(bar.querySelector(".kit-top__search").getAttribute("href")).toBe(
-        "/console/explore",
-      );
+      // Search and Help open in place: no address to leave for.
+      expect(bar.querySelector(".kit-top__search").tagName).toBe("BUTTON");
       expect(
-        within(bar)
-          .getByRole("link", { name: "Help for this page" })
-          .getAttribute("href"),
-      ).toBe("/docs");
+        within(bar).getByRole("button", { name: "Help for this page" }),
+      ).toBeTruthy();
       expect(within(bar).getByRole("link", { name: /Play Drop/ }).target).toBe(
         "_blank",
       );
       const tabs = screen.getByRole("navigation", { name: "Main, phone" });
-      expect([...tabs.querySelectorAll("a")].map((a) => a.textContent)).toEqual(
-        ["Home", "Ladder", "Clan", "Search"],
-      );
+      expect(
+        [...tabs.querySelectorAll("a, button")].map((a) => a.textContent),
+      ).toEqual(["Home", "Ladder", "Clan", "Search"]);
       // On Explore's charts, Search is the lit tab.
       expect(tabs.querySelector("[aria-current]").textContent).toBe("Search");
     },

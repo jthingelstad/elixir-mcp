@@ -3,9 +3,9 @@ import { FeedbackSheet, Icon } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { feedbackApi } from "../api.js";
 
-/** Where what you have filed is read: the person's own feedback in the
- *  Console, where each answer lands too. */
-export const FEEDBACK_HISTORY = "/console/account/feedback";
+/** Where what you have filed is read: the person's own feedback in
+ *  Settings, where each answer lands too. */
+export const FEEDBACK_HISTORY = "/settings/feedback";
 export const feedbackItemHref = (id) => `${FEEDBACK_HISTORY}/${id}`;
 
 /**

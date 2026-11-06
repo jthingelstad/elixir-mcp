@@ -29,3 +29,15 @@ export function tagFromPath(segment) {
   const decoded = decodeURIComponent(String(segment ?? ""));
   return decoded ? `#${decoded.replace(/^#/, "")}` : "";
 }
+
+/** What a person typed, as a canonical tag: the game's tags have no letter O. */
+export function normTag(q) {
+  return (
+    "#" +
+    String(q ?? "")
+      .trim()
+      .toUpperCase()
+      .replace(/^#/, "")
+      .replaceAll("O", "0")
+  );
+}

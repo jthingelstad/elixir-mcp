@@ -7,7 +7,8 @@ import { readFile } from "node:fs/promises";
 const renderApp = async (input) =>
   (await import("@elixir-mcp/web/server")).renderApp(input);
 
-const APP_PATH = /^\/(?:console|clan|ladder|home|signin|data\/service)(?:\/|$)/;
+const APP_PATH =
+  /^\/(?:console|clan|ladder|home|settings|signin|data\/service)(?:\/|$)/;
 const safeJson = (value) =>
   JSON.stringify(value)
     .replace(/</g, "\\u003c")

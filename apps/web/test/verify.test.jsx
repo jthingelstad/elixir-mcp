@@ -193,7 +193,7 @@ test(
   "the picker lists the account's players and a start shows the eight-card brief",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/console/account/verify");
+    window.history.pushState({}, "", "/settings/players/verify");
     render(<App />);
     await waitFor(() => screen.getByRole("heading", { name: "Verify" }));
     await waitFor(() => screen.getByText("King Thing"));
@@ -238,7 +238,7 @@ test(
   { timeout: 20000 },
   async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    window.history.pushState({}, "", "/console/account/verify");
+    window.history.pushState({}, "", "/settings/players/verify");
     render(<App />);
     await waitFor(() => screen.getByText("King Thing"));
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
@@ -251,13 +251,13 @@ test(
     });
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toMatch(
-        /3 of 8 in that deck · Loss 1-3 vs Rival · Ladder/,
+        /3 of 8 in that deck\. Not this one yet\./,
       ),
     );
     const target = screen.getByRole("list", { name: "The deck to play" });
     expect(target.querySelectorAll(".deck__slot--matched").length).toBe(3);
     expect(screen.getByRole("status").textContent).toMatch(
-      /log read \d+:\d\d:\d\d [ap]m/,
+      /Battle log read \d+:\d\d:\d\d [ap]m/,
     );
 
     await act(async () => {
@@ -265,7 +265,9 @@ test(
     });
     await waitFor(() => screen.getByText(/switch your deck back now/));
     expect(screen.getByRole("status").textContent).toMatch(/Verified/);
-    expect(screen.getByText(/The proof: Win 3-1 vs Rival/)).toBeTruthy();
+    expect(
+      screen.getAllByText(/The proof: Win 3-1 vs Rival/).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByText(/28 seconds/)).toBeTruthy();
     expect(document.querySelectorAll(".verify__spark").length).toBe(12);
     // The unlock lands on the same page: the brief and the proving battle
@@ -304,7 +306,7 @@ test(
     }));
     statusQueue = [VERIFIED];
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    window.history.pushState({}, "", "/console/account/verify");
+    window.history.pushState({}, "", "/settings/players/verify");
     render(<App />);
     await waitFor(() => screen.getByText("King Thing"));
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
@@ -353,7 +355,7 @@ test(
       return base(path, init);
     });
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    window.history.pushState({}, "", "/console/account/verify");
+    window.history.pushState({}, "", "/settings/players/verify");
     render(<App />);
     await waitFor(() => screen.getByText("King Thing"));
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));

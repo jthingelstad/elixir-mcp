@@ -7,7 +7,7 @@ order: 5
 navTitle: "What Elixir records"
 icon: radar
 lede: "What Elixir captures, how often, and why an answer is never a live scrape."
-console: ["Your tracked players and clans, and their freshness", "/console/account/tracking", "Settings ▸ Tracking"]
+console: ["Your tracked players and clans, and their freshness", "/settings/players", "Settings ▸ Players"]
 ---
 
 # Recording and coverage
@@ -50,7 +50,7 @@ free and outside your quota, as [Verify](/docs/verify) does. So the first
 capture usually lands within a few minutes, and the first battle-log read
 brings roughly the last 30 battles with it (the game keeps no more; from
 there the record builds forward). If Clash Royale answers that it has no
-player with that tag (its "Player not found"), Tracking says so as an
+player with that tag (its "Player not found"), Settings ▸ Players says so as an
 error on the player's page within seconds of the add (it checks every few
 seconds for the first minutes), and never shows that tag as recording or
 freshly polled: check the tag, which is on the player's profile in the game
@@ -64,14 +64,14 @@ is still recorded, and its first read comes with the scheduler's next round.
 
 | Act | Tool | Web | Scope needed |
 |---|---|---|---|
-| Record a player | `elixir_track_player({ player_tag, relationship?, action? })` | Account → Tracking | `recordings:write` |
-| Record a clan | `elixir_track_clan({ clan_tag, scope?, action? })` | Account → Tracking | `recordings:write` |
+| Record a player | `elixir_track_player({ player_tag, relationship?, action? })` | Settings ▸ Players | `recordings:write` |
+| Record a clan | `elixir_track_clan({ clan_tag, scope?, action? })` | Settings ▸ Players | `recordings:write` |
 | Stop | the same tools with `action: "remove"` | same | `recordings:write` |
 | Silence the feed without stopping | `action: "notify_off"` / `"notify_on"` | same | `recordings:write` |
 
 Slots are the only gate; see [Limits](/docs/limits).
 
-If your clans cannot be read, Home and Tracking say so and offer
+If your clans cannot be read, Home and Players say so and offer
 **Try again**. A failed read does not mean that you stopped tracking a clan;
 any previously read clans stay available. Trying again reads your saved
 tracking without adding a clan or forcing a game fetch. An empty list is

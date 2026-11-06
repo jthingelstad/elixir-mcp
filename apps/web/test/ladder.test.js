@@ -41,7 +41,8 @@ import {
   shortDay,
   signed,
 } from "../src/ladder/ladder.js";
-import { DOC_LINKS, legalRoute, titleFor } from "../src/App.jsx";
+import { legalRoute, titleFor } from "../src/App.jsx";
+import { DOC_LINKS } from "../src/shell/doc-links.js";
 
 const CHI = "America/Chicago";
 
@@ -79,7 +80,7 @@ test("every Ladder page has a rail position, a title and a docs strip entry", ()
       product: "ladder",
       doc: `ladder:${p.slug}`,
     });
-    expect(DOC_LINKS[here.doc], `${path} has no docs strip`).toBeTruthy();
+    expect(DOC_LINKS[here.doc], `${path} has no read more`).toBeTruthy();
     expect(ladderTitle(path)).toBe(`${p.label} - Ladder - Elixir`);
     expect(titleFor("ladder", {}, path)).toBe(`${p.label} - Ladder - Elixir`);
   }

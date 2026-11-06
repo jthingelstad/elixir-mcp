@@ -1,5 +1,5 @@
 import { tagPath } from "../lib/tag-url.js";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 
 /** What Home works out on its own, away from the drawing. */
 
@@ -133,7 +133,7 @@ export function needsYou({ clan, signals, clock }) {
       detail:
         "Something is presenting a credential that no longer works. Nothing was read with it.",
       cta: "See connections",
-      to: `${CONSOLE}/account/connections`,
+      to: `${SETTINGS}/connections`,
     });
   return { rows, more };
 }

@@ -18,8 +18,8 @@ export const REFUSALS = {
     title: "Add your player in Elixir",
     body: "Your Elixir account has no primary player yet, so there is nobody to show a clan for.",
     action:
-      "Add the player you play as under Elixir → Tracking, then come back.",
-    link: [ELIXIR_LINKS.tracking, "Elixir → Tracking"],
+      "Add the player you play as under Settings → Players, then come back.",
+    link: [ELIXIR_LINKS.tracking, "Settings → Players"],
   },
   no_clan: {
     title: "No clan in your recorded profiles",
@@ -33,7 +33,7 @@ export const REFUSALS = {
     body: "Elixir has not confirmed your players' clan membership yet. A gap in your profile or roster reads does not mean you are outside a clan.",
     action:
       "Check recording under Tracking, then check again after your profile and clan roster have been read.",
-    link: [ELIXIR_LINKS.tracking, "Elixir → Tracking"],
+    link: [ELIXIR_LINKS.tracking, "Settings → Players"],
   },
 };
 

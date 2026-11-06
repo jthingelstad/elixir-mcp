@@ -7,7 +7,7 @@ order: 3
 navTitle: "Your account"
 icon: user-round
 lede: "One account, opened by verifying your email, signed in with an email and no password. It holds your players, your time zone and your limits, and it shows nobody your address."
-console: ["Your profile and limits", "/console/account/profile", "Settings ▸ Profile"]
+console: ["Your profile and limits", "/settings/profile", "Settings ▸ Profile"]
 reviewed: "2026-10-13 against contract 11.12.0"
 ---
 
@@ -46,10 +46,10 @@ does not. A malformed tag is refused on the form before any email is sent,
 and an empty field is fine. The tag is kept with the request and applied
 only after you verify: a new account tracks it as its primary player and
 opens on that player's page. An account opened without one opens on
-[Settings ▸ Tracking](/console/account/tracking) with the tag field ready,
+[Settings ▸ Players](/settings/players) with the tag field ready,
 and so does one whose tag another account has
 [verified](/docs/verify#a-verified-player-is-yours-alone): that player is
-not added, and Tracking says why.
+not added, and Players says why.
 A tag sent while signing in to an account that already exists is ignored.
 Signup and sign-in share the same email limits.
 
@@ -57,11 +57,11 @@ You can also create your account where an app sends you to sign in with
 Elixir, as Elixir Drop does: enter your email, then the code, and the
 account opens the same way, after verification and as an ordinary member,
 with the same product-news box. That page asks for no player tag; add
-yours in [Settings ▸ Tracking](/console/account/tracking). An account
+yours in [Settings ▸ Players](/settings/players). An account
 opened there reads in UTC until you set a zone in Profile. See
 [Sign in with Elixir](/docs/sign-in-with-elixir).
 
-Then add your player in [Settings ▸ Tracking](/console/account/tracking) if
+Then add your player in [Settings ▸ Players](/settings/players) if
 you have not, read your recorded play in [Ladder](/ladder), or follow
 [Bring your clan](/docs/bring-your-clan).
 A collector is not required to join. Running one is open to any account
@@ -114,7 +114,7 @@ A connected Discord also tells your clan's Discord agent who you are,
 so it never has to ask ([Agents](/docs/agents#knowing-which-human-is-asking)).
 
 A sign-in lasts **thirty days from its last use and ninety days at
-most**. **Settings ▸ Sign-in and devices** (Account settings is in
+most**. **Settings ▸ Sign-ins & devices** (Settings is in
 the account menu on the top bar) lists every session that can act
 as you, with a sign-out for each and **Sign out everywhere else**, which
 keeps the one you are using. Your agents and connected apps are not
@@ -131,7 +131,7 @@ recording problems stay visible under **Needs you**.
 
 The players on your account each say who they are to you:
 
-| Relationship | Means | Shows in Tracking as |
+| Relationship | Means | Shows in Players as |
 |---|---|---|
 | primary | you: what every tool means when no player is named | you |
 | alt | also you, under another tag | alt |
@@ -147,12 +147,12 @@ Clan go by. A player another account has verified cannot be your
 primary or an alt; you can still follow it as a friend or watch it. If
 another account verifies a player that was your primary or an alt, it
 leaves your account, your timeline says so, and an ended primary leaves
-you with none: Tracking and Home say so until you make another
+you with none: Players and Home say so until you make another
 player primary or add yours. Friends and watched players are covered in
 [Follow a friend](/docs/follow-a-friend) and
 [Watch any player](/docs/watch-a-player).
 
-Players are added under **Settings ▸ Tracking**, and tracking a player is
+Players are added under **Settings ▸ Players**, and tracking a player is
 recording it: see [What Elixir records](/docs/recording).
 
 ## Your time zone
@@ -193,8 +193,8 @@ you think. Sending feedback needs you signed in; without an account,
 write to [admin@poapkings.com](mailto:admin@poapkings.com).
 
 Every item is answered, by Elixir's maintainer, sometimes with help
-from AI agents. **Settings ▸ Your feedback** (in Settings, and linked
-from the sheet) lists what you have sent
+from AI agents. **Settings ▸ Feedback** (linked
+from Help as well) lists what you have sent
 with its state and the maintainer's answer, and an item's own page
 shows the whole thread: answer an answer with **Reply** and the two
 stay linked. Each answer is an item on your [timeline](/docs/timeline),

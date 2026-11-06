@@ -1,16 +1,8 @@
 import { useState } from "react";
-import {
-  DeckGrid,
-  Empty,
-  ErrorState,
-  Link,
-  Tag,
-  TagText,
-} from "@elixir-mcp/ui";
-import { api } from "../api.js";
+import { DeckGrid, Empty, ErrorState, Link, TagText } from "@elixir-mcp/ui";
 import { CONSOLE } from "../lib/console.js";
 import { tagPath } from "../lib/tag-url.js";
-import { useInvalidate } from "../lib/queries.js";
+import { Followed, useFollow } from "./follow.jsx";
 import { familyLine, friendsView, names } from "./logic.js";
 
 /**
@@ -200,41 +192,19 @@ function WatchingSection({ view, ownClan }) {
   );
 }
 
-const BAD_TAG =
-  "That doesn't look like a player tag. Tags use only these characters: 0 2 8 9 C G J L P Q R U V Y.";
-
 /** The Follow form. It posts one relationship and reads back what became of
  *  it: added, already yours, already followed, or not found in the game. */
 function FollowForm() {
-  const invalidate = useInvalidate();
   const [tag, setTag] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const [result, setResult] = useState(null);
+  const { follow, busy, error: err, result } = useFollow();
   return (
     <div className="kit-follow">
       <form
         className="kit-form"
         onSubmit={async (e) => {
           e.preventDefault();
-          if (busy || !tag.trim()) return;
-          setBusy(true);
-          setErr("");
-          setResult(null);
-          const res = await api.claimAction({
-            player_tag: tag.trim(),
-            relationship: "friend",
-          });
-          setBusy(false);
-          if (!res.ok)
-            return setErr(
-              res.data?.error === "invalid_tag"
-                ? BAD_TAG
-                : (res.data?.message ?? "That did not work. Try again."),
-            );
-          setTag("");
-          setResult(res.data);
-          invalidate();
+          if (!tag.trim()) return;
+          if (await follow(tag.trim())) setTag("");
         }}
       >
         <label htmlFor="home-follow-tag">Follow a friend</label>
@@ -265,33 +235,5 @@ function FollowForm() {
       </form>
       {result ? <Followed result={result} /> : null}
     </div>
-  );
-}
-
-function Followed({ result }) {
-  const tag = result.player_tag;
-  if (result.relationship === "primary" || result.relationship === "alt")
-    // [engineering, 2026-11-05]: no board draws a tag that is already yours.
-    return <p className="kit-tiny">That player is already yours.</p>;
-  if (result.not_found)
-    return (
-      <p className="kit-tiny" role="status">
-        We couldn&rsquo;t find <Tag tag={tag} /> in Clash Royale. Correct the
-        tag, or stop following on Tracking. Elixir asks the game again in about
-        a day, in case the tag is brand new.
-      </p>
-    );
-  if (result.added && result.first_read === false)
-    return (
-      <p className="kit-tiny" role="status">
-        <Tag tag={tag} /> Elixir could not check just now. It will try again.
-      </p>
-    );
-  return (
-    <p className="kit-tiny" role="status">
-      <Tag tag={tag} /> <b>Recording</b>. The first read usually lands within a
-      few minutes, and roughly their last 30 battles arrive with it. You can
-      close this page.
-    </p>
   );
 }

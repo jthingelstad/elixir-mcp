@@ -385,19 +385,19 @@ export default function (eleventyConfig) {
    *  pages that actually do each thing, so a step is never a dead
    *  button. An unmapped label falls back to the quickstart. */
   const SETUP_HREF = {
-    "Track your player": "/console/account/tracking",
+    "Track your player": "/settings/players",
     "Connect a client": "/docs/quickstart",
     "Read the methodology": "/docs/methodology",
-    "Set your timezone": "/console/account/profile",
-    "Track a friend's tag": "/console/account/tracking",
+    "Set your timezone": "/settings/profile",
+    "Track a friend's tag": "/settings/players",
     "Turn on notifications": "/docs/timeline",
-    "Track your clan": "/console/account/tracking",
+    "Track your clan": "/settings/players",
     "Choose a recording scope": "/docs/recording#scope-what-is-actually-polled",
-    "Track your clan, comprehensive": "/console/account/tracking",
+    "Track your clan, comprehensive": "/settings/players",
     "Read about scopes": "/docs/recording#scope-what-is-actually-polled",
     "Look up a clan tag": "/console/explore/clans",
     "Read the privacy posture": "/docs/privacy",
-    "Create an agent": "/console/account/agents",
+    "Create an agent": "/settings/connections",
     "Read the agents doc": "/docs/agents",
     "Read the integrations doc": "/docs/integrations",
     "Request a service key":

@@ -56,12 +56,12 @@ export function Landing({ error, here = "/clan" }) {
             <div style={{ fontWeight: 600 }}>2. Your player</div>
             <p className="page__lede" style={{ margin: "4px 0 0" }}>
               Add the player you play as under{" "}
-              <Link to={ELIXIR_LINKS.tracking}>Elixir → Tracking</Link> and you
+              <Link to={ELIXIR_LINKS.tracking}>Settings → Players</Link> and you
               are in as a member of its clan. Elders, Co-leaders and Leaders
               prove it under{" "}
-              <Link to={ELIXIR_LINKS.verify}>Elixir → Verify</Link> (one battle
-              with a deck Elixir names, usually under a minute) and then their
-              in-game role is their role here.
+              <Link to={ELIXIR_LINKS.verify}>Settings → Players → Verify</Link>{" "}
+              (one battle with a deck Elixir names, usually under a minute) and
+              then their in-game role is their role here.
             </p>
           </div>
         </div>

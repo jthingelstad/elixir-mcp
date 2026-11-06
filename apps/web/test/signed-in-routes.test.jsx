@@ -202,7 +202,7 @@ test(
       };
     });
 
-    // The old address of the agent page opens the agent's own console.
+    // The old address of the agent page opens the agent.
     window.history.pushState(
       {},
       "",
@@ -217,7 +217,7 @@ test(
     );
     expect(url).toBeTruthy();
     expect(window.location.pathname).toBe(
-      "/console/agent/272bd891a21d/overview",
+      "/settings/agents/272bd891a21d/overview",
     );
     // The clan it acts for is named, with the tag beside the name - never
     // the tag alone (the lede and the Clan row both render it).
@@ -226,9 +226,9 @@ test(
 
     // What you change is its Settings.
     cleanup();
-    window.history.pushState({}, "", "/console/agent/272bd891a21d/settings");
+    window.history.pushState({}, "", "/settings/agents/272bd891a21d/settings");
     render(<App />);
-    expect(await screen.findByText("rename")).toBeTruthy();
+    expect(await screen.findByLabelText("Name")).toBeTruthy();
     // The documented emergency path. /docs/agents has promised "Account →
     // Agents → Revoke key" since agents shipped, while the route, the client
     // method and no button at all existed.

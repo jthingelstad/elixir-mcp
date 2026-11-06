@@ -22,14 +22,16 @@ import {
   ADMIN_RAIL,
   App,
   EXPLORE_RAIL,
-  RAIL_FOOT,
-  SETTINGS_RAIL,
-  DOC_LINKS,
-  agentRail,
   legalRoute,
-  railConsoles,
   railPosition,
 } from "../src/App.jsx";
+import {
+  AGENT_TABS,
+  SETTINGS_RAIL,
+  settingsHere,
+} from "../src/lib/settings.js";
+import { helpFor } from "../src/shell/help.js";
+import { DOC_LINKS } from "../src/shell/doc-links.js";
 
 // This file renders the whole App, routes and all, from a cold module
 // graph. Testing Library's 1 s default wait reads a slow first paint on a
@@ -70,15 +72,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Every destination the rails offer, as [railKey, sub, path]: Settings and
- *  its foot, Explore, an agent's pages and Admin's, which all obey the same
- *  rules. */
-const AGENT_RAIL = agentRail("abcd1234");
-const RAILS = [EXPLORE_RAIL, AGENT_RAIL, ADMIN_RAIL, SETTINGS_RAIL];
-const destinations = [
-  ...RAILS.flat(),
-  { key: RAIL_FOOT.key, to: RAIL_FOOT.history },
-].flatMap((row) => [
+/** Every destination the rails offer, as [railKey, sub, path]. */
+const RAILS = [EXPLORE_RAIL, ADMIN_RAIL, SETTINGS_RAIL];
+const destinations = RAILS.flat().flatMap((row) => [
   [row.key, undefined, row.to],
   ...(row.subs ?? []).map(([slug, , to]) => [row.key, slug, to]),
 ]);
@@ -95,31 +91,21 @@ test("every rail item and sub-item routes somewhere", () => {
 
 test("a rail destination marks the item that offered it", () => {
   for (const [key, sub, to] of destinations) {
-    const at = railPosition(to);
+    const at = settingsHere(to) ?? railPosition(to);
     expect(at.key, `${to} marks ${at.key}, not ${key}`).toBe(key);
-    // A section with sub-pages lands on its first one, so the parent's
-    // own destination is allowed to resolve to that sub.
     if (sub) expect(at.sub, `${to} marks sub ${at.sub}`).toBe(sub);
   }
 });
 
-test("every rail destination has its own docs strip entry", () => {
-  // The strip replaced an ad-hoc "learn more" that sat somewhere
-  // different on each screen, so a page with no entry is a bug rather
-  // than a fallback: nothing may fall through to a generic docs index.
+test("every rail destination has its own help and read more", () => {
+  // A page's help replaced the docs strip, so a page with no entry is a bug
+  // rather than a fallback.
   for (const [, , to] of destinations) {
-    // Derive the key the way the app does, from the position the path
-    // resolves to: a section that lands on its first sub-page is keyed
-    // on that sub, not on the bare section.
-    const at = railPosition(to);
-    const entry =
-      (at.doc && DOC_LINKS[at.doc]) ??
-      DOC_LINKS[at.sub ? `${at.key}:${at.sub}` : at.key] ??
-      DOC_LINKS[at.key];
-    expect(entry, `${to} has no docs strip entry`).toBeTruthy();
-    const [topic, links] = entry;
-    expect(typeof topic).toBe("string");
-    expect(links.length).toBeGreaterThan(0);
+    const help = helpFor(to);
+    expect(help.lines.length, `${to} has no help`).toBeGreaterThan(0);
+    expect(help.title, to).not.toBe("this page");
+    const [, links] = DOC_LINKS[help.docs] ?? [];
+    expect(links?.length, `${to} has no read more`).toBeGreaterThan(0);
   }
 });
 
@@ -140,7 +126,6 @@ test("no two items at the same level share a label", () => {
     const tops = rail.map((r) => r.label);
     expect(new Set(tops).size, "two sections share a label").toBe(tops.length);
   }
-  expect(SETTINGS_RAIL.map((r) => r.label)).not.toContain(RAIL_FOOT.label);
   for (const row of RAILS.flat()) {
     const subs = (row.subs ?? []).map(([, label]) => label);
     expect(
@@ -150,33 +135,20 @@ test("no two items at the same level share a label", () => {
   }
 });
 
-test("Settings: your account, your record, access, collectors, feedback", () => {
+test("Settings' rail: seven places, and Collectors for who runs one", () => {
   expect(SETTINGS_RAIL.map((r) => r.label)).toEqual([
     "Profile",
-    "Emails from Elixir",
-    "Sign-in and devices",
-    "Sign-ins",
-    "Tracking",
-    "Verify",
-    "Connections",
-    "Usage",
-    "Collectors",
-    "Efficiency",
-    "Your feedback",
-  ]);
-  expect(SETTINGS_RAIL.filter((r) => r.group).map((r) => r.group)).toEqual([
-    "Your record",
-    "Access",
-    "Collectors",
+    "Players & tracking",
+    "Emails",
+    "Connections & agents",
+    "Sign-ins & devices",
+    "Usage and limits",
     "Feedback",
+    "Collectors",
   ]);
-  // The foot opens the feedback sheet in place; what you have filed is
-  // read at its history address, which the sheet links.
-  expect(RAIL_FOOT).toMatchObject({
-    label: "Send feedback",
-    history: "/console/account/feedback",
-  });
-  expect(RAIL_FOOT.to).toBeUndefined();
+  expect(SETTINGS_RAIL.filter((r) => r.runsOne).map((r) => r.key)).toEqual([
+    "collectors",
+  ]);
 });
 
 test("Explore is its own rail, and a page says which rail it wears", () => {
@@ -186,172 +158,61 @@ test("Explore is its own rail, and a page says which rail it wears", () => {
     rail: "explore",
     key: "charts",
   });
-  expect(railPosition("/console/account/usage").rail).toBe("settings");
+  expect(settingsHere("/settings/usage").key).toBe("usage");
   expect(railPosition("/console/admin/emails").rail).toBe("admin");
-});
-
-test("where the rest went: every old address resolves, marked where it lives now", () => {
-  const at = (p) => railPosition(p);
-  // Activity's three logs.
-  expect(at("/console/account/activity/requests")).toMatchObject({
-    key: "usage",
-    sub: "requests",
-  });
-  expect(at("/console/account/activity/emails")).toMatchObject({
-    rail: "settings",
-    key: "emails",
-    sub: "emails",
-  });
-  expect(at("/console/account/activity/e/x")).toMatchObject({
-    rail: "settings",
-    key: "emails",
-    doc: "activity:email",
-  });
-  expect(at("/console/account/activity/events")).toMatchObject({
-    rail: "settings",
-    key: "signins",
-    sub: "events",
-  });
-  // Profile and its pages are Account settings.
-  expect(at("/console/account/profile")).toMatchObject({
-    rail: "settings",
-    key: "profile",
-  });
-  expect(at("/console/account/profile/email")).toMatchObject({
-    rail: "settings",
-    key: "emails",
-  });
-  expect(at("/console/account/profile/devices")).toMatchObject({
-    rail: "settings",
-    key: "devices",
-  });
-  // Agents are Connections; Admin is its own console.
-  expect(at("/console/account/agents")).toMatchObject({ key: "connections" });
-  expect(at("/console/admin/emails")).toMatchObject({
-    rail: "admin",
-    key: "emails",
-  });
-  expect(at("/console/admin")).toMatchObject({
-    rail: "admin",
-    key: "requests",
-  });
-  for (const p of [
-    "/console/account/activity/requests",
-    "/console/account/activity/emails",
-    "/console/account/activity/events",
-    "/console/account/profile/email",
-    "/console/account/profile/devices",
-    "/console/account/agents",
-    "/console/account/feedback",
-  ])
-    expect(legalRoute(p), p).toBe(p);
-});
-
-test("the switcher: you, your agents, and Admin for an admin", () => {
-  const me = {
-    ...ME,
-    claims: [{ player_tag: "#P", name: "King Thing", is_primary: true }],
-    agents: [{ public_id: "f43c60e8f5bd", name: "POAP KINGS", role: "leader" }],
-  };
-  expect(
-    railConsoles(me).map((c) => [c.group, c.label, c.detail, c.to]),
-  ).toEqual([
-    ["You", "Your account", "King Thing · owner", "/console/account/profile"],
-    [
-      "Your agents",
-      "POAP KINGS",
-      "agent · f43c60e8f5bd",
-      "/console/agent/f43c60e8f5bd/overview",
-    ],
-    ["Operate", "Admin", "every account · owner", "/console/admin/requests"],
-  ]);
-  expect(railConsoles({ ...me, is_admin: false }).map((c) => c.key)).toEqual([
-    "me",
-    "f43c60e8f5bd",
-  ]);
-});
-
-test("the switcher leaves a removed agent out unless it is open", () => {
-  // 0215: a removed agent is found on the Agents page, not in the switcher;
-  // its own console still names it while you are in it.
-  const me = {
-    ...ME,
-    is_admin: false,
-    agents: [
-      { public_id: "f43c60e8f5bd", name: "POAP KINGS" },
-      { public_id: "ea322ce81822", name: "Ship It!", removed_at: "2026-10-10" },
-    ],
-  };
-  expect(railConsoles(me).map((c) => c.key)).toEqual(["me", "f43c60e8f5bd"]);
-  expect(railConsoles(me, "ea322ce81822").map((c) => c.key)).toEqual([
-    "me",
-    "f43c60e8f5bd",
-    "ea322ce81822",
-  ]);
 });
 
 test(
   "wide: the rail is a list, with no disclosure to open",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/console/account/profile");
+    window.history.pushState({}, "", "/settings/profile");
     render(<App />);
     await waitFor(() =>
       expect(screen.getByRole("navigation", { name: "Settings sections" })),
     );
-    // Scoped to the rail: the top bar has its own expandable button now
-    // (the narrow menu), which is a different control on a different
-    // element and is present at every width.
-    // The only buttons in it are the console switcher and the foot that
-    // opens the feedback sheet, never a disclosure over the list.
+    // No switcher, no foot, and no disclosure over the list.
     const rail = document.querySelector(".rail");
     expect(rail.querySelector(".rail__toggle")).toBeNull();
-    expect(
-      within(rail)
-        .getAllByRole("button")
-        .every(
-          (b) =>
-            b.classList.contains("rail__switch-head") ||
-            b.classList.contains("rail__item--foot"),
-        ),
-    ).toBe(true);
-    expect(within(rail).getByRole("link", { name: /Tracking/ })).toBeTruthy();
+    expect(within(rail).queryAllByRole("button")).toEqual([]);
+    expect(within(rail).getByRole("link", { name: /Players/ })).toBeTruthy();
   },
 );
 
 test(
-  "Send feedback opens the sheet in place, about the page you are on",
+  "Help opens in place, says this page, and a note carries the page along",
   { timeout: 20000 },
   async () => {
-    window.history.pushState({}, "", "/console/account/usage");
+    window.history.pushState({}, "", "/settings/usage");
     render(<App />);
-    const nav = await waitFor(() =>
-      screen.getByRole("navigation", { name: "Settings sections" }),
-    );
-    const rail = nav.closest(".rail");
-    // A button, not a link away: the page stays under the sheet.
-    expect(within(rail).queryByRole("link", { name: "Send feedback" })).toBe(
-      null,
-    );
-    within(rail).getByRole("button", { name: "Send feedback" }).click();
+    const bar = await waitFor(() => {
+      const el = document.querySelector(".kit-top__icon");
+      expect(el).toBeTruthy();
+      return el;
+    });
+    bar.click();
     // jsdom has <dialog> and not its modal, so it is read as an element.
-    const sheet = await waitFor(() => {
-      const d = document.querySelector("dialog.feedback-sheet");
+    const drawer = await waitFor(() => {
+      const d = document.querySelector("dialog.kit-help");
       expect(d).toBeTruthy();
       return d;
     });
-    expect(sheet.getAttribute("aria-label")).toBe("Send feedback");
-    expect(sheet.textContent).toContain("About Elixir.");
-    expect(window.location.pathname).toBe("/console/account/usage");
-    // What you have filed is still a click away.
+    expect(drawer.textContent).toContain("Help for Usage and limits");
+    expect(drawer.textContent).toContain("The page you are on rides along.");
+    expect(window.location.pathname).toBe("/settings/usage");
     expect(
-      within(sheet)
+      within(drawer)
         .getByRole("link", {
-          name: "Your feedback and its answers ›",
+          name: "Your feedback and its answers",
           hidden: true,
         })
         .getAttribute("href"),
-    ).toBe("/console/account/feedback");
+    ).toBe("/settings/feedback");
+    expect(
+      within(drawer)
+        .getByRole("link", { name: "Limits", hidden: true })
+        .getAttribute("href"),
+    ).toBe("/docs/limits");
   },
 );
 
@@ -364,7 +225,7 @@ test(
       addEventListener: () => {},
       removeEventListener: () => {},
     }));
-    window.history.pushState({}, "", "/console/account/profile");
+    window.history.pushState({}, "", "/settings/profile");
     render(<App />);
 
     // Closed, it names the section and hides the list — and it is a
@@ -392,45 +253,35 @@ test(
   },
 );
 
-test(
-  "the docs strip is on the page, and it is the page's own entry",
-  { timeout: 20000 },
-  async () => {
-    window.history.pushState({}, "", "/console/account/usage");
-    render(<App />);
-    // Usage is about budgets; the strip must say so rather than "docs".
-    expect(await screen.findByText(/Docs · Budgets/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Limits" })).toBeTruthy();
-  },
-);
-
-test("an agent's console: its pages and nothing of a person's, one segment along", () => {
-  expect(AGENT_RAIL.map((r) => r.key)).toEqual([
+test("an agent: five tabs, its pages resolve, and a wrong page is no page", () => {
+  expect(AGENT_TABS.map((t) => t.slug)).toEqual([
     "overview",
-    "timeline",
-    "tracking",
-    "activity",
+    "reads",
     "usage",
     "connections",
     "settings",
-    "feedback",
   ]);
-  expect(railPosition("/console/agent/abcd1234/timeline")).toEqual({
-    scope: "abcd1234",
-    key: "timeline",
+  expect(settingsHere("/settings/agents/abcd1234/reads")).toMatchObject({
+    key: "connections",
+    page: "agent",
+    agent: "abcd1234",
+    tab: "reads",
   });
-  expect(railPosition("/console/agent/abcd1234/activity/c/x")).toMatchObject({
-    key: "activity",
-    sub: "requests",
-    doc: "activity:call",
+  expect(
+    settingsHere("/settings/agents/abcd1234/usage/requests/x"),
+  ).toMatchObject({ page: "call", id: "x", agent: "abcd1234" });
+  expect(settingsHere("/settings/agents/abcd1234/usage/events").page).toBe(
+    "agent-events",
+  );
+  expect(settingsHere("/settings/agents/abcd1234/feedback/7")).toMatchObject({
+    page: "feedback-item",
+    id: "7",
   });
-  // A page an agent does not have lands on its Overview; an id that is not
-  // a public id's shape is not an app route at all.
-  expect(legalRoute("/console/agent/abcd1234/verify")).toBe(
-    "/console/agent/abcd1234/overview",
+  expect(settingsHere("/settings/agents/abcd1234/timeline").page).toBe(
+    "timeline",
   );
-  expect(legalRoute("/console/agent/abcd1234")).toBe(
-    "/console/agent/abcd1234/overview",
+  expect(legalRoute("/settings/agents/abcd1234")).toBe(
+    "/settings/agents/abcd1234/overview",
   );
-  expect(legalRoute("/console/agent/NOPE/timeline")).toBe(null);
+  expect(legalRoute("/settings/agents/abcd1234/verify")).toBe(null);
 });

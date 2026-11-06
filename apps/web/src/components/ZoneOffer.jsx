@@ -1,7 +1,7 @@
 import { Icon, Link, browserZone, useClock } from "@elixir-mcp/ui";
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { useInvalidate } from "../lib/queries.js";
 import { useScope } from "../lib/scope.js";
 
@@ -50,7 +50,8 @@ export function ZoneOffer({ className = "" }) {
     <div className={`callout callout--info ${className}`.trim()}>
       <Icon name="clock" size={17} />
       <span>
-        Times here are in UTC: your account has no time zone set.{" "}
+        Your browser says {words}. Your times on Elixir read UTC until you
+        choose.{" "}
         <button
           type="button"
           className="btn btn--sm"
@@ -69,7 +70,7 @@ export function ZoneOffer({ className = "" }) {
         >
           Use {words}
         </button>{" "}
-        <Link to={`${CONSOLE}/account/profile`}>or choose on Profile</Link>
+        <Link to={`${SETTINGS}/profile`}>or choose on Profile</Link>
         {err ? <span className="field-error"> {err}</span> : null}
       </span>
     </div>

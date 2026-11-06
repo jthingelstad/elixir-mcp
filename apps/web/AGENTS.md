@@ -65,12 +65,15 @@ route; every path that moves goes there. Home's rules are in
 
 ## The Console's sections
 
-The word Console is retired from what a reader sees; the `/console/` paths stay
-until later steps move them. `src/views/` holds the pages, `src/views/account/`
-the Settings and agent pages; the rails and route table are in `App.jsx`.
-Sections: Explore (players, clans, decks, weeks, record pages), Settings
-(profile, emails, tracking, usage, connections, agents, devices, verify,
-feedback), an agent's own pages (`/console/agent/<public_id>/…`), the service
+The word Console is retired from what a reader sees; `/console/` still holds
+Explore, Status's collectors and Admin. `src/views/` holds the pages,
+`src/views/account/` the Settings and agent pages; the route table is in
+`App.jsx`. `src/lib/settings.js` is Settings' rail and paths, and
+`src/lib/moved.js` redirects every old account address (mail in inboxes names
+them; an entry leaves only when no archived mail can). Sections: Explore
+(players, clans, decks, weeks, record pages), Settings (`/settings`: profile,
+players, emails, connections and agents, sign-ins, usage, feedback, collectors),
+an agent's own page (`/settings/agents/<public_id>`, five tabs), the service
 page (`/data/service`, with collectors and efficiency under
 `/console/status/`), and Admin. Admin pages are gated on the server; the client
 only hides them.

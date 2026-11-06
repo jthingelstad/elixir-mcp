@@ -7,7 +7,7 @@ order: 4
 navTitle: "Prove a player is yours"
 icon: shield-check
 lede: "Play one battle with a deck we name, and the claim on your player becomes a fact rather than a promise."
-console: ["Verify a player you have added", "/console/account/verify", "Settings ▸ Verify"]
+console: ["Verify a player you have added", "/settings/players/verify", "Settings ▸ Players ▸ Verify"]
 reviewed: "2026-10-12 against contract 11.11.4"
 ---
 
@@ -25,7 +25,7 @@ Only you can decide which eight cards your player takes into a battle,
 and the game's battle log records exactly that for every match. That is
 the challenge.
 
-1. Pick the player, under **Settings ▸ Verify**. The page lists your
+1. Pick the player, under **Settings ▸ Players ▸ Verify**. The page lists your
    primary player and your alts, the claims that are yours to prove; a
    friend or a player you merely watch is theirs. Players are added under
    Tracking, as always; Verify only proves them.
@@ -94,7 +94,7 @@ If another account had already added the player as its primary or an alt
 before you verified it, that claim ends the moment your verification
 succeeds. That account's timeline says so, naming the player and never
 your account; if it was their primary, they are left with no primary
-until they choose one, and Tracking says so, and the clan Elixir followed
+until they choose one, and Settings ▸ Players says so, and the clan Elixir followed
 for that player is unfollowed, as when a primary moves. Their friend or watching
 claim on the player stays.
 

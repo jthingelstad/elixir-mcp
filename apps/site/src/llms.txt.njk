@@ -45,7 +45,7 @@ Corpus as of {{ stats.totals.newest_battle | day }}: {{ stats.totals.battles | n
 {% endfor %}{% endfor %}
 ## Interactive pages (JavaScript application, not in this index)
 - {{ site.url }}/console/data/dashboard: full-history charts over the public stats endpoint
-- {{ site.url }}/signin, /home, /console/account, /console/explore, /data/service: require a session
+- {{ site.url }}/signin, /home, /settings, /console/explore, /data/service: require a session
 - {{ site.url }}/ladder: Ladder, one of your players' season read back; requires a session
 - {{ site.url }}/clan: Elixir Clan, on the same Elixir account and session
 - {{ site.url }}/battle/<short id>: one recorded battle, public; its JSON is {{ site.url }}/api/public/battles/<id>

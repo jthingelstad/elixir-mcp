@@ -1,8 +1,6 @@
 import {
   InitialTimeProvider,
   ErrorBoundary,
-  FeedbackSheet,
-  Icon,
   Link,
   NavigateProvider,
   Rail as RailList,
@@ -41,11 +39,18 @@ import {
   resetSessionCache,
 } from "@elixir-mcp/client";
 import { createClanRoutes } from "@elixir-mcp/clan-web/routes";
-import { FEEDBACK_CATEGORIES } from "@elixir-mcp/contracts";
 import { api } from "./api.js";
-import { keys, useAgentMe, useInvalidate } from "./lib/queries.js";
+import { useMyGateways } from "./lib/queries.js";
 import { CardArtSource } from "./components/CardArtSource.jsx";
 import { CONSOLE, appPath } from "./lib/console.js";
+import {
+  SETTINGS,
+  SETTINGS_RAIL,
+  isSettings,
+  settingsHere,
+  settingsLegal,
+  settingsTitle,
+} from "./lib/settings.js";
 import {
   LADDER,
   isLadder,
@@ -97,20 +102,6 @@ export const STATIC_LINKS = {
  * that one says what the reader is offered and in what order.
  */
 export const SECTIONS = {
-  account: {
-    label: "Account",
-    authed: true,
-    pages: [
-      { slug: "tracking", label: "Tracking" },
-      { slug: "verify", label: "Verify" },
-      { slug: "activity", label: "Activity" },
-      { slug: "usage", label: "Usage" },
-      { slug: "connections", label: "Connections" },
-      { slug: "agents", label: "Agents" },
-      { slug: "profile", label: "Profile" },
-      { slug: "feedback", label: "Feedback" },
-    ],
-  },
   explore: { label: "Explore", authed: true, pages: [] },
   status: {
     label: "Status",
@@ -139,26 +130,6 @@ export const SECTIONS = {
       { slug: "service-tokens", label: "Service tokens", ownerOnly: true },
     ],
   },
-  // An agent's own pages (2026-09-23): the pages that make sense for an agent, scoped
-  // to one you own, at /console/agent/<public_id>/<page>. Verify,
-  // Profile and Admin are a person's; Explore and Status are the same for
-  // everyone and stay yours. `scoped` marks the id segment
-  // before the page.
-  agent: {
-    label: "Agent",
-    authed: true,
-    scoped: true,
-    pages: [
-      { slug: "overview", label: "Overview" },
-      { slug: "timeline", label: "Timeline" },
-      { slug: "tracking", label: "Tracking" },
-      { slug: "activity", label: "Activity" },
-      { slug: "usage", label: "Usage" },
-      { slug: "connections", label: "Connections" },
-      { slug: "settings", label: "Settings" },
-      { slug: "feedback", label: "Feedback" },
-    ],
-  },
   // The in-app charts. /data is the site's corpus page; under /console
   // the paths no longer collide, so the bare section is just its page.
   data: {
@@ -169,90 +140,9 @@ export const SECTIONS = {
 };
 
 /**
- * The rails. Every address still resolves; only where the rail marks it moved
- * (railPosition below). `subs` render only while their item is current, and no
- * two items the reader can see at once share a label.
- *
- * Settings is one rail for the account's own pages, reached from the avatar's
- * menu; the pages keep their addresses until step 6. Explore has its own,
- * reached from Search. Agents and Admin stay in the switcher at Settings' head.
+ * The rails. Settings' is lib/settings.js. Explore has its own, reached from
+ * search; Admin has its own, reached from the avatar's menu.
  */
-export const SETTINGS_RAIL = [
-  {
-    key: "profile",
-    label: "Profile",
-    icon: "user-round",
-    to: `${CONSOLE}/account/profile`,
-  },
-  {
-    key: "emails",
-    label: "Emails from Elixir",
-    icon: "mail",
-    to: `${CONSOLE}/account/profile/email`,
-  },
-  {
-    key: "devices",
-    label: "Sign-in and devices",
-    icon: "key-round",
-    to: `${CONSOLE}/account/profile/devices`,
-  },
-  {
-    key: "signins",
-    label: "Sign-ins",
-    icon: "history",
-    to: `${CONSOLE}/account/activity/events`,
-  },
-  {
-    group: "Your record",
-    key: "tracking",
-    label: "Tracking",
-    icon: "radar",
-    to: `${CONSOLE}/account/tracking`,
-  },
-  // Proving a claim is a step in your record, next to what you track.
-  {
-    key: "verify",
-    label: "Verify",
-    icon: "shield-check",
-    to: `${CONSOLE}/account/verify`,
-  },
-  {
-    group: "Access",
-    key: "connections",
-    label: "Connections",
-    icon: "plug",
-    to: `${CONSOLE}/account/connections`,
-  },
-  {
-    key: "usage",
-    label: "Usage",
-    icon: "chart-column",
-    to: `${CONSOLE}/account/usage`,
-  },
-  {
-    group: "Collectors",
-    key: "collectors",
-    label: "Collectors",
-    icon: "server",
-    to: `${CONSOLE}/status/collectors`,
-  },
-  {
-    key: "efficiency",
-    label: "Efficiency",
-    icon: "heart-pulse",
-    to: `${CONSOLE}/status/efficiency`,
-  },
-  // What you have filed, and its answers. The foot's sheet files a new one.
-  {
-    group: "Feedback",
-    key: "feedback",
-    label: "Your feedback",
-    icon: "message-square",
-    to: `${CONSOLE}/account/feedback`,
-  },
-];
-
-/** Explore, where Search leads until the search sheet exists. */
 export const EXPLORE_RAIL = [
   {
     key: "lookup",
@@ -285,18 +175,6 @@ export const EXPLORE_RAIL = [
     to: `${CONSOLE}/explore/weeks`,
   },
 ];
-
-/** The foot of Settings' and Explore's rails: feedback is always one click away,
- *  and every item is answered. It opens the kit's sheet in place, as
- *  Ladder's and Clan's do (2026-10-20), with the page you are on riding
- *  along; `history` is where what you have filed is read, linked from
- *  the sheet and from the account menu. */
-export const RAIL_FOOT = {
-  key: "feedback",
-  label: "Send feedback",
-  icon: "message-square",
-  history: `${CONSOLE}/account/feedback`,
-};
 
 /** Admin's rail: bare labels again, because nothing else is
  *  on screen beside them. Collectors and Service tokens are the owner's. */
@@ -387,554 +265,39 @@ export const ADMIN_RAIL = [
   },
 ];
 
-const AGENT_ID = /^[a-z0-9]{8,16}$/;
-
-/** The rail of an agent's pages: yours, reshaped to what an agent is.
- *  Same keys as yours where the page is the same page, so the docs strip
- *  and the rail tests read both one way. */
-export function agentRail(id) {
-  const at = (page) => `${CONSOLE}/agent/${id}/${page}`;
-  return [
-    {
-      key: "overview",
-      label: "Overview",
-      icon: "layout-dashboard",
-      to: at("overview"),
-    },
-    { key: "timeline", label: "Timeline", icon: "bell", to: at("timeline") },
-    {
-      group: "Its record",
-      key: "tracking",
-      label: "Tracking",
-      icon: "radar",
-      to: at("tracking"),
-    },
-    {
-      key: "activity",
-      label: "Activity",
-      icon: "activity",
-      to: at("activity/requests"),
-      subs: [
-        ["requests", "MCP requests", at("activity/requests")],
-        ["events", "Account events", at("activity/events")],
-      ],
-    },
-    { key: "usage", label: "Usage", icon: "chart-column", to: at("usage") },
-    {
-      group: "Access",
-      key: "connections",
-      label: "Connections",
-      icon: "plug",
-      to: at("connections"),
-    },
-    {
-      key: "settings",
-      label: "Settings",
-      icon: "settings",
-      to: at("settings"),
-    },
-    {
-      key: "feedback",
-      label: "Feedback",
-      icon: "message-square",
-      to: at("feedback"),
-    },
-  ];
-}
-
-/** Which rail item and sub-item a path belongs to. One function, so the
- *  mark in the rail and the docs strip's key can never disagree about
- *  where the reader is. Read on the app path (the prefix off), so the
- *  segments below keep their indexes. */
+/** Which rail item a path belongs to. Read on the app path (the prefix off),
+ *  so the segments keep their indexes. Settings' pages say it themselves
+ *  (lib/settings.js). */
 export function railPosition(path) {
   const app = appPath(path) ?? "";
   const [, section, page, rest] = app.split("/");
-  if (section === "agent") {
-    // /agent/<public_id>/<page>/<rest>: the same positions as yours, one
-    // segment along, with the agent's own strip where the page is its.
-    const [, , id, agentPage, agentRest] = app.split("/");
-    const scope = { scope: id };
-    if (agentPage === "activity")
-      return {
-        ...scope,
-        key: "activity",
-        sub: agentRest === "c" ? "requests" : (agentRest ?? "requests"),
-        ...(agentRest === "c" ? { doc: "activity:call" } : {}),
-      };
-    if (agentPage === "connections")
-      return { ...scope, key: "connections", doc: "agent:connections" };
-    if (agentPage === "overview" || agentPage === undefined)
-      return { ...scope, key: "overview", doc: "agent:overview" };
-    if (agentPage === "settings")
-      return { ...scope, key: "settings", doc: "agent:settings" };
-    if (agentPage === "tracking")
-      return { ...scope, key: "tracking", doc: "agent:tracking" };
-    return { ...scope, key: agentPage };
-  }
-  // `doc` names the docs-strip entry when a RECORD page sits under a rail
-  // item: the rail still marks the item (and sub-item) the record belongs
-  // to, but the strip at its foot is the record's own, because "how do I
-  // read this" is a different question from "what is this section".
   if (section === "explore") {
-    const explore = { rail: "explore", doc: "explore" };
+    const explore = { rail: "explore" };
     const kinds = ["players", "clans", "meta", "weeks"];
     if (kinds.includes(page)) return { ...explore, key: page };
-    if (page === "player" && rest)
-      return { ...explore, key: "players", doc: "explore:player" };
-    if (page === "clan" && rest)
-      return { ...explore, key: "clans", doc: "explore:record" };
-    if (page === "week" && rest)
-      return { ...explore, key: "weeks", doc: "explore:record" };
-    if (page && rest)
-      return { ...explore, key: "lookup", doc: "explore:record" };
+    if (page === "player" && rest) return { ...explore, key: "players" };
+    if (page === "clan" && rest) return { ...explore, key: "clans" };
+    if (page === "week" && rest) return { ...explore, key: "weeks" };
     return { ...explore, key: "lookup" };
   }
-  if (section === "status" && ["collectors", "efficiency"].includes(page))
-    return {
-      rail: "settings",
-      key: page,
-      doc:
-        page === "efficiency"
-          ? "status:efficiency"
-          : rest
-            ? // A record and the raise form both read the operators guide.
-              "status:collector"
-            : "status:collectors",
-    };
   // Admin's rail's items are its pages.
-  if (section === "admin") {
-    const key = page ?? "requests";
-    return { rail: "admin", key, doc: `admin:${key}` };
-  }
-  // The in-app charts are the corpus in detail, reached from the site's
-  // /data page and the service page. They sit under Explore's rail with no
-  // item marked: losing the whole navigation on one route is worse.
+  if (section === "admin") return { rail: "admin", key: page ?? "requests" };
+  // The in-app charts are the record in detail, reached from the site's /data
+  // page and the service page. They sit under Explore's rail with no item
+  // marked: losing the whole navigation on one route is worse.
   if (section === "data" && page === "dashboard")
-    return { rail: "explore", key: "charts", doc: "explore" };
-  if (section === "account") {
-    const settings = { rail: "settings" };
-    // Activity's three logs went three ways. MCP requests, and a call
-    // record (/activity/c/<request_id>), sit under Usage; Emails, and an
-    // email record (/activity/e/<send_id>), under Emails from Elixir;
-    // Account events are Sign-ins. `sub` still names the log, for the page
-    // that draws it.
-    if (page === "activity") {
-      const log =
-        rest === "c"
-          ? "requests"
-          : rest === "e"
-            ? "emails"
-            : (rest ?? "requests");
-      if (log === "emails")
-        return {
-          ...settings,
-          key: "emails",
-          sub: "emails",
-          doc: rest === "e" ? "activity:email" : "activity:emails",
-        };
-      if (log === "events")
-        return {
-          ...settings,
-          key: "signins",
-          sub: "events",
-          doc: "activity:events",
-        };
-      return {
-        ...settings,
-        key: "usage",
-        sub: "requests",
-        doc: rest === "c" ? "activity:call" : "activity:requests",
-      };
-    }
-    if (page === "profile") {
-      if (rest === "email")
-        return { ...settings, key: "emails", doc: "profile:email" };
-      if (rest === "devices")
-        return { ...settings, key: "devices", doc: "profile:devices" };
-      return { ...settings, key: "profile", doc: "profile:profile" };
-    }
-    if (page === "connections")
-      return { ...settings, key: "connections", doc: "connections:clients" };
-    // The agent list is addressable in its own right, but it belongs to
-    // Connections in the rail: an agent IS a connection.
-    if (page === "agents")
-      return { ...settings, key: "connections", doc: "connections:agents" };
-    // /account/tracking/<tag> is a record of a tracked thing, which
-    // belongs to Tracking rather than being a section of its own.
-    if (page === "tracking" && rest)
-      return { ...settings, key: "tracking", doc: "tracking:record" };
-    return { ...settings, key: page };
-  }
+    return { rail: "explore", key: "charts" };
   return {};
 }
-
-/**
- * One doc map for every page with a rail, keyed by rail item or `item:sub`.
- * Every such page has an entry — the strip is only consistent if
- * nothing falls through to a generic index link, which is exactly what
- * it replaced.
- */
-export const DOC_LINKS = {
-  explore: [
-    "Reading the record",
-    [
-      ["Methodology", "/docs/methodology"],
-      ["Tool reference", "/docs/tools"],
-      ["Responses", "/docs/responses"],
-    ],
-  ],
-  // A record page names the tool that produced it; its strip points at
-  // how to read what came back.
-  "explore:player": [
-    "Player records",
-    [
-      ["players_summary", "/docs/tools/players#players_summary"],
-      ["Methodology", "/docs/methodology"],
-    ],
-  ],
-  "explore:record": [
-    "Reading a record",
-    [
-      ["Responses", "/docs/responses"],
-      ["Coverage", "/docs/responses#coverage-and-result-limits"],
-      ["Methodology", "/docs/methodology"],
-    ],
-  ],
-  tracking: [
-    "What we record for you",
-    [
-      ["How recording works", "/docs/recording"],
-      ["Scopes", "/docs/recording#scope-what-is-actually-polled"],
-      ["Tiers & slots", "/docs/roles"],
-    ],
-  ],
-  verify: [
-    "Proving a claim",
-    [
-      ["Verify", "/docs/verify"],
-      [
-        "Claims and relationships",
-        "/docs/recording#relationships-primary-nicknames",
-      ],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  // The record of one tracked thing: the page with the notify switch on
-  // it links to what a notification is.
-  "tracking:record": [
-    "What we record for you",
-    [
-      ["How recording works", "/docs/recording"],
-      ["Battle activity", "/docs/activity"],
-      ["Timeline", "/docs/timeline"],
-    ],
-  ],
-  timeline: [
-    "Timeline",
-    [
-      ["The timeline", "/docs/timeline"],
-      ["elixir_timeline", "/docs/tools/timeline#elixir_timeline"],
-    ],
-  ],
-  "activity:requests": [
-    "The MCP surface",
-    [
-      ["Protocol", "/docs/protocol"],
-      ["Limits", "/docs/limits"],
-      ["Responses", "/docs/responses"],
-    ],
-  ],
-  // The record of one call: what the request and response mean, and
-  // how long the body is kept.
-  "activity:call": [
-    "One call",
-    [
-      ["Response envelope", "/docs/responses#the-fields"],
-      ["Retention", "/docs/limits#retention-windows"],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  "activity:emails": [
-    "The emails Elixir sends",
-    [
-      ["Email", "/docs/email"],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  // The record of one sent email: what it is, and what is counted.
-  "activity:email": [
-    "One email",
-    [
-      ["Email", "/docs/email"],
-      ["What the mail counts", "/docs/email#what-the-mail-counts"],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  "activity:events": [
-    "Your account log",
-    [
-      ["Privacy", "/docs/privacy"],
-      ["Tiers & roles", "/docs/roles"],
-    ],
-  ],
-  usage: [
-    "Budgets",
-    [
-      ["Limits", "/docs/limits"],
-      ["Live fetch", "/docs/tools/live"],
-      ["Run a collector", "/docs/operators"],
-    ],
-  ],
-  "agent:overview": [
-    "Your agent",
-    [
-      ["Agents", "/docs/agents"],
-      ["Tiers & roles", "/docs/roles"],
-      ["The timeline", "/docs/timeline"],
-    ],
-  ],
-  "agent:tracking": [
-    "What an agent tracks",
-    [
-      ["What an agent tracks", "/docs/agents#what-an-agent-tracks"],
-      ["How recording works", "/docs/recording"],
-      ["Tiers & slots", "/docs/roles"],
-    ],
-  ],
-  "agent:settings": [
-    "Running an agent",
-    [
-      ["Agents", "/docs/agents"],
-      ["Connections", "/docs/connections"],
-      ["Limits", "/docs/limits"],
-    ],
-  ],
-  "agent:connections": [
-    "Connecting as an agent",
-    [
-      ["Agents", "/docs/agents"],
-      ["Connections", "/docs/connections"],
-    ],
-  ],
-  "connections:clients": [
-    "Connections",
-    [
-      ["Connections", "/docs/connections"],
-      ["Protocol & auth", "/docs/protocol"],
-      ["Scopes", "/docs/protocol#scopes"],
-    ],
-  ],
-  "connections:agents": [
-    "Agents",
-    [
-      ["Agents", "/docs/agents"],
-      ["Key lifecycle", "/docs/agents#key-lifecycle"],
-      ["Identity map", "/docs/agents#knowing-which-human-is-asking"],
-    ],
-  ],
-  profile: [
-    "Your account",
-    [
-      ["Tiers & roles", "/docs/roles"],
-      ["Limits", "/docs/limits"],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  "profile:profile": [
-    "Your account",
-    [
-      ["Tiers & roles", "/docs/roles"],
-      ["Limits", "/docs/limits"],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  "profile:email": [
-    "The emails Elixir sends",
-    [
-      ["Email", "/docs/email"],
-      ["What the mail counts", "/docs/email#what-the-mail-counts"],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  "profile:devices": [
-    "Your sessions",
-    [
-      ["Connections", "/docs/connections"],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  feedback: [
-    "Feedback",
-    [
-      ["About the project", "/docs/about"],
-      ["elixir_send_feedback", "/docs/tools/help#elixir_send_feedback"],
-    ],
-  ],
-  "status:collectors": [
-    "Collectors",
-    [
-      ["Operators guide", "/docs/operators"],
-      ["Architecture", "/docs/architecture#collectors-in-depth"],
-    ],
-  ],
-  // The session clock's cost and loss, per day (2026-09-19).
-  "status:efficiency": [
-    "Efficiency",
-    [
-      [
-        "How often a subject is fetched",
-        "/docs/recording#how-often-a-subject-is-fetched",
-      ],
-      ["Completeness", "/docs/recording#completeness"],
-      [
-        "Architecture",
-        "/docs/architecture#scheduling-how-often-a-player-is-fetched-and-why",
-      ],
-    ],
-  ],
-  // One collector's record: the page an operator reads while running one.
-  "status:collector": [
-    "Running a collector",
-    [
-      ["Operators guide", "/docs/operators"],
-      ["How collectors get work", "/docs/architecture#collectors-in-depth"],
-      ["Budgets", "/docs/limits"],
-    ],
-  ],
-  status: [
-    "How the service runs",
-    [
-      ["Architecture", "/docs/architecture"],
-      ["Collectors", "/docs/operators"],
-      ["Limits", "/docs/limits"],
-    ],
-  ],
-  "admin:requests": [
-    "Admission",
-    [
-      ["Tiers & roles", "/docs/roles"],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  "admin:accounts": [
-    "Accounts & tiers",
-    [
-      ["Tiers & roles", "/docs/roles"],
-      ["Limits", "/docs/limits"],
-    ],
-  ],
-  "admin:collectors": [
-    "Collector fleet",
-    [
-      ["Operators guide", "/docs/operators"],
-      ["Architecture", "/docs/architecture#collectors-in-depth"],
-      ["How collectors get work", "/docs/architecture#collectors-in-depth"],
-    ],
-  ],
-  "admin:connections": [
-    "Connections",
-    [
-      ["Connections", "/docs/connections"],
-      ["Protocol & auth", "/docs/protocol"],
-      ["Tiers & roles", "/docs/roles"],
-    ],
-  ],
-  "admin:service-tokens": [
-    "Service keys",
-    [
-      ["Connections", "/docs/connections"],
-      ["Protocol & auth", "/docs/protocol"],
-    ],
-  ],
-  "admin:integrations": [
-    "Integrations",
-    [
-      ["Integrations", "/docs/integrations"],
-      ["Integration API", "/docs/integrations#provisioning-and-administration"],
-    ],
-  ],
-  "admin:pulse": [
-    "What is counted",
-    [
-      ["Privacy", "/docs/privacy"],
-      ["What the mail counts", "/docs/email#what-the-mail-counts"],
-    ],
-  ],
-  "admin:feedback": ["Feedback queue", [["About the project", "/docs/about"]]],
-  "admin:emails": [
-    "What we send",
-    [
-      ["Email", "/docs/email"],
-      ["What the mail counts", "/docs/email#what-the-mail-counts"],
-    ],
-  ],
-  "admin:discord": [
-    "What Elixir posts to Discord",
-    [
-      ["Timeline cross-post", "/docs/timeline#cross-posting-to-discord"],
-      ["Actions in Discord", "/docs/clan-actions#actions-in-the-clans-discord"],
-      [
-        "The clan's activity",
-        "/docs/clan-policy#the-clans-activity-in-discord",
-      ],
-      ["Privacy", "/docs/privacy"],
-    ],
-  ],
-  "admin:usage": [
-    "Usage across accounts",
-    [
-      ["Limits", "/docs/limits"],
-      ["Architecture", "/docs/architecture"],
-    ],
-  ],
-  "admin:cards": [
-    "The archetype vocabulary",
-    [
-      ["Deck archetypes", "/docs/archetypes"],
-      ["Cards", "/docs/cards"],
-    ],
-  ],
-  // Ladder's pages: the section's own page first, then the tool each
-  // page reads.
-  "ladder:season": [
-    "Ladder",
-    [
-      ["Ladder", "/docs/ladder"],
-      ["battles_performance", "/docs/tools/battles#battles_performance"],
-      ["players_summary", "/docs/tools/players#players_summary"],
-    ],
-  ],
-  "ladder:battles": [
-    "Ladder",
-    [
-      ["Battles", "/docs/ladder#battles"],
-      ["battles_query", "/docs/tools/battles#battles_query"],
-    ],
-  ],
-  "ladder:decks": [
-    "Ladder",
-    [
-      ["Decks", "/docs/ladder#decks"],
-      ["battles_decks", "/docs/tools/battles#battles_decks"],
-    ],
-  ],
-  "ladder:cards": [
-    "Ladder",
-    [
-      ["Cards", "/docs/ladder#cards"],
-      ["battles_cards", "/docs/tools/battles#battles_cards"],
-      ["battles_opponents", "/docs/tools/battles#battles_opponents"],
-    ],
-  ],
-};
 
 /** A battle's public page (2026-10-01): /battle/<short id>, a 12 to 64
  *  character hex prefix of the battle id. */
 const BATTLE_PATH = /^\/battle\/[0-9a-f]{12,64}$/;
 
 /** Which place the bar marks as the one you are in, from the route. A battle's
- *  public page is in no place, nor are Settings' pages: the bar's Search tab
- *  stands for Explore. */
+ *  public page is in no place, nor are Settings' pages: the Search tab opens
+ *  a sheet over whichever page you are on, and stands for Explore's records
+ *  while you are reading one. */
 export function barArea(path) {
   if (isHome(path)) return "home";
   if (isLadder(path)) return "ladder";
@@ -958,6 +321,7 @@ export function legalRoute(path) {
   if (isClan(path)) return path;
   if (isHome(path)) return path;
   if (path === SIGN_IN || path === SERVICE_STATUS) return path;
+  if (isSettings(path)) return settingsLegal(path);
   // A battle's public page is the app's too.
   if (BATTLE_PATH.test(path)) return path;
   // Ladder resolves its own paths.
@@ -969,17 +333,7 @@ export function legalRoute(path) {
   if (!sec) return null;
   // Explore's records are addressable, so it resolves its own paths.
   if (section === "explore") return path;
-  // An agent's pages: a public id, then one of its pages. Whether the
-  // agent is yours is the server's answer (a 404 the page says), not a
-  // routing question.
-  if (sec.scoped) {
-    const [, , id, agentPage] = app.split("/");
-    if (!AGENT_ID.test(id ?? "")) return null;
-    if (sec.pages.some((p) => p.slug === agentPage)) return path;
-    return `${CONSOLE}/${section}/${id}/${sec.pages[0].slug}`;
-  }
   if (sec.pages.some((p) => p.slug === page)) return path;
-  if (section === "account") return HOME;
   if (section === "status") return SERVICE_STATUS;
   return `${CONSOLE}/${section}/${sec.pages[0].slug}`;
 }
@@ -1009,6 +363,7 @@ const prettify = (seg) =>
 export function titleFor(section, sec, path) {
   if (path === SIGN_IN) return `Sign in - ${SITE}`;
   if (path === SERVICE_STATUS) return `Status - ${SITE}`;
+  if (isSettings(path)) return `${settingsTitle(path)} - Settings - ${SITE}`;
   if (isHome(path)) {
     const tab = path.split("/")[2];
     const name =
@@ -1026,10 +381,6 @@ export function titleFor(section, sec, path) {
   const parts = (appPath(path) ?? "").split("/").filter(Boolean);
   if (parts.length === 0) return SITE;
   if (!sec) return SITE;
-  if (sec.scoped) {
-    const known = sec.pages.find((p) => p.slug === parts[2])?.label;
-    return `${known ?? sec.label} - ${sec.label} - ${SITE}`;
-  }
   const pageSlug = parts[1];
   const known = sec.pages?.find((p) => p.slug === pageSlug)?.label;
   // A record deeper than the page slug is the most specific thing on
@@ -1084,64 +435,26 @@ function useNarrow() {
   return narrow;
 }
 
-/** What the rail head switches between: you, each agent you own, and Admin
- *  for an admin. Each is a place with its own address, never a mode the app
- *  remembers. */
-export function railConsoles(me, openAgent = null) {
-  const primary = (me?.claims ?? []).find((c) => c.is_primary);
-  const name = primary?.nickname ?? primary?.name ?? me?.email ?? undefined;
-  return [
-    {
-      key: "me",
-      group: "You",
-      icon: "gauge",
-      label: "Your account",
-      detail: [name, me?.role].filter(Boolean).join(" · ") || undefined,
-      to: `${CONSOLE}/account/profile`,
-    },
-    // A removed agent (0215) is left out unless it is the one open now.
-    ...(me?.agents ?? [])
-      .filter((a) => !a.removed_at || a.public_id === openAgent)
-      .map((a) => ({
-        key: a.public_id,
-        group: "Your agents",
-        icon: "bot",
-        label: a.name ?? a.public_id,
-        detail: `agent · ${a.public_id}`,
-        to: `${CONSOLE}/agent/${a.public_id}/overview`,
-      })),
-    ...(me?.is_admin
-      ? [
-          {
-            key: "admin",
-            group: "Operate",
-            icon: "shield",
-            label: "Admin",
-            detail: ["every account", me.role].filter(Boolean).join(" · "),
-            to: `${CONSOLE}/admin/requests`,
-          },
-        ]
-      : []),
-  ];
-}
-
-/** The rail: the kit's, fed the rail this place belongs to (Settings, Explore,
- *  an agent's or Admin's), filtered by who is looking, with the reader's counts
- *  and the two dots attached by key. Who you are and the way out are the bar's
- *  account menu, never the rail's. */
-function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
-  const [feedback, setFeedback] = useState(false);
-  const invalidate = useInvalidate();
-  const consoles = railConsoles(me, here.scope);
+/** The rail: the kit's, fed the rail this place belongs to (Settings, Explore
+ *  or Admin), filtered by who is looking, with the reader's counts and the one
+ *  dot attached by key. Who you are and the way out are the bar's account menu,
+ *  never the rail's; feedback and help are the bar's Help drawer. */
+function Rail({
+  me,
+  here,
+  navigate,
+  narrow,
+  counts,
+  dots = {},
+  runsCollector,
+}) {
   const admin = here.rail === "admin";
   const explore = here.rail === "explore";
-  const rail = here.scope
-    ? agentRail(here.scope)
-    : admin
-      ? ADMIN_RAIL.filter((r) => !r.ownerOnly || me?.is_owner)
-      : explore
-        ? EXPLORE_RAIL
-        : SETTINGS_RAIL;
+  const rail = admin
+    ? ADMIN_RAIL.filter((r) => !r.ownerOnly || me?.is_owner)
+    : explore
+      ? EXPLORE_RAIL
+      : SETTINGS_RAIL.filter((r) => !r.runsOne || runsCollector);
   const items = rail.map((row) => ({
     key: row.key,
     label: row.label,
@@ -1150,104 +463,18 @@ function Rail({ me, agent, here, navigate, narrow, counts, dots = {} }) {
     group: row.group,
     meta: row.meta ?? counts[row.key],
     dot: dots[row.key] ?? null,
-    subs: (row.subs ?? []).map(([slug, label, to]) => ({ slug, label, to })),
   }));
-  const account = here.scope ?? (admin ? "admin" : "me");
-  const current = consoles.find((c) => c.key === account) ?? consoles[0];
-
-  // Feedback is filed as you, from your own pages (2026-09-23): an agent's
-  // pages and Admin have no foot.
-  const files = !here.scope && !admin;
-  const name = here.scope
-    ? "Agent"
-    : admin
-      ? "Admin"
-      : explore
-        ? "Explore"
-        : "Settings";
+  const name = admin ? "Admin" : explore ? "Explore" : "Settings";
   return (
-    <>
-      <RailList
-        label={`${name} sections`}
-        items={items}
-        current={here.key}
-        sub={here.sub}
-        navigate={navigate}
-        narrow={narrow}
-        title={name}
-        subtitle={
-          explore
-            ? undefined
-            : here.scope
-              ? (agent?.name ?? current.label)
-              : current.label
-        }
-        // Explore reads the same for everyone, so it has no one to switch to.
-        accounts={explore ? undefined : consoles}
-        account={account}
-        manage={
-          explore
-            ? undefined
-            : { label: "Manage agents…", to: `${CONSOLE}/account/agents` }
-        }
-        foot={
-          files
-            ? {
-                label: RAIL_FOOT.label,
-                icon: RAIL_FOOT.icon,
-                onClick: () => setFeedback(true),
-              }
-            : undefined
-        }
-      />
-      {files && feedback && (
-        <FeedbackSheet
-          area="console"
-          categories={FEEDBACK_CATEGORIES}
-          about="About Elixir. The page you are on rides along."
-          context={{ page: here.key, ...(here.sub ? { sub: here.sub } : {}) }}
-          send={async (body) => {
-            const r = await api.sendFeedback(body);
-            // Your feedback page and the rail's counts read it next.
-            if (r.ok) invalidate(keys.me);
-            return r;
-          }}
-          onClose={() => setFeedback(false)}
-          itemHref={(id) => `${RAIL_FOOT.history}/${id}`}
-          historyHref={RAIL_FOOT.history}
-        />
-      )}
-    </>
-  );
-}
-
-/** The foot of every page with a rail: one slot, one shape, one map. An
- *  ad-hoc "learn more" in a different place on each screen is what this
- *  replaced, so a page with no entry is a bug rather than a fallback. */
-function DocsStrip({ here }) {
-  const entry =
-    (here.doc && DOC_LINKS[here.doc]) ??
-    DOC_LINKS[here.sub ? `${here.key}:${here.sub}` : here.key] ??
-    DOC_LINKS[here.key];
-  if (!entry) return null;
-  const [topic, links] = entry;
-  return (
-    <footer className="page__docs">
-      <span className="flex items-center gap-[9px] text-ink-faint">
-        <Icon name="book-open" size={16} />
-        <span className="label">Docs · {topic}</span>
-      </span>
-      <span className="flex flex-wrap gap-2">
-        {links.map(([label, href]) => (
-          <a className="btn btn--sm" key={href} href={href}>
-            {label}
-          </a>
-        ))}
-      </span>
-      <a className="ml-auto text-[13px]" href={STATIC_LINKS.docs}>
-        All docs ›
-      </a>
-    </footer>
+    <RailList
+      label={`${name} sections`}
+      items={items}
+      current={here.key}
+      navigate={navigate}
+      narrow={narrow}
+      title={name}
+      subtitle={`All ${name.toLowerCase()}`}
+    />
   );
 }
 
@@ -1283,6 +510,7 @@ const signedInPath = (path) => {
       isLadder(url.pathname) ||
       isClan(url.pathname) ||
       isHome(url.pathname) ||
+      isSettings(url.pathname) ||
       url.pathname === SERVICE_STATUS ||
       BATTLE_PATH.test(url.pathname)
     );
@@ -1434,12 +662,12 @@ function Unavailable({ onRetry, busy }) {
  */
 /** What the distribution routes to this app; the rest is the static site. */
 const APP_PATHS =
-  /^\/(home|signin|console|ladder|clan|battle|data\/service)(\/|$)/;
+  /^\/(home|signin|settings|console|ladder|clan|battle|data\/service)(\/|$)/;
 
 const rootRoute = createRootRoute({
   beforeLoad: ({ location }) => {
     const path = location.pathname;
-    const owned = legalRoute(movedTo(path) ?? path);
+    const owned = legalRoute(movedTo(path, location.hash) ?? path);
     if (owned === null) {
       // CloudFront only sends this app's own paths here, so anything else
       // got here by a link inside the page and is a site document: load it.
@@ -1508,21 +736,13 @@ const signInRoute = createRoute({
   },
 });
 
-const accountRoute = createRoute({
+/** Settings: one route, and the page reads the address (lib/settings.js). */
+const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: `${CONSOLE}/account/{-$page}/{-$itemId}/{-$recordId}`,
+  path: `${SETTINGS}/$`,
   component: lazyRouteComponent(
-    () => import("./pages/AccountPage.jsx"),
-    "AccountPage",
-  ),
-});
-
-const agentRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: `${CONSOLE}/agent/$agent/{-$page}/{-$itemId}/{-$recordId}`,
-  component: lazyRouteComponent(
-    () => import("./pages/AgentPage.jsx"),
-    "AgentPage",
+    () => import("./pages/SettingsPage.jsx"),
+    "SettingsPage",
   ),
 });
 
@@ -1600,8 +820,7 @@ const dataRoute = createRoute({
 export const routeTree = rootRoute.addChildren([
   homeRoute,
   signInRoute,
-  accountRoute,
-  agentRoute,
+  settingsRoute,
   exploreRoute,
   statusRoute,
   serviceRoute,
@@ -1621,6 +840,7 @@ export const routeTree = rootRoute.addChildren([
  *  ids. Route components read this rather than re-deriving it. */
 /** Ladder's place in the route table: one section, signed in. */
 const LADDER_SECTION = { label: "Ladder", authed: true, pages: [] };
+const SETTINGS_SECTION = { label: "Settings", authed: true, pages: [] };
 
 export function useHere() {
   const { pathname, search } = useLocation();
@@ -1630,6 +850,14 @@ export function useHere() {
       section: "ladder",
       sec: LADDER_SECTION,
       here: ladderHere(pathname),
+      search: search ?? {},
+    };
+  if (isSettings(pathname))
+    return {
+      path: pathname,
+      section: "settings",
+      sec: SETTINGS_SECTION,
+      here: { rail: "settings", ...settingsHere(pathname) },
       search: search ?? {},
     };
   if (pathname === SERVICE_STATUS)
@@ -1646,21 +874,6 @@ export function useHere() {
   const app = appPath(pathname) ?? "";
   const [, section, page, itemId, recordId] = app.split("/");
   const sec = SECTIONS[section];
-  if (sec?.scoped) {
-    // /agent/<public_id>/<page>/<itemId>/<recordId>: one segment along.
-    const [, , scope, agentPage, agentItem, agentRecord] = app.split("/");
-    return {
-      path: pathname,
-      section,
-      sec,
-      scope,
-      activePage: sec.pages.find((p) => p.slug === agentPage)?.slug,
-      here: railPosition(pathname),
-      itemId: agentItem,
-      recordId: agentRecord,
-      search: search ?? {},
-    };
-  }
   const activePage = sec?.pages.find((p) => p.slug === page)?.slug;
   const here = railPosition(pathname);
   return {
@@ -1778,9 +991,10 @@ function ClanFrame({ children }) {
 }
 
 function Shell() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   // Nothing at this address brings its own shell (MissingPage).
-  if (legalRoute(movedTo(pathname) ?? pathname) === null) return <Outlet />;
+  if (legalRoute(movedTo(pathname, hash) ?? pathname) === null)
+    return <Outlet />;
   if (isHome(pathname)) return <HomeOutlet />;
   return isClan(pathname) ? <SharedClanOutlet /> : <ConsoleShell />;
 }
@@ -1849,44 +1063,26 @@ function ConsoleShell() {
     document.title = titleFor(section, sec, effectivePath);
   }, [section, sec, effectivePath]);
 
-  // On an agent's console the rail's counts and dots are the agent's:
-  // its own `me`, from the same query its pages read.
-  const agentEnvelope = useAgentMe(authed ? here.scope : null).data;
-  const agent = here.scope && agentEnvelope?.ok ? agentEnvelope.data : null;
-  const subject = here.scope ? agent : me;
-
-  /** Counts on rail items are the reader's own things, derived once here
-   *  so two screens cannot disagree about them (house rule: derive
-   *  shared numbers once). Omitted rather than guessed while /api/me has
-   *  not answered. The Tracking count is what this console's account
-   *  tracks (signals.tracking); the slot figures are pooled across you and
-   *  your agents, so they are not it. The canvas (2026-09-29) keeps the
-   *  one count on your rail; an agent's rail, which still lists its
-   *  feedback, keeps that count too. */
+  // Counts on the rail are the reader's own things, derived once here so two
+  // screens cannot disagree (house rule). Omitted while /api/me has not
+  // answered. The one dot is an alert on Connections while a credential that
+  // no longer works is still being presented: the one thing on this rail that
+  // wants you before you go looking.
   const counts = {};
-  if (subject?.signals?.tracking !== undefined)
-    counts.tracking = String(subject.signals.tracking);
-  if (here.scope && subject?.signals?.feedback > 0)
-    counts.feedback = String(subject.signals.feedback);
-  /** The two dots the design puts on the rail: unread on an agent's Timeline
-   *  while the feed holds news since those pages last showed it (its own
-   *  place, never a connection's read pointer: Jamie, 2026-10-20), and
-   *  an alert on Connections while a credential that no longer works is
-   *  still being presented — the one thing on this rail that wants you
-   *  before you go looking. */
+  if (me?.signals?.tracking !== undefined)
+    counts.players = String(me.signals.tracking);
   const dots = {
-    timeline:
-      subject?.signals?.timeline_pending > 0
-        ? { tone: "unread", title: "Unread notifications" }
-        : null,
     connections:
-      subject?.signals?.refusals_7d > 0
+      me?.signals?.refusals_7d > 0
         ? {
             tone: "alert",
             title: "A credential that no longer works is still being presented",
           }
         : null,
   };
+  const inSettings = section === "settings";
+  const gateways = useMyGateways({ enabled: authed && inSettings });
+  const runsCollector = (gateways.data?.gateways ?? []).length > 0;
 
   const needsAuth = sec?.authed && !authed && me !== null && !unreachable;
   const showUnavailable = sec?.authed && !authed && unreachable;
@@ -1911,12 +1107,12 @@ function ConsoleShell() {
             {railed ? (
               <Rail
                 me={me}
-                agent={agent}
                 here={here}
                 navigate={navigate}
                 narrow={narrow}
                 counts={counts}
                 dots={dots}
+                runsCollector={runsCollector}
               />
             ) : null}
 
@@ -1936,7 +1132,6 @@ function ConsoleShell() {
                     <Outlet />
                   )}
                 </ErrorBoundary>
-                {showRail && <DocsStrip here={here} />}
               </div>
             </main>
           </div>

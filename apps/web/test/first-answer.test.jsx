@@ -140,12 +140,10 @@ test(
       return el;
     });
     fireEvent.change(input, { target: { value: player.player_tag } });
-    fireEvent.click(input.parentElement.querySelector("button"));
+    fireEvent.click(input.closest("form").querySelector("button"));
 
     await waitFor(() =>
-      expect(window.location.pathname).toBe(
-        "/console/account/tracking/2PP0V90Y",
-      ),
+      expect(window.location.pathname).toBe("/settings/players/2PP0V90Y"),
     );
     cleanup();
     captured = true;
@@ -239,7 +237,7 @@ test("Verify is a step after battles, linking to Verify", async () => {
     "Player verified (needed to act in Clan)",
   );
   const link = screen.getByRole("link", { name: "Verify your player ›" });
-  expect(link.getAttribute("href")).toBe("/console/account/verify");
+  expect(link.getAttribute("href")).toBe("/settings/players/verify");
   // In the record's own steps: after Battles on record.
   const order = [
     "Battles on record",
@@ -299,7 +297,7 @@ test("older retained battles remain usable when recording stopped and the profil
   ).toBe("/console/explore/list/battles:2PP0V90Y");
   expect(
     screen.getByRole("link", { name: /Manage recording/ }).getAttribute("href"),
-  ).toBe("/console/account/tracking");
+  ).toBe("/settings/players");
   expect(screen.queryByText(/Waiting for the first/)).toBeNull();
 });
 

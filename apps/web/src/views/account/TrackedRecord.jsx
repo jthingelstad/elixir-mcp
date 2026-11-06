@@ -2,7 +2,6 @@ import { useInitialTime, Panel, PageHead, Empty } from "@elixir-mcp/ui";
 import { useWrite } from "@elixir-mcp/client";
 import {
   ago,
-  Icon,
   Link,
   secsSince,
   Tag,
@@ -22,6 +21,9 @@ import {
 import { tagFromPath, tagPath } from "../../lib/tag-url.js";
 import { ActivityGraph } from "../../components/ActivityGraph.jsx";
 import { CONSOLE } from "../../lib/console.js";
+import { SETTINGS } from "../../lib/settings.js";
+import { ladderHref } from "../../ladder/ladder.js";
+import { Crumb, Facts, Note } from "./parts.jsx";
 import { FirstAnswer } from "../../components/FirstAnswer.jsx";
 import { HomeClanOffer } from "../../components/HomeClanOffer.jsx";
 import { ClanReadStatus } from "../../components/ClanReadStatus.jsx";
@@ -33,14 +35,14 @@ import { FixTag, StopTracking } from "./TagFix.jsx";
  * One tracked player or clan: how you track it, and what that is
  * capturing.
  *
- * The controls live here rather than in the Tracking row. A list row
+ * The controls live here rather than in the Players & tracking row. A list row
  * with a nickname field, a relationship select, a notify switch and a
  * remove button in it is a form pretending to be a list, and it makes
  * the one thing a list is for — comparing rows — impossible.
  *
  * "Stop tracking" says what it costs beside itself: the history already
  * recorded is kept, and this only stops new capture. That is the whole
- * reason the word is "stop" and not "delete". It asks once before it
+ * reason the word is "stop" and not "delete". It asks in a dialog before it
  * writes (TagFix.jsx).
  *
  * A player tag the game answered "not found" for (2026-10-08) records
@@ -71,7 +73,7 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   );
   // Every write on this page, each unwrapped: a refusal is said on the
   // page, and the record refetches only after a write that took. "Make
-  // primary" used to clear the removal refusal whatever the server
+  // main player" used to clear the removal refusal whatever the server
   // answered.
   const relationship = useWrite(api.setRelationship, {
     invalidate: () => refresh(),
@@ -134,38 +136,55 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
   const clan = (clans?.clans ?? []).find((c) => c.clan_tag === wanted);
   const rec = me.recordings?.find((r) => r.subject_tag === wanted);
 
-  const crumb = (
-    <div className="page__crumb">
-      <Link to={`${CONSOLE}/account/tracking`}>‹ Tracking</Link>
-    </div>
-  );
+  const backTo = `${SETTINGS}/players`;
+  const crumb = <Crumb to={backTo}>Players &amp; tracking</Crumb>;
 
   if (!claim && !clan) {
     return (
-      <>
+      <div className="st-page">
         {crumb}
         <ClanReadStatus query={clansQuery} />
         {clansQuery.isSuccess && (
           <Empty title="You are not tracking that">
             <span className="mono">{wanted}</span> is not on your account. If
-            you removed it, history stays for at least a year after the last
-            person stops tracking. Look it up in Explore.
+            you stopped tracking it, history stays for at least a year after the
+            last person stops tracking. Search for it to open its record.
           </Empty>
         )}
-      </>
+      </div>
     );
   }
 
   const isClan = Boolean(clan);
+  const you = !isClan && (claim.is_primary || claim.relationship === "alt");
   // With no name the headline is the tag, in the display face, where a
   // 0 and an O are one shape: drawn as a Tag.
   const name = isClan
     ? (clan.name ?? <Tag tag={clan.clan_tag} />)
     : (claim.nickname ?? claim.name ?? <Tag tag={claim.player_tag} />);
+  const plainName = isClan
+    ? (clan.name ?? clan.clan_tag)
+    : (claim.nickname ?? claim.name ?? claim.player_tag);
   const fresh = secsSince(rec?.freshest_poll, now);
+  const recording = isClan ? clan.recording_status : rec?.status;
+  // One name, one door: your own player opens in Ladder, anyone else on
+  // the record.
+  const open = isClan
+    ? [`${CONSOLE}/explore/clan/${tagPath(wanted)}`, "Open its record"]
+    : you
+      ? [ladderHref("season", { player: wanted }), "Open in Ladder"]
+      : [`${CONSOLE}/explore/player/${tagPath(wanted)}`, "Open their record"];
+  const stop = (
+    <StopTracking
+      name={plainName}
+      run={() => only(remove)(isClan)}
+      busy={busy}
+      onDone={() => navigate(backTo)}
+    />
+  );
 
   return (
-    <>
+    <div className="st-page">
       {crumb}
       {isClan && <ClanReadStatus query={clansQuery} />}
       <PageHead
@@ -179,35 +198,28 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
         }
         sub={
           <>
-            <Link
-              className="mono"
-              to={`${CONSOLE}/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`}
-            >
-              {wanted}
-            </Link>
-            <span>
-              {" · "}
-              {isClan ? "clan" : "player"}
-              {isClan && clan.member_count
-                ? ` · ${clan.member_count} ${noun(clan.member_count, "member")}`
-                : ""}
-              {!isClan && claim.is_primary ? " · your primary" : ""}
-            </span>
+            <span className="mono">{wanted}</span>,{" "}
+            {isClan ? "a clan" : "a player"}
+            {isClan && clan.member_count
+              ? `, ${clan.member_count} ${noun(clan.member_count, "member")}`
+              : ""}
+            {!isClan && claim.is_primary ? ", your main player" : ""}
           </>
         }
         aside={
-          <button
-            className="btn"
-            style={{ marginLeft: "auto" }}
-            onClick={() =>
-              navigate(
-                `${CONSOLE}/explore/${isClan ? "clan" : "player"}/${tagPath(wanted)}`,
-              )
-            }
-          >
-            <Icon name="search" size={16} />
-            Open in Explore
-          </button>
+          <span className="st-actions">
+            {you && claim.status !== "verified" ? (
+              <Link
+                className="btn btn--sm"
+                to={`${SETTINGS}/players/${tagPath(wanted)}/verify`}
+              >
+                Verify {plainName}
+              </Link>
+            ) : null}
+            <Link className="btn btn--sm" to={open[0]}>
+              {open[1]}
+            </Link>
+          </span>
         }
       />
 
@@ -222,92 +234,64 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                 claim={claim}
                 refresh={refresh}
                 navigate={navigate}
-                stop={
-                  <StopTracking
-                    tag={wanted}
-                    run={() => only(remove)(false)}
-                    busy={busy}
-                    error={remove.error}
-                    onDone={() => navigate(`${CONSOLE}/account/tracking`)}
-                  />
-                }
+                stop={stop}
               />
             ) : null
           }
         />
       )}
-      {/* Adding a tag lands here, so the primary's clan is offered here
+      {/* Adding a tag lands here, so the main player's clan is offered here
           too when Elixir could not follow it by itself. */}
-      {!isClan && claim.is_primary && <HomeClanOffer className="mb-[18px]" />}
+      {!isClan && claim.is_primary && <HomeClanOffer />}
 
-      <div style={{ display: "flex", gap: "18px", flexWrap: "wrap" }}>
-        <Panel
-          title="How you track it"
-          titleAs="div"
-          style={{ flex: "1 1 340px" }}
-        >
-          <div
-            style={{
-              padding: "16px",
-              display: "grid",
-              gridTemplateColumns: "auto 1fr",
-              gap: "14px 16px",
-              alignItems: "center",
-              fontSize: "13.5px",
-            }}
-          >
-            <span style={{ color: "var(--ink-faint)" }}>Relationship</span>
-            <span>
-              {isClan ? (
-                <span style={{ color: "var(--ink-faint)" }}>
-                  a clan is tracked, not related
-                </span>
-              ) : claim.is_primary ? (
-                // Gold marks ownership, and the primary player is the one
-                // thing on this account that is unambiguously you.
-                <span
-                  style={{
-                    color: "var(--gold)",
-                    fontSize: "12.5px",
-                    border: "1px solid var(--warn-edge)",
-                    borderRadius: "var(--r-chip)",
-                    padding: "5px 10px",
-                  }}
-                >
-                  you
-                </span>
-              ) : (
+      <div className="st-two">
+        <Panel title="How you track it" titleAs="h2">
+          <Facts
+            rows={[
+              [
+                "Relationship",
+                isClan ? (
+                  "A clan is tracked, not related."
+                ) : claim.is_primary ? (
+                  <>
+                    Your main player
+                    <Note>
+                      Who Ladder opens on, and the name in your top bar.
+                    </Note>
+                  </>
+                ) : (
+                  <span key="value" className="st-actions">
+                    <select
+                      className="select"
+                      aria-label="Relationship"
+                      value={claim.relationship ?? "watching"}
+                      onChange={(ev) =>
+                        only(relationship)(wanted, ev.target.value)
+                      }
+                    >
+                      <option value="friend">Friend</option>
+                      <option value="watching">Watching</option>
+                      <option value="alt">Also you</option>
+                    </select>
+                    {/* Choosing a new one is how the current main player
+                        becomes removable (2026-09-25). */}
+                    <button
+                      type="button"
+                      className="btn btn--sm"
+                      disabled={busy}
+                      onClick={() => only(primary)()}
+                    >
+                      Make main player
+                    </button>
+                  </span>
+                ),
+              ],
+              isClan && [
+                "What to record",
                 <select
+                  key="scope"
                   className="select"
-                  aria-label="Relationship"
-                  value={claim.relationship ?? "watching"}
-                  onChange={(ev) => only(relationship)(wanted, ev.target.value)}
-                >
-                  <option value="alt">alt</option>
-                  <option value="friend">friend</option>
-                  <option value="watching">watching</option>
-                </select>
-              )}
-              {!isClan && !claim.is_primary && (
-                // Your primary is "you"; choosing a new one here is how the
-                // current primary becomes removable (2026-09-25).
-                <button
-                  className="btn"
-                  style={{ marginLeft: "8px" }}
-                  disabled={busy}
-                  onClick={() => only(primary)()}
-                >
-                  Make primary
-                </button>
-              )}
-            </span>
-
-            <span style={{ color: "var(--ink-faint)" }}>Scope</span>
-            <span>
-              {isClan ? (
-                <select
-                  className="select"
-                  aria-label="Scope"
+                  aria-label="What to record"
                   value={clan.scope}
                   onChange={(ev) => only(scope)(ev.target.value)}
                 >
@@ -315,22 +299,15 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                     {scopeLabel("comprehensive")}
                   </option>
                   <option value="activity">{scopeLabel("activity")}</option>
-                </select>
-              ) : (
-                <span style={{ color: "var(--ink-faint)" }}>
-                  players have one scope
-                </span>
-              )}
-            </span>
-
-            {!isClan && (
-              <>
-                <span style={{ color: "var(--ink-faint)" }}>Nickname</span>
-                <span>
+                </select>,
+              ],
+              !isClan && [
+                "Nickname",
+                <>
                   <input
                     className="mono"
                     aria-label="Nickname"
-                    placeholder="—"
+                    placeholder="How you know them"
                     maxLength={40}
                     value={nick ?? claim.nickname ?? ""}
                     onChange={(ev) => setNick(ev.target.value)}
@@ -339,162 +316,101 @@ export function TrackedRecord({ me, refresh, navigate, tag }) {
                         return;
                       only(nickname)(nick.trim() || null);
                     }}
-                    style={{ width: "11rem" }}
                   />
-                  <span
-                    className="footnote"
-                    style={{ display: "block", marginTop: "4px" }}
-                  >
-                    Private to you, and your agent sees it.
-                  </span>
-                </span>
-              </>
-            )}
-
-            <span style={{ color: "var(--ink-faint)" }}>Notifications</span>
-            <span>
-              <button
-                className="switch"
-                role="switch"
-                aria-checked={
-                  (isClan ? clan.notify : claim.notify) ? "true" : "false"
-                }
-                aria-label="Notifications"
-                onClick={() =>
-                  only(notify)(isClan, isClan ? clan.notify : claim.notify)
-                }
-              />
-              <span
-                className="footnote"
-                style={{ display: "block", marginTop: "4px" }}
-              >
-                {isClan
-                  ? "Include this clan in your timeline. Clan report emails are separate."
-                  : "Include this player in your timeline. For friends and watched players, this also controls inclusion in Your friends this week."}{" "}
-                <Link to={`${CONSOLE}/account/profile/email`}>
-                  Email settings
-                </Link>
-                .
-              </span>
-            </span>
-          </div>
+                  <Note>
+                    Private to you, and your agent sees it. It saves when you
+                    leave the field.
+                  </Note>
+                </>,
+              ],
+              [
+                "On your timeline",
+                <>
+                  <button
+                    className="switch"
+                    role="switch"
+                    aria-checked={
+                      (isClan ? clan.notify : claim.notify) ? "true" : "false"
+                    }
+                    aria-label="On your timeline"
+                    onClick={() =>
+                      only(notify)(isClan, isClan ? clan.notify : claim.notify)
+                    }
+                  />
+                  <Note>
+                    {isClan
+                      ? "Include this clan in your timeline. Clan report emails are separate."
+                      : "Include this player in your timeline. It also decides whether they appear in Your friends this week."}{" "}
+                    <Link to={`${SETTINGS}/emails`}>Email settings</Link>
+                  </Note>
+                </>,
+              ],
+            ]}
+          />
           <WriteError error={failed} className="field-error px-4" />
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              flexWrap: "wrap",
-              padding: "13px 16px",
-              borderTop: "1px solid var(--line-soft)",
-            }}
-          >
-            <StopTracking
-              tag={wanted}
-              run={() => only(remove)(isClan)}
-              busy={busy}
-              error={remove.error}
-              // Your primary cannot be removed while you track others
-              // (409 primary_in_use): the refusal is said beside the
-              // button, and the page stays.
-              onDone={() => navigate(`${CONSOLE}/account/tracking`)}
-            />
-          </div>
+          <div className="panel__body">{notFound ? null : stop}</div>
         </Panel>
 
-        <Panel title="Recording" titleAs="div" style={{ flex: "1 1 300px" }}>
-          <dl
-            style={{
-              padding: "16px",
-              display: "grid",
-              gridTemplateColumns: "auto 1fr",
-              gap: "12px 16px",
-              margin: 0,
-              fontSize: "13.5px",
-            }}
-          >
-            <dt style={{ color: "var(--ink-faint)" }}>Recording</dt>
-            <dd style={{ margin: 0 }}>
-              {notFound ? (
-                <span className="chip chip--bad">
-                  <span className="chip__dot" />
-                  tag not found
-                </span>
-              ) : (
-                <span
-                  className={
-                    "chip " +
-                    ((isClan ? clan.recording_status : rec?.status) === "active"
-                      ? "chip--ok"
-                      : "chip--info")
-                  }
-                >
-                  <span className="chip__dot" />
-                  {(isClan ? clan.recording_status : rec?.status) ?? "off"}
-                </span>
-              )}
-            </dd>
-            <dt style={{ color: "var(--ink-faint)" }}>How</dt>
-            <dd style={{ margin: 0, color: "var(--ink-body)" }}>
-              {isClan
-                ? clan.scope === "comprehensive"
-                  ? "The clan and every member: clan roster every 15 min while members are online, backing off when idle; the river race; every member's battles and profile"
-                  : "The clan only: clan roster every 15 min while members are online, backing off when idle; the river race"
-                : "battle log every 30 min while playing, backing off to 2 h · profile daily and after a session"}
-            </dd>
-            <dt style={{ color: "var(--ink-faint)" }}>Last read</dt>
-            <dd style={{ margin: 0, color: "var(--ink-body)" }}>
-              {/* Never read is not stale and not zero. */}
-              {notFound
-                ? "no profile: the game does not know this tag"
-                : fresh == null
-                  ? "never read"
-                  : ago(rec.freshest_poll, now)}
-            </dd>
-            <dt style={{ color: "var(--ink-faint)" }}>Fetches, 24h</dt>
-            <dd
-              style={{
-                margin: 0,
-                fontFamily: "var(--font-mono)",
-                color: "var(--ink-body)",
-              }}
-            >
-              {rec?.fetches_24h ?? "—"}
-            </dd>
-            <dt style={{ color: "var(--ink-faint)" }}>Tracked since</dt>
-            <dd
-              style={{
-                margin: 0,
-                fontFamily: "var(--font-mono)",
-                color: "var(--ink-body)",
-              }}
-            >
-              {whenDay(isClan ? clan.created_at : rec?.created_at)}
-            </dd>
-          </dl>
+        <Panel title="Recording" titleAs="h2">
+          <Facts
+            rows={[
+              [
+                "Recording",
+                notFound ? (
+                  <span key="value" className="chip chip--bad">
+                    <span className="chip__dot" />
+                    Tag not found
+                  </span>
+                ) : recording === "active" ? (
+                  <span key="value" className="chip chip--ok">
+                    <span className="chip__dot" />
+                    Recording
+                  </span>
+                ) : (
+                  <span key="value" className="chip chip--info">
+                    <span className="chip__dot" />
+                    Starting
+                  </span>
+                ),
+              ],
+              [
+                "How",
+                isClan
+                  ? clan.scope === "comprehensive"
+                    ? "Roster every 15 min while members are online, backing off when idle. The river race. Each member's battles and profile."
+                    : "Roster every 15 min while members are online, backing off when idle. The river race."
+                  : "Battle log every 30 min while playing, backing off to 2 hours. Profile daily and after a session.",
+              ],
+              [
+                "Last read",
+                notFound
+                  ? "No profile: the game does not know this tag"
+                  : fresh == null
+                    ? "Not read yet"
+                    : ago(rec.freshest_poll, now),
+              ],
+              [
+                "Reads, last 24 hours",
+                (rec?.fetches_24h ?? 0).toLocaleString(),
+              ],
+              [
+                "Tracked since",
+                whenDay(isClan ? clan.created_at : rec?.created_at),
+              ],
+            ]}
+          />
         </Panel>
       </div>
 
       {!isClan && (
-        <Panel
-          title="Battle activity"
-          titleAs="div"
-          style={{ marginTop: "18px" }}
-        >
+        <Panel title="Battle activity" titleAs="h2">
           <ActivityGraph
             data={activity}
             error={activityQuery.error}
             onRetry={activityQuery.refetch}
           />
-          <p className="footnote" style={{ padding: "0 16px 14px", margin: 0 }}>
-            UTC days, from recorded battles and the changes between profile
-            reads. A finished day has to be read in full before an empty count
-            means no battles. Hatching means it was not read in full, or that is
-            unknown; recorded battles still show.{" "}
-            <a href="/docs/activity">How this is drawn</a>
-          </p>
         </Panel>
       )}
-    </>
+    </div>
   );
 }

@@ -402,8 +402,12 @@ export const useCallRecord = (id) => {
   });
 };
 
-export const useMyGateways = () =>
-  useQuery({ queryKey: keys.gateways, queryFn: payload(api.myGateways) });
+export const useMyGateways = ({ enabled = true } = {}) =>
+  useQuery({
+    queryKey: keys.gateways,
+    queryFn: payload(api.myGateways),
+    enabled,
+  });
 
 /** Public: the service status. `refetchInterval` is the page's auto
  *  toggle - off by default and visible either way. */

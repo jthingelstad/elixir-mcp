@@ -153,7 +153,7 @@ for (const suffix of ["", " @narrow"]) {
       } else {
         await expect(page.getByText(/join a clan in the game/i)).toHaveCount(0);
         await expect(
-          page.getByRole("link", { name: "Elixir → Tracking" }),
+          page.getByRole("link", { name: "Settings → Players" }),
         ).toBeVisible();
       }
       await page.getByRole("button", { name: /check again/i }).click();

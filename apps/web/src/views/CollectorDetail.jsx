@@ -23,6 +23,7 @@ import {
 import { SignatureBadge } from "../components/ReleaseSignature.jsx";
 import { CardPicker } from "../components/CardPicker.jsx";
 import { CONSOLE } from "../lib/console.js";
+import { ConfirmAction } from "@elixir-mcp/ui";
 
 /**
  * One collector.
@@ -279,7 +280,7 @@ function Operations({ g, staged, setStaged, reload }) {
  * the record is where a favourite gets chosen after the fact. The card
  * is the public name, so a change moves this page's address with it.
  */
-function YourCard({ own, navigate }) {
+function YourCard({ own, navigate, home }) {
   const [open, setOpen] = useState(false);
   // The card list is read when the picker opens, not before.
   const cardsQuery = useGatewayCards({ enabled: open });
@@ -350,9 +351,7 @@ function YourCard({ own, navigate }) {
                 onClick={async () => {
                   const r = await api.pickGatewayCard(own.gateway_id, pick);
                   if (r.ok) {
-                    navigate(
-                      `${CONSOLE}/status/collectors/${encodeURIComponent(r.data.card)}`,
-                    );
+                    navigate(`${home}/${encodeURIComponent(r.data.card)}`);
                   } else {
                     setNote(r.data?.message ?? "Could not change that.");
                     invalidate(keys.gatewayCards);
@@ -378,40 +377,41 @@ function YourCard({ own, navigate }) {
  * one-time reveal above.
  */
 function NewToken({ own }) {
-  const [sure, setSure] = useState(false);
-  const [error, setError] = useState("");
   const invalidate = useInvalidate();
   return (
-    <Panel title="New token" titleAs="div" className="mb-[14px]">
-      <div className="panel__body flex flex-wrap items-center gap-3">
-        <span className="footnote m-0 max-w-[52ch]">
-          {sure
-            ? "The token your machine holds stops working the moment you stage a new one."
-            : "Lost the token, or let 72 hours pass before revealing it? Stage a new one here."}
-        </span>
-        <button
-          className="btn btn--sm ml-auto"
-          onClick={async () => {
-            if (!sure) {
-              setSure(true);
-              return;
-            }
-            const r = await api.gatewayToken(own.gateway_id);
-            if (r.ok) {
-              setSure(false);
-              invalidate(keys.gateways);
-            } else setError(r.data?.error ?? `HTTP ${r.status}`);
+    <Panel
+      title="Collector token"
+      titleAs="h2"
+      action={
+        <ConfirmAction
+          label="Replace the token"
+          title="Replace the collector token?"
+          body="The token your machine holds stops working the moment you stage a new one. It stops fetching until you paste the new one in."
+          confirm="Replace the token"
+          run={() => api.gatewayToken(own.gateway_id)}
+          onDone={(r) => {
+            if (r?.ok) invalidate(keys.gateways);
           }}
-        >
-          {sure ? "Replace the token" : "New token"}
-        </button>
-        {error && <span className="field-error m-0">{error}</span>}
+        />
+      }
+    >
+      <div className="panel__body">
+        Lost the token, or let 72 hours pass before revealing it? Stage a new
+        one here. The token your machine holds stops working the moment you
+        stage a new one.
       </div>
     </Panel>
   );
 }
 
-export function CollectorPage({ id, navigate, me }) {
+/** `home` is the frame this page is read in: the public fleet under Status,
+ *  or your own under Settings. */
+export function CollectorPage({
+  id,
+  navigate,
+  me,
+  home = `${CONSOLE}/status/collectors`,
+}) {
   // Stamped once per load rather than read during render:
   // a clock read while rendering makes every re-render a new answer.
   const [now] = useInitialTime();
@@ -442,7 +442,7 @@ export function CollectorPage({ id, navigate, me }) {
     return (
       <>
         <div className="page__crumb">
-          <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
+          <Link to={home}>‹ Collectors</Link>
         </div>
         <Empty title="No collector by that name">
           Collectors are named for a Clash Royale card. A drained one keeps its
@@ -462,14 +462,15 @@ export function CollectorPage({ id, navigate, me }) {
   return (
     <>
       <div className="page__crumb">
-        <Link to={`${CONSOLE}/status/collectors`}>‹ Collectors</Link>
+        <Link to={home}>‹ Collectors</Link>
       </div>
       <PageHead
         title={name}
         sub={
           <>
-            {own ? "Yours" : `Run by ${pub?.operator ?? "an operator"}`}
-            {own ? ` · ${own.name}` : ""}
+            {own
+              ? `Yours, on ${own.name}`
+              : `Run by ${pub?.operator ?? "an operator"}`}
             {detail?.gateway?.last_seen_sha
               ? ` · ${detail.gateway.last_seen_sha.slice(0, 7)}`
               : ""}
@@ -484,8 +485,13 @@ export function CollectorPage({ id, navigate, me }) {
         aside={
           <span className={`chip chip--${tone}`} style={{ marginLeft: "auto" }}>
             <span className="chip__dot" />
-            {status_ !== "active" ? status_ : behind ? "behind" : "healthy"} ·
-            last {ago(pub?.last_success_at ?? own?.last_success_at, now)}
+            {status_ !== "active"
+              ? status_[0].toUpperCase() + status_.slice(1)
+              : behind
+                ? "Behind"
+                : "Active"}
+            , last fetch{" "}
+            {ago(pub?.last_success_at ?? own?.last_success_at, now)}
           </span>
         }
       />
@@ -502,18 +508,18 @@ export function CollectorPage({ id, navigate, me }) {
       {own && (
         <div className="stats" style={{ marginBottom: "14px" }}>
           <div className="stats__cell">
-            <div className="label">earns</div>
+            <div className="label">Earns</div>
             <div className="stats__value">
-              {status_ === "active" ? "Family" : "—"}
+              {status_ === "active" ? "Family limits" : "Nothing now"}
             </div>
             <div className="stats__note">
               {status_ === "active"
-                ? "raises your limits to Family, while active; higher limits you were given stand"
-                : "raises your limits to Family again once it is active"}
+                ? "while active. A limit granted above it stands."
+                : "Family limits again once it is active."}
             </div>
           </div>
           <div className="stats__cell">
-            <div className="label">fetches</div>
+            <div className="label">Fetches</div>
             <div className="stats__value">
               {Number(own.fetches_24h ?? pub?.fetches_1h ?? 0).toLocaleString()}
             </div>
@@ -524,15 +530,22 @@ export function CollectorPage({ id, navigate, me }) {
         </div>
       )}
 
-      {own && <YourCard key={own.gateway_id} own={own} navigate={navigate} />}
+      {own && (
+        <YourCard
+          key={own.gateway_id}
+          own={own}
+          navigate={navigate}
+          home={home}
+        />
+      )}
 
       {status_ === "draining" && (
         <div className="callout callout--warn" style={{ marginBottom: "14px" }}>
           <Icon name="circle-dashed" size={17} />
           <span>
-            Draining. It keeps its name and its place, and does not raise your
-            limits until it is active again. Bring it back with probation once
-            the machine is reachable.
+            Draining. It keeps its name and its place, and earns nothing until
+            it is active again. Bring it back; it&rsquo;s on trial until its
+            first fetch.
           </span>
         </div>
       )}
@@ -552,7 +565,7 @@ export function CollectorPage({ id, navigate, me }) {
               className="footnote"
               style={{ marginLeft: "auto", fontWeight: 400 }}
             >
-              staged, waiting for you
+              Staged, waiting for you
             </span>
           }
 
@@ -575,7 +588,7 @@ export function CollectorPage({ id, navigate, me }) {
                 textWrap: "pretty",
               }}
             >
-              We show it once and never again, reveal it when you are at the
+              We show it once and never again, so reveal it when you are at the
               machine.
             </span>
             <button
@@ -596,7 +609,9 @@ export function CollectorPage({ id, navigate, me }) {
         <section className="code" style={{ marginBottom: "14px" }}>
           <div className="code__head">
             <span className="label">collector token</span>
-            <span className="footnote">shown once, it is gone from us now</span>
+            <span className="footnote">
+              Shown once. It is gone from us now.
+            </span>
             <button
               className="btn btn--sm"
               style={{ marginLeft: "auto" }}
@@ -608,7 +623,7 @@ export function CollectorPage({ id, navigate, me }) {
           <pre className="code__body">{env}</pre>
           <div className="panel__foot">
             Paste it into the collector&rsquo;s <code>.env</code> with your own
-            Clash Royale key beside it. We kept only its hash; if you lose it,
+            Clash Royale key beside it. We kept only its hash. If you lose it,
             stage a new one on this page, which invalidates this one.
           </div>
         </section>
@@ -676,7 +691,7 @@ export function CollectorPage({ id, navigate, me }) {
               })}
             </div>
             <div className="panel__foot">
-              Seven days. The server chooses what each collector fetches; a
+              Seven days. The server chooses what each collector fetches. A
               collector never picks its own targets.
             </div>
           </Panel>

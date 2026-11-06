@@ -7,7 +7,7 @@ order: 4
 navTitle: "Run a collector"
 icon: server
 lede: "Volunteer a machine that fetches for the shared record, and what it earns you."
-console: ["Your collector", "/console/status/collectors", "Settings ▸ Collectors"]
+console: ["Your collector", "/settings/collectors", "Settings ▸ Collectors"]
 ---
 
 # Running a collector

@@ -19,8 +19,9 @@ import {
 } from "@elixir-mcp/ui";
 import { api } from "../api.js";
 import { usePublicStats } from "../lib/queries.js";
-import { tagPath, tagFromPath } from "../lib/tag-url.js";
+import { normTag, tagPath, tagFromPath } from "../lib/tag-url.js";
 import { CONSOLE, appPath } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 
 /**
  * Explore — the record browser (design handoff 2026-09-05). Not a
@@ -43,9 +44,6 @@ const HASH_RE = /^(deck:)?[0-9a-f]{16,64}$/i;
 export const WEEK_RE =
   /^(?:season\s+|s)?\s*(\d{1,4})\s*(?:[-·,]\s*(?:week\s*|w)?|\s*(?:week\s*|w))\s*(\d{1,2})$/i;
 
-function normTag(q) {
-  return "#" + q.trim().toUpperCase().replace(/^#/, "").replaceAll("O", "0");
-}
 // Tag <-> URL is one seam for the whole app now (lib/tag-url.js).
 const encTag = tagPath;
 const decTag = tagFromPath;
@@ -445,7 +443,7 @@ function Lookup({ me, navigate, browse }) {
         sub={
           browse
             ? `${browse.lede} ${browse.hint}`
-            : "Paste any tag to land on the record we hold for it, a player, a clan, a deck hash or a war week, or type a name or one of your nicknames. When your agent says something surprising, this is where you go and check."
+            : "Paste any tag to land on the record we hold for it: a player, a clan, a deck or a war week. Or type a name or one of your nicknames. When your agent says something surprising, this is where you go and check."
         }
         aside={
           <>
@@ -601,17 +599,17 @@ function Lookup({ me, navigate, browse }) {
                       fontSize: "11.5px",
                     }}
                   >
-                    no records
+                    has no records
                   </span>
                 </div>
                 <div className="empty__body" style={{ textAlign: "left" }}>
-                  Nothing in the record matches that tag or name. Elixir records
-                  the players and clans someone added, and the game&rsquo;s
-                  leaderboards; it does not crawl the whole game. Add it from{" "}
-                  <Link to={`${CONSOLE}/account/tracking`}>
-                    Account ▸ Tracking
+                  Nothing on record matches that tag or name. Elixir records the
+                  players and clans someone added. It does not crawl the whole
+                  game. Add it under{" "}
+                  <Link to={`${SETTINGS}/players`}>
+                    Settings › Players &amp; tracking
                   </Link>{" "}
-                  and recording starts on the next read.
+                  and recording starts within a few minutes.
                 </div>
               </div>
             )}
@@ -1143,7 +1141,7 @@ function buildView(kind, rawId, res, me, zone) {
       action: yours
         ? {
             label: "Manage tracking",
-            href: `${CONSOLE}/account/tracking/${encTag(tag)}`,
+            href: `${SETTINGS}/players/${encTag(tag)}`,
           }
         : null,
       sub: "What the recorder holds for this player. Coverage tiles open the underlying records.",

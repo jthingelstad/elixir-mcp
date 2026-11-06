@@ -293,7 +293,7 @@ export async function resolveSubject(
           : "This connection acts for a clan, so there is no default player.",
         hint:
           (DISCORD_ASKER.test(onBehalfOf?.trim() ?? "")
-            ? "They can connect Discord on their Elixir profile (/console/account/profile) to be known everywhere without asking. "
+            ? "They can connect Discord under Connections & agents in their Elixir Settings (/settings/connections/discord) to be known everywhere without asking. "
             : "") +
           (candidates.length === 1
             ? `candidates[] holds the one clan member whose whole name is '${displayName}': elixir_identify({ external_id: ${JSON.stringify(onBehalfOf)}, player_tag: ${JSON.stringify(candidates[0].player_tag)} }) once, say so in a line, and answer.`

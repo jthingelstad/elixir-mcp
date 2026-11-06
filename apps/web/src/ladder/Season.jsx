@@ -35,7 +35,7 @@ import {
 import { gapLine, formNames } from "./ladder-decks.js";
 import { api } from "../api.js";
 import { BringClanmates } from "../components/BringClanmates.jsx";
-import { CONSOLE } from "../lib/console.js";
+import { SETTINGS } from "../lib/settings.js";
 import { useBattleSweep, useToolRead, useToolReads } from "../lib/queries.js";
 import { DeckForm, SeasonForm, WeekForm } from "./Form.jsx";
 import { YoungRecord } from "./YoungRecord.jsx";
@@ -567,8 +567,8 @@ function SeasonExtras({ player, search }) {
           }}
           send={api.sendFeedback}
           onClose={() => setFeedback(false)}
-          itemHref={(id) => `${CONSOLE}/account/feedback/${id}`}
-          historyHref={`${CONSOLE}/account/feedback`}
+          itemHref={(id) => `${SETTINGS}/feedback/${id}`}
+          historyHref={`${SETTINGS}/feedback`}
         />
       ) : null}
     </>

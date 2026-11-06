@@ -1,13 +1,7 @@
 import { useLocation } from "@tanstack/react-router";
-import { Link, PageHead, Tabs, TagText } from "@elixir-mcp/ui";
+import { PageHead, Tabs, TagText } from "@elixir-mcp/ui";
 import { useMe } from "../App.jsx";
-import { CONSOLE } from "../lib/console.js";
-import {
-  useHome,
-  useHomeFriends,
-  useTimelineDiscord,
-  useTimelineNews,
-} from "../lib/queries.js";
+import { useHome, useHomeFriends, useTimelineNews } from "../lib/queries.js";
 import { HOME_TABS } from "../home/logic.js";
 import { NewAccount, recorded } from "../home/NewAccount.jsx";
 import { TodayError, TodayFresh, TodayPanels } from "../home/Today.jsx";
@@ -101,28 +95,12 @@ function TodayTab() {
 }
 
 function TimelineTab() {
-  const discord = useTimelineDiscord();
   return (
     <>
-      <PageHead
-        title="Timeline"
-        sub="The last seven days, newest first."
-        aside={<DiscordLine status={discord.data} />}
-      />
+      <PageHead title="Timeline" sub="The last seven days, newest first." />
       <HomeTabs value="timeline" />
       <HomeTimeline />
     </>
-  );
-}
-
-function DiscordLine({ status }) {
-  return (
-    <Link
-      to={`${CONSOLE}/account/connections#timeline-discord`}
-      className="kit-tiny"
-    >
-      Discord sharing{status?.enabled ? " on" : ""} · Manage
-    </Link>
   );
 }
 

@@ -4,9 +4,9 @@
 
 *The day has moved out: Home's half is [Home](home.md) (redesign step 3). The
 word Console is gone from what a reader sees since step 3b, and the pages here are
-called Settings, reached from the account menu, though their paths stay under
-`/console` until step 6, when an agent also becomes a page in Settings
-([Structure](structure.md)). The quotes below keep the word as it was said.*
+called Settings, reached from the account menu, at `/settings` since step 6,
+when an agent also became a page there ([Structure](structure.md)). The quotes
+below keep the word as it was said.*
 
 ## What it is for
 
@@ -18,9 +18,9 @@ where the record is set up and where its machinery is visible. [Jamie,
 
 ## Who it serves
 
-The signed-in person, and each of their agents: "the console switches
-into an agent", a place of its own at `/console/agent/<id>/…` with the
-same pages scoped to it. Integrations stay out; Admin is the
+The signed-in person, and each of their agents, which has a page of its
+own at `/settings/agents/<id>` with five tabs (step 6 replaced "the console
+switches into an agent"). Integrations stay out; Admin is the
 maintainer's. [Jamie, 2026-09-23]
 
 ## Principles that decide the details

@@ -354,7 +354,22 @@ test("on an agent's Timeline, evidence takes focus and Close returns it to its r
   await mockApi(
     page,
     signedIn({
-      "GET /api/me/principals": [200, { agents: [], addable_clans: [] }],
+      "GET /api/me/principals": [
+        200,
+        {
+          agents: [
+            {
+              public_id: PUBLIC_ID,
+              name: "clan-bot",
+              kind: "agent",
+              status: "approved",
+              tokens: [],
+              clans: [],
+            },
+          ],
+          addable_clans: [],
+        },
+      ],
       [`GET /api/agent/${PUBLIC_ID}`]: [
         200,
         { authenticated: true, role: "member", claims: [], recordings: [] },
@@ -394,7 +409,7 @@ test("on an agent's Timeline, evidence takes focus and Close returns it to its r
       },
     }),
   );
-  await page.goto(`/console/agent/${PUBLIC_ID}/timeline`);
+  await page.goto(`/settings/agents/${PUBLIC_ID}/timeline`);
   const trigger = page.getByRole("button", { name: "View games", exact: true });
   await trigger.click();
   const panel = page.getByRole("region", { name: "Timeline evidence" });

@@ -157,9 +157,7 @@ describe("the gate pages", () => {
   test("the three refusals point at three different Elixir places; an unverified player is not one", () => {
     const hrefs = Object.values(REFUSALS).map((p) => p.link[0]);
     expect(new Set(hrefs).size).toBe(3);
-    expect(REFUSALS.no_primary_player.link[0]).toContain(
-      "/console/account/tracking",
-    );
+    expect(REFUSALS.no_primary_player.link[0]).toContain("/settings/players");
     expect(REFUSALS.unverified).toBeUndefined();
   });
 
@@ -187,9 +185,9 @@ describe("the gate pages", () => {
     expect(screen.queryByText(/join a clan/i)).toBeNull();
     expect(
       screen
-        .getByRole("link", { name: "Elixir → Tracking ›" })
+        .getByRole("link", { name: "Settings → Players ›" })
         .getAttribute("href"),
-    ).toContain("/console/account/tracking");
+    ).toContain("/settings/players");
   });
 
   test("a stale absent-clan observation is dated, not a current membership assertion", () => {
@@ -310,7 +308,7 @@ describe("choosing a clan", () => {
       screen
         .getByRole("link", { name: /Verify your player/ })
         .getAttribute("href"),
-    ).toContain("/console/account/verify");
+    ).toContain("/settings/players/verify");
     expect(screen.queryByText("#RRR", { exact: false })).toBeTruthy();
   });
 
@@ -411,7 +409,7 @@ describe("an unverified player", () => {
       screen
         .getByRole("link", { name: /Verify in Elixir/ })
         .getAttribute("href"),
-    ).toContain("/console/account/verify");
+    ).toContain("/settings/players/verify");
     fireEvent.click(
       screen.getByRole("button", { name: /I understand, continue/ }),
     );

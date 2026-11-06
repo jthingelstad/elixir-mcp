@@ -86,6 +86,26 @@ describe("analyticsLocation", () => {
     expect(at("/console/agent/a1b2c3d4e5f6").path).toBe("/console/agent");
   });
 
+  test("Settings reports the kind of page, never which player, agent or record", () => {
+    for (const [path, kind] of [
+      ["/settings", "/settings"],
+      ["/settings/players", "/settings/players"],
+      ["/settings/players/2ABC", "/settings/players"],
+      ["/settings/players/2ABC/verify", "/settings/players/verify"],
+      ["/settings/emails/sent", "/settings/emails/sent"],
+      ["/settings/emails/5c1c5dbf", "/settings/emails"],
+      ["/settings/usage/requests/5c1c5dbf", "/settings/usage/requests"],
+      ["/settings/feedback/812", "/settings/feedback"],
+      ["/settings/connections/discord", "/settings/connections/discord"],
+      ["/settings/agents/a1b2c3d4e5f6/reads", "/settings/agents/reads"],
+      ["/settings/agents/a1b2c3d4e5f6", "/settings/agents"],
+    ]) {
+      const seen = at(path);
+      expect(seen.path).toBe(kind);
+      expect(new URL(seen.url).search).toBe("");
+    }
+  });
+
   test("feedback, tracked subjects and admin accounts report their page, never the record", () => {
     for (const [path, kind] of [
       ["/console/account/feedback/812", "/console/account/feedback"],

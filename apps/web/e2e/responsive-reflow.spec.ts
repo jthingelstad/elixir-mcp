@@ -95,7 +95,7 @@ for (const state of ["signed in", "signed out", "checking"] as const) {
         await expect(account).toBeFocused();
         await expect(page.locator("#account-menu")).toHaveCount(0);
         if (width <= 760) {
-          const tabs = page.locator(".kit-bottom a");
+          const tabs = page.locator(".kit-bottom a, .kit-bottom button");
           await expect(tabs).toHaveCount(4);
           for (const box of await tabs.evaluateAll((all) =>
             all.map((a) => a.getBoundingClientRect().toJSON()),

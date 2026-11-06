@@ -35,8 +35,8 @@ read error. It holds that until both reads of the first read are in: the
 profile (usually seconds after the add) and the battle log, which brings
 roughly the last 30 battles. A player whose battle log is read and empty
 is shown as an empty season, not a wait. If Clash Royale has no player with
-that tag, Ladder says **Tag not found**, in Tracking's words, and **Fix
-the tag** opens the player's Tracking page at the place to type the right
+that tag, Ladder says **Tag not found**, in the words Settings uses, and **Fix
+the tag** opens the player's page in Settings at the place to type the right
 one. A tag given at signup is just added in the same way: the new account
 opens on the player's page while the first read comes in. The player list stays
 at the top of both, so you can switch back to a player already on record.
@@ -91,7 +91,7 @@ season you ask for in the address is always the one shown, even when it is
 empty, and a player whose first read has not landed still sees it on its
 way, never last season.
 
-A player's record under Tracking links a saved profile directly to its dated
+A player's record under Settings ▸ Players links a saved profile directly to its dated
 profile view, and retained battles directly to the battle browser,
 including older seasons. It does not use an empty current season as proof
 that those records are missing.

@@ -71,7 +71,38 @@ for (const width of [390, 1280]) {
     await mockApi(
       page,
       signedIn({
-        "GET /api/me/timeline/discord": [
+        "GET /api/me/principals": [
+          200,
+          {
+            agents: [
+              {
+                public_id: "abc12345",
+                name: "clan-bot",
+                kind: "agent",
+                status: "approved",
+                tokens: [],
+                clans: [],
+              },
+            ],
+            addable_clans: [],
+          },
+        ],
+        "GET /api/agent/abc12345": [
+          200,
+          { authenticated: true, role: "member", claims: [], recordings: [] },
+        ],
+        "GET /api/agent/abc12345/timeline": [
+          200,
+          {
+            timeline: [],
+            seen_to: null,
+            window: {
+              from: "2026-09-27T12:40:00Z",
+              to: "2026-10-04T12:40:00Z",
+            },
+          },
+        ],
+        "GET /api/agent/abc12345/timeline/discord": [
           200,
           {
             enabled: true,
@@ -81,7 +112,7 @@ for (const width of [390, 1280]) {
         ],
       }),
     );
-    await page.goto("/console/account/connections");
+    await page.goto("/settings/agents/abc12345/timeline");
     await page
       .getByRole("button", { name: "Manage sharing", exact: true })
       .click();
@@ -102,7 +133,8 @@ for (const width of [390, 1280]) {
       .click();
     await expect(page.getByLabel("Discord webhook URL")).toHaveValue("");
     await page.getByRole("button", { name: "Close", exact: true }).click();
-    expect(writes).toEqual([]);
+    // Opening a Timeline marks it seen; nothing about sharing was written.
+    expect(writes.filter((url) => url.includes("discord"))).toEqual([]);
   });
 }
 
