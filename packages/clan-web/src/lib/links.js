@@ -13,6 +13,7 @@ export const ELIXIR_LINKS = {
   tracking: "/settings/players",
   verify: "/settings/players/verify",
   elixirHome: "/home",
+  addPlayer: "/home#add-player",
   connections: "/settings/connections",
   verifyDocs: "/docs/verify",
   connectionsDocs: "/docs/connections",
@@ -21,4 +22,6 @@ export const ELIXIR_LINKS = {
 /** True for a link the app routes (Home, the account's pages), false for a site
  *  document (the docs), which is a page load. */
 export const inApp = (href) =>
-  href.startsWith("/settings/") || href === "/home";
+  href.startsWith("/settings/") ||
+  href === "/home" ||
+  href.startsWith("/home#");

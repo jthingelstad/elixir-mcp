@@ -121,6 +121,18 @@ function FrameHead({ slug, player, clanName, mode, season, applied }) {
   );
 }
 
+/** A closed select shows only the name; what kind of choice it is belongs to
+ *  the open menu. A group with nothing in it is not drawn. */
+function OptionGroups({ groups, option }) {
+  return groups
+    .filter(([, list]) => list.length)
+    .map(([label, list]) => (
+      <optgroup key={label} label={label}>
+        {list.map(option)}
+      </optgroup>
+    ));
+}
+
 /** Whose season: a list with several players, a name and a tag with one. The
  *  scope bar's, and Pending's, where nothing else on the page can change it. */
 export function PlayerPick({ player, players, hrefFor, navigate }) {
@@ -139,7 +151,7 @@ export function PlayerPick({ player, players, hrefFor, navigate }) {
       </label>
       <select
         id={id}
-        className="ladder-scope__select"
+        className="scope-select"
         value={player.player_tag}
         onChange={(e) => {
           const next = players.find((p) => p.player_tag === e.target.value);
@@ -148,11 +160,17 @@ export function PlayerPick({ player, players, hrefFor, navigate }) {
           );
         }}
       >
-        {players.map((p) => (
-          <option key={p.player_tag} value={p.player_tag}>
-            {playerName(p)}, {p.is_primary ? "your main player" : "also you"}
-          </option>
-        ))}
+        <OptionGroups
+          groups={[
+            ["Your main player", players.filter((p) => p.is_primary)],
+            ["Also you", players.filter((p) => !p.is_primary)],
+          ]}
+          option={(p) => (
+            <option key={p.player_tag} value={p.player_tag}>
+              {playerName(p)}
+            </option>
+          )}
+        />
       </select>
     </>
   );
@@ -191,16 +209,21 @@ function ScopeBar({
         </label>
         <select
           id={seasonId}
-          className="ladder-scope__select"
+          className="scope-select"
           value={season.key}
           onChange={(e) => navigate(hrefFor({ season: e.target.value }))}
         >
-          {options.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.name}
-              {s.current ? " (now)" : ""}
-            </option>
-          ))}
+          <OptionGroups
+            groups={[
+              ["This season", options.filter((s) => s.current)],
+              ["Earlier", options.filter((s) => !s.current)],
+            ]}
+            option={(s) => (
+              <option key={s.key} value={s.key}>
+                {s.name}
+              </option>
+            )}
+          />
         </select>
       </div>
       <Chips

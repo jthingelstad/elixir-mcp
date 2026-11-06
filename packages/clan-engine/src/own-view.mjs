@@ -58,7 +58,34 @@ export function policySummaryOf({ set, version, values, members }) {
  * shown as `at_risk`, as Clan's own page shows it: a removal is a
  * leaders' Action and nobody below co-leader sees one.
  */
-export function ownStandingLine({ verdicts, playerTag, values, version }) {
+/** The missed minimum you are proportionally closest to, with your number.
+ *  Only a minimum the record has judged: unknown never counts as a miss. */
+function nearestMinimum(minimums) {
+  const have = {
+    war: minimums.war_decks,
+    ranked: minimums.ranked_battles,
+    donations: minimums.donations_average,
+    trophies: minimums.trophies,
+  };
+  let nearest = null;
+  for (const [key, need] of Object.entries(minimums.set ?? {})) {
+    if (minimums.met?.[key] !== false || !(need > 0)) continue;
+    const share = (have[key] ?? 0) / need;
+    if (!nearest || share > nearest.share)
+      nearest = { key, need, have: have[key] ?? 0, share };
+  }
+  if (!nearest) return null;
+  return { key: nearest.key, need: nearest.need, have: nearest.have };
+}
+
+export function ownStandingLine({
+  verdicts,
+  playerTag,
+  values,
+  version,
+  // Clan's own page says how close you are. clans_my_view's shape stays as it was.
+  withNearest = false,
+}) {
   const mine = verdicts?.members?.find((m) => m.player_tag === playerTag);
   if (!mine) return null;
   const ranked = ranksElder(values);
@@ -77,6 +104,7 @@ export function ownStandingLine({ verdicts, playerTag, values, version }) {
       met: minimums.met,
       passes: minimums.passes,
       unknown: minimums.unknown,
+      ...(withNearest ? { nearest: nearestMinimum(minimums) } : {}),
       rule: values.minimums_rule,
       window_weeks: values.minimums_window_weeks,
     },

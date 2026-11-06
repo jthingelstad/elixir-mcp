@@ -1,5 +1,5 @@
 import { CATEGORY_LABELS } from "@elixir-mcp/clan-engine";
-import { Fresh, Panel, Table, Tag, TagText, useClock } from "@elixir-mcp/ui";
+import { Panel, Table, Tag, TagText, useClock } from "@elixir-mcp/ui";
 import { useState } from "react";
 import { MemberLink } from "../components/MemberLink.jsx";
 import { PageHead, Tile, Tiles } from "../components/PageHead.jsx";
@@ -671,13 +671,6 @@ export function Season({ clan, period, navigate }) {
           ))}
         </select>
       </label>
-      {(seasonId ? seasonData : d)?.as_of ? (
-        <Fresh
-          label="Read"
-          seconds={(seasonId ? seasonData : d).freshness_seconds}
-          ts={(seasonId ? seasonData : d).as_of}
-        />
-      ) : null}
     </div>
   ) : null;
   const say = (title, body, to, label) => (

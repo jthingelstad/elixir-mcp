@@ -6,7 +6,6 @@ import {
   Table,
   Tag,
   ZoneProvider,
-  ago,
   noun,
   useClock,
 } from "@elixir-mcp/ui";
@@ -67,7 +66,7 @@ export function RosterTable({
     .map((m) => m.trophies)
     .filter((t) => t !== null && t !== undefined);
   return (
-    <div className="clan-rows">
+    <div className="clan-rows roster-table">
       <Table
         groups={groups.map(([role, rows]) => ({ key: role, rows }))}
         rowKey={(m) => m.player_tag}
@@ -80,38 +79,50 @@ export function RosterTable({
             head: "Member",
             cellProps: (m) => ({ title: m.player_tag }),
             cell: (m) => (
-              <span className="inline-flex items-center gap-2">
-                <span
-                  className={
-                    m.you ? "font-semibold text-ink" : "font-medium text-ink"
-                  }
-                >
-                  {clanTag ? (
-                    <Link
-                      to={
-                        memberPath(clanTag, m.player_tag) +
-                        (search
-                          ? `?${new URLSearchParams({ find: search })}`
-                          : "")
-                      }
-                      navigate={navigate}
-                    >
-                      {m.name ?? <Tag tag={m.player_tag} />}
-                    </Link>
-                  ) : (
-                    (m.name ?? <Tag tag={m.player_tag} />)
-                  )}
-                </span>
-                {m.you ? (
-                  <span className="chip chip--info px-2 py-0 text-[11px]">
-                    you
+              <>
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className={
+                      m.you ? "font-semibold text-ink" : "font-medium text-ink"
+                    }
+                  >
+                    {clanTag ? (
+                      <Link
+                        to={
+                          memberPath(clanTag, m.player_tag) +
+                          (search
+                            ? `?${new URLSearchParams({ find: search })}`
+                            : "")
+                        }
+                        navigate={navigate}
+                      >
+                        {m.name ?? <Tag tag={m.player_tag} />}
+                      </Link>
+                    ) : (
+                      (m.name ?? <Tag tag={m.player_tag} />)
+                    )}
                   </span>
-                ) : null}
-              </span>
+                  {m.you ? (
+                    <span className="chip chip--info px-2 py-0 text-[11px]">
+                      you
+                    </span>
+                  ) : null}
+                </span>
+                <span className="roster-table__line">
+                  <span>
+                    {m.role_label ?? m.role} · {num(m.donations_this_week)}{" "}
+                    donated
+                  </span>
+                  {m.last_recorded_battle ? (
+                    <span>Battle {when(m.last_recorded_battle)}</span>
+                  ) : null}
+                </span>
+              </>
             ),
           },
           {
             head: "Role",
+            className: "roster-table__wide",
             cellProps: () => ({ "data-label": "Role" }),
             cell: (m) => (
               <span className="text-ink-dim">{m.role_label ?? m.role}</span>
@@ -120,17 +131,20 @@ export function RosterTable({
           {
             head: "Trophies",
             num: true,
+            className: "roster-table__trophies",
             cellProps: () => ({ "data-label": "Trophies" }),
             cell: (m) => num(m.trophies),
           },
           {
             head: "Donations this week",
             num: true,
+            className: "roster-table__wide",
             cellProps: () => ({ "data-label": "Donated this week" }),
             cell: (m) => num(m.donations_this_week),
           },
           {
             head: "Last seen in game",
+            className: "roster-table__wide",
             cellProps: () => ({ "data-label": "Last seen" }),
             cell: (m) =>
               m.last_seen_in_game ? (
@@ -143,6 +157,7 @@ export function RosterTable({
             // A date, never a day count: the count is a member's own, and leaders'
             // on Review (Q2).
             head: "Last battle",
+            className: "roster-table__wide",
             cellProps: () => ({ "data-label": "Last battle" }),
             cell: (m) =>
               m.last_recorded_battle ? (
@@ -445,11 +460,6 @@ export function Clan({ me, clan, navigate, search = "", fromRun = false }) {
               <div className="panel__foot flex flex-wrap items-center gap-2">
                 <span>
                   {roster.member_count} {noun(roster.member_count, "member")}
-                  {roster.cached_at
-                    ? ` · roster read ${ago(roster.cached_at)}`
-                    : roster.meta?.as_of
-                      ? ` · roster read ${ago(roster.meta.as_of)}`
-                      : ""}
                 </span>
                 <button
                   type="button"

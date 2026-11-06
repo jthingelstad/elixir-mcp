@@ -139,8 +139,8 @@ canonical: /data
     <div class="panel__body">
     {%- if wide.bars %}
       <div class="data-range" data-chart-range hidden>
-        <button type="button" class="chip" aria-pressed="true" data-range="wide">{{ wide.days }} days</button>
-        <button type="button" class="chip" aria-pressed="false" data-range="narrow">Last 8 weeks</button>
+        <button type="button" class="kit-chip" aria-pressed="true" data-range="wide">{{ wide.days }} days</button>
+        <button type="button" class="kit-chip" aria-pressed="false" data-range="narrow">Last 8 weeks</button>
       </div>
       {{ dataChart(wide, "wide", false) }}
       {{ dataChart(narrow, "narrow", true) }}

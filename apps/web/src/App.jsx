@@ -1089,7 +1089,7 @@ function ConsoleShell() {
           area={barArea(effectivePath)}
         >
           <div
-            className={`mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
+            className={`kit-frame mx-auto flex w-full max-w-page flex-auto items-stretch ${narrow ? "flex-col" : "flex-row"}`}
           >
             {railed ? (
               <Rail

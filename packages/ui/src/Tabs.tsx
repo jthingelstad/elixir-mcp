@@ -1,5 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { isPlainClick, Link } from "./Link.tsx";
+import { useScrollHint } from "./scrollHint.ts";
 
 export interface TabItem {
   key: string;
@@ -45,6 +46,7 @@ export function Tabs({
   className?: string;
 }) {
   const list = useRef<HTMLDivElement>(null);
+  useScrollHint(list);
 
   useEffect(() => {
     const row = list.current;

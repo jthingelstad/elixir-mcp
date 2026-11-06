@@ -18,7 +18,7 @@ export function ClanPicker({ me, navigate, select, selecting }) {
     <label className="clan-head__picker">
       <span className="field-label">Clan</span>
       <select
-        className="input w-auto"
+        className="scope-select"
         disabled={selecting}
         value={selecting && picking ? picking : here.clan_tag}
         onChange={async (e) => {

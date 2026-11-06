@@ -91,6 +91,35 @@ test("the standing line is the person's own, and a removal shows as at risk", ()
   );
 });
 
+test("Clan's page gets the missed minimum closest to met; clans_my_view's shape does not change", () => {
+  const verdicts = verdictsWithIdle();
+  const tag = "#IDLE";
+  const mine = verdicts.members.find((m) => m.player_tag === tag);
+  mine.facts.minimums = {
+    ...mine.facts.minimums,
+    set: { war: 8, donations: 20, trophies: 5000 },
+    met: { war: false, donations: false, trophies: null },
+    war_decks: 2,
+    donations_average: 15,
+    trophies: null,
+  };
+  const args = {
+    verdicts,
+    playerTag: tag,
+    values: effectivePolicyValues(EXAMPLE_POLICY),
+    version: 3,
+  };
+  assert.deepEqual(
+    ownStandingLine({ ...args, withNearest: true }).minimums.nearest,
+    {
+      key: "donations",
+      need: 20,
+      have: 15,
+    },
+  );
+  assert.equal("nearest" in ownStandingLine(args).minimums, false);
+});
+
 const cards = [
   {
     card_id: "r",

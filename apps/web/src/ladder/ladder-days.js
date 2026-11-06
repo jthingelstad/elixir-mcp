@@ -455,6 +455,21 @@ export function battleScore(b) {
   return `${word} ${b.me.crowns}–${against}`;
 }
 
+/** A row's result as it leads the row: "Lost 0–2", and the tone Record's card
+ *  gives it. The word stays, so colour is never the only signal. */
+export function battleOutcome(b) {
+  const score = battleScore(b);
+  return {
+    words: score.charAt(0).toUpperCase() + score.slice(1),
+    tone:
+      b.me?.outcome === "win"
+        ? "win"
+        : b.me?.outcome === "loss"
+          ? "loss"
+          : "draw",
+  };
+}
+
 /** The path of a battle's own page, from the url the tool returned
  *  (never built from an id): the battle page is this app's, so the link
  *  stays in it. */
@@ -479,12 +494,6 @@ export function battleKind(b) {
   }
   if (group === "challenge" || group === "tournament") return groupLabel(group);
   return null;
-}
-
-/** A row's result: the kind, where it has one, then the score. */
-export function battleResult(b) {
-  const kind = battleKind(b);
-  return kind ? `${kind} · ${battleScore(b)}` : battleScore(b);
 }
 
 /**
@@ -512,7 +521,26 @@ export function battleDays(battles, zone) {
     }));
 }
 
-/** "6 battles · 4–2", a draw last. */
+/** "4–2", a draw last. */
+function recordLine(t) {
+  return `${fmt(t.wins)}–${fmt(t.losses)}${t.draws ? `–${fmt(t.draws)}` : ""}`;
+}
+
+/** "6 battles · 4–2". */
 export function tallyLine(t) {
-  return `${fmt(t.battles)} ${t.battles === 1 ? "battle" : "battles"} · ${fmt(t.wins)}–${fmt(t.losses)}${t.draws ? `–${fmt(t.draws)}` : ""}`;
+  return `${fmt(t.battles)} ${t.battles === 1 ? "battle" : "battles"} · ${recordLine(t)}`;
+}
+
+/** The head of a day with one sitting, which has no row of its own: its record,
+ *  the trophies it moved, and when, with no span for a single battle. The rows
+ *  under it are the count. */
+export function soloSittingLine(day, zone) {
+  const [s] = day.sittings;
+  return [
+    recordLine(day),
+    s.trophies ? `${fmt(s.trophies.from)} to ${fmt(s.trophies.to)}` : null,
+    s.battles.length > 1 ? timeSpan(s.start, s.end, zone) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }

@@ -202,7 +202,7 @@ test("e2e shards: every spec file in exactly one, balanced, and never an empty o
       Math.max(...Object.values(SPEC_WEIGHTS)),
     `loads ${loads.join(", ")}`,
   );
-  assert.throws(() => e2eShard(`40/40`, repoRoot), /no spec files/);
+  assert.throws(() => e2eShard(`999/999`, repoRoot), /no spec files/);
 });
 
 test("validate runs the runner's shards and the journeys' shards it names, and gates on all of them", async () => {

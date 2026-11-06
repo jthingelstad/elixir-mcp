@@ -27,7 +27,7 @@ const refused = (reason, navigate) =>
 
 test("a Settings link is followed in the app", () => {
   const navigate = vi.fn();
-  refused("no_primary_player", navigate);
+  refused("membership_unknown", navigate);
   const link = screen.getByRole("link", { name: "Settings → Players ›" });
   expect(link.getAttribute("href")).toBe("/settings/players");
   fireEvent.click(link);

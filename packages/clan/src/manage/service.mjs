@@ -1055,6 +1055,7 @@ export function createManageService({
         });
         // One shaping with the person's own connection (clans_my_view).
         clan = ownStandingLine({
+          withNearest: true,
           verdicts,
           playerTag: who.player_tag,
           values: policy.values,

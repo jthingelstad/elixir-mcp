@@ -68,7 +68,13 @@ export function FreshChip({
       <summary title={ts ? when(ts) : undefined}>
         {age == null ? `${label}: never` : `${label} ${agoPlain(age)}`}
       </summary>
-      <div className="kit-fresh__pop">{children}</div>
+      <div className="kit-fresh__pop">
+        {children}
+        <span className="kit-fresh__key">
+          A green dot means read in the last 15 minutes, amber in the last day,
+          and grey anything older.
+        </span>
+      </div>
     </details>
   );
 }

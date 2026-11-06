@@ -30,7 +30,7 @@ export function ClanHead({ me, path, navigate, select, selecting }) {
     <header className="clan-head">
       <div className="clan-head__top">
         <div className="clan-head__who">
-          <h1 className="page__title m-0">
+          <h1 className="kit-head__title m-0">
             {clan.name ?? <Tag tag={clan.clan_tag} />}
           </h1>
           <p className="page__lede m-0">{sub}</p>

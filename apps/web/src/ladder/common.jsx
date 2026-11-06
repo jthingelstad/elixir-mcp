@@ -1,4 +1,3 @@
-import { SETTINGS } from "../lib/settings.js";
 import { Empty, Icon, Link, PageHead, Stat, useClock } from "@elixir-mcp/ui";
 import { fmt, warLine } from "./ladder.js";
 import { useToolRead } from "../lib/queries.js";
@@ -150,19 +149,15 @@ export function NoPlayers() {
         sub="Your season, read back"
       />
       <Empty
-        title="No player of yours yet"
+        title="Ladder starts with your player"
         titleAs="h2"
         action={
-          <Link
-            className="btn btn--sm"
-            to={`${SETTINGS}/players#add-player-tag`}
-          >
+          <Link className="btn btn--primary" to="/home#add-player">
             Add your player
           </Link>
         }
       >
-        Ladder reads back the season of a player you play as. Add the player you
-        play as, and the record starts with the next battle log Elixir reads.
+        Add the player you play as and the record starts with the next read.
       </Empty>
     </div>
   );
