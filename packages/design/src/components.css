@@ -7079,14 +7079,46 @@ button.kit-row {
   display: flex;
   gap: 4px;
 }
-.kit-top__nav a,
+/* Signed in, these are the app's three places: tabs with the phone's icons,
+   set off from the brand and standing the full height of the bar. Signed out,
+   .kit-top__out stays plain site links, because that is what they are. */
+.kit-top__nav {
+  align-self: stretch;
+}
+.kit-top__nav::before {
+  content: "";
+  align-self: center;
+  width: 1px;
+  height: 24px;
+  margin-right: 12px;
+  background: var(--line);
+}
+.kit-top__nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-block: 2px solid transparent;
+  color: var(--ink-body);
+  font-weight: 600;
+  text-decoration: none;
+}
+.kit-top__nav a:hover {
+  color: var(--ink);
+}
+.kit-top__nav a[aria-current="page"] {
+  border-bottom-color: var(--gold);
+  color: var(--ink);
+}
+.kit-top__nav a[aria-current="page"] svg {
+  color: var(--gold);
+}
 .kit-top__out a {
   padding: 6px 10px;
   border-radius: 6px;
   color: var(--ink-body);
   text-decoration: none;
 }
-.kit-top__nav a[aria-current="page"],
 .kit-top__out a[aria-current="page"] {
   background: var(--panel-raised);
   color: var(--ink);
@@ -8138,6 +8170,34 @@ button.kit-row {
   background: transparent;
   font: inherit;
   cursor: pointer;
+}
+/* Search keeps its own outline; the icon is a bare button, or the browser draws one. */
+.kit-top__icon {
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+}
+.kit-top__icon:hover {
+  background: var(--panel-raised);
+  color: var(--ink);
+}
+/* Too narrow for a useful prompt: the magnifier alone, its words still its name. */
+@media (max-width: 1000px) {
+  .kit-top__search {
+    flex: 0 0 auto;
+    padding: 8px;
+  }
+  .kit-top__search span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 .kit-top__search {
   font-size: 13px;
