@@ -820,7 +820,7 @@ export const DOC_LINKS = {
     "Running a collector",
     [
       ["Operators guide", "/docs/operators"],
-      ["The job ledger", "/docs/architecture#collectors-in-depth"],
+      ["How collectors get work", "/docs/architecture#collectors-in-depth"],
       ["Budgets", "/docs/limits"],
     ],
   ],
@@ -851,7 +851,7 @@ export const DOC_LINKS = {
     [
       ["Operators guide", "/docs/operators"],
       ["Architecture", "/docs/architecture#collectors-in-depth"],
-      ["The job ledger", "/docs/architecture#collectors-in-depth"],
+      ["How collectors get work", "/docs/architecture#collectors-in-depth"],
     ],
   ],
   "admin:connections": [

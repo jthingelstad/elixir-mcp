@@ -469,7 +469,7 @@ export function Status() {
           </div>
           {h.capture_audit_24h && (
             <div className="stats__cell">
-              <div className="label">missed battles</div>
+              <div className="label">reads with a gap</div>
               <div className="stats__value">
                 {h.capture_audit_24h.gaps.toLocaleString()}
               </div>

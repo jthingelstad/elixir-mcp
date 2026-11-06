@@ -37,7 +37,8 @@ const HASH_RE = /^(deck:)?[0-9a-f]{16,64}$/i;
 // page's own hint contradicted, so the advertised form fell through to a
 // name search and a miss.
 // "136-2", "S136 W2", "136w2" (console walk 2: "136-2" was refused).
-const WEEK_RE = /^s?\s*(\d{1,4})\s*(?:[-·]\s*w?|\s*w)\s*(\d{1,2})$/i;
+export const WEEK_RE =
+  /^(?:season\s+|s)?\s*(\d{1,4})\s*(?:[-·,]\s*(?:week\s*|w)?|\s*(?:week\s*|w))\s*(\d{1,2})$/i;
 
 function normTag(q) {
   return "#" + q.trim().toUpperCase().replace(/^#/, "").replaceAll("O", "0");
