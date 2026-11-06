@@ -108,7 +108,7 @@ readings and completed or declined Actions stay unchanged. Retrying a timely
 update recovers its original Action. These updates do not grant awards and work separately from the final season
 announcement setting. Nothing posts automatically.
 
-**Current progress.** A verified leader or co-leader can choose **Send season
+**Current progress.** A verified leader or co-leader can choose **Send Season
 [number] update to clan** during the newest recorded open season. The button
 names that current season even when viewing a previous season, and a note
 explains the target beside it. It freezes the fresh

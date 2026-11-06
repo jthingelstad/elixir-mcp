@@ -6,7 +6,7 @@ section: clan
 order: 4
 navTitle: "Standing"
 icon: chart-no-axes-column
-lede: "Standing is taking part in what your clan counts, compared across its members. Everyone sees how it works and where they stand; nobody below co-leader sees a removal or a clock."
+lede: "Standing is taking part in what your clan counts, compared across its members. Everyone sees how it works and where they stand; nobody below co-leader sees a removal action or anyone else's clock."
 reviewed: "2026-10-12; inactivity runs from the battle log and raises removal Actions again; 2026-10-01 against contract 9.17.1"
 callout: ["Open it at Clan › Members › Standing", "/clan", "Open Standing"]
 ---
@@ -32,9 +32,9 @@ the policy's removal day becomes a removal Action for the leaders
 | Trophy road | trophies today | no window: Standing counts today's trophies. The record keeps one reading for each game day a read landed, from its first reading of the player (`recorded_since`, which an imported history can put before recording began), and a day with no read is unknown. Standing does not compare them |
 
 Path of Legends and Donations read ISO weeks, starting Monday 00:00 UTC,
-ten hours before the war week and The week start at Monday's reset. So a
-game played in those ten hours counts in a different week here than on The
-week, and the two counts can differ by that much.
+ten hours before the war week and [a week in Season](/docs/clan-week) start
+at Monday's reset. So a game played in those ten hours counts in a different
+week here than in Season, and the two counts can differ by that much.
 
 Each category is off until the clan switches it on, and each clan picks
 its own windows. Eight weeks is the most, because Clan reads eight weeks
@@ -95,8 +95,8 @@ the game.
 
 ## What everyone sees
 
-Your own standing comes first, followed by the clan's groups. **How
-standing works** expands the explanation of the current policy. It does
+Your own standing comes first, followed by the clan's groups. **How it
+works here** expands the explanation of the current policy. It does
 not change which members or evidence your role may read.
 
 Once the clan has a policy, every member's **Standing** page shows:
@@ -107,8 +107,9 @@ Once the clan has a policy, every member's **Standing** page shows:
 - **Their own line**: where they stand, the evidence in a player's
   terms ("100% war decks over 4 war weeks, 12 ranked battles, ~213
   donations a week"), their war decks race by race when the clan counts
-  war, what would move them, the activity clock and its uncertainty, and any
-  hold a leader has set.
+  war, the activity clock and its uncertainty, and any hold a leader has set.
+  What the clan counts and the minimums, each met or not, are on Today and
+  their own page.
 
 When the clan ranks Elder and the policy lets members see where everyone
 stands (on unless the leaders turn it off), the page also lists every
@@ -135,7 +136,7 @@ inactivity clock.** A member sees only their own activity clock and its uncertai
 
 Clan reads every clan with a policy each morning from 11:00 UTC. Opening
 Standing or the leaders' Review reads it again when the last reading is
-more than five minutes old. Actions opens the last reading, and reads
+more than five minutes old. Today opens the last reading, and reads
 again when someone chooses **Refresh suggestions** or the policy has a
 new version. A reading can raise or withdraw
 [actions](/docs/clan-actions). A new version of the policy is read
